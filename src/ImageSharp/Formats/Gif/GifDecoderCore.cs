@@ -12,15 +12,13 @@ namespace ImageSharp.Formats
     /// Performs the gif decoding operation.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    internal class GifDecoderCore<TColor, TPacked>
-        where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct, IEquatable<TPacked>
+    internal class GifDecoderCore<TColor>
+        where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>
         /// The image to decode the information to.
         /// </summary>
-        private Image<TColor, TPacked> decodedImage;
+        private Image<TColor> decodedImage;
 
         /// <summary>
         /// The currently loaded stream.
@@ -35,7 +33,7 @@ namespace ImageSharp.Formats
         /// <summary>
         /// The next frame.
         /// </summary>
-        private ImageFrame<TColor, TPacked> nextFrame;
+        private ImageFrame<TColor> nextFrame;
 
         /// <summary>
         /// The area to restore.
@@ -57,7 +55,7 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <param name="image">The image to decode to.</param>
         /// <param name="stream">The stream containing image data. </param>
-        public void Decode(Image<TColor, TPacked> image, Stream stream)
+        public void Decode(Image<TColor> image, Stream stream)
         {
             this.decodedImage = image;
 
@@ -297,11 +295,11 @@ namespace ImageSharp.Formats
             int imageWidth = this.logicalScreenDescriptor.Width;
             int imageHeight = this.logicalScreenDescriptor.Height;
 
-            ImageFrame<TColor, TPacked> previousFrame = null;
+            ImageFrame<TColor> previousFrame = null;
 
-            ImageFrame<TColor, TPacked> currentFrame = null;
+            ImageFrame<TColor> currentFrame = null;
 
-            ImageBase<TColor, TPacked> image;
+            ImageBase<TColor> image;
 
             if (this.nextFrame == null)
             {
@@ -339,9 +337,9 @@ namespace ImageSharp.Formats
             int interlaceIncrement = 8; // The interlacing line increment
             int interlaceY = 0; // The current interlaced line
 
-            using (PixelAccessor<TColor, TPacked> pixelAccessor = image.Lock())
+            using (PixelAccessor<TColor> pixelAccessor = image.Lock())
             {
-                using (PixelArea<TColor, TPacked> pixelRow = new PixelArea<TColor, TPacked>(imageWidth, ComponentOrder.XYZW))
+                using (PixelArea<TColor> pixelRow = new PixelArea<TColor>(imageWidth, ComponentOrder.XYZW))
                 {
                     for (int y = descriptor.Top; y < descriptor.Top + descriptor.Height; y++)
                     {
@@ -426,7 +424,7 @@ namespace ImageSharp.Formats
         /// Restores the current frame background.
         /// </summary>
         /// <param name="frame">The frame.</param>
-        private void RestoreToBackground(ImageBase<TColor, TPacked> frame)
+        private void RestoreToBackground(ImageBase<TColor> frame)
         {
             if (this.restoreArea == null)
             {
@@ -437,16 +435,16 @@ namespace ImageSharp.Formats
             if (this.restoreArea.Value.Width == this.decodedImage.Width &&
                 this.restoreArea.Value.Height == this.decodedImage.Height)
             {
-                using (PixelAccessor<TColor, TPacked> pixelAccessor = frame.Lock())
+                using (PixelAccessor<TColor> pixelAccessor = frame.Lock())
                 {
                     pixelAccessor.Reset();
                 }
             }
             else
             {
-                using (PixelArea<TColor, TPacked> emptyRow = new PixelArea<TColor, TPacked>(this.restoreArea.Value.Width, ComponentOrder.XYZW))
+                using (PixelArea<TColor> emptyRow = new PixelArea<TColor>(this.restoreArea.Value.Width, ComponentOrder.XYZW))
                 {
-                    using (PixelAccessor<TColor, TPacked> pixelAccessor = frame.Lock())
+                    using (PixelAccessor<TColor> pixelAccessor = frame.Lock())
                     {
                         for (int y = this.restoreArea.Value.Top; y < this.restoreArea.Value.Top + this.restoreArea.Value.Height; y++)
                         {

@@ -13,19 +13,17 @@ namespace ImageSharp.Processors
     /// Combines two images together by blending the pixels.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public class DrawImageProcessor<TColor, TPacked> : ImageFilteringProcessor<TColor, TPacked>
-        where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct, IEquatable<TPacked>
+    public class DrawImageProcessor<TColor> : ImageFilteringProcessor<TColor>
+        where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="DrawImageProcessor{TColor,TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="DrawImageProcessor{TColor}"/> class.
         /// </summary>
         /// <param name="image">The image to blend with the currently processing image.</param>
         /// <param name="size">The size to draw the blended image.</param>
         /// <param name="location">The location to draw the blended image.</param>
         /// <param name="alpha">The opacity of the image to blend. Between 0 and 100.</param>
-        public DrawImageProcessor(Image<TColor, TPacked> image, Size size, Point location, int alpha = 100)
+        public DrawImageProcessor(Image<TColor> image, Size size, Point location, int alpha = 100)
         {
             Guard.MustBeBetweenOrEqualTo(alpha, 0, 100, nameof(alpha));
             this.Image = image;
@@ -37,7 +35,7 @@ namespace ImageSharp.Processors
         /// <summary>
         /// Gets the image to blend.
         /// </summary>
-        public Image<TColor, TPacked> Image { get; private set; }
+        public Image<TColor> Image { get; private set; }
 
         /// <summary>
         /// Gets the alpha percentage value.
@@ -55,7 +53,7 @@ namespace ImageSharp.Processors
         public Point Location { get; }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
         {
             if (this.Image.Bounds.Size != this.Size)
             {
@@ -71,8 +69,8 @@ namespace ImageSharp.Processors
 
             float alpha = this.Alpha / 100F;
 
-            using (PixelAccessor<TColor, TPacked> toBlendPixels = this.Image.Lock())
-            using (PixelAccessor<TColor, TPacked> sourcePixels = source.Lock())
+            using (PixelAccessor<TColor> toBlendPixels = this.Image.Lock())
+            using (PixelAccessor<TColor> sourcePixels = source.Lock())
             {
                 Parallel.For(
                     minY,

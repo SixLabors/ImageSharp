@@ -10,7 +10,7 @@ namespace ImageSharp
     using Processors;
 
     /// <summary>
-    /// Extension methods for the <see cref="Image{TColor, TPacked}"/> type.
+    /// Extension methods for the <see cref="Image{TColor}"/> type.
     /// </summary>
     public static partial class ImageExtensions
     {
@@ -18,15 +18,13 @@ namespace ImageSharp
         /// Crops an image to the area of greatest entropy.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The image to crop.</param>
         /// <param name="threshold">The threshold for entropic density.</param>
         /// <returns>The <see cref="Image"/></returns>
-        public static Image<TColor, TPacked> EntropyCrop<TColor, TPacked>(this Image<TColor, TPacked> source, float threshold = .5f)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
+        public static Image<TColor> EntropyCrop<TColor>(this Image<TColor> source, float threshold = .5f)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            EntropyCropProcessor<TColor, TPacked> processor = new EntropyCropProcessor<TColor, TPacked>(threshold);
+            EntropyCropProcessor<TColor> processor = new EntropyCropProcessor<TColor>(threshold);
             return source.Process(source.Bounds, processor);
         }
     }

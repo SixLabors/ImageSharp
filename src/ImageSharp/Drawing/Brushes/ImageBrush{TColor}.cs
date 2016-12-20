@@ -1,4 +1,4 @@
-﻿// <copyright file="ImageBrush{TColor,TPacked}.cs" company="James Jackson-South">
+﻿// <copyright file="ImageBrush{TColor}.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -14,27 +14,25 @@ namespace ImageSharp.Drawing.Brushes
     /// Provides an implementation of an image brush for painting images within areas.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public class ImageBrush<TColor, TPacked> : IBrush<TColor, TPacked>
-        where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct, IEquatable<TPacked>
+    public class ImageBrush<TColor> : IBrush<TColor>
+    where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>
         /// The image to paint.
         /// </summary>
-        private readonly IImageBase<TColor, TPacked> image;
+        private readonly IImageBase<TColor> image;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ImageBrush{TColor,TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="ImageBrush{TColor}"/> class.
         /// </summary>
         /// <param name="image">The image.</param>
-        public ImageBrush(IImageBase<TColor, TPacked> image)
+        public ImageBrush(IImageBase<TColor> image)
         {
             this.image = image;
         }
 
         /// <inheritdoc />
-        public IBrushApplicator<TColor, TPacked> CreateApplicator(RectangleF region)
+        public IBrushApplicator<TColor> CreateApplicator(RectangleF region)
         {
             return new ImageBrushApplicator(this.image, region);
         }
@@ -42,12 +40,12 @@ namespace ImageSharp.Drawing.Brushes
         /// <summary>
         /// The image brush applicator.
         /// </summary>
-        private class ImageBrushApplicator : IBrushApplicator<TColor, TPacked>
+        private class ImageBrushApplicator : IBrushApplicator<TColor>
         {
             /// <summary>
             /// The source pixel accessor.
             /// </summary>
-            private readonly PixelAccessor<TColor, TPacked> source;
+            private readonly PixelAccessor<TColor> source;
 
             /// <summary>
             /// The y-length.
@@ -73,7 +71,7 @@ namespace ImageSharp.Drawing.Brushes
             /// <param name="region">
             /// The region.
             /// </param>
-            public ImageBrushApplicator(IImageBase<TColor, TPacked> image, RectangleF region)
+            public ImageBrushApplicator(IImageBase<TColor> image, RectangleF region)
             {
                 this.source = image.Lock();
                 this.xLength = image.Width;

@@ -18,14 +18,12 @@ namespace ImageSharp
         /// Draws the given image together with the current one by blending their pixels.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="image">The image to blend with the currently processing image.</param>
         /// <param name="percent">The opacity of the image image to blend. Must be between 0 and 100.</param>
-        /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
-        public static Image<TColor, TPacked> Blend<TColor, TPacked>(this Image<TColor, TPacked> source, Image<TColor, TPacked> image, int percent = 50)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
+        /// <returns>The <see cref="Image{TColor}"/>.</returns>
+        public static Image<TColor> Blend<TColor>(this Image<TColor> source, Image<TColor> image, int percent = 50)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             return DrawImage(source, image, percent, default(Size), default(Point));
         }
@@ -36,14 +34,12 @@ namespace ImageSharp
         /// <param name="source">The image this method extends.</param>
         /// <param name="image">The image to blend with the currently processing image.</param>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="percent">The opacity of the image image to blend. Must be between 0 and 100.</param>
         /// <param name="size">The size to draw the blended image.</param>
         /// <param name="location">The location to draw the blended image.</param>
-        /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
-        public static Image<TColor, TPacked> DrawImage<TColor, TPacked>(this Image<TColor, TPacked> source, Image<TColor, TPacked> image, int percent, Size size, Point location)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
+        /// <returns>The <see cref="Image{TColor}"/>.</returns>
+        public static Image<TColor> DrawImage<TColor>(this Image<TColor> source, Image<TColor> image, int percent, Size size, Point location)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             if (size == default(Size))
             {
@@ -55,7 +51,7 @@ namespace ImageSharp
                 location = Point.Empty;
             }
 
-            return source.Process(source.Bounds, new DrawImageProcessor<TColor, TPacked>(image, size, location, percent));
+            return source.Process(source.Bounds, new DrawImageProcessor<TColor>(image, size, location, percent));
         }
     }
 }

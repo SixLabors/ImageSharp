@@ -30,10 +30,8 @@ namespace ImageSharp.Quantizers
     /// </para>
     /// </remarks>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public sealed class WuQuantizer<TColor, TPacked> : IQuantizer<TColor, TPacked>
-        where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct, IEquatable<TPacked>
+    public sealed class WuQuantizer<TColor> : IQuantizer<TColor>
+        where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>
         /// The epsilon for comparing floating point numbers.
@@ -101,7 +99,7 @@ namespace ImageSharp.Quantizers
         private readonly byte[] tag;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="WuQuantizer{TColor,TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="WuQuantizer{TColor}"/> class.
         /// </summary>
         public WuQuantizer()
         {
@@ -115,7 +113,7 @@ namespace ImageSharp.Quantizers
         }
 
         /// <inheritdoc/>
-        public QuantizedImage<TColor, TPacked> Quantize(ImageBase<TColor, TPacked> image, int maxColors)
+        public QuantizedImage<TColor> Quantize(ImageBase<TColor> image, int maxColors)
         {
             Guard.NotNull(image, nameof(image));
 
@@ -123,7 +121,7 @@ namespace ImageSharp.Quantizers
 
             this.Clear();
 
-            using (PixelAccessor<TColor, TPacked> imagePixels = image.Lock())
+            using (PixelAccessor<TColor> imagePixels = image.Lock())
             {
                 this.Build3DHistogram(imagePixels);
                 this.Get3DMoments();
@@ -321,7 +319,7 @@ namespace ImageSharp.Quantizers
         /// Builds a 3-D color histogram of <c>counts, r/g/b, c^2</c>.
         /// </summary>
         /// <param name="pixels">The pixel accessor.</param>
-        private void Build3DHistogram(PixelAccessor<TColor, TPacked> pixels)
+        private void Build3DHistogram(PixelAccessor<TColor> pixels)
         {
             byte[] rgba = new byte[4];
             for (int y = 0; y < pixels.Height; y++)
@@ -720,7 +718,7 @@ namespace ImageSharp.Quantizers
         /// <param name="colorCount">The color count.</param>
         /// <param name="cube">The cube.</param>
         /// <returns>The result.</returns>
-        private QuantizedImage<TColor, TPacked> GenerateResult(PixelAccessor<TColor, TPacked> imagePixels, int colorCount, Box[] cube)
+        private QuantizedImage<TColor> GenerateResult(PixelAccessor<TColor> imagePixels, int colorCount, Box[] cube)
         {
             TColor[] pallette = new TColor[colorCount];
             byte[] pixels = new byte[imagePixels.Width * imagePixels.Height];
@@ -770,7 +768,7 @@ namespace ImageSharp.Quantizers
                         ArrayPool<byte>.Shared.Return(rgba);
                     });
 
-            return new QuantizedImage<TColor, TPacked>(width, height, pallette, pixels);
+            return new QuantizedImage<TColor>(width, height, pallette, pixels);
         }
     }
 }

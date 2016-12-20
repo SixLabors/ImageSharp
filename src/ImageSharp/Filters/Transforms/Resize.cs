@@ -10,7 +10,7 @@ namespace ImageSharp
     using Processors;
 
     /// <summary>
-    /// Extension methods for the <see cref="Image{TColor, TPacked}"/> type.
+    /// Extension methods for the <see cref="Image{TColor}"/> type.
     /// </summary>
     public static partial class ImageExtensions
     {
@@ -18,14 +18,12 @@ namespace ImageSharp
         /// Resizes an image in accordance with the given <see cref="ResizeOptions"/>.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The image to resize.</param>
         /// <param name="options">The resize options.</param>
-        /// <returns>The <see cref="Image{TColor, TPacked}"/></returns>
+        /// <returns>The <see cref="Image{TColor}"/></returns>
         /// <remarks>Passing zero for one of height or width within the resize options will automatically preserve the aspect ratio of the original image</remarks>
-        public static Image<TColor, TPacked> Resize<TColor, TPacked>(this Image<TColor, TPacked> source, ResizeOptions options)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
+        public static Image<TColor> Resize<TColor>(this Image<TColor> source, ResizeOptions options)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             // Ensure size is populated across both dimensions.
             if (options.Size.Width == 0 && options.Size.Height > 0)
@@ -47,15 +45,13 @@ namespace ImageSharp
         /// Resizes an image to the given width and height.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The image to resize.</param>
         /// <param name="width">The target image width.</param>
         /// <param name="height">The target image height.</param>
-        /// <returns>The <see cref="Image{TColor, TPacked}"/></returns>
+        /// <returns>The <see cref="Image{TColor}"/></returns>
         /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image</remarks>
-        public static Image<TColor, TPacked> Resize<TColor, TPacked>(this Image<TColor, TPacked> source, int width, int height)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
+        public static Image<TColor> Resize<TColor>(this Image<TColor> source, int width, int height)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             return Resize(source, width, height, new BicubicResampler(), false);
         }
@@ -64,16 +60,14 @@ namespace ImageSharp
         /// Resizes an image to the given width and height.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The image to resize.</param>
         /// <param name="width">The target image width.</param>
         /// <param name="height">The target image height.</param>
         /// <param name="compand">Whether to compress and expand the image color-space to gamma correct the image during processing.</param>
-        /// <returns>The <see cref="Image{TColor, TPacked}"/></returns>
+        /// <returns>The <see cref="Image{TColor}"/></returns>
         /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image</remarks>
-        public static Image<TColor, TPacked> Resize<TColor, TPacked>(this Image<TColor, TPacked> source, int width, int height, bool compand)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
+        public static Image<TColor> Resize<TColor>(this Image<TColor> source, int width, int height, bool compand)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             return Resize(source, width, height, new BicubicResampler(), compand);
         }
@@ -82,16 +76,14 @@ namespace ImageSharp
         /// Resizes an image to the given width and height with the given sampler.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The image to resize.</param>
         /// <param name="width">The target image width.</param>
         /// <param name="height">The target image height.</param>
         /// <param name="sampler">The <see cref="IResampler"/> to perform the resampling.</param>
-        /// <returns>The <see cref="Image{TColor, TPacked}"/></returns>
+        /// <returns>The <see cref="Image{TColor}"/></returns>
         /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image</remarks>
-        public static Image<TColor, TPacked> Resize<TColor, TPacked>(this Image<TColor, TPacked> source, int width, int height, IResampler sampler)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
+        public static Image<TColor> Resize<TColor>(this Image<TColor> source, int width, int height, IResampler sampler)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             return Resize(source, width, height, sampler, false);
         }
@@ -100,17 +92,15 @@ namespace ImageSharp
         /// Resizes an image to the given width and height with the given sampler.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The image to resize.</param>
         /// <param name="width">The target image width.</param>
         /// <param name="height">The target image height.</param>
         /// <param name="sampler">The <see cref="IResampler"/> to perform the resampling.</param>
         /// <param name="compand">Whether to compress and expand the image color-space to gamma correct the image during processing.</param>
-        /// <returns>The <see cref="Image{TColor, TPacked}"/></returns>
+        /// <returns>The <see cref="Image{TColor}"/></returns>
         /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image</remarks>
-        public static Image<TColor, TPacked> Resize<TColor, TPacked>(this Image<TColor, TPacked> source, int width, int height, IResampler sampler, bool compand)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
+        public static Image<TColor> Resize<TColor>(this Image<TColor> source, int width, int height, IResampler sampler, bool compand)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             return Resize(source, width, height, sampler, source.Bounds, new Rectangle(0, 0, width, height), compand);
         }
@@ -120,7 +110,6 @@ namespace ImageSharp
         /// source rectangle.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The image to resize.</param>
         /// <param name="width">The target image width.</param>
         /// <param name="height">The target image height.</param>
@@ -132,11 +121,10 @@ namespace ImageSharp
         /// The <see cref="Rectangle"/> structure that specifies the portion of the target image object to draw to.
         /// </param>
         /// <param name="compand">Whether to compress and expand the image color-space to gamma correct the image during processing.</param>
-        /// <returns>The <see cref="Image{TColor, TPacked}"/></returns>
+        /// <returns>The <see cref="Image{TColor}"/></returns>
         /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image</remarks>
-        public static Image<TColor, TPacked> Resize<TColor, TPacked>(this Image<TColor, TPacked> source, int width, int height, IResampler sampler, Rectangle sourceRectangle, Rectangle targetRectangle, bool compand = false)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
+        public static Image<TColor> Resize<TColor>(this Image<TColor> source, int width, int height, IResampler sampler, Rectangle sourceRectangle, Rectangle targetRectangle, bool compand = false)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             if (width == 0 && height > 0)
             {
@@ -153,15 +141,15 @@ namespace ImageSharp
             Guard.MustBeGreaterThan(width, 0, nameof(width));
             Guard.MustBeGreaterThan(height, 0, nameof(height));
 
-            ResamplingWeightedProcessor<TColor, TPacked> processor;
+            ResamplingWeightedProcessor<TColor> processor;
 
             if (compand)
             {
-                processor = new CompandingResizeProcessor<TColor, TPacked>(sampler, width, height, targetRectangle);
+                processor = new CompandingResizeProcessor<TColor>(sampler, width, height, targetRectangle);
             }
             else
             {
-                processor = new ResizeProcessor<TColor, TPacked>(sampler, width, height, targetRectangle);
+                processor = new ResizeProcessor<TColor>(sampler, width, height, targetRectangle);
             }
 
             return source.Process(sourceRectangle, processor);

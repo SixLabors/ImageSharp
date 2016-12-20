@@ -11,13 +11,11 @@ namespace ImageSharp.Processors
     /// Encapsulates methods to alter the pixels of an image. The processor operates on the original source pixels.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public interface IImageFilteringProcessor<TColor, TPacked> : IImageProcessor
-        where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct, IEquatable<TPacked>
+    public interface IImageFilteringProcessor<TColor> : IImageProcessor
+        where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>
-        /// Applies the process to the specified portion of the specified <see cref="ImageBase{T, TP}"/>.
+        /// Applies the process to the specified portion of the specified <see cref="ImageBase{TColor}"/>.
         /// </summary>
         /// <param name="source">The source image. Cannot be null.</param>
         /// <param name="sourceRectangle">
@@ -33,6 +31,6 @@ namespace ImageSharp.Processors
         /// <exception cref="System.ArgumentException">
         /// <paramref name="sourceRectangle"/> doesnt fit the dimension of the image.
         /// </exception>
-        void Apply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle);
+        void Apply(ImageBase<TColor> source, Rectangle sourceRectangle);
     }
 }

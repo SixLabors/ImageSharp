@@ -11,10 +11,8 @@ namespace ImageSharp.Processors
     /// Applies a Gaussian sharpening sampler to the image.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public class GaussianSharpenProcessor<TColor, TPacked> : ImageFilteringProcessor<TColor, TPacked>
-        where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct, IEquatable<TPacked>
+    public class GaussianSharpenProcessor<TColor> : ImageFilteringProcessor<TColor>
+        where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>
         /// The maximum size of the kernel in either direction.
@@ -27,7 +25,7 @@ namespace ImageSharp.Processors
         private readonly float sigma;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="GaussianSharpenProcessor{TColor, TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="GaussianSharpenProcessor{TColor}"/> class.
         /// </summary>
         /// <param name="sigma">
         /// The 'sigma' value representing the weight of the sharpening.
@@ -41,7 +39,7 @@ namespace ImageSharp.Processors
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="GaussianSharpenProcessor{TColor, TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="GaussianSharpenProcessor{TColor}"/> class.
         /// </summary>
         /// <param name="radius">
         /// The 'radius' value representing the size of the area to sample.
@@ -55,7 +53,7 @@ namespace ImageSharp.Processors
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="GaussianSharpenProcessor{TColor, TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="GaussianSharpenProcessor{TColor}"/> class.
         /// </summary>
         /// <param name="sigma">
         /// The 'sigma' value representing the weight of the sharpen.
@@ -83,9 +81,9 @@ namespace ImageSharp.Processors
         public float[][] KernelY { get; }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
         {
-            new Convolution2PassProcessor<TColor, TPacked>(this.KernelX, this.KernelY).Apply(source, sourceRectangle);
+            new Convolution2PassProcessor<TColor>(this.KernelX, this.KernelY).Apply(source, sourceRectangle);
         }
 
         /// <summary>

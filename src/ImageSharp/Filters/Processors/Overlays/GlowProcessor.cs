@@ -10,16 +10,14 @@ namespace ImageSharp.Processors
     using System.Threading.Tasks;
 
     /// <summary>
-    /// An <see cref="IImageFilteringProcessor{TColor,TPacked}"/> that applies a radial glow effect an <see cref="Image{TColor, TPacked}"/>.
+    /// An <see cref="IImageFilteringProcessor{TColor}"/> that applies a radial glow effect an <see cref="Image{TColor}"/>.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public class GlowProcessor<TColor, TPacked> : ImageFilteringProcessor<TColor, TPacked>
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
+    public class GlowProcessor<TColor> : ImageFilteringProcessor<TColor>
+        where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="GlowProcessor{TColor,TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="GlowProcessor{TColor}"/> class.
         /// </summary>
         public GlowProcessor()
         {
@@ -39,7 +37,7 @@ namespace ImageSharp.Processors
         public float Radius { get; set; }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
         {
             int startY = sourceRectangle.Y;
             int endY = sourceRectangle.Bottom;
@@ -66,7 +64,7 @@ namespace ImageSharp.Processors
                 startY = 0;
             }
 
-            using (PixelAccessor<TColor, TPacked> sourcePixels = source.Lock())
+            using (PixelAccessor<TColor> sourcePixels = source.Lock())
             {
                 Parallel.For(
                     minY,

@@ -117,13 +117,11 @@ namespace ImageSharp
         /// Returns the thumbnail in the EXIF profile when available.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <returns>
-        /// The <see cref="Image{TColor,TPacked}"/>.
+        /// The <see cref="Image{TColor}"/>.
         /// </returns>
-        public Image<TColor, TPacked> CreateThumbnail<TColor, TPacked>()
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
+        public Image<TColor> CreateThumbnail<TColor>()
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             this.InitializeValues();
 
@@ -139,7 +137,7 @@ namespace ImageSharp
 
             using (MemoryStream memStream = new MemoryStream(this.data, this.thumbnailOffset, this.thumbnailLength))
             {
-                return new Image<TColor, TPacked>(memStream);
+                return new Image<TColor>(memStream);
             }
         }
 

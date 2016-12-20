@@ -1,4 +1,4 @@
-﻿// <copyright file="Image.cs" company="James Jackson-South">
+﻿// <copyright file="Image{TColor}.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -21,11 +21,9 @@ namespace ImageSharp
     /// Encapsulates an image, which consists of the pixel data for a graphics image and its attributes.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
     [DebuggerDisplay("Image: {Width}x{Height}")]
-    public class Image<TColor, TPacked> : ImageBase<TColor, TPacked>
-        where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct, IEquatable<TPacked>
+    public class Image<TColor> : ImageBase<TColor>
+        where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>
         /// The default horizontal resolution value (dots per inch) in x direction.
@@ -40,7 +38,7 @@ namespace ImageSharp
         public const double DefaultVerticalResolution = 96;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Image{TColor, TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="Image{TColor}"/> class.
         /// </summary>
         public Image()
         {
@@ -48,7 +46,7 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Image{TColor, TPacked}"/> class
+        /// Initializes a new instance of the <see cref="Image{TColor}"/> class
         /// with the height and the width of the image.
         /// </summary>
         /// <param name="width">The width of the image in pixels.</param>
@@ -60,7 +58,7 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Image{TColor, TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="Image{TColor}"/> class.
         /// </summary>
         /// <param name="stream">
         /// The stream containing image information.
@@ -73,7 +71,7 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Image{TColor, TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="Image{TColor}"/> class.
         /// </summary>
         /// <param name="bytes">
         /// The byte array containing image information.
@@ -90,19 +88,19 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Image{TColor, TPacked}"/> class
+        /// Initializes a new instance of the <see cref="Image{TColor}"/> class
         /// by making a copy from another image.
         /// </summary>
         /// <param name="other">The other image, where the clone should be made from.</param>
         /// <exception cref="System.ArgumentNullException"><paramref name="other"/> is null.</exception>
-        public Image(Image<TColor, TPacked> other)
+        public Image(Image<TColor> other)
             : base(other)
         {
-            foreach (ImageFrame<TColor, TPacked> frame in other.Frames)
+            foreach (ImageFrame<TColor> frame in other.Frames)
             {
                 if (frame != null)
                 {
-                    this.Frames.Add(new ImageFrame<TColor, TPacked>(frame));
+                    this.Frames.Add(new ImageFrame<TColor>(frame));
                 }
             }
 
@@ -183,7 +181,7 @@ namespace ImageSharp
         /// Gets the other frames for the animation.
         /// </summary>
         /// <value>The list of frame images.</value>
-        public IList<ImageFrame<TColor, TPacked>> Frames { get; } = new List<ImageFrame<TColor, TPacked>>();
+        public IList<ImageFrame<TColor>> Frames { get; } = new List<ImageFrame<TColor>>();
 
         /// <summary>
         /// Gets the list of properties for storing meta information about this image.
@@ -206,8 +204,8 @@ namespace ImageSharp
         /// </summary>
         /// <param name="stream">The stream to save the image to.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
-        /// <returns>The <see cref="Image{TColor,TPacked}"/></returns>
-        public Image<TColor, TPacked> Save(Stream stream)
+        /// <returns>The <see cref="Image{TColor}"/></returns>
+        public Image<TColor> Save(Stream stream)
         {
             Guard.NotNull(stream, nameof(stream));
             this.CurrentImageFormat.Encoder.Encode(this, stream);
@@ -220,8 +218,8 @@ namespace ImageSharp
         /// <param name="stream">The stream to save the image to.</param>
         /// <param name="format">The format to save the image as.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
-        /// <returns>The <see cref="Image{TColor,TPacked}"/></returns>
-        public Image<TColor, TPacked> Save(Stream stream, IImageFormat format)
+        /// <returns>The <see cref="Image{TColor}"/></returns>
+        public Image<TColor> Save(Stream stream, IImageFormat format)
         {
             Guard.NotNull(stream, nameof(stream));
             format.Encoder.Encode(this, stream);
@@ -235,9 +233,9 @@ namespace ImageSharp
         /// <param name="encoder">The encoder to save the image with.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
         /// <returns>
-        /// The <see cref="Image{TColor,TPacked}"/>.
+        /// The <see cref="Image{TColor}"/>.
         /// </returns>
-        public Image<TColor, TPacked> Save(Stream stream, IImageEncoder encoder)
+        public Image<TColor> Save(Stream stream, IImageEncoder encoder)
         {
             Guard.NotNull(stream, nameof(stream));
             encoder.Encode(this, stream);
@@ -277,15 +275,13 @@ namespace ImageSharp
         /// </summary>
         /// <param name="scaleFunc">A function that allows for the correction of vector scaling between unknown color formats.</param>
         /// <typeparam name="TColor2">The pixel format.</typeparam>
-        /// <typeparam name="TPacked2">The packed format. <example>uint, long, float.</example></typeparam>
-        /// <returns>The <see cref="Image{TColor2, TPacked2}"/></returns>
-        public Image<TColor2, TPacked2> To<TColor2, TPacked2>(Func<Vector4, Vector4> scaleFunc = null)
-            where TColor2 : struct, IPackedPixel<TPacked2>
-            where TPacked2 : struct, IEquatable<TPacked2>
+        /// <returns>The <see cref="Image{TColor2}"/></returns>
+        public Image<TColor2> To<TColor2>(Func<Vector4, Vector4> scaleFunc = null)
+            where TColor2 : struct, IPackedPixel, IEquatable<TColor2>
         {
             scaleFunc = PackedPixelConverterHelper.ComputeScaleFunction<TColor, TColor2>(scaleFunc);
 
-            Image<TColor2, TPacked2> target = new Image<TColor2, TPacked2>(this.Width, this.Height)
+            Image<TColor2> target = new Image<TColor2>(this.Width, this.Height)
             {
                 Quality = this.Quality,
                 FrameDelay = this.FrameDelay,
@@ -295,8 +291,8 @@ namespace ImageSharp
                 RepeatCount = this.RepeatCount
             };
 
-            using (PixelAccessor<TColor, TPacked> pixels = this.Lock())
-            using (PixelAccessor<TColor2, TPacked2> targetPixels = target.Lock())
+            using (PixelAccessor<TColor> pixels = this.Lock())
+            using (PixelAccessor<TColor2> targetPixels = target.Lock())
             {
                 Parallel.For(
                     0,
@@ -318,21 +314,21 @@ namespace ImageSharp
                 target.ExifProfile = new ExifProfile(this.ExifProfile);
             }
 
-            foreach (ImageFrame<TColor, TPacked> frame in this.Frames)
+            foreach (ImageFrame<TColor> frame in this.Frames)
             {
-                target.Frames.Add(frame.To<TColor2, TPacked2>());
+                target.Frames.Add(frame.To<TColor2>());
             }
 
             return target;
         }
 
         /// <summary>
-        /// Copies the properties from the other <see cref="Image{TColor, TPacked}"/>.
+        /// Copies the properties from the other <see cref="Image{TColor}"/>.
         /// </summary>
         /// <param name="other">
-        /// The other <see cref="Image{TColor, TPacked}"/> to copy the properties from.
+        /// The other <see cref="Image{TColor}"/> to copy the properties from.
         /// </param>
-        internal void CopyProperties(Image<TColor, TPacked> other)
+        internal void CopyProperties(Image<TColor> other)
         {
             base.CopyProperties(other);
 
@@ -348,12 +344,12 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Creates a new <see cref="ImageFrame{TColor,TPacked}"/> from this instance
+        /// Creates a new <see cref="ImageFrame{TColor}"/> from this instance
         /// </summary>
-        /// <returns>The <see cref="ImageFrame{TColor,TPacked}"/></returns>
-        internal virtual ImageFrame<TColor, TPacked> ToFrame()
+        /// <returns>The <see cref="ImageFrame{TColor}"/></returns>
+        internal virtual ImageFrame<TColor> ToFrame()
         {
-            return new ImageFrame<TColor, TPacked>(this);
+            return new ImageFrame<TColor>(this);
         }
 
         /// <summary>
@@ -429,7 +425,7 @@ namespace ImageSharp
             {
                 long startPosition = stream.Position;
                 stream.Read(header, 0, maxHeaderSize);
-                stream.Position = 0;
+                stream.Position = startPosition;
                 format = Bootstrapper.ImageFormats.FirstOrDefault(x => x.IsSupportedFileFormat(header));
             }
             finally

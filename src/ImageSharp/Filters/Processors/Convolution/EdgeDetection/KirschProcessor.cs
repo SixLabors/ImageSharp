@@ -12,11 +12,9 @@ namespace ImageSharp.Processors
     /// <see href="http://en.wikipedia.org/wiki/Kirsch_operator"/>
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
     [SuppressMessage("ReSharper", "StaticMemberInGenericType", Justification = "We want to use only one instance of each array field for each generic type.")]
-    public class KirschProcessor<TColor, TPacked> : EdgeDetectorCompassProcessor<TColor, TPacked>
-        where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct, IEquatable<TPacked>
+    public class KirschProcessor<TColor> : EdgeDetectorCompassProcessor<TColor>
+        where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>
         /// The North gradient operator

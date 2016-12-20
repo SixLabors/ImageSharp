@@ -5,21 +5,20 @@
 
 namespace ImageSharp.Tests.Drawing
 {
-    using Drawing;
-    using ImageSharp.Drawing;
     using System;
-    using System.Diagnostics.CodeAnalysis;
     using System.IO;
-    using System.Numerics;
-    using Xunit;
+
+    using ImageSharp.Drawing;
     using ImageSharp.Drawing.Brushes;
 
-    public class FillPatternBrushTests: FileTestBase
+    using Xunit;
+
+    public class FillPatternBrushTests : FileTestBase
     {
-        private Image Test(string name, Color background, IBrush<Color, uint> brush, Color[,] expectedPattern)
+        private Image Test(string name, Color background, IBrush<Color> brush, Color[,] expectedPattern)
         {
             string path = CreateOutputDirectory("Fill", "PatternBrush");
-            var image = new Image(20, 20);
+            Image image = new Image(20, 20);
             image
                   .Fill(background)
                   .Fill(brush);
@@ -53,7 +52,7 @@ namespace ImageSharp.Tests.Drawing
             }
             using (FileStream output = File.OpenWrite($"{path}/{name}x4.png"))
             {
-                image.Resize(80,80).Save(output);
+                image.Resize(80, 80).Save(output);
             }
 
 
@@ -69,13 +68,13 @@ namespace ImageSharp.Tests.Drawing
                 { Color.LimeGreen, Color.LimeGreen, Color.LimeGreen, Color.LimeGreen},
                 { Color.LimeGreen, Color.LimeGreen, Color.HotPink , Color.LimeGreen},
                 { Color.LimeGreen, Color.LimeGreen, Color.LimeGreen, Color.LimeGreen}
-            });            
+            });
         }
 
         [Fact]
         public void ImageShouldBeFloodFilledWithPercent10Transparent()
         {
-            Test("Percent10_Transparent", Color.Blue, Brushes.Percent10(Color.HotPink), 
+            Test("Percent10_Transparent", Color.Blue, Brushes.Percent10(Color.HotPink),
             new Color[,] {
                 { Color.HotPink , Color.Blue, Color.Blue, Color.Blue},
                 { Color.Blue, Color.Blue, Color.Blue, Color.Blue},
@@ -230,6 +229,6 @@ namespace ImageSharp.Tests.Drawing
            });
         }
 
-        
+
     }
 }

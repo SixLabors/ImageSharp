@@ -14,10 +14,8 @@ namespace ImageSharp.Quantizers
     /// <see href="http://msdn.microsoft.com/en-us/library/aa479306.aspx"/>
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public class PaletteQuantizer<TColor, TPacked> : Quantizer<TColor, TPacked>
-        where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct, IEquatable<TPacked>
+    public class PaletteQuantizer<TColor> : Quantizer<TColor>
+    where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>
         /// The pixel buffer, used to reduce allocations.
@@ -27,7 +25,7 @@ namespace ImageSharp.Quantizers
         /// <summary>
         /// A lookup table for colors
         /// </summary>
-        private readonly Dictionary<TPacked, byte> colorMap = new Dictionary<TPacked, byte>();
+        private readonly Dictionary<TColor, byte> colorMap = new Dictionary<TColor, byte>();
 
         /// <summary>
         /// List of all colors in the palette
@@ -35,7 +33,7 @@ namespace ImageSharp.Quantizers
         private TColor[] colors;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="PaletteQuantizer{TColor, TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="PaletteQuantizer{TColor}"/> class.
         /// </summary>
         /// <param name="palette">
         /// The color palette. If none is given this will default to the web safe colors defined
@@ -66,7 +64,7 @@ namespace ImageSharp.Quantizers
         }
 
         /// <inheritdoc/>
-        public override QuantizedImage<TColor, TPacked> Quantize(ImageBase<TColor, TPacked> image, int maxColors)
+        public override QuantizedImage<TColor> Quantize(ImageBase<TColor> image, int maxColors)
         {
             Array.Resize(ref this.colors, maxColors.Clamp(1, 255));
             return base.Quantize(image, maxColors);
@@ -76,7 +74,7 @@ namespace ImageSharp.Quantizers
         protected override byte QuantizePixel(TColor pixel)
         {
             byte colorIndex = 0;
-            TPacked colorHash = pixel.PackedValue;
+            TColor colorHash = pixel;
 
             // Check if the color is in the lookup table
             if (this.colorMap.ContainsKey(colorHash))

@@ -12,13 +12,11 @@ namespace ImageSharp.Processors
     /// Provides methods that allow the flipping of an image around its center point.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public class FlipProcessor<TColor, TPacked> : ImageFilteringProcessor<TColor, TPacked>
-        where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct, IEquatable<TPacked>
+    public class FlipProcessor<TColor> : ImageFilteringProcessor<TColor>
+        where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="FlipProcessor{TColor, TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="FlipProcessor{TColor}"/> class.
         /// </summary>
         /// <param name="flipType">The <see cref="FlipType"/> used to perform flipping.</param>
         public FlipProcessor(FlipType flipType)
@@ -32,7 +30,7 @@ namespace ImageSharp.Processors
         public FlipType FlipType { get; }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
         {
             switch (this.FlipType)
             {
@@ -51,7 +49,7 @@ namespace ImageSharp.Processors
         /// at half the height of the image.
         /// </summary>
         /// <param name="source">The source image to apply the process to.</param>
-        private void FlipX(ImageBase<TColor, TPacked> source)
+        private void FlipX(ImageBase<TColor> source)
         {
             int width = source.Width;
             int height = source.Height;
@@ -59,8 +57,8 @@ namespace ImageSharp.Processors
 
             TColor[] target = new TColor[width * height];
 
-            using (PixelAccessor<TColor, TPacked> sourcePixels = source.Lock())
-            using (PixelAccessor<TColor, TPacked> targetPixels = target.Lock<TColor, TPacked>(width, height))
+            using (PixelAccessor<TColor> sourcePixels = source.Lock())
+            using (PixelAccessor<TColor> targetPixels = target.Lock<TColor>(width, height))
             {
                 Parallel.For(
                     0,
@@ -85,7 +83,7 @@ namespace ImageSharp.Processors
         /// at half of the width of the image.
         /// </summary>
         /// <param name="source">The source image to apply the process to.</param>
-        private void FlipY(ImageBase<TColor, TPacked> source)
+        private void FlipY(ImageBase<TColor> source)
         {
             int width = source.Width;
             int height = source.Height;
@@ -93,8 +91,8 @@ namespace ImageSharp.Processors
 
             TColor[] target = new TColor[width * height];
 
-            using (PixelAccessor<TColor, TPacked> sourcePixels = source.Lock())
-            using (PixelAccessor<TColor, TPacked> targetPixels = target.Lock<TColor, TPacked>(width, height))
+            using (PixelAccessor<TColor> sourcePixels = source.Lock())
+            using (PixelAccessor<TColor> targetPixels = target.Lock<TColor>(width, height))
             {
                 Parallel.For(
                     0,

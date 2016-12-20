@@ -142,16 +142,38 @@ namespace ImageSharp.Tests.Colors
 
         [Theory]
         [MemberData(nameof(EqualityData))]
-        public void EqualityOperator(object first, object second, Type type)
+        public void EqualityObject(object first, object second, Type type)
         {
             // Arrange 
-            // Cast to the known object types 
+            // Cast to the known object types, this is so that we can hit the 
+            // equality operator on the concrete type, otherwise it goes to the 
+            // default "object" one :) 
+            var firstObject = Convert.ChangeType(first, type);
+            var secondObject = Convert.ChangeType(second, type);
 
             // Act
-            var equal = first.Equals(second);
+            var equal = firstObject.Equals(secondObject);
 
             // Assert
             Assert.True(equal);
+        }
+
+        [Theory]
+        [MemberData(nameof(NotEqualityData))]
+        public void NotEqualityObject(object first, object second, Type type)
+        {
+            // Arrange 
+            // Cast to the known object types, this is so that we can hit the 
+            // equality operator on the concrete type, otherwise it goes to the 
+            // default "object" one :) 
+            var firstObject = Convert.ChangeType(first, type);
+            var secondObject = Convert.ChangeType(second, type);
+
+            // Act
+            var equal = firstObject.Equals(secondObject);
+
+            // Assert
+            Assert.False(equal);
         }
     }
 }

@@ -12,10 +12,8 @@ namespace ImageSharp.Processors
     /// Converts the colors of the image recreating Achromatopsia (Monochrome) color blindness.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public class AchromatopsiaProcessor<TColor, TPacked> : ColorMatrixFilter<TColor, TPacked>
-        where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct, IEquatable<TPacked>
+    public class AchromatopsiaProcessor<TColor> : ColorMatrixFilter<TColor>
+        where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <inheritdoc/>
         public override Matrix4x4 Matrix => new Matrix4x4()

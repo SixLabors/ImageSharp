@@ -13,7 +13,7 @@ namespace ImageSharp
     /// packed into a single unsigned integer value.
     /// </summary>
     [DebuggerDisplay("Image: {Width}x{Height}")]
-    public class Image : Image<Color, uint>
+    public class Image : Image<Color>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="Image"/> class.
@@ -69,13 +69,13 @@ namespace ImageSharp
         }
 
         /// <inheritdoc />
-        public override PixelAccessor<Color, uint> Lock()
+        public override PixelAccessor<Color> Lock()
         {
             return new PixelAccessor(this);
         }
 
         /// <inheritdoc />
-        internal override ImageFrame<Color, uint> ToFrame()
+        internal override ImageFrame<Color> ToFrame()
         {
             return new ImageFrame(this);
         }

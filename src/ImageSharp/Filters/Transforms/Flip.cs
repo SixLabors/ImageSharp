@@ -10,7 +10,7 @@ namespace ImageSharp
     using Processors;
 
     /// <summary>
-    /// Extension methods for the <see cref="Image{TColor, TPacked}"/> type.
+    /// Extension methods for the <see cref="Image{TColor}"/> type.
     /// </summary>
     public static partial class ImageExtensions
     {
@@ -18,15 +18,13 @@ namespace ImageSharp
         /// Flips an image by the given instructions.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The image to rotate, flip, or both.</param>
         /// <param name="flipType">The <see cref="FlipType"/> to perform the flip.</param>
         /// <returns>The <see cref="Image"/></returns>
-        public static Image<TColor, TPacked> Flip<TColor, TPacked>(this Image<TColor, TPacked> source, FlipType flipType)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
+        public static Image<TColor> Flip<TColor>(this Image<TColor> source, FlipType flipType)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            FlipProcessor<TColor, TPacked> processor = new FlipProcessor<TColor, TPacked>(flipType);
+            FlipProcessor<TColor> processor = new FlipProcessor<TColor>(flipType);
             return source.Process(source.Bounds, processor);
         }
     }

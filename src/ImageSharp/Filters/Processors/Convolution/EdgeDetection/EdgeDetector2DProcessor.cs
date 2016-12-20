@@ -11,10 +11,8 @@ namespace ImageSharp.Processors
     /// Defines a sampler that detects edges within an image using two one-dimensional matrices.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public abstract class EdgeDetector2DProcessor<TColor, TPacked> : ImageFilteringProcessor<TColor, TPacked>, IEdgeDetectorProcessor<TColor, TPacked>
-        where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct, IEquatable<TPacked>
+    public abstract class EdgeDetector2DProcessor<TColor> : ImageFilteringProcessor<TColor>, IEdgeDetectorProcessor<TColor>
+        where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>
         /// Gets the horizontal gradient operator.
@@ -30,17 +28,17 @@ namespace ImageSharp.Processors
         public bool Grayscale { get; set; }
 
         /// <inheritdoc />
-        protected override void OnApply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
         {
-            new Convolution2DProcessor<TColor, TPacked>(this.KernelX, this.KernelY).Apply(source, sourceRectangle);
+            new Convolution2DProcessor<TColor>(this.KernelX, this.KernelY).Apply(source, sourceRectangle);
         }
 
         /// <inheritdoc/>
-        protected override void BeforeApply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle)
+        protected override void BeforeApply(ImageBase<TColor> source, Rectangle sourceRectangle)
         {
             if (this.Grayscale)
             {
-                new GrayscaleBt709Processor<TColor, TPacked>().Apply(source, sourceRectangle);
+                new GrayscaleBt709Processor<TColor>().Apply(source, sourceRectangle);
             }
         }
     }

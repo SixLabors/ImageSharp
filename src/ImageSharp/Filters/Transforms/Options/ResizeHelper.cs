@@ -18,15 +18,13 @@ namespace ImageSharp
         /// Calculates the target location and bounds to perform the resize operation against.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The source image.</param>
         /// <param name="options">The resize options.</param>
         /// <returns>
         /// The <see cref="Rectangle"/>.
         /// </returns>
-        public static Rectangle CalculateTargetLocationAndBounds<TColor, TPacked>(ImageBase<TColor, TPacked> source, ResizeOptions options)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
+        public static Rectangle CalculateTargetLocationAndBounds<TColor>(ImageBase<TColor> source, ResizeOptions options)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             switch (options.Mode)
             {
@@ -51,15 +49,13 @@ namespace ImageSharp
         /// Calculates the target rectangle for crop mode.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The source image.</param>
         /// <param name="options">The resize options.</param>
         /// <returns>
         /// The <see cref="Rectangle"/>.
         /// </returns>
-        private static Rectangle CalculateCropRectangle<TColor, TPacked>(ImageBase<TColor, TPacked> source, ResizeOptions options)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
+        private static Rectangle CalculateCropRectangle<TColor>(ImageBase<TColor> source, ResizeOptions options)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             int width = options.Size.Width;
             int height = options.Size.Height;
@@ -172,15 +168,13 @@ namespace ImageSharp
         /// Calculates the target rectangle for pad mode.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The source image.</param>
         /// <param name="options">The resize options.</param>
         /// <returns>
         /// The <see cref="Rectangle"/>.
         /// </returns>
-        private static Rectangle CalculatePadRectangle<TColor, TPacked>(ImageBase<TColor, TPacked> source, ResizeOptions options)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
+        private static Rectangle CalculatePadRectangle<TColor>(ImageBase<TColor> source, ResizeOptions options)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             int width = options.Size.Width;
             int height = options.Size.Height;
@@ -255,15 +249,13 @@ namespace ImageSharp
         /// Calculates the target rectangle for box pad mode.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The source image.</param>
         /// <param name="options">The resize options.</param>
         /// <returns>
         /// The <see cref="Rectangle"/>.
         /// </returns>
-        private static Rectangle CalculateBoxPadRectangle<TColor, TPacked>(ImageBase<TColor, TPacked> source, ResizeOptions options)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
+        private static Rectangle CalculateBoxPadRectangle<TColor>(ImageBase<TColor> source, ResizeOptions options)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             int width = options.Size.Width;
             int height = options.Size.Height;
@@ -344,15 +336,13 @@ namespace ImageSharp
         /// Calculates the target rectangle for max mode.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The source image.</param>
         /// <param name="options">The resize options.</param>
         /// <returns>
         /// The <see cref="Rectangle"/>.
         /// </returns>
-        private static Rectangle CalculateMaxRectangle<TColor, TPacked>(ImageBase<TColor, TPacked> source, ResizeOptions options)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
+        private static Rectangle CalculateMaxRectangle<TColor>(ImageBase<TColor> source, ResizeOptions options)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             int width = options.Size.Width;
             int height = options.Size.Height;
@@ -387,15 +377,13 @@ namespace ImageSharp
         /// Calculates the target rectangle for min mode.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The source image.</param>
         /// <param name="options">The resize options.</param>
         /// <returns>
         /// The <see cref="Rectangle"/>.
         /// </returns>
-        private static Rectangle CalculateMinRectangle<TColor, TPacked>(ImageBase<TColor, TPacked> source, ResizeOptions options)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
+        private static Rectangle CalculateMinRectangle<TColor>(ImageBase<TColor> source, ResizeOptions options)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             int width = options.Size.Width;
             int height = options.Size.Height;

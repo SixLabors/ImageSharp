@@ -13,13 +13,11 @@ namespace ImageSharp.Processors
     /// Defines a sampler that uses two one-dimensional matrices to perform convolution against an image.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public class Convolution2DProcessor<TColor, TPacked> : ImageFilteringProcessor<TColor, TPacked>
-        where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct, IEquatable<TPacked>
+    public class Convolution2DProcessor<TColor> : ImageFilteringProcessor<TColor>
+        where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="Convolution2DProcessor{TColor,TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="Convolution2DProcessor{TColor}"/> class.
         /// </summary>
         /// <param name="kernelX">The horizontal gradient operator.</param>
         /// <param name="kernelY">The vertical gradient operator.</param>
@@ -40,7 +38,7 @@ namespace ImageSharp.Processors
         public float[][] KernelY { get; }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
         {
             int kernelYHeight = this.KernelY.Length;
             int kernelYWidth = this.KernelY[0].Length;
@@ -57,8 +55,8 @@ namespace ImageSharp.Processors
             int maxX = endX - 1;
 
             TColor[] target = new TColor[source.Width * source.Height];
-            using (PixelAccessor<TColor, TPacked> sourcePixels = source.Lock())
-            using (PixelAccessor<TColor, TPacked> targetPixels = target.Lock<TColor, TPacked>(source.Width, source.Height))
+            using (PixelAccessor<TColor> sourcePixels = source.Lock())
+            using (PixelAccessor<TColor> targetPixels = target.Lock<TColor>(source.Width, source.Height))
             {
                 Parallel.For(
                 startY,

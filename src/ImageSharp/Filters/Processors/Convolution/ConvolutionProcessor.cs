@@ -13,13 +13,11 @@ namespace ImageSharp.Processors
     /// Defines a sampler that uses a 2 dimensional matrix to perform convolution against an image.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public class ConvolutionProcessor<TColor, TPacked> : ImageFilteringProcessor<TColor, TPacked>
-        where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct, IEquatable<TPacked>
+    public class ConvolutionProcessor<TColor> : ImageFilteringProcessor<TColor>
+    where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="ConvolutionProcessor{TColor,TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="ConvolutionProcessor{TColor}"/> class.
         /// </summary>
         /// <param name="kernelXY">The 2d gradient operator.</param>
         public ConvolutionProcessor(float[][] kernelXY)
@@ -33,7 +31,7 @@ namespace ImageSharp.Processors
         public virtual float[][] KernelXY { get; }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
         {
             float[][] kernelX = this.KernelXY;
             int kernelLength = kernelX.GetLength(0);
@@ -47,8 +45,8 @@ namespace ImageSharp.Processors
             int maxX = endX - 1;
 
             TColor[] target = new TColor[source.Width * source.Height];
-            using (PixelAccessor<TColor, TPacked> sourcePixels = source.Lock())
-            using (PixelAccessor<TColor, TPacked> targetPixels = target.Lock<TColor, TPacked>(source.Width, source.Height))
+            using (PixelAccessor<TColor> sourcePixels = source.Lock())
+            using (PixelAccessor<TColor> targetPixels = target.Lock<TColor>(source.Width, source.Height))
             {
                 Parallel.For(
                 startY,

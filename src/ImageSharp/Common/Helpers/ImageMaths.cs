@@ -157,16 +157,14 @@ namespace ImageSharp
         /// than the given one.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="bitmap">The <see cref="Image"/> to search within.</param>
         /// <param name="componentValue">The color component value to remove.</param>
         /// <param name="channel">The <see cref="RgbaComponent"/> channel to test against.</param>
         /// <returns>
         /// The <see cref="Rectangle"/>.
         /// </returns>
-        public static Rectangle GetFilteredBoundingRectangle<TColor, TPacked>(ImageBase<TColor, TPacked> bitmap, float componentValue, RgbaComponent channel = RgbaComponent.B)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
+        public static Rectangle GetFilteredBoundingRectangle<TColor>(ImageBase<TColor> bitmap, float componentValue, RgbaComponent channel = RgbaComponent.B)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             const float Epsilon = .00001f;
             int width = bitmap.Width;
@@ -174,7 +172,7 @@ namespace ImageSharp
             Point topLeft = default(Point);
             Point bottomRight = default(Point);
 
-            Func<PixelAccessor<TColor, TPacked>, int, int, float, bool> delegateFunc;
+            Func<PixelAccessor<TColor>, int, int, float, bool> delegateFunc;
 
             // Determine which channel to check against
             switch (channel)
@@ -196,7 +194,7 @@ namespace ImageSharp
                     break;
             }
 
-            Func<PixelAccessor<TColor, TPacked>, int> getMinY = pixels =>
+            Func<PixelAccessor<TColor>, int> getMinY = pixels =>
             {
                 for (int y = 0; y < height; y++)
                 {
@@ -212,7 +210,7 @@ namespace ImageSharp
                 return 0;
             };
 
-            Func<PixelAccessor<TColor, TPacked>, int> getMaxY = pixels =>
+            Func<PixelAccessor<TColor>, int> getMaxY = pixels =>
             {
                 for (int y = height - 1; y > -1; y--)
                 {
@@ -228,7 +226,7 @@ namespace ImageSharp
                 return height;
             };
 
-            Func<PixelAccessor<TColor, TPacked>, int> getMinX = pixels =>
+            Func<PixelAccessor<TColor>, int> getMinX = pixels =>
             {
                 for (int x = 0; x < width; x++)
                 {
@@ -244,7 +242,7 @@ namespace ImageSharp
                 return 0;
             };
 
-            Func<PixelAccessor<TColor, TPacked>, int> getMaxX = pixels =>
+            Func<PixelAccessor<TColor>, int> getMaxX = pixels =>
             {
                 for (int x = width - 1; x > -1; x--)
                 {
@@ -260,7 +258,7 @@ namespace ImageSharp
                 return height;
             };
 
-            using (PixelAccessor<TColor, TPacked> bitmapPixels = bitmap.Lock())
+            using (PixelAccessor<TColor> bitmapPixels = bitmap.Lock())
             {
                 topLeft.Y = getMinY(bitmapPixels);
                 topLeft.X = getMinX(bitmapPixels);

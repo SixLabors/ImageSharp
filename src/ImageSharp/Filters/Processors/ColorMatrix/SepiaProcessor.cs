@@ -13,10 +13,8 @@ namespace ImageSharp.Processors
     /// The formula used matches the svg specification. <see href="http://www.w3.org/TR/filter-effects/#sepiaEquivalent"/>
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public class SepiaProcessor<TColor, TPacked> : ColorMatrixFilter<TColor, TPacked>
-        where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct, IEquatable<TPacked>
+    public class SepiaProcessor<TColor> : ColorMatrixFilter<TColor>
+        where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <inheritdoc/>
         public override Matrix4x4 Matrix => new Matrix4x4

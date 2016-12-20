@@ -9,16 +9,14 @@ namespace ImageSharp.Processors
     using System.Numerics;
 
     /// <summary>
-    /// An <see cref="ImageProcessor{TColor, TPacked}"/> to change the hue of an <see cref="Image{TColor, TPacked}"/>.
+    /// An <see cref="ImageProcessor{TColor}"/> to change the hue of an <see cref="Image{TColor}"/>.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public class HueProcessor<TColor, TPacked> : ColorMatrixFilter<TColor, TPacked>
-        where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct, IEquatable<TPacked>
+    public class HueProcessor<TColor> : ColorMatrixFilter<TColor>
+        where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="HueProcessor{TColor, TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="HueProcessor{TColor}"/> class.
         /// </summary>
         /// <param name="angle">The new brightness of the image. Must be between -100 and 100.</param>
         public HueProcessor(float angle)

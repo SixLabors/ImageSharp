@@ -52,11 +52,11 @@ namespace ImageSharp.Tests
                 string filename = file.GetFileName(value + "-InBox");
                 Image image = file.CreateImage();
 
-                using (FileStream output = File.OpenWrite($"{path}/{filename}"))
+                if (image.Width > value.Item2 && image.Height > value.Item2)
                 {
-                    if (image.Width > value.Item2 && image.Height > value.Item2)
+                    using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                     {
-                        image.OilPaint(value.Item1, value.Item2, new Rectangle(10, 10, image.Width / 2, image.Height / 2)).Save(output);
+                        image.OilPaint(value.Item1, value.Item2, new Rectangle(image.Width / 4, image.Width / 4, image.Width / 2, image.Height / 2)).Save(output);
                     }
                 }
             }

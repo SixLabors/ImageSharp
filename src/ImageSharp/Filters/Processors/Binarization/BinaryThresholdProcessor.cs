@@ -9,17 +9,15 @@ namespace ImageSharp.Processors
     using System.Threading.Tasks;
 
     /// <summary>
-    /// An <see cref="IImageFilteringProcessor{TColor,TPacked}"/> to perform binary threshold filtering against an
+    /// An <see cref="IImageFilteringProcessor{TColor}"/> to perform binary threshold filtering against an
     /// <see cref="Image"/>. The image will be converted to grayscale before thresholding occurs.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public class BinaryThresholdProcessor<TColor, TPacked> : ImageFilteringProcessor<TColor, TPacked>
-        where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct, IEquatable<TPacked>
+    public class BinaryThresholdProcessor<TColor> : ImageFilteringProcessor<TColor>
+        where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="BinaryThresholdProcessor{TColor, TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="BinaryThresholdProcessor{TColor}"/> class.
         /// </summary>
         /// <param name="threshold">The threshold to split the image. Must be between 0 and 1.</param>
         /// <exception cref="System.ArgumentException">
@@ -56,13 +54,13 @@ namespace ImageSharp.Processors
         public TColor LowerColor { get; set; }
 
         /// <inheritdoc/>
-        protected override void BeforeApply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle)
+        protected override void BeforeApply(ImageBase<TColor> source, Rectangle sourceRectangle)
         {
-            new GrayscaleBt709Processor<TColor, TPacked>().Apply(source, sourceRectangle);
+            new GrayscaleBt709Processor<TColor>().Apply(source, sourceRectangle);
         }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
         {
             float threshold = this.Value;
             TColor upper = this.UpperColor;
@@ -90,7 +88,7 @@ namespace ImageSharp.Processors
                 startY = 0;
             }
 
-            using (PixelAccessor<TColor, TPacked> sourcePixels = source.Lock())
+            using (PixelAccessor<TColor> sourcePixels = source.Lock())
             {
                 Parallel.For(
                     minY,

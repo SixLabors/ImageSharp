@@ -26,17 +26,15 @@ namespace ImageSharp.Formats
         private int padding;
 
         /// <summary>
-        /// Encodes the image to the specified stream from the <see cref="ImageBase{TColor, TPacked}"/>.
+        /// Encodes the image to the specified stream from the <see cref="ImageBase{TColor}"/>.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>long, float.</example></typeparam>
-        /// <param name="image">The <see cref="ImageBase{TColor, TPacked}"/> to encode from.</param>
+        /// <param name="image">The <see cref="ImageBase{TColor}"/> to encode from.</param>
         /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
         /// <param name="bitsPerPixel">The <see cref="BmpBitsPerPixel"/></param>
-        public void Encode<TColor, TPacked>(ImageBase<TColor, TPacked> image, Stream stream, BmpBitsPerPixel bitsPerPixel)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
-        {
+        public void Encode<TColor>(ImageBase<TColor> image, Stream stream, BmpBitsPerPixel bitsPerPixel)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
+                    {
             Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));
 
@@ -121,25 +119,23 @@ namespace ImageSharp.Formats
         /// Writes the pixel data to the binary stream.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-        /// <param name="writer">The <see cref="EndianBinaryWriter"/> containing the stream to write to.</param>
+                /// <param name="writer">The <see cref="EndianBinaryWriter"/> containing the stream to write to.</param>
         /// <param name="image">
-        /// The <see cref="ImageBase{TColor, TPacked}"/> containing pixel data.
+        /// The <see cref="ImageBase{TColor}"/> containing pixel data.
         /// </param>
-        private void WriteImage<TColor, TPacked>(EndianBinaryWriter writer, ImageBase<TColor, TPacked> image)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
-        {
-            using (PixelAccessor<TColor, TPacked> pixels = image.Lock())
+        private void WriteImage<TColor>(EndianBinaryWriter writer, ImageBase<TColor> image)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
+                    {
+            using (PixelAccessor<TColor> pixels = image.Lock())
             {
                 switch (this.bmpBitsPerPixel)
                 {
                     case BmpBitsPerPixel.Pixel32:
-                        this.Write32Bit<TColor, TPacked>(writer, pixels);
+                        this.Write32Bit<TColor>(writer, pixels);
                         break;
 
                     case BmpBitsPerPixel.Pixel24:
-                        this.Write24Bit<TColor, TPacked>(writer, pixels);
+                        this.Write24Bit<TColor>(writer, pixels);
                         break;
                 }
             }
@@ -149,14 +145,12 @@ namespace ImageSharp.Formats
         /// Writes the 32bit color palette to the stream.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-        /// <param name="writer">The <see cref="EndianBinaryWriter"/> containing the stream to write to.</param>
-        /// <param name="pixels">The <see cref="PixelAccessor{TColor,TPacked}"/> containing pixel data.</param>
-        private void Write32Bit<TColor, TPacked>(EndianBinaryWriter writer, PixelAccessor<TColor, TPacked> pixels)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
-        {
-            using (PixelArea<TColor, TPacked> row = new PixelArea<TColor, TPacked>(pixels.Width, ComponentOrder.ZYXW, this.padding))
+                /// <param name="writer">The <see cref="EndianBinaryWriter"/> containing the stream to write to.</param>
+        /// <param name="pixels">The <see cref="PixelAccessor{TColor}"/> containing pixel data.</param>
+        private void Write32Bit<TColor>(EndianBinaryWriter writer, PixelAccessor<TColor> pixels)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
+                    {
+            using (PixelArea<TColor> row = new PixelArea<TColor>(pixels.Width, ComponentOrder.ZYXW, this.padding))
             {
                 for (int y = pixels.Height - 1; y >= 0; y--)
                 {
@@ -170,14 +164,12 @@ namespace ImageSharp.Formats
         /// Writes the 24bit color palette to the stream.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-        /// <param name="writer">The <see cref="EndianBinaryWriter"/> containing the stream to write to.</param>
-        /// <param name="pixels">The <see cref="PixelAccessor{TColor,TPacked}"/> containing pixel data.</param>
-        private void Write24Bit<TColor, TPacked>(EndianBinaryWriter writer, PixelAccessor<TColor, TPacked> pixels)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
-        {
-            using (PixelArea<TColor, TPacked> row = new PixelArea<TColor, TPacked>(pixels.Width, ComponentOrder.ZYX, this.padding))
+                /// <param name="writer">The <see cref="EndianBinaryWriter"/> containing the stream to write to.</param>
+        /// <param name="pixels">The <see cref="PixelAccessor{TColor}"/> containing pixel data.</param>
+        private void Write24Bit<TColor>(EndianBinaryWriter writer, PixelAccessor<TColor> pixels)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
+                    {
+            using (PixelArea<TColor> row = new PixelArea<TColor>(pixels.Width, ComponentOrder.ZYX, this.padding))
             {
                 for (int y = pixels.Height - 1; y >= 0; y--)
                 {

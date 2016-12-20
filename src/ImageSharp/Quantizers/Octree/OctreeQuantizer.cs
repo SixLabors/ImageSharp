@@ -13,10 +13,8 @@ namespace ImageSharp.Quantizers
     /// <see href="http://msdn.microsoft.com/en-us/library/aa479306.aspx"/>
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public sealed class OctreeQuantizer<TColor, TPacked> : Quantizer<TColor, TPacked>
-        where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct, IEquatable<TPacked>
+    public sealed class OctreeQuantizer<TColor> : Quantizer<TColor>
+        where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>
         /// The pixel buffer, used to reduce allocations.
@@ -34,7 +32,7 @@ namespace ImageSharp.Quantizers
         private int colors;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="OctreeQuantizer{TColor, TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="OctreeQuantizer{TColor}"/> class.
         /// </summary>
         /// <remarks>
         /// The Octree quantizer is a two pass algorithm. The initial pass sets up the Octree,
@@ -46,7 +44,7 @@ namespace ImageSharp.Quantizers
         }
 
         /// <inheritdoc/>
-        public override QuantizedImage<TColor, TPacked> Quantize(ImageBase<TColor, TPacked> image, int maxColors)
+        public override QuantizedImage<TColor> Quantize(ImageBase<TColor> image, int maxColors)
         {
             this.colors = maxColors.Clamp(1, 255);
 
@@ -144,7 +142,7 @@ namespace ImageSharp.Quantizers
             /// <summary>
             /// Cache the previous color quantized
             /// </summary>
-            private TPacked previousColor;
+            private TColor previousColor;
 
             /// <summary>
             /// Initializes a new instance of the <see cref="Octree"/> class.
@@ -158,7 +156,7 @@ namespace ImageSharp.Quantizers
                 this.Leaves = 0;
                 this.reducibleNodes = new OctreeNode[9];
                 this.root = new OctreeNode(0, this.maxColorBits, this);
-                this.previousColor = default(TPacked);
+                this.previousColor = default(TColor);
                 this.previousNode = null;
             }
 
@@ -179,16 +177,14 @@ namespace ImageSharp.Quantizers
             /// <param name="buffer">The buffer array.</param>
             public void AddColor(TColor pixel, byte[] buffer)
             {
-                TPacked packed = pixel.PackedValue;
-
                 // Check if this request is for the same color as the last
-                if (this.previousColor.Equals(packed))
+                if (this.previousColor.Equals(pixel))
                 {
                     // If so, check if I have a previous node setup. This will only occur if the first color in the image
                     // happens to be black, with an alpha component of zero.
                     if (this.previousNode == null)
                     {
-                        this.previousColor = packed;
+                        this.previousColor = pixel;
                         this.root.AddColor(pixel, this.maxColorBits, 0, this, buffer);
                     }
                     else
@@ -199,7 +195,7 @@ namespace ImageSharp.Quantizers
                 }
                 else
                 {
-                    this.previousColor = packed;
+                    this.previousColor = pixel;
                     this.root.AddColor(pixel, this.maxColorBits, 0, this, buffer);
                 }
             }

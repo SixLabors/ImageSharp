@@ -207,7 +207,7 @@ namespace ImageSharp.Tests
 
             TestProfile(profile);
 
-            var thumbnail = profile.CreateThumbnail<Color, uint>();
+            var thumbnail = profile.CreateThumbnail<Color>();
             Assert.NotNull(thumbnail);
             Assert.Equal(256, thumbnail.Width);
             Assert.Equal(170, thumbnail.Height);
@@ -218,7 +218,9 @@ namespace ImageSharp.Tests
         {
             StringBuilder junk = new StringBuilder();
             for (int i = 0; i < 65500; i++)
+            {
                 junk.Append("I");
+            }
 
             Image image = new Image(100, 100);
             image.ExifProfile = new ExifProfile();

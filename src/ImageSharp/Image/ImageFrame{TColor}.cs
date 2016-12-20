@@ -1,4 +1,4 @@
-﻿// <copyright file="ImageFrame.cs" company="James Jackson-South">
+﻿// <copyright file="ImageFrame{TColor}.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -13,23 +13,21 @@ namespace ImageSharp
     /// Represents a single frame in a animation.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public class ImageFrame<TColor, TPacked> : ImageBase<TColor, TPacked>
-        where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct, IEquatable<TPacked>
+    public class ImageFrame<TColor> : ImageBase<TColor>
+        where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="ImageFrame{TColor, TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="ImageFrame{TColor}"/> class.
         /// </summary>
         public ImageFrame()
         {
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ImageFrame{TColor, TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="ImageFrame{TColor}"/> class.
         /// </summary>
         /// <param name="image">The image to create the frame from.</param>
-        public ImageFrame(ImageBase<TColor, TPacked> image)
+        public ImageFrame(ImageBase<TColor> image)
             : base(image)
         {
         }
@@ -45,15 +43,13 @@ namespace ImageSharp
         /// </summary>
         /// <param name="scaleFunc">A function that allows for the correction of vector scaling between unknown color formats.</param>
         /// <typeparam name="TColor2">The pixel format.</typeparam>
-        /// <typeparam name="TPacked2">The packed format. <example>uint, long, float.</example></typeparam>
-        /// <returns>The <see cref="ImageFrame{TColor2, TPacked2}"/></returns>
-        public ImageFrame<TColor2, TPacked2> To<TColor2, TPacked2>(Func<Vector4, Vector4> scaleFunc = null)
-            where TColor2 : struct, IPackedPixel<TPacked2>
-            where TPacked2 : struct, IEquatable<TPacked2>
+        /// <returns>The <see cref="ImageFrame{TColor2}"/></returns>
+        public ImageFrame<TColor2> To<TColor2>(Func<Vector4, Vector4> scaleFunc = null)
+            where TColor2 : struct, IPackedPixel, IEquatable<TColor2>
         {
             scaleFunc = PackedPixelConverterHelper.ComputeScaleFunction<TColor, TColor2>(scaleFunc);
 
-            ImageFrame<TColor2, TPacked2> target = new ImageFrame<TColor2, TPacked2>
+            ImageFrame<TColor2> target = new ImageFrame<TColor2>
             {
                 Quality = this.Quality,
                 FrameDelay = this.FrameDelay
@@ -61,8 +57,8 @@ namespace ImageSharp
 
             target.InitPixels(this.Width, this.Height);
 
-            using (PixelAccessor<TColor, TPacked> pixels = this.Lock())
-            using (PixelAccessor<TColor2, TPacked2> targetPixels = target.Lock())
+            using (PixelAccessor<TColor> pixels = this.Lock())
+            using (PixelAccessor<TColor2> targetPixels = target.Lock())
             {
                 Parallel.For(
                     0,
@@ -85,10 +81,10 @@ namespace ImageSharp
         /// <summary>
         /// Clones the current instance.
         /// </summary>
-        /// <returns>The <see cref="ImageFrame{TColor, TPacked}"/></returns>
-        internal virtual ImageFrame<TColor, TPacked> Clone()
+        /// <returns>The <see cref="ImageFrame{TColor}"/></returns>
+        internal virtual ImageFrame<TColor> Clone()
         {
-            return new ImageFrame<TColor, TPacked>(this);
+            return new ImageFrame<TColor>(this);
         }
     }
 }

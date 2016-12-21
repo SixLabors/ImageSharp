@@ -252,7 +252,7 @@ namespace ImageSharp.Formats
             GifImageDescriptor imageDescriptor = this.ReadImageDescriptor();
 
             byte[] localColorTable = null;
-
+            byte[] indices = null;
             try
             {
                 // Determine the color table for this frame. If there is a local one, use it otherwise use the global color table.
@@ -264,7 +264,9 @@ namespace ImageSharp.Formats
                     this.currentStream.Read(localColorTable, 0, length);
                 }
 
-                byte[] indices = this.ReadFrameIndices(imageDescriptor);
+                indices = ArrayPool<byte>.Shared.Rent(imageDescriptor.Width * imageDescriptor.Height);
+
+                this.ReadFrameIndices(imageDescriptor, indices);
                 this.ReadFrameColors(indices, localColorTable ?? this.globalColorTable, length, imageDescriptor);
 
                 // Skip any remaining blocks
@@ -276,6 +278,8 @@ namespace ImageSharp.Formats
                 {
                     ArrayPool<byte>.Shared.Return(localColorTable);
                 }
+
+                ArrayPool<byte>.Shared.Return(indices);
             }
         }
 
@@ -283,13 +287,13 @@ namespace ImageSharp.Formats
         /// Reads the frame indices marking the color to use for each pixel.
         /// </summary>
         /// <param name="imageDescriptor">The <see cref="GifImageDescriptor"/>.</param>
-        /// <returns>The <see cref="T:byte[]"/></returns>
-        private byte[] ReadFrameIndices(GifImageDescriptor imageDescriptor)
+        /// <param name="indices">The pixel array to write to.</param>
+        private void ReadFrameIndices(GifImageDescriptor imageDescriptor, byte[] indices)
         {
             int dataSize = this.currentStream.ReadByte();
             using (LzwDecoder lzwDecoder = new LzwDecoder(this.currentStream))
             {
-                return lzwDecoder.DecodePixels(imageDescriptor.Width, imageDescriptor.Height, dataSize);
+                lzwDecoder.DecodePixels(imageDescriptor.Width, imageDescriptor.Height, dataSize, indices);
             }
         }
 

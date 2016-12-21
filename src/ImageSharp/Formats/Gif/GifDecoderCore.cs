@@ -312,12 +312,11 @@ namespace ImageSharp.Formats
 
             TColor[] lastFrame = null;
 
-            if (this.graphicsControlExtension != null &&
-                this.graphicsControlExtension.DisposalMethod == DisposalMethod.RestoreToPrevious)
+            if (this.graphicsControlExtension != null
+                && this.graphicsControlExtension.DisposalMethod == DisposalMethod.RestoreToPrevious)
             {
                 lastFrame = new TColor[imageWidth * imageHeight];
 
-                // Array.Copy(this.currentFrame, lastFrame, lastFrame.Length);
                 using (PixelAccessor<TColor, TPacked> lastPixels = lastFrame.Lock<TColor, TPacked>(imageWidth, imageHeight))
                 using (PixelAccessor<TColor, TPacked> currentPixels = this.currentFrame.Lock<TColor, TPacked>(imageWidth, imageHeight))
                 {
@@ -325,126 +324,124 @@ namespace ImageSharp.Formats
                 }
             }
 
-            int offset, i = 0;
+            int i = 0;
             int interlacePass = 0; // The interlace pass
             int interlaceIncrement = 8; // The interlacing line increment
             int interlaceY = 0; // The current interlaced line
 
-            for (int y = descriptor.Top; y < descriptor.Top + descriptor.Height; y++)
+            // Lock the current image pixels for fast acces.
+            using (PixelAccessor<TColor, TPacked> currentPixels = this.currentFrame.Lock<TColor, TPacked>(imageWidth, imageHeight))
             {
-                // Check if this image is interlaced.
-                int writeY; // the target y offset to write to
-                if (descriptor.InterlaceFlag)
+                for (int y = descriptor.Top; y < descriptor.Top + descriptor.Height; y++)
                 {
-                    // If so then we read lines at predetermined offsets.
-                    // When an entire image height worth of offset lines has been read we consider this a pass.
-                    // With each pass the number of offset lines changes and the starting line changes.
-                    if (interlaceY >= descriptor.Height)
+                    // Check if this image is interlaced.
+                    int writeY; // the target y offset to write to
+                    if (descriptor.InterlaceFlag)
                     {
-                        interlacePass++;
-                        switch (interlacePass)
+                        // If so then we read lines at predetermined offsets.
+                        // When an entire image height worth of offset lines has been read we consider this a pass.
+                        // With each pass the number of offset lines changes and the starting line changes.
+                        if (interlaceY >= descriptor.Height)
                         {
-                            case 1:
-                                interlaceY = 4;
-                                break;
-                            case 2:
-                                interlaceY = 2;
-                                interlaceIncrement = 4;
-                                break;
-                            case 3:
-                                interlaceY = 1;
-                                interlaceIncrement = 2;
-                                break;
+                            interlacePass++;
+                            switch (interlacePass)
+                            {
+                                case 1:
+                                    interlaceY = 4;
+                                    break;
+                                case 2:
+                                    interlaceY = 2;
+                                    interlaceIncrement = 4;
+                                    break;
+                                case 3:
+                                    interlaceY = 1;
+                                    interlaceIncrement = 2;
+                                    break;
+                            }
                         }
+
+                        writeY = interlaceY + descriptor.Top;
+
+                        interlaceY += interlaceIncrement;
+                    }
+                    else
+                    {
+                        writeY = y;
                     }
 
-                    writeY = interlaceY + descriptor.Top;
+                    for (int x = descriptor.Left; x < descriptor.Left + descriptor.Width; x++)
+                    {
+                        int index = indices[i];
 
-                    interlaceY += interlaceIncrement;
+                        if (this.graphicsControlExtension == null
+                            || this.graphicsControlExtension.TransparencyFlag == false
+                            || this.graphicsControlExtension.TransparencyIndex != index)
+                        {
+                            // Stored in r-> g-> b-> a order.
+                            int indexOffset = index * 3;
+                            TColor pixel = default(TColor);
+                            pixel.PackFromBytes(colorTable[indexOffset], colorTable[indexOffset + 1], colorTable[indexOffset + 2], 255);
+                            currentPixels[x, writeY] = pixel;
+                        }
+
+                        i++;
+                    }
+                }
+
+                TColor[] pixels = new TColor[imageWidth * imageHeight];
+
+                using (PixelAccessor<TColor, TPacked> newPixels = pixels.Lock<TColor, TPacked>(imageWidth, imageHeight))
+                {
+                    currentPixels.CopyImage(newPixels);
+                }
+
+                ImageBase<TColor, TPacked> currentImage;
+
+                if (this.decodedImage.Pixels == null)
+                {
+                    currentImage = this.decodedImage;
+                    currentImage.SetPixels(imageWidth, imageHeight, pixels);
+                    currentImage.Quality = colorTableLength / 3;
+
+                    if (this.graphicsControlExtension != null && this.graphicsControlExtension.DelayTime > 0)
+                    {
+                        this.decodedImage.FrameDelay = this.graphicsControlExtension.DelayTime;
+                    }
                 }
                 else
                 {
-                    writeY = y;
-                }
+                    ImageFrame<TColor, TPacked> frame = new ImageFrame<TColor, TPacked>();
 
-                for (int x = descriptor.Left; x < descriptor.Left + descriptor.Width; x++)
-                {
-                    offset = (writeY * imageWidth) + x;
-                    int index = indices[i];
+                    currentImage = frame;
+                    currentImage.SetPixels(imageWidth, imageHeight, pixels);
+                    currentImage.Quality = colorTableLength / 3;
 
-                    if (this.graphicsControlExtension == null ||
-                        this.graphicsControlExtension.TransparencyFlag == false ||
-                        this.graphicsControlExtension.TransparencyIndex != index)
+                    if (this.graphicsControlExtension != null && this.graphicsControlExtension.DelayTime > 0)
                     {
-                        // Stored in r-> g-> b-> a order.
-                        int indexOffset = index * 3;
-                        TColor pixel = default(TColor);
-                        pixel.PackFromBytes(colorTable[indexOffset], colorTable[indexOffset + 1], colorTable[indexOffset + 2], 255);
-                        this.currentFrame[offset] = pixel;
+                        currentImage.FrameDelay = this.graphicsControlExtension.DelayTime;
                     }
 
-                    i++;
-                }
-            }
-
-            TColor[] pixels = new TColor[imageWidth * imageHeight];
-
-            // Array.Copy(this.currentFrame, pixels, pixels.Length);
-            using (PixelAccessor<TColor, TPacked> newPixels = pixels.Lock<TColor, TPacked>(imageWidth, imageHeight))
-            using (PixelAccessor<TColor, TPacked> currentPixels = this.currentFrame.Lock<TColor, TPacked>(imageWidth, imageHeight))
-            {
-                currentPixels.CopyImage(newPixels);
-            }
-
-            ImageBase<TColor, TPacked> currentImage;
-
-            if (this.decodedImage.Pixels == null)
-            {
-                currentImage = this.decodedImage;
-                currentImage.SetPixels(imageWidth, imageHeight, pixels);
-                currentImage.Quality = colorTableLength / 3;
-
-                if (this.graphicsControlExtension != null && this.graphicsControlExtension.DelayTime > 0)
-                {
-                    this.decodedImage.FrameDelay = this.graphicsControlExtension.DelayTime;
-                }
-            }
-            else
-            {
-                ImageFrame<TColor, TPacked> frame = new ImageFrame<TColor, TPacked>();
-
-                currentImage = frame;
-                currentImage.SetPixels(imageWidth, imageHeight, pixels);
-                currentImage.Quality = colorTableLength / 3;
-
-                if (this.graphicsControlExtension != null && this.graphicsControlExtension.DelayTime > 0)
-                {
-                    currentImage.FrameDelay = this.graphicsControlExtension.DelayTime;
+                    this.decodedImage.Frames.Add(frame);
                 }
 
-                this.decodedImage.Frames.Add(frame);
-            }
-
-            if (this.graphicsControlExtension != null)
-            {
-                if (this.graphicsControlExtension.DisposalMethod == DisposalMethod.RestoreToBackground)
+                if (this.graphicsControlExtension != null)
                 {
-                    for (int y = descriptor.Top; y < descriptor.Top + descriptor.Height; y++)
+                    if (this.graphicsControlExtension.DisposalMethod == DisposalMethod.RestoreToBackground)
                     {
-                        for (int x = descriptor.Left; x < descriptor.Left + descriptor.Width; x++)
+                        for (int y = descriptor.Top; y < descriptor.Top + descriptor.Height; y++)
                         {
-                            offset = (y * imageWidth) + x;
-
-                            // Stored in r-> g-> b-> a order.
-                            this.currentFrame[offset] = default(TColor);
+                            for (int x = descriptor.Left; x < descriptor.Left + descriptor.Width; x++)
+                            {
+                                currentPixels[x, y] = default(TColor);
+                            }
                         }
                     }
+                    else if (this.graphicsControlExtension.DisposalMethod == DisposalMethod.RestoreToPrevious)
+                    {
+                        this.currentFrame = lastFrame;
+                    }
                 }
-                else if (this.graphicsControlExtension.DisposalMethod == DisposalMethod.RestoreToPrevious)
-                {
-                    this.currentFrame = lastFrame;
-                }
-            }
+            } // End lock
         }
     }
 }

@@ -6,7 +6,6 @@
 namespace ImageSharp.Quantizers
 {
     using System;
-    using System.Threading.Tasks;
 
     /// <summary>
     /// Encapsulates methods to calculate the color palette of an image.

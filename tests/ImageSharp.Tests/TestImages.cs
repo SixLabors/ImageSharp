@@ -101,6 +101,8 @@ namespace ImageSharp.Tests
 
             public static TestFile Rings => new TestFile(folder + "rings.gif");
             public static TestFile Giphy => new TestFile(folder + "giphy.gif");
+
+            public static TestFile Cheers => new TestFile(folder + "cheers.gif");
         }
     }
 }

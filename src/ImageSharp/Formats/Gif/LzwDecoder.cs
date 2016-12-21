@@ -2,6 +2,7 @@
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
+
 namespace ImageSharp.Formats
 {
     using System;
@@ -83,13 +84,13 @@ namespace ImageSharp.Formats
         /// <param name="width">The width of the pixel index array.</param>
         /// <param name="height">The height of the pixel index array.</param>
         /// <param name="dataSize">Size of the data.</param>
-        /// <returns>The decoded and uncompressed array.</returns>
-        public byte[] DecodePixels(int width, int height, int dataSize)
+        /// <param name="pixels">The pixel array to decode to.</param>
+        public void DecodePixels(int width, int height, int dataSize, byte[] pixels)
         {
             Guard.MustBeLessThan(dataSize, int.MaxValue, nameof(dataSize));
 
-            // The resulting index table.
-            byte[] pixels = new byte[width * height];
+            // The resulting index table length.
+            int length = width * height;
 
             // Calculate the clear code. The value of the clear code is 2 ^ dataSize
             int clearCode = 1 << dataSize;
@@ -124,7 +125,7 @@ namespace ImageSharp.Formats
             }
 
             byte[] buffer = new byte[255];
-            while (xyz < pixels.Length)
+            while (xyz < length)
             {
                 if (top == 0)
                 {
@@ -221,8 +222,6 @@ namespace ImageSharp.Formats
                 // Clear missing pixels
                 pixels[xyz++] = (byte)this.pixelStack[top];
             }
-
-            return pixels;
         }
 
         /// <inheritdoc />

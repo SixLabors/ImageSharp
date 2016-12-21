@@ -19,7 +19,7 @@ namespace ImageSharp.Formats
     internal sealed class GifEncoderCore
     {
         /// <summary>
-        /// The pixel buffer, used to reduce allocations.
+        /// The temp buffer used to reduce allocations.
         /// </summary>
         private readonly byte[] buffer = new byte[16];
 

@@ -9,7 +9,6 @@ namespace ImageSharp.Formats
     using System.Buffers;
     using System.IO;
     using System.Linq;
-    using System.Numerics;
 
     using IO;
     using Quantizers;
@@ -22,7 +21,7 @@ namespace ImageSharp.Formats
         /// <summary>
         /// The pixel buffer, used to reduce allocations.
         /// </summary>
-        private readonly byte[] pixelBuffer = new byte[3];
+        private readonly byte[] buffer = new byte[16];
 
         /// <summary>
         /// The number of bits requires to store the image palette.
@@ -77,7 +76,7 @@ namespace ImageSharp.Formats
             // Quantize the image returning a palette.
             QuantizedImage<TColor, TPacked> quantized = ((IQuantizer<TColor, TPacked>)this.Quantizer).Quantize(image, this.Quality);
 
-            int index = GetTransparentIndex(quantized);
+            int index = this.GetTransparentIndex(quantized);
 
             // Write the header.
             this.WriteHeader(writer);
@@ -95,11 +94,14 @@ namespace ImageSharp.Formats
             if (image.Frames.Any())
             {
                 this.WriteApplicationExtension(writer, image.RepeatCount, image.Frames.Count);
-                foreach (ImageFrame<TColor, TPacked> frame in image.Frames)
+
+                // ReSharper disable once ForCanBeConvertedToForeach
+                for (int i = 0; i < image.Frames.Count; i++)
                 {
+                    ImageFrame<TColor, TPacked> frame = image.Frames[i];
                     QuantizedImage<TColor, TPacked> quantizedFrame = ((IQuantizer<TColor, TPacked>)this.Quantizer).Quantize(frame, this.Quality);
 
-                    this.WriteGraphicalControlExtension(frame, writer, GetTransparentIndex(quantizedFrame));
+                    this.WriteGraphicalControlExtension(frame, writer, this.GetTransparentIndex(quantizedFrame));
                     this.WriteImageDescriptor(frame, writer);
                     this.WriteColorTable(quantizedFrame, writer);
                     this.WriteImageData(quantizedFrame, writer);
@@ -121,25 +123,35 @@ namespace ImageSharp.Formats
         /// <returns>
         /// The <see cref="int"/>.
         /// </returns>
-        private static int GetTransparentIndex<TColor, TPacked>(QuantizedImage<TColor, TPacked> quantized)
+        private int GetTransparentIndex<TColor, TPacked>(QuantizedImage<TColor, TPacked> quantized)
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct, IEquatable<TPacked>
         {
             // Find the lowest alpha value and make it the transparent index.
-            int index = -1;
-            float alpha = 1;
+            int index = 255;
+            byte alpha = 255;
+            bool hasEmpty = false;
+
+            // Some images may have more than one quantized pixel returned with an alpha value of zero
+            // (No idea why?!) so we should always ignore if we have empty pixels present.
             for (int i = 0; i < quantized.Palette.Length; i++)
             {
-                Vector4 vector = quantized.Palette[i].ToVector4();
-                if (vector == Vector4.Zero)
-                {
-                    return i;
-                }
+                quantized.Palette[i].ToBytes(this.buffer, 0, ComponentOrder.XYZW);
 
-                if (vector.W < alpha)
+                if (!hasEmpty)
                 {
-                    alpha = vector.W;
-                    index = i;
+                    if (this.buffer[0] == 0 && this.buffer[1] == 0 && this.buffer[2] == 0 && this.buffer[3] == 0)
+                    {
+                        alpha = this.buffer[3];
+                        index = i;
+                        hasEmpty = true;
+                    }
+
+                    if (this.buffer[3] < alpha)
+                    {
+                        alpha = this.buffer[3];
+                        index = i;
+                    }
                 }
             }
 
@@ -173,7 +185,7 @@ namespace ImageSharp.Formats
                 Height = (short)image.Height,
                 GlobalColorTableFlag = false, // Always false for now.
                 GlobalColorTableSize = this.bitDepth - 1,
-                BackgroundColorIndex = (byte)(tranparencyIndex > -1 ? tranparencyIndex : 255)
+                BackgroundColorIndex = (byte)tranparencyIndex
             };
 
             writer.Write((ushort)descriptor.Width);
@@ -186,13 +198,11 @@ namespace ImageSharp.Formats
             field.SetBits(5, 3, descriptor.GlobalColorTableSize); // 6-8 : GCT size. 2^(N+1)
 
             // Reduce the number of writes
-            byte[] arr =
-                {
-                    field.Byte, descriptor.BackgroundColorIndex, // Background Color Index
-                    descriptor.PixelAspectRatio // Pixel aspect ratio. Assume 1:1
-                };
+            this.buffer[0] = field.Byte;
+            this.buffer[1] = descriptor.BackgroundColorIndex; // Background Color Index
+            this.buffer[2] = descriptor.PixelAspectRatio; // Pixel aspect ratio. Assume 1:1
 
-            writer.Write(arr);
+            writer.Write(this.buffer, 0, 3);
         }
 
         /// <summary>
@@ -206,13 +216,11 @@ namespace ImageSharp.Formats
             // Application Extension Header
             if (repeatCount != 1 && frames > 0)
             {
-                byte[] ext =
-                    {
-                        GifConstants.ExtensionIntroducer, GifConstants.ApplicationExtensionLabel,
-                        GifConstants.ApplicationBlockSize
-                    };
+                this.buffer[0] = GifConstants.ExtensionIntroducer;
+                this.buffer[1] = GifConstants.ApplicationExtensionLabel;
+                this.buffer[2] = GifConstants.ApplicationBlockSize;
 
-                writer.Write(ext);
+                writer.Write(this.buffer, 0, 3);
 
                 writer.Write(GifConstants.ApplicationIdentification.ToCharArray()); // NETSCAPE2.0
                 writer.Write((byte)3); // Application block length
@@ -243,7 +251,7 @@ namespace ImageSharp.Formats
             where TPacked : struct, IEquatable<TPacked>
         {
             // TODO: Check transparency logic.
-            bool hasTransparent = transparencyIndex > -1;
+            bool hasTransparent = transparencyIndex < 255;
             DisposalMethod disposalMethod = hasTransparent
                 ? DisposalMethod.RestoreToBackground
                 : DisposalMethod.Unspecified;
@@ -256,13 +264,11 @@ namespace ImageSharp.Formats
                 DelayTime = image.FrameDelay
             };
 
-            // Reduce the number of writes.
-            byte[] intro =
-                {
-                    GifConstants.ExtensionIntroducer, GifConstants.GraphicControlLabel, 4 // Size
-                };
-
-            writer.Write(intro);
+            // Write the intro.
+            this.buffer[0] = GifConstants.ExtensionIntroducer;
+            this.buffer[1] = GifConstants.GraphicControlLabel;
+            this.buffer[2] = 4;
+            writer.Write(this.buffer, 0, 3);
 
             PackedField field = default(PackedField);
             field.SetBits(3, 3, (int)extension.DisposalMethod); // 1-3 : Reserved, 4-6 : Disposal
@@ -273,7 +279,7 @@ namespace ImageSharp.Formats
 
             writer.Write(field.Byte);
             writer.Write((ushort)extension.DelayTime);
-            writer.Write((byte)(extension.TransparencyIndex == -1 ? 255 : extension.TransparencyIndex));
+            writer.Write((byte)extension.TransparencyIndex);
             writer.Write(GifConstants.Terminator);
         }
 
@@ -327,10 +333,10 @@ namespace ImageSharp.Formats
                 for (int i = 0; i < pixelCount; i++)
                 {
                     int offset = i * 3;
-                    image.Palette[i].ToBytes(this.pixelBuffer, 0, ComponentOrder.XYZ);
-                    colorTable[offset] = this.pixelBuffer[0];
-                    colorTable[offset + 1] = this.pixelBuffer[1];
-                    colorTable[offset + 2] = this.pixelBuffer[2];
+                    image.Palette[i].ToBytes(this.buffer, 0, ComponentOrder.XYZ);
+                    colorTable[offset] = this.buffer[0];
+                    colorTable[offset + 1] = this.buffer[1];
+                    colorTable[offset + 2] = this.buffer[2];
                 }
 
                 writer.Write(colorTable, 0, colorTableLength);

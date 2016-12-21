@@ -71,6 +71,10 @@ namespace ImageSharp.Formats
             this.prefix = ArrayPool<int>.Shared.Rent(MaxStackSize);
             this.suffix = ArrayPool<int>.Shared.Rent(MaxStackSize);
             this.pixelStack = ArrayPool<int>.Shared.Rent(MaxStackSize + 1);
+
+            Array.Clear(this.prefix, 0, MaxStackSize);
+            Array.Clear(this.suffix, 0, MaxStackSize);
+            Array.Clear(this.pixelStack, 0, MaxStackSize + 1);
         }
 
         /// <summary>

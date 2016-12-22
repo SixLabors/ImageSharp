@@ -95,7 +95,7 @@ namespace ImageSharp.Drawing.Brushes
         }
 
         /// <inheritdoc />
-        public IBrushApplicator<TColor> CreateApplicator(RectangleF region)
+        public IBrushApplicator<TColor> CreateApplicator(IReadonlyPixelAccessor<TColor> sourcePixels, RectangleF region)
         {
             return new PatternBrushApplicator(this.pattern, this.stride);
         }

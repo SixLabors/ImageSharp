@@ -12,10 +12,8 @@ namespace ImageSharp.Drawing.Pens.Processors
     /// primitive that converts a <see cref="PointInfo"/> into a color and a distance away from the drawable part of the path.
     /// </summary>
     /// <typeparam name="TColor">The type of the color.</typeparam>
-    /// <typeparam name="TPacked">The type of the packed.</typeparam>
-    public interface IPenApplicator<TColor, TPacked> : IDisposable
-        where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct, IEquatable<TPacked>
+    public interface IPenApplicator<TColor> : IDisposable
+        where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>
         /// Gets the required region.
@@ -26,10 +24,10 @@ namespace ImageSharp.Drawing.Pens.Processors
         RectangleF RequiredRegion { get; }
 
         /// <summary>
-        /// Gets a <see cref="ColoredPointInfo{TColor, TPacked}" /> from a point represented by a <see cref="PointInfo" />.
+        /// Gets a <see cref="ColoredPointInfo{TColor}" /> from a point represented by a <see cref="PointInfo" />.
         /// </summary>
         /// <param name="info">The information to extract color details about.</param>
         /// <returns>Returns the color details and distance from a solid bit of the line.</returns>
-        ColoredPointInfo<TColor, TPacked> GetColor(PointInfo info);
+        ColoredPointInfo<TColor> GetColor(PointInfo info);
     }
 }

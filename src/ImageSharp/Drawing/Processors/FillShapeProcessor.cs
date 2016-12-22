@@ -17,27 +17,25 @@ namespace ImageSharp.Drawing.Processors
     /// Usinf a brsuh and a shape fills shape with contents of brush the
     /// </summary>
     /// <typeparam name="TColor">The type of the color.</typeparam>
-    /// <typeparam name="TPacked">The type of the packed.</typeparam>
-    /// <seealso cref="ImageSharp.Processors.ImageFilteringProcessor{TColor, TPacked}" />
-    public class FillShapeProcessor<TColor, TPacked> : ImageFilteringProcessor<TColor, TPacked>
-        where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct, IEquatable<TPacked>
+    /// <seealso cref="ImageSharp.Processors.ImageFilteringProcessor{TColor}" />
+    public class FillShapeProcessor<TColor> : ImageFilteringProcessor<TColor>
+        where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         private const float Epsilon = 0.001f;
 
         private const float AntialiasFactor = 1f;
         private const int DrawPadding = 1;
-        private readonly IBrush<TColor, TPacked> fillColor;
+        private readonly IBrush<TColor> fillColor;
         private readonly IShape poly;
         private readonly GraphicsOptions options;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="FillShapeProcessor{TColor, TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="FillShapeProcessor{TColor}"/> class.
         /// </summary>
         /// <param name="brush">The brush.</param>
         /// <param name="shape">The shape.</param>
         /// <param name="options">The graphics options.</param>
-        public FillShapeProcessor(IBrush<TColor, TPacked> brush, IShape shape, GraphicsOptions options)
+        public FillShapeProcessor(IBrush<TColor> brush, IShape shape, GraphicsOptions options)
         {
             this.poly = shape;
             this.fillColor = brush;
@@ -45,9 +43,9 @@ namespace ImageSharp.Drawing.Processors
         }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
         {
-            var rect = RectangleF.Ceiling(this.poly.Bounds); // rounds the points out away from the center
+            Rectangle rect = RectangleF.Ceiling(this.poly.Bounds); // rounds the points out away from the center
 
             int polyStartY = rect.Y - DrawPadding;
             int polyEndY = rect.Bottom + DrawPadding;
@@ -76,8 +74,8 @@ namespace ImageSharp.Drawing.Processors
                 polyStartY = 0;
             }
 
-            using (PixelAccessor<TColor, TPacked> sourcePixels = source.Lock())
-            using (IBrushApplicator<TColor, TPacked> applicator = this.fillColor.CreateApplicator(rect))
+            using (PixelAccessor<TColor> sourcePixels = source.Lock())
+            using (IBrushApplicator<TColor> applicator = this.fillColor.CreateApplicator(rect))
             {
                 Parallel.For(
                 minY,
@@ -94,17 +92,15 @@ namespace ImageSharp.Drawing.Processors
                         int offsetX = x - startX;
                         currentPoint.X = offsetX;
                         currentPoint.Y = offsetY;
-                        var dist = this.poly.Distance(currentPoint);
-                        var opacity = this.Opacity(dist);
+                        float dist = this.poly.Distance(currentPoint);
+                        float opacity = this.Opacity(dist);
 
                         if (opacity > Epsilon)
                         {
-                            int offsetColorX = x - minX;
-
                             Vector4 backgroundVector = sourcePixels[offsetX, offsetY].ToVector4();
                             Vector4 sourceVector = applicator.GetColor(currentPoint).ToVector4();
 
-                            var finalColor = Vector4BlendTransforms.PremultipliedLerp(backgroundVector, sourceVector, opacity);
+                            Vector4 finalColor = Vector4BlendTransforms.PremultipliedLerp(backgroundVector, sourceVector, opacity);
                             finalColor.W = backgroundVector.W;
 
                             TColor packed = default(TColor);
@@ -116,13 +112,23 @@ namespace ImageSharp.Drawing.Processors
             }
         }
 
+        /// <summary>
+        /// Returns the correct alpha value for the given distance.
+        /// </summary>
+        /// <param name="distance">
+        /// The distance.
+        /// </param>
+        /// <returns>
+        /// The <see cref="float"/>.
+        /// </returns>
         private float Opacity(float distance)
         {
             if (distance <= 0)
             {
                 return 1;
             }
-            else if (this.options.Antialias && distance < AntialiasFactor)
+
+            if (this.options.Antialias && distance < AntialiasFactor)
             {
                 return 1 - (distance / AntialiasFactor);
             }

@@ -10,7 +10,7 @@ namespace ImageSharp
     using Processors;
 
     /// <summary>
-    /// Extension methods for the <see cref="Image{TColor, TPacked}"/> type.
+    /// Extension methods for the <see cref="Image{TColor}"/> type.
     /// </summary>
     public static partial class ImageExtensions
     {
@@ -18,13 +18,11 @@ namespace ImageSharp
         /// Applies a Gaussian blur to the image.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="sigma">The 'sigma' value representing the weight of the blur.</param>
-        /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
-        public static Image<TColor, TPacked> GaussianBlur<TColor, TPacked>(this Image<TColor, TPacked> source, float sigma = 3f)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
+        /// <returns>The <see cref="Image{TColor}"/>.</returns>
+        public static Image<TColor> GaussianBlur<TColor>(this Image<TColor> source, float sigma = 3f)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             return GaussianBlur(source, sigma, source.Bounds);
         }
@@ -33,18 +31,16 @@ namespace ImageSharp
         /// Applies a Gaussian blur to the image.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="sigma">The 'sigma' value representing the weight of the blur.</param>
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
-        /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
-        public static Image<TColor, TPacked> GaussianBlur<TColor, TPacked>(this Image<TColor, TPacked> source, float sigma, Rectangle rectangle)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
+        /// <returns>The <see cref="Image{TColor}"/>.</returns>
+        public static Image<TColor> GaussianBlur<TColor>(this Image<TColor> source, float sigma, Rectangle rectangle)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            return source.Process(rectangle, new GaussianBlurProcessor<TColor, TPacked>(sigma));
+            return source.Process(rectangle, new GaussianBlurProcessor<TColor>(sigma));
         }
     }
 }

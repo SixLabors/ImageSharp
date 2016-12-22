@@ -1,4 +1,4 @@
-﻿// <copyright file="ImageBase.cs" company="James Jackson-South">
+﻿// <copyright file="ImageBase{TColor}.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -13,11 +13,9 @@ namespace ImageSharp
     /// images in different pixel formats.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
     [DebuggerDisplay("Image: {Width}x{Height}")]
-    public abstract class ImageBase<TColor, TPacked> : IImageBase<TColor, TPacked>
-        where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct, IEquatable<TPacked>
+    public abstract class ImageBase<TColor> : IImageBase<TColor>
+        where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>
         /// The image pixels
@@ -25,14 +23,14 @@ namespace ImageSharp
         private TColor[] pixelBuffer;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ImageBase{TColor, TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="ImageBase{TColor}"/> class.
         /// </summary>
         protected ImageBase()
         {
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ImageBase{TColor, TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="ImageBase{TColor}"/> class.
         /// </summary>
         /// <param name="width">The width of the image in pixels.</param>
         /// <param name="height">The height of the image in pixels.</param>
@@ -45,15 +43,15 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ImageBase{TColor, TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="ImageBase{TColor}"/> class.
         /// </summary>
         /// <param name="other">
-        /// The other <see cref="ImageBase{TColor, TPacked}"/> to create this instance from.
+        /// The other <see cref="ImageBase{TColor}"/> to create this instance from.
         /// </param>
         /// <exception cref="System.ArgumentNullException">
-        /// Thrown if the given <see cref="ImageBase{TColor, TPacked}"/> is null.
+        /// Thrown if the given <see cref="ImageBase{TColor}"/> is null.
         /// </exception>
-        protected ImageBase(ImageBase<TColor, TPacked> other)
+        protected ImageBase(ImageBase<TColor> other)
         {
             Guard.NotNull(other, nameof(other), "Other image cannot be null.");
 
@@ -63,8 +61,8 @@ namespace ImageSharp
 
             // Copy the pixels. Unsafe.CopyBlock gives us a nice speed boost here.
             this.pixelBuffer = new TColor[this.Width * this.Height];
-            using (PixelAccessor<TColor, TPacked> sourcePixels = other.Lock())
-            using (PixelAccessor<TColor, TPacked> target = this.Lock())
+            using (PixelAccessor<TColor> sourcePixels = other.Lock())
+            using (PixelAccessor<TColor> target = this.Lock())
             {
                 sourcePixels.CopyImage(target);
             }
@@ -146,18 +144,18 @@ namespace ImageSharp
         }
 
         /// <inheritdoc/>
-        public virtual PixelAccessor<TColor, TPacked> Lock()
+        public virtual PixelAccessor<TColor> Lock()
         {
-            return new PixelAccessor<TColor, TPacked>(this);
+            return new PixelAccessor<TColor>(this);
         }
 
         /// <summary>
-        /// Copies the properties from the other <see cref="ImageBase{TColor, TPacked}"/>.
+        /// Copies the properties from the other <see cref="ImageBase{TColor}"/>.
         /// </summary>
         /// <param name="other">
-        /// The other <see cref="ImageBase{TColor, TPacked}"/> to copy the properties from.
+        /// The other <see cref="ImageBase{TColor}"/> to copy the properties from.
         /// </param>
-        protected void CopyProperties(ImageBase<TColor, TPacked> other)
+        protected void CopyProperties(ImageBase<TColor> other)
         {
             this.Quality = other.Quality;
             this.FrameDelay = other.FrameDelay;

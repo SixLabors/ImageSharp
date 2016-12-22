@@ -12,10 +12,8 @@ namespace ImageSharp.Processors
     /// Provides methods to transform an image using a <see cref="Matrix3x2"/>.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public abstract class Matrix3x2Processor<TColor, TPacked> : ImageFilteringProcessor<TColor, TPacked>
-        where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct, IEquatable<TPacked>
+    public abstract class Matrix3x2Processor<TColor> : ImageFilteringProcessor<TColor>
+        where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>
         /// Gets the rectangle designating the target canvas.
@@ -43,7 +41,7 @@ namespace ImageSharp.Processors
         /// <returns>
         /// The <see cref="Matrix3x2"/>.
         /// </returns>
-        protected Matrix3x2 GetCenteredMatrix(ImageBase<TColor, TPacked> source, Matrix3x2 matrix)
+        protected Matrix3x2 GetCenteredMatrix(ImageBase<TColor> source, Matrix3x2 matrix)
         {
             Matrix3x2 translationToTargetCenter = Matrix3x2.CreateTranslation(-this.CanvasRectangle.Width * .5F, -this.CanvasRectangle.Height * .5F);
             Matrix3x2 translateToSourceCenter = Matrix3x2.CreateTranslation(source.Width * .5F, source.Height * .5F);

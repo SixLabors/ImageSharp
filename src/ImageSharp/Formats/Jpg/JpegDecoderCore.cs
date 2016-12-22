@@ -267,13 +267,11 @@ namespace ImageSharp.Formats
         /// the data to image.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="image">The image, where the data should be set to.</param>
         /// <param name="stream">The stream, where the image should be.</param>
         /// <param name="configOnly">Whether to decode metadata only.</param>
-        public void Decode<TColor, TPacked>(Image<TColor, TPacked> image, Stream stream, bool configOnly)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
+        public void Decode<TColor>(Image<TColor> image, Stream stream, bool configOnly)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             this.inputStream = stream;
 
@@ -511,15 +509,13 @@ namespace ImageSharp.Formats
         /// This is faster than implicit casting as it avoids double packing.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="packed">The packed pixel.</param>
         /// <param name="y">The y luminance component.</param>
         /// <param name="cb">The cb chroma component.</param>
         /// <param name="cr">The cr chroma component.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void PackYcbCr<TColor, TPacked>(ref TColor packed, byte y, byte cb, byte cr)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
+        private static void PackYcbCr<TColor>(ref TColor packed, byte y, byte cb, byte cr)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             int ccb = cb - 128;
             int ccr = cr - 128;
@@ -1167,12 +1163,10 @@ namespace ImageSharp.Formats
         /// Processes the App1 marker retrieving any stored metadata
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="remaining">The remaining bytes in the segment block.</param>
         /// <param name="image">The image.</param>
-        private void ProcessApp1Marker<TColor, TPacked>(int remaining, Image<TColor, TPacked> image)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
+        private void ProcessApp1Marker<TColor>(int remaining, Image<TColor> image)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             if (remaining < 6)
             {
@@ -1224,19 +1218,17 @@ namespace ImageSharp.Formats
         /// Converts the image from the original YCCK image pixels.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="width">The image width.</param>
         /// <param name="height">The image height.</param>
         /// <param name="image">The image.</param>
-        private void ConvertFromYcck<TColor, TPacked>(int width, int height, Image<TColor, TPacked> image)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
+        private void ConvertFromYcck<TColor>(int width, int height, Image<TColor> image)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             int scale = this.componentArray[0].HorizontalFactor / this.componentArray[1].HorizontalFactor;
 
             image.InitPixels(width, height);
 
-            using (PixelAccessor<TColor, TPacked> pixels = image.Lock())
+            using (PixelAccessor<TColor> pixels = image.Lock())
             {
                 Parallel.For(
                     0,
@@ -1253,7 +1245,7 @@ namespace ImageSharp.Formats
                                 byte cr = this.ycbcrImage.CrChannel[co + (x / scale)];
 
                                 TColor packed = default(TColor);
-                                this.PackYcck<TColor, TPacked>(ref packed, yy, cb, cr, x, y);
+                                this.PackYcck<TColor>(ref packed, yy, cb, cr, x, y);
                                 pixels[x, y] = packed;
                             }
                         });
@@ -1266,19 +1258,17 @@ namespace ImageSharp.Formats
         /// Converts the image from the original CMYK image pixels.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="width">The image width.</param>
         /// <param name="height">The image height.</param>
         /// <param name="image">The image.</param>
-        private void ConvertFromCmyk<TColor, TPacked>(int width, int height, Image<TColor, TPacked> image)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
+        private void ConvertFromCmyk<TColor>(int width, int height, Image<TColor> image)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             int scale = this.componentArray[0].HorizontalFactor / this.componentArray[1].HorizontalFactor;
 
             image.InitPixels(width, height);
 
-            using (PixelAccessor<TColor, TPacked> pixels = image.Lock())
+            using (PixelAccessor<TColor> pixels = image.Lock())
             {
                 Parallel.For(
                     0,
@@ -1295,7 +1285,7 @@ namespace ImageSharp.Formats
                             byte yellow = this.ycbcrImage.CrChannel[co + (x / scale)];
 
                             TColor packed = default(TColor);
-                            this.PackCmyk<TColor, TPacked>(ref packed, cyan, magenta, yellow, x, y);
+                            this.PackCmyk<TColor>(ref packed, cyan, magenta, yellow, x, y);
                             pixels[x, y] = packed;
                         }
                     });
@@ -1308,17 +1298,15 @@ namespace ImageSharp.Formats
         /// Converts the image from the original grayscale image pixels.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>long, float.</example></typeparam>
         /// <param name="width">The image width.</param>
         /// <param name="height">The image height.</param>
         /// <param name="image">The image.</param>
-        private void ConvertFromGrayScale<TColor, TPacked>(int width, int height, Image<TColor, TPacked> image)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
+        private void ConvertFromGrayScale<TColor>(int width, int height, Image<TColor> image)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             image.InitPixels(width, height);
 
-            using (PixelAccessor<TColor, TPacked> pixels = image.Lock())
+            using (PixelAccessor<TColor> pixels = image.Lock())
             {
                 Parallel.For(
                     0,
@@ -1345,18 +1333,16 @@ namespace ImageSharp.Formats
         /// Converts the image from the original YCbCr image pixels.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="width">The image width.</param>
         /// <param name="height">The image height.</param>
         /// <param name="image">The image.</param>
-        private void ConvertFromYCbCr<TColor, TPacked>(int width, int height, Image<TColor, TPacked> image)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
+        private void ConvertFromYCbCr<TColor>(int width, int height, Image<TColor> image)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             int scale = this.componentArray[0].HorizontalFactor / this.componentArray[1].HorizontalFactor;
             image.InitPixels(width, height);
 
-            using (PixelAccessor<TColor, TPacked> pixels = image.Lock())
+            using (PixelAccessor<TColor> pixels = image.Lock())
             {
                 Parallel.For(
                     0,
@@ -1374,7 +1360,7 @@ namespace ImageSharp.Formats
                                 byte cr = this.ycbcrImage.CrChannel[co + (x / scale)];
 
                                 TColor packed = default(TColor);
-                                PackYcbCr<TColor, TPacked>(ref packed, yy, cb, cr);
+                                PackYcbCr<TColor>(ref packed, yy, cb, cr);
                                 pixels[x, y] = packed;
                             }
                         });
@@ -1387,18 +1373,16 @@ namespace ImageSharp.Formats
         /// Converts the image from the original RBG image pixels.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="width">The image width.</param>
         /// <param name="height">The height.</param>
         /// <param name="image">The image.</param>
-        private void ConvertFromRGB<TColor, TPacked>(int width, int height, Image<TColor, TPacked> image)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
+        private void ConvertFromRGB<TColor>(int width, int height, Image<TColor> image)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             int scale = this.componentArray[0].HorizontalFactor / this.componentArray[1].HorizontalFactor;
             image.InitPixels(width, height);
 
-            using (PixelAccessor<TColor, TPacked> pixels = image.Lock())
+            using (PixelAccessor<TColor> pixels = image.Lock())
             {
                 Parallel.For(
                     0,
@@ -1429,11 +1413,9 @@ namespace ImageSharp.Formats
         /// Assigns the horizontal and vertical resolution to the image if it has a JFIF header.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="image">The image to assign the resolution to.</param>
-        private void AssignResolution<TColor, TPacked>(Image<TColor, TPacked> image)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
+        private void AssignResolution<TColor>(Image<TColor> image)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             if (this.isJfif && this.horizontalResolution > 0 && this.verticalResolution > 0)
             {
@@ -2186,16 +2168,14 @@ namespace ImageSharp.Formats
         /// This is faster than implicit casting as it avoids double packing.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="packed">The packed pixel.</param>
         /// <param name="y">The y luminance component.</param>
         /// <param name="cb">The cb chroma component.</param>
         /// <param name="cr">The cr chroma component.</param>
         /// <param name="xx">The x-position within the image.</param>
         /// <param name="yy">The y-position within the image.</param>
-        private void PackYcck<TColor, TPacked>(ref TColor packed, byte y, byte cb, byte cr, int xx, int yy)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
+        private void PackYcck<TColor>(ref TColor packed, byte y, byte cb, byte cr, int xx, int yy)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             // Convert the YCbCr part of the YCbCrK to RGB, invert the RGB to get
             // CMY, and patch in the original K. The RGB to CMY inversion cancels
@@ -2226,16 +2206,14 @@ namespace ImageSharp.Formats
         /// This is faster than implicit casting as it avoids double packing.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="packed">The packed pixel.</param>
         /// <param name="c">The cyan component.</param>
         /// <param name="m">The magenta component.</param>
         /// <param name="y">The yellow component.</param>
         /// <param name="xx">The x-position within the image.</param>
         /// <param name="yy">The y-position within the image.</param>
-        private void PackCmyk<TColor, TPacked>(ref TColor packed, byte c, byte m, byte y, int xx, int yy)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
+        private void PackCmyk<TColor>(ref TColor packed, byte c, byte m, byte y, int xx, int yy)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             // Get keyline
             float keyline = (255 - this.blackPixels[(yy * this.blackStride) + xx]) / 255F;

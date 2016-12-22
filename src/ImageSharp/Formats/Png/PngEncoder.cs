@@ -56,10 +56,9 @@ namespace ImageSharp.Formats
         public bool WriteGamma { get; set; }
 
         /// <inheritdoc/>
-        public void Encode<TColor, TPacked>(Image<TColor, TPacked> image, Stream stream)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
-        {
+        public void Encode<TColor>(Image<TColor> image, Stream stream)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
+                    {
             PngEncoderCore encoder = new PngEncoderCore
             {
                 CompressionLevel = this.CompressionLevel,

@@ -12,13 +12,11 @@ namespace ImageSharp.Processors
     /// Provides methods to allow the cropping of an image.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public class CropProcessor<TColor, TPacked> : ImageFilteringProcessor<TColor, TPacked>
-        where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct, IEquatable<TPacked>
+    public class CropProcessor<TColor> : ImageFilteringProcessor<TColor>
+        where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="CropProcessor{TColor,TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="CropProcessor{TColor}"/> class.
         /// </summary>
         /// <param name="cropRectangle">The target cropped rectangle.</param>
         public CropProcessor(Rectangle cropRectangle)
@@ -32,7 +30,7 @@ namespace ImageSharp.Processors
         public Rectangle CropRectangle { get; }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
         {
             if (this.CropRectangle == sourceRectangle)
             {
@@ -46,8 +44,8 @@ namespace ImageSharp.Processors
 
             TColor[] target = new TColor[this.CropRectangle.Width * this.CropRectangle.Height];
 
-            using (PixelAccessor<TColor, TPacked> sourcePixels = source.Lock())
-            using (PixelAccessor<TColor, TPacked> targetPixels = target.Lock<TColor, TPacked>(this.CropRectangle.Width, this.CropRectangle.Height))
+            using (PixelAccessor<TColor> sourcePixels = source.Lock())
+            using (PixelAccessor<TColor> targetPixels = target.Lock<TColor>(this.CropRectangle.Width, this.CropRectangle.Height))
             {
                 Parallel.For(
                     minY,

@@ -10,7 +10,7 @@ namespace ImageSharp
     using Processors;
 
     /// <summary>
-    /// Extension methods for the <see cref="Image{TColor, TPacked}"/> type.
+    /// Extension methods for the <see cref="Image{TColor}"/> type.
     /// </summary>
     public static partial class ImageExtensions
     {
@@ -18,13 +18,11 @@ namespace ImageSharp
         /// Pixelates an image with the given pixel size.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="size">The size of the pixels.</param>
-        /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
-        public static Image<TColor, TPacked> Pixelate<TColor, TPacked>(this Image<TColor, TPacked> source, int size = 4)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
+        /// <returns>The <see cref="Image{TColor}"/>.</returns>
+        public static Image<TColor> Pixelate<TColor>(this Image<TColor> source, int size = 4)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             return Pixelate(source, size, source.Bounds);
         }
@@ -33,23 +31,21 @@ namespace ImageSharp
         /// Pixelates an image with the given pixel size.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="size">The size of the pixels.</param>
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
-        /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
-        public static Image<TColor, TPacked> Pixelate<TColor, TPacked>(this Image<TColor, TPacked> source, int size, Rectangle rectangle)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
+        /// <returns>The <see cref="Image{TColor}"/>.</returns>
+        public static Image<TColor> Pixelate<TColor>(this Image<TColor> source, int size, Rectangle rectangle)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             if (size <= 0 || size > source.Height || size > source.Width)
             {
                 throw new ArgumentOutOfRangeException(nameof(size));
             }
 
-            return source.Process(rectangle, new PixelateProcessor<TColor, TPacked>(size));
+            return source.Process(rectangle, new PixelateProcessor<TColor>(size));
         }
     }
 }

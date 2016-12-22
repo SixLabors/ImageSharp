@@ -13,10 +13,8 @@ namespace ImageSharp.Processors
     /// Sets the background color of the image.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public class BackgroundColorProcessor<TColor, TPacked> : ImageFilteringProcessor<TColor, TPacked>
-        where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct, IEquatable<TPacked>
+    public class BackgroundColorProcessor<TColor> : ImageFilteringProcessor<TColor>
+        where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>
         /// The epsilon for comparing floating point numbers.
@@ -24,7 +22,7 @@ namespace ImageSharp.Processors
         private const float Epsilon = 0.001f;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="BackgroundColorProcessor{TColor, TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="BackgroundColorProcessor{TColor}"/> class.
         /// </summary>
         /// <param name="color">The <typeparamref name="TColor"/> to set the background color to.</param>
         public BackgroundColorProcessor(TColor color)
@@ -38,7 +36,7 @@ namespace ImageSharp.Processors
         public TColor Value { get; }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
         {
             int startY = sourceRectangle.Y;
             int endY = sourceRectangle.Bottom;
@@ -64,7 +62,7 @@ namespace ImageSharp.Processors
 
             Vector4 backgroundColor = this.Value.ToVector4();
 
-            using (PixelAccessor<TColor, TPacked> sourcePixels = source.Lock())
+            using (PixelAccessor<TColor> sourcePixels = source.Lock())
             {
                 Parallel.For(
                     minY,

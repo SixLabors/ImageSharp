@@ -19,8 +19,8 @@ namespace ImageSharp.Benchmarks.Image
         {
             CoreImage source = new CoreImage(1024, 768);
             CoreImage target = new CoreImage(1024, 768);
-            using (PixelAccessor<CoreColor, uint> sourcePixels = source.Lock())
-            using (PixelAccessor<CoreColor, uint> targetPixels = target.Lock())
+            using (PixelAccessor<CoreColor> sourcePixels = source.Lock())
+            using (PixelAccessor<CoreColor> targetPixels = target.Lock())
             {
                 Parallel.For(
                     0,
@@ -43,8 +43,8 @@ namespace ImageSharp.Benchmarks.Image
         {
             CoreImage source = new CoreImage(1024, 768);
             CoreImage target = new CoreImage(1024, 768);
-            using (PixelAccessor<CoreColor, uint> sourcePixels = source.Lock())
-            using (PixelAccessor<CoreColor, uint> targetPixels = target.Lock())
+            using (PixelAccessor<CoreColor> sourcePixels = source.Lock())
+            using (PixelAccessor<CoreColor> targetPixels = target.Lock())
             {
                 Parallel.For(
                     0,

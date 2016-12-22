@@ -61,10 +61,9 @@ namespace ImageSharp.Formats
         }
 
         /// <inheritdoc/>
-        public void Encode<TColor, TPacked>(Image<TColor, TPacked> image, Stream stream)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
-        {
+        public void Encode<TColor>(Image<TColor> image, Stream stream)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
+                    {
             JpegEncoderCore encode = new JpegEncoderCore();
             if (this.subsampleSet)
             {

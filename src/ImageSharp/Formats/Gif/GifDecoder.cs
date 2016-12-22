@@ -14,11 +14,10 @@ namespace ImageSharp.Formats
     public class GifDecoder : IImageDecoder
     {
         /// <inheritdoc/>
-        public void Decode<TColor, TPacked>(Image<TColor, TPacked> image, Stream stream)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
-        {
-            new GifDecoderCore<TColor, TPacked>().Decode(image, stream);
+        public void Decode<TColor>(Image<TColor> image, Stream stream)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
+                    {
+            new GifDecoderCore<TColor>().Decode(image, stream);
         }
     }
 }

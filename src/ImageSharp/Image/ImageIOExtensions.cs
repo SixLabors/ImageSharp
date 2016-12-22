@@ -11,7 +11,7 @@ namespace ImageSharp
     using Formats;
 
     /// <summary>
-    /// Extension methods for the <see cref="Image{TColor, TPacked}"/> type.
+    /// Extension methods for the <see cref="Image{TColor}"/> type.
     /// </summary>
     public static partial class ImageExtensions
     {
@@ -19,23 +19,20 @@ namespace ImageSharp
         /// Saves the image to the given stream with the bmp format.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="stream">The stream to save the image to.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
         /// <returns>
-        /// The <see cref="Image{TColor,TPacked}"/>.
+        /// The <see cref="Image{TColoR}"/>.
         /// </returns>
-        public static Image<TColor, TPacked> SaveAsBmp<TColor, TPacked>(this Image<TColor, TPacked> source, Stream stream)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
-            => source.Save(stream, new BmpEncoder());
+        public static Image<TColor> SaveAsBmp<TColor>(this Image<TColor> source, Stream stream)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
+                        => source.Save(stream, new BmpEncoder());
 
         /// <summary>
         /// Saves the image to the given stream with the png format.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="stream">The stream to save the image to.</param>
         /// <param name="quality">The quality to save the image to representing the number of colors.
@@ -43,45 +40,40 @@ namespace ImageSharp
         /// </param>
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
         /// <returns>
-        /// The <see cref="Image{TColor,TPacked}"/>.
+        /// The <see cref="Image{TColor}"/>.
         /// </returns>
-        public static Image<TColor, TPacked> SaveAsPng<TColor, TPacked>(this Image<TColor, TPacked> source, Stream stream, int quality = int.MaxValue)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
-            => source.Save(stream, new PngEncoder { Quality = quality });
+        public static Image<TColor> SaveAsPng<TColor>(this Image<TColor> source, Stream stream, int quality = int.MaxValue)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
+                        => source.Save(stream, new PngEncoder { Quality = quality });
 
         /// <summary>
         /// Saves the image to the given stream with the jpeg format.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="stream">The stream to save the image to.</param>
         /// <param name="quality">The quality to save the image to. Between 1 and 100.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
         /// <returns>
-        /// The <see cref="Image{TColor,TPacked}"/>.
+        /// The <see cref="Image{TColor}"/>.
         /// </returns>
-        public static Image<TColor, TPacked> SaveAsJpeg<TColor, TPacked>(this Image<TColor, TPacked> source, Stream stream, int quality = 75)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
-            => source.Save(stream, new JpegEncoder { Quality = quality });
+        public static Image<TColor> SaveAsJpeg<TColor>(this Image<TColor> source, Stream stream, int quality = 75)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
+                        => source.Save(stream, new JpegEncoder { Quality = quality });
 
         /// <summary>
         /// Saves the image to the given stream with the gif format.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="stream">The stream to save the image to.</param>
         /// <param name="quality">The quality to save the image to representing the number of colors. Between 1 and 256.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
         /// <returns>
-        /// The <see cref="Image{TColor,TPacked}"/>.
+        /// The <see cref="Image{TColor}"/>.
         /// </returns>
-        public static Image<TColor, TPacked> SaveAsGif<TColor, TPacked>(this Image<TColor, TPacked> source, Stream stream, int quality = 256)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
-            => source.Save(stream, new GifEncoder { Quality = quality });
+        public static Image<TColor> SaveAsGif<TColor>(this Image<TColor> source, Stream stream, int quality = 256)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
+                        => source.Save(stream, new GifEncoder { Quality = quality });
     }
 }

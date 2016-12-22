@@ -48,7 +48,6 @@ namespace ImageSharp.Formats
         /// the data to image.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="image">The image, where the data should be set to.
         /// Cannot be null (Nothing in Visual Basic).</param>
         /// <param name="stream">The stream, where the image should be
@@ -58,9 +57,8 @@ namespace ImageSharp.Formats
         ///    <para>- or -</para>
         ///    <para><paramref name="stream"/> is null.</para>
         /// </exception>
-        public void Decode<TColor, TPacked>(Image<TColor, TPacked> image, Stream stream)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
+        public void Decode<TColor>(Image<TColor> image, Stream stream)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             this.currentStream = stream;
 
@@ -121,7 +119,7 @@ namespace ImageSharp.Formats
 
                 image.InitPixels(this.infoHeader.Width, this.infoHeader.Height);
 
-                using (PixelAccessor<TColor, TPacked> pixels = image.Lock())
+                using (PixelAccessor<TColor> pixels = image.Lock())
                 {
                     switch (this.infoHeader.Compression)
                     {
@@ -207,16 +205,14 @@ namespace ImageSharp.Formats
         /// Reads the color palette from the stream.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-        /// <param name="pixels">The <see cref="PixelAccessor{TColor, TPacked}"/> to assign the palette to.</param>
+        /// <param name="pixels">The <see cref="PixelAccessor{TColor}"/> to assign the palette to.</param>
         /// <param name="colors">The <see cref="T:byte[]"/> containing the colors.</param>
         /// <param name="width">The width of the bitmap.</param>
         /// <param name="height">The height of the bitmap.</param>
         /// <param name="bits">The number of bits per pixel.</param>
         /// <param name="inverted">Whether the bitmap is inverted.</param>
-        private void ReadRgbPalette<TColor, TPacked>(PixelAccessor<TColor, TPacked> pixels, byte[] colors, int width, int height, int bits, bool inverted)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
+        private void ReadRgbPalette<TColor>(PixelAccessor<TColor> pixels, byte[] colors, int width, int height, int bits, bool inverted)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             // Pixels per byte (bits per pixel)
             int ppb = 8 / bits;
@@ -266,14 +262,12 @@ namespace ImageSharp.Formats
         /// Reads the 16 bit color palette from the stream
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-        /// <param name="pixels">The <see cref="PixelAccessor{TColor, TPacked}"/> to assign the palette to.</param>
+        /// <param name="pixels">The <see cref="PixelAccessor{TColor}"/> to assign the palette to.</param>
         /// <param name="width">The width of the bitmap.</param>
         /// <param name="height">The height of the bitmap.</param>
         /// <param name="inverted">Whether the bitmap is inverted.</param>
-        private void ReadRgb16<TColor, TPacked>(PixelAccessor<TColor, TPacked> pixels, int width, int height, bool inverted)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
+        private void ReadRgb16<TColor>(PixelAccessor<TColor> pixels, int width, int height, bool inverted)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             // We divide here as we will store the colors in our floating point format.
             const int ScaleR = 8; // 256/32
@@ -281,7 +275,7 @@ namespace ImageSharp.Formats
             const int ComponentCount = 2;
 
             TColor color = default(TColor);
-            using (PixelArea<TColor, TPacked> row = new PixelArea<TColor, TPacked>(width, ComponentOrder.XYZ))
+            using (PixelArea<TColor> row = new PixelArea<TColor>(width, ComponentOrder.XYZ))
             {
                 for (int y = 0; y < height; y++)
                 {
@@ -310,17 +304,15 @@ namespace ImageSharp.Formats
         /// Reads the 24 bit color palette from the stream
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-        /// <param name="pixels">The <see cref="PixelAccessor{TColor, TPacked}"/> to assign the palette to.</param>
+        /// <param name="pixels">The <see cref="PixelAccessor{TColor}"/> to assign the palette to.</param>
         /// <param name="width">The width of the bitmap.</param>
         /// <param name="height">The height of the bitmap.</param>
         /// <param name="inverted">Whether the bitmap is inverted.</param>
-        private void ReadRgb24<TColor, TPacked>(PixelAccessor<TColor, TPacked> pixels, int width, int height, bool inverted)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
+        private void ReadRgb24<TColor>(PixelAccessor<TColor> pixels, int width, int height, bool inverted)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             int padding = CalculatePadding(width, 3);
-            using (PixelArea<TColor, TPacked> row = new PixelArea<TColor, TPacked>(width, ComponentOrder.ZYX, padding))
+            using (PixelArea<TColor> row = new PixelArea<TColor>(width, ComponentOrder.ZYX, padding))
             {
                 for (int y = 0; y < height; y++)
                 {
@@ -336,17 +328,15 @@ namespace ImageSharp.Formats
         /// Reads the 32 bit color palette from the stream
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-        /// <param name="pixels">The <see cref="PixelAccessor{TColor, TPacked}"/> to assign the palette to.</param>
+        /// <param name="pixels">The <see cref="PixelAccessor{TColor}"/> to assign the palette to.</param>
         /// <param name="width">The width of the bitmap.</param>
         /// <param name="height">The height of the bitmap.</param>
         /// <param name="inverted">Whether the bitmap is inverted.</param>
-        private void ReadRgb32<TColor, TPacked>(PixelAccessor<TColor, TPacked> pixels, int width, int height, bool inverted)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
+        private void ReadRgb32<TColor>(PixelAccessor<TColor> pixels, int width, int height, bool inverted)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             int padding = CalculatePadding(width, 4);
-            using (PixelArea<TColor, TPacked> row = new PixelArea<TColor, TPacked>(width, ComponentOrder.ZYXW, padding))
+            using (PixelArea<TColor> row = new PixelArea<TColor>(width, ComponentOrder.ZYXW, padding))
             {
                 for (int y = 0; y < height; y++)
                 {

@@ -10,7 +10,7 @@ namespace ImageSharp
     using Processors;
 
     /// <summary>
-    /// Extension methods for the <see cref="Image{TColor, TPacked}"/> type.
+    /// Extension methods for the <see cref="Image{TColor}"/> type.
     /// </summary>
     public static partial class ImageExtensions
     {
@@ -18,13 +18,11 @@ namespace ImageSharp
         /// Applies Grayscale toning to the image.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="mode">The formula to apply to perform the operation.</param>
-        /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
-        public static Image<TColor, TPacked> Grayscale<TColor, TPacked>(this Image<TColor, TPacked> source, GrayscaleMode mode = GrayscaleMode.Bt709)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
+        /// <returns>The <see cref="Image{TColor}"/>.</returns>
+        public static Image<TColor> Grayscale<TColor>(this Image<TColor> source, GrayscaleMode mode = GrayscaleMode.Bt709)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             return Grayscale(source, source.Bounds, mode);
         }
@@ -33,20 +31,18 @@ namespace ImageSharp
         /// Applies Grayscale toning to the image.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
         /// <param name="mode">The formula to apply to perform the operation.</param>
-        /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
-        public static Image<TColor, TPacked> Grayscale<TColor, TPacked>(this Image<TColor, TPacked> source, Rectangle rectangle, GrayscaleMode mode = GrayscaleMode.Bt709)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
+        /// <returns>The <see cref="Image{TColor}"/>.</returns>
+        public static Image<TColor> Grayscale<TColor>(this Image<TColor> source, Rectangle rectangle, GrayscaleMode mode = GrayscaleMode.Bt709)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            IImageFilteringProcessor<TColor, TPacked> processor = mode == GrayscaleMode.Bt709
-                ? (IImageFilteringProcessor<TColor, TPacked>)new GrayscaleBt709Processor<TColor, TPacked>()
-                : new GrayscaleBt601Processor<TColor, TPacked>();
+            IImageFilteringProcessor<TColor> processor = mode == GrayscaleMode.Bt709
+                ? (IImageFilteringProcessor<TColor>)new GrayscaleBt709Processor<TColor>()
+                : new GrayscaleBt601Processor<TColor>();
 
             return source.Process(rectangle, processor);
         }

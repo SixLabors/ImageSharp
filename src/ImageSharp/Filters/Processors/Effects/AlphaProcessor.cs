@@ -10,16 +10,14 @@ namespace ImageSharp.Processors
     using System.Threading.Tasks;
 
     /// <summary>
-    /// An <see cref="IImageFilteringProcessor{TColor,TPacked}"/> to change the alpha component of an <see cref="Image{TColor, TPacked}"/>.
+    /// An <see cref="IImageFilteringProcessor{TColor}"/> to change the alpha component of an <see cref="Image{TColor}"/>.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public class AlphaProcessor<TColor, TPacked> : ImageFilteringProcessor<TColor, TPacked>
-        where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct, IEquatable<TPacked>
+    public class AlphaProcessor<TColor> : ImageFilteringProcessor<TColor>
+        where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="AlphaProcessor{TColor, TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="AlphaProcessor{TColor}"/> class.
         /// </summary>
         /// <param name="percent">The percentage to adjust the opacity of the image. Must be between 0 and 100.</param>
         /// <exception cref="System.ArgumentException">
@@ -37,7 +35,7 @@ namespace ImageSharp.Processors
         public int Value { get; }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
         {
             float alpha = this.Value / 100F;
 
@@ -65,7 +63,7 @@ namespace ImageSharp.Processors
 
             Vector4 alphaVector = new Vector4(1, 1, 1, alpha);
 
-            using (PixelAccessor<TColor, TPacked> sourcePixels = source.Lock())
+            using (PixelAccessor<TColor> sourcePixels = source.Lock())
             {
                 Parallel.For(
                     minY,

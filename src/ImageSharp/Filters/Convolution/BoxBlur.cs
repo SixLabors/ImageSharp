@@ -10,7 +10,7 @@ namespace ImageSharp
     using Processors;
 
     /// <summary>
-    /// Extension methods for the <see cref="Image{TColor, TPacked}"/> type.
+    /// Extension methods for the <see cref="Image{TColor}"/> type.
     /// </summary>
     public static partial class ImageExtensions
     {
@@ -18,13 +18,11 @@ namespace ImageSharp
         /// Applies a box blur to the image.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>long, float.</example></typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="radius">The 'radius' value representing the size of the area to sample.</param>
-        /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
-        public static Image<TColor, TPacked> BoxBlur<TColor, TPacked>(this Image<TColor, TPacked> source, int radius = 7)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
+        /// <returns>The <see cref="Image{TColor}"/>.</returns>
+        public static Image<TColor> BoxBlur<TColor>(this Image<TColor> source, int radius = 7)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             return BoxBlur(source, radius, source.Bounds);
         }
@@ -33,18 +31,16 @@ namespace ImageSharp
         /// Applies a box blur to the image.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>long, float.</example></typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="radius">The 'radius' value representing the size of the area to sample.</param>
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
-        /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
-        public static Image<TColor, TPacked> BoxBlur<TColor, TPacked>(this Image<TColor, TPacked> source, int radius, Rectangle rectangle)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
+        /// <returns>The <see cref="Image{TColor}"/>.</returns>
+        public static Image<TColor> BoxBlur<TColor>(this Image<TColor> source, int radius, Rectangle rectangle)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            return source.Process(rectangle, new BoxBlurProcessor<TColor, TPacked>(radius));
+            return source.Process(rectangle, new BoxBlurProcessor<TColor>(radius));
         }
     }
 }

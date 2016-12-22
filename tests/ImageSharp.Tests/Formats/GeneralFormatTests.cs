@@ -54,39 +54,22 @@ namespace ImageSharp.Tests
             {
                 Image image = file.CreateImage();
 
-                //var image = file.CreateImage()
-                //    .To<Bgr565, ushort>()
-                //    .To<Bgra4444, ushort>()
-                //    .To<Bgra5551, ushort>()
-                //    .To<Byte4, uint>()
-                //    .To<HalfSingle, ushort>()
-                //    .To<HalfVector2, uint>()
-                //    .To<HalfVector4, ulong>()
-                //    .To<Rg32, uint>()
-                //    .To<Rgba1010102, uint>()
-                //    .To<NormalizedByte2, ushort>()
-                //    .To<NormalizedByte4, uint>()
-                //    .To<NormalizedShort2, uint>()
-                //    .To<NormalizedShort4, ulong>()
-                //    .To<Short2, uint>()
-                //    .To<Short4, ulong>();
-
-                // Image<Bgr565, ushort> image = file.CreateImage().To<Bgr565, ushort>();
-                // Image<Bgra4444, ushort> image = file.CreateImage().To<Bgra4444, ushort>();
-                // Image<Bgra5551, ushort> image = file.CreateImage().To<Bgra5551, ushort>();
-                // Image<Byte4, uint> image = file.CreateImage().To<Byte4, uint>();
-                // Image<HalfSingle, ushort> image = file.CreateImage().To<HalfSingle, ushort>();
-                // Image<HalfVector2, uint> image = file.CreateImage().To<HalfVector2, uint>();
-                // Image<HalfVector4, ulong> image = file.CreateImage().To<HalfVector4, ulong>();
-                // Image<Rg32, uint> image = file.CreateImage().To<Rg32, uint>();
-                // Image<Rgba1010102, uint> image = file.CreateImage().To<Rgba1010102, uint>();
-                // Image<Rgba64, ulong> image = file.CreateImage().To<Rgba64, ulong>();
-                // Image<NormalizedByte2, ushort> image = file.CreateImage().To<NormalizedByte2, ushort>();
-                // Image<NormalizedByte4, uint> image = file.CreateImage().To<NormalizedByte4, uint>();
-                // Image<NormalizedShort2, uint> image = file.CreateImage().To<NormalizedShort2, uint>();
-                // Image<NormalizedShort4, ulong> image = file.CreateImage().To<NormalizedShort4, ulong>();
-                // Image<Short2, uint> image = file.CreateImage().To<Short2, uint>();
-                // Image<Short4, ulong> image = file.CreateImage().To<Short4, ulong>();
+                //Image<Bgr565> image = file.CreateImage().To<Bgr565>();
+                //Image<Bgra4444> image = file.CreateImage().To<Bgra4444>();
+                //Image<Bgra5551> image = file.CreateImage().To<Bgra5551>();
+                //Image<Byte4> image = file.CreateImage().To<Byte4>();
+                //Image<HalfSingle> image = file.CreateImage().To<HalfSingle>();
+                //Image<HalfVector2> image = file.CreateImage().To<HalfVector2>();
+                //Image<HalfVector4> image = file.CreateImage().To<HalfVector4>();
+                //Image<Rg32> image = file.CreateImage().To<Rg32>();
+                //Image<Rgba1010102> image = file.CreateImage().To<Rgba1010102>();
+                //Image<Rgba64> image = file.CreateImage().To<Rgba64>();
+                //Image<NormalizedByte2> image = file.CreateImage().To<NormalizedByte2>();
+                //Image<NormalizedByte4> image = file.CreateImage().To<NormalizedByte4>();
+                //Image<NormalizedShort2> image = file.CreateImage().To<NormalizedShort2>();
+                //Image<NormalizedShort4> image = file.CreateImage().To<NormalizedShort4>();
+                //Image<Short2> image = file.CreateImage().To<Short2>();
+                //Image<Short4> image = file.CreateImage().To<Short4>();
                 using (FileStream output = File.OpenWrite($"{path}/{file.FileName}"))
                 {
                     image.Save(output);

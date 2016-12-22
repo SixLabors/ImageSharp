@@ -287,14 +287,12 @@ namespace ImageSharp.Formats
         /// Encode writes the image to the jpeg baseline format with the given options.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="image">The image to write from.</param>
         /// <param name="stream">The stream to write to.</param>
         /// <param name="quality">The quality.</param>
         /// <param name="sample">The subsampling mode.</param>
-        public void Encode<TColor, TPacked>(Image<TColor, TPacked> image, Stream stream, int quality, JpegSubsample sample)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
+        public void Encode<TColor>(Image<TColor> image, Stream stream, int quality, JpegSubsample sample)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));
@@ -373,7 +371,7 @@ namespace ImageSharp.Formats
             this.WriteDefineHuffmanTables(componentCount);
 
             // Write the image data.
-            using (PixelAccessor<TColor, TPacked> pixels = image.Lock())
+            using (PixelAccessor<TColor> pixels = image.Lock())
             {
                 this.WriteStartOfScan(pixels);
             }
@@ -539,16 +537,14 @@ namespace ImageSharp.Formats
         /// Converts the 8x8 region of the image whose top-left corner is x,y to its YCbCr values.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="pixels">The pixel accessor.</param>
         /// <param name="x">The x-position within the image.</param>
         /// <param name="y">The y-position within the image.</param>
         /// <param name="yBlock">The luminance block.</param>
         /// <param name="cbBlock">The red chroma block.</param>
         /// <param name="crBlock">The blue chroma block.</param>
-        private void ToYCbCr<TColor, TPacked>(PixelAccessor<TColor, TPacked> pixels, int x, int y, ref Block yBlock, ref Block cbBlock, ref Block crBlock)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
+        private void ToYCbCr<TColor>(PixelAccessor<TColor> pixels, int x, int y, ref Block yBlock, ref Block cbBlock, ref Block crBlock)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             int xmax = pixels.Width - 1;
             int ymax = pixels.Height - 1;
@@ -644,10 +640,8 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <param name="image">The image.</param>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-        private void WriteProfiles<TColor, TPacked>(Image<TColor, TPacked> image)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
+        private void WriteProfiles<TColor>(Image<TColor> image)
+    where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             this.WriteProfile(image.ExifProfile);
         }
@@ -817,13 +811,11 @@ namespace ImageSharp.Formats
         /// Writes the StartOfScan marker.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="pixels">
         /// The pixel accessor providing access to the image pixels.
         /// </param>
-        private void WriteStartOfScan<TColor, TPacked>(PixelAccessor<TColor, TPacked> pixels)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
+        private void WriteStartOfScan<TColor>(PixelAccessor<TColor> pixels)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             // TODO: We should allow grayscale writing.
             this.outputStream.Write(this.sosHeaderYCbCr, 0, this.sosHeaderYCbCr.Length);
@@ -846,11 +838,9 @@ namespace ImageSharp.Formats
         /// Encodes the image with no subsampling.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
-        private void Encode444<TColor, TPacked>(PixelAccessor<TColor, TPacked> pixels)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
+        private void Encode444<TColor>(PixelAccessor<TColor> pixels)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             Block b = Block.Create();
             Block cb = Block.Create();
@@ -880,11 +870,9 @@ namespace ImageSharp.Formats
         /// at a factor of 2 both horizontally and vertically.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
-        private void Encode420<TColor, TPacked>(PixelAccessor<TColor, TPacked> pixels)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
+        private void Encode420<TColor>(PixelAccessor<TColor> pixels)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             Block b = Block.Create();
             Block[] cb = Block.CreateArray(4);

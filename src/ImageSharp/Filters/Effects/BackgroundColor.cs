@@ -10,7 +10,7 @@ namespace ImageSharp
     using Processors;
 
     /// <summary>
-    /// Extension methods for the <see cref="Image{TColor, TPacked}"/> type.
+    /// Extension methods for the <see cref="Image{TColor}"/> type.
     /// </summary>
     public static partial class ImageExtensions
     {
@@ -18,15 +18,13 @@ namespace ImageSharp
         /// Replaces the background color of image with the given one.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="color">The color to set as the background.</param>
-        /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
-        public static Image<TColor, TPacked> BackgroundColor<TColor, TPacked>(this Image<TColor, TPacked> source, TColor color)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
+        /// <returns>The <see cref="Image{TColor}"/>.</returns>
+        public static Image<TColor> BackgroundColor<TColor>(this Image<TColor> source, TColor color)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            return source.Process(source.Bounds, new BackgroundColorProcessor<TColor, TPacked>(color));
+            return source.Process(source.Bounds, new BackgroundColorProcessor<TColor>(color));
         }
     }
 }

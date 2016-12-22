@@ -12,10 +12,8 @@ namespace ImageSharp.Processors
     /// Converts the colors of the image recreating an old Polaroid effect.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public class PolaroidProcessor<TColor, TPacked> : ColorMatrixFilter<TColor, TPacked>
-        where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct, IEquatable<TPacked>
+    public class PolaroidProcessor<TColor> : ColorMatrixFilter<TColor>
+        where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <inheritdoc/>
         public override Matrix4x4 Matrix => new Matrix4x4()
@@ -36,15 +34,15 @@ namespace ImageSharp.Processors
         };
 
         /// <inheritdoc/>
-        protected override void AfterApply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle)
+        protected override void AfterApply(ImageBase<TColor> source, Rectangle sourceRectangle)
         {
             TColor packedV = default(TColor);
             packedV.PackFromVector4(new Color(102, 34, 0).ToVector4()); // Very dark orange [Brown tone]
-            new VignetteProcessor<TColor, TPacked> { VignetteColor = packedV }.Apply(source, sourceRectangle);
+            new VignetteProcessor<TColor> { VignetteColor = packedV }.Apply(source, sourceRectangle);
 
             TColor packedG = default(TColor);
             packedG.PackFromVector4(new Color(255, 153, 102, 178).ToVector4()); // Light orange
-            new GlowProcessor<TColor, TPacked> { GlowColor = packedG, Radius = source.Width / 4F }.Apply(source, sourceRectangle);
+            new GlowProcessor<TColor> { GlowColor = packedG, Radius = source.Width / 4F }.Apply(source, sourceRectangle);
         }
     }
 }

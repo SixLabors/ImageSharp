@@ -14,14 +14,12 @@ namespace ImageSharp.Formats
     public interface IImageDecoder
     {
         /// <summary>
-        /// Decodes the image from the specified stream to the <see cref="ImageBase{TColor, TPacked}"/>.
+        /// Decodes the image from the specified stream to the <see cref="ImageBase{TColor}"/>.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-        /// <param name="image">The <see cref="ImageBase{TColor, TPacked}"/> to decode to.</param>
+        /// <param name="image">The <see cref="ImageBase{TColor}"/> to decode to.</param>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
-        void Decode<TColor, TPacked>(Image<TColor, TPacked> image, Stream stream)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>;
+        void Decode<TColor>(Image<TColor> image, Stream stream)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>;
     }
 }

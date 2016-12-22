@@ -10,16 +10,14 @@ namespace ImageSharp.Processors
     using System.Threading.Tasks;
 
     /// <summary>
-    /// An <see cref="IImageFilteringProcessor{TColor,TPacked}"/> to pixelate the colors of an <see cref="Image{TColor, TPacked}"/>.
+    /// An <see cref="IImageFilteringProcessor{TColor}"/> to pixelate the colors of an <see cref="Image{TColor}"/>.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public class PixelateProcessor<TColor, TPacked> : ImageFilteringProcessor<TColor, TPacked>
-        where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct, IEquatable<TPacked>
+    public class PixelateProcessor<TColor> : ImageFilteringProcessor<TColor>
+        where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="PixelateProcessor{TColor,TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="PixelateProcessor{TColor}"/> class.
         /// </summary>
         /// <param name="size">The size of the pixels. Must be greater than 0.</param>
         /// <exception cref="System.ArgumentException">
@@ -37,7 +35,7 @@ namespace ImageSharp.Processors
         public int Value { get; }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
         {
             int startY = sourceRectangle.Y;
             int endY = sourceRectangle.Bottom;
@@ -67,8 +65,8 @@ namespace ImageSharp.Processors
             IEnumerable<int> range = EnumerableExtensions.SteppedRange(minY, i => i < maxY, size);
             TColor[] target = new TColor[source.Width * source.Height];
 
-            using (PixelAccessor<TColor, TPacked> sourcePixels = source.Lock())
-            using (PixelAccessor<TColor, TPacked> targetPixels = target.Lock<TColor, TPacked>(source.Width, source.Height))
+            using (PixelAccessor<TColor> sourcePixels = source.Lock())
+            using (PixelAccessor<TColor> targetPixels = target.Lock<TColor>(source.Width, source.Height))
             {
                 Parallel.ForEach(
                     range,

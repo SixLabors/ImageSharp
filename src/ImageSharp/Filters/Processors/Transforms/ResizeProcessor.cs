@@ -13,16 +13,14 @@ namespace ImageSharp.Processors
     /// Provides methods that allow the resizing of images using various algorithms.
     /// </summary>
     /// <remarks>
-    /// This version and the <see cref="CompandingResizeProcessor{TColor,TPacked}"/> have been separated out to improve performance.
+    /// This version and the <see cref="CompandingResizeProcessor{TColor}"/> have been separated out to improve performance.
     /// </remarks>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public class ResizeProcessor<TColor, TPacked> : ResamplingWeightedProcessor<TColor, TPacked>
-        where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct, IEquatable<TPacked>
+    public class ResizeProcessor<TColor> : ResamplingWeightedProcessor<TColor>
+        where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="ResizeProcessor{TColor, TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="ResizeProcessor{TColor}"/> class.
         /// </summary>
         /// <param name="sampler">The sampler to perform the resize operation.</param>
         /// <param name="width">The target width.</param>
@@ -33,7 +31,7 @@ namespace ImageSharp.Processors
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ResizeProcessor{TColor, TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="ResizeProcessor{TColor}"/> class.
         /// </summary>
         /// <param name="sampler">The sampler to perform the resize operation.</param>
         /// <param name="width">The target width.</param>
@@ -47,7 +45,7 @@ namespace ImageSharp.Processors
         }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
         {
             // Jump out, we'll deal with that later.
             if (source.Width == this.Width && source.Height == this.Height && sourceRectangle == this.ResizeRectangle)
@@ -75,8 +73,8 @@ namespace ImageSharp.Processors
                 float widthFactor = sourceRectangle.Width / (float)this.ResizeRectangle.Width;
                 float heightFactor = sourceRectangle.Height / (float)this.ResizeRectangle.Height;
 
-                using (PixelAccessor<TColor, TPacked> sourcePixels = source.Lock())
-                using (PixelAccessor<TColor, TPacked> targetPixels = target.Lock<TColor, TPacked>(width, height))
+                using (PixelAccessor<TColor> sourcePixels = source.Lock())
+                using (PixelAccessor<TColor> targetPixels = target.Lock<TColor>(width, height))
                 {
                     Parallel.For(
                         minY,
@@ -105,9 +103,9 @@ namespace ImageSharp.Processors
             // First process the columns. Since we are not using multiple threads startY and endY
             // are the upper and lower bounds of the source rectangle.
             TColor[] firstPass = new TColor[width * source.Height];
-            using (PixelAccessor<TColor, TPacked> sourcePixels = source.Lock())
-            using (PixelAccessor<TColor, TPacked> firstPassPixels = firstPass.Lock<TColor, TPacked>(width, source.Height))
-            using (PixelAccessor<TColor, TPacked> targetPixels = target.Lock<TColor, TPacked>(width, height))
+            using (PixelAccessor<TColor> sourcePixels = source.Lock())
+            using (PixelAccessor<TColor> firstPassPixels = firstPass.Lock<TColor>(width, source.Height))
+            using (PixelAccessor<TColor> targetPixels = target.Lock<TColor>(width, height))
             {
                 Parallel.For(
                     0,

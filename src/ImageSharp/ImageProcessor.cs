@@ -12,10 +12,8 @@ namespace ImageSharp.Processors
     /// Allows the application of processors to images.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public abstract class ImageProcessor<TColor, TPacked> : IImageProcessor
-        where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct, IEquatable<TPacked>
+    public abstract class ImageProcessor<TColor> : IImageProcessor
+        where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <inheritdoc/>
         public virtual ParallelOptions ParallelOptions { get; set; } = Bootstrapper.ParallelOptions;

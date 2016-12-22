@@ -10,7 +10,7 @@ namespace ImageSharp
     using Processors;
 
     /// <summary>
-    /// Extension methods for the <see cref="Image{TColor, TPacked}"/> type.
+    /// Extension methods for the <see cref="Image{TColor}"/> type.
     /// </summary>
     public static partial class ImageExtensions
     {
@@ -18,13 +18,11 @@ namespace ImageSharp
         /// Applies the given colorblindness simulator to the image.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="colorBlindness">The type of color blindness simulator to apply.</param>
-        /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
-        public static Image<TColor, TPacked> ColorBlindness<TColor, TPacked>(this Image<TColor, TPacked> source, ColorBlindness colorBlindness)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
+        /// <returns>The <see cref="Image{TColor}"/>.</returns>
+        public static Image<TColor> ColorBlindness<TColor>(this Image<TColor> source, ColorBlindness colorBlindness)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             return ColorBlindness(source, colorBlindness, source.Bounds);
         }
@@ -33,51 +31,49 @@ namespace ImageSharp
         /// Applies the given colorblindness simulator to the image.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="colorBlindness">The type of color blindness simulator to apply.</param>
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
-        /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
-        public static Image<TColor, TPacked> ColorBlindness<TColor, TPacked>(this Image<TColor, TPacked> source, ColorBlindness colorBlindness, Rectangle rectangle)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
+        /// <returns>The <see cref="Image{TColor}"/>.</returns>
+        public static Image<TColor> ColorBlindness<TColor>(this Image<TColor> source, ColorBlindness colorBlindness, Rectangle rectangle)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            IImageFilteringProcessor<TColor, TPacked> processor;
+            IImageFilteringProcessor<TColor> processor;
 
             switch (colorBlindness)
             {
                 case ImageSharp.ColorBlindness.Achromatomaly:
-                    processor = new AchromatomalyProcessor<TColor, TPacked>();
+                    processor = new AchromatomalyProcessor<TColor>();
                     break;
 
                 case ImageSharp.ColorBlindness.Achromatopsia:
-                    processor = new AchromatopsiaProcessor<TColor, TPacked>();
+                    processor = new AchromatopsiaProcessor<TColor>();
                     break;
 
                 case ImageSharp.ColorBlindness.Deuteranomaly:
-                    processor = new DeuteranomalyProcessor<TColor, TPacked>();
+                    processor = new DeuteranomalyProcessor<TColor>();
                     break;
 
                 case ImageSharp.ColorBlindness.Deuteranopia:
-                    processor = new DeuteranopiaProcessor<TColor, TPacked>();
+                    processor = new DeuteranopiaProcessor<TColor>();
                     break;
 
                 case ImageSharp.ColorBlindness.Protanomaly:
-                    processor = new ProtanomalyProcessor<TColor, TPacked>();
+                    processor = new ProtanomalyProcessor<TColor>();
                     break;
 
                 case ImageSharp.ColorBlindness.Protanopia:
-                    processor = new ProtanopiaProcessor<TColor, TPacked>();
+                    processor = new ProtanopiaProcessor<TColor>();
                     break;
 
                 case ImageSharp.ColorBlindness.Tritanomaly:
-                    processor = new TritanomalyProcessor<TColor, TPacked>();
+                    processor = new TritanomalyProcessor<TColor>();
                     break;
 
                 default:
-                    processor = new TritanopiaProcessor<TColor, TPacked>();
+                    processor = new TritanopiaProcessor<TColor>();
                     break;
             }
 

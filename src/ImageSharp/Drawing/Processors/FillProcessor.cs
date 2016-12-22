@@ -16,26 +16,25 @@ namespace ImageSharp.Drawing.Processors
     /// Using the bursh as a source of pixels colors blends the brush color with source.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public class FillProcessor<TColor, TPacked> : ImageFilteringProcessor<TColor, TPacked>
-        where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct, IEquatable<TPacked>
+    public class FillProcessor<TColor> : ImageFilteringProcessor<TColor>
+    where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
-        private const float Epsilon = 0.001f;
-
-        private readonly IBrush<TColor, TPacked> brush;
+        /// <summary>
+        /// The brush.
+        /// </summary>
+        private readonly IBrush<TColor> brush;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="FillProcessor{TColor, TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="FillProcessor{TColor}"/> class.
         /// </summary>
         /// <param name="brush">The brush to source pixel colors from.</param>
-        public FillProcessor(IBrush<TColor, TPacked> brush)
+        public FillProcessor(IBrush<TColor> brush)
         {
             this.brush = brush;
         }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
         {
             int startX = sourceRectangle.X;
             int endX = sourceRectangle.Right;
@@ -60,10 +59,10 @@ namespace ImageSharp.Drawing.Processors
             }
 
             // we could possibly do some optermising by having knowledge about the individual brushes operate
-            // for example If brush is SolidBrush<TColor, TPacked> then we could just get the color upfront
-            // and skip using the IBrushApplicator<TColor, TPacked>?.
-            using (PixelAccessor<TColor, TPacked> sourcePixels = source.Lock())
-            using (IBrushApplicator<TColor, TPacked> applicator = this.brush.CreateApplicator(sourceRectangle))
+            // for example If brush is SolidBrush<TColor> then we could just get the color upfront
+            // and skip using the IBrushApplicator<TColor>?.
+            using (PixelAccessor<TColor> sourcePixels = source.Lock())
+            using (IBrushApplicator<TColor> applicator = this.brush.CreateApplicator(sourceRectangle))
             {
                 Parallel.For(
                     minY,

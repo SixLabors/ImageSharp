@@ -12,13 +12,11 @@ namespace ImageSharp.Quantizers
     /// Represents a quantized image where the pixels indexed by a color palette.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public class QuantizedImage<TColor, TPacked>
-        where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct, IEquatable<TPacked>
+    public class QuantizedImage<TColor>
+        where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="QuantizedImage{TColor, TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="QuantizedImage{TColor}"/> class.
         /// </summary>
         /// <param name="width">The image width.</param>
         /// <param name="height">The image height.</param>
@@ -68,9 +66,9 @@ namespace ImageSharp.Quantizers
         /// <returns>
         /// The <see cref="Image"/>
         /// </returns>
-        public Image<TColor, TPacked> ToImage()
+        public Image<TColor> ToImage()
         {
-            Image<TColor, TPacked> image = new Image<TColor, TPacked>();
+            Image<TColor> image = new Image<TColor>();
 
             int pixelCount = this.Pixels.Length;
             int palletCount = this.Palette.Length - 1;

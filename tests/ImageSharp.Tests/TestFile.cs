@@ -2,22 +2,44 @@
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
-
-using System.IO;
-
 namespace ImageSharp.Tests
 {
+    using System.Collections.Concurrent;
+    using System.IO;
+
     public class TestFile
     {
+        private static readonly ConcurrentDictionary<string, TestFile> cache = new ConcurrentDictionary<string, TestFile>();
+        private static readonly string FormatsDirectory = GetFormatsDirectory();
+
+        private static string GetFormatsDirectory()
+        {
+          // Here for code coverage tests.
+          string directory = "TestImages/Formats/";
+          if (Directory.Exists(directory))
+          {
+              return directory;
+          }
+          return "../../../../TestImages/Formats/";
+        }
+
         private readonly Image image;
         private readonly string file;
 
-        public TestFile(string file)
+        private TestFile(string file)
         {
             this.file = file;
 
             this.Bytes = File.ReadAllBytes(file);
             this.image = new Image(this.Bytes);
+        }
+
+        public static TestFile Create(string file)
+        {
+            return cache.GetOrAdd(file, (string fileName) =>
+            {
+                return new TestFile(FormatsDirectory + fileName);
+            });
         }
 
         public byte[] Bytes { get; }

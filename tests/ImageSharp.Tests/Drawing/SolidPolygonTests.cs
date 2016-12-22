@@ -88,7 +88,7 @@ namespace ImageSharp.Tests.Drawing
                             new Vector2(50, 300)
             };
 
-            var brush = new ImageBrush(TestImages.Bmp.Car.CreateImage());
+            var brush = new ImageBrush(TestFile.Create(TestImages.Bmp.Car).CreateImage());
             var image = new Image(500, 500);
 
             using (FileStream output = File.OpenWrite($"{path}/Image.png"))

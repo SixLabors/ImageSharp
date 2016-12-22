@@ -62,13 +62,6 @@
         "System.Threading.Tasks": "4.0.11",
         "System.Threading.Tasks.Parallel": "4.0.1"
       }
-    },
-    "net45": {
-      "dependencies": {
-      },
-      "frameworkAssemblies": {
-        "System.Runtime": "4.0.0"
-      }
     }
   }
 }

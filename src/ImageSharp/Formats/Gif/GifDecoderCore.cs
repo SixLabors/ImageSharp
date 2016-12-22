@@ -6,6 +6,7 @@
 namespace ImageSharp.Formats
 {
     using System;
+    using System.Buffers;
     using System.IO;
 
     /// <summary>
@@ -17,6 +18,11 @@ namespace ImageSharp.Formats
         where TColor : struct, IPackedPixel<TPacked>
         where TPacked : struct, IEquatable<TPacked>
     {
+        /// <summary>
+        /// The temp buffer used to reduce allocations.
+        /// </summary>
+        private readonly byte[] buffer = new byte[16];
+
         /// <summary>
         /// The image to decode the information to.
         /// </summary>
@@ -33,14 +39,14 @@ namespace ImageSharp.Formats
         private byte[] globalColorTable;
 
         /// <summary>
-        /// The next frame.
+        /// The global color table length
         /// </summary>
-        private ImageFrame<TColor, TPacked> nextFrame;
+        private int globalColorTableLength;
 
         /// <summary>
-        /// The area to restore.
+        /// The current frame.
         /// </summary>
-        private Rectangle? restoreArea;
+        private TColor[] currentFrame;
 
         /// <summary>
         /// The logical screen descriptor.
@@ -59,55 +65,65 @@ namespace ImageSharp.Formats
         /// <param name="stream">The stream containing image data. </param>
         public void Decode(Image<TColor, TPacked> image, Stream stream)
         {
-            this.decodedImage = image;
-
-            this.currentStream = stream;
-
-            // Skip the identifier
-            this.currentStream.Skip(6);
-            this.ReadLogicalScreenDescriptor();
-
-            if (this.logicalScreenDescriptor.GlobalColorTableFlag)
+            try
             {
-                this.globalColorTable = new byte[this.logicalScreenDescriptor.GlobalColorTableSize * 3];
+                this.decodedImage = image;
+                this.currentStream = stream;
 
-                // Read the global color table from the stream
-                stream.Read(this.globalColorTable, 0, this.globalColorTable.Length);
-            }
+                // Skip the identifier
+                this.currentStream.Skip(6);
+                this.ReadLogicalScreenDescriptor();
 
-            // Loop though the respective gif parts and read the data.
-            int nextFlag = stream.ReadByte();
-            while (nextFlag != GifConstants.Terminator)
-            {
-                if (nextFlag == GifConstants.ImageLabel)
+                if (this.logicalScreenDescriptor.GlobalColorTableFlag)
                 {
-                    this.ReadFrame();
+                    this.globalColorTableLength = this.logicalScreenDescriptor.GlobalColorTableSize * 3;
+                    this.globalColorTable = ArrayPool<byte>.Shared.Rent(this.globalColorTableLength);
+
+                    // Read the global color table from the stream
+                    stream.Read(this.globalColorTable, 0, this.globalColorTableLength);
                 }
-                else if (nextFlag == GifConstants.ExtensionIntroducer)
+
+                // Loop though the respective gif parts and read the data.
+                int nextFlag = stream.ReadByte();
+                while (nextFlag != GifConstants.Terminator)
                 {
-                    int label = stream.ReadByte();
-                    switch (label)
+                    if (nextFlag == GifConstants.ImageLabel)
                     {
-                        case GifConstants.GraphicControlLabel:
-                            this.ReadGraphicalControlExtension();
-                            break;
-                        case GifConstants.CommentLabel:
-                            this.ReadComments();
-                            break;
-                        case GifConstants.ApplicationExtensionLabel:
-                            this.Skip(12); // No need to read.
-                            break;
-                        case GifConstants.PlainTextLabel:
-                            this.Skip(13); // Not supported by any known decoder.
-                            break;
+                        this.ReadFrame();
                     }
-                }
-                else if (nextFlag == GifConstants.EndIntroducer)
-                {
-                    break;
-                }
+                    else if (nextFlag == GifConstants.ExtensionIntroducer)
+                    {
+                        int label = stream.ReadByte();
+                        switch (label)
+                        {
+                            case GifConstants.GraphicControlLabel:
+                                this.ReadGraphicalControlExtension();
+                                break;
+                            case GifConstants.CommentLabel:
+                                this.ReadComments();
+                                break;
+                            case GifConstants.ApplicationExtensionLabel:
+                                this.Skip(12); // No need to read.
+                                break;
+                            case GifConstants.PlainTextLabel:
+                                this.Skip(13); // Not supported by any known decoder.
+                                break;
+                        }
+                    }
+                    else if (nextFlag == GifConstants.EndIntroducer)
+                    {
+                        break;
+                    }
 
-                nextFlag = stream.ReadByte();
+                    nextFlag = stream.ReadByte();
+                }
+            }
+            finally
+            {
+                if (this.globalColorTable != null)
+                {
+                    ArrayPool<byte>.Shared.Return(this.globalColorTable);
+                }
             }
         }
 
@@ -116,16 +132,14 @@ namespace ImageSharp.Formats
         /// </summary>
         private void ReadGraphicalControlExtension()
         {
-            byte[] buffer = new byte[6];
+            this.currentStream.Read(this.buffer, 0, 6);
 
-            this.currentStream.Read(buffer, 0, buffer.Length);
-
-            byte packed = buffer[1];
+            byte packed = this.buffer[1];
 
             this.graphicsControlExtension = new GifGraphicsControlExtension
             {
-                DelayTime = BitConverter.ToInt16(buffer, 2),
-                TransparencyIndex = buffer[4],
+                DelayTime = BitConverter.ToInt16(this.buffer, 2),
+                TransparencyIndex = this.buffer[4],
                 TransparencyFlag = (packed & 0x01) == 1,
                 DisposalMethod = (DisposalMethod)((packed & 0x1C) >> 2)
             };
@@ -137,18 +151,16 @@ namespace ImageSharp.Formats
         /// <returns><see cref="GifImageDescriptor"/></returns>
         private GifImageDescriptor ReadImageDescriptor()
         {
-            byte[] buffer = new byte[9];
+            this.currentStream.Read(this.buffer, 0, 9);
 
-            this.currentStream.Read(buffer, 0, buffer.Length);
-
-            byte packed = buffer[8];
+            byte packed = this.buffer[8];
 
             GifImageDescriptor imageDescriptor = new GifImageDescriptor
             {
-                Left = BitConverter.ToInt16(buffer, 0),
-                Top = BitConverter.ToInt16(buffer, 2),
-                Width = BitConverter.ToInt16(buffer, 4),
-                Height = BitConverter.ToInt16(buffer, 6),
+                Left = BitConverter.ToInt16(this.buffer, 0),
+                Top = BitConverter.ToInt16(this.buffer, 2),
+                Width = BitConverter.ToInt16(this.buffer, 4),
+                Height = BitConverter.ToInt16(this.buffer, 6),
                 LocalColorTableFlag = ((packed & 0x80) >> 7) == 1,
                 LocalColorTableSize = 2 << (packed & 0x07),
                 InterlaceFlag = ((packed & 0x40) >> 6) == 1
@@ -162,26 +174,23 @@ namespace ImageSharp.Formats
         /// </summary>
         private void ReadLogicalScreenDescriptor()
         {
-            byte[] buffer = new byte[7];
+            this.currentStream.Read(this.buffer, 0, 7);
 
-            this.currentStream.Read(buffer, 0, buffer.Length);
-
-            byte packed = buffer[4];
+            byte packed = this.buffer[4];
 
             this.logicalScreenDescriptor = new GifLogicalScreenDescriptor
             {
-                Width = BitConverter.ToInt16(buffer, 0),
-                Height = BitConverter.ToInt16(buffer, 2),
-                BackgroundColorIndex = buffer[5],
-                PixelAspectRatio = buffer[6],
+                Width = BitConverter.ToInt16(this.buffer, 0),
+                Height = BitConverter.ToInt16(this.buffer, 2),
+                BackgroundColorIndex = this.buffer[5],
+                PixelAspectRatio = this.buffer[6],
                 GlobalColorTableFlag = ((packed & 0x80) >> 7) == 1,
                 GlobalColorTableSize = 2 << (packed & 0x07)
             };
 
             if (this.logicalScreenDescriptor.GlobalColorTableSize > 255 * 4)
             {
-                throw new ImageFormatException(
-                    $"Invalid gif colormap size '{this.logicalScreenDescriptor.GlobalColorTableSize}'");
+                throw new ImageFormatException($"Invalid gif colormap size '{this.logicalScreenDescriptor.GlobalColorTableSize}'");
             }
 
             if (this.logicalScreenDescriptor.Width > this.decodedImage.MaxWidth || this.logicalScreenDescriptor.Height > this.decodedImage.MaxHeight)
@@ -221,11 +230,17 @@ namespace ImageSharp.Formats
                     throw new ImageFormatException($"Gif comment length '{flag}' exceeds max '{GifConstants.MaxCommentLength}'");
                 }
 
-                byte[] buffer = new byte[flag];
+                byte[] flagBuffer = ArrayPool<byte>.Shared.Rent(flag);
 
-                this.currentStream.Read(buffer, 0, flag);
-
-                this.decodedImage.Properties.Add(new ImageProperty("Comments", BitConverter.ToString(buffer)));
+                try
+                {
+                    this.currentStream.Read(flagBuffer, 0, flag);
+                    this.decodedImage.Properties.Add(new ImageProperty("Comments", BitConverter.ToString(flagBuffer, 0, flag)));
+                }
+                finally
+                {
+                    ArrayPool<byte>.Shared.Return(flagBuffer);
+                }
             }
         }
 
@@ -236,54 +251,50 @@ namespace ImageSharp.Formats
         {
             GifImageDescriptor imageDescriptor = this.ReadImageDescriptor();
 
-            byte[] localColorTable = this.ReadFrameLocalColorTable(imageDescriptor);
+            byte[] localColorTable = null;
+            byte[] indices = null;
+            try
+            {
+                // Determine the color table for this frame. If there is a local one, use it otherwise use the global color table.
+                int length = this.globalColorTableLength;
+                if (imageDescriptor.LocalColorTableFlag)
+                {
+                    length = imageDescriptor.LocalColorTableSize * 3;
+                    localColorTable = ArrayPool<byte>.Shared.Rent(length);
+                    this.currentStream.Read(localColorTable, 0, length);
+                }
 
-            byte[] indices = this.ReadFrameIndices(imageDescriptor);
+                indices = ArrayPool<byte>.Shared.Rent(imageDescriptor.Width * imageDescriptor.Height);
 
-            // Determine the color table for this frame. If there is a local one, use it
-            // otherwise use the global color table.
-            byte[] colorTable = localColorTable ?? this.globalColorTable;
+                this.ReadFrameIndices(imageDescriptor, indices);
+                this.ReadFrameColors(indices, localColorTable ?? this.globalColorTable, length, imageDescriptor);
 
-            this.ReadFrameColors(indices, colorTable, imageDescriptor);
+                // Skip any remaining blocks
+                this.Skip(0);
+            }
+            finally
+            {
+                if (localColorTable != null)
+                {
+                    ArrayPool<byte>.Shared.Return(localColorTable);
+                }
 
-            // Skip any remaining blocks
-            this.Skip(0);
+                ArrayPool<byte>.Shared.Return(indices);
+            }
         }
 
         /// <summary>
         /// Reads the frame indices marking the color to use for each pixel.
         /// </summary>
         /// <param name="imageDescriptor">The <see cref="GifImageDescriptor"/>.</param>
-        /// <returns>The <see cref="T:byte[]"/></returns>
-        private byte[] ReadFrameIndices(GifImageDescriptor imageDescriptor)
+        /// <param name="indices">The pixel array to write to.</param>
+        private void ReadFrameIndices(GifImageDescriptor imageDescriptor, byte[] indices)
         {
             int dataSize = this.currentStream.ReadByte();
-            byte[] indices;
             using (LzwDecoder lzwDecoder = new LzwDecoder(this.currentStream))
             {
-                indices = lzwDecoder.DecodePixels(imageDescriptor.Width, imageDescriptor.Height, dataSize);
+                lzwDecoder.DecodePixels(imageDescriptor.Width, imageDescriptor.Height, dataSize, indices);
             }
-
-            return indices;
-        }
-
-        /// <summary>
-        /// Reads the local color table from the current frame.
-        /// </summary>
-        /// <param name="imageDescriptor">The <see cref="GifImageDescriptor"/>.</param>
-        /// <returns>The <see cref="T:byte[]"/></returns>
-        private byte[] ReadFrameLocalColorTable(GifImageDescriptor imageDescriptor)
-        {
-            byte[] localColorTable = null;
-
-            if (imageDescriptor.LocalColorTableFlag)
-            {
-                localColorTable = new byte[imageDescriptor.LocalColorTableSize * 3];
-
-                this.currentStream.Read(localColorTable, 0, localColorTable.Length);
-            }
-
-            return localColorTable;
         }
 
         /// <summary>
@@ -291,47 +302,30 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <param name="indices">The indexed pixels.</param>
         /// <param name="colorTable">The color table containing the available colors.</param>
+        /// <param name="colorTableLength">The color table length.</param>
         /// <param name="descriptor">The <see cref="GifImageDescriptor"/></param>
-        private unsafe void ReadFrameColors(byte[] indices, byte[] colorTable, GifImageDescriptor descriptor)
+        private void ReadFrameColors(byte[] indices, byte[] colorTable, int colorTableLength, GifImageDescriptor descriptor)
         {
             int imageWidth = this.logicalScreenDescriptor.Width;
             int imageHeight = this.logicalScreenDescriptor.Height;
 
-            ImageFrame<TColor, TPacked> previousFrame = null;
-
-            ImageFrame<TColor, TPacked> currentFrame = null;
-
-            ImageBase<TColor, TPacked> image;
-
-            if (this.nextFrame == null)
+            if (this.currentFrame == null)
             {
-                image = this.decodedImage;
-
-                image.Quality = colorTable.Length / 3;
-
-                // This initializes the image to become fully transparent because the alpha channel is zero.
-                image.InitPixels(imageWidth, imageHeight);
+                this.currentFrame = new TColor[imageWidth * imageHeight];
             }
-            else
+
+            TColor[] lastFrame = null;
+
+            if (this.graphicsControlExtension != null
+                && this.graphicsControlExtension.DisposalMethod == DisposalMethod.RestoreToPrevious)
             {
-                if (this.graphicsControlExtension != null &&
-                    this.graphicsControlExtension.DisposalMethod == DisposalMethod.RestoreToPrevious)
+                lastFrame = new TColor[imageWidth * imageHeight];
+
+                using (PixelAccessor<TColor, TPacked> lastPixels = lastFrame.Lock<TColor, TPacked>(imageWidth, imageHeight))
+                using (PixelAccessor<TColor, TPacked> currentPixels = this.currentFrame.Lock<TColor, TPacked>(imageWidth, imageHeight))
                 {
-                    previousFrame = this.nextFrame;
+                    currentPixels.CopyImage(lastPixels);
                 }
-
-                currentFrame = this.nextFrame.Clone();
-
-                image = currentFrame;
-
-                this.RestoreToBackground(image);
-
-                this.decodedImage.Frames.Add(currentFrame);
-            }
-
-            if (this.graphicsControlExtension != null && this.graphicsControlExtension.DelayTime > 0)
-            {
-                image.FrameDelay = this.graphicsControlExtension.DelayTime;
             }
 
             int i = 0;
@@ -339,124 +333,119 @@ namespace ImageSharp.Formats
             int interlaceIncrement = 8; // The interlacing line increment
             int interlaceY = 0; // The current interlaced line
 
-            using (PixelAccessor<TColor, TPacked> pixelAccessor = image.Lock())
+            // Lock the current image pixels for fast acces.
+            using (PixelAccessor<TColor, TPacked> currentPixels = this.currentFrame.Lock<TColor, TPacked>(imageWidth, imageHeight))
             {
-                using (PixelArea<TColor, TPacked> pixelRow = new PixelArea<TColor, TPacked>(imageWidth, ComponentOrder.XYZW))
+                for (int y = descriptor.Top; y < descriptor.Top + descriptor.Height; y++)
                 {
-                    for (int y = descriptor.Top; y < descriptor.Top + descriptor.Height; y++)
+                    // Check if this image is interlaced.
+                    int writeY; // the target y offset to write to
+                    if (descriptor.InterlaceFlag)
                     {
-                        // Check if this image is interlaced.
-                        int writeY; // the target y offset to write to
-                        if (descriptor.InterlaceFlag)
+                        // If so then we read lines at predetermined offsets.
+                        // When an entire image height worth of offset lines has been read we consider this a pass.
+                        // With each pass the number of offset lines changes and the starting line changes.
+                        if (interlaceY >= descriptor.Height)
                         {
-                            // If so then we read lines at predetermined offsets.
-                            // When an entire image height worth of offset lines has been read we consider this a pass.
-                            // With each pass the number of offset lines changes and the starting line changes.
-                            if (interlaceY >= descriptor.Height)
+                            interlacePass++;
+                            switch (interlacePass)
                             {
-                                interlacePass++;
-                                switch (interlacePass)
-                                {
-                                    case 1:
-                                        interlaceY = 4;
-                                        break;
-                                    case 2:
-                                        interlaceY = 2;
-                                        interlaceIncrement = 4;
-                                        break;
-                                    case 3:
-                                        interlaceY = 1;
-                                        interlaceIncrement = 2;
-                                        break;
-                                }
+                                case 1:
+                                    interlaceY = 4;
+                                    break;
+                                case 2:
+                                    interlaceY = 2;
+                                    interlaceIncrement = 4;
+                                    break;
+                                case 3:
+                                    interlaceY = 1;
+                                    interlaceIncrement = 2;
+                                    break;
                             }
-
-                            writeY = interlaceY + descriptor.Top;
-
-                            interlaceY += interlaceIncrement;
                         }
-                        else
+
+                        writeY = interlaceY + descriptor.Top;
+
+                        interlaceY += interlaceIncrement;
+                    }
+                    else
+                    {
+                        writeY = y;
+                    }
+
+                    for (int x = descriptor.Left; x < descriptor.Left + descriptor.Width; x++)
+                    {
+                        int index = indices[i];
+
+                        if (this.graphicsControlExtension == null
+                            || this.graphicsControlExtension.TransparencyFlag == false
+                            || this.graphicsControlExtension.TransparencyIndex != index)
                         {
-                            writeY = y;
+                            // Stored in r-> g-> b-> a order.
+                            int indexOffset = index * 3;
+                            TColor pixel = default(TColor);
+                            pixel.PackFromBytes(colorTable[indexOffset], colorTable[indexOffset + 1], colorTable[indexOffset + 2], 255);
+                            currentPixels[x, writeY] = pixel;
                         }
 
-                        pixelRow.Reset();
-
-                        byte* pixelBase = pixelRow.PixelBase;
-                        for (int x = 0; x < descriptor.Width; x++)
-                        {
-                            int index = indices[i];
-
-                            if (this.graphicsControlExtension == null ||
-                                this.graphicsControlExtension.TransparencyFlag == false ||
-                                this.graphicsControlExtension.TransparencyIndex != index)
-                            {
-                                int indexOffset = index * 3;
-                                *(pixelBase + 0) = colorTable[indexOffset];
-                                *(pixelBase + 1) = colorTable[indexOffset + 1];
-                                *(pixelBase + 2) = colorTable[indexOffset + 2];
-                                *(pixelBase + 3) = 255;
-                            }
-
-                            i++;
-                            pixelBase += 4;
-                        }
-
-                        pixelAccessor.CopyFrom(pixelRow, writeY, descriptor.Left);
+                        i++;
                     }
                 }
-            }
 
-            if (previousFrame != null)
-            {
-                this.nextFrame = previousFrame;
-                return;
-            }
+                TColor[] pixels = new TColor[imageWidth * imageHeight];
 
-            this.nextFrame = currentFrame == null ? this.decodedImage.ToFrame() : currentFrame.Clone();
-
-            if (this.graphicsControlExtension != null &&
-                this.graphicsControlExtension.DisposalMethod == DisposalMethod.RestoreToBackground)
-            {
-                this.restoreArea = new Rectangle(descriptor.Left, descriptor.Top, descriptor.Width, descriptor.Height);
-            }
-        }
-
-        /// <summary>
-        /// Restores the current frame background.
-        /// </summary>
-        /// <param name="frame">The frame.</param>
-        private void RestoreToBackground(ImageBase<TColor, TPacked> frame)
-        {
-            if (this.restoreArea == null)
-            {
-                return;
-            }
-
-            // Optimization for when the size of the frame is the same as the image size.
-            if (this.restoreArea.Value.Width == this.decodedImage.Width &&
-                this.restoreArea.Value.Height == this.decodedImage.Height)
-            {
-                using (PixelAccessor<TColor, TPacked> pixelAccessor = frame.Lock())
+                using (PixelAccessor<TColor, TPacked> newPixels = pixels.Lock<TColor, TPacked>(imageWidth, imageHeight))
                 {
-                    pixelAccessor.Reset();
+                    currentPixels.CopyImage(newPixels);
                 }
-            }
-            else
-            {
-                using (PixelArea<TColor, TPacked> emptyRow = new PixelArea<TColor, TPacked>(this.restoreArea.Value.Width, ComponentOrder.XYZW))
+
+                ImageBase<TColor, TPacked> currentImage;
+
+                if (this.decodedImage.Pixels == null)
                 {
-                    using (PixelAccessor<TColor, TPacked> pixelAccessor = frame.Lock())
+                    currentImage = this.decodedImage;
+                    currentImage.SetPixels(imageWidth, imageHeight, pixels);
+                    currentImage.Quality = colorTableLength / 3;
+
+                    if (this.graphicsControlExtension != null && this.graphicsControlExtension.DelayTime > 0)
                     {
-                        for (int y = this.restoreArea.Value.Top; y < this.restoreArea.Value.Top + this.restoreArea.Value.Height; y++)
-                        {
-                            pixelAccessor.CopyFrom(emptyRow, y, this.restoreArea.Value.Left);
-                        }
+                        this.decodedImage.FrameDelay = this.graphicsControlExtension.DelayTime;
                     }
                 }
-            }
+                else
+                {
+                    ImageFrame<TColor, TPacked> frame = new ImageFrame<TColor, TPacked>();
 
-            this.restoreArea = null;
+                    currentImage = frame;
+                    currentImage.SetPixels(imageWidth, imageHeight, pixels);
+                    currentImage.Quality = colorTableLength / 3;
+
+                    if (this.graphicsControlExtension != null && this.graphicsControlExtension.DelayTime > 0)
+                    {
+                        currentImage.FrameDelay = this.graphicsControlExtension.DelayTime;
+                    }
+
+                    this.decodedImage.Frames.Add(frame);
+                }
+
+                if (this.graphicsControlExtension != null)
+                {
+                    if (this.graphicsControlExtension.DisposalMethod == DisposalMethod.RestoreToBackground)
+                    {
+                        for (int y = descriptor.Top; y < descriptor.Top + descriptor.Height; y++)
+                        {
+                            for (int x = descriptor.Left; x < descriptor.Left + descriptor.Width; x++)
+                            {
+                                currentPixels[x, y] = default(TColor);
+                            }
+                        }
+                    }
+                    else if (this.graphicsControlExtension.DisposalMethod == DisposalMethod.RestoreToPrevious)
+                    {
+                        this.currentFrame = lastFrame;
+                    }
+                }
+            } // End lock
         }
     }
 }

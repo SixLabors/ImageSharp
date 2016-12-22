@@ -40,7 +40,7 @@ namespace ImageSharp.Drawing.Brushes
         public TColor Color => this.color;
 
         /// <inheritdoc />
-        public IBrushApplicator<TColor> CreateApplicator(RectangleF region)
+        public IBrushApplicator<TColor> CreateApplicator(IReadonlyPixelAccessor<TColor> sourcePixels, RectangleF region)
         {
             return new SolidBrushApplicator(this.color);
         }

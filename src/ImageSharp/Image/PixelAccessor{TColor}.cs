@@ -14,7 +14,7 @@ namespace ImageSharp
     /// Provides per-pixel access to generic <see cref="Image{TColor}"/> pixels.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    public unsafe class PixelAccessor<TColor> : IDisposable
+    public unsafe class PixelAccessor<TColor> : IReadonlyPixelAccessor<TColor>, IDisposable
         where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>

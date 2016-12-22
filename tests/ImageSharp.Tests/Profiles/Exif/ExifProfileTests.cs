@@ -17,7 +17,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void Constructor()
         {
-            Image image = TestImages.Jpeg.Calliphora.CreateImage();
+            Image image = TestFile.Create(TestImages.Jpeg.Calliphora).CreateImage();
 
             Assert.Null(image.ExifProfile);
 
@@ -104,7 +104,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void ReadWriteInfinity()
         {
-            Image image = TestImages.Jpeg.Floorplan.CreateImage();
+            Image image = TestFile.Create(TestImages.Jpeg.Floorplan).CreateImage();
             image.ExifProfile.SetValue(ExifTag.ExposureBiasValue, new SignedRational(double.PositiveInfinity));
 
             image = WriteAndRead(image);
@@ -132,7 +132,7 @@ namespace ImageSharp.Tests
         {
             Rational[] latitude = new Rational[] { new Rational(12.3), new Rational(4.56), new Rational(789.0) };
 
-            Image image = TestImages.Jpeg.Floorplan.CreateImage();
+            Image image = TestFile.Create(TestImages.Jpeg.Floorplan).CreateImage();
             image.ExifProfile.SetValue(ExifTag.Software, "ImageSharp");
 
             ExifValue value = image.ExifProfile.GetValue(ExifTag.Software);
@@ -234,7 +234,7 @@ namespace ImageSharp.Tests
 
         private static ExifProfile GetExifProfile()
         {
-            Image image = TestImages.Jpeg.Floorplan.CreateImage();
+            Image image = TestFile.Create(TestImages.Jpeg.Floorplan).CreateImage();
 
             ExifProfile profile = image.ExifProfile;
             Assert.NotNull(profile);

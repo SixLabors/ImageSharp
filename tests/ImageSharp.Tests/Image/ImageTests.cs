@@ -22,7 +22,7 @@ namespace ImageSharp.Tests
                 new Image((byte[])null);
             });
 
-            TestFile file = TestImages.Bmp.Car;
+            TestFile file = TestFile.Create(TestImages.Bmp.Car);
             Image image = new Image(file.Bytes);
 
             Assert.Equal(600, image.Width);

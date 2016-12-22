@@ -17,7 +17,7 @@ namespace ImageSharp.Tests
         {
             string path = CreateOutputDirectory("Drawing", "DrawImage");
 
-            Image blend = TestImages.Bmp.Car.CreateImage();
+            Image blend = TestFile.Create(TestImages.Bmp.Car).CreateImage();
 
             foreach (TestFile file in Files)
             {

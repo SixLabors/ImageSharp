@@ -30,7 +30,7 @@ namespace ImageSharp.Tests
         {
             string path = CreateOutputDirectory("AutoOrient");
 
-            TestFile file = TestImages.Bmp.F;
+            TestFile file = TestFile.Create(TestImages.Bmp.F);
 
             Image image = file.CreateImage();
             image.ExifProfile = new ExifProfile();

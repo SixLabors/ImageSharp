@@ -43,7 +43,7 @@ namespace ImageSharp.Tests.Formats.Jpg
         }
 
         public static IEnumerable<object[]> AllJpegFiles
-            => TestImages.Jpeg.All.Select(file => new object[] {file});
+            => TestImages.Jpeg.All.Select(file => new object[] {TestFile.Create(file)});
 
         [Theory]
         [MemberData(nameof(AllJpegFiles))]
@@ -60,7 +60,7 @@ namespace ImageSharp.Tests.Formats.Jpg
         }
 
         public static IEnumerable<object[]> AllBmpFiles
-            => TestImages.Bmp.All.Select(file => new object[] {file});
+            => TestImages.Bmp.All.Select(file => new object[] { TestFile.Create(file) });
 
         [Theory]
         [MemberData(nameof(AllBmpFiles))]

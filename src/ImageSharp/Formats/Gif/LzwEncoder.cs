@@ -200,6 +200,8 @@ namespace ImageSharp.Formats
 
             this.hashTable = ArrayPool<int>.Shared.Rent(HashSize);
             this.codeTable = ArrayPool<int>.Shared.Rent(HashSize);
+            Array.Clear(this.hashTable, 0, HashSize);
+            Array.Clear(this.codeTable, 0, HashSize);
         }
 
         /// <summary>

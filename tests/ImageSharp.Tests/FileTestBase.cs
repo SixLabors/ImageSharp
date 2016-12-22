@@ -33,16 +33,16 @@ namespace ImageSharp.Tests
             // TestImages.Png.Blur, // Perf: Enable for local testing only
             // TestImages.Png.Indexed, // Perf: Enable for local testing only
             TestImages.Png.Splash,
-            TestImages.Png.SplashInterlaced,
-            TestImages.Png.Interlaced,
+            // TestImages.Png.SplashInterlaced, // Perf: Enable for local testing only
+            // TestImages.Png.Interlaced, // Perf: Enable for local testing only
             // TestImages.Png.Filter0, // Perf: Enable for local testing only
             // TestImages.Png.Filter1, // Perf: Enable for local testing only
             // TestImages.Png.Filter2, // Perf: Enable for local testing only
             // TestImages.Png.Filter3, // Perf: Enable for local testing only
             // TestImages.Png.Filter4, // Perf: Enable for local testing only
             // TestImages.Png.FilterVar, // Perf: Enable for local testing only
-            TestImages.Gif.Rings,
-            TestImages.Gif.Cheers,
+            TestImages.Gif.Rings, // Perf: Enable for local testing only
+            // TestImages.Gif.Cheers,
             // TestImages.Gif.Giphy // Perf: Enable for local testing only
         };
 

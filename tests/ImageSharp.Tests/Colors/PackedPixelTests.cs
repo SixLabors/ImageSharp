@@ -13,6 +13,10 @@ namespace ImageSharp.Tests.Colors
     /// <summary>
     /// The packed pixel tests.
     /// </summary>
+    /// <remarks>
+    /// The "ToVector4" tests should now be covered in <see cref="ColorConstructorTests"/>
+    /// and at some point they can be safely removed from here. 
+    /// </remarks>
     public class PackedPixelTests
     {
         [Fact]

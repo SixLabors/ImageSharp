@@ -42,6 +42,7 @@ namespace ImageSharp.Tests
             // TestImages.Png.Filter4, // Perf: Enable for local testing only
             // TestImages.Png.FilterVar, // Perf: Enable for local testing only
             TestImages.Gif.Rings,
+            TestImages.Gif.Cheers,
             // TestImages.Gif.Giphy // Perf: Enable for local testing only
         };
 

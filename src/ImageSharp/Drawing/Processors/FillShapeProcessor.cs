@@ -53,9 +53,9 @@ namespace ImageSharp.Drawing.Processors
             int endX = rect.Right + DrawPadding;
 
             int minX = Math.Max(sourceRectangle.Left, startX);
-            int maxX = Math.Min(sourceRectangle.Right, endX);
+            int maxX = Math.Min(sourceRectangle.Right - 1, endX);
             int minY = Math.Max(sourceRectangle.Top, polyStartY);
-            int maxY = Math.Min(sourceRectangle.Bottom, polyEndY);
+            int maxY = Math.Min(sourceRectangle.Bottom - 1, polyEndY);
 
             // Align start/end positions.
             minX = Math.Max(0, minX);
@@ -75,7 +75,7 @@ namespace ImageSharp.Drawing.Processors
             }
 
             using (PixelAccessor<TColor> sourcePixels = source.Lock())
-            using (IBrushApplicator<TColor> applicator = this.fillColor.CreateApplicator(rect))
+            using (IBrushApplicator<TColor> applicator = this.fillColor.CreateApplicator(sourcePixels, rect))
             {
                 Parallel.For(
                 minY,

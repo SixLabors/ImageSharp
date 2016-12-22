@@ -1,12 +1,6 @@
 language: csharp
 solution: ImageSharp.sln
 
-env:
-  global:
-   # The next declaration is the encrypted COVERITY_SCAN_TOKEN, created
-   #   via the "travis encrypt" command using the project repo's public key
-   - secure: "aim+fUyx7kDQQcAYV1mX16cvyFEYsxiW3y26xjmeuKzsOf6DIUK328pE8KnO50bMWhfVPjuW7jWc43jI+nbUeIW5018aFcjoOrEK2F8JvJ0UKtEo+ONchypJSXA2TSdL0iIlufMBepsmlBsSLkCwHCJYohYcueZV0u9NVPc3n282KLL8ItRZeSFG/cL/a2yrkFnTFhq9OtkUtP4CcVE7BOtzjfftNcn4Rup73e5JkLT7L9AZS7eCYkIYV0KRlT2pOa/FuOHlfP9NP+NVtd83GXUY2FKBsmN3EmrQgGDTfwfwcJjN5dqIqzkIXmLV8IKQ3aiW2//02pIe5VrdqHQG+EVMRcdpCWyKUkMj0g4rGYkqKCtVJojKtOR93ycOGUDc6+cMMoyn3J2qFydkp278dGWeLuwtGfD25fHXorqK1aL9/bGPcwdinrBmcwnuy1IECtuTkEfAPsb6O4nArnDsTEzeQxwa/MAicmpux//TNKgkQGqzCPeHKbl4vOfyyI6kCsf8edWv8fOSPvJUGvL14+/TZ6lY8S+30fosOmwMCe7xlbtcVlBVtOsKx/XUufrP2Vuptlc8INaq6++XtgpCoMLL0SJfBFQKZRmBGavv1Ztyf0aL6Qp303HKGTyXOEq2k18iJmukB6JcnEGVsaAyteGlruQIbPgHWbxhZSoJZPw="
-
 matrix:
   include:
     - os: linux # Ubuntu 14.04
@@ -14,21 +8,10 @@ matrix:
       sudo: required
       dotnet: 1.0.0-preview2-003121
       mono: latest
-      before_install:
-      - echo -n | openssl s_client -connect scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-
-      addons:
-          coverity_scan:
-          project:
-              name: "JimBobSquarePants/ImageSharp"
-              description: "Build submitted via Travis CI"
-          notification_email: james_south@hotmail.com
-          build_command_prepend: "dotnet restore"
-          build_command:   "dotnet build -c Release"
-          branch_pattern: master
-    - os: osx # OSX 10.11
-      osx_image: xcode7.2
-      dotnet: 1.0.0-preview2-003121
-      mono: latest
+#    - os: osx # OSX 10.11
+#      osx_image: xcode7.2
+#      dotnet: 1.0.0-preview2-003121
+#      mono: latest
 
 branches:
   only:
@@ -38,3 +21,17 @@ script:
   - cd src/ImageSharp/
   - dotnet restore
   - dotnet build -c Release
+
+
+before_install:
+      - echo -n | openssl s_client -connect scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-
+
+addons:
+  coverity_scan:
+    project:
+      name: "JimBobSquarePants/ImageSharp"
+      description: "Build submitted via Travis CI"
+    notification_email: james_south@hotmail.com
+    build_command_prepend: "dotnet restore"
+    build_command:   "dotnet build -c Release"
+    branch_pattern: master

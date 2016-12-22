@@ -20,6 +20,6 @@ addons:
       name: "JimBobSquarePants/ImageSharp"
       description: "Build submitted via Travis CI"
     notification_email: james_south@hotmail.com
-    build_command_prepend: "msbuild /t:Clean"
-    build_command:   "msbuild /t:Rebuild"
-    branch_pattern: coverity_scan
+    build_command_prepend: "dotnet restore"
+    build_command:   "dotnet build -c Release"
+    branch_pattern: master

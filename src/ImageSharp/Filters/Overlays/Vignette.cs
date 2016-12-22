@@ -10,7 +10,7 @@ namespace ImageSharp
     using Processors;
 
     /// <summary>
-    /// Extension methods for the <see cref="Image{TColor, TPacked}"/> type.
+    /// Extension methods for the <see cref="Image{TColor}"/> type.
     /// </summary>
     public static partial class ImageExtensions
     {
@@ -18,12 +18,10 @@ namespace ImageSharp
         /// Applies a radial vignette effect to an image.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The image this method extends.</param>
-        /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
-        public static Image<TColor, TPacked> Vignette<TColor, TPacked>(this Image<TColor, TPacked> source)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
+        /// <returns>The <see cref="Image{TColor}"/>.</returns>
+        public static Image<TColor> Vignette<TColor>(this Image<TColor> source)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             return Vignette(source, default(TColor), source.Bounds.Width * .5F, source.Bounds.Height * .5F, source.Bounds);
         }
@@ -32,13 +30,11 @@ namespace ImageSharp
         /// Applies a radial vignette effect to an image.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="color">The color to set as the vignette.</param>
-        /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
-        public static Image<TColor, TPacked> Vignette<TColor, TPacked>(this Image<TColor, TPacked> source, TColor color)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
+        /// <returns>The <see cref="Image{TColor}"/>.</returns>
+        public static Image<TColor> Vignette<TColor>(this Image<TColor> source, TColor color)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             return Vignette(source, color, source.Bounds.Width * .5F, source.Bounds.Height * .5F, source.Bounds);
         }
@@ -47,14 +43,12 @@ namespace ImageSharp
         /// Applies a radial vignette effect to an image.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="radiusX">The the x-radius.</param>
         /// <param name="radiusY">The the y-radius.</param>
-        /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
-        public static Image<TColor, TPacked> Vignette<TColor, TPacked>(this Image<TColor, TPacked> source, float radiusX, float radiusY)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
+        /// <returns>The <see cref="Image{TColor}"/>.</returns>
+        public static Image<TColor> Vignette<TColor>(this Image<TColor> source, float radiusX, float radiusY)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             return Vignette(source, default(TColor), radiusX, radiusY, source.Bounds);
         }
@@ -63,15 +57,13 @@ namespace ImageSharp
         /// Applies a radial vignette effect to an image.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
-        /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
-        public static Image<TColor, TPacked> Vignette<TColor, TPacked>(this Image<TColor, TPacked> source, Rectangle rectangle)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
+        /// <returns>The <see cref="Image{TColor}"/>.</returns>
+        public static Image<TColor> Vignette<TColor>(this Image<TColor> source, Rectangle rectangle)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             return Vignette(source, default(TColor), 0, 0, rectangle);
         }
@@ -80,7 +72,6 @@ namespace ImageSharp
         /// Applies a radial vignette effect to an image.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="color">The color to set as the vignette.</param>
         /// <param name="radiusX">The the x-radius.</param>
@@ -88,12 +79,11 @@ namespace ImageSharp
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
-        /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
-        public static Image<TColor, TPacked> Vignette<TColor, TPacked>(this Image<TColor, TPacked> source, TColor color, float radiusX, float radiusY, Rectangle rectangle)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
+        /// <returns>The <see cref="Image{TColor}"/>.</returns>
+        public static Image<TColor> Vignette<TColor>(this Image<TColor> source, TColor color, float radiusX, float radiusY, Rectangle rectangle)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            VignetteProcessor<TColor, TPacked> processor = new VignetteProcessor<TColor, TPacked> { RadiusX = radiusX, RadiusY = radiusY };
+            VignetteProcessor<TColor> processor = new VignetteProcessor<TColor> { RadiusX = radiusX, RadiusY = radiusY };
 
             if (!color.Equals(default(TColor)))
             {

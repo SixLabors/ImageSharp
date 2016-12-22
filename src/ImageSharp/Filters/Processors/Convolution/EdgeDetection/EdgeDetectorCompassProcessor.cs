@@ -13,10 +13,8 @@ namespace ImageSharp.Processors
     /// Defines a sampler that detects edges within an image using a eight two dimensional matrices.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public abstract class EdgeDetectorCompassProcessor<TColor, TPacked> : ImageFilteringProcessor<TColor, TPacked>, IEdgeDetectorProcessor<TColor, TPacked>
-        where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct, IEquatable<TPacked>
+    public abstract class EdgeDetectorCompassProcessor<TColor> : ImageFilteringProcessor<TColor>, IEdgeDetectorProcessor<TColor>
+        where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>
         /// Gets the North gradient operator
@@ -62,7 +60,7 @@ namespace ImageSharp.Processors
         public bool Grayscale { get; set; }
 
         /// <inheritdoc />
-        protected override void OnApply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
         {
             float[][][] kernels = { this.North, this.NorthWest, this.West, this.SouthWest, this.South, this.SouthEast, this.East, this.NorthEast };
 
@@ -78,9 +76,9 @@ namespace ImageSharp.Processors
             int maxY = Math.Min(source.Height, endY);
 
             // First run.
-            ImageBase<TColor, TPacked> target = new Image<TColor, TPacked>(source.Width, source.Height);
+            ImageBase<TColor> target = new Image<TColor>(source.Width, source.Height);
             target.ClonePixels(source.Width, source.Height, source.Pixels);
-            new ConvolutionProcessor<TColor, TPacked>(kernels[0]).Apply(target, sourceRectangle);
+            new ConvolutionProcessor<TColor>(kernels[0]).Apply(target, sourceRectangle);
 
             if (kernels.Length == 1)
             {
@@ -106,13 +104,13 @@ namespace ImageSharp.Processors
             for (int i = 1; i < kernels.Length; i++)
             {
                 // Create a clone for each pass and copy the offset pixels across.
-                ImageBase<TColor, TPacked> pass = new Image<TColor, TPacked>(source.Width, source.Height);
+                ImageBase<TColor> pass = new Image<TColor>(source.Width, source.Height);
                 pass.ClonePixels(source.Width, source.Height, source.Pixels);
 
-                new ConvolutionProcessor<TColor, TPacked>(kernels[i]).Apply(pass, sourceRectangle);
+                new ConvolutionProcessor<TColor>(kernels[i]).Apply(pass, sourceRectangle);
 
-                using (PixelAccessor<TColor, TPacked> passPixels = pass.Lock())
-                using (PixelAccessor<TColor, TPacked> targetPixels = target.Lock())
+                using (PixelAccessor<TColor> passPixels = pass.Lock())
+                using (PixelAccessor<TColor> targetPixels = target.Lock())
                 {
                     Parallel.For(
                         minY,
@@ -138,11 +136,11 @@ namespace ImageSharp.Processors
         }
 
         /// <inheritdoc/>
-        protected override void BeforeApply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle)
+        protected override void BeforeApply(ImageBase<TColor> source, Rectangle sourceRectangle)
         {
             if (this.Grayscale)
             {
-                new GrayscaleBt709Processor<TColor, TPacked>().Apply(source, sourceRectangle);
+                new GrayscaleBt709Processor<TColor>().Apply(source, sourceRectangle);
             }
         }
     }

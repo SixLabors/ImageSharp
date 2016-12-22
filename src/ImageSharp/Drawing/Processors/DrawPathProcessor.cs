@@ -21,50 +21,48 @@ namespace ImageSharp.Drawing.Processors
     /// Draws a path using the processor pipeline
     /// </summary>
     /// <typeparam name="TColor">The type of the color.</typeparam>
-    /// <typeparam name="TPacked">The type of the packed.</typeparam>
-    /// <seealso cref="ImageSharp.Processors.ImageFilteringProcessor{TColor, TPacked}" />
-    public class DrawPathProcessor<TColor, TPacked> : ImageFilteringProcessor<TColor, TPacked>
-        where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct, IEquatable<TPacked>
+    /// <seealso cref="ImageSharp.Processors.ImageFilteringProcessor{TColor}" />
+    public class DrawPathProcessor<TColor> : ImageFilteringProcessor<TColor>
+        where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         private const float AntialiasFactor = 1f;
         private const int PaddingFactor = 1; // needs to been the same or greater than AntialiasFactor
         private const float Epsilon = 0.001f;
 
-        private readonly IPen<TColor, TPacked> pen;
+        private readonly IPen<TColor> pen;
         private readonly IPath[] paths;
         private readonly RectangleF region;
         private readonly GraphicsOptions options;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="DrawPathProcessor{TColor, TPacked}" /> class.
+        /// Initializes a new instance of the <see cref="DrawPathProcessor{TColor}" /> class.
         /// </summary>
         /// <param name="pen">The pen.</param>
         /// <param name="shape">The shape.</param>
         /// <param name="options">The options.</param>
-        public DrawPathProcessor(IPen<TColor, TPacked> pen, IShape shape, GraphicsOptions options)
+        public DrawPathProcessor(IPen<TColor> pen, IShape shape, GraphicsOptions options)
             : this(pen, shape.ToArray(), options)
         {
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="DrawPathProcessor{TColor, TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="DrawPathProcessor{TColor}"/> class.
         /// </summary>
         /// <param name="pen">The pen.</param>
         /// <param name="path">The path.</param>
         /// <param name="options">The options.</param>
-        public DrawPathProcessor(IPen<TColor, TPacked> pen, IPath path, GraphicsOptions options)
+        public DrawPathProcessor(IPen<TColor> pen, IPath path, GraphicsOptions options)
             : this(pen, new[] { path }, options)
         {
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="DrawPathProcessor{TColor, TPacked}" /> class.
+        /// Initializes a new instance of the <see cref="DrawPathProcessor{TColor}" /> class.
         /// </summary>
         /// <param name="pen">The pen.</param>
         /// <param name="paths">The paths.</param>
         /// <param name="options">The options.</param>
-        public DrawPathProcessor(IPen<TColor, TPacked> pen, IPath[] paths, GraphicsOptions options)
+        public DrawPathProcessor(IPen<TColor> pen, IPath[] paths, GraphicsOptions options)
         {
             this.paths = paths;
             this.pen = pen;
@@ -86,9 +84,9 @@ namespace ImageSharp.Drawing.Processors
         }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
         {
-            using (IPenApplicator<TColor, TPacked> applicator = this.pen.CreateApplicator(this.region))
+            using (IPenApplicator<TColor> applicator = this.pen.CreateApplicator(this.region))
             {
                 var rect = RectangleF.Ceiling(applicator.RequiredRegion);
 
@@ -119,7 +117,7 @@ namespace ImageSharp.Drawing.Processors
                     polyStartY = 0;
                 }
 
-                using (PixelAccessor<TColor, TPacked> sourcePixels = source.Lock())
+                using (PixelAccessor<TColor> sourcePixels = source.Lock())
                 {
                     Parallel.For(
                     minY,

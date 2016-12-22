@@ -12,13 +12,11 @@ namespace ImageSharp.Processors
     /// entropy.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public class EntropyCropProcessor<TColor, TPacked> : ImageFilteringProcessor<TColor, TPacked>
-        where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct, IEquatable<TPacked>
+    public class EntropyCropProcessor<TColor> : ImageFilteringProcessor<TColor>
+        where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="EntropyCropProcessor{TColor, TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="EntropyCropProcessor{TColor}"/> class.
         /// </summary>
         /// <param name="threshold">The threshold to split the image. Must be between 0 and 1.</param>
         /// <exception cref="System.ArgumentException">
@@ -36,16 +34,16 @@ namespace ImageSharp.Processors
         public float Value { get; }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
         {
-            ImageBase<TColor, TPacked> temp = new Image<TColor, TPacked>(source.Width, source.Height);
+            ImageBase<TColor> temp = new Image<TColor>(source.Width, source.Height);
             temp.ClonePixels(source.Width, source.Height, source.Pixels);
 
             // Detect the edges.
-            new SobelProcessor<TColor, TPacked>().Apply(temp, sourceRectangle);
+            new SobelProcessor<TColor>().Apply(temp, sourceRectangle);
 
             // Apply threshold binarization filter.
-            new BinaryThresholdProcessor<TColor, TPacked>(this.Value).Apply(temp, sourceRectangle);
+            new BinaryThresholdProcessor<TColor>(this.Value).Apply(temp, sourceRectangle);
 
             // Search for the first white pixels
             Rectangle rectangle = ImageMaths.GetFilteredBoundingRectangle(temp, 0);
@@ -55,7 +53,7 @@ namespace ImageSharp.Processors
                 return;
             }
 
-            new CropProcessor<TColor, TPacked>(rectangle).Apply(source, sourceRectangle);
+            new CropProcessor<TColor>(rectangle).Apply(source, sourceRectangle);
         }
     }
 }

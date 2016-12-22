@@ -13,11 +13,9 @@ namespace ImageSharp.Processors
     /// <see href="http://en.wikipedia.org/wiki/Roberts_cross"/>
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
     [SuppressMessage("ReSharper", "StaticMemberInGenericType", Justification = "We want to use only one instance of each array field for each generic type.")]
-    public class RobertsCrossProcessor<TColor, TPacked> : EdgeDetector2DProcessor<TColor, TPacked>
-        where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct, IEquatable<TPacked>
+    public class RobertsCrossProcessor<TColor> : EdgeDetector2DProcessor<TColor>
+        where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>
         /// The horizontal gradient operator.

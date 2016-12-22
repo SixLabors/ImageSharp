@@ -13,13 +13,11 @@ namespace ImageSharp.Processors
     /// Defines a sampler that uses two one-dimensional matrices to perform two-pass convolution against an image.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public class Convolution2PassProcessor<TColor, TPacked> : ImageFilteringProcessor<TColor, TPacked>
-        where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct, IEquatable<TPacked>
+    public class Convolution2PassProcessor<TColor> : ImageFilteringProcessor<TColor>
+    where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="Convolution2PassProcessor{TColor,TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="Convolution2PassProcessor{TColor}"/> class.
         /// </summary>
         /// <param name="kernelX">The horizontal gradient operator.</param>
         /// <param name="kernelY">The vertical gradient operator.</param>
@@ -40,7 +38,7 @@ namespace ImageSharp.Processors
         public float[][] KernelY { get; }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
         {
             float[][] kernelX = this.KernelX;
             float[][] kernelY = this.KernelY;
@@ -57,7 +55,7 @@ namespace ImageSharp.Processors
         }
 
         /// <summary>
-        /// Applies the process to the specified portion of the specified <see cref="ImageBase{TColor, TPacked}"/> at the specified location
+        /// Applies the process to the specified portion of the specified <see cref="ImageBase{TColor}"/> at the specified location
         /// and with the specified size.
         /// </summary>
         /// <param name="width">The image width.</param>
@@ -82,8 +80,8 @@ namespace ImageSharp.Processors
             int maxY = endY - 1;
             int maxX = endX - 1;
 
-            using (PixelAccessor<TColor, TPacked> sourcePixels = source.Lock<TColor, TPacked>(width, height))
-            using (PixelAccessor<TColor, TPacked> targetPixels = target.Lock<TColor, TPacked>(width, height))
+            using (PixelAccessor<TColor> sourcePixels = source.Lock<TColor>(width, height))
+            using (PixelAccessor<TColor> targetPixels = target.Lock<TColor>(width, height))
             {
                 Parallel.For(
                 startY,

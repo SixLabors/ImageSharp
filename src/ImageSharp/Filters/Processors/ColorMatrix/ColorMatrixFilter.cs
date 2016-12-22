@@ -13,10 +13,8 @@ namespace ImageSharp.Processors
     /// The color matrix filter. Inherit from this class to perform operation involving color matrices.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public abstract class ColorMatrixFilter<TColor, TPacked> : ImageFilteringProcessor<TColor, TPacked>, IColorMatrixFilter<TColor, TPacked>
-        where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct, IEquatable<TPacked>
+    public abstract class ColorMatrixFilter<TColor> : ImageFilteringProcessor<TColor>, IColorMatrixFilter<TColor>
+        where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <inheritdoc/>
         public abstract Matrix4x4 Matrix { get; }
@@ -25,7 +23,7 @@ namespace ImageSharp.Processors
         public override bool Compand { get; set; } = true;
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
         {
             int startY = sourceRectangle.Y;
             int endY = sourceRectangle.Bottom;
@@ -52,7 +50,7 @@ namespace ImageSharp.Processors
             Matrix4x4 matrix = this.Matrix;
             bool compand = this.Compand;
 
-            using (PixelAccessor<TColor, TPacked> sourcePixels = source.Lock())
+            using (PixelAccessor<TColor> sourcePixels = source.Lock())
             {
                 Parallel.For(
                     minY,

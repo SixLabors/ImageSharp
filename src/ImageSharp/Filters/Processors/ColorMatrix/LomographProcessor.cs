@@ -12,10 +12,8 @@ namespace ImageSharp.Processors
     /// Converts the colors of the image recreating an old Lomograph effect.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public class LomographProcessor<TColor, TPacked> : ColorMatrixFilter<TColor, TPacked>
-        where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct, IEquatable<TPacked>
+    public class LomographProcessor<TColor> : ColorMatrixFilter<TColor>
+        where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <inheritdoc/>
         public override Matrix4x4 Matrix => new Matrix4x4()
@@ -30,11 +28,11 @@ namespace ImageSharp.Processors
         };
 
         /// <inheritdoc/>
-        protected override void AfterApply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle)
+        protected override void AfterApply(ImageBase<TColor> source, Rectangle sourceRectangle)
         {
             TColor packed = default(TColor);
             packed.PackFromVector4(new Color(0, 10, 0).ToVector4()); // Very dark (mostly black) lime green.
-            new VignetteProcessor<TColor, TPacked> { VignetteColor = packed }.Apply(source, sourceRectangle);
+            new VignetteProcessor<TColor> { VignetteColor = packed }.Apply(source, sourceRectangle);
         }
     }
 }

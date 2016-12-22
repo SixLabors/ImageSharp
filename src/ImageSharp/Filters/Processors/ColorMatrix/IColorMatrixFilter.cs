@@ -13,10 +13,8 @@ namespace ImageSharp.Processors
     /// alter the image pixels.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public interface IColorMatrixFilter<TColor, TPacked> : IImageFilteringProcessor<TColor, TPacked>
-        where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct, IEquatable<TPacked>
+    public interface IColorMatrixFilter<TColor> : IImageFilteringProcessor<TColor>
+        where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>
         /// Gets the <see cref="Matrix4x4"/> used to alter the image.

@@ -12,13 +12,11 @@ namespace ImageSharp.Processors
     /// Adapted from <see href="http://www.realtimerendering.com/resources/GraphicsGems/gemsiii/filter_rcg.c"/>
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public abstract class ResamplingWeightedProcessor<TColor, TPacked> : ImageFilteringProcessor<TColor, TPacked>
-        where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct, IEquatable<TPacked>
+    public abstract class ResamplingWeightedProcessor<TColor> : ImageFilteringProcessor<TColor>
+        where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="ResamplingWeightedProcessor{TColor, TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="ResamplingWeightedProcessor{TColor}"/> class.
         /// </summary>
         /// <param name="sampler">The sampler to perform the resize operation.</param>
         /// <param name="width">The target width.</param>
@@ -69,7 +67,7 @@ namespace ImageSharp.Processors
         protected Weights[] VerticalWeights { get; set; }
 
         /// <inheritdoc/>
-        protected override void BeforeApply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle)
+        protected override void BeforeApply(ImageBase<TColor> source, Rectangle sourceRectangle)
         {
             if (!(this.Sampler is NearestNeighborResampler))
             {

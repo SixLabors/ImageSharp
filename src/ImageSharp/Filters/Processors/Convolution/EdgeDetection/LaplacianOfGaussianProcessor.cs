@@ -13,11 +13,9 @@ namespace ImageSharp.Processors
     /// <see href="http://fourier.eng.hmc.edu/e161/lectures/gradient/node8.html"/>
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
     [SuppressMessage("ReSharper", "StaticMemberInGenericType", Justification = "We want to use only one instance of each array field for each generic type.")]
-    public class LaplacianOfGaussianProcessor<TColor, TPacked> : EdgeDetectorProcessor<TColor, TPacked>
-        where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct, IEquatable<TPacked>
+    public class LaplacianOfGaussianProcessor<TColor> : EdgeDetectorProcessor<TColor>
+        where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>
         /// The 2d gradient operator.

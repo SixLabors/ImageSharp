@@ -67,7 +67,7 @@
       "dependencies": {
       },
       "frameworkAssemblies": {
-        "System.Runtime": ""
+        "System.Runtime": "4.0.0"
       }
     }
   }

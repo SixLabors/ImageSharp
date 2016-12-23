@@ -42,9 +42,9 @@ namespace ImageSharp.Formats
         private int globalColorTableLength;
 
         /// <summary>
-        /// The next frame.
+        /// The previous frame.
         /// </summary>
-        private ImageFrame<TColor> nextFrame;
+        private ImageFrame<TColor> previousFrame;
 
         /// <summary>
         /// The area to restore.
@@ -319,7 +319,7 @@ namespace ImageSharp.Formats
 
             ImageBase<TColor> image;
 
-            if (this.nextFrame == null)
+            if (this.previousFrame == null)
             {
                 image = this.decodedImage;
 
@@ -333,10 +333,10 @@ namespace ImageSharp.Formats
                 if (this.graphicsControlExtension != null &&
                     this.graphicsControlExtension.DisposalMethod == DisposalMethod.RestoreToPrevious)
                 {
-                    previousFrame = this.nextFrame;
+                    previousFrame = this.previousFrame;
                 }
 
-                currentFrame = this.nextFrame.Clone();
+                currentFrame = this.previousFrame.Clone();
 
                 image = currentFrame;
 
@@ -416,11 +416,11 @@ namespace ImageSharp.Formats
 
             if (previousFrame != null)
             {
-                this.nextFrame = previousFrame;
+                this.previousFrame = previousFrame;
                 return;
             }
 
-            this.nextFrame = currentFrame == null ? this.decodedImage.ToFrame() : currentFrame.Clone();
+            this.previousFrame = currentFrame == null ? this.decodedImage.ToFrame() : currentFrame;
 
             if (this.graphicsControlExtension != null &&
                 this.graphicsControlExtension.DisposalMethod == DisposalMethod.RestoreToBackground)

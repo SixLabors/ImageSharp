@@ -3,7 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.Tests.TestUtilities
+namespace ImageSharp.Tests
 {
     using System;
     using System.Linq;
@@ -12,6 +12,7 @@ namespace ImageSharp.Tests.TestUtilities
     /// <summary>
     /// Triggers passing <see cref="TestImageProvider{TColor}"/> instances which return the image produced by the given test class member method
     /// <see cref="TestImageProvider{TColor}"/> instances will be passed for each the pixel format defined by the pixelTypes parameter
+    /// The parameter of the factory method must be a <see cref="GenericFactory{TColor}"/> instance
     /// </summary>
     public class WithMemberFactoryAttribute : ImageDataAttributeBase
     {

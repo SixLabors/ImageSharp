@@ -3,12 +3,13 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.Tests.TestUtilities
+namespace ImageSharp.Tests
 {
     using System;
 
     /// <summary>
-    /// Utility class to create specialized subclasses generic classes (eg. <see cref="Image"/>)
+    /// Utility class to create specialized subclasses of generic classes (eg. <see cref="Image"/>)
+    /// Used as parameter for <see cref="WithMemberFactoryAttribute"/> -based factory methods
     /// </summary>
     public class GenericFactory<TColor>
         where TColor : struct, IPackedPixel, IEquatable<TColor>
@@ -22,11 +23,6 @@ namespace ImageSharp.Tests.TestUtilities
         {
             return new Image<TColor>(bytes);
         }
-
-        public virtual PixelArea<TColor> CreatePixelArea(int width, int height, ComponentOrder componentOrder)
-        {
-            return new PixelArea<TColor>(width, height, componentOrder);
-        }
     }
 
     public class DefaultImageClassSpecificFactory : GenericFactory<Color>
@@ -34,8 +30,5 @@ namespace ImageSharp.Tests.TestUtilities
         public override Image<Color> CreateImage(byte[] bytes) => new Image(bytes);
 
         public override Image<Color> CreateImage(int width, int height) => new Image(width, height);
-
-        public override PixelArea<Color> CreatePixelArea(int width, int height, ComponentOrder componentOrder)
-            => new PixelArea<Color>(width, height, componentOrder);
     }
 }

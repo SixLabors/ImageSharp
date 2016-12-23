@@ -3,7 +3,6 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-// ReSharper disable InconsistentNaming
 namespace ImageSharp.Tests
 {
     using System;
@@ -139,7 +138,7 @@ namespace ImageSharp.Tests
         {
             var expanded = PixelTypes.All.ExpandAllTypes().ToArray();
 
-            Assert.True(expanded.Length >= FlagsHelper<PixelTypes>.GetSortedValues().Length - 2);
+            Assert.True(expanded.Length >= EnumHelper.GetSortedValues<PixelTypes>().Length - 2);
             AssertContainsPixelType<Color>(PixelTypes.Color, expanded);
             AssertContainsPixelType<Color>(PixelTypes.StandardImageClass, expanded);
         }

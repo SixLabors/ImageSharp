@@ -4,6 +4,7 @@
 // </copyright>
 namespace ImageSharp.Tests
 {
+    using System;
     using System.Collections.Concurrent;
     using System.IO;
 
@@ -33,7 +34,7 @@ namespace ImageSharp.Tests
             this.Bytes = File.ReadAllBytes(file);
             this.image = new Image(this.Bytes);
         }
-
+        
         public static TestFile Create(string file)
         {
             return cache.GetOrAdd(file, (string fileName) =>

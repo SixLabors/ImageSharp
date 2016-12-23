@@ -46,6 +46,9 @@ namespace ImageSharp.Tests
             // TestFile.Create(TestImages.Gif.Giphy) // Perf: Enable for local testing only
         };
 
+        // TODO: Find a better place for this
+        internal const string TestOutputRoot = "TestOutput/";
+
         protected string CreateOutputDirectory(string path, params string[] pathParts)
         {
             var postFix = "";
@@ -54,7 +57,7 @@ namespace ImageSharp.Tests
                 postFix  = "/" + string.Join("/", pathParts);
             }
 
-            path = "TestOutput/" + path + postFix;
+            path = TestOutputRoot + path + postFix;
 
             if (!Directory.Exists(path))
             {

@@ -6,7 +6,7 @@ using ImageSharp.Formats;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace ImageSharp.Tests.Formats.Jpg
+namespace ImageSharp.Tests
 {
     public class JpegTests
     {
@@ -17,62 +17,45 @@ namespace ImageSharp.Tests.Formats.Jpg
 
         public JpegTests(ITestOutputHelper output)
         {
-            Output = output;
+            this.Output = output;
         }
+        public static IEnumerable<string> AllJpegFiles => TestImages.Jpeg.All;
 
-        protected string CreateTestOutputFile(string fileName)
+        // TODO: Turned off PixelTypes.All to be CI-friendly, what should be the practice?
+        [Theory]
+        //[WithFileCollection(nameof(AllJpegFiles), PixelTypes.All)] 
+        [WithFileCollection(nameof(AllJpegFiles), PixelTypes.Color | PixelTypes.StandardImageClass | PixelTypes.Argb)]
+        public void OpenJpeg_SaveBmp<TColor>(TestImageProvider<TColor> provider)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            if (!Directory.Exists(TestOutputDirectory))
-            {
-                Directory.CreateDirectory(TestOutputDirectory);
-            }
+            var image = provider.GetImage();
 
-            //string id = Guid.NewGuid().ToString().Substring(0, 4);
-
-            string ext = Path.GetExtension(fileName);
-            fileName = Path.GetFileNameWithoutExtension(fileName);
-
-            return $"{TestOutputDirectory}/{fileName}{ext}";
+            provider.Utility.SaveTestOutputFile(image, "bmp");
         }
 
-        protected Stream CreateOutputStream(string fileName)
-        {
-            fileName = CreateTestOutputFile(fileName);
-            Output?.WriteLine("Opened for write: "+fileName);
-            return File.OpenWrite(fileName);
-        }
 
-        public static IEnumerable<object[]> AllJpegFiles
-            => TestImages.Jpeg.All.Select(file => new object[] {TestFile.Create(file)});
+        public static IEnumerable<string> AllBmpFiles => TestImages.Bmp.All;
 
         [Theory]
-        [MemberData(nameof(AllJpegFiles))]
-        public void OpenJpeg_SaveBmp(TestFile file)
+        [WithFileCollection(nameof(AllBmpFiles), PixelTypes.Color | PixelTypes.StandardImageClass | PixelTypes.Argb, JpegSubsample.Ratio420, 75)]
+        [WithFileCollection(nameof(AllBmpFiles), PixelTypes.Color | PixelTypes.StandardImageClass | PixelTypes.Argb, JpegSubsample.Ratio444, 75)]
+        public void OpenBmp_SaveJpeg<TColor>(TestImageProvider<TColor> provider, JpegSubsample subSample, int quality)
+           where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            string bmpFileName = file.FileNameWithoutExtension + ".bmp";
+            var image = provider.GetImage();
 
-            var image = file.CreateImage();
-                
-            using (var outputStream = CreateOutputStream(bmpFileName))
+            var utility = provider.Utility;
+            utility.TestName += "_" + subSample + "_Q" + quality;
+
+            using (var outputStream = File.OpenWrite(utility.GetTestOutputFileName("jpg")))
             {
-                image.Save(outputStream, new BmpFormat());
-            }
-        }
+                var encoder = new JpegEncoder()
+                {
+                    Subsample = subSample,
+                    Quality = quality
+                };
 
-        public static IEnumerable<object[]> AllBmpFiles
-            => TestImages.Bmp.All.Select(file => new object[] { TestFile.Create(file) });
-
-        [Theory]
-        [MemberData(nameof(AllBmpFiles))]
-        public void OpenBmp_SaveJpeg(TestFile file)
-        {
-            string jpegPath = file.FileNameWithoutExtension + ".jpeg";
-
-            var image = file.CreateImage();
-
-            using (var outputStream = CreateOutputStream(jpegPath))
-            {
-                image.Save(outputStream, new JpegFormat());
+                image.Save(outputStream, encoder);
             }
         }
     }

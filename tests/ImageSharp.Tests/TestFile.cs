@@ -4,6 +4,7 @@
 // </copyright>
 namespace ImageSharp.Tests
 {
+    using System;
     using System.Collections.Concurrent;
     using System.IO;
 
@@ -26,19 +27,28 @@ namespace ImageSharp.Tests
         private readonly Image image;
         private readonly string file;
 
-        private TestFile(string file)
+        private TestFile(string file, bool decodeImage)
         {
             this.file = file;
 
             this.Bytes = File.ReadAllBytes(file);
-            this.image = new Image(this.Bytes);
+            if (decodeImage)
+            {
+                this.image = new Image(this.Bytes);
+            }
+            
         }
 
-        public static TestFile Create(string file)
+        public static TestFile Create(string file) => CreateImpl(file, true);
+
+        // No need to decode the image when used by TestImageProvider!
+        internal static TestFile CreateWithoutImage(string file) => CreateImpl(file, false);
+        
+        private static TestFile CreateImpl(string file, bool decodeImage)
         {
             return cache.GetOrAdd(file, (string fileName) =>
             {
-                return new TestFile(FormatsDirectory + fileName);
+                return new TestFile(FormatsDirectory + fileName, decodeImage);
             });
         }
 
@@ -72,6 +82,10 @@ namespace ImageSharp.Tests
 
         public Image CreateImage()
         {
+            if (this.image == null)
+            {
+                throw new InvalidOperationException("TestFile.CreateImage() is invalid because instance has been created with decodeImage = false!");
+            }
             return new Image(this.image);
         }
     }

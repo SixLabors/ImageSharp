@@ -18,11 +18,14 @@ namespace ImageSharp.Drawing.Pens
         /// <summary>
         /// Creates the applicator for applying this pen to an Image
         /// </summary>
+        /// <param name="pixelSource">The pixel source.</param>
         /// <param name="region">The region the pen will be applied to.</param>
-        /// <returns>Returns a the applicator for the pen.</returns>
+        /// <returns>
+        /// Returns a the applicator for the pen.
+        /// </returns>
         /// <remarks>
         /// The <paramref name="region" /> when being applied to things like shapes would usually be the bounding box of the shape not necessarily the shape of the whole image.
         /// </remarks>
-        IPenApplicator<TColor> CreateApplicator(RectangleF region);
+        IPenApplicator<TColor> CreateApplicator(PixelAccessor<TColor> pixelSource, RectangleF region);
     }
 }

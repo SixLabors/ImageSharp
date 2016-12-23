@@ -86,7 +86,8 @@ namespace ImageSharp.Drawing.Processors
         /// <inheritdoc/>
         protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
         {
-            using (IPenApplicator<TColor> applicator = this.pen.CreateApplicator(this.region))
+            using (PixelAccessor<TColor> sourcePixels = source.Lock())
+            using (IPenApplicator<TColor> applicator = this.pen.CreateApplicator(sourcePixels, this.region))
             {
                 var rect = RectangleF.Ceiling(applicator.RequiredRegion);
 
@@ -117,45 +118,42 @@ namespace ImageSharp.Drawing.Processors
                     polyStartY = 0;
                 }
 
-                using (PixelAccessor<TColor> sourcePixels = source.Lock())
+                Parallel.For(
+                minY,
+                maxY,
+                this.ParallelOptions,
+                y =>
                 {
-                    Parallel.For(
-                    minY,
-                    maxY,
-                    this.ParallelOptions,
-                    y =>
+                    int offsetY = y - polyStartY;
+                    var currentPoint = default(Vector2);
+                    for (int x = minX; x < maxX; x++)
                     {
-                        int offsetY = y - polyStartY;
-                        var currentPoint = default(Vector2);
-                        for (int x = minX; x < maxX; x++)
+                        int offsetX = x - startX;
+                        currentPoint.X = offsetX;
+                        currentPoint.Y = offsetY;
+
+                        var dist = this.Closest(currentPoint);
+
+                        var color = applicator.GetColor(dist);
+
+                        var opacity = this.Opacity(color.DistanceFromElement);
+
+                        if (opacity > Epsilon)
                         {
-                            int offsetX = x - startX;
-                            currentPoint.X = offsetX;
-                            currentPoint.Y = offsetY;
+                            int offsetColorX = x - minX;
 
-                            var dist = this.Closest(currentPoint);
+                            Vector4 backgroundVector = sourcePixels[offsetX, offsetY].ToVector4();
+                            Vector4 sourceVector = color.Color.ToVector4();
 
-                            var color = applicator.GetColor(dist);
+                            var finalColor = Vector4BlendTransforms.PremultipliedLerp(backgroundVector, sourceVector, opacity);
+                            finalColor.W = backgroundVector.W;
 
-                            var opacity = this.Opacity(color.DistanceFromElement);
-
-                            if (opacity > Epsilon)
-                            {
-                                int offsetColorX = x - minX;
-
-                                Vector4 backgroundVector = sourcePixels[offsetX, offsetY].ToVector4();
-                                Vector4 sourceVector = color.Color.ToVector4();
-
-                                var finalColor = Vector4BlendTransforms.PremultipliedLerp(backgroundVector, sourceVector, opacity);
-                                finalColor.W = backgroundVector.W;
-
-                                TColor packed = default(TColor);
-                                packed.PackFromVector4(finalColor);
-                                sourcePixels[offsetX, offsetY] = packed;
-                            }
+                            TColor packed = default(TColor);
+                            packed.PackFromVector4(finalColor);
+                            sourcePixels[offsetX, offsetY] = packed;
                         }
-                    });
-                }
+                    }
+                });
             }
         }
 

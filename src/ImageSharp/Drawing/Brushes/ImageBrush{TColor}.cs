@@ -32,7 +32,7 @@ namespace ImageSharp.Drawing.Brushes
         }
 
         /// <inheritdoc />
-        public IBrushApplicator<TColor> CreateApplicator(RectangleF region)
+        public IBrushApplicator<TColor> CreateApplicator(PixelAccessor<TColor> sourcePixels, RectangleF region)
         {
             return new ImageBrushApplicator(this.image, region);
         }

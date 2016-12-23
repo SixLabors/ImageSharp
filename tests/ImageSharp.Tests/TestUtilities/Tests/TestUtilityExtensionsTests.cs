@@ -4,7 +4,7 @@
 // </copyright>
 
 // ReSharper disable InconsistentNaming
-namespace ImageSharp.Tests.Tests
+namespace ImageSharp.Tests
 {
     using System;
     using System.Collections.Generic;
@@ -68,33 +68,35 @@ namespace ImageSharp.Tests.Tests
         }
 
         [Theory]
-        [WithFile(TestImages.Bmp.Car, PixelTypes.Color)]
-        public void IsEquivalentTo_WhenFalse<TColor>(TestImageProvider<TColor> provider)
+        [WithFile(TestImages.Bmp.Car, PixelTypes.Color, true)]
+        [WithFile(TestImages.Bmp.Car, PixelTypes.Color, false)]
+        public void IsEquivalentTo_WhenFalse<TColor>(TestImageProvider<TColor> provider, bool compareAlpha)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             var a = provider.GetImage();
             var b = provider.GetImage();
             b = b.OilPaint(3, 2);
 
-            Assert.False(a.IsEquivalentTo(b));
+            Assert.False(a.IsEquivalentTo(b, compareAlpha));
         }
 
         [Theory]
-        [WithMemberFactory(nameof(CreateTestImage), PixelTypes.Color | PixelTypes.Bgr565)]
-        public void IsEquivalentTo_WhenTrue<TColor>(TestImageProvider<TColor> provider)
+        [WithMemberFactory(nameof(CreateTestImage), PixelTypes.Color | PixelTypes.Bgr565, true)]
+        [WithMemberFactory(nameof(CreateTestImage), PixelTypes.Color | PixelTypes.Bgr565, false)]
+        public void IsEquivalentTo_WhenTrue<TColor>(TestImageProvider<TColor> provider, bool compareAlpha)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             var a = provider.GetImage();
             var b = provider.GetImage();
 
-            Assert.True(a.IsEquivalentTo(b));
+            Assert.True(a.IsEquivalentTo(b, compareAlpha));
         }
 
         [Theory]
         [InlineData(PixelTypes.Color, typeof(Color))]
         [InlineData(PixelTypes.Argb, typeof(Argb))]
         [InlineData(PixelTypes.HalfVector4, typeof(HalfVector4))]
-        [InlineData(PixelTypes.ColorWithDefaultImageClass, typeof(Color))]
+        [InlineData(PixelTypes.StandardImageClass, typeof(Color))]
         public void ToType(PixelTypes pt, Type expectedType)
         {
             Assert.Equal(pt.ToType(), expectedType);
@@ -119,7 +121,7 @@ namespace ImageSharp.Tests.Tests
         [Fact]
         public void ToTypes()
         {
-            PixelTypes pixelTypes = PixelTypes.Alpha8 | PixelTypes.Bgr565 | PixelTypes.Color | PixelTypes.HalfVector2 | PixelTypes.ColorWithDefaultImageClass;
+            PixelTypes pixelTypes = PixelTypes.Alpha8 | PixelTypes.Bgr565 | PixelTypes.Color | PixelTypes.HalfVector2 | PixelTypes.StandardImageClass;
 
             var expanded = pixelTypes.ExpandAllTypes();
 
@@ -129,7 +131,7 @@ namespace ImageSharp.Tests.Tests
             AssertContainsPixelType<Bgr565>(PixelTypes.Bgr565, expanded);
             AssertContainsPixelType<Color>(PixelTypes.Color, expanded);
             AssertContainsPixelType<HalfVector2>(PixelTypes.HalfVector2, expanded);
-            AssertContainsPixelType<Color>(PixelTypes.ColorWithDefaultImageClass, expanded);
+            AssertContainsPixelType<Color>(PixelTypes.StandardImageClass, expanded);
         }
 
         [Fact]
@@ -139,7 +141,7 @@ namespace ImageSharp.Tests.Tests
 
             Assert.True(expanded.Length >= FlagsHelper<PixelTypes>.GetSortedValues().Length - 2);
             AssertContainsPixelType<Color>(PixelTypes.Color, expanded);
-            AssertContainsPixelType<Color>(PixelTypes.ColorWithDefaultImageClass, expanded);
+            AssertContainsPixelType<Color>(PixelTypes.StandardImageClass, expanded);
         }
     }
 }

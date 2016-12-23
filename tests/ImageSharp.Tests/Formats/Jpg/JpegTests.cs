@@ -24,7 +24,7 @@ namespace ImageSharp.Tests
         // TODO: Turned off PixelTypes.All to be CI-friendly, what should be the practice?
         [Theory]
         //[WithFileCollection(nameof(AllJpegFiles), PixelTypes.All)] 
-        [WithFileCollection(nameof(AllJpegFiles), PixelTypes.Color | PixelTypes.ColorWithDefaultImageClass | PixelTypes.Argb)]
+        [WithFileCollection(nameof(AllJpegFiles), PixelTypes.Color | PixelTypes.StandardImageClass | PixelTypes.Argb)]
         public void OpenJpeg_SaveBmp<TColor>(TestImageProvider<TColor> provider)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
@@ -37,8 +37,8 @@ namespace ImageSharp.Tests
         public static IEnumerable<string> AllBmpFiles => TestImages.Bmp.All;
 
         [Theory]
-        [WithFileCollection(nameof(AllBmpFiles), PixelTypes.Color | PixelTypes.ColorWithDefaultImageClass | PixelTypes.Argb, JpegSubsample.Ratio420, 75)]
-        [WithFileCollection(nameof(AllBmpFiles), PixelTypes.Color | PixelTypes.ColorWithDefaultImageClass | PixelTypes.Argb, JpegSubsample.Ratio444, 75)]
+        [WithFileCollection(nameof(AllBmpFiles), PixelTypes.Color | PixelTypes.StandardImageClass | PixelTypes.Argb, JpegSubsample.Ratio420, 75)]
+        [WithFileCollection(nameof(AllBmpFiles), PixelTypes.Color | PixelTypes.StandardImageClass | PixelTypes.Argb, JpegSubsample.Ratio444, 75)]
         public void OpenBmp_SaveJpeg<TColor>(TestImageProvider<TColor> provider, JpegSubsample subSample, int quality)
            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {

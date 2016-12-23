@@ -22,8 +22,7 @@ namespace ImageSharp.Tests
 
         private static readonly Dictionary<PixelTypes, Type> PixelTypes2ClrTypes = new Dictionary<PixelTypes, Type>();
         
-        private static readonly PixelTypes[] AllConcretePixelTypes = FlagsHelper<PixelTypes>
-            .GetSortedValues()
+        private static readonly PixelTypes[] AllConcretePixelTypes = EnumHelper.GetSortedValues<PixelTypes>()
             .Except(new [] {PixelTypes.Undefined, PixelTypes.All })
             .ToArray();
 
@@ -33,13 +32,15 @@ namespace ImageSharp.Tests
             nameSpace = nameSpace.Substring(0, nameSpace.Length - typeof(Color).Name.Length - 1);
             foreach (PixelTypes pt in AllConcretePixelTypes.Where(pt => pt != PixelTypes.StandardImageClass))
             {
-                string typeName = $"{nameSpace}.{FlagsHelper<PixelTypes>.ToString(pt)}";
+                string typeName = $"{nameSpace}.{pt.ToString()}";
                 var t = ImageSharpAssembly.GetType(typeName);
-                if (t != null)
+                if (t == null)
                 {
-                    PixelTypes2ClrTypes[pt] = t;
-                    ClrTypes2PixelTypes[t] = pt;
+                    throw new InvalidOperationException($"Could not find: {typeName}");
                 }
+
+                PixelTypes2ClrTypes[pt] = t;
+                ClrTypes2PixelTypes[t] = pt;
             }
             PixelTypes2ClrTypes[PixelTypes.StandardImageClass] = typeof(Color);
         }

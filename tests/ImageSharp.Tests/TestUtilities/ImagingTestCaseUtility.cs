@@ -2,6 +2,7 @@
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
+
 namespace ImageSharp.Tests
 {
     using System;
@@ -15,7 +16,7 @@ namespace ImageSharp.Tests
     /// Utility class to provide information about the test image & the test case for the test code,
     /// and help managing IO.
     /// </summary>
-    public class ImagingTestCaseUtility
+    public class ImagingTestCaseUtility : TestBase
     {
         /// <summary>
         /// Name of the TColor in the owner <see cref="TestImageProvider{TColor}"/>
@@ -37,20 +38,6 @@ namespace ImageSharp.Tests
         /// The name of the test case (by default)
         /// </summary>
         public string TestName { get; set; } = string.Empty;
-
-        /// <summary>
-        /// Root directory for output images
-        /// </summary>
-        public string TestOutputRoot { get; set; } = FileTestBase.TestOutputRoot;
-
-        public string GetTestOutputDir()
-        {
-            string testGroupName = Path.GetFileNameWithoutExtension(this.TestGroupName);
-
-            string dir = $@"{this.TestOutputRoot}{testGroupName}";
-            Directory.CreateDirectory(dir);
-            return dir;
-        }
 
         /// <summary>
         /// Gets the recommended file name for the output of the test
@@ -81,12 +68,6 @@ namespace ImageSharp.Tests
             return $"{this.GetTestOutputDir()}/{this.TestName}{pixName}{fn}{extension}";
         }
 
-        private static IImageFormat GetImageFormatByExtension(string extension)
-        {
-            extension = extension.ToLower();
-            return Bootstrapper.ImageFormats.First(f => f.SupportedExtensions.Contains(extension));
-        }
-
         /// <summary>
         /// Encodes image by the format matching the required extension, than saves it to the recommended output file.
         /// </summary>
@@ -110,6 +91,19 @@ namespace ImageSharp.Tests
         {
             this.TestGroupName = method.DeclaringType.Name;
             this.TestName = method.Name;
+        }
+
+        private static IImageFormat GetImageFormatByExtension(string extension)
+        {
+            extension = extension.ToLower();
+            return Bootstrapper.ImageFormats.First(f => f.SupportedExtensions.Contains(extension));
+        }
+
+        private string GetTestOutputDir()
+        {
+            string testGroupName = Path.GetFileNameWithoutExtension(this.TestGroupName);
+
+            return CreateOutputDirectory(testGroupName);
         }
     }
 }

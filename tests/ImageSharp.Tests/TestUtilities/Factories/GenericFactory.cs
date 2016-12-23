@@ -24,11 +24,4 @@ namespace ImageSharp.Tests
             return new Image<TColor>(bytes);
         }
     }
-
-    public class DefaultImageClassSpecificFactory : GenericFactory<Color>
-    {
-        public override Image<Color> CreateImage(byte[] bytes) => new Image(bytes);
-
-        public override Image<Color> CreateImage(int width, int height) => new Image(width, height);
-    }
 }

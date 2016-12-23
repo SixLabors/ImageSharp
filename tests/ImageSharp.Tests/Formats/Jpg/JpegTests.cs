@@ -21,9 +21,7 @@ namespace ImageSharp.Tests
         }
         public static IEnumerable<string> AllJpegFiles => TestImages.Jpeg.All;
 
-        // TODO: Turned off PixelTypes.All to be CI-friendly, what should be the practice?
         [Theory]
-        //[WithFileCollection(nameof(AllJpegFiles), PixelTypes.All)] 
         [WithFileCollection(nameof(AllJpegFiles), PixelTypes.Color | PixelTypes.StandardImageClass | PixelTypes.Argb)]
         public void OpenJpeg_SaveBmp<TColor>(TestImageProvider<TColor> provider)
             where TColor : struct, IPackedPixel, IEquatable<TColor>

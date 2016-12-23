@@ -3,8 +3,6 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-// ReSharper disable InconsistentNaming
-
 namespace ImageSharp.Tests
 {
     using System;
@@ -68,7 +66,6 @@ namespace ImageSharp.Tests
             Assert.IsType<Image>(img);
         }
 
-        // TODO: @dlemstra this works only with constant strings!
         [Theory]
         [WithFile(TestImages.Bmp.Car, PixelTypes.All, 88)]
         [WithFile(TestImages.Bmp.F, PixelTypes.All, 88)]
@@ -151,7 +148,7 @@ namespace ImageSharp.Tests
 
         }
 
-        public static readonly TheoryData<ITestImageFactory> BasicData = new TheoryData<ITestImageFactory>()
+        public static readonly TheoryData<object> BasicData = new TheoryData<object>()
                                                                              {
                                                                                  TestImageProvider<Color>.Blank(10, 20),
                                                                                  TestImageProvider<HalfVector4>.Blank(
@@ -169,7 +166,7 @@ namespace ImageSharp.Tests
             Assert.True(img.Width * img.Height > 0);
         }
 
-        public static readonly TheoryData<ITestImageFactory> FileData = new TheoryData<ITestImageFactory>()
+        public static readonly TheoryData<object> FileData = new TheoryData<object>()
                                                                             {
                                                                                 TestImageProvider<Color>.File(
                                                                                     TestImages.Bmp.Car),

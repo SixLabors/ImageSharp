@@ -2,12 +2,13 @@
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
+
 namespace ImageSharp.Tests
 {
     using System;
 
     /// <summary>
-    /// Flags that are mapped to PackedPixel types. 
+    /// Flags that are mapped to PackedPixel types.
     /// They trigger the desired parametrization for <see cref="TestImageProvider{TColor}"/>.
     /// </summary>
     [Flags]

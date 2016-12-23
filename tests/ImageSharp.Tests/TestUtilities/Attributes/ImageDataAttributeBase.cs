@@ -2,11 +2,11 @@
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
+
 namespace ImageSharp.Tests
 {
     using System;
     using System.Collections.Generic;
-    using System.Diagnostics;
     using System.Linq;
     using System.Reflection;
 
@@ -29,8 +29,8 @@ namespace ImageSharp.Tests
 
         public override IEnumerable<object[]> GetData(MethodInfo testMethod)
         {
-            var type = testMethod.GetParameters().First().ParameterType;
-            if (!typeof(ITestImageFactory).IsAssignableFrom(type))
+            var type = testMethod.GetParameters().First().ParameterType.GetTypeInfo();
+            if (!type.IsGenericType || type.GetGenericTypeDefinition() != typeof(TestImageProvider<>))
             {
                 yield return this.AdditionalParameters;
             }

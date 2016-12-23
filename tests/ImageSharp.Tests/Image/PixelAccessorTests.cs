@@ -6,6 +6,9 @@
 namespace ImageSharp.Tests
 {
     using System;
+    using System.Numerics;
+
+    using ImageSharp.Tests.TestUtilities;
 
     using Xunit;
 
@@ -14,6 +17,114 @@ namespace ImageSharp.Tests
     /// </summary>
     public class PixelAccessorTests
     {
+        public static Image<TColor> CreateTestImage<TColor>()
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
+        {
+            Image<TColor> image = new Image<TColor>(10, 10);
+
+            using (var pixels = image.Lock())
+            {
+                for (int i = 0; i < 10; i++)
+                {
+                    for (int j = 0; j < 10; j++)
+                    {
+                        Vector4 v = new Vector4(i, j, 0, 1);
+                        v /= 10;
+
+                        TColor color = default(TColor);
+                        color.PackFromVector4(v);
+
+                        pixels[i, j] = color;
+                    }
+                }
+            }
+            return image;
+        }
+
+        [Theory]
+        [WithMemberFactory(nameof(CreateTestImage), PixelTypes.All, ComponentOrder.XYZ)]
+        [WithMemberFactory(nameof(CreateTestImage), PixelTypes.All, ComponentOrder.ZYX)]
+        [WithMemberFactory(nameof(CreateTestImage), PixelTypes.All, ComponentOrder.XYZW)]
+        [WithMemberFactory(nameof(CreateTestImage), PixelTypes.All, ComponentOrder.ZYXW)]
+        public void CopyTo_Then_CopyFrom_OnFullImageRect<TColor>(TestImageFactory<TColor> factory, ComponentOrder order)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
+        {
+            var src = factory.Create();
+
+            var dest = new Image<TColor>(src.Width, src.Height);
+
+            using (PixelArea<TColor> area = new PixelArea<TColor>(src.Width, src.Height, order))
+            {
+                using (var srcPixels = src.Lock())
+                {
+                    srcPixels.CopyTo(area, 0, 0);
+                }
+
+                using (var destPixels = dest.Lock())
+                {
+                    destPixels.CopyFrom(area, 0, 0);
+                }
+            }
+
+            Assert.True(src.IsEquivalentTo(dest, false));
+        }
+
+        // TODO: Need a processor in the library with this signature
+        private static void Fill<TColor>(Image<TColor> image, Rectangle region, TColor color)
+             where TColor : struct, IPackedPixel, IEquatable<TColor>
+        {
+            using (var pixels = image.Lock())
+            {
+                for (int y = region.Top; y < region.Bottom; y++)
+                {
+                    for (int x = region.Left; x < region.Right; x++)
+                    {
+                        pixels[x, y] = color;
+                    }
+                }
+            }
+        }
+
+        [Theory]
+        [WithBlankImages(16, 16, PixelTypes.All, ComponentOrder.XYZ)]
+        [WithBlankImages(16, 16, PixelTypes.All, ComponentOrder.ZYX)]
+        [WithBlankImages(16, 16, PixelTypes.All, ComponentOrder.XYZW)]
+        [WithBlankImages(16, 16, PixelTypes.All, ComponentOrder.ZYXW)]
+        public void CopyTo_Then_CopyFrom_WithOffset<TColor>(TestImageFactory<TColor> factory, ComponentOrder order)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
+
+        {
+            var srcImage = factory.Create();
+
+            var color = default(TColor);
+            color.PackFromBytes(255, 0, 0, 255);
+
+            Fill(srcImage, new Rectangle(4, 4, 8, 8), color);
+
+            var destImage = new Image<TColor>(8, 8);
+
+            using (var srcPixels = srcImage.Lock())
+            {
+                using (var area = new PixelArea<TColor>(8, 8, order))
+                {
+                    srcPixels.CopyTo(area, 4, 4);
+
+                    using (var destPixels = destImage.Lock())
+                    {
+                        destPixels.CopyFrom(area, 0, 0);
+                    }
+                }
+            }
+
+            factory.Utility.SourceFileOrDescription = order.ToString();
+            factory.Utility.SaveTestOutputFile(destImage, "bmp");
+
+            var expectedImage = new Image<TColor>(8, 8).Fill(color);
+
+            Assert.True(destImage.IsEquivalentTo(expectedImage));
+        }
+
+
         [Fact]
         public void CopyFromZYX()
         {

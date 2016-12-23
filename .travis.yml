@@ -8,14 +8,15 @@ matrix:
       sudo: required
       dotnet: 1.0.0-preview2-003121
       mono: latest
-#    - os: osx # OSX 10.11
-#      osx_image: xcode7.2
-#      dotnet: 1.0.0-preview2-003121
-#      mono: latest
+    - os: osx # OSX 10.11
+      osx_image: xcode7.3.1
+      dotnet: 1.0.0-preview2-003121
+      mono: latest
 
 branches:
   only:
     - master
+    - coverity_scan
 
 script:
   - cd src/ImageSharp/
@@ -39,4 +40,4 @@ addons:
     notification_email: james_south@hotmail.com
     build_command_prepend: "dotnet restore"
     build_command:   "dotnet build -c Release"
-    branch_pattern: master
+    branch_pattern: coverity_scan

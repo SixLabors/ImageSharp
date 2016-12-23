@@ -9,16 +9,16 @@ namespace ImageSharp.Tests.TestUtilities
     using System.Reflection;
 
     /// <summary>
-    /// Triggers passing <see cref="TestImageFactory{TColor}"/> instances which return the image produced by the given test class member method
-    /// <see cref="TestImageFactory{TColor}"/> instances will be passed for each the pixel format defined by the pixelTypes parameter
+    /// Triggers passing <see cref="TestImageProvider{TColor}"/> instances which return the image produced by the given test class member method
+    /// <see cref="TestImageProvider{TColor}"/> instances will be passed for each the pixel format defined by the pixelTypes parameter
     /// </summary>
     public class WithMemberFactoryAttribute : ImageDataAttributeBase
     {
         private readonly string memberMethodName;
 
         /// <summary>
-        /// Triggers passing <see cref="TestImageFactory{TColor}"/> instances which return the image produced by the given test class member method
-        /// <see cref="TestImageFactory{TColor}"/> instances will be passed for each the pixel format defined by the pixelTypes parameter
+        /// Triggers passing <see cref="TestImageProvider{TColor}"/> instances which return the image produced by the given test class member method
+        /// <see cref="TestImageProvider{TColor}"/> instances will be passed for each the pixel format defined by the pixelTypes parameter
         /// </summary>
         /// <param name="memberMethodName">The name of the static test class which returns the image</param>
         /// <param name="pixelTypes">The requested pixel types</param>

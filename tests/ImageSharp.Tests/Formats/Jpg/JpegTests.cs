@@ -27,12 +27,12 @@ namespace ImageSharp.Tests.Formats.Jpg
         [Theory]
         //[WithFileCollection(nameof(AllJpegFiles), PixelTypes.All)] 
         [WithFileCollection(nameof(AllJpegFiles), PixelTypes.Color | PixelTypes.Argb)]
-        public void OpenJpeg_SaveBmp<TColor>(TestImageFactory<TColor> factory)
+        public void OpenJpeg_SaveBmp<TColor>(TestImageProvider<TColor> provider)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            var image = factory.Create();
+            var image = provider.GetImage();
 
-            factory.Utility.SaveTestOutputFile(image, "bmp");
+            provider.Utility.SaveTestOutputFile(image, "bmp");
         }
 
 
@@ -41,12 +41,12 @@ namespace ImageSharp.Tests.Formats.Jpg
         [Theory]
         [WithFileCollection(nameof(AllBmpFiles), PixelTypes.Color | PixelTypes.Argb, JpegSubsample.Ratio420, 75)]
         [WithFileCollection(nameof(AllBmpFiles), PixelTypes.Color | PixelTypes.Argb, JpegSubsample.Ratio444, 75)]
-        public void OpenBmp_SaveJpeg<TColor>(TestImageFactory<TColor> factory, JpegSubsample subSample, int quality)
+        public void OpenBmp_SaveJpeg<TColor>(TestImageProvider<TColor> provider, JpegSubsample subSample, int quality)
            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            var image = factory.Create();
+            var image = provider.GetImage();
 
-            var utility = factory.Utility;
+            var utility = provider.Utility;
             utility.TestName += "_" + subSample + "_Q" + quality;
 
             using (var outputStream = File.OpenWrite(utility.GetTestOutputFileName("jpg")))

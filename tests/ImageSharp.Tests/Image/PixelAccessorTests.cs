@@ -46,10 +46,10 @@ namespace ImageSharp.Tests
         [WithMemberFactory(nameof(CreateTestImage), PixelTypes.All, ComponentOrder.ZYX)]
         [WithMemberFactory(nameof(CreateTestImage), PixelTypes.All, ComponentOrder.XYZW)]
         [WithMemberFactory(nameof(CreateTestImage), PixelTypes.All, ComponentOrder.ZYXW)]
-        public void CopyTo_Then_CopyFrom_OnFullImageRect<TColor>(TestImageFactory<TColor> factory, ComponentOrder order)
+        public void CopyTo_Then_CopyFrom_OnFullImageRect<TColor>(TestImageProvider<TColor> provider, ComponentOrder order)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            var src = factory.Create();
+            var src = provider.GetImage();
 
             var dest = new Image<TColor>(src.Width, src.Height);
 
@@ -90,11 +90,11 @@ namespace ImageSharp.Tests
         [WithBlankImages(16, 16, PixelTypes.All, ComponentOrder.ZYX)]
         [WithBlankImages(16, 16, PixelTypes.All, ComponentOrder.XYZW)]
         [WithBlankImages(16, 16, PixelTypes.All, ComponentOrder.ZYXW)]
-        public void CopyTo_Then_CopyFrom_WithOffset<TColor>(TestImageFactory<TColor> factory, ComponentOrder order)
+        public void CopyTo_Then_CopyFrom_WithOffset<TColor>(TestImageProvider<TColor> provider, ComponentOrder order)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
 
         {
-            var srcImage = factory.Create();
+            var srcImage = provider.GetImage();
 
             var color = default(TColor);
             color.PackFromBytes(255, 0, 0, 255);
@@ -116,8 +116,8 @@ namespace ImageSharp.Tests
                 }
             }
 
-            factory.Utility.SourceFileOrDescription = order.ToString();
-            factory.Utility.SaveTestOutputFile(destImage, "bmp");
+            provider.Utility.SourceFileOrDescription = order.ToString();
+            provider.Utility.SaveTestOutputFile(destImage, "bmp");
 
             var expectedImage = new Image<TColor>(8, 8).Fill(color);
 

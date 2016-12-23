@@ -4,7 +4,7 @@
 // </copyright>
 
 // ReSharper disable InconsistentNaming
-namespace ImageSharp.Tests.TestUtilities
+namespace ImageSharp.Tests.TestUtilities.Tests
 {
     using System;
     using System.Linq;
@@ -68,11 +68,11 @@ namespace ImageSharp.Tests.TestUtilities
 
         [Theory]
         [WithFile(TestImages.Bmp.Car, PixelTypes.Color)]
-        public void IsEquivalentTo_WhenFalse<TColor>(TestImageFactory<TColor> factory)
+        public void IsEquivalentTo_WhenFalse<TColor>(TestImageProvider<TColor> provider)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            var a = factory.Create();
-            var b = factory.Create();
+            var a = provider.GetImage();
+            var b = provider.GetImage();
             b = b.OilPaint(3, 2);
 
             Assert.False(a.IsEquivalentTo(b));
@@ -80,11 +80,11 @@ namespace ImageSharp.Tests.TestUtilities
 
         [Theory]
         [WithMemberFactory(nameof(CreateTestImage), PixelTypes.Color | PixelTypes.Bgr565)]
-        public void IsEquivalentTo_WhenTrue<TColor>(TestImageFactory<TColor> factory)
+        public void IsEquivalentTo_WhenTrue<TColor>(TestImageProvider<TColor> provider)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            var a = factory.Create();
-            var b = factory.Create();
+            var a = provider.GetImage();
+            var b = provider.GetImage();
 
             Assert.True(a.IsEquivalentTo(b));
         }

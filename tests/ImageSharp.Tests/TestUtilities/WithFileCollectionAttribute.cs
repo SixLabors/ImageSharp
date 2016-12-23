@@ -10,16 +10,16 @@ namespace ImageSharp.Tests.TestUtilities
     using System.Reflection;
 
     /// <summary>
-    /// Triggers passing <see cref="TestImageFactory{TColor}"/> instances which read an image for each file being enumerated by the (static) test class field/property defined by enumeratorMemberName
-    /// <see cref="TestImageFactory{TColor}"/> instances will be passed for each the pixel format defined by the pixelTypes parameter
+    /// Triggers passing <see cref="TestImageProvider{TColor}"/> instances which read an image for each file being enumerated by the (static) test class field/property defined by enumeratorMemberName
+    /// <see cref="TestImageProvider{TColor}"/> instances will be passed for each the pixel format defined by the pixelTypes parameter
     /// </summary>
     public class WithFileCollectionAttribute : ImageDataAttributeBase
     {
         private readonly string enumeratorMemberName;
 
         /// <summary>
-        /// Triggers passing <see cref="TestImageFactory{TColor}"/> instances which read an image for each file being enumerated by the (static) test class field/property defined by enumeratorMemberName
-        /// <see cref="TestImageFactory{TColor}"/> instances will be passed for each the pixel format defined by the pixelTypes parameter
+        /// Triggers passing <see cref="TestImageProvider{TColor}"/> instances which read an image for each file being enumerated by the (static) test class field/property defined by enumeratorMemberName
+        /// <see cref="TestImageProvider{TColor}"/> instances will be passed for each the pixel format defined by the pixelTypes parameter
         /// </summary>
         /// <param name="enumeratorMemberName">The name of the static test class field/property enumerating the files</param>
         /// <param name="pixelTypes">The requested pixel types</param>

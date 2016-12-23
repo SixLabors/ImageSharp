@@ -4,6 +4,7 @@
 // </copyright>
 
 // ReSharper disable InconsistentNaming
+
 namespace ImageSharp.Tests.TestUtilities.Tests
 {
     using System;
@@ -11,22 +12,18 @@ namespace ImageSharp.Tests.TestUtilities.Tests
     using Xunit;
     using Xunit.Abstractions;
 
-    public class TestImageFactoryTests
+    public class TestImageProviderTests
     {
-      
-        public TestImageFactoryTests(ITestOutputHelper output)
+        public TestImageProviderTests(ITestOutputHelper output)
         {
             this.Output = output;
         }
 
         private ITestOutputHelper Output { get; }
 
-
         [Theory]
         [WithBlankImages(42, 666, PixelTypes.Color | PixelTypes.Argb | PixelTypes.HalfSingle, "hello")]
-        public void Use_WithEmptyImageAttribute<TColor>(
-            TestImageProvider<TColor> provider,
-            string message) 
+        public void Use_WithEmptyImageAttribute<TColor>(TestImageProvider<TColor> provider, string message)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             var img = provider.GetImage();
@@ -48,6 +45,27 @@ namespace ImageSharp.Tests.TestUtilities.Tests
             Assert.Equal(42, img.Width);
             Assert.Equal(666, img.Height);
             Assert.Equal("hello", message);
+        }
+
+        [Theory]
+        [WithBlankImages(1, 1, PixelTypes.Color, PixelTypes.Color)]
+        [WithBlankImages(1, 1, PixelTypes.Alpha8, PixelTypes.Alpha8)]
+        [WithBlankImages(1, 1, PixelTypes.ColorWithDefaultImageClass, PixelTypes.ColorWithDefaultImageClass)]
+        public void PixelType_PropertyValueIsCorrect<TColor>(TestImageProvider<TColor> provider, PixelTypes expected)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
+        {
+            Assert.Equal(expected, provider.PixelType);
+        }
+
+        [Theory]
+        [WithBlankImages(1, 1, PixelTypes.ColorWithDefaultImageClass)]
+        public void PixelTypes_ColorWithDefaultImageClass_TriggersCreatingTheNonGenericDerivedImageClass<TColor>(
+            TestImageProvider<TColor> provider) 
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
+        {
+            var img = provider.GetImage();
+
+            Assert.IsType<Image>(img);
         }
 
         // TODO: @dlemstra this works only with constant strings!
@@ -78,7 +96,7 @@ namespace ImageSharp.Tests.TestUtilities.Tests
             var image = provider.GetImage();
             provider.Utility.SaveTestOutputFile(image, "png");
         }
-        
+
         [Theory]
         [WithSolidFilledImages(10, 20, 255, 100, 50, 200, PixelTypes.Color | PixelTypes.Argb)]
         public void Use_WithSolidFilledImagesAttribute<TColor>(TestImageProvider<TColor> provider)
@@ -107,21 +125,31 @@ namespace ImageSharp.Tests.TestUtilities.Tests
             }
         }
 
-        public static Image<TColor> TestMemberFactory<TColor>()
+        /// <summary>
+        /// Need to us <see cref="GenericFactory{TColor}"/> to create instance of <see cref="Image"/> when pixelType is ColorWithDefaultImageClass
+        /// </summary>
+        /// <typeparam name="TColor"></typeparam>
+        /// <param name="factory"></param>
+        /// <returns></returns>
+        public static Image<TColor> CreateTestImage<TColor>(GenericFactory<TColor> factory) 
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            return new Image<TColor>(3, 3);
+            return factory.CreateImage(3, 3);
         }
 
         [Theory]
-        [WithMemberFactory(nameof(TestMemberFactory), PixelTypes.All)]
+        [WithMemberFactory(nameof(CreateTestImage), PixelTypes.All)]
         public void Use_WithMemberFactoryAttribute<TColor>(TestImageProvider<TColor> provider)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             var img = provider.GetImage();
             Assert.Equal(img.Width, 3);
-        }
+            if (provider.PixelType == PixelTypes.ColorWithDefaultImageClass)
+            {
+                Assert.IsType<Image>(img);
+            }
 
+        }
 
         public static readonly TheoryData<ITestImageFactory> BasicData = new TheoryData<ITestImageFactory>()
                                                                              {
@@ -130,7 +158,6 @@ namespace ImageSharp.Tests.TestUtilities.Tests
                                                                                      10,
                                                                                      20)
                                                                              };
-
 
         [Theory]
         [MemberData(nameof(BasicData))]

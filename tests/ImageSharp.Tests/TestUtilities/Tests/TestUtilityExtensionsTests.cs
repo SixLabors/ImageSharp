@@ -7,6 +7,7 @@
 namespace ImageSharp.Tests.TestUtilities.Tests
 {
     using System;
+    using System.Collections.Generic;
     using System.Linq;
     using System.Numerics;
     using System.Reflection;
@@ -23,10 +24,10 @@ namespace ImageSharp.Tests.TestUtilities.Tests
 
         private ITestOutputHelper Output { get; }
 
-        public static Image<TColor> CreateTestImage<TColor>()
+        public static Image<TColor> CreateTestImage<TColor>(GenericFactory<TColor> factory)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            Image<TColor> image = new Image<TColor>(10, 10);
+            Image<TColor> image = factory.CreateImage(10, 10);
 
             using (var pixels = image.Lock())
             {
@@ -93,31 +94,52 @@ namespace ImageSharp.Tests.TestUtilities.Tests
         [InlineData(PixelTypes.Color, typeof(Color))]
         [InlineData(PixelTypes.Argb, typeof(Argb))]
         [InlineData(PixelTypes.HalfVector4, typeof(HalfVector4))]
+        [InlineData(PixelTypes.ColorWithDefaultImageClass, typeof(Color))]
         public void ToType(PixelTypes pt, Type expectedType)
         {
             Assert.Equal(pt.ToType(), expectedType);
         }
 
+        [Theory]
+        [InlineData(typeof(Color), PixelTypes.Color)]
+        [InlineData(typeof(Argb), PixelTypes.Argb)]
+        public void GetPixelType(Type clrType, PixelTypes expectedPixelType)
+        {
+            Assert.Equal(expectedPixelType, clrType.GetPixelType());
+        }
+
+        private static void AssertContainsPixelType<T>(
+            PixelTypes pt,
+            IEnumerable<KeyValuePair<PixelTypes, Type>> pixelTypesExp)
+        {
+            Assert.Contains(new KeyValuePair<PixelTypes, Type>(pt, typeof(T)), pixelTypesExp);
+            
+        }
+
         [Fact]
         public void ToTypes()
         {
-            PixelTypes pixelTypes = PixelTypes.Alpha8 | PixelTypes.Bgr565 | PixelTypes.Color | PixelTypes.HalfVector2;
+            PixelTypes pixelTypes = PixelTypes.Alpha8 | PixelTypes.Bgr565 | PixelTypes.Color | PixelTypes.HalfVector2 | PixelTypes.ColorWithDefaultImageClass;
 
-            var clrTypes = pixelTypes.ToTypes().ToArray();
+            var expanded = pixelTypes.ExpandAllTypes();
 
-            Assert.Equal(clrTypes.Length, 4);
-            Assert.Contains(typeof(Alpha8), clrTypes);
-            Assert.Contains(typeof(Bgr565), clrTypes);
-            Assert.Contains(typeof(Color), clrTypes);
-            Assert.Contains(typeof(HalfVector2), clrTypes);
+            Assert.Equal(expanded.Count(), 5);
+            
+            AssertContainsPixelType<Alpha8>(PixelTypes.Alpha8, expanded);
+            AssertContainsPixelType<Bgr565>(PixelTypes.Bgr565, expanded);
+            AssertContainsPixelType<Color>(PixelTypes.Color, expanded);
+            AssertContainsPixelType<HalfVector2>(PixelTypes.HalfVector2, expanded);
+            AssertContainsPixelType<Color>(PixelTypes.ColorWithDefaultImageClass, expanded);
         }
 
         [Fact]
         public void ToTypes_All()
         {
-            var clrTypes = PixelTypes.All.ToTypes().ToArray();
+            var expanded = PixelTypes.All.ExpandAllTypes().ToArray();
 
-            Assert.True(clrTypes.Length >= FlagsHelper<PixelTypes>.GetSortedValues().Length - 2);
+            Assert.True(expanded.Length >= FlagsHelper<PixelTypes>.GetSortedValues().Length - 2);
+            AssertContainsPixelType<Color>(PixelTypes.Color, expanded);
+            AssertContainsPixelType<Color>(PixelTypes.ColorWithDefaultImageClass, expanded);
         }
     }
 }

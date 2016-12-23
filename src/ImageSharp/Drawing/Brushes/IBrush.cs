@@ -32,6 +32,6 @@ namespace ImageSharp.Drawing
         /// The <paramref name="region" /> when being applied to things like shapes would usually be the
         /// bounding box of the shape not necessarily the bounds of the whole image
         /// </remarks>
-        IBrushApplicator<TColor> CreateApplicator(IReadonlyPixelAccessor<TColor> pixelSource, RectangleF region);
+        IBrushApplicator<TColor> CreateApplicator(PixelAccessor<TColor> pixelSource, RectangleF region);
     }
 }

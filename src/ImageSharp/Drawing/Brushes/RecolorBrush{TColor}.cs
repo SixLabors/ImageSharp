@@ -55,7 +55,7 @@ namespace ImageSharp.Drawing.Brushes
         public TColor TargetColor { get; }
 
         /// <inheritdoc />
-        public IBrushApplicator<TColor> CreateApplicator(IReadonlyPixelAccessor<TColor> sourcePixels, RectangleF region)
+        public IBrushApplicator<TColor> CreateApplicator(PixelAccessor<TColor> sourcePixels, RectangleF region)
         {
             return new RecolorBrushApplicator(sourcePixels, this.SourceColor, this.TargetColor, this.Threashold);
         }
@@ -68,7 +68,7 @@ namespace ImageSharp.Drawing.Brushes
             /// <summary>
             /// The source pixel accessor.
             /// </summary>
-            private readonly IReadonlyPixelAccessor<TColor> source;
+            private readonly PixelAccessor<TColor> source;
             private readonly Vector4 sourceColor;
             private readonly Vector4 targetColor;
             private readonly float threashold;
@@ -81,7 +81,7 @@ namespace ImageSharp.Drawing.Brushes
             /// <param name="sourceColor">Color of the source.</param>
             /// <param name="targetColor">Color of the target.</param>
             /// <param name="threashold">The threashold .</param>
-            public RecolorBrushApplicator(IReadonlyPixelAccessor<TColor> sourcePixels, TColor sourceColor, TColor targetColor, float threashold)
+            public RecolorBrushApplicator(PixelAccessor<TColor> sourcePixels, TColor sourceColor, TColor targetColor, float threashold)
             {
                 this.source = sourcePixels;
                 this.sourceColor = sourceColor.ToVector4();

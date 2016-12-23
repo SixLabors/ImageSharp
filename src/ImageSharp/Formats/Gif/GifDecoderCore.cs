@@ -357,74 +357,59 @@ namespace ImageSharp.Formats
 
             using (PixelAccessor<TColor> pixelAccessor = image.Lock())
             {
-                using (PixelArea<TColor> pixelRow = new PixelArea<TColor>(imageWidth, ComponentOrder.XYZW))
+                for (int y = descriptor.Top; y < descriptor.Top + descriptor.Height; y++)
                 {
-                    for (int y = descriptor.Top; y < descriptor.Top + descriptor.Height; y++)
+                    // Check if this image is interlaced.
+                    int writeY; // the target y offset to write to
+                    if (descriptor.InterlaceFlag)
                     {
-                        // Check if this image is interlaced.
-                        int writeY; // the target y offset to write to
-                        if (descriptor.InterlaceFlag)
+                        // If so then we read lines at predetermined offsets.
+                        // When an entire image height worth of offset lines has been read we consider this a pass.
+                        // With each pass the number of offset lines changes and the starting line changes.
+                        if (interlaceY >= descriptor.Height)
                         {
-                            // If so then we read lines at predetermined offsets.
-                            // When an entire image height worth of offset lines has been read we consider this a pass.
-                            // With each pass the number of offset lines changes and the starting line changes.
-                            if (interlaceY >= descriptor.Height)
+                            interlacePass++;
+                            switch (interlacePass)
                             {
-                                interlacePass++;
-                                switch (interlacePass)
-                                {
-                                    case 1:
-                                        interlaceY = 4;
-                                        break;
-                                    case 2:
-                                        interlaceY = 2;
-                                        interlaceIncrement = 4;
-                                        break;
-                                    case 3:
-                                        interlaceY = 1;
-                                        interlaceIncrement = 2;
-                                        break;
-                                }
+                                case 1:
+                                    interlaceY = 4;
+                                    break;
+                                case 2:
+                                    interlaceY = 2;
+                                    interlaceIncrement = 4;
+                                    break;
+                                case 3:
+                                    interlaceY = 1;
+                                    interlaceIncrement = 2;
+                                    break;
                             }
-
-                            writeY = interlaceY + descriptor.Top;
-
-                            interlaceY += interlaceIncrement;
                         }
-                        else
+
+                        writeY = interlaceY + descriptor.Top;
+
+                        interlaceY += interlaceIncrement;
+                    }
+                    else
+                    {
+                        writeY = y;
+                    }
+
+                    for (int x = descriptor.Left; x < descriptor.Left + descriptor.Width; x++)
+                    {
+                        int index = indices[i];
+
+                        if (this.graphicsControlExtension == null ||
+                            this.graphicsControlExtension.TransparencyFlag == false ||
+                            this.graphicsControlExtension.TransparencyIndex != index)
                         {
-                            writeY = y;
+                            int indexOffset = index * 3;
+
+                            TColor pixel = default(TColor);
+                            pixel.PackFromBytes(colorTable[indexOffset], colorTable[indexOffset + 1], colorTable[indexOffset + 2], 255);
+                            pixelAccessor[x, writeY] = pixel;
                         }
 
-                        pixelAccessor.CopyTo(pixelRow, writeY, descriptor.Left);
-
-                        byte* pixelBase = pixelRow.PixelBase;
-                        for (int x = 0; x < descriptor.Width; x++)
-                        {
-                            int index = indices[i];
-
-                            if (this.graphicsControlExtension == null ||
-                                this.graphicsControlExtension.TransparencyFlag == false ||
-                                this.graphicsControlExtension.TransparencyIndex != index)
-                            {
-                                int indexOffset = index * 3;
-                                *(pixelBase + 0) = colorTable[indexOffset];
-                                *(pixelBase + 1) = colorTable[indexOffset + 1];
-                                *(pixelBase + 2) = colorTable[indexOffset + 2];
-                                *(pixelBase + 3) = 255;
-
-                                // TODO: This is actually 200us faster in benchmarking.
-                                // int indexOffset = index * 3;
-                                // TColor pixel = default(TColor);
-                                // pixel.PackFromBytes(colorTable[indexOffset], colorTable[indexOffset + 1], colorTable[indexOffset + 2], 255);
-                                // currentPixels[x, writeY] = pixel;
-                            }
-
-                            i++;
-                            pixelBase += 4;
-                        }
-
-                        pixelAccessor.CopyFrom(pixelRow, writeY, descriptor.Left);
+                        i++;
                     }
                 }
             }

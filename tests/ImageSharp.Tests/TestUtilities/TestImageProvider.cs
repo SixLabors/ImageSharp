@@ -1,4 +1,4 @@
-﻿// <copyright file="TestImageFactory.cs" company="James Jackson-South">
+﻿// <copyright file="TestImageProvider.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -13,10 +13,13 @@ namespace ImageSharp.Tests.TestUtilities
     /// Provides <see cref="Image{TColor}" /> instances for parametric unit tests.
     /// </summary>
     /// <typeparam name="TColor">The pixel format of the image</typeparam>
-    public abstract class TestImageFactory<TColor> : ITestImageFactory
+    public abstract class TestImageProvider<TColor> : ITestImageFactory
         where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
-        public abstract Image<TColor> Create();
+        /// <summary>
+        /// Returns an <see cref="Image{TColor}"/> instance to the test case with the necessary traits.
+        /// </summary>
+        public abstract Image<TColor> GetImage();
 
         public virtual string SourceFileOrDescription => "";
 
@@ -25,11 +28,7 @@ namespace ImageSharp.Tests.TestUtilities
         /// </summary>
         public ImagingTestCaseUtility Utility { get; private set; }
 
-        protected TestImageFactory()
-        {
-        }
-
-        protected virtual TestImageFactory<TColor> InitUtility(MethodInfo testMethod)
+        protected virtual TestImageProvider<TColor> InitUtility(MethodInfo testMethod)
         {
             this.Utility = new ImagingTestCaseUtility()
                                {
@@ -45,13 +44,13 @@ namespace ImageSharp.Tests.TestUtilities
             return this;
         }
 
-        private class BlankFactory : TestImageFactory<TColor>
+        private class BlankProvider : TestImageProvider<TColor>
         {
             protected int Width { get; }
 
             protected int Height { get; }
 
-            public BlankFactory(int width, int height)
+            public BlankProvider(int width, int height)
             {
                 this.Width = width;
                 this.Height = height;
@@ -59,43 +58,43 @@ namespace ImageSharp.Tests.TestUtilities
 
             public override string SourceFileOrDescription => $"Blank{this.Width}x{this.Height}";
 
-            public override Image<TColor> Create() => new Image<TColor>(this.Width, this.Height);
+            public override Image<TColor> GetImage() => new Image<TColor>(this.Width, this.Height);
         }
 
-        public static TestImageFactory<TColor> Blank(int width, int height, MethodInfo testMethod = null)
-            => new BlankFactory(width, height).InitUtility(testMethod);
+        public static TestImageProvider<TColor> Blank(int width, int height, MethodInfo testMethod = null)
+            => new BlankProvider(width, height).InitUtility(testMethod);
 
-        private class LambdaFactory : TestImageFactory<TColor>
+        private class LambdaProvider : TestImageProvider<TColor>
         {
             private readonly Func<Image<TColor>> creator;
 
-            public LambdaFactory(Func<Image<TColor>> creator)
+            public LambdaProvider(Func<Image<TColor>> creator)
             {
                 this.creator = creator;
             }
 
-            public override Image<TColor> Create() => this.creator();
+            public override Image<TColor> GetImage() => this.creator();
         }
 
-        public static TestImageFactory<TColor> Lambda(
+        public static TestImageProvider<TColor> Lambda(
             Func<Image<TColor>> func,
-            MethodInfo testMethod = null) => new LambdaFactory(func).InitUtility(testMethod);
+            MethodInfo testMethod = null) => new LambdaProvider(func).InitUtility(testMethod);
 
-        private class FileFactory : TestImageFactory<TColor>
+        private class FileProvider : TestImageProvider<TColor>
         {
             private static ConcurrentDictionary<string, Image<TColor>> cache =
                 new ConcurrentDictionary<string, Image<TColor>>();
 
             private string filePath;
 
-            public FileFactory(string filePath)
+            public FileProvider(string filePath)
             {
                 this.filePath = filePath;
             }
 
             public override string SourceFileOrDescription => this.filePath;
 
-            public override Image<TColor> Create()
+            public override Image<TColor> GetImage()
             {
                 var cachedImage = cache.GetOrAdd(
                     this.filePath,
@@ -109,12 +108,12 @@ namespace ImageSharp.Tests.TestUtilities
             }
         }
 
-        public static TestImageFactory<TColor> File(string filePath, MethodInfo testMethod = null)
+        public static TestImageProvider<TColor> File(string filePath, MethodInfo testMethod = null)
         {
-            return new FileFactory(filePath).InitUtility(testMethod);
+            return new FileProvider(filePath).InitUtility(testMethod);
         }
 
-        private class SolidFactory : BlankFactory
+        private class SolidProvider : BlankProvider
         {
             private readonly byte r;
 
@@ -124,16 +123,16 @@ namespace ImageSharp.Tests.TestUtilities
 
             private readonly byte a;
 
-            public override Image<TColor> Create()
+            public override Image<TColor> GetImage()
             {
-                var image = base.Create();
+                var image = base.GetImage();
                 TColor color = default(TColor);
                 color.PackFromBytes(this.r, this.g, this.b, this.a);
 
                 return image.Fill(color);
             }
 
-            public SolidFactory(int width, int height, byte r, byte g, byte b, byte a)
+            public SolidProvider(int width, int height, byte r, byte g, byte b, byte a)
                 : base(width, height)
             {
                 this.r = r;
@@ -143,7 +142,7 @@ namespace ImageSharp.Tests.TestUtilities
             }
         }
 
-        public static TestImageFactory<TColor> Solid(
+        public static TestImageProvider<TColor> Solid(
             int width,
             int height,
             byte r,
@@ -152,7 +151,7 @@ namespace ImageSharp.Tests.TestUtilities
             byte a = 255,
             MethodInfo testMethod = null)
         {
-            return new SolidFactory(width, height, r, g, b, a).InitUtility(testMethod);
+            return new SolidProvider(width, height, r, g, b, a).InitUtility(testMethod);
         }
     }
 

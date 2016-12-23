@@ -18,12 +18,12 @@ namespace ImageSharp.Tests.TestUtilities
     public class ImagingTestCaseUtility
     {
         /// <summary>
-        /// Name of the TColor in the owner <see cref="TestImageFactory{TColor}"/>
+        /// Name of the TColor in the owner <see cref="TestImageProvider{TColor}"/>
         /// </summary>
         public string PixelTypeName { get; set; } = string.Empty;
 
         /// <summary>
-        /// The name of the file which is provided by <see cref="TestImageFactory{TColor}"/>
+        /// The name of the file which is provided by <see cref="TestImageProvider{TColor}"/>
         /// Or a short string describing the image in the case of a non-file based image provider.
         /// </summary>
         public string SourceFileOrDescription { get; set; } = string.Empty;

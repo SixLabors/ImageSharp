@@ -12,7 +12,7 @@ namespace ImageSharp.Tests.TestUtilities
     using Xunit.Sdk;
 
     /// <summary>
-    /// Base class for Theory Data attributes which pass an instance of <see cref="TestImageFactory{TColor,TPacked}"/> to the test cases.
+    /// Base class for Theory Data attributes which pass an instance of <see cref="TestImageProvider{TColor}"/> to the test cases.
     /// </summary>
     public abstract class ImageDataAttributeBase : DataAttribute
     {
@@ -37,7 +37,7 @@ namespace ImageSharp.Tests.TestUtilities
             {
                 foreach (var pixelType in this.PixelTypes.ToTypes())
                 {
-                    var factoryType = typeof(TestImageFactory<>).MakeGenericType(pixelType);
+                    var factoryType = typeof(TestImageProvider<>).MakeGenericType(pixelType);
 
                     foreach (object[] originalFacoryMethodArgs in this.GetAllFactoryMethodArgs(testMethod, factoryType))
                     {

@@ -8,14 +8,14 @@ namespace ImageSharp.Tests.TestUtilities
     using System.Reflection;
 
     /// <summary>
-    /// Triggers passing <see cref="TestImageFactory{TColor}"/> instances which produce an image of size width * height filled with the requested color.
-    /// One <see cref="TestImageFactory{TColor}"/> instance will be passed for each the pixel format defined by the pixelTypes parameter
+    /// Triggers passing <see cref="TestImageProvider{TColor}"/> instances which produce an image of size width * height filled with the requested color.
+    /// One <see cref="TestImageProvider{TColor}"/> instance will be passed for each the pixel format defined by the pixelTypes parameter
     /// </summary>
     public class WithSolidFilledImagesAttribute : WithBlankImagesAttribute
     {
         /// <summary>
-        /// Triggers passing <see cref="TestImageFactory{TColor}"/> instances which produce an image of size width * height filled with the requested color.
-        /// One <see cref="TestImageFactory{TColor}"/> instance will be passed for each the pixel format defined by the pixelTypes parameter
+        /// Triggers passing <see cref="TestImageProvider{TColor}"/> instances which produce an image of size width * height filled with the requested color.
+        /// One <see cref="TestImageProvider{TColor}"/> instance will be passed for each the pixel format defined by the pixelTypes parameter
         /// </summary>
         /// <param name="width">The width of the requested image</param>
         /// <param name="height">The height of the requested image</param>
@@ -37,8 +37,8 @@ namespace ImageSharp.Tests.TestUtilities
         }
 
         /// <summary>
-        /// Triggers passing <see cref="TestImageFactory{TColor}"/> instances which produce an image of size width * height filled with the requested color.
-        /// One <see cref="TestImageFactory{TColor}"/> instance will be passed for each the pixel format defined by the pixelTypes parameter
+        /// Triggers passing <see cref="TestImageProvider{TColor}"/> instances which produce an image of size width * height filled with the requested color.
+        /// One <see cref="TestImageProvider{TColor}"/> instance will be passed for each the pixel format defined by the pixelTypes parameter
         /// </summary>
         /// <param name="width">The width of the requested image</param>
         /// <param name="height">The height of the requested image</param>

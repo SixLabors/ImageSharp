@@ -2,7 +2,7 @@
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
-namespace ImageSharp.Tests.TestUtilities
+namespace ImageSharp.Tests
 {
     using System;
     using System.Collections.Generic;
@@ -13,7 +13,7 @@ namespace ImageSharp.Tests.TestUtilities
     using Xunit.Sdk;
 
     /// <summary>
-    /// Base class for Theory Data attributes which pass an instance of <see cref="TestImageProvider{TColor}"/> to the test cases.
+    /// Base class for Theory Data attributes which pass an instance of <see cref="TestImageProvider{TColor}"/> to the test case.
     /// </summary>
     public abstract class ImageDataAttributeBase : DataAttribute
     {

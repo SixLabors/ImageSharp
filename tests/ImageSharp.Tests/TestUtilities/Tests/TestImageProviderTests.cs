@@ -5,7 +5,7 @@
 
 // ReSharper disable InconsistentNaming
 
-namespace ImageSharp.Tests.TestUtilities.Tests
+namespace ImageSharp.Tests.Tests
 {
     using System;
 

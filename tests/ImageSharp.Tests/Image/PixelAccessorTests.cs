@@ -8,8 +8,6 @@ namespace ImageSharp.Tests
     using System;
     using System.Numerics;
 
-    using ImageSharp.Tests.TestUtilities;
-
     using Xunit;
 
     /// <summary>

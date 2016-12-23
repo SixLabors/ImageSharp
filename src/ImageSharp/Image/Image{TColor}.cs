@@ -108,6 +108,18 @@ namespace ImageSharp
         }
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="Image{TColor}"/> class
+        /// by making a copy from another image.
+        /// </summary>
+        /// <param name="other">The other image, where the clone should be made from.</param>
+        /// <exception cref="System.ArgumentNullException"><paramref name="other"/> is null.</exception>
+        public Image(ImageBase<TColor> other)
+            : base(other)
+        {
+            this.CopyProperties(other);
+        }
+
+        /// <summary>
         /// Gets or sets the resolution of the image in x- direction. It is defined as
         ///  number of dots per inch and should be an positive value.
         /// </summary>

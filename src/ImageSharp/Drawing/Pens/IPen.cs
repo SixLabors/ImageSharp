@@ -26,6 +26,6 @@ namespace ImageSharp.Drawing.Pens
         /// <remarks>
         /// The <paramref name="region" /> when being applied to things like shapes would usually be the bounding box of the shape not necessarily the shape of the whole image.
         /// </remarks>
-        IPenApplicator<TColor> CreateApplicator(IReadonlyPixelAccessor<TColor> pixelSource, RectangleF region);
+        IPenApplicator<TColor> CreateApplicator(PixelAccessor<TColor> pixelSource, RectangleF region);
     }
 }

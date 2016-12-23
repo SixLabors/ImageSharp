@@ -112,7 +112,7 @@ namespace ImageSharp.Drawing.Pens
         /// The <paramref name="region" /> when being applied to things like shapes would ussually be the
         /// bounding box of the shape not necorserrally the shape of the whole image
         /// </remarks>
-        public IPenApplicator<TColor> CreateApplicator(IReadonlyPixelAccessor<TColor> sourcePixels, RectangleF region)
+        public IPenApplicator<TColor> CreateApplicator(PixelAccessor<TColor> sourcePixels, RectangleF region)
         {
             if (this.pattern == null || this.pattern.Length < 2)
             {
@@ -129,7 +129,7 @@ namespace ImageSharp.Drawing.Pens
             private readonly IBrushApplicator<TColor> brush;
             private readonly float halfWidth;
 
-            public SolidPenApplicator(IReadonlyPixelAccessor<TColor> sourcePixels, IBrush<TColor> brush, RectangleF region, float width)
+            public SolidPenApplicator(PixelAccessor<TColor> sourcePixels, IBrush<TColor> brush, RectangleF region, float width)
             {
                 this.brush = brush.CreateApplicator(sourcePixels, region);
                 this.halfWidth = width / 2;
@@ -172,7 +172,7 @@ namespace ImageSharp.Drawing.Pens
             private readonly float[] pattern;
             private readonly float totalLength;
 
-            public PatternPenApplicator(IReadonlyPixelAccessor<TColor> sourcePixels, IBrush<TColor> brush, RectangleF region, float width, float[] pattern)
+            public PatternPenApplicator(PixelAccessor<TColor> sourcePixels, IBrush<TColor> brush, RectangleF region, float width, float[] pattern)
             {
                 this.brush = brush.CreateApplicator(sourcePixels, region);
                 this.halfWidth = width / 2;

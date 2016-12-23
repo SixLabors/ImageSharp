@@ -6,10 +6,8 @@ using ImageSharp.Formats;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace ImageSharp.Tests.Formats.Jpg
+namespace ImageSharp.Tests
 {
-    using ImageSharp.Tests.TestUtilities;
-
     public class JpegTests
     {
         
@@ -19,7 +17,7 @@ namespace ImageSharp.Tests.Formats.Jpg
 
         public JpegTests(ITestOutputHelper output)
         {
-            Output = output;
+            this.Output = output;
         }
         public static IEnumerable<string> AllJpegFiles => TestImages.Jpeg.All;
 

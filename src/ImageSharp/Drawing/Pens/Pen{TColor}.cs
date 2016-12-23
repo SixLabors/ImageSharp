@@ -103,6 +103,7 @@ namespace ImageSharp.Drawing.Pens
         /// <summary>
         /// Creates the applicator for applying this pen to an Image
         /// </summary>
+        /// <param name="sourcePixels">The source pixels.</param>
         /// <param name="region">The region the pen will be applied to.</param>
         /// <returns>
         /// Returns a the applicator for the pen.
@@ -111,16 +112,16 @@ namespace ImageSharp.Drawing.Pens
         /// The <paramref name="region" /> when being applied to things like shapes would ussually be the
         /// bounding box of the shape not necorserrally the shape of the whole image
         /// </remarks>
-        public IPenApplicator<TColor> CreateApplicator(RectangleF region)
+        public IPenApplicator<TColor> CreateApplicator(PixelAccessor<TColor> sourcePixels, RectangleF region)
         {
             if (this.pattern == null || this.pattern.Length < 2)
             {
                 // if there is only one item in the pattern then 100% of it will
                 // be solid so use the quicker applicator
-                return new SolidPenApplicator(this.Brush, region, this.Width);
+                return new SolidPenApplicator(sourcePixels, this.Brush, region, this.Width);
             }
 
-            return new PatternPenApplicator(this.Brush, region, this.Width, this.pattern);
+            return new PatternPenApplicator(sourcePixels, this.Brush, region, this.Width, this.pattern);
         }
 
         private class SolidPenApplicator : IPenApplicator<TColor>
@@ -128,9 +129,9 @@ namespace ImageSharp.Drawing.Pens
             private readonly IBrushApplicator<TColor> brush;
             private readonly float halfWidth;
 
-            public SolidPenApplicator(IBrush<TColor> brush, RectangleF region, float width)
+            public SolidPenApplicator(PixelAccessor<TColor> sourcePixels, IBrush<TColor> brush, RectangleF region, float width)
             {
-                this.brush = brush.CreateApplicator(region);
+                this.brush = brush.CreateApplicator(sourcePixels, region);
                 this.halfWidth = width / 2;
                 this.RequiredRegion = RectangleF.Outset(region, width);
             }
@@ -171,9 +172,9 @@ namespace ImageSharp.Drawing.Pens
             private readonly float[] pattern;
             private readonly float totalLength;
 
-            public PatternPenApplicator(IBrush<TColor> brush, RectangleF region, float width, float[] pattern)
+            public PatternPenApplicator(PixelAccessor<TColor> sourcePixels, IBrush<TColor> brush, RectangleF region, float width, float[] pattern)
             {
-                this.brush = brush.CreateApplicator(region);
+                this.brush = brush.CreateApplicator(sourcePixels, region);
                 this.halfWidth = width / 2;
                 this.totalLength = 0;
 

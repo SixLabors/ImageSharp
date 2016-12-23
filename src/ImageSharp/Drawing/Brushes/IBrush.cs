@@ -23,12 +23,15 @@ namespace ImageSharp.Drawing
         /// <summary>
         /// Creates the applicator for this brush.
         /// </summary>
+        /// <param name="pixelSource">The pixel source.</param>
         /// <param name="region">The region the brush will be applied to.</param>
-        /// <returns>The brush applicator for this brush</returns>
+        /// <returns>
+        /// The brush applicator for this brush
+        /// </returns>
         /// <remarks>
         /// The <paramref name="region" /> when being applied to things like shapes would usually be the
         /// bounding box of the shape not necessarily the bounds of the whole image
         /// </remarks>
-        IBrushApplicator<TColor> CreateApplicator(RectangleF region);
+        IBrushApplicator<TColor> CreateApplicator(PixelAccessor<TColor> pixelSource, RectangleF region);
     }
 }

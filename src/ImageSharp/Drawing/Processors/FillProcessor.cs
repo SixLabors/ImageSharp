@@ -62,7 +62,7 @@ namespace ImageSharp.Drawing.Processors
             // for example If brush is SolidBrush<TColor> then we could just get the color upfront
             // and skip using the IBrushApplicator<TColor>?.
             using (PixelAccessor<TColor> sourcePixels = source.Lock())
-            using (IBrushApplicator<TColor> applicator = this.brush.CreateApplicator(sourceRectangle))
+            using (IBrushApplicator<TColor> applicator = this.brush.CreateApplicator(sourcePixels, sourceRectangle))
             {
                 Parallel.For(
                     minY,

@@ -17,10 +17,10 @@ namespace ImageSharp.Tests
     /// </summary>
     public class PixelAccessorTests
     {
-        public static Image<TColor> CreateTestImage<TColor>()
+        public static Image<TColor> CreateTestImage<TColor>(GenericFactory<TColor> factory)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            Image<TColor> image = new Image<TColor>(10, 10);
+            Image<TColor> image = factory.CreateImage(10, 10);
 
             using (var pixels = image.Lock())
             {

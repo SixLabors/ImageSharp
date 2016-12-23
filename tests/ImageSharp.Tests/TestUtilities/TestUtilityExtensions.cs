@@ -2,6 +2,7 @@
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
+
 namespace ImageSharp.Tests.TestUtilities
 {
     using System;
@@ -15,27 +16,32 @@ namespace ImageSharp.Tests.TestUtilities
     /// </summary>
     public static class TestUtilityExtensions
     {
+        private static readonly Dictionary<Type, PixelTypes> ClrTypes2PixelTypes = new Dictionary<Type, PixelTypes>();
+
         private static readonly Assembly ImageSharpAssembly = typeof(Color).GetTypeInfo().Assembly;
 
         private static readonly Dictionary<PixelTypes, Type> PixelTypes2ClrTypes = new Dictionary<PixelTypes, Type>();
-
-        private static readonly PixelTypes[] PixelTypesExpanded =
-            FlagsHelper<PixelTypes>.GetSortedValues().Where(t => t != PixelTypes.All && t != PixelTypes.None).ToArray();
+        
+        private static readonly PixelTypes[] AllConcretePixelTypes = FlagsHelper<PixelTypes>
+            .GetSortedValues()
+            .Except(new [] {PixelTypes.Undefined, PixelTypes.All })
+            .ToArray();
 
         static TestUtilityExtensions()
         {
-            Assembly assembly = typeof(Color).GetTypeInfo().Assembly;
             string nameSpace = typeof(Color).FullName;
             nameSpace = nameSpace.Substring(0, nameSpace.Length - typeof(Color).Name.Length - 1);
-            foreach (PixelTypes pt in PixelTypesExpanded)
+            foreach (PixelTypes pt in AllConcretePixelTypes.Where(pt => pt != PixelTypes.ColorWithDefaultImageClass))
             {
                 string typeName = $"{nameSpace}.{FlagsHelper<PixelTypes>.ToString(pt)}";
-                var t = assembly.GetType(typeName);
+                var t = ImageSharpAssembly.GetType(typeName);
                 if (t != null)
                 {
                     PixelTypes2ClrTypes[pt] = t;
+                    ClrTypes2PixelTypes[t] = pt;
                 }
             }
+            PixelTypes2ClrTypes[PixelTypes.ColorWithDefaultImageClass] = typeof(Color);
         }
 
         public static Type GetPackedType(Type pixelType)
@@ -46,13 +52,10 @@ namespace ImageSharp.Tests.TestUtilities
 
             return intrfcType.GetGenericArguments().Single();
         }
-
+        
         public static bool HasFlag(this PixelTypes pixelTypes, PixelTypes flag) => (pixelTypes & flag) == flag;
 
-        public static bool IsEquivalentTo<TColor>(
-            this Image<TColor> a,
-            Image<TColor> b,
-            bool compareAlpha = true)
+        public static bool IsEquivalentTo<TColor>(this Image<TColor> a, Image<TColor> b, bool compareAlpha = true)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             if (a.Width != b.Width || a.Height != b.Height)
@@ -101,19 +104,23 @@ namespace ImageSharp.Tests.TestUtilities
 
         public static Type ToType(this PixelTypes pixelType) => PixelTypes2ClrTypes[pixelType];
 
-        public static IEnumerable<Type> ToTypes(this PixelTypes pixelTypes)
+        public static PixelTypes GetPixelType(this Type colorStructClrType) => ClrTypes2PixelTypes[colorStructClrType];
+
+        public static IEnumerable<KeyValuePair<PixelTypes, Type>> ExpandAllTypes(this PixelTypes pixelTypes)
         {
-            if (pixelTypes == PixelTypes.None)
+            if (pixelTypes == PixelTypes.Undefined)
             {
-                return Enumerable.Empty<Type>();
+                return Enumerable.Empty<KeyValuePair<PixelTypes, Type>>();
             }
             else if (pixelTypes == PixelTypes.All)
             {
                 // TODO: Need to return unknown types here without forcing CLR to load all types in ImageSharp assembly
-                return PixelTypes2ClrTypes.Values;
+                return PixelTypes2ClrTypes;
             }
 
-            return PixelTypesExpanded.Where(pt => pixelTypes.HasFlag(pt)).Select(pt => pt.ToType());
+            return AllConcretePixelTypes
+                .Where(pt => pixelTypes.HasFlag(pt))
+                .Select(pt => new KeyValuePair<PixelTypes, Type>(pt, pt.ToType()));
         }
     }
 }

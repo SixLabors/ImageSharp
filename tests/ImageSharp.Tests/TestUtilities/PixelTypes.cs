@@ -13,7 +13,7 @@ namespace ImageSharp.Tests.TestUtilities
     [Flags]
     public enum PixelTypes : uint
     {
-        None = 0,
+        Undefined = 0,
 
         Alpha8 = 1 << 0,
 
@@ -48,6 +48,11 @@ namespace ImageSharp.Tests.TestUtilities
         Short2 = 1 << 15,
 
         Short4 = 1 << 16,
+
+        /// <summary>
+        /// Triggers instantiating the <see cref="Image"/> subclass of <see cref="Image{TColor}"/>
+        /// </summary>
+        ColorWithDefaultImageClass = 1 << 29,
         
         // TODO: Add multi-flag entries by rules defined in PackedPixelConverterHelper
 

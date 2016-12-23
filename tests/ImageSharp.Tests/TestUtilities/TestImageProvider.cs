@@ -16,10 +16,7 @@ namespace ImageSharp.Tests.TestUtilities
     public abstract class TestImageProvider<TColor> : ITestImageFactory
         where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
-        /// <summary>
-        /// Returns an <see cref="Image{TColor}"/> instance to the test case with the necessary traits.
-        /// </summary>
-        public abstract Image<TColor> GetImage();
+        public PixelTypes PixelType { get; private set; } = typeof(TColor).GetPixelType();
 
         public virtual string SourceFileOrDescription => "";
 
@@ -28,8 +25,60 @@ namespace ImageSharp.Tests.TestUtilities
         /// </summary>
         public ImagingTestCaseUtility Utility { get; private set; }
 
-        protected virtual TestImageProvider<TColor> InitUtility(MethodInfo testMethod)
+        public GenericFactory<TColor> Factory { get; private set; } = new GenericFactory<TColor>();
+
+        public static TestImageProvider<TColor> Blank(
+                int width,
+                int height,
+                MethodInfo testMethod = null,
+                PixelTypes pixelTypeOverride = PixelTypes.Undefined)
+            => new BlankProvider(width, height).Init(testMethod, pixelTypeOverride);
+
+        public static TestImageProvider<TColor> File(
+            string filePath,
+            MethodInfo testMethod = null,
+            PixelTypes pixelTypeOverride = PixelTypes.Undefined)
         {
+            return new FileProvider(filePath).Init(testMethod, pixelTypeOverride);
+        }
+
+        public static TestImageProvider<TColor> Lambda(
+                Func<GenericFactory<TColor>, Image<TColor>> func,
+                MethodInfo testMethod = null,
+                PixelTypes pixelTypeOverride = PixelTypes.Undefined)
+            => new LambdaProvider(func).Init(testMethod, pixelTypeOverride);
+
+        public static TestImageProvider<TColor> Solid(
+            int width,
+            int height,
+            byte r,
+            byte g,
+            byte b,
+            byte a = 255,
+            MethodInfo testMethod = null,
+            PixelTypes pixelTypeOverride = PixelTypes.Undefined)
+        {
+            return new SolidProvider(width, height, r, g, b, a).Init(testMethod, pixelTypeOverride);
+        }
+
+        /// <summary>
+        /// Returns an <see cref="Image{TColor}"/> instance to the test case with the necessary traits.
+        /// </summary>
+        public abstract Image<TColor> GetImage();
+        
+        protected TestImageProvider<TColor> Init(MethodInfo testMethod, PixelTypes pixelTypeOverride)
+        {
+            if (pixelTypeOverride != PixelTypes.Undefined)
+            {
+                this.PixelType = pixelTypeOverride;
+            }
+
+            if (pixelTypeOverride == PixelTypes.ColorWithDefaultImageClass)
+            {
+                this.Factory = new DefaultImageClassSpecificFactory() as GenericFactory<TColor>;
+            }
+
+
             this.Utility = new ImagingTestCaseUtility()
                                {
                                    SourceFileOrDescription = this.SourceFileOrDescription,
@@ -46,10 +95,6 @@ namespace ImageSharp.Tests.TestUtilities
 
         private class BlankProvider : TestImageProvider<TColor>
         {
-            protected int Width { get; }
-
-            protected int Height { get; }
-
             public BlankProvider(int width, int height)
             {
                 this.Width = width;
@@ -58,27 +103,12 @@ namespace ImageSharp.Tests.TestUtilities
 
             public override string SourceFileOrDescription => $"Blank{this.Width}x{this.Height}";
 
-            public override Image<TColor> GetImage() => new Image<TColor>(this.Width, this.Height);
+            protected int Height { get; }
+
+            protected int Width { get; }
+
+            public override Image<TColor> GetImage() => this.Factory.CreateImage(this.Width, this.Height);
         }
-
-        public static TestImageProvider<TColor> Blank(int width, int height, MethodInfo testMethod = null)
-            => new BlankProvider(width, height).InitUtility(testMethod);
-
-        private class LambdaProvider : TestImageProvider<TColor>
-        {
-            private readonly Func<Image<TColor>> creator;
-
-            public LambdaProvider(Func<Image<TColor>> creator)
-            {
-                this.creator = creator;
-            }
-
-            public override Image<TColor> GetImage() => this.creator();
-        }
-
-        public static TestImageProvider<TColor> Lambda(
-            Func<Image<TColor>> func,
-            MethodInfo testMethod = null) => new LambdaProvider(func).InitUtility(testMethod);
 
         private class FileProvider : TestImageProvider<TColor>
         {
@@ -100,37 +130,35 @@ namespace ImageSharp.Tests.TestUtilities
                     this.filePath,
                     fn =>
                         {
-                            var testFile = TestFile.CreateWithoutImage(this.filePath);
-                            return new Image<TColor>(testFile.Bytes);
+                            var testFile = TestFile.Create(this.filePath);
+                            return this.Factory.CreateImage(testFile.Bytes);
                         });
 
                 return new Image<TColor>(cachedImage);
             }
         }
 
-        public static TestImageProvider<TColor> File(string filePath, MethodInfo testMethod = null)
+        private class LambdaProvider : TestImageProvider<TColor>
         {
-            return new FileProvider(filePath).InitUtility(testMethod);
+            private readonly Func<GenericFactory<TColor>, Image<TColor>> creator;
+
+            public LambdaProvider(Func<GenericFactory<TColor>, Image<TColor>> creator)
+            {
+                this.creator = creator;
+            }
+
+            public override Image<TColor> GetImage() => this.creator(this.Factory);
         }
 
         private class SolidProvider : BlankProvider
         {
-            private readonly byte r;
-
-            private readonly byte g;
+            private readonly byte a;
 
             private readonly byte b;
 
-            private readonly byte a;
+            private readonly byte g;
 
-            public override Image<TColor> GetImage()
-            {
-                var image = base.GetImage();
-                TColor color = default(TColor);
-                color.PackFromBytes(this.r, this.g, this.b, this.a);
-
-                return image.Fill(color);
-            }
+            private readonly byte r;
 
             public SolidProvider(int width, int height, byte r, byte g, byte b, byte a)
                 : base(width, height)
@@ -140,18 +168,18 @@ namespace ImageSharp.Tests.TestUtilities
                 this.b = b;
                 this.a = a;
             }
-        }
 
-        public static TestImageProvider<TColor> Solid(
-            int width,
-            int height,
-            byte r,
-            byte g,
-            byte b,
-            byte a = 255,
-            MethodInfo testMethod = null)
-        {
-            return new SolidProvider(width, height, r, g, b, a).InitUtility(testMethod);
+            public override string SourceFileOrDescription
+                => $"Solid{this.Width}x{this.Height}_({this.r},{this.g},{this.b},{this.a})";
+
+            public override Image<TColor> GetImage()
+            {
+                var image = base.GetImage();
+                TColor color = default(TColor);
+                color.PackFromBytes(this.r, this.g, this.b, this.a);
+
+                return image.Fill(color);
+            }
         }
     }
 

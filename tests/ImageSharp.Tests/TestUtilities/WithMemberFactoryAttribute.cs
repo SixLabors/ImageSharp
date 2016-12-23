@@ -6,6 +6,7 @@
 namespace ImageSharp.Tests.TestUtilities
 {
     using System;
+    using System.Linq;
     using System.Reflection;
 
     /// <summary>
@@ -34,8 +35,12 @@ namespace ImageSharp.Tests.TestUtilities
             var m = testMethod.DeclaringType.GetMethod(this.memberMethodName);
 
             var args = factoryType.GetGenericArguments();
-            var imgType = typeof(Image<>).MakeGenericType(args);
-            var funcType = typeof(Func<>).MakeGenericType(imgType);
+            var colorType = args.Single();
+
+            var imgType = typeof(Image<>).MakeGenericType(colorType);
+            var genericFactoryType = (typeof(GenericFactory<>)).MakeGenericType(colorType);
+
+            var funcType = typeof(Func<,>).MakeGenericType(genericFactoryType, imgType);
 
             var genericMethod = m.MakeGenericMethod(args);
 

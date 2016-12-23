@@ -6,6 +6,7 @@ namespace ImageSharp.Tests.TestUtilities
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.Linq;
     using System.Reflection;
 
@@ -35,15 +36,16 @@ namespace ImageSharp.Tests.TestUtilities
             }
             else
             {
-                foreach (var pixelType in this.PixelTypes.ToTypes())
+                foreach (var kv in this.PixelTypes.ExpandAllTypes())
                 {
-                    var factoryType = typeof(TestImageProvider<>).MakeGenericType(pixelType);
+                    var factoryType = typeof(TestImageProvider<>).MakeGenericType(kv.Value);
 
                     foreach (object[] originalFacoryMethodArgs in this.GetAllFactoryMethodArgs(testMethod, factoryType))
                     {
-                        var actualFactoryMethodArgs = new object[originalFacoryMethodArgs.Length + 1];
+                        var actualFactoryMethodArgs = new object[originalFacoryMethodArgs.Length + 2];
                         Array.Copy(originalFacoryMethodArgs, actualFactoryMethodArgs, originalFacoryMethodArgs.Length);
-                        actualFactoryMethodArgs[actualFactoryMethodArgs.Length - 1] = testMethod;
+                        actualFactoryMethodArgs[actualFactoryMethodArgs.Length - 2] = testMethod;
+                        actualFactoryMethodArgs[actualFactoryMethodArgs.Length - 1] = kv.Key;
 
                         var factory = factoryType.GetMethod(this.GetFactoryMethodName(testMethod))
                             .Invoke(null, actualFactoryMethodArgs);

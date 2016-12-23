@@ -8,7 +8,7 @@ namespace ImageSharp.Tests.TestUtilities
 
     /// <summary>
     /// Flags that are mapped to PackedPixel types. 
-    /// They trigger the desired parametrization for <see cref="TestImageFactory{TColor}"/>.
+    /// They trigger the desired parametrization for <see cref="TestImageProvider{TColor}"/>.
     /// </summary>
     [Flags]
     public enum PixelTypes : uint
@@ -48,7 +48,7 @@ namespace ImageSharp.Tests.TestUtilities
         Short2 = 1 << 15,
 
         Short4 = 1 << 16,
-
+        
         // TODO: Add multi-flag entries by rules defined in PackedPixelConverterHelper
 
         // "All" is handled as a separate, individual case instead of using bitwise OR

@@ -31,7 +31,7 @@ namespace ImageSharp.Tests
         {
             string nameSpace = typeof(Color).FullName;
             nameSpace = nameSpace.Substring(0, nameSpace.Length - typeof(Color).Name.Length - 1);
-            foreach (PixelTypes pt in AllConcretePixelTypes.Where(pt => pt != PixelTypes.ColorWithDefaultImageClass))
+            foreach (PixelTypes pt in AllConcretePixelTypes.Where(pt => pt != PixelTypes.StandardImageClass))
             {
                 string typeName = $"{nameSpace}.{FlagsHelper<PixelTypes>.ToString(pt)}";
                 var t = ImageSharpAssembly.GetType(typeName);
@@ -41,7 +41,7 @@ namespace ImageSharp.Tests
                     ClrTypes2PixelTypes[t] = pt;
                 }
             }
-            PixelTypes2ClrTypes[PixelTypes.ColorWithDefaultImageClass] = typeof(Color);
+            PixelTypes2ClrTypes[PixelTypes.StandardImageClass] = typeof(Color);
         }
 
         public static Type GetPackedType(Type pixelType)
@@ -88,6 +88,13 @@ namespace ImageSharp.Tests
                             {
                                 ca.ToBytes(bytesA, 0, ComponentOrder.XYZ);
                                 cb.ToBytes(bytesB, 0, ComponentOrder.XYZ);
+
+                                if (bytesA[0] != bytesB[0] || 
+                                    bytesA[1] != bytesB[1] || 
+                                    bytesA[2] != bytesB[2])
+                                {
+                                    return false;
+                                }
                             }
                         }
                     }

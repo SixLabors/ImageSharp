@@ -73,7 +73,7 @@ namespace ImageSharp.Tests
                 this.PixelType = pixelTypeOverride;
             }
 
-            if (pixelTypeOverride == PixelTypes.ColorWithDefaultImageClass)
+            if (pixelTypeOverride == PixelTypes.StandardImageClass)
             {
                 this.Factory = new DefaultImageClassSpecificFactory() as GenericFactory<TColor>;
             }

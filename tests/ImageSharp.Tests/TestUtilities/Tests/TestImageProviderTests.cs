@@ -5,7 +5,7 @@
 
 // ReSharper disable InconsistentNaming
 
-namespace ImageSharp.Tests.Tests
+namespace ImageSharp.Tests
 {
     using System;
 
@@ -50,7 +50,7 @@ namespace ImageSharp.Tests.Tests
         [Theory]
         [WithBlankImages(1, 1, PixelTypes.Color, PixelTypes.Color)]
         [WithBlankImages(1, 1, PixelTypes.Alpha8, PixelTypes.Alpha8)]
-        [WithBlankImages(1, 1, PixelTypes.ColorWithDefaultImageClass, PixelTypes.ColorWithDefaultImageClass)]
+        [WithBlankImages(1, 1, PixelTypes.StandardImageClass, PixelTypes.StandardImageClass)]
         public void PixelType_PropertyValueIsCorrect<TColor>(TestImageProvider<TColor> provider, PixelTypes expected)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
@@ -58,7 +58,7 @@ namespace ImageSharp.Tests.Tests
         }
 
         [Theory]
-        [WithBlankImages(1, 1, PixelTypes.ColorWithDefaultImageClass)]
+        [WithBlankImages(1, 1, PixelTypes.StandardImageClass)]
         public void PixelTypes_ColorWithDefaultImageClass_TriggersCreatingTheNonGenericDerivedImageClass<TColor>(
             TestImageProvider<TColor> provider) 
             where TColor : struct, IPackedPixel, IEquatable<TColor>
@@ -126,7 +126,7 @@ namespace ImageSharp.Tests.Tests
         }
 
         /// <summary>
-        /// Need to us <see cref="GenericFactory{TColor}"/> to create instance of <see cref="Image"/> when pixelType is ColorWithDefaultImageClass
+        /// Need to us <see cref="GenericFactory{TColor}"/> to create instance of <see cref="Image"/> when pixelType is StandardImageClass
         /// </summary>
         /// <typeparam name="TColor"></typeparam>
         /// <param name="factory"></param>
@@ -144,7 +144,7 @@ namespace ImageSharp.Tests.Tests
         {
             var img = provider.GetImage();
             Assert.Equal(img.Width, 3);
-            if (provider.PixelType == PixelTypes.ColorWithDefaultImageClass)
+            if (provider.PixelType == PixelTypes.StandardImageClass)
             {
                 Assert.IsType<Image>(img);
             }

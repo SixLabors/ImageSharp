@@ -18,18 +18,18 @@ namespace ImageSharp.Tests.TestUtilities
     public class ImagingTestCaseUtility
     {
         /// <summary>
-        /// Name of the TColor in the owner <see cref="TestImageFactory{TColor,TPacked}"/>
+        /// Name of the TColor in the owner <see cref="TestImageFactory{TColor}"/>
         /// </summary>
         public string PixelTypeName { get; set; } = string.Empty;
 
         /// <summary>
-        /// The name of the file which is provided by <see cref="TestImageFactory{TColor,TPacked}"/>
+        /// The name of the file which is provided by <see cref="TestImageFactory{TColor}"/>
         /// Or a short string describing the image in the case of a non-file based image provider.
         /// </summary>
         public string SourceFileOrDescription { get; set; } = string.Empty;
 
         /// <summary>
-        /// The name of the test class (by default)
+        /// By default this is the name of the test class, but it's possible to change it
         /// </summary>
         public string TestGroupName { get; set; } = string.Empty;
 
@@ -75,7 +75,7 @@ namespace ImageSharp.Tests.TestUtilities
             string pixName = this.PixelTypeName;
             if (pixName != string.Empty)
             {
-                pixName = '_' + pixName + ' ';
+                pixName = '_' + pixName;
             }
 
             return $"{this.GetTestOutputDir()}/{this.TestName}{pixName}{fn}{extension}";

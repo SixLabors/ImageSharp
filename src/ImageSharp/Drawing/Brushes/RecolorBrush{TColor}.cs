@@ -22,21 +22,21 @@ namespace ImageSharp.Drawing.Brushes
         /// </summary>
         /// <param name="sourceColor">Color of the source.</param>
         /// <param name="targetColor">Color of the target.</param>
-        /// <param name="threashold">The threashold as a value between 0 and 1.</param>
-        public RecolorBrush(TColor sourceColor, TColor targetColor, float threashold)
+        /// <param name="threshold">The threshold as a value between 0 and 1.</param>
+        public RecolorBrush(TColor sourceColor, TColor targetColor, float threshold)
         {
             this.SourceColor = sourceColor;
-            this.Threashold = threashold;
+            this.Threshold = threshold;
             this.TargetColor = targetColor;
         }
 
         /// <summary>
-        /// Gets the threashold.
+        /// Gets the threshold.
         /// </summary>
         /// <value>
-        /// The threashold.
+        /// The threshold.
         /// </value>
-        public float Threashold { get; }
+        public float Threshold { get; }
 
         /// <summary>
         /// Gets the source color.
@@ -57,7 +57,7 @@ namespace ImageSharp.Drawing.Brushes
         /// <inheritdoc />
         public IBrushApplicator<TColor> CreateApplicator(PixelAccessor<TColor> sourcePixels, RectangleF region)
         {
-            return new RecolorBrushApplicator(sourcePixels, this.SourceColor, this.TargetColor, this.Threashold);
+            return new RecolorBrushApplicator(sourcePixels, this.SourceColor, this.TargetColor, this.Threshold);
         }
 
         /// <summary>
@@ -69,10 +69,21 @@ namespace ImageSharp.Drawing.Brushes
             /// The source pixel accessor.
             /// </summary>
             private readonly PixelAccessor<TColor> source;
+
+            /// <summary>
+            /// The source color.
+            /// </summary>
             private readonly Vector4 sourceColor;
+
+            /// <summary>
+            /// The target color.
+            /// </summary>
             private readonly Vector4 targetColor;
-            private readonly float threashold;
-            private readonly float totalDistance;
+
+            /// <summary>
+            /// The threshold.
+            /// </summary>
+            private readonly float threshold;
 
             /// <summary>
             /// Initializes a new instance of the <see cref="RecolorBrushApplicator" /> class.
@@ -80,20 +91,19 @@ namespace ImageSharp.Drawing.Brushes
             /// <param name="sourcePixels">The source pixels.</param>
             /// <param name="sourceColor">Color of the source.</param>
             /// <param name="targetColor">Color of the target.</param>
-            /// <param name="threashold">The threashold .</param>
-            public RecolorBrushApplicator(PixelAccessor<TColor> sourcePixels, TColor sourceColor, TColor targetColor, float threashold)
+            /// <param name="threshold">The threshold .</param>
+            public RecolorBrushApplicator(PixelAccessor<TColor> sourcePixels, TColor sourceColor, TColor targetColor, float threshold)
             {
                 this.source = sourcePixels;
                 this.sourceColor = sourceColor.ToVector4();
                 this.targetColor = targetColor.ToVector4();
 
-                // lets hack a min max extreams for a color space by letteing the IPackedPixle clamp our values to something in the correct spaces :)
+                // Lets hack a min max extreams for a color space by letteing the IPackedPixel clamp our values to something in the correct spaces :)
                 TColor maxColor = default(TColor);
                 maxColor.PackFromVector4(new Vector4(float.MaxValue));
                 TColor minColor = default(TColor);
                 minColor.PackFromVector4(new Vector4(float.MinValue));
-                this.totalDistance = Vector4.DistanceSquared(maxColor.ToVector4(), minColor.ToVector4());
-                this.threashold = this.totalDistance * threashold;
+                this.threshold = Vector4.DistanceSquared(maxColor.ToVector4(), minColor.ToVector4()) * threshold;
             }
 
             /// <summary>
@@ -109,9 +119,9 @@ namespace ImageSharp.Drawing.Brushes
                 TColor result = this.source[(int)point.X, (int)point.Y];
                 Vector4 background = result.ToVector4();
                 float distance = Vector4.DistanceSquared(background, this.sourceColor);
-                if (distance <= this.threashold)
+                if (distance <= this.threshold)
                 {
-                    var lerpAmount = (this.threashold - distance) / this.threashold;
+                    var lerpAmount = (this.threshold - distance) / this.threshold;
                     Vector4 blended = Vector4BlendTransforms.PremultipliedLerp(background, this.targetColor, lerpAmount);
                     result.PackFromVector4(blended);
                 }

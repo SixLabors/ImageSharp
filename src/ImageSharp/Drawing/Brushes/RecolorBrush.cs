@@ -15,9 +15,9 @@ namespace ImageSharp.Drawing.Brushes
         /// </summary>
         /// <param name="sourceColor">Color of the source.</param>
         /// <param name="targetColor">Color of the target.</param>
-        /// <param name="threashold">The threashold.</param>
-        public RecolorBrush(Color sourceColor, Color targetColor, float threashold)
-            : base(sourceColor, targetColor, threashold)
+        /// <param name="threshold">The threshold.</param>
+        public RecolorBrush(Color sourceColor, Color targetColor, float threshold)
+            : base(sourceColor, targetColor, threshold)
         {
         }
     }

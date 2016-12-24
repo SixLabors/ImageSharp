@@ -101,8 +101,9 @@ namespace ImageSharp
         /// </summary>
         /// <param name="width">The width.</param>
         /// <param name="componentOrder">The component order.</param>
-        public PixelArea(int width, ComponentOrder componentOrder)
-            : this(width, 1, componentOrder, 0)
+        /// <param name="usePool">True if the buffer should be rented from ArrayPool</param>
+        public PixelArea(int width, ComponentOrder componentOrder, bool usePool = false)
+            : this(width, 1, componentOrder, 0, usePool)
         {
         }
 
@@ -112,8 +113,9 @@ namespace ImageSharp
         /// <param name="width">The width. </param>
         /// <param name="componentOrder">The component order.</param>
         /// <param name="padding">The number of bytes to pad each row.</param>
-        public PixelArea(int width, ComponentOrder componentOrder, int padding)
-            : this(width, 1, componentOrder, padding)
+        /// <param name="usePool">True if the buffer should be rented from ArrayPool</param>
+        public PixelArea(int width, ComponentOrder componentOrder, int padding, bool usePool = false)
+            : this(width, 1, componentOrder, padding, usePool)
         {
         }
 

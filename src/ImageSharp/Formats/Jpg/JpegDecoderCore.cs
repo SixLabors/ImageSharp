@@ -62,7 +62,7 @@ namespace ImageSharp.Formats
         /// The AC table index
         /// </summary>
         private const int AcTable = 1;
-        
+
         /// <summary>
         /// The component array
         /// </summary>
@@ -1809,7 +1809,7 @@ namespace ImageSharp.Formats
             // Dequantize, perform the inverse DCT and store the block to the image.
             Block8x8F.UnZig(b, qt, unzigPtr);
 
-            DCT.TransformIDCT(ref* b, ref *temp1, ref *temp2);
+            DCT.TransformIDCT(ref *b, ref *temp1, ref *temp2);
 
             byte[] dst;
             int offset;

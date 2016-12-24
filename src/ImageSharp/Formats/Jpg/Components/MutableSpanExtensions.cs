@@ -78,8 +78,11 @@ namespace ImageSharp.Formats
             data[3] = (int)v.W;
         }
 
-
-
+        /// <summary>
+        /// Converts all int values of src to float
+        /// </summary>
+        /// <param name="src">Source</param>
+        /// <returns>A new <see cref="MutableSpan{T}"/> with float values</returns>
         public static MutableSpan<float> ConvertToFloat32MutableSpan(this MutableSpan<int> src)
         {
             MutableSpan<float> result = new MutableSpan<float>(src.TotalCount);
@@ -87,9 +90,15 @@ namespace ImageSharp.Formats
             {
                 result[i] = (float)src[i];
             }
+
             return result;
         }
 
+        /// <summary>
+        /// Converts all float values of src to int
+        /// </summary>
+        /// <param name="src">Source</param>
+        /// <returns>A new <see cref="MutableSpan{T}"/> with float values</returns>
         public static MutableSpan<int> ConvertToInt32MutableSpan(this MutableSpan<float> src)
         {
             MutableSpan<int> result = new MutableSpan<int>(src.TotalCount);
@@ -97,9 +106,16 @@ namespace ImageSharp.Formats
             {
                 result[i] = (int)src[i];
             }
+
             return result;
         }
 
+        /// <summary>
+        /// Add a scalar to all values of src
+        /// </summary>
+        /// <param name="src">The source</param>
+        /// <param name="scalar">The scalar value to add</param>
+        /// <returns>A new instance of <see cref="MutableSpan{T}"/></returns>
         public static MutableSpan<float> AddScalarToAllValues(this MutableSpan<float> src, float scalar)
         {
             MutableSpan<float> result = new MutableSpan<float>(src.TotalCount);
@@ -107,9 +123,16 @@ namespace ImageSharp.Formats
             {
                 result[i] = src[i] + scalar;
             }
+
             return result;
         }
 
+        /// <summary>
+        /// Add a scalar to all values of src
+        /// </summary>
+        /// <param name="src">The source</param>
+        /// <param name="scalar">The scalar value to add</param>
+        /// <returns>A new instance of <see cref="MutableSpan{T}"/></returns>
         public static MutableSpan<int> AddScalarToAllValues(this MutableSpan<int> src, int scalar)
         {
             MutableSpan<int> result = new MutableSpan<int>(src.TotalCount);
@@ -117,10 +140,16 @@ namespace ImageSharp.Formats
             {
                 result[i] = src[i] + scalar;
             }
+
             return result;
         }
 
-
+        /// <summary>
+        /// Copy all values in src to a new <see cref="MutableSpan{T}"/> instance
+        /// </summary>
+        /// <typeparam name="T">Element type</typeparam>
+        /// <param name="src">The source</param>
+        /// <returns>A new instance of <see cref="MutableSpan{T}"/></returns>
         public static MutableSpan<T> Copy<T>(this MutableSpan<T> src)
         {
             MutableSpan<T> result = new MutableSpan<T>(src.TotalCount);
@@ -128,6 +157,7 @@ namespace ImageSharp.Formats
             {
                 result[i] = src[i];
             }
+
             return result;
         }
     }

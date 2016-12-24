@@ -104,6 +104,22 @@ namespace ImageSharp.Formats
         }
 
         /// <summary>
+        /// Convert salars to byte-s and copy to dest
+        /// </summary>
+        /// <param name="blockPtr">Pointer to block</param>
+        /// <param name="dest">Destination</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static unsafe void CopyTo(Block8x8F* blockPtr, MutableSpan<byte> dest)
+        {
+            float* fPtr = (float*)blockPtr;
+            for (int i = 0; i < ScalarCount; i++)
+            {
+                dest[i] = (byte) *fPtr;
+                fPtr++;
+            }
+        }
+
+        /// <summary>
         /// Load raw 32bit floating point data from source
         /// </summary>
         /// <param name="source">Source</param>
@@ -128,7 +144,7 @@ namespace ImageSharp.Formats
                 Marshal.Copy((IntPtr)ptr, dest.Data, dest.Offset, ScalarCount);
             }
         }
-
+        
         /// <summary>
         /// Copy raw 32bit floating point data to dest
         /// </summary>

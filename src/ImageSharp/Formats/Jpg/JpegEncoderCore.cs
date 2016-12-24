@@ -2,13 +2,15 @@
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
-
 namespace ImageSharp.Formats
 {
     using System;
+    using System.Buffers;
     using System.IO;
     using System.Numerics;
     using System.Runtime.CompilerServices;
+
+    using ImageSharp.Formats.Jpg.Components;
 
     /// <summary>
     /// Image encoder for writing an image to a stream as a jpeg.
@@ -19,95 +21,6 @@ namespace ImageSharp.Formats
         /// The number of quantization tables.
         /// </summary>
         private const int QuantizationTableCount = 2;
-
-#pragma warning disable SA1118 // ParameterMustNotSpanMultipleLines
-
-        /// <summary>
-        /// The Huffman encoding specifications.
-        /// This encoder uses the same Huffman encoding for all images.
-        /// </summary>
-        private static readonly HuffmanSpec[] TheHuffmanSpecs =
-        {
-            // Luminance DC.
-            new HuffmanSpec(
-                new byte[]
-                {
-                    0, 1, 5, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0
-                },
-                new byte[]
-                {
-                    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11
-                }),
-            new HuffmanSpec(
-                new byte[]
-                {
-                    0, 2, 1, 3, 3, 2, 4, 3, 5, 5, 4, 4, 0, 0, 1, 125
-                },
-                new byte[]
-                {
-                    0x01, 0x02, 0x03, 0x00, 0x04, 0x11, 0x05, 0x12, 0x21,
-                    0x31, 0x41, 0x06, 0x13, 0x51, 0x61, 0x07, 0x22, 0x71,
-                    0x14, 0x32, 0x81, 0x91, 0xa1, 0x08, 0x23, 0x42, 0xb1,
-                    0xc1, 0x15, 0x52, 0xd1, 0xf0, 0x24, 0x33, 0x62, 0x72,
-                    0x82, 0x09, 0x0a, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x25,
-                    0x26, 0x27, 0x28, 0x29, 0x2a, 0x34, 0x35, 0x36, 0x37,
-                    0x38, 0x39, 0x3a, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48,
-                    0x49, 0x4a, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58, 0x59,
-                    0x5a, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68, 0x69, 0x6a,
-                    0x73, 0x74, 0x75, 0x76, 0x77, 0x78, 0x79, 0x7a, 0x83,
-                    0x84, 0x85, 0x86, 0x87, 0x88, 0x89, 0x8a, 0x92, 0x93,
-                    0x94, 0x95, 0x96, 0x97, 0x98, 0x99, 0x9a, 0xa2, 0xa3,
-                    0xa4, 0xa5, 0xa6, 0xa7, 0xa8, 0xa9, 0xaa, 0xb2, 0xb3,
-                    0xb4, 0xb5, 0xb6, 0xb7, 0xb8, 0xb9, 0xba, 0xc2, 0xc3,
-                    0xc4, 0xc5, 0xc6, 0xc7, 0xc8, 0xc9, 0xca, 0xd2, 0xd3,
-                    0xd4, 0xd5, 0xd6, 0xd7, 0xd8, 0xd9, 0xda, 0xe1, 0xe2,
-                    0xe3, 0xe4, 0xe5, 0xe6, 0xe7, 0xe8, 0xe9, 0xea, 0xf1,
-                    0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7, 0xf8, 0xf9, 0xfa
-                }),
-            new HuffmanSpec(
-                new byte[]
-                {
-                    0, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0
-                },
-                new byte[]
-                {
-                    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11
-                }),
-
-            // Chrominance AC.
-            new HuffmanSpec(
-                new byte[]
-                {
-                    0, 2, 1, 2, 4, 4, 3, 4, 7, 5, 4, 4, 0, 1, 2, 119
-                },
-                new byte[]
-                {
-                    0x00, 0x01, 0x02, 0x03, 0x11, 0x04, 0x05, 0x21, 0x31,
-                    0x06, 0x12, 0x41, 0x51, 0x07, 0x61, 0x71, 0x13, 0x22,
-                    0x32, 0x81, 0x08, 0x14, 0x42, 0x91, 0xa1, 0xb1, 0xc1,
-                    0x09, 0x23, 0x33, 0x52, 0xf0, 0x15, 0x62, 0x72, 0xd1,
-                    0x0a, 0x16, 0x24, 0x34, 0xe1, 0x25, 0xf1, 0x17, 0x18,
-                    0x19, 0x1a, 0x26, 0x27, 0x28, 0x29, 0x2a, 0x35, 0x36,
-                    0x37, 0x38, 0x39, 0x3a, 0x43, 0x44, 0x45, 0x46, 0x47,
-                    0x48, 0x49, 0x4a, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58,
-                    0x59, 0x5a, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68, 0x69,
-                    0x6a, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78, 0x79, 0x7a,
-                    0x82, 0x83, 0x84, 0x85, 0x86, 0x87, 0x88, 0x89, 0x8a,
-                    0x92, 0x93, 0x94, 0x95, 0x96, 0x97, 0x98, 0x99, 0x9a,
-                    0xa2, 0xa3, 0xa4, 0xa5, 0xa6, 0xa7, 0xa8, 0xa9, 0xaa,
-                    0xb2, 0xb3, 0xb4, 0xb5, 0xb6, 0xb7, 0xb8, 0xb9, 0xba,
-                    0xc2, 0xc3, 0xc4, 0xc5, 0xc6, 0xc7, 0xc8, 0xc9, 0xca,
-                    0xd2, 0xd3, 0xd4, 0xd5, 0xd6, 0xd7, 0xd8, 0xd9, 0xda,
-                    0xe2, 0xe3, 0xe4, 0xe5, 0xe6, 0xe7, 0xe8, 0xe9, 0xea,
-                    0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7, 0xf8, 0xf9, 0xfa
-                })
-        };
-#pragma warning restore SA1118 // ParameterMustNotSpanMultipleLines
-
-        /// <summary>
-        /// The compiled representations of theHuffmanSpec.
-        /// </summary>
-        private static readonly HuffmanLut[] TheHuffmanLut = new HuffmanLut[4];
 
         /// <summary>
         /// Counts the number of bits needed to hold an integer.
@@ -127,6 +40,39 @@ namespace ImageSharp.Formats
                 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
                 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
                 8, 8, 8,
+            };
+
+        /// <summary>
+        /// The SOS (Start Of Scan) marker "\xff\xda" followed by 12 bytes:
+        /// - the marker length "\x00\x0c",
+        /// - the number of components "\x03",
+        /// - component 1 uses DC table 0 and AC table 0 "\x01\x00",
+        /// - component 2 uses DC table 1 and AC table 1 "\x02\x11",
+        /// - component 3 uses DC table 1 and AC table 1 "\x03\x11",
+        /// - the bytes "\x00\x3f\x00". Section B.2.3 of the spec says that for
+        /// sequential DCTs, those bytes (8-bit Ss, 8-bit Se, 4-bit Ah, 4-bit Al)
+        /// should be 0x00, 0x3f, 0x00&lt;&lt;4 | 0x00.
+        /// </summary>
+        private static readonly byte[] SosHeaderYCbCr =
+            {
+                JpegConstants.Markers.XFF, JpegConstants.Markers.SOS,
+
+                // Marker
+                0x00, 0x0c,
+
+                // Length (high byte, low byte), must be 6 + 2 * (number of components in scan)
+                0x03, // Number of components in a scan, 3
+                0x01, // Component Id Y
+                0x00, // DC/AC Huffman table
+                0x02, // Component Id Cb
+                0x11, // DC/AC Huffman table
+                0x03, // Component Id Cr
+                0x11, // DC/AC Huffman table
+                0x00, // Ss - Start of spectral selection.
+                0x3f, // Se - End of spectral selection.
+                0x00
+
+                // Ah + Ah (Successive approximation bit position high + low)
             };
 
         /// <summary>
@@ -156,35 +102,6 @@ namespace ImageSharp.Formats
             };
 
         /// <summary>
-        /// The SOS (Start Of Scan) marker "\xff\xda" followed by 12 bytes:
-        /// - the marker length "\x00\x0c",
-        /// - the number of components "\x03",
-        /// - component 1 uses DC table 0 and AC table 0 "\x01\x00",
-        /// - component 2 uses DC table 1 and AC table 1 "\x02\x11",
-        /// - component 3 uses DC table 1 and AC table 1 "\x03\x11",
-        /// - the bytes "\x00\x3f\x00". Section B.2.3 of the spec says that for
-        /// sequential DCTs, those bytes (8-bit Ss, 8-bit Se, 4-bit Ah, 4-bit Al)
-        /// should be 0x00, 0x3f, 0x00&lt;&lt;4 | 0x00.
-        /// </summary>
-        private static readonly byte[] SosHeaderYCbCr =
-            {
-                JpegConstants.Markers.XFF, JpegConstants.Markers.SOS, // Marker
-                0x00, 0x0c,
-
-                // Length (high byte, low byte), must be 6 + 2 * (number of components in scan)
-                0x03, // Number of components in a scan, 3
-                0x01, // Component Id Y
-                0x00, // DC/AC Huffman table
-                0x02, // Component Id Cb
-                0x11, // DC/AC Huffman table
-                0x03, // Component Id Cr
-                0x11, // DC/AC Huffman table
-                0x00, // Ss - Start of spectral selection.
-                0x3f, // Se - End of spectral selection.
-                0x00 // Ah + Ah (Successive approximation bit position high + low)
-            };
-
-        /// <summary>
         /// A scratch buffer to reduce allocations.
         /// </summary>
         private readonly byte[] buffer = new byte[16];
@@ -200,16 +117,6 @@ namespace ImageSharp.Formats
         private readonly byte[] huffmanBuffer = new byte[179];
 
         /// <summary>
-        /// The scaled luminance table, in zig-zag order.
-        /// </summary>
-        private Block8x8F luminanceQuantTable;
-
-        /// <summary>
-        /// The scaled chrominance table, in zig-zag order.
-        /// </summary>
-        private Block8x8F chrominanceQuantTable;
-
-        /// <summary>
         /// The accumulated bits to write to the stream.
         /// </summary>
         private uint accumulatedBits;
@@ -220,6 +127,16 @@ namespace ImageSharp.Formats
         private uint bitCount;
 
         /// <summary>
+        /// The scaled chrominance table, in zig-zag order.
+        /// </summary>
+        private Block8x8F chrominanceQuantTable;
+
+        /// <summary>
+        /// The scaled luminance table, in zig-zag order.
+        /// </summary>
+        private Block8x8F luminanceQuantTable;
+
+        /// <summary>
         /// The output stream. All attempted writes after the first error become no-ops.
         /// </summary>
         private Stream outputStream;
@@ -228,64 +145,6 @@ namespace ImageSharp.Formats
         /// The subsampling method to use.
         /// </summary>
         private JpegSubsample subsample;
-
-        /// <summary>
-        /// Initializes static members of the <see cref="JpegEncoderCore"/> class.
-        /// </summary>
-        static JpegEncoderCore()
-        {
-            // Initialize the Huffman tables
-            for (int i = 0; i < TheHuffmanSpecs.Length; i++)
-            {
-                TheHuffmanLut[i] = new HuffmanLut(TheHuffmanSpecs[i]);
-            }
-        }
-
-        /// <summary>
-        /// Enumerates the Huffman tables
-        /// </summary>
-        private enum HuffIndex
-        {
-            /// <summary>
-            /// The DC luminance huffman table index
-            /// </summary>
-            LuminanceDC = 0,
-
-            // ReSharper disable UnusedMember.Local
-
-            /// <summary>
-            /// The AC luminance huffman table index
-            /// </summary>
-            LuminanceAC = 1,
-
-            /// <summary>
-            /// The DC chrominance huffman table index
-            /// </summary>
-            ChrominanceDC = 2,
-
-            /// <summary>
-            /// The AC chrominance huffman table index
-            /// </summary>
-            ChrominanceAC = 3,
-
-            // ReSharper restore UnusedMember.Local
-        }
-
-        /// <summary>
-        /// Enumerates the quantization tables
-        /// </summary>
-        private enum QuantIndex
-        {
-            /// <summary>
-            /// The luminance quantization table index
-            /// </summary>
-            Luminance = 0,
-
-            /// <summary>
-            /// The chrominance quantization table index
-            /// </summary>
-            Chrominance = 1,
-        }
 
         /// <summary>
         /// Encode writes the image to the jpeg baseline format with the given options.
@@ -403,8 +262,7 @@ namespace ImageSharp.Formats
             Block8x8F* yBlock,
             Block8x8F* cbBlock,
             Block8x8F* crBlock,
-            PixelArea<TColor> rgbBytes)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            PixelArea<TColor> rgbBytes) where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             float* yBlockRaw = (float*)yBlock;
             float* cbBlockRaw = (float*)cbBlock;
@@ -437,6 +295,18 @@ namespace ImageSharp.Formats
                 }
             }
         }
+
+#pragma warning disable SA1204
+        private static void WriteDataToDqt(byte[] dqt, ref int offset, QuantIndex i, ref Block8x8F q)
+        {
+            dqt[offset++] = (byte)i;
+            for (int j = 0; j < Block8x8F.ScalarCount; j++)
+            {
+                dqt[offset++] = (byte)q[j];
+            }
+        }
+
+#pragma warning restore SA1204
 
         /// <summary>
         /// Emits the least significant count of bits of bits to the bit-stream.
@@ -486,7 +356,7 @@ namespace ImageSharp.Formats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void EmitHuff(HuffIndex index, int value)
         {
-            uint x = TheHuffmanLut[(int)index].Values[value];
+            uint x = HuffmanLut.TheHuffmanLut[(int)index].Values[value];
             this.Emit(x & ((1 << 24) - 1), x >> 24);
         }
 
@@ -522,6 +392,107 @@ namespace ImageSharp.Formats
             {
                 this.Emit((uint)b & (uint)((1 << ((int)bt)) - 1), bt);
             }
+        }
+
+        /// <summary>
+        /// Encodes the image with no subsampling.
+        /// </summary>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
+        private void Encode444<TColor>(PixelAccessor<TColor> pixels)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
+        {
+            // TODO: Need a JpegEncoderScanImpl<TColor> struct to encapsulate all this mess:
+            Block8x8F b = default(Block8x8F);
+            Block8x8F cb = default(Block8x8F);
+            Block8x8F cr = default(Block8x8F);
+
+            Block8x8F temp1 = default(Block8x8F);
+            Block8x8F temp2 = default(Block8x8F);
+
+            Block8x8F onStackLuminanceQuantTable = this.luminanceQuantTable;
+            Block8x8F onStackChrominanceQuantTable = this.chrominanceQuantTable;
+
+            UnzigData unzig = UnzigData.Create();
+
+            // ReSharper disable once InconsistentNaming
+            float prevDCY = 0, prevDCCb = 0, prevDCCr = 0;
+
+            using (PixelArea<TColor> rgbBytes = new PixelArea<TColor>(8, 8, ComponentOrder.XYZ, true))
+            {
+                for (int y = 0; y < pixels.Height; y += 8)
+                {
+                    for (int x = 0; x < pixels.Width; x += 8)
+                    {
+                        ToYCbCr(pixels, x, y, &b, &cb, &cr, rgbBytes);
+
+                        prevDCY = this.WriteBlock(
+                            QuantIndex.Luminance,
+                            prevDCY,
+                            &b,
+                            &temp1,
+                            &temp2,
+                            &onStackLuminanceQuantTable,
+                            unzig.Data);
+                        prevDCCb = this.WriteBlock(
+                            QuantIndex.Chrominance,
+                            prevDCCb,
+                            &cb,
+                            &temp1,
+                            &temp2,
+                            &onStackChrominanceQuantTable,
+                            unzig.Data);
+                        prevDCCr = this.WriteBlock(
+                            QuantIndex.Chrominance,
+                            prevDCCr,
+                            &cr,
+                            &temp1,
+                            &temp2,
+                            &onStackChrominanceQuantTable,
+                            unzig.Data);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Writes the application header containing the JFIF identifier plus extra data.
+        /// </summary>
+        /// <param name="horizontalResolution">The resolution of the image in the x- direction.</param>
+        /// <param name="verticalResolution">The resolution of the image in the y- direction.</param>
+        private void WriteApplicationHeader(short horizontalResolution, short verticalResolution)
+        {
+            // Write the start of image marker. Markers are always prefixed with with 0xff.
+            this.buffer[0] = JpegConstants.Markers.XFF;
+            this.buffer[1] = JpegConstants.Markers.SOI;
+
+            // Write the JFIF headers
+            this.buffer[2] = JpegConstants.Markers.XFF;
+            this.buffer[3] = JpegConstants.Markers.APP0; // Application Marker
+            this.buffer[4] = 0x00;
+            this.buffer[5] = 0x10;
+            this.buffer[6] = 0x4a; // J
+            this.buffer[7] = 0x46; // F
+            this.buffer[8] = 0x49; // I
+            this.buffer[9] = 0x46; // F
+            this.buffer[10] = 0x00; // = "JFIF",'\0'
+            this.buffer[11] = 0x01; // versionhi
+            this.buffer[12] = 0x01; // versionlo
+            this.buffer[13] = 0x01; // xyunits as dpi
+
+            // No thumbnail
+            this.buffer[14] = 0x00; // Thumbnail width
+            this.buffer[15] = 0x00; // Thumbnail height
+
+            this.outputStream.Write(this.buffer, 0, 16);
+
+            // Resolution. Big Endian
+            this.buffer[0] = (byte)(horizontalResolution >> 8);
+            this.buffer[1] = (byte)horizontalResolution;
+            this.buffer[2] = (byte)(verticalResolution >> 8);
+            this.buffer[3] = (byte)verticalResolution;
+
+            this.outputStream.Write(this.buffer, 0, 4);
         }
 
         /// <summary>
@@ -591,54 +562,74 @@ namespace ImageSharp.Formats
         }
 
         /// <summary>
-        /// Writes the application header containing the JFIF identifier plus extra data.
+        /// Writes the Define Huffman Table marker and tables.
         /// </summary>
-        /// <param name="horizontalResolution">The resolution of the image in the x- direction.</param>
-        /// <param name="verticalResolution">The resolution of the image in the y- direction.</param>
-        private void WriteApplicationHeader(short horizontalResolution, short verticalResolution)
+        /// <param name="componentCount">The number of components to write.</param>
+        private void WriteDefineHuffmanTables(int componentCount)
         {
-            // Write the start of image marker. Markers are always prefixed with with 0xff.
-            this.buffer[0] = JpegConstants.Markers.XFF;
-            this.buffer[1] = JpegConstants.Markers.SOI;
+            // Table identifiers.
+            byte[] headers = { 0x00, 0x10, 0x01, 0x11 };
+            int markerlen = 2;
+            HuffmanSpec[] specs = HuffmanSpec.TheHuffmanSpecs;
 
-            // Write the JFIF headers
-            this.buffer[2] = JpegConstants.Markers.XFF;
-            this.buffer[3] = JpegConstants.Markers.APP0; // Application Marker
-            this.buffer[4] = 0x00;
-            this.buffer[5] = 0x10;
-            this.buffer[6] = 0x4a; // J
-            this.buffer[7] = 0x46; // F
-            this.buffer[8] = 0x49; // I
-            this.buffer[9] = 0x46; // F
-            this.buffer[10] = 0x00; // = "JFIF",'\0'
-            this.buffer[11] = 0x01; // versionhi
-            this.buffer[12] = 0x01; // versionlo
-            this.buffer[13] = 0x01; // xyunits as dpi
+            if (componentCount == 1)
+            {
+                // Drop the Chrominance tables.
+                specs = new[] { HuffmanSpec.TheHuffmanSpecs[0], HuffmanSpec.TheHuffmanSpecs[1] };
+            }
 
-            // No thumbnail
-            this.buffer[14] = 0x00; // Thumbnail width
-            this.buffer[15] = 0x00; // Thumbnail height
+            foreach (HuffmanSpec s in specs)
+            {
+                markerlen += 1 + 16 + s.Values.Length;
+            }
 
-            this.outputStream.Write(this.buffer, 0, 16);
+            this.WriteMarkerHeader(JpegConstants.Markers.DHT, markerlen);
+            for (int i = 0; i < specs.Length; i++)
+            {
+                HuffmanSpec spec = specs[i];
+                int len = 0;
 
-            // Resolution. Big Endian
-            this.buffer[0] = (byte)(horizontalResolution >> 8);
-            this.buffer[1] = (byte)horizontalResolution;
-            this.buffer[2] = (byte)(verticalResolution >> 8);
-            this.buffer[3] = (byte)verticalResolution;
+                fixed (byte* huffman = this.huffmanBuffer)
+                fixed (byte* count = spec.Count)
+                fixed (byte* values = spec.Values)
+                {
+                    huffman[len++] = headers[i];
 
-            this.outputStream.Write(this.buffer, 0, 4);
+                    for (int c = 0; c < spec.Count.Length; c++)
+                    {
+                        huffman[len++] = count[c];
+                    }
+
+                    for (int v = 0; v < spec.Values.Length; v++)
+                    {
+                        huffman[len++] = values[v];
+                    }
+                }
+
+                this.outputStream.Write(this.huffmanBuffer, 0, len);
+            }
         }
 
         /// <summary>
-        /// Writes the metadata profiles to the image.
+        /// Writes the Define Quantization Marker and tables.
         /// </summary>
-        /// <param name="image">The image.</param>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
-        private void WriteProfiles<TColor>(Image<TColor> image)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+        private void WriteDefineQuantizationTables()
         {
-            this.WriteProfile(image.ExifProfile);
+            // Marker + quantization table lengths
+            int markerlen = 2 + (QuantizationTableCount * (1 + Block8x8F.ScalarCount));
+            this.WriteMarkerHeader(JpegConstants.Markers.DQT, markerlen);
+
+            // Loop through and collect the tables as one array.
+            // This allows us to reduce the number of writes to the stream.
+            int dqtCount = (QuantizationTableCount * Block8x8F.ScalarCount) + QuantizationTableCount;
+            byte[] dqt = ArrayPool<byte>.Shared.Rent(dqtCount);
+            int offset = 0;
+
+            WriteDataToDqt(dqt, ref offset, QuantIndex.Luminance, ref this.luminanceQuantTable);
+            WriteDataToDqt(dqt, ref offset, QuantIndex.Chrominance, ref this.chrominanceQuantTable);
+
+            this.outputStream.Write(dqt, 0, dqtCount);
+            ArrayPool<byte>.Shared.Return(dqt);
         }
 
         /// <summary>
@@ -674,35 +665,14 @@ namespace ImageSharp.Formats
         }
 
         /// <summary>
-        /// Writes the Define Quantization Marker and tables.
+        /// Writes the metadata profiles to the image.
         /// </summary>
-        private void WriteDefineQuantizationTables()
+        /// <param name="image">The image.</param>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
+        private void WriteProfiles<TColor>(Image<TColor> image) where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            // Marker + quantization table lengths
-            int markerlen = 2 + (QuantizationTableCount * (1 + Block8x8F.ScalarCount));
-            this.WriteMarkerHeader(JpegConstants.Markers.DQT, markerlen);
-
-            // Loop through and collect the tables as one array.
-            // This allows us to reduce the number of writes to the stream.
-            byte[] dqt = new byte[(QuantizationTableCount * Block8x8F.ScalarCount) + QuantizationTableCount];
-            int offset = 0;
-
-            WriteDataToDqt(dqt, ref offset, QuantIndex.Luminance, ref this.luminanceQuantTable);
-            WriteDataToDqt(dqt, ref offset, QuantIndex.Chrominance, ref this.chrominanceQuantTable);
-
-            this.outputStream.Write(dqt, 0, dqt.Length);
+            this.WriteProfile(image.ExifProfile);
         }
-
-#pragma warning disable SA1204
-        private static void WriteDataToDqt(byte[] dqt, ref int offset, QuantIndex i, ref Block8x8F q)
-        {
-            dqt[offset++] = (byte)i;
-            for (int j = 0; j < Block8x8F.ScalarCount; j++)
-            {
-                dqt[offset++] = (byte)q[j];
-            }
-        }
-#pragma warning restore SA1204
 
         /// <summary>
         /// Writes the Start Of Frame (Baseline) marker
@@ -761,55 +731,6 @@ namespace ImageSharp.Formats
         }
 
         /// <summary>
-        /// Writes the Define Huffman Table marker and tables.
-        /// </summary>
-        /// <param name="componentCount">The number of components to write.</param>
-        private void WriteDefineHuffmanTables(int componentCount)
-        {
-            // Table identifiers.
-            byte[] headers = { 0x00, 0x10, 0x01, 0x11 };
-            int markerlen = 2;
-            HuffmanSpec[] specs = TheHuffmanSpecs;
-
-            if (componentCount == 1)
-            {
-                // Drop the Chrominance tables.
-                specs = new[] { TheHuffmanSpecs[0], TheHuffmanSpecs[1] };
-            }
-
-            foreach (HuffmanSpec s in specs)
-            {
-                markerlen += 1 + 16 + s.Values.Length;
-            }
-
-            this.WriteMarkerHeader(JpegConstants.Markers.DHT, markerlen);
-            for (int i = 0; i < specs.Length; i++)
-            {
-                HuffmanSpec spec = specs[i];
-                int len = 0;
-
-                fixed (byte* huffman = this.huffmanBuffer)
-                fixed (byte* count = spec.Count)
-                fixed (byte* values = spec.Values)
-                {
-                    huffman[len++] = headers[i];
-
-                    for (int c = 0; c < spec.Count.Length; c++)
-                    {
-                        huffman[len++] = count[c];
-                    }
-
-                    for (int v = 0; v < spec.Values.Length; v++)
-                    {
-                        huffman[len++] = values[v];
-                    }
-                }
-
-                this.outputStream.Write(this.huffmanBuffer, 0, len);
-            }
-        }
-
-        /// <summary>
         /// Writes the StartOfScan marker.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
@@ -819,6 +740,7 @@ namespace ImageSharp.Formats
         private void WriteStartOfScan<TColor>(PixelAccessor<TColor> pixels)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
+            // TODO: This method should be the entry point for a JpegEncoderScanImpl<TColor> struct
             // TODO: We should allow grayscale writing.
             this.outputStream.Write(SosHeaderYCbCr, 0, SosHeaderYCbCr.Length);
 
@@ -834,67 +756,6 @@ namespace ImageSharp.Formats
 
             // Pad the last byte with 1's.
             this.Emit(0x7f, 7);
-        }
-
-        /// <summary>
-        /// Encodes the image with no subsampling.
-        /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
-        private void Encode444<TColor>(PixelAccessor<TColor> pixels)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
-        {
-            // TODO: Need a JpegEncoderCoreCore<TColor> class or struct to hold all this mess:
-            Block8x8F b = default(Block8x8F);
-            Block8x8F cb = default(Block8x8F);
-            Block8x8F cr = default(Block8x8F);
-
-            Block8x8F temp1 = default(Block8x8F);
-            Block8x8F temp2 = default(Block8x8F);
-
-            Block8x8F onStackLuminanceQuantTable = this.luminanceQuantTable;
-            Block8x8F onStackChrominanceQuantTable = this.chrominanceQuantTable;
-
-            UnzigData unzig = UnzigData.Create();
-
-            // ReSharper disable once InconsistentNaming
-            float prevDCY = 0, prevDCCb = 0, prevDCCr = 0;
-
-            using (PixelArea<TColor> rgbBytes = new PixelArea<TColor>(8, 8, ComponentOrder.XYZ, true))
-            {
-                for (int y = 0; y < pixels.Height; y += 8)
-                {
-                    for (int x = 0; x < pixels.Width; x += 8)
-                    {
-                        ToYCbCr(pixels, x, y, &b, &cb, &cr, rgbBytes);
-
-                        prevDCY = this.WriteBlock(
-                            QuantIndex.Luminance,
-                            prevDCY,
-                            &b,
-                            &temp1,
-                            &temp2,
-                            &onStackLuminanceQuantTable,
-                            unzig.Data);
-                        prevDCCb = this.WriteBlock(
-                            QuantIndex.Chrominance,
-                            prevDCCb,
-                            &cb,
-                            &temp1,
-                            &temp2,
-                            &onStackChrominanceQuantTable,
-                            unzig.Data);
-                        prevDCCr = this.WriteBlock(
-                            QuantIndex.Chrominance,
-                            prevDCCr,
-                            &cr,
-                            &temp1,
-                            &temp2,
-                            &onStackChrominanceQuantTable,
-                            unzig.Data);
-                    }
-                }
-            }
         }
 
 #pragma warning disable SA1201 // MethodShouldNotFollowAStruct
@@ -916,7 +777,7 @@ namespace ImageSharp.Formats
         private void Encode420<TColor>(PixelAccessor<TColor> pixels)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            // TODO: Need a JpegEncoderCoreCore<TColor> class or struct to hold all this mess:
+            // TODO: Need a JpegEncoderScanImpl<TColor> struct to encapsulate all this mess:
             Block8x8F b = default(Block8x8F);
 
             BlockQuad cb = default(BlockQuad);
@@ -996,82 +857,6 @@ namespace ImageSharp.Formats
             this.buffer[2] = (byte)(length >> 8);
             this.buffer[3] = (byte)(length & 0xff);
             this.outputStream.Write(this.buffer, 0, 4);
-        }
-
-        /// <summary>
-        /// The Huffman encoding specifications.
-        /// </summary>
-        private struct HuffmanSpec
-        {
-            /// <summary>
-            /// Gets count[i] - The number of codes of length i bits.
-            /// </summary>
-            public readonly byte[] Count;
-
-            /// <summary>
-            /// Gets value[i] - The decoded value of the codeword at the given index.
-            /// </summary>
-            public readonly byte[] Values;
-
-            /// <summary>
-            /// Initializes a new instance of the <see cref="HuffmanSpec"/> struct.
-            /// </summary>
-            /// <param name="count">The number of codes.</param>
-            /// <param name="values">The decoded values.</param>
-            public HuffmanSpec(byte[] count, byte[] values)
-            {
-                this.Count = count;
-                this.Values = values;
-            }
-        }
-
-        /// <summary>
-        /// A compiled look-up table representation of a huffmanSpec.
-        /// Each value maps to a uint32 of which the 8 most significant bits hold the
-        /// codeword size in bits and the 24 least significant bits hold the codeword.
-        /// The maximum codeword size is 16 bits.
-        /// </summary>
-        private class HuffmanLut
-        {
-            /// <summary>
-            /// Initializes a new instance of the <see cref="HuffmanLut"/> class.
-            /// </summary>
-            /// <param name="spec">The encoding specifications.</param>
-            public HuffmanLut(HuffmanSpec spec)
-            {
-                int maxValue = 0;
-
-                foreach (byte v in spec.Values)
-                {
-                    if (v > maxValue)
-                    {
-                        maxValue = v;
-                    }
-                }
-
-                this.Values = new uint[maxValue + 1];
-
-                int code = 0;
-                int k = 0;
-
-                for (int i = 0; i < spec.Count.Length; i++)
-                {
-                    int bits = (i + 1) << 24;
-                    for (int j = 0; j < spec.Count[i]; j++)
-                    {
-                        this.Values[spec.Values[k]] = (uint)(bits | code);
-                        code++;
-                        k++;
-                    }
-
-                    code <<= 1;
-                }
-            }
-
-            /// <summary>
-            /// Gets the collection of huffman values.
-            /// </summary>
-            public uint[] Values { get; }
         }
     }
 }

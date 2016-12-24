@@ -319,5 +319,53 @@ namespace ImageSharp.Formats
                 src += 8;
             }
         }
+
+        /// <summary>
+        /// Unzig the elements of src into dest, while dividing them by elements of qt and rounding the values
+        /// </summary>
+        /// <param name="src">Source block</param>
+        /// <param name="dest">Destination block</param>
+        /// <param name="qt">Quantization table</param>
+        /// <param name="unzigPtr">Pointer to <see cref="UnzigData"/> elements</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static unsafe void UnZigDivRound(Block8x8F* src, Block8x8F* dest, Block8x8F* qt, int* unzigPtr)
+        {
+            float* s = (float*)src;
+            float* d = (float*)dest;
+            float* q = (float*)qt;
+
+            for (int zig = 0; zig < ScalarCount; zig++)
+            {
+                float val = s[unzigPtr[zig]] / q[zig];
+                val = (int)val;
+                d[zig] = val;
+            }
+        }
+
+        /// <summary>
+        /// Scales the 16x16 region represented by the 4 source blocks to the 8x8  DST block.
+        /// </summary>
+        /// <param name="destination">The destination block.</param>
+        /// <param name="source">The source block.</param>
+        public static unsafe void Scale16X16To8X8(Block8x8F* destination, Block8x8F* source)
+        {
+            float* d = (float*)destination;
+            for (int i = 0; i < 4; i++)
+            {
+                int dstOff = ((i & 2) << 4) | ((i & 1) << 2);
+
+                float* iSource = (float*)(source + i);
+
+                for (int y = 0; y < 4; y++)
+                {
+                    for (int x = 0; x < 4; x++)
+                    {
+                        int j = (16 * y) + (2 * x);
+                        float sum = iSource[j] + iSource[j + 1] + iSource[j + 8] + iSource[j + 9];
+                        d[(8 * y) + x + dstOff] = (sum + 2) / 4;
+                    }
+                }
+            }
+        }
     }
 }

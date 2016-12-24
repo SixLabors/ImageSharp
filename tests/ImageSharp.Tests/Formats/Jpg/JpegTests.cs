@@ -11,6 +11,8 @@ namespace ImageSharp.Tests
 {
     using System.Numerics;
 
+    using ImageSharp.Formats.Jpg.Utils;
+
     public class JpegTests
     {
         private ITestOutputHelper Output { get; }
@@ -68,12 +70,11 @@ namespace ImageSharp.Tests
                 TestImages.Jpeg.Cmyk
             };
 
-        private const PixelTypes BenchmarkPixels = PixelTypes.StandardImageClass;
-            //PixelTypes.Color | PixelTypes.StandardImageClass | PixelTypes.Argb;
+        private const PixelTypes BenchmarkPixels = PixelTypes.StandardImageClass; //PixelTypes.Color | PixelTypes.Argb;
 
-        [Theory(
-            Skip = "Benchmark, enable manually!"
-            )]
+
+
+        //[Theory] // Benchmark, enable manually
         [WithFileCollection(nameof(BenchmarkFiles), BenchmarkPixels, JpegSubsample.Ratio420, 75)]
         [WithFileCollection(nameof(BenchmarkFiles), BenchmarkPixels, JpegSubsample.Ratio444, 75)]
         public void Benchmark_JpegEncoder<TColor>(TestImageProvider<TColor> provider, JpegSubsample subSample, int quality)

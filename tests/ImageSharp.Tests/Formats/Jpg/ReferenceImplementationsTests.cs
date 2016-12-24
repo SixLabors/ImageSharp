@@ -3,6 +3,8 @@ namespace ImageSharp.Tests.Formats.Jpg
 {
     using System.Numerics;
     using ImageSharp.Formats;
+    using ImageSharp.Formats.Jpg.Utils;
+
     using Xunit;
     using Xunit.Abstractions;
 

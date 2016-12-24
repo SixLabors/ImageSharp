@@ -1,4 +1,4 @@
-﻿namespace ImageSharp.Formats.Jpg.Components
+﻿namespace ImageSharp.Formats.Jpg.Components.Encoder
 {
     /// <summary>
     /// The Huffman encoding specifications.

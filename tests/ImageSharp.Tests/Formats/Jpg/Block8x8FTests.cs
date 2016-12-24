@@ -9,6 +9,7 @@ namespace ImageSharp.Tests
     using System.Numerics;
 
     using ImageSharp.Formats;
+    using ImageSharp.Formats.Jpg.Utils;
 
     using Xunit;
     using Xunit.Abstractions;

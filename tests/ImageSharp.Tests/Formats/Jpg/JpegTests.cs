@@ -19,6 +19,7 @@ namespace ImageSharp.Tests
         {
             this.Output = output;
         }
+
         public static IEnumerable<string> AllJpegFiles => TestImages.Jpeg.All;
 
         [Theory]
@@ -57,7 +58,15 @@ namespace ImageSharp.Tests
             }
         }
 
-        private const int BenchmarkExecTimes = 2;
+        private const int BenchmarkExecTimes = 30;
+
+        public static readonly string[] BenchmarkFiles =
+            {
+                TestImages.Bmp.Car, TestImages.Bmp.NegHeight,
+                TestImages.Bmp.F, TestImages.Png.Splash,
+                TestImages.Jpeg.Jpeg420, TestImages.Jpeg.Calliphora,
+                TestImages.Jpeg.Cmyk
+            };
 
         [Theory(
             //Skip = "Benchmark, enable manually!"

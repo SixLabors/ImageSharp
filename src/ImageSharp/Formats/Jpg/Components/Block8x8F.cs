@@ -160,27 +160,49 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Multiply in place
         /// </summary>
-        /// <param name="scalar">Scalar to multiply by</param>
+        /// <param name="scaleVec">Vector to multiply by</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void MultiplyAllInplace(Vector4 scalar)
+        public void MultiplyAllInplace(Vector4 scaleVec)
         {
-            this.V0L *= scalar;
-            this.V0R *= scalar;
-            this.V1L *= scalar;
-            this.V1R *= scalar;
-            this.V2L *= scalar;
-            this.V2R *= scalar;
-            this.V3L *= scalar;
-            this.V3R *= scalar;
-            this.V4L *= scalar;
-            this.V4R *= scalar;
-            this.V5L *= scalar;
-            this.V5R *= scalar;
-            this.V6L *= scalar;
-            this.V6R *= scalar;
-            this.V7L *= scalar;
-            this.V7R *= scalar;
+            this.V0L *= scaleVec;
+            this.V0R *= scaleVec;
+            this.V1L *= scaleVec;
+            this.V1R *= scaleVec;
+            this.V2L *= scaleVec;
+            this.V2R *= scaleVec;
+            this.V3L *= scaleVec;
+            this.V3R *= scaleVec;
+            this.V4L *= scaleVec;
+            this.V4R *= scaleVec;
+            this.V5L *= scaleVec;
+            this.V5R *= scaleVec;
+            this.V6L *= scaleVec;
+            this.V6R *= scaleVec;
+            this.V7L *= scaleVec;
+            this.V7R *= scaleVec;
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void AddToAllInplace(Vector4 diff)
+        {
+            this.V0L += diff;
+            this.V0R += diff;
+            this.V1L += diff;
+            this.V1R += diff;
+            this.V2L += diff;
+            this.V2R += diff;
+            this.V3L += diff;
+            this.V3R += diff;
+            this.V4L += diff;
+            this.V4R += diff;
+            this.V5L += diff;
+            this.V5R += diff;
+            this.V6L += diff;
+            this.V6R += diff;
+            this.V7L += diff;
+            this.V7R += diff;
+        }
+
 
         /// <summary>
         /// Apply floating point IDCT transformation into dest, using a temporary block 'temp' provided by the caller (optimization)
@@ -206,7 +228,7 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <param name="blockPtr">Block pointer</param>
         /// <param name="idx">Index</param>
-        /// <returns>The scalar value at the specified index</returns>
+        /// <returns>The scaleVec value at the specified index</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static unsafe float GetScalarAt(Block8x8F* blockPtr, int idx)
         {
@@ -420,6 +442,7 @@ namespace ImageSharp.Formats
             this.CopyTo(legacyBlock.Data);
         }
 
+        
         /// <summary>
         /// Level shift by +128, clip to [0, 255], and write to buffer.
         /// </summary>

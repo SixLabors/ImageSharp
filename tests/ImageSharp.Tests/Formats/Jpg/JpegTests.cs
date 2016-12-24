@@ -72,7 +72,7 @@ namespace ImageSharp.Tests
             //PixelTypes.Color | PixelTypes.StandardImageClass | PixelTypes.Argb;
 
         [Theory(
-            //Skip = "Benchmark, enable manually!"
+            Skip = "Benchmark, enable manually!"
             )]
         [WithFileCollection(nameof(BenchmarkFiles), BenchmarkPixels, JpegSubsample.Ratio420, 75)]
         [WithFileCollection(nameof(BenchmarkFiles), BenchmarkPixels, JpegSubsample.Ratio444, 75)]

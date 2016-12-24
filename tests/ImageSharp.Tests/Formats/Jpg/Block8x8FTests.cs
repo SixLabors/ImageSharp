@@ -52,7 +52,7 @@ namespace ImageSharp.Tests.Formats.Jpg
         public unsafe void Indexer_GetScalarAt_SetScalarAt()
         {
             float sum = 0;
-            Measure(Times, () =>
+            this.Measure(Times, () =>
             {
                 Block8x8F block = new Block8x8F();
 
@@ -74,8 +74,7 @@ namespace ImageSharp.Tests.Formats.Jpg
         {
             float sum = 0;
 
-
-            Measure(Times, () =>
+            this.Measure(Times, () =>
             {
                 //Block8x8F block = new Block8x8F();
                 float[] block = new float[64];

@@ -1,8 +1,9 @@
 ﻿// ReSharper disable InconsistentNaming
-namespace ImageSharp.Tests.Formats.Jpg
+namespace ImageSharp.Tests
 {
     using System.Numerics;
     using ImageSharp.Formats;
+    
     using Xunit;
     using Xunit.Abstractions;
 

@@ -13,8 +13,18 @@ namespace ImageSharp.Tests
     {
         private class FileProvider : TestImageProvider<TColor>
         {
-            private static ConcurrentDictionary<string, Image<TColor>> cache =
-                new ConcurrentDictionary<string, Image<TColor>>();
+            // Need PixelTypes in the dictionary key, because result images of TestImageProvider<TColor>.FileProvider 
+            // are shared between PixelTypes.Color & PixelTypes.StandardImageClass
+            private class Key : Tuple<PixelTypes, string>
+            {
+                public Key(PixelTypes item1, string item2)
+                    : base(item1, item2)
+                {
+                }
+            }
+
+            private static ConcurrentDictionary<Key, Image<TColor>> cache =
+                new ConcurrentDictionary<Key, Image<TColor>>();
 
             private string filePath;
 
@@ -27,8 +37,10 @@ namespace ImageSharp.Tests
 
             public override Image<TColor> GetImage()
             {
+                var key = new Key(this.PixelType, this.filePath);
+
                 var cachedImage = cache.GetOrAdd(
-                    this.filePath,
+                    key,
                     fn =>
                         {
                             var testFile = TestFile.Create(this.filePath);

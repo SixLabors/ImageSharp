@@ -80,7 +80,7 @@ namespace ImageSharp.Tests
             this.Utility = new ImagingTestCaseUtility()
                                {
                                    SourceFileOrDescription = this.SourceFileOrDescription,
-                                   PixelTypeName = typeof(TColor).Name
+                                   PixelTypeName = this.PixelType.ToString()
                                };
 
             if (testMethod != null)

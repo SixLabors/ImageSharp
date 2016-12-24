@@ -62,20 +62,7 @@ namespace ImageSharp.Formats
         /// The AC table index
         /// </summary>
         private const int AcTable = 1;
-
-        /// <summary>
-        /// Unzig maps from the zigzag ordering to the natural ordering. For example,
-        /// unzig[3] is the column and row of the fourth element in zigzag order. The
-        /// value is 16, which means first column (16%8 == 0) and third row (16/8 == 2).
-        /// </summary>
-        private static readonly int[] Unzig =
-            {
-                0, 1, 8, 16, 9, 2, 3, 10, 17, 24, 32, 25, 18, 11, 4, 5, 12, 19, 26, 33,
-                40, 48, 41, 34, 27, 20, 13, 6, 7, 14, 21, 28, 35, 42, 49, 56, 57, 50,
-                43, 36, 29, 22, 15, 23, 30, 37, 44, 51, 58, 59, 52, 45, 38, 31, 39, 46,
-                53, 60, 61, 54, 47, 55, 62, 63,
-            };
-
+        
         /// <summary>
         /// The component array
         /// </summary>
@@ -1556,10 +1543,9 @@ namespace ImageSharp.Formats
             Block8x8F temp1 = default(Block8x8F);
             Block8x8F temp2 = default(Block8x8F);
 
-            // Tricky way to copy contents of the Unzig static variable to the stack:
-            StackallocUnzigData unzigOnStack = default(StackallocUnzigData);
-            int* unzigPtr = unzigOnStack.Data;
-            Marshal.Copy(Unzig, 0, (IntPtr)unzigPtr, 64);
+            UnzigData unzig = UnzigData.Create();
+
+            int* unzigPtr = unzig.Data;
 
             for (int my = 0; my < myy; my++)
             {
@@ -2013,7 +1999,7 @@ namespace ImageSharp.Formats
 
                     int blah = zig;
 
-                    zig = this.RefineNonZeroes(b, zig, zigEnd, val0, delta);
+                    zig = this.RefineNonZeroes(b, zig, zigEnd, val0, delta, unzigPtr);
                     if (zig > zigEnd)
                     {
                         throw new ImageFormatException($"Too many coefficients {zig} > {zigEnd}");
@@ -2030,7 +2016,7 @@ namespace ImageSharp.Formats
             if (this.eobRun > 0)
             {
                 this.eobRun--;
-                this.RefineNonZeroes(b, zig, zigEnd, -1, delta);
+                this.RefineNonZeroes(b, zig, zigEnd, -1, delta, unzigPtr);
             }
         }
 
@@ -2043,12 +2029,13 @@ namespace ImageSharp.Formats
         /// <param name="zigEnd">The zig-zag end index</param>
         /// <param name="nz">The non-zero entry</param>
         /// <param name="delta">The low transform offset</param>
+        /// <param name="unzigPtr">Pointer to the  Jpeg Unzig data (data part of <see cref="UnzigData"/>)</param>
         /// <returns>The <see cref="int"/></returns>
-        private int RefineNonZeroes(Block8x8F* b, int zig, int zigEnd, int nz, int delta)
+        private int RefineNonZeroes(Block8x8F* b, int zig, int zigEnd, int nz, int delta, int* unzigPtr)
         {
             for (; zig <= zigEnd; zig++)
             {
-                int u = Unzig[zig];
+                int u = unzigPtr[zig];
                 float bu = Block8x8F.GetScalarAt(b, u);
 
                 // TODO: Are the equality comparsions OK with floating point values? Isn't an epsilon value necessary?

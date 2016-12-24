@@ -82,6 +82,9 @@
     <Compile Include="..\ImageSharp.Tests\Formats\Jpg\ReferenceImplementations.cs">
       <Link>Formats\Jpg\ReferenceImplementations.cs</Link>
     </Compile>
+    <Compile Include="..\ImageSharp.Tests\Formats\Jpg\ReferenceImplementationsTests.cs">
+      <Link>Formats\Jpg\ReferenceImplementationsTests.cs</Link>
+    </Compile>
     <Compile Include="..\ImageSharp.Tests\Formats\Jpg\UtilityTestClassBase.cs">
       <Link>Formats\Jpg\UtilityTestClassBase.cs</Link>
     </Compile>
@@ -157,7 +160,6 @@
     <Compile Include="..\ImageSharp.Tests\TestUtilities\TestUtilityExtensions.cs">
       <Link>TestUtilities\TestUtilityExtensions.cs</Link>
     </Compile>
-    <Compile Include="Formats\Jpg\ReferenceImplementationsTests.cs" />
     <Compile Include="HelloTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TestFile.cs" />

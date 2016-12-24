@@ -29,6 +29,11 @@ namespace ImageSharp
         private IntPtr dataPointer;
 
         /// <summary>
+        /// True if <see cref="Bytes"/> was rented from <see cref="BytesPool"/> by the constructor
+        /// </summary>
+        private bool isBufferRented;
+
+        /// <summary>
         /// A value indicating whether this instance of the given entity has been disposed.
         /// </summary>
         /// <value><see langword="true"/> if this instance has been disposed; otherwise, <see langword="false"/>.</value>
@@ -38,11 +43,6 @@ namespace ImageSharp
         /// life in the Garbage Collector.
         /// </remarks>
         private bool isDisposed;
-
-        /// <summary>
-        /// True if <see cref="Bytes"/> was allocated by the constructor (rented from <see cref="BytesPool"/>)
-        /// </summary>
-        private bool isBufferOwner;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PixelArea{TColor}"/> class.
@@ -90,8 +90,9 @@ namespace ImageSharp
         /// <param name="width">The width.</param>
         /// <param name="height">The height.</param>
         /// <param name="componentOrder">The component order.</param>
-        public PixelArea(int width, int height, ComponentOrder componentOrder)
-            : this(width, height, componentOrder, 0)
+        /// <param name="usePool">True if the buffer should be rented from ArrayPool</param>
+        public PixelArea(int width, int height, ComponentOrder componentOrder, bool usePool = false)
+            : this(width, height, componentOrder, 0, usePool)
         {
         }
 
@@ -123,14 +124,27 @@ namespace ImageSharp
         /// <param name="height">The height.</param>
         /// <param name="componentOrder">The component order.</param>
         /// <param name="padding">The number of bytes to pad each row.</param>
-        public PixelArea(int width, int height, ComponentOrder componentOrder, int padding)
+        /// <param name="usePool">True if the buffer should be rented from ArrayPool</param>
+        public PixelArea(int width, int height, ComponentOrder componentOrder, int padding, bool usePool = false)
         {
             this.Width = width;
             this.Height = height;
             this.ComponentOrder = componentOrder;
             this.RowByteCount = (width * GetComponentCount(componentOrder)) + padding;
-            this.Bytes = BytesPool.Rent(this.RowByteCount * height);
-            this.isBufferOwner = true;
+
+            var bufferSize = this.RowByteCount * height;
+
+            if (usePool)
+            {
+                this.Bytes = BytesPool.Rent(bufferSize);
+                this.isBufferRented = true;
+                Array.Clear(this.Bytes, 0, bufferSize);
+            }
+            else
+            {
+                this.Bytes = new byte[bufferSize];
+            }
+
             this.pixelsHandle = GCHandle.Alloc(this.Bytes, GCHandleType.Pinned);
 
             // TODO: Why is Resharper warning us about an impure method call?
@@ -184,6 +198,7 @@ namespace ImageSharp
         /// <summary>
         /// Gets the pool used to rent <see cref="Bytes"/>, when it's not coming from an external source
         /// </summary>
+        // ReSharper disable once StaticMemberInGenericType
         private static ArrayPool<byte> BytesPool => ArrayPool<byte>.Shared;
 
         /// <summary>
@@ -217,7 +232,7 @@ namespace ImageSharp
         /// </summary>
         internal void Reset()
         {
-            Unsafe.InitBlock(this.PixelBase, 0, (uint)this.Bytes.Length);
+            Unsafe.InitBlock(this.PixelBase, 0, (uint)(this.RowByteCount * this.Height));
         }
 
         /// <summary>
@@ -274,7 +289,7 @@ namespace ImageSharp
                 this.pixelsHandle.Free();
             }
 
-            if (disposing && this.isBufferOwner)
+            if (disposing && this.isBufferRented)
             {
                 BytesPool.Return(this.Bytes);
             }

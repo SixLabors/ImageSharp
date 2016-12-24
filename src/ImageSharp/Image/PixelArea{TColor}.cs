@@ -2,10 +2,10 @@
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
-
 namespace ImageSharp
 {
     using System;
+    using System.Buffers;
     using System.Diagnostics;
     using System.IO;
     using System.Runtime.CompilerServices;
@@ -38,6 +38,11 @@ namespace ImageSharp
         /// life in the Garbage Collector.
         /// </remarks>
         private bool isDisposed;
+
+        /// <summary>
+        /// True if <see cref="Bytes"/> was allocated by the constructor (rented from <see cref="BytesPool"/>)
+        /// </summary>
+        private bool isBufferOwner;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PixelArea{TColor}"/> class.
@@ -96,7 +101,7 @@ namespace ImageSharp
         /// <param name="width">The width.</param>
         /// <param name="componentOrder">The component order.</param>
         public PixelArea(int width, ComponentOrder componentOrder)
-          : this(width, 1, componentOrder, 0)
+            : this(width, 1, componentOrder, 0)
         {
         }
 
@@ -107,7 +112,7 @@ namespace ImageSharp
         /// <param name="componentOrder">The component order.</param>
         /// <param name="padding">The number of bytes to pad each row.</param>
         public PixelArea(int width, ComponentOrder componentOrder, int padding)
-          : this(width, 1, componentOrder, padding)
+            : this(width, 1, componentOrder, padding)
         {
         }
 
@@ -124,7 +129,8 @@ namespace ImageSharp
             this.Height = height;
             this.ComponentOrder = componentOrder;
             this.RowByteCount = (width * GetComponentCount(componentOrder)) + padding;
-            this.Bytes = new byte[this.RowByteCount * height];
+            this.Bytes = BytesPool.Rent(this.RowByteCount * height);
+            this.isBufferOwner = true;
             this.pixelsHandle = GCHandle.Alloc(this.Bytes, GCHandleType.Pinned);
 
             // TODO: Why is Resharper warning us about an impure method call?
@@ -137,7 +143,7 @@ namespace ImageSharp
         /// </summary>
         ~PixelArea()
         {
-            this.Dispose();
+            this.Dispose(false);
         }
 
         /// <summary>
@@ -146,24 +152,14 @@ namespace ImageSharp
         public byte[] Bytes { get; }
 
         /// <summary>
-        /// Gets the pointer to the pixel buffer.
-        /// </summary>
-        public IntPtr DataPointer => this.dataPointer;
-
-        /// <summary>
-        /// Gets the data pointer.
-        /// </summary>
-        public byte* PixelBase { get; private set; }
-
-        /// <summary>
         /// Gets the component order.
         /// </summary>
         public ComponentOrder ComponentOrder { get; }
 
         /// <summary>
-        /// Gets the width.
+        /// Gets the pointer to the pixel buffer.
         /// </summary>
-        public int Width { get; }
+        public IntPtr DataPointer => this.dataPointer;
 
         /// <summary>
         /// Gets the height.
@@ -171,9 +167,32 @@ namespace ImageSharp
         public int Height { get; }
 
         /// <summary>
+        /// Gets the data pointer.
+        /// </summary>
+        public byte* PixelBase { get; private set; }
+
+        /// <summary>
         /// Gets number of bytes in a row.
         /// </summary>
         public int RowByteCount { get; }
+
+        /// <summary>
+        /// Gets the width.
+        /// </summary>
+        public int Width { get; }
+
+        /// <summary>
+        /// Gets the pool used to rent <see cref="Bytes"/>, when it's not coming from an external source
+        /// </summary>
+        private static ArrayPool<byte> BytesPool => ArrayPool<byte>.Shared;
+
+        /// <summary>
+        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+        /// </summary>
+        public void Dispose()
+        {
+            this.Dispose(true);
+        }
 
         /// <summary>
         /// Reads the stream to the area.
@@ -191,39 +210,6 @@ namespace ImageSharp
         public void Write(Stream stream)
         {
             stream.Write(this.Bytes, 0, this.Bytes.Length);
-        }
-
-        /// <summary>
-        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
-        /// </summary>
-        public void Dispose()
-        {
-            if (this.isDisposed)
-            {
-                return;
-            }
-
-            if (this.PixelBase == null)
-            {
-                return;
-            }
-
-            if (this.pixelsHandle.IsAllocated)
-            {
-                this.pixelsHandle.Free();
-            }
-
-            this.dataPointer = IntPtr.Zero;
-            this.PixelBase = null;
-
-            this.isDisposed = true;
-
-            // This object will be cleaned up by the Dispose method.
-            // Therefore, you should call GC.SuppressFinalize to
-            // take this object off the finalization queue
-            // and prevent finalization code for this object
-            // from executing a second time.
-            GC.SuppressFinalize(this);
         }
 
         /// <summary>
@@ -265,8 +251,45 @@ namespace ImageSharp
             int requiredLength = (width * GetComponentCount(componentOrder)) * height;
             if (bytes.Length != requiredLength)
             {
-                throw new ArgumentOutOfRangeException(nameof(bytes), $"Invalid byte array length. Length {bytes.Length}; Should be {requiredLength}.");
+                throw new ArgumentOutOfRangeException(
+                          nameof(bytes),
+                          $"Invalid byte array length. Length {bytes.Length}; Should be {requiredLength}.");
             }
+        }
+
+        private void Dispose(bool disposing)
+        {
+            if (this.isDisposed)
+            {
+                return;
+            }
+
+            if (this.PixelBase == null)
+            {
+                return;
+            }
+
+            if (this.pixelsHandle.IsAllocated)
+            {
+                this.pixelsHandle.Free();
+            }
+
+            if (disposing && this.isBufferOwner)
+            {
+                BytesPool.Return(this.Bytes);
+            }
+
+            this.dataPointer = IntPtr.Zero;
+            this.PixelBase = null;
+
+            this.isDisposed = true;
+
+            // This object will be cleaned up by the Dispose method.
+            // Therefore, you should call GC.SuppressFinalize to
+            // take this object off the finalization queue
+            // and prevent finalization code for this object
+            // from executing a second time.
+            GC.SuppressFinalize(this);
         }
     }
 }

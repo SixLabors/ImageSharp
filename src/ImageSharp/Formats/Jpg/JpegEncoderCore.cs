@@ -298,18 +298,6 @@ namespace ImageSharp.Formats
             }
         }
 
-#pragma warning disable SA1204
-        private static void WriteDataToDqt(byte[] dqt, ref int offset, QuantIndex i, ref Block8x8F q)
-        {
-            dqt[offset++] = (byte)i;
-            for (int j = 0; j < Block8x8F.ScalarCount; j++)
-            {
-                dqt[offset++] = (byte)q[j];
-            }
-        }
-
-#pragma warning restore SA1204
-
         /// <summary>
         /// Emits the least significant count of bits of bits to the bit-stream.
         /// The precondition is bits <example>&lt; 1&lt;&lt;nBits &amp;&amp; nBits &lt;= 16</example>.
@@ -627,8 +615,8 @@ namespace ImageSharp.Formats
             byte[] dqt = ArrayPool<byte>.Shared.Rent(dqtCount);
             int offset = 0;
 
-            WriteDataToDqt(dqt, ref offset, QuantIndex.Luminance, ref this.luminanceQuantTable);
-            WriteDataToDqt(dqt, ref offset, QuantIndex.Chrominance, ref this.chrominanceQuantTable);
+            JpegUtils.WriteDataToDqt(dqt, ref offset, QuantIndex.Luminance, ref this.luminanceQuantTable);
+            JpegUtils.WriteDataToDqt(dqt, ref offset, QuantIndex.Chrominance, ref this.chrominanceQuantTable);
 
             this.outputStream.Write(dqt, 0, dqtCount);
             ArrayPool<byte>.Shared.Return(dqt);

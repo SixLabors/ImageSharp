@@ -47,7 +47,7 @@ namespace ImageSharp.Tests
                             return this.Factory.CreateImage(testFile.Bytes);
                         });
 
-                return new Image<TColor>(cachedImage);
+                return this.Factory.CreateImage(cachedImage);
             }
         }
     }

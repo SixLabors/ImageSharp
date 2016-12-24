@@ -1,21 +1,51 @@
-﻿using System;
-using System.Diagnostics;
-using System.Runtime.CompilerServices;
-using System.Text;
+﻿using System.Text;
 using ImageSharp.Formats;
 using Xunit.Abstractions;
+// ReSharper disable InconsistentNaming
 
 namespace ImageSharp.Tests.Formats.Jpg
 {
-    public class UtilityTestClassBase
+    using System;
+    using System.Collections.Generic;
+    using System.Diagnostics;
+    using System.Runtime.CompilerServices;
+    
+    /// <summary>
+    /// Utility class to measure the execution of an operation.
+    /// </summary>
+    public class MeasureFixture
     {
-        public UtilityTestClassBase(ITestOutputHelper output)
+        protected bool EnablePrinting = true;
+
+        protected void Measure(int times, Action action, [CallerMemberName] string operationName = null)
         {
-            Output = output;
+            if (this.EnablePrinting) this.Output?.WriteLine($"{operationName} X {times} ...");
+            Stopwatch sw = Stopwatch.StartNew();
+
+            for (int i = 0; i < times; i++)
+            {
+                action();
+            }
+
+            sw.Stop();
+            if (this.EnablePrinting) this.Output?.WriteLine($"{operationName} finished in {sw.ElapsedMilliseconds} ms");
+        }
+
+        public MeasureFixture(ITestOutputHelper output)
+        {
+            this.Output = output;
         }
 
         protected ITestOutputHelper Output { get; }
+    }
 
+
+    public class UtilityTestClassBase : MeasureFixture
+    {
+        public UtilityTestClassBase(ITestOutputHelper output) : base(output)
+        {
+        }
+        
         // ReSharper disable once InconsistentNaming
         public static float[] Create8x8FloatData()
         {
@@ -29,10 +59,7 @@ namespace ImageSharp.Tests.Formats.Jpg
             }
             return result;
         }
-
-      
-
-
+        
         // ReSharper disable once InconsistentNaming
         public static int[] Create8x8IntData()
         {
@@ -47,7 +74,25 @@ namespace ImageSharp.Tests.Formats.Jpg
             return result;
         }
 
-        internal void Print8x8Data<T>(MutableSpan<T> data) => Print8x8Data(data.Data);
+        // ReSharper disable once InconsistentNaming
+        public static int[] Create8x8RandomIntData(int minValue, int maxValue, int seed = 42)
+        {
+            Random rnd = new Random(seed);
+            int[] result = new int[64];
+            for (int i = 0; i < 8; i++)
+            {
+                for (int j = 0; j < 8; j++)
+                {
+                    result[i * 8 + j] = rnd.Next(minValue, maxValue);
+                }
+            }
+            return result;
+        }
+
+        internal static MutableSpan<float> Create8x8RandomFloatData(int minValue, int maxValue, int seed = 42)
+            => new MutableSpan<int>(Create8x8RandomIntData(minValue, maxValue, seed)).ConvertToFloat32MutableSpan();
+
+        internal void Print8x8Data<T>(MutableSpan<T> data) => this.Print8x8Data(data.Data);
 
         internal void Print8x8Data<T>(T[] data)
         {
@@ -61,10 +106,10 @@ namespace ImageSharp.Tests.Formats.Jpg
                 bld.AppendLine();
             }
 
-            Output.WriteLine(bld.ToString());
+            this.Output.WriteLine(bld.ToString());
         }
 
-        internal void PrintLinearData<T>(T[] data) => PrintLinearData(new MutableSpan<T>(data), data.Length);
+        internal void PrintLinearData<T>(T[] data) => this.PrintLinearData(new MutableSpan<T>(data), data.Length);
 
         internal void PrintLinearData<T>(MutableSpan<T> data, int count = -1)
         {
@@ -75,21 +120,35 @@ namespace ImageSharp.Tests.Formats.Jpg
             {
                 bld.Append($"{data[i],3} ");
             }
-            Output.WriteLine(bld.ToString());
+            this.Output.WriteLine(bld.ToString());
         }
 
-        protected void Measure(int times, Action action, [CallerMemberName] string operationName = null)
+        internal struct ApproximateFloatComparer : IEqualityComparer<float>
         {
-            Output.WriteLine($"{operationName} X {times} ...");
-            Stopwatch sw = Stopwatch.StartNew();
+            private readonly float Eps;
 
-            for (int i = 0; i < times; i++)
+            public ApproximateFloatComparer(float eps = 1f)
             {
-                action();
+                this.Eps = eps;
             }
 
-            sw.Stop();
-            Output.WriteLine($"{operationName} finished in {sw.ElapsedMilliseconds} ms");
+            public bool Equals(float x, float y)
+            {
+                float d = x - y;
+
+                return d > -this.Eps && d < this.Eps;
+            }
+
+            public int GetHashCode(float obj)
+            {
+                throw new InvalidOperationException();
+            }
+        }
+
+        protected void Print(string msg)
+        {
+            Debug.WriteLine(msg);
+            this.Output.WriteLine(msg);
         }
     }
 }

@@ -3,7 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.Formats.Jpg.Components
+namespace ImageSharp.Formats
 {
     using System.Numerics;
     using System.Runtime.CompilerServices;
@@ -76,6 +76,59 @@ namespace ImageSharp.Formats.Jpg.Components
             data[1] = (int)v.Y;
             data[2] = (int)v.Z;
             data[3] = (int)v.W;
+        }
+
+
+
+        public static MutableSpan<float> ConvertToFloat32MutableSpan(this MutableSpan<int> src)
+        {
+            MutableSpan<float> result = new MutableSpan<float>(src.TotalCount);
+            for (int i = 0; i < src.TotalCount; i++)
+            {
+                result[i] = (float)src[i];
+            }
+            return result;
+        }
+
+        public static MutableSpan<int> ConvertToInt32MutableSpan(this MutableSpan<float> src)
+        {
+            MutableSpan<int> result = new MutableSpan<int>(src.TotalCount);
+            for (int i = 0; i < src.TotalCount; i++)
+            {
+                result[i] = (int)src[i];
+            }
+            return result;
+        }
+
+        public static MutableSpan<float> AddScalarToAllValues(this MutableSpan<float> src, float scalar)
+        {
+            MutableSpan<float> result = new MutableSpan<float>(src.TotalCount);
+            for (int i = 0; i < src.TotalCount; i++)
+            {
+                result[i] = src[i] + scalar;
+            }
+            return result;
+        }
+
+        public static MutableSpan<int> AddScalarToAllValues(this MutableSpan<int> src, int scalar)
+        {
+            MutableSpan<int> result = new MutableSpan<int>(src.TotalCount);
+            for (int i = 0; i < src.TotalCount; i++)
+            {
+                result[i] = src[i] + scalar;
+            }
+            return result;
+        }
+
+
+        public static MutableSpan<T> Copy<T>(this MutableSpan<T> src)
+        {
+            MutableSpan<T> result = new MutableSpan<T>(src.TotalCount);
+            for (int i = 0; i < src.TotalCount; i++)
+            {
+                result[i] = src[i];
+            }
+            return result;
         }
     }
 }

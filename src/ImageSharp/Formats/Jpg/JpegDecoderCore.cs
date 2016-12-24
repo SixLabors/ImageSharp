@@ -11,6 +11,9 @@ namespace ImageSharp.Formats
     using System.Runtime.InteropServices;
     using System.Threading.Tasks;
 
+    using ImageSharp.Formats.Jpg.Components.Decoder;
+    using ImageSharp.Formats.Jpg.Utils;
+
     /// <summary>
     /// Performs the jpeg decoding operation.
     /// </summary>
@@ -76,7 +79,7 @@ namespace ImageSharp.Formats
         /// <summary>
         /// The huffman trees
         /// </summary>
-        private readonly Huffman[] huffmanTrees;
+        private readonly HuffmanTree[] huffmanTrees;
 
         /// <summary>
         /// Quantization tables, in zigzag order.
@@ -186,7 +189,7 @@ namespace ImageSharp.Formats
         public JpegDecoderCore()
         {
             // this.huffmanTrees = new Huffman[MaxTc + 1, MaxTh + 1];
-            this.huffmanTrees = new Huffman[(MaxTc + 1) * (MaxTh + 1)];
+            this.huffmanTrees = new HuffmanTree[(MaxTc + 1) * (MaxTh + 1)];
 
             this.quantizationTables = new Block8x8F[MaxTq + 1];
             this.temp = new byte[2 * Block8x8F.ScalarCount];
@@ -546,42 +549,42 @@ namespace ImageSharp.Formats
             }
         }
 
-        private void ProcessDefineHuffmanTablesMarkerLoop(ref Huffman huffman, ref int remaining)
+        private void ProcessDefineHuffmanTablesMarkerLoop(ref HuffmanTree huffmanTree, ref int remaining)
         {
             // Read nCodes and huffman.Valuess (and derive h.Length).
             // nCodes[i] is the number of codes with code length i.
             // h.Length is the total number of codes.
-            huffman.Length = 0;
+            huffmanTree.Length = 0;
 
             int[] ncodes = new int[MaxCodeLength];
             for (int i = 0; i < ncodes.Length; i++)
             {
                 ncodes[i] = this.temp[i + 1];
-                huffman.Length += ncodes[i];
+                huffmanTree.Length += ncodes[i];
             }
 
-            if (huffman.Length == 0)
+            if (huffmanTree.Length == 0)
             {
                 throw new ImageFormatException("Huffman table has zero length");
             }
 
-            if (huffman.Length > MaxNCodes)
+            if (huffmanTree.Length > MaxNCodes)
             {
                 throw new ImageFormatException("Huffman table has excessive length");
             }
 
-            remaining -= huffman.Length + 17;
+            remaining -= huffmanTree.Length + 17;
             if (remaining < 0)
             {
                 throw new ImageFormatException("DHT has wrong length");
             }
 
-            this.ReadFull(huffman.Values, 0, huffman.Length);
+            this.ReadFull(huffmanTree.Values, 0, huffmanTree.Length);
 
             // Derive the look-up table.
-            for (int i = 0; i < huffman.Lut.Length; i++)
+            for (int i = 0; i < huffmanTree.Lut.Length; i++)
             {
-                huffman.Lut[i] = 0;
+                huffmanTree.Lut[i] = 0;
             }
 
             uint x = 0, code = 0;
@@ -598,11 +601,11 @@ namespace ImageSharp.Formats
                     // The high 8 bits of lutValue are the encoded value.
                     // The low 8 bits are 1 plus the codeLength.
                     byte base2 = (byte)(code << (7 - i));
-                    ushort lutValue = (ushort)((huffman.Values[x] << 8) | (2 + i));
+                    ushort lutValue = (ushort)((huffmanTree.Values[x] << 8) | (2 + i));
 
                     for (int k = 0; k < 1 << (7 - i); k++)
                     {
-                        huffman.Lut[base2 | k] = lutValue;
+                        huffmanTree.Lut[base2 | k] = lutValue;
                     }
 
                     code++;
@@ -617,15 +620,15 @@ namespace ImageSharp.Formats
                 int nc = ncodes[i];
                 if (nc == 0)
                 {
-                    huffman.MinCodes[i] = -1;
-                    huffman.MaxCodes[i] = -1;
-                    huffman.Indices[i] = -1;
+                    huffmanTree.MinCodes[i] = -1;
+                    huffmanTree.MaxCodes[i] = -1;
+                    huffmanTree.Indices[i] = -1;
                 }
                 else
                 {
-                    huffman.MinCodes[i] = c;
-                    huffman.MaxCodes[i] = c + nc - 1;
-                    huffman.Indices[i] = index;
+                    huffmanTree.MinCodes[i] = c;
+                    huffmanTree.MaxCodes[i] = c + nc - 1;
+                    huffmanTree.Indices[i] = index;
                     c += nc;
                     index += nc;
                 }
@@ -637,12 +640,12 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Returns the next Huffman-coded value from the bit-stream, decoded according to the given value.
         /// </summary>
-        /// <param name="huffman">The huffman value</param>
+        /// <param name="huffmanTree">The huffman value</param>
         /// <returns>The <see cref="byte"/></returns>
-        private byte DecodeHuffman(ref Huffman huffman)
+        private byte DecodeHuffman(ref HuffmanTree huffmanTree)
         {
             // Copy stuff to the stack:
-            if (huffman.Length == 0)
+            if (huffmanTree.Length == 0)
             {
                 throw new ImageFormatException("Uninitialized Huffman table");
             }
@@ -653,7 +656,7 @@ namespace ImageSharp.Formats
 
                 if (errorCode == ErrorCodes.NoError)
                 {
-                    ushort v = huffman.Lut[(this.bits.Accumulator >> (this.bits.UnreadBits - LutSize)) & 0xff];
+                    ushort v = huffmanTree.Lut[(this.bits.Accumulator >> (this.bits.UnreadBits - LutSize)) & 0xff];
 
                     if (v != 0)
                     {
@@ -689,9 +692,9 @@ namespace ImageSharp.Formats
                 this.bits.UnreadBits--;
                 this.bits.Mask >>= 1;
 
-                if (code <= huffman.MaxCodes[i])
+                if (code <= huffmanTree.MaxCodes[i])
                 {
-                    return huffman.Values[huffman.Indices[i] + code - huffman.MinCodes[i]];
+                    return huffmanTree.Values[huffmanTree.Indices[i] + code - huffmanTree.MinCodes[i]];
                 }
 
                 code <<= 1;
@@ -1927,7 +1930,7 @@ namespace ImageSharp.Formats
         /// <param name="zigStart">The zig-zag start index</param>
         /// <param name="zigEnd">The zig-zag end index</param>
         /// <param name="delta">The low transform offset</param>
-        private void Refine(Block8x8F* b, ref Huffman h, int* unzigPtr, int zigStart, int zigEnd, int delta)
+        private void Refine(Block8x8F* b, ref HuffmanTree h, int* unzigPtr, int zigStart, int zigEnd, int delta)
         {
             // Refining a DC component is trivial.
             if (zigStart == 0)

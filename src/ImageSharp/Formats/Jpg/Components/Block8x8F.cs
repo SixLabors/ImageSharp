@@ -11,6 +11,8 @@ namespace ImageSharp.Formats
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
 
+    using ImageSharp.Formats.Jpg.Utils;
+
     /// <summary>
     /// DCT code Ported from https://github.com/norishigefukushima/dct_simd
     /// </summary>

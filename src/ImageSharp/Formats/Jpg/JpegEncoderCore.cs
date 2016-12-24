@@ -11,6 +11,8 @@ namespace ImageSharp.Formats
     using System.Runtime.CompilerServices;
 
     using ImageSharp.Formats.Jpg.Components;
+    using ImageSharp.Formats.Jpg.Components.Encoder;
+    using ImageSharp.Formats.Jpg.Utils;
 
     /// <summary>
     /// Image encoder for writing an image to a stream as a jpeg.
@@ -402,7 +404,7 @@ namespace ImageSharp.Formats
         private void Encode444<TColor>(PixelAccessor<TColor> pixels)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            // TODO: Need a JpegEncoderScanImpl<TColor> struct to encapsulate all this mess:
+            // TODO: Need a JpegEncoderScanProcessor<TColor> struct to encapsulate all this mess:
             Block8x8F b = default(Block8x8F);
             Block8x8F cb = default(Block8x8F);
             Block8x8F cr = default(Block8x8F);
@@ -740,7 +742,7 @@ namespace ImageSharp.Formats
         private void WriteStartOfScan<TColor>(PixelAccessor<TColor> pixels)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            // TODO: This method should be the entry point for a JpegEncoderScanImpl<TColor> struct
+            // TODO: This method should be the entry point for a JpegEncoderScanProcessor<TColor> struct
             // TODO: We should allow grayscale writing.
             this.outputStream.Write(SosHeaderYCbCr, 0, SosHeaderYCbCr.Length);
 
@@ -761,7 +763,8 @@ namespace ImageSharp.Formats
 #pragma warning disable SA1201 // MethodShouldNotFollowAStruct
 
         /// <summary>
-        /// This struct belongs to Encode420. Much easeier to understand code if they are together. Why should I move it Up? :P
+        /// Poor man's stackalloc for Encode420.
+        /// This struct belongs to Encode420. Much easeier to understand code if they are close to each other. Why should I move it Up? :P
         /// </summary>
         private struct BlockQuad
         {
@@ -777,7 +780,7 @@ namespace ImageSharp.Formats
         private void Encode420<TColor>(PixelAccessor<TColor> pixels)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            // TODO: Need a JpegEncoderScanImpl<TColor> struct to encapsulate all this mess:
+            // TODO: Need a JpegEncoderScanProcessor<TColor> struct to encapsulate all this mess:
             Block8x8F b = default(Block8x8F);
 
             BlockQuad cb = default(BlockQuad);

@@ -9,7 +9,9 @@ namespace ImageSharp.Tests
     using System.Collections.Generic;
     using System.Diagnostics;
     using System.Runtime.CompilerServices;
-    
+
+    using ImageSharp.Formats.Jpg.Utils;
+
     /// <summary>
     /// Utility class to measure the execution of an operation.
     /// </summary>

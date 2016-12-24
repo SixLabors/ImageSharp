@@ -1,4 +1,4 @@
-﻿namespace ImageSharp.Formats.Jpg.Components
+﻿namespace ImageSharp.Formats.Jpg.Components.Encoder
 {
     /// <summary>
     /// A compiled look-up table representation of a huffmanSpec.

@@ -14,26 +14,6 @@ namespace ImageSharp.Formats
     /// </summary>
     internal static class DCT
     {
-        /// <summary>
-        /// Apply floating point IDCT transformation into dest, using a temporary block 'temp' provided by the caller (optimization)
-        /// </summary>
-        /// <param name="src">Source</param>
-        /// <param name="dest">Destination</param>
-        /// <param name="temp">Temporary block provided by the caller</param>
-        public static void TransformIDCT(ref Block8x8F src, ref Block8x8F dest, ref Block8x8F temp)
-        {
-            src.TransposeInto(ref temp);
-            IDCT8x4_LeftPart(ref temp, ref dest);
-            IDCT8x4_RightPart(ref temp, ref dest);
-
-            dest.TransposeInto(ref temp);
-
-            IDCT8x4_LeftPart(ref temp, ref dest);
-            IDCT8x4_RightPart(ref temp, ref dest);
-
-            dest.MultiplyAllInplace(C_0_125);
-        }
-
 #pragma warning disable SA1310 // FieldNamesMustNotContainUnderscore
         private static readonly Vector4 C_1_175876 = new Vector4(1.175876f);
 
@@ -64,12 +44,33 @@ namespace ImageSharp.Formats
         private static readonly Vector4 InvSqrt2 = new Vector4(0.707107f);
 
         /// <summary>
+        /// Apply floating point IDCT transformation into dest, using a temporary block 'temp' provided by the caller (optimization)
+        /// </summary>
+        /// <param name="src">Source</param>
+        /// <param name="dest">Destination</param>
+        /// <param name="temp">Temporary block provided by the caller</param>
+        public static void TransformIDCT(ref Block8x8F src, ref Block8x8F dest, ref Block8x8F temp)
+        {
+            src.TransposeInto(ref temp);
+            IDCT8x4_LeftPart(ref temp, ref dest);
+            IDCT8x4_RightPart(ref temp, ref dest);
+
+            dest.TransposeInto(ref temp);
+
+            IDCT8x4_LeftPart(ref temp, ref dest);
+            IDCT8x4_RightPart(ref temp, ref dest);
+
+            dest.MultiplyAllInplace(C_0_125);
+        }
+
+        /// <summary>
         /// Do IDCT internal operations on the left part of the block. Original src:
         /// https://github.com/norishigefukushima/dct_simd/blob/master/dct/dct8x8_simd.cpp#L261
         /// </summary>
+        /// <param name="s">The source block</param>
         /// <param name="d">Destination block</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static void IDCT8x4_LeftPart(ref Block8x8F s, ref Block8x8F d)
+        public static void IDCT8x4_LeftPart(ref Block8x8F s, ref Block8x8F d)
         {
             Vector4 my1 = s.V1L;
             Vector4 my7 = s.V7L;
@@ -81,7 +82,7 @@ namespace ImageSharp.Formats
             Vector4 mz1 = my3 + my5;
             Vector4 mz3 = my1 + my5;
 
-            Vector4 mz4 = ((mz0 + mz1) * C_1_175876);
+            Vector4 mz4 = (mz0 + mz1) * C_1_175876;
 
             mz2 = (mz2 * C_1_961571) + mz4;
             mz3 = (mz3 * C_0_390181) + mz4;
@@ -124,8 +125,10 @@ namespace ImageSharp.Formats
         /// Original src:
         /// https://github.com/norishigefukushima/dct_simd/blob/master/dct/dct8x8_simd.cpp#L261
         /// </summary>
+        /// <param name="s">The source block</param>
+        /// <param name="d">The destination block</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static void IDCT8x4_RightPart(ref Block8x8F s, ref Block8x8F d)
+        public static void IDCT8x4_RightPart(ref Block8x8F s, ref Block8x8F d)
         {
             Vector4 my1 = s.V1R;
             Vector4 my7 = s.V7R;
@@ -187,96 +190,57 @@ namespace ImageSharp.Formats
         {
             Vector4 c0 = s.V0L;
             Vector4 c1 = s.V7L;
-            Vector4 t0 = (c0 + c1);
-            Vector4 t7 = (c0 - c1);
+            Vector4 t0 = c0 + c1;
+            Vector4 t7 = c0 - c1;
 
             c1 = s.V6L;
             c0 = s.V1L;
-            Vector4 t1 = (c0 + c1);
-            Vector4 t6 = (c0 - c1);
+            Vector4 t1 = c0 + c1;
+            Vector4 t6 = c0 - c1;
 
             c1 = s.V5L;
             c0 = s.V2L;
-            Vector4 t2 = (c0 + c1);
-            Vector4 t5 = (c0 - c1);
+            Vector4 t2 = c0 + c1;
+            Vector4 t5 = c0 - c1;
 
             c0 = s.V3L;
             c1 = s.V4L;
-            Vector4 t3 = (c0 + c1);
-            Vector4 t4 = (c0 - c1);
+            Vector4 t3 = c0 + c1;
+            Vector4 t4 = c0 - c1;
 
-            /*
-            c1 = x[0]; c2 = x[7]; t0 = c1 + c2; t7 = c1 - c2;
-            c1 = x[1]; c2 = x[6]; t1 = c1 + c2; t6 = c1 - c2;
-            c1 = x[2]; c2 = x[5]; t2 = c1 + c2; t5 = c1 - c2;
-            c1 = x[3]; c2 = x[4]; t3 = c1 + c2; t4 = c1 - c2;
-            */
-
-            c0 = (t0 + t3);
-            Vector4 c3 = (t0 - t3);
-            c1 = (t1 + t2);
-            Vector4 c2 = (t1 - t2);
-
-            /*
-	        c0 = t0 + t3; c3 = t0 - t3;
-	        c1 = t1 + t2; c2 = t1 - t2;
-	        */
+            c0 = t0 + t3;
+            Vector4 c3 = t0 - t3;
+            c1 = t1 + t2;
+            Vector4 c2 = t1 - t2;
 
             d.V0L = c0 + c1;
             d.V4L = c0 - c1;
-
-            /*y[0] = c0 + c1;
-            y[4] = c0 - c1;*/
 
             Vector4 w0 = new Vector4(0.541196f);
             Vector4 w1 = new Vector4(1.306563f);
 
             d.V2L = (w0 * c2) + (w1 * c3);
-
             d.V6L = (w0 * c3) - (w1 * c2);
-            /*
-            y[2] = c2 * r[6] + c3 * r[2];
-            y[6] = c3 * r[6] - c2 * r[2];
-            */
 
             w0 = new Vector4(1.175876f);
             w1 = new Vector4(0.785695f);
-            c3 = ((w0 * t4) + (w1 * t7));
-            c0 = ((w0 * t7) - (w1 * t4));
-            /*
-            c3 = t4 * r[3] + t7 * r[5];
-            c0 = t7 * r[3] - t4 * r[5];
-            */
+            c3 = (w0 * t4) + (w1 * t7);
+            c0 = (w0 * t7) - (w1 * t4);
 
             w0 = new Vector4(1.387040f);
             w1 = new Vector4(0.275899f);
-            c2 = ((w0 * t5) + (w1 * t6));
-            c1 = ((w0 * t6) - (w1 * t5));
-            /*
-	        c2 = t5 * r[1] + t6 * r[7];
-	        c1 = t6 * r[1] - t5 * r[7];
-	        */
+            c2 = (w0 * t5) + (w1 * t6);
+            c1 = (w0 * t6) - (w1 * t5);
 
-            d.V3L = (c0 - c2);
-
-            d.V5L = (c3 - c1);
-            //y[5] = c3 - c1; y[3] = c0 - c2;
+            d.V3L = c0 - c2;
+            d.V5L = c3 - c1;
 
             Vector4 invsqrt2 = new Vector4(0.707107f);
-            c0 = ((c0 + c2) * invsqrt2);
-            c3 = ((c3 + c1) * invsqrt2);
-            //c0 = (c0 + c2) * invsqrt2;
-            //c3 = (c3 + c1) * invsqrt2;
+            c0 = (c0 + c2) * invsqrt2;
+            c3 = (c3 + c1) * invsqrt2;
 
-            d.V1L = (c0 + c3);
-
-            d.V7L = (c0 - c3);
-            //y[1] = c0 + c3; y[7] = c0 - c3;
-
-            /*for(i = 0;i < 8;i++)
-            { 
-            y[i] *= invsqrt2h; 
-            }*/
+            d.V1L = c0 + c3;
+            d.V7L = c0 - c3;
         }
 
         /// <summary>
@@ -291,95 +255,56 @@ namespace ImageSharp.Formats
         {
             Vector4 c0 = s.V0R;
             Vector4 c1 = s.V7R;
-            Vector4 t0 = (c0 + c1);
-            Vector4 t7 = (c0 - c1);
+            Vector4 t0 = c0 + c1;
+            Vector4 t7 = c0 - c1;
 
             c1 = s.V6R;
             c0 = s.V1R;
-            Vector4 t1 = (c0 + c1);
-            Vector4 t6 = (c0 - c1);
+            Vector4 t1 = c0 + c1;
+            Vector4 t6 = c0 - c1;
 
             c1 = s.V5R;
             c0 = s.V2R;
-            Vector4 t2 = (c0 + c1);
-            Vector4 t5 = (c0 - c1);
+            Vector4 t2 = c0 + c1;
+            Vector4 t5 = c0 - c1;
 
             c0 = s.V3R;
             c1 = s.V4R;
-            Vector4 t3 = (c0 + c1);
-            Vector4 t4 = (c0 - c1);
+            Vector4 t3 = c0 + c1;
+            Vector4 t4 = c0 - c1;
 
-            /*
-            c1 = x[0]; c2 = x[7]; t0 = c1 + c2; t7 = c1 - c2;
-            c1 = x[1]; c2 = x[6]; t1 = c1 + c2; t6 = c1 - c2;
-            c1 = x[2]; c2 = x[5]; t2 = c1 + c2; t5 = c1 - c2;
-            c1 = x[3]; c2 = x[4]; t3 = c1 + c2; t4 = c1 - c2;
-            */
-
-            c0 = (t0 + t3);
-            Vector4 c3 = (t0 - t3);
-            c1 = (t1 + t2);
-            Vector4 c2 = (t1 - t2);
-
-            /*
-              c0 = t0 + t3; c3 = t0 - t3;
-              c1 = t1 + t2; c2 = t1 - t2;
-              */
+            c0 = t0 + t3;
+            Vector4 c3 = t0 - t3;
+            c1 = t1 + t2;
+            Vector4 c2 = t1 - t2;
 
             d.V0R = c0 + c1;
             d.V4R = c0 - c1;
-
-            /*y[0] = c0 + c1;
-            y[4] = c0 - c1;*/
 
             Vector4 w0 = new Vector4(0.541196f);
             Vector4 w1 = new Vector4(1.306563f);
 
             d.V2R = (w0 * c2) + (w1 * c3);
-
             d.V6R = (w0 * c3) - (w1 * c2);
-            /*
-            y[2] = c2 * r[6] + c3 * r[2];
-            y[6] = c3 * r[6] - c2 * r[2];
-            */
 
             w0 = new Vector4(1.175876f);
             w1 = new Vector4(0.785695f);
-            c3 = ((w0 * t4) + (w1 * t7));
-            c0 = ((w0 * t7) - (w1 * t4));
-            /*
-            c3 = t4 * r[3] + t7 * r[5];
-            c0 = t7 * r[3] - t4 * r[5];
-            */
+            c3 = (w0 * t4) + (w1 * t7);
+            c0 = (w0 * t7) - (w1 * t4);
 
             w0 = new Vector4(1.387040f);
             w1 = new Vector4(0.275899f);
-            c2 = ((w0 * t5) + (w1 * t6));
-            c1 = ((w0 * t6) - (w1 * t5));
-            /*
-              c2 = t5 * r[1] + t6 * r[7];
-              c1 = t6 * r[1] - t5 * r[7];
-              */
+            c2 = (w0 * t5) + (w1 * t6);
+            c1 = (w0 * t6) - (w1 * t5);
 
-            d.V3R = (c0 - c2);
+            d.V3R = c0 - c2;
+            d.V5R = c3 - c1;
 
-            d.V5R = (c3 - c1);
-            //y[5] = c3 - c1; y[3] = c0 - c2;
+            c0 = (c0 + c2) * InvSqrt2;
+            c3 = (c3 + c1) * InvSqrt2;
 
-            c0 = ((c0 + c2) * InvSqrt2);
-            c3 = ((c3 + c1) * InvSqrt2);
-            //c0 = (c0 + c2) * invsqrt2;
-            //c3 = (c3 + c1) * invsqrt2;
-
-            d.V1R = (c0 + c3);
-
-            d.V7R = (c0 - c3);
-            //y[1] = c0 + c3; y[7] = c0 - c3;
-
-            /*for(i = 0;i < 8;i++)
-            { 
-            y[i] *= invsqrt2h; 
-            }*/
+            d.V1R = c0 + c3;
+            d.V7R = c0 - c3;
         }
 
         /// <summary>

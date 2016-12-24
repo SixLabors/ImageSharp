@@ -1,4 +1,8 @@
-﻿namespace ImageSharp.Formats
+﻿// <copyright file="UnzigData.cs" company="James Jackson-South">
+// Copyright (c) James Jackson-South and contributors.
+// Licensed under the Apache License, Version 2.0.
+// </copyright>
+namespace ImageSharp.Formats
 {
     using System;
     using System.Runtime.InteropServices;
@@ -11,15 +15,10 @@
     /// </summary>
     internal unsafe struct UnzigData
     {
-        internal fixed int Data[64];
-
-        public static UnzigData Create()
-        {
-            UnzigData result = new UnzigData();
-            int* unzigPtr = result.Data;
-            Marshal.Copy(Unzig, 0, (IntPtr)unzigPtr, 64);
-            return result;
-        }
+        /// <summary>
+        /// Copy of <see cref="Unzig"/> in a value type
+        /// </summary>
+        public fixed int Data[64];
 
         /// <summary>
         /// Unzig maps from the zigzag ordering to the natural ordering. For example,
@@ -34,5 +33,16 @@
                 53, 60, 61, 54, 47, 55, 62, 63,
             };
 
+        /// <summary>
+        /// Creates and fills an instance of <see cref="UnzigData"/> with Jpeg unzig indices
+        /// </summary>
+        /// <returns>The new instance</returns>
+        public static UnzigData Create()
+        {
+            UnzigData result = default(UnzigData);
+            int* unzigPtr = result.Data;
+            Marshal.Copy(Unzig, 0, (IntPtr)unzigPtr, 64);
+            return result;
+        }
     }
 }

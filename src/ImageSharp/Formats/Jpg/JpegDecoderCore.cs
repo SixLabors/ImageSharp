@@ -189,7 +189,7 @@ namespace ImageSharp.Formats
             this.huffmanTrees = new Huffman[(MaxTc + 1) * (MaxTh + 1)];
 
             this.quantizationTables = new Block8x8F[MaxTq + 1];
-            this.temp = new byte[2 * BlockF.BlockSize];
+            this.temp = new byte[2 * Block8x8F.ScalarCount];
             this.componentArray = new Component[MaxComponents];
             this.progCoeffs = new Block8x8F[MaxComponents][];
             this.bits = default(Bits);
@@ -1053,32 +1053,32 @@ namespace ImageSharp.Formats
                 switch (x >> 4)
                 {
                     case 0:
-                        if (remaining < BlockF.BlockSize)
+                        if (remaining < Block8x8F.ScalarCount)
                         {
                             done = true;
                             break;
                         }
 
-                        remaining -= BlockF.BlockSize;
-                        this.ReadFull(this.temp, 0, BlockF.BlockSize);
+                        remaining -= Block8x8F.ScalarCount;
+                        this.ReadFull(this.temp, 0, Block8x8F.ScalarCount);
 
-                        for (int i = 0; i < BlockF.BlockSize; i++)
+                        for (int i = 0; i < Block8x8F.ScalarCount; i++)
                         {
                             this.quantizationTables[tq][i] = this.temp[i];
                         }
 
                         break;
                     case 1:
-                        if (remaining < 2 * BlockF.BlockSize)
+                        if (remaining < 2 * Block8x8F.ScalarCount)
                         {
                             done = true;
                             break;
                         }
 
-                        remaining -= 2 * BlockF.BlockSize;
-                        this.ReadFull(this.temp, 0, 2 * BlockF.BlockSize);
+                        remaining -= 2 * Block8x8F.ScalarCount;
+                        this.ReadFull(this.temp, 0, 2 * Block8x8F.ScalarCount);
 
-                        for (int i = 0; i < BlockF.BlockSize; i++)
+                        for (int i = 0; i < Block8x8F.ScalarCount; i++)
                         {
                             this.quantizationTables[tq][i] = (this.temp[2 * i] << 8) | this.temp[(2 * i) + 1];
                         }
@@ -1473,7 +1473,7 @@ namespace ImageSharp.Formats
             // significant bit.
             // For baseline JPEGs, these parameters are hard-coded to 0/63/0/0.
             int zigStart = 0;
-            int zigEnd = BlockF.BlockSize - 1;
+            int zigEnd = Block8x8F.ScalarCount - 1;
             int ah = 0;
             int al = 0;
 
@@ -1484,7 +1484,7 @@ namespace ImageSharp.Formats
                 ah = this.temp[3 + scanComponentCountX2] >> 4;
                 al = this.temp[3 + scanComponentCountX2] & 0x0f;
 
-                if ((zigStart == 0 && zigEnd != 0) || zigStart > zigEnd || zigEnd >= BlockF.BlockSize)
+                if ((zigStart == 0 && zigEnd != 0) || zigStart > zigEnd || zigEnd >= Block8x8F.ScalarCount)
                 {
                     throw new ImageFormatException("Bad spectral selection bounds");
                 }
@@ -1788,7 +1788,7 @@ namespace ImageSharp.Formats
 
             if (this.isProgressive)
             {
-                if (zigEnd != BlockF.BlockSize - 1 || al != 0)
+                if (zigEnd != Block8x8F.ScalarCount - 1 || al != 0)
                 {
                     // We haven't completely decoded this 8x8 block. Save the coefficients.
 

@@ -120,25 +120,6 @@ namespace ImageSharp.Tests.Formats.Jpg
 
                 Assert.Equal(expected, actual, new ApproximateFloatComparer(1f));
             }
-        }
-
-        [Theory]
-        [InlineData(42)]
-        [InlineData(1)]
-        [InlineData(2)]
-        public void Fdct_SimdReferenceImplementation_IsEquivalentToFloatingPointReferenceImplementation(int seed)
-        {
-            Block classic = new Block() { Data = Create8x8RandomIntData(-200, 200, seed) };
-            MutableSpan<float> src = new MutableSpan<int>(classic.Data).ConvertToFloat32MutableSpan();
-
-            MutableSpan<float> dest1 = new MutableSpan<float>(64);
-            MutableSpan<float> dest2 = new MutableSpan<float>(64);
-            MutableSpan<float> temp = new MutableSpan<float>(64);
-
-            ReferenceImplementations.fDCT2D_llm(src, dest1, temp, downscaleBy8: true, offsetSourceByNeg128: false);
-            ReferenceImplementations.fDCT8x8_llm_sse(src, dest2, temp);
-            
-            Assert.Equal(dest1.Data, dest2.Data, new ApproximateFloatComparer(1f));
-        }
+        }   
     }
 }

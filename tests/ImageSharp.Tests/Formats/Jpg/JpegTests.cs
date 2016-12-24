@@ -57,6 +57,34 @@ namespace ImageSharp.Tests
             }
         }
 
+        private const int BenchmarkExecTimes = 2;
+
+        [Theory(
+            //Skip = "Benchmark, enable manually!"
+            )]
+        [WithFileCollection(nameof(AllBmpFiles), PixelTypes.Color | PixelTypes.StandardImageClass | PixelTypes.Argb, JpegSubsample.Ratio420, 75)]
+        [WithFileCollection(nameof(AllBmpFiles), PixelTypes.Color | PixelTypes.StandardImageClass | PixelTypes.Argb, JpegSubsample.Ratio444, 75)]
+        public void Benchmark_JpegEncoder<TColor>(TestImageProvider<TColor> provider, JpegSubsample subSample, int quality)
+           where TColor : struct, IPackedPixel, IEquatable<TColor>
+        {
+            var image = provider.GetImage();
+
+            using (var outputStream = new MemoryStream())
+            {
+                var encoder = new JpegEncoder()
+                {
+                    Subsample = subSample,
+                    Quality = quality
+                };
+
+                for (int i = 0; i < BenchmarkExecTimes; i++)
+                {
+                    image.Save(outputStream, encoder);
+                    outputStream.Seek(0, SeekOrigin.Begin);
+                }
+            }
+        }
+
         public static Image<TColor> CreateTestImage<TColor>(GenericFactory<TColor> factory)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {

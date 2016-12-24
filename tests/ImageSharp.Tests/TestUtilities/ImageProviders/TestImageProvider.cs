@@ -90,5 +90,11 @@ namespace ImageSharp.Tests
 
             return this;
         }
+
+        public override string ToString()
+        {
+            string provName = this.GetType().Name.Replace("Provider", "");
+            return $"{this.SourceFileOrDescription}[{this.PixelType}]";
+        }
     }
 }

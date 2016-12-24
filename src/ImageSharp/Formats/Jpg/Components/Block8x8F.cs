@@ -3,6 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 // ReSharper disable InconsistentNaming
+
 namespace ImageSharp.Formats
 {
     using System;
@@ -15,6 +16,7 @@ namespace ImageSharp.Formats
     /// </summary>
     internal partial struct Block8x8F
     {
+#pragma warning disable SA1204 // Static members must appear before non-static members
         /// <summary>
         /// Vector count
         /// </summary>
@@ -141,7 +143,7 @@ namespace ImageSharp.Formats
         }
 
         /// <summary>
-        /// Multiply in place
+        /// Multiply all elements of the block.
         /// </summary>
         /// <param name="scaleVec">Vector to multiply by</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -165,6 +167,10 @@ namespace ImageSharp.Formats
             this.V7R *= scaleVec;
         }
 
+        /// <summary>
+        /// Adds a vector to all elements of the block.
+        /// </summary>
+        /// <param name="diff">The added vector</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void AddToAllInplace(Vector4 diff)
         {
@@ -185,7 +191,7 @@ namespace ImageSharp.Formats
             this.V7L += diff;
             this.V7R += diff;
         }
-        
+
         /// <summary>
         /// Pointer-based "Indexer" (getter part)
         /// </summary>
@@ -193,7 +199,7 @@ namespace ImageSharp.Formats
         /// <param name="idx">Index</param>
         /// <returns>The scaleVec value at the specified index</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static unsafe float GetScalarAt(Block8x8F* blockPtr, int idx)
+        public static unsafe float GetScalarAt(Block8x8F* blockPtr, int idx)
         {
             float* fp = (float*)blockPtr;
             return fp[idx];
@@ -206,7 +212,7 @@ namespace ImageSharp.Formats
         /// <param name="idx">Index</param>
         /// <param name="value">Value</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static unsafe void SetScalarAt(Block8x8F* blockPtr, int idx, float value)
+        public static unsafe void SetScalarAt(Block8x8F* blockPtr, int idx, float value)
         {
             float* fp = (float*)blockPtr;
             fp[idx] = value;
@@ -219,7 +225,7 @@ namespace ImageSharp.Formats
         /// <param name="qtPtr">Qt pointer</param>
         /// <param name="unzigPtr">Unzig pointer</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static unsafe void UnZig(Block8x8F* blockPtr, Block8x8F* qtPtr, int* unzigPtr)
+        public static unsafe void UnZig(Block8x8F* blockPtr, Block8x8F* qtPtr, int* unzigPtr)
         {
             float* b = (float*)blockPtr;
             float* qtp = (float*)qtPtr;
@@ -236,7 +242,7 @@ namespace ImageSharp.Formats
         /// Copy raw 32bit floating point data to dest
         /// </summary>
         /// <param name="dest">Destination</param>
-        internal unsafe void CopyTo(MutableSpan<int> dest)
+        public unsafe void CopyTo(MutableSpan<int> dest)
         {
             fixed (Vector4* ptr = &this.V0L)
             {
@@ -252,7 +258,7 @@ namespace ImageSharp.Formats
         /// Load raw 32bit floating point data from source
         /// </summary>
         /// <param name="source">Source</param>
-        internal unsafe void LoadFrom(MutableSpan<int> source)
+        public unsafe void LoadFrom(MutableSpan<int> source)
         {
             fixed (Vector4* ptr = &this.V0L)
             {
@@ -263,12 +269,12 @@ namespace ImageSharp.Formats
                 }
             }
         }
-        
+
         /// <summary>
         /// Fill the block with defaults (zeroes)
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void Clear()
+        public void Clear()
         {
             // The cheapest way to do this in C#:
             this = default(Block8x8F);
@@ -278,7 +284,7 @@ namespace ImageSharp.Formats
         /// TODO: Should be removed when BlockF goes away
         /// </summary>
         /// <param name="legacyBlock">Legacy block</param>
-        internal void LoadFrom(ref BlockF legacyBlock)
+        public void LoadFrom(ref BlockF legacyBlock)
         {
             this.LoadFrom(legacyBlock.Data);
         }
@@ -287,12 +293,11 @@ namespace ImageSharp.Formats
         /// TODO: Should be removed when BlockF goes away
         /// </summary>
         /// <param name="legacyBlock">Legacy block</param>
-        internal void CopyTo(ref BlockF legacyBlock)
+        public void CopyTo(ref BlockF legacyBlock)
         {
             this.CopyTo(legacyBlock.Data);
         }
 
-        
         /// <summary>
         /// Level shift by +128, clip to [0, 255], and write to buffer.
         /// </summary>
@@ -300,7 +305,7 @@ namespace ImageSharp.Formats
         /// <param name="stride">Stride offset</param>
         /// <param name="tempBlockPtr">Temp Block pointer</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal unsafe void CopyColorsTo(MutableSpan<byte> buffer, int stride, Block8x8F* tempBlockPtr)
+        public unsafe void CopyColorsTo(MutableSpan<byte> buffer, int stride, Block8x8F* tempBlockPtr)
         {
             this.TransformByteConvetibleColorValuesInto(ref *tempBlockPtr);
 
@@ -328,7 +333,7 @@ namespace ImageSharp.Formats
         /// <param name="qt">Quantization table</param>
         /// <param name="unzigPtr">Pointer to <see cref="UnzigData"/> elements</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static unsafe void UnZigDivRound(Block8x8F* src, Block8x8F* dest, Block8x8F* qt, int* unzigPtr)
+        public static unsafe void UnZigDivRound(Block8x8F* src, Block8x8F* dest, Block8x8F* qt, int* unzigPtr)
         {
             float* s = (float*)src;
             float* d = (float*)dest;

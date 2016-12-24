@@ -9,7 +9,7 @@ namespace ImageSharp.Formats
     using System.IO;
     using System.Numerics;
     using System.Runtime.CompilerServices;
-    
+
     /// <summary>
     /// Image encoder for writing an image to a stream as a jpeg.
     /// </summary>
@@ -113,19 +113,21 @@ namespace ImageSharp.Formats
         /// Counts the number of bits needed to hold an integer.
         /// </summary>
         private static readonly uint[] BitCountLut =
-        {
-            0, 1, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5,
-            5, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
-            6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-            7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-            7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-            7, 7, 7, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
-            8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
-            8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
-            8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
-            8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
-            8, 8, 8, 8, 8, 8,
-        };
+            {
+                0, 1, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5,
+                5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
+                6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
+                7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+                7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+                7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+                7, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+                8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+                8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+                8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+                8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+                8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+                8, 8, 8,
+            };
 
         /// <summary>
         /// The unscaled quantization tables in zig-zag order. Each
@@ -134,23 +136,53 @@ namespace ImageSharp.Formats
         /// zig-zag order.
         /// </summary>
         private static readonly byte[,] UnscaledQuant =
-        {
             {
-                // Luminance.
-                16, 11, 12, 14, 12, 10, 16, 14, 13, 14, 18, 17, 16, 19, 24, 40,
-                26, 24, 22, 22, 24, 49, 35, 37, 29, 40, 58, 51, 61, 60, 57, 51,
-                56, 55, 64, 72, 92, 78, 64, 68, 87, 69, 55, 56, 80, 109, 81,
-                87, 95, 98, 103, 104, 103, 62, 77, 113, 121, 112, 100, 120, 92,
-                101, 103, 99,
-            },
+                    {
+                        // Luminance.
+                        16, 11, 12, 14, 12, 10, 16, 14, 13, 14, 18, 17, 16, 19, 24,
+                        40, 26, 24, 22, 22, 24, 49, 35, 37, 29, 40, 58, 51, 61, 60,
+                        57, 51, 56, 55, 64, 72, 92, 78, 64, 68, 87, 69, 55, 56, 80,
+                        109, 81, 87, 95, 98, 103, 104, 103, 62, 77, 113, 121, 112,
+                        100, 120, 92, 101, 103, 99,
+                    },
+                    {
+                        // Chrominance.
+                        17, 18, 18, 24, 21, 24, 47, 26, 26, 47, 99, 66, 56, 66,
+                        99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,
+                        99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,
+                        99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,
+                        99, 99, 99, 99, 99, 99, 99, 99,
+                    }
+            };
+
+        /// <summary>
+        /// The SOS (Start Of Scan) marker "\xff\xda" followed by 12 bytes:
+        /// - the marker length "\x00\x0c",
+        /// - the number of components "\x03",
+        /// - component 1 uses DC table 0 and AC table 0 "\x01\x00",
+        /// - component 2 uses DC table 1 and AC table 1 "\x02\x11",
+        /// - component 3 uses DC table 1 and AC table 1 "\x03\x11",
+        /// - the bytes "\x00\x3f\x00". Section B.2.3 of the spec says that for
+        /// sequential DCTs, those bytes (8-bit Ss, 8-bit Se, 4-bit Ah, 4-bit Al)
+        /// should be 0x00, 0x3f, 0x00&lt;&lt;4 | 0x00.
+        /// </summary>
+        private static readonly byte[] SosHeaderYCbCr =
             {
-                // Chrominance.
-                17, 18, 18, 24, 21, 24, 47, 26, 26, 47, 99, 66, 56, 66, 99, 99,
-                99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,
-                99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,
-                99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,
-            }
-        };
+                JpegConstants.Markers.XFF, JpegConstants.Markers.SOS, // Marker
+                0x00, 0x0c,
+
+                // Length (high byte, low byte), must be 6 + 2 * (number of components in scan)
+                0x03, // Number of components in a scan, 3
+                0x01, // Component Id Y
+                0x00, // DC/AC Huffman table
+                0x02, // Component Id Cb
+                0x11, // DC/AC Huffman table
+                0x03, // Component Id Cr
+                0x11, // DC/AC Huffman table
+                0x00, // Ss - Start of spectral selection.
+                0x3f, // Se - End of spectral selection.
+                0x00 // Ah + Ah (Successive approximation bit position high + low)
+            };
 
         /// <summary>
         /// A scratch buffer to reduce allocations.
@@ -168,39 +200,14 @@ namespace ImageSharp.Formats
         private readonly byte[] huffmanBuffer = new byte[179];
 
         /// <summary>
-        /// The scaled quantization tables, in zig-zag order.
+        /// The scaled luminance table, in zig-zag order.
         /// </summary>
-        //private readonly float[][] quant = new float[QuantizationTableCount][];
-        //private readonly float[] quant = new float[QuantizationTableCount* Block8x8F.ScalarCount];
         private Block8x8F luminanceQuantTable;
-        private Block8x8F chrominanceQuantTable;
 
         /// <summary>
-        /// The SOS (Start Of Scan) marker "\xff\xda" followed by 12 bytes:
-        /// - the marker length "\x00\x0c",
-        /// - the number of components "\x03",
-        /// - component 1 uses DC table 0 and AC table 0 "\x01\x00",
-        /// - component 2 uses DC table 1 and AC table 1 "\x02\x11",
-        /// - component 3 uses DC table 1 and AC table 1 "\x03\x11",
-        /// - the bytes "\x00\x3f\x00". Section B.2.3 of the spec says that for
-        /// sequential DCTs, those bytes (8-bit Ss, 8-bit Se, 4-bit Ah, 4-bit Al)
-        /// should be 0x00, 0x3f, 0x00&lt;&lt;4 | 0x00.
+        /// The scaled chrominance table, in zig-zag order.
         /// </summary>
-        private readonly byte[] sosHeaderYCbCr =
-        {
-            JpegConstants.Markers.XFF, JpegConstants.Markers.SOS, // Marker
-            0x00, 0x0c, // Length (high byte, low byte), must be 6 + 2 * (number of components in scan)
-            0x03, // Number of components in a scan, 3
-            0x01, // Component Id Y
-            0x00, // DC/AC Huffman table
-            0x02, // Component Id Cb
-            0x11, // DC/AC Huffman table
-            0x03, // Component Id Cr
-            0x11, // DC/AC Huffman table
-            0x00, // Ss - Start of spectral selection.
-            0x3f, // Se - End of spectral selection.
-            0x00 // Ah + Ah (Successive approximation bit position high + low)
-        };
+        private Block8x8F chrominanceQuantTable;
 
         /// <summary>
         /// The accumulated bits to write to the stream.
@@ -249,15 +256,13 @@ namespace ImageSharp.Formats
             /// <summary>
             /// The AC luminance huffman table index
             /// </summary>
-
             LuminanceAC = 1,
-            
 
             /// <summary>
             /// The DC chrominance huffman table index
             /// </summary>
             ChrominanceDC = 2,
-            
+
             /// <summary>
             /// The AC chrominance huffman table index
             /// </summary>
@@ -280,26 +285,6 @@ namespace ImageSharp.Formats
             /// The chrominance quantization table index
             /// </summary>
             Chrominance = 1,
-        }
-
-        private static void InitQuantizationTable(int i, int scale, ref Block8x8F quant)
-        {
-            for (int j = 0; j < Block8x8F.ScalarCount; j++)
-            {
-                int x = UnscaledQuant[i, j];
-                x = ((x * scale) + 50) / 100;
-                if (x < 1)
-                {
-                    x = 1;
-                }
-
-                if (x > 255)
-                {
-                    x = 255;
-                }
-
-                quant[j] = x;
-            }
         }
 
         /// <summary>
@@ -325,11 +310,6 @@ namespace ImageSharp.Formats
             this.outputStream = stream;
             this.subsample = sample;
 
-            //for (int i = 0; i < QuantizationTableCount; i++)
-            //{
-            //    this.quant[i] = new float[];
-            //}
-
             if (quality < 1)
             {
                 quality = 1;
@@ -352,10 +332,9 @@ namespace ImageSharp.Formats
             }
 
             // Initialize the quantization tables.
-
             InitQuantizationTable(0, scale, ref this.luminanceQuantTable);
             InitQuantizationTable(1, scale, ref this.chrominanceQuantTable);
-            
+
             // Compute number of components based on input image type.
             int componentCount = 3;
 
@@ -385,7 +364,80 @@ namespace ImageSharp.Formats
             stream.Write(this.buffer, 0, 2);
             stream.Flush();
         }
-        
+
+        private static void InitQuantizationTable(int i, int scale, ref Block8x8F quant)
+        {
+            for (int j = 0; j < Block8x8F.ScalarCount; j++)
+            {
+                int x = UnscaledQuant[i, j];
+                x = ((x * scale) + 50) / 100;
+                if (x < 1)
+                {
+                    x = 1;
+                }
+
+                if (x > 255)
+                {
+                    x = 255;
+                }
+
+                quant[j] = x;
+            }
+        }
+
+        /// <summary>
+        /// Converts the 8x8 region of the image whose top-left corner is x,y to its YCbCr values.
+        /// </summary>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <param name="pixels">The pixel accessor.</param>
+        /// <param name="x">The x-position within the image.</param>
+        /// <param name="y">The y-position within the image.</param>
+        /// <param name="yBlock">The luminance block.</param>
+        /// <param name="cbBlock">The red chroma block.</param>
+        /// <param name="crBlock">The blue chroma block.</param>
+        private static void ToYCbCr<TColor>(
+            PixelAccessor<TColor> pixels,
+            int x,
+            int y,
+            Block8x8F* yBlock,
+            Block8x8F* cbBlock,
+            Block8x8F* crBlock)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
+        {
+            float* yBlockRaw = (float*)yBlock;
+            float* cbBlockRaw = (float*)cbBlock;
+            float* crBlockRaw = (float*)crBlock;
+
+            using (PixelArea<TColor> rgbBytes = new PixelArea<TColor>(8, 8, ComponentOrder.XYZ))
+            {
+                pixels.CopyRGBBytesStretchedTo(rgbBytes, y, x);
+
+                byte* data = (byte*)rgbBytes.DataPointer;
+
+                for (int j = 0; j < 8; j++)
+                {
+                    int j8 = j * 8;
+                    for (int i = 0; i < 8; i++)
+                    {
+                        Vector3 v = new Vector3(data[0], data[1], data[2]);
+
+                        // Convert returned bytes into the YCbCr color space. Assume RGBA
+                        float yy = (0.299F * v.X) + (0.587F * v.Y) + (0.114F * v.Z);
+                        float cb = 128 + ((-0.168736F * v.X) - (0.331264F * v.Y) + (0.5F * v.Z));
+                        float cr = 128 + ((0.5F * v.X) - (0.418688F * v.Y) - (0.081312F * v.Z));
+
+                        int index = j8 + i;
+
+                        yBlockRaw[index] = yy;
+                        cbBlockRaw[index] = cb;
+                        crBlockRaw[index] = cr;
+
+                        data += 3;
+                    }
+                }
+            }
+        }
+
         /// <summary>
         /// Emits the least significant count of bits of bits to the bit-stream.
         /// The precondition is bits <example>&lt; 1&lt;&lt;nBits &amp;&amp; nBits &lt;= 16</example>.
@@ -485,30 +537,32 @@ namespace ImageSharp.Formats
         /// <param name="quant">Quantization table</param>
         /// <param name="unzigPtr">The 8x8 Unzig block ptr</param>
         /// <returns>The <see cref="int"/></returns>
-        private float WriteBlock(QuantIndex index, float prevDC, Block8x8F* src, Block8x8F* tempDest, Block8x8F* temp2, Block8x8F* quant, int* unzigPtr)
+        private float WriteBlock(
+            QuantIndex index,
+            float prevDC,
+            Block8x8F* src,
+            Block8x8F* tempDest,
+            Block8x8F* temp2,
+            Block8x8F* quant,
+            int* unzigPtr)
         {
             DCT.TransformFDCT(ref *src, ref *tempDest, ref *temp2);
-        
+
             Block8x8F.UnZigDivRound(tempDest, temp2, quant, unzigPtr);
-            //Block8x8F.RoundAll(tempDest);
-                
+
             float* d = (float*)temp2;
-            float* q = (float*)quant;
 
             // Emit the DC delta.
-            //float dc = Round(d[0], q[0]);
             float dc = d[0];
 
-
             this.EmitHuffRLE((HuffIndex)((2 * (int)index) + 0), 0, (int)(dc - prevDC));
-            
+
             // Emit the AC components.
             HuffIndex h = (HuffIndex)((2 * (int)index) + 1);
             int runLength = 0;
-            
+
             for (int zig = 1; zig < Block.BlockSize; zig++)
             {
-                //float ac = Round(d[unzigPtr[zig]], q[zig]);
                 float ac = d[zig];
 
                 if (ac == 0)
@@ -535,107 +589,6 @@ namespace ImageSharp.Formats
 
             return dc;
         }
-
-        /// <summary>
-        /// Converts the 8x8 region of the image whose top-left corner is x,y to its YCbCr values.
-        /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <param name="pixels">The pixel accessor.</param>
-        /// <param name="x">The x-position within the image.</param>
-        /// <param name="y">The y-position within the image.</param>
-        /// <param name="yBlock">The luminance block.</param>
-        /// <param name="cbBlock">The red chroma block.</param>
-        /// <param name="crBlock">The blue chroma block.</param>
-        private static void ToYCbCr<TColor>(
-            PixelAccessor<TColor> pixels,
-            int x,
-            int y,
-            Block8x8F* yBlock,
-            Block8x8F* cbBlock,
-            Block8x8F* crBlock)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
-        {
-            float* yBlockRaw = (float*)yBlock;
-            float* cbBlockRaw = (float*)cbBlock;
-            float* crBlockRaw = (float*)crBlock;
-            
-            PixelAccessor<Color> asStandardColorAccessor = pixels as PixelAccessor<Color>;
-            if (asStandardColorAccessor != null)
-            {
-                ColorRGBToYCbCr(asStandardColorAccessor, x, y, yBlockRaw, cbBlockRaw, crBlockRaw);
-                return;
-            }
-            
-            Vector4 maxBytes = new Vector4(255f);
-            Vector4 half = new Vector4(0.5f);
-            int xmax = pixels.Width - 1;
-            int ymax = pixels.Height - 1;
-
-            for (int j = 0; j < 8; j++)
-            {
-                int j8 = j * 8;
-                for (int i = 0; i < 8; i++)
-                {
-                    Vector4 v = pixels[Math.Min(x + i, xmax), Math.Min(y + j, ymax)].ToVector4();
-                    v = v * maxBytes + half;
-                    
-                    // Convert returned bytes into the YCbCr color space. Assume RGBA
-                    float yy = ((0.299F * v.X) + (0.587F * v.Y) + (0.114F * v.Z));
-                    float cb = (128 + ((-0.168736F * v.X) - (0.331264F * v.Y) + (0.5F * v.Z)));
-                    float cr = (128 + ((0.5F * v.X) - (0.418688F * v.Y) - (0.081312F * v.Z)));
-
-                    int index = j8 + i;
-
-                    yBlockRaw[index] = yy;
-                    cbBlockRaw[index] = cb;
-                    crBlockRaw[index] = cr;
-                }
-            }
-        }
-        
-        // ReSharper disable once InconsistentNaming
-        private static void ColorRGBToYCbCr(
-            PixelAccessor<Color> pixels,
-            int x,
-            int y,
-            float* yBlockRaw,
-            float* cbBlockRaw,
-            float* crBlockRaw)
-        {
-            int colorSize = sizeof(Color);
-
-            int xmax = pixels.Width - 1;
-            int ymax = pixels.Height - 1;
-
-            byte* data = (byte*)pixels.DataPointer;
-
-            for (int j = 0; j < 8; j++)
-            {
-                int yPos = Math.Min(y + j, ymax);
-
-                int j8 = j * 8;
-                for (int i = 0; i < 8; i++)
-                {
-                    int xPos = Math.Min(x + i, xmax);
-
-                    byte* dataPos = data + (((yPos * pixels.Width) + xPos) * colorSize);
-                    Vector3 v = new Vector3(dataPos[0], dataPos[1], dataPos[2]);
-                    
-                    // Convert returned bytes into the YCbCr color space. Assume RGBA
-                    float yy = ((0.299F * v.X) + (0.587F * v.Y) + (0.114F * v.Z));
-                    float cb = (128 + ((-0.168736F * v.X) - (0.331264F * v.Y) + (0.5F * v.Z)));
-                    float cr = (128 + ((0.5F * v.X) - (0.418688F * v.Y) - (0.081312F * v.Z)));
-
-                    int index = j8 + i;
-
-                    yBlockRaw[index] = yy;
-                    cbBlockRaw[index] = cb;
-                    crBlockRaw[index] = cr;
-                }
-            }
-        }
-
-        
 
         /// <summary>
         /// Writes the application header containing the JFIF identifier plus extra data.
@@ -736,10 +689,11 @@ namespace ImageSharp.Formats
 
             WriteDataToDqt(dqt, ref offset, QuantIndex.Luminance, ref this.luminanceQuantTable);
             WriteDataToDqt(dqt, ref offset, QuantIndex.Chrominance, ref this.chrominanceQuantTable);
-            
+
             this.outputStream.Write(dqt, 0, dqt.Length);
         }
 
+#pragma warning disable SA1204
         private static void WriteDataToDqt(byte[] dqt, ref int offset, QuantIndex i, ref Block8x8F q)
         {
             dqt[offset++] = (byte)i;
@@ -748,6 +702,7 @@ namespace ImageSharp.Formats
                 dqt[offset++] = (byte)q[j];
             }
         }
+#pragma warning restore SA1204
 
         /// <summary>
         /// Writes the Start Of Frame (Baseline) marker
@@ -779,7 +734,9 @@ namespace ImageSharp.Formats
             this.buffer[2] = (byte)(height & 0xff); // (2 bytes, Hi-Lo), must be > 0 if DNL not supported
             this.buffer[3] = (byte)(width >> 8);
             this.buffer[4] = (byte)(width & 0xff); // (2 bytes, Hi-Lo), must be > 0 if DNL not supported
-            this.buffer[5] = (byte)componentCount; // Number of components (1 byte), usually 1 = Gray scaled, 3 = color YCbCr or YIQ, 4 = color CMYK)
+            this.buffer[5] = (byte)componentCount;
+
+            // Number of components (1 byte), usually 1 = Gray scaled, 3 = color YCbCr or YIQ, 4 = color CMYK)
             if (componentCount == 1)
             {
                 this.buffer[6] = 1;
@@ -863,7 +820,7 @@ namespace ImageSharp.Formats
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             // TODO: We should allow grayscale writing.
-            this.outputStream.Write(this.sosHeaderYCbCr, 0, this.sosHeaderYCbCr.Length);
+            this.outputStream.Write(SosHeaderYCbCr, 0, SosHeaderYCbCr.Length);
 
             switch (this.subsample)
             {
@@ -887,12 +844,12 @@ namespace ImageSharp.Formats
         private void Encode444<TColor>(PixelAccessor<TColor> pixels)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            Block8x8F b = new Block8x8F();
-            Block8x8F cb = new Block8x8F();
-            Block8x8F cr = new Block8x8F();
+            Block8x8F b = default(Block8x8F);
+            Block8x8F cb = default(Block8x8F);
+            Block8x8F cr = default(Block8x8F);
 
-            Block8x8F temp1 = new Block8x8F();
-            Block8x8F temp2 = new Block8x8F();
+            Block8x8F temp1 = default(Block8x8F);
+            Block8x8F temp2 = default(Block8x8F);
 
             Block8x8F onStackLuminanceQuantTable = this.luminanceQuantTable;
             Block8x8F onStackChrominanceQuantTable = this.chrominanceQuantTable;
@@ -908,16 +865,42 @@ namespace ImageSharp.Formats
                 {
                     ToYCbCr(pixels, x, y, &b, &cb, &cr);
 
-                    prevDCY = this.WriteBlock(QuantIndex.Luminance, prevDCY, &b, &temp1, &temp2, &onStackLuminanceQuantTable, unzig.Data);
-                    prevDCCb = this.WriteBlock(QuantIndex.Chrominance, prevDCCb, &cb, &temp1, &temp2, &onStackChrominanceQuantTable, unzig.Data);
-                    prevDCCr = this.WriteBlock(QuantIndex.Chrominance, prevDCCr, &cr, &temp1, &temp2, &onStackChrominanceQuantTable, unzig.Data);
+                    prevDCY = this.WriteBlock(
+                        QuantIndex.Luminance,
+                        prevDCY,
+                        &b,
+                        &temp1,
+                        &temp2,
+                        &onStackLuminanceQuantTable,
+                        unzig.Data);
+                    prevDCCb = this.WriteBlock(
+                        QuantIndex.Chrominance,
+                        prevDCCb,
+                        &cb,
+                        &temp1,
+                        &temp2,
+                        &onStackChrominanceQuantTable,
+                        unzig.Data);
+                    prevDCCr = this.WriteBlock(
+                        QuantIndex.Chrominance,
+                        prevDCCr,
+                        &cr,
+                        &temp1,
+                        &temp2,
+                        &onStackChrominanceQuantTable,
+                        unzig.Data);
                 }
             }
         }
 
-        struct BlockQuad
+#pragma warning disable SA1201 // MethodShouldNotFollowAStruct
+
+        /// <summary>
+        /// This struct belongs to Encode420. Much easeier to understand code if they are together. Why should I move it Up? :P
+        /// </summary>
+        private struct BlockQuad
         {
-            public fixed float Data[4*Block8x8F.ScalarCount];
+            public fixed float Data[4 * Block8x8F.ScalarCount];
         }
 
         /// <summary>
@@ -929,15 +912,15 @@ namespace ImageSharp.Formats
         private void Encode420<TColor>(PixelAccessor<TColor> pixels)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            Block8x8F b = new Block8x8F();
-            
-            BlockQuad cb = new BlockQuad();
-            BlockQuad cr = new BlockQuad();
+            Block8x8F b = default(Block8x8F);
+
+            BlockQuad cb = default(BlockQuad);
+            BlockQuad cr = default(BlockQuad);
             Block8x8F* cbPtr = (Block8x8F*)cb.Data;
             Block8x8F* crPtr = (Block8x8F*)cr.Data;
-            
-            Block8x8F temp1 = new Block8x8F();
-            Block8x8F temp2 = new Block8x8F();
+
+            Block8x8F temp1 = default(Block8x8F);
+            Block8x8F temp2 = default(Block8x8F);
 
             Block8x8F onStackLuminanceQuantTable = this.luminanceQuantTable;
             Block8x8F onStackChrominanceQuantTable = this.chrominanceQuantTable;
@@ -990,6 +973,8 @@ namespace ImageSharp.Formats
             }
         }
 
+#pragma warning restore SA1201
+
         /// <summary>
         /// Writes the header for a marker with the given length.
         /// </summary>
@@ -1041,11 +1026,6 @@ namespace ImageSharp.Formats
         private class HuffmanLut
         {
             /// <summary>
-            /// The collection of huffman values.
-            /// </summary>
-            public uint[] Values { get; }
-
-            /// <summary>
             /// Initializes a new instance of the <see cref="HuffmanLut"/> class.
             /// </summary>
             /// <param name="spec">The encoding specifications.</param>
@@ -1079,6 +1059,11 @@ namespace ImageSharp.Formats
                     code <<= 1;
                 }
             }
+
+            /// <summary>
+            /// Gets the collection of huffman values.
+            /// </summary>
+            public uint[] Values { get; }
         }
     }
 }

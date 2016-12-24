@@ -34,7 +34,10 @@ namespace ImageSharp.Formats
                 {
                     0, 1, 5, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0
                 },
-                new byte[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 }),
+                new byte[]
+                {
+                    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11
+                }),
             new HuffmanSpec(
                 new byte[]
                 {
@@ -562,8 +565,7 @@ namespace ImageSharp.Formats
                 ColorRGBToYCbCr(asStandardColorAccessor, x, y, yBlockRaw, cbBlockRaw, crBlockRaw);
                 return;
             }
-
-
+            
             Vector4 maxBytes = new Vector4(255f);
             Vector4 half = new Vector4(0.5f);
             int xmax = pixels.Width - 1;
@@ -590,9 +592,8 @@ namespace ImageSharp.Formats
                 }
             }
         }
-
-
         
+        // ReSharper disable once InconsistentNaming
         private static void ColorRGBToYCbCr(
             PixelAccessor<Color> pixels,
             int x,
@@ -632,10 +633,6 @@ namespace ImageSharp.Formats
                     crBlockRaw[index] = cr;
                 }
             }
-
-            //(((y * pixels.Width) + x) * colorSize);
-
-
         }
 
         
@@ -934,13 +931,11 @@ namespace ImageSharp.Formats
         {
             Block8x8F b = new Block8x8F();
             
-
             BlockQuad cb = new BlockQuad();
             BlockQuad cr = new BlockQuad();
             Block8x8F* cbPtr = (Block8x8F*)cb.Data;
             Block8x8F* crPtr = (Block8x8F*)cr.Data;
             
-
             Block8x8F temp1 = new Block8x8F();
             Block8x8F temp2 = new Block8x8F();
 

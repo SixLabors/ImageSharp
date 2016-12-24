@@ -13,12 +13,12 @@
             *dest = *source; // B
         }
 
-        internal static unsafe void RepeatPixelsBottomRight<TColor>(PixelArea<TColor> area, int fromX, int fromY)
+        private static unsafe void StretchPixels<TColor>(PixelArea<TColor> area, int fromX, int fromY)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            if (fromX <= 0 || fromY <= 0 || fromX >= area.Width || fromY >= area.Height)
+            if (IsInvalidStretchArea(area, fromX, fromY))
             {
-                throw new InvalidOperationException();
+                return;
             }
 
             for (int y = 0; y < fromY; y++)
@@ -48,6 +48,25 @@
                     CopyRgb(prevPtr, currPtr);
                 }
             }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool IsInvalidStretchArea<TColor>(PixelArea<TColor> area, int fromX, int fromY) where TColor : struct, IPackedPixel, IEquatable<TColor>
+        {
+            return fromX <= 0 || fromY <= 0 || fromX >= area.Width || fromY >= area.Height;
+        }
+
+        public static void CopyRGBBytesStretchedTo<TColor>(
+            this PixelAccessor<TColor> pixels,
+            PixelArea<TColor> dest,
+            int sourceY,
+            int sourceX)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
+        {
+            pixels.CopyTo(dest, sourceY, sourceX);
+            int stretchFromX = pixels.Width - sourceX;
+            int stretchFromY = pixels.Height - sourceY;
+            StretchPixels(dest, stretchFromX, stretchFromY);
         }
     }
 }

@@ -3,13 +3,14 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 // ReSharper disable InconsistentNaming
+
 namespace ImageSharp.Formats
 {
     using System.Numerics;
     using System.Runtime.CompilerServices;
 
     /// <summary>
-    /// Contains forward & inverse DCT implementations
+    /// Contains forward and inverse DCT implementations
     /// </summary>
     internal static class DCT
     {
@@ -35,16 +36,27 @@ namespace ImageSharp.Formats
 
 #pragma warning disable SA1310 // FieldNamesMustNotContainUnderscore
         private static readonly Vector4 C_1_175876 = new Vector4(1.175876f);
+
         private static readonly Vector4 C_1_961571 = new Vector4(-1.961571f);
+
         private static readonly Vector4 C_0_390181 = new Vector4(-0.390181f);
+
         private static readonly Vector4 C_0_899976 = new Vector4(-0.899976f);
+
         private static readonly Vector4 C_2_562915 = new Vector4(-2.562915f);
+
         private static readonly Vector4 C_0_298631 = new Vector4(0.298631f);
+
         private static readonly Vector4 C_2_053120 = new Vector4(2.053120f);
+
         private static readonly Vector4 C_3_072711 = new Vector4(3.072711f);
+
         private static readonly Vector4 C_1_501321 = new Vector4(1.501321f);
+
         private static readonly Vector4 C_0_541196 = new Vector4(0.541196f);
+
         private static readonly Vector4 C_1_847759 = new Vector4(-1.847759f);
+
         private static readonly Vector4 C_0_765367 = new Vector4(0.765367f);
 
         private static readonly Vector4 C_0_125 = new Vector4(0.1250f);
@@ -52,7 +64,7 @@ namespace ImageSharp.Formats
         private static readonly Vector4 InvSqrt2 = new Vector4(0.707107f);
 
         /// <summary>
-        /// Do IDCT internal operations on the left part of the block. Original source:
+        /// Do IDCT internal operations on the left part of the block. Original src:
         /// https://github.com/norishigefukushima/dct_simd/blob/master/dct/dct8x8_simd.cpp#L261
         /// </summary>
         /// <param name="d">Destination block</param>
@@ -109,7 +121,7 @@ namespace ImageSharp.Formats
 
         /// <summary>
         /// Do IDCT internal operations on the right part of the block.
-        /// Original source:
+        /// Original src:
         /// https://github.com/norishigefukushima/dct_simd/blob/master/dct/dct8x8_simd.cpp#L261
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -162,7 +174,6 @@ namespace ImageSharp.Formats
             d.V3R = my3 + mb3;
             d.V4R = my3 - mb3;
         }
-
 
         /// <summary>
         /// Original:
@@ -219,7 +230,6 @@ namespace ImageSharp.Formats
 
             Vector4 w0 = new Vector4(0.541196f);
             Vector4 w1 = new Vector4(1.306563f);
-
 
             d.V2L = (w0 * c2) + (w1 * c3);
 
@@ -325,7 +335,6 @@ namespace ImageSharp.Formats
             Vector4 w0 = new Vector4(0.541196f);
             Vector4 w1 = new Vector4(1.306563f);
 
-
             d.V2R = (w0 * c2) + (w1 * c3);
 
             d.V6R = (w0 * c3) - (w1 * c2);
@@ -373,23 +382,34 @@ namespace ImageSharp.Formats
             }*/
         }
 
-        public static void TransformFDCT(ref Block8x8F s, ref Block8x8F d, ref Block8x8F temp, bool offsetSourceByNeg128 = true)
+        /// <summary>
+        /// Apply floating point IDCT transformation into dest, using a temporary block 'temp' provided by the caller (optimization)
+        /// </summary>
+        /// <param name="src">Source</param>
+        /// <param name="dest">Destination</param>
+        /// <param name="temp">Temporary block provided by the caller</param>
+        /// <param name="offsetSourceByNeg128">If true, a constant -128.0 offset is applied for all values before FDCT </param>
+        public static void TransformFDCT(
+            ref Block8x8F src,
+            ref Block8x8F dest,
+            ref Block8x8F temp,
+            bool offsetSourceByNeg128 = true)
         {
-            s.TransposeInto(ref temp);
+            src.TransposeInto(ref temp);
             if (offsetSourceByNeg128)
             {
                 temp.AddToAllInplace(new Vector4(-128));
             }
 
-            FDCT8x4_LeftPart(ref temp, ref d);
-            FDCT8x4_RightPart(ref temp, ref d);
+            FDCT8x4_LeftPart(ref temp, ref dest);
+            FDCT8x4_RightPart(ref temp, ref dest);
 
-            d.TransposeInto(ref temp);
-            
-            FDCT8x4_LeftPart(ref temp, ref d);
-            FDCT8x4_RightPart(ref temp, ref d);
-            
-            d.MultiplyAllInplace(C_0_125);
+            dest.TransposeInto(ref temp);
+
+            FDCT8x4_LeftPart(ref temp, ref dest);
+            FDCT8x4_RightPart(ref temp, ref dest);
+
+            dest.MultiplyAllInplace(C_0_125);
         }
     }
 }

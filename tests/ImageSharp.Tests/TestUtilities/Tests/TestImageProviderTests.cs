@@ -57,6 +57,7 @@ namespace ImageSharp.Tests
 
         [Theory]
         [WithBlankImages(1, 1, PixelTypes.StandardImageClass)]
+        [WithFile(TestImages.Bmp.F, PixelTypes.StandardImageClass)]
         public void PixelTypes_ColorWithDefaultImageClass_TriggersCreatingTheNonGenericDerivedImageClass<TColor>(
             TestImageProvider<TColor> provider) 
             where TColor : struct, IPackedPixel, IEquatable<TColor>

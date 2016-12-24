@@ -157,6 +157,7 @@
     <Compile Include="..\ImageSharp.Tests\TestUtilities\TestUtilityExtensions.cs">
       <Link>TestUtilities\TestUtilityExtensions.cs</Link>
     </Compile>
+    <Compile Include="Formats\Jpg\ReferenceImplementationsTests.cs" />
     <Compile Include="HelloTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TestFile.cs" />

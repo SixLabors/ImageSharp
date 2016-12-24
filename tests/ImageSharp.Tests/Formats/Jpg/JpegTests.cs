@@ -10,9 +10,6 @@ namespace ImageSharp.Tests
 {
     public class JpegTests
     {
-        
-        public const string TestOutputDirectory = "TestOutput/Jpeg";
-
         private ITestOutputHelper Output { get; }
 
         public JpegTests(ITestOutputHelper output)

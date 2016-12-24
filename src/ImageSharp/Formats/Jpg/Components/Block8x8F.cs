@@ -229,7 +229,7 @@ namespace ImageSharp.Formats
         {
             float* b = (float*)blockPtr;
             float* qtp = (float*)qtPtr;
-            for (int zig = 0; zig < BlockF.BlockSize; zig++)
+            for (int zig = 0; zig < ScalarCount; zig++)
             {
                 float* unzigPos = b + unzigPtr[zig];
                 float val = *unzigPos;
@@ -278,24 +278,6 @@ namespace ImageSharp.Formats
         {
             // The cheapest way to do this in C#:
             this = default(Block8x8F);
-        }
-
-        /// <summary>
-        /// TODO: Should be removed when BlockF goes away
-        /// </summary>
-        /// <param name="legacyBlock">Legacy block</param>
-        public void LoadFrom(ref BlockF legacyBlock)
-        {
-            this.LoadFrom(legacyBlock.Data);
-        }
-
-        /// <summary>
-        /// TODO: Should be removed when BlockF goes away
-        /// </summary>
-        /// <param name="legacyBlock">Legacy block</param>
-        public void CopyTo(ref BlockF legacyBlock)
-        {
-            this.CopyTo(legacyBlock.Data);
         }
 
         /// <summary>

@@ -561,7 +561,7 @@ namespace ImageSharp.Formats
             HuffIndex h = (HuffIndex)((2 * (int)index) + 1);
             int runLength = 0;
 
-            for (int zig = 1; zig < Block.BlockSize; zig++)
+            for (int zig = 1; zig < Block8x8F.ScalarCount; zig++)
             {
                 float ac = d[zig];
 
@@ -679,12 +679,12 @@ namespace ImageSharp.Formats
         private void WriteDefineQuantizationTables()
         {
             // Marker + quantization table lengths
-            int markerlen = 2 + (QuantizationTableCount * (1 + Block.BlockSize));
+            int markerlen = 2 + (QuantizationTableCount * (1 + Block8x8F.ScalarCount));
             this.WriteMarkerHeader(JpegConstants.Markers.DQT, markerlen);
 
             // Loop through and collect the tables as one array.
             // This allows us to reduce the number of writes to the stream.
-            byte[] dqt = new byte[(QuantizationTableCount * Block.BlockSize) + QuantizationTableCount];
+            byte[] dqt = new byte[(QuantizationTableCount * Block8x8F.ScalarCount) + QuantizationTableCount];
             int offset = 0;
 
             WriteDataToDqt(dqt, ref offset, QuantIndex.Luminance, ref this.luminanceQuantTable);

@@ -7,6 +7,8 @@ namespace ImageSharp.Formats.Jpg.Utils
     using System;
     using System.Runtime.CompilerServices;
 
+    using ImageSharp.Formats.Jpg.Components.Encoder;
+
     /// <summary>
     /// Jpeg specific utilities and extension methods
     /// </summary>
@@ -88,6 +90,15 @@ namespace ImageSharp.Formats.Jpg.Utils
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             return fromX <= 0 || fromY <= 0 || fromX >= area.Width || fromY >= area.Height;
+        }
+
+        internal static void WriteDataToDqt(byte[] dqt, ref int offset, QuantIndex i, ref Block8x8F q)
+        {
+            dqt[offset++] = (byte)i;
+            for (int j = 0; j < Block8x8F.ScalarCount; j++)
+            {
+                dqt[offset++] = (byte)q[j];
+            }
         }
     }
 }

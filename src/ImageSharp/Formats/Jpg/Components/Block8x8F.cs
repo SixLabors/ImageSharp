@@ -51,23 +51,6 @@ namespace ImageSharp.Formats
         public Vector4 V7R;
 #pragma warning restore SA1600 // ElementsMustBeDocumented
 
-#pragma warning disable SA1310 // FieldNamesMustNotContainUnderscore
-        private static readonly Vector4 C_1_175876 = new Vector4(1.175876f);
-        private static readonly Vector4 C_1_961571 = new Vector4(-1.961571f);
-        private static readonly Vector4 C_0_390181 = new Vector4(-0.390181f);
-        private static readonly Vector4 C_0_899976 = new Vector4(-0.899976f);
-        private static readonly Vector4 C_2_562915 = new Vector4(-2.562915f);
-        private static readonly Vector4 C_0_298631 = new Vector4(0.298631f);
-        private static readonly Vector4 C_2_053120 = new Vector4(2.053120f);
-        private static readonly Vector4 C_3_072711 = new Vector4(3.072711f);
-        private static readonly Vector4 C_1_501321 = new Vector4(1.501321f);
-        private static readonly Vector4 C_0_541196 = new Vector4(0.541196f);
-        private static readonly Vector4 C_1_847759 = new Vector4(-1.847759f);
-        private static readonly Vector4 C_0_765367 = new Vector4(0.765367f);
-
-        private static readonly Vector4 C_0_125 = new Vector4(0.1250f);
-#pragma warning restore SA1310 // FieldNamesMustNotContainUnderscore
-
         /// <summary>
         /// Index into the block
         /// </summary>
@@ -202,27 +185,7 @@ namespace ImageSharp.Formats
             this.V7L += diff;
             this.V7R += diff;
         }
-
-
-        /// <summary>
-        /// Apply floating point IDCT transformation into dest, using a temporary block 'temp' provided by the caller (optimization)
-        /// </summary>
-        /// <param name="dest">Destination</param>
-        /// <param name="tempBlockPtr">Temporary block provided by the caller</param>
-        public void TransformIDCTInto(ref Block8x8F dest, ref Block8x8F tempBlockPtr)
-        {
-            this.TransposeInto(ref tempBlockPtr);
-            tempBlockPtr.IDCT8x4_LeftPart(ref dest);
-            tempBlockPtr.IDCT8x4_RightPart(ref dest);
-
-            dest.TransposeInto(ref tempBlockPtr);
-
-            tempBlockPtr.IDCT8x4_LeftPart(ref dest);
-            tempBlockPtr.IDCT8x4_RightPart(ref dest);
-
-            dest.MultiplyAllInplace(C_0_125);
-        }
-
+        
         /// <summary>
         /// Pointer-based "Indexer" (getter part)
         /// </summary>
@@ -300,120 +263,7 @@ namespace ImageSharp.Formats
                 }
             }
         }
-
-        /// <summary>
-        /// Do IDCT internal operations on the left part of the block. Original source:
-        /// https://github.com/norishigefukushima/dct_simd/blob/master/dct/dct8x8_simd.cpp#L261
-        /// </summary>
-        /// <param name="d">Destination block</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void IDCT8x4_LeftPart(ref Block8x8F d)
-        {
-            Vector4 my1 = this.V1L;
-            Vector4 my7 = this.V7L;
-            Vector4 mz0 = my1 + my7;
-
-            Vector4 my3 = this.V3L;
-            Vector4 mz2 = my3 + my7;
-            Vector4 my5 = this.V5L;
-            Vector4 mz1 = my3 + my5;
-            Vector4 mz3 = my1 + my5;
-
-            Vector4 mz4 = (mz0 + mz1) * C_1_175876;
-
-            mz2 = (mz2 * C_1_961571) + mz4;
-            mz3 = (mz3 * C_0_390181) + mz4;
-            mz0 = mz0 * C_0_899976;
-            mz1 = mz1 * C_2_562915;
-
-            Vector4 mb3 = (my7 * C_0_298631) + mz0 + mz2;
-            Vector4 mb2 = (my5 * C_2_053120) + mz1 + mz3;
-            Vector4 mb1 = (my3 * C_3_072711) + mz1 + mz2;
-            Vector4 mb0 = (my1 * C_1_501321) + mz0 + mz3;
-
-            Vector4 my2 = this.V2L;
-            Vector4 my6 = this.V6L;
-            mz4 = (my2 + my6) * C_0_541196;
-            Vector4 my0 = this.V0L;
-            Vector4 my4 = this.V4L;
-            mz0 = my0 + my4;
-            mz1 = my0 - my4;
-
-            mz2 = mz4 + (my6 * C_1_847759);
-            mz3 = mz4 + (my2 * C_0_765367);
-
-            my0 = mz0 + mz3;
-            my3 = mz0 - mz3;
-            my1 = mz1 + mz2;
-            my2 = mz1 - mz2;
-
-            d.V0L = my0 + mb0;
-            d.V7L = my0 - mb0;
-            d.V1L = my1 + mb1;
-            d.V6L = my1 - mb1;
-            d.V2L = my2 + mb2;
-            d.V5L = my2 - mb2;
-            d.V3L = my3 + mb3;
-            d.V4L = my3 - mb3;
-        }
-
-        /// <summary>
-        /// Do IDCT internal operations on the right part of the block.
-        /// Original source:
-        /// https://github.com/norishigefukushima/dct_simd/blob/master/dct/dct8x8_simd.cpp#L261
-        /// </summary>
-        /// <param name="destBlockPtr">Destination Block pointer</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void IDCT8x4_RightPart(ref Block8x8F destBlockPtr)
-        {
-            Vector4 my1 = this.V1R;
-            Vector4 my7 = this.V7R;
-            Vector4 mz0 = my1 + my7;
-
-            Vector4 my3 = this.V3R;
-            Vector4 mz2 = my3 + my7;
-            Vector4 my5 = this.V5R;
-            Vector4 mz1 = my3 + my5;
-            Vector4 mz3 = my1 + my5;
-
-            Vector4 mz4 = (mz0 + mz1) * C_1_175876;
-
-            mz2 = (mz2 * C_1_961571) + mz4;
-            mz3 = (mz3 * C_0_390181) + mz4;
-            mz0 = mz0 * C_0_899976;
-            mz1 = mz1 * C_2_562915;
-
-            Vector4 mb3 = (my7 * C_0_298631) + mz0 + mz2;
-            Vector4 mb2 = (my5 * C_2_053120) + mz1 + mz3;
-            Vector4 mb1 = (my3 * C_3_072711) + mz1 + mz2;
-            Vector4 mb0 = (my1 * C_1_501321) + mz0 + mz3;
-
-            Vector4 my2 = this.V2R;
-            Vector4 my6 = this.V6R;
-            mz4 = (my2 + my6) * C_0_541196;
-            Vector4 my0 = this.V0R;
-            Vector4 my4 = this.V4R;
-            mz0 = my0 + my4;
-            mz1 = my0 - my4;
-
-            mz2 = mz4 + (my6 * C_1_847759);
-            mz3 = mz4 + (my2 * C_0_765367);
-
-            my0 = mz0 + mz3;
-            my3 = mz0 - mz3;
-            my1 = mz1 + mz2;
-            my2 = mz1 - mz2;
-
-            destBlockPtr.V0R = my0 + mb0;
-            destBlockPtr.V7R = my0 - mb0;
-            destBlockPtr.V1R = my1 + mb1;
-            destBlockPtr.V6R = my1 - mb1;
-            destBlockPtr.V2R = my2 + mb2;
-            destBlockPtr.V5R = my2 - mb2;
-            destBlockPtr.V3R = my3 + mb3;
-            destBlockPtr.V4R = my3 - mb3;
-        }
-
+        
         /// <summary>
         /// Fill the block with defaults (zeroes)
         /// </summary>

@@ -1,4 +1,9 @@
-﻿namespace ImageSharp.Formats.Jpg.Components.Encoder
+﻿// <copyright file="HuffmanLut.cs" company="James Jackson-South">
+// Copyright (c) James Jackson-South and contributors.
+// Licensed under the Apache License, Version 2.0.
+// </copyright>
+
+namespace ImageSharp.Formats.Jpg.Components.Encoder
 {
     /// <summary>
     /// A compiled look-up table representation of a huffmanSpec.
@@ -9,9 +14,26 @@
     internal struct HuffmanLut
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="HuffmanLut"/> class.
+        /// The compiled representations of theHuffmanSpec.
         /// </summary>
-        /// <param name="spec">The encoding specifications.</param>
+        public static readonly HuffmanLut[] TheHuffmanLut = new HuffmanLut[4];
+
+        /// <summary>
+        /// Initializes static members of the <see cref="HuffmanLut"/> struct.
+        /// </summary>
+        static HuffmanLut()
+        {
+            // Initialize the Huffman tables
+            for (int i = 0; i < HuffmanSpec.TheHuffmanSpecs.Length; i++)
+            {
+                TheHuffmanLut[i] = new HuffmanLut(HuffmanSpec.TheHuffmanSpecs[i]);
+            }
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="HuffmanLut"/> struct.
+        /// </summary>
+        /// <param name="spec">dasd</param>
         public HuffmanLut(HuffmanSpec spec)
         {
             int maxValue = 0;
@@ -44,25 +66,8 @@
         }
 
         /// <summary>
-        /// Initialize static members
-        /// </summary>
-        static HuffmanLut()
-        {
-            // Initialize the Huffman tables
-            for (int i = 0; i < HuffmanSpec.TheHuffmanSpecs.Length; i++)
-            {
-                HuffmanLut.TheHuffmanLut[i] = new HuffmanLut(HuffmanSpec.TheHuffmanSpecs[i]);
-            }
-        }
-
-        /// <summary>
         /// Gets the collection of huffman values.
         /// </summary>
         public uint[] Values { get; }
-
-        /// <summary>
-        /// The compiled representations of theHuffmanSpec.
-        /// </summary>
-        public static readonly HuffmanLut[] TheHuffmanLut = new HuffmanLut[4];
     }
 }

@@ -3,7 +3,6 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 // ReSharper disable InconsistentNaming
-
 namespace ImageSharp.Formats
 {
     using System;
@@ -19,6 +18,7 @@ namespace ImageSharp.Formats
     internal partial struct Block8x8F
     {
 #pragma warning disable SA1204 // Static members must appear before non-static members
+
         /// <summary>
         /// Vector count
         /// </summary>
@@ -116,7 +116,7 @@ namespace ImageSharp.Formats
             float* fPtr = (float*)blockPtr;
             for (int i = 0; i < ScalarCount; i++)
             {
-                dest[i] = (byte) *fPtr;
+                dest[i] = (byte)*fPtr;
                 fPtr++;
             }
         }
@@ -146,7 +146,7 @@ namespace ImageSharp.Formats
                 Marshal.Copy((IntPtr)ptr, dest.Data, dest.Offset, ScalarCount);
             }
         }
-        
+
         /// <summary>
         /// Copy raw 32bit floating point data to dest
         /// </summary>

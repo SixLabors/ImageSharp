@@ -2,10 +2,10 @@
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
-
 namespace ImageSharp
 {
     using System;
+    using System.Buffers;
     using System.Diagnostics;
     using System.IO;
     using System.Runtime.CompilerServices;
@@ -27,6 +27,11 @@ namespace ImageSharp
         /// The pointer to the pixel buffer.
         /// </summary>
         private IntPtr dataPointer;
+
+        /// <summary>
+        /// True if <see cref="Bytes"/> was rented from <see cref="BytesPool"/> by the constructor
+        /// </summary>
+        private bool isBufferRented;
 
         /// <summary>
         /// A value indicating whether this instance of the given entity has been disposed.
@@ -85,8 +90,9 @@ namespace ImageSharp
         /// <param name="width">The width.</param>
         /// <param name="height">The height.</param>
         /// <param name="componentOrder">The component order.</param>
-        public PixelArea(int width, int height, ComponentOrder componentOrder)
-            : this(width, height, componentOrder, 0)
+        /// <param name="usePool">True if the buffer should be rented from ArrayPool</param>
+        public PixelArea(int width, int height, ComponentOrder componentOrder, bool usePool = false)
+            : this(width, height, componentOrder, 0, usePool)
         {
         }
 
@@ -95,8 +101,9 @@ namespace ImageSharp
         /// </summary>
         /// <param name="width">The width.</param>
         /// <param name="componentOrder">The component order.</param>
-        public PixelArea(int width, ComponentOrder componentOrder)
-          : this(width, 1, componentOrder, 0)
+        /// <param name="usePool">True if the buffer should be rented from ArrayPool</param>
+        public PixelArea(int width, ComponentOrder componentOrder, bool usePool = false)
+            : this(width, 1, componentOrder, 0, usePool)
         {
         }
 
@@ -106,8 +113,9 @@ namespace ImageSharp
         /// <param name="width">The width. </param>
         /// <param name="componentOrder">The component order.</param>
         /// <param name="padding">The number of bytes to pad each row.</param>
-        public PixelArea(int width, ComponentOrder componentOrder, int padding)
-          : this(width, 1, componentOrder, padding)
+        /// <param name="usePool">True if the buffer should be rented from ArrayPool</param>
+        public PixelArea(int width, ComponentOrder componentOrder, int padding, bool usePool = false)
+            : this(width, 1, componentOrder, padding, usePool)
         {
         }
 
@@ -118,13 +126,27 @@ namespace ImageSharp
         /// <param name="height">The height.</param>
         /// <param name="componentOrder">The component order.</param>
         /// <param name="padding">The number of bytes to pad each row.</param>
-        public PixelArea(int width, int height, ComponentOrder componentOrder, int padding)
+        /// <param name="usePool">True if the buffer should be rented from ArrayPool</param>
+        public PixelArea(int width, int height, ComponentOrder componentOrder, int padding, bool usePool = false)
         {
             this.Width = width;
             this.Height = height;
             this.ComponentOrder = componentOrder;
             this.RowByteCount = (width * GetComponentCount(componentOrder)) + padding;
-            this.Bytes = new byte[this.RowByteCount * height];
+
+            var bufferSize = this.RowByteCount * height;
+
+            if (usePool)
+            {
+                this.Bytes = BytesPool.Rent(bufferSize);
+                this.isBufferRented = true;
+                Array.Clear(this.Bytes, 0, bufferSize);
+            }
+            else
+            {
+                this.Bytes = new byte[bufferSize];
+            }
+
             this.pixelsHandle = GCHandle.Alloc(this.Bytes, GCHandleType.Pinned);
 
             // TODO: Why is Resharper warning us about an impure method call?
@@ -137,7 +159,7 @@ namespace ImageSharp
         /// </summary>
         ~PixelArea()
         {
-            this.Dispose();
+            this.Dispose(false);
         }
 
         /// <summary>
@@ -146,24 +168,14 @@ namespace ImageSharp
         public byte[] Bytes { get; }
 
         /// <summary>
-        /// Gets the pointer to the pixel buffer.
-        /// </summary>
-        public IntPtr DataPointer => this.dataPointer;
-
-        /// <summary>
-        /// Gets the data pointer.
-        /// </summary>
-        public byte* PixelBase { get; private set; }
-
-        /// <summary>
         /// Gets the component order.
         /// </summary>
         public ComponentOrder ComponentOrder { get; }
 
         /// <summary>
-        /// Gets the width.
+        /// Gets the pointer to the pixel buffer.
         /// </summary>
-        public int Width { get; }
+        public IntPtr DataPointer => this.dataPointer;
 
         /// <summary>
         /// Gets the height.
@@ -171,9 +183,33 @@ namespace ImageSharp
         public int Height { get; }
 
         /// <summary>
+        /// Gets the data pointer.
+        /// </summary>
+        public byte* PixelBase { get; private set; }
+
+        /// <summary>
         /// Gets number of bytes in a row.
         /// </summary>
         public int RowByteCount { get; }
+
+        /// <summary>
+        /// Gets the width.
+        /// </summary>
+        public int Width { get; }
+
+        /// <summary>
+        /// Gets the pool used to rent <see cref="Bytes"/>, when it's not coming from an external source
+        /// </summary>
+        // ReSharper disable once StaticMemberInGenericType
+        private static ArrayPool<byte> BytesPool => ArrayPool<byte>.Shared;
+
+        /// <summary>
+        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+        /// </summary>
+        public void Dispose()
+        {
+            this.Dispose(true);
+        }
 
         /// <summary>
         /// Reads the stream to the area.
@@ -194,44 +230,11 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
-        /// </summary>
-        public void Dispose()
-        {
-            if (this.isDisposed)
-            {
-                return;
-            }
-
-            if (this.PixelBase == null)
-            {
-                return;
-            }
-
-            if (this.pixelsHandle.IsAllocated)
-            {
-                this.pixelsHandle.Free();
-            }
-
-            this.dataPointer = IntPtr.Zero;
-            this.PixelBase = null;
-
-            this.isDisposed = true;
-
-            // This object will be cleaned up by the Dispose method.
-            // Therefore, you should call GC.SuppressFinalize to
-            // take this object off the finalization queue
-            // and prevent finalization code for this object
-            // from executing a second time.
-            GC.SuppressFinalize(this);
-        }
-
-        /// <summary>
         /// Resets the bytes of the array to it's initial value.
         /// </summary>
         internal void Reset()
         {
-            Unsafe.InitBlock(this.PixelBase, 0, (uint)this.Bytes.Length);
+            Unsafe.InitBlock(this.PixelBase, 0, (uint)(this.RowByteCount * this.Height));
         }
 
         /// <summary>
@@ -265,8 +268,45 @@ namespace ImageSharp
             int requiredLength = (width * GetComponentCount(componentOrder)) * height;
             if (bytes.Length != requiredLength)
             {
-                throw new ArgumentOutOfRangeException(nameof(bytes), $"Invalid byte array length. Length {bytes.Length}; Should be {requiredLength}.");
+                throw new ArgumentOutOfRangeException(
+                          nameof(bytes),
+                          $"Invalid byte array length. Length {bytes.Length}; Should be {requiredLength}.");
             }
+        }
+
+        private void Dispose(bool disposing)
+        {
+            if (this.isDisposed)
+            {
+                return;
+            }
+
+            if (this.PixelBase == null)
+            {
+                return;
+            }
+
+            if (this.pixelsHandle.IsAllocated)
+            {
+                this.pixelsHandle.Free();
+            }
+
+            if (disposing && this.isBufferRented)
+            {
+                BytesPool.Return(this.Bytes);
+            }
+
+            this.dataPointer = IntPtr.Zero;
+            this.PixelBase = null;
+
+            this.isDisposed = true;
+
+            // This object will be cleaned up by the Dispose method.
+            // Therefore, you should call GC.SuppressFinalize to
+            // take this object off the finalization queue
+            // and prevent finalization code for this object
+            // from executing a second time.
+            GC.SuppressFinalize(this);
         }
     }
 }

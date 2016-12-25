@@ -110,6 +110,26 @@ namespace ImageSharp
         }
 
         /// <inheritdoc />
+        protected override unsafe void CopyToXYZ(PixelArea<Color> area, int sourceY, int sourceX, int width, int height)
+        {
+            for (int y = 0; y < height; y++)
+            {
+                byte* source = this.GetRowPointer(sourceX, sourceY + y);
+                byte* destination = area.PixelBase + (y * area.RowByteCount);
+
+                for (int x = 0; x < width; x++)
+                {
+                    *destination = *(source + 0);
+                    *(destination + 1) = *(source + 1);
+                    *(destination + 2) = *(source + 2);
+
+                    source += 4;
+                    destination += 3;
+                }
+            }
+        }
+
+        /// <inheritdoc />
         protected override void CopyToZYXW(PixelArea<Color> area, int sourceY, int sourceX, int width, int height)
         {
             for (int y = 0; y < height; y++)

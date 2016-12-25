@@ -10,5 +10,11 @@ namespace ImageSharp.Tests
         public override Image<Color> CreateImage(byte[] bytes) => new Image(bytes);
 
         public override Image<Color> CreateImage(int width, int height) => new Image(width, height);
+
+        public override Image<Color> CreateImage(Image<Color> other)
+        {
+            Image img = (Image)other;
+            return new Image(img);
+        }
     }
 }

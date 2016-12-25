@@ -23,5 +23,10 @@ namespace ImageSharp.Tests
         {
             return new Image<TColor>(bytes);
         }
+
+        public virtual Image<TColor> CreateImage(Image<TColor> other)
+        {
+            return new Image<TColor>(other);
+        }
     }
 }

@@ -80,7 +80,7 @@ namespace ImageSharp.Tests
             this.Utility = new ImagingTestCaseUtility()
                                {
                                    SourceFileOrDescription = this.SourceFileOrDescription,
-                                   PixelTypeName = typeof(TColor).Name
+                                   PixelTypeName = this.PixelType.ToString()
                                };
 
             if (testMethod != null)
@@ -89,6 +89,12 @@ namespace ImageSharp.Tests
             }
 
             return this;
+        }
+
+        public override string ToString()
+        {
+            string provName = this.GetType().Name.Replace("Provider", "");
+            return $"{this.SourceFileOrDescription}[{this.PixelType}]";
         }
     }
 }

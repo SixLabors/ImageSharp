@@ -56,7 +56,7 @@ namespace ImageSharp.Tests
             public const string Jpeg444 = "Jpg/baseline/jpeg444.jpg";
 
             public static readonly string[] All = {
-                Cmyk, Exif, Floorplan, Calliphora, Turtle, Fb, Progress, GammaDalaiLamaGray,
+                Cmyk, Ycck, Exif, Floorplan, Calliphora, Turtle, Fb, Progress, GammaDalaiLamaGray,
                 Festzug, Hiyamugi,
                 Jpeg400, Jpeg420, Jpeg444,
             };

@@ -472,6 +472,7 @@ namespace ImageSharp.Formats
                 this.huffmanTrees[i].Dispose();
             }
 
+            this.ycbcrImage?.Dispose();
             this.bytes.Dispose();
             this.grayImage.ReturnPooled();
             this.blackImage.ReturnPooled();
@@ -2059,8 +2060,8 @@ namespace ImageSharp.Formats
             
             if (this.componentCount == 1)
             {
-                JpegPixelArea gray = JpegPixelArea.CreatePooled(8 * mxx, 8 * myy);
-                this.grayImage = gray.Subimage(0, 0, this.imageWidth, this.imageHeight);
+                this.grayImage = JpegPixelArea.CreatePooled(8 * mxx, 8 * myy);
+                //this.grayImage = gray.Subimage(0, 0, this.imageWidth, this.imageHeight);
             }
             else
             {
@@ -2092,9 +2093,8 @@ namespace ImageSharp.Formats
                         break;
                 }
 
-                this.ycbcrImage = new YCbCrImage(8 * h0 * mxx, 8 * v0 * myy, ratio);
-                //this.ycbcrImage = ycbcr.Subimage(0, 0, this.imageWidth, this.imageHeight);
-
+                this.ycbcrImage = new YCbCrImage(8 * h0 * mxx, 8 * v0 * myy, ratio, 0, 0);
+                
                 if (this.componentCount == 4)
                 {
                     int h3 = this.componentArray[3].HorizontalFactor;

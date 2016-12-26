@@ -25,7 +25,7 @@ namespace ImageSharp.Formats.Jpg
             int size = width * height;
             //var pixels = ArrayPool<byte>.Shared.Rent(size);
             //Array.Clear(pixels, 0, size);
-            var pixels = ArrayPoolManager<byte>.RentCleanArray(size);
+            var pixels = CleanPooler<byte>.RentCleanArray(size);
             return new JpegPixelArea(pixels, width, 0);
         }
 
@@ -39,7 +39,7 @@ namespace ImageSharp.Formats.Jpg
         public void ReturnPooled()
         {
             if (this.Pixels == null) return;
-            ArrayPoolManager<byte>.ReturnArray(this.Pixels);
+            CleanPooler<byte>.ReturnArray(this.Pixels);
             this.Pixels = null;
         }
 
@@ -59,27 +59,7 @@ namespace ImageSharp.Formats.Jpg
         /// Gets or sets the offset
         /// </summary>
         public int Offset { get; private set; }
-
-        /// <summary>
-        /// Gets an image made up of a subset of the originals pixels.
-        /// </summary>
-        /// <param name="x">The x-coordinate of the image.</param>
-        /// <param name="y">The y-coordinate of the image.</param>
-        /// <param name="width">The width.</param>
-        /// <param name="height">The height.</param>
-        /// <returns>
-        /// The <see cref="JpegPixelArea"/>.
-        /// </returns>
-        public JpegPixelArea Subimage(int x, int y, int width, int height)
-        {
-            return new JpegPixelArea
-            {
-                Stride = width,
-                Pixels = this.Pixels,
-                Offset = (y * this.Stride) + x
-            };
-        }
-
+       
         /// <summary>
         /// Get the subarea that belongs to the given block indices
         /// </summary>

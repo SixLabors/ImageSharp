@@ -18,36 +18,9 @@ namespace ImageSharp.Formats
     internal unsafe class JpegDecoderCore : IDisposable
     {
         /// <summary>
-        /// The maximum (inclusive) number of bits in a Huffman code.
-        /// </summary>
-        internal const int MaxCodeLength = 16;
-
-        /// <summary>
-        /// The maximum (inclusive) number of codes in a Huffman tree.
-        /// </summary>
-        internal const int MaxNCodes = 256;
-
-        /// <summary>
-        /// The log-2 size of the Huffman decoder's look-up table.
-        /// </summary>
-        internal const int LutSize = 8;
-
-        /// <summary>
         /// The maximum number of color components
         /// </summary>
         private const int MaxComponents = 4;
-
-        /// <summary>
-        /// The maximum number of Huffman table classes
-        /// </summary>
-        private const int MaxTc = 1;
-
-        /// <summary>
-        /// The maximum number of Huffman table identifiers
-        /// </summary>
-        private const int MaxTh = 3;
-
-        private const int ThRowSize = MaxTh + 1;
 
         /// <summary>
         /// The maximum number of quantization tables
@@ -87,7 +60,7 @@ namespace ImageSharp.Formats
         /// <summary>
         /// A temporary buffer for holding pixels
         /// </summary>
-        private readonly byte[] temp;
+        private readonly byte[] temp; // TODO: the usage of this buffer is unclean + need to move it to the stack for performance
 
         /// <summary>
         /// The byte buffer.
@@ -179,24 +152,13 @@ namespace ImageSharp.Formats
         /// </summary>
         public JpegDecoderCore()
         {
-            // this.huffmanTrees = new Huffman[MaxTc + 1, MaxTh + 1];
-            this.huffmanTrees = new HuffmanTree[(MaxTc + 1) * (MaxTh + 1)];
-
+            this.huffmanTrees = HuffmanTree.CreateHuffmanTrees();
             this.quantizationTables = new Block8x8F[MaxTq + 1];
             this.temp = new byte[2 * Block8x8F.ScalarCount];
             this.componentArray = new Component[MaxComponents];
             this.progCoeffs = new Block8x8F[MaxComponents][];
             this.bits = default(Bits);
             this.bytes = Bytes.Create();
-
-            // TODO: This looks like it could be static.
-            for (int i = 0; i < MaxTc + 1; i++)
-            {
-                for (int j = 0; j < MaxTh + 1; j++)
-                {
-                    this.huffmanTrees[(i * ThRowSize) + j].Init(LutSize, MaxNCodes, MaxCodeLength);
-                }
-            }
         }
 
         /// <summary>
@@ -528,108 +490,22 @@ namespace ImageSharp.Formats
                 this.ReadFull(this.temp, 0, 17);
 
                 int tc = this.temp[0] >> 4;
-                if (tc > MaxTc)
+                if (tc > HuffmanTree.MaxTc)
                 {
                     throw new ImageFormatException("Bad Tc value");
                 }
 
                 int th = this.temp[0] & 0x0f;
-                if (th > MaxTh || (!this.isProgressive && (th > 1)))
+                if (th > HuffmanTree.MaxTh || (!this.isProgressive && (th > 1)))
                 {
                     throw new ImageFormatException("Bad Th value");
                 }
 
-                this.ProcessDefineHuffmanTablesMarkerLoop(ref this.huffmanTrees[(tc * ThRowSize) + th], ref remaining);
+                int huffTreeIndex = (tc * HuffmanTree.ThRowSize) + th;
+                this.huffmanTrees[huffTreeIndex].ProcessDefineHuffmanTablesMarkerLoop(this, this.temp, ref remaining);
             }
         }
 
-        private void ProcessDefineHuffmanTablesMarkerLoop(ref HuffmanTree huffmanTree, ref int remaining)
-        {
-            // Read nCodes and huffman.Valuess (and derive h.Length).
-            // nCodes[i] is the number of codes with code length i.
-            // h.Length is the total number of codes.
-            huffmanTree.Length = 0;
-
-            int[] ncodes = new int[MaxCodeLength];
-            for (int i = 0; i < ncodes.Length; i++)
-            {
-                ncodes[i] = this.temp[i + 1];
-                huffmanTree.Length += ncodes[i];
-            }
-
-            if (huffmanTree.Length == 0)
-            {
-                throw new ImageFormatException("Huffman table has zero length");
-            }
-
-            if (huffmanTree.Length > MaxNCodes)
-            {
-                throw new ImageFormatException("Huffman table has excessive length");
-            }
-
-            remaining -= huffmanTree.Length + 17;
-            if (remaining < 0)
-            {
-                throw new ImageFormatException("DHT has wrong length");
-            }
-
-            this.ReadFull(huffmanTree.Values, 0, huffmanTree.Length);
-
-            // Derive the look-up table.
-            for (int i = 0; i < huffmanTree.Lut.Length; i++)
-            {
-                huffmanTree.Lut[i] = 0;
-            }
-
-            uint x = 0, code = 0;
-
-            for (int i = 0; i < LutSize; i++)
-            {
-                code <<= 1;
-
-                for (int j = 0; j < ncodes[i]; j++)
-                {
-                    // The codeLength is 1+i, so shift code by 8-(1+i) to
-                    // calculate the high bits for every 8-bit sequence
-                    // whose codeLength's high bits matches code.
-                    // The high 8 bits of lutValue are the encoded value.
-                    // The low 8 bits are 1 plus the codeLength.
-                    byte base2 = (byte)(code << (7 - i));
-                    ushort lutValue = (ushort)((huffmanTree.Values[x] << 8) | (2 + i));
-
-                    for (int k = 0; k < 1 << (7 - i); k++)
-                    {
-                        huffmanTree.Lut[base2 | k] = lutValue;
-                    }
-
-                    code++;
-                    x++;
-                }
-            }
-
-            // Derive minCodes, maxCodes, and indices.
-            int c = 0, index = 0;
-            for (int i = 0; i < ncodes.Length; i++)
-            {
-                int nc = ncodes[i];
-                if (nc == 0)
-                {
-                    huffmanTree.MinCodes[i] = -1;
-                    huffmanTree.MaxCodes[i] = -1;
-                    huffmanTree.Indices[i] = -1;
-                }
-                else
-                {
-                    huffmanTree.MinCodes[i] = c;
-                    huffmanTree.MaxCodes[i] = c + nc - 1;
-                    huffmanTree.Indices[i] = index;
-                    c += nc;
-                    index += nc;
-                }
-
-                c <<= 1;
-            }
-        }
 
         /// <summary>
         /// Returns the next Huffman-coded value from the bit-stream, decoded according to the given value.
@@ -650,7 +526,7 @@ namespace ImageSharp.Formats
 
                 if (errorCode == ErrorCodes.NoError)
                 {
-                    ushort v = huffmanTree.Lut[(this.bits.Accumulator >> (this.bits.UnreadBits - LutSize)) & 0xff];
+                    ushort v = huffmanTree.Lut[(this.bits.Accumulator >> (this.bits.UnreadBits - HuffmanTree.LutSize)) & 0xff];
 
                     if (v != 0)
                     {
@@ -667,7 +543,7 @@ namespace ImageSharp.Formats
             }
 
             int code = 0;
-            for (int i = 0; i < MaxCodeLength; i++)
+            for (int i = 0; i < HuffmanTree.MaxCodeLength; i++)
             {
                 if (this.bits.UnreadBits == 0)
                 {
@@ -766,7 +642,7 @@ namespace ImageSharp.Formats
         /// <param name="data">The data to write to.</param>
         /// <param name="offset">The offset in the source buffer</param>
         /// <param name="length">The number of bytes to read</param>
-        private void ReadFull(byte[] data, int offset, int length)
+        internal void ReadFull(byte[] data, int offset, int length)
         {
             // Unread the overshot bytes, if any.
             if (this.bytes.UnreadableBytes != 0)
@@ -1710,7 +1586,7 @@ namespace ImageSharp.Formats
             int bx,
             Block8x8F* qt)
         {
-            int huffmannIdx = (AcTable * ThRowSize) + scan[i].AcTableSelector;
+            int huffmannIdx = (AcTable * HuffmanTree.ThRowSize) + scan[i].AcTableSelector;
             if (ah != 0)
             {
                 this.Refine(b, ref this.huffmanTrees[huffmannIdx], unzigPtr, zigStart, zigEnd, 1 << al);
@@ -1724,7 +1600,7 @@ namespace ImageSharp.Formats
 
                     // Decode the DC coefficient, as specified in section F.2.2.1.
                     byte value = this.DecodeHuffman(
-                        ref this.huffmanTrees[(DcTable * ThRowSize) + scan[i].DcTableSelector]);
+                        ref this.huffmanTrees[(DcTable * HuffmanTree.ThRowSize) + scan[i].DcTableSelector]);
                     if (value > 16)
                     {
                         throw new ImageFormatException("Excessive DC component");
@@ -1884,13 +1760,13 @@ namespace ImageSharp.Formats
             totalHv += currentComponent.HorizontalFactor * currentComponent.VerticalFactor;
 
             currentScan.DcTableSelector = (byte)(this.temp[2 + (2 * i)] >> 4);
-            if (currentScan.DcTableSelector > MaxTh)
+            if (currentScan.DcTableSelector > HuffmanTree.MaxTh)
             {
                 throw new ImageFormatException("Bad DC table selector value");
             }
 
             currentScan.AcTableSelector = (byte)(this.temp[2 + (2 * i)] & 0x0f);
-            if (currentScan.AcTableSelector > MaxTh)
+            if (currentScan.AcTableSelector > HuffmanTree.MaxTh)
             {
                 throw new ImageFormatException("Bad AC table selector  value");
             }

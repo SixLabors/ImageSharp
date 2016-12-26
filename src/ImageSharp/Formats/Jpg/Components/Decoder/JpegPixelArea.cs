@@ -23,8 +23,6 @@ namespace ImageSharp.Formats.Jpg
         public static JpegPixelArea CreatePooled(int width, int height)
         {
             int size = width * height;
-            //var pixels = ArrayPool<byte>.Shared.Rent(size);
-            //Array.Clear(pixels, 0, size);
             var pixels = CleanPooler<byte>.RentCleanArray(size);
             return new JpegPixelArea(pixels, width, 0);
         }
@@ -61,7 +59,7 @@ namespace ImageSharp.Formats.Jpg
         public int Offset { get; private set; }
        
         /// <summary>
-        /// Get the subarea that belongs to the given block indices
+        /// Get the subarea that belongs to the Block8x8 defined by block indices
         /// </summary>
         /// <param name="bx">The block X index</param>
         /// <param name="by">The block Y index</param>

@@ -8,7 +8,7 @@ namespace ImageSharp.Tests
 
     using ImageSharp.Formats;
     using ImageSharp.Formats.Jpg;
-
+    
     /// <summary>
     /// This class contains simplified (unefficient) reference implementations to produce verification data for unit tests
     /// Floating point DCT code Ported from https://github.com/norishigefukushima/dct_simd

@@ -13,13 +13,11 @@ namespace ImageSharp.Tests
 
     using ImageSharp.Formats.Jpg;
 
-    public class JpegTests
+    public class JpegTests : MeasureFixture
     {
-        private ITestOutputHelper Output { get; }
-
         public JpegTests(ITestOutputHelper output)
+            : base(output)
         {
-            this.Output = output;
         }
 
         public static IEnumerable<string> AllJpegFiles => TestImages.Jpeg.All;
@@ -62,7 +60,7 @@ namespace ImageSharp.Tests
 
         private const int BenchmarkExecTimes = 30;
 
-        public static readonly string[] BenchmarkFiles =
+        public static readonly string[] EncoderBenchmarkFiles =
             {
                 TestImages.Bmp.Car, TestImages.Bmp.NegHeight,
                 TestImages.Bmp.F, TestImages.Png.Splash,
@@ -72,11 +70,31 @@ namespace ImageSharp.Tests
 
         private const PixelTypes BenchmarkPixels = PixelTypes.StandardImageClass; //PixelTypes.Color | PixelTypes.Argb;
 
+        [Theory] // Benchmark, enable manually
+        [InlineData(TestImages.Jpeg.Cmyk)]
+        [InlineData(TestImages.Jpeg.Ycck)]
+        [InlineData(TestImages.Jpeg.Calliphora)]
+        [InlineData(TestImages.Jpeg.Jpeg400)]
+        [InlineData(TestImages.Jpeg.Jpeg420)]
+        [InlineData(TestImages.Jpeg.Jpeg444)]
+        public void Benchmark_JpegDecoder(string fileName)
+        {
+            string path = TestFile.GetPath(fileName);
+            byte[] bytes = File.ReadAllBytes(path);
 
+            this.Measure(
+                100,
+                () =>
+                    {
+                        Image img = new Image(bytes);
+                    },
+                $"Decode {fileName}");
+            
+        }
 
         //[Theory] // Benchmark, enable manually
-        [WithFileCollection(nameof(BenchmarkFiles), BenchmarkPixels, JpegSubsample.Ratio420, 75)]
-        [WithFileCollection(nameof(BenchmarkFiles), BenchmarkPixels, JpegSubsample.Ratio444, 75)]
+        [WithFileCollection(nameof(EncoderBenchmarkFiles), BenchmarkPixels, JpegSubsample.Ratio420, 75)]
+        [WithFileCollection(nameof(EncoderBenchmarkFiles), BenchmarkPixels, JpegSubsample.Ratio444, 75)]
         public void Benchmark_JpegEncoder<TColor>(TestImageProvider<TColor> provider, JpegSubsample subSample, int quality)
            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {

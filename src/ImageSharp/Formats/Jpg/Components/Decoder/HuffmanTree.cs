@@ -12,6 +12,33 @@ namespace ImageSharp.Formats.Jpg
     /// </summary>
     internal struct HuffmanTree : IDisposable
     {
+        public static HuffmanTree[] CreateHuffmanTrees()
+        {
+            HuffmanTree[] result = new HuffmanTree[(MaxTc + 1) * (MaxTh + 1)];
+            for (int i = 0; i < MaxTc + 1; i++)
+            {
+                for (int j = 0; j < MaxTh + 1; j++)
+                {
+                    result[(i * ThRowSize) + j].Init();
+                }
+            }
+            return result;
+        }
+        /// <summary>
+        /// The maximum (inclusive) number of codes in a Huffman tree.
+        /// </summary>
+        internal const int MaxNCodes = 256;
+
+        /// <summary>
+        /// The maximum (inclusive) number of bits in a Huffman code.
+        /// </summary>
+        internal const int MaxCodeLength = 16;
+
+        /// <summary>
+        /// The log-2 size of the Huffman decoder's look-up table.
+        /// </summary>
+        internal const int LutSize = 8;
+
         /// <summary>
         /// Gets or sets the number of codes in the tree.
         /// </summary>
@@ -47,25 +74,22 @@ namespace ImageSharp.Formats.Jpg
         /// </summary>
         public int[] Indices;
 
-        private static readonly ArrayPool<ushort> UshortBuffer = ArrayPool<ushort>.Create(1 << JpegDecoderCore.LutSize, 50);
+        private static readonly ArrayPool<ushort> UshortBuffer = ArrayPool<ushort>.Create(1 << LutSize, 50);
 
-        private static readonly ArrayPool<byte> ByteBuffer = ArrayPool<byte>.Create(JpegDecoderCore.MaxNCodes, 50);
+        private static readonly ArrayPool<byte> ByteBuffer = ArrayPool<byte>.Create(MaxNCodes, 50);
 
-        private static readonly ArrayPool<int> IntBuffer = ArrayPool<int>.Create(JpegDecoderCore.MaxCodeLength, 50);
+        private static readonly ArrayPool<int> IntBuffer = ArrayPool<int>.Create(MaxCodeLength, 50);
 
         /// <summary>
         /// Initializes the Huffman tree
         /// </summary>
-        /// <param name="lutSize">Lut size</param>
-        /// <param name="maxNCodes">Max N codes</param>
-        /// <param name="maxCodeLength">Max code length</param>
-        public void Init(int lutSize, int maxNCodes, int maxCodeLength)
+        public void Init()
         {
-            this.Lut = UshortBuffer.Rent(1 << lutSize);
-            this.Values = ByteBuffer.Rent(maxNCodes);
-            this.MinCodes = IntBuffer.Rent(maxCodeLength);
-            this.MaxCodes = IntBuffer.Rent(maxCodeLength);
-            this.Indices = IntBuffer.Rent(maxCodeLength);
+            this.Lut = UshortBuffer.Rent(1 << LutSize);
+            this.Values = ByteBuffer.Rent(MaxNCodes);
+            this.MinCodes = IntBuffer.Rent(MaxCodeLength);
+            this.MaxCodes = IntBuffer.Rent(MaxCodeLength);
+            this.Indices = IntBuffer.Rent(MaxCodeLength);
         }
 
         /// <summary>
@@ -79,5 +103,111 @@ namespace ImageSharp.Formats.Jpg
             IntBuffer.Return(this.MaxCodes, true);
             IntBuffer.Return(this.Indices, true);
         }
+
+        /// <summary>
+        /// Internal part of the DHT processor, whatever does it mean
+        /// </summary>
+        /// <param name="decoder">The decoder instance</param>
+        /// <param name="defineHuffmanTablesData">The temporal buffer that holds the data that has been read from stream</param>
+        /// <param name="remaining">Remaining bits</param>
+        internal void ProcessDefineHuffmanTablesMarkerLoop(JpegDecoderCore decoder, byte[] defineHuffmanTablesData, ref int remaining)
+        {
+            // Read nCodes and huffman.Valuess (and derive h.Length).
+            // nCodes[i] is the number of codes with code length i.
+            // h.Length is the total number of codes.
+            this.Length = 0;
+
+            int[] ncodes = new int[MaxCodeLength];
+            for (int i = 0; i < ncodes.Length; i++)
+            {
+                ncodes[i] = defineHuffmanTablesData[i + 1];
+                this.Length += ncodes[i];
+            }
+
+            if (this.Length == 0)
+            {
+                throw new ImageFormatException("Huffman table has zero length");
+            }
+
+            if (this.Length > MaxNCodes)
+            {
+                throw new ImageFormatException("Huffman table has excessive length");
+            }
+
+            remaining -= this.Length + 17;
+            if (remaining < 0)
+            {
+                throw new ImageFormatException("DHT has wrong length");
+            }
+
+            decoder.ReadFull(this.Values, 0, this.Length);
+
+            // Derive the look-up table.
+            for (int i = 0; i < this.Lut.Length; i++)
+            {
+                this.Lut[i] = 0;
+            }
+
+            uint x = 0, code = 0;
+
+            for (int i = 0; i < LutSize; i++)
+            {
+                code <<= 1;
+
+                for (int j = 0; j < ncodes[i]; j++)
+                {
+                    // The codeLength is 1+i, so shift code by 8-(1+i) to
+                    // calculate the high bits for every 8-bit sequence
+                    // whose codeLength's high bits matches code.
+                    // The high 8 bits of lutValue are the encoded value.
+                    // The low 8 bits are 1 plus the codeLength.
+                    byte base2 = (byte)(code << (7 - i));
+                    ushort lutValue = (ushort)((this.Values[x] << 8) | (2 + i));
+
+                    for (int k = 0; k < 1 << (7 - i); k++)
+                    {
+                        this.Lut[base2 | k] = lutValue;
+                    }
+
+                    code++;
+                    x++;
+                }
+            }
+
+            // Derive minCodes, maxCodes, and indices.
+            int c = 0, index = 0;
+            for (int i = 0; i < ncodes.Length; i++)
+            {
+                int nc = ncodes[i];
+                if (nc == 0)
+                {
+                    this.MinCodes[i] = -1;
+                    this.MaxCodes[i] = -1;
+                    this.Indices[i] = -1;
+                }
+                else
+                {
+                    this.MinCodes[i] = c;
+                    this.MaxCodes[i] = c + nc - 1;
+                    this.Indices[i] = index;
+                    c += nc;
+                    index += nc;
+                }
+
+                c <<= 1;
+            }
+        }
+
+        /// <summary>
+        /// The maximum number of Huffman table classes
+        /// </summary>
+        internal const int MaxTc = 1;
+
+        /// <summary>
+        /// The maximum number of Huffman table identifiers
+        /// </summary>
+        internal const int MaxTh = 3;
+
+        internal const int ThRowSize = MaxTh + 1;
     }
 }

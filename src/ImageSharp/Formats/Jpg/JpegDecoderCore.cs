@@ -10,9 +10,7 @@ namespace ImageSharp.Formats
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
     using System.Threading.Tasks;
-
-    using ImageSharp.Formats.Jpg.Components.Decoder;
-    using ImageSharp.Formats.Jpg.Utils;
+    using ImageSharp.Formats.Jpg;
 
     /// <summary>
     /// Performs the jpeg decoding operation.
@@ -652,7 +650,7 @@ namespace ImageSharp.Formats
 
             if (this.bits.UnreadBits < 8)
             {
-                var errorCode = this.bits.EnsureNBits(8, this);
+                ErrorCodes errorCode = this.bits.EnsureNBits(8, this);
 
                 if (errorCode == ErrorCodes.NoError)
                 {
@@ -677,7 +675,7 @@ namespace ImageSharp.Formats
             {
                 if (this.bits.UnreadBits == 0)
                 {
-                    var errorCode = this.bits.EnsureNBits(1, this);
+                    ErrorCodes errorCode = this.bits.EnsureNBits(1, this);
                     if (errorCode != ErrorCodes.NoError)
                     {
                         throw new MissingFF00Exception();
@@ -711,7 +709,7 @@ namespace ImageSharp.Formats
         {
             if (this.bits.UnreadBits == 0)
             {
-                var errorCode = this.bits.EnsureNBits(1, this);
+                ErrorCodes errorCode = this.bits.EnsureNBits(1, this);
                 if (errorCode != ErrorCodes.NoError)
                 {
                     throw new MissingFF00Exception();
@@ -733,7 +731,7 @@ namespace ImageSharp.Formats
         {
             if (this.bits.UnreadBits < count)
             {
-                var errorCode = this.bits.EnsureNBits(count, this);
+                ErrorCodes errorCode = this.bits.EnsureNBits(count, this);
                 if (errorCode != ErrorCodes.NoError)
                 {
                     throw new MissingFF00Exception();
@@ -1521,7 +1519,7 @@ namespace ImageSharp.Formats
                     int compIndex = scan[i].Index;
                     if (this.progCoeffs[compIndex] == null)
                     {
-                        var size = mxx * myy * this.componentArray[compIndex].HorizontalFactor
+                        int size = mxx * myy * this.componentArray[compIndex].HorizontalFactor
                                    * this.componentArray[compIndex].VerticalFactor;
 
                         this.progCoeffs[compIndex] = new Block8x8F[size];
@@ -1601,7 +1599,7 @@ namespace ImageSharp.Formats
                                 }
                             }
 
-                            var qtIndex = this.componentArray[compIndex].Selector;
+                            int qtIndex = this.componentArray[compIndex].Selector;
 
                             // TODO: Find a way to clean up this mess
                             fixed (Block8x8F* qtp = &this.quantizationTables[qtIndex])
@@ -1716,7 +1714,7 @@ namespace ImageSharp.Formats
             int bx,
             Block8x8F* qt)
         {
-            var huffmannIdx = (AcTable * ThRowSize) + scan[i].AcTableSelector;
+            int huffmannIdx = (AcTable * ThRowSize) + scan[i].AcTableSelector;
             if (ah != 0)
             {
                 this.Refine(b, ref this.huffmanTrees[huffmannIdx], unzigPtr, zigStart, zigEnd, 1 << al);
@@ -2235,11 +2233,6 @@ namespace ImageSharp.Formats
             /// Gets or sets the AC table selector
             /// </summary>
             public byte AcTableSelector { get; set; }
-        }
-
-        private struct StackallocUnzigData
-        {
-            internal fixed int Data[64];
         }
 
         /// <summary>

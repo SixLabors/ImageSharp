@@ -134,7 +134,7 @@ namespace ImageSharp
             this.ComponentOrder = componentOrder;
             this.RowByteCount = (width * GetComponentCount(componentOrder)) + padding;
 
-            var bufferSize = this.RowByteCount * height;
+            int bufferSize = this.RowByteCount * height;
 
             if (usePool)
             {

@@ -4,7 +4,7 @@
 // </copyright>
 // ReSharper disable InconsistentNaming
 
-namespace ImageSharp.Formats
+namespace ImageSharp.Formats.Jpg
 {
     using System.Numerics;
     using System.Runtime.CompilerServices;

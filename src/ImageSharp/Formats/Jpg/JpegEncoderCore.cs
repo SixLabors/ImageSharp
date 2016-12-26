@@ -10,8 +10,7 @@ namespace ImageSharp.Formats
     using System.Numerics;
     using System.Runtime.CompilerServices;
 
-    using ImageSharp.Formats.Jpg.Components.Encoder;
-    using ImageSharp.Formats.Jpg.Utils;
+    using ImageSharp.Formats.Jpg;
 
     /// <summary>
     ///     Image encoder for writing an image to a stream as a jpeg.

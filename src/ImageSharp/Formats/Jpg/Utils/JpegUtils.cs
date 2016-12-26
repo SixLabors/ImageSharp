@@ -2,12 +2,10 @@
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
-namespace ImageSharp.Formats.Jpg.Utils
+namespace ImageSharp.Formats.Jpg
 {
     using System;
     using System.Runtime.CompilerServices;
-
-    using ImageSharp.Formats.Jpg.Components.Encoder;
 
     /// <summary>
     ///     Jpeg specific utilities and extension methods

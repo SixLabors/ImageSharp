@@ -11,7 +11,7 @@ namespace ImageSharp.Tests
 {
     using System.Numerics;
 
-    using ImageSharp.Formats.Jpg.Utils;
+    using ImageSharp.Formats.Jpg;
 
     public class JpegTests
     {

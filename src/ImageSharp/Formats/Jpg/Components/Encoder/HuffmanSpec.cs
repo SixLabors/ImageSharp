@@ -2,7 +2,7 @@
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
-namespace ImageSharp.Formats.Jpg.Components.Encoder
+namespace ImageSharp.Formats.Jpg
 {
     /// <summary>
     ///     The Huffman encoding specifications.

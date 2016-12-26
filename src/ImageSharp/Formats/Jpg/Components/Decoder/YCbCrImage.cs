@@ -5,6 +5,8 @@
 
 namespace ImageSharp.Formats.Jpg
 {
+    using System.Buffers;
+
     /// <summary>
     /// Represents an image made up of three color components (luminance, blue chroma, red chroma)
     /// </summary>
@@ -20,17 +22,21 @@ namespace ImageSharp.Formats.Jpg
         {
             int cw, ch;
             YCbCrSize(width, height, ratio, out cw, out ch);
-            this.YChannel = new byte[width * height];
-            this.CbChannel = new byte[cw * ch];
-            this.CrChannel = new byte[cw * ch];
+            this.YPixels = new byte[width * height];
+            this.CbPixels = new byte[cw * ch];
+            this.CrPixels = new byte[cw * ch];
             this.Ratio = ratio;
             this.YStride = width;
             this.CStride = cw;
             this.X = 0;
             this.Y = 0;
-            this.Width = width;
-            this.Height = height;
         }
+
+        public JpegPixelArea YChannel => new JpegPixelArea(this.YPixels, this.YStride, this.YOffset);
+
+        public JpegPixelArea CbChannel => new JpegPixelArea(this.CbPixels, this.CStride, this.COffset); 
+
+        public JpegPixelArea CrChannel => new JpegPixelArea(this.CrPixels, this.CStride, this.COffset);
 
         /// <summary>
         /// Prevents a default instance of the <see cref="YCbCrImage"/> class from being created.
@@ -38,7 +44,7 @@ namespace ImageSharp.Formats.Jpg
         private YCbCrImage()
         {
         }
-
+        
         /// <summary>
         /// Provides enumeration of the various available subsample ratios.
         /// </summary>
@@ -78,38 +84,38 @@ namespace ImageSharp.Formats.Jpg
         /// <summary>
         /// Gets or sets the luminance components channel.
         /// </summary>
-        public byte[] YChannel { get; set; }
+        public byte[] YPixels { get; private set; }
 
         /// <summary>
         /// Gets or sets the blue chroma components channel.
         /// </summary>
-        public byte[] CbChannel { get; set; }
+        public byte[] CbPixels { get; private set; }
 
         /// <summary>
         /// Gets or sets the red chroma components channel.
         /// </summary>
-        public byte[] CrChannel { get; set; }
+        public byte[] CrPixels { get; private set; }
 
         /// <summary>
         /// Gets or sets the Y slice index delta between vertically adjacent pixels.
         /// </summary>
-        public int YStride { get; set; }
+        public int YStride { get; private set; }
 
         /// <summary>
         /// Gets or sets the red and blue chroma slice index delta between vertically adjacent pixels
         /// that map to separate chroma samples.
         /// </summary>
-        public int CStride { get; set; }
+        public int CStride { get; private set; }
 
         /// <summary>
         /// Gets or sets the index of the first luminance element.
         /// </summary>
-        public int YOffset { get; set; }
+        public int YOffset { get; private set; }
 
         /// <summary>
         /// Gets or sets the index of the first element of red or blue chroma.
         /// </summary>
-        public int COffset { get; set; }
+        public int COffset { get; private set; }
 
         /// <summary>
         /// Gets or sets the horizontal position.
@@ -120,50 +126,38 @@ namespace ImageSharp.Formats.Jpg
         /// Gets or sets the vertical position.
         /// </summary>
         public int Y { get; set; }
-
-        /// <summary>
-        /// Gets or sets the width.
-        /// </summary>
-        public int Width { get; set; }
-
-        /// <summary>
-        /// Gets or sets the height.
-        /// </summary>
-        public int Height { get; set; }
-
+        
         /// <summary>
         /// Gets or sets the subsampling ratio.
         /// </summary>
         public YCbCrSubsampleRatio Ratio { get; set; }
 
-        /// <summary>
-        /// Gets an image made up of a subset of the originals pixels.
-        /// </summary>
-        /// <param name="x">The x-coordinate of the image.</param>
-        /// <param name="y">The y-coordinate of the image.</param>
-        /// <param name="width">The width.</param>
-        /// <param name="height">The height.</param>
-        /// <returns>
-        /// The <see cref="YCbCrImage"/>.
-        /// </returns>
-        public YCbCrImage Subimage(int x, int y, int width, int height)
-        {
-            YCbCrImage ret = new YCbCrImage
-            {
-                Width = width,
-                Height = height,
-                YChannel = this.YChannel,
-                CbChannel = this.CbChannel,
-                CrChannel = this.CrChannel,
-                Ratio = this.Ratio,
-                YStride = this.YStride,
-                CStride = this.CStride,
-                YOffset = (y * this.YStride) + x,
-                COffset = (y * this.CStride) + x
-            };
-            return ret;
-        }
-
+        ///// <summary>
+        ///// Gets an image made up of a subset of the originals pixels.
+        ///// </summary>
+        ///// <param name="x">The x-coordinate of the image.</param>
+        ///// <param name="y">The y-coordinate of the image.</param>
+        ///// <param name="width">The width.</param>
+        ///// <param name="height">The height.</param>
+        ///// <returns>
+        ///// The <see cref="YCbCrImage"/>.
+        ///// </returns>
+        //public YCbCrImage Subimage(int x, int y, int width, int height)
+        //{
+        //    YCbCrImage ret = new YCbCrImage
+        //    {
+        //        YPixels = this.YPixels,
+        //        CbPixels = this.CbPixels,
+        //        CrPixels = this.CrPixels,
+        //        Ratio = this.Ratio,
+        //        YStride = this.YStride,
+        //        CStride = this.CStride,
+        //        YOffset = (y * this.YStride) + x,
+        //        COffset = (y * this.CStride) + x
+        //    };
+        //    return ret;
+        //}
+        
         /// <summary>
         /// Returns the offset of the first luminance component at the given row
         /// </summary>

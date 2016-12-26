@@ -2,7 +2,7 @@
 {
     using System.Buffers;
 
-    internal class ArrayPoolManager<T>
+    internal class CleanPooler<T>
     {
         private static readonly ArrayPool<T> Pool = ArrayPool<T>.Create();
 

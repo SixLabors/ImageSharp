@@ -70,7 +70,7 @@ namespace ImageSharp.Tests
 
         private const PixelTypes BenchmarkPixels = PixelTypes.StandardImageClass; //PixelTypes.Color | PixelTypes.Argb;
 
-        [Theory] // Benchmark, enable manually
+        //[Theory] // Benchmark, enable manually
         [InlineData(TestImages.Jpeg.Cmyk)]
         [InlineData(TestImages.Jpeg.Ycck)]
         [InlineData(TestImages.Jpeg.Calliphora)]

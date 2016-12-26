@@ -122,22 +122,15 @@ namespace ImageSharp.Formats
         /// <summary>
         /// A grayscale image to decode to.
         /// </summary>
-        private GrayImage grayImage;
+        private JpegPixelArea grayImage;
 
         /// <summary>
         /// The full color image to decode to.
         /// </summary>
         private YCbCrImage ycbcrImage;
 
-        /// <summary>
-        /// The array of keyline pixels in a CMYK image
-        /// </summary>
-        private byte[] blackPixels;
-
-        /// <summary>
-        /// The width in bytes or a single row of keyline pixels in a CMYK image
-        /// </summary>
-        private int blackStride;
+        
+        private JpegPixelArea blackImage;
 
         /// <summary>
         /// The restart interval
@@ -420,7 +413,7 @@ namespace ImageSharp.Formats
                 }
             }
 
-            if (this.grayImage != null)
+            if (this.grayImage.Created)
             {
                 this.ConvertFromGrayScale(this.imageWidth, this.imageHeight, image);
             }
@@ -480,6 +473,8 @@ namespace ImageSharp.Formats
             }
 
             this.bytes.Dispose();
+            this.grayImage.ReturnPooled();
+            this.blackImage.ReturnPooled();
         }
 
         /// <summary>
@@ -1228,9 +1223,9 @@ namespace ImageSharp.Formats
 
                             for (int x = 0; x < width; x++)
                             {
-                                byte yy = this.ycbcrImage.YChannel[yo + x];
-                                byte cb = this.ycbcrImage.CbChannel[co + (x / scale)];
-                                byte cr = this.ycbcrImage.CrChannel[co + (x / scale)];
+                                byte yy = this.ycbcrImage.YPixels[yo + x];
+                                byte cb = this.ycbcrImage.CbPixels[co + (x / scale)];
+                                byte cr = this.ycbcrImage.CrPixels[co + (x / scale)];
 
                                 TColor packed = default(TColor);
                                 this.PackYcck<TColor>(ref packed, yy, cb, cr, x, y);
@@ -1268,9 +1263,9 @@ namespace ImageSharp.Formats
 
                         for (int x = 0; x < width; x++)
                         {
-                            byte cyan = this.ycbcrImage.YChannel[yo + x];
-                            byte magenta = this.ycbcrImage.CbChannel[co + (x / scale)];
-                            byte yellow = this.ycbcrImage.CrChannel[co + (x / scale)];
+                            byte cyan = this.ycbcrImage.YPixels[yo + x];
+                            byte magenta = this.ycbcrImage.CbPixels[co + (x / scale)];
+                            byte yellow = this.ycbcrImage.CrPixels[co + (x / scale)];
 
                             TColor packed = default(TColor);
                             this.PackCmyk<TColor>(ref packed, cyan, magenta, yellow, x, y);
@@ -1343,9 +1338,9 @@ namespace ImageSharp.Formats
 
                             for (int x = 0; x < width; x++)
                             {
-                                byte yy = this.ycbcrImage.YChannel[yo + x];
-                                byte cb = this.ycbcrImage.CbChannel[co + (x / scale)];
-                                byte cr = this.ycbcrImage.CrChannel[co + (x / scale)];
+                                byte yy = this.ycbcrImage.YPixels[yo + x];
+                                byte cb = this.ycbcrImage.CbPixels[co + (x / scale)];
+                                byte cr = this.ycbcrImage.CrPixels[co + (x / scale)];
 
                                 TColor packed = default(TColor);
                                 PackYcbCr<TColor>(ref packed, yy, cb, cr);
@@ -1383,9 +1378,9 @@ namespace ImageSharp.Formats
 
                             for (int x = 0; x < width; x++)
                             {
-                                byte red = this.ycbcrImage.YChannel[yo + x];
-                                byte green = this.ycbcrImage.CbChannel[co + (x / scale)];
-                                byte blue = this.ycbcrImage.CrChannel[co + (x / scale)];
+                                byte red = this.ycbcrImage.YPixels[yo + x];
+                                byte green = this.ycbcrImage.CbPixels[co + (x / scale)];
+                                byte blue = this.ycbcrImage.CrPixels[co + (x / scale)];
 
                                 TColor packed = default(TColor);
                                 packed.PackFromBytes(red, green, blue, 255);
@@ -1506,11 +1501,8 @@ namespace ImageSharp.Formats
             int v0 = this.componentArray[0].VerticalFactor;
             int mxx = (this.imageWidth + (8 * h0) - 1) / (8 * h0);
             int myy = (this.imageHeight + (8 * v0) - 1) / (8 * v0);
-
-            if (this.grayImage == null && this.ycbcrImage == null)
-            {
-                this.MakeImage(mxx, myy);
-            }
+            
+            this.MakeImage(mxx, myy);
 
             if (this.isProgressive)
             {
@@ -1539,6 +1531,8 @@ namespace ImageSharp.Formats
             // bx and by are the location of the current block, in units of 8x8
             // blocks: the third block in the first row has (bx, by) = (2, 0).
             int bx, by, blockCount = 0;
+
+            // TODO: A DecoderScanProcessor struct could clean up this mess
 
             Block8x8F b = default(Block8x8F);
             Block8x8F temp1 = default(Block8x8F);
@@ -1601,7 +1595,8 @@ namespace ImageSharp.Formats
 
                             int qtIndex = this.componentArray[compIndex].Selector;
 
-                            // TODO: Find a way to clean up this mess
+                            // TODO: A DecoderScanProcessor struct could clean up this mess
+                            // TODO: Reading & processing blocks should be done in 2 separate loops. The second one could be parallelized. (The first one could be async) 
                             fixed (Block8x8F* qtp = &this.quantizationTables[qtIndex])
                             {
                                 // Load the previous partially decoded coefficients, if applicable.
@@ -1812,52 +1807,33 @@ namespace ImageSharp.Formats
 
             DCT.TransformIDCT(ref *b, ref *temp1, ref *temp2);
 
-            byte[] dst;
-            int offset;
-            int stride;
+            var destChannel = this.GetDestinationChannel(compIndex);
+            var destArea = destChannel.GetOffsetedAreaForBlock(bx, by);
+            destArea.LoadColorsFrom(temp1, temp2);
+        }
 
+        private JpegPixelArea GetDestinationChannel(int compIndex)
+        {
             if (this.componentCount == 1)
             {
-                dst = this.grayImage.Pixels;
-                stride = this.grayImage.Stride;
-                offset = this.grayImage.Offset + (8 * ((@by * this.grayImage.Stride) + bx));
+                return this.grayImage;
             }
             else
             {
                 switch (compIndex)
                 {
                     case 0:
-                        dst = this.ycbcrImage.YChannel;
-                        stride = this.ycbcrImage.YStride;
-                        offset = this.ycbcrImage.YOffset + (8 * ((@by * this.ycbcrImage.YStride) + bx));
-                        break;
-
+                        return this.ycbcrImage.YChannel;
                     case 1:
-                        dst = this.ycbcrImage.CbChannel;
-                        stride = this.ycbcrImage.CStride;
-                        offset = this.ycbcrImage.COffset + (8 * ((@by * this.ycbcrImage.CStride) + bx));
-                        break;
-
+                        return this.ycbcrImage.CbChannel;
                     case 2:
-                        dst = this.ycbcrImage.CrChannel;
-                        stride = this.ycbcrImage.CStride;
-                        offset = this.ycbcrImage.COffset + (8 * ((@by * this.ycbcrImage.CStride) + bx));
-                        break;
-
+                        return this.ycbcrImage.CrChannel;
                     case 3:
-
-                        dst = this.blackPixels;
-                        stride = this.blackStride;
-                        offset = 8 * ((@by * this.blackStride) + bx);
-                        break;
-
+                        return this.blackImage;
                     default:
                         throw new ImageFormatException("Too many components");
                 }
             }
-
-            // Level shift by +128, clip to [0, 255], and write to dst.
-            temp1->CopyColorsTo(new MutableSpan<byte>(dst, offset), stride, temp2);
         }
 
         private void ProcessScanImpl(int i, ref Scan currentScan, Scan[] scan, ref int totalHv)
@@ -2071,7 +2047,7 @@ namespace ImageSharp.Formats
 
             return zig;
         }
-
+        
         /// <summary>
         /// Makes the image from the buffer.
         /// </summary>
@@ -2079,9 +2055,11 @@ namespace ImageSharp.Formats
         /// <param name="myy">The vertical MCU count</param>
         private void MakeImage(int mxx, int myy)
         {
+            if (this.grayImage.Created || this.ycbcrImage != null) return;
+            
             if (this.componentCount == 1)
             {
-                GrayImage gray = new GrayImage(8 * mxx, 8 * myy);
+                JpegPixelArea gray = JpegPixelArea.CreatePooled(8 * mxx, 8 * myy);
                 this.grayImage = gray.Subimage(0, 0, this.imageWidth, this.imageHeight);
             }
             else
@@ -2114,15 +2092,16 @@ namespace ImageSharp.Formats
                         break;
                 }
 
-                YCbCrImage ycbcr = new YCbCrImage(8 * h0 * mxx, 8 * v0 * myy, ratio);
-                this.ycbcrImage = ycbcr.Subimage(0, 0, this.imageWidth, this.imageHeight);
+                this.ycbcrImage = new YCbCrImage(8 * h0 * mxx, 8 * v0 * myy, ratio);
+                //this.ycbcrImage = ycbcr.Subimage(0, 0, this.imageWidth, this.imageHeight);
 
                 if (this.componentCount == 4)
                 {
                     int h3 = this.componentArray[3].HorizontalFactor;
                     int v3 = this.componentArray[3].VerticalFactor;
-                    this.blackPixels = new byte[8 * h3 * mxx * 8 * v3 * myy];
-                    this.blackStride = 8 * h3 * mxx;
+
+                    this.blackImage = JpegPixelArea.CreatePooled(8 * h3 * mxx, 8 * v3 * myy);
+                   
                 }
             }
         }
@@ -2179,7 +2158,7 @@ namespace ImageSharp.Formats
             float yellow = (y + (1.772F * ccb)).Clamp(0, 255) / 255F;
 
             // Get keyline
-            float keyline = (255 - this.blackPixels[(yy * this.blackStride) + xx]) / 255F;
+            float keyline = (255 - this.blackImage[xx, yy]) / 255F;
 
             // Convert back to RGB
             byte r = (byte)(((1 - cyan) * (1 - keyline)).Clamp(0, 1) * 255);
@@ -2204,7 +2183,7 @@ namespace ImageSharp.Formats
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             // Get keyline
-            float keyline = (255 - this.blackPixels[(yy * this.blackStride) + xx]) / 255F;
+            float keyline = (255 - this.blackImage[xx, yy]) / 255F;
 
             // Convert back to RGB. CMY are not inverted
             byte r = (byte)(((c / 255F) * (1F - keyline)).Clamp(0, 1) * 255);

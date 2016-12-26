@@ -249,7 +249,7 @@ namespace ImageSharp
         /// </returns>
         public static RectangleF Outset(RectangleF region, float width)
         {
-            var dblWidth = width * 2;
+            float dblWidth = width * 2;
             return new RectangleF(region.X - width, region.Y - width, region.Width + dblWidth, region.Height + dblWidth);
         }
 

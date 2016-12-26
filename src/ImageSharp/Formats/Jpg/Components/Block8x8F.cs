@@ -3,21 +3,22 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 // ReSharper disable InconsistentNaming
-namespace ImageSharp.Formats
+namespace ImageSharp.Formats.Jpg
 {
     using System;
     using System.Numerics;
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
 
-    using ImageSharp.Formats.Jpg.Utils;
-
     /// <summary>
     /// DCT code Ported from https://github.com/norishigefukushima/dct_simd
     /// </summary>
     internal partial struct Block8x8F
     {
-#pragma warning disable SA1204 // Static members must appear before non-static members
+        // Most of the static methods of this struct are instance methods by actual semantics: they use Block8x8F* as their first parameter.
+        // Example: GetScalarAt() and SetScalarAt() are really just other (optimized) versions of the indexer.
+        // It's much cleaner, easier and safer to work with the code, if the methods with same semantics are next to each other.
+#pragma warning disable SA1204 // StaticElementsMustAppearBeforeInstanceElements
 
         /// <summary>
         /// Vector count
@@ -56,7 +57,7 @@ namespace ImageSharp.Formats
 #pragma warning restore SA1600 // ElementsMustBeDocumented
 
         /// <summary>
-        /// Index into the block
+        /// Get/Set scalar elements at a given index
         /// </summary>
         /// <param name="idx">The index</param>
         /// <returns>The float value at the specified index</returns>
@@ -84,6 +85,55 @@ namespace ImageSharp.Formats
         }
 
         /// <summary>
+        /// Pointer-based "Indexer" (getter part)
+        /// </summary>
+        /// <param name="blockPtr">Block pointer</param>
+        /// <param name="idx">Index</param>
+        /// <returns>The scaleVec value at the specified index</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static unsafe float GetScalarAt(Block8x8F* blockPtr, int idx)
+        {
+            float* fp = (float*)blockPtr;
+            return fp[idx];
+        }
+
+        /// <summary>
+        /// Pointer-based "Indexer" (setter part)
+        /// </summary>
+        /// <param name="blockPtr">Block pointer</param>
+        /// <param name="idx">Index</param>
+        /// <param name="value">Value</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static unsafe void SetScalarAt(Block8x8F* blockPtr, int idx, float value)
+        {
+            float* fp = (float*)blockPtr;
+            fp[idx] = value;
+        }
+
+        /// <summary>
+        /// Fill the block with defaults (zeroes)
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Clear()
+        {
+            // The cheapest way to do this in C#:
+            this = default(Block8x8F);
+        }
+
+        /// <summary>
+        /// Load raw 32bit floating point data from source
+        /// </summary>
+        /// <param name="source">Source</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe void LoadFrom(MutableSpan<float> source)
+        {
+            fixed (void* ptr = &this.V0L)
+            {
+                Marshal.Copy(source.Data, source.Offset, (IntPtr)ptr, ScalarCount);
+            }
+        }
+
+        /// <summary>
         /// Load raw 32bit floating point data from source
         /// </summary>
         /// <param name="blockPtr">Block pointer</param>
@@ -95,14 +145,32 @@ namespace ImageSharp.Formats
         }
 
         /// <summary>
+        /// Load raw 32bit floating point data from source
+        /// </summary>
+        /// <param name="source">Source</param>
+        public unsafe void LoadFrom(MutableSpan<int> source)
+        {
+            fixed (Vector4* ptr = &this.V0L)
+            {
+                float* fp = (float*)ptr;
+                for (int i = 0; i < ScalarCount; i++)
+                {
+                    fp[i] = source[i];
+                }
+            }
+        }
+
+        /// <summary>
         /// Copy raw 32bit floating point data to dest
         /// </summary>
-        /// <param name="blockPtr">Block pointer</param>
         /// <param name="dest">Destination</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe void CopyTo(Block8x8F* blockPtr, MutableSpan<float> dest)
+        public unsafe void CopyTo(MutableSpan<float> dest)
         {
-            Marshal.Copy((IntPtr)blockPtr, dest.Data, dest.Offset, ScalarCount);
+            fixed (void* ptr = &this.V0L)
+            {
+                Marshal.Copy((IntPtr)ptr, dest.Data, dest.Offset, ScalarCount);
+            }
         }
 
         /// <summary>
@@ -122,29 +190,14 @@ namespace ImageSharp.Formats
         }
 
         /// <summary>
-        /// Load raw 32bit floating point data from source
-        /// </summary>
-        /// <param name="source">Source</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe void LoadFrom(MutableSpan<float> source)
-        {
-            fixed (void* ptr = &this.V0L)
-            {
-                Marshal.Copy(source.Data, source.Offset, (IntPtr)ptr, ScalarCount);
-            }
-        }
-
-        /// <summary>
         /// Copy raw 32bit floating point data to dest
         /// </summary>
+        /// <param name="blockPtr">Block pointer</param>
         /// <param name="dest">Destination</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe void CopyTo(MutableSpan<float> dest)
+        public static unsafe void CopyTo(Block8x8F* blockPtr, MutableSpan<float> dest)
         {
-            fixed (void* ptr = &this.V0L)
-            {
-                Marshal.Copy((IntPtr)ptr, dest.Data, dest.Offset, ScalarCount);
-            }
+            Marshal.Copy((IntPtr)blockPtr, dest.Data, dest.Offset, ScalarCount);
         }
 
         /// <summary>
@@ -157,6 +210,22 @@ namespace ImageSharp.Formats
             fixed (void* ptr = &this.V0L)
             {
                 Marshal.Copy((IntPtr)ptr, dest, 0, ScalarCount);
+            }
+        }
+
+        /// <summary>
+        /// Copy raw 32bit floating point data to dest
+        /// </summary>
+        /// <param name="dest">Destination</param>
+        public unsafe void CopyTo(MutableSpan<int> dest)
+        {
+            fixed (Vector4* ptr = &this.V0L)
+            {
+                float* fp = (float*)ptr;
+                for (int i = 0; i < ScalarCount; i++)
+                {
+                    dest[i] = (int)fp[i];
+                }
             }
         }
 
@@ -211,32 +280,6 @@ namespace ImageSharp.Formats
         }
 
         /// <summary>
-        /// Pointer-based "Indexer" (getter part)
-        /// </summary>
-        /// <param name="blockPtr">Block pointer</param>
-        /// <param name="idx">Index</param>
-        /// <returns>The scaleVec value at the specified index</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe float GetScalarAt(Block8x8F* blockPtr, int idx)
-        {
-            float* fp = (float*)blockPtr;
-            return fp[idx];
-        }
-
-        /// <summary>
-        /// Pointer-based "Indexer" (setter part)
-        /// </summary>
-        /// <param name="blockPtr">Block pointer</param>
-        /// <param name="idx">Index</param>
-        /// <param name="value">Value</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe void SetScalarAt(Block8x8F* blockPtr, int idx, float value)
-        {
-            float* fp = (float*)blockPtr;
-            fp[idx] = value;
-        }
-
-        /// <summary>
         /// Un-zig
         /// </summary>
         /// <param name="blockPtr">Block pointer</param>
@@ -254,48 +297,6 @@ namespace ImageSharp.Formats
                 val *= qtp[zig];
                 *unzigPos = val;
             }
-        }
-
-        /// <summary>
-        /// Copy raw 32bit floating point data to dest
-        /// </summary>
-        /// <param name="dest">Destination</param>
-        public unsafe void CopyTo(MutableSpan<int> dest)
-        {
-            fixed (Vector4* ptr = &this.V0L)
-            {
-                float* fp = (float*)ptr;
-                for (int i = 0; i < ScalarCount; i++)
-                {
-                    dest[i] = (int)fp[i];
-                }
-            }
-        }
-
-        /// <summary>
-        /// Load raw 32bit floating point data from source
-        /// </summary>
-        /// <param name="source">Source</param>
-        public unsafe void LoadFrom(MutableSpan<int> source)
-        {
-            fixed (Vector4* ptr = &this.V0L)
-            {
-                float* fp = (float*)ptr;
-                for (int i = 0; i < ScalarCount; i++)
-                {
-                    fp[i] = source[i];
-                }
-            }
-        }
-
-        /// <summary>
-        /// Fill the block with defaults (zeroes)
-        /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Clear()
-        {
-            // The cheapest way to do this in C#:
-            this = default(Block8x8F);
         }
 
         /// <summary>

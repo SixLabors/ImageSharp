@@ -3,7 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.Formats.Jpg.Components.Encoder
+namespace ImageSharp.Formats.Jpg
 {
     /// <summary>
     /// A compiled look-up table representation of a huffmanSpec.

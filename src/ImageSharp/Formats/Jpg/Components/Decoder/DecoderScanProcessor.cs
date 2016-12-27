@@ -310,28 +310,6 @@
                             }
 
                             this.ProcessBlockImpl(decoder, i, compIndex, hi, scan, ref dc);
-
-
-                            //fixed (Block8x8F* qtp = &decoder.QuantizationTables[qtIndex])
-                            //{
-                            //    // Load the previous partially decoded coefficients, if applicable.
-                            //    if (decoder.IsProgressive)
-                            //    {
-                            //        int blockIndex = ((@by * mxx) * hi) + bx;
-
-                            //        fixed (Block8x8F* bp = &decoder.ProgCoeffs[compIndex][blockIndex])
-                            //        {
-                            //            Unsafe.CopyBlock(this.Pointers.Block, bp, (uint)sizeof(Block8x8F));
-                            //        }
-                            //    }
-                            //    else
-                            //    {
-                            //        this.Data.Block.Clear();
-                            //    }
-                            //    decoder.ProcessBlockImpl(this.ah, this.Pointers.Block, this.Pointers.Temp1, this.Pointers.Temp2, this.Pointers.Unzig, scan, i, this.zigStart, this.zigEnd, this.al, dc, compIndex, this.@by, this.mxx, hi, this.bx, qtp);
-                            //}
-
-
                         }
 
                         // for j

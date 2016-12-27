@@ -91,7 +91,7 @@ namespace ImageSharp.Formats.Jpg
         /// <summary>
         ///     Creates and initializes an array of <see cref="HuffmanTree" /> instances of size <see cref="NumberOfTrees" />
         /// </summary>
-        /// <returns>An array of <see cref="HuffmanTree" /> instances representing the Huffman table</returns>
+        /// <returns>An array of <see cref="HuffmanTree" /> instances representing the Huffman tables</returns>
         public static HuffmanTree[] CreateHuffmanTrees()
         {
             HuffmanTree[] result = new HuffmanTree[NumberOfTrees];
@@ -109,7 +109,7 @@ namespace ImageSharp.Formats.Jpg
         /// <summary>
         ///     Initializes the Huffman tree
         /// </summary>
-        public void Init()
+        private void Init()
         {
             this.Lut = UshortBuffer.Rent(1 << LutSize);
             this.Values = ByteBuffer.Rent(MaxNCodes);
@@ -134,7 +134,7 @@ namespace ImageSharp.Formats.Jpg
         ///     Internal part of the DHT processor, whatever does it mean
         /// </summary>
         /// <param name="decoder">The decoder instance</param>
-        /// <param name="defineHuffmanTablesData">The temporal buffer that holds the data that has been read from stream</param>
+        /// <param name="defineHuffmanTablesData">The temporal buffer that holds the data that has been read from the Jpeg stream</param>
         /// <param name="remaining">Remaining bits</param>
         internal void ProcessDefineHuffmanTablesMarkerLoop(
             JpegDecoderCore decoder,

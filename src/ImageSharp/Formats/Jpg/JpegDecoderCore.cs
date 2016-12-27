@@ -10,7 +10,7 @@ namespace ImageSharp.Formats
     using System.Threading.Tasks;
 
     using ImageSharp.Formats.Jpg;
-
+    
     /// <summary>
     ///     Performs the jpeg decoding operation.
     /// </summary>
@@ -29,7 +29,7 @@ namespace ImageSharp.Formats
         /// <summary>
         ///     The maximum number of color components
         /// </summary>
-        private const int MaxComponents = 4;
+        internal const int MaxComponents = 4;
 
         /// <summary>
         ///     The maximum number of quantization tables
@@ -39,7 +39,7 @@ namespace ImageSharp.Formats
         /// <summary>
         ///     The component array
         /// </summary>
-        private readonly Component[] componentArray;
+        internal Component[] ComponentArray { get; }
 
         /// <summary>
         ///     The huffman trees
@@ -49,17 +49,17 @@ namespace ImageSharp.Formats
         /// <summary>
         ///     Saved state between progressive-mode scans.
         /// </summary>
-        private readonly Block8x8F[][] progCoeffs;
+        internal Block8x8F[][] ProgCoeffs { get; }
 
         /// <summary>
         ///     Quantization tables, in zigzag order.
         /// </summary>
-        private readonly Block8x8F[] quantizationTables;
+        internal Block8x8F[] QuantizationTables { get; }
 
         /// <summary>
         ///     A temporary buffer for holding pixels
         /// </summary>
-        private readonly byte[] temp;
+        internal byte[] Temp { get; }
 
         // TODO: the usage of this buffer is unclean + need to move it to the stack for performance
 
@@ -90,7 +90,7 @@ namespace ImageSharp.Formats
         /// <summary>
         ///     The number of color components within the image.
         /// </summary>
-        private int componentCount;
+        internal int ComponentCount { get; private set; }
 
         /// <summary>
         ///     End-of-Band run, specified in section G.1.2.2.
@@ -110,12 +110,12 @@ namespace ImageSharp.Formats
         /// <summary>
         ///     The image height
         /// </summary>
-        private int imageHeight;
+        internal int ImageHeight { get; private set; }
 
         /// <summary>
         ///     The image width
         /// </summary>
-        private int imageWidth;
+        internal int ImageWidth { get; private set; }
 
         /// <summary>
         ///     The byte buffer.
@@ -130,7 +130,7 @@ namespace ImageSharp.Formats
         /// <summary>
         ///     Whether the image is interlaced (progressive)
         /// </summary>
-        private bool isProgressive;
+        public bool IsProgressive { get; private set; }
 
         /// <summary>
         ///     The restart interval
@@ -153,10 +153,10 @@ namespace ImageSharp.Formats
         public JpegDecoderCore()
         {
             this.huffmanTrees = HuffmanTree.CreateHuffmanTrees();
-            this.quantizationTables = new Block8x8F[MaxTq + 1];
-            this.temp = new byte[2 * Block8x8F.ScalarCount];
-            this.componentArray = new Component[MaxComponents];
-            this.progCoeffs = new Block8x8F[MaxComponents][];
+            this.QuantizationTables = new Block8x8F[MaxTq + 1];
+            this.Temp = new byte[2 * Block8x8F.ScalarCount];
+            this.ComponentArray = new Component[MaxComponents];
+            this.ProgCoeffs = new Block8x8F[MaxComponents][];
             this.bits = default(Bits);
             this.bytes = Bytes.Create();
         }
@@ -219,8 +219,8 @@ namespace ImageSharp.Formats
             this.inputStream = stream;
 
             // Check for the Start Of Image marker.
-            this.ReadFull(this.temp, 0, 2);
-            if (this.temp[0] != JpegConstants.Markers.XFF || this.temp[1] != JpegConstants.Markers.SOI)
+            this.ReadFull(this.Temp, 0, 2);
+            if (this.Temp[0] != JpegConstants.Markers.XFF || this.Temp[1] != JpegConstants.Markers.SOI)
             {
                 throw new ImageFormatException("Missing SOI marker.");
             }
@@ -228,8 +228,8 @@ namespace ImageSharp.Formats
             // Process the remaining segments until the End Of Image marker.
             while (true)
             {
-                this.ReadFull(this.temp, 0, 2);
-                while (this.temp[0] != 0xff)
+                this.ReadFull(this.Temp, 0, 2);
+                while (this.Temp[0] != 0xff)
                 {
                     // Strictly speaking, this is a format error. However, libjpeg is
                     // liberal in what it accepts. As of version 9, next_marker in
@@ -248,11 +248,11 @@ namespace ImageSharp.Formats
                     // mechanism within a scan (the RST[0-7] markers).
                     // Note that extraneous 0xff bytes in e.g. SOS data are escaped as
                     // "\xff\x00", and so are detected a little further down below.
-                    this.temp[0] = this.temp[1];
-                    this.temp[1] = this.ReadByte();
+                    this.Temp[0] = this.Temp[1];
+                    this.Temp[1] = this.ReadByte();
                 }
 
-                byte marker = this.temp[1];
+                byte marker = this.Temp[1];
                 if (marker == 0)
                 {
                     // Treat "\xff\x00" as extraneous data.
@@ -285,8 +285,8 @@ namespace ImageSharp.Formats
 
                 // Read the 16-bit length of the segment. The value includes the 2 bytes for the
                 // length itself, so we subtract 2 to get the number of remaining bytes.
-                this.ReadFull(this.temp, 0, 2);
-                int remaining = (this.temp[0] << 8) + this.temp[1] - 2;
+                this.ReadFull(this.Temp, 0, 2);
+                int remaining = (this.Temp[0] << 8) + this.Temp[1] - 2;
                 if (remaining < 0)
                 {
                     throw new ImageFormatException("Short segment length.");
@@ -297,7 +297,7 @@ namespace ImageSharp.Formats
                     case JpegConstants.Markers.SOF0:
                     case JpegConstants.Markers.SOF1:
                     case JpegConstants.Markers.SOF2:
-                        this.isProgressive = marker == JpegConstants.Markers.SOF2;
+                        this.IsProgressive = marker == JpegConstants.Markers.SOF2;
                         this.ProcessStartOfFrameMarker(remaining);
                         if (configOnly && this.isJfif)
                         {
@@ -377,11 +377,11 @@ namespace ImageSharp.Formats
 
             if (this.grayImage.IsInitialized)
             {
-                this.ConvertFromGrayScale(this.imageWidth, this.imageHeight, image);
+                this.ConvertFromGrayScale(this.ImageWidth, this.ImageHeight, image);
             }
             else if (this.ycbcrImage != null)
             {
-                if (this.componentCount == 4)
+                if (this.ComponentCount == 4)
                 {
                     if (!this.adobeTransformValid)
                     {
@@ -394,26 +394,26 @@ namespace ImageSharp.Formats
                     // TODO: YCbCrA?
                     if (this.adobeTransform == JpegConstants.Adobe.ColorTransformYcck)
                     {
-                        this.ConvertFromYcck(this.imageWidth, this.imageHeight, image);
+                        this.ConvertFromYcck(this.ImageWidth, this.ImageHeight, image);
                     }
                     else if (this.adobeTransform == JpegConstants.Adobe.ColorTransformUnknown)
                     {
                         // Assume CMYK
-                        this.ConvertFromCmyk(this.imageWidth, this.imageHeight, image);
+                        this.ConvertFromCmyk(this.ImageWidth, this.ImageHeight, image);
                     }
 
                     return;
                 }
 
-                if (this.componentCount == 3)
+                if (this.ComponentCount == 3)
                 {
                     if (this.IsRGB())
                     {
-                        this.ConvertFromRGB(this.imageWidth, this.imageHeight, image);
+                        this.ConvertFromRGB(this.ImageWidth, this.ImageHeight, image);
                         return;
                     }
 
-                    this.ConvertFromYCbCr(this.imageWidth, this.imageHeight, image);
+                    this.ConvertFromYCbCr(this.ImageWidth, this.ImageHeight, image);
                     return;
                 }
 
@@ -538,7 +538,7 @@ namespace ImageSharp.Formats
         private void ConvertFromCmyk<TColor>(int width, int height, Image<TColor> image)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            int scale = this.componentArray[0].HorizontalFactor / this.componentArray[1].HorizontalFactor;
+            int scale = this.ComponentArray[0].HorizontalFactor / this.ComponentArray[1].HorizontalFactor;
 
             image.InitPixels(width, height);
 
@@ -613,7 +613,7 @@ namespace ImageSharp.Formats
         private void ConvertFromRGB<TColor>(int width, int height, Image<TColor> image)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            int scale = this.componentArray[0].HorizontalFactor / this.componentArray[1].HorizontalFactor;
+            int scale = this.ComponentArray[0].HorizontalFactor / this.ComponentArray[1].HorizontalFactor;
             image.InitPixels(width, height);
 
             using (PixelAccessor<TColor> pixels = image.Lock())
@@ -653,7 +653,7 @@ namespace ImageSharp.Formats
         private void ConvertFromYCbCr<TColor>(int width, int height, Image<TColor> image)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            int scale = this.componentArray[0].HorizontalFactor / this.componentArray[1].HorizontalFactor;
+            int scale = this.ComponentArray[0].HorizontalFactor / this.ComponentArray[1].HorizontalFactor;
             image.InitPixels(width, height);
 
             using (PixelAccessor<TColor> pixels = image.Lock())
@@ -693,7 +693,7 @@ namespace ImageSharp.Formats
         private void ConvertFromYcck<TColor>(int width, int height, Image<TColor> image)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            int scale = this.componentArray[0].HorizontalFactor / this.componentArray[1].HorizontalFactor;
+            int scale = this.ComponentArray[0].HorizontalFactor / this.ComponentArray[1].HorizontalFactor;
 
             image.InitPixels(width, height);
 
@@ -836,7 +836,7 @@ namespace ImageSharp.Formats
 
         private JpegPixelArea GetDestinationChannel(int compIndex)
         {
-            if (this.componentCount == 1)
+            if (this.ComponentCount == 1)
             {
                 return this.grayImage;
             }
@@ -878,8 +878,8 @@ namespace ImageSharp.Formats
                 return true;
             }
 
-            return this.componentArray[0].Identifier == 'R' && this.componentArray[1].Identifier == 'G'
-                   && this.componentArray[2].Identifier == 'B';
+            return this.ComponentArray[0].Identifier == 'R' && this.ComponentArray[1].Identifier == 'G'
+                   && this.ComponentArray[2].Identifier == 'B';
         }
 
         /// <summary>
@@ -894,16 +894,16 @@ namespace ImageSharp.Formats
                 return;
             }
 
-            if (this.componentCount == 1)
+            if (this.ComponentCount == 1)
             {
                 this.grayImage = JpegPixelArea.CreatePooled(8 * mxx, 8 * myy);
             }
             else
             {
-                int h0 = this.componentArray[0].HorizontalFactor;
-                int v0 = this.componentArray[0].VerticalFactor;
-                int horizontalRatio = h0 / this.componentArray[1].HorizontalFactor;
-                int verticalRatio = v0 / this.componentArray[1].VerticalFactor;
+                int h0 = this.ComponentArray[0].HorizontalFactor;
+                int v0 = this.ComponentArray[0].VerticalFactor;
+                int horizontalRatio = h0 / this.ComponentArray[1].HorizontalFactor;
+                int verticalRatio = v0 / this.ComponentArray[1].VerticalFactor;
 
                 YCbCrImage.YCbCrSubsampleRatio ratio = YCbCrImage.YCbCrSubsampleRatio.YCbCrSubsampleRatio444;
                 switch ((horizontalRatio << 4) | verticalRatio)
@@ -930,10 +930,10 @@ namespace ImageSharp.Formats
 
                 this.ycbcrImage = new YCbCrImage(8 * h0 * mxx, 8 * v0 * myy, ratio);
 
-                if (this.componentCount == 4)
+                if (this.ComponentCount == 4)
                 {
-                    int h3 = this.componentArray[3].HorizontalFactor;
-                    int v3 = this.componentArray[3].VerticalFactor;
+                    int h3 = this.ComponentArray[3].HorizontalFactor;
+                    int v3 = this.ComponentArray[3].VerticalFactor;
 
                     this.blackImage = JpegPixelArea.CreatePooled(8 * h3 * mxx, 8 * v3 * myy);
                 }
@@ -1017,14 +1017,14 @@ namespace ImageSharp.Formats
                 return;
             }
 
-            this.ReadFull(this.temp, 0, 12);
+            this.ReadFull(this.Temp, 0, 12);
             remaining -= 12;
 
-            if (this.temp[0] == 'A' && this.temp[1] == 'd' && this.temp[2] == 'o' && this.temp[3] == 'b'
-                && this.temp[4] == 'e')
+            if (this.Temp[0] == 'A' && this.Temp[1] == 'd' && this.Temp[2] == 'o' && this.Temp[3] == 'b'
+                && this.Temp[4] == 'e')
             {
                 this.adobeTransformValid = true;
-                this.adobeTransform = this.temp[11];
+                this.adobeTransform = this.Temp[11];
             }
 
             if (remaining > 0)
@@ -1070,17 +1070,17 @@ namespace ImageSharp.Formats
                 return;
             }
 
-            this.ReadFull(this.temp, 0, 13);
+            this.ReadFull(this.Temp, 0, 13);
             remaining -= 13;
 
             // TODO: We should be using constants for this.
-            this.isJfif = this.temp[0] == 'J' && this.temp[1] == 'F' && this.temp[2] == 'I' && this.temp[3] == 'F'
-                          && this.temp[4] == '\x00';
+            this.isJfif = this.Temp[0] == 'J' && this.Temp[1] == 'F' && this.Temp[2] == 'I' && this.Temp[3] == 'F'
+                          && this.Temp[4] == '\x00';
 
             if (this.isJfif)
             {
-                this.horizontalResolution = (short)(this.temp[9] + (this.temp[10] << 8));
-                this.verticalResolution = (short)(this.temp[11] + (this.temp[12] << 8));
+                this.horizontalResolution = (short)(this.Temp[9] + (this.Temp[10] << 8));
+                this.verticalResolution = (short)(this.Temp[11] + (this.Temp[12] << 8));
             }
 
             if (remaining > 0)
@@ -1182,7 +1182,7 @@ namespace ImageSharp.Formats
                 }
             }
 
-            if (this.isProgressive)
+            if (this.IsProgressive)
             {
                 if (zigEnd != Block8x8F.ScalarCount - 1 || al != 0)
                 {
@@ -1190,8 +1190,8 @@ namespace ImageSharp.Formats
 
                     // TODO!!!
                     // throw new NotImplementedException();
-                    // this.progCoeffs[compIndex][((@by * mxx) * hi) + bx] = b.Clone();
-                    this.progCoeffs[compIndex][((@by * mxx) * hi) + bx] = *b;
+                    // this.ProgCoeffs[compIndex][((@by * mxx) * hi) + bx] = b.Clone();
+                    this.ProgCoeffs[compIndex][((@by * mxx) * hi) + bx] = *b;
 
                     // At this point, we could execute the rest of the loop body to dequantize and
                     // perform the inverse DCT, to save early stages of a progressive image to the
@@ -1234,13 +1234,13 @@ namespace ImageSharp.Formats
 
             totalHv += currentComponent.HorizontalFactor * currentComponent.VerticalFactor;
 
-            currentScan.DcTableSelector = (byte)(this.temp[2 + (2 * i)] >> 4);
+            currentScan.DcTableSelector = (byte)(this.Temp[2 + (2 * i)] >> 4);
             if (currentScan.DcTableSelector > HuffmanTree.MaxTh)
             {
                 throw new ImageFormatException("Bad DC table selector value");
             }
 
-            currentScan.AcTableSelector = (byte)(this.temp[2 + (2 * i)] & 0x0f);
+            currentScan.AcTableSelector = (byte)(this.Temp[2 + (2 * i)] & 0x0f);
             if (currentScan.AcTableSelector > HuffmanTree.MaxTh)
             {
                 throw new ImageFormatException("Bad AC table selector  value");
@@ -1261,22 +1261,22 @@ namespace ImageSharp.Formats
                     throw new ImageFormatException("DHT has wrong length");
                 }
 
-                this.ReadFull(this.temp, 0, 17);
+                this.ReadFull(this.Temp, 0, 17);
 
-                int tc = this.temp[0] >> 4;
+                int tc = this.Temp[0] >> 4;
                 if (tc > HuffmanTree.MaxTc)
                 {
                     throw new ImageFormatException("Bad Tc value");
                 }
 
-                int th = this.temp[0] & 0x0f;
-                if (th > HuffmanTree.MaxTh || (!this.isProgressive && (th > 1)))
+                int th = this.Temp[0] & 0x0f;
+                if (th > HuffmanTree.MaxTh || (!this.IsProgressive && (th > 1)))
                 {
                     throw new ImageFormatException("Bad Th value");
                 }
 
                 int huffTreeIndex = (tc * HuffmanTree.ThRowSize) + th;
-                this.huffmanTrees[huffTreeIndex].ProcessDefineHuffmanTablesMarkerLoop(this, this.temp, ref remaining);
+                this.huffmanTrees[huffTreeIndex].ProcessDefineHuffmanTablesMarkerLoop(this, this.Temp, ref remaining);
             }
         }
 
@@ -1292,8 +1292,8 @@ namespace ImageSharp.Formats
                 throw new ImageFormatException("DRI has wrong length");
             }
 
-            this.ReadFull(this.temp, 0, 2);
-            this.restartInterval = ((int)this.temp[0] << 8) + (int)this.temp[1];
+            this.ReadFull(this.Temp, 0, 2);
+            this.restartInterval = ((int)this.Temp[0] << 8) + (int)this.Temp[1];
         }
 
         /// <summary>
@@ -1327,11 +1327,11 @@ namespace ImageSharp.Formats
                         }
 
                         remaining -= Block8x8F.ScalarCount;
-                        this.ReadFull(this.temp, 0, Block8x8F.ScalarCount);
+                        this.ReadFull(this.Temp, 0, Block8x8F.ScalarCount);
 
                         for (int i = 0; i < Block8x8F.ScalarCount; i++)
                         {
-                            this.quantizationTables[tq][i] = this.temp[i];
+                            this.QuantizationTables[tq][i] = this.Temp[i];
                         }
 
                         break;
@@ -1343,11 +1343,11 @@ namespace ImageSharp.Formats
                         }
 
                         remaining -= 2 * Block8x8F.ScalarCount;
-                        this.ReadFull(this.temp, 0, 2 * Block8x8F.ScalarCount);
+                        this.ReadFull(this.Temp, 0, 2 * Block8x8F.ScalarCount);
 
                         for (int i = 0; i < Block8x8F.ScalarCount; i++)
                         {
-                            this.quantizationTables[tq][i] = (this.temp[2 * i] << 8) | this.temp[(2 * i) + 1];
+                            this.QuantizationTables[tq][i] = (this.Temp[2 * i] << 8) | this.Temp[(2 * i) + 1];
                         }
 
                         break;
@@ -1370,12 +1370,12 @@ namespace ImageSharp.Formats
         private void ProcessScanImpl(int i, ref Scan currentScan, Scan[] scan, ref int totalHv)
         {
             // Component selector.
-            int cs = this.temp[1 + (2 * i)];
+            int cs = this.Temp[1 + (2 * i)];
             int compIndex = -1;
-            for (int j = 0; j < this.componentCount; j++)
+            for (int j = 0; j < this.ComponentCount; j++)
             {
                 // Component compv = ;
-                if (cs == this.componentArray[j].Identifier)
+                if (cs == this.ComponentArray[j].Identifier)
                 {
                     compIndex = j;
                 }
@@ -1388,7 +1388,7 @@ namespace ImageSharp.Formats
 
             currentScan.Index = (byte)compIndex;
 
-            this.ProcessComponentImpl(i, ref currentScan, scan, ref totalHv, ref this.componentArray[compIndex]);
+            this.ProcessComponentImpl(i, ref currentScan, scan, ref totalHv, ref this.ComponentArray[compIndex]);
         }
 
         /// <summary>
@@ -1397,7 +1397,7 @@ namespace ImageSharp.Formats
         /// <param name="remaining">The remaining bytes in the segment block.</param>
         private void ProcessStartOfFrameMarker(int remaining)
         {
-            if (this.componentCount != 0)
+            if (this.ComponentCount != 0)
             {
                 throw new ImageFormatException("Multiple SOF markers");
             }
@@ -1405,54 +1405,54 @@ namespace ImageSharp.Formats
             switch (remaining)
             {
                 case 6 + (3 * 1): // Grayscale image.
-                    this.componentCount = 1;
+                    this.ComponentCount = 1;
                     break;
                 case 6 + (3 * 3): // YCbCr or RGB image.
-                    this.componentCount = 3;
+                    this.ComponentCount = 3;
                     break;
                 case 6 + (3 * 4): // YCbCrK or CMYK image.
-                    this.componentCount = 4;
+                    this.ComponentCount = 4;
                     break;
                 default:
                     throw new ImageFormatException("Incorrect number of components");
             }
 
-            this.ReadFull(this.temp, 0, remaining);
+            this.ReadFull(this.Temp, 0, remaining);
 
             // We only support 8-bit precision.
-            if (this.temp[0] != 8)
+            if (this.Temp[0] != 8)
             {
                 throw new ImageFormatException("Only 8-Bit precision supported.");
             }
 
-            this.imageHeight = (this.temp[1] << 8) + this.temp[2];
-            this.imageWidth = (this.temp[3] << 8) + this.temp[4];
-            if (this.temp[5] != this.componentCount)
+            this.ImageHeight = (this.Temp[1] << 8) + this.Temp[2];
+            this.ImageWidth = (this.Temp[3] << 8) + this.Temp[4];
+            if (this.Temp[5] != this.ComponentCount)
             {
                 throw new ImageFormatException("SOF has wrong length");
             }
 
-            for (int i = 0; i < this.componentCount; i++)
+            for (int i = 0; i < this.ComponentCount; i++)
             {
-                this.componentArray[i].Identifier = this.temp[6 + (3 * i)];
+                this.ComponentArray[i].Identifier = this.Temp[6 + (3 * i)];
 
                 // Section B.2.2 states that "the value of C_i shall be different from
                 // the values of C_1 through C_(i-1)".
                 for (int j = 0; j < i; j++)
                 {
-                    if (this.componentArray[i].Identifier == this.componentArray[j].Identifier)
+                    if (this.ComponentArray[i].Identifier == this.ComponentArray[j].Identifier)
                     {
                         throw new ImageFormatException("Repeated component identifier");
                     }
                 }
 
-                this.componentArray[i].Selector = this.temp[8 + (3 * i)];
-                if (this.componentArray[i].Selector > MaxTq)
+                this.ComponentArray[i].Selector = this.Temp[8 + (3 * i)];
+                if (this.ComponentArray[i].Selector > MaxTq)
                 {
                     throw new ImageFormatException("Bad Tq value");
                 }
 
-                byte hv = this.temp[7 + (3 * i)];
+                byte hv = this.Temp[7 + (3 * i)];
                 int h = hv >> 4;
                 int v = hv & 0x0f;
                 if (h < 1 || h > 4 || v < 1 || v > 4)
@@ -1465,7 +1465,7 @@ namespace ImageSharp.Formats
                     throw new ImageFormatException("Lnsupported subsampling ratio");
                 }
 
-                switch (this.componentCount)
+                switch (this.ComponentCount)
                 {
                     case 1:
 
@@ -1512,8 +1512,8 @@ namespace ImageSharp.Formats
                             case 1:
                                 {
                                     // Cb.
-                                    if (this.componentArray[0].HorizontalFactor % h != 0
-                                        || this.componentArray[0].VerticalFactor % v != 0)
+                                    if (this.ComponentArray[0].HorizontalFactor % h != 0
+                                        || this.ComponentArray[0].VerticalFactor % v != 0)
                                     {
                                         throw new ImageFormatException("Unsupported subsampling ratio");
                                     }
@@ -1524,8 +1524,8 @@ namespace ImageSharp.Formats
                             case 2:
                                 {
                                     // Cr.
-                                    if (this.componentArray[1].HorizontalFactor != h
-                                        || this.componentArray[1].VerticalFactor != v)
+                                    if (this.ComponentArray[1].HorizontalFactor != h
+                                        || this.ComponentArray[1].VerticalFactor != v)
                                     {
                                         throw new ImageFormatException("Unsupported subsampling ratio");
                                     }
@@ -1565,8 +1565,8 @@ namespace ImageSharp.Formats
 
                                 break;
                             case 3:
-                                if (this.componentArray[0].HorizontalFactor != h
-                                    || this.componentArray[0].VerticalFactor != v)
+                                if (this.ComponentArray[0].HorizontalFactor != h
+                                    || this.ComponentArray[0].VerticalFactor != v)
                                 {
                                     throw new ImageFormatException("Unsupported subsampling ratio");
                                 }
@@ -1577,9 +1577,16 @@ namespace ImageSharp.Formats
                         break;
                 }
 
-                this.componentArray[i].HorizontalFactor = h;
-                this.componentArray[i].VerticalFactor = v;
+                this.ComponentArray[i].HorizontalFactor = h;
+                this.ComponentArray[i].VerticalFactor = v;
             }
+        }
+
+        private void ProcessStartOfScan22(int remaining)
+        {
+            DecoderScanProcessor processor = default(DecoderScanProcessor);
+            DecoderScanProcessor.Init(&processor, this, remaining);
+            this.MakeImage(processor.mxx, processor.myy);
         }
 
         /// <summary>
@@ -1595,18 +1602,18 @@ namespace ImageSharp.Formats
         /// </exception>
         private void ProcessStartOfScan(int remaining)
         {
-            if (this.componentCount == 0)
+            if (this.ComponentCount == 0)
             {
                 throw new ImageFormatException("Missing SOF marker");
             }
 
-            if (remaining < 6 || 4 + (2 * this.componentCount) < remaining || remaining % 2 != 0)
+            if (remaining < 6 || 4 + (2 * this.ComponentCount) < remaining || remaining % 2 != 0)
             {
                 throw new ImageFormatException("SOS has wrong length");
             }
 
-            this.ReadFull(this.temp, 0, remaining);
-            byte scanComponentCount = this.temp[0];
+            this.ReadFull(this.Temp, 0, remaining);
+            byte scanComponentCount = this.Temp[0];
 
             int scanComponentCountX2 = 2 * scanComponentCount;
             if (remaining != 4 + scanComponentCountX2)
@@ -1624,7 +1631,7 @@ namespace ImageSharp.Formats
 
             // Section B.2.3 states that if there is more than one component then the
             // total H*V values in a scan must be <= 10.
-            if (this.componentCount > 1 && totalHv > 10)
+            if (this.ComponentCount > 1 && totalHv > 10)
             {
                 throw new ImageFormatException("Total sampling factors too large.");
             }
@@ -1648,12 +1655,12 @@ namespace ImageSharp.Formats
             int ah = 0;
             int al = 0;
 
-            if (this.isProgressive)
+            if (this.IsProgressive)
             {
-                zigStart = this.temp[1 + scanComponentCountX2];
-                zigEnd = this.temp[2 + scanComponentCountX2];
-                ah = this.temp[3 + scanComponentCountX2] >> 4;
-                al = this.temp[3 + scanComponentCountX2] & 0x0f;
+                zigStart = this.Temp[1 + scanComponentCountX2];
+                zigEnd = this.Temp[2 + scanComponentCountX2];
+                ah = this.Temp[3 + scanComponentCountX2] >> 4;
+                al = this.Temp[3 + scanComponentCountX2] & 0x0f;
 
                 if ((zigStart == 0 && zigEnd != 0) || zigStart > zigEnd || zigEnd >= Block8x8F.ScalarCount)
                 {
@@ -1672,24 +1679,22 @@ namespace ImageSharp.Formats
             }
 
             // mxx and myy are the number of MCUs (Minimum Coded Units) in the image.
-            int h0 = this.componentArray[0].HorizontalFactor;
-            int v0 = this.componentArray[0].VerticalFactor;
-            int mxx = (this.imageWidth + (8 * h0) - 1) / (8 * h0);
-            int myy = (this.imageHeight + (8 * v0) - 1) / (8 * v0);
+            int h0 = this.ComponentArray[0].HorizontalFactor;
+            int v0 = this.ComponentArray[0].VerticalFactor;
+            int mxx = (this.ImageWidth + (8 * h0) - 1) / (8 * h0);
+            int myy = (this.ImageHeight + (8 * v0) - 1) / (8 * v0);
 
-            this.MakeImage(mxx, myy);
-
-            if (this.isProgressive)
+            if (this.IsProgressive)
             {
                 for (int i = 0; i < scanComponentCount; i++)
                 {
                     int compIndex = scan[i].Index;
-                    if (this.progCoeffs[compIndex] == null)
+                    if (this.ProgCoeffs[compIndex] == null)
                     {
-                        int size = mxx * myy * this.componentArray[compIndex].HorizontalFactor
-                                   * this.componentArray[compIndex].VerticalFactor;
+                        int size = mxx * myy * this.ComponentArray[compIndex].HorizontalFactor
+                                   * this.ComponentArray[compIndex].VerticalFactor;
 
-                        this.progCoeffs[compIndex] = new Block8x8F[size];
+                        this.ProgCoeffs[compIndex] = new Block8x8F[size];
                     }
                 }
             }
@@ -1716,6 +1721,10 @@ namespace ImageSharp.Formats
 
             int* unzigPtr = unzig.Data;
 
+
+            this.MakeImage(mxx, myy);
+
+
             for (int my = 0; my < myy; my++)
             {
                 for (int mx = 0; mx < mxx; mx++)
@@ -1723,8 +1732,8 @@ namespace ImageSharp.Formats
                     for (int i = 0; i < scanComponentCount; i++)
                     {
                         int compIndex = scan[i].Index;
-                        int hi = this.componentArray[compIndex].HorizontalFactor;
-                        int vi = this.componentArray[compIndex].VerticalFactor;
+                        int hi = this.ComponentArray[compIndex].HorizontalFactor;
+                        int vi = this.ComponentArray[compIndex].VerticalFactor;
 
                         for (int j = 0; j < hi * vi; j++)
                         {
@@ -1761,24 +1770,24 @@ namespace ImageSharp.Formats
                                 bx = blockCount % q;
                                 by = blockCount / q;
                                 blockCount++;
-                                if (bx * 8 >= this.imageWidth || by * 8 >= this.imageHeight)
+                                if (bx * 8 >= this.ImageWidth || by * 8 >= this.ImageHeight)
                                 {
                                     continue;
                                 }
                             }
 
-                            int qtIndex = this.componentArray[compIndex].Selector;
+                            int qtIndex = this.ComponentArray[compIndex].Selector;
 
                             // TODO: A DecoderScanProcessor struct could clean up this mess
                             // TODO: Reading & processing blocks should be done in 2 separate loops. The second one could be parallelized. The first one could be async.
-                            fixed (Block8x8F* qtp = &this.quantizationTables[qtIndex])
+                            fixed (Block8x8F* qtp = &this.QuantizationTables[qtIndex])
                             {
                                 // Load the previous partially decoded coefficients, if applicable.
-                                if (this.isProgressive)
+                                if (this.IsProgressive)
                                 {
                                     this.blockIndex = ((@by * mxx) * hi) + bx;
 
-                                    fixed (Block8x8F* bp = &this.progCoeffs[compIndex][this.blockIndex])
+                                    fixed (Block8x8F* bp = &this.ProgCoeffs[compIndex][this.blockIndex])
                                     {
                                         this.ProcessBlockImpl(
                                             ah,
@@ -1835,8 +1844,8 @@ namespace ImageSharp.Formats
                     {
                         // A more sophisticated decoder could use RST[0-7] markers to resynchronize from corrupt input,
                         // but this one assumes well-formed input, and hence the restart marker follows immediately.
-                        this.ReadFull(this.temp, 0, 2);
-                        if (this.temp[0] != 0xff || this.temp[1] != expectedRst)
+                        this.ReadFull(this.Temp, 0, 2);
+                        if (this.Temp[0] != 0xff || this.Temp[1] != expectedRst)
                         {
                             throw new ImageFormatException("Bad RST marker");
                         }
@@ -2070,27 +2079,6 @@ namespace ImageSharp.Formats
                 this.bits.UnreadBits -= 8;
                 this.bits.Mask >>= 8;
             }
-        }
-
-        /// <summary>
-        ///     Represents a component scan
-        /// </summary>
-        private struct Scan
-        {
-            /// <summary>
-            ///     Gets or sets the component index.
-            /// </summary>
-            public byte Index { get; set; }
-
-            /// <summary>
-            ///     Gets or sets the DC table selector
-            /// </summary>
-            public byte DcTableSelector { get; set; }
-
-            /// <summary>
-            ///     Gets or sets the AC table selector
-            /// </summary>
-            public byte AcTableSelector { get; set; }
         }
 
         /// <summary>

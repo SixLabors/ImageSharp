@@ -47,12 +47,7 @@ namespace ImageSharp.Quantizers
         public override QuantizedImage<TColor> Quantize(ImageBase<TColor> image, int maxColors)
         {
             this.colors = maxColors.Clamp(1, 255);
-
-            if (this.octree == null)
-            {
-                // Construct the Octree
-                this.octree = new Octree(this.GetBitsNeededForColorDepth(maxColors));
-            }
+            this.octree = new Octree(this.GetBitsNeededForColorDepth(maxColors));
 
             return base.Quantize(image, maxColors);
         }

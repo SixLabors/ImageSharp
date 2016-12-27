@@ -1590,6 +1590,7 @@ namespace ImageSharp.Formats
 
             DecoderScanProcessor p = default(DecoderScanProcessor);
             DecoderScanProcessor.Init(&p, this, remaining, scan);
+            this.Bits = default(Bits);
             this.MakeImage(p.mxx, p.myy);
             p.ProcessBlocks(this, scan, ref dc);
             

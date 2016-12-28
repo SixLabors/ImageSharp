@@ -145,34 +145,6 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Copies a block of pixels at the specified position.
-        /// </summary>
-        /// <param name="sourceX">The x-coordinate of the source image.</param>
-        /// <param name="sourceY">The y-coordinate of the source image.</param>
-        /// <param name="target">The target pixel buffer accessor.</param>
-        /// <param name="targetX">The x-coordinate of the target image.</param>
-        /// <param name="targetY">The y-coordinate of the target image.</param>
-        /// <param name="pixelCount">The number of pixels to copy</param>
-        public void CopyBlock(int sourceX, int sourceY, PixelAccessor<TColor> target, int targetX, int targetY, int pixelCount)
-        {
-            int size = Unsafe.SizeOf<TColor>();
-            byte* sourcePtr = this.pixelsBase + (((sourceY * this.Width) + sourceX) * size);
-            byte* targetPtr = target.pixelsBase + (((targetY * target.Width) + targetX) * size);
-            uint byteCount = (uint)(pixelCount * size);
-
-            Unsafe.CopyBlock(targetPtr, sourcePtr, byteCount);
-        }
-
-        /// <summary>
-        /// Copies an entire image.
-        /// </summary>
-        /// <param name="target">The target pixel buffer accessor.</param>
-        public void CopyImage(PixelAccessor<TColor> target)
-        {
-            this.CopyBlock(0, 0, target, 0, 0, target.Width * target.Height);
-        }
-
-        /// <summary>
         /// Copied a row of pixels from the image.
         /// </summary>
         /// <param name="area">The area.</param>
@@ -257,6 +229,17 @@ namespace ImageSharp
             // and prevent finalization code for this object
             // from executing a second time.
             GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Copies the pixels to another <see cref="PixelAccessor{TColor}"/> of the same size.
+        /// </summary>
+        /// <param name="target">The target pixel buffer accessor.</param>
+        internal void CopyTo(PixelAccessor<TColor> target)
+        {
+            uint byteCount = (uint)(this.Width * this.Height * Unsafe.SizeOf<TColor>());
+
+            Unsafe.CopyBlock(target.pixelsBase, this.pixelsBase, byteCount);
         }
 
         /// <summary>

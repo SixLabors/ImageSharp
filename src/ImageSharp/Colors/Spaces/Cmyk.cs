@@ -8,7 +8,6 @@ namespace ImageSharp.Colors.Spaces
     using System;
     using System.ComponentModel;
     using System.Numerics;
-    using Common;
 
     /// <summary>
     /// Represents an CMYK (cyan, magenta, yellow, keyline) color.

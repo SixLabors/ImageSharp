@@ -8,7 +8,6 @@ namespace ImageSharp.Processors
     using System;
     using System.Numerics;
     using System.Threading.Tasks;
-    using Common;
 
     /// <summary>
     /// Provides methods that allow the rotating of images.

@@ -5,7 +5,6 @@
 
 namespace ImageSharp.Tests.Common
 {
-    using ImageSharp.Common;
     using Xunit;
 
     public class ConstantsTests

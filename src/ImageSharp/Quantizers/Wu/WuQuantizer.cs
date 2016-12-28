@@ -9,7 +9,6 @@ namespace ImageSharp.Quantizers
     using System.Buffers;
     using System.Numerics;
     using System.Threading.Tasks;
-    using Common;
 
     /// <summary>
     /// An implementation of Wu's color quantizer with alpha channel.

@@ -8,7 +8,6 @@ namespace ImageSharp.Drawing.Processors
     using System;
     using System.Numerics;
     using System.Threading.Tasks;
-    using Common;
     using Drawing;
     using ImageSharp.Processors;
     using Shapes;

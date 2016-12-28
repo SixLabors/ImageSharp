@@ -9,7 +9,7 @@ namespace ImageSharp.Drawing.Processors
     using System.Linq;
     using System.Numerics;
     using System.Threading.Tasks;
-
+    using Common;
     using ImageSharp.Processors;
     using Paths;
     using Pens;
@@ -27,7 +27,6 @@ namespace ImageSharp.Drawing.Processors
     {
         private const float AntialiasFactor = 1f;
         private const int PaddingFactor = 1; // needs to been the same or greater than AntialiasFactor
-        private const float Epsilon = 0.001f;
 
         private readonly IPen<TColor> pen;
         private readonly IPath[] paths;
@@ -138,7 +137,7 @@ namespace ImageSharp.Drawing.Processors
 
                         var opacity = this.Opacity(color.DistanceFromElement);
 
-                        if (opacity > Epsilon)
+                        if (opacity > Constants.Epsilon)
                         {
                             int offsetColorX = x - minX;
 

@@ -8,6 +8,7 @@ namespace ImageSharp.Colors.Spaces
     using System;
     using System.ComponentModel;
     using System.Numerics;
+    using Common;
 
     /// <summary>
     /// Represents an CIE 1931 color
@@ -19,11 +20,6 @@ namespace ImageSharp.Colors.Spaces
         /// Represents a <see cref="CieXyz"/> that has Y, Cb, and Cr values set to zero.
         /// </summary>
         public static readonly CieXyz Empty = default(CieXyz);
-
-        /// <summary>
-        /// The epsilon for comparing floating point numbers.
-        /// </summary>
-        private const float Epsilon = 0.001f;
 
         /// <summary>
         /// The backing vector for SIMD support.
@@ -157,7 +153,7 @@ namespace ImageSharp.Colors.Spaces
         /// <inheritdoc/>
         public bool Equals(CieXyz other)
         {
-            return this.AlmostEquals(other, Epsilon);
+            return this.AlmostEquals(other, Constants.Epsilon);
         }
 
         /// <inheritdoc/>

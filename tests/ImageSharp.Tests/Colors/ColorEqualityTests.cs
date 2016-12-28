@@ -7,6 +7,7 @@ namespace ImageSharp.Tests.Colors
 {
     using System;
     using System.Numerics;
+    using ImageSharp.Colors.Spaces;
     using Xunit;
 
     /// <summary>
@@ -35,6 +36,25 @@ namespace ImageSharp.Tests.Colors
                { new Rgba64(Vector4.One), new Rgba64(Vector4.One), typeof(Rgba64) },
                { new Short2(Vector2.One * 0x7FFF), new Short2(Vector2.One * 0x7FFF), typeof(Short2) },
                { new Short4(Vector4.One * 0x7FFF), new Short4(Vector4.One * 0x7FFF), typeof(Short4) },
+           };
+
+        public static readonly TheoryData<object, object, Type> EqualityDataColorSpaces =
+           new TheoryData<object, object, Type>()
+           {
+                { new Bgra32(0, 0, 0), new Bgra32(0, 0, 0), typeof(Bgra32) },
+                { new Bgra32(0, 0, 0, 0), new Bgra32(0, 0, 0, 0), typeof(Bgra32) },
+                { new Bgra32(100, 100, 0, 0), new Bgra32(100, 100, 0, 0), typeof(Bgra32) },
+                { new Bgra32(255, 255, 255), new Bgra32(255, 255, 255), typeof(Bgra32) },
+                { new CieLab(0f, 0f, 0f), new CieLab(0f, 0f, 0f), typeof(CieLab) },
+                { new CieLab(1f, 1f, 1f), new CieLab(1f, 1f, 1f), typeof(CieLab) },
+                { new CieLab(0f, -100f, -100f), new CieLab(0f, -100f, -100f), typeof(CieLab) },
+                { new CieLab(0f, 100f, -100f), new CieLab(0f, 100f, -100f), typeof(CieLab) },
+                { new CieLab(0f, -100f, 100f), new CieLab(0f, -100f, 100f), typeof(CieLab) },
+                { new CieLab(0f, -100f, 50f), new CieLab(0f, -100f, 50f), typeof(CieLab) },
+                { new CieXyz(380f, 380f, 380f), new CieXyz(380f, 380f, 380f), typeof(CieLab) },
+                { new CieXyz(780f, 780f, 780f), new CieXyz(780f, 780f, 780f), typeof(CieLab) },
+                { new CieXyz(380f, 780f, 780f), new CieXyz(380f, 780f, 780f), typeof(CieLab) },
+                { new CieXyz(50f, 20f, 60f), new CieXyz(50f, 20f, 60f), typeof(CieLab) },
            };
 
         public static readonly TheoryData<object, object, Type> NotEqualityDataNulls =
@@ -96,6 +116,7 @@ namespace ImageSharp.Tests.Colors
 
         [Theory]
         [MemberData(nameof(EqualityData))]
+        [MemberData(nameof(EqualityDataColorSpaces))]
         public void Equality(object first, object second, Type type)
         {
             // Act

@@ -37,26 +37,5 @@ namespace ImageSharp.Benchmarks.Image
                 return targetPixels[0, 0];
             }
         }
-
-        [Benchmark(Description = "Copy by Row")]
-        public CoreColor CopyByRow()
-        {
-            CoreImage source = new CoreImage(1024, 768);
-            CoreImage target = new CoreImage(1024, 768);
-            using (PixelAccessor<CoreColor> sourcePixels = source.Lock())
-            using (PixelAccessor<CoreColor> targetPixels = target.Lock())
-            {
-                Parallel.For(
-                    0,
-                    source.Height,
-                    Bootstrapper.ParallelOptions,
-                    y =>
-                    {
-                        sourcePixels.CopyBlock(0, y, targetPixels, 0, y, source.Width);
-                    });
-
-                return targetPixels[0, 0];
-            }
-        }
     }
 }

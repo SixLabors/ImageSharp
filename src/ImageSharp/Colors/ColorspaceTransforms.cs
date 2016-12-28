@@ -67,9 +67,9 @@ namespace ImageSharp
             float cb = color.Cb - 128;
             float cr = color.Cr - 128;
 
-            float r = (y + (1.402F * cr)).Clamp(0, 255);
-            float g = (y - (0.34414F * cb) - (0.71414F * cr)).Clamp(0, 255);
-            float b = (y + (1.772F * cb)).Clamp(0, 255);
+            byte r = (byte)(y + (1.402F * cr)).Clamp(0, 255);
+            byte g = (byte)(y - (0.34414F * cb) - (0.71414F * cr)).Clamp(0, 255);
+            byte b = (byte)(y + (1.772F * cb)).Clamp(0, 255);
 
             return new Color(r, g, b);
         }

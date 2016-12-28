@@ -115,6 +115,16 @@ namespace ImageSharp.Tests.Colors
                 { new Rgba1010102(Vector4.One), new Bgra5551(Vector4.Zero), null },
            };
 
+        public static readonly TheoryData<object, object, Type> NotEqualityDataDifferentObjectsColorSpaces =
+           new TheoryData<object, object, Type>()
+           {
+                // Valid objects of different types but not equal
+                { new Bgra32(0, 0, 0), new CieLab(0f, 0f, 0f), null },
+                { new CieXyz(380f, 380f, 380f), new Cmyk(0f, 0f, 0f, 0f), null },
+                { new Hsl(0f, 0f, 0f), new Hsv(360f, 1f, 1f), null },
+                { new YCbCr(0, 0, 0), new Hsv(360f, 1f, 1f), null },
+           };
+
         public static readonly TheoryData<object, object, Type> NotEqualityData =
            new TheoryData<object, object, Type>()
            {
@@ -139,6 +149,38 @@ namespace ImageSharp.Tests.Colors
                 { new Short4(Vector4.One * 0x7FFF), new Short4(Vector4.Zero), typeof(Short4) },
            };
 
+        public static readonly TheoryData<object, object, Type> NotEqualityDataColorSpaces =
+           new TheoryData<object, object, Type>()
+           {
+                { new Bgra32(0, 0, 0), new Bgra32(0, 1, 0), typeof(Bgra32) },
+                { new Bgra32(0, 0, 0, 0), new Bgra32(0, 1, 0, 0), typeof(Bgra32) },
+                { new Bgra32(100, 100, 0, 0), new Bgra32(100, 0, 0, 0), typeof(Bgra32) },
+                { new Bgra32(255, 255, 255), new Bgra32(255, 0, 255), typeof(Bgra32) },
+                { new CieLab(0f, 0f, 0f), new CieLab(0f, 1f, 0f), typeof(CieLab) },
+                { new CieLab(1f, 1f, 1f), new CieLab(1f, 0f, 1f), typeof(CieLab) },
+                { new CieLab(0f, -100f, -100f), new CieLab(0f, 100f, -100f), typeof(CieLab) },
+                { new CieLab(0f, 100f, -100f), new CieLab(0f, -100f, -100f), typeof(CieLab) },
+                { new CieLab(0f, -100f, 100f), new CieLab(0f, 100f, 100f), typeof(CieLab) },
+                { new CieLab(0f, -100f, 50f), new CieLab(0f, 100f, 20f), typeof(CieLab) },
+                { new CieXyz(380f, 380f, 380f), new CieXyz(380f, 0f, 380f), typeof(CieXyz) },
+                { new CieXyz(780f, 780f, 780f), new CieXyz(780f, 0f, 780f), typeof(CieXyz) },
+                { new CieXyz(380f, 780f, 780f), new CieXyz(380f, 0f, 780f), typeof(CieXyz) },
+                { new CieXyz(50f, 20f, 60f), new CieXyz(50f, 0f, 60f), typeof(CieXyz) },
+                { new Cmyk(0f, 0f, 0f, 0f), new Cmyk(0f, 1f, 0f, 0f), typeof(Cmyk) },
+                { new Cmyk(1f, 1f, 1f, 1f), new Cmyk(1f, 1f, 0f, 1f), typeof(Cmyk) },
+                { new Cmyk(10f, 10f, 10f, 10f), new Cmyk(10f, 10f, 0f, 10f), typeof(Cmyk) },
+                { new Cmyk(.4f, .5f, .1f, .2f), new Cmyk(.4f, .5f, 5f, .2f), typeof(Cmyk) },
+                { new Hsl(0f, 0f, 0f), new Hsl(0f, 5f, 0f), typeof(Hsl) },
+                { new Hsl(360f, 1f, 1f), new Hsl(360f, .5f, 1f), typeof(Hsl) },
+                { new Hsl(100f, .5f, .1f), new Hsl(100f, 9f, .1f), typeof(Hsl) },
+                { new Hsv(0f, 0f, 0f), new Hsv(0f, 1f, 0f), typeof(Hsv) },
+                { new Hsv(360f, 1f, 1f), new Hsv(0f, 1f, 1f), typeof(Hsv) },
+                { new Hsv(100f, .5f, .1f), new Hsv(2f, .5f, .1f), typeof(Hsv) },
+                { new YCbCr(0, 0, 0), new YCbCr(0, 1, 0), typeof(YCbCr) },
+                { new YCbCr(255, 255, 255), new YCbCr(255, 0, 255), typeof(YCbCr) },
+                { new YCbCr(100, 100, 0), new YCbCr(100, 20, 0), typeof(YCbCr) },
+           };
+
         [Theory]
         [MemberData(nameof(EqualityData))]
         [MemberData(nameof(EqualityDataColorSpaces))]
@@ -155,7 +197,9 @@ namespace ImageSharp.Tests.Colors
         [MemberData(nameof(NotEqualityDataNulls))]
         [MemberData(nameof(NotEqualityDataNullsColorSpaces))]
         [MemberData(nameof(NotEqualityDataDifferentObjects))]
+        [MemberData(nameof(NotEqualityDataDifferentObjectsColorSpaces))]
         [MemberData(nameof(NotEqualityData))]
+        [MemberData(nameof(NotEqualityDataColorSpaces))]
         public void NotEquality(object first, object second, Type type)
         {
             // Act
@@ -179,6 +223,7 @@ namespace ImageSharp.Tests.Colors
 
         [Theory]
         [MemberData(nameof(NotEqualityDataDifferentObjects))]
+        [MemberData(nameof(NotEqualityDataDifferentObjectsColorSpaces))]
         public void HashCodeNotEqual(object first, object second, Type type)
         {
             // Act
@@ -209,6 +254,7 @@ namespace ImageSharp.Tests.Colors
 
         [Theory]
         [MemberData(nameof(NotEqualityData))]
+        [MemberData(nameof(NotEqualityDataColorSpaces))]
         public void NotEqualityObject(object first, object second, Type type)
         {
             // Arrange 
@@ -246,6 +292,7 @@ namespace ImageSharp.Tests.Colors
 
         [Theory]
         [MemberData(nameof(NotEqualityData))]
+        [MemberData(nameof(NotEqualityDataColorSpaces))]
         public void NotEqualityOperator(object first, object second, Type type)
         {
             // Arrange 

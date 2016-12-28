@@ -8,6 +8,7 @@ namespace ImageSharp
     using System;
     using System.Linq;
     using System.Numerics;
+    using Common;
 
     /// <summary>
     /// Provides common mathematical methods.
@@ -91,9 +92,7 @@ namespace ImageSharp
         /// </returns>
         public static float SinC(float x)
         {
-            const float Epsilon = .00001F;
-
-            if (Math.Abs(x) > Epsilon)
+            if (Math.Abs(x) > Constants.Epsilon)
             {
                 x *= (float)Math.PI;
                 return Clean((float)Math.Sin(x) / x);
@@ -166,7 +165,6 @@ namespace ImageSharp
         public static Rectangle GetFilteredBoundingRectangle<TColor>(ImageBase<TColor> bitmap, float componentValue, RgbaComponent channel = RgbaComponent.B)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            const float Epsilon = .00001f;
             int width = bitmap.Width;
             int height = bitmap.Height;
             Point topLeft = default(Point);
@@ -178,19 +176,19 @@ namespace ImageSharp
             switch (channel)
             {
                 case RgbaComponent.R:
-                    delegateFunc = (pixels, x, y, b) => Math.Abs(pixels[x, y].ToVector4().X - b) > Epsilon;
+                    delegateFunc = (pixels, x, y, b) => Math.Abs(pixels[x, y].ToVector4().X - b) > Constants.Epsilon;
                     break;
 
                 case RgbaComponent.G:
-                    delegateFunc = (pixels, x, y, b) => Math.Abs(pixels[x, y].ToVector4().Y - b) > Epsilon;
+                    delegateFunc = (pixels, x, y, b) => Math.Abs(pixels[x, y].ToVector4().Y - b) > Constants.Epsilon;
                     break;
 
                 case RgbaComponent.B:
-                    delegateFunc = (pixels, x, y, b) => Math.Abs(pixels[x, y].ToVector4().Z - b) > Epsilon;
+                    delegateFunc = (pixels, x, y, b) => Math.Abs(pixels[x, y].ToVector4().Z - b) > Constants.Epsilon;
                     break;
 
                 default:
-                    delegateFunc = (pixels, x, y, b) => Math.Abs(pixels[x, y].ToVector4().W - b) > Epsilon;
+                    delegateFunc = (pixels, x, y, b) => Math.Abs(pixels[x, y].ToVector4().W - b) > Constants.Epsilon;
                     break;
             }
 
@@ -278,9 +276,7 @@ namespace ImageSharp
         /// </returns>.
         private static float Clean(float x)
         {
-            const float Epsilon = .00001F;
-
-            if (Math.Abs(x) < Epsilon)
+            if (Math.Abs(x) < Constants.Epsilon)
             {
                 return 0F;
             }

@@ -70,9 +70,7 @@ namespace ImageSharp.Processors
         /// <inheritdoc/>
         protected override void BeforeApply(ImageBase<TColor> source, Rectangle sourceRectangle)
         {
-            const float Epsilon = .0001F;
-
-            if (Math.Abs(this.Angle) < Epsilon || Math.Abs(this.Angle - 90) < Epsilon || Math.Abs(this.Angle - 180) < Epsilon || Math.Abs(this.Angle - 270) < Epsilon)
+            if (Math.Abs(this.Angle) < Constants.Epsilon || Math.Abs(this.Angle - 90) < Constants.Epsilon || Math.Abs(this.Angle - 180) < Constants.Epsilon || Math.Abs(this.Angle - 270) < Constants.Epsilon)
             {
                 return;
             }
@@ -91,26 +89,25 @@ namespace ImageSharp.Processors
         /// <returns>The <see cref="bool"/></returns>
         private bool OptimizedApply(ImageBase<TColor> source)
         {
-            const float Epsilon = .0001F;
-            if (Math.Abs(this.Angle) < Epsilon)
+            if (Math.Abs(this.Angle) < Constants.Epsilon)
             {
                 // No need to do anything so return.
                 return true;
             }
 
-            if (Math.Abs(this.Angle - 90) < Epsilon)
+            if (Math.Abs(this.Angle - 90) < Constants.Epsilon)
             {
                 this.Rotate90(source);
                 return true;
             }
 
-            if (Math.Abs(this.Angle - 180) < Epsilon)
+            if (Math.Abs(this.Angle - 180) < Constants.Epsilon)
             {
                 this.Rotate180(source);
                 return true;
             }
 
-            if (Math.Abs(this.Angle - 270) < Epsilon)
+            if (Math.Abs(this.Angle - 270) < Constants.Epsilon)
             {
                 this.Rotate270(source);
                 return true;

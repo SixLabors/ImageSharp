@@ -12,7 +12,7 @@ namespace ImageSharp
     public interface IPackedBytes
     {
         /// <summary>
-        /// Gets the packed representation from the gives bytes.
+        /// Sets the packed representation from the given byte array.
         /// </summary>
         /// <param name="x">The x-component.</param>
         /// <param name="y">The y-component.</param>
@@ -21,11 +21,35 @@ namespace ImageSharp
         void PackFromBytes(byte x, byte y, byte z, byte w);
 
         /// <summary>
-        /// Sets the packed representation into the gives bytes.
+        /// Expands the packed representation into a given byte array.
+        /// Output is expanded to X-> Y-> Z order. Equivalent to R-> G-> B in <see cref="Color"/>
         /// </summary>
         /// <param name="bytes">The bytes to set the color in.</param>
         /// <param name="startIndex">The starting index of the <paramref name="bytes"/>.</param>
-        /// <param name="componentOrder">The order of the components.</param>
-        void ToBytes(byte[] bytes, int startIndex, ComponentOrder componentOrder);
+        void ToXyzBytes(byte[] bytes, int startIndex);
+
+        /// <summary>
+        /// Expands the packed representation into a given byte array.
+        /// Output is expanded to X-> Y-> Z-> W order. Equivalent to R-> G-> B-> A in <see cref="Color"/>
+        /// </summary>
+        /// <param name="bytes">The bytes to set the color in.</param>
+        /// <param name="startIndex">The starting index of the <paramref name="bytes"/>.</param>
+        void ToXyzwBytes(byte[] bytes, int startIndex);
+
+        /// <summary>
+        /// Expands the packed representation into a given byte array.
+        /// Output is expanded to Z-> Y-> X order. Equivalent to B-> G-> R in <see cref="Color"/>
+        /// </summary>
+        /// <param name="bytes">The bytes to set the color in.</param>
+        /// <param name="startIndex">The starting index of the <paramref name="bytes"/>.</param>
+        void ToZyxBytes(byte[] bytes, int startIndex);
+
+        /// <summary>
+        /// Expands the packed representation into a given byte array.
+        /// Output is expanded to Z-> Y-> X-> W order. Equivalent to B-> G-> R-> A in <see cref="Color"/>
+        /// </summary>
+        /// <param name="bytes">The bytes to set the color in.</param>
+        /// <param name="startIndex">The starting index of the <paramref name="bytes"/>.</param>
+        void ToZyxwBytes(byte[] bytes, int startIndex);
     }
 }

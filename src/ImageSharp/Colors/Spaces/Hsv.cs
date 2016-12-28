@@ -8,6 +8,7 @@ namespace ImageSharp.Colors.Spaces
     using System;
     using System.ComponentModel;
     using System.Numerics;
+    using Common;
 
     /// <summary>
     /// Represents a HSV (hue, saturation, value) color. Also known as HSB (hue, saturation, brightness).
@@ -18,11 +19,6 @@ namespace ImageSharp.Colors.Spaces
         /// Represents a <see cref="Hsv"/> that has H, S, and V values set to zero.
         /// </summary>
         public static readonly Hsv Empty = default(Hsv);
-
-        /// <summary>
-        /// The epsilon for comparing floating point numbers.
-        /// </summary>
-        private const float Epsilon = 0.001F;
 
         /// <summary>
         /// The backing vector for SIMD support.
@@ -85,20 +81,20 @@ namespace ImageSharp.Colors.Spaces
             float s = 0;
             float v = max;
 
-            if (Math.Abs(chroma) < Epsilon)
+            if (Math.Abs(chroma) < Constants.Epsilon)
             {
                 return new Hsv(0, s, v);
             }
 
-            if (Math.Abs(r - max) < Epsilon)
+            if (Math.Abs(r - max) < Constants.Epsilon)
             {
                 h = (g - b) / chroma;
             }
-            else if (Math.Abs(g - max) < Epsilon)
+            else if (Math.Abs(g - max) < Constants.Epsilon)
             {
                 h = 2 + ((b - r) / chroma);
             }
-            else if (Math.Abs(b - max) < Epsilon)
+            else if (Math.Abs(b - max) < Constants.Epsilon)
             {
                 h = 4 + ((r - g) / chroma);
             }
@@ -179,7 +175,7 @@ namespace ImageSharp.Colors.Spaces
         /// <inheritdoc/>
         public bool Equals(Hsv other)
         {
-            return this.AlmostEquals(other, Epsilon);
+            return this.AlmostEquals(other, Constants.Epsilon);
         }
 
         /// <inheritdoc/>

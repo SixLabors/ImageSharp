@@ -8,6 +8,7 @@ namespace ImageSharp.Colors.Spaces
     using System;
     using System.ComponentModel;
     using System.Numerics;
+    using Common;
 
     /// <summary>
     /// Represents an CMYK (cyan, magenta, yellow, keyline) color.
@@ -18,11 +19,6 @@ namespace ImageSharp.Colors.Spaces
         /// Represents a <see cref="Cmyk"/> that has C, M, Y, and K values set to zero.
         /// </summary>
         public static readonly Cmyk Empty = default(Cmyk);
-
-        /// <summary>
-        /// The epsilon for comparing floating point numbers.
-        /// </summary>
-        private const float Epsilon = 0.001f;
 
         /// <summary>
         /// The backing vector for SIMD support.
@@ -90,7 +86,7 @@ namespace ImageSharp.Colors.Spaces
 
             float k = Math.Min(c, Math.Min(m, y));
 
-            if (Math.Abs(k - 1.0f) <= Epsilon)
+            if (Math.Abs(k - 1.0f) <= Constants.Epsilon)
             {
                 return new Cmyk(0, 0, 0, 1);
             }
@@ -167,7 +163,7 @@ namespace ImageSharp.Colors.Spaces
         /// <inheritdoc/>
         public bool Equals(Cmyk other)
         {
-            return this.AlmostEquals(other, Epsilon);
+            return this.AlmostEquals(other, Constants.Epsilon);
         }
 
         /// <inheritdoc/>

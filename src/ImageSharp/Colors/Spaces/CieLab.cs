@@ -8,6 +8,7 @@ namespace ImageSharp.Colors.Spaces
     using System;
     using System.ComponentModel;
     using System.Numerics;
+    using Common;
 
     /// <summary>
     /// Represents an CIE LAB 1976 color.
@@ -19,11 +20,6 @@ namespace ImageSharp.Colors.Spaces
         /// Represents a <see cref="CieLab"/> that has L, A, B values set to zero.
         /// </summary>
         public static readonly CieLab Empty = default(CieLab);
-
-        /// <summary>
-        /// The epsilon for comparing floating point numbers.
-        /// </summary>
-        private const float Epsilon = 0.001f;
 
         /// <summary>
         /// The backing vector for SIMD support.
@@ -166,7 +162,7 @@ namespace ImageSharp.Colors.Spaces
         /// <inheritdoc/>
         public bool Equals(CieLab other)
         {
-            return this.AlmostEquals(other, Epsilon);
+            return this.AlmostEquals(other, Constants.Epsilon);
         }
 
         /// <inheritdoc/>

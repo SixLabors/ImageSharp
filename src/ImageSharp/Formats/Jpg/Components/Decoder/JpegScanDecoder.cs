@@ -5,6 +5,10 @@ namespace ImageSharp.Formats.Jpg
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
 
+    /// <summary>
+    /// Encapsulates the impementation of Jpeg SOS decoder.
+    /// See JpegScanDecoder.md!
+    /// </summary>
     internal unsafe struct JpegScanDecoder
     {
         /// <summary>
@@ -17,6 +21,9 @@ namespace ImageSharp.Formats.Jpg
         /// </summary>
         internal const int DcTableIndex = 0;
 
+        /// <summary>
+        /// Holds the "large" data blocks needed for computations 
+        /// </summary>
         [StructLayout(LayoutKind.Sequential)]
         public struct ComponentData
         {
@@ -42,6 +49,9 @@ namespace ImageSharp.Formats.Jpg
             }
         }
 
+        /// <summary>
+        /// Contains pointers to the memory regions of <see cref="ComponentData"/> so they can be easily passed around to pointer based utility methods of <see cref="Block8x8F"/>
+        /// </summary>
         public struct ComponentPointers
         {
             public Block8x8F* Block;
@@ -75,12 +85,18 @@ namespace ImageSharp.Formats.Jpg
             Unsafe.InitBlock(this.Pointers.Dc, default(byte), sizeof(int) * JpegDecoderCore.MaxComponents);
         }
 
-        
-        // bx and by are the location of the current block, in units of 8x8
+
+        // bx and by are the 
         // blocks: the third block in the first row has (bx, by) = (2, 0).
 
+        /// <summary>
+        /// X coordinate of the current block, in units of 8x8. (The third block in the first row has (bx, by) = (2, 0))
+        /// </summary>
         private int bx;
 
+        /// <summary>
+        /// Y coordinate of the current block, in units of 8x8. (The third block in the first row has (bx, by) = (2, 0))
+        /// </summary>
         private int by;
 
         // zigStart and zigEnd are the spectral selection bounds.

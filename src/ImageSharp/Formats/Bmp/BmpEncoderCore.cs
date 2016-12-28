@@ -150,12 +150,12 @@ namespace ImageSharp.Formats
         private void Write32Bit<TColor>(EndianBinaryWriter writer, PixelAccessor<TColor> pixels)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
                     {
-            using (PixelArea<TColor> row = new PixelArea<TColor>(pixels.Width, ComponentOrder.ZYXW, this.padding))
+            using (PixelArea<TColor> row = new PixelArea<TColor>(pixels.Width, ComponentOrder.Zyxw, this.padding))
             {
                 for (int y = pixels.Height - 1; y >= 0; y--)
                 {
                     pixels.CopyTo(row, y);
-                    writer.Write(row.Bytes);
+                    writer.Write(row.Bytes, 0, row.Length);
                 }
             }
         }
@@ -169,12 +169,12 @@ namespace ImageSharp.Formats
         private void Write24Bit<TColor>(EndianBinaryWriter writer, PixelAccessor<TColor> pixels)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
                     {
-            using (PixelArea<TColor> row = new PixelArea<TColor>(pixels.Width, ComponentOrder.ZYX, this.padding))
+            using (PixelArea<TColor> row = new PixelArea<TColor>(pixels.Width, ComponentOrder.Zyx, this.padding))
             {
                 for (int y = pixels.Height - 1; y >= 0; y--)
                 {
                     pixels.CopyTo(row, y);
-                    writer.Write(row.Bytes);
+                    writer.Write(row.Bytes, 0, row.Length);
                 }
             }
         }

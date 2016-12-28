@@ -114,7 +114,7 @@ namespace ImageSharp
         }
 
         /// <inheritdoc />
-        public void ToBytes(byte[] bytes, int startIndex, ComponentOrder componentOrder)
+        public void ToXyzBytes(byte[] bytes, int startIndex)
         {
             Vector4 vector = this.ToVector4();
             vector *= Half;
@@ -123,33 +123,56 @@ namespace ImageSharp
             vector += Round;
             vector = Vector4.Clamp(vector, Vector4.Zero, MaxBytes);
 
-            switch (componentOrder)
-            {
-                case ComponentOrder.ZYX:
-                    bytes[startIndex] = (byte)vector.Z;
-                    bytes[startIndex + 1] = (byte)vector.Y;
-                    bytes[startIndex + 2] = (byte)vector.X;
-                    break;
-                case ComponentOrder.ZYXW:
-                    bytes[startIndex] = (byte)vector.Z;
-                    bytes[startIndex + 1] = (byte)vector.Y;
-                    bytes[startIndex + 2] = (byte)vector.X;
-                    bytes[startIndex + 3] = (byte)vector.W;
-                    break;
-                case ComponentOrder.XYZ:
-                    bytes[startIndex] = (byte)vector.X;
-                    bytes[startIndex + 1] = (byte)vector.Y;
-                    bytes[startIndex + 2] = (byte)vector.Z;
-                    break;
-                case ComponentOrder.XYZW:
-                    bytes[startIndex] = (byte)vector.X;
-                    bytes[startIndex + 1] = (byte)vector.Y;
-                    bytes[startIndex + 2] = (byte)vector.Z;
-                    bytes[startIndex + 3] = (byte)vector.W;
-                    break;
-                default:
-                    throw new NotSupportedException();
-            }
+            bytes[startIndex] = (byte)vector.X;
+            bytes[startIndex + 1] = (byte)vector.Y;
+            bytes[startIndex + 2] = (byte)vector.Z;
+        }
+
+        /// <inheritdoc />
+        public void ToXyzwBytes(byte[] bytes, int startIndex)
+        {
+            Vector4 vector = this.ToVector4();
+            vector *= Half;
+            vector += Round;
+            vector += Half;
+            vector += Round;
+            vector = Vector4.Clamp(vector, Vector4.Zero, MaxBytes);
+
+            bytes[startIndex] = (byte)vector.X;
+            bytes[startIndex + 1] = (byte)vector.Y;
+            bytes[startIndex + 2] = (byte)vector.Z;
+            bytes[startIndex + 3] = (byte)vector.W;
+        }
+
+        /// <inheritdoc />
+        public void ToZyxBytes(byte[] bytes, int startIndex)
+        {
+            Vector4 vector = this.ToVector4();
+            vector *= Half;
+            vector += Round;
+            vector += Half;
+            vector += Round;
+            vector = Vector4.Clamp(vector, Vector4.Zero, MaxBytes);
+
+            bytes[startIndex] = (byte)vector.Z;
+            bytes[startIndex + 1] = (byte)vector.Y;
+            bytes[startIndex + 2] = (byte)vector.X;
+        }
+
+        /// <inheritdoc />
+        public void ToZyxwBytes(byte[] bytes, int startIndex)
+        {
+            Vector4 vector = this.ToVector4();
+            vector *= Half;
+            vector += Round;
+            vector += Half;
+            vector += Round;
+            vector = Vector4.Clamp(vector, Vector4.Zero, MaxBytes);
+
+            bytes[startIndex] = (byte)vector.Z;
+            bytes[startIndex + 1] = (byte)vector.Y;
+            bytes[startIndex + 2] = (byte)vector.X;
+            bytes[startIndex + 3] = (byte)vector.W;
         }
 
         /// <inheritdoc />

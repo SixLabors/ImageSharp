@@ -3,10 +3,11 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp
+namespace ImageSharp.Colors.Spaces
 {
     using System;
     using System.ComponentModel;
+    using System.Numerics;
 
     /// <summary>
     /// Represents an YCbCr (luminance, blue chroma, red chroma) color conforming to the full range standard used in digital imaging systems.
@@ -20,6 +21,16 @@ namespace ImageSharp
         public static readonly YCbCr Empty = default(YCbCr);
 
         /// <summary>
+        /// Vector which is used in clamping to the max value
+        /// </summary>
+        private static readonly Vector3 VectorMax = new Vector3(255);
+
+        /// <summary>
+        /// The backing vector for SIMD support.
+        /// </summary>
+        private readonly Vector3 backingVector;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="YCbCr"/> struct.
         /// </summary>
         /// <param name="y">The y luminance component.</param>
@@ -28,28 +39,26 @@ namespace ImageSharp
         public YCbCr(byte y, byte cb, byte cr)
             : this()
         {
-            this.Y = y;
-            this.Cb = cb;
-            this.Cr = cr;
+            this.backingVector = Vector3.Clamp(new Vector3(y, cb, cr), Vector3.Zero, VectorMax);
         }
 
         /// <summary>
         /// Gets the Y luminance component.
         /// <remarks>A value ranging between 0 and 255.</remarks>
         /// </summary>
-        public byte Y { get; }
+        public float Y => this.backingVector.X;
 
         /// <summary>
         /// Gets the Cb chroma component.
         /// <remarks>A value ranging between 0 and 255.</remarks>
         /// </summary>
-        public byte Cb { get; }
+        public float Cb => this.backingVector.Y;
 
         /// <summary>
         /// Gets the Cr chroma component.
         /// <remarks>A value ranging between 0 and 255.</remarks>
         /// </summary>
-        public byte Cr { get; }
+        public float Cr => this.backingVector.Z;
 
         /// <summary>
         /// Gets a value indicating whether this <see cref="YCbCr"/> is empty.
@@ -117,13 +126,7 @@ namespace ImageSharp
         /// <inheritdoc/>
         public override int GetHashCode()
         {
-            unchecked
-            {
-                int hashCode = this.Y.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.Cb.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.Cr.GetHashCode();
-                return hashCode;
-            }
+            return this.backingVector.GetHashCode();
         }
 
         /// <inheritdoc/>
@@ -151,7 +154,7 @@ namespace ImageSharp
         /// <inheritdoc/>
         public bool Equals(YCbCr other)
         {
-            return this.Y == other.Y && this.Cb == other.Cb && this.Cr == other.Cr;
+            return this.backingVector.Equals(other.backingVector);
         }
     }
 }

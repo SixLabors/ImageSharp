@@ -7,6 +7,7 @@ namespace ImageSharp
 {
     using System;
     using System.Numerics;
+    using Colors.Spaces;
 
     /// <summary>
     /// Packed vector type containing four 8-bit unsigned normalized values ranging from 0 to 255.
@@ -18,11 +19,6 @@ namespace ImageSharp
     /// </remarks>
     public partial struct Color
     {
-        /// <summary>
-        /// The epsilon for comparing floating point numbers.
-        /// </summary>
-        private const float Epsilon = 0.001F;
-
         /// <summary>
         /// Allows the implicit conversion of an instance of <see cref="Color"/> to a
         /// <see cref="Bgra32"/>.
@@ -62,9 +58,9 @@ namespace ImageSharp
         /// </returns>
         public static implicit operator Color(YCbCr color)
         {
-            byte y = color.Y;
-            int cb = color.Cb - 128;
-            int cr = color.Cr - 128;
+            float y = color.Y;
+            float cb = color.Cb - 128;
+            float cr = color.Cr - 128;
 
             byte r = (byte)(y + (1.402F * cr)).Clamp(0, 255);
             byte g = (byte)(y - (0.34414F * cb) - (0.71414F * cr)).Clamp(0, 255);
@@ -109,12 +105,12 @@ namespace ImageSharp
             float s = color.S;
             float v = color.V;
 
-            if (Math.Abs(s) < Epsilon)
+            if (Math.Abs(s) < Constants.Epsilon)
             {
                 return new Color(v, v, v, 1);
             }
 
-            float h = (Math.Abs(color.H - 360) < Epsilon) ? 0 : color.H / 60;
+            float h = (Math.Abs(color.H - 360) < Constants.Epsilon) ? 0 : color.H / 60;
             int i = (int)Math.Truncate(h);
             float f = h - i;
 
@@ -182,9 +178,9 @@ namespace ImageSharp
             float s = color.S;
             float l = color.L;
 
-            if (Math.Abs(l) > Epsilon)
+            if (Math.Abs(l) > Constants.Epsilon)
             {
-                if (Math.Abs(s) < Epsilon)
+                if (Math.Abs(s) < Constants.Epsilon)
                 {
                     r = g = b = l;
                 }

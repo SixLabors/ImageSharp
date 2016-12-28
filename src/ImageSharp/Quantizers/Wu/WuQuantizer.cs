@@ -340,7 +340,7 @@ namespace ImageSharp.Quantizers
                 for (int x = 0; x < pixels.Width; x++)
                 {
                     // Colors are expected in r->g->b->a format
-                    pixels[x, y].ToBytes(this.rgbaBuffer, 0, ComponentOrder.XYZW);
+                    pixels[x, y].ToXyzwBytes(this.rgbaBuffer, 0);
 
                     byte r = this.rgbaBuffer[0];
                     byte g = this.rgbaBuffer[1];
@@ -785,7 +785,7 @@ namespace ImageSharp.Quantizers
                     for (int x = 0; x < width; x++)
                     {
                         // Expected order r->g->b->a
-                        imagePixels[x, y].ToBytes(rgba, 0, ComponentOrder.XYZW);
+                        imagePixels[x, y].ToXyzwBytes(rgba, 0);
 
                         int r = rgba[0] >> (8 - IndexBits);
                         int g = rgba[1] >> (8 - IndexBits);

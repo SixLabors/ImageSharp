@@ -40,10 +40,10 @@ namespace ImageSharp.Tests
         }
 
         [Theory]
-        [WithMemberFactory(nameof(CreateTestImage), PixelTypes.All, ComponentOrder.XYZ)]
-        [WithMemberFactory(nameof(CreateTestImage), PixelTypes.All, ComponentOrder.ZYX)]
-        [WithMemberFactory(nameof(CreateTestImage), PixelTypes.All, ComponentOrder.XYZW)]
-        [WithMemberFactory(nameof(CreateTestImage), PixelTypes.All, ComponentOrder.ZYXW)]
+        [WithMemberFactory(nameof(CreateTestImage), PixelTypes.All, ComponentOrder.Xyz)]
+        [WithMemberFactory(nameof(CreateTestImage), PixelTypes.All, ComponentOrder.Zyx)]
+        [WithMemberFactory(nameof(CreateTestImage), PixelTypes.All, ComponentOrder.Xyzw)]
+        [WithMemberFactory(nameof(CreateTestImage), PixelTypes.All, ComponentOrder.Zyxw)]
         public void CopyTo_Then_CopyFrom_OnFullImageRect<TColor>(TestImageProvider<TColor> provider, ComponentOrder order)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
@@ -84,10 +84,10 @@ namespace ImageSharp.Tests
         }
 
         [Theory]
-        [WithBlankImages(16, 16, PixelTypes.All, ComponentOrder.XYZ)]
-        [WithBlankImages(16, 16, PixelTypes.All, ComponentOrder.ZYX)]
-        [WithBlankImages(16, 16, PixelTypes.All, ComponentOrder.XYZW)]
-        [WithBlankImages(16, 16, PixelTypes.All, ComponentOrder.ZYXW)]
+        [WithBlankImages(16, 16, PixelTypes.All, ComponentOrder.Xyz)]
+        [WithBlankImages(16, 16, PixelTypes.All, ComponentOrder.Zyx)]
+        [WithBlankImages(16, 16, PixelTypes.All, ComponentOrder.Xyzw)]
+        [WithBlankImages(16, 16, PixelTypes.All, ComponentOrder.Zyxw)]
         public void CopyTo_Then_CopyFrom_WithOffset<TColor>(TestImageProvider<TColor> provider, ComponentOrder order)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
 
@@ -181,7 +181,7 @@ namespace ImageSharp.Tests
                 byte blue = 3;
                 byte alpha = 255;
 
-                using (PixelArea<TColor> row = new PixelArea<TColor>(1, ComponentOrder.ZYX))
+                using (PixelArea<TColor> row = new PixelArea<TColor>(1, ComponentOrder.Zyx))
                 {
                     row.Bytes[0] = blue;
                     row.Bytes[1] = green;
@@ -208,7 +208,7 @@ namespace ImageSharp.Tests
                 byte blue = 3;
                 byte alpha = 4;
 
-                using (PixelArea<TColor> row = new PixelArea<TColor>(1, ComponentOrder.ZYXW))
+                using (PixelArea<TColor> row = new PixelArea<TColor>(1, ComponentOrder.Zyxw))
                 {
                     row.Bytes[0] = blue;
                     row.Bytes[1] = green;
@@ -235,7 +235,7 @@ namespace ImageSharp.Tests
                 byte green = 2;
                 byte blue = 3;
 
-                using (PixelArea<TColor> row = new PixelArea<TColor>(1, ComponentOrder.ZYX))
+                using (PixelArea<TColor> row = new PixelArea<TColor>(1, ComponentOrder.Zyx))
                 {
                     pixels[0, 0] = (TColor)(object)new Color(red, green, blue);
 
@@ -258,7 +258,7 @@ namespace ImageSharp.Tests
                 byte blue = 3;
                 byte alpha = 4;
 
-                using (PixelArea<TColor> row = new PixelArea<TColor>(1, ComponentOrder.ZYXW))
+                using (PixelArea<TColor> row = new PixelArea<TColor>(1, ComponentOrder.Zyxw))
                 {
                     pixels[0, 0] = (TColor)(object)new Color(red, green, blue, alpha);
 

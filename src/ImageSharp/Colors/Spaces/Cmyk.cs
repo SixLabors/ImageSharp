@@ -3,7 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp
+namespace ImageSharp.Colors.Spaces
 {
     using System;
     using System.ComponentModel;
@@ -27,7 +27,7 @@ namespace ImageSharp
         /// <summary>
         /// The backing vector for SIMD support.
         /// </summary>
-        private Vector4 backingVector;
+        private readonly Vector4 backingVector;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Cmyk"/> struct.
@@ -139,7 +139,7 @@ namespace ImageSharp
         /// <inheritdoc/>
         public override int GetHashCode()
         {
-            return GetHashCode(this);
+            return this.backingVector.GetHashCode();
         }
 
         /// <inheritdoc/>
@@ -180,16 +180,5 @@ namespace ImageSharp
                 && result.Z < precision
                 && result.W < precision;
         }
-
-        /// <summary>
-        /// Returns the hash code for this instance.
-        /// </summary>
-        /// <param name="color">
-        /// The instance of <see cref="Cmyk"/> to return the hash code for.
-        /// </param>
-        /// <returns>
-        /// A 32-bit signed integer that is the hash code for this instance.
-        /// </returns>
-        private static int GetHashCode(Cmyk color) => color.backingVector.GetHashCode();
     }
 }

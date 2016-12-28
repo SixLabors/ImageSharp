@@ -98,3 +98,4 @@ Grand High Eternal Dictator
 Core Team
 - [Dirk Lemstra](https://github.com/dlemstra)
 - [Jeavon Leopold](https://github.com/jeavon)
+- [Anton Firsov](https://github.com/antonfirsov)

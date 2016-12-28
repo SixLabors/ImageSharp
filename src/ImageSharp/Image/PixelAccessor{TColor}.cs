@@ -183,27 +183,9 @@ namespace ImageSharp
         /// </exception>
         public void CopyFrom(PixelArea<TColor> area, int targetY, int targetX = 0)
         {
-            int width = Math.Min(area.Width, this.Width - targetX);
-            int height = Math.Min(area.Height, this.Height - targetY);
+            this.CheckCoordinates(area, targetX, targetY);
 
-            this.CheckDimensions(width, height);
-            switch (area.ComponentOrder)
-            {
-                case ComponentOrder.Zyx:
-                    this.CopyFromZyx(area, targetY, targetX, width, height);
-                    break;
-                case ComponentOrder.Zyxw:
-                    this.CopyFromZyxw(area, targetY, targetX, width, height);
-                    break;
-                case ComponentOrder.Xyz:
-                    this.CopyFromXyz(area, targetY, targetX, width, height);
-                    break;
-                case ComponentOrder.Xyzw:
-                    this.CopyFromXyzw(area, targetY, targetX, width, height);
-                    break;
-                default:
-                    throw new NotSupportedException();
-            }
+            this.CopyFrom(area, targetY, targetX, area.Width, area.Height);
         }
 
         /// <summary>
@@ -217,27 +199,35 @@ namespace ImageSharp
         /// </exception>
         public void CopyTo(PixelArea<TColor> area, int sourceY, int sourceX = 0)
         {
-            int width = Math.Min(area.Width, this.Width - sourceX);
-            int height = Math.Min(area.Height, this.Height - sourceY);
+            this.CheckCoordinates(area, sourceX, sourceY);
 
-            this.CheckDimensions(width, height);
-            switch (area.ComponentOrder)
+            this.CopyTo(area, sourceY, sourceX, area.Width, area.Height);
+        }
+
+        /// <summary>
+        /// Copied an area of pixels to the image and makes sure this is within the bounds of the image.
+        /// </summary>
+        /// <param name="area">The area.</param>
+        /// <param name="sourceY">The source row index.</param>
+        /// <param name="sourceX">The source column index.</param>
+        /// <exception cref="NotSupportedException">
+        /// Thrown when an unsupported component order value is passed.
+        /// </exception>
+        public void SafeCopyTo(PixelArea<TColor> area, int sourceY, int sourceX = 0)
+        {
+            int width = Math.Min(area.Width, this.Width - sourceX);
+            if (width < 1)
             {
-                case ComponentOrder.Zyx:
-                    this.CopyToZyx(area, sourceY, sourceX, width, height);
-                    break;
-                case ComponentOrder.Zyxw:
-                    this.CopyToZyxw(area, sourceY, sourceX, width, height);
-                    break;
-                case ComponentOrder.Xyz:
-                    this.CopyToXyz(area, sourceY, sourceX, width, height);
-                    break;
-                case ComponentOrder.Xyzw:
-                    this.CopyToXyzw(area, sourceY, sourceX, width, height);
-                    break;
-                default:
-                    throw new NotSupportedException();
+                return;
             }
+
+            int height = Math.Min(area.Height, this.Height - sourceY);
+            if (height < 1)
+            {
+                return;
+            }
+
+            this.CopyTo(area, sourceY, sourceX, width, height);
         }
 
         /// <summary>
@@ -491,21 +481,88 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Checks that the given dimensions are within the bounds of the image.
+        /// Copied a row of pixels from the image
         /// </summary>
-        /// <param name="width">The width.</param>
-        /// <param name="height">The height.</param>
+        /// <param name="area">The area.</param>
+        /// <param name="targetY">The target row index.</param>
+        /// <param name="targetX">The target column index.</param>
+        /// <param name="width">The width of the area to copy.</param>
+        /// <param name="height">The height of the area to copy.</param>
+        /// <exception cref="NotSupportedException">
+        /// Thrown when an unsupported component order value is passed.
+        /// </exception>
+        private void CopyFrom(PixelArea<TColor> area, int targetY, int targetX, int width, int height)
+        {
+            switch (area.ComponentOrder)
+            {
+                case ComponentOrder.Zyx:
+                    this.CopyFromZyx(area, targetY, targetX, width, height);
+                    break;
+                case ComponentOrder.Zyxw:
+                    this.CopyFromZyxw(area, targetY, targetX, width, height);
+                    break;
+                case ComponentOrder.Xyz:
+                    this.CopyFromXyz(area, targetY, targetX, width, height);
+                    break;
+                case ComponentOrder.Xyzw:
+                    this.CopyFromXyzw(area, targetY, targetX, width, height);
+                    break;
+                default:
+                    throw new NotSupportedException();
+            }
+        }
+
+        /// <summary>
+        /// Copied an area of pixels to the image.
+        /// </summary>
+        /// <param name="area">The area.</param>
+        /// <param name="sourceY">The source row index.</param>
+        /// <param name="sourceX">The source column index.</param>
+        /// <param name="width">The width of the area to copy.</param>
+        /// <param name="height">The height of the area to copy.</param>
+        /// <exception cref="NotSupportedException">
+        /// Thrown when an unsupported component order value is passed.
+        /// </exception>
+        private void CopyTo(PixelArea<TColor> area, int sourceY, int sourceX, int width, int height)
+        {
+            switch (area.ComponentOrder)
+            {
+                case ComponentOrder.Zyx:
+                    this.CopyToZyx(area, sourceY, sourceX, width, height);
+                    break;
+                case ComponentOrder.Zyxw:
+                    this.CopyToZyxw(area, sourceY, sourceX, width, height);
+                    break;
+                case ComponentOrder.Xyz:
+                    this.CopyToXyz(area, sourceY, sourceX, width, height);
+                    break;
+                case ComponentOrder.Xyzw:
+                    this.CopyToXyzw(area, sourceY, sourceX, width, height);
+                    break;
+                default:
+                    throw new NotSupportedException();
+            }
+        }
+
+        /// <summary>
+        /// Checks that the given area and offset are within the bounds of the image.
+        /// </summary>
+        /// <param name="area">The area.</param>
+        /// <param name="x">The x-coordinate of the pixel. Must be greater than zero and smaller than the width of the pixel.</param>
+        /// <param name="y">The y-coordinate of the pixel. Must be greater than zero and smaller than the width of the pixel.</param>
         /// <exception cref="ArgumentOutOfRangeException">
         /// Thrown if the dimensions are not within the bounds of the image.
         /// </exception>
         [Conditional("DEBUG")]
-        private void CheckDimensions(int width, int height)
+        private void CheckCoordinates(PixelArea<TColor> area, int x, int y)
         {
+            int width = Math.Min(area.Width, this.Width - x);
             if (width < 1)
             {
                 throw new ArgumentOutOfRangeException(nameof(width), width, $"Invalid area size specified.");
             }
 
+            int height = Math.Min(area.Height, this.Height - y);
             if (height < 1)
             {
                 throw new ArgumentOutOfRangeException(nameof(height), height, $"Invalid area size specified.");

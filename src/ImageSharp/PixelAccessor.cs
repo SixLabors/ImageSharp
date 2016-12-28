@@ -22,7 +22,7 @@ namespace ImageSharp
         }
 
         /// <inheritdoc />
-        protected override void CopyFromXyzw(PixelArea<Color> area, int targetY, int targetX, int width, int height)
+        protected override void CopyFromXyzw(PixelArea<Color> area, int targetX, int targetY, int width, int height)
         {
             uint byteCount = (uint)width * 4;
 
@@ -36,7 +36,7 @@ namespace ImageSharp
         }
 
         /// <inheritdoc />
-        protected override void CopyFromXyz(PixelArea<Color> area, int targetY, int targetX, int width, int height)
+        protected override void CopyFromXyz(PixelArea<Color> area, int targetX, int targetY, int width, int height)
         {
             for (int y = 0; y < height; y++)
             {
@@ -54,7 +54,7 @@ namespace ImageSharp
         }
 
         /// <inheritdoc />
-        protected override void CopyFromZyx(PixelArea<Color> area, int targetY, int targetX, int width, int height)
+        protected override void CopyFromZyx(PixelArea<Color> area, int targetX, int targetY, int width, int height)
         {
             for (int y = 0; y < height; y++)
             {
@@ -72,7 +72,7 @@ namespace ImageSharp
         }
 
         /// <inheritdoc />
-        protected override void CopyFromZyxw(PixelArea<Color> area, int targetY, int targetX, int width, int height)
+        protected override void CopyFromZyxw(PixelArea<Color> area, int targetX, int targetY, int width, int height)
         {
             for (int y = 0; y < height; y++)
             {
@@ -90,7 +90,7 @@ namespace ImageSharp
         }
 
         /// <inheritdoc />
-        protected override void CopyToZyx(PixelArea<Color> area, int sourceY, int sourceX, int width, int height)
+        protected override void CopyToZyx(PixelArea<Color> area, int sourceX, int sourceY, int width, int height)
         {
             for (int y = 0; y < height; y++)
             {
@@ -110,7 +110,7 @@ namespace ImageSharp
         }
 
         /// <inheritdoc />
-        protected override void CopyToXyz(PixelArea<Color> area, int sourceY, int sourceX, int width, int height)
+        protected override void CopyToXyz(PixelArea<Color> area, int sourceX, int sourceY, int width, int height)
         {
             for (int y = 0; y < height; y++)
             {
@@ -130,7 +130,7 @@ namespace ImageSharp
         }
 
         /// <inheritdoc />
-        protected override void CopyToZyxw(PixelArea<Color> area, int sourceY, int sourceX, int width, int height)
+        protected override void CopyToZyxw(PixelArea<Color> area, int sourceX, int sourceY, int width, int height)
         {
             for (int y = 0; y < height; y++)
             {

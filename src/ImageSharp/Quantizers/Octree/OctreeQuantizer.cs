@@ -112,6 +112,7 @@ namespace ImageSharp.Quantizers
             /// <summary>
             /// Mask used when getting the appropriate pixels for a given node
             /// </summary>
+            // ReSharper disable once StaticMemberInGenericType
             private static readonly int[] Mask = { 0x100, 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01 };
 
             /// <summary>
@@ -375,7 +376,7 @@ namespace ImageSharp.Quantizers
                     {
                         // Go to the next level down in the tree
                         int shift = 7 - level;
-                        pixel.ToBytes(buffer, 0, ComponentOrder.XYZW);
+                        pixel.ToXyzwBytes(buffer, 0);
 
                         int index = ((buffer[3] & Mask[0]) >> (shift - 3)) |
                                     ((buffer[2] & Mask[level + 1]) >> (shift - 2)) |
@@ -479,7 +480,7 @@ namespace ImageSharp.Quantizers
                     if (!this.leaf)
                     {
                         int shift = 7 - level;
-                        pixel.ToBytes(buffer, 0, ComponentOrder.XYZW);
+                        pixel.ToXyzwBytes(buffer, 0);
 
                         int pixelIndex = ((buffer[3] & Mask[0]) >> (shift - 3)) |
                                          ((buffer[2] & Mask[level + 1]) >> (shift - 2)) |
@@ -506,7 +507,7 @@ namespace ImageSharp.Quantizers
                 /// <param name="buffer">The buffer array.</param>
                 public void Increment(TColor pixel, byte[] buffer)
                 {
-                    pixel.ToBytes(buffer, 0, ComponentOrder.XYZW);
+                    pixel.ToXyzwBytes(buffer, 0);
                     this.pixelCount++;
                     this.red += buffer[0];
                     this.green += buffer[1];

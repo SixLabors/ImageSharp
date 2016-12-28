@@ -161,7 +161,7 @@ namespace ImageSharp.Colors.Spaces
         /// <inheritdoc/>
         public bool Equals(CieLab other)
         {
-            return this.AlmostEquals(other, Constants.Epsilon);
+            return this.backingVector.Equals(other.backingVector);
         }
 
         /// <inheritdoc/>

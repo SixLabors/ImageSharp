@@ -48,6 +48,9 @@ namespace ImageSharp.Tests
             }
         }
 
+        /// <summary>
+        /// The "original" libjpeg/golang based DCT implementation is used as reference implementation for tests.
+        /// </summary>
         public static class IntegerReferenceDCT
         {
             private const int fix_0_298631336 = 2446;

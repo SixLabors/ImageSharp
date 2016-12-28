@@ -17,11 +17,6 @@ namespace ImageSharp.Processors
         where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>
-        /// The epsilon for comparing floating point numbers.
-        /// </summary>
-        private const float Epsilon = 0.001f;
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="BackgroundColorProcessor{TColor}"/> class.
         /// </summary>
         /// <param name="color">The <typeparamref name="TColor"/> to set the background color to.</param>
@@ -82,7 +77,7 @@ namespace ImageSharp.Processors
                                 color = Vector4BlendTransforms.PremultipliedLerp(backgroundColor, color, .5F);
                             }
 
-                            if (Math.Abs(a) < Epsilon)
+                            if (Math.Abs(a) < Constants.Epsilon)
                             {
                                 color = backgroundColor;
                             }

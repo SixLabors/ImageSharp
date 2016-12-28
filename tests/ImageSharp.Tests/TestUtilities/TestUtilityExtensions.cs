@@ -21,7 +21,7 @@ namespace ImageSharp.Tests
         private static readonly Assembly ImageSharpAssembly = typeof(Color).GetTypeInfo().Assembly;
 
         private static readonly Dictionary<PixelTypes, Type> PixelTypes2ClrTypes = new Dictionary<PixelTypes, Type>();
-        
+
         private static readonly PixelTypes[] AllConcretePixelTypes = EnumHelper.GetSortedValues<PixelTypes>()
             .Except(new [] {PixelTypes.Undefined, PixelTypes.All })
             .ToArray();
@@ -53,7 +53,7 @@ namespace ImageSharp.Tests
 
             return intrfcType.GetGenericArguments().Single();
         }
-        
+
         public static bool HasFlag(this PixelTypes pixelTypes, PixelTypes flag) => (pixelTypes & flag) == flag;
 
         public static bool IsEquivalentTo<TColor>(this Image<TColor> a, Image<TColor> b, bool compareAlpha = true)
@@ -87,11 +87,11 @@ namespace ImageSharp.Tests
                             }
                             else
                             {
-                                ca.ToBytes(bytesA, 0, ComponentOrder.XYZ);
-                                cb.ToBytes(bytesB, 0, ComponentOrder.XYZ);
+                                ca.ToXyzBytes(bytesA, 0);
+                                cb.ToXyzBytes(bytesB, 0);
 
-                                if (bytesA[0] != bytesB[0] || 
-                                    bytesA[1] != bytesB[1] || 
+                                if (bytesA[0] != bytesB[0] ||
+                                    bytesA[1] != bytesB[1] ||
                                     bytesA[2] != bytesB[2])
                                 {
                                     return false;

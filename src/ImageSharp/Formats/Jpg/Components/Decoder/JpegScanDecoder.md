@@ -16,10 +16,10 @@ are members of the `JpegScanDecoder` struct
 |JpegScanDecoder    |
 |-------------------|
 |Variables          |
-|ComponentData      |
-|ComponentPointers  |
+|ComputationData    |
+|DataPointers       |
 
-- **ComponentData** holds the "large" data blocks needed for computations (Mostly `Block8x8F`-s)
-- **ComponentPointers** contains pointers to the memory regions of `ComponentData` so they can be easily passed around to pointer based utility methods of `Block8x8F`
+- **ComputationData** holds the "large" data blocks needed for computations (Mostly `Block8x8F`-s)
+- **DataPointers** contains pointers to the memory regions of `ComponentData` so they can be easily passed around to pointer based utility methods of `Block8x8F`
 
 

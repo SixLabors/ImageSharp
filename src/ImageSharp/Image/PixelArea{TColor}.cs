@@ -19,6 +19,11 @@ namespace ImageSharp
         where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>
+        /// True if <see cref="Bytes"/> was rented from <see cref="BytesPool"/> by the constructor
+        /// </summary>
+        private readonly bool isBufferRented;
+
+        /// <summary>
         /// Provides a way to access the pixels from unmanaged memory.
         /// </summary>
         private readonly GCHandle pixelsHandle;
@@ -27,11 +32,6 @@ namespace ImageSharp
         /// The pointer to the pixel buffer.
         /// </summary>
         private IntPtr dataPointer;
-
-        /// <summary>
-        /// True if <see cref="Bytes"/> was rented from <see cref="BytesPool"/> by the constructor
-        /// </summary>
-        private bool isBufferRented;
 
         /// <summary>
         /// A value indicating whether this instance of the given entity has been disposed.

@@ -181,6 +181,23 @@ namespace ImageSharp.Tests.Colors
                 { new YCbCr(100, 100, 0), new YCbCr(100, 20, 0), typeof(YCbCr) },
            };
 
+        public static readonly TheoryData<object, object, Type, float> AlmostEqualsData =
+            new TheoryData<object, object, Type, float>()
+            {
+                { new CieLab(0f, 0f, 0f), new CieLab(0f, 0f, 0f), typeof(CieLab), 0f },
+                { new CieLab(0f, 0f, 0f), new CieLab(0f, 0f, 0f), typeof(CieLab), .001f },
+                { new CieLab(0f, 0f, 0f), new CieLab(0f, 0f, 0f), typeof(CieLab), .0001f },
+                { new CieLab(0f, 0f, 0f), new CieLab(0f, 0f, 0f), typeof(CieLab), .0005f },
+                { new CieLab(0f, 0f, 0f), new CieLab(0f, .001f, 0f), typeof(CieLab), .001f },
+                { new CieLab(0f, 0f, 0f), new CieLab(0f, 0f, .0001f), typeof(CieLab), .0001f },
+                { new CieLab(0f, 0f, 0f), new CieLab(.0005f, 0f, 0f), typeof(CieLab), .0005f },
+                //{ new CieXyz(380f, 380f, 380f), null, typeof(CieXyz) },
+                //{ new Cmyk(0f, 0f, 0f, 0f), null, typeof(Cmyk) },
+                //{ new Hsl(0f, 0f, 0f), null, typeof(Hsl) },
+                //{ new Hsv(360f, 1f, 1f), null, typeof(Hsv) },
+                //{ new YCbCr(0, 0, 0), null, typeof(YCbCr) },
+            };
+
         [Theory]
         [MemberData(nameof(EqualityData))]
         [MemberData(nameof(EqualityDataColorSpaces))]
@@ -307,6 +324,24 @@ namespace ImageSharp.Tests.Colors
 
             // Assert
             Assert.True(notEqual);
+        }
+
+        [Theory]
+        [MemberData(nameof(AlmostEqualsData))]
+        public void AlmostEquals(object first, object second, Type type, float precision)
+        {
+            // Arrange 
+            // Cast to the known object types, this is so that we can hit the 
+            // equality operator on the concrete type, otherwise it goes to the 
+            // default "object" one :) 
+            dynamic firstObject = Convert.ChangeType(first, type);
+            dynamic secondObject = Convert.ChangeType(second, type);
+
+            // Act
+            var almostEqual = firstObject.AlmostEquals(secondObject, precision);
+
+            // Assert
+            Assert.True(almostEqual);
         }
     }
 }

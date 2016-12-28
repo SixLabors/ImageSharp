@@ -133,7 +133,7 @@ namespace ImageSharp.Colors.Spaces
         /// <inheritdoc/>
         public override int GetHashCode()
         {
-            return GetHashCode(this);
+            return this.backingVector.GetHashCode();
         }
 
         /// <inheritdoc/>
@@ -152,16 +152,5 @@ namespace ImageSharp.Colors.Spaces
         {
             return this.backingVector.Equals(other.backingVector);
         }
-
-        /// <summary>
-        /// Returns the hash code for this instance.
-        /// </summary>
-        /// <param name="color">
-        /// The instance of <see cref="Bgra32"/> to return the hash code for.
-        /// </param>
-        /// <returns>
-        /// A 32-bit signed integer that is the hash code for this instance.
-        /// </returns>
-        private static int GetHashCode(Bgra32 color) => color.backingVector.GetHashCode();
     }
 }

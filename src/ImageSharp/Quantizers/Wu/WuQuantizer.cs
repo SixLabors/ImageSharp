@@ -34,11 +34,6 @@ namespace ImageSharp.Quantizers
         where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>
-        /// The epsilon for comparing floating point numbers.
-        /// </summary>
-        private const float Epsilon = 1e-5F;
-
-        /// <summary>
         /// The index bits.
         /// </summary>
         private const int IndexBits = 6;
@@ -542,7 +537,7 @@ namespace ImageSharp.Quantizers
 
                 double temp;
 
-                if (Math.Abs(halfW) < Epsilon)
+                if (Math.Abs(halfW) < Constants.Epsilon)
                 {
                     continue;
                 }
@@ -555,7 +550,7 @@ namespace ImageSharp.Quantizers
                 halfA = wholeA - halfA;
                 halfW = wholeW - halfW;
 
-                if (Math.Abs(halfW) < Epsilon)
+                if (Math.Abs(halfW) < Constants.Epsilon)
                 {
                     continue;
                 }
@@ -762,7 +757,7 @@ namespace ImageSharp.Quantizers
 
                 double weight = Volume(cube[k], this.vwt);
 
-                if (Math.Abs(weight) > Epsilon)
+                if (Math.Abs(weight) > Constants.Epsilon)
                 {
                     float r = (float)(Volume(cube[k], this.vmr) / weight);
                     float g = (float)(Volume(cube[k], this.vmg) / weight);

@@ -27,39 +27,10 @@ namespace ImageSharp.Formats.Jpg
             int sourceX)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            pixels.UncheckedCopyTo(dest, sourceY, sourceX);
+            pixels.SafeCopyTo(dest, sourceY, sourceX);
             int stretchFromX = pixels.Width - sourceX;
             int stretchFromY = pixels.Height - sourceY;
             StretchPixels(dest, stretchFromX, stretchFromY);
-        }
-
-        /// <summary>
-        /// Copy a region of image into the image destination area. Does not throw when requesting a 0-size copy.
-        /// </summary>
-        /// <typeparam name="TColor">The pixel type</typeparam>
-        /// <param name="sourcePixels">The source <see cref="PixelAccessor{TColor}"/> </param>
-        /// <param name="destinationArea">The destination area.</param>
-        /// <param name="sourceY">The source row index.</param>
-        /// <param name="sourceX">The source column index.</param>
-        /// <exception cref="NotSupportedException">
-        /// Thrown when an unsupported component order value is passed.
-        /// </exception>
-        public static void UncheckedCopyTo<TColor>(
-            this PixelAccessor<TColor> sourcePixels,
-            PixelArea<TColor> destinationArea,
-            int sourceY,
-            int sourceX)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
-        {
-            // TODO: Code smell! This is exactly the same code PixelArea<TColor>.CopyTo() starts with!
-            int width = Math.Min(destinationArea.Width, sourcePixels.Width - sourceX);
-            int height = Math.Min(destinationArea.Height, sourcePixels.Height - sourceY);
-            if (width < 1 || height < 1)
-            {
-                return;
-            }
-
-            sourcePixels.CopyTo(destinationArea, sourceY, sourceX);
         }
 
         /// <summary>

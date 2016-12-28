@@ -99,3 +99,5 @@ Core Team
 - [Dirk Lemstra](https://github.com/dlemstra)
 - [Jeavon Leopold](https://github.com/jeavon)
 - [Anton Firsov](https://github.com/antonfirsov)
+- [Olivia Ifrim](https://github.com/olivif)
+- [Scott Williams](https://github.com/tocsoft)

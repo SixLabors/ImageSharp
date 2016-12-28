@@ -20,11 +20,6 @@ namespace ImageSharp
     public partial struct Color
     {
         /// <summary>
-        /// The epsilon for comparing floating point numbers.
-        /// </summary>
-        private const float Epsilon = 0.001F;
-
-        /// <summary>
         /// Allows the implicit conversion of an instance of <see cref="Color"/> to a
         /// <see cref="Bgra32"/>.
         /// </summary>
@@ -110,12 +105,12 @@ namespace ImageSharp
             float s = color.S;
             float v = color.V;
 
-            if (Math.Abs(s) < Epsilon)
+            if (Math.Abs(s) < Constants.Epsilon)
             {
                 return new Color(v, v, v, 1);
             }
 
-            float h = (Math.Abs(color.H - 360) < Epsilon) ? 0 : color.H / 60;
+            float h = (Math.Abs(color.H - 360) < Constants.Epsilon) ? 0 : color.H / 60;
             int i = (int)Math.Truncate(h);
             float f = h - i;
 
@@ -183,9 +178,9 @@ namespace ImageSharp
             float s = color.S;
             float l = color.L;
 
-            if (Math.Abs(l) > Epsilon)
+            if (Math.Abs(l) > Constants.Epsilon)
             {
-                if (Math.Abs(s) < Epsilon)
+                if (Math.Abs(s) < Constants.Epsilon)
                 {
                     r = g = b = l;
                 }

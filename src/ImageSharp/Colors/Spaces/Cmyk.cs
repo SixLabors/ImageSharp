@@ -20,11 +20,6 @@ namespace ImageSharp.Colors.Spaces
         public static readonly Cmyk Empty = default(Cmyk);
 
         /// <summary>
-        /// The epsilon for comparing floating point numbers.
-        /// </summary>
-        private const float Epsilon = 0.001f;
-
-        /// <summary>
         /// The backing vector for SIMD support.
         /// </summary>
         private readonly Vector4 backingVector;
@@ -90,7 +85,7 @@ namespace ImageSharp.Colors.Spaces
 
             float k = Math.Min(c, Math.Min(m, y));
 
-            if (Math.Abs(k - 1.0f) <= Epsilon)
+            if (Math.Abs(k - 1.0f) <= Constants.Epsilon)
             {
                 return new Cmyk(0, 0, 0, 1);
             }
@@ -167,7 +162,7 @@ namespace ImageSharp.Colors.Spaces
         /// <inheritdoc/>
         public bool Equals(Cmyk other)
         {
-            return this.AlmostEquals(other, Epsilon);
+            return this.AlmostEquals(other, Constants.Epsilon);
         }
 
         /// <inheritdoc/>

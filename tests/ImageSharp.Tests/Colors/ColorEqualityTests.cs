@@ -209,7 +209,27 @@ namespace ImageSharp.Tests.Colors
                 { new Hsv(0f, 0f, 0f), new Hsv(0.001f, 0f, 0f), typeof(Hsv), .01f },
                 { new Hsv(0f, 0f, 0f), new Hsv(0f, 0.001f, 0f), typeof(Hsv), .01f },
                 { new Hsv(0f, 0f, 0f), new Hsv(0f, 0f, 0.001f), typeof(Hsv), .01f },
-                { new YCbCr(0, 0, 0), new YCbCr(0, 0, 0), typeof(YCbCr), 0f },
+            };
+
+        public static readonly TheoryData<object, object, Type, float> AlmostNotEqualsData =
+            new TheoryData<object, object, Type, float>()
+            {
+                { new CieLab(0f, 0f, 0f), new CieLab(0.1f, 0f, 0f), typeof(CieLab), .001f },
+                { new CieLab(0f, 0f, 0f), new CieLab(0f, 0.1f, 0f), typeof(CieLab), .001f },
+                { new CieLab(0f, 0f, 0f), new CieLab(0f, 0f, 0.1f), typeof(CieLab), .001f },
+                { new CieXyz(380f, 380f, 380f), new CieXyz(380.1f, 380f, 380f), typeof(CieXyz), .001f },
+                { new CieXyz(380f, 380f, 380f), new CieXyz(380f, 380.1f, 380f), typeof(CieXyz), .001f },
+                { new CieXyz(380f, 380f, 380f), new CieXyz(380f, 380f, 380.1f), typeof(CieXyz), .001f },
+                { new Cmyk(0f, 0f, 0f, 0f), new Cmyk(0.1f, 0f, 0f, 0f), typeof(Cmyk), .001f },
+                { new Cmyk(0f, 0f, 0f, 0f), new Cmyk(0f, 0.1f, 0f, 0f), typeof(Cmyk), .001f },
+                { new Cmyk(0f, 0f, 0f, 0f), new Cmyk(0f, 0f, 0.1f, 0f), typeof(Cmyk), .001f },
+                { new Cmyk(0f, 0f, 0f, 0f), new Cmyk(0f, 0f, 0f, 0.1f), typeof(Cmyk), .001f },
+                { new Hsl(0f, 0f, 0f), new Hsl(0.1f, 0f, 0f), typeof(Hsl), .001f },
+                { new Hsl(0f, 0f, 0f), new Hsl(0f, 0.1f, 0f), typeof(Hsl), .001f },
+                { new Hsl(0f, 0f, 0f), new Hsl(0f, 0f, 0.1f), typeof(Hsl), .001f },
+                { new Hsv(0f, 0f, 0f), new Hsv(0.1f, 0f, 0f), typeof(Hsv), .001f },
+                { new Hsv(0f, 0f, 0f), new Hsv(0f, 0.1f, 0f), typeof(Hsv), .001f },
+                { new Hsv(0f, 0f, 0f), new Hsv(0f, 0f, 0.1f), typeof(Hsv), .001f },
             };
 
         [Theory]
@@ -356,6 +376,24 @@ namespace ImageSharp.Tests.Colors
 
             // Assert
             Assert.True(almostEqual);
+        }
+
+        [Theory]
+        [MemberData(nameof(AlmostNotEqualsData))]
+        public void AlmostNotEquals(object first, object second, Type type, float precision)
+        {
+            // Arrange 
+            // Cast to the known object types, this is so that we can hit the 
+            // equality operator on the concrete type, otherwise it goes to the 
+            // default "object" one :) 
+            dynamic firstObject = Convert.ChangeType(first, type);
+            dynamic secondObject = Convert.ChangeType(second, type);
+
+            // Act
+            var almostEqual = firstObject.AlmostEquals(secondObject, precision);
+
+            // Assert
+            Assert.False(almostEqual);
         }
     }
 }

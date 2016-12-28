@@ -49,7 +49,7 @@ namespace ImageSharp.Quantizers
 
                 for (int i = 0; i < constants.Length; i++)
                 {
-                    constants[i].ToBytes(this.pixelBuffer, 0, ComponentOrder.XYZW);
+                    constants[i].ToXyzwBytes(this.pixelBuffer, 0);
                     TColor packed = default(TColor);
                     packed.PackFromBytes(this.pixelBuffer[0], this.pixelBuffer[1], this.pixelBuffer[2], this.pixelBuffer[3]);
                     safe[i] = packed;

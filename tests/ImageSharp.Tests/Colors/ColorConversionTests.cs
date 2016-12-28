@@ -7,7 +7,7 @@ namespace ImageSharp.Tests
 {
     using System;
     using System.Diagnostics.CodeAnalysis;
-
+    using ImageSharp.Colors.Spaces;
     using Xunit;
 
     /// <summary>

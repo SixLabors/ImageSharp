@@ -428,5 +428,21 @@ namespace ImageSharp.Tests
 
             Assert.Equal(actualDest.Data, expectedDest.Data, new ApproximateFloatComparer(1f));
         }
+
+        [Fact]
+        public unsafe void Copy_FromHeap()
+        {
+            Block8x8F[] blox = new Block8x8F[1];
+
+            blox[0].LoadFrom(Create8x8FloatData());
+            Block8x8F clone = default(Block8x8F);
+
+            fixed (Block8x8F* p = &blox[0])
+            {                
+                Block8x8F.Copy(&clone, p);
+            }
+            
+            Assert.Equal(blox[0], clone);
+        }
     }
 }

@@ -83,7 +83,7 @@ namespace ImageSharp.Tests
             byte[] bytes = File.ReadAllBytes(path);
 
             this.Measure(
-                40,
+                100,
                 () =>
                     {
                         Image img = new Image(bytes);
@@ -146,7 +146,7 @@ namespace ImageSharp.Tests
         {
             var src = provider.GetImage();
 
-            PixelArea<TColor> area = new PixelArea<TColor>(8, 8, ComponentOrder.XYZ);
+            PixelArea<TColor> area = new PixelArea<TColor>(8, 8, ComponentOrder.Xyz);
             var dest = provider.Factory.CreateImage(8, 8);
 
             using (var s = src.Lock())
@@ -171,7 +171,7 @@ namespace ImageSharp.Tests
         {
             var src = provider.GetImage();
             
-            PixelArea<TColor> area = new PixelArea<TColor>(8, 8, ComponentOrder.XYZ);
+            PixelArea<TColor> area = new PixelArea<TColor>(8, 8, ComponentOrder.Xyz);
             var dest = provider.Factory.CreateImage(8, 8);
 
             using (var s = src.Lock())

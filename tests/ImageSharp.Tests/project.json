@@ -12,6 +12,13 @@
   "buildOptions": {
     "allowUnsafe": true
   },
+  "configurations": {
+    "Release": {
+      "buildOptions": {
+        "warningsAsErrors": true
+      }
+    }
+  },
   "dependencies": {
     "ImageSharp": "1.0.0-*",
     "xunit": "2.2.0-*",

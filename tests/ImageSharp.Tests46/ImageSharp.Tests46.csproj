@@ -1,0 +1,179 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{88C5FB74-5845-4CC0-8F1E-A25EBABC95C2}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>ImageSharp.Tests</RootNamespace>
+    <AssemblyName>ImageSharp.Tests46</AssemblyName>
+    <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="ImageSharp" Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+      <HintPath>..\..\src\ImageSharp\bin\Debug\net45\ImageSharp.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="ImageSharp" Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+      <HintPath>..\..\src\ImageSharp\bin\Release\net45\ImageSharp.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Numerics" />
+    <Reference Include="System.Numerics.Vectors, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\System.Numerics.Vectors.4.1.1\lib\net46\System.Numerics.Vectors.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Xml" />
+    <Reference Include="xunit.abstractions, Version=2.0.0.0, Culture=neutral, PublicKeyToken=8d05b1bb7a6fdb6c, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\xunit.abstractions.2.0.1\lib\net35\xunit.abstractions.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="xunit.assert, Version=2.2.0.3444, Culture=neutral, PublicKeyToken=8d05b1bb7a6fdb6c, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\xunit.assert.2.2.0-beta4-build3444\lib\netstandard1.0\xunit.assert.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="xunit.core, Version=2.2.0.3444, Culture=neutral, PublicKeyToken=8d05b1bb7a6fdb6c, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\xunit.extensibility.core.2.2.0-beta4-build3444\lib\net45\xunit.core.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="xunit.execution.desktop, Version=2.2.0.3444, Culture=neutral, PublicKeyToken=8d05b1bb7a6fdb6c, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\xunit.extensibility.execution.2.2.0-beta4-build3444\lib\net45\xunit.execution.desktop.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\ImageSharp.Tests\Formats\Jpg\Block8x8FTests.cs">
+      <Link>Formats\Jpg\Block8x8FTests.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\Formats\Jpg\JpegTests.cs">
+      <Link>Formats\Jpg\JpegTests.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\Formats\Jpg\ReferenceImplementations.cs">
+      <Link>Formats\Jpg\ReferenceImplementations.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\Formats\Jpg\ReferenceImplementationsTests.cs">
+      <Link>Formats\Jpg\ReferenceImplementationsTests.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\Formats\Jpg\UtilityTestClassBase.cs">
+      <Link>Formats\Jpg\UtilityTestClassBase.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\Image\ImagePropertyTests.cs">
+      <Link>Image\ImagePropertyTests.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\Image\ImageTests.cs">
+      <Link>Image\ImageTests.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\Image\PixelAccessorTests.cs">
+      <Link>Image\PixelAccessorTests.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\TestBase.cs">
+      <Link>TestBase.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\TestImages.cs">
+      <Link>TestImages.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\TestUtilities\Attributes\ImageDataAttributeBase.cs">
+      <Link>TestUtilities\ImageDataAttributeBase.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\TestUtilities\Attributes\WithBlankImageAttribute.cs">
+      <Link>TestUtilities\WithBlankImageAttribute.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\TestUtilities\Attributes\WithFileAttribute.cs">
+      <Link>TestUtilities\WithFileAttribute.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\TestUtilities\Attributes\WithFileCollectionAttribute.cs">
+      <Link>TestUtilities\WithFileCollectionAttribute.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\TestUtilities\Attributes\WithMemberFactoryAttribute.cs">
+      <Link>TestUtilities\WithMemberFactoryAttribute.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\TestUtilities\Attributes\WithSolidFilledImagesAttribute.cs">
+      <Link>TestUtilities\WithSolidFilledImagesAttribute.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\TestUtilities\EnumHelper.cs">
+      <Link>TestUtilities\EnumHelper.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\TestUtilities\Factories\GenericFactory.cs">
+      <Link>TestUtilities\GenericFactory.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\TestUtilities\Factories\ImageFactory.cs">
+      <Link>TestUtilities\ImageFactory.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\TestUtilities\ImageProviders\BlankProvider.cs">
+      <Link>TestUtilities\BlankProvider.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\TestUtilities\ImageProviders\FileProvider.cs">
+      <Link>TestUtilities\FileProvider.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\TestUtilities\ImageProviders\LambdaProvider.cs">
+      <Link>TestUtilities\LambdaProvider.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\TestUtilities\ImageProviders\SolidProvider.cs">
+      <Link>TestUtilities\SolidProvider.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\TestUtilities\ImageProviders\TestImageProvider.cs">
+      <Link>TestUtilities\TestImageProvider.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\TestUtilities\ImagingTestCaseUtility.cs">
+      <Link>TestUtilities\ImagingTestCaseUtility.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\TestUtilities\PixelTypes.cs">
+      <Link>TestUtilities\PixelTypes.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\TestUtilities\Tests\TestImageProviderTests.cs">
+      <Link>TestUtilities\TestImageProviderTests.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\TestUtilities\Tests\TestUtilityExtensionsTests.cs">
+      <Link>TestUtilities\TestUtilityExtensionsTests.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\TestUtilities\TestUtilityExtensions.cs">
+      <Link>TestUtilities\TestUtilityExtensions.cs</Link>
+    </Compile>
+    <Compile Include="HelloTest.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="TestFile.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup />
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

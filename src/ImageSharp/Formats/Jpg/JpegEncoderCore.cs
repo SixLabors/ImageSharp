@@ -226,6 +226,22 @@ namespace ImageSharp.Formats
             stream.Flush();
         }
 
+        /// <summary>
+        /// Writes data to "Define Quantization Tables" block for QuantIndex
+        /// </summary>
+        /// <param name="dqt">The "Define Quantization Tables" block</param>
+        /// <param name="offset">Offset in dqt</param>
+        /// <param name="i">The quantization index</param>
+        /// <param name="q">The quantazation table to copy data from</param>
+        private static void WriteDataToDqt(byte[] dqt, ref int offset, QuantIndex i, ref Block8x8F q)
+        {
+            dqt[offset++] = (byte)i;
+            for (int j = 0; j < Block8x8F.ScalarCount; j++)
+            {
+                dqt[offset++] = (byte)q[j];
+            }
+        }
+
         private static void InitQuantizationTable(int i, int scale, ref Block8x8F quant)
         {
             for (int j = 0; j < Block8x8F.ScalarCount; j++)
@@ -622,8 +638,8 @@ namespace ImageSharp.Formats
             byte[] dqt = ArrayPool<byte>.Shared.Rent(dqtCount);
             int offset = 0;
 
-            JpegUtils.WriteDataToDqt(dqt, ref offset, QuantIndex.Luminance, ref this.luminanceQuantTable);
-            JpegUtils.WriteDataToDqt(dqt, ref offset, QuantIndex.Chrominance, ref this.chrominanceQuantTable);
+            WriteDataToDqt(dqt, ref offset, QuantIndex.Luminance, ref this.luminanceQuantTable);
+            WriteDataToDqt(dqt, ref offset, QuantIndex.Chrominance, ref this.chrominanceQuantTable);
 
             this.outputStream.Write(dqt, 0, dqtCount);
             ArrayPool<byte>.Shared.Return(dqt);
@@ -782,7 +798,7 @@ namespace ImageSharp.Formats
             // ReSharper disable once InconsistentNaming
             float prevDCY = 0, prevDCCb = 0, prevDCCr = 0;
 
-            using (var rgbBytes = new PixelArea<TColor>(8, 8, ComponentOrder.XYZ, true))
+            using (PixelArea<TColor> rgbBytes = new PixelArea<TColor>(8, 8, ComponentOrder.XYZ, true))
             {
                 for (int y = 0; y < pixels.Height; y += 16)
                 {
@@ -814,6 +830,7 @@ namespace ImageSharp.Formats
                             &temp2,
                             &onStackChrominanceQuantTable,
                             unzig.Data);
+
                         Block8x8F.Scale16X16To8X8(&b, crPtr);
                         prevDCCr = this.WriteBlock(
                             QuantIndex.Chrominance,

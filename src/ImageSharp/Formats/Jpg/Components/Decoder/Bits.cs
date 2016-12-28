@@ -47,7 +47,7 @@ namespace ImageSharp.Formats.Jpg
 
                 // Grab the decode bytes, use them and then set them
                 // back on the decoder.
-                var decoderBytes = decoder.Bytes;
+                Bytes decoderBytes = decoder.Bytes;
                 byte c = decoderBytes.ReadByteStuffedByte(decoder.InputStream, out errorCode);
                 decoder.Bytes = decoderBytes;
 
@@ -84,7 +84,7 @@ namespace ImageSharp.Formats.Jpg
         {
             if (this.UnreadBits < t)
             {
-                var errorCode = this.EnsureNBits(t, decoder);
+                JpegDecoderCore.ErrorCodes errorCode = this.EnsureNBits(t, decoder);
                 if (errorCode != JpegDecoderCore.ErrorCodes.NoError)
                 {
                     throw new JpegDecoderCore.MissingFF00Exception();

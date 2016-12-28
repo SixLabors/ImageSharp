@@ -436,7 +436,7 @@ namespace ImageSharp.Formats
             // ReSharper disable once InconsistentNaming
             float prevDCY = 0, prevDCCb = 0, prevDCCr = 0;
 
-            using (PixelArea<TColor> rgbBytes = new PixelArea<TColor>(8, 8, ComponentOrder.Xyz, true))
+            using (PixelArea<TColor> rgbBytes = new PixelArea<TColor>(8, 8, ComponentOrder.Xyz))
             {
                 for (int y = 0; y < pixels.Height; y += 8)
                 {
@@ -805,7 +805,7 @@ namespace ImageSharp.Formats
             // ReSharper disable once InconsistentNaming
             float prevDCY = 0, prevDCCb = 0, prevDCCr = 0;
 
-            using (PixelArea<TColor> rgbBytes = new PixelArea<TColor>(8, 8, ComponentOrder.Xyz, true))
+            using (PixelArea<TColor> rgbBytes = new PixelArea<TColor>(8, 8, ComponentOrder.Xyz))
             {
                 for (int y = 0; y < pixels.Height; y += 16)
                 {

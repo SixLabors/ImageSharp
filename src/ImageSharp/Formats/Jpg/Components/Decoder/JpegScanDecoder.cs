@@ -27,20 +27,45 @@ namespace ImageSharp.Formats.Jpg
         [StructLayout(LayoutKind.Sequential)]
         public struct ComponentData
         {
+            /// <summary>
+            /// The main input block
+            /// </summary>
             public Block8x8F Block;
 
+            /// <summary>
+            /// Temporal block 1 to store intermediate and/or final computation results
+            /// </summary>
             public Block8x8F Temp1;
 
+            /// <summary>
+            /// Temporal block 2 to store intermediate and/or final computation results
+            /// </summary>
             public Block8x8F Temp2;
 
+            /// <summary>
+            /// The quantization table as <see cref="Block8x8F"/>
+            /// </summary>
             public Block8x8F QuantiazationTable;
 
+            /// <summary>
+            /// The jpeg unzig data
+            /// </summary>
             public UnzigData Unzig;
 
+            /// <summary>
+            /// The no-idea-what's this data
+            /// </summary>
             public fixed byte ScanData[3 * JpegDecoderCore.MaxComponents];
 
+            /// <summary>
+            /// The DC data
+            /// </summary>
             public fixed int Dc[JpegDecoderCore.MaxComponents];
 
+            /// <summary>
+            /// Creates and initializes a new <see cref="ComponentData"/> instance
+            /// </summary>
+            /// <returns></returns>
             public static ComponentData Create()
             {
                 ComponentData data = default(ComponentData);
@@ -114,26 +139,56 @@ namespace ImageSharp.Formats.Jpg
         // significant bit.
         // For baseline JPEGs, these parameters are hard-coded to 0/63/0/0.
 
+        /// <summary>
+        /// Start index of the zig-zag selection bound
+        /// </summary>
         private int zigStart;
 
+        /// <summary>
+        /// End index of the zig-zag selection bound
+        /// </summary>
         private int zigEnd;
 
+        /// <summary>
+        /// Successive approximation high value
+        /// </summary>
         private int ah;
 
+        /// <summary>
+        /// Successive approximation high and low value
+        /// </summary>
         private int al;
 
         // XNumberOfMCUs and YNumberOfMCUs are the number of MCUs (Minimum Coded Units) in the image.
 
+        /// <summary>
+        /// Number of MCU-s (Minimum Coded Units) on X axis
+        /// </summary>
         public int XNumberOfMCUs;
 
+        /// <summary>
+        /// Number of MCU-s (Minimum Coded Units) in Y axis
+        /// </summary>
         public int YNumberOfMCUs;
 
         private int scanComponentCount;
 
+        /// <summary>
+        /// The <see cref="ComponentData"/> buffer
+        /// </summary>
         private ComponentData Data;
 
+        /// <summary>
+        /// Pointers to elements of <see cref="Data"/>
+        /// </summary>
         private ComponentPointers Pointers;
 
+        /// <summary>
+        /// Initializes the default instance after creation
+        /// </summary>
+        /// <param name="p"></param>
+        /// <param name="decoder"></param>
+        /// <param name="remaining"></param>
         public static void Init(JpegScanDecoder* p, JpegDecoderCore decoder, int remaining)
         {
             p->Data = ComponentData.Create();
@@ -141,6 +196,129 @@ namespace ImageSharp.Formats.Jpg
             p->InitImpl(decoder, remaining);
         }
 
+        /// <summary>
+        /// Reads the blocks from the <see cref="JpegDecoderCore"/>-s stream, and processes them into the corresponding <see cref="JpegPixelArea"/> instances.
+        /// </summary>
+        /// <param name="decoder"></param>
+        public void ProcessBlocks(JpegDecoderCore decoder)
+        {
+            int blockCount = 0;
+            int mcu = 0;
+            byte expectedRst = JpegConstants.Markers.RST0;
+
+            for (int my = 0; my < this.YNumberOfMCUs; my++)
+            {
+                for (int mx = 0; mx < this.XNumberOfMCUs; mx++)
+                {
+                    for (int i = 0; i < this.scanComponentCount; i++)
+                    {
+                        int compIndex = this.Pointers.Scan[i].Index;
+                        int hi = decoder.ComponentArray[compIndex].HorizontalFactor;
+                        int vi = decoder.ComponentArray[compIndex].VerticalFactor;
+
+                        for (int j = 0; j < hi * vi; j++)
+                        {
+                            // The blocks are traversed one MCU at a time. For 4:2:0 chroma
+                            // subsampling, there are four Y 8x8 blocks in every 16x16 MCU.
+                            // For a baseline 32x16 pixel image, the Y blocks visiting order is:
+                            // 0 1 4 5
+                            // 2 3 6 7
+                            // For progressive images, the interleaved scans (those with component count > 1)
+                            // are traversed as above, but non-interleaved scans are traversed left
+                            // to right, top to bottom:
+                            // 0 1 2 3
+                            // 4 5 6 7
+                            // Only DC scans (zigStart == 0) can be interleave AC scans must have
+                            // only one component.
+                            // To further complicate matters, for non-interleaved scans, there is no
+                            // data for any blocks that are inside the image at the MCU level but
+                            // outside the image at the pixel level. For example, a 24x16 pixel 4:2:0
+                            // progressive image consists of two 16x16 MCUs. The interleaved scans
+                            // will process 8 Y blocks:
+                            // 0 1 4 5
+                            // 2 3 6 7
+                            // The non-interleaved scans will process only 6 Y blocks:
+                            // 0 1 2
+                            // 3 4 5
+                            if (this.scanComponentCount != 1)
+                            {
+                                this.bx = (hi * mx) + (j % hi);
+                                this.by = (vi * my) + (j / hi);
+                            }
+                            else
+                            {
+                                int q = this.XNumberOfMCUs * hi;
+                                this.bx = blockCount % q;
+                                this.by = blockCount / q;
+                                blockCount++;
+                                if (this.bx * 8 >= decoder.ImageWidth || this.by * 8 >= decoder.ImageHeight)
+                                {
+                                    continue;
+                                }
+                            }
+
+                            int qtIndex = decoder.ComponentArray[compIndex].Selector;
+
+                            // TODO: Reading & processing blocks should be done in 2 separate loops. The second one could be parallelized. The first one could be async.
+
+                            this.Data.QuantiazationTable = decoder.QuantizationTables[qtIndex];
+
+                            //Load the previous partially decoded coefficients, if applicable.
+                            if (decoder.IsProgressive)
+                            {
+                                int blockIndex = ((this.by * this.XNumberOfMCUs) * hi) + this.bx;
+                                this.Data.Block = decoder.ProgCoeffs[compIndex][blockIndex];
+                            }
+                            else
+                            {
+                                this.Data.Block.Clear();
+                            }
+
+                            this.ProcessBlockImpl(decoder, i, compIndex, hi);
+                        }
+
+                        // for j
+                    }
+
+                    // for i
+                    mcu++;
+
+                    if (decoder.RestartInterval > 0 && mcu % decoder.RestartInterval == 0 && mcu < this.XNumberOfMCUs * this.YNumberOfMCUs)
+                    {
+                        // A more sophisticated decoder could use RST[0-7] markers to resynchronize from corrupt input,
+                        // but this one assumes well-formed input, and hence the restart marker follows immediately.
+                        decoder.ReadFull(decoder.Temp, 0, 2);
+                        if (decoder.Temp[0] != 0xff || decoder.Temp[1] != expectedRst)
+                        {
+                            throw new ImageFormatException("Bad RST marker");
+                        }
+
+                        expectedRst++;
+                        if (expectedRst == JpegConstants.Markers.RST7 + 1)
+                        {
+                            expectedRst = JpegConstants.Markers.RST0;
+                        }
+
+                        // Reset the Huffman decoder.
+                        decoder.Bits = default(Bits);
+
+                        // Reset the DC components, as per section F.2.1.3.1.
+                        this.ResetDc();
+
+                        // Reset the progressive decoder state, as per section G.1.2.2.
+                        decoder.EobRun = 0;
+                    }
+                }
+
+                // for mx
+            }
+        }
+        
+        /// <summary>
+        /// The implementation part of <see cref="Init"/> as an instance method.
+        /// </summary>
+        /// <param name="decoder">The <see cref="JpegDecoderCore"/></param>
+        /// <param name="remaining">The remaining bytes</param>
         private void InitImpl(JpegDecoderCore decoder, int remaining)
         {
             if (decoder.ComponentCount == 0)
@@ -280,120 +458,6 @@ namespace ImageSharp.Formats.Jpg
             if (currentScan.AcTableSelector > HuffmanTree.MaxTh)
             {
                 throw new ImageFormatException("Bad AC table selector  value");
-            }
-        }
-
-        public void ProcessBlocks(JpegDecoderCore decoder)
-        {
-            int blockCount = 0;
-            int mcu = 0;
-            byte expectedRst = JpegConstants.Markers.RST0;
-
-            for (int my = 0; my < this.YNumberOfMCUs; my++)
-            {
-                for (int mx = 0; mx < this.XNumberOfMCUs; mx++)
-                {
-                    for (int i = 0; i < this.scanComponentCount; i++)
-                    {
-                        int compIndex = this.Pointers.Scan[i].Index;
-                        int hi = decoder.ComponentArray[compIndex].HorizontalFactor;
-                        int vi = decoder.ComponentArray[compIndex].VerticalFactor;
-
-                        for (int j = 0; j < hi * vi; j++)
-                        {
-                            // The blocks are traversed one MCU at a time. For 4:2:0 chroma
-                            // subsampling, there are four Y 8x8 blocks in every 16x16 MCU.
-                            // For a baseline 32x16 pixel image, the Y blocks visiting order is:
-                            // 0 1 4 5
-                            // 2 3 6 7
-                            // For progressive images, the interleaved scans (those with component count > 1)
-                            // are traversed as above, but non-interleaved scans are traversed left
-                            // to right, top to bottom:
-                            // 0 1 2 3
-                            // 4 5 6 7
-                            // Only DC scans (zigStart == 0) can be interleave AC scans must have
-                            // only one component.
-                            // To further complicate matters, for non-interleaved scans, there is no
-                            // data for any blocks that are inside the image at the MCU level but
-                            // outside the image at the pixel level. For example, a 24x16 pixel 4:2:0
-                            // progressive image consists of two 16x16 MCUs. The interleaved scans
-                            // will process 8 Y blocks:
-                            // 0 1 4 5
-                            // 2 3 6 7
-                            // The non-interleaved scans will process only 6 Y blocks:
-                            // 0 1 2
-                            // 3 4 5
-                            if (this.scanComponentCount != 1)
-                            {
-                                this.bx = (hi * mx) + (j % hi);
-                                this.by = (vi * my) + (j / hi);
-                            }
-                            else
-                            {
-                                int q = this.XNumberOfMCUs * hi;
-                                this.bx = blockCount % q;
-                                this.by = blockCount / q;
-                                blockCount++;
-                                if (this.bx * 8 >= decoder.ImageWidth || this.by * 8 >= decoder.ImageHeight)
-                                {
-                                    continue;
-                                }
-                            }
-
-                            int qtIndex = decoder.ComponentArray[compIndex].Selector;
-
-                            // TODO: Reading & processing blocks should be done in 2 separate loops. The second one could be parallelized. The first one could be async.
-
-                            this.Data.QuantiazationTable = decoder.QuantizationTables[qtIndex];
-
-                            //Load the previous partially decoded coefficients, if applicable.
-                            if (decoder.IsProgressive)
-                            {
-                                int blockIndex = ((this.by * this.XNumberOfMCUs) * hi) + this.bx;
-                                this.Data.Block = decoder.ProgCoeffs[compIndex][blockIndex];
-                            }
-                            else
-                            {
-                                this.Data.Block.Clear();
-                            }
-
-                            this.ProcessBlockImpl(decoder, i, compIndex, hi);
-                        }
-
-                        // for j
-                    }
-
-                    // for i
-                    mcu++;
-
-                    if (decoder.RestartInterval > 0 && mcu % decoder.RestartInterval == 0 && mcu < this.XNumberOfMCUs * this.YNumberOfMCUs)
-                    {
-                        // A more sophisticated decoder could use RST[0-7] markers to resynchronize from corrupt input,
-                        // but this one assumes well-formed input, and hence the restart marker follows immediately.
-                        decoder.ReadFull(decoder.Temp, 0, 2);
-                        if (decoder.Temp[0] != 0xff || decoder.Temp[1] != expectedRst)
-                        {
-                            throw new ImageFormatException("Bad RST marker");
-                        }
-
-                        expectedRst++;
-                        if (expectedRst == JpegConstants.Markers.RST7 + 1)
-                        {
-                            expectedRst = JpegConstants.Markers.RST0;
-                        }
-
-                        // Reset the Huffman decoder.
-                        decoder.Bits = default(Bits);
-
-                        // Reset the DC components, as per section F.2.1.3.1.
-                        this.ResetDc();
-
-                        // Reset the progressive decoder state, as per section G.1.2.2.
-                        decoder.EobRun = 0;
-                    }
-                }
-
-                // for mx
             }
         }
 

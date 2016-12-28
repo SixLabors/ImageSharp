@@ -8,6 +8,7 @@ namespace ImageSharp.Drawing.Processors
     using System;
     using System.Numerics;
     using System.Threading.Tasks;
+    using Common;
     using Drawing;
     using ImageSharp.Processors;
     using Shapes;
@@ -21,8 +22,6 @@ namespace ImageSharp.Drawing.Processors
     public class FillShapeProcessor<TColor> : ImageFilteringProcessor<TColor>
         where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
-        private const float Epsilon = 0.001f;
-
         private const float AntialiasFactor = 1f;
         private const int DrawPadding = 1;
         private readonly IBrush<TColor> fillColor;
@@ -95,7 +94,7 @@ namespace ImageSharp.Drawing.Processors
                         float dist = this.poly.Distance(currentPoint);
                         float opacity = this.Opacity(dist);
 
-                        if (opacity > Epsilon)
+                        if (opacity > Constants.Epsilon)
                         {
                             Vector4 backgroundVector = sourcePixels[offsetX, offsetY].ToVector4();
                             Vector4 sourceVector = applicator.GetColor(currentPoint).ToVector4();

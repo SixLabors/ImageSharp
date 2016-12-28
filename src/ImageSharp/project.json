@@ -24,7 +24,7 @@
   "buildOptions": {
     "allowUnsafe": true,
     "xmlDoc": true,
-    "additionalArguments": [ "/additionalfile:stylecop.json" ]
+    "additionalArguments": [ "/additionalfile:stylecop.json", "/ruleset:../../ImageSharp.ruleset" ]
   },
   "configurations": {
     "Release": {
@@ -36,7 +36,7 @@
   },
   "dependencies": {
     "StyleCop.Analyzers": {
-      "version": "1.0.0",
+      "version": "1.1.0-beta001",
       "type": "build"
     },
     "System.Buffers": "4.0.0",

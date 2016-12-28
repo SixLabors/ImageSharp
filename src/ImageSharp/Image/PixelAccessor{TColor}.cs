@@ -292,7 +292,7 @@ namespace ImageSharp
 
             for (int y = 0; y < height; y++)
             {
-                byte* source = area.PixelBase + (y * area.RowByteCount);
+                byte* source = area.PixelBase + (y * area.RowStride);
                 byte* destination = this.GetRowPointer(targetX, targetY + y);
 
                 for (int x = 0; x < width; x++)
@@ -321,7 +321,7 @@ namespace ImageSharp
 
             for (int y = 0; y < height; y++)
             {
-                byte* source = area.PixelBase + (y * area.RowByteCount);
+                byte* source = area.PixelBase + (y * area.RowStride);
                 byte* destination = this.GetRowPointer(targetX, targetY + y);
 
                 for (int x = 0; x < width; x++)
@@ -350,7 +350,7 @@ namespace ImageSharp
 
             for (int y = 0; y < height; y++)
             {
-                byte* source = area.PixelBase + (y * area.RowByteCount);
+                byte* source = area.PixelBase + (y * area.RowStride);
                 byte* destination = this.GetRowPointer(targetX, targetY + y);
 
                 for (int x = 0; x < width; x++)
@@ -379,7 +379,7 @@ namespace ImageSharp
 
             for (int y = 0; y < height; y++)
             {
-                byte* source = area.PixelBase + (y * area.RowByteCount);
+                byte* source = area.PixelBase + (y * area.RowStride);
                 byte* destination = this.GetRowPointer(targetX, targetY + y);
 
                 for (int x = 0; x < width; x++)
@@ -405,7 +405,7 @@ namespace ImageSharp
         {
             for (int y = 0; y < height; y++)
             {
-                int offset = y * area.RowByteCount;
+                int offset = y * area.RowStride;
                 for (int x = 0; x < width; x++)
                 {
                     this[sourceX + x, sourceY + y].ToBytes(area.Bytes, offset, ComponentOrder.ZYX);
@@ -426,7 +426,7 @@ namespace ImageSharp
         {
             for (int y = 0; y < height; y++)
             {
-                int offset = y * area.RowByteCount;
+                int offset = y * area.RowStride;
                 for (int x = 0; x < width; x++)
                 {
                     this[sourceX + x, sourceY + y].ToBytes(area.Bytes, offset, ComponentOrder.ZYXW);
@@ -447,7 +447,7 @@ namespace ImageSharp
         {
             for (int y = 0; y < height; y++)
             {
-                int offset = y * area.RowByteCount;
+                int offset = y * area.RowStride;
                 for (int x = 0; x < width; x++)
                 {
                     this[sourceX + x, sourceY + y].ToBytes(area.Bytes, offset, ComponentOrder.XYZ);
@@ -468,7 +468,7 @@ namespace ImageSharp
         {
             for (int y = 0; y < height; y++)
             {
-                int offset = y * area.RowByteCount;
+                int offset = y * area.RowStride;
                 for (int x = 0; x < width; x++)
                 {
                     this[sourceX + x, sourceY + y].ToBytes(area.Bytes, offset, ComponentOrder.XYZW);

@@ -75,7 +75,7 @@ namespace ImageSharp
             this.Width = width;
             this.Height = height;
             this.ComponentOrder = componentOrder;
-            this.RowByteCount = width * GetComponentCount(componentOrder);
+            this.RowStride = width * GetComponentCount(componentOrder);
             this.Bytes = bytes;
             this.pixelsHandle = GCHandle.Alloc(this.Bytes, GCHandleType.Pinned);
 
@@ -132,9 +132,9 @@ namespace ImageSharp
             this.Width = width;
             this.Height = height;
             this.ComponentOrder = componentOrder;
-            this.RowByteCount = (width * GetComponentCount(componentOrder)) + padding;
+            this.RowStride = (width * GetComponentCount(componentOrder)) + padding;
 
-            int bufferSize = this.RowByteCount * height;
+            int bufferSize = this.RowStride * height;
 
             if (usePool)
             {
@@ -188,9 +188,9 @@ namespace ImageSharp
         public byte* PixelBase { get; private set; }
 
         /// <summary>
-        /// Gets number of bytes in a row.
+        /// Gets the width of one row in the number of bytes.
         /// </summary>
-        public int RowByteCount { get; }
+        public int RowStride { get; }
 
         /// <summary>
         /// Gets the width.
@@ -201,6 +201,7 @@ namespace ImageSharp
         /// Gets the pool used to rent <see cref="Bytes"/>, when it's not coming from an external source
         /// </summary>
         // ReSharper disable once StaticMemberInGenericType
+        // TODO: Use own pool?
         private static ArrayPool<byte> BytesPool => ArrayPool<byte>.Shared;
 
         /// <summary>
@@ -234,7 +235,7 @@ namespace ImageSharp
         /// </summary>
         internal void Reset()
         {
-            Unsafe.InitBlock(this.PixelBase, 0, (uint)(this.RowByteCount * this.Height));
+            Unsafe.InitBlock(this.PixelBase, 0, (uint)(this.RowStride * this.Height));
         }
 
         /// <summary>
@@ -262,6 +263,16 @@ namespace ImageSharp
             throw new NotSupportedException();
         }
 
+        /// <summary>
+        /// Checks that the length of the byte array to ensure that it matches the given width and height.
+        /// </summary>
+        /// <param name="width">The width.</param>
+        /// <param name="height">The height.</param>
+        /// <param name="bytes">The byte array.</param>
+        /// <param name="componentOrder">The component order.</param>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// Thrown if the byte array is th incorrect length.
+        /// </exception>
         [Conditional("DEBUG")]
         private void CheckBytesLength(int width, int height, byte[] bytes, ComponentOrder componentOrder)
         {
@@ -274,6 +285,10 @@ namespace ImageSharp
             }
         }
 
+        /// <summary>
+        /// Disposes the object and frees resources for the Garbage Collector.
+        /// </summary>
+        /// <param name="disposing">If true, the object gets disposed.</param>
         private void Dispose(bool disposing)
         {
             if (this.isDisposed)

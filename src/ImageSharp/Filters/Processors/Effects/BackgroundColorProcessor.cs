@@ -8,7 +8,6 @@ namespace ImageSharp.Processors
     using System;
     using System.Numerics;
     using System.Threading.Tasks;
-    using Common;
 
     /// <summary>
     /// Sets the background color of the image.

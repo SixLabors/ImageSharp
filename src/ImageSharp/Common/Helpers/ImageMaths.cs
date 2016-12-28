@@ -8,7 +8,6 @@ namespace ImageSharp
     using System;
     using System.Linq;
     using System.Numerics;
-    using Common;
 
     /// <summary>
     /// Provides common mathematical methods.

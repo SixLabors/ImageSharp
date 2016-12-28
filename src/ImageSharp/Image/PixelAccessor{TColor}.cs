@@ -186,7 +186,7 @@ namespace ImageSharp
             int width = Math.Min(area.Width, this.Width - targetX);
             int height = Math.Min(area.Height, this.Height - targetY);
 
-            // this.CheckDimensions(width, height); TODO: Why was width == 0 or height == 0 considered a problem? Copy implementations do not fail on this (just do nothing)!
+            this.CheckDimensions(width, height);
             switch (area.ComponentOrder)
             {
                 case ComponentOrder.ZYX:
@@ -220,7 +220,7 @@ namespace ImageSharp
             int width = Math.Min(area.Width, this.Width - sourceX);
             int height = Math.Min(area.Height, this.Height - sourceY);
 
-            // this.CheckDimensions(width, height); TODO: Why was width == 0 or height == 0 considered a problem? Copy implementations do not fail on this (just do nothing)!
+            this.CheckDimensions(width, height);
             switch (area.ComponentOrder)
             {
                 case ComponentOrder.ZYX:

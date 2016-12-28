@@ -8,77 +8,77 @@ namespace ImageSharp.Formats.Jpg
     using System.Buffers;
 
     /// <summary>
-    ///     Represents a Huffman tree
+    /// Represents a Huffman tree
     /// </summary>
     internal struct HuffmanTree : IDisposable
     {
         /// <summary>
-        ///     The maximum (inclusive) number of codes in a Huffman tree.
+        /// The maximum (inclusive) number of codes in a Huffman tree.
         /// </summary>
         public const int MaxNCodes = 256;
 
         /// <summary>
-        ///     The maximum (inclusive) number of bits in a Huffman code.
+        /// The maximum (inclusive) number of bits in a Huffman code.
         /// </summary>
         public const int MaxCodeLength = 16;
 
         /// <summary>
-        ///     The maximum number of Huffman table classes
+        /// The maximum number of Huffman table classes
         /// </summary>
         public const int MaxTc = 1;
 
         /// <summary>
-        ///     The maximum number of Huffman table identifiers
+        /// The maximum number of Huffman table identifiers
         /// </summary>
         public const int MaxTh = 3;
 
         /// <summary>
-        ///     Row size of the Huffman table
+        /// Row size of the Huffman table
         /// </summary>
         public const int ThRowSize = MaxTh + 1;
 
         /// <summary>
-        ///     Number of Hufman Trees in the Huffman table
+        /// Number of Hufman Trees in the Huffman table
         /// </summary>
         public const int NumberOfTrees = (MaxTc + 1) * (MaxTh + 1);
 
         /// <summary>
-        ///     The log-2 size of the Huffman decoder's look-up table.
+        /// The log-2 size of the Huffman decoder's look-up table.
         /// </summary>
         public const int LutSize = 8;
 
         /// <summary>
-        ///     Gets or sets the number of codes in the tree.
+        /// Gets or sets the number of codes in the tree.
         /// </summary>
         public int Length;
 
         /// <summary>
-        ///     Gets the look-up table for the next LutSize bits in the bit-stream.
-        ///     The high 8 bits of the uint16 are the encoded value. The low 8 bits
-        ///     are 1 plus the code length, or 0 if the value is too large to fit in
-        ///     lutSize bits.
+        /// Gets the look-up table for the next LutSize bits in the bit-stream.
+        /// The high 8 bits of the uint16 are the encoded value. The low 8 bits
+        /// are 1 plus the code length, or 0 if the value is too large to fit in
+        /// lutSize bits.
         /// </summary>
         public ushort[] Lut;
 
         /// <summary>
-        ///     Gets the the decoded values, sorted by their encoding.
+        /// Gets the the decoded values, sorted by their encoding.
         /// </summary>
         public byte[] Values;
 
         /// <summary>
-        ///     Gets the array of minimum codes.
-        ///     MinCodes[i] is the minimum code of length i, or -1 if there are no codes of that length.
+        /// Gets the array of minimum codes.
+        /// MinCodes[i] is the minimum code of length i, or -1 if there are no codes of that length.
         /// </summary>
         public int[] MinCodes;
 
         /// <summary>
-        ///     Gets the array of maximum codes.
-        ///     MaxCodes[i] is the maximum code of length i, or -1 if there are no codes of that length.
+        /// Gets the array of maximum codes.
+        /// MaxCodes[i] is the maximum code of length i, or -1 if there are no codes of that length.
         /// </summary>
         public int[] MaxCodes;
 
         /// <summary>
-        ///     Gets the array of indices. Indices[i] is the index into Values of MinCodes[i].
+        /// Gets the array of indices. Indices[i] is the index into Values of MinCodes[i].
         /// </summary>
         public int[] Indices;
 
@@ -89,7 +89,7 @@ namespace ImageSharp.Formats.Jpg
         private static readonly ArrayPool<int> IntBuffer = ArrayPool<int>.Create(MaxCodeLength, 50);
 
         /// <summary>
-        ///     Creates and initializes an array of <see cref="HuffmanTree" /> instances of size <see cref="NumberOfTrees" />
+        /// Creates and initializes an array of <see cref="HuffmanTree" /> instances of size <see cref="NumberOfTrees" />
         /// </summary>
         /// <returns>An array of <see cref="HuffmanTree" /> instances representing the Huffman tables</returns>
         public static HuffmanTree[] CreateHuffmanTrees()
@@ -107,7 +107,7 @@ namespace ImageSharp.Formats.Jpg
         }
 
         /// <summary>
-        ///     Initializes the Huffman tree
+        /// Initializes the Huffman tree
         /// </summary>
         private void Init()
         {
@@ -119,7 +119,7 @@ namespace ImageSharp.Formats.Jpg
         }
 
         /// <summary>
-        ///     Disposes the underlying buffers
+        /// Disposes the underlying buffers
         /// </summary>
         public void Dispose()
         {
@@ -131,7 +131,7 @@ namespace ImageSharp.Formats.Jpg
         }
 
         /// <summary>
-        ///     Internal part of the DHT processor, whatever does it mean
+        /// Internal part of the DHT processor, whatever does it mean
         /// </summary>
         /// <param name="decoder">The decoder instance</param>
         /// <param name="defineHuffmanTablesData">The temporal buffer that holds the data that has been read from the Jpeg stream</param>

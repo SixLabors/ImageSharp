@@ -451,7 +451,7 @@ namespace ImageSharp.Formats
             }
             else
             {
-                using (PixelArea<TColor> emptyRow = new PixelArea<TColor>(this.restoreArea.Value.Width, ComponentOrder.XYZW))
+                using (PixelArea<TColor> emptyRow = new PixelArea<TColor>(this.restoreArea.Value.Width, ComponentOrder.Xyzw))
                 {
                     using (PixelAccessor<TColor> pixelAccessor = frame.Lock())
                     {

@@ -3,7 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp
+namespace ImageSharp.Colors.Spaces
 {
     using System;
     using System.ComponentModel;
@@ -20,14 +20,9 @@ namespace ImageSharp
         public static readonly Hsv Empty = default(Hsv);
 
         /// <summary>
-        /// The epsilon for comparing floating point numbers.
-        /// </summary>
-        private const float Epsilon = 0.001F;
-
-        /// <summary>
         /// The backing vector for SIMD support.
         /// </summary>
-        private Vector3 backingVector;
+        private readonly Vector3 backingVector;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Hsv"/> struct.
@@ -85,20 +80,20 @@ namespace ImageSharp
             float s = 0;
             float v = max;
 
-            if (Math.Abs(chroma) < Epsilon)
+            if (Math.Abs(chroma) < Constants.Epsilon)
             {
                 return new Hsv(0, s, v);
             }
 
-            if (Math.Abs(r - max) < Epsilon)
+            if (Math.Abs(r - max) < Constants.Epsilon)
             {
                 h = (g - b) / chroma;
             }
-            else if (Math.Abs(g - max) < Epsilon)
+            else if (Math.Abs(g - max) < Constants.Epsilon)
             {
                 h = 2 + ((b - r) / chroma);
             }
-            else if (Math.Abs(b - max) < Epsilon)
+            else if (Math.Abs(b - max) < Constants.Epsilon)
             {
                 h = 4 + ((r - g) / chroma);
             }
@@ -151,7 +146,7 @@ namespace ImageSharp
         /// <inheritdoc/>
         public override int GetHashCode()
         {
-            return GetHashCode(this);
+            return this.backingVector.GetHashCode();
         }
 
         /// <inheritdoc/>
@@ -179,7 +174,7 @@ namespace ImageSharp
         /// <inheritdoc/>
         public bool Equals(Hsv other)
         {
-            return this.AlmostEquals(other, Epsilon);
+            return this.AlmostEquals(other, Constants.Epsilon);
         }
 
         /// <inheritdoc/>
@@ -191,16 +186,5 @@ namespace ImageSharp
                 && result.Y < precision
                 && result.Z < precision;
         }
-
-        /// <summary>
-        /// Returns the hash code for this instance.
-        /// </summary>
-        /// <param name="color">
-        /// The instance of <see cref="Hsv"/> to return the hash code for.
-        /// </param>
-        /// <returns>
-        /// A 32-bit signed integer that is the hash code for this instance.
-        /// </returns>
-        private static int GetHashCode(Hsv color) => color.backingVector.GetHashCode();
     }
 }

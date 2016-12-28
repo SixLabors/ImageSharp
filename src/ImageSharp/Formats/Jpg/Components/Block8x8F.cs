@@ -373,5 +373,12 @@ namespace ImageSharp.Formats.Jpg
                 }
             }
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static unsafe void Copy(Block8x8F* dest, Block8x8F* source)
+        {
+            *dest = *source;
+            //Unsafe.CopyBlock(dest, source, (uint)sizeof(Block8x8F));
+        }
     }
 }

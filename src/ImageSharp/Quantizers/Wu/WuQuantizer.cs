@@ -34,11 +34,6 @@ namespace ImageSharp.Quantizers
         where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>
-        /// The epsilon for comparing floating point numbers.
-        /// </summary>
-        private const float Epsilon = 1e-5F;
-
-        /// <summary>
         /// The index bits.
         /// </summary>
         private const int IndexBits = 6;
@@ -340,7 +335,7 @@ namespace ImageSharp.Quantizers
                 for (int x = 0; x < pixels.Width; x++)
                 {
                     // Colors are expected in r->g->b->a format
-                    pixels[x, y].ToBytes(this.rgbaBuffer, 0, ComponentOrder.XYZW);
+                    pixels[x, y].ToXyzwBytes(this.rgbaBuffer, 0);
 
                     byte r = this.rgbaBuffer[0];
                     byte g = this.rgbaBuffer[1];
@@ -542,7 +537,7 @@ namespace ImageSharp.Quantizers
 
                 double temp;
 
-                if (Math.Abs(halfW) < Epsilon)
+                if (Math.Abs(halfW) < Constants.Epsilon)
                 {
                     continue;
                 }
@@ -555,7 +550,7 @@ namespace ImageSharp.Quantizers
                 halfA = wholeA - halfA;
                 halfW = wholeW - halfW;
 
-                if (Math.Abs(halfW) < Epsilon)
+                if (Math.Abs(halfW) < Constants.Epsilon)
                 {
                     continue;
                 }
@@ -762,7 +757,7 @@ namespace ImageSharp.Quantizers
 
                 double weight = Volume(cube[k], this.vwt);
 
-                if (Math.Abs(weight) > Epsilon)
+                if (Math.Abs(weight) > Constants.Epsilon)
                 {
                     float r = (float)(Volume(cube[k], this.vmr) / weight);
                     float g = (float)(Volume(cube[k], this.vmg) / weight);
@@ -785,7 +780,7 @@ namespace ImageSharp.Quantizers
                     for (int x = 0; x < width; x++)
                     {
                         // Expected order r->g->b->a
-                        imagePixels[x, y].ToBytes(rgba, 0, ComponentOrder.XYZW);
+                        imagePixels[x, y].ToXyzwBytes(rgba, 0);
 
                         int r = rgba[0] >> (8 - IndexBits);
                         int g = rgba[1] >> (8 - IndexBits);

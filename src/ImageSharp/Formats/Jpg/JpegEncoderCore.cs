@@ -2,6 +2,7 @@
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
+
 namespace ImageSharp.Formats
 {
     using System;
@@ -230,18 +231,24 @@ namespace ImageSharp.Formats
         /// Writes data to "Define Quantization Tables" block for QuantIndex
         /// </summary>
         /// <param name="dqt">The "Define Quantization Tables" block</param>
-        /// <param name="offset">Offset in dqt</param>
+        /// <param name="offset">Offset in "Define Quantization Tables" block</param>
         /// <param name="i">The quantization index</param>
-        /// <param name="q">The quantazation table to copy data from</param>
-        private static void WriteDataToDqt(byte[] dqt, ref int offset, QuantIndex i, ref Block8x8F q)
+        /// <param name="quant">The quantization table to copy data from</param>
+        private static void WriteDataToDqt(byte[] dqt, ref int offset, QuantIndex i, ref Block8x8F quant)
         {
             dqt[offset++] = (byte)i;
             for (int j = 0; j < Block8x8F.ScalarCount; j++)
             {
-                dqt[offset++] = (byte)q[j];
+                dqt[offset++] = (byte)quant[j];
             }
         }
 
+        /// <summary>
+        /// Initializes quantization table.
+        /// </summary>
+        /// <param name="i">The quantization index.</param>
+        /// <param name="scale">The scaling factor.</param>
+        /// <param name="quant">The quantization table.</param>
         private static void InitQuantizationTable(int i, int scale, ref Block8x8F quant)
         {
             for (int j = 0; j < Block8x8F.ScalarCount; j++)
@@ -429,7 +436,7 @@ namespace ImageSharp.Formats
             // ReSharper disable once InconsistentNaming
             float prevDCY = 0, prevDCCb = 0, prevDCCr = 0;
 
-            using (PixelArea<TColor> rgbBytes = new PixelArea<TColor>(8, 8, ComponentOrder.XYZ, true))
+            using (PixelArea<TColor> rgbBytes = new PixelArea<TColor>(8, 8, ComponentOrder.Xyz))
             {
                 for (int y = 0; y < pixels.Height; y += 8)
                 {
@@ -517,7 +524,7 @@ namespace ImageSharp.Formats
         /// <param name="tempDest">Temporal block to be used as FDCT Destination</param>
         /// <param name="temp2">Temporal block 2</param>
         /// <param name="quant">Quantization table</param>
-        /// <param name="unzigPtr">The 8x8 Unzig block ptr</param>
+        /// <param name="unzigPtr">The 8x8 Unzig block pointer</param>
         /// <returns>
         /// The <see cref="int"/>
         /// </returns>
@@ -798,7 +805,7 @@ namespace ImageSharp.Formats
             // ReSharper disable once InconsistentNaming
             float prevDCY = 0, prevDCCb = 0, prevDCCr = 0;
 
-            using (PixelArea<TColor> rgbBytes = new PixelArea<TColor>(8, 8, ComponentOrder.XYZ, true))
+            using (PixelArea<TColor> rgbBytes = new PixelArea<TColor>(8, 8, ComponentOrder.Xyz))
             {
                 for (int y = 0; y < pixels.Height; y += 16)
                 {

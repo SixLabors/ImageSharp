@@ -64,7 +64,7 @@ namespace ImageSharp
             using (PixelAccessor<TColor> sourcePixels = other.Lock())
             using (PixelAccessor<TColor> target = this.Lock())
             {
-                sourcePixels.CopyImage(target);
+                sourcePixels.CopyTo(target);
             }
         }
 

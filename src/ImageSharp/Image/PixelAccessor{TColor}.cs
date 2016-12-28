@@ -187,7 +187,6 @@ namespace ImageSharp
             int height = Math.Min(area.Height, this.Height - targetY);
 
             this.CheckDimensions(width, height);
-
             switch (area.ComponentOrder)
             {
                 case ComponentOrder.ZYX:
@@ -222,7 +221,6 @@ namespace ImageSharp
             int height = Math.Min(area.Height, this.Height - sourceY);
 
             this.CheckDimensions(width, height);
-
             switch (area.ComponentOrder)
             {
                 case ComponentOrder.ZYX:

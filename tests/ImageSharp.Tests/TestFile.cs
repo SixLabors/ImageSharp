@@ -34,12 +34,17 @@ namespace ImageSharp.Tests
             this.Bytes = File.ReadAllBytes(file);
             this.image = new Image(this.Bytes);
         }
+
+        public static string GetPath(string file)
+        {
+            return Path.Combine(FormatsDirectory, file);
+        }
         
         public static TestFile Create(string file)
         {
             return cache.GetOrAdd(file, (string fileName) =>
             {
-                return new TestFile(FormatsDirectory + fileName);
+                return new TestFile(GetPath(file));
             });
         }
 

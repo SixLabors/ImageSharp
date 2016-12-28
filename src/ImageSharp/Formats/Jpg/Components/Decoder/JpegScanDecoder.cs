@@ -12,12 +12,12 @@ namespace ImageSharp.Formats.Jpg
     internal unsafe struct JpegScanDecoder
     {
         /// <summary>
-        ///     The AC table index
+        /// The AC table index
         /// </summary>
         internal const int AcTableIndex = 1;
 
         /// <summary>
-        ///     The DC table index
+        /// The DC table index
         /// </summary>
         internal const int DcTableIndex = 0;
 
@@ -37,9 +37,9 @@ namespace ImageSharp.Formats.Jpg
 
             public UnzigData Unzig;
 
-            public fixed byte ScanData [3 * JpegDecoderCore.MaxComponents];
+            public fixed byte ScanData[3 * JpegDecoderCore.MaxComponents];
 
-            public fixed int Dc [JpegDecoderCore.MaxComponents];
+            public fixed int Dc[JpegDecoderCore.MaxComponents];
 
             public static ComponentData Create()
             {
@@ -133,7 +133,7 @@ namespace ImageSharp.Formats.Jpg
         private ComponentData Data;
 
         private ComponentPointers Pointers;
-        
+
         public static void Init(JpegScanDecoder* p, JpegDecoderCore decoder, int remaining)
         {
             p->Data = ComponentData.Create();
@@ -387,7 +387,7 @@ namespace ImageSharp.Formats.Jpg
 
                         // Reset the DC components, as per section F.2.1.3.1.
                         this.ResetDc();
-                        
+
                         // Reset the progressive decoder state, as per section G.1.2.2.
                         decoder.EobRun = 0;
                     }
@@ -398,7 +398,7 @@ namespace ImageSharp.Formats.Jpg
         }
 
         /// <summary>
-        ///     Decodes a successive approximation refinement block, as specified in section G.1.2.
+        /// Decodes a successive approximation refinement block, as specified in section G.1.2.
         /// </summary>
         /// <param name="h">The Huffman tree</param>
         /// <param name="delta">The low transform offset</param>
@@ -473,7 +473,7 @@ namespace ImageSharp.Formats.Jpg
                     {
                         break;
                     }
-                    
+
                     zig = this.RefineNonZeroes(decoder, zig, val0, delta);
                     if (zig > this.zigEnd)
                     {
@@ -491,13 +491,13 @@ namespace ImageSharp.Formats.Jpg
             if (decoder.EobRun > 0)
             {
                 decoder.EobRun--;
-                this.RefineNonZeroes(decoder, zig,-1, delta);
+                this.RefineNonZeroes(decoder, zig, -1, delta);
             }
         }
 
         /// <summary>
-        ///     Refines non-zero entries of b in zig-zag order.
-        ///     If <paramref name="nz" /> >= 0, the first <paramref name="nz" /> zero entries are skipped over.
+        /// Refines non-zero entries of b in zig-zag order.
+        /// If <paramref name="nz" /> >= 0, the first <paramref name="nz" /> zero entries are skipped over.
         /// </summary>
         /// <param name="decoder">The decoder</param>
         /// <param name="zig">The zig-zag start index</param>
@@ -649,5 +649,5 @@ namespace ImageSharp.Formats.Jpg
             destArea.LoadColorsFrom(this.Pointers.Temp1, this.Pointers.Temp2);
         }
     }
-    
+
 }

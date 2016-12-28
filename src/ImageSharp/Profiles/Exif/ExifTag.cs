@@ -29,15 +29,15 @@ namespace ImageSharp
         /// <summary>
         /// SubfileType
         /// </summary>
-        [ExifTagDescription((uint)0, "Full-resolution Image")]
-        [ExifTagDescription((uint)1, "Reduced-resolution image")]
-        [ExifTagDescription((uint)2, "Single page of multi-page image")]
-        [ExifTagDescription((uint)3, "Single page of multi-page reduced-resolution image")]
-        [ExifTagDescription((uint)4, "Transparency mask")]
-        [ExifTagDescription((uint)5, "Transparency mask of reduced-resolution image")]
-        [ExifTagDescription((uint)6, "Transparency mask of multi-page image")]
-        [ExifTagDescription((uint)7, "Transparency mask of reduced-resolution multi-page image")]
-        [ExifTagDescription((uint)0x10001, "Alternate reduced-resolution image ")]
+        [ExifTagDescription(0U, "Full-resolution Image")]
+        [ExifTagDescription(1U, "Reduced-resolution image")]
+        [ExifTagDescription(2U, "Single page of multi-page image")]
+        [ExifTagDescription(3U, "Single page of multi-page reduced-resolution image")]
+        [ExifTagDescription(4U, "Transparency mask")]
+        [ExifTagDescription(5U, "Transparency mask of reduced-resolution image")]
+        [ExifTagDescription(6U, "Transparency mask of multi-page image")]
+        [ExifTagDescription(7U, "Transparency mask of reduced-resolution multi-page image")]
+        [ExifTagDescription(0x10001U, "Alternate reduced-resolution image ")]
         SubfileType = 0x00FE,
 
         /// <summary>
@@ -276,15 +276,15 @@ namespace ImageSharp
         /// <summary>
         /// T4Options
         /// </summary>
-        [ExifTagDescription((uint)0, "2-Dimensional encoding")]
-        [ExifTagDescription((uint)1, "Uncompressed")]
-        [ExifTagDescription((uint)2, "Fill bits added")]
+        [ExifTagDescription(0U, "2-Dimensional encoding")]
+        [ExifTagDescription(1U, "Uncompressed")]
+        [ExifTagDescription(2U, "Fill bits added")]
         T4Options = 0x0124,
 
         /// <summary>
         /// T6Options
         /// </summary>
-        [ExifTagDescription((uint)1, "Uncompressed")]
+        [ExifTagDescription(1U, "Uncompressed")]
         T6Options = 0x0125,
 
         /// <summary>
@@ -383,9 +383,9 @@ namespace ImageSharp
         /// <summary>
         /// CleanFaxData
         /// </summary>
-        [ExifTagDescription((uint)0, "Clean")]
-        [ExifTagDescription((uint)1, "Regenerated")]
-        [ExifTagDescription((uint)2, "Unclean")]
+        [ExifTagDescription(0U, "Clean")]
+        [ExifTagDescription(1U, "Regenerated")]
+        [ExifTagDescription(2U, "Unclean")]
         CleanFaxData = 0x0147,
 
         /// <summary>
@@ -491,8 +491,8 @@ namespace ImageSharp
         /// <summary>
         /// ProfileType
         /// </summary>
-        [ExifTagDescription((uint)0, "Unspecified")]
-        [ExifTagDescription((uint)1, "Group 3 FAX")]
+        [ExifTagDescription(0U, "Unspecified")]
+        [ExifTagDescription(1U, "Group 3 FAX")]
         ProfileType = 0x0191,
 
         /// <summary>
@@ -512,13 +512,13 @@ namespace ImageSharp
         /// <summary>
         /// CodingMethods
         /// </summary>
-        [ExifTagDescription((ulong)0, "Unspecified compression")]
-        [ExifTagDescription((ulong)1, "Modified Huffman")]
-        [ExifTagDescription((ulong)2, "Modified Read")]
-        [ExifTagDescription((ulong)4, "Modified MR")]
-        [ExifTagDescription((ulong)8, "JBIG")]
-        [ExifTagDescription((ulong)16, "Baseline JPEG")]
-        [ExifTagDescription((ulong)32, "JBIG color")]
+        [ExifTagDescription(0UL, "Unspecified compression")]
+        [ExifTagDescription(1UL, "Modified Huffman")]
+        [ExifTagDescription(2UL, "Modified Read")]
+        [ExifTagDescription(4UL, "Modified MR")]
+        [ExifTagDescription(8UL, "JBIG")]
+        [ExifTagDescription(16UL, "Baseline JPEG")]
+        [ExifTagDescription(32UL, "JBIG color")]
         CodingMethods = 0x0193,
 
         /// <summary>

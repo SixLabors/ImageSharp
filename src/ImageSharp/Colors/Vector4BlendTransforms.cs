@@ -15,11 +15,6 @@ namespace ImageSharp
     public class Vector4BlendTransforms
     {
         /// <summary>
-        /// The epsilon for comparing floating point numbers.
-        /// </summary>
-        private const float Epsilon = 0.0001F;
-
-        /// <summary>
         /// The blending formula simply selects the source vector.
         /// </summary>
         /// <param name="backdrop">The backdrop vector.</param>
@@ -203,13 +198,13 @@ namespace ImageSharp
             amount = amount.Clamp(0, 1);
 
             // Santize on zero alpha
-            if (Math.Abs(backdrop.W) < Epsilon)
+            if (Math.Abs(backdrop.W) < Constants.Epsilon)
             {
                 source.W *= amount;
                 return source;
             }
 
-            if (Math.Abs(source.W) < Epsilon)
+            if (Math.Abs(source.W) < Constants.Epsilon)
             {
                 return backdrop;
             }
@@ -266,7 +261,7 @@ namespace ImageSharp
         /// </returns>
         private static float BlendDodge(float b, float s)
         {
-            return Math.Abs(s - 1F) < Epsilon ? s : Math.Min(b / (1F - s), 1F);
+            return Math.Abs(s - 1F) < Constants.Epsilon ? s : Math.Min(b / (1F - s), 1F);
         }
 
         /// <summary>
@@ -279,7 +274,7 @@ namespace ImageSharp
         /// </returns>
         private static float BlendBurn(float b, float s)
         {
-            return Math.Abs(s) < Epsilon ? s : Math.Max(1F - ((1F - b) / s), 0F);
+            return Math.Abs(s) < Constants.Epsilon ? s : Math.Max(1F - ((1F - b) / s), 0F);
         }
 
         /// <summary>

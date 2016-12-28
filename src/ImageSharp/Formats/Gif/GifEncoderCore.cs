@@ -129,10 +129,10 @@ namespace ImageSharp.Formats
             bool hasEmpty = false;
 
             // Some images may have more than one quantized pixel returned with an alpha value of zero
-            // (No idea why?!) so we should always ignore if we have empty pixels present.
+            // so we should always ignore if we have empty pixels present.
             for (int i = 0; i < quantized.Palette.Length; i++)
             {
-                quantized.Palette[i].ToBytes(this.buffer, 0, ComponentOrder.XYZW);
+                quantized.Palette[i].ToXyzwBytes(this.buffer, 0);
 
                 if (!hasEmpty)
                 {
@@ -282,6 +282,7 @@ namespace ImageSharp.Formats
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             writer.Write(GifConstants.ImageDescriptorLabel); // 2c
+
             // TODO: Can we capture this?
             writer.Write((ushort)0); // Left position
             writer.Write((ushort)0); // Top position
@@ -318,7 +319,7 @@ namespace ImageSharp.Formats
                 for (int i = 0; i < pixelCount; i++)
                 {
                     int offset = i * 3;
-                    image.Palette[i].ToBytes(this.buffer, 0, ComponentOrder.XYZ);
+                    image.Palette[i].ToXyzBytes(this.buffer, 0);
                     colorTable[offset] = this.buffer[0];
                     colorTable[offset + 1] = this.buffer[1];
                     colorTable[offset + 2] = this.buffer[2];

@@ -11,19 +11,20 @@ namespace ImageSharp.Formats
     using System.Runtime.CompilerServices;
 
     using ImageSharp.Formats.Jpg;
+    using ImageSharp.Formats.Jpg.Components;
 
     /// <summary>
-    ///     Image encoder for writing an image to a stream as a jpeg.
+    /// Image encoder for writing an image to a stream as a jpeg.
     /// </summary>
     internal unsafe class JpegEncoderCore
     {
         /// <summary>
-        ///     The number of quantization tables.
+        /// The number of quantization tables.
         /// </summary>
         private const int QuantizationTableCount = 2;
 
         /// <summary>
-        ///     Counts the number of bits needed to hold an integer.
+        /// Counts the number of bits needed to hold an integer.
         /// </summary>
         private static readonly uint[] BitCountLut =
             {
@@ -43,15 +44,15 @@ namespace ImageSharp.Formats
             };
 
         /// <summary>
-        ///     The SOS (Start Of Scan) marker "\xff\xda" followed by 12 bytes:
-        ///     - the marker length "\x00\x0c",
-        ///     - the number of components "\x03",
-        ///     - component 1 uses DC table 0 and AC table 0 "\x01\x00",
-        ///     - component 2 uses DC table 1 and AC table 1 "\x02\x11",
-        ///     - component 3 uses DC table 1 and AC table 1 "\x03\x11",
-        ///     - the bytes "\x00\x3f\x00". Section B.2.3 of the spec says that for
-        ///     sequential DCTs, those bytes (8-bit Ss, 8-bit Se, 4-bit Ah, 4-bit Al)
-        ///     should be 0x00, 0x3f, 0x00&lt;&lt;4 | 0x00.
+        /// The SOS (Start Of Scan) marker "\xff\xda" followed by 12 bytes:
+        /// - the marker length "\x00\x0c",
+        /// - the number of components "\x03",
+        /// - component 1 uses DC table 0 and AC table 0 "\x01\x00",
+        /// - component 2 uses DC table 1 and AC table 1 "\x02\x11",
+        /// - component 3 uses DC table 1 and AC table 1 "\x03\x11",
+        /// - the bytes "\x00\x3f\x00". Section B.2.3 of the spec says that for
+        /// sequential DCTs, those bytes (8-bit Ss, 8-bit Se, 4-bit Ah, 4-bit Al)
+        /// should be 0x00, 0x3f, 0x00&lt;&lt;4 | 0x00.
         /// </summary>
         private static readonly byte[] SosHeaderYCbCr =
             {
@@ -76,10 +77,10 @@ namespace ImageSharp.Formats
             };
 
         /// <summary>
-        ///     The unscaled quantization tables in zig-zag order. Each
-        ///     encoder copies and scales the tables according to its quality parameter.
-        ///     The values are derived from section K.1 after converting from natural to
-        ///     zig-zag order.
+        /// The unscaled quantization tables in zig-zag order. Each
+        /// encoder copies and scales the tables according to its quality parameter.
+        /// The values are derived from section K.1 after converting from natural to
+        /// zig-zag order.
         /// </summary>
         private static readonly byte[,] UnscaledQuant =
             {
@@ -102,69 +103,59 @@ namespace ImageSharp.Formats
             };
 
         /// <summary>
-        ///     A scratch buffer to reduce allocations.
+        /// A scratch buffer to reduce allocations.
         /// </summary>
         private readonly byte[] buffer = new byte[16];
 
         /// <summary>
-        ///     A buffer for reducing the number of stream writes when emitting Huffman tables. 64 seems to be enough.
+        /// A buffer for reducing the number of stream writes when emitting Huffman tables. 64 seems to be enough.
         /// </summary>
         private readonly byte[] emitBuffer = new byte[64];
 
         /// <summary>
-        ///     A buffer for reducing the number of stream writes when emitting Huffman tables. Max combined table lengths +
-        ///     identifier.
+        /// A buffer for reducing the number of stream writes when emitting Huffman tables. Max combined table lengths +
+        /// identifier.
         /// </summary>
         private readonly byte[] huffmanBuffer = new byte[179];
 
         /// <summary>
-        ///     The accumulated bits to write to the stream.
+        /// The accumulated bits to write to the stream.
         /// </summary>
         private uint accumulatedBits;
 
         /// <summary>
-        ///     The accumulated bit count.
+        /// The accumulated bit count.
         /// </summary>
         private uint bitCount;
 
         /// <summary>
-        ///     The scaled chrominance table, in zig-zag order.
+        /// The scaled chrominance table, in zig-zag order.
         /// </summary>
         private Block8x8F chrominanceQuantTable;
 
         /// <summary>
-        ///     The scaled luminance table, in zig-zag order.
+        /// The scaled luminance table, in zig-zag order.
         /// </summary>
         private Block8x8F luminanceQuantTable;
 
         /// <summary>
-        ///     The output stream. All attempted writes after the first error become no-ops.
+        /// The output stream. All attempted writes after the first error become no-ops.
         /// </summary>
         private Stream outputStream;
 
         /// <summary>
-        ///     The subsampling method to use.
+        /// The subsampling method to use.
         /// </summary>
         private JpegSubsample subsample;
 
         /// <summary>
         /// Encode writes the image to the jpeg baseline format with the given options.
         /// </summary>
-        /// <typeparam name="TColor">
-        /// The pixel format.
-        /// </typeparam>
-        /// <param name="image">
-        /// The image to write from.
-        /// </param>
-        /// <param name="stream">
-        /// The stream to write to.
-        /// </param>
-        /// <param name="quality">
-        /// The quality.
-        /// </param>
-        /// <param name="sample">
-        /// The subsampling mode.
-        /// </param>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <param name="image">The image to write from.</param>
+        /// <param name="stream">The stream to write to.</param>
+        /// <param name="quality">The quality.</param>
+        /// <param name="sample">The subsampling mode.</param>
         public void Encode<TColor>(Image<TColor> image, Stream stream, int quality, JpegSubsample sample)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
@@ -258,30 +249,14 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Converts the 8x8 region of the image whose top-left corner is x,y to its YCbCr values.
         /// </summary>
-        /// <typeparam name="TColor">
-        /// The pixel format.
-        /// </typeparam>
-        /// <param name="pixels">
-        /// The pixel accessor.
-        /// </param>
-        /// <param name="x">
-        /// The x-position within the image.
-        /// </param>
-        /// <param name="y">
-        /// The y-position within the image.
-        /// </param>
-        /// <param name="yBlock">
-        /// The luminance block.
-        /// </param>
-        /// <param name="cbBlock">
-        /// The red chroma block.
-        /// </param>
-        /// <param name="crBlock">
-        /// The blue chroma block.
-        /// </param>
-        /// <param name="rgbBytes">
-        /// Temporal <see cref="PixelArea{TColor}"/> provided by the caller
-        /// </param>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <param name="pixels">The pixel accessor.</param>
+        /// <param name="x">The x-position within the image.</param>
+        /// <param name="y">The y-position within the image.</param>
+        /// <param name="yBlock">The luminance block.</param>
+        /// <param name="cbBlock">The red chroma block.</param>
+        /// <param name="crBlock">The blue chroma block.</param>
+        /// <param name="rgbBytes">Temporal <see cref="PixelArea{TColor}"/> provided by the caller</param>
         private static void ToYCbCr<TColor>(
             PixelAccessor<TColor> pixels,
             int x,
@@ -326,18 +301,14 @@ namespace ImageSharp.Formats
 
         /// <summary>
         /// Emits the least significant count of bits of bits to the bit-stream.
-        ///     The precondition is bits
-        ///     <example>
+        /// The precondition is bits
+        /// <example>
         /// &lt; 1&lt;&lt;nBits &amp;&amp; nBits &lt;= 16
         /// </example>
         /// .
         /// </summary>
-        /// <param name="bits">
-        /// The packed bits.
-        /// </param>
-        /// <param name="count">
-        /// The number of bits
-        /// </param>
+        /// <param name="bits">The packed bits.</param>
+        /// <param name="count">The number of bits</param>
         private void Emit(uint bits, uint count)
         {
             count += this.bitCount;
@@ -375,12 +346,8 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Emits the given value with the given Huffman encoder.
         /// </summary>
-        /// <param name="index">
-        /// The index of the Huffman encoder
-        /// </param>
-        /// <param name="value">
-        /// The value to encode.
-        /// </param>
+        /// <param name="index">The index of the Huffman encoder</param>
+        /// <param name="value">The value to encode.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void EmitHuff(HuffIndex index, int value)
         {
@@ -391,15 +358,9 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Emits a run of runLength copies of value encoded with the given Huffman encoder.
         /// </summary>
-        /// <param name="index">
-        /// The index of the Huffman encoder
-        /// </param>
-        /// <param name="runLength">
-        /// The number of copies to encode.
-        /// </param>
-        /// <param name="value">
-        /// The value to encode.
-        /// </param>
+        /// <param name="index">The index of the Huffman encoder</param>
+        /// <param name="runLength">The number of copies to encode.</param>
+        /// <param name="value">The value to encode.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void EmitHuffRLE(HuffIndex index, int runLength, int value)
         {
@@ -431,12 +392,8 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Encodes the image with no subsampling.
         /// </summary>
-        /// <typeparam name="TColor">
-        /// The pixel format.
-        /// </typeparam>
-        /// <param name="pixels">
-        /// The pixel accessor providing access to the image pixels.
-        /// </param>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
         private void Encode444<TColor>(PixelAccessor<TColor> pixels)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
@@ -496,12 +453,8 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Writes the application header containing the JFIF identifier plus extra data.
         /// </summary>
-        /// <param name="horizontalResolution">
-        /// The resolution of the image in the x- direction.
-        /// </param>
-        /// <param name="verticalResolution">
-        /// The resolution of the image in the y- direction.
-        /// </param>
+        /// <param name="horizontalResolution">The resolution of the image in the x- direction.</param>
+        /// <param name="verticalResolution">The resolution of the image in the y- direction.</param>
         private void WriteApplicationHeader(short horizontalResolution, short verticalResolution)
         {
             // Write the start of image marker. Markers are always prefixed with with 0xff.
@@ -539,30 +492,16 @@ namespace ImageSharp.Formats
 
         /// <summary>
         /// Writes a block of pixel data using the given quantization table,
-        ///     returning the post-quantized DC value of the DCT-transformed block.
-        ///     The block is in natural (not zig-zag) order.
+        /// returning the post-quantized DC value of the DCT-transformed block.
+        /// The block is in natural (not zig-zag) order.
         /// </summary>
-        /// <param name="index">
-        /// The quantization table index.
-        /// </param>
-        /// <param name="prevDC">
-        /// The previous DC value.
-        /// </param>
-        /// <param name="src">
-        /// Source block
-        /// </param>
-        /// <param name="tempDest">
-        /// Temporal block to be used as FDCT Destination
-        /// </param>
-        /// <param name="temp2">
-        /// Temporal block 2
-        /// </param>
-        /// <param name="quant">
-        /// Quantization table
-        /// </param>
-        /// <param name="unzigPtr">
-        /// The 8x8 Unzig block ptr
-        /// </param>
+        /// <param name="index">The quantization table index.</param>
+        /// <param name="prevDC">The previous DC value.</param>
+        /// <param name="src">Source block</param>
+        /// <param name="tempDest">Temporal block to be used as FDCT Destination</param>
+        /// <param name="temp2">Temporal block 2</param>
+        /// <param name="quant">Quantization table</param>
+        /// <param name="unzigPtr">The 8x8 Unzig block ptr</param>
         /// <returns>
         /// The <see cref="int"/>
         /// </returns>
@@ -622,9 +561,7 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Writes the Define Huffman Table marker and tables.
         /// </summary>
-        /// <param name="componentCount">
-        /// The number of components to write.
-        /// </param>
+        /// <param name="componentCount">The number of components to write.</param>
         private void WriteDefineHuffmanTables(int componentCount)
         {
             // Table identifiers.
@@ -671,7 +608,7 @@ namespace ImageSharp.Formats
         }
 
         /// <summary>
-        ///     Writes the Define Quantization Marker and tables.
+        /// Writes the Define Quantization Marker and tables.
         /// </summary>
         private void WriteDefineQuantizationTables()
         {
@@ -695,9 +632,7 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Writes the EXIF profile.
         /// </summary>
-        /// <param name="exifProfile">
-        /// The exif profile.
-        /// </param>
+        /// <param name="exifProfile">The exif profile.</param>
         /// <exception cref="ImageFormatException">
         /// Thrown if the EXIF profile size exceeds the limit
         /// </exception>
@@ -729,12 +664,8 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Writes the metadata profiles to the image.
         /// </summary>
-        /// <param name="image">
-        /// The image.
-        /// </param>
-        /// <typeparam name="TColor">
-        /// The pixel format.
-        /// </typeparam>
+        /// <param name="image">The image.</param>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
         private void WriteProfiles<TColor>(Image<TColor> image)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
@@ -744,15 +675,9 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Writes the Start Of Frame (Baseline) marker
         /// </summary>
-        /// <param name="width">
-        /// The width of the image
-        /// </param>
-        /// <param name="height">
-        /// The height of the image
-        /// </param>
-        /// <param name="componentCount">
-        /// The number of components in a pixel
-        /// </param>
+        /// <param name="width">The width of the image</param>
+        /// <param name="height">The height of the image</param>
+        /// <param name="componentCount">The number of components in a pixel</param>
         private void WriteStartOfFrame(int width, int height, int componentCount)
         {
             // "default" to 4:2:0
@@ -806,12 +731,8 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Writes the StartOfScan marker.
         /// </summary>
-        /// <typeparam name="TColor">
-        /// The pixel format.
-        /// </typeparam>
-        /// <param name="pixels">
-        /// The pixel accessor providing access to the image pixels.
-        /// </param>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
         private void WriteStartOfScan<TColor>(PixelAccessor<TColor> pixels)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
@@ -833,28 +754,12 @@ namespace ImageSharp.Formats
             this.Emit(0x7f, 7);
         }
 
-#pragma warning disable SA1201 // MethodShouldNotFollowAStruct
-
-        /// <summary>
-        ///     Poor man's stackalloc for Encode420.
-        ///     This struct belongs to Encode420. Much easeier to understand code if they are close to each other. Why should I
-        ///     move it Up? :P
-        /// </summary>
-        private struct BlockQuad
-        {
-            public fixed float Data[4 * Block8x8F.ScalarCount];
-        }
-
         /// <summary>
         /// Encodes the image with subsampling. The Cb and Cr components are each subsampled
-        ///     at a factor of 2 both horizontally and vertically.
+        /// at a factor of 2 both horizontally and vertically.
         /// </summary>
-        /// <typeparam name="TColor">
-        /// The pixel format.
-        /// </typeparam>
-        /// <param name="pixels">
-        /// The pixel accessor providing access to the image pixels.
-        /// </param>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
         private void Encode420<TColor>(PixelAccessor<TColor> pixels)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
@@ -923,17 +828,11 @@ namespace ImageSharp.Formats
             }
         }
 
-#pragma warning restore SA1201
-
         /// <summary>
         /// Writes the header for a marker with the given length.
         /// </summary>
-        /// <param name="marker">
-        /// The marker to write.
-        /// </param>
-        /// <param name="length">
-        /// The marker length.
-        /// </param>
+        /// <param name="marker">The marker to write.</param>
+        /// <param name="length">The marker length.</param>
         private void WriteMarkerHeader(byte marker, int length)
         {
             // Markers are always prefixed with with 0xff.

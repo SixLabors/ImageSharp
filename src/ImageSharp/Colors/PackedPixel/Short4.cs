@@ -112,7 +112,7 @@ namespace ImageSharp
         }
 
         /// <inheritdoc />
-        public void ToBytes(byte[] bytes, int startIndex, ComponentOrder componentOrder)
+        public void ToXyzBytes(byte[] bytes, int startIndex)
         {
             Vector4 vector = this.ToVector4();
             vector /= 65534;
@@ -121,50 +121,65 @@ namespace ImageSharp
             vector += Round;
             vector = Vector4.Clamp(vector, Vector4.Zero, MaxBytes);
 
-            switch (componentOrder)
-            {
-                case ComponentOrder.ZYX:
-                    bytes[startIndex] = (byte)(float)Math.Round(vector.Z);
-                    bytes[startIndex + 1] = (byte)(float)Math.Round(vector.Y);
-                    bytes[startIndex + 2] = (byte)(float)Math.Round(vector.X);
-                    break;
-                case ComponentOrder.ZYXW:
-                    bytes[startIndex] = (byte)(float)Math.Round(vector.Z);
-                    bytes[startIndex + 1] = (byte)(float)Math.Round(vector.Y);
-                    bytes[startIndex + 2] = (byte)(float)Math.Round(vector.X);
-                    bytes[startIndex + 3] = (byte)(float)Math.Round(vector.W);
-                    break;
-                case ComponentOrder.XYZ:
-                    bytes[startIndex] = (byte)(float)Math.Round(vector.X);
-                    bytes[startIndex + 1] = (byte)(float)Math.Round(vector.Y);
-                    bytes[startIndex + 2] = (byte)(float)Math.Round(vector.Z);
-                    break;
-                case ComponentOrder.XYZW:
-                    bytes[startIndex] = (byte)(float)Math.Round(vector.X);
-                    bytes[startIndex + 1] = (byte)(float)Math.Round(vector.Y);
-                    bytes[startIndex + 2] = (byte)(float)Math.Round(vector.Z);
-                    bytes[startIndex + 3] = (byte)(float)Math.Round(vector.W);
-                    break;
-                default:
-                    throw new NotSupportedException();
-            }
+            bytes[startIndex] = (byte)(float)Math.Round(vector.X);
+            bytes[startIndex + 1] = (byte)(float)Math.Round(vector.Y);
+            bytes[startIndex + 2] = (byte)(float)Math.Round(vector.Z);
         }
 
-        /// <summary>
-        /// Returns a value that indicates whether the current instance is equal to a specified object.
-        /// </summary>
-        /// <param name="obj">The object with which to make the comparison.</param>
-        /// <returns>true if the current instance is equal to the specified object; false otherwise.</returns>
+        /// <inheritdoc />
+        public void ToXyzwBytes(byte[] bytes, int startIndex)
+        {
+            Vector4 vector = this.ToVector4();
+            vector /= 65534;
+            vector *= 255;
+            vector += Half;
+            vector += Round;
+            vector = Vector4.Clamp(vector, Vector4.Zero, MaxBytes);
+
+            bytes[startIndex] = (byte)(float)Math.Round(vector.X);
+            bytes[startIndex + 1] = (byte)(float)Math.Round(vector.Y);
+            bytes[startIndex + 2] = (byte)(float)Math.Round(vector.Z);
+            bytes[startIndex + 3] = (byte)(float)Math.Round(vector.W);
+        }
+
+        /// <inheritdoc />
+        public void ToZyxBytes(byte[] bytes, int startIndex)
+        {
+            Vector4 vector = this.ToVector4();
+            vector /= 65534;
+            vector *= 255;
+            vector += Half;
+            vector += Round;
+            vector = Vector4.Clamp(vector, Vector4.Zero, MaxBytes);
+
+            bytes[startIndex] = (byte)(float)Math.Round(vector.Z);
+            bytes[startIndex + 1] = (byte)(float)Math.Round(vector.Y);
+            bytes[startIndex + 2] = (byte)(float)Math.Round(vector.X);
+        }
+
+        /// <inheritdoc />
+        public void ToZyxwBytes(byte[] bytes, int startIndex)
+        {
+            Vector4 vector = this.ToVector4();
+            vector /= 65534;
+            vector *= 255;
+            vector += Half;
+            vector += Round;
+            vector = Vector4.Clamp(vector, Vector4.Zero, MaxBytes);
+
+            bytes[startIndex] = (byte)(float)Math.Round(vector.Z);
+            bytes[startIndex + 1] = (byte)(float)Math.Round(vector.Y);
+            bytes[startIndex + 2] = (byte)(float)Math.Round(vector.X);
+            bytes[startIndex + 3] = (byte)(float)Math.Round(vector.W);
+        }
+
+        /// <inheritdoc />
         public override bool Equals(object obj)
         {
             return (obj is Short4) && this == (Short4)obj;
         }
 
-        /// <summary>
-        /// Returns a value that indicates whether the current instance is equal to a specified object.
-        /// </summary>
-        /// <param name="other">The object with which to make the comparison.</param>
-        /// <returns>true if the current instance is equal to the specified object; false otherwise.</returns>
+        /// <inheritdoc />
         public bool Equals(Short4 other)
         {
             return this == other;

@@ -145,35 +145,7 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Copies a block of pixels at the specified position.
-        /// </summary>
-        /// <param name="sourceX">The x-coordinate of the source image.</param>
-        /// <param name="sourceY">The y-coordinate of the source image.</param>
-        /// <param name="target">The target pixel buffer accessor.</param>
-        /// <param name="targetX">The x-coordinate of the target image.</param>
-        /// <param name="targetY">The y-coordinate of the target image.</param>
-        /// <param name="pixelCount">The number of pixels to copy</param>
-        public void CopyBlock(int sourceX, int sourceY, PixelAccessor<TColor> target, int targetX, int targetY, int pixelCount)
-        {
-            int size = Unsafe.SizeOf<TColor>();
-            byte* sourcePtr = this.pixelsBase + (((sourceY * this.Width) + sourceX) * size);
-            byte* targetPtr = target.pixelsBase + (((targetY * target.Width) + targetX) * size);
-            uint byteCount = (uint)(pixelCount * size);
-
-            Unsafe.CopyBlock(targetPtr, sourcePtr, byteCount);
-        }
-
-        /// <summary>
-        /// Copies an entire image.
-        /// </summary>
-        /// <param name="target">The target pixel buffer accessor.</param>
-        public void CopyImage(PixelAccessor<TColor> target)
-        {
-            this.CopyBlock(0, 0, target, 0, 0, target.Width * target.Height);
-        }
-
-        /// <summary>
-        /// Copied a row of pixels from the image.
+        /// Copy an area of pixels to the image.
         /// </summary>
         /// <param name="area">The area.</param>
         /// <param name="targetY">The target row index.</param>
@@ -183,31 +155,13 @@ namespace ImageSharp
         /// </exception>
         public void CopyFrom(PixelArea<TColor> area, int targetY, int targetX = 0)
         {
-            int width = Math.Min(area.Width, this.Width - targetX);
-            int height = Math.Min(area.Height, this.Height - targetY);
+            this.CheckCoordinates(area, targetX, targetY);
 
-            this.CheckDimensions(width, height);
-            switch (area.ComponentOrder)
-            {
-                case ComponentOrder.ZYX:
-                    this.CopyFromZYX(area, targetY, targetX, width, height);
-                    break;
-                case ComponentOrder.ZYXW:
-                    this.CopyFromZYXW(area, targetY, targetX, width, height);
-                    break;
-                case ComponentOrder.XYZ:
-                    this.CopyFromXYZ(area, targetY, targetX, width, height);
-                    break;
-                case ComponentOrder.XYZW:
-                    this.CopyFromXYZW(area, targetY, targetX, width, height);
-                    break;
-                default:
-                    throw new NotSupportedException();
-            }
+            this.CopyFrom(area, targetX, targetY, area.Width, area.Height);
         }
 
         /// <summary>
-        /// Copied an area of pixels to the image.
+        /// Copy pixels from the image to an area of pixels.
         /// </summary>
         /// <param name="area">The area.</param>
         /// <param name="sourceY">The source row index.</param>
@@ -217,27 +171,36 @@ namespace ImageSharp
         /// </exception>
         public void CopyTo(PixelArea<TColor> area, int sourceY, int sourceX = 0)
         {
-            int width = Math.Min(area.Width, this.Width - sourceX);
-            int height = Math.Min(area.Height, this.Height - sourceY);
+            this.CheckCoordinates(area, sourceX, sourceY);
 
-            this.CheckDimensions(width, height);
-            switch (area.ComponentOrder)
+            this.CopyTo(area, sourceX, sourceY, area.Width, area.Height);
+        }
+
+        /// <summary>
+        /// Copy pixels from the image to an area of pixels. This method will make sure that the pixels
+        /// that are copied are within the bounds of the image.
+        /// </summary>
+        /// <param name="area">The area.</param>
+        /// <param name="sourceY">The source row index.</param>
+        /// <param name="sourceX">The source column index.</param>
+        /// <exception cref="NotSupportedException">
+        /// Thrown when an unsupported component order value is passed.
+        /// </exception>
+        public void SafeCopyTo(PixelArea<TColor> area, int sourceY, int sourceX = 0)
+        {
+            int width = Math.Min(area.Width, this.Width - sourceX);
+            if (width < 1)
             {
-                case ComponentOrder.ZYX:
-                    this.CopyToZYX(area, sourceY, sourceX, width, height);
-                    break;
-                case ComponentOrder.ZYXW:
-                    this.CopyToZYXW(area, sourceY, sourceX, width, height);
-                    break;
-                case ComponentOrder.XYZ:
-                    this.CopyToXYZ(area, sourceY, sourceX, width, height);
-                    break;
-                case ComponentOrder.XYZW:
-                    this.CopyToXYZW(area, sourceY, sourceX, width, height);
-                    break;
-                default:
-                    throw new NotSupportedException();
+                return;
             }
+
+            int height = Math.Min(area.Height, this.Height - sourceY);
+            if (height < 1)
+            {
+                return;
+            }
+
+            this.CopyTo(area, sourceX, sourceY, width, height);
         }
 
         /// <summary>
@@ -270,6 +233,17 @@ namespace ImageSharp
         }
 
         /// <summary>
+        /// Copies the pixels to another <see cref="PixelAccessor{TColor}"/> of the same size.
+        /// </summary>
+        /// <param name="target">The target pixel buffer accessor.</param>
+        internal void CopyTo(PixelAccessor<TColor> target)
+        {
+            uint byteCount = (uint)(this.Width * this.Height * Unsafe.SizeOf<TColor>());
+
+            Unsafe.CopyBlock(target.pixelsBase, this.pixelsBase, byteCount);
+        }
+
+        /// <summary>
         /// Resets all the pixels to it's initial value.
         /// </summary>
         internal void Reset()
@@ -278,21 +252,21 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Copies from an area in <see cref="ComponentOrder.ZYX"/> format.
+        /// Copies from an area in <see cref="ComponentOrder.Zyx"/> format.
         /// </summary>
         /// <param name="area">The area.</param>
-        /// <param name="targetY">The target row index.</param>
         /// <param name="targetX">The target column index.</param>
+        /// <param name="targetY">The target row index.</param>
         /// <param name="width">The width.</param>
         /// <param name="height">The height.</param>
-        protected virtual void CopyFromZYX(PixelArea<TColor> area, int targetY, int targetX, int width, int height)
+        protected virtual void CopyFromZyx(PixelArea<TColor> area, int targetX, int targetY, int width, int height)
         {
             TColor packed = default(TColor);
             int size = Unsafe.SizeOf<TColor>();
 
             for (int y = 0; y < height; y++)
             {
-                byte* source = area.PixelBase + (y * area.RowByteCount);
+                byte* source = area.PixelBase + (y * area.RowStride);
                 byte* destination = this.GetRowPointer(targetX, targetY + y);
 
                 for (int x = 0; x < width; x++)
@@ -307,21 +281,21 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Copies from an area in <see cref="ComponentOrder.ZYXW"/> format.
+        /// Copies from an area in <see cref="ComponentOrder.Zyxw"/> format.
         /// </summary>
         /// <param name="area">The area.</param>
-        /// <param name="targetY">The target row index.</param>
         /// <param name="targetX">The target column index.</param>
+        /// <param name="targetY">The target row index.</param>
         /// <param name="width">The width.</param>
         /// <param name="height">The height.</param>
-        protected virtual void CopyFromZYXW(PixelArea<TColor> area, int targetY, int targetX, int width, int height)
+        protected virtual void CopyFromZyxw(PixelArea<TColor> area, int targetX, int targetY, int width, int height)
         {
             TColor packed = default(TColor);
             int size = Unsafe.SizeOf<TColor>();
 
             for (int y = 0; y < height; y++)
             {
-                byte* source = area.PixelBase + (y * area.RowByteCount);
+                byte* source = area.PixelBase + (y * area.RowStride);
                 byte* destination = this.GetRowPointer(targetX, targetY + y);
 
                 for (int x = 0; x < width; x++)
@@ -336,21 +310,21 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Copies from an area in <see cref="ComponentOrder.XYZ"/> format.
+        /// Copies from an area in <see cref="ComponentOrder.Xyz"/> format.
         /// </summary>
         /// <param name="area">The area.</param>
-        /// <param name="targetY">The target row index.</param>
         /// <param name="targetX">The target column index.</param>
+        /// <param name="targetY">The target row index.</param>
         /// <param name="width">The width.</param>
         /// <param name="height">The height.</param>
-        protected virtual void CopyFromXYZ(PixelArea<TColor> area, int targetY, int targetX, int width, int height)
+        protected virtual void CopyFromXyz(PixelArea<TColor> area, int targetX, int targetY, int width, int height)
         {
             TColor packed = default(TColor);
             int size = Unsafe.SizeOf<TColor>();
 
             for (int y = 0; y < height; y++)
             {
-                byte* source = area.PixelBase + (y * area.RowByteCount);
+                byte* source = area.PixelBase + (y * area.RowStride);
                 byte* destination = this.GetRowPointer(targetX, targetY + y);
 
                 for (int x = 0; x < width; x++)
@@ -365,21 +339,21 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Copies from an area in <see cref="ComponentOrder.XYZW"/> format.
+        /// Copies from an area in <see cref="ComponentOrder.Xyzw"/> format.
         /// </summary>
         /// <param name="area">The area.</param>
-        /// <param name="targetY">The target row index.</param>
         /// <param name="targetX">The target column index.</param>
+        /// <param name="targetY">The target row index.</param>
         /// <param name="width">The width.</param>
         /// <param name="height">The height.</param>
-        protected virtual void CopyFromXYZW(PixelArea<TColor> area, int targetY, int targetX, int width, int height)
+        protected virtual void CopyFromXyzw(PixelArea<TColor> area, int targetX, int targetY, int width, int height)
         {
             TColor packed = default(TColor);
             int size = Unsafe.SizeOf<TColor>();
 
             for (int y = 0; y < height; y++)
             {
-                byte* source = area.PixelBase + (y * area.RowByteCount);
+                byte* source = area.PixelBase + (y * area.RowStride);
                 byte* destination = this.GetRowPointer(targetX, targetY + y);
 
                 for (int x = 0; x < width; x++)
@@ -394,84 +368,84 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Copies to an area in <see cref="ComponentOrder.ZYX"/> format.
+        /// Copies to an area in <see cref="ComponentOrder.Zyx"/> format.
         /// </summary>
         /// <param name="area">The row.</param>
-        /// <param name="sourceY">The source row index.</param>
         /// <param name="sourceX">The source column index.</param>
+        /// <param name="sourceY">The source row index.</param>
         /// <param name="width">The width.</param>
         /// <param name="height">The height.</param>
-        protected virtual void CopyToZYX(PixelArea<TColor> area, int sourceY, int sourceX, int width, int height)
+        protected virtual void CopyToZyx(PixelArea<TColor> area, int sourceX, int sourceY, int width, int height)
         {
             for (int y = 0; y < height; y++)
             {
-                int offset = y * area.RowByteCount;
+                int offset = y * area.RowStride;
                 for (int x = 0; x < width; x++)
                 {
-                    this[sourceX + x, sourceY + y].ToBytes(area.Bytes, offset, ComponentOrder.ZYX);
+                    this[sourceX + x, sourceY + y].ToZyxBytes(area.Bytes, offset);
                     offset += 3;
                 }
             }
         }
 
         /// <summary>
-        /// Copies to an area in <see cref="ComponentOrder.ZYXW"/> format.
+        /// Copies to an area in <see cref="ComponentOrder.Zyxw"/> format.
         /// </summary>
         /// <param name="area">The row.</param>
-        /// <param name="sourceY">The source row index.</param>
         /// <param name="sourceX">The source column index.</param>
+        /// <param name="sourceY">The source row index.</param>
         /// <param name="width">The width.</param>
         /// <param name="height">The height.</param>
-        protected virtual void CopyToZYXW(PixelArea<TColor> area, int sourceY, int sourceX, int width, int height)
+        protected virtual void CopyToZyxw(PixelArea<TColor> area, int sourceX, int sourceY, int width, int height)
         {
             for (int y = 0; y < height; y++)
             {
-                int offset = y * area.RowByteCount;
+                int offset = y * area.RowStride;
                 for (int x = 0; x < width; x++)
                 {
-                    this[sourceX + x, sourceY + y].ToBytes(area.Bytes, offset, ComponentOrder.ZYXW);
+                    this[sourceX + x, sourceY + y].ToZyxwBytes(area.Bytes, offset);
                     offset += 4;
                 }
             }
         }
 
         /// <summary>
-        /// Copies to an area in <see cref="ComponentOrder.XYZ"/> format.
+        /// Copies to an area in <see cref="ComponentOrder.Xyz"/> format.
         /// </summary>
         /// <param name="area">The row.</param>
-        /// <param name="sourceY">The source row index.</param>
         /// <param name="sourceX">The source column index.</param>
+        /// <param name="sourceY">The source row index.</param>
         /// <param name="width">The width.</param>
         /// <param name="height">The height.</param>
-        protected virtual void CopyToXYZ(PixelArea<TColor> area, int sourceY, int sourceX, int width, int height)
+        protected virtual void CopyToXyz(PixelArea<TColor> area, int sourceX, int sourceY, int width, int height)
         {
             for (int y = 0; y < height; y++)
             {
-                int offset = y * area.RowByteCount;
+                int offset = y * area.RowStride;
                 for (int x = 0; x < width; x++)
                 {
-                    this[sourceX + x, sourceY + y].ToBytes(area.Bytes, offset, ComponentOrder.XYZ);
+                    this[sourceX + x, sourceY + y].ToXyzBytes(area.Bytes, offset);
                     offset += 3;
                 }
             }
         }
 
         /// <summary>
-        /// Copies to an area in <see cref="ComponentOrder.XYZW"/> format.
+        /// Copies to an area in <see cref="ComponentOrder.Xyzw"/> format.
         /// </summary>
         /// <param name="area">The row.</param>
-        /// <param name="sourceY">The source row index.</param>
         /// <param name="sourceX">The source column index.</param>
+        /// <param name="sourceY">The source row index.</param>
         /// <param name="width">The width.</param>
         /// <param name="height">The height.</param>
-        protected virtual void CopyToXYZW(PixelArea<TColor> area, int sourceY, int sourceX, int width, int height)
+        protected virtual void CopyToXyzw(PixelArea<TColor> area, int sourceX, int sourceY, int width, int height)
         {
             for (int y = 0; y < height; y++)
             {
-                int offset = y * area.RowByteCount;
+                int offset = y * area.RowStride;
                 for (int x = 0; x < width; x++)
                 {
-                    this[sourceX + x, sourceY + y].ToBytes(area.Bytes, offset, ComponentOrder.XYZW);
+                    this[sourceX + x, sourceY + y].ToXyzwBytes(area.Bytes, offset);
                     offset += 4;
                 }
             }
@@ -491,21 +465,88 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Checks that the given dimensions are within the bounds of the image.
+        /// Copy an area of pixels to the image.
         /// </summary>
-        /// <param name="width">The width.</param>
-        /// <param name="height">The height.</param>
+        /// <param name="area">The area.</param>
+        /// <param name="targetX">The target column index.</param>
+        /// <param name="targetY">The target row index.</param>
+        /// <param name="width">The width of the area to copy.</param>
+        /// <param name="height">The height of the area to copy.</param>
+        /// <exception cref="NotSupportedException">
+        /// Thrown when an unsupported component order value is passed.
+        /// </exception>
+        private void CopyFrom(PixelArea<TColor> area, int targetX, int targetY, int width, int height)
+        {
+            switch (area.ComponentOrder)
+            {
+                case ComponentOrder.Zyx:
+                    this.CopyFromZyx(area, targetX, targetY, width, height);
+                    break;
+                case ComponentOrder.Zyxw:
+                    this.CopyFromZyxw(area, targetX, targetY, width, height);
+                    break;
+                case ComponentOrder.Xyz:
+                    this.CopyFromXyz(area, targetX, targetY, width, height);
+                    break;
+                case ComponentOrder.Xyzw:
+                    this.CopyFromXyzw(area, targetX, targetY, width, height);
+                    break;
+                default:
+                    throw new NotSupportedException();
+            }
+        }
+
+        /// <summary>
+        /// Copy pixels from the image to an area of pixels.
+        /// </summary>
+        /// <param name="area">The area.</param>
+        /// <param name="sourceX">The source column index.</param>
+        /// <param name="sourceY">The source row index.</param>
+        /// <param name="width">The width of the area to copy.</param>
+        /// <param name="height">The height of the area to copy.</param>
+        /// <exception cref="NotSupportedException">
+        /// Thrown when an unsupported component order value is passed.
+        /// </exception>
+        private void CopyTo(PixelArea<TColor> area, int sourceX, int sourceY, int width, int height)
+        {
+            switch (area.ComponentOrder)
+            {
+                case ComponentOrder.Zyx:
+                    this.CopyToZyx(area, sourceX, sourceY, width, height);
+                    break;
+                case ComponentOrder.Zyxw:
+                    this.CopyToZyxw(area, sourceX, sourceY, width, height);
+                    break;
+                case ComponentOrder.Xyz:
+                    this.CopyToXyz(area, sourceX, sourceY, width, height);
+                    break;
+                case ComponentOrder.Xyzw:
+                    this.CopyToXyzw(area, sourceX, sourceY, width, height);
+                    break;
+                default:
+                    throw new NotSupportedException();
+            }
+        }
+
+        /// <summary>
+        /// Checks that the given area and offset are within the bounds of the image.
+        /// </summary>
+        /// <param name="area">The area.</param>
+        /// <param name="x">The x-coordinate of the pixel. Must be greater than zero and smaller than the width of the pixel.</param>
+        /// <param name="y">The y-coordinate of the pixel. Must be greater than zero and smaller than the width of the pixel.</param>
         /// <exception cref="ArgumentOutOfRangeException">
         /// Thrown if the dimensions are not within the bounds of the image.
         /// </exception>
         [Conditional("DEBUG")]
-        private void CheckDimensions(int width, int height)
+        private void CheckCoordinates(PixelArea<TColor> area, int x, int y)
         {
+            int width = Math.Min(area.Width, this.Width - x);
             if (width < 1)
             {
                 throw new ArgumentOutOfRangeException(nameof(width), width, $"Invalid area size specified.");
             }
 
+            int height = Math.Min(area.Height, this.Height - y);
             if (height < 1)
             {
                 throw new ArgumentOutOfRangeException(nameof(height), height, $"Invalid area size specified.");

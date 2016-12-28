@@ -74,35 +74,37 @@ namespace ImageSharp
         }
 
         /// <inheritdoc />
-        public void ToBytes(byte[] bytes, int startIndex, ComponentOrder componentOrder)
+        public void ToXyzBytes(byte[] bytes, int startIndex)
         {
-            switch (componentOrder)
-            {
-                case ComponentOrder.ZYX:
-                    bytes[startIndex] = 0;
-                    bytes[startIndex + 1] = 0;
-                    bytes[startIndex + 2] = 0;
-                    break;
-                case ComponentOrder.ZYXW:
-                    bytes[startIndex] = 0;
-                    bytes[startIndex + 1] = 0;
-                    bytes[startIndex + 2] = 0;
-                    bytes[startIndex + 3] = this.PackedValue;
-                    break;
-                case ComponentOrder.XYZ:
-                    bytes[startIndex] = 0;
-                    bytes[startIndex + 1] = 0;
-                    bytes[startIndex + 2] = 0;
-                    break;
-                case ComponentOrder.XYZW:
-                    bytes[startIndex] = 0;
-                    bytes[startIndex + 1] = 0;
-                    bytes[startIndex + 2] = 0;
-                    bytes[startIndex + 3] = this.PackedValue;
-                    break;
-                default:
-                    throw new NotSupportedException();
-            }
+            bytes[startIndex] = 0;
+            bytes[startIndex + 1] = 0;
+            bytes[startIndex + 2] = 0;
+        }
+
+        /// <inheritdoc />
+        public void ToXyzwBytes(byte[] bytes, int startIndex)
+        {
+            bytes[startIndex] = 0;
+            bytes[startIndex + 1] = 0;
+            bytes[startIndex + 2] = 0;
+            bytes[startIndex + 3] = this.PackedValue;
+        }
+
+        /// <inheritdoc />
+        public void ToZyxBytes(byte[] bytes, int startIndex)
+        {
+            bytes[startIndex] = 0;
+            bytes[startIndex + 1] = 0;
+            bytes[startIndex + 2] = 0;
+        }
+
+        /// <inheritdoc />
+        public void ToZyxwBytes(byte[] bytes, int startIndex)
+        {
+            bytes[startIndex] = 0;
+            bytes[startIndex + 1] = 0;
+            bytes[startIndex + 2] = 0;
+            bytes[startIndex + 3] = this.PackedValue;
         }
 
         /// <summary>

@@ -75,8 +75,10 @@ namespace ImageSharp
             this.Width = width;
             this.Height = height;
             this.ComponentOrder = componentOrder;
-            this.RowByteCount = width * GetComponentCount(componentOrder);
+            this.RowStride = width * GetComponentCount(componentOrder);
             this.Bytes = bytes;
+            this.Length = bytes.Length;
+            this.isBufferRented = false;
             this.pixelsHandle = GCHandle.Alloc(this.Bytes, GCHandleType.Pinned);
 
             // TODO: Why is Resharper warning us about an impure method call?
@@ -88,22 +90,9 @@ namespace ImageSharp
         /// Initializes a new instance of the <see cref="PixelArea{TColor}"/> class.
         /// </summary>
         /// <param name="width">The width.</param>
-        /// <param name="height">The height.</param>
         /// <param name="componentOrder">The component order.</param>
-        /// <param name="usePool">True if the buffer should be rented from ArrayPool</param>
-        public PixelArea(int width, int height, ComponentOrder componentOrder, bool usePool = false)
-            : this(width, height, componentOrder, 0, usePool)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="PixelArea{TColor}"/> class.
-        /// </summary>
-        /// <param name="width">The width.</param>
-        /// <param name="componentOrder">The component order.</param>
-        /// <param name="usePool">True if the buffer should be rented from ArrayPool</param>
-        public PixelArea(int width, ComponentOrder componentOrder, bool usePool = false)
-            : this(width, 1, componentOrder, 0, usePool)
+        public PixelArea(int width, ComponentOrder componentOrder)
+            : this(width, 1, componentOrder, 0)
         {
         }
 
@@ -113,9 +102,19 @@ namespace ImageSharp
         /// <param name="width">The width. </param>
         /// <param name="componentOrder">The component order.</param>
         /// <param name="padding">The number of bytes to pad each row.</param>
-        /// <param name="usePool">True if the buffer should be rented from ArrayPool</param>
-        public PixelArea(int width, ComponentOrder componentOrder, int padding, bool usePool = false)
-            : this(width, 1, componentOrder, padding, usePool)
+        public PixelArea(int width, ComponentOrder componentOrder, int padding)
+            : this(width, 1, componentOrder, padding)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PixelArea{TColor}"/> class.
+        /// </summary>
+        /// <param name="width">The width.</param>
+        /// <param name="height">The height.</param>
+        /// <param name="componentOrder">The component order.</param>
+        public PixelArea(int width, int height, ComponentOrder componentOrder)
+            : this(width, height, componentOrder, 0)
         {
         }
 
@@ -126,27 +125,15 @@ namespace ImageSharp
         /// <param name="height">The height.</param>
         /// <param name="componentOrder">The component order.</param>
         /// <param name="padding">The number of bytes to pad each row.</param>
-        /// <param name="usePool">True if the buffer should be rented from ArrayPool</param>
-        public PixelArea(int width, int height, ComponentOrder componentOrder, int padding, bool usePool = false)
+        public PixelArea(int width, int height, ComponentOrder componentOrder, int padding)
         {
             this.Width = width;
             this.Height = height;
             this.ComponentOrder = componentOrder;
-            this.RowByteCount = (width * GetComponentCount(componentOrder)) + padding;
-
-            int bufferSize = this.RowByteCount * height;
-
-            if (usePool)
-            {
-                this.Bytes = BytesPool.Rent(bufferSize);
-                this.isBufferRented = true;
-                Array.Clear(this.Bytes, 0, bufferSize);
-            }
-            else
-            {
-                this.Bytes = new byte[bufferSize];
-            }
-
+            this.RowStride = (width * GetComponentCount(componentOrder)) + padding;
+            this.Length = this.RowStride * height;
+            this.Bytes = BytesPool.Rent(this.Length);
+            this.isBufferRented = true;
             this.pixelsHandle = GCHandle.Alloc(this.Bytes, GCHandleType.Pinned);
 
             // TODO: Why is Resharper warning us about an impure method call?
@@ -166,6 +153,11 @@ namespace ImageSharp
         /// Gets the data in bytes.
         /// </summary>
         public byte[] Bytes { get; }
+
+        /// <summary>
+        /// Gets the length of the buffer.
+        /// </summary>
+        public int Length { get; }
 
         /// <summary>
         /// Gets the component order.
@@ -188,9 +180,9 @@ namespace ImageSharp
         public byte* PixelBase { get; private set; }
 
         /// <summary>
-        /// Gets number of bytes in a row.
+        /// Gets the width of one row in the number of bytes.
         /// </summary>
-        public int RowByteCount { get; }
+        public int RowStride { get; }
 
         /// <summary>
         /// Gets the width.
@@ -198,9 +190,9 @@ namespace ImageSharp
         public int Width { get; }
 
         /// <summary>
-        /// Gets the pool used to rent <see cref="Bytes"/>, when it's not coming from an external source
+        /// Gets the pool used to rent bytes, when it's not coming from an external source.
         /// </summary>
-        // ReSharper disable once StaticMemberInGenericType
+        // TODO: Use own pool?
         private static ArrayPool<byte> BytesPool => ArrayPool<byte>.Shared;
 
         /// <summary>
@@ -209,6 +201,13 @@ namespace ImageSharp
         public void Dispose()
         {
             this.Dispose(true);
+
+            // This object will be cleaned up by the Dispose method.
+            // Therefore, you should call GC.SuppressFinalize to
+            // take this object off the finalization queue
+            // and prevent finalization code for this object
+            // from executing a second time.
+            GC.SuppressFinalize(this);
         }
 
         /// <summary>
@@ -217,7 +216,7 @@ namespace ImageSharp
         /// <param name="stream">The stream.</param>
         public void Read(Stream stream)
         {
-            stream.Read(this.Bytes, 0, this.Bytes.Length);
+            stream.Read(this.Bytes, 0, this.Length);
         }
 
         /// <summary>
@@ -226,7 +225,7 @@ namespace ImageSharp
         /// <param name="stream">The stream.</param>
         public void Write(Stream stream)
         {
-            stream.Write(this.Bytes, 0, this.Bytes.Length);
+            stream.Write(this.Bytes, 0, this.Length);
         }
 
         /// <summary>
@@ -234,7 +233,7 @@ namespace ImageSharp
         /// </summary>
         internal void Reset()
         {
-            Unsafe.InitBlock(this.PixelBase, 0, (uint)(this.RowByteCount * this.Height));
+            Unsafe.InitBlock(this.PixelBase, 0, (uint)(this.RowStride * this.Height));
         }
 
         /// <summary>
@@ -251,17 +250,27 @@ namespace ImageSharp
         {
             switch (componentOrder)
             {
-                case ComponentOrder.ZYX:
-                case ComponentOrder.XYZ:
+                case ComponentOrder.Zyx:
+                case ComponentOrder.Xyz:
                     return 3;
-                case ComponentOrder.ZYXW:
-                case ComponentOrder.XYZW:
+                case ComponentOrder.Zyxw:
+                case ComponentOrder.Xyzw:
                     return 4;
             }
 
             throw new NotSupportedException();
         }
 
+        /// <summary>
+        /// Checks that the length of the byte array to ensure that it matches the given width and height.
+        /// </summary>
+        /// <param name="width">The width.</param>
+        /// <param name="height">The height.</param>
+        /// <param name="bytes">The byte array.</param>
+        /// <param name="componentOrder">The component order.</param>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// Thrown if the byte array is th incorrect length.
+        /// </exception>
         [Conditional("DEBUG")]
         private void CheckBytesLength(int width, int height, byte[] bytes, ComponentOrder componentOrder)
         {
@@ -274,6 +283,10 @@ namespace ImageSharp
             }
         }
 
+        /// <summary>
+        /// Disposes the object and frees resources for the Garbage Collector.
+        /// </summary>
+        /// <param name="disposing">If true, the object gets disposed.</param>
         private void Dispose(bool disposing)
         {
             if (this.isDisposed)
@@ -300,13 +313,6 @@ namespace ImageSharp
             this.PixelBase = null;
 
             this.isDisposed = true;
-
-            // This object will be cleaned up by the Dispose method.
-            // Therefore, you should call GC.SuppressFinalize to
-            // take this object off the finalization queue
-            // and prevent finalization code for this object
-            // from executing a second time.
-            GC.SuppressFinalize(this);
         }
     }
 }

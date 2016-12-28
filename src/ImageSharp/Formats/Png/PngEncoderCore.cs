@@ -286,7 +286,7 @@ namespace ImageSharp.Formats
                 // Convert the color to YCbCr and store the luminance
                 // Optionally store the original color alpha.
                 int offset = x * this.bytesPerPixel;
-                pixels[x, row].ToBytes(this.chunkTypeBuffer, 0, ComponentOrder.XYZW);
+                pixels[x, row].ToXyzwBytes(this.chunkTypeBuffer, 0);
                 byte luminance = (byte)((0.299F * this.chunkTypeBuffer[0]) + (0.587F * this.chunkTypeBuffer[1]) + (0.114F * this.chunkTypeBuffer[2]));
 
                 for (int i = 0; i < this.bytesPerPixel; i++)
@@ -314,7 +314,7 @@ namespace ImageSharp.Formats
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             // We can use the optimized PixelAccessor here and copy the bytes in unmanaged memory.
-            using (PixelArea<TColor> pixelRow = new PixelArea<TColor>(this.width, rawScanline, this.bytesPerPixel == 4 ? ComponentOrder.XYZW : ComponentOrder.XYZ))
+            using (PixelArea<TColor> pixelRow = new PixelArea<TColor>(this.width, rawScanline, this.bytesPerPixel == 4 ? ComponentOrder.Xyzw : ComponentOrder.Xyz))
             {
                 pixels.CopyTo(pixelRow, row);
             }
@@ -507,7 +507,7 @@ namespace ImageSharp.Formats
                 for (int i = 0; i < pixelCount; i++)
                 {
                     int offset = i * 3;
-                    palette[i].ToBytes(bytes, 0, ComponentOrder.XYZW);
+                    palette[i].ToXyzwBytes(bytes, 0);
 
                     int alpha = bytes[3];
 

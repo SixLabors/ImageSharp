@@ -15,7 +15,7 @@ namespace ImageSharp.Tests
     /// <summary>
     /// Utility class to measure the execution of an operation.
     /// </summary>
-    public class MeasureFixture
+    public class MeasureFixture : TestBase
     {
         protected bool EnablePrinting = true;
 

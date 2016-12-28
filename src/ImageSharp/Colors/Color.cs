@@ -273,35 +273,37 @@ namespace ImageSharp
         }
 
         /// <inheritdoc/>
-        public void ToBytes(byte[] bytes, int startIndex, ComponentOrder componentOrder)
+        public void ToXyzBytes(byte[] bytes, int startIndex)
         {
-            switch (componentOrder)
-            {
-                case ComponentOrder.ZYX:
-                    bytes[startIndex] = this.B;
-                    bytes[startIndex + 1] = this.G;
-                    bytes[startIndex + 2] = this.R;
-                    break;
-                case ComponentOrder.ZYXW:
-                    bytes[startIndex] = this.B;
-                    bytes[startIndex + 1] = this.G;
-                    bytes[startIndex + 2] = this.R;
-                    bytes[startIndex + 3] = this.A;
-                    break;
-                case ComponentOrder.XYZ:
-                    bytes[startIndex] = this.R;
-                    bytes[startIndex + 1] = this.G;
-                    bytes[startIndex + 2] = this.B;
-                    break;
-                case ComponentOrder.XYZW:
-                    bytes[startIndex] = this.R;
-                    bytes[startIndex + 1] = this.G;
-                    bytes[startIndex + 2] = this.B;
-                    bytes[startIndex + 3] = this.A;
-                    break;
-                default:
-                    throw new NotSupportedException();
-            }
+            bytes[startIndex] = this.R;
+            bytes[startIndex + 1] = this.G;
+            bytes[startIndex + 2] = this.B;
+        }
+
+        /// <inheritdoc/>
+        public void ToXyzwBytes(byte[] bytes, int startIndex)
+        {
+            bytes[startIndex] = this.R;
+            bytes[startIndex + 1] = this.G;
+            bytes[startIndex + 2] = this.B;
+            bytes[startIndex + 3] = this.A;
+        }
+
+        /// <inheritdoc/>
+        public void ToZyxBytes(byte[] bytes, int startIndex)
+        {
+            bytes[startIndex] = this.B;
+            bytes[startIndex + 1] = this.G;
+            bytes[startIndex + 2] = this.R;
+        }
+
+        /// <inheritdoc/>
+        public void ToZyxwBytes(byte[] bytes, int startIndex)
+        {
+            bytes[startIndex] = this.B;
+            bytes[startIndex + 1] = this.G;
+            bytes[startIndex + 2] = this.R;
+            bytes[startIndex + 3] = this.A;
         }
 
         /// <inheritdoc/>

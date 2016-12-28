@@ -3,7 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp
+namespace ImageSharp.Colors.Spaces
 {
     using System;
     using System.ComponentModel;
@@ -20,14 +20,9 @@ namespace ImageSharp
         public static readonly Cmyk Empty = default(Cmyk);
 
         /// <summary>
-        /// The epsilon for comparing floating point numbers.
-        /// </summary>
-        private const float Epsilon = 0.001f;
-
-        /// <summary>
         /// The backing vector for SIMD support.
         /// </summary>
-        private Vector4 backingVector;
+        private readonly Vector4 backingVector;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Cmyk"/> struct.
@@ -90,7 +85,7 @@ namespace ImageSharp
 
             float k = Math.Min(c, Math.Min(m, y));
 
-            if (Math.Abs(k - 1.0f) <= Epsilon)
+            if (Math.Abs(k - 1.0f) <= Constants.Epsilon)
             {
                 return new Cmyk(0, 0, 0, 1);
             }
@@ -139,7 +134,7 @@ namespace ImageSharp
         /// <inheritdoc/>
         public override int GetHashCode()
         {
-            return GetHashCode(this);
+            return this.backingVector.GetHashCode();
         }
 
         /// <inheritdoc/>
@@ -167,7 +162,7 @@ namespace ImageSharp
         /// <inheritdoc/>
         public bool Equals(Cmyk other)
         {
-            return this.AlmostEquals(other, Epsilon);
+            return this.AlmostEquals(other, Constants.Epsilon);
         }
 
         /// <inheritdoc/>
@@ -180,16 +175,5 @@ namespace ImageSharp
                 && result.Z < precision
                 && result.W < precision;
         }
-
-        /// <summary>
-        /// Returns the hash code for this instance.
-        /// </summary>
-        /// <param name="color">
-        /// The instance of <see cref="Cmyk"/> to return the hash code for.
-        /// </param>
-        /// <returns>
-        /// A 32-bit signed integer that is the hash code for this instance.
-        /// </returns>
-        private static int GetHashCode(Cmyk color) => color.backingVector.GetHashCode();
     }
 }

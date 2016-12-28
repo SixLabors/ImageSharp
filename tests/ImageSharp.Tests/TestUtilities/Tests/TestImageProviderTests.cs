@@ -35,7 +35,7 @@ namespace ImageSharp.Tests
         [WithBlankImages(42, 666, PixelTypes.All, "hello")]
         public void Use_WithBlankImagesAttribute_WithAllPixelTypes<TColor>(
             TestImageProvider<TColor> provider,
-            string message) 
+            string message)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             var img = provider.GetImage();
@@ -59,7 +59,7 @@ namespace ImageSharp.Tests
         [WithBlankImages(1, 1, PixelTypes.StandardImageClass)]
         [WithFile(TestImages.Bmp.F, PixelTypes.StandardImageClass)]
         public void PixelTypes_ColorWithDefaultImageClass_TriggersCreatingTheNonGenericDerivedImageClass<TColor>(
-            TestImageProvider<TColor> provider) 
+            TestImageProvider<TColor> provider)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             var img = provider.GetImage();
@@ -112,7 +112,7 @@ namespace ImageSharp.Tests
                 {
                     for (int x = 0; x < pixels.Width; x++)
                     {
-                        pixels[x, y].ToBytes(colors, 0, ComponentOrder.XYZW);
+                        pixels[x, y].ToXyzwBytes(colors, 0);
 
                         Assert.Equal(colors[0], 255);
                         Assert.Equal(colors[1], 100);
@@ -129,7 +129,7 @@ namespace ImageSharp.Tests
         /// <typeparam name="TColor"></typeparam>
         /// <param name="factory"></param>
         /// <returns></returns>
-        public static Image<TColor> CreateTestImage<TColor>(GenericFactory<TColor> factory) 
+        public static Image<TColor> CreateTestImage<TColor>(GenericFactory<TColor> factory)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             return factory.CreateImage(3, 3);

@@ -93,7 +93,7 @@ namespace ImageSharp.Formats.Jpg
 
             for (int y = 0; y < fromY; y++)
             {
-                byte* ptrBase = (byte*)area.DataPointer + (y * area.RowByteCount);
+                byte* ptrBase = (byte*)area.DataPointer + (y * area.RowStride);
 
                 for (int x = fromX; x < area.Width; x++)
                 {
@@ -106,8 +106,8 @@ namespace ImageSharp.Formats.Jpg
 
             for (int y = fromY; y < area.Height; y++)
             {
-                byte* currBase = (byte*)area.DataPointer + (y * area.RowByteCount);
-                byte* prevBase = (byte*)area.DataPointer + ((y - 1) * area.RowByteCount);
+                byte* currBase = (byte*)area.DataPointer + (y * area.RowStride);
+                byte* prevBase = (byte*)area.DataPointer + ((y - 1) * area.RowStride);
 
                 for (int x = 0; x < area.Width; x++)
                 {

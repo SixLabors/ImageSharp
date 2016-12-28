@@ -28,7 +28,7 @@ namespace ImageSharp
 
             for (int y = 0; y < height; y++)
             {
-                byte* source = area.PixelBase + (y * area.RowByteCount);
+                byte* source = area.PixelBase + (y * area.RowStride);
                 byte* destination = this.GetRowPointer(targetX, targetY + y);
 
                 Unsafe.CopyBlock(destination, source, byteCount);
@@ -40,7 +40,7 @@ namespace ImageSharp
         {
             for (int y = 0; y < height; y++)
             {
-                byte* source = area.PixelBase + (y * area.RowByteCount);
+                byte* source = area.PixelBase + (y * area.RowStride);
                 byte* destination = this.GetRowPointer(targetX, targetY + y);
 
                 for (int x = 0; x < width; x++)
@@ -58,7 +58,7 @@ namespace ImageSharp
         {
             for (int y = 0; y < height; y++)
             {
-                byte* source = area.PixelBase + (y * area.RowByteCount);
+                byte* source = area.PixelBase + (y * area.RowStride);
                 byte* destination = this.GetRowPointer(targetX, targetY + y);
 
                 for (int x = 0; x < width; x++)
@@ -76,7 +76,7 @@ namespace ImageSharp
         {
             for (int y = 0; y < height; y++)
             {
-                byte* source = area.PixelBase + (y * area.RowByteCount);
+                byte* source = area.PixelBase + (y * area.RowStride);
                 byte* destination = this.GetRowPointer(targetX, targetY + y);
 
                 for (int x = 0; x < width; x++)
@@ -95,7 +95,7 @@ namespace ImageSharp
             for (int y = 0; y < height; y++)
             {
                 byte* source = this.GetRowPointer(sourceX, sourceY + y);
-                byte* destination = area.PixelBase + (y * area.RowByteCount);
+                byte* destination = area.PixelBase + (y * area.RowStride);
 
                 for (int x = 0; x < width; x++)
                 {
@@ -115,7 +115,7 @@ namespace ImageSharp
             for (int y = 0; y < height; y++)
             {
                 byte* source = this.GetRowPointer(sourceX, sourceY + y);
-                byte* destination = area.PixelBase + (y * area.RowByteCount);
+                byte* destination = area.PixelBase + (y * area.RowStride);
 
                 for (int x = 0; x < width; x++)
                 {
@@ -135,7 +135,7 @@ namespace ImageSharp
             for (int y = 0; y < height; y++)
             {
                 byte* source = this.GetRowPointer(sourceX, sourceY + y);
-                byte* destination = area.PixelBase + (y * area.RowByteCount);
+                byte* destination = area.PixelBase + (y * area.RowStride);
 
                 for (int x = 0; x < width; x++)
                 {

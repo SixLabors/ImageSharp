@@ -252,11 +252,11 @@ namespace ImageSharp
         {
             switch (componentOrder)
             {
-                case ComponentOrder.ZYX:
-                case ComponentOrder.XYZ:
+                case ComponentOrder.Zyx:
+                case ComponentOrder.Xyz:
                     return 3;
-                case ComponentOrder.ZYXW:
-                case ComponentOrder.XYZW:
+                case ComponentOrder.Zyxw:
+                case ComponentOrder.Xyzw:
                     return 4;
             }
 

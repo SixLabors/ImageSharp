@@ -13,21 +13,21 @@ namespace ImageSharp
         /// <summary>
         /// Z-> Y-> X order. Equivalent to B-> G-> R in <see cref="Color"/>
         /// </summary>
-        ZYX,
+        Zyx,
 
         /// <summary>
         /// Z-> Y-> X-> W order. Equivalent to B-> G-> R-> A in <see cref="Color"/>
         /// </summary>
-        ZYXW,
+        Zyxw,
 
         /// <summary>
         /// X-> Y-> Z order. Equivalent to R-> G-> B in <see cref="Color"/>
         /// </summary>
-        XYZ,
+        Xyz,
 
         /// <summary>
         /// X-> Y-> Z-> W order. Equivalent to R-> G-> B-> A in <see cref="Color"/>
         /// </summary>
-        XYZW,
+        Xyzw,
     }
 }

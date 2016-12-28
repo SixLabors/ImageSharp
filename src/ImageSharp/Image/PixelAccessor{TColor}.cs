@@ -145,7 +145,7 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Copied a row of pixels from the image.
+        /// Copy an area of pixels to the image.
         /// </summary>
         /// <param name="area">The area.</param>
         /// <param name="targetY">The target row index.</param>
@@ -161,7 +161,7 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Copied an area of pixels to the image.
+        /// Copy pixels from the image to an area of pixels.
         /// </summary>
         /// <param name="area">The area.</param>
         /// <param name="sourceY">The source row index.</param>
@@ -177,7 +177,8 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Copied an area of pixels to the image and makes sure this is within the bounds of the image.
+        /// Copy pixels from the image to an area of pixels. This method will make sure that the pixels
+        /// that are copied are within the bounds of the image.
         /// </summary>
         /// <param name="area">The area.</param>
         /// <param name="sourceY">The source row index.</param>
@@ -464,7 +465,7 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Copied a row of pixels from the image
+        /// Copy an area of pixels to the image.
         /// </summary>
         /// <param name="area">The area.</param>
         /// <param name="targetX">The target column index.</param>
@@ -496,7 +497,7 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Copied an area of pixels to the image.
+        /// Copy pixels from the image to an area of pixels.
         /// </summary>
         /// <param name="area">The area.</param>
         /// <param name="sourceX">The source column index.</param>

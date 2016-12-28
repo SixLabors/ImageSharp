@@ -10,6 +10,7 @@ namespace ImageSharp.Formats
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
     using System.Threading.Tasks;
+    using ImageSharp.Formats.Jpg;
 
     /// <summary>
     /// Performs the jpeg decoding operation.
@@ -64,19 +65,6 @@ namespace ImageSharp.Formats
         private const int AcTable = 1;
 
         /// <summary>
-        /// Unzig maps from the zigzag ordering to the natural ordering. For example,
-        /// unzig[3] is the column and row of the fourth element in zigzag order. The
-        /// value is 16, which means first column (16%8 == 0) and third row (16/8 == 2).
-        /// </summary>
-        private static readonly int[] Unzig =
-            {
-                0, 1, 8, 16, 9, 2, 3, 10, 17, 24, 32, 25, 18, 11, 4, 5, 12, 19, 26, 33,
-                40, 48, 41, 34, 27, 20, 13, 6, 7, 14, 21, 28, 35, 42, 49, 56, 57, 50,
-                43, 36, 29, 22, 15, 23, 30, 37, 44, 51, 58, 59, 52, 45, 38, 31, 39, 46,
-                53, 60, 61, 54, 47, 55, 62, 63,
-            };
-
-        /// <summary>
         /// The component array
         /// </summary>
         private readonly Component[] componentArray;
@@ -89,7 +77,7 @@ namespace ImageSharp.Formats
         /// <summary>
         /// The huffman trees
         /// </summary>
-        private readonly Huffman[] huffmanTrees;
+        private readonly HuffmanTree[] huffmanTrees;
 
         /// <summary>
         /// Quantization tables, in zigzag order.
@@ -199,10 +187,10 @@ namespace ImageSharp.Formats
         public JpegDecoderCore()
         {
             // this.huffmanTrees = new Huffman[MaxTc + 1, MaxTh + 1];
-            this.huffmanTrees = new Huffman[(MaxTc + 1) * (MaxTh + 1)];
+            this.huffmanTrees = new HuffmanTree[(MaxTc + 1) * (MaxTh + 1)];
 
             this.quantizationTables = new Block8x8F[MaxTq + 1];
-            this.temp = new byte[2 * BlockF.BlockSize];
+            this.temp = new byte[2 * Block8x8F.ScalarCount];
             this.componentArray = new Component[MaxComponents];
             this.progCoeffs = new Block8x8F[MaxComponents][];
             this.bits = default(Bits);
@@ -559,42 +547,42 @@ namespace ImageSharp.Formats
             }
         }
 
-        private void ProcessDefineHuffmanTablesMarkerLoop(ref Huffman huffman, ref int remaining)
+        private void ProcessDefineHuffmanTablesMarkerLoop(ref HuffmanTree huffmanTree, ref int remaining)
         {
             // Read nCodes and huffman.Valuess (and derive h.Length).
             // nCodes[i] is the number of codes with code length i.
             // h.Length is the total number of codes.
-            huffman.Length = 0;
+            huffmanTree.Length = 0;
 
             int[] ncodes = new int[MaxCodeLength];
             for (int i = 0; i < ncodes.Length; i++)
             {
                 ncodes[i] = this.temp[i + 1];
-                huffman.Length += ncodes[i];
+                huffmanTree.Length += ncodes[i];
             }
 
-            if (huffman.Length == 0)
+            if (huffmanTree.Length == 0)
             {
                 throw new ImageFormatException("Huffman table has zero length");
             }
 
-            if (huffman.Length > MaxNCodes)
+            if (huffmanTree.Length > MaxNCodes)
             {
                 throw new ImageFormatException("Huffman table has excessive length");
             }
 
-            remaining -= huffman.Length + 17;
+            remaining -= huffmanTree.Length + 17;
             if (remaining < 0)
             {
                 throw new ImageFormatException("DHT has wrong length");
             }
 
-            this.ReadFull(huffman.Values, 0, huffman.Length);
+            this.ReadFull(huffmanTree.Values, 0, huffmanTree.Length);
 
             // Derive the look-up table.
-            for (int i = 0; i < huffman.Lut.Length; i++)
+            for (int i = 0; i < huffmanTree.Lut.Length; i++)
             {
-                huffman.Lut[i] = 0;
+                huffmanTree.Lut[i] = 0;
             }
 
             uint x = 0, code = 0;
@@ -611,11 +599,11 @@ namespace ImageSharp.Formats
                     // The high 8 bits of lutValue are the encoded value.
                     // The low 8 bits are 1 plus the codeLength.
                     byte base2 = (byte)(code << (7 - i));
-                    ushort lutValue = (ushort)((huffman.Values[x] << 8) | (2 + i));
+                    ushort lutValue = (ushort)((huffmanTree.Values[x] << 8) | (2 + i));
 
                     for (int k = 0; k < 1 << (7 - i); k++)
                     {
-                        huffman.Lut[base2 | k] = lutValue;
+                        huffmanTree.Lut[base2 | k] = lutValue;
                     }
 
                     code++;
@@ -630,15 +618,15 @@ namespace ImageSharp.Formats
                 int nc = ncodes[i];
                 if (nc == 0)
                 {
-                    huffman.MinCodes[i] = -1;
-                    huffman.MaxCodes[i] = -1;
-                    huffman.Indices[i] = -1;
+                    huffmanTree.MinCodes[i] = -1;
+                    huffmanTree.MaxCodes[i] = -1;
+                    huffmanTree.Indices[i] = -1;
                 }
                 else
                 {
-                    huffman.MinCodes[i] = c;
-                    huffman.MaxCodes[i] = c + nc - 1;
-                    huffman.Indices[i] = index;
+                    huffmanTree.MinCodes[i] = c;
+                    huffmanTree.MaxCodes[i] = c + nc - 1;
+                    huffmanTree.Indices[i] = index;
                     c += nc;
                     index += nc;
                 }
@@ -650,23 +638,23 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Returns the next Huffman-coded value from the bit-stream, decoded according to the given value.
         /// </summary>
-        /// <param name="huffman">The huffman value</param>
+        /// <param name="huffmanTree">The huffman value</param>
         /// <returns>The <see cref="byte"/></returns>
-        private byte DecodeHuffman(ref Huffman huffman)
+        private byte DecodeHuffman(ref HuffmanTree huffmanTree)
         {
             // Copy stuff to the stack:
-            if (huffman.Length == 0)
+            if (huffmanTree.Length == 0)
             {
                 throw new ImageFormatException("Uninitialized Huffman table");
             }
 
             if (this.bits.UnreadBits < 8)
             {
-                var errorCode = this.bits.EnsureNBits(8, this);
+                ErrorCodes errorCode = this.bits.EnsureNBits(8, this);
 
                 if (errorCode == ErrorCodes.NoError)
                 {
-                    ushort v = huffman.Lut[(this.bits.Accumulator >> (this.bits.UnreadBits - LutSize)) & 0xff];
+                    ushort v = huffmanTree.Lut[(this.bits.Accumulator >> (this.bits.UnreadBits - LutSize)) & 0xff];
 
                     if (v != 0)
                     {
@@ -687,7 +675,7 @@ namespace ImageSharp.Formats
             {
                 if (this.bits.UnreadBits == 0)
                 {
-                    var errorCode = this.bits.EnsureNBits(1, this);
+                    ErrorCodes errorCode = this.bits.EnsureNBits(1, this);
                     if (errorCode != ErrorCodes.NoError)
                     {
                         throw new MissingFF00Exception();
@@ -702,9 +690,9 @@ namespace ImageSharp.Formats
                 this.bits.UnreadBits--;
                 this.bits.Mask >>= 1;
 
-                if (code <= huffman.MaxCodes[i])
+                if (code <= huffmanTree.MaxCodes[i])
                 {
-                    return huffman.Values[huffman.Indices[i] + code - huffman.MinCodes[i]];
+                    return huffmanTree.Values[huffmanTree.Indices[i] + code - huffmanTree.MinCodes[i]];
                 }
 
                 code <<= 1;
@@ -721,7 +709,7 @@ namespace ImageSharp.Formats
         {
             if (this.bits.UnreadBits == 0)
             {
-                var errorCode = this.bits.EnsureNBits(1, this);
+                ErrorCodes errorCode = this.bits.EnsureNBits(1, this);
                 if (errorCode != ErrorCodes.NoError)
                 {
                     throw new MissingFF00Exception();
@@ -743,7 +731,7 @@ namespace ImageSharp.Formats
         {
             if (this.bits.UnreadBits < count)
             {
-                var errorCode = this.bits.EnsureNBits(count, this);
+                ErrorCodes errorCode = this.bits.EnsureNBits(count, this);
                 if (errorCode != ErrorCodes.NoError)
                 {
                     throw new MissingFF00Exception();
@@ -1066,32 +1054,32 @@ namespace ImageSharp.Formats
                 switch (x >> 4)
                 {
                     case 0:
-                        if (remaining < BlockF.BlockSize)
+                        if (remaining < Block8x8F.ScalarCount)
                         {
                             done = true;
                             break;
                         }
 
-                        remaining -= BlockF.BlockSize;
-                        this.ReadFull(this.temp, 0, BlockF.BlockSize);
+                        remaining -= Block8x8F.ScalarCount;
+                        this.ReadFull(this.temp, 0, Block8x8F.ScalarCount);
 
-                        for (int i = 0; i < BlockF.BlockSize; i++)
+                        for (int i = 0; i < Block8x8F.ScalarCount; i++)
                         {
                             this.quantizationTables[tq][i] = this.temp[i];
                         }
 
                         break;
                     case 1:
-                        if (remaining < 2 * BlockF.BlockSize)
+                        if (remaining < 2 * Block8x8F.ScalarCount)
                         {
                             done = true;
                             break;
                         }
 
-                        remaining -= 2 * BlockF.BlockSize;
-                        this.ReadFull(this.temp, 0, 2 * BlockF.BlockSize);
+                        remaining -= 2 * Block8x8F.ScalarCount;
+                        this.ReadFull(this.temp, 0, 2 * Block8x8F.ScalarCount);
 
-                        for (int i = 0; i < BlockF.BlockSize; i++)
+                        for (int i = 0; i < Block8x8F.ScalarCount; i++)
                         {
                             this.quantizationTables[tq][i] = (this.temp[2 * i] << 8) | this.temp[(2 * i) + 1];
                         }
@@ -1486,7 +1474,7 @@ namespace ImageSharp.Formats
             // significant bit.
             // For baseline JPEGs, these parameters are hard-coded to 0/63/0/0.
             int zigStart = 0;
-            int zigEnd = BlockF.BlockSize - 1;
+            int zigEnd = Block8x8F.ScalarCount - 1;
             int ah = 0;
             int al = 0;
 
@@ -1497,7 +1485,7 @@ namespace ImageSharp.Formats
                 ah = this.temp[3 + scanComponentCountX2] >> 4;
                 al = this.temp[3 + scanComponentCountX2] & 0x0f;
 
-                if ((zigStart == 0 && zigEnd != 0) || zigStart > zigEnd || zigEnd >= BlockF.BlockSize)
+                if ((zigStart == 0 && zigEnd != 0) || zigStart > zigEnd || zigEnd >= Block8x8F.ScalarCount)
                 {
                     throw new ImageFormatException("Bad spectral selection bounds");
                 }
@@ -1531,7 +1519,7 @@ namespace ImageSharp.Formats
                     int compIndex = scan[i].Index;
                     if (this.progCoeffs[compIndex] == null)
                     {
-                        var size = mxx * myy * this.componentArray[compIndex].HorizontalFactor
+                        int size = mxx * myy * this.componentArray[compIndex].HorizontalFactor
                                    * this.componentArray[compIndex].VerticalFactor;
 
                         this.progCoeffs[compIndex] = new Block8x8F[size];
@@ -1556,10 +1544,9 @@ namespace ImageSharp.Formats
             Block8x8F temp1 = default(Block8x8F);
             Block8x8F temp2 = default(Block8x8F);
 
-            // Tricky way to copy contents of the Unzig static variable to the stack:
-            StackallocUnzigData unzigOnStack = default(StackallocUnzigData);
-            int* unzigPtr = unzigOnStack.Data;
-            Marshal.Copy(Unzig, 0, (IntPtr)unzigPtr, 64);
+            UnzigData unzig = UnzigData.Create();
+
+            int* unzigPtr = unzig.Data;
 
             for (int my = 0; my < myy; my++)
             {
@@ -1612,7 +1599,7 @@ namespace ImageSharp.Formats
                                 }
                             }
 
-                            var qtIndex = this.componentArray[compIndex].Selector;
+                            int qtIndex = this.componentArray[compIndex].Selector;
 
                             // TODO: Find a way to clean up this mess
                             fixed (Block8x8F* qtp = &this.quantizationTables[qtIndex])
@@ -1727,7 +1714,7 @@ namespace ImageSharp.Formats
             int bx,
             Block8x8F* qt)
         {
-            var huffmannIdx = (AcTable * ThRowSize) + scan[i].AcTableSelector;
+            int huffmannIdx = (AcTable * ThRowSize) + scan[i].AcTableSelector;
             if (ah != 0)
             {
                 this.Refine(b, ref this.huffmanTrees[huffmannIdx], unzigPtr, zigStart, zigEnd, 1 << al);
@@ -1802,7 +1789,7 @@ namespace ImageSharp.Formats
 
             if (this.isProgressive)
             {
-                if (zigEnd != BlockF.BlockSize - 1 || al != 0)
+                if (zigEnd != Block8x8F.ScalarCount - 1 || al != 0)
                 {
                     // We haven't completely decoded this 8x8 block. Save the coefficients.
 
@@ -1823,7 +1810,7 @@ namespace ImageSharp.Formats
             // Dequantize, perform the inverse DCT and store the block to the image.
             Block8x8F.UnZig(b, qt, unzigPtr);
 
-            b->TransformIDCTInto(ref *temp1, ref *temp2);
+            DCT.TransformIDCT(ref *b, ref *temp1, ref *temp2);
 
             byte[] dst;
             int offset;
@@ -1941,7 +1928,7 @@ namespace ImageSharp.Formats
         /// <param name="zigStart">The zig-zag start index</param>
         /// <param name="zigEnd">The zig-zag end index</param>
         /// <param name="delta">The low transform offset</param>
-        private void Refine(Block8x8F* b, ref Huffman h, int* unzigPtr, int zigStart, int zigEnd, int delta)
+        private void Refine(Block8x8F* b, ref HuffmanTree h, int* unzigPtr, int zigStart, int zigEnd, int delta)
         {
             // Refining a DC component is trivial.
             if (zigStart == 0)
@@ -2013,7 +2000,7 @@ namespace ImageSharp.Formats
 
                     int blah = zig;
 
-                    zig = this.RefineNonZeroes(b, zig, zigEnd, val0, delta);
+                    zig = this.RefineNonZeroes(b, zig, zigEnd, val0, delta, unzigPtr);
                     if (zig > zigEnd)
                     {
                         throw new ImageFormatException($"Too many coefficients {zig} > {zigEnd}");
@@ -2030,7 +2017,7 @@ namespace ImageSharp.Formats
             if (this.eobRun > 0)
             {
                 this.eobRun--;
-                this.RefineNonZeroes(b, zig, zigEnd, -1, delta);
+                this.RefineNonZeroes(b, zig, zigEnd, -1, delta, unzigPtr);
             }
         }
 
@@ -2043,12 +2030,13 @@ namespace ImageSharp.Formats
         /// <param name="zigEnd">The zig-zag end index</param>
         /// <param name="nz">The non-zero entry</param>
         /// <param name="delta">The low transform offset</param>
+        /// <param name="unzigPtr">Pointer to the  Jpeg Unzig data (data part of <see cref="UnzigData"/>)</param>
         /// <returns>The <see cref="int"/></returns>
-        private int RefineNonZeroes(Block8x8F* b, int zig, int zigEnd, int nz, int delta)
+        private int RefineNonZeroes(Block8x8F* b, int zig, int zigEnd, int nz, int delta, int* unzigPtr)
         {
             for (; zig <= zigEnd; zig++)
             {
-                int u = Unzig[zig];
+                int u = unzigPtr[zig];
                 float bu = Block8x8F.GetScalarAt(b, u);
 
                 // TODO: Are the equality comparsions OK with floating point values? Isn't an epsilon value necessary?
@@ -2245,11 +2233,6 @@ namespace ImageSharp.Formats
             /// Gets or sets the AC table selector
             /// </summary>
             public byte AcTableSelector { get; set; }
-        }
-
-        private struct StackallocUnzigData
-        {
-            internal fixed int Data[64];
         }
 
         /// <summary>

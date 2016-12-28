@@ -3,7 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.Formats
+namespace ImageSharp.Formats.Jpg
 {
     using System.Runtime.CompilerServices;
 
@@ -47,7 +47,7 @@ namespace ImageSharp.Formats
 
                 // Grab the decode bytes, use them and then set them
                 // back on the decoder.
-                var decoderBytes = decoder.Bytes;
+                Bytes decoderBytes = decoder.Bytes;
                 byte c = decoderBytes.ReadByteStuffedByte(decoder.InputStream, out errorCode);
                 decoder.Bytes = decoderBytes;
 
@@ -84,7 +84,7 @@ namespace ImageSharp.Formats
         {
             if (this.UnreadBits < t)
             {
-                var errorCode = this.EnsureNBits(t, decoder);
+                JpegDecoderCore.ErrorCodes errorCode = this.EnsureNBits(t, decoder);
                 if (errorCode != JpegDecoderCore.ErrorCodes.NoError)
                 {
                     throw new JpegDecoderCore.MissingFF00Exception();

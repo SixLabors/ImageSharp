@@ -23,7 +23,7 @@ namespace ImageSharp.Colors.Spaces
         /// <summary>
         /// The backing vector for SIMD support.
         /// </summary>
-        private Vector3 backingVector;
+        private readonly Vector3 backingVector;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="YCbCr"/> struct.

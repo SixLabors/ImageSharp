@@ -7,6 +7,7 @@ namespace ImageSharp
 {
     using System;
     using System.Numerics;
+    using Colors.Spaces;
 
     /// <summary>
     /// Packed vector type containing four 8-bit unsigned normalized values ranging from 0 to 255.

@@ -21,6 +21,11 @@ namespace ImageSharp.Colors.Spaces
         public static readonly YCbCr Empty = default(YCbCr);
 
         /// <summary>
+        /// Vector which is used in clamping to the max value
+        /// </summary>
+        private static readonly Vector3 VectorMax = new Vector3(255);
+
+        /// <summary>
         /// The backing vector for SIMD support.
         /// </summary>
         private readonly Vector3 backingVector;
@@ -34,7 +39,7 @@ namespace ImageSharp.Colors.Spaces
         public YCbCr(byte y, byte cb, byte cr)
             : this()
         {
-            this.backingVector = Vector3.Clamp(new Vector3(y, cb, cr), Vector3.Zero, new Vector3(255));
+            this.backingVector = Vector3.Clamp(new Vector3(y, cb, cr), Vector3.Zero, VectorMax);
         }
 
         /// <summary>

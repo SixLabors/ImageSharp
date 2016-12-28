@@ -7,6 +7,7 @@ namespace ImageSharp
 {
     using System;
     using System.Numerics;
+    using Colors.Spaces;
 
     /// <summary>
     /// Packed vector type containing four 8-bit unsigned normalized values ranging from 0 to 255.
@@ -62,9 +63,9 @@ namespace ImageSharp
         /// </returns>
         public static implicit operator Color(YCbCr color)
         {
-            byte y = color.Y;
-            int cb = color.Cb - 128;
-            int cr = color.Cr - 128;
+            float y = color.Y;
+            float cb = color.Cb - 128;
+            float cr = color.Cr - 128;
 
             byte r = (byte)(y + (1.402F * cr)).Clamp(0, 255);
             byte g = (byte)(y - (0.34414F * cb) - (0.71414F * cr)).Clamp(0, 255);

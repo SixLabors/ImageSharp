@@ -25,7 +25,7 @@ namespace ImageSharp.Formats.Jpg
         /// Holds the "large" data blocks needed for computations 
         /// </summary>
         [StructLayout(LayoutKind.Sequential)]
-        public struct ComponentData
+        public struct ComputationData
         {
             /// <summary>
             /// The main input block
@@ -58,42 +58,63 @@ namespace ImageSharp.Formats.Jpg
             public fixed byte ScanData[3 * JpegDecoderCore.MaxComponents];
 
             /// <summary>
-            /// The DC data
+            /// The DC component values
             /// </summary>
             public fixed int Dc[JpegDecoderCore.MaxComponents];
 
             /// <summary>
-            /// Creates and initializes a new <see cref="ComponentData"/> instance
+            /// Creates and initializes a new <see cref="ComputationData"/> instance
             /// </summary>
             /// <returns></returns>
-            public static ComponentData Create()
+            public static ComputationData Create()
             {
-                ComponentData data = default(ComponentData);
+                ComputationData data = default(ComputationData);
                 data.Unzig = UnzigData.Create();
                 return data;
             }
         }
 
         /// <summary>
-        /// Contains pointers to the memory regions of <see cref="ComponentData"/> so they can be easily passed around to pointer based utility methods of <see cref="Block8x8F"/>
+        /// Contains pointers to the memory regions of <see cref="ComputationData"/> so they can be easily passed around to pointer based utility methods of <see cref="Block8x8F"/>
         /// </summary>
-        public struct ComponentPointers
+        public struct DataPointers
         {
+            /// <summary>
+            /// Pointer to <see cref="ComputationData.Block"/>
+            /// </summary>
             public Block8x8F* Block;
 
+            /// <summary>
+            /// Pointer to <see cref="ComputationData.Temp1"/>
+            /// </summary>
             public Block8x8F* Temp1;
 
+            /// <summary>
+            /// Pointer to <see cref="ComputationData.Temp2"/>
+            /// </summary>
             public Block8x8F* Temp2;
 
+            /// <summary>
+            /// Pointer to <see cref="ComputationData.QuantiazationTable"/>
+            /// </summary>
             public Block8x8F* QuantiazationTable;
 
+            /// <summary>
+            /// Pointer to <see cref="ComputationData.Unzig"/> as int*
+            /// </summary>
             public int* Unzig;
 
+            /// <summary>
+            /// Pointer to <see cref="ComputationData.ScanData"/> as Scan*
+            /// </summary>
             public Scan* Scan;
 
+            /// <summary>
+            /// Pointer to <see cref="ComputationData.Dc"/>
+            /// </summary>
             public int* Dc;
 
-            public ComponentPointers(ComponentData* basePtr)
+            public DataPointers(ComputationData* basePtr)
             {
                 this.Block = &basePtr->Block;
                 this.Temp1 = &basePtr->Temp1;
@@ -171,35 +192,38 @@ namespace ImageSharp.Formats.Jpg
         /// </summary>
         public int YNumberOfMCUs;
 
-        private int scanComponentCount;
+        /// <summary>
+        /// The number of component scans
+        /// </summary>
+        private int componentScanCount;
 
         /// <summary>
-        /// The <see cref="ComponentData"/> buffer
+        /// The <see cref="ComputationData"/> buffer
         /// </summary>
-        private ComponentData Data;
+        private ComputationData Data;
 
         /// <summary>
         /// Pointers to elements of <see cref="Data"/>
         /// </summary>
-        private ComponentPointers Pointers;
+        private DataPointers Pointers;
 
         /// <summary>
-        /// Initializes the default instance after creation
+        /// Initializes the default instance after creation.
         /// </summary>
-        /// <param name="p"></param>
-        /// <param name="decoder"></param>
-        /// <param name="remaining"></param>
+        /// <param name="p">Pointer to <see cref="JpegScanDecoder"/> on the stack</param>
+        /// <param name="decoder">The <see cref="JpegDecoderCore"/> instance</param>
+        /// <param name="remaining">The remaining bytes in the segment block.</param>
         public static void Init(JpegScanDecoder* p, JpegDecoderCore decoder, int remaining)
         {
-            p->Data = ComponentData.Create();
-            p->Pointers = new ComponentPointers(&p->Data);
+            p->Data = ComputationData.Create();
+            p->Pointers = new DataPointers(&p->Data);
             p->InitImpl(decoder, remaining);
         }
 
         /// <summary>
         /// Reads the blocks from the <see cref="JpegDecoderCore"/>-s stream, and processes them into the corresponding <see cref="JpegPixelArea"/> instances.
         /// </summary>
-        /// <param name="decoder"></param>
+        /// <param name="decoder">The <see cref="JpegDecoderCore"/> instance</param>
         public void ProcessBlocks(JpegDecoderCore decoder)
         {
             int blockCount = 0;
@@ -210,7 +234,7 @@ namespace ImageSharp.Formats.Jpg
             {
                 for (int mx = 0; mx < this.XNumberOfMCUs; mx++)
                 {
-                    for (int i = 0; i < this.scanComponentCount; i++)
+                    for (int i = 0; i < this.componentScanCount; i++)
                     {
                         int compIndex = this.Pointers.Scan[i].Index;
                         int hi = decoder.ComponentArray[compIndex].HorizontalFactor;
@@ -240,7 +264,7 @@ namespace ImageSharp.Formats.Jpg
                             // The non-interleaved scans will process only 6 Y blocks:
                             // 0 1 2
                             // 3 4 5
-                            if (this.scanComponentCount != 1)
+                            if (this.componentScanCount != 1)
                             {
                                 this.bx = (hi * mx) + (j % hi);
                                 this.by = (vi * my) + (j / hi);
@@ -332,9 +356,9 @@ namespace ImageSharp.Formats.Jpg
             }
 
             decoder.ReadFull(decoder.Temp, 0, remaining);
-            this.scanComponentCount = decoder.Temp[0];
+            this.componentScanCount = decoder.Temp[0];
 
-            int scanComponentCountX2 = 2 * this.scanComponentCount;
+            int scanComponentCountX2 = 2 * this.componentScanCount;
             if (remaining != 4 + scanComponentCountX2)
             {
                 throw new ImageFormatException("SOS length inconsistent with number of components");
@@ -342,10 +366,11 @@ namespace ImageSharp.Formats.Jpg
 
             int totalHv = 0;
 
-            for (int i = 0; i < this.scanComponentCount; i++)
+            for (int i = 0; i < this.componentScanCount; i++)
             {
                 this.ProcessScanImpl(decoder, i, ref this.Pointers.Scan[i], ref totalHv);
             }
+
             // Section B.2.3 states that if there is more than one component then the
             // total H*V values in a scan must be <= 10.
             if (decoder.ComponentCount > 1 && totalHv > 10)
@@ -368,7 +393,7 @@ namespace ImageSharp.Formats.Jpg
                     throw new ImageFormatException("Bad spectral selection bounds");
                 }
 
-                if (this.zigStart != 0 && this.scanComponentCount != 1)
+                if (this.zigStart != 0 && this.componentScanCount != 1)
                 {
                     throw new ImageFormatException("Progressive AC coefficients for more than one component");
                 }
@@ -387,7 +412,7 @@ namespace ImageSharp.Formats.Jpg
 
             if (decoder.IsProgressive)
             {
-                for (int i = 0; i < this.scanComponentCount; i++)
+                for (int i = 0; i < this.componentScanCount; i++)
                 {
                     int compIndex = this.Pointers.Scan[i].Index;
                     if (decoder.ProgCoeffs[compIndex] == null)
@@ -399,6 +424,117 @@ namespace ImageSharp.Formats.Jpg
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// Process the current block at (<see cref="bx"/>, <see cref="by"/>)
+        /// </summary>
+        /// <param name="decoder">The decoder</param>
+        /// <param name="i">The index of the scan</param>
+        /// <param name="compIndex">The component index</param>
+        /// <param name="hi">Horizontal sampling factor at the given component index</param>
+        private void ProcessBlockImpl(JpegDecoderCore decoder, int i, int compIndex, int hi)
+        {
+            var b = this.Pointers.Block;
+            //var dc = this.Pointers.Dc;
+            int huffmannIdx = (AcTableIndex * HuffmanTree.ThRowSize) + this.Pointers.Scan[i].AcTableSelector;
+            if (this.ah != 0)
+            {
+                this.Refine(decoder, ref decoder.HuffmanTrees[huffmannIdx], 1 << this.al);
+            }
+            else
+            {
+                int zig = this.zigStart;
+                if (zig == 0)
+                {
+                    zig++;
+
+                    // Decode the DC coefficient, as specified in section F.2.2.1.
+                    byte value =
+                        decoder.DecodeHuffman(
+                            ref decoder.HuffmanTrees[(DcTableIndex * HuffmanTree.ThRowSize) + this.Pointers.Scan[i].DcTableSelector]);
+                    if (value > 16)
+                    {
+                        throw new ImageFormatException("Excessive DC component");
+                    }
+
+                    int deltaDC = decoder.Bits.ReceiveExtend(value, decoder);
+                    this.Pointers.Dc[compIndex] += deltaDC;
+
+                    // b[0] = dc[compIndex] << al;
+                    Block8x8F.SetScalarAt(b, 0, this.Pointers.Dc[compIndex] << al);
+                }
+
+                if (zig <= this.zigEnd && decoder.EobRun > 0)
+                {
+                    decoder.EobRun--;
+                }
+                else
+                {
+                    // Decode the AC coefficients, as specified in section F.2.2.2.
+                    for (; zig <= this.zigEnd; zig++)
+                    {
+                        byte value = decoder.DecodeHuffman(ref decoder.HuffmanTrees[huffmannIdx]);
+                        byte val0 = (byte)(value >> 4);
+                        byte val1 = (byte)(value & 0x0f);
+                        if (val1 != 0)
+                        {
+                            zig += val0;
+                            if (zig > this.zigEnd)
+                            {
+                                break;
+                            }
+
+                            int ac = decoder.Bits.ReceiveExtend(val1, decoder);
+
+                            // b[Unzig[zig]] = ac << al;
+                            Block8x8F.SetScalarAt(b, this.Pointers.Unzig[zig], ac << this.al);
+                        }
+                        else
+                        {
+                            if (val0 != 0x0f)
+                            {
+                                decoder.EobRun = (ushort)(1 << val0);
+                                if (val0 != 0)
+                                {
+                                    decoder.EobRun |= (ushort)decoder.DecodeBits(val0);
+                                }
+
+                                decoder.EobRun--;
+                                break;
+                            }
+
+                            zig += 0x0f;
+                        }
+                    }
+                }
+            }
+
+            if (decoder.IsProgressive)
+            {
+                if (this.zigEnd != Block8x8F.ScalarCount - 1 || this.al != 0)
+                {
+                    // We haven't completely decoded this 8x8 block. Save the coefficients. 
+                    // this.ProgCoeffs[compIndex][((@by * XNumberOfMCUs) * hi) + bx] = b.Clone();
+                    decoder.ProgCoeffs[compIndex][((this.by * this.XNumberOfMCUs) * hi) + this.bx] = *b;
+
+                    // At this point, we could execute the rest of the loop body to dequantize and
+                    // perform the inverse DCT, to save early stages of a progressive image to the
+                    // *image.YCbCr buffers (the whole point of progressive encoding), but in Go,
+                    // the jpeg.Decode function does not return until the entire image is decoded,
+                    // so we "continue" here to avoid wasted computation.
+                    return;
+                }
+            }
+
+            // Dequantize, perform the inverse DCT and store the block to the image.
+            Block8x8F.UnZig(b, this.Pointers.QuantiazationTable, this.Pointers.Unzig);
+
+            DCT.TransformIDCT(ref *b, ref *this.Pointers.Temp1, ref *this.Pointers.Temp2);
+
+            var destChannel = decoder.GetDestinationChannel(compIndex);
+            var destArea = destChannel.GetOffsetedSubAreaForBlock(this.bx, this.by);
+            destArea.LoadColorsFrom(this.Pointers.Temp1, this.Pointers.Temp2);
         }
 
         private void ProcessScanImpl(JpegDecoderCore decoder, int i, ref Scan currentScan, ref int totalHv)
@@ -608,110 +744,5 @@ namespace ImageSharp.Formats.Jpg
 
             return zig;
         }
-
-        private void ProcessBlockImpl(JpegDecoderCore decoder, int i, int compIndex, int hi)
-        {
-            var b = this.Pointers.Block;
-            //var dc = this.Pointers.Dc;
-            int huffmannIdx = (AcTableIndex * HuffmanTree.ThRowSize) + this.Pointers.Scan[i].AcTableSelector;
-            if (this.ah != 0)
-            {
-                this.Refine(decoder, ref decoder.HuffmanTrees[huffmannIdx], 1 << this.al);
-            }
-            else
-            {
-                int zig = this.zigStart;
-                if (zig == 0)
-                {
-                    zig++;
-
-                    // Decode the DC coefficient, as specified in section F.2.2.1.
-                    byte value =
-                        decoder.DecodeHuffman(
-                            ref decoder.HuffmanTrees[(DcTableIndex * HuffmanTree.ThRowSize) + this.Pointers.Scan[i].DcTableSelector]);
-                    if (value > 16)
-                    {
-                        throw new ImageFormatException("Excessive DC component");
-                    }
-
-                    int deltaDC = decoder.Bits.ReceiveExtend(value, decoder);
-                    this.Pointers.Dc[compIndex] += deltaDC;
-
-                    // b[0] = dc[compIndex] << al;
-                    Block8x8F.SetScalarAt(b, 0, this.Pointers.Dc[compIndex] << al);
-                }
-
-                if (zig <= this.zigEnd && decoder.EobRun > 0)
-                {
-                    decoder.EobRun--;
-                }
-                else
-                {
-                    // Decode the AC coefficients, as specified in section F.2.2.2.
-                    for (; zig <= this.zigEnd; zig++)
-                    {
-                        byte value = decoder.DecodeHuffman(ref decoder.HuffmanTrees[huffmannIdx]);
-                        byte val0 = (byte)(value >> 4);
-                        byte val1 = (byte)(value & 0x0f);
-                        if (val1 != 0)
-                        {
-                            zig += val0;
-                            if (zig > this.zigEnd)
-                            {
-                                break;
-                            }
-
-                            int ac = decoder.Bits.ReceiveExtend(val1, decoder);
-
-                            // b[Unzig[zig]] = ac << al;
-                            Block8x8F.SetScalarAt(b, this.Pointers.Unzig[zig], ac << this.al);
-                        }
-                        else
-                        {
-                            if (val0 != 0x0f)
-                            {
-                                decoder.EobRun = (ushort)(1 << val0);
-                                if (val0 != 0)
-                                {
-                                    decoder.EobRun |= (ushort)decoder.DecodeBits(val0);
-                                }
-
-                                decoder.EobRun--;
-                                break;
-                            }
-
-                            zig += 0x0f;
-                        }
-                    }
-                }
-            }
-
-            if (decoder.IsProgressive)
-            {
-                if (this.zigEnd != Block8x8F.ScalarCount - 1 || this.al != 0)
-                {
-                    // We haven't completely decoded this 8x8 block. Save the coefficients. 
-                    // this.ProgCoeffs[compIndex][((@by * XNumberOfMCUs) * hi) + bx] = b.Clone();
-                    decoder.ProgCoeffs[compIndex][((this.by * this.XNumberOfMCUs) * hi) + this.bx] = *b;
-
-                    // At this point, we could execute the rest of the loop body to dequantize and
-                    // perform the inverse DCT, to save early stages of a progressive image to the
-                    // *image.YCbCr buffers (the whole point of progressive encoding), but in Go,
-                    // the jpeg.Decode function does not return until the entire image is decoded,
-                    // so we "continue" here to avoid wasted computation.
-                    return;
-                }
-            }
-
-            // Dequantize, perform the inverse DCT and store the block to the image.
-            Block8x8F.UnZig(b, this.Pointers.QuantiazationTable, this.Pointers.Unzig);
-
-            DCT.TransformIDCT(ref *b, ref *this.Pointers.Temp1, ref *this.Pointers.Temp2);
-
-            var destChannel = decoder.GetDestinationChannel(compIndex);
-            var destArea = destChannel.GetOffsetedSubAreaForBlock(this.bx, this.by);
-            destArea.LoadColorsFrom(this.Pointers.Temp1, this.Pointers.Temp2);
-        }
     }
-
 }

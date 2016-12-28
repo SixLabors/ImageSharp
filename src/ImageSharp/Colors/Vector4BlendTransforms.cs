@@ -7,7 +7,6 @@ namespace ImageSharp
 {
     using System;
     using System.Numerics;
-    using Common;
 
     /// <summary>
     /// Transform algorithms that match the equations defined in the W3C Compositing and Blending Level 1 specification.

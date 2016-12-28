@@ -8,7 +8,6 @@ namespace ImageSharp.Colors.Spaces
     using System;
     using System.ComponentModel;
     using System.Numerics;
-    using Common;
 
     /// <summary>
     /// Represents an CIE LAB 1976 color.

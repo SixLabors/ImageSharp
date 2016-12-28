@@ -7,6 +7,7 @@ namespace ImageSharp.Colors.Spaces
 {
     using System;
     using System.ComponentModel;
+    using System.Numerics;
 
     /// <summary>
     /// Represents an YCbCr (luminance, blue chroma, red chroma) color conforming to the full range standard used in digital imaging systems.
@@ -20,6 +21,11 @@ namespace ImageSharp.Colors.Spaces
         public static readonly YCbCr Empty = default(YCbCr);
 
         /// <summary>
+        /// The backing vector for SIMD support.
+        /// </summary>
+        private Vector3 backingVector;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="YCbCr"/> struct.
         /// </summary>
         /// <param name="y">The y luminance component.</param>
@@ -28,28 +34,26 @@ namespace ImageSharp.Colors.Spaces
         public YCbCr(byte y, byte cb, byte cr)
             : this()
         {
-            this.Y = y;
-            this.Cb = cb;
-            this.Cr = cr;
+            this.backingVector = Vector3.Clamp(new Vector3(y, cb, cr), Vector3.Zero, new Vector3(255));
         }
 
         /// <summary>
         /// Gets the Y luminance component.
         /// <remarks>A value ranging between 0 and 255.</remarks>
         /// </summary>
-        public byte Y { get; }
+        public float Y => this.backingVector.X;
 
         /// <summary>
         /// Gets the Cb chroma component.
         /// <remarks>A value ranging between 0 and 255.</remarks>
         /// </summary>
-        public byte Cb { get; }
+        public float Cb => this.backingVector.Y;
 
         /// <summary>
         /// Gets the Cr chroma component.
         /// <remarks>A value ranging between 0 and 255.</remarks>
         /// </summary>
-        public byte Cr { get; }
+        public float Cr => this.backingVector.Z;
 
         /// <summary>
         /// Gets a value indicating whether this <see cref="YCbCr"/> is empty.
@@ -117,13 +121,7 @@ namespace ImageSharp.Colors.Spaces
         /// <inheritdoc/>
         public override int GetHashCode()
         {
-            unchecked
-            {
-                int hashCode = this.Y.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.Cb.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.Cr.GetHashCode();
-                return hashCode;
-            }
+            return GetHashCode(this);
         }
 
         /// <inheritdoc/>
@@ -151,7 +149,18 @@ namespace ImageSharp.Colors.Spaces
         /// <inheritdoc/>
         public bool Equals(YCbCr other)
         {
-            return this.Y == other.Y && this.Cb == other.Cb && this.Cr == other.Cr;
+            return this.backingVector.Equals(other.backingVector);
         }
+
+        /// <summary>
+        /// Returns the hash code for this instance.
+        /// </summary>
+        /// <param name="color">
+        /// The instance of <see cref="YCbCr"/> to return the hash code for.
+        /// </param>
+        /// <returns>
+        /// A 32-bit signed integer that is the hash code for this instance.
+        /// </returns>
+        private static int GetHashCode(YCbCr color) => color.backingVector.GetHashCode();
     }
 }

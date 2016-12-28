@@ -138,7 +138,7 @@ namespace ImageSharp.Colors.Spaces
         /// <inheritdoc/>
         public override int GetHashCode()
         {
-            return GetHashCode(this);
+            return this.backingVector.GetHashCode();
         }
 
         /// <inheritdoc/>
@@ -178,16 +178,5 @@ namespace ImageSharp.Colors.Spaces
                 && result.Y < precision
                 && result.Z < precision;
         }
-
-        /// <summary>
-        /// Returns the hash code for this instance.
-        /// </summary>
-        /// <param name="color">
-        /// The instance of <see cref="CieLab"/> to return the hash code for.
-        /// </param>
-        /// <returns>
-        /// A 32-bit signed integer that is the hash code for this instance.
-        /// </returns>
-        private static int GetHashCode(CieLab color) => color.backingVector.GetHashCode();
     }
 }

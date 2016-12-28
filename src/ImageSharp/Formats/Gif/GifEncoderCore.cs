@@ -282,6 +282,7 @@ namespace ImageSharp.Formats
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             writer.Write(GifConstants.ImageDescriptorLabel); // 2c
+
             // TODO: Can we capture this?
             writer.Write((ushort)0); // Left position
             writer.Write((ushort)0); // Top position

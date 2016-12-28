@@ -8,7 +8,7 @@ namespace ImageSharp.Common
     /// <summary>
     /// Common constants used throughout the project
     /// </summary>
-    public static class Constants
+    internal static class Constants
     {
         /// <summary>
         /// The epsilon for comparing floating point numbers.

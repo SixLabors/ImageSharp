@@ -107,18 +107,6 @@ namespace ImageSharp.Formats.Jpg
         }
 
         /// <summary>
-        /// Initializes the Huffman tree
-        /// </summary>
-        private void Init()
-        {
-            this.Lut = UshortBuffer.Rent(1 << LutSize);
-            this.Values = ByteBuffer.Rent(MaxNCodes);
-            this.MinCodes = IntBuffer.Rent(MaxCodeLength);
-            this.MaxCodes = IntBuffer.Rent(MaxCodeLength);
-            this.Indices = IntBuffer.Rent(MaxCodeLength);
-        }
-
-        /// <summary>
         /// Disposes the underlying buffers
         /// </summary>
         public void Dispose()
@@ -136,7 +124,7 @@ namespace ImageSharp.Formats.Jpg
         /// <param name="decoder">The decoder instance</param>
         /// <param name="defineHuffmanTablesData">The temporal buffer that holds the data that has been read from the Jpeg stream</param>
         /// <param name="remaining">Remaining bits</param>
-        internal void ProcessDefineHuffmanTablesMarkerLoop(
+        public void ProcessDefineHuffmanTablesMarkerLoop(
             JpegDecoderCore decoder,
             byte[] defineHuffmanTablesData,
             ref int remaining)
@@ -225,6 +213,18 @@ namespace ImageSharp.Formats.Jpg
 
                 c <<= 1;
             }
+        }
+
+        /// <summary>
+        /// Initializes the Huffman tree
+        /// </summary>
+        private void Init()
+        {
+            this.Lut = UshortBuffer.Rent(1 << LutSize);
+            this.Values = ByteBuffer.Rent(MaxNCodes);
+            this.MinCodes = IntBuffer.Rent(MaxCodeLength);
+            this.MaxCodes = IntBuffer.Rent(MaxCodeLength);
+            this.Indices = IntBuffer.Rent(MaxCodeLength);
         }
     }
 }

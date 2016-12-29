@@ -15,7 +15,8 @@
   },
   "dependencies": {
     "BenchmarkDotNet.Diagnostics.Windows": "0.10.1",
-    "ImageSharp": "1.0.0-*"
+    "ImageSharp": "1.0.0-*",
+    "ImageSharp.Drawing": "1.0.0-*"
   },
   "commands": {
     "ImageSharp.Benchmarks": "ImageSharp.Benchmarks"

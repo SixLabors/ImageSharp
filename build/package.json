@@ -1,6 +1,0 @@
-{
-  "dependencies": {
-    "jsonfile": "^2.2.3",
-    "semver": "^5.0.3"
-  }
-}

@@ -21,7 +21,7 @@ namespace ImageSharp.Formats
         /// </summary>
         public const int MaxComponents = 4;
 
-        // Complex value type field + mutable + available to other classes == the field MUST NOT be private :P
+        // Complex value type field + mutable + available to other classes = the field MUST NOT be private :P
 #pragma warning disable SA1401 // FieldsMustBePrivate
         /// <summary>
         /// Holds the unprocessed bits that have been taken from the byte-stream.
@@ -650,14 +650,15 @@ namespace ImageSharp.Formats
                     height,
                     y =>
                     {
+                        // TODO: Simplify + optimize + share duplicate code across converter methods
                         int yo = this.ycbcrImage.GetRowYOffset(y);
                         int co = this.ycbcrImage.GetRowCOffset(y);
 
                         for (int x = 0; x < width; x++)
                         {
-                            byte cyan = this.ycbcrImage.YPixels[yo + x];
-                            byte magenta = this.ycbcrImage.CbPixels[co + (x / scale)];
-                            byte yellow = this.ycbcrImage.CrPixels[co + (x / scale)];
+                            byte cyan = this.ycbcrImage.YChannel.Pixels[yo + x];
+                            byte magenta = this.ycbcrImage.CbChannel.Pixels[co + (x / scale)];
+                            byte yellow = this.ycbcrImage.CrChannel.Pixels[co + (x / scale)];
 
                             TColor packed = default(TColor);
                             this.PackCmyk<TColor>(ref packed, cyan, magenta, yellow, x, y);
@@ -725,14 +726,15 @@ namespace ImageSharp.Formats
                     Bootstrapper.ParallelOptions,
                     y =>
                     {
+                        // TODO: Simplify + optimize + share duplicate code across converter methods
                         int yo = this.ycbcrImage.GetRowYOffset(y);
                         int co = this.ycbcrImage.GetRowCOffset(y);
 
                         for (int x = 0; x < width; x++)
                         {
-                            byte red = this.ycbcrImage.YPixels[yo + x];
-                            byte green = this.ycbcrImage.CbPixels[co + (x / scale)];
-                            byte blue = this.ycbcrImage.CrPixels[co + (x / scale)];
+                            byte red = this.ycbcrImage.YChannel.Pixels[yo + x];
+                            byte green = this.ycbcrImage.CbChannel.Pixels[co + (x / scale)];
+                            byte blue = this.ycbcrImage.CrChannel.Pixels[co + (x / scale)];
 
                             TColor packed = default(TColor);
                             packed.PackFromBytes(red, green, blue, 255);
@@ -765,14 +767,15 @@ namespace ImageSharp.Formats
                     Bootstrapper.ParallelOptions,
                     y =>
                     {
+                        // TODO: Simplify + optimize + share duplicate code across converter methods
                         int yo = this.ycbcrImage.GetRowYOffset(y);
                         int co = this.ycbcrImage.GetRowCOffset(y);
 
                         for (int x = 0; x < width; x++)
                         {
-                            byte yy = this.ycbcrImage.YPixels[yo + x];
-                            byte cb = this.ycbcrImage.CbPixels[co + (x / scale)];
-                            byte cr = this.ycbcrImage.CrPixels[co + (x / scale)];
+                            byte yy = this.ycbcrImage.YChannel.Pixels[yo + x];
+                            byte cb = this.ycbcrImage.CbChannel.Pixels[co + (x / scale)];
+                            byte cr = this.ycbcrImage.CrChannel.Pixels[co + (x / scale)];
 
                             TColor packed = default(TColor);
                             PackYcbCr<TColor>(ref packed, yy, cb, cr);
@@ -805,14 +808,15 @@ namespace ImageSharp.Formats
                     height,
                     y =>
                     {
+                        // TODO: Simplify + optimize + share duplicate code across converter methods
                         int yo = this.ycbcrImage.GetRowYOffset(y);
                         int co = this.ycbcrImage.GetRowCOffset(y);
 
                         for (int x = 0; x < width; x++)
                         {
-                            byte yy = this.ycbcrImage.YPixels[yo + x];
-                            byte cb = this.ycbcrImage.CbPixels[co + (x / scale)];
-                            byte cr = this.ycbcrImage.CrPixels[co + (x / scale)];
+                            byte yy = this.ycbcrImage.YChannel.Pixels[yo + x];
+                            byte cb = this.ycbcrImage.CbChannel.Pixels[co + (x / scale)];
+                            byte cr = this.ycbcrImage.CrChannel.Pixels[co + (x / scale)];
 
                             TColor packed = default(TColor);
                             this.PackYcck<TColor>(ref packed, yy, cb, cr, x, y);

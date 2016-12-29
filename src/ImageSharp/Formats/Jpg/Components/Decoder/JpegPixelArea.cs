@@ -50,6 +50,8 @@ namespace ImageSharp.Formats.Jpg
         /// </summary>
         public MutableSpan<byte> Span => new MutableSpan<byte>(this.Pixels, this.Offset);
 
+        private static ArrayPool<byte> BytePool => ArrayPool<byte>.Shared;
+
         /// <summary>
         /// Returns the pixel at (x, y)
         /// </summary>
@@ -93,8 +95,6 @@ namespace ImageSharp.Formats.Jpg
             BytePool.Return(this.Pixels);
             this.Pixels = null;
         }
-
-        private static ArrayPool<byte> BytePool => ArrayPool<byte>.Shared;
 
         /// <summary>
         /// Gets the subarea that belongs to the Block8x8 defined by block indices

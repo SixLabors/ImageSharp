@@ -162,7 +162,7 @@ namespace ImageSharp.Colors.Spaces
         /// <inheritdoc/>
         public bool Equals(Cmyk other)
         {
-            return this.AlmostEquals(other, Constants.Epsilon);
+            return this.backingVector.Equals(other.backingVector);
         }
 
         /// <inheritdoc/>
@@ -170,10 +170,10 @@ namespace ImageSharp.Colors.Spaces
         {
             Vector4 result = Vector4.Abs(this.backingVector - other.backingVector);
 
-            return result.X < precision
-                && result.Y < precision
-                && result.Z < precision
-                && result.W < precision;
+            return result.X <= precision
+                && result.Y <= precision
+                && result.Z <= precision
+                && result.W <= precision;
         }
     }
 }

@@ -4,6 +4,7 @@
 // </copyright>
 namespace ImageSharp.Formats.Jpg
 {
+    using System.Buffers;
     using System.Runtime.CompilerServices;
 
     /// <summary>
@@ -75,7 +76,7 @@ namespace ImageSharp.Formats.Jpg
         public static JpegPixelArea CreatePooled(int width, int height)
         {
             int size = width * height;
-            var pixels = CleanPooler<byte>.RentCleanArray(size);
+            var pixels = BytePool.Rent(size);
             return new JpegPixelArea(pixels, width, 0);
         }
 
@@ -89,9 +90,11 @@ namespace ImageSharp.Formats.Jpg
                 return;
             }
 
-            CleanPooler<byte>.ReturnArray(this.Pixels);
+            BytePool.Return(this.Pixels);
             this.Pixels = null;
         }
+
+        private static ArrayPool<byte> BytePool => ArrayPool<byte>.Shared;
 
         /// <summary>
         /// Gets the subarea that belongs to the Block8x8 defined by block indices

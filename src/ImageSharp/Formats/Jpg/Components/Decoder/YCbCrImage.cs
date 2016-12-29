@@ -5,6 +5,7 @@
 namespace ImageSharp.Formats.Jpg
 {
     using System;
+    using System.Buffers;
 
     /// <summary>
     ///     Represents an image made up of three color components (luminance, blue chroma, red chroma)
@@ -21,9 +22,9 @@ namespace ImageSharp.Formats.Jpg
         {
             int cw, ch;
             YCbCrSize(width, height, ratio, out cw, out ch);
-            this.YPixels = CleanPooler<byte>.RentCleanArray(width * height);
-            this.CbPixels = CleanPooler<byte>.RentCleanArray(cw * ch);
-            this.CrPixels = CleanPooler<byte>.RentCleanArray(cw * ch);
+            this.YPixels = BytePool.Rent(width * height);
+            this.CbPixels = BytePool.Rent(cw * ch);
+            this.CrPixels = BytePool.Rent(cw * ch);
             this.Ratio = ratio;
             this.YOffset = 0;
             this.COffset = 0;
@@ -66,6 +67,8 @@ namespace ImageSharp.Formats.Jpg
             /// </summary>
             YCbCrSubsampleRatio410,
         }
+
+        private static ArrayPool<byte> BytePool => ArrayPool<byte>.Shared;
 
         /// <summary>
         ///     Gets an offseted <see cref="JpegPixelArea" /> to the Cb channel
@@ -128,9 +131,9 @@ namespace ImageSharp.Formats.Jpg
         /// </summary>
         public void Dispose()
         {
-            CleanPooler<byte>.ReturnArray(this.YPixels);
-            CleanPooler<byte>.ReturnArray(this.CrPixels);
-            CleanPooler<byte>.ReturnArray(this.CbPixels);
+            BytePool.Return(this.YPixels);
+            BytePool.Return(this.CrPixels);
+            BytePool.Return(this.CbPixels);
         }
 
         /// <summary>

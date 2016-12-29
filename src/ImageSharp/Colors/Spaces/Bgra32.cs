@@ -20,6 +20,16 @@ namespace ImageSharp.Colors.Spaces
         public static readonly Bgra32 Empty = default(Bgra32);
 
         /// <summary>
+        /// Min range used for clamping
+        /// </summary>
+        private static readonly Vector4 VectorMin = Vector4.Zero;
+
+        /// <summary>
+        /// Max range used for clamping
+        /// </summary>
+        private static readonly Vector4 VectorMax = new Vector4(255);
+
+        /// <summary>
         /// The backing vector for SIMD support.
         /// </summary>
         private readonly Vector4 backingVector;
@@ -34,7 +44,7 @@ namespace ImageSharp.Colors.Spaces
         public Bgra32(byte b, byte g, byte r, byte a = 255)
             : this()
         {
-            this.backingVector = Vector4.Clamp(new Vector4(b, g, r, a), Vector4.Zero, new Vector4(255));
+            this.backingVector = Vector4.Clamp(new Vector4(b, g, r, a), VectorMin, VectorMax);
         }
 
         /// <summary>

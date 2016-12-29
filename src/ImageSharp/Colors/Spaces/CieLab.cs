@@ -161,7 +161,7 @@ namespace ImageSharp.Colors.Spaces
         /// <inheritdoc/>
         public bool Equals(CieLab other)
         {
-            return this.AlmostEquals(other, Constants.Epsilon);
+            return this.backingVector.Equals(other.backingVector);
         }
 
         /// <inheritdoc/>
@@ -169,9 +169,9 @@ namespace ImageSharp.Colors.Spaces
         {
             Vector3 result = Vector3.Abs(this.backingVector - other.backingVector);
 
-            return result.X < precision
-                && result.Y < precision
-                && result.Z < precision;
+            return result.X <= precision
+                && result.Y <= precision
+                && result.Z <= precision;
         }
     }
 }

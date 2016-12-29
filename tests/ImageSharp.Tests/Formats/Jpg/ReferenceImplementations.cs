@@ -1,4 +1,9 @@
-﻿// ReSharper disable InconsistentNaming
+﻿// <copyright file="ReferenceImplementations.cs" company="James Jackson-South">
+// Copyright (c) James Jackson-South and contributors.
+// Licensed under the Apache License, Version 2.0.
+// </copyright>
+
+// ReSharper disable InconsistentNaming
 
 namespace ImageSharp.Tests
 {
@@ -8,7 +13,7 @@ namespace ImageSharp.Tests
 
     using ImageSharp.Formats;
     using ImageSharp.Formats.Jpg;
-
+    
     /// <summary>
     /// This class contains simplified (unefficient) reference implementations to produce verification data for unit tests
     /// Floating point DCT code Ported from https://github.com/norishigefukushima/dct_simd
@@ -48,6 +53,9 @@ namespace ImageSharp.Tests
             }
         }
 
+        /// <summary>
+        /// The "original" libjpeg/golang based DCT implementation is used as reference implementation for tests.
+        /// </summary>
         public static class IntegerReferenceDCT
         {
             private const int fix_0_298631336 = 2446;

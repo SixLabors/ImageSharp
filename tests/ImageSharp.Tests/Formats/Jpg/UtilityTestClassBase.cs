@@ -1,4 +1,9 @@
-﻿using System.Text;
+﻿// <copyright file="UtilityTestClassBase.cs" company="James Jackson-South">
+// Copyright (c) James Jackson-South and contributors.
+// Licensed under the Apache License, Version 2.0.
+// </copyright>
+
+using System.Text;
 using ImageSharp.Formats;
 using Xunit.Abstractions;
 // ReSharper disable InconsistentNaming
@@ -15,7 +20,7 @@ namespace ImageSharp.Tests
     /// <summary>
     /// Utility class to measure the execution of an operation.
     /// </summary>
-    public class MeasureFixture
+    public class MeasureFixture : TestBase
     {
         protected bool EnablePrinting = true;
 

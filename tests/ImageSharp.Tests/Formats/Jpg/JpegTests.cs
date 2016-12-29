@@ -1,4 +1,9 @@
-﻿using System;
+﻿// <copyright file="JpegTests.cs" company="James Jackson-South">
+// Copyright (c) James Jackson-South and contributors.
+// Licensed under the Apache License, Version 2.0.
+// </copyright>
+
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -83,13 +88,13 @@ namespace ImageSharp.Tests
             byte[] bytes = File.ReadAllBytes(path);
 
             this.Measure(
-                40,
+                100,
                 () =>
                     {
                         Image img = new Image(bytes);
                     },
                 $"Decode {fileName}");
-            
+
         }
 
         //[Theory] // Benchmark, enable manually
@@ -128,7 +133,7 @@ namespace ImageSharp.Tests
                     for (int j = 0; j < 10; j++)
                     {
                         Vector4 v = new Vector4(i/10f, j/10f, 0, 1);
-                        
+
                         TColor color = default(TColor);
                         color.PackFromVector4(v);
 
@@ -166,11 +171,11 @@ namespace ImageSharp.Tests
 
         [Theory]
         [WithMemberFactory(nameof(CreateTestImage), PixelTypes.Color | PixelTypes.StandardImageClass | PixelTypes.Argb)]
-        public void CopyStretchedRGBTo_WithOffset<TColor>(TestImageProvider<TColor> provider) 
+        public void CopyStretchedRGBTo_WithOffset<TColor>(TestImageProvider<TColor> provider)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             var src = provider.GetImage();
-            
+
             PixelArea<TColor> area = new PixelArea<TColor>(8, 8, ComponentOrder.Xyz);
             var dest = provider.Factory.CreateImage(8, 8);
 

@@ -71,6 +71,23 @@ namespace ConsoleApplication
 
                 // lets build version friendly commit
                 string branch = repo.Head.FriendlyName;
+
+                // lets see if we are running in appveyor
+                var appveryorBranch = Environment.GetEnvironmentVariable("APPVEYOR_REPO_BRANCH");
+                if (!string.IsNullOrWhiteSpace(appveryorBranch))
+                {
+                    branch = appveryorBranch;
+                }
+
+                var prNumber = Environment.GetEnvironmentVariable("APPVEYOR_PULL_REQUEST_NUMBER");
+                if (!string.IsNullOrWhiteSpace(prNumber))
+                {
+                    branch = "PR" + prNumber;
+                }
+                if(branch == "(no branch)")
+                {
+                    throw new Exception("unable to find branch");
+                }
                 branch = branch.Replace("/", "-").Replace("--", "-");
                 if (branch == "master")
                 {

@@ -1,4 +1,9 @@
-﻿// Uncomment this to turn unit tests into benchmarks:
+﻿// <copyright file="Block8x8FTests.cs" company="James Jackson-South">
+// Copyright (c) James Jackson-South and contributors.
+// Licensed under the Apache License, Version 2.0.
+// </copyright>
+
+// Uncomment this to turn unit tests into benchmarks:
 //#define BENCHMARKING
 
 // ReSharper disable InconsistentNaming

@@ -85,8 +85,6 @@ namespace ImageSharp.Formats.Jpg
             YCbCrSubsampleRatio410,
         }
 
-        private static ArrayPool<byte> BytePool => ArrayPool<byte>.Shared;
-
         /// <summary>
         /// Gets the Y slice index delta between vertically adjacent pixels.
         /// </summary>

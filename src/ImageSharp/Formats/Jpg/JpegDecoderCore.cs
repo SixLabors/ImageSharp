@@ -1104,7 +1104,7 @@ namespace ImageSharp.Formats
                 throw new ImageFormatException("DRI has wrong length");
             }
 
-            this.ReadFull(this.Temp, 0, 2);
+            this.ReadFull(this.Temp, 0, remaining);
             this.RestartInterval = ((int)this.Temp[0] << 8) + (int)this.Temp[1];
         }
 
@@ -1453,14 +1453,8 @@ namespace ImageSharp.Formats
         /// <summary>
         /// The missing ff00 exception.
         /// </summary>
+        // ReSharper disable once InconsistentNaming
         internal class MissingFF00Exception : Exception
-        {
-        }
-
-        /// <summary>
-        /// The short huffman data exception.
-        /// </summary>
-        private class ShortHuffmanDataException : Exception
         {
         }
     }

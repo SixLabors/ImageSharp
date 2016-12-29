@@ -9,6 +9,7 @@ environment:
   version_suffix: alpha
 
 install:
+- choco install gitversion.portable -pre -y
 # Use the install script to grab the latest dotnet install
 - ps: iex .\dotnet-latest.ps1
 
@@ -17,31 +18,11 @@ install:
 # the parent CMD process).
 - "SET PATH=C:\\Program Files\\dotnet\\bin;%PATH%"
 
-- ps: .\build\appveyor-semver.ps1
-- ps: Update-AppveyorBuild -Version "v$Env:appveyor_version"
-
-assembly_info:
-  patch: true
-  file: '**\AssemblyInfo.*'
-  assembly_version: '$(ms_file_version)'
-  assembly_file_version: '$(ms_file_version)'
-  assembly_informational_version: '$(mssemver)'
-
 before_build:
-- cmd: >-
-    dotnet restore src\ImageSharp
-
-    cd build
-
-    npm install
-
-    node appveyor-project-version-patch.js
-
-    cd..
+- ps: gitversion /l console /output buildserver /updateAssemblyInfo
 
 build_script:
-- cmd: >-
-    dotnet pack src\ImageSharp --configuration Release --output "artifacts\bin\ImageSharp"
+- cmd: build.cmd
 
 test_script:
 - tests\CodeCoverage\CodeCoverage.cmd

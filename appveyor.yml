@@ -9,7 +9,6 @@ environment:
   version_suffix: alpha
 
 install:
-- choco install gitversion.portable -pre -y
 # Use the install script to grab the latest dotnet install
 - ps: iex .\dotnet-latest.ps1
 
@@ -17,9 +16,6 @@ install:
 # done from inside the powershell script as it would require to restart
 # the parent CMD process).
 - "SET PATH=C:\\Program Files\\dotnet\\bin;%PATH%"
-
-before_build:
-- ps: gitversion /l console /output buildserver /updateAssemblyInfo
 
 build_script:
 - cmd: build.cmd

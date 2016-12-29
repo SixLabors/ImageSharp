@@ -8,62 +8,79 @@ namespace ImageSharp.Formats.Jpg
     using System.Buffers;
 
     /// <summary>
-    ///     Represents an image made up of three color components (luminance, blue chroma, red chroma)
+    /// Represents an image made up of three color components (luminance, blue chroma, red chroma)
     /// </summary>
     internal class YCbCrImage : IDisposable
     {
+        // Complex value type field + mutable + available to other classes = the field MUST NOT be private :P
+#pragma warning disable SA1401 // FieldsMustBePrivate
         /// <summary>
-        ///     Initializes a new instance of the <see cref="YCbCrImage" /> class.
+        /// Gets the luminance components channel as <see cref="JpegPixelArea" />.
+        /// </summary>
+        public JpegPixelArea YChannel;
+
+        /// <summary>
+        /// Gets the blue chroma components channel as <see cref="JpegPixelArea" />.
+        /// </summary>
+        public JpegPixelArea CbChannel;
+
+        /// <summary>
+        /// Gets an offseted <see cref="JpegPixelArea" /> to the Cr channel
+        /// </summary>
+        public JpegPixelArea CrChannel;
+#pragma warning restore SA1401
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="YCbCrImage" /> class.
         /// </summary>
         /// <param name="width">The width.</param>
         /// <param name="height">The height.</param>
         /// <param name="ratio">The ratio.</param>
         public YCbCrImage(int width, int height, YCbCrSubsampleRatio ratio)
         {
-            int cw, ch;
-            YCbCrSize(width, height, ratio, out cw, out ch);
-            this.YPixels = BytePool.Rent(width * height);
-            this.CbPixels = BytePool.Rent(cw * ch);
-            this.CrPixels = BytePool.Rent(cw * ch);
+            Size cSize = CalculateChrominanceSize(width, height, ratio);
+
             this.Ratio = ratio;
-            this.YOffset = 0;
-            this.COffset = 0;
             this.YStride = width;
-            this.CStride = cw;
+            this.CStride = cSize.Width;
+
+            this.YChannel = JpegPixelArea.CreatePooled(width, height);
+            this.CbChannel = JpegPixelArea.CreatePooled(cSize.Width, cSize.Height);
+            this.CrChannel = JpegPixelArea.CreatePooled(cSize.Width, cSize.Height);
         }
 
         /// <summary>
-        ///     Provides enumeration of the various available subsample ratios.
+        /// Provides enumeration of the various available subsample ratios.
         /// </summary>
         public enum YCbCrSubsampleRatio
         {
             /// <summary>
-            ///     YCbCrSubsampleRatio444
+            /// YCbCrSubsampleRatio444
             /// </summary>
             YCbCrSubsampleRatio444,
 
             /// <summary>
-            ///     YCbCrSubsampleRatio422
+            /// YCbCrSubsampleRatio422
             /// </summary>
             YCbCrSubsampleRatio422,
 
             /// <summary>
-            ///     YCbCrSubsampleRatio420
+            /// YCbCrSubsampleRatio420
             /// </summary>
             YCbCrSubsampleRatio420,
 
             /// <summary>
-            ///     YCbCrSubsampleRatio440
+            /// YCbCrSubsampleRatio440
             /// </summary>
             YCbCrSubsampleRatio440,
 
             /// <summary>
-            ///     YCbCrSubsampleRatio411
+            /// YCbCrSubsampleRatio411
             /// </summary>
             YCbCrSubsampleRatio411,
 
             /// <summary>
-            ///     YCbCrSubsampleRatio410
+            /// YCbCrSubsampleRatio410
             /// </summary>
             YCbCrSubsampleRatio410,
         }
@@ -71,77 +88,37 @@ namespace ImageSharp.Formats.Jpg
         private static ArrayPool<byte> BytePool => ArrayPool<byte>.Shared;
 
         /// <summary>
-        ///     Gets an offseted <see cref="JpegPixelArea" /> to the Cb channel
-        /// </summary>
-        public JpegPixelArea CbChannel => new JpegPixelArea(this.CbPixels, this.CStride, this.COffset);
-
-        /// <summary>
-        ///     Gets the blue chroma components channel.
-        /// </summary>
-        public byte[] CbPixels { get; }
-
-        /// <summary>
-        ///     Gets the index of the first element of red or blue chroma.
-        /// </summary>
-        public int COffset { get; }
-
-        /// <summary>
-        ///     Gets an offseted <see cref="JpegPixelArea" /> to the Cr channel
-        /// </summary>
-        public JpegPixelArea CrChannel => new JpegPixelArea(this.CrPixels, this.CStride, this.COffset);
-
-        /// <summary>
-        ///     Gets the red chroma components channel.
-        /// </summary>
-        public byte[] CrPixels { get; }
-
-        /// <summary>
-        ///     Gets the red and blue chroma slice index delta between vertically adjacent pixels
-        ///     that map to separate chroma samples.
-        /// </summary>
-        public int CStride { get; }
-
-        /// <summary>
-        ///     Gets or sets the subsampling ratio.
-        /// </summary>
-        public YCbCrSubsampleRatio Ratio { get; set; }
-
-        /// <summary>
-        ///     Gets an offseted <see cref="JpegPixelArea" /> to the Y channel
-        /// </summary>
-        public JpegPixelArea YChannel => new JpegPixelArea(this.YPixels, this.YStride, this.YOffset);
-
-        /// <summary>
-        ///     Gets the index of the first luminance element.
-        /// </summary>
-        public int YOffset { get; }
-
-        /// <summary>
-        ///     Gets the luminance components channel.
-        /// </summary>
-        public byte[] YPixels { get; }
-
-        /// <summary>
-        ///     Gets the Y slice index delta between vertically adjacent pixels.
+        /// Gets the Y slice index delta between vertically adjacent pixels.
         /// </summary>
         public int YStride { get; }
 
         /// <summary>
-        ///     Disposes the <see cref="YCbCrImage" /> returning rented arrays to the pools.
+        /// Gets the red and blue chroma slice index delta between vertically adjacent pixels
+        /// that map to separate chroma samples.
+        /// </summary>
+        public int CStride { get; }
+
+        /// <summary>
+        /// Gets or sets the subsampling ratio.
+        /// </summary>
+        public YCbCrSubsampleRatio Ratio { get; set; }
+
+        /// <summary>
+        /// Disposes the <see cref="YCbCrImage" /> returning rented arrays to the pools.
         /// </summary>
         public void Dispose()
         {
-            BytePool.Return(this.YPixels);
-            BytePool.Return(this.CrPixels);
-            BytePool.Return(this.CbPixels);
+            this.YChannel.ReturnPooled();
+            this.CbChannel.ReturnPooled();
+            this.CrChannel.ReturnPooled();
         }
 
         /// <summary>
-        ///     Returns the offset of the first chroma component at the given row
+        /// Returns the offset of the first chroma component at the given row
         /// </summary>
         /// <param name="y">The row number.</param>
         /// <returns>
-        ///     The <see cref="int" />.
+        /// The <see cref="int" />.
         /// </returns>
         public int GetRowCOffset(int y)
         {
@@ -163,11 +140,11 @@ namespace ImageSharp.Formats.Jpg
         }
 
         /// <summary>
-        ///     Returns the offset of the first luminance component at the given row
+        /// Returns the offset of the first luminance component at the given row
         /// </summary>
         /// <param name="y">The row number.</param>
         /// <returns>
-        ///     The <see cref="int" />.
+        /// The <see cref="int" />.
         /// </returns>
         public int GetRowYOffset(int y)
         {
@@ -175,48 +152,32 @@ namespace ImageSharp.Formats.Jpg
         }
 
         /// <summary>
-        ///     Returns the height and width of the chroma components
+        /// Returns the height and width of the chroma components
         /// </summary>
         /// <param name="width">The width.</param>
         /// <param name="height">The height.</param>
         /// <param name="ratio">The subsampling ratio.</param>
-        /// <param name="chromaWidth">The chroma width.</param>
-        /// <param name="chromaHeight">The chroma height.</param>
-        private static void YCbCrSize(
+        /// <returns>The <see cref="Size"/> of the chrominance channel</returns>
+        internal static Size CalculateChrominanceSize(
             int width,
             int height,
-            YCbCrSubsampleRatio ratio,
-            out int chromaWidth,
-            out int chromaHeight)
+            YCbCrSubsampleRatio ratio)
         {
             switch (ratio)
             {
                 case YCbCrSubsampleRatio.YCbCrSubsampleRatio422:
-                    chromaWidth = (width + 1) / 2;
-                    chromaHeight = height;
-                    break;
+                    return new Size((width + 1) / 2, height);
                 case YCbCrSubsampleRatio.YCbCrSubsampleRatio420:
-                    chromaWidth = (width + 1) / 2;
-                    chromaHeight = (height + 1) / 2;
-                    break;
+                    return new Size((width + 1) / 2, (height + 1) / 2);
                 case YCbCrSubsampleRatio.YCbCrSubsampleRatio440:
-                    chromaWidth = width;
-                    chromaHeight = (height + 1) / 2;
-                    break;
+                    return new Size(width, (height + 1) / 2);
                 case YCbCrSubsampleRatio.YCbCrSubsampleRatio411:
-                    chromaWidth = (width + 3) / 4;
-                    chromaHeight = height;
-                    break;
+                    return new Size((width + 3) / 4, height);
                 case YCbCrSubsampleRatio.YCbCrSubsampleRatio410:
-                    chromaWidth = (width + 3) / 4;
-                    chromaHeight = (height + 1) / 2;
-                    break;
+                    return new Size((width + 3) / 4, (height + 1) / 2);
                 default:
-
                     // Default to 4:4:4 subsampling.
-                    chromaWidth = width;
-                    chromaHeight = height;
-                    break;
+                    return new Size(width, height);
             }
         }
     }

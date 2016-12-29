@@ -1,0 +1,22 @@
+{
+  "version": "1.0.0-*",
+  "buildOptions": {
+    "debugType": "portable",
+    "emitEntryPoint": true
+  },
+  "dependencies": {
+    "Microsoft.DotNet.ProjectModel": "1.0.0-rc3-003121",
+    "LibGit2Sharp":  "0.23.0"
+  },
+  "frameworks": {
+    "net46": {
+      //"dependencies": {
+      //  "Microsoft.NETCore.App": {
+      //    "type": "platform",
+      //    "version": "1.0.0"
+      //  }
+      //},
+      //"imports": "dnxcore50"
+    }
+  }
+}

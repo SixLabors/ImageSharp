@@ -20,6 +20,16 @@ namespace ImageSharp.Colors.Spaces
         public static readonly Cmyk Empty = default(Cmyk);
 
         /// <summary>
+        /// Min range used for clamping
+        /// </summary>
+        private static readonly Vector4 VectorMin = Vector4.Zero;
+
+        /// <summary>
+        /// Max range used for clamping
+        /// </summary>
+        private static readonly Vector4 VectorMax = Vector4.One;
+
+        /// <summary>
         /// The backing vector for SIMD support.
         /// </summary>
         private readonly Vector4 backingVector;
@@ -34,7 +44,7 @@ namespace ImageSharp.Colors.Spaces
         public Cmyk(float c, float m, float y, float k)
             : this()
         {
-            this.backingVector = Vector4.Clamp(new Vector4(c, m, y, k), Vector4.Zero, Vector4.One);
+            this.backingVector = Vector4.Clamp(new Vector4(c, m, y, k), VectorMin, VectorMax);
         }
 
         /// <summary>

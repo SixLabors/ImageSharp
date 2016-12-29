@@ -420,7 +420,7 @@ namespace ImageSharp.Formats
         private void Encode444<TColor>(PixelAccessor<TColor> pixels)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            // TODO: Need a JpegEncoderScanProcessor<TColor> struct to encapsulate all this mess:
+            // TODO: Need a JpegScanEncoder<TColor> class or struct that encapsulates the scan-encoding implementation. (Similar to JpegScanDecoder.)
             Block8x8F b = default(Block8x8F);
             Block8x8F cb = default(Block8x8F);
             Block8x8F cr = default(Block8x8F);
@@ -759,7 +759,7 @@ namespace ImageSharp.Formats
         private void WriteStartOfScan<TColor>(PixelAccessor<TColor> pixels)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            // TODO: This method should be the entry point for a JpegEncoderScanProcessor<TColor> struct
+            // TODO: Need a JpegScanEncoder<TColor> class or struct that encapsulates the scan-encoding implementation. (Similar to JpegScanDecoder.)
             // TODO: We should allow grayscale writing.
             this.outputStream.Write(SosHeaderYCbCr, 0, SosHeaderYCbCr.Length);
 
@@ -786,7 +786,7 @@ namespace ImageSharp.Formats
         private void Encode420<TColor>(PixelAccessor<TColor> pixels)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            // TODO: Need a JpegEncoderScanProcessor<TColor> struct to encapsulate all this mess:
+            // TODO: Need a JpegScanEncoder<TColor> class or struct that encapsulates the scan-encoding implementation. (Similar to JpegScanDecoder.)
             Block8x8F b = default(Block8x8F);
 
             BlockQuad cb = default(BlockQuad);

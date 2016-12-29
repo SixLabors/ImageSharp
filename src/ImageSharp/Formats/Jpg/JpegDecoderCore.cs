@@ -21,16 +21,8 @@ namespace ImageSharp.Formats
         /// </summary>
         public const int MaxComponents = 4;
 
-        /// <summary>
-        /// The App14 marker color-space
-        /// </summary>
-        private byte adobeTransform;
-
-        /// <summary>
-        /// Whether the image is in CMYK format with an App14 marker
-        /// </summary>
-        private bool adobeTransformValid;
-
+        // Complex value type field + mutable + available to other classes == the field MUST NOT be private :P
+#pragma warning disable SA1401 // FieldsMustBePrivate
         /// <summary>
         /// Holds the unprocessed bits that have been taken from the byte-stream.
         /// </summary>
@@ -40,11 +32,22 @@ namespace ImageSharp.Formats
         /// The byte buffer.
         /// </summary>
         public Bytes Bytes;
-        
+#pragma warning restore SA401
+
         /// <summary>
-        /// End-of-Band run, specified in section G.1.2.2.
+        /// The maximum number of quantization tables
         /// </summary>
-        public ushort EobRun;
+        private const int MaxTq = 3;
+
+        /// <summary>
+        /// The App14 marker color-space
+        /// </summary>
+        private byte adobeTransform;
+
+        /// <summary>
+        /// Whether the image is in CMYK format with an App14 marker
+        /// </summary>
+        private bool adobeTransformValid;
 
         /// <summary>
         /// The black image to decode to.
@@ -60,17 +63,12 @@ namespace ImageSharp.Formats
         /// The horizontal resolution. Calculated if the image has a JFIF header.
         /// </summary>
         private short horizontalResolution;
-        
-        /// <summary>
-        /// The maximum number of quantization tables
-        /// </summary>
-        private const int MaxTq = 3;
-        
+
         /// <summary>
         /// Whether the image has a JFIF header
         /// </summary>
         private bool isJfif;
-        
+
         /// <summary>
         /// The vertical resolution. Calculated if the image has a JFIF header.
         /// </summary>
@@ -112,43 +110,44 @@ namespace ImageSharp.Formats
             MissingFF00
         }
 
-
         /// <summary>
-        /// The component array
+        /// Gets the component array
         /// </summary>
         public Component[] ComponentArray { get; }
 
         /// <summary>
-        /// The huffman trees
+        /// Gets the huffman trees
         /// </summary>
         public HuffmanTree[] HuffmanTrees { get; }
 
         /// <summary>
-        /// Saved state between progressive-mode scans.
+        /// Gets the saved state between progressive-mode scans.
         /// </summary>
         public Block8x8F[][] ProgCoeffs { get; }
 
         /// <summary>
-        /// Quantization tables, in zigzag order.
+        /// Gets the quantization tables, in zigzag order.
         /// </summary>
         public Block8x8F[] QuantizationTables { get; }
 
         /// <summary>
-        /// A temporary buffer for holding pixels
+        /// Gets the temporary buffer for holding pixel (and other?) data
         /// </summary>
         // TODO: the usage rules of this buffer seem to be unclean + need to consider stack-allocating it for perf
         public byte[] Temp { get; }
+
         /// <summary>
-        /// The number of color components within the image.
+        /// Gets the number of color components within the image.
         /// </summary>
         public int ComponentCount { get; private set; }
+
         /// <summary>
-        /// The image height
+        /// Gets the image height
         /// </summary>
         public int ImageHeight { get; private set; }
 
         /// <summary>
-        /// The image width
+        /// Gets the image width
         /// </summary>
         public int ImageWidth { get; private set; }
 
@@ -156,16 +155,17 @@ namespace ImageSharp.Formats
         /// Gets the input stream.
         /// </summary>
         public Stream InputStream { get; private set; }
+
         /// <summary>
-        /// Whether the image is interlaced (progressive)
+        /// Gets a value indicating whether the image is interlaced (progressive)
         /// </summary>
         public bool IsProgressive { get; private set; }
 
         /// <summary>
-        /// The restart interval
+        /// Gets the restart interval
         /// </summary>
         public int RestartInterval { get; private set; }
-        
+
         /// <summary>
         /// Decodes the image from the specified this._stream and sets
         /// the data to image.
@@ -407,9 +407,30 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <returns>The <see cref="byte" /></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal byte ReadByte()
+        public byte ReadByte()
         {
             return this.Bytes.ReadByte(this.InputStream);
+        }
+
+        /// <summary>
+        /// Decodes a single bit
+        /// </summary>
+        /// <returns>The <see cref="bool" /></returns>
+        public bool DecodeBit()
+        {
+            if (this.Bits.UnreadBits == 0)
+            {
+                ErrorCodes errorCode = this.Bits.EnsureNBits(1, this);
+                if (errorCode != ErrorCodes.NoError)
+                {
+                    throw new MissingFF00Exception();
+                }
+            }
+
+            bool ret = (this.Bits.Accumulator & this.Bits.Mask) != 0;
+            this.Bits.UnreadBits--;
+            this.Bits.Mask >>= 1;
+            return ret;
         }
 
         /// <summary>
@@ -418,7 +439,7 @@ namespace ImageSharp.Formats
         /// <param name="data">The data to write to.</param>
         /// <param name="offset">The offset in the source buffer</param>
         /// <param name="length">The number of bytes to read</param>
-        internal void ReadFull(byte[] data, int offset, int length)
+        public void ReadFull(byte[] data, int offset, int length)
         {
             // Unread the overshot bytes, if any.
             if (this.Bytes.UnreadableBytes != 0)
@@ -447,6 +468,125 @@ namespace ImageSharp.Formats
                     this.Bytes.I += this.Bytes.J - this.Bytes.I;
 
                     this.Bytes.Fill(this.InputStream);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Decodes the given number of bits
+        /// </summary>
+        /// <param name="count">The number of bits to decode.</param>
+        /// <returns>The <see cref="uint" /></returns>
+        public uint DecodeBits(int count)
+        {
+            if (this.Bits.UnreadBits < count)
+            {
+                ErrorCodes errorCode = this.Bits.EnsureNBits(count, this);
+                if (errorCode != ErrorCodes.NoError)
+                {
+                    throw new MissingFF00Exception();
+                }
+            }
+
+            uint ret = this.Bits.Accumulator >> (this.Bits.UnreadBits - count);
+            ret = (uint)(ret & ((1 << count) - 1));
+            this.Bits.UnreadBits -= count;
+            this.Bits.Mask >>= count;
+            return ret;
+        }
+
+        /// <summary>
+        /// Returns the next Huffman-coded value from the bit-stream, decoded according to the given value.
+        /// </summary>
+        /// <param name="huffmanTree">The huffman value</param>
+        /// <returns>The <see cref="byte" /></returns>
+        public byte DecodeHuffman(ref HuffmanTree huffmanTree)
+        {
+            // Copy stuff to the stack:
+            if (huffmanTree.Length == 0)
+            {
+                throw new ImageFormatException("Uninitialized Huffman table");
+            }
+
+            if (this.Bits.UnreadBits < 8)
+            {
+                ErrorCodes errorCode = this.Bits.EnsureNBits(8, this);
+
+                if (errorCode == ErrorCodes.NoError)
+                {
+                    ushort v =
+                        huffmanTree.Lut[(this.Bits.Accumulator >> (this.Bits.UnreadBits - HuffmanTree.LutSize)) & 0xff];
+
+                    if (v != 0)
+                    {
+                        byte n = (byte)((v & 0xff) - 1);
+                        this.Bits.UnreadBits -= n;
+                        this.Bits.Mask >>= n;
+                        return (byte)(v >> 8);
+                    }
+                }
+                else
+                {
+                    this.UnreadByteStuffedByte();
+                }
+            }
+
+            int code = 0;
+            for (int i = 0; i < HuffmanTree.MaxCodeLength; i++)
+            {
+                if (this.Bits.UnreadBits == 0)
+                {
+                    ErrorCodes errorCode = this.Bits.EnsureNBits(1, this);
+                    if (errorCode != ErrorCodes.NoError)
+                    {
+                        throw new MissingFF00Exception();
+                    }
+                }
+
+                if ((this.Bits.Accumulator & this.Bits.Mask) != 0)
+                {
+                    code |= 1;
+                }
+
+                this.Bits.UnreadBits--;
+                this.Bits.Mask >>= 1;
+
+                if (code <= huffmanTree.MaxCodes[i])
+                {
+                    return huffmanTree.Values[huffmanTree.Indices[i] + code - huffmanTree.MinCodes[i]];
+                }
+
+                code <<= 1;
+            }
+
+            throw new ImageFormatException("Bad Huffman code");
+        }
+
+        /// <summary>
+        /// Gets the <see cref="JpegPixelArea"/> representing the channel at a given component index
+        /// </summary>
+        /// <param name="compIndex">The component index</param>
+        /// <returns>The <see cref="JpegPixelArea"/> of the channel</returns>
+        public JpegPixelArea GetDestinationChannel(int compIndex)
+        {
+            if (this.ComponentCount == 1)
+            {
+                return this.grayImage;
+            }
+            else
+            {
+                switch (compIndex)
+                {
+                    case 0:
+                        return this.ycbcrImage.YChannel;
+                    case 1:
+                        return this.ycbcrImage.CbChannel;
+                    case 2:
+                        return this.ycbcrImage.CrChannel;
+                    case 3:
+                        return this.blackImage;
+                    default:
+                        throw new ImageFormatException("Too many components");
                 }
             }
         }
@@ -682,141 +822,6 @@ namespace ImageSharp.Formats
             }
 
             this.AssignResolution(image);
-        }
-
-        /// <summary>
-        /// Decodes a single bit
-        /// </summary>
-        /// <returns>The <see cref="bool" /></returns>
-        internal bool DecodeBit()
-        {
-            if (this.Bits.UnreadBits == 0)
-            {
-                ErrorCodes errorCode = this.Bits.EnsureNBits(1, this);
-                if (errorCode != ErrorCodes.NoError)
-                {
-                    throw new MissingFF00Exception();
-                }
-            }
-
-            bool ret = (this.Bits.Accumulator & this.Bits.Mask) != 0;
-            this.Bits.UnreadBits--;
-            this.Bits.Mask >>= 1;
-            return ret;
-        }
-
-        /// <summary>
-        /// Decodes the given number of bits
-        /// </summary>
-        /// <param name="count">The number of bits to decode.</param>
-        /// <returns>The <see cref="uint" /></returns>
-        internal uint DecodeBits(int count)
-        {
-            if (this.Bits.UnreadBits < count)
-            {
-                ErrorCodes errorCode = this.Bits.EnsureNBits(count, this);
-                if (errorCode != ErrorCodes.NoError)
-                {
-                    throw new MissingFF00Exception();
-                }
-            }
-
-            uint ret = this.Bits.Accumulator >> (this.Bits.UnreadBits - count);
-            ret = (uint)(ret & ((1 << count) - 1));
-            this.Bits.UnreadBits -= count;
-            this.Bits.Mask >>= count;
-            return ret;
-        }
-
-        /// <summary>
-        /// Returns the next Huffman-coded value from the bit-stream, decoded according to the given value.
-        /// </summary>
-        /// <param name="huffmanTree">The huffman value</param>
-        /// <returns>The <see cref="byte" /></returns>
-        internal byte DecodeHuffman(ref HuffmanTree huffmanTree)
-        {
-            // Copy stuff to the stack:
-            if (huffmanTree.Length == 0)
-            {
-                throw new ImageFormatException("Uninitialized Huffman table");
-            }
-
-            if (this.Bits.UnreadBits < 8)
-            {
-                ErrorCodes errorCode = this.Bits.EnsureNBits(8, this);
-
-                if (errorCode == ErrorCodes.NoError)
-                {
-                    ushort v =
-                        huffmanTree.Lut[(this.Bits.Accumulator >> (this.Bits.UnreadBits - HuffmanTree.LutSize)) & 0xff];
-
-                    if (v != 0)
-                    {
-                        byte n = (byte)((v & 0xff) - 1);
-                        this.Bits.UnreadBits -= n;
-                        this.Bits.Mask >>= n;
-                        return (byte)(v >> 8);
-                    }
-                }
-                else
-                {
-                    this.UnreadByteStuffedByte();
-                }
-            }
-
-            int code = 0;
-            for (int i = 0; i < HuffmanTree.MaxCodeLength; i++)
-            {
-                if (this.Bits.UnreadBits == 0)
-                {
-                    ErrorCodes errorCode = this.Bits.EnsureNBits(1, this);
-                    if (errorCode != ErrorCodes.NoError)
-                    {
-                        throw new MissingFF00Exception();
-                    }
-                }
-
-                if ((this.Bits.Accumulator & this.Bits.Mask) != 0)
-                {
-                    code |= 1;
-                }
-
-                this.Bits.UnreadBits--;
-                this.Bits.Mask >>= 1;
-
-                if (code <= huffmanTree.MaxCodes[i])
-                {
-                    return huffmanTree.Values[huffmanTree.Indices[i] + code - huffmanTree.MinCodes[i]];
-                }
-
-                code <<= 1;
-            }
-
-            throw new ImageFormatException("Bad Huffman code");
-        }
-
-        internal JpegPixelArea GetDestinationChannel(int compIndex)
-        {
-            if (this.ComponentCount == 1)
-            {
-                return this.grayImage;
-            }
-            else
-            {
-                switch (compIndex)
-                {
-                    case 0:
-                        return this.ycbcrImage.YChannel;
-                    case 1:
-                        return this.ycbcrImage.CbChannel;
-                    case 2:
-                        return this.ycbcrImage.CrChannel;
-                    case 3:
-                        return this.blackImage;
-                    default:
-                        throw new ImageFormatException("Too many components");
-                }
-            }
         }
 
         /// <summary>

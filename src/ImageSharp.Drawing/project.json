@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0-*",
+  "version": "1.0.0-alpha1-*",
   "title": "ImageSharp.Drawing",
   "description": "A cross-platform library for the processing of image files; written in C#",
   "authors": [

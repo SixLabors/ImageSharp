@@ -22,21 +22,21 @@
   "dependencies": {
     "ImageSharp": {
       "target": "project",
-      "version": "*"
+      "version": "1.0.0-*"
     },
     "xunit": "2.2.0-*",
     "dotnet-test-xunit": "2.2.0-*",
     "ImageSharp.Drawing": {
       "target": "project",
-      "version": "*"
+      "version": "1.0.0-*"
     },
     "ImageSharp.Formats": {
       "target": "project",
-      "version": "*"
+      "version": "1.0.0-*"
     },
     "ImageSharp.Processing": {
       "target": "project",
-      "version": "*"
+      "version": "1.0.0-*"
     }
   },
   "frameworks": {

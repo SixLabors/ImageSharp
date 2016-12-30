@@ -68,7 +68,7 @@ namespace ImageSharp.Quantizers
         /// </returns>
         public Image<TColor> ToImage()
         {
-            Image<TColor> image = new Image<TColor>();
+            Image<TColor> image = new Image<TColor>(this.Width, this.Height);
 
             int pixelCount = this.Pixels.Length;
             int palleteCount = this.Palette.Length - 1;

@@ -19,11 +19,13 @@ namespace ImageSharp
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageFrame{TColor}"/> class.
         /// </summary>
+        /// <param name="width">The width of the image in pixels.</param>
+        /// <param name="height">The height of the image in pixels.</param>
         /// <param name="bootstrapper">
         /// The bootstrapper providing initialization code which allows extending the library.
         /// </param>
-        public ImageFrame(Bootstrapper bootstrapper = null)
-            : base(bootstrapper)
+        public ImageFrame(int width, int height, Bootstrapper bootstrapper = null)
+            : base(width, height, bootstrapper)
         {
         }
 
@@ -53,13 +55,11 @@ namespace ImageSharp
         {
             scaleFunc = PackedPixelConverterHelper.ComputeScaleFunction<TColor, TColor2>(scaleFunc);
 
-            ImageFrame<TColor2> target = new ImageFrame<TColor2>(this.Bootstrapper)
+            ImageFrame<TColor2> target = new ImageFrame<TColor2>(this.Width, this.Height, this.Bootstrapper)
             {
                 Quality = this.Quality,
                 FrameDelay = this.FrameDelay
             };
-
-            target.InitPixels(this.Width, this.Height);
 
             using (PixelAccessor<TColor> pixels = this.Lock())
             using (PixelAccessor<TColor2> targetPixels = target.Lock())

@@ -37,7 +37,14 @@
     }
   },
   "dependencies": {
-    "ImageSharp": "1.0.0-*",
+    "ImageSharp": {
+      "target": "project",
+      "version": "1.0.0-alpha1-*"
+    },
+    "ImageSharp.Processing": {
+      "target": "project",
+      "version": "1.0.0-alpha1-*"
+    },
     "StyleCop.Analyzers": {
       "version": "1.0.0",
       "type": "build"

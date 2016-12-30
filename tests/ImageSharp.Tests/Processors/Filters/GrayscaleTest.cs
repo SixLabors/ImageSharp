@@ -5,7 +5,6 @@
 
 namespace ImageSharp.Tests
 {
-    using Processors;
     using System.IO;
 
     using Xunit;

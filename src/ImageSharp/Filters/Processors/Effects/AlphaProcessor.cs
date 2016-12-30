@@ -10,10 +10,10 @@ namespace ImageSharp.Processors
     using System.Threading.Tasks;
 
     /// <summary>
-    /// An <see cref="IImageFilteringProcessor{TColor}"/> to change the alpha component of an <see cref="Image{TColor}"/>.
+    /// An <see cref="IImageProcessor{TColor}"/> to change the alpha component of an <see cref="Image{TColor}"/>.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    public class AlphaProcessor<TColor> : ImageFilteringProcessor<TColor>
+    public class AlphaProcessor<TColor> : ImageProcessor<TColor>
         where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>

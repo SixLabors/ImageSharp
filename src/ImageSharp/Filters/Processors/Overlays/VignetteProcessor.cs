@@ -10,10 +10,10 @@ namespace ImageSharp.Processors
     using System.Threading.Tasks;
 
     /// <summary>
-    /// An <see cref="IImageFilteringProcessor{TColor}"/> that applies a radial vignette effect to an <see cref="Image{TColor}"/>.
+    /// An <see cref="IImageProcessor{TColor}"/> that applies a radial vignette effect to an <see cref="Image{TColor}"/>.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    public class VignetteProcessor<TColor> : ImageFilteringProcessor<TColor>
+    public class VignetteProcessor<TColor> : ImageProcessor<TColor>
         where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>

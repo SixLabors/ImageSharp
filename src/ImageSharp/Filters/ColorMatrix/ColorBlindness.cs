@@ -40,7 +40,7 @@ namespace ImageSharp
         public static Image<TColor> ColorBlindness<TColor>(this Image<TColor> source, ColorBlindness colorBlindness, Rectangle rectangle)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            IImageFilteringProcessor<TColor> processor;
+            IImageProcessor<TColor> processor;
 
             switch (colorBlindness)
             {

@@ -10,10 +10,10 @@ namespace ImageSharp.Processors
     using System.Threading.Tasks;
 
     /// <summary>
-    /// An <see cref="IImageFilteringProcessor{TColor}"/> to change the contrast of an <see cref="Image{TColor}"/>.
+    /// An <see cref="IImageProcessor{TColor}"/> to change the contrast of an <see cref="Image{TColor}"/>.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    public class ContrastProcessor<TColor> : ImageFilteringProcessor<TColor>
+    public class ContrastProcessor<TColor> : ImageProcessor<TColor>
         where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>

@@ -12,7 +12,7 @@ namespace ImageSharp.Processors
     /// Provides methods that allow the flipping of an image around its center point.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    public class FlipProcessor<TColor> : ImageFilteringProcessor<TColor>
+    public class FlipProcessor<TColor> : ImageProcessor<TColor>
         where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>

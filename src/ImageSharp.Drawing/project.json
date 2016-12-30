@@ -39,11 +39,11 @@
   "dependencies": {
     "ImageSharp": {
       "target": "project",
-      "version": "1.0.0-alpha1-*"
+      "version": "1.0.0-*"
     },
     "ImageSharp.Processing": {
       "target": "project",
-      "version": "1.0.0-alpha1-*"
+      "version": "1.0.0-*"
     },
     "StyleCop.Analyzers": {
       "version": "1.0.0",

@@ -17,20 +17,20 @@
     "BenchmarkDotNet.Diagnostics.Windows": "0.10.1",
     "ImageSharp": {
       "target": "project",
-      "version": "*"
+      "version": "1.0.0-*"
     },
     "ImageSharp.Drawing": {
       "target": "project",
-      "version": "*"
+      "version": "1.0.0-*"
     },
     "ImageSharp.Formats": {
       "target": "project",
-      "version": "*"
+      "version": "1.0.0-*"
     },
     "ImageSharp.Processing": {
       "target": "project",
-      "version": "*"
-    },
+      "version": "1.0.0-*"
+    }
   },
   "commands": {
     "ImageSharp.Benchmarks": "ImageSharp.Benchmarks"

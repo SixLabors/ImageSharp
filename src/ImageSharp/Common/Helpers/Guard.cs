@@ -14,7 +14,7 @@ namespace ImageSharp
     /// Provides methods to protect against invalid parameters.
     /// </summary>
     [DebuggerStepThrough]
-    internal static class Guard
+    public static class Guard
     {
         /// <summary>
         /// Verifies, that the method parameter with specified object value is not null

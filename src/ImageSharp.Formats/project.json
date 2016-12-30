@@ -1,6 +1,6 @@
 {
   "version": "1.0.0-*",
-  "title": "ImageSharp.Drawing",
+  "title": "ImageSharp.Formats",
   "description": "A cross-platform library for the processing of image files; written in C#",
   "authors": [
     "James Jackson-South and contributors"
@@ -24,9 +24,7 @@
   "buildOptions": {
     "allowUnsafe": true,
     "xmlDoc": true,
-    "additionalArguments": [
-      "/additionalfile:stylecop.json"
-    ]
+    "additionalArguments": [ "/additionalfile:stylecop.json", "/ruleset:../../ImageSharp.ruleset" ]
   },
   "configurations": {
     "Release": {
@@ -38,37 +36,22 @@
   },
   "dependencies": {
     "ImageSharp": "1.0.0-*",
+    "ImageSharp.Formats.Png": "1.0.0-*",
+    "ImageSharp.Formats.Bmp": "1.0.0-*",
+    "ImageSharp.Formats.Jpeg": "1.0.0-*",
+    "ImageSharp.Formats.Gif": "1.0.0-*",
     "StyleCop.Analyzers": {
-      "version": "1.0.0",
+      "version": "1.1.0-beta001",
       "type": "build"
-    },
-    "System.Buffers": "4.0.0",
-    "System.Numerics.Vectors": "4.1.1",
-    "System.Runtime.CompilerServices.Unsafe": "4.0.0"
+    }
   },
   "frameworks": {
     "netstandard1.1": {
       "dependencies": {
-        "System.Collections": "4.0.11",
-        "System.Diagnostics.Debug": "4.0.11",
-        "System.Diagnostics.Tools": "4.0.1",
-        "System.IO": "4.1.0",
-        "System.IO.Compression": "4.1.0",
-        "System.Linq": "4.1.0",
-        "System.ObjectModel": "4.0.12",
-        "System.Resources.ResourceManager": "4.0.1",
-        "System.Runtime.Extensions": "4.1.0",
-        "System.Runtime.InteropServices": "4.1.0",
-        "System.Runtime.Numerics": "4.0.1",
-        "System.Text.Encoding.Extensions": "4.0.11",
-        "System.Threading": "4.0.11",
-        "System.Threading.Tasks": "4.0.11",
-        "System.Threading.Tasks.Parallel": "4.0.1"
       }
     },
     "net45": {
       "dependencies": {
-        "System.Runtime": "4.0.0"
       }
     }
   }

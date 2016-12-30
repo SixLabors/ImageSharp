@@ -245,24 +245,47 @@ namespace ConsoleApplication
 
             internal string CalculateVersionNumber(string branch)
             {
-                var version = this.Version.ToFullString(); 
+                var version = this.Version.ToFullString();
+
+
                 if (this.commitCount == 1 && branch == "") //master only
                 {
                     if (this.Version.IsPrerelease)
                     {
                         //prerelease always needs the build counter just not on a branch name
-                        return $"{version}-{this.commitCount:000000}";
+                        return $"{version}-{this.commitCount:00000}";
                     }
+                   
                     //only 1 commit (the changing one) we will skip appending suffix
                     return version;
                 }
 
+                var rootSpecialVersion = "";
+
+                if (this.Version.IsPrerelease)
+                {
+                    var parts = version.Split(new[] { '-' }, 2);
+                    version = parts[0];
+                    rootSpecialVersion = parts[1];
+                }
+                if(rootSpecialVersion.Length > 0)
+                {
+                    rootSpecialVersion = "-" + rootSpecialVersion;
+                }
                 if (branch == "")
                 {
                     branch = fallbackTag;
                 }
 
-                return $"{version}-{branch}-{this.commitCount:000000}";
+                var maxLength = 20;
+                maxLength -= rootSpecialVersion.Length;
+                maxLength -= 7; // for the counter and dashes
+                if(branch.Length > maxLength)
+                {
+                    branch = branch.Substring(0, maxLength);
+                }
+
+                return $"{version}{rootSpecialVersion}-{branch}-{this.commitCount:00000}";
             }
         }
     }

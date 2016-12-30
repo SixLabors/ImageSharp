@@ -16,6 +16,8 @@ namespace ConsoleApplication
 
         public static void Main(string[] args)
         {
+            // TODO add options to updating the version number for indirvidual projects
+
             var resetmode = args.Contains("reset");
 
             // find the project root where glbal.json lives
@@ -97,6 +99,8 @@ namespace ConsoleApplication
                 var sb = new StringBuilder();
                 foreach (var p in projects)
                 {
+                    //TODO force update of all dependent projects to point to the newest build.
+
                     //we skip the build number and standard CI prefix on first commits
                     var newVersion = p.CalculateVersionNumber(branch);
                     File.Copy(p.FullProjectFilePath, $"{p.FullProjectFilePath}.bak", true);

@@ -16,17 +16,6 @@ namespace ImageSharp
     public class Image : Image<Color>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="Image"/> class.
-        /// </summary>
-        /// <param name="bootstrapper">
-        /// The bootstrapper providing initialization code which allows extending the library.
-        /// </param>
-        public Image(Bootstrapper bootstrapper = null)
-            : base(bootstrapper)
-        {
-        }
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="Image"/> class
         /// with the height and the width of the image.
         /// </summary>

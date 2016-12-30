@@ -39,7 +39,7 @@ namespace ImageSharp.Tests
         {
             return Path.Combine(FormatsDirectory, file);
         }
-        
+
         public static TestFile Create(string file)
         {
             return cache.GetOrAdd(file, (string fileName) =>

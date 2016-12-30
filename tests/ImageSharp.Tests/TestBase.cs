@@ -15,9 +15,9 @@ namespace ImageSharp.Tests
     public abstract class TestBase
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="TestBase"/> class.
+        /// Initializes static members of the <see cref="TestBase"/> class.
         /// </summary>
-        protected TestBase()
+        static TestBase()
         {
             // Register the individual image formats.
             Bootstrapper.Default.AddImageFormat(new PngFormat());

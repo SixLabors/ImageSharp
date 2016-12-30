@@ -54,10 +54,10 @@ namespace ImageSharp.Tests
         /// Triggers instantiating the <see cref="Image"/> subclass of <see cref="Image{TColor}"/>
         /// </summary>
         StandardImageClass = 1 << 29,
-        
+
         // TODO: Add multi-flag entries by rules defined in PackedPixelConverterHelper
 
         // "All" is handled as a separate, individual case instead of using bitwise OR
-        All = 30 
+        All = 30
     }
 }

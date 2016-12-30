@@ -18,7 +18,11 @@ namespace ImageSharp
         /// <summary>
         /// Initializes a new instance of the <see cref="Image"/> class.
         /// </summary>
-        public Image()
+        /// <param name="bootstrapper">
+        /// The bootstrapper providing initialization code which allows extending the library.
+        /// </param>
+        public Image(Bootstrapper bootstrapper = null)
+            : base(bootstrapper)
         {
         }
 
@@ -28,8 +32,11 @@ namespace ImageSharp
         /// </summary>
         /// <param name="width">The width of the image in pixels.</param>
         /// <param name="height">The height of the image in pixels.</param>
-        public Image(int width, int height)
-          : base(width, height)
+        /// <param name="bootstrapper">
+        /// The bootstrapper providing initialization code which allows extending the library.
+        /// </param>
+        public Image(int width, int height, Bootstrapper bootstrapper = null)
+          : base(width, height, bootstrapper)
         {
         }
 
@@ -39,9 +46,12 @@ namespace ImageSharp
         /// <param name="stream">
         /// The stream containing image information.
         /// </param>
+        /// <param name="bootstrapper">
+        /// The bootstrapper providing initialization code which allows extending the library.
+        /// </param>
         /// <exception cref="System.ArgumentNullException">Thrown if the <paramref name="stream"/> is null.</exception>
-        public Image(Stream stream)
-            : base(stream)
+        public Image(Stream stream, Bootstrapper bootstrapper = null)
+            : base(stream, bootstrapper)
         {
         }
 
@@ -51,9 +61,12 @@ namespace ImageSharp
         /// <param name="bytes">
         /// The byte array containing image information.
         /// </param>
+        /// <param name="bootstrapper">
+        /// The bootstrapper providing initialization code which allows extending the library.
+        /// </param>
         /// <exception cref="System.ArgumentNullException">Thrown if the <paramref name="bytes"/> is null.</exception>
-        public Image(byte[] bytes)
-            : base(bytes)
+        public Image(byte[] bytes, Bootstrapper bootstrapper = null)
+           : base(bytes, bootstrapper)
         {
         }
 

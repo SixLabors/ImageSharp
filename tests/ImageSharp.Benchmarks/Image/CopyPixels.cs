@@ -25,7 +25,7 @@ namespace ImageSharp.Benchmarks.Image
                 Parallel.For(
                     0,
                     source.Height,
-                    Bootstrapper.ParallelOptions,
+                    Bootstrapper.Default.ParallelOptions,
                     y =>
                     {
                         for (int x = 0; x < source.Width; x++)

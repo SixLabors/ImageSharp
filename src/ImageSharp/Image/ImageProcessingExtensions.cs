@@ -41,6 +41,11 @@ namespace ImageSharp
         internal static Image<TColor> Process<TColor>(this Image<TColor> source, Rectangle sourceRectangle, IImageFilteringProcessor<TColor> processor)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
+            if (processor.ParallelOptions == null)
+            {
+                processor.ParallelOptions = source.Bootstrapper.ParallelOptions;
+            }
+
             return PerformAction(source, (sourceImage) => processor.Apply(sourceImage, sourceRectangle));
         }
 

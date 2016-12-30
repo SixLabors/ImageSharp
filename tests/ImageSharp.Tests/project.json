@@ -20,11 +20,24 @@
     }
   },
   "dependencies": {
-    "ImageSharp": "1.0.0-*",
+    "ImageSharp": {
+      "target": "project",
+      "version": "*"
+    },
     "xunit": "2.2.0-*",
     "dotnet-test-xunit": "2.2.0-*",
-    "ImageSharp.Drawing": "1.0.0-*",
-    "ImageSharp.Formats": "1.0.0-*"
+    "ImageSharp.Drawing": {
+      "target": "project",
+      "version": "*"
+    },
+    "ImageSharp.Formats": {
+      "target": "project",
+      "version": "*"
+    },
+    "ImageSharp.Processing": {
+      "target": "project",
+      "version": "*"
+    }
   },
   "frameworks": {
     "netcoreapp1.1": {

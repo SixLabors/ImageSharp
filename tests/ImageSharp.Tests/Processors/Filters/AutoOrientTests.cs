@@ -6,6 +6,7 @@
 namespace ImageSharp.Tests
 {
     using System.IO;
+    using Processing;
     using Xunit;
 
     public class AutoOrientTests : FileTestBase

@@ -241,6 +241,14 @@ namespace ImageSharp
         }
 
         /// <summary>
+        /// Resets all the pixels to it's initial value.
+        /// </summary>
+        public void Reset()
+        {
+            Unsafe.InitBlock(this.pixelsBase, 0, (uint)(this.RowStride * this.Height));
+        }
+
+        /// <summary>
         /// Copies the pixels to another <see cref="PixelAccessor{TColor}"/> of the same size.
         /// </summary>
         /// <param name="target">The target pixel buffer accessor.</param>
@@ -249,14 +257,6 @@ namespace ImageSharp
             uint byteCount = (uint)(this.Width * this.Height * Unsafe.SizeOf<TColor>());
 
             Unsafe.CopyBlock(target.pixelsBase, this.pixelsBase, byteCount);
-        }
-
-        /// <summary>
-        /// Resets all the pixels to it's initial value.
-        /// </summary>
-        internal void Reset()
-        {
-            Unsafe.InitBlock(this.pixelsBase, 0, (uint)(this.RowStride * this.Height));
         }
 
         /// <summary>

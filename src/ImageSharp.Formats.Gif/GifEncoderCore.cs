@@ -62,7 +62,7 @@ namespace ImageSharp.Formats
             }
 
             // Do not use IDisposable pattern here as we want to preserve the stream.
-            EndianBinaryWriter writer = new EndianBinaryWriter(EndianBitConverter.Little, stream);
+            EndianBinaryWriter writer = new EndianBinaryWriter(Endianness.LittleEndian, stream);
 
             // Ensure that quality can be set but has a fallback.
             int quality = this.Quality > 0 ? this.Quality : image.Quality;

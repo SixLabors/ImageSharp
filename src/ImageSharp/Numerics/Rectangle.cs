@@ -57,6 +57,20 @@ namespace ImageSharp
         /// <summary>
         /// Initializes a new instance of the <see cref="Rectangle"/> struct.
         /// </summary>
+        /// <param name="topLeft">
+        /// The <see cref="Point"/> which specifies the rectangles top left point in a two-dimensional plane.
+        /// </param>
+        /// <param name="bottomRight">
+        /// The <see cref="Point"/>which specifies the rectangles bottom right point in a two-dimensional plane.
+        /// </param>
+        public Rectangle(Point topLeft, Point bottomRight)
+        {
+            this.backingVector = new Vector4(topLeft.X, topLeft.Y, bottomRight.X - topLeft.X, bottomRight.Y - topLeft.Y);
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Rectangle"/> struct.
+        /// </summary>
         /// <param name="vector">The vector.</param>
         public Rectangle(Vector4 vector)
         {

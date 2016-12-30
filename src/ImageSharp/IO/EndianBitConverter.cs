@@ -50,21 +50,28 @@ namespace ImageSharp.IO
         private static readonly LittleEndianBitConverter LittleConverter = new LittleEndianBitConverter();
 
         /// <summary>
-        /// Gets a little-endian bit converter instance. The same instance is
-        /// always returned.
-        /// </summary>
-        public static LittleEndianBitConverter Little => LittleConverter;
-
-        /// <summary>
         /// The big-endian bit converter.
         /// </summary>
         private static readonly BigEndianBitConverter BigConverter = new BigEndianBitConverter();
 
         /// <summary>
-        /// Gets a big-endian bit converter instance. The same instance is
-        /// always returned.
+        /// Gets the converter.
         /// </summary>
-        public static BigEndianBitConverter Big => BigConverter;
+        /// <param name="endianness">The endianness.</param>
+        /// <returns>an <see cref="EndianBitConverter"/></returns>
+        /// <exception cref="System.ArgumentException">Not a valid form of Endianness - endianness</exception>
+        internal static EndianBitConverter GetConverter(Endianness endianness)
+        {
+            switch (endianness)
+            {
+                case Endianness.LittleEndian:
+                    return LittleConverter;
+                case Endianness.BigEndian:
+                    return BigConverter;
+                default:
+                    throw new ArgumentException("Not a valid form of Endianness", nameof(endianness));
+            }
+        }
         #endregion
 
         #region Double/primitive conversions

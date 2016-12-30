@@ -1,6 +1,6 @@
 {
   "version": "1.0.0-*",
-  "title": "ImageSharp.Drawing",
+  "title": "ImageSharp.Formats",
   "description": "A cross-platform library for the processing of image files; written in C#",
   "authors": [
     "James Jackson-South and contributors"
@@ -24,9 +24,7 @@
   "buildOptions": {
     "allowUnsafe": true,
     "xmlDoc": true,
-    "additionalArguments": [
-      "/additionalfile:stylecop.json"
-    ]
+    "additionalArguments": [ "/additionalfile:stylecop.json", "/ruleset:../../ImageSharp.ruleset" ]
   },
   "configurations": {
     "Release": {
@@ -39,7 +37,7 @@
   "dependencies": {
     "ImageSharp": "1.0.0-*",
     "StyleCop.Analyzers": {
-      "version": "1.0.0",
+      "version": "1.1.0-beta001",
       "type": "build"
     },
     "System.Buffers": "4.0.0",

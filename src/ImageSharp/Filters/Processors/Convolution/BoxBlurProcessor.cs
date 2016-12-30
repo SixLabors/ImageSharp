@@ -11,7 +11,7 @@ namespace ImageSharp.Processors
     /// Applies a Box blur sampler to the image.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    public class BoxBlurProcessor<TColor> : ImageFilteringProcessor<TColor>
+    public class BoxBlurProcessor<TColor> : ImageProcessor<TColor>
         where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>

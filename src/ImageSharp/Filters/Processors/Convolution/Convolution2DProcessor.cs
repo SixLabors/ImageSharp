@@ -13,7 +13,7 @@ namespace ImageSharp.Processors
     /// Defines a sampler that uses two one-dimensional matrices to perform convolution against an image.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    public class Convolution2DProcessor<TColor> : ImageFilteringProcessor<TColor>
+    public class Convolution2DProcessor<TColor> : ImageProcessor<TColor>
         where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>

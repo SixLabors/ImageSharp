@@ -9,6 +9,7 @@ namespace ImageSharp
     using System.Diagnostics;
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
+    using System.Threading.Tasks;
 
     /// <summary>
     /// Provides per-pixel access to generic <see cref="Image{TColor}"/> pixels.
@@ -60,6 +61,7 @@ namespace ImageSharp
             this.pixelsBase = (byte*)this.dataPointer.ToPointer();
             this.PixelSize = Unsafe.SizeOf<TColor>();
             this.RowStride = this.Width * this.PixelSize;
+            this.ParallelOptions = image.Bootstrapper.ParallelOptions;
         }
 
         /// <summary>
@@ -86,6 +88,7 @@ namespace ImageSharp
             this.pixelsBase = (byte*)this.dataPointer.ToPointer();
             this.PixelSize = Unsafe.SizeOf<TColor>();
             this.RowStride = this.Width * this.PixelSize;
+            this.ParallelOptions = Bootstrapper.Default.ParallelOptions;
         }
 
         /// <summary>
@@ -120,6 +123,11 @@ namespace ImageSharp
         /// Gets the height of the image.
         /// </summary>
         public int Height { get; }
+
+        /// <summary>
+        /// Gets the global parallel options for processing tasks in parallel.
+        /// </summary>
+        public ParallelOptions ParallelOptions { get; }
 
         /// <summary>
         /// Gets or sets the pixel at the specified position.

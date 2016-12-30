@@ -38,19 +38,6 @@ namespace ImageSharp
         public const double DefaultVerticalResolution = 96;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Image{TColor}"/> class.
-        /// </summary>
-        /// <param name="bootstrapper">
-        /// The bootstrapper providing initialization code which allows extending the library.
-        /// </param>
-        public Image(Bootstrapper bootstrapper = null)
-            : base(bootstrapper)
-        {
-            // We want to throw here.
-            this.CurrentImageFormat = this.Bootstrapper.ImageFormats.First();
-        }
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="Image{TColor}"/> class
         /// with the height and the width of the image.
         /// </summary>
@@ -391,7 +378,7 @@ namespace ImageSharp
         {
             if (!this.Bootstrapper.ImageFormats.Any())
             {
-                return;
+                throw new NotSupportedException("No image formats have been configured.");
             }
 
             if (!stream.CanRead)

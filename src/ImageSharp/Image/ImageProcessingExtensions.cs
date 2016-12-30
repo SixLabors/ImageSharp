@@ -41,24 +41,11 @@ namespace ImageSharp
         internal static Image<TColor> Process<TColor>(this Image<TColor> source, Rectangle sourceRectangle, IImageProcessor<TColor> processor)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            return PerformAction(source, (sourceImage) => processor.Apply(sourceImage, sourceRectangle));
-        }
-
-        /// <summary>
-        /// Performs the given action on the source image.
-        /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <param name="source">The image to perform the action against.</param>
-        /// <param name="action">The <see cref="Action"/> to perform against the image.</param>
-        /// <returns>The <see cref="Image{TColor}"/>.</returns>
-        private static Image<TColor> PerformAction<TColor>(Image<TColor> source, Action<ImageBase<TColor>> action)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
-        {
-            action(source);
+            processor.Apply(source, sourceRectangle);
 
             foreach (ImageFrame<TColor> sourceFrame in source.Frames)
             {
-                action(sourceFrame);
+                processor.Apply(sourceFrame, sourceRectangle);
             }
 
             return source;

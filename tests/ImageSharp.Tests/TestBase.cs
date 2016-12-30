@@ -7,25 +7,11 @@ namespace ImageSharp.Tests
 {
     using System.IO;
 
-    using ImageSharp.Formats;
-
     /// <summary>
     /// The test base class. Inherit from this class for any image manipulation tests.
     /// </summary>
     public abstract class TestBase
     {
-        /// <summary>
-        /// Initializes static members of the <see cref="TestBase"/> class.
-        /// </summary>
-        static TestBase()
-        {
-            // Register the individual image formats.
-            Bootstrapper.Default.AddImageFormat(new PngFormat());
-            Bootstrapper.Default.AddImageFormat(new JpegFormat());
-            Bootstrapper.Default.AddImageFormat(new BmpFormat());
-            Bootstrapper.Default.AddImageFormat(new GifFormat());
-        }
-
         /// <summary>
         /// Creates the image output directory.
         /// </summary>

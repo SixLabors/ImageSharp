@@ -6,6 +6,7 @@
 namespace ImageSharp
 {
     using System;
+    using System.Threading.Tasks;
 
     using ImageSharp.Quantizers;
 
@@ -55,8 +56,23 @@ namespace ImageSharp
         public static Image<TColor> Quantize<TColor>(this Image<TColor> source, IQuantizer<TColor> quantizer, int maxColors)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            QuantizedImage<TColor> quantizedImage = quantizer.Quantize(source, maxColors);
-            source.SetPixels(source.Width, source.Height, quantizedImage.ToImage().Pixels);
+            QuantizedImage<TColor> quantized = quantizer.Quantize(source, maxColors);
+
+            int pixelCount = quantized.Pixels.Length;
+            int palleteCount = quantized.Palette.Length - 1;
+            TColor[] pixels = new TColor[pixelCount];
+
+            Parallel.For(
+                0,
+                pixelCount,
+                source.Bootstrapper.ParallelOptions,
+                i =>
+                {
+                    TColor color = quantized.Palette[Math.Min(palleteCount, quantized.Pixels[i])];
+                    pixels[i] = color;
+                });
+
+            source.SetPixels(source.Width, source.Height, pixels);
             return source;
         }
     }

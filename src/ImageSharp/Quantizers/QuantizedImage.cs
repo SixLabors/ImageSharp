@@ -59,33 +59,5 @@ namespace ImageSharp.Quantizers
         /// Gets the pixels of this <see cref="T:QuantizedImage"/>.
         /// </summary>
         public byte[] Pixels { get; }
-
-        /// <summary>
-        /// Converts this quantized image to a normal image.
-        /// </summary>
-        /// <returns>
-        /// The <see cref="Image"/>
-        /// </returns>
-        public Image<TColor> ToImage()
-        {
-            Image<TColor> image = new Image<TColor>(this.Width, this.Height);
-
-            int pixelCount = this.Pixels.Length;
-            int palleteCount = this.Palette.Length - 1;
-            TColor[] pixels = new TColor[pixelCount];
-
-            Parallel.For(
-                0,
-                pixelCount,
-                image.Bootstrapper.ParallelOptions,
-                i =>
-                    {
-                        TColor color = this.Palette[Math.Min(palleteCount, this.Pixels[i])];
-                        pixels[i] = color;
-                    });
-
-            image.SetPixels(this.Width, this.Height, pixels);
-            return image;
-        }
     }
 }

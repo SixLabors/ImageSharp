@@ -773,7 +773,7 @@ namespace ImageSharp.Quantizers
             Parallel.For(
                 0,
                 height,
-                Bootstrapper.Default.ParallelOptions,
+                imagePixels.ParallelOptions,
                 y =>
                 {
                     byte[] rgba = ArrayPool<byte>.Shared.Rent(4);

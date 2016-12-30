@@ -9,7 +9,7 @@ namespace ImageSharp.Drawing.Processors
     using System.Linq;
     using System.Numerics;
     using System.Threading.Tasks;
-    using ImageSharp.Processors;
+    using ImageSharp.Processing;
     using Paths;
     using Pens;
     using Pens.Processors;
@@ -20,7 +20,7 @@ namespace ImageSharp.Drawing.Processors
     /// Draws a path using the processor pipeline
     /// </summary>
     /// <typeparam name="TColor">The type of the color.</typeparam>
-    /// <seealso cref="ImageSharp.Processors.ImageProcessor{TColor}" />
+    /// <seealso cref="ImageSharp.Processing.ImageProcessor{TColor}" />
     public class DrawPathProcessor<TColor> : ImageProcessor<TColor>
         where TColor : struct, IPackedPixel, IEquatable<TColor>
     {

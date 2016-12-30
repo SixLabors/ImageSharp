@@ -3,11 +3,12 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.Processors
+namespace ImageSharp.Drawing.Processors
 {
     using System;
     using System.Numerics;
     using System.Threading.Tasks;
+    using Processing;
 
     /// <summary>
     /// Combines two images together by blending the pixels.
@@ -57,6 +58,7 @@ namespace ImageSharp.Processors
         {
             if (this.Image.Bounds.Size != this.Size)
             {
+                // should Resize be moved to core?
                 this.Image = this.Image.Resize(this.Size.Width, this.Size.Height);
             }
 

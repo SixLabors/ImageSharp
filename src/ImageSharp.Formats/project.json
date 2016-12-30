@@ -35,11 +35,26 @@
     }
   },
   "dependencies": {
-    "ImageSharp": "1.0.0-*",
-    "ImageSharp.Formats.Png": "1.0.0-*",
-    "ImageSharp.Formats.Bmp": "1.0.0-*",
-    "ImageSharp.Formats.Jpeg": "1.0.0-*",
-    "ImageSharp.Formats.Gif": "1.0.0-*",
+    "ImageSharp": {
+      "target": "project",
+      "version": "1.0.0-alpha1-*"
+    },
+    "ImageSharp.Formats.Png": {
+      "target": "project",
+      "version": "1.0.0-alpha1-*"
+    },
+    "ImageSharp.Formats.Bmp": {
+      "target": "project",
+      "version": "1.0.0-alpha1-*"
+    },
+    "ImageSharp.Formats.Jpeg": {
+      "target": "project",
+      "version": "1.0.0-alpha1-*"
+    },
+    "ImageSharp.Formats.Gif": {
+      "target": "project",
+      "version": "1.0.0-alpha1-*"
+    },
     "StyleCop.Analyzers": {
       "version": "1.1.0-beta001",
       "type": "build"

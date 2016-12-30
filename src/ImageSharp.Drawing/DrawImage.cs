@@ -7,7 +7,7 @@ namespace ImageSharp
 {
     using System;
 
-    using Processors;
+    using Drawing.Processors;
 
     /// <summary>
     /// Extension methods for the <see cref="Image"/> type.
@@ -51,7 +51,7 @@ namespace ImageSharp
                 location = Point.Empty;
             }
 
-            return source.Process(source.Bounds, new DrawImageProcessor<TColor>(image, size, location, percent));
+            return source.Apply(source.Bounds, new DrawImageProcessor<TColor>(image, size, location, percent));
         }
     }
 }

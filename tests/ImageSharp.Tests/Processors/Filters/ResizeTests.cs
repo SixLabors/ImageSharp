@@ -7,7 +7,7 @@ namespace ImageSharp.Tests
 {
     using System;
     using System.IO;
-
+    using Processing;
     using Xunit;
 
     public class ResizeTests : FileTestBase

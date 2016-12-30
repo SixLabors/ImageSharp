@@ -9,7 +9,7 @@ namespace ImageSharp.Drawing.Processors
     using System.Numerics;
     using System.Threading.Tasks;
     using Drawing;
-    using ImageSharp.Processors;
+    using ImageSharp.Processing;
     using Shapes;
     using Rectangle = ImageSharp.Rectangle;
 
@@ -17,7 +17,7 @@ namespace ImageSharp.Drawing.Processors
     /// Usinf a brsuh and a shape fills shape with contents of brush the
     /// </summary>
     /// <typeparam name="TColor">The type of the color.</typeparam>
-    /// <seealso cref="ImageSharp.Processors.ImageProcessor{TColor}" />
+    /// <seealso cref="ImageSharp.Processing.ImageProcessor{TColor}" />
     public class FillShapeProcessor<TColor> : ImageProcessor<TColor>
         where TColor : struct, IPackedPixel, IEquatable<TColor>
     {

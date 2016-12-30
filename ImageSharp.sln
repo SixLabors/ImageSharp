@@ -49,6 +49,8 @@ Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "ImageSharp.Formats.Jpeg", "
 EndProject
 Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "ImageSharp.Formats.Png", "src\ImageSharp.Formats.Png\ImageSharp.Formats.Png.xproj", "{556ABDCF-ED93-4327-BE98-F6815F78B9B8}"
 EndProject
+Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "ImageSharp.Processing", "src\ImageSharp.Processing\ImageSharp.Processing.xproj", "{A623CFE9-9D2B-4528-AD1F-2E834B061134}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -95,6 +97,10 @@ Global
 		{556ABDCF-ED93-4327-BE98-F6815F78B9B8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{556ABDCF-ED93-4327-BE98-F6815F78B9B8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{556ABDCF-ED93-4327-BE98-F6815F78B9B8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A623CFE9-9D2B-4528-AD1F-2E834B061134}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A623CFE9-9D2B-4528-AD1F-2E834B061134}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A623CFE9-9D2B-4528-AD1F-2E834B061134}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A623CFE9-9D2B-4528-AD1F-2E834B061134}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -110,5 +116,6 @@ Global
 		{27AD4B5F-ECC4-4C63-9ECB-04EC772FDB6F} = {815C0625-CD3D-440F-9F80-2D83856AB7AE}
 		{7213767C-0003-41CA-AB18-0223CFA7CE4B} = {815C0625-CD3D-440F-9F80-2D83856AB7AE}
 		{556ABDCF-ED93-4327-BE98-F6815F78B9B8} = {815C0625-CD3D-440F-9F80-2D83856AB7AE}
+		{A623CFE9-9D2B-4528-AD1F-2E834B061134} = {815C0625-CD3D-440F-9F80-2D83856AB7AE}
 	EndGlobalSection
 EndGlobal

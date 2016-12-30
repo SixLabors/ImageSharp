@@ -10,7 +10,7 @@ namespace ImageSharp.Drawing.Processors
     using System.Threading.Tasks;
 
     using Drawing;
-    using ImageSharp.Processors;
+    using ImageSharp.Processing;
 
     /// <summary>
     /// Using the bursh as a source of pixels colors blends the brush color with source.

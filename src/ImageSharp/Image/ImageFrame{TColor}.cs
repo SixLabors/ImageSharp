@@ -19,7 +19,11 @@ namespace ImageSharp
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageFrame{TColor}"/> class.
         /// </summary>
-        public ImageFrame()
+        /// <param name="bootstrapper">
+        /// The bootstrapper providing initialization code which allows extending the library.
+        /// </param>
+        public ImageFrame(Bootstrapper bootstrapper = null)
+            : base(bootstrapper)
         {
         }
 
@@ -49,7 +53,7 @@ namespace ImageSharp
         {
             scaleFunc = PackedPixelConverterHelper.ComputeScaleFunction<TColor, TColor2>(scaleFunc);
 
-            ImageFrame<TColor2> target = new ImageFrame<TColor2>
+            ImageFrame<TColor2> target = new ImageFrame<TColor2>(this.Bootstrapper)
             {
                 Quality = this.Quality,
                 FrameDelay = this.FrameDelay
@@ -63,7 +67,7 @@ namespace ImageSharp
                 Parallel.For(
                     0,
                     target.Height,
-                    Bootstrapper.ParallelOptions,
+                    this.Bootstrapper.ParallelOptions,
                     y =>
                     {
                         for (int x = 0; x < target.Width; x++)

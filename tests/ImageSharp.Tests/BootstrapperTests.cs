@@ -52,7 +52,7 @@ namespace ImageSharp.Tests
 
             exception = Assert.Throws<ArgumentNullException>(() =>
             {
-                Bootstrapper.AddImageFormat(null);
+                Bootstrapper.Default.AddImageFormat(null);
             });
 
             var format = new TestFormat();
@@ -60,7 +60,7 @@ namespace ImageSharp.Tests
 
             exception = Assert.Throws<ArgumentNullException>(() =>
             {
-                Bootstrapper.AddImageFormat(format);
+                Bootstrapper.Default.AddImageFormat(format);
             });
             Assert.Contains("decoder", exception.Message);
 
@@ -69,7 +69,7 @@ namespace ImageSharp.Tests
 
             exception = Assert.Throws<ArgumentNullException>(() =>
             {
-                Bootstrapper.AddImageFormat(format);
+                Bootstrapper.Default.AddImageFormat(format);
             });
             Assert.Contains("encoder", exception.Message);
 
@@ -78,7 +78,7 @@ namespace ImageSharp.Tests
 
             exception = Assert.Throws<ArgumentNullException>(() =>
             {
-                Bootstrapper.AddImageFormat(format);
+                Bootstrapper.Default.AddImageFormat(format);
             });
             Assert.Contains("mime type", exception.Message);
 
@@ -87,7 +87,7 @@ namespace ImageSharp.Tests
 
             exception = Assert.Throws<ArgumentException>(() =>
             {
-                Bootstrapper.AddImageFormat(format);
+                Bootstrapper.Default.AddImageFormat(format);
             });
             Assert.Contains("mime type", exception.Message);
 
@@ -96,7 +96,7 @@ namespace ImageSharp.Tests
 
             exception = Assert.Throws<ArgumentNullException>(() =>
             {
-                Bootstrapper.AddImageFormat(format);
+                Bootstrapper.Default.AddImageFormat(format);
             });
             Assert.Contains("extension", exception.Message);
 
@@ -105,7 +105,7 @@ namespace ImageSharp.Tests
 
             exception = Assert.Throws<ArgumentException>(() =>
             {
-                Bootstrapper.AddImageFormat(format);
+                Bootstrapper.Default.AddImageFormat(format);
             });
             Assert.Contains("extension", exception.Message);
 
@@ -114,7 +114,7 @@ namespace ImageSharp.Tests
 
             exception = Assert.Throws<ArgumentNullException>(() =>
             {
-                Bootstrapper.AddImageFormat(format);
+                Bootstrapper.Default.AddImageFormat(format);
             });
             Assert.Contains("supported extensions", exception.Message);
 
@@ -123,7 +123,7 @@ namespace ImageSharp.Tests
 
             exception = Assert.Throws<ArgumentException>(() =>
             {
-                Bootstrapper.AddImageFormat(format);
+                Bootstrapper.Default.AddImageFormat(format);
             });
             Assert.Contains("supported extensions", exception.Message);
         }
@@ -131,32 +131,32 @@ namespace ImageSharp.Tests
         [Fact]
         public void AddImageFormatChecks()
         {
-            var format = new TestFormat();
+            TestFormat format = new TestFormat();
 
             var exception = Assert.Throws<ArgumentException>(() =>
             {
-                Bootstrapper.AddImageFormat(format);
+                Bootstrapper.Default.AddImageFormat(format);
             });
             Assert.Contains("format with the same", exception.Message);
 
             format.Extension = "test";
             exception = Assert.Throws<ArgumentException>(() =>
             {
-                Bootstrapper.AddImageFormat(format);
+                Bootstrapper.Default.AddImageFormat(format);
             });
             Assert.Contains("should contain", exception.Message);
 
             format.SupportedExtensions = new string[] { "test", "jpg" };
             exception = Assert.Throws<ArgumentException>(() =>
             {
-                Bootstrapper.AddImageFormat(format);
+                Bootstrapper.Default.AddImageFormat(format);
             });
             Assert.Contains("supports the same", exception.Message);
 
             format.SupportedExtensions = new string[] { "test", "" };
             exception = Assert.Throws<ArgumentException>(() =>
             {
-                Bootstrapper.AddImageFormat(format);
+                Bootstrapper.Default.AddImageFormat(format);
             });
             Assert.Contains("empty values", exception.Message);
         }

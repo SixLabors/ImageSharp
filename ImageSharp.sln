@@ -21,6 +21,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SolutionItems", "SolutionIt
 		features.md = features.md
 		global.json = global.json
 		ImageSharp.ruleset = ImageSharp.ruleset
+		ImageSharp.sln.DotSettings = ImageSharp.sln.DotSettings
 		NuGet.config = NuGet.config
 		build\package.json = build\package.json
 		README.md = README.md

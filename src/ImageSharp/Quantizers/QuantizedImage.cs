@@ -71,16 +71,16 @@ namespace ImageSharp.Quantizers
             Image<TColor> image = new Image<TColor>();
 
             int pixelCount = this.Pixels.Length;
-            int palletCount = this.Palette.Length - 1;
+            int palleteCount = this.Palette.Length - 1;
             TColor[] pixels = new TColor[pixelCount];
 
             Parallel.For(
                 0,
                 pixelCount,
-                Bootstrapper.ParallelOptions,
+                image.Bootstrapper.ParallelOptions,
                 i =>
                     {
-                        TColor color = this.Palette[Math.Min(palletCount, this.Pixels[i])];
+                        TColor color = this.Palette[Math.Min(palleteCount, this.Pixels[i])];
                         pixels[i] = color;
                     });
 

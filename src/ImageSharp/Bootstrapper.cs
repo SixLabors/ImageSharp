@@ -16,12 +16,12 @@ namespace ImageSharp
     /// <summary>
     /// Provides initialization code which allows extending the library.
     /// </summary>
-    public static class Bootstrapper
+    public class Bootstrapper
     {
         /// <summary>
-        /// The list of supported <see cref="IImageFormat"/>.
+        /// A lazily initialized bootstrapper default instance.
         /// </summary>
-        private static readonly List<IImageFormat> ImageFormatsList;
+        private static readonly Lazy<Bootstrapper> Lazy = new Lazy<Bootstrapper>(() => new Bootstrapper());
 
         /// <summary>
         /// An object that can be used to synchronize access to the <see cref="Bootstrapper"/>.
@@ -29,41 +29,35 @@ namespace ImageSharp
         private static readonly object SyncRoot = new object();
 
         /// <summary>
-        /// Initializes static members of the <see cref="Bootstrapper"/> class.
+        /// The list of supported <see cref="IImageFormat"/>.
         /// </summary>
-        static Bootstrapper()
-        {
-            ImageFormatsList = new List<IImageFormat>
-            {
-                new BmpFormat(),
-                new JpegFormat(),
-                new PngFormat(),
-                new GifFormat()
-            };
-            SetMaxHeaderSize();
-            ParallelOptions = new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount };
-        }
+        private readonly List<IImageFormat> imageFormatsList = new List<IImageFormat>();
+
+        /// <summary>
+        /// Gets the default <see cref="Bootstrapper"/> instance.
+        /// </summary>
+        public static Bootstrapper Default { get; } = Lazy.Value;
 
         /// <summary>
         /// Gets the collection of supported <see cref="IImageFormat"/>
         /// </summary>
-        public static IReadOnlyCollection<IImageFormat> ImageFormats => new ReadOnlyCollection<IImageFormat>(ImageFormatsList);
+        public IReadOnlyCollection<IImageFormat> ImageFormats => new ReadOnlyCollection<IImageFormat>(this.imageFormatsList);
 
         /// <summary>
         /// Gets the global parallel options for processing tasks in parallel.
         /// </summary>
-        public static ParallelOptions ParallelOptions { get; }
+        public ParallelOptions ParallelOptions { get; } = new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount };
 
         /// <summary>
         /// Gets the maximum header size of all formats.
         /// </summary>
-        internal static int MaxHeaderSize { get; private set; }
+        internal int MaxHeaderSize { get; private set; }
 
         /// <summary>
         /// Adds a new <see cref="IImageFormat"/> to the collection of supported image formats.
         /// </summary>
         /// <param name="format">The new format to add.</param>
-        public static void AddImageFormat(IImageFormat format)
+        public void AddImageFormat(IImageFormat format)
         {
             Guard.NotNull(format, nameof(format));
             Guard.NotNull(format.Encoder, nameof(format), "The encoder should not be null.");
@@ -72,50 +66,72 @@ namespace ImageSharp
             Guard.NotNullOrEmpty(format.Extension, nameof(format), "The extension should not be null or empty.");
             Guard.NotNullOrEmpty(format.SupportedExtensions, nameof(format), "The supported extensions not be null or empty.");
 
-            AddImageFormatLocked(format);
+            this.AddImageFormatLocked(format);
         }
 
-        private static void AddImageFormatLocked(IImageFormat format)
+        /// <summary>
+        /// Adds image format. The class is locked to make it thread safe.
+        /// </summary>
+        /// <param name="format">The image format.</param>
+        private void AddImageFormatLocked(IImageFormat format)
         {
             lock (SyncRoot)
             {
-                GuardDuplicate(format);
+                if (this.GuardDuplicate(format))
+                {
+                    this.imageFormatsList.Add(format);
 
-                ImageFormatsList.Add(format);
-
-                SetMaxHeaderSize();
+                    this.SetMaxHeaderSize();
+                }
             }
         }
 
-        private static void GuardDuplicate(IImageFormat format)
+        /// <summary>
+        /// Checks to ensure duplicate image formats are not added.
+        /// </summary>
+        /// <param name="format">The image format.</param>
+        /// <exception cref="ArgumentException">Thrown if a duplicate is added.</exception>
+        /// <returns>
+        /// The <see cref="bool"/>.
+        /// </returns>
+        private bool GuardDuplicate(IImageFormat format)
         {
             if (!format.SupportedExtensions.Contains(format.Extension, StringComparer.OrdinalIgnoreCase))
             {
                 throw new ArgumentException("The supported extensions should contain the default extension.", nameof(format));
             }
 
+            // ReSharper disable once ConvertClosureToMethodGroup
+            // Prevents method group allocation
             if (format.SupportedExtensions.Any(e => string.IsNullOrWhiteSpace(e)))
             {
                 throw new ArgumentException("The supported extensions should not contain empty values.", nameof(format));
             }
 
-            foreach (var imageFormat in ImageFormatsList)
+            // If there is already a format with the same extension or a format that supports that
+            // extension return false.
+            foreach (IImageFormat imageFormat in this.imageFormatsList)
             {
                 if (imageFormat.Extension.Equals(format.Extension, StringComparison.OrdinalIgnoreCase))
                 {
-                    throw new ArgumentException("There is already a format with the same extension.", nameof(format));
+                    return false;
                 }
 
                 if (imageFormat.SupportedExtensions.Intersect(format.SupportedExtensions, StringComparer.OrdinalIgnoreCase).Any())
                 {
-                    throw new ArgumentException("There is already a format that supports the same extension.", nameof(format));
+                    return false;
                 }
             }
+
+            return true;
         }
 
-        private static void SetMaxHeaderSize()
+        /// <summary>
+        /// Sets max header size.
+        /// </summary>
+        private void SetMaxHeaderSize()
         {
-            MaxHeaderSize = ImageFormatsList.Max(x => x.HeaderSize);
+            this.MaxHeaderSize = this.imageFormatsList.Max(x => x.HeaderSize);
         }
     }
 }

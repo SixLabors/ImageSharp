@@ -16,7 +16,7 @@ namespace ImageSharp.Processors
         where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <inheritdoc/>
-        public virtual ParallelOptions ParallelOptions { get; set; } = Bootstrapper.ParallelOptions;
+        public virtual ParallelOptions ParallelOptions { get; set; }
 
         /// <inheritdoc/>
         public virtual bool Compand { get; set; } = false;

@@ -65,7 +65,9 @@
     },
     "net45": {
       "dependencies": {
-        "System.Runtime": "4.0.0"
+        "System.Runtime": "4.0.0",
+        "System.IO": "4.0.0",
+        "System.Threading.Tasks.Parallel": "4.0.0"
       }
     }
   }

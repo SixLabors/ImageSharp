@@ -10,10 +10,10 @@ namespace ImageSharp.Processors
     using System.Threading.Tasks;
 
     /// <summary>
-    /// An <see cref="IImageFilteringProcessor{TColor}"/> to pixelate the colors of an <see cref="Image{TColor}"/>.
+    /// An <see cref="IImageProcessor{TColor}"/> to pixelate the colors of an <see cref="Image{TColor}"/>.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    public class PixelateProcessor<TColor> : ImageFilteringProcessor<TColor>
+    public class PixelateProcessor<TColor> : ImageProcessor<TColor>
         where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>

@@ -11,7 +11,7 @@ namespace ImageSharp.Processors
     /// Applies a Gaussian sharpening sampler to the image.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    public class GaussianSharpenProcessor<TColor> : ImageFilteringProcessor<TColor>
+    public class GaussianSharpenProcessor<TColor> : ImageProcessor<TColor>
         where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>

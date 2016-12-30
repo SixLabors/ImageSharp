@@ -46,7 +46,7 @@ namespace ImageSharp.Formats
             this.padding = bytesPerLine - (image.Width * (int)bitsPerPixel);
 
             // Do not use IDisposable pattern here as we want to preserve the stream.
-            EndianBinaryWriter writer = new EndianBinaryWriter(EndianBitConverter.Little, stream);
+            EndianBinaryWriter writer = new EndianBinaryWriter(Endianness.LittleEndian, stream);
 
             BmpInfoHeader infoHeader = new BmpInfoHeader
             {

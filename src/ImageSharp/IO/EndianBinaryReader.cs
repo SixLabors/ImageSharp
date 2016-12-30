@@ -45,14 +45,14 @@ namespace ImageSharp.IO
         /// Equivalent of <see cref="System.IO.BinaryWriter"/>, but with either endianness, depending on
         /// the EndianBitConverter it is constructed with.
         /// </summary>
-        /// <param name="bitConverter">
-        /// Converter to use when reading data
+        /// <param name="endianness">
+        /// Endianness to use when reading data
         /// </param>
         /// <param name="stream">
         /// Stream to read data from
         /// </param>
-        public EndianBinaryReader(EndianBitConverter bitConverter, Stream stream)
-            : this(bitConverter, stream, Encoding.UTF8)
+        public EndianBinaryReader(Endianness endianness, Stream stream)
+            : this(endianness, stream, Encoding.UTF8)
         {
         }
 
@@ -61,18 +61,17 @@ namespace ImageSharp.IO
         /// Constructs a new binary reader with the given bit converter, reading
         /// to the given stream, using the given encoding.
         /// </summary>
-        /// <param name="bitConverter">Converter to use when reading data</param>
+        /// <param name="endianness">Endianness to use when reading data</param>
         /// <param name="stream">Stream to read data from</param>
         /// <param name="encoding">Encoding to use when reading character data</param>
-        public EndianBinaryReader(EndianBitConverter bitConverter, Stream stream, Encoding encoding)
+        public EndianBinaryReader(Endianness endianness, Stream stream, Encoding encoding)
         {
-            Guard.NotNull(bitConverter, nameof(bitConverter));
             Guard.NotNull(stream, nameof(stream));
             Guard.NotNull(encoding, nameof(encoding));
             Guard.IsTrue(stream.CanRead, nameof(stream), "Stream isn't readable.");
 
             this.BaseStream = stream;
-            this.BitConverter = bitConverter;
+            this.BitConverter = EndianBitConverter.GetConverter(endianness);
             this.Encoding = encoding;
             this.decoder = encoding.GetDecoder();
             this.minBytesPerChar = 1;
@@ -84,11 +83,6 @@ namespace ImageSharp.IO
         }
 
         /// <summary>
-        /// Gets the bit converter used to read values from the stream.
-        /// </summary>
-        public EndianBitConverter BitConverter { get; }
-
-        /// <summary>
         /// Gets the encoding used to read strings
         /// </summary>
         public Encoding Encoding { get; }
@@ -97,6 +91,11 @@ namespace ImageSharp.IO
         /// Gets the underlying stream of the EndianBinaryReader.
         /// </summary>
         public Stream BaseStream { get; }
+
+        /// <summary>
+        /// Gets the bit converter used to read values from the stream.
+        /// </summary>
+        internal EndianBitConverter BitConverter { get; }
 
         /// <summary>
         /// Closes the reader, including the underlying stream.

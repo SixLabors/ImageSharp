@@ -35,7 +35,7 @@ namespace ImageSharp.Tests.IO
         public void ReadCharsBeyondInternalBufferSize()
         {
             MemoryStream stream = new MemoryStream(TestBytes);
-            using (EndianBinaryReader subject = new EndianBinaryReader(EndianBitConverter.Little, stream))
+            using (EndianBinaryReader subject = new EndianBinaryReader(Endianness.LittleEndian, stream))
             {
                 char[] chars = new char[TestString.Length];
                 subject.Read(chars, 0, chars.Length);
@@ -54,7 +54,7 @@ namespace ImageSharp.Tests.IO
                 () =>
                     {
                         MemoryStream stream = new MemoryStream(TestBytes);
-                        using (EndianBinaryReader subject = new EndianBinaryReader(EndianBitConverter.Little, stream))
+                        using (EndianBinaryReader subject = new EndianBinaryReader(Endianness.LittleEndian, stream))
                         {
                             char[] chars = new char[TestString.Length - 1];
 

@@ -15,19 +15,6 @@ namespace ImageSharp.Processing
     internal static class ImageMaths
     {
         /// <summary>
-        /// Returns how many bits are required to store the specified number of colors.
-        /// Performs a Log2() on the value.
-        /// </summary>
-        /// <param name="colors">The number of colors.</param>
-        /// <returns>
-        /// The <see cref="int"/>
-        /// </returns>
-        public static int GetBitsNeededForColorDepth(int colors)
-        {
-            return (int)Math.Ceiling(Math.Log(colors, 2));
-        }
-
-        /// <summary>
         /// Implementation of 1D Gaussian G(x) function
         /// </summary>
         /// <param name="x">The x provided to G(x).</param>

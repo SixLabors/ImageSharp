@@ -61,7 +61,7 @@ namespace ImageSharp
             this.pixelsBase = (byte*)this.dataPointer.ToPointer();
             this.PixelSize = Unsafe.SizeOf<TColor>();
             this.RowStride = this.Width * this.PixelSize;
-            this.ParallelOptions = image.Bootstrapper.ParallelOptions;
+            this.ParallelOptions = image.Configuration.ParallelOptions;
         }
 
         /// <summary>
@@ -88,7 +88,7 @@ namespace ImageSharp
             this.pixelsBase = (byte*)this.dataPointer.ToPointer();
             this.PixelSize = Unsafe.SizeOf<TColor>();
             this.RowStride = this.Width * this.PixelSize;
-            this.ParallelOptions = Bootstrapper.Default.ParallelOptions;
+            this.ParallelOptions = Configuration.Default.ParallelOptions;
         }
 
         /// <summary>

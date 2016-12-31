@@ -26,7 +26,7 @@ namespace ImageSharp.Processors
         {
             if (this.ParallelOptions == null)
             {
-                this.ParallelOptions = source.Bootstrapper.ParallelOptions;
+                this.ParallelOptions = source.Configuration.ParallelOptions;
             }
 
             try

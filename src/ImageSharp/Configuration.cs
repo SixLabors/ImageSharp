@@ -1,4 +1,4 @@
-﻿// <copyright file="Bootstrapper.cs" company="James Jackson-South">
+﻿// <copyright file="Configuration.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -16,15 +16,15 @@ namespace ImageSharp
     /// <summary>
     /// Provides initialization code which allows extending the library.
     /// </summary>
-    public class Bootstrapper
+    public class Configuration
     {
         /// <summary>
-        /// A lazily initialized bootstrapper default instance.
+        /// A lazily initialized configuration default instance.
         /// </summary>
-        private static readonly Lazy<Bootstrapper> Lazy = new Lazy<Bootstrapper>(() => new Bootstrapper());
+        private static readonly Lazy<Configuration> Lazy = new Lazy<Configuration>(() => new Configuration());
 
         /// <summary>
-        /// An object that can be used to synchronize access to the <see cref="Bootstrapper"/>.
+        /// An object that can be used to synchronize access to the <see cref="Configuration"/>.
         /// </summary>
         private static readonly object SyncRoot = new object();
 
@@ -34,9 +34,9 @@ namespace ImageSharp
         private readonly List<IImageFormat> imageFormatsList = new List<IImageFormat>();
 
         /// <summary>
-        /// Gets the default <see cref="Bootstrapper"/> instance.
+        /// Gets the default <see cref="Configuration"/> instance.
         /// </summary>
-        public static Bootstrapper Default { get; } = Lazy.Value;
+        public static Configuration Default { get; } = Lazy.Value;
 
         /// <summary>
         /// Gets the collection of supported <see cref="IImageFormat"/>

@@ -687,7 +687,7 @@ namespace ImageSharp.Formats
                 Parallel.For(
                     0,
                     height,
-                    image.Bootstrapper.ParallelOptions,
+                    image.Configuration.ParallelOptions,
                     y =>
                     {
                         int yoff = this.grayImage.GetRowOffset(y);
@@ -723,7 +723,7 @@ namespace ImageSharp.Formats
                 Parallel.For(
                     0,
                     height,
-                    image.Bootstrapper.ParallelOptions,
+                    image.Configuration.ParallelOptions,
                     y =>
                     {
                         // TODO: Simplify + optimize + share duplicate code across converter methods
@@ -764,7 +764,7 @@ namespace ImageSharp.Formats
                 Parallel.For(
                     0,
                     height,
-                    image.Bootstrapper.ParallelOptions,
+                    image.Configuration.ParallelOptions,
                     y =>
                     {
                         // TODO: Simplify + optimize + share duplicate code across converter methods

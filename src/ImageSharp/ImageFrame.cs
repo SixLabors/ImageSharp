@@ -18,11 +18,11 @@ namespace ImageSharp
         /// </summary>
         /// <param name="width">The width of the image in pixels.</param>
         /// <param name="height">The height of the image in pixels.</param>
-        /// <param name="bootstrapper">
-        /// The bootstrapper providing initialization code which allows extending the library.
+        /// <param name="configuration">
+        /// The configuration providing initialization code which allows extending the library.
         /// </param>
-        public ImageFrame(int width, int height, Bootstrapper bootstrapper = null)
-            : base(width, height, bootstrapper)
+        public ImageFrame(int width, int height, Configuration configuration = null)
+            : base(width, height, configuration)
         {
         }
 

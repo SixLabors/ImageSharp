@@ -43,13 +43,13 @@ namespace ImageSharp
         /// </summary>
         /// <param name="width">The width of the image in pixels.</param>
         /// <param name="height">The height of the image in pixels.</param>
-        /// <param name="bootstrapper">
-        /// The bootstrapper providing initialization code which allows extending the library.
+        /// <param name="configuration">
+        /// The configuration providing initialization code which allows extending the library.
         /// </param>
-        public Image(int width, int height, Bootstrapper bootstrapper = null)
-            : base(width, height, bootstrapper)
+        public Image(int width, int height, Configuration configuration = null)
+            : base(width, height, configuration)
         {
-            this.CurrentImageFormat = this.Bootstrapper.ImageFormats.First();
+            this.CurrentImageFormat = this.Configuration.ImageFormats.First();
         }
 
         /// <summary>
@@ -58,12 +58,12 @@ namespace ImageSharp
         /// <param name="stream">
         /// The stream containing image information.
         /// </param>
-        /// <param name="bootstrapper">
-        /// The bootstrapper providing initialization code which allows extending the library.
+        /// <param name="configuration">
+        /// The configuration providing initialization code which allows extending the library.
         /// </param>
         /// <exception cref="System.ArgumentNullException">Thrown if the <paramref name="stream"/> is null.</exception>
-        public Image(Stream stream, Bootstrapper bootstrapper = null)
-            : base(bootstrapper)
+        public Image(Stream stream, Configuration configuration = null)
+            : base(configuration)
         {
             Guard.NotNull(stream, nameof(stream));
             this.Load(stream);
@@ -75,12 +75,12 @@ namespace ImageSharp
         /// <param name="bytes">
         /// The byte array containing image information.
         /// </param>
-        /// <param name="bootstrapper">
-        /// The bootstrapper providing initialization code which allows extending the library.
+        /// <param name="configuration">
+        /// The configuration providing initialization code which allows extending the library.
         /// </param>
         /// <exception cref="System.ArgumentNullException">Thrown if the <paramref name="bytes"/> is null.</exception>
-        public Image(byte[] bytes, Bootstrapper bootstrapper = null)
-            : base(bootstrapper)
+        public Image(byte[] bytes, Configuration configuration = null)
+            : base(configuration)
         {
             Guard.NotNull(bytes, nameof(bytes));
 
@@ -296,7 +296,7 @@ namespace ImageSharp
         {
             scaleFunc = PackedPixelConverterHelper.ComputeScaleFunction<TColor, TColor2>(scaleFunc);
 
-            Image<TColor2> target = new Image<TColor2>(this.Width, this.Height, this.Bootstrapper)
+            Image<TColor2> target = new Image<TColor2>(this.Width, this.Height, this.Configuration)
             {
                 Quality = this.Quality,
                 FrameDelay = this.FrameDelay,
@@ -312,7 +312,7 @@ namespace ImageSharp
                 Parallel.For(
                     0,
                     target.Height,
-                    this.Bootstrapper.ParallelOptions,
+                    this.Configuration.ParallelOptions,
                     y =>
                         {
                             for (int x = 0; x < target.Width; x++)
@@ -376,7 +376,7 @@ namespace ImageSharp
         /// </exception>
         private void Load(Stream stream)
         {
-            if (!this.Bootstrapper.ImageFormats.Any())
+            if (!this.Configuration.ImageFormats.Any())
             {
                 throw new NotSupportedException("No image formats have been configured.");
             }
@@ -411,7 +411,7 @@ namespace ImageSharp
             StringBuilder stringBuilder = new StringBuilder();
             stringBuilder.AppendLine("Image cannot be loaded. Available formats:");
 
-            foreach (IImageFormat format in this.Bootstrapper.ImageFormats)
+            foreach (IImageFormat format in this.Configuration.ImageFormats)
             {
                 stringBuilder.AppendLine("-" + format);
             }
@@ -428,7 +428,7 @@ namespace ImageSharp
         /// </returns>
         private bool Decode(Stream stream)
         {
-            int maxHeaderSize = this.Bootstrapper.MaxHeaderSize;
+            int maxHeaderSize = this.Configuration.MaxHeaderSize;
             if (maxHeaderSize <= 0)
             {
                 return false;
@@ -441,7 +441,7 @@ namespace ImageSharp
                 long startPosition = stream.Position;
                 stream.Read(header, 0, maxHeaderSize);
                 stream.Position = startPosition;
-                format = this.Bootstrapper.ImageFormats.FirstOrDefault(x => x.IsSupportedFileFormat(header));
+                format = this.Configuration.ImageFormats.FirstOrDefault(x => x.IsSupportedFileFormat(header));
             }
             finally
             {

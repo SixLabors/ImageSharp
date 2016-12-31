@@ -1,4 +1,4 @@
-﻿// <copyright file="BootstrapperTests.cs" company="James Jackson-South">
+﻿// <copyright file="ConfigurationTests.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -11,7 +11,7 @@ namespace ImageSharp.Tests
     using Xunit;
     using System.Linq;
 
-    public class BootstrapperTests
+    public class ConfigurationTests
     {
         private class TestFormat : IImageFormat
         {
@@ -52,7 +52,7 @@ namespace ImageSharp.Tests
 
             exception = Assert.Throws<ArgumentNullException>(() =>
             {
-                Bootstrapper.Default.AddImageFormat(null);
+                Configuration.Default.AddImageFormat(null);
             });
 
             var format = new TestFormat();
@@ -60,7 +60,7 @@ namespace ImageSharp.Tests
 
             exception = Assert.Throws<ArgumentNullException>(() =>
             {
-                Bootstrapper.Default.AddImageFormat(format);
+                Configuration.Default.AddImageFormat(format);
             });
             Assert.Contains("decoder", exception.Message);
 
@@ -69,7 +69,7 @@ namespace ImageSharp.Tests
 
             exception = Assert.Throws<ArgumentNullException>(() =>
             {
-                Bootstrapper.Default.AddImageFormat(format);
+                Configuration.Default.AddImageFormat(format);
             });
             Assert.Contains("encoder", exception.Message);
 
@@ -78,7 +78,7 @@ namespace ImageSharp.Tests
 
             exception = Assert.Throws<ArgumentNullException>(() =>
             {
-                Bootstrapper.Default.AddImageFormat(format);
+                Configuration.Default.AddImageFormat(format);
             });
             Assert.Contains("mime type", exception.Message);
 
@@ -87,7 +87,7 @@ namespace ImageSharp.Tests
 
             exception = Assert.Throws<ArgumentException>(() =>
             {
-                Bootstrapper.Default.AddImageFormat(format);
+                Configuration.Default.AddImageFormat(format);
             });
             Assert.Contains("mime type", exception.Message);
 
@@ -96,7 +96,7 @@ namespace ImageSharp.Tests
 
             exception = Assert.Throws<ArgumentNullException>(() =>
             {
-                Bootstrapper.Default.AddImageFormat(format);
+                Configuration.Default.AddImageFormat(format);
             });
             Assert.Contains("extension", exception.Message);
 
@@ -105,7 +105,7 @@ namespace ImageSharp.Tests
 
             exception = Assert.Throws<ArgumentException>(() =>
             {
-                Bootstrapper.Default.AddImageFormat(format);
+                Configuration.Default.AddImageFormat(format);
             });
             Assert.Contains("extension", exception.Message);
 
@@ -114,7 +114,7 @@ namespace ImageSharp.Tests
 
             exception = Assert.Throws<ArgumentNullException>(() =>
             {
-                Bootstrapper.Default.AddImageFormat(format);
+                Configuration.Default.AddImageFormat(format);
             });
             Assert.Contains("supported extensions", exception.Message);
 
@@ -123,7 +123,7 @@ namespace ImageSharp.Tests
 
             exception = Assert.Throws<ArgumentException>(() =>
             {
-                Bootstrapper.Default.AddImageFormat(format);
+                Configuration.Default.AddImageFormat(format);
             });
             Assert.Contains("supported extensions", exception.Message);
         }
@@ -136,14 +136,14 @@ namespace ImageSharp.Tests
             format.Extension = "test";
             var exception = Assert.Throws<ArgumentException>(() =>
              {
-                 Bootstrapper.Default.AddImageFormat(format);
+                 Configuration.Default.AddImageFormat(format);
              });
             Assert.Contains("should contain", exception.Message);
 
             format.SupportedExtensions = new string[] { "test", "" };
             exception = Assert.Throws<ArgumentException>(() =>
             {
-                Bootstrapper.Default.AddImageFormat(format);
+                Configuration.Default.AddImageFormat(format);
             });
             Assert.Contains("empty values", exception.Message);
         }

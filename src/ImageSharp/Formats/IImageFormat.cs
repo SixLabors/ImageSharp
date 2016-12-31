@@ -9,7 +9,7 @@ namespace ImageSharp.Formats
 
     /// <summary>
     /// Encapsulates a supported image format, providing means to encode and decode an image.
-    /// Individual formats implements in this interface must be registered in the <see cref="Bootstrapper"/>
+    /// Individual formats implements in this interface must be registered in the <see cref="Configuration"/>
     /// </summary>
     public interface IImageFormat
     {

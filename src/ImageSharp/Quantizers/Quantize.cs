@@ -65,7 +65,7 @@ namespace ImageSharp
             Parallel.For(
                 0,
                 pixelCount,
-                source.Bootstrapper.ParallelOptions,
+                source.Configuration.ParallelOptions,
                 i =>
                 {
                     TColor color = quantized.Palette[Math.Min(palleteCount, quantized.Pixels[i])];

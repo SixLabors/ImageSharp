@@ -42,10 +42,10 @@ namespace ImageSharp.Tests
         {
             // Register the individual image formats.
             // TODO: Is this the best place to do this?
-            Bootstrapper.Default.AddImageFormat(new PngFormat());
-            Bootstrapper.Default.AddImageFormat(new JpegFormat());
-            Bootstrapper.Default.AddImageFormat(new BmpFormat());
-            Bootstrapper.Default.AddImageFormat(new GifFormat());
+            Configuration.Default.AddImageFormat(new PngFormat());
+            Configuration.Default.AddImageFormat(new JpegFormat());
+            Configuration.Default.AddImageFormat(new BmpFormat());
+            Configuration.Default.AddImageFormat(new GifFormat());
         }
 
         /// <summary>

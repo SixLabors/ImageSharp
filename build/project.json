@@ -10,13 +10,7 @@
   },
   "frameworks": {
     "net46": {
-      //"dependencies": {
-      //  "Microsoft.NETCore.App": {
-      //    "type": "platform",
-      //    "version": "1.0.0"
-      //  }
-      //},
-      //"imports": "dnxcore50"
+      // this is only a net46 app because of LibGit2Sharp once they have a version that works on coreclr we can shift over.     
     }
   }
 }

@@ -250,8 +250,7 @@ namespace ConsoleApplication
             internal string CalculateVersionNumber(string branch)
             {
                 var version = this.Version.ToFullString();
-
-
+                
                 if (this.commitCount == 1 && branch == "") //master only
                 {
                     if (this.Version.IsPrerelease)
@@ -263,6 +262,7 @@ namespace ConsoleApplication
                     //only 1 commit (the changing one) we will skip appending suffix
                     return version;
                 }
+                
 
                 var rootSpecialVersion = "";
 
@@ -276,9 +276,13 @@ namespace ConsoleApplication
                 {
                     rootSpecialVersion = "-" + rootSpecialVersion;
                 }
-                if (branch == "")
+                if (branch == "" && !this.Version.IsPrerelease)
                 {
                     branch = fallbackTag;
+                }
+                if (branch.Length > 0)
+                {
+                    branch = "-" + branch;
                 }
 
                 var maxLength = 20;
@@ -288,8 +292,8 @@ namespace ConsoleApplication
                 {
                     branch = branch.Substring(0, maxLength);
                 }
-
-                return $"{version}{rootSpecialVersion}-{branch}-{this.commitCount:00000}";
+                
+                return $"{version}{rootSpecialVersion}{branch}-{this.commitCount:00000}";
             }
         }
     }

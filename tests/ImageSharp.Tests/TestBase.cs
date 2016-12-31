@@ -15,7 +15,7 @@ namespace ImageSharp.Tests
     {
         protected TestBase()
         {
-            Bootstrapper.Default.AddCommonFormats();
+            Configuration.Default.AddCommonFormats();
         }
 
         /// <summary>

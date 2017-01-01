@@ -51,7 +51,7 @@ namespace ImageSharp
         {
             if (!this.Configuration.ImageFormats.Any())
             {
-                throw new NotSupportedException("No image formats have been configured.");
+                throw new InvalidOperationException("No image formats have been configured.");
             }
 
             this.CurrentImageFormat = this.Configuration.ImageFormats.First();
@@ -383,7 +383,7 @@ namespace ImageSharp
         {
             if (!this.Configuration.ImageFormats.Any())
             {
-                throw new NotSupportedException("No image formats have been configured.");
+                throw new InvalidOperationException("No image formats have been configured.");
             }
 
             if (!stream.CanRead)

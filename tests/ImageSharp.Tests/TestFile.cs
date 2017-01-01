@@ -9,6 +9,7 @@ namespace ImageSharp.Tests
     using System.IO;
 
     using ImageSharp.Formats;
+    using System.Linq;
 
     /// <summary>
     /// A test image file.
@@ -144,14 +145,22 @@ namespace ImageSharp.Tests
         /// </returns>
         private static string GetFormatsDirectory()
         {
-            // Here for code coverage tests.
-            string directory = "TestImages/Formats/";
-            if (Directory.Exists(directory))
+            var directories = new[] {
+                 "TestImages/Formats/", // Here for code coverage tests.
+                  "tests/ImageSharp.Tests/TestImages/Formats/", // from travis/build script
+                  "../../../../TestImages/Formats/" 
+            };
+
+            directories= directories.Select(x => Path.GetFullPath(x)).ToArray();
+
+            var directory = directories.FirstOrDefault(x => Directory.Exists(x));
+
+            if(directory  != null)
             {
                 return directory;
             }
 
-            return "../../../../TestImages/Formats/";
+            throw new System.Exception($"Unable to find Formats directory at any of these locations [{string.Join(", ", directories)}]");
         }
     }
 }

@@ -20,7 +20,7 @@ branches:
 
 script:
   - dotnet restore
-  - dotnet build -c Release src\*\project.json
+  - dotnet build -c Release src/*/project.json
 
 env:
   global:

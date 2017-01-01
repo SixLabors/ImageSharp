@@ -13,7 +13,7 @@ namespace ImageSharp.Processors
     /// The color matrix filter. Inherit from this class to perform operation involving color matrices.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    public abstract class ColorMatrixFilter<TColor> : ImageFilteringProcessor<TColor>, IColorMatrixFilter<TColor>
+    public abstract class ColorMatrixFilter<TColor> : ImageProcessor<TColor>, IColorMatrixFilter<TColor>
         where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <inheritdoc/>

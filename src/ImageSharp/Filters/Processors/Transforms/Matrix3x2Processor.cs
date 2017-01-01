@@ -12,7 +12,7 @@ namespace ImageSharp.Processors
     /// Provides methods to transform an image using a <see cref="Matrix3x2"/>.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    public abstract class Matrix3x2Processor<TColor> : ImageFilteringProcessor<TColor>
+    public abstract class Matrix3x2Processor<TColor> : ImageProcessor<TColor>
         where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>

@@ -10,10 +10,10 @@ namespace ImageSharp.Processors
     using System.Threading.Tasks;
 
     /// <summary>
-    /// An <see cref="IImageFilteringProcessor{TColor}"/> to invert the colors of an <see cref="Image{TColor}"/>.
+    /// An <see cref="IImageProcessor{TColor}"/> to invert the colors of an <see cref="Image{TColor}"/>.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    public class InvertProcessor<TColor> : ImageFilteringProcessor<TColor>
+    public class InvertProcessor<TColor> : ImageProcessor<TColor>
         where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <inheritdoc/>

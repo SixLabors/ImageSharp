@@ -20,8 +20,8 @@ namespace ImageSharp.Drawing.Processors
     /// Draws a path using the processor pipeline
     /// </summary>
     /// <typeparam name="TColor">The type of the color.</typeparam>
-    /// <seealso cref="ImageSharp.Processors.ImageFilteringProcessor{TColor}" />
-    public class DrawPathProcessor<TColor> : ImageFilteringProcessor<TColor>
+    /// <seealso cref="ImageSharp.Processors.ImageProcessor{TColor}" />
+    public class DrawPathProcessor<TColor> : ImageProcessor<TColor>
         where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         private const float AntialiasFactor = 1f;

@@ -15,11 +15,11 @@
     public class EncodeJpegMultiple : MultiImageBenchmarkBase.WithImagesPreloaded
     {
         protected override IEnumerable<string> InputImageSubfolders => new[]
-                                                                 {
-                                                                     "Formats/Bmp/",
-                                                                     "Formats/Jpg/baseline"
-                                                                 };
-        
+        {
+            "Formats/Bmp/",
+            "Formats/Jpg/baseline"
+        };
+
         protected override IEnumerable<string> FileFilters => new[] { "*.bmp", "*.jpg" };
 
         [Benchmark(Description = "EncodeJpegMultiple - ImageSharp")]

@@ -13,7 +13,7 @@ namespace ImageSharp.Benchmarks.Image
     using CoreImage = ImageSharp.Image;
     using SystemColor = System.Drawing.Color;
 
-    public class GetSetPixel
+    public class GetSetPixel : BenchmarkBase
     {
         [Benchmark(Baseline = true, Description = "System.Drawing GetSet pixel")]
         public SystemColor ResizeSystemDrawing()

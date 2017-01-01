@@ -12,7 +12,7 @@ namespace ImageSharp.Benchmarks
     using CoreSize = ImageSharp.Size;
     using CoreImage = ImageSharp.Image;
 
-    public class Resize
+    public class Resize : BenchmarkBase
     {
         [Benchmark(Baseline = true, Description = "System.Drawing Resize")]
         public Size ResizeSystemDrawing()

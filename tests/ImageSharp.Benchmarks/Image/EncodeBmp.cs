@@ -12,7 +12,7 @@ namespace ImageSharp.Benchmarks.Image
     using BenchmarkDotNet.Attributes;
     using CoreImage = ImageSharp.Image;
 
-    public class EncodeBmp
+    public class EncodeBmp : BenchmarkBase
     {
         // System.Drawing needs this.
         private Stream bmpStream;

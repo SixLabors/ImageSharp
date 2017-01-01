@@ -11,7 +11,7 @@
 
     using Image = ImageSharp.Image;
 
-    public abstract class MultiImageBenchmarkBase
+    public abstract class MultiImageBenchmarkBase : BenchmarkBase
     {
         protected Dictionary<string, byte[]> FileNamesToBytes = new Dictionary<string, byte[]>();
 
@@ -26,7 +26,7 @@
 
             LargeImagesOnly
         }
-        
+
         [Params(TestingMode.All, TestingMode.SmallImagesOnly, TestingMode.LargeImagesOnly)]
         public TestingMode Mode { get; set; }
 
@@ -62,7 +62,7 @@
             this.EnumeratePairsByBenchmarkSettings(
                 this.FileNamesToBytes,
                 arr => arr.Length < this.LargeImageThresholdInBytes);
-        
+
         protected abstract IEnumerable<string> InputImageSubfolders { get; }
 
         [Setup]
@@ -122,7 +122,7 @@
                     using (var ms1 = new MemoryStream(bytes))
                     {
                         this.FileNamesToImageSharpImages[fn] = new Image(ms1);
-                        
+
                     }
 
                     this.FileNamesToSystemDrawingImages[fn] = new Bitmap(new MemoryStream(bytes));
@@ -178,7 +178,7 @@
             }
         }
 
-        
+
     }
 
 

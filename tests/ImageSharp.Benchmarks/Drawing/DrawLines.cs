@@ -1,4 +1,4 @@
-﻿// <copyright file="Crop.cs" company="James Jackson-South">
+﻿// <copyright file="DrawLines.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -7,15 +7,16 @@ namespace ImageSharp.Benchmarks
 {
     using System.Drawing;
     using System.Drawing.Drawing2D;
-
-    using BenchmarkDotNet.Attributes;
-    using CoreImage = ImageSharp.Image;
-    using CorePoint = ImageSharp.Point;
-    using CoreColor = ImageSharp.Color;
     using System.IO;
     using System.Numerics;
 
-    public class DrawLines
+    using BenchmarkDotNet.Attributes;
+
+    using CoreColor = ImageSharp.Color;
+    using CoreImage = ImageSharp.Image;
+    using CorePoint = ImageSharp.Point;
+
+    public class DrawLines : BenchmarkBase
     {
         [Benchmark(Baseline = true, Description = "System.Drawing Draw Lines")]
         public void DrawPathSystemDrawing()

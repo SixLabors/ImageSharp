@@ -12,7 +12,7 @@ namespace ImageSharp.Benchmarks.Image
     using CoreColor = ImageSharp.Color;
     using CoreImage = ImageSharp.Image;
 
-    public class CopyPixels
+    public class CopyPixels : BenchmarkBase
     {
         [Benchmark(Description = "Copy by Pixel")]
         public CoreColor CopyByPixel()

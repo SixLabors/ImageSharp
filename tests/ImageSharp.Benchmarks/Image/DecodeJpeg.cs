@@ -13,7 +13,7 @@ namespace ImageSharp.Benchmarks.Image
     using CoreImage = ImageSharp.Image;
     using CoreSize = ImageSharp.Size;
 
-    public class DecodeJpeg
+    public class DecodeJpeg : BenchmarkBase
     {
         private byte[] jpegBytes;
 

@@ -7,6 +7,8 @@ namespace ImageSharp.Benchmarks
 {
     using BenchmarkDotNet.Running;
 
+    using ImageSharp.Formats;
+
     public class Program
     {
         /// <summary>

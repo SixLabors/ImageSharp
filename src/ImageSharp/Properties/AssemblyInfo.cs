@@ -37,4 +37,11 @@ using System.Runtime.CompilerServices;
 // Ensure the internals can be tested.
 [assembly: InternalsVisibleTo("ImageSharp.Benchmarks")]
 [assembly: InternalsVisibleTo("ImageSharp.Tests")]
-[assembly: InternalsVisibleTo("ImageSharp.Tests46")]
+
+// Ensure the other projects can see the internal helpers
+[assembly: InternalsVisibleTo("ImageSharp.Drawing")]
+[assembly: InternalsVisibleTo("ImageSharp.Formats.Bmp")]
+[assembly: InternalsVisibleTo("ImageSharp.Formats.Gif")]
+[assembly: InternalsVisibleTo("ImageSharp.Formats.Jpeg")]
+[assembly: InternalsVisibleTo("ImageSharp.Formats.Png")]
+[assembly: InternalsVisibleTo("ImageSharp.Processing")]

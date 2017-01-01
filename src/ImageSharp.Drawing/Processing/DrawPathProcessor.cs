@@ -3,7 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.Drawing.Processors
+namespace ImageSharp.Drawing.Processing
 {
     using System;
     using System.Linq;
@@ -12,7 +12,6 @@ namespace ImageSharp.Drawing.Processors
     using ImageSharp.Processing;
     using Paths;
     using Pens;
-    using Pens.Processors;
     using Shapes;
     using Rectangle = ImageSharp.Rectangle;
 

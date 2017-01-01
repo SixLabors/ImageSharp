@@ -8,7 +8,7 @@ namespace ImageSharp.Drawing.Brushes
     using System;
     using System.Numerics;
 
-    using Processors;
+    using Processing;
 
     /// <summary>
     /// Provides an implementation of a pattern brush for painting patterns.

@@ -29,25 +29,5 @@ namespace ImageSharp
         public static Image<TColor> SaveAsGif<TColor>(this Image<TColor> source, Stream stream, int quality = 256)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
                         => source.Save(stream, new GifEncoder { Quality = quality });
-
-        /// <summary>
-        /// To the frame.
-        /// </summary>
-        /// <typeparam name="TColor">The type of the color.</typeparam>
-        /// <param name="source">The source.</param>
-        /// <returns>The frame</returns>
-        internal static ImageFrame<TColor> ToFrame<TColor>(this ImageBase<TColor> source)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
-                        => new ImageFrame<TColor>(source);
-
-        /// <summary>
-        /// Clones the specified source.
-        /// </summary>
-        /// <typeparam name="TColor">The type of the color.</typeparam>
-        /// <param name="source">The source.</param>
-        /// <returns>The frame</returns>
-        internal static ImageFrame<TColor> Clone<TColor>(this ImageFrame<TColor> source)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
-                        => new ImageFrame<TColor>(source);
     }
 }

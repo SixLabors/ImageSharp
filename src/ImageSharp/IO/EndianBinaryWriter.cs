@@ -13,7 +13,7 @@ namespace ImageSharp.IO
     /// Equivalent of <see cref="BinaryWriter"/>, but with either endianness, depending on
     /// the <see cref="EndianBitConverter"/> it is constructed with.
     /// </summary>
-    public class EndianBinaryWriter : IDisposable
+    internal class EndianBinaryWriter : IDisposable
     {
         /// <summary>
         /// Buffer used for temporary storage during conversion from primitives

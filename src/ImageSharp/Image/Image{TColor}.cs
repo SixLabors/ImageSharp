@@ -49,6 +49,11 @@ namespace ImageSharp
         public Image(int width, int height, Configuration configuration = null)
             : base(width, height, configuration)
         {
+            if (!this.Configuration.ImageFormats.Any())
+            {
+                throw new NotSupportedException("No image formats have been configured.");
+            }
+
             this.CurrentImageFormat = this.Configuration.ImageFormats.First();
         }
 

@@ -8,7 +8,7 @@ namespace ImageSharp.IO
     /// <summary>
     /// Endianness of a converter
     /// </summary>
-    public enum Endianness
+    internal enum Endianness
     {
         /// <summary>
         /// Little endian - least significant byte first

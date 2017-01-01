@@ -10,11 +10,11 @@ namespace ImageSharp.Processors
     using System.Threading.Tasks;
 
     /// <summary>
-    /// An <see cref="IImageFilteringProcessor{TColor}"/> to apply an oil painting effect to an <see cref="Image{TColor}"/>.
+    /// An <see cref="IImageProcessor{TColor}"/> to apply an oil painting effect to an <see cref="Image{TColor}"/>.
     /// </summary>
     /// <remarks>Adapted from <see href="https://softwarebydefault.com/2013/06/29/oil-painting-cartoon-filter/"/> by Dewald Esterhuizen.</remarks>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    public class OilPaintingProcessor<TColor> : ImageFilteringProcessor<TColor>
+    public class OilPaintingProcessor<TColor> : ImageProcessor<TColor>
         where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>

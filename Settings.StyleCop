@@ -39,6 +39,7 @@
       <Value>desensitivity</Value>
       <Value>premultiplied</Value>
       <Value>endianness</Value>
+      <Value>thresholding</Value>
     </CollectionProperty>
   </GlobalSettings>
   <Analyzers>

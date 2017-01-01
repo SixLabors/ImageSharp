@@ -12,7 +12,7 @@ namespace ImageSharp.Processors
     /// Provides methods to allow the cropping of an image.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    public class CropProcessor<TColor> : ImageFilteringProcessor<TColor>
+    public class CropProcessor<TColor> : ImageProcessor<TColor>
         where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>

@@ -17,8 +17,8 @@ namespace ImageSharp.Drawing.Processors
     /// Usinf a brsuh and a shape fills shape with contents of brush the
     /// </summary>
     /// <typeparam name="TColor">The type of the color.</typeparam>
-    /// <seealso cref="ImageSharp.Processors.ImageFilteringProcessor{TColor}" />
-    public class FillShapeProcessor<TColor> : ImageFilteringProcessor<TColor>
+    /// <seealso cref="ImageSharp.Processors.ImageProcessor{TColor}" />
+    public class FillShapeProcessor<TColor> : ImageProcessor<TColor>
         where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         private const float AntialiasFactor = 1f;

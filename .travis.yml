@@ -19,9 +19,8 @@ branches:
     - coverity_scan
 
 script:
-  - cd src/ImageSharp/
   - dotnet restore
-  - dotnet build -c Release
+  - dotnet build -c Release src\*\project.json
 
 env:
   global:

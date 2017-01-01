@@ -98,7 +98,7 @@ namespace ConsoleApplication
             var prNumber = Environment.GetEnvironmentVariable("APPVEYOR_PULL_REQUEST_NUMBER");
             if (!string.IsNullOrWhiteSpace(prNumber))
             {
-                branch = $"PR{int.Parse(prNumber):0000}";
+                branch = $"PR{int.Parse(prNumber):000}";
             }
 
             // this will happen when checking out a comit directly and not a branch (like appveryor does when it builds)

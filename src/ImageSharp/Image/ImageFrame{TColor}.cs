@@ -19,7 +19,13 @@ namespace ImageSharp
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageFrame{TColor}"/> class.
         /// </summary>
-        public ImageFrame()
+        /// <param name="width">The width of the image in pixels.</param>
+        /// <param name="height">The height of the image in pixels.</param>
+        /// <param name="configuration">
+        /// The configuration providing initialization code which allows extending the library.
+        /// </param>
+        public ImageFrame(int width, int height, Configuration configuration = null)
+            : base(width, height, configuration)
         {
         }
 
@@ -49,13 +55,11 @@ namespace ImageSharp
         {
             scaleFunc = PackedPixelConverterHelper.ComputeScaleFunction<TColor, TColor2>(scaleFunc);
 
-            ImageFrame<TColor2> target = new ImageFrame<TColor2>
+            ImageFrame<TColor2> target = new ImageFrame<TColor2>(this.Width, this.Height, this.Configuration)
             {
                 Quality = this.Quality,
                 FrameDelay = this.FrameDelay
             };
-
-            target.InitPixels(this.Width, this.Height);
 
             using (PixelAccessor<TColor> pixels = this.Lock())
             using (PixelAccessor<TColor2> targetPixels = target.Lock())
@@ -63,7 +67,7 @@ namespace ImageSharp
                 Parallel.For(
                     0,
                     target.Height,
-                    Bootstrapper.ParallelOptions,
+                    this.Configuration.ParallelOptions,
                     y =>
                     {
                         for (int x = 0; x < target.Width; x++)

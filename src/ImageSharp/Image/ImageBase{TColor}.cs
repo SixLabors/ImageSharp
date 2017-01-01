@@ -25,8 +25,12 @@ namespace ImageSharp
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageBase{TColor}"/> class.
         /// </summary>
-        protected ImageBase()
+        /// <param name="configuration">
+        /// The configuration providing initialization code which allows extending the library.
+        /// </param>
+        protected ImageBase(Configuration configuration = null)
         {
+            this.Configuration = configuration ?? Configuration.Default;
         }
 
         /// <summary>
@@ -34,11 +38,15 @@ namespace ImageSharp
         /// </summary>
         /// <param name="width">The width of the image in pixels.</param>
         /// <param name="height">The height of the image in pixels.</param>
+        /// <param name="configuration">
+        /// The configuration providing initialization code which allows extending the library.
+        /// </param>
         /// <exception cref="System.ArgumentOutOfRangeException">
         /// Thrown if either <paramref name="width"/> or <paramref name="height"/> are less than or equal to 0.
         /// </exception>
-        protected ImageBase(int width, int height)
+        protected ImageBase(int width, int height, Configuration configuration = null)
         {
+            this.Configuration = configuration ?? Configuration.Default;
             this.InitPixels(width, height);
         }
 
@@ -94,6 +102,11 @@ namespace ImageSharp
 
         /// <inheritdoc/>
         public int FrameDelay { get; set; }
+
+        /// <summary>
+        /// Gets the configuration providing initialization code which allows extending the library.
+        /// </summary>
+        public Configuration Configuration { get; private set; }
 
         /// <inheritdoc/>
         public void InitPixels(int width, int height)
@@ -157,6 +170,7 @@ namespace ImageSharp
         /// </param>
         protected void CopyProperties(ImageBase<TColor> other)
         {
+            this.Configuration = other.Configuration;
             this.Quality = other.Quality;
             this.FrameDelay = other.FrameDelay;
         }

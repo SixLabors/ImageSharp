@@ -40,8 +40,8 @@ namespace ImageSharp
         public static Image<TColor> Grayscale<TColor>(this Image<TColor> source, Rectangle rectangle, GrayscaleMode mode = GrayscaleMode.Bt709)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            IImageFilteringProcessor<TColor> processor = mode == GrayscaleMode.Bt709
-                ? (IImageFilteringProcessor<TColor>)new GrayscaleBt709Processor<TColor>()
+            IImageProcessor<TColor> processor = mode == GrayscaleMode.Bt709
+                ? (IImageProcessor<TColor>)new GrayscaleBt709Processor<TColor>()
                 : new GrayscaleBt601Processor<TColor>();
 
             return source.Process(rectangle, processor);

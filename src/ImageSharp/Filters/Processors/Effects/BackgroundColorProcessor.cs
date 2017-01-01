@@ -13,7 +13,7 @@ namespace ImageSharp.Processors
     /// Sets the background color of the image.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    public class BackgroundColorProcessor<TColor> : ImageFilteringProcessor<TColor>
+    public class BackgroundColorProcessor<TColor> : ImageProcessor<TColor>
         where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>

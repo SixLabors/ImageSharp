@@ -96,7 +96,7 @@ namespace ImageSharp.Tests
         private static IImageFormat GetImageFormatByExtension(string extension)
         {
             extension = extension.ToLower();
-            return Bootstrapper.ImageFormats.First(f => f.SupportedExtensions.Contains(extension));
+            return Configuration.Default.ImageFormats.First(f => f.SupportedExtensions.Contains(extension));
         }
 
         private string GetTestOutputDir()

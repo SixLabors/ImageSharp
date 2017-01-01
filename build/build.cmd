@@ -1,7 +1,7 @@
 @echo Off
 set buildRoot="%cd%"
 
-ECHO restoring packages
+ECHO Restoring packages
 dotnet restore
 
 ECHO Updating version numbers and generating build script

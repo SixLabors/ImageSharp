@@ -13,10 +13,10 @@ namespace ImageSharp.Benchmarks
     using CoreRectangle = ImageSharp.Rectangle;
     using CoreColor = ImageSharp.Color;
     using CoreSize = ImageSharp.Size;
-    using System.IO;
+
     using System.Numerics;
 
-    public class FillRectangle
+    public class FillRectangle : BenchmarkBase
     {
         [Benchmark(Baseline = true, Description = "System.Drawing Fill Rectangle")]
         public Size FillRectangleSystemDrawing()

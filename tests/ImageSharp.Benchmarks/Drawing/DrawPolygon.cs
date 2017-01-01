@@ -15,7 +15,7 @@ namespace ImageSharp.Benchmarks
     using System.IO;
     using System.Numerics;
 
-    public class DrawPolygon
+    public class DrawPolygon : BenchmarkBase
     {
         [Benchmark(Baseline = true, Description = "System.Drawing Draw Polygon")]
         public void DrawPolygonSystemDrawing()
@@ -46,7 +46,7 @@ namespace ImageSharp.Benchmarks
         public void DrawPolygonCore()
         {
             CoreImage image = new CoreImage(800, 800);
-            
+
             image.DrawPolygon(CoreColor.HotPink, 10, new[] {
                      new Vector2(10, 10),
                      new Vector2(550, 50),

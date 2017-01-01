@@ -13,7 +13,7 @@ namespace ImageSharp.Benchmarks
     using CoreImage = ImageSharp.Image;
     using CoreSize = ImageSharp.Size;
 
-    public class Crop
+    public class Crop : BenchmarkBase
     {
         [Benchmark(Baseline = true, Description = "System.Drawing Crop")]
         public Size CropSystemDrawing()

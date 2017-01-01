@@ -11,7 +11,7 @@ namespace ImageSharp.Benchmarks
 
     using CoreImage = ImageSharp.Image;
 
-    public class DetectEdges
+    public class DetectEdges : BenchmarkBase
     {
         private CoreImage image;
 

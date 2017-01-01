@@ -35,20 +35,7 @@ namespace ImageSharp.Tests
         /// The file.
         /// </summary>
         private readonly string file;
-
-        /// <summary>
-        /// Initializes static members of the <see cref="TestFile"/> class.
-        /// </summary>
-        static TestFile()
-        {
-            // Register the individual image formats.
-            // TODO: Is this the best place to do this?
-            Configuration.Default.AddImageFormat(new PngFormat());
-            Configuration.Default.AddImageFormat(new JpegFormat());
-            Configuration.Default.AddImageFormat(new BmpFormat());
-            Configuration.Default.AddImageFormat(new GifFormat());
-        }
-
+        
         /// <summary>
         /// Initializes a new instance of the <see cref="TestFile"/> class.
         /// </summary>

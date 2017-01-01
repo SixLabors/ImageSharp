@@ -9,7 +9,7 @@ namespace ImageSharp
 
     using Drawing;
     using Drawing.Brushes;
-    using Drawing.Processors;
+    using Drawing.Processing;
     using Drawing.Shapes;
 
     /// <summary>

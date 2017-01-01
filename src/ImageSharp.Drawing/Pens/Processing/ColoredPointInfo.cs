@@ -3,7 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.Drawing.Pens.Processors
+namespace ImageSharp.Drawing.Processing
 {
     using System;
 

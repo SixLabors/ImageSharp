@@ -10,8 +10,7 @@ namespace ImageSharp.Drawing.Pens
 
     using ImageSharp.Drawing.Brushes;
     using ImageSharp.Drawing.Paths;
-    using ImageSharp.Drawing.Pens.Processors;
-    using ImageSharp.Drawing.Processors;
+    using Processing;
 
     /// <summary>
     /// Provides a pen that can apply a pattern to a line with a set brush and thickness

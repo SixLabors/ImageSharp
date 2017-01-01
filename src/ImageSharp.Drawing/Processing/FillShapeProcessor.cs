@@ -3,7 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.Drawing.Processors
+namespace ImageSharp.Drawing.Processing
 {
     using System;
     using System.Numerics;

@@ -21,7 +21,7 @@ namespace ImageSharp
         /// <summary>
         /// A lazily initialized configuration default instance.
         /// </summary>
-        private static readonly Lazy<Configuration> Lazy = new Lazy<Configuration>(() => new Configuration());
+        private static readonly Lazy<Configuration> Lazy = new Lazy<Configuration>(() => new Configuration(true));
 
         /// <summary>
         /// An object that can be used to synchronize access to the <see cref="Configuration"/>.
@@ -32,6 +32,30 @@ namespace ImageSharp
         /// The list of supported <see cref="IImageFormat"/>.
         /// </summary>
         private readonly List<IImageFormat> imageFormatsList = new List<IImageFormat>();
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Configuration"/> class.
+        /// </summary>
+        public Configuration()
+            : this(false)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Configuration" /> class.
+        /// </summary>
+        /// <param name="autoloadWellknownFormats">if set to <c>true</c> [autoload wellknown formats].</param>
+        internal Configuration(bool autoloadWellknownFormats)
+        {
+            if (autoloadWellknownFormats)
+            {
+                // lets try auto loading the known image formats
+                this.TryAddImageFormat("ImageSharp.Formats.PngFormat, ImageSharp.Formats.Png");
+                this.TryAddImageFormat("ImageSharp.Formats.JpegFormat, ImageSharp.Formats.Jpeg");
+                this.TryAddImageFormat("ImageSharp.Formats.GifFormat, ImageSharp.Formats.Gif");
+                this.TryAddImageFormat("ImageSharp.Formats.BmpFormat, ImageSharp.Formats.Bmp");
+            }
+        }
 
         /// <summary>
         /// Gets the default <see cref="Configuration"/> instance.
@@ -67,6 +91,32 @@ namespace ImageSharp
             Guard.NotNullOrEmpty(format.SupportedExtensions, nameof(format), "The supported extensions not be null or empty.");
 
             this.AddImageFormatLocked(format);
+        }
+
+        /// <summary>
+        /// Tries the add image format.
+        /// </summary>
+        /// <param name="typeName">Name of the type.</param>
+        /// <returns>True if type discoverd and is a valid <see cref="IImageFormat"/></returns>
+        internal bool TryAddImageFormat(string typeName)
+        {
+            Type type = Type.GetType(typeName, false);
+            if (type != null)
+            {
+                IImageFormat format = Activator.CreateInstance(type) as IImageFormat;
+                if (format != null
+                    && format.Encoder != null
+                    && format.Decoder != null
+                    && !string.IsNullOrEmpty(format.MimeType)
+                    && format.SupportedExtensions?.Any() == true)
+                {
+                    // we can use the locked version as we have already validated in the if.
+                    this.AddImageFormatLocked(format);
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>

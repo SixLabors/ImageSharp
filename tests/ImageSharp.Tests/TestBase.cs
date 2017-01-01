@@ -13,11 +13,6 @@ namespace ImageSharp.Tests
     /// </summary>
     public abstract class TestBase
     {
-        protected TestBase()
-        {
-            Configuration.Default.AddCommonFormats();
-        }
-
         /// <summary>
         /// Creates the image output directory.
         /// </summary>

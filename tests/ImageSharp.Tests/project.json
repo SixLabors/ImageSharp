@@ -30,7 +30,19 @@
       "target": "project",
       "version": "1.0.0-*"
     },
-    "ImageSharp.Formats": {
+    "ImageSharp.Formats.Png": {
+      "target": "project",
+      "version": "1.0.0-*"
+    },
+    "ImageSharp.Formats.Jpeg": {
+      "target": "project",
+      "version": "1.0.0-*"
+    },
+    "ImageSharp.Formats.Bmp": {
+      "target": "project",
+      "version": "1.0.0-*"
+    },
+    "ImageSharp.Formats.Gif": {
       "target": "project",
       "version": "1.0.0-*"
     },

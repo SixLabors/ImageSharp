@@ -18,6 +18,14 @@ namespace ImageSharp.Tests
     /// </summary>
     public class ConfigurationTests
     {
+        [Fact]
+        public void IfAutoloadWellknwonFormatesIsTrueAllFormateAreLoaded()
+        {
+            var configuration = new Configuration(true);
+
+            Assert.Equal(4, configuration.ImageFormats.Count);
+        }
+
         /// <summary>
         /// Test that the default configuration is not null.
         /// </summary>

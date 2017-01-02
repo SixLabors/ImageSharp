@@ -26,7 +26,7 @@ namespace ImageSharp
         /// <summary>
         /// An object that can be used to synchronize access to the <see cref="Configuration"/>.
         /// </summary>
-        private static readonly object SyncRoot = new object();
+        private readonly object SyncRoot = new object();
 
         /// <summary>
         /// The list of supported <see cref="IImageFormat"/>.

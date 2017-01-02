@@ -21,7 +21,7 @@ namespace ImageSharp
         /// <summary>
         /// A lazily initialized configuration default instance.
         /// </summary>
-        private static readonly Lazy<Configuration> Lazy = new Lazy<Configuration>(() => new Configuration(true));
+        private static readonly Lazy<Configuration> Lazy = new Lazy<Configuration>(() => CreateDefaultInstance());
 
         /// <summary>
         /// An object that can be used to synchronize access to the <see cref="Configuration"/>.
@@ -32,30 +32,6 @@ namespace ImageSharp
         /// The list of supported <see cref="IImageFormat"/>.
         /// </summary>
         private readonly List<IImageFormat> imageFormatsList = new List<IImageFormat>();
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Configuration"/> class.
-        /// </summary>
-        public Configuration()
-            : this(false)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Configuration" /> class.
-        /// </summary>
-        /// <param name="autoloadWellknownFormats">if set to <c>true</c> [autoload wellknown formats].</param>
-        internal Configuration(bool autoloadWellknownFormats)
-        {
-            if (autoloadWellknownFormats)
-            {
-                // lets try auto loading the known image formats
-                this.TryAddImageFormat("ImageSharp.Formats.PngFormat, ImageSharp.Formats.Png");
-                this.TryAddImageFormat("ImageSharp.Formats.JpegFormat, ImageSharp.Formats.Jpeg");
-                this.TryAddImageFormat("ImageSharp.Formats.GifFormat, ImageSharp.Formats.Gif");
-                this.TryAddImageFormat("ImageSharp.Formats.BmpFormat, ImageSharp.Formats.Bmp");
-            }
-        }
 
         /// <summary>
         /// Gets the default <see cref="Configuration"/> instance.
@@ -91,6 +67,22 @@ namespace ImageSharp
             Guard.NotNullOrEmpty(format.SupportedExtensions, nameof(format), "The supported extensions not be null or empty.");
 
             this.AddImageFormatLocked(format);
+        }
+
+        /// <summary>
+        /// Creates the default instance, with Png, Jpeg, Gif and Bmp preregisterd (if they have been referenced)
+        /// </summary>
+        /// <returns>The default configuration of <see cref="Configuration"/> </returns>
+        internal static Configuration CreateDefaultInstance()
+        {
+            Configuration config = new Configuration();
+            
+            // lets try auto loading the known image formats
+            config.TryAddImageFormat("ImageSharp.Formats.PngFormat, ImageSharp.Formats.Png");
+            config.TryAddImageFormat("ImageSharp.Formats.JpegFormat, ImageSharp.Formats.Jpeg");
+            config.TryAddImageFormat("ImageSharp.Formats.GifFormat, ImageSharp.Formats.Gif");
+            config.TryAddImageFormat("ImageSharp.Formats.BmpFormat, ImageSharp.Formats.Bmp");
+            return config;
         }
 
         /// <summary>

@@ -21,7 +21,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void IfAutoloadWellknwonFormatesIsTrueAllFormateAreLoaded()
         {
-            var configuration = new Configuration(true);
+            var configuration = Configuration.CreateDefaultInstance();
 
             Assert.Equal(4, configuration.ImageFormats.Count);
         }

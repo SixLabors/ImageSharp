@@ -26,7 +26,7 @@ namespace ImageSharp
         /// <summary>
         /// An object that can be used to synchronize access to the <see cref="Configuration"/>.
         /// </summary>
-        private readonly object SyncRoot = new object();
+        private readonly object syncRoot = new object();
 
         /// <summary>
         /// The list of supported <see cref="IImageFormat"/>.
@@ -76,7 +76,7 @@ namespace ImageSharp
         internal static Configuration CreateDefaultInstance()
         {
             Configuration config = new Configuration();
-            
+
             // lets try auto loading the known image formats
             config.TryAddImageFormat("ImageSharp.Formats.PngFormat, ImageSharp.Formats.Png");
             config.TryAddImageFormat("ImageSharp.Formats.JpegFormat, ImageSharp.Formats.Jpeg");
@@ -117,7 +117,7 @@ namespace ImageSharp
         /// <param name="format">The image format.</param>
         private void AddImageFormatLocked(IImageFormat format)
         {
-            lock (SyncRoot)
+            lock (this.syncRoot)
             {
                 if (this.GuardDuplicate(format))
                 {

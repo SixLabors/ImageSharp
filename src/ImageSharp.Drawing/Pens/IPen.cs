@@ -6,7 +6,7 @@
 namespace ImageSharp.Drawing.Pens
 {
     using System;
-    using Processing;
+    using Processors;
 
     /// <summary>
     /// Interface representing a Pen

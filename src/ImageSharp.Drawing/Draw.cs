@@ -11,7 +11,7 @@ namespace ImageSharp
     using Drawing.Brushes;
     using Drawing.Paths;
     using Drawing.Pens;
-    using Drawing.Processing;
+    using Drawing.Processors;
     using Drawing.Shapes;
 
     /// <summary>

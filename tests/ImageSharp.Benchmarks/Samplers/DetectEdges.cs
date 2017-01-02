@@ -10,6 +10,7 @@ namespace ImageSharp.Benchmarks
     using BenchmarkDotNet.Attributes;
 
     using CoreImage = ImageSharp.Image;
+    using Processing;
 
     public class DetectEdges
     {

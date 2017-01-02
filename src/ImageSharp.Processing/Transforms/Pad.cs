@@ -6,7 +6,9 @@
 namespace ImageSharp
 {
     using System;
+
     using Processing;
+    using Processing.Processors;
 
     /// <summary>
     /// Extension methods for the <see cref="Image{TColor}"/> type.

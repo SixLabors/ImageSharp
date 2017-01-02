@@ -8,6 +8,7 @@ namespace ImageSharp.Tests
     using System.IO;
 
     using Xunit;
+    using ImageSharp.Processing;
 
     public class GrayscaleTest : FileTestBase
     {

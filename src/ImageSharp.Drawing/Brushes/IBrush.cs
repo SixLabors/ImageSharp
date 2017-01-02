@@ -7,7 +7,7 @@ namespace ImageSharp.Drawing
 {
     using System;
 
-    using Processing;
+    using Processors;
 
     /// <summary>
     /// Brush represents a logical configuration of a brush which can be used to source pixel colors

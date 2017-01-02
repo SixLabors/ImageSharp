@@ -8,6 +8,7 @@ namespace ImageSharp
     using System;
 
     using Processing;
+    using Processing.Processors;
 
     /// <summary>
     /// Extension methods for the <see cref="Image{TColor}"/> type.
@@ -44,31 +45,31 @@ namespace ImageSharp
 
             switch (colorBlindness)
             {
-                case ImageSharp.ColorBlindness.Achromatomaly:
+                case ImageSharp.Processing.ColorBlindness.Achromatomaly:
                     processor = new AchromatomalyProcessor<TColor>();
                     break;
 
-                case ImageSharp.ColorBlindness.Achromatopsia:
+                case ImageSharp.Processing.ColorBlindness.Achromatopsia:
                     processor = new AchromatopsiaProcessor<TColor>();
                     break;
 
-                case ImageSharp.ColorBlindness.Deuteranomaly:
+                case ImageSharp.Processing.ColorBlindness.Deuteranomaly:
                     processor = new DeuteranomalyProcessor<TColor>();
                     break;
 
-                case ImageSharp.ColorBlindness.Deuteranopia:
+                case ImageSharp.Processing.ColorBlindness.Deuteranopia:
                     processor = new DeuteranopiaProcessor<TColor>();
                     break;
 
-                case ImageSharp.ColorBlindness.Protanomaly:
+                case ImageSharp.Processing.ColorBlindness.Protanomaly:
                     processor = new ProtanomalyProcessor<TColor>();
                     break;
 
-                case ImageSharp.ColorBlindness.Protanopia:
+                case ImageSharp.Processing.ColorBlindness.Protanopia:
                     processor = new ProtanopiaProcessor<TColor>();
                     break;
 
-                case ImageSharp.ColorBlindness.Tritanomaly:
+                case ImageSharp.Processing.ColorBlindness.Tritanomaly:
                     processor = new TritanomalyProcessor<TColor>();
                     break;
 

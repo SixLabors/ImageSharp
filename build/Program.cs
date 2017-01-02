@@ -57,10 +57,9 @@ namespace ConsoleApplication
             var sb = new StringBuilder();
             foreach (var p in projects)
             {
-
                 sb.AppendLine($@"dotnet pack --configuration Release --output ""artifacts\bin\ImageSharp"" ""{p.ProjectFilePath}""");
             }
-            File.Copy("build-inner.cmd", "build-inner.bak", true);
+
             File.WriteAllText("build-inner.cmd", sb.ToString());
         }
 

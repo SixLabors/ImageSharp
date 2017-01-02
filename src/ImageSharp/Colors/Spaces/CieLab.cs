@@ -21,6 +21,16 @@ namespace ImageSharp.Colors.Spaces
         public static readonly CieLab Empty = default(CieLab);
 
         /// <summary>
+        /// Min range used for clamping
+        /// </summary>
+        private static readonly Vector3 VectorMin = new Vector3(0, -100, -100);
+
+        /// <summary>
+        /// Max range used for clamping
+        /// </summary>
+        private static readonly Vector3 VectorMax = new Vector3(100);
+
+        /// <summary>
         /// The backing vector for SIMD support.
         /// </summary>
         private readonly Vector3 backingVector;
@@ -34,7 +44,7 @@ namespace ImageSharp.Colors.Spaces
         public CieLab(float l, float a, float b)
             : this()
         {
-            this.backingVector = Vector3.Clamp(new Vector3(l, a, b), new Vector3(0, -100, -100), new Vector3(100));
+            this.backingVector = Vector3.Clamp(new Vector3(l, a, b), VectorMin, VectorMax);
         }
 
         /// <summary>

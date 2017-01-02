@@ -21,6 +21,11 @@ namespace ImageSharp.Colors.Spaces
         public static readonly YCbCr Empty = default(YCbCr);
 
         /// <summary>
+        /// Min range used for clamping
+        /// </summary>
+        private static readonly Vector3 VectorMin = Vector3.Zero;
+
+        /// <summary>
         /// Vector which is used in clamping to the max value
         /// </summary>
         private static readonly Vector3 VectorMax = new Vector3(255);
@@ -39,7 +44,7 @@ namespace ImageSharp.Colors.Spaces
         public YCbCr(byte y, byte cb, byte cr)
             : this()
         {
-            this.backingVector = Vector3.Clamp(new Vector3(y, cb, cr), Vector3.Zero, VectorMax);
+            this.backingVector = Vector3.Clamp(new Vector3(y, cb, cr), VectorMin, VectorMax);
         }
 
         /// <summary>

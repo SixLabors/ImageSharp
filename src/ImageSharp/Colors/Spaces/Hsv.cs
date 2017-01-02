@@ -20,6 +20,16 @@ namespace ImageSharp.Colors.Spaces
         public static readonly Hsv Empty = default(Hsv);
 
         /// <summary>
+        /// Min range used for clamping
+        /// </summary>
+        private static readonly Vector3 VectorMin = Vector3.Zero;
+
+        /// <summary>
+        /// Max range used for clamping
+        /// </summary>
+        private static readonly Vector3 VectorMax = new Vector3(360, 1, 1);
+
+        /// <summary>
         /// The backing vector for SIMD support.
         /// </summary>
         private readonly Vector3 backingVector;
@@ -32,7 +42,7 @@ namespace ImageSharp.Colors.Spaces
         /// <param name="v">The v value (brightness) component.</param>
         public Hsv(float h, float s, float v)
         {
-            this.backingVector = Vector3.Clamp(new Vector3(h, s, v), Vector3.Zero, new Vector3(360, 1, 1));
+            this.backingVector = Vector3.Clamp(new Vector3(h, s, v), VectorMin, VectorMax);
         }
 
         /// <summary>

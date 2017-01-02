@@ -2,11 +2,17 @@
   "version": "1.0.0-*",
   "buildOptions": {
     "debugType": "portable",
-    "emitEntryPoint": true
+    "emitEntryPoint": true,
+    "xmlDoc": true,
+    "additionalArguments": [ "/additionalfile:../src/ImageSharp/stylecop.json", "/ruleset:../ImageSharp.ruleset" ]
   },
   "dependencies": {
     "Microsoft.DotNet.ProjectModel": "1.0.0-rc3-003121",
-    "LibGit2Sharp":  "0.23.0"
+    "LibGit2Sharp": "0.23.0",
+    "StyleCop.Analyzers": {
+      "version": "1.1.0-beta001",
+      "type": "build"
+    }
   },
   "frameworks": {
     "net46": {

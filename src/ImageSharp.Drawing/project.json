@@ -24,7 +24,7 @@
   "buildOptions": {
     "allowUnsafe": true,
     "xmlDoc": true,
-    "additionalArguments": [ "/additionalfile:stylecop.json", "/ruleset:../../ImageSharp.ruleset" ],
+    "additionalArguments": [ "/additionalfile:../Shared/stylecop.json", "/ruleset:../../ImageSharp.ruleset" ],
     "compile": [
       "../Shared/*.cs"
     ]

@@ -1,67 +1,80 @@
-﻿using Microsoft.DotNet.ProjectModel;
-using System;
-using System.IO;
-using System.Linq;
-using NuGet.Versioning;
-using System.Collections.Generic;
-using LibGit2Sharp;
-using Newtonsoft.Json;
-using System.Text;
+﻿// <copyright file="Program.cs" company="James Jackson-South">
+// Copyright (c) James Jackson-South and contributors.
+// Licensed under the Apache License, Version 2.0.
+// </copyright>
 
 namespace ConsoleApplication
 {
+    using System;
+    using System.Collections.Generic;
+    using System.IO;
+    using System.Linq;
+    using System.Text;
+
+    using LibGit2Sharp;
+    using Microsoft.DotNet.ProjectModel;
+    using Newtonsoft.Json;
+    using NuGet.Versioning;
+
     /// <summary>
     /// This updates the version numbers for all the projects in the src folder.
     /// The version number it will geneate is dependent on if this is a build from master or a branch/PR
-    /// 
+    ///
     /// If its a build on master
-    /// We take the version number specified in project.json, 
+    /// We take the version number specified in project.json,
     /// count how meny commits the repo has had that will affect this project or its dependencies since the version number of manually changed
     /// If this is the first commit that effected this project since number change then leave the version number as defined i.e. will build 1.0.0 if thats in project.json
     /// unless it is a preview build number in which case we always add the counter
-    /// 
+    ///
     /// If the build is from a PR/branch
     /// We take the version number specified in project.json, append a tag for the branch/PR (so we can determin how each package was built)
-    /// append number of commits effecting the project. 
-    /// 
-    /// Examples 
+    /// append number of commits effecting the project.
+    ///
+    /// </summary>
+    /// <example>
     /// for PR#123 and project.json version 2.0.1 and we have had 30 commits affecting the project
     /// we would end up with version number 2.0.1-PR124-00030
-    /// 
+    ///
     /// for branch `fix-stuff` project.json version 2.0.1-alpha1 and we have had 832 commits affecting the project
     /// we would end up with version number 2.0.1-alpha1-fix-stuff-00832
-    /// 
+    ///
     /// for `master` project.json version 2.0.1-alpha1 and we have had 832 commits affecting the project
     /// we would end up with version number 2.0.1-alpha1-00832
-    /// 
+    ///
     /// for `master` project.json version 2.0.1 and we have had 132 commits affecting the project
     /// we would end up with version number 2.0.1-CI-00132
-    /// 
+    ///
     /// for `master` project.json version 2.0.1 and we have had 1 commits affecting the project
     /// we would end up with version number 2.0.1
-    /// 
+    ///
     /// for `master` project.json version 2.0.1-alpha1 and we have had 1 commits affecting the project
     /// we would end up with version number 2.0.1-alpha1
-    /// </summary>
+    /// </example>
+    /// <remarks>
+    /// TODO Add the option for using this to update the version numbers in a project and its dependent references.
+    /// </remarks>
     public class Program
     {
-         const string fallbackTag = "CI";
+        private const string FallbackTag = "CI";
 
+        /// <summary>
+        /// Main entry point.
+        /// </summary>
+        /// <param name="args">The arguments.</param>
         public static void Main(string[] args)
         {
-            // TODO add options to updating the version number for indirvidual projects
-
             var resetmode = args.Contains("reset");
 
-            // find the project root where glbal.json lives
+            // Find the project root where glbal.json lives
             var root = ProjectRootResolver.ResolveRootDirectory(".");
-            //lets find the repo
+
+            // Lets find the repo
             var repo = new LibGit2Sharp.Repository(root);
 
-            //lets find all the project.json files in the src folder (don't care about versioning `tests`)
+            // Lets find all the project.json files in the src folder (don't care about versioning `tests`)
             var projectFiles = Directory.EnumerateFiles(Path.Combine(root, "src"), Project.FileName, SearchOption.AllDirectories);
 
-            //open them and convert them to source projects
+            // Open them and convert them to source projects
             var projects = projectFiles.Select(x => ProjectReader.GetProject(x))
                             .Select(x => new SourceProject(x, repo.Info.WorkingDirectory))
                             .ToList();
@@ -77,7 +90,7 @@ namespace ConsoleApplication
                 UpdateVersionNumbers(projects);
 
                 CreateBuildScript(projects);
-                
+
                 foreach (var p in projects)
                 {
                     Console.WriteLine($"{p.Name} {p.FinalVersionNumber}");
@@ -100,11 +113,10 @@ namespace ConsoleApplication
         {
             foreach (var p in projects)
             {
-                //TODO force update of all dependent projects to point to the newest build.
-
-                //we skip the build number and standard CI prefix on first commits
+                // TODO force update of all dependent projects to point to the newest build.
+                // we skip the build number and standard CI prefix on first commits
                 var newVersion = p.FinalVersionNumber;
-                
+
                 // create a backup file so we can rollback later without breaking formatting
                 File.Copy(p.FullProjectFilePath, $"{p.FullProjectFilePath}.bak", true);
 
@@ -116,7 +128,7 @@ namespace ConsoleApplication
         }
 
         private static string CurrentBranch(Repository repo)
-        {  
+        {
             // lets build version friendly commit
             string branch = repo.Head.FriendlyName;
 
@@ -164,7 +176,7 @@ namespace ConsoleApplication
                 File.Delete("build-inner.bak");
             }
 
-            //revert the project.json change be reverting it but skipp all the git stuff as its not needed
+            // revert the project.json change be reverting it but skipp all the git stuff as its not needed
             foreach (var p in projects)
             {
                 if (File.Exists($"{p.FullProjectFilePath}.bak"))
@@ -174,23 +186,19 @@ namespace ConsoleApplication
                 }
             }
         }
-        
+
+        /// <summary>
+        /// Project level logic
+        /// </summary>
         public class SourceProject
         {
             private readonly IEnumerable<string> dependencies;
 
-            public string ProjectDirectory { get; }
-
-            public NuGetVersion Version { get; }
-
-            public List<SourceProject> DependentProjects { get; private set; }
-            public string Name { get; private set; }
-            public string ProjectFilePath { get; private set; }
-
-            public int CommitCountSinceVersionChange { get; private set; } = 0;
-            public string FullProjectFilePath { get; private set; }
-            public string FinalVersionNumber { get; private set; }
-
+            /// <summary>
+            /// Initializes a new instance of the <see cref="SourceProject"/> class.
+            /// </summary>
+            /// <param name="project">The project.</param>
+            /// <param name="root">The root.</param>
             public SourceProject(Project project, string root)
             {
                 this.Name = project.Name;
@@ -199,38 +207,125 @@ namespace ConsoleApplication
                 this.FullProjectFilePath = project.ProjectFilePath;
                 this.Version = project.Version;
                 this.dependencies = project.Dependencies.Select(x => x.Name);
-                this.FinalVersionNumber = Version.ToFullString();
+                this.FinalVersionNumber = this.Version.ToFullString();
             }
 
+            /// <summary>
+            /// Gets the project directory.
+            /// </summary>
+            /// <value>
+            /// The project directory.
+            /// </value>
+            public string ProjectDirectory { get; }
+
+            /// <summary>
+            /// Gets the version.
+            /// </summary>
+            /// <value>
+            /// The version.
+            /// </value>
+            public NuGetVersion Version { get; }
+
+            /// <summary>
+            /// Gets the dependent projects.
+            /// </summary>
+            /// <value>
+            /// The dependent projects.
+            /// </value>
+            public List<SourceProject> DependentProjects { get; private set; }
+
+            /// <summary>
+            /// Gets the name.
+            /// </summary>
+            /// <value>
+            /// The name.
+            /// </value>
+            public string Name { get; private set; }
+
+            /// <summary>
+            /// Gets the project file path.
+            /// </summary>
+            /// <value>
+            /// The project file path.
+            /// </value>
+            public string ProjectFilePath { get; private set; }
+
+            /// <summary>
+            /// Gets the commit count since version change.
+            /// </summary>
+            /// <value>
+            /// The commit count since version change.
+            /// </value>
+            public int CommitCountSinceVersionChange { get; private set; } = 0;
+
+            /// <summary>
+            /// Gets the full project file path.
+            /// </summary>
+            /// <value>
+            /// The full project file path.
+            /// </value>
+            public string FullProjectFilePath { get; private set; }
+
+            /// <summary>
+            /// Gets the final version number.
+            /// </summary>
+            /// <value>
+            /// The final version number.
+            /// </value>
+            public string FinalVersionNumber { get; private set; }
+
+            /// <summary>
+            /// Populates the dependencies.
+            /// </summary>
+            /// <param name="projects">The projects.</param>
             public void PopulateDependencies(IEnumerable<SourceProject> projects)
             {
-                DependentProjects = projects.Where(x => dependencies.Contains(x.Name)).ToList();
-                
+                this.DependentProjects = projects.Where(x => this.dependencies.Contains(x.Name)).ToList();
+            }
+
+            /// <summary>
+            /// Calculates the version.
+            /// </summary>
+            /// <param name="repo">The repo.</param>
+            /// <param name="branch">The branch.</param>
+            internal void CalculateVersion(Repository repo, string branch)
+            {
+                foreach (var c in repo.Commits)
+                {
+                    if (!this.ApplyCommit(c, repo))
+                    {
+                        // we have finished lets populate the final version number
+                        this.FinalVersionNumber = this.CalculateVersionNumber(branch);
+
+                        return;
+                    }
+                }
             }
 
             private bool MatchPath(string path)
             {
-                if(path.StartsWith(this.ProjectDirectory, StringComparison.OrdinalIgnoreCase))
+                if (path.StartsWith(this.ProjectDirectory, StringComparison.OrdinalIgnoreCase))
                 {
                     return true;
                 }
 
-                if (DependentProjects.Any())
+                if (this.DependentProjects.Any())
                 {
-                    return DependentProjects.Any(x => x.MatchPath(path));
+                    return this.DependentProjects.Any(x => x.MatchPath(path));
                 }
+
                 return false;
             }
 
             private bool ApplyCommitInternal(Commit commit, TreeChanges changes, Repository repo)
             {
-                CommitCountSinceVersionChange++;
+                this.CommitCountSinceVersionChange++;
 
-                //return false if this is a version number root
+                // return false if this is a version number root
                 var projectFileChange = changes.Where(x => x.Path?.Equals(this.ProjectFilePath, StringComparison.OrdinalIgnoreCase) == true).FirstOrDefault();
-                if(projectFileChange != null)
+                if (projectFileChange != null)
                 {
-                    if(projectFileChange.Status == ChangeKind.Added)
+                    if (projectFileChange.Status == ChangeKind.Added)
                     {
                         // the version must have been set here
                         return false;
@@ -241,9 +336,9 @@ namespace ConsoleApplication
                         using (var s = blob.GetContentStream())
                         {
                             var project = new ProjectReader().ReadProject(s, this.Name, this.FullProjectFilePath, null);
-                            if(project.Version != this.Version)
+                            if (project.Version != this.Version)
                             {
-                                //version changed
+                                // version changed
                                 return false;
                             }
                         }
@@ -256,42 +351,27 @@ namespace ConsoleApplication
                 return true;
             }
 
-            internal void CalculateVersion(Repository repo, string branch)
-            {
-                foreach(var c in repo.Commits)
-                {
-                    if(!ApplyCommit(c, repo))
-                    {
-
-                        //we have finished lets populate the final version number
-                        this.FinalVersionNumber = CalculateVersionNumber(branch);
-
-                        return;
-                    }
-                }
-            }
-
             private bool ApplyCommit(Commit commit, Repository repo)
             {
                 foreach (var parent in commit.Parents)
                 {
                     var changes = repo.Diff.Compare<TreeChanges>(parent.Tree, commit.Tree);
-                    
+
                     foreach (TreeEntryChanges change in changes)
                     {
                         if (!string.IsNullOrWhiteSpace(change.OldPath))
                         {
-                            if (MatchPath(change.OldPath))
+                            if (this.MatchPath(change.OldPath))
                             {
-                                return ApplyCommitInternal(commit, changes, repo);
+                                return this.ApplyCommitInternal(commit, changes, repo);
                             }
                         }
 
                         if (!string.IsNullOrWhiteSpace(change.Path))
                         {
-                            if (MatchPath(change.Path))
+                            if (this.MatchPath(change.Path))
                             {
-                                return ApplyCommitInternal(commit, changes, repo);
+                                return this.ApplyCommitInternal(commit, changes, repo);
                             }
                         }
                     }
@@ -303,20 +383,21 @@ namespace ConsoleApplication
             private string CalculateVersionNumber(string branch)
             {
                 var version = this.Version.ToFullString();
-                
-                if (this.CommitCountSinceVersionChange == 1 && branch == "master") //master only
+
+                // master only
+                if (this.CommitCountSinceVersionChange == 1 && branch == "master")
                 {
                     if (this.Version.IsPrerelease)
                     {
-                        //prerelease always needs the build counter just not on a branch name
+                        // prerelease always needs the build counter just not on a branch name
                         return $"{version}-{this.CommitCountSinceVersionChange:00000}";
                     }
-                   
+
                     // this is the full release happy path, first commit after changing the version number
                     return version;
                 }
 
-                var rootSpecialVersion = "";
+                var rootSpecialVersion = string.Empty;
 
                 if (this.Version.IsPrerelease)
                 {
@@ -331,10 +412,11 @@ namespace ConsoleApplication
                 {
                     if (!this.Version.IsPrerelease)
                     {
-                        branch = fallbackTag;
-                    }else
+                        branch = FallbackTag;
+                    }
+                    else
                     {
-                        branch = "";
+                        branch = string.Empty;
                     }
                 }
 
@@ -342,6 +424,7 @@ namespace ConsoleApplication
                 {
                     rootSpecialVersion = "-" + rootSpecialVersion;
                 }
+
                 if (branch.Length > 0)
                 {
                     branch = "-" + branch;
@@ -350,12 +433,12 @@ namespace ConsoleApplication
                 var maxLength = 20; // dotnet will fail to populate the package if the tag is > 20
                 maxLength -= rootSpecialVersion.Length; // this is a required tag
                 maxLength -= 7; // for the counter and dashes
-                
-                if(branch.Length > maxLength)
+
+                if (branch.Length > maxLength)
                 {
                     branch = branch.Substring(0, maxLength);
                 }
-                
+
                 return $"{version}{rootSpecialVersion}{branch}-{this.CommitCountSinceVersionChange:00000}";
             }
         }

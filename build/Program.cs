@@ -10,6 +10,39 @@ using System.Text;
 
 namespace ConsoleApplication
 {
+    /// <summary>
+    /// This updates the version numbers for all the projects in the src folder.
+    /// The version number it will geneate is dependent on if this is a build from master or a branch/PR
+    /// 
+    /// If its a build on master
+    /// We take the version number specified in project.json, 
+    /// count how meny commits the repo has had that will affect this project or its dependencies since the version number of manually changed
+    /// If this is the first commit that effected this project since number change then leave the version number as defined i.e. will build 1.0.0 if thats in project.json
+    /// unless it is a preview build number in which case we always add the counter
+    /// 
+    /// If the build is from a PR/branch
+    /// We take the version number specified in project.json, append a tag for the branch/PR (so we can determin how each package was built)
+    /// append number of commits effecting the project. 
+    /// 
+    /// Examples 
+    /// for PR#123 and project.json version 2.0.1 and we have had 30 commits affecting the project
+    /// we would end up with version number 2.0.1-PR124-00030
+    /// 
+    /// for branch `fix-stuff` project.json version 2.0.1-alpha1 and we have had 832 commits affecting the project
+    /// we would end up with version number 2.0.1-alpha1-fix-stuff-00832
+    /// 
+    /// for `master` project.json version 2.0.1-alpha1 and we have had 832 commits affecting the project
+    /// we would end up with version number 2.0.1-alpha1-00832
+    /// 
+    /// for `master` project.json version 2.0.1 and we have had 132 commits affecting the project
+    /// we would end up with version number 2.0.1-CI-00132
+    /// 
+    /// for `master` project.json version 2.0.1 and we have had 1 commits affecting the project
+    /// we would end up with version number 2.0.1
+    /// 
+    /// for `master` project.json version 2.0.1-alpha1 and we have had 1 commits affecting the project
+    /// we would end up with version number 2.0.1-alpha1
+    /// </summary>
     public class Program
     {
          const string fallbackTag = "CI";

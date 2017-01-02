@@ -50,6 +50,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Shared", "Shared", "{9E574A07-F879-4811-9C41-5CBDC6BAFDB7}"
 	ProjectSection(SolutionItems) = preProject
 		src\Shared\AssemblyInfo.Common.cs = src\Shared\AssemblyInfo.Common.cs
+		src\Shared\stylecop.json = src\Shared\stylecop.json
 	EndProjectSection
 EndProject
 Global

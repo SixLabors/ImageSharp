@@ -3,7 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp
+namespace ImageSharp.Processing
 {
     /// <summary>
     /// Enumerates the various types of defined edge detection filters.

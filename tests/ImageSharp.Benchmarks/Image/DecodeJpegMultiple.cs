@@ -1,14 +1,17 @@
-﻿using System.Collections.Generic;
+﻿// <copyright file="DecodeJpegMultiple.cs" company="James Jackson-South">
+// Copyright (c) James Jackson-South and contributors.
+// Licensed under the Apache License, Version 2.0.
+// </copyright>
 
 namespace ImageSharp.Benchmarks.Image
 {
-    using System.Drawing;
-    using System.IO;
+    using System.Collections.Generic;
     using BenchmarkDotNet.Attributes;
 
     using Image = ImageSharp.Image;
     using ImageSharpSize = ImageSharp.Size;
 
+    [Config(typeof(Config.Short))]
     public class DecodeJpegMultiple : MultiImageBenchmarkBase
     {
         protected override IEnumerable<string> InputImageSubfoldersOrFiles => new[]
@@ -16,7 +19,7 @@ namespace ImageSharp.Benchmarks.Image
             "Jpg/"
         };
 
-        protected override IEnumerable<string> FileFilters => new[] { "*.jpg" };
+        protected override IEnumerable<string> SearchPatterns => new[] { "*.jpg" };
 
         [Benchmark(Description = "DecodeJpegMultiple - ImageSharp")]
         public void DecodeJpegImageSharp()

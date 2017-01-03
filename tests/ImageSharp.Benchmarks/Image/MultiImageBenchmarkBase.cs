@@ -1,4 +1,10 @@
-﻿namespace ImageSharp.Benchmarks.Image
+﻿// <copyright file="MultiImageBenchmarkBase.cs" company="James Jackson-South">
+// Copyright (c) James Jackson-South and contributors.
+// Licensed under the Apache License, Version 2.0.
+// </copyright>
+
+
+namespace ImageSharp.Benchmarks.Image
 {
     using System;
     using System.Collections.Generic;
@@ -31,11 +37,11 @@
         }
 
         [Params(InputImageCategory.AllImages, InputImageCategory.SmallImagesOnly, InputImageCategory.LargeImagesOnly)]
-        public InputImageCategory InputCategory { get; set; }
+        public virtual InputImageCategory InputCategory { get; set; }
         
         protected virtual string BaseFolder => "../ImageSharp.Tests/TestImages/Formats/";
 
-        protected virtual IEnumerable<string> FileFilters => new[] { "*.*" };
+        protected virtual IEnumerable<string> SearchPatterns => new[] { "*.*" };
         
         /// <summary>
         /// Gets the file names containing these strings are substrings are not processed by the benchmark.
@@ -81,19 +87,25 @@
         public void ReadImages()
         {
             // Console.WriteLine("Vector.IsHardwareAccelerated: " + Vector.IsHardwareAccelerated);
-            this.ReadImagesImpl();
+            this.ReadFilesImpl();
         }
 
-        protected virtual void ReadImagesImpl()
+        protected virtual void ReadFilesImpl()
         {
-            foreach (string folder in this.AllFoldersOrFiles)
+            foreach (string path in this.AllFoldersOrFiles)
             {
+                if (File.Exists(path))
+                {
+                    this.FileNamesToBytes[path] = File.ReadAllBytes(path);
+                    continue;
+                }
 
                 var allFiles =
-                    this.FileFilters.SelectMany(
+                    this.SearchPatterns.SelectMany(
                         f =>
-                            Directory.EnumerateFiles(folder, f, SearchOption.AllDirectories)
+                            Directory.EnumerateFiles(path, f, SearchOption.AllDirectories)
                                 .Where(fn => !this.ExcludeSubstringsInFileNames.Any(w => fn.ToLower().Contains(w)))).ToArray();
+
                 foreach (var fn in allFiles)
                 {
                     this.FileNamesToBytes[fn] = File.ReadAllBytes(fn);
@@ -101,6 +113,10 @@
             }
         }
 
+        /// <summary>
+        /// Execute code for each image stream. If the returned object of the opearation <see cref="Func{T, TResult}"/> is <see cref="IDisposable"/> it will be disposed.
+        /// </summary>
+        /// <param name="operation">The operation to execute. If the returned object is &lt;see cref="IDisposable"/&gt; it will be disposed </param>
         protected void ForEachStream(Func<MemoryStream, object> operation)
         {
             foreach (var kv in this.FileNames2Bytes)
@@ -123,9 +139,9 @@
 
         public abstract class WithImagesPreloaded : MultiImageBenchmarkBase
         {
-            protected override void ReadImagesImpl()
+            protected override void ReadFilesImpl()
             {
-                base.ReadImagesImpl();
+                base.ReadFilesImpl();
 
                 foreach (var kv in this.FileNamesToBytes)
                 {
@@ -174,6 +190,23 @@
                 }
             }
 
+            protected void ForEachImageSharpImage(Func<Image, MemoryStream, object> operation)
+            {
+                using (MemoryStream workStream = new MemoryStream())
+                {
+
+                    this.ForEachImageSharpImage(
+                        img =>
+                        {
+                            // ReSharper disable AccessToDisposedClosure
+                            object result = operation(img, workStream);
+                            workStream.Seek(0, SeekOrigin.Begin);
+                            // ReSharper restore AccessToDisposedClosure
+                            return result;
+                        });
+                }
+            }
+
             protected void ForEachSystemDrawingImage(Func<System.Drawing.Bitmap, object> operation)
             {
                 foreach (var kv in this.FileNames2SystemDrawingImages)
@@ -189,10 +222,24 @@
                     }
                 }
             }
+
+            protected void ForEachSystemDrawingImage(Func<System.Drawing.Bitmap, MemoryStream, object> operation)
+            {
+                using (MemoryStream workStream = new MemoryStream())
+                {
+
+                    this.ForEachSystemDrawingImage(
+                        img =>
+                        {
+                            // ReSharper disable AccessToDisposedClosure
+                            object result = operation(img, workStream);
+                            workStream.Seek(0, SeekOrigin.Begin);
+                            // ReSharper restore AccessToDisposedClosure
+                            return result;
+                        });
+                }
+
+            }
         }
-
-
     }
-
-
 }

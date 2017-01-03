@@ -1,4 +1,4 @@
-﻿// <copyright file="EncodeJpegMultiple.cs" company="James Jackson-South">
+﻿// <copyright file="EncodeBmpMultiple.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -12,32 +12,29 @@ namespace ImageSharp.Benchmarks.Image
 
     using ImageSharp.Formats;
 
-    
-    [Config(typeof(Config.Short))] // It's long enough to iterate through multiple files
-    public class EncodeJpegMultiple : MultiImageBenchmarkBase.WithImagesPreloaded
+    [Config(typeof(Config.Short))]
+    public class EncodeBmpMultiple : MultiImageBenchmarkBase.WithImagesPreloaded
     {
         protected override IEnumerable<string> InputImageSubfoldersOrFiles => new[] { "Bmp/", "Jpg/baseline" };
 
-        protected override IEnumerable<string> SearchPatterns => new[] { "*.bmp", "*.jpg" };
-
-        [Benchmark(Description = "EncodeJpegMultiple - ImageSharp")]
-        public void EncodeJpegImageSharp()
+        [Benchmark(Description = "EncodeBmpMultiple - ImageSharp")]
+        public void EncodeGifImageSharp()
         {
             this.ForEachImageSharpImage(
                 (img, ms) =>
                     {
-                        img.Save(ms, new JpegEncoder());
+                        img.Save(ms, new BmpEncoder());
                         return null;
                     });
         }
 
-        [Benchmark(Baseline = true, Description = "EncodeJpegMultiple - System.Drawing")]
-        public void EncodeJpegSystemDrawing()
+        [Benchmark(Baseline = true, Description = "EncodeBmpMultiple - System.Drawing")]
+        public void EncodeGifSystemDrawing()
         {
             this.ForEachSystemDrawingImage(
                 (img, ms) =>
                     {
-                        img.Save(ms, ImageFormat.Jpeg);
+                        img.Save(ms, ImageFormat.Bmp);
                         return null;
                     });
         }

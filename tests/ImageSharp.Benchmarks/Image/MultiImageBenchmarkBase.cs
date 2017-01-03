@@ -18,39 +18,51 @@
         protected Dictionary<string, Image> FileNamesToImageSharpImages = new Dictionary<string, Image>();
         protected Dictionary<string, System.Drawing.Bitmap> FileNamesToSystemDrawingImages = new Dictionary<string, System.Drawing.Bitmap>();
 
-        public enum TestingMode
+        /// <summary>
+        /// The values of this enum separate input files into categories
+        /// </summary>
+        public enum InputImageCategory
         {
-            All,
+            AllImages,
 
             SmallImagesOnly,
 
             LargeImagesOnly
         }
 
-        [Params(TestingMode.All, TestingMode.SmallImagesOnly, TestingMode.LargeImagesOnly)]
-        public TestingMode Mode { get; set; }
+        [Params(InputImageCategory.AllImages, InputImageCategory.SmallImagesOnly, InputImageCategory.LargeImagesOnly)]
+        public InputImageCategory InputCategory { get; set; }
+        
+        protected virtual string BaseFolder => "../ImageSharp.Tests/TestImages/Formats/";
 
-        protected virtual string BaseFolder => "../ImageSharp.Tests/TestImages/";
+        protected virtual IEnumerable<string> FileFilters => new[] { "*.*" };
+        
+        /// <summary>
+        /// Gets the file names containing these strings are substrings are not processed by the benchmark.
+        /// </summary>
+        protected IEnumerable<string> ExcludeSubstringsInFileNames => new string[] { };
 
-        protected abstract IEnumerable<string> FileFilters { get; }
+        /// <summary>
+        /// Enumerates folders containing files OR files to be processed by the benchmark.
+        /// </summary>
+        protected IEnumerable<string> AllFoldersOrFiles => this.InputImageSubfoldersOrFiles.Select(f => Path.Combine(this.BaseFolder, f));
 
-        protected IEnumerable<string> FilterWords => new string[] { };
-
-        protected virtual IEnumerable<string> Folders => this.InputImageSubfolders.Select(f => Path.Combine(this.BaseFolder, f));
-
+        /// <summary>
+        /// The images sized above this threshold will be included in 
+        /// </summary>
         protected virtual int LargeImageThresholdInBytes => 100000;
 
         protected IEnumerable<KeyValuePair<string, T>> EnumeratePairsByBenchmarkSettings<T>(
             Dictionary<string, T> input,
             Predicate<T> checkIfSmall)
         {
-            switch (this.Mode)
+            switch (this.InputCategory)
             {
-                case TestingMode.All:
+                case InputImageCategory.AllImages:
                     return input;
-                case TestingMode.SmallImagesOnly:
+                case InputImageCategory.SmallImagesOnly:
                     return input.Where(kv => checkIfSmall(kv.Value));
-                case TestingMode.LargeImagesOnly:
+                case InputImageCategory.LargeImagesOnly:
                     return input.Where(kv => !checkIfSmall(kv.Value));
                 default:
                     throw new ArgumentOutOfRangeException();
@@ -63,24 +75,25 @@
                 this.FileNamesToBytes,
                 arr => arr.Length < this.LargeImageThresholdInBytes);
 
-        protected abstract IEnumerable<string> InputImageSubfolders { get; }
+        protected abstract IEnumerable<string> InputImageSubfoldersOrFiles { get; }
 
         [Setup]
         public void ReadImages()
         {
-            //Console.WriteLine("Vector.IsHardwareAccelerated: " + Vector.IsHardwareAccelerated);
+            // Console.WriteLine("Vector.IsHardwareAccelerated: " + Vector.IsHardwareAccelerated);
             this.ReadImagesImpl();
         }
 
         protected virtual void ReadImagesImpl()
         {
-            foreach (string folder in this.Folders)
+            foreach (string folder in this.AllFoldersOrFiles)
             {
+
                 var allFiles =
                     this.FileFilters.SelectMany(
                         f =>
                             Directory.EnumerateFiles(folder, f, SearchOption.AllDirectories)
-                                .Where(fn => !this.FilterWords.Any(w => fn.ToLower().Contains(w)))).ToArray();
+                                .Where(fn => !this.ExcludeSubstringsInFileNames.Any(w => fn.ToLower().Contains(w)))).ToArray();
                 foreach (var fn in allFiles)
                 {
                     this.FileNamesToBytes[fn] = File.ReadAllBytes(fn);

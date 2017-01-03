@@ -11,9 +11,9 @@ namespace ImageSharp.Benchmarks.Image
 
     public class DecodeJpegMultiple : MultiImageBenchmarkBase
     {
-        protected override IEnumerable<string> InputImageSubfolders => new[]
+        protected override IEnumerable<string> InputImageSubfoldersOrFiles => new[]
         {
-            "Formats/Jpg/"
+            "Jpg/"
         };
 
         protected override IEnumerable<string> FileFilters => new[] { "*.jpg" };

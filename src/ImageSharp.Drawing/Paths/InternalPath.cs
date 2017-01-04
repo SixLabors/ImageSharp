@@ -15,6 +15,11 @@ namespace ImageSharp.Drawing.Paths
     internal class InternalPath
     {
         /// <summary>
+        /// The maximum vector
+        /// </summary>
+        private static readonly Vector2 MaxVector = new Vector2(float.MaxValue);
+
+        /// <summary>
         /// The locker.
         /// </summary>
         private static readonly object Locker = new object();
@@ -164,6 +169,45 @@ namespace ImageSharp.Drawing.Paths
         }
 
         /// <summary>
+        /// Finds the intersections.
+        /// </summary>
+        /// <param name="start">The start.</param>
+        /// <param name="end">The end.</param>
+        /// <param name="buffer">The buffer.</param>
+        /// <param name="count">The count.</param>
+        /// <param name="offset">The offset.</param>
+        /// <returns>number iof intersections hit</returns>
+        public int FindIntersections(Vector2 start, Vector2 end, Vector2[] buffer, int count, int offset)
+        {
+            int polyCorners = this.points.Length;
+
+            if (!this.closedPath)
+            {
+                polyCorners -= 1;
+            }
+
+            int position = 0;
+            for (int i = 0; i < polyCorners && count > 0; i++)
+            {
+                int next = i + 1;
+                if (this.closedPath && next == polyCorners)
+                {
+                    next = 0;
+                }
+
+                var point = FindIntersection(this.points[i], this.points[next], start, end);
+                if (point != MaxVector)
+                {
+                    buffer[position + offset] = point;
+                    position++;
+                    count--;
+                }
+            }
+
+            return position;
+        }
+
+        /// <summary>
         /// Points the in polygon.
         /// </summary>
         /// <param name="point">The point.</param>
@@ -201,6 +245,92 @@ namespace ImageSharp.Drawing.Paths
             }
 
             return oddNodes;
+        }
+
+        private static bool BoundingBoxesIntersect(Vector2 line1Start, Vector2 line1End, Vector2 line2Start, Vector2 line2End)
+        {
+            var topLeft1 = Vector2.Min(line1Start, line1End);
+            var bottomRight1 = Vector2.Max(line1Start, line1End);
+
+            var topLeft2 = Vector2.Min(line2Start, line2End);
+            var bottomRight2 = Vector2.Max(line2Start, line2End);
+
+            var left1 = topLeft1.X;
+            var right1 = bottomRight1.X;
+            var top1 = topLeft1.Y;
+            var bottom1 = bottomRight1.Y;
+
+            var left2 = topLeft2.X;
+            var right2 = bottomRight2.X;
+            var top2 = topLeft2.Y;
+            var bottom2 = bottomRight2.Y;
+
+            return left1 <= right2 && right1 >= left2
+                &&
+                top1 <= bottom2 && bottom1 >= top2;
+        }
+
+        private static Vector2 FindIntersection(Vector2 line1Start, Vector2 line1End, Vector2 line2Start, Vector2 line2End)
+        {
+            // do lines cross at all
+            if (!BoundingBoxesIntersect(line1Start, line1End, line2Start, line2End))
+            {
+                return MaxVector;
+            }
+
+            var line1Diff = line1End - line1Start;
+            var line2Diff = line2End - line2Start;
+
+            Vector2 point;
+            if (line1Diff.X == 0)
+            {
+                float slope = line2Diff.Y / line2Diff.X;
+
+                var yinter = line2Start.Y - (slope * line2Start.X);
+                var y = (line1Start.X * slope) + yinter;
+                point = new Vector2(line1Start.X, y);
+
+                // horizontal and vertical lines
+            }
+            else if (line2Diff.X == 0)
+            {
+                float slope = line1Diff.Y / line1Diff.X;
+                var yinter = line1Start.Y - (slope * line1Start.X);
+                var y = (line2Start.X * slope) + yinter;
+                point = new Vector2(line2Start.X, y);
+
+                // horizontal and vertical lines
+            }
+            else
+            {
+                float slope1 = line1Diff.Y / line1Diff.X;
+                float slope2 = line2Diff.Y / line2Diff.X;
+
+                var yinter1 = line1Start.Y - (slope1 * line1Start.X);
+                var yinter2 = line2Start.Y - (slope2 * line2Start.X);
+
+                if (slope1 == slope2 && yinter1 != yinter2)
+                {
+                    return MaxVector;
+                }
+
+                float x = (yinter2 - yinter1) / (slope1 - slope2);
+
+                float y = (slope1 * x) + yinter1;
+
+                point = new Vector2(x, y);
+            }
+
+            if (BoundingBoxesIntersect(line1Start, line1End, point, point))
+            {
+                return point;
+            }
+            else if (BoundingBoxesIntersect(line2Start, line2End, point, point))
+            {
+                return point;
+            }
+
+            return MaxVector;
         }
 
         /// <summary>

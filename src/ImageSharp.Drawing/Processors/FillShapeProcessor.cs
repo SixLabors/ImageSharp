@@ -78,6 +78,10 @@ namespace ImageSharp.Drawing.Processors
                     var buffer = arrayPool.Rent(maxIntersections);
                     var left = new Vector2(startX, y);
                     var right = new Vector2(endX, y);
+                    if (y == 100)
+                    {
+                        var sdf = "";
+                    }
 
                     // foreach line we get all the points where this line crosses the polygon
                     var pointsFound = this.poly.FindIntersections(left, right, buffer, maxIntersections, 0);
@@ -89,7 +93,7 @@ namespace ImageSharp.Drawing.Processors
                         return;
                     }
 
-                    QuickSortX(buffer, 0, pointsFound);
+                    QuickSortX(buffer, pointsFound);
 
                     int currentIntersection = 0;
                     float nextPoint = buffer[0].X;
@@ -228,7 +232,7 @@ namespace ImageSharp.Drawing.Processors
                             return;
                         }
 
-                        QuickSortY(buffer, 0, pointsFound);
+                        QuickSortY(buffer, pointsFound);
 
                         int currentIntersection = 0;
                         float nextPoint = buffer[0].Y;
@@ -363,89 +367,96 @@ namespace ImageSharp.Drawing.Processors
             }
         }
 
-        private static void QuickSortX(Vector2[] data, int left, int right)
+        private static void Swap(Vector2[] data, int left, int right)
         {
-            int i = left - 1;
-            int j = right;
+            Vector2 tmp = data[left];
+            data[left] = data[right];
+            data[right] = tmp;
+        }
 
-            while (true)
+        private static void QuickSortY(Vector2[] A, int size)
+        {
+            QuickSortY(A, 0, size - 1);
+        }
+
+        private static void QuickSortY(Vector2[] A, int lo, int hi)
+        {
+            if (lo < hi)
             {
-                float x = data[left].X;
-                do
-                {
-                    i++;
-                }
-                while (data[i].X < x);
-
-                do
-                {
-                    j--;
-                }
-                while (data[j].X > x);
-
-                if (i < j)
-                {
-                    Vector2 tmp = data[i];
-                    data[i] = data[j];
-                    data[j] = tmp;
-                }
-                else
-                {
-                    if (left < j)
-                    {
-                        QuickSortX(data, left, j);
-                    }
-
-                    if (++j < right)
-                    {
-                        QuickSortX(data, j, right);
-                    }
-
-                    return;
-                }
+                int p = PartitionY(A, lo, hi);
+                QuickSortY(A, lo, p);
+                QuickSortY(A, p + 1, hi);
             }
         }
 
-        private static void QuickSortY(Vector2[] data, int left, int right)
+        private static void QuickSortX(Vector2[] A, int size)
         {
-            int i = left - 1;
-            int j = right;
+            QuickSortX(A, 0, size - 1);
+        }
 
+        private static void QuickSortX(Vector2[] A, int lo, int hi)
+        {
+            if (lo < hi)
+            {
+                int p = PartitionX(A, lo, hi);
+                QuickSortX(A, lo, p);
+                QuickSortX(A, p + 1, hi);
+            }
+        }
+
+        private static int PartitionX(Vector2[] A, int lo, int hi)
+        {
+            float pivot = A[lo].X;
+            int i = lo - 1;
+            int j = hi + 1;
             while (true)
             {
-                float d = data[left].Y;
                 do
                 {
-                    i++;
+                    i = i + 1;
                 }
-                while (data[i].Y < d);
+                while (A[i].X < pivot);
 
                 do
                 {
-                    j--;
+                    j = j - 1;
                 }
-                while (data[j].Y > d);
+                while (A[j].X > pivot);
 
-                if (i < j)
+                if (i >= j)
                 {
-                    Vector2 tmp = data[i];
-                    data[i] = data[j];
-                    data[j] = tmp;
+                    return j;
                 }
-                else
+
+                Swap(A, i, j);
+            }
+        }
+
+        private static int PartitionY(Vector2[] A, int lo, int hi)
+        {
+            float pivot = A[lo].Y;
+            int i = lo - 1;
+            int j = hi + 1;
+            while (true)
+            {
+                do
                 {
-                    if (left < j)
-                    {
-                        QuickSortY(data, left, j);
-                    }
-
-                    if (++j < right)
-                    {
-                        QuickSortY(data, j, right);
-                    }
-
-                    return;
+                    i = i + 1;
                 }
+                while (A[i].Y < pivot);
+
+                do
+                {
+                    j = j - 1;
+                }
+                while (A[j].Y > pivot);
+
+                if (i >= j)
+                {
+                    return j;
+                }
+
+                Swap(A, i, j);
             }
         }
     }

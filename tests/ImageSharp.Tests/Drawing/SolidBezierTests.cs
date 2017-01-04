@@ -19,7 +19,6 @@ namespace ImageSharp.Tests.Drawing
         [Fact]
         public void ImageShouldBeOverlayedByFilledPolygon()
         {
-            Configuration.Default.ParallelOptions.MaxDegreeOfParallelism = 1;
             string path = CreateOutputDirectory("Drawing", "FilledBezier");
             var simplePath = new[] {
                         new Vector2(10, 400),

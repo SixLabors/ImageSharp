@@ -125,7 +125,16 @@ namespace ImageSharp.Drawing.Shapes
         /// </returns>
         public int FindIntersections(Vector2 start, Vector2 end, Vector2[] buffer, int count, int offset)
         {
-            throw new NotImplementedException();
+            int totalAdded = 0;
+            for (int i = 0; i < this.shapes.Length; i++)
+            {
+                int added = this.shapes[i].FindIntersections(start, end, buffer, count, offset);
+                count -= added;
+                offset += added;
+                totalAdded += added;
+            }
+
+            return totalAdded;
         }
 
         /// <summary>

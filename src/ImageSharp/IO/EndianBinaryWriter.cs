@@ -34,10 +34,10 @@ namespace ImageSharp.IO
         /// Initializes a new instance of the <see cref="EndianBinaryWriter"/> class
         /// with the given bit converter, writing to the given stream, using UTF-8 encoding.
         /// </summary>
-        /// <param name="bitConverter">Converter to use when writing data</param>
+        /// <param name="endianness">Endianness to use when writing data</param>
         /// <param name="stream">Stream to write data to</param>
-        public EndianBinaryWriter(EndianBitConverter bitConverter, Stream stream)
-            : this(bitConverter, stream, Encoding.UTF8)
+        public EndianBinaryWriter(Endianness endianness, Stream stream)
+            : this(endianness, stream, Encoding.UTF8)
         {
         }
 
@@ -45,13 +45,15 @@ namespace ImageSharp.IO
         /// Initializes a new instance of the <see cref="EndianBinaryWriter"/> class
         /// with the given bit converter, writing to the given stream, using the given encoding.
         /// </summary>
-        /// <param name="bitConverter">Converter to use when writing data</param>
+        /// <param name="endianness">Endianness to use when writing data</param>
         /// <param name="stream">Stream to write data to</param>
         /// <param name="encoding">
         /// Encoding to use when writing character data
         /// </param>
-        public EndianBinaryWriter(EndianBitConverter bitConverter, Stream stream, Encoding encoding)
+        public EndianBinaryWriter(Endianness endianness, Stream stream, Encoding encoding)
         {
+            var bitConverter = EndianBitConverter.GetConverter(endianness);
+
             // TODO: Use Guard
             if (bitConverter == null)
             {
@@ -79,11 +81,6 @@ namespace ImageSharp.IO
         }
 
         /// <summary>
-        /// Gets the bit converter used to write values to the stream
-        /// </summary>
-        public EndianBitConverter BitConverter { get; }
-
-        /// <summary>
         /// Gets the encoding used to write strings
         /// </summary>
         public Encoding Encoding { get; }
@@ -92,6 +89,11 @@ namespace ImageSharp.IO
         /// Gets the underlying stream of the EndianBinaryWriter.
         /// </summary>
         public Stream BaseStream { get; }
+
+        /// <summary>
+        /// Gets the bit converter used to write values to the stream
+        /// </summary>
+        internal EndianBitConverter BitConverter { get; }
 
         /// <summary>
         /// Closes the writer, including the underlying stream.

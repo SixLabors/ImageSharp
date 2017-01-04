@@ -6,6 +6,7 @@
 namespace ImageSharp.Tests
 {
     using System.IO;
+    using ImageSharp.Formats;
 
     /// <summary>
     /// The test base class. Inherit from this class for any image manipulation tests.

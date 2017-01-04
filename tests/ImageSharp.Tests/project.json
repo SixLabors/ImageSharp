@@ -20,9 +20,36 @@
     }
   },
   "dependencies": {
-    "ImageSharp": "1.0.0-*",
+    "ImageSharp": {
+      "target": "project",
+      "version": "1.0.0-*"
+    },
     "xunit": "2.2.0-*",
-    "dotnet-test-xunit": "2.2.0-*"
+    "dotnet-test-xunit": "2.2.0-*",
+    "ImageSharp.Drawing": {
+      "target": "project",
+      "version": "1.0.0-*"
+    },
+    "ImageSharp.Formats.Png": {
+      "target": "project",
+      "version": "1.0.0-*"
+    },
+    "ImageSharp.Formats.Jpeg": {
+      "target": "project",
+      "version": "1.0.0-*"
+    },
+    "ImageSharp.Formats.Bmp": {
+      "target": "project",
+      "version": "1.0.0-*"
+    },
+    "ImageSharp.Formats.Gif": {
+      "target": "project",
+      "version": "1.0.0-*"
+    },
+    "ImageSharp.Processing": {
+      "target": "project",
+      "version": "1.0.0-*"
+    }
   },
   "frameworks": {
     "netcoreapp1.1": {
@@ -34,7 +61,10 @@
         "Microsoft.CodeCoverage": "1.0.2"
       }
     },
-    "net451": {}
+    "net451": {
+      "dependencies": {
+      }
+    }
   },
   "testRunner": "xunit"
 }

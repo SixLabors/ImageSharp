@@ -231,7 +231,7 @@ namespace ImageSharp
         /// <summary>
         /// Resets the bytes of the array to it's initial value.
         /// </summary>
-        internal void Reset()
+        public void Reset()
         {
             Unsafe.InitBlock(this.PixelBase, 0, (uint)(this.RowStride * this.Height));
         }

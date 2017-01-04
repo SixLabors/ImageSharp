@@ -162,7 +162,25 @@ namespace ImageSharp.Drawing.Shapes
         /// </returns>
         public int FindIntersections(Vector2 start, Vector2 end, Vector2[] buffer, int count, int offset)
         {
-            throw new NotImplementedException();
+            var discovered = 0;
+            Vector2 startPoint = Vector2.Clamp(start, this.topLeft, this.bottomRight);
+            Vector2 endPoint = Vector2.Clamp(end, this.topLeft, this.bottomRight);
+
+            if (startPoint == Vector2.Clamp(startPoint, start, end))
+            {
+                // if start closest is within line then its a valid point
+                discovered++;
+                buffer[offset++] = startPoint;
+            }
+
+            if (endPoint == Vector2.Clamp(endPoint, start, end))
+            {
+                // if start closest is within line then its a valid point
+                discovered++;
+                buffer[offset++] = endPoint;
+            }
+
+            return discovered;
         }
 
         private PointInfo Distance(Vector2 point, bool getDistanceAwayOnly, out bool isInside)

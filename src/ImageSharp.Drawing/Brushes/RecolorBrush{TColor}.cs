@@ -55,7 +55,7 @@ namespace ImageSharp.Drawing.Brushes
         public TColor TargetColor { get; }
 
         /// <inheritdoc />
-        public IBrushApplicator<TColor> CreateApplicator(PixelAccessor<TColor> sourcePixels, RectangleF region)
+        public BrushApplicator<TColor> CreateApplicator(PixelAccessor<TColor> sourcePixels, RectangleF region)
         {
             return new RecolorBrushApplicator(sourcePixels, this.SourceColor, this.TargetColor, this.Threshold);
         }
@@ -63,7 +63,7 @@ namespace ImageSharp.Drawing.Brushes
         /// <summary>
         /// The recolor brush applicator.
         /// </summary>
-        private class RecolorBrushApplicator : IBrushApplicator<TColor>
+        private class RecolorBrushApplicator : BrushApplicator<TColor>
         {
             /// <summary>
             /// The source pixel accessor.
@@ -113,7 +113,7 @@ namespace ImageSharp.Drawing.Brushes
             /// <returns>
             /// The color
             /// </returns>
-            public TColor GetColor(Vector2 point)
+            public override TColor GetColor(Vector2 point)
             {
                 // Offset the requested pixel by the value in the rectangle (the shapes position)
                 TColor result = this.source[(int)point.X, (int)point.Y];
@@ -130,9 +130,8 @@ namespace ImageSharp.Drawing.Brushes
             }
 
             /// <inheritdoc />
-            public void Dispose()
+            public override void Dispose()
             {
-                // we didn't make the lock on the PixelAccessor we shouldn't release it.
             }
         }
     }

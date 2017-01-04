@@ -1,4 +1,4 @@
-﻿// <copyright file="IPenApplicator.cs" company="James Jackson-South">
+﻿// <copyright file="PenApplicator.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -12,7 +12,7 @@ namespace ImageSharp.Drawing.Processors
     /// primitive that converts a <see cref="PointInfo"/> into a color and a distance away from the drawable part of the path.
     /// </summary>
     /// <typeparam name="TColor">The type of the color.</typeparam>
-    public abstract class IPenApplicator<TColor> : IDisposable
+    public abstract class PenApplicator<TColor> : IDisposable
         where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>

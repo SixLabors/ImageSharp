@@ -35,6 +35,14 @@ namespace ImageSharp.Drawing.Shapes
         public RectangleF Bounds => this.innerPolygon.Bounds;
 
         /// <summary>
+        /// Gets the maximum number intersections that a shape can have when testing a line.
+        /// </summary>
+        /// <value>
+        /// The maximum intersections.
+        /// </value>
+        public int MaxIntersections => this.innerPolygon.MaxIntersections;
+
+        /// <summary>
         /// the distance of the point from the outline of the shape, if the value is negative it is inside the polygon bounds
         /// </summary>
         /// <param name="point">The point.</param>
@@ -42,6 +50,22 @@ namespace ImageSharp.Drawing.Shapes
         /// The distance from the shape.
         /// </returns>
         public float Distance(Vector2 point) => this.innerPolygon.Distance(point);
+
+        /// <summary>
+        /// Finds the intersections.
+        /// </summary>
+        /// <param name="start">The start point of the line.</param>
+        /// <param name="end">The end point of the line.</param>
+        /// <param name="buffer">The buffer that will be populated with intersections.</param>
+        /// <param name="count">The count.</param>
+        /// <param name="offset">The offset.</param>
+        /// <returns>
+        /// The number of intersections populated into the buffer.
+        /// </returns>
+        public int FindIntersections(Vector2 start, Vector2 end, Vector2[] buffer, int count, int offset)
+        {
+            return this.innerPolygon.FindIntersections(start, end, buffer, count, offset);
+        }
 
         /// <summary>
         /// Returns an enumerator that iterates through the collection.

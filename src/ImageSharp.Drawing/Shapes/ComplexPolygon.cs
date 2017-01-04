@@ -5,6 +5,7 @@
 
 namespace ImageSharp.Drawing.Shapes
 {
+    using System;
     using System.Collections;
     using System.Collections.Generic;
     using System.Linq;
@@ -44,7 +45,7 @@ namespace ImageSharp.Drawing.Shapes
             Guard.NotNull(outlines, nameof(outlines));
             Guard.MustBeGreaterThanOrEqualTo(outlines.Length, 1, nameof(outlines));
 
-            this.FixAndSetShapes(outlines, holes);
+            this.MaxIntersections = this.FixAndSetShapes(outlines, holes);
 
             var minX = this.shapes.Min(x => x.Bounds.Left);
             var maxX = this.shapes.Max(x => x.Bounds.Right);
@@ -61,6 +62,14 @@ namespace ImageSharp.Drawing.Shapes
         /// The bounds.
         /// </value>
         public RectangleF Bounds { get; }
+
+        /// <summary>
+        /// Gets the maximum number intersections that a shape can have when testing a line.
+        /// </summary>
+        /// <value>
+        /// The maximum intersections.
+        /// </value>
+        public int MaxIntersections { get; }
 
         /// <summary>
         /// the distance of the point from the outline of the shape, if the value is negative it is inside the polygon bounds
@@ -101,6 +110,22 @@ namespace ImageSharp.Drawing.Shapes
             }
 
             return dist;
+        }
+
+        /// <summary>
+        /// Finds the intersections.
+        /// </summary>
+        /// <param name="start">The start point of the line.</param>
+        /// <param name="end">The end point of the line.</param>
+        /// <param name="buffer">The buffer that will be populated with intersections.</param>
+        /// <param name="count">The count.</param>
+        /// <param name="offset">The offset.</param>
+        /// <returns>
+        /// The number of intersections populated into the buffer.
+        /// </returns>
+        public int FindIntersections(Vector2 start, Vector2 end, Vector2[] buffer, int count, int offset)
+        {
+            throw new NotImplementedException();
         }
 
         /// <summary>
@@ -180,7 +205,7 @@ namespace ImageSharp.Drawing.Shapes
             }
         }
 
-        private void FixAndSetShapes(IEnumerable<IShape> outlines, IEnumerable<IShape> holes)
+        private int FixAndSetShapes(IEnumerable<IShape> outlines, IEnumerable<IShape> holes)
         {
             var clipper = new Clipper();
 
@@ -197,6 +222,14 @@ namespace ImageSharp.Drawing.Shapes
             this.ExtractOutlines(tree, shapes, paths);
             this.shapes = shapes.ToArray();
             this.paths = paths.ToArray();
+
+            int intersections = 0;
+            foreach (var s in this.shapes)
+            {
+                intersections += s.MaxIntersections;
+            }
+
+            return intersections;
         }
     }
 }

@@ -5,10 +5,10 @@
 
 namespace ImageSharp.Tests
 {
-    using Processors;
     using System.IO;
 
     using Xunit;
+    using ImageSharp.Processing;
 
     public class GrayscaleTest : FileTestBase
     {

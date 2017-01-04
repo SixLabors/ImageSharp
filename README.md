@@ -26,6 +26,27 @@ At present the code is pre-release but when ready it will be available on [Nuget
 
 We already have a [MyGet package repository](https://www.myget.org/gallery/imagesharp) - for bleeding-edge / development NuGet releases.
 
+### Packages
+
+The **ImageSharp** library is made up of multiple packages, to make **ImageSharp** do anything useful you will want to make sure you include at least one format as a dependency otherwise you will not be able to save/load any images.
+
+Packages include;
+- **ImageSharp**
+  Contains the Image classes, Colors, Primitives, Bootstrapper, IImageFormat interface, and other core functionality.
+- **ImageSharp.Formats.Jpeg**
+  The jpeg decoder/encoder (Auto registered)
+- **ImageSharp.Formats.Png**
+  The png decoder/encoder (Auto registered)
+- **ImageSharp.Formats.Gif**
+  The gif decoder/encoder (Auto registered)
+- **ImageSharp.Formats.Bmp**
+  The bmp decoder/encoder (Auto registered)
+- **ImageSharp.Processing**
+  Contains methods like Resize, Crop, Skew, Rotate - Anything that alters the dimensions of the image.
+  Contains methods like Gaussian Blur, Pixelate, Edge Detection - Anything that maintains the original image dimensions.
+- **ImageSharp.Drawing**
+  Brushes and various drawing algorithms.
+
 ### Manual build
 
 If you prefer, you can compile ImageSharp yourself (please do and help!), you'll need:

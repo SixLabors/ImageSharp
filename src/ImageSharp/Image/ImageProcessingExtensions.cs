@@ -6,7 +6,7 @@
 namespace ImageSharp
 {
     using System;
-    using Processors;
+    using Processing;
 
     /// <summary>
     /// Extension methods for the <see cref="Image{TColor}"/> type.
@@ -21,10 +21,10 @@ namespace ImageSharp
         /// <param name="source">The image this method extends.</param>
         /// <param name="processor">The processor to apply to the image.</param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
-        internal static Image<TColor> Process<TColor>(this Image<TColor> source, IImageProcessor<TColor> processor)
+        public static Image<TColor> Apply<TColor>(this Image<TColor> source, IImageProcessor<TColor> processor)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            return Process(source, source.Bounds, processor);
+            return Apply(source, source.Bounds, processor);
         }
 
         /// <summary>
@@ -38,7 +38,7 @@ namespace ImageSharp
         /// </param>
         /// <param name="processor">The processors to apply to the image.</param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
-        internal static Image<TColor> Process<TColor>(this Image<TColor> source, Rectangle sourceRectangle, IImageProcessor<TColor> processor)
+        public static Image<TColor> Apply<TColor>(this Image<TColor> source, Rectangle sourceRectangle, IImageProcessor<TColor> processor)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             processor.Apply(source, sourceRectangle);

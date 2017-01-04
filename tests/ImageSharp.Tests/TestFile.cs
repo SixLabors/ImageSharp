@@ -9,6 +9,7 @@ namespace ImageSharp.Tests
     using System.IO;
 
     using ImageSharp.Formats;
+    using System.Linq;
 
     /// <summary>
     /// A test image file.
@@ -34,20 +35,7 @@ namespace ImageSharp.Tests
         /// The file.
         /// </summary>
         private readonly string file;
-
-        /// <summary>
-        /// Initializes static members of the <see cref="TestFile"/> class.
-        /// </summary>
-        static TestFile()
-        {
-            // Register the individual image formats.
-            // TODO: Is this the best place to do this?
-            Configuration.Default.AddImageFormat(new PngFormat());
-            Configuration.Default.AddImageFormat(new JpegFormat());
-            Configuration.Default.AddImageFormat(new BmpFormat());
-            Configuration.Default.AddImageFormat(new GifFormat());
-        }
-
+        
         /// <summary>
         /// Initializes a new instance of the <see cref="TestFile"/> class.
         /// </summary>
@@ -144,14 +132,22 @@ namespace ImageSharp.Tests
         /// </returns>
         private static string GetFormatsDirectory()
         {
-            // Here for code coverage tests.
-            string directory = "TestImages/Formats/";
-            if (Directory.Exists(directory))
+            var directories = new[] {
+                 "TestImages/Formats/", // Here for code coverage tests.
+                  "tests/ImageSharp.Tests/TestImages/Formats/", // from travis/build script
+                  "../../../../TestImages/Formats/" 
+            };
+
+            directories= directories.Select(x => Path.GetFullPath(x)).ToArray();
+
+            var directory = directories.FirstOrDefault(x => Directory.Exists(x));
+
+            if(directory  != null)
             {
                 return directory;
             }
 
-            return "../../../../TestImages/Formats/";
+            throw new System.Exception($"Unable to find Formats directory at any of these locations [{string.Join(", ", directories)}]");
         }
     }
 }

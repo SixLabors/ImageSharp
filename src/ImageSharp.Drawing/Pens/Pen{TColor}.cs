@@ -111,7 +111,7 @@ namespace ImageSharp.Drawing.Pens
         /// The <paramref name="region" /> when being applied to things like shapes would ussually be the
         /// bounding box of the shape not necorserrally the shape of the whole image
         /// </remarks>
-        public IPenApplicator<TColor> CreateApplicator(PixelAccessor<TColor> sourcePixels, RectangleF region)
+        public PenApplicator<TColor> CreateApplicator(PixelAccessor<TColor> sourcePixels, RectangleF region)
         {
             if (this.pattern == null || this.pattern.Length < 2)
             {
@@ -123,7 +123,7 @@ namespace ImageSharp.Drawing.Pens
             return new PatternPenApplicator(sourcePixels, this.Brush, region, this.Width, this.pattern);
         }
 
-        private class SolidPenApplicator : IPenApplicator<TColor>
+        private class SolidPenApplicator : PenApplicator<TColor>
         {
             private readonly BrushApplicator<TColor> brush;
             private readonly float halfWidth;
@@ -164,7 +164,7 @@ namespace ImageSharp.Drawing.Pens
             }
         }
 
-        private class PatternPenApplicator : IPenApplicator<TColor>
+        private class PatternPenApplicator : PenApplicator<TColor>
         {
             private readonly BrushApplicator<TColor> brush;
             private readonly float halfWidth;

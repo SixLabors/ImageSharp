@@ -84,7 +84,7 @@ namespace ImageSharp.Drawing.Processors
         protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
         {
             using (PixelAccessor<TColor> sourcePixels = source.Lock())
-            using (IPenApplicator<TColor> applicator = this.pen.CreateApplicator(sourcePixels, this.region))
+            using (PenApplicator<TColor> applicator = this.pen.CreateApplicator(sourcePixels, this.region))
             {
                 var rect = RectangleF.Ceiling(applicator.RequiredRegion);
 

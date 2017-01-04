@@ -78,10 +78,6 @@ namespace ImageSharp.Drawing.Processors
                     var buffer = arrayPool.Rent(maxIntersections);
                     var left = new Vector2(startX, y);
                     var right = new Vector2(endX, y);
-                    if (y == 100)
-                    {
-                        var sdf = "";
-                    }
 
                     // foreach line we get all the points where this line crosses the polygon
                     var pointsFound = this.poly.FindIntersections(left, right, buffer, maxIntersections, 0);

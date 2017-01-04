@@ -370,39 +370,39 @@ namespace ImageSharp.Drawing.Processors
             data[right] = tmp;
         }
 
-        private static void QuickSortY(Vector2[] A, int size)
+        private static void QuickSortY(Vector2[] data, int size)
         {
-            QuickSortY(A, 0, size - 1);
+            QuickSortY(data, 0, size - 1);
         }
 
-        private static void QuickSortY(Vector2[] A, int lo, int hi)
+        private static void QuickSortY(Vector2[] data, int lo, int hi)
         {
             if (lo < hi)
             {
-                int p = PartitionY(A, lo, hi);
-                QuickSortY(A, lo, p);
-                QuickSortY(A, p + 1, hi);
+                int p = PartitionY(data, lo, hi);
+                QuickSortY(data, lo, p);
+                QuickSortY(data, p + 1, hi);
             }
         }
 
-        private static void QuickSortX(Vector2[] A, int size)
+        private static void QuickSortX(Vector2[] data, int size)
         {
-            QuickSortX(A, 0, size - 1);
+            QuickSortX(data, 0, size - 1);
         }
 
-        private static void QuickSortX(Vector2[] A, int lo, int hi)
+        private static void QuickSortX(Vector2[] data, int lo, int hi)
         {
             if (lo < hi)
             {
-                int p = PartitionX(A, lo, hi);
-                QuickSortX(A, lo, p);
-                QuickSortX(A, p + 1, hi);
+                int p = PartitionX(data, lo, hi);
+                QuickSortX(data, lo, p);
+                QuickSortX(data, p + 1, hi);
             }
         }
 
-        private static int PartitionX(Vector2[] A, int lo, int hi)
+        private static int PartitionX(Vector2[] data, int lo, int hi)
         {
-            float pivot = A[lo].X;
+            float pivot = data[lo].X;
             int i = lo - 1;
             int j = hi + 1;
             while (true)
@@ -411,26 +411,26 @@ namespace ImageSharp.Drawing.Processors
                 {
                     i = i + 1;
                 }
-                while (A[i].X < pivot);
+                while (data[i].X < pivot);
 
                 do
                 {
                     j = j - 1;
                 }
-                while (A[j].X > pivot);
+                while (data[j].X > pivot);
 
                 if (i >= j)
                 {
                     return j;
                 }
 
-                Swap(A, i, j);
+                Swap(data, i, j);
             }
         }
 
-        private static int PartitionY(Vector2[] A, int lo, int hi)
+        private static int PartitionY(Vector2[] data, int lo, int hi)
         {
-            float pivot = A[lo].Y;
+            float pivot = data[lo].Y;
             int i = lo - 1;
             int j = hi + 1;
             while (true)
@@ -439,20 +439,20 @@ namespace ImageSharp.Drawing.Processors
                 {
                     i = i + 1;
                 }
-                while (A[i].Y < pivot);
+                while (data[i].Y < pivot);
 
                 do
                 {
                     j = j - 1;
                 }
-                while (A[j].Y > pivot);
+                while (data[j].Y > pivot);
 
                 if (i >= j)
                 {
                     return j;
                 }
 
-                Swap(A, i, j);
+                Swap(data, i, j);
             }
         }
     }

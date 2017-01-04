@@ -28,7 +28,7 @@ We already have a [MyGet package repository](https://www.myget.org/gallery/image
 
 ### Packages
 
-The **ImageSharp** library is made up of multiple packages, to make **ImageShape** so anything useful you will want to make sure you include at least 1 Format as a dependency otherwise you will note be able to save/load any images.
+The **ImageSharp** library is made up of multiple packages, to make **ImageSharp** do anything useful you will want to make sure you include at least one format as a dependency otherwise you will not be able to save/load any images.
 
 Packages include;
 - **ImageSharp**

@@ -125,7 +125,7 @@ namespace ImageSharp.Drawing.Pens
 
         private class SolidPenApplicator : IPenApplicator<TColor>
         {
-            private readonly IBrushApplicator<TColor> brush;
+            private readonly BrushApplicator<TColor> brush;
             private readonly float halfWidth;
 
             public SolidPenApplicator(PixelAccessor<TColor> sourcePixels, IBrush<TColor> brush, RectangleF region, float width)
@@ -135,17 +135,17 @@ namespace ImageSharp.Drawing.Pens
                 this.RequiredRegion = RectangleF.Outset(region, width);
             }
 
-            public RectangleF RequiredRegion
+            public override RectangleF RequiredRegion
             {
                 get;
             }
 
-            public void Dispose()
+            public override void Dispose()
             {
                 this.brush.Dispose();
             }
 
-            public ColoredPointInfo<TColor> GetColor(PointInfo info)
+            public override ColoredPointInfo<TColor> GetColor(PointInfo info)
             {
                 var result = default(ColoredPointInfo<TColor>);
                 result.Color = this.brush.GetColor(info.SearchPoint);
@@ -166,7 +166,7 @@ namespace ImageSharp.Drawing.Pens
 
         private class PatternPenApplicator : IPenApplicator<TColor>
         {
-            private readonly IBrushApplicator<TColor> brush;
+            private readonly BrushApplicator<TColor> brush;
             private readonly float halfWidth;
             private readonly float[] pattern;
             private readonly float totalLength;
@@ -188,17 +188,17 @@ namespace ImageSharp.Drawing.Pens
                 this.RequiredRegion = RectangleF.Outset(region, width);
             }
 
-            public RectangleF RequiredRegion
+            public override RectangleF RequiredRegion
             {
                 get;
             }
 
-            public void Dispose()
+            public override void Dispose()
             {
                 this.brush.Dispose();
             }
 
-            public ColoredPointInfo<TColor> GetColor(PointInfo info)
+            public override ColoredPointInfo<TColor> GetColor(PointInfo info)
             {
                 var infoResult = default(ColoredPointInfo<TColor>);
                 infoResult.DistanceFromElement = float.MaxValue; // is really outside the element

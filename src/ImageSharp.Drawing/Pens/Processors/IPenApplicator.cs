@@ -12,7 +12,7 @@ namespace ImageSharp.Drawing.Processors
     /// primitive that converts a <see cref="PointInfo"/> into a color and a distance away from the drawable part of the path.
     /// </summary>
     /// <typeparam name="TColor">The type of the color.</typeparam>
-    public interface IPenApplicator<TColor> : IDisposable
+    public abstract class IPenApplicator<TColor> : IDisposable
         where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>
@@ -21,13 +21,18 @@ namespace ImageSharp.Drawing.Processors
         /// <value>
         /// The required region.
         /// </value>
-        RectangleF RequiredRegion { get; }
+        public abstract RectangleF RequiredRegion { get; }
+
+        /// <summary>
+        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+        /// </summary>
+        public abstract void Dispose();
 
         /// <summary>
         /// Gets a <see cref="ColoredPointInfo{TColor}" /> from a point represented by a <see cref="PointInfo" />.
         /// </summary>
         /// <param name="info">The information to extract color details about.</param>
         /// <returns>Returns the color details and distance from a solid bit of the line.</returns>
-        ColoredPointInfo<TColor> GetColor(PointInfo info);
+        public abstract ColoredPointInfo<TColor> GetColor(PointInfo info);
     }
 }

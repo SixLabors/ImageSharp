@@ -67,7 +67,7 @@ namespace ImageSharp.Drawing.Processors
             int maxIntersections = this.poly.MaxIntersections;
 
             using (PixelAccessor<TColor> sourcePixels = source.Lock())
-            using (IBrushApplicator<TColor> applicator = this.fillColor.CreateApplicator(sourcePixels, rect))
+            using (BrushApplicator<TColor> applicator = this.fillColor.CreateApplicator(sourcePixels, rect))
             {
                 Parallel.For(
                 minY,

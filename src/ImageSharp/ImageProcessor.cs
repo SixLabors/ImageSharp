@@ -39,7 +39,11 @@ namespace ImageSharp.Processing
             }
             catch (Exception ex)
             {
+#if DEBUG
+                throw;
+#else
                 throw new ImageProcessingException($"An error occured when processing the image using {this.GetType().Name}. See the inner exception for more detail.", ex);
+#endif
             }
         }
 

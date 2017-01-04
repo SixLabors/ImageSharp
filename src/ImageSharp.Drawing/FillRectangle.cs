@@ -31,7 +31,7 @@ namespace ImageSharp
         public static Image<TColor> Fill<TColor>(this Image<TColor> source, IBrush<TColor> brush, RectangleF shape, GraphicsOptions options)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            return source.Apply(new FillShapeProcessor<TColor>(brush, new RectangularPolygon(shape), options));
+            return source.Apply(new FillShapeProcessorFast<TColor>(brush, new RectangularPolygon(shape), options));
         }
 
         /// <summary>
@@ -45,7 +45,7 @@ namespace ImageSharp
         public static Image<TColor> Fill<TColor>(this Image<TColor> source, IBrush<TColor> brush, RectangleF shape)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            return source.Apply(new FillShapeProcessor<TColor>(brush, new RectangularPolygon(shape), GraphicsOptions.Default));
+            return source.Apply(new FillShapeProcessorFast<TColor>(brush, new RectangularPolygon(shape), GraphicsOptions.Default));
         }
 
         /// <summary>

@@ -6,6 +6,7 @@
 namespace ImageSharp.Tests
 {
     using System.Collections.Generic;
+    using ImageSharp.Formats;
 
     /// <summary>
     /// The test base class for reading and writing to files.

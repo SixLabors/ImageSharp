@@ -170,10 +170,9 @@ namespace ConsoleApplication
 
         private static void ResetProject(List<SourceProject> projects)
         {
-            if (File.Exists("build-inner.bak"))
+            if (File.Exists("build-inner.cmd"))
             {
-                File.Copy("build-inner.bak", "build-inner.cmd", true);
-                File.Delete("build-inner.bak");
+                File.Delete("build-inner.cmd");
             }
 
             // revert the project.json change be reverting it but skipp all the git stuff as its not needed

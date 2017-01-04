@@ -48,6 +48,8 @@ namespace ImageSharp.Tests.Drawing
 
                 Assert.Equal(Color.HotPink, sourcePixels[50, 50]);
 
+                Assert.Equal(Color.HotPink, sourcePixels[35, 100]);
+
                 Assert.Equal(Color.Blue, sourcePixels[2, 2]);
 
                 //inside hole
@@ -87,6 +89,8 @@ namespace ImageSharp.Tests.Drawing
                 Assert.Equal(Color.HotPink, sourcePixels[200, 150]);
 
                 Assert.Equal(Color.HotPink, sourcePixels[50, 50]);
+
+                Assert.Equal(Color.HotPink, sourcePixels[35, 100]);
 
                 Assert.Equal(Color.Blue, sourcePixels[2, 2]);
 
@@ -130,6 +134,8 @@ namespace ImageSharp.Tests.Drawing
                 Assert.Equal(mergedColor, sourcePixels[200, 150]);
 
                 Assert.Equal(mergedColor, sourcePixels[50, 50]);
+
+                Assert.Equal(mergedColor, sourcePixels[35, 100]);
 
                 Assert.Equal(Color.Blue, sourcePixels[2, 2]);
 

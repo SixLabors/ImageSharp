@@ -2,7 +2,6 @@
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
-
 namespace ImageSharp.Tests
 {
     using System;
@@ -14,29 +13,31 @@ namespace ImageSharp.Tests
     {
         public static readonly TheoryData<string, IResampler> ReSamplers =
             new TheoryData<string, IResampler>
-            {
-                { "Bicubic", new BicubicResampler() },
-                { "Triangle", new TriangleResampler() },
-                { "NearestNeighbor", new NearestNeighborResampler() },
-                // Perf: Enable for local testing only
-                //{ "Box", new BoxResampler() },
-                //{ "Lanczos3", new Lanczos3Resampler() },
-                //{ "Lanczos5", new Lanczos5Resampler() },
-                //{ "Lanczos8", new Lanczos8Resampler() },
-                { "MitchellNetravali", new MitchellNetravaliResampler() },
-                //{ "Hermite", new HermiteResampler() },
-                //{ "Spline", new SplineResampler() },
-                //{ "Robidoux", new RobidouxResampler() },
-                //{ "RobidouxSharp", new RobidouxSharpResampler() },
-                //{ "RobidouxSoft", new RobidouxSoftResampler() },
-                //{ "Welch", new WelchResampler() }
-            };
+                {
+                    { "Bicubic", new BicubicResampler() },
+                    { "Triangle", new TriangleResampler() },
+                    { "NearestNeighbor", new NearestNeighborResampler() },
+
+                    // Perf: Enable for local testing only
+                    // { "Box", new BoxResampler() },
+                    // { "Lanczos3", new Lanczos3Resampler() },
+                    // { "Lanczos5", new Lanczos5Resampler() },
+                    { "MitchellNetravali", new MitchellNetravaliResampler() },
+
+                    // { "Lanczos8", new Lanczos8Resampler() },
+                    // { "Hermite", new HermiteResampler() },
+                    // { "Spline", new SplineResampler() },
+                    // { "Robidoux", new RobidouxResampler() },
+                    // { "RobidouxSharp", new RobidouxSharpResampler() },
+                    // { "RobidouxSoft", new RobidouxSoftResampler() },
+                    // { "Welch", new WelchResampler() }
+                };
 
         [Theory]
-        [MemberData("ReSamplers")]
+        [MemberData(nameof(ReSamplers))]
         public void ImageShouldResize(string name, IResampler sampler)
         {
-            string path = CreateOutputDirectory("Resize");
+            string path = this.CreateOutputDirectory("Resize");
 
             foreach (TestFile file in Files)
             {
@@ -46,19 +47,18 @@ namespace ImageSharp.Tests
                 using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
                     image.Resize(image.Width / 2, image.Height / 2, sampler, true)
-                    //image.Resize(555, 275, sampler, false)
-                          .Save(output);
+                         .Save(output);
                 }
             }
         }
 
         [Theory]
-        [MemberData("ReSamplers")]
+        [MemberData(nameof(ReSamplers))]
         public void ImageShouldResizeWidthAndKeepAspect(string name, IResampler sampler)
         {
-            name = name + "-FixedWidth";
+            name = $"{name}-FixedWidth";
 
-            string path = CreateOutputDirectory("Resize");
+            string path = this.CreateOutputDirectory("Resize");
 
             foreach (TestFile file in Files)
             {
@@ -74,12 +74,12 @@ namespace ImageSharp.Tests
         }
 
         [Theory]
-        [MemberData("ReSamplers")]
+        [MemberData(nameof(ReSamplers))]
         public void ImageShouldResizeHeightAndKeepAspect(string name, IResampler sampler)
         {
-            name = name + "-FixedHeight";
+            name = $"{name}-FixedHeight";
 
-            string path = CreateOutputDirectory("Resize");
+            string path = this.CreateOutputDirectory("Resize");
 
             foreach (TestFile file in Files)
             {
@@ -95,12 +95,12 @@ namespace ImageSharp.Tests
         }
 
         [Theory]
-        [MemberData("ReSamplers")]
+        [MemberData(nameof(ReSamplers))]
         public void ImageShouldResizeWithCropWidthMode(string name, IResampler sampler)
         {
-            name = name + "-CropWidth";
+            name = $"{name}-CropWidth";
 
-            string path = CreateOutputDirectory("Resize");
+            string path = this.CreateOutputDirectory("Resize");
 
             foreach (TestFile file in Files)
             {
@@ -122,12 +122,12 @@ namespace ImageSharp.Tests
         }
 
         [Theory]
-        [MemberData("ReSamplers")]
+        [MemberData(nameof(ReSamplers))]
         public void ImageShouldResizeWithCropHeightMode(string name, IResampler sampler)
         {
-            name = name + "-CropHeight";
+            name = $"{name}-CropHeight";
 
-            string path = CreateOutputDirectory("Resize");
+            string path = this.CreateOutputDirectory("Resize");
 
             foreach (TestFile file in Files)
             {
@@ -149,12 +149,12 @@ namespace ImageSharp.Tests
         }
 
         [Theory]
-        [MemberData("ReSamplers")]
+        [MemberData(nameof(ReSamplers))]
         public void ImageShouldResizeWithPadMode(string name, IResampler sampler)
         {
-            name = name + "-Pad";
+            name = $"{name}-Pad";
 
-            string path = CreateOutputDirectory("Resize");
+            string path = this.CreateOutputDirectory("Resize");
 
             foreach (TestFile file in Files)
             {
@@ -176,12 +176,12 @@ namespace ImageSharp.Tests
         }
 
         [Theory]
-        [MemberData("ReSamplers")]
+        [MemberData(nameof(ReSamplers))]
         public void ImageShouldResizeWithBoxPadMode(string name, IResampler sampler)
         {
-            name = name + "-BoxPad";
+            name = $"{name}-BoxPad";
 
-            string path = CreateOutputDirectory("Resize");
+            string path = this.CreateOutputDirectory("Resize");
 
             foreach (TestFile file in Files)
             {
@@ -204,12 +204,12 @@ namespace ImageSharp.Tests
         }
 
         [Theory]
-        [MemberData("ReSamplers")]
+        [MemberData(nameof(ReSamplers))]
         public void ImageShouldResizeWithMaxMode(string name, IResampler sampler)
         {
-            name = name + "Max";
+            name = $"{name}Max";
 
-            string path = CreateOutputDirectory("Resize");
+            string path = this.CreateOutputDirectory("Resize");
 
             foreach (TestFile file in Files)
             {
@@ -232,12 +232,12 @@ namespace ImageSharp.Tests
         }
 
         [Theory]
-        [MemberData("ReSamplers")]
+        [MemberData(nameof(ReSamplers))]
         public void ImageShouldResizeWithMinMode(string name, IResampler sampler)
         {
-            name = name + "-Min";
+            name = $"{name}-Min";
 
-            string path = CreateOutputDirectory("Resize");
+            string path = this.CreateOutputDirectory("Resize");
 
             foreach (TestFile file in Files)
             {
@@ -260,12 +260,12 @@ namespace ImageSharp.Tests
         }
 
         [Theory]
-        [MemberData("ReSamplers")]
+        [MemberData(nameof(ReSamplers))]
         public void ImageShouldResizeWithStretchMode(string name, IResampler sampler)
         {
-            name = name + "Stretch";
+            name = $"{name}Stretch";
 
-            string path = CreateOutputDirectory("Resize");
+            string path = this.CreateOutputDirectory("Resize");
 
             foreach (TestFile file in Files)
             {
@@ -293,10 +293,51 @@ namespace ImageSharp.Tests
         [InlineData(0, 1)]
         [InlineData(1, 0)]
         [InlineData(2, 0)]
+        public static void BicubicWindowOscillatesCorrectly(float x, float expected)
+        {
+            BicubicResampler sampler = new BicubicResampler();
+            float result = sampler.GetValue(x);
+
+            Assert.Equal(result, expected);
+        }
+
+        [Theory]
+        [InlineData(-2, 0)]
+        [InlineData(-1, 0)]
+        [InlineData(0, 1)]
+        [InlineData(1, 0)]
+        [InlineData(2, 0)]
+        public static void TriangleWindowOscillatesCorrectly(float x, float expected)
+        {
+            TriangleResampler sampler = new TriangleResampler();
+            float result = sampler.GetValue(x);
+
+            Assert.Equal(result, expected);
+        }
+
+        [Theory]
+        [InlineData(-2, 0)]
+        [InlineData(-1, 0)]
+        [InlineData(0, 1)]
+        [InlineData(1, 0)]
         [InlineData(2, 0)]
         public static void Lanczos3WindowOscillatesCorrectly(float x, float expected)
         {
             Lanczos3Resampler sampler = new Lanczos3Resampler();
+            float result = sampler.GetValue(x);
+
+            Assert.Equal(result, expected);
+        }
+
+        [Theory]
+        [InlineData(-4, 0)]
+        [InlineData(-2, 0)]
+        [InlineData(0, 1)]
+        [InlineData(2, 0)]
+        [InlineData(4, 0)]
+        public static void Lanczos5WindowOscillatesCorrectly(float x, float expected)
+        {
+            Lanczos5Resampler sampler = new Lanczos5Resampler();
             float result = sampler.GetValue(x);
 
             Assert.Equal(result, expected);

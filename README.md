@@ -13,10 +13,10 @@
 [![Twitter](https://img.shields.io/twitter/url/https/github.com/JimBobSquarePants/ImageSharp.svg?style=social)](https://twitter.com/intent/tweet?hashtags=imagesharp,dotnet,oss&text=ImageSharp.+A+new+cross-platform+2D+graphics+API+in+C%23&url=https%3a%2f%2fgithub.com%2fJimBobSquarePants%2fImageSharp&via=james_m_south)
 
 
-|             |Build Status|Code Coverage|Static Analysis|
-|-------------|:----------:|:-----------:|:-------------:|
-|**Linux/Mac**|[![Build Status](https://travis-ci.org/JimBobSquarePants/ImageSharp.svg)](https://travis-ci.org/JimBobSquarePants/ImageSharp)|[![Code coverage](https://codecov.io/gh/JimBobSquarePants/ImageSharp/branch/master/graph/badge.svg)](https://codecov.io/gh/JimBobSquarePants/ImageSharp)|[![Static Analysis](https://scan.coverity.com/projects/11242/badge.svg)](https://scan.coverity.com/projects/11242)|
-|**Windows**  |[![Build Status](https://ci.appveyor.com/api/projects/status/hu6d1gdpxdw0q360/branch/master?svg=true)](https://ci.appveyor.com/project/JamesSouth/imagesharp/branch/master)|[![Code coverage](https://codecov.io/gh/JimBobSquarePants/ImageSharp/branch/master/graph/badge.svg)](https://codecov.io/gh/JimBobSquarePants/ImageSharp)|[![Static Analysis](https://scan.coverity.com/projects/11242/badge.svg)](https://scan.coverity.com/projects/11242)|
+|             |Build Status|Code Coverage|
+|-------------|:----------:|:-----------:|
+|**Linux/Mac**|[![Build Status](https://travis-ci.org/JimBobSquarePants/ImageSharp.svg)](https://travis-ci.org/JimBobSquarePants/ImageSharp)|[![Code coverage](https://codecov.io/gh/JimBobSquarePants/ImageSharp/branch/master/graph/badge.svg)](https://codecov.io/gh/JimBobSquarePants/ImageSharp)|
+|**Windows**  |[![Build Status](https://ci.appveyor.com/api/projects/status/hu6d1gdpxdw0q360/branch/master?svg=true)](https://ci.appveyor.com/project/JamesSouth/imagesharp/branch/master)|[![Code coverage](https://codecov.io/gh/JimBobSquarePants/ImageSharp/branch/master/graph/badge.svg)](https://codecov.io/gh/JimBobSquarePants/ImageSharp)|
 
 
 ### Installation
@@ -30,7 +30,7 @@ We already have a [MyGet package repository](https://www.myget.org/gallery/image
 
 The **ImageSharp** library is made up of multiple packages, to make **ImageSharp** do anything useful you will want to make sure you include at least one format as a dependency otherwise you will not be able to save/load any images.
 
-Packages include;
+Packages include:
 - **ImageSharp**
   Contains the Image classes, Colors, Primitives, Bootstrapper, IImageFormat interface, and other core functionality.
 - **ImageSharp.Formats.Jpeg**

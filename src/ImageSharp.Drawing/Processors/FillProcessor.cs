@@ -62,7 +62,7 @@ namespace ImageSharp.Drawing.Processors
             // for example If brush is SolidBrush<TColor> then we could just get the color upfront
             // and skip using the IBrushApplicator<TColor>?.
             using (PixelAccessor<TColor> sourcePixels = source.Lock())
-            using (IBrushApplicator<TColor> applicator = this.brush.CreateApplicator(sourcePixels, sourceRectangle))
+            using (BrushApplicator<TColor> applicator = this.brush.CreateApplicator(sourcePixels, sourceRectangle))
             {
                 Parallel.For(
                     minY,
@@ -83,7 +83,7 @@ namespace ImageSharp.Drawing.Processors
                             Vector4 backgroundVector = sourcePixels[offsetX, offsetY].ToVector4();
                             Vector4 sourceVector = applicator.GetColor(currentPoint).ToVector4();
 
-                            var finalColor = Vector4BlendTransforms.PremultipliedLerp(backgroundVector, sourceVector, 1);
+                            Vector4 finalColor = Vector4BlendTransforms.PremultipliedLerp(backgroundVector, sourceVector, 1);
 
                             TColor packed = default(TColor);
                             packed.PackFromVector4(finalColor);

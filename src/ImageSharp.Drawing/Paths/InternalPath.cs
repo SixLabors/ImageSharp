@@ -15,6 +15,11 @@ namespace ImageSharp.Drawing.Paths
     internal class InternalPath
     {
         /// <summary>
+        /// The maximum vector
+        /// </summary>
+        private static readonly Vector2 MaxVector = new Vector2(float.MaxValue);
+
+        /// <summary>
         /// The locker.
         /// </summary>
         private static readonly object Locker = new object();
@@ -164,7 +169,47 @@ namespace ImageSharp.Drawing.Paths
         }
 
         /// <summary>
-        /// Points the in polygon.
+        /// Based on a line described by <paramref name="start" /> and <paramref name="end" />
+        /// populate a buffer for all points on the path that the line intersects.
+        /// </summary>
+        /// <param name="start">The start.</param>
+        /// <param name="end">The end.</param>
+        /// <param name="buffer">The buffer.</param>
+        /// <param name="count">The count.</param>
+        /// <param name="offset">The offset.</param>
+        /// <returns>number iof intersections hit</returns>
+        public int FindIntersections(Vector2 start, Vector2 end, Vector2[] buffer, int count, int offset)
+        {
+            int polyCorners = this.points.Length;
+
+            if (!this.closedPath)
+            {
+                polyCorners -= 1;
+            }
+
+            int position = 0;
+            for (int i = 0; i < polyCorners && count > 0; i++)
+            {
+                int next = i + 1;
+                if (this.closedPath && next == polyCorners)
+                {
+                    next = 0;
+                }
+
+                Vector2 point = FindIntersection(this.points[i], this.points[next], start, end);
+                if (point != MaxVector)
+                {
+                    buffer[position + offset] = point;
+                    position++;
+                    count--;
+                }
+            }
+
+            return position;
+        }
+
+        /// <summary>
+        /// Determines if the specified point is inside or outside the path.
         /// </summary>
         /// <param name="point">The point.</param>
         /// <returns>Returns true if the point is inside the closed path.</returns>
@@ -201,6 +246,111 @@ namespace ImageSharp.Drawing.Paths
             }
 
             return oddNodes;
+        }
+
+        /// <summary>
+        /// Determins if the bounding box for 2 lines
+        /// described by <paramref name="line1Start" /> and <paramref name="line1End" />
+        /// and  <paramref name="line2Start" /> and <paramref name="line2End" /> overlap.
+        /// </summary>
+        /// <param name="line1Start">The line1 start.</param>
+        /// <param name="line1End">The line1 end.</param>
+        /// <param name="line2Start">The line2 start.</param>
+        /// <param name="line2End">The line2 end.</param>
+        /// <returns>Returns true it the bounding box of the 2 lines intersect</returns>
+        private static bool BoundingBoxesIntersect(Vector2 line1Start, Vector2 line1End, Vector2 line2Start, Vector2 line2End)
+        {
+            Vector2 topLeft1 = Vector2.Min(line1Start, line1End);
+            Vector2 bottomRight1 = Vector2.Max(line1Start, line1End);
+
+            Vector2 topLeft2 = Vector2.Min(line2Start, line2End);
+            Vector2 bottomRight2 = Vector2.Max(line2Start, line2End);
+
+            float left1 = topLeft1.X;
+            float right1 = bottomRight1.X;
+            float top1 = topLeft1.Y;
+            float bottom1 = bottomRight1.Y;
+
+            float left2 = topLeft2.X;
+            float right2 = bottomRight2.X;
+            float top2 = topLeft2.Y;
+            float bottom2 = bottomRight2.Y;
+
+            return left1 <= right2 && right1 >= left2
+                &&
+                top1 <= bottom2 && bottom1 >= top2;
+        }
+
+        /// <summary>
+        /// Finds the point on line described by <paramref name="line1Start" /> and <paramref name="line1End" />
+        /// that intersects with line described by <paramref name="line2Start" /> and <paramref name="line2End" />
+        /// </summary>
+        /// <param name="line1Start">The line1 start.</param>
+        /// <param name="line1End">The line1 end.</param>
+        /// <param name="line2Start">The line2 start.</param>
+        /// <param name="line2End">The line2 end.</param>
+        /// <returns>
+        /// A <see cref="Vector2"/> describing the point that the 2 lines cross or <see cref="MaxVector"/> if they do not.
+        /// </returns>
+        private static Vector2 FindIntersection(Vector2 line1Start, Vector2 line1End, Vector2 line2Start, Vector2 line2End)
+        {
+            // do bounding boxes overlap, if not then the lines can't and return fast.
+            if (!BoundingBoxesIntersect(line1Start, line1End, line2Start, line2End))
+            {
+                return MaxVector;
+            }
+
+            Vector2 line1Diff = line1End - line1Start;
+            Vector2 line2Diff = line2End - line2Start;
+
+            Vector2 point;
+            if (line1Diff.X == 0)
+            {
+                float slope = line2Diff.Y / line2Diff.X;
+                float yinter = line2Start.Y - (slope * line2Start.X);
+                float y = (line1Start.X * slope) + yinter;
+                point = new Vector2(line1Start.X, y);
+
+                // horizontal and vertical lines
+            }
+            else if (line2Diff.X == 0)
+            {
+                float slope = line1Diff.Y / line1Diff.X;
+                float yinter = line1Start.Y - (slope * line1Start.X);
+                float y = (line2Start.X * slope) + yinter;
+                point = new Vector2(line2Start.X, y);
+
+                // horizontal and vertical lines
+            }
+            else
+            {
+                float slope1 = line1Diff.Y / line1Diff.X;
+                float slope2 = line2Diff.Y / line2Diff.X;
+
+                float yinter1 = line1Start.Y - (slope1 * line1Start.X);
+                float yinter2 = line2Start.Y - (slope2 * line2Start.X);
+
+                if (slope1 == slope2 && yinter1 != yinter2)
+                {
+                    return MaxVector;
+                }
+
+                float x = (yinter2 - yinter1) / (slope1 - slope2);
+                float y = (slope1 * x) + yinter1;
+
+                point = new Vector2(x, y);
+            }
+
+            if (BoundingBoxesIntersect(line1Start, line1End, point, point))
+            {
+                return point;
+            }
+            else if (BoundingBoxesIntersect(line2Start, line2End, point, point))
+            {
+                return point;
+            }
+
+            return MaxVector;
         }
 
         /// <summary>

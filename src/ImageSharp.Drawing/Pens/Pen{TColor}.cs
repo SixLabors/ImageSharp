@@ -111,7 +111,7 @@ namespace ImageSharp.Drawing.Pens
         /// The <paramref name="region" /> when being applied to things like shapes would ussually be the
         /// bounding box of the shape not necorserrally the shape of the whole image
         /// </remarks>
-        public IPenApplicator<TColor> CreateApplicator(PixelAccessor<TColor> sourcePixels, RectangleF region)
+        public PenApplicator<TColor> CreateApplicator(PixelAccessor<TColor> sourcePixels, RectangleF region)
         {
             if (this.pattern == null || this.pattern.Length < 2)
             {
@@ -123,9 +123,9 @@ namespace ImageSharp.Drawing.Pens
             return new PatternPenApplicator(sourcePixels, this.Brush, region, this.Width, this.pattern);
         }
 
-        private class SolidPenApplicator : IPenApplicator<TColor>
+        private class SolidPenApplicator : PenApplicator<TColor>
         {
-            private readonly IBrushApplicator<TColor> brush;
+            private readonly BrushApplicator<TColor> brush;
             private readonly float halfWidth;
 
             public SolidPenApplicator(PixelAccessor<TColor> sourcePixels, IBrush<TColor> brush, RectangleF region, float width)
@@ -135,17 +135,17 @@ namespace ImageSharp.Drawing.Pens
                 this.RequiredRegion = RectangleF.Outset(region, width);
             }
 
-            public RectangleF RequiredRegion
+            public override RectangleF RequiredRegion
             {
                 get;
             }
 
-            public void Dispose()
+            public override void Dispose()
             {
                 this.brush.Dispose();
             }
 
-            public ColoredPointInfo<TColor> GetColor(PointInfo info)
+            public override ColoredPointInfo<TColor> GetColor(PointInfo info)
             {
                 var result = default(ColoredPointInfo<TColor>);
                 result.Color = this.brush.GetColor(info.SearchPoint);
@@ -164,9 +164,9 @@ namespace ImageSharp.Drawing.Pens
             }
         }
 
-        private class PatternPenApplicator : IPenApplicator<TColor>
+        private class PatternPenApplicator : PenApplicator<TColor>
         {
-            private readonly IBrushApplicator<TColor> brush;
+            private readonly BrushApplicator<TColor> brush;
             private readonly float halfWidth;
             private readonly float[] pattern;
             private readonly float totalLength;
@@ -188,17 +188,17 @@ namespace ImageSharp.Drawing.Pens
                 this.RequiredRegion = RectangleF.Outset(region, width);
             }
 
-            public RectangleF RequiredRegion
+            public override RectangleF RequiredRegion
             {
                 get;
             }
 
-            public void Dispose()
+            public override void Dispose()
             {
                 this.brush.Dispose();
             }
 
-            public ColoredPointInfo<TColor> GetColor(PointInfo info)
+            public override ColoredPointInfo<TColor> GetColor(PointInfo info)
             {
                 var infoResult = default(ColoredPointInfo<TColor>);
                 infoResult.DistanceFromElement = float.MaxValue; // is really outside the element

@@ -31,7 +31,7 @@ namespace ImageSharp.Tests.Drawing
             {
                 image
                     .BackgroundColor(Color.Blue)
-                    .FillPolygon(Color.HotPink, simplePath)
+                    .FillPolygon(Color.HotPink, simplePath, new GraphicsOptions(true))
                     .Save(output);
             }
 

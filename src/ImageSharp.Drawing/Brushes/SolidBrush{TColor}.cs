@@ -40,7 +40,7 @@ namespace ImageSharp.Drawing.Brushes
         public TColor Color => this.color;
 
         /// <inheritdoc />
-        public IBrushApplicator<TColor> CreateApplicator(PixelAccessor<TColor> sourcePixels, RectangleF region)
+        public BrushApplicator<TColor> CreateApplicator(PixelAccessor<TColor> sourcePixels, RectangleF region)
         {
             return new SolidBrushApplicator(this.color);
         }
@@ -48,7 +48,7 @@ namespace ImageSharp.Drawing.Brushes
         /// <summary>
         /// The solid brush applicator.
         /// </summary>
-        private class SolidBrushApplicator : IBrushApplicator<TColor>
+        private class SolidBrushApplicator : BrushApplicator<TColor>
         {
             /// <summary>
             /// The solid color.
@@ -71,13 +71,13 @@ namespace ImageSharp.Drawing.Brushes
             /// <returns>
             /// The color
             /// </returns>
-            public TColor GetColor(Vector2 point)
+            public override TColor GetColor(Vector2 point)
             {
                 return this.color;
             }
 
             /// <inheritdoc />
-            public void Dispose()
+            public override void Dispose()
             {
                 // noop
             }

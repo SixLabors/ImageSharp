@@ -80,6 +80,14 @@ namespace ImageSharp.Drawing.Shapes
         public float Length { get; }
 
         /// <summary>
+        /// Gets the maximum number intersections that a shape can have when testing a line.
+        /// </summary>
+        /// <value>
+        /// The maximum intersections.
+        /// </value>
+        public int MaxIntersections => 4;
+
+        /// <summary>
         /// Calculates the distance along and away from the path for a specified point.
         /// </summary>
         /// <param name="point">The point along the path.</param>
@@ -102,7 +110,7 @@ namespace ImageSharp.Drawing.Shapes
         public float Distance(Vector2 point)
         {
             bool insidePoly;
-            var result = this.Distance(point, true, out insidePoly);
+            PointInfo result = this.Distance(point, true, out insidePoly);
 
             // invert the distance from path when inside
             return insidePoly ? -result.DistanceFromPath : result.DistanceFromPath;
@@ -139,6 +147,42 @@ namespace ImageSharp.Drawing.Shapes
         public Vector2[] AsSimpleLinearPath()
         {
             return this.points;
+        }
+
+        /// <summary>
+        /// Based on a line described by <paramref name="start"/> and <paramref name="end"/>
+        /// populate a buffer for all points on the edges of the <see cref="RectangularPolygon"/>
+        /// that the line intersects.
+        /// </summary>
+        /// <param name="start">The start point of the line.</param>
+        /// <param name="end">The end point of the line.</param>
+        /// <param name="buffer">The buffer that will be populated with intersections.</param>
+        /// <param name="count">The count.</param>
+        /// <param name="offset">The offset.</param>
+        /// <returns>
+        /// The number of intersections populated into the buffer.
+        /// </returns>
+        public int FindIntersections(Vector2 start, Vector2 end, Vector2[] buffer, int count, int offset)
+        {
+            int discovered = 0;
+            Vector2 startPoint = Vector2.Clamp(start, this.topLeft, this.bottomRight);
+            Vector2 endPoint = Vector2.Clamp(end, this.topLeft, this.bottomRight);
+
+            if (startPoint == Vector2.Clamp(startPoint, start, end))
+            {
+                // if start closest is within line then its a valid point
+                discovered++;
+                buffer[offset++] = startPoint;
+            }
+
+            if (endPoint == Vector2.Clamp(endPoint, start, end))
+            {
+                // if start closest is within line then its a valid point
+                discovered++;
+                buffer[offset++] = endPoint;
+            }
+
+            return discovered;
         }
 
         private PointInfo Distance(Vector2 point, bool getDistanceAwayOnly, out bool isInside)

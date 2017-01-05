@@ -95,7 +95,7 @@ namespace ImageSharp.Drawing.Brushes
         }
 
         /// <inheritdoc />
-        public IBrushApplicator<TColor> CreateApplicator(PixelAccessor<TColor> sourcePixels, RectangleF region)
+        public BrushApplicator<TColor> CreateApplicator(PixelAccessor<TColor> sourcePixels, RectangleF region)
         {
             return new PatternBrushApplicator(this.pattern, this.stride);
         }
@@ -103,7 +103,7 @@ namespace ImageSharp.Drawing.Brushes
         /// <summary>
         /// The pattern brush applicator.
         /// </summary>
-        private class PatternBrushApplicator : IBrushApplicator<TColor>
+        private class PatternBrushApplicator : BrushApplicator<TColor>
         {
             /// <summary>
             /// The patter x-length.
@@ -139,7 +139,7 @@ namespace ImageSharp.Drawing.Brushes
             /// <returns>
             /// The color
             /// </returns>
-            public TColor GetColor(Vector2 point)
+            public override TColor GetColor(Vector2 point)
             {
                 int x = (int)point.X % this.xLength;
                 int y = (int)point.Y % this.stride;
@@ -148,7 +148,7 @@ namespace ImageSharp.Drawing.Brushes
             }
 
             /// <inheritdoc />
-            public void Dispose()
+            public override void Dispose()
             {
                 // noop
             }

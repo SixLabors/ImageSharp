@@ -113,7 +113,7 @@ namespace ImageSharp.Drawing.Shapes
         }
 
         /// <summary>
-        /// Based on a line described by <paramref name="start"/> and <paramref name="end"/> 
+        /// Based on a line described by <paramref name="start"/> and <paramref name="end"/>
         /// populate a buffer for all points on all the polygons, that make up this complex shape,
         /// that the line intersects.
         /// </summary>

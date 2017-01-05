@@ -257,7 +257,7 @@ namespace ImageSharp.Drawing.Paths
         /// <param name="line1End">The line1 end.</param>
         /// <param name="line2Start">The line2 start.</param>
         /// <param name="line2End">The line2 end.</param>
-        /// <returns></returns>
+        /// <returns>Returns true it the bounding box of the 2 lines intersect</returns>
         private static bool BoundingBoxesIntersect(Vector2 line1Start, Vector2 line1End, Vector2 line2Start, Vector2 line2End)
         {
             Vector2 topLeft1 = Vector2.Min(line1Start, line1End);

@@ -150,8 +150,8 @@ namespace ImageSharp.Drawing.Shapes
         }
 
         /// <summary>
-        /// Based on a line described by <paramref name="start"/> and <paramref name="end"/> 
-        /// populate a buffer for all points on the edges of the <see cref="RectangularPolygon"/> 
+        /// Based on a line described by <paramref name="start"/> and <paramref name="end"/>
+        /// populate a buffer for all points on the edges of the <see cref="RectangularPolygon"/>
         /// that the line intersects.
         /// </summary>
         /// <param name="start">The start point of the line.</param>

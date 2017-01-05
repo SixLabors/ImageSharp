@@ -75,151 +75,15 @@ namespace ImageSharp.Drawing.Processors
                 this.ParallelOptions,
                 y =>
                 {
-                    var buffer = arrayPool.Rent(maxIntersections);
-                    var left = new Vector2(startX, y);
-                    var right = new Vector2(endX, y);
+                    Vector2[] buffer = arrayPool.Rent(maxIntersections);
 
-                    // foreach line we get all the points where this line crosses the polygon
-                    var pointsFound = this.poly.FindIntersections(left, right, buffer, maxIntersections, 0);
-                    if (pointsFound == 0)
+                    try
                     {
-                        arrayPool.Return(buffer);
-
-                        // nothign on this line skip
-                        return;
-                    }
-
-                    QuickSortX(buffer, pointsFound);
-
-                    int currentIntersection = 0;
-                    float nextPoint = buffer[0].X;
-                    float lastPoint = float.MinValue;
-                    float targetPoint = nextPoint;
-                    bool isInside = false;
-
-                    // every odd point is the start of a line
-                    Vector2 currentPoint = default(Vector2);
-
-                    for (int x = minX; x < maxX; x++)
-                    {
-                        currentPoint.X = x;
-                        currentPoint.Y = y;
-                        if (!isInside)
-                        {
-                            if (x < (nextPoint - DrawPadding) && x > (lastPoint + DrawPadding))
-                            {
-                                if (nextPoint == right.X)
-                                {
-                                    // we are in the ends run skip it
-                                    x = maxX;
-                                    continue;
-                                }
-
-                                // lets just jump forward
-                                x = (int)Math.Floor(nextPoint) - DrawPadding;
-                            }
-                        }
-                        bool onCorner = false;
-
-                        // there seems to be some issue with this switch.
-                        if (x >= nextPoint)
-                        {
-                            currentIntersection++;
-                            lastPoint = nextPoint;
-                            if (currentIntersection == pointsFound)
-                            {
-                                nextPoint = right.X;
-                            }
-                            else
-                            {
-                                nextPoint = buffer[currentIntersection].X;
-
-                                // double point from a corner flip the bit back and move on again
-                                if (nextPoint == lastPoint)
-                                {
-                                    onCorner = true;
-                                    isInside ^= true;
-                                    currentIntersection++;
-                                    if (currentIntersection == pointsFound)
-                                    {
-                                        nextPoint = right.X;
-                                    }
-                                    else
-                                    {
-                                        nextPoint = buffer[currentIntersection].X;
-                                    }
-                                }
-                            }
-
-                            isInside ^= true;
-                        }
-
-                        float opacity = 1;
-                        if (!isInside && !onCorner)
-                        {
-                            if (this.options.Antialias)
-                            {
-                                float distance = float.MaxValue;
-                                if (x == lastPoint || x == nextPoint)
-                                {
-                                    // we are to far away from the line
-                                    distance = 0;
-                                }
-                                else if (nextPoint - AntialiasFactor < x)
-                                {
-                                    // we are near the left of the line
-                                    distance = nextPoint - x;
-                                }
-                                else if (lastPoint + AntialiasFactor > x)
-                                {
-                                    // we are near the right of the line
-                                    distance = x - lastPoint;
-                                }
-                                else
-                                {
-                                    // we are to far away from the line
-                                    continue;
-                                }
-                                opacity = 1 - (distance / AntialiasFactor);
-                            }
-                            else
-                            {
-                                continue;
-                            }
-                        }
-
-                        if (opacity > Constants.Epsilon)
-                        {
-                            Vector4 backgroundVector = sourcePixels[x, y].ToVector4();
-                            Vector4 sourceVector = applicator.GetColor(currentPoint).ToVector4();
-
-                            Vector4 finalColor = Vector4BlendTransforms.PremultipliedLerp(backgroundVector, sourceVector, opacity);
-                            finalColor.W = backgroundVector.W;
-
-                            TColor packed = default(TColor);
-                            packed.PackFromVector4(finalColor);
-                            sourcePixels[x, y] = packed;
-                        }
-                    }
-
-                    arrayPool.Return(buffer);
-                });
-
-                if (this.options.Antialias)
-                {
-                    // we only need to do the X can for antialiasing purposes
-                    Parallel.For(
-                    minX,
-                    maxX,
-                    this.ParallelOptions,
-                    x =>
-                    {
-                        var buffer = arrayPool.Rent(maxIntersections);
-                        var left = new Vector2(x, polyStartY);
-                        var right = new Vector2(x, polyEndY);
+                        Vector2 left = new Vector2(startX, y);
+                        Vector2 right = new Vector2(endX, y);
 
                         // foreach line we get all the points where this line crosses the polygon
-                        var pointsFound = this.poly.FindIntersections(left, right, buffer, maxIntersections, 0);
+                        int pointsFound = this.poly.FindIntersections(left, right, buffer, maxIntersections, 0);
                         if (pointsFound == 0)
                         {
                             arrayPool.Return(buffer);
@@ -228,65 +92,50 @@ namespace ImageSharp.Drawing.Processors
                             return;
                         }
 
-                        QuickSortY(buffer, pointsFound);
+                        QuickSortX(buffer, pointsFound);
 
                         int currentIntersection = 0;
-                        float nextPoint = buffer[0].Y;
-                        float lastPoint = left.Y;
-                        float targetPoint = nextPoint;
+                        float nextPoint = buffer[0].X;
+                        float lastPoint = float.MinValue;
                         bool isInside = false;
 
                         // every odd point is the start of a line
                         Vector2 currentPoint = default(Vector2);
 
-                        for (int y = minY; y < maxY; y++)
+                        for (int x = minX; x < maxX; x++)
                         {
                             currentPoint.X = x;
                             currentPoint.Y = y;
                             if (!isInside)
                             {
-                                if (y < (nextPoint - DrawPadding) && y > (lastPoint + DrawPadding))
+                                if (x < (nextPoint - DrawPadding) && x > (lastPoint + DrawPadding))
                                 {
-                                    if (nextPoint == right.Y)
+                                    if (nextPoint == right.X)
                                     {
                                         // we are in the ends run skip it
-                                        y = maxY;
+                                        x = maxX;
                                         continue;
                                     }
 
                                     // lets just jump forward
-                                    y = (int)Math.Floor(nextPoint) - DrawPadding;
-                                }
-                            }
-                            else
-                            {
-                                if (y < nextPoint - DrawPadding)
-                                {
-                                    if (nextPoint == right.Y)
-                                    {
-                                        // we are in the ends run skip it
-                                        y = maxY;
-                                        continue;
-                                    }
-
-                                    // lets just jump forward
-                                    y = (int)Math.Floor(nextPoint);
+                                    x = (int)Math.Floor(nextPoint) - DrawPadding;
                                 }
                             }
 
                             bool onCorner = false;
 
-                            if (y >= nextPoint)
+                            // there seems to be some issue with this switch.
+                            if (x >= nextPoint)
                             {
                                 currentIntersection++;
                                 lastPoint = nextPoint;
                                 if (currentIntersection == pointsFound)
                                 {
-                                    nextPoint = right.Y;
+                                    nextPoint = right.X;
                                 }
                                 else
                                 {
-                                    nextPoint = buffer[currentIntersection].Y;
+                                    nextPoint = buffer[currentIntersection].X;
 
                                     // double point from a corner flip the bit back and move on again
                                     if (nextPoint == lastPoint)
@@ -296,11 +145,11 @@ namespace ImageSharp.Drawing.Processors
                                         currentIntersection++;
                                         if (currentIntersection == pointsFound)
                                         {
-                                            nextPoint = right.Y;
+                                            nextPoint = right.X;
                                         }
                                         else
                                         {
-                                            nextPoint = buffer[currentIntersection].Y;
+                                            nextPoint = buffer[currentIntersection].X;
                                         }
                                     }
                                 }
@@ -314,20 +163,20 @@ namespace ImageSharp.Drawing.Processors
                                 if (this.options.Antialias)
                                 {
                                     float distance = float.MaxValue;
-                                    if (y == lastPoint || y == nextPoint)
+                                    if (x == lastPoint || x == nextPoint)
                                     {
                                         // we are to far away from the line
                                         distance = 0;
                                     }
-                                    else if (nextPoint - AntialiasFactor < y)
+                                    else if (nextPoint - AntialiasFactor < x)
                                     {
                                         // we are near the left of the line
-                                        distance = nextPoint - y;
+                                        distance = nextPoint - x;
                                     }
-                                    else if (lastPoint + AntialiasFactor > y)
+                                    else if (lastPoint + AntialiasFactor > x)
                                     {
                                         // we are near the right of the line
-                                        distance = y - lastPoint;
+                                        distance = x - lastPoint;
                                     }
                                     else
                                     {
@@ -342,8 +191,7 @@ namespace ImageSharp.Drawing.Processors
                                 }
                             }
 
-                            // don't set full opactiy color as it will have been gotten by the first scan
-                            if (opacity > Constants.Epsilon && opacity < 1)
+                            if (opacity > Constants.Epsilon)
                             {
                                 Vector4 backgroundVector = sourcePixels[x, y].ToVector4();
                                 Vector4 sourceVector = applicator.GetColor(currentPoint).ToVector4();
@@ -356,8 +204,172 @@ namespace ImageSharp.Drawing.Processors
                                 sourcePixels[x, y] = packed;
                             }
                         }
-
+                    }
+                    finally
+                    {
                         arrayPool.Return(buffer);
+                    }
+                });
+
+
+                if (this.options.Antialias)
+                {
+                    // we only need to do the X can for antialiasing purposes
+                    Parallel.For(
+                    minX,
+                    maxX,
+                    this.ParallelOptions,
+                    x =>
+                    {
+                        Vector2[] buffer = arrayPool.Rent(maxIntersections);
+
+                        try
+                        {
+                            Vector2 left = new Vector2(x, polyStartY);
+                            Vector2 right = new Vector2(x, polyEndY);
+
+                            // foreach line we get all the points where this line crosses the polygon
+                            int pointsFound = this.poly.FindIntersections(left, right, buffer, maxIntersections, 0);
+                            if (pointsFound == 0)
+                            {
+                                arrayPool.Return(buffer);
+
+                                // nothign on this line skip
+                                return;
+                            }
+
+                            QuickSortY(buffer, pointsFound);
+
+                            int currentIntersection = 0;
+                            float nextPoint = buffer[0].Y;
+                            float lastPoint = left.Y;
+                            bool isInside = false;
+
+                            // every odd point is the start of a line
+                            Vector2 currentPoint = default(Vector2);
+
+                            for (int y = minY; y < maxY; y++)
+                            {
+                                currentPoint.X = x;
+                                currentPoint.Y = y;
+                                if (!isInside)
+                                {
+                                    if (y < (nextPoint - DrawPadding) && y > (lastPoint + DrawPadding))
+                                    {
+                                        if (nextPoint == right.Y)
+                                        {
+                                            // we are in the ends run skip it
+                                            y = maxY;
+                                            continue;
+                                        }
+
+                                        // lets just jump forward
+                                        y = (int)Math.Floor(nextPoint) - DrawPadding;
+                                    }
+                                }
+                                else
+                                {
+                                    if (y < nextPoint - DrawPadding)
+                                    {
+                                        if (nextPoint == right.Y)
+                                        {
+                                            // we are in the ends run skip it
+                                            y = maxY;
+                                            continue;
+                                        }
+
+                                        // lets just jump forward
+                                        y = (int)Math.Floor(nextPoint);
+                                    }
+                                }
+
+                                bool onCorner = false;
+
+                                if (y >= nextPoint)
+                                {
+                                    currentIntersection++;
+                                    lastPoint = nextPoint;
+                                    if (currentIntersection == pointsFound)
+                                    {
+                                        nextPoint = right.Y;
+                                    }
+                                    else
+                                    {
+                                        nextPoint = buffer[currentIntersection].Y;
+
+                                        // double point from a corner flip the bit back and move on again
+                                        if (nextPoint == lastPoint)
+                                        {
+                                            onCorner = true;
+                                            isInside ^= true;
+                                            currentIntersection++;
+                                            if (currentIntersection == pointsFound)
+                                            {
+                                                nextPoint = right.Y;
+                                            }
+                                            else
+                                            {
+                                                nextPoint = buffer[currentIntersection].Y;
+                                            }
+                                        }
+                                    }
+
+                                    isInside ^= true;
+                                }
+
+                                float opacity = 1;
+                                if (!isInside && !onCorner)
+                                {
+                                    if (this.options.Antialias)
+                                    {
+                                        float distance = float.MaxValue;
+                                        if (y == lastPoint || y == nextPoint)
+                                        {
+                                            // we are to far away from the line
+                                            distance = 0;
+                                        }
+                                        else if (nextPoint - AntialiasFactor < y)
+                                        {
+                                            // we are near the left of the line
+                                            distance = nextPoint - y;
+                                        }
+                                        else if (lastPoint + AntialiasFactor > y)
+                                        {
+                                            // we are near the right of the line
+                                            distance = y - lastPoint;
+                                        }
+                                        else
+                                        {
+                                            // we are to far away from the line
+                                            continue;
+                                        }
+                                        opacity = 1 - (distance / AntialiasFactor);
+                                    }
+                                    else
+                                    {
+                                        continue;
+                                    }
+                                }
+
+                                // don't set full opactiy color as it will have been gotten by the first scan
+                                if (opacity > Constants.Epsilon && opacity < 1)
+                                {
+                                    Vector4 backgroundVector = sourcePixels[x, y].ToVector4();
+                                    Vector4 sourceVector = applicator.GetColor(currentPoint).ToVector4();
+
+                                    Vector4 finalColor = Vector4BlendTransforms.PremultipliedLerp(backgroundVector, sourceVector, opacity);
+                                    finalColor.W = backgroundVector.W;
+
+                                    TColor packed = default(TColor);
+                                    packed.PackFromVector4(finalColor);
+                                    sourcePixels[x, y] = packed;
+                                }
+                            }
+                        }
+                        finally
+                        {
+                            arrayPool.Return(buffer);
+                        }
                     });
                 }
             }

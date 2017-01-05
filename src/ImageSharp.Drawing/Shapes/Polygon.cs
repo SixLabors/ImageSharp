@@ -82,7 +82,7 @@ namespace ImageSharp.Drawing.Shapes
         {
             bool isInside = this.innerPath.PointInPolygon(point);
 
-            var distance = this.innerPath.DistanceFromPath(point).DistanceFromPath;
+            float distance = this.innerPath.DistanceFromPath(point).DistanceFromPath;
             if (isInside)
             {
                 return -distance;
@@ -137,7 +137,8 @@ namespace ImageSharp.Drawing.Shapes
         }
 
         /// <summary>
-        /// Finds the intersections.
+        /// Based on a line described by <paramref name="start" /> and <paramref name="end" />
+        /// populate a buffer for all points on the polygon that the line intersects.
         /// </summary>
         /// <param name="start">The start point of the line.</param>
         /// <param name="end">The end point of the line.</param>

@@ -47,10 +47,10 @@ namespace ImageSharp.Drawing.Shapes
 
             this.MaxIntersections = this.FixAndSetShapes(outlines, holes);
 
-            var minX = this.shapes.Min(x => x.Bounds.Left);
-            var maxX = this.shapes.Max(x => x.Bounds.Right);
-            var minY = this.shapes.Min(x => x.Bounds.Top);
-            var maxY = this.shapes.Max(x => x.Bounds.Bottom);
+            float minX = this.shapes.Min(x => x.Bounds.Left);
+            float maxX = this.shapes.Max(x => x.Bounds.Right);
+            float minY = this.shapes.Min(x => x.Bounds.Top);
+            float maxY = this.shapes.Max(x => x.Bounds.Bottom);
 
             this.Bounds = new RectangleF(minX, minY, maxX - minX, maxY - minY);
         }
@@ -89,7 +89,7 @@ namespace ImageSharp.Drawing.Shapes
             bool inside = false;
             foreach (IShape shape in this.shapes)
             {
-                var d = shape.Distance(point);
+                float d = shape.Distance(point);
 
                 if (d <= 0)
                 {
@@ -113,7 +113,9 @@ namespace ImageSharp.Drawing.Shapes
         }
 
         /// <summary>
-        /// Finds the intersections.
+        /// Based on a line described by <paramref name="start"/> and <paramref name="end"/> 
+        /// populate a buffer for all points on all the polygons, that make up this complex shape,
+        /// that the line intersects.
         /// </summary>
         /// <param name="start">The start point of the line.</param>
         /// <param name="end">The end point of the line.</param>
@@ -170,7 +172,7 @@ namespace ImageSharp.Drawing.Shapes
             }
             else
             {
-                foreach (var path in shape)
+                foreach (IPath path in shape)
                 {
                     clipper.AddPath(
                         path,
@@ -181,7 +183,7 @@ namespace ImageSharp.Drawing.Shapes
 
         private void AddPoints(Clipper clipper, IEnumerable<IShape> shapes, PolyType polyType)
         {
-            foreach (var shape in shapes)
+            foreach (IShape shape in shapes)
             {
                 this.AddPoints(clipper, shape, polyType);
             }
@@ -201,14 +203,14 @@ namespace ImageSharp.Drawing.Shapes
                 else
                 {
                     // convert the Clipper Contour from scaled ints back down to the origional size (this is going to be lossy but not significantly)
-                    var polygon = new Polygon(new Paths.LinearLineSegment(tree.Contour.ToArray()));
+                    Polygon polygon = new Polygon(new Paths.LinearLineSegment(tree.Contour.ToArray()));
 
                     shapes.Add(polygon);
                     paths.Add(polygon);
                 }
             }
 
-            foreach (var c in tree.Children)
+            foreach (PolyNode c in tree.Children)
             {
                 this.ExtractOutlines(c, shapes, paths);
             }
@@ -216,13 +218,13 @@ namespace ImageSharp.Drawing.Shapes
 
         private int FixAndSetShapes(IEnumerable<IShape> outlines, IEnumerable<IShape> holes)
         {
-            var clipper = new Clipper();
+            Clipper clipper = new Clipper();
 
             // add the outlines and the holes to clipper, scaling up from the float source to the int based system clipper uses
             this.AddPoints(clipper, outlines, PolyType.Subject);
             this.AddPoints(clipper, holes, PolyType.Clip);
 
-            var tree = clipper.Execute();
+            PolyTree tree = clipper.Execute();
 
             List<IShape> shapes = new List<IShape>();
             List<IPath> paths = new List<IPath>();
@@ -233,7 +235,7 @@ namespace ImageSharp.Drawing.Shapes
             this.paths = paths.ToArray();
 
             int intersections = 0;
-            foreach (var s in this.shapes)
+            foreach (IShape s in this.shapes)
             {
                 intersections += s.MaxIntersections;
             }

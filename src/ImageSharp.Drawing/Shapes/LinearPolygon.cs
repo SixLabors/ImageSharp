@@ -58,7 +58,8 @@ namespace ImageSharp.Drawing.Shapes
         public float Distance(Vector2 point) => this.innerPolygon.Distance(point);
 
         /// <summary>
-        /// Finds the intersections.
+        /// Based on a line described by <paramref name="start"/> and <paramref name="end"/> 
+        /// populate a buffer for all points on the polygon that the line intersects.
         /// </summary>
         /// <param name="start">The start point of the line.</param>
         /// <param name="end">The end point of the line.</param>

@@ -43,6 +43,20 @@ namespace ImageSharp
         }
 
         /// <summary>
+        /// Resizes an image to the given <see cref="Size"/>.
+        /// </summary>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <param name="source">The image to resize.</param>
+        /// <param name="size">The target image size.</param>
+        /// <returns>The <see cref="Image{TColor}"/></returns>
+        /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image</remarks>
+        public static Image<TColor> Resize<TColor>(this Image<TColor> source, Size size)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
+        {
+            return Resize(source, size.Width, size.Height, new BicubicResampler(), false);
+        }
+
+        /// <summary>
         /// Resizes an image to the given width and height.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>

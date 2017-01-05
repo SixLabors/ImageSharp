@@ -86,8 +86,6 @@ namespace ImageSharp.Drawing.Processors
                         int pointsFound = this.poly.FindIntersections(left, right, buffer, maxIntersections, 0);
                         if (pointsFound == 0)
                         {
-                            arrayPool.Return(buffer);
-
                             // nothign on this line skip
                             return;
                         }
@@ -231,8 +229,6 @@ namespace ImageSharp.Drawing.Processors
                             int pointsFound = this.poly.FindIntersections(left, right, buffer, maxIntersections, 0);
                             if (pointsFound == 0)
                             {
-                                arrayPool.Return(buffer);
-
                                 // nothign on this line skip
                                 return;
                             }
@@ -383,7 +379,8 @@ namespace ImageSharp.Drawing.Processors
 
         private static void QuickSortY(Vector2[] data, int size)
         {
-            QuickSortY(data, 0, size - 1);
+            int hi = Math.Min(data.Length - 1, size - 1);
+            QuickSortY(data, 0, hi);
         }
 
         private static void QuickSortY(Vector2[] data, int lo, int hi)
@@ -398,7 +395,8 @@ namespace ImageSharp.Drawing.Processors
 
         private static void QuickSortX(Vector2[] data, int size)
         {
-            QuickSortX(data, 0, size - 1);
+            int hi = Math.Min(data.Length - 1, size - 1);
+            QuickSortX(data, 0, hi);
         }
 
         private static void QuickSortX(Vector2[] data, int lo, int hi)
@@ -422,13 +420,13 @@ namespace ImageSharp.Drawing.Processors
                 {
                     i = i + 1;
                 }
-                while (data[i].X < pivot);
+                while (data[i].X < pivot && i < hi);
 
                 do
                 {
                     j = j - 1;
                 }
-                while (data[j].X > pivot);
+                while (data[j].X > pivot && j > lo);
 
                 if (i >= j)
                 {
@@ -450,13 +448,13 @@ namespace ImageSharp.Drawing.Processors
                 {
                     i = i + 1;
                 }
-                while (data[i].Y < pivot);
+                while (data[i].Y < pivot && i < hi);
 
                 do
                 {
                     j = j - 1;
                 }
-                while (data[j].Y > pivot);
+                while (data[j].Y > pivot && j > lo);
 
                 if (i >= j)
                 {

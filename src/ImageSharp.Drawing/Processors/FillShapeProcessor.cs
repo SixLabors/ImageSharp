@@ -211,7 +211,6 @@ namespace ImageSharp.Drawing.Processors
                     }
                 });
 
-
                 if (this.options.Antialias)
                 {
                     // we only need to do the X can for antialiasing purposes

@@ -11,7 +11,7 @@ namespace ImageSharp
     /// An optimized frame for the <see cref="Image"/> class.
     /// </summary>
     [DebuggerDisplay("ImageFrame: {Width}x{Height}")]
-    public class ImageFrame : ImageFrame<Color>
+    public sealed class ImageFrame : ImageFrame<Color>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageFrame"/> class.

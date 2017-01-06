@@ -13,7 +13,7 @@ namespace ImageSharp
     /// packed into a single unsigned integer value.
     /// </summary>
     [DebuggerDisplay("Image: {Width}x{Height}")]
-    public class Image : Image<Color>
+    public sealed class Image : Image<Color>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="Image"/> class

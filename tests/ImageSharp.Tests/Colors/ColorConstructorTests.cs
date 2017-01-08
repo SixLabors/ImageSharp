@@ -27,6 +27,7 @@ namespace ImageSharp.Tests.Colors
 
                 foreach (var vector4 in vector4Values)
                 {
+                    // using float array to work around a bug in xunit corruptint the state of any Vector4 passed as MemberData
                     var vector4Components = new float[] { vector4.X, vector4.Y, vector4.Z, vector4.W };
 
                     yield return new object[] { new Argb(vector4), vector4Components };
@@ -59,6 +60,7 @@ namespace ImageSharp.Tests.Colors
                 foreach (var vector3 in vector3Values.Keys)
                 {
                     var vector4 = vector3Values[vector3];
+                    // using float array to work around a bug in xunit corruptint the state of any Vector4 passed as MemberData
                     var vector4Components = new float[] { vector4.X, vector4.Y, vector4.Z, vector4.W };
 
                     yield return new object[] { new Argb(vector3), vector4Components };
@@ -83,6 +85,7 @@ namespace ImageSharp.Tests.Colors
 
                 foreach (var vector4 in vector4Values)
                 {
+                    // using float array to work around a bug in xunit corruptint the state of any Vector4 passed as MemberData
                     var vector4Components = new float[] { vector4.X, vector4.Y, vector4.Z, vector4.W };
 
                     yield return new object[] { new Argb(vector4.X, vector4.Y, vector4.Z, vector4.W), vector4Components };
@@ -115,6 +118,7 @@ namespace ImageSharp.Tests.Colors
                 foreach (var vector3 in vector3Values.Keys)
                 {
                     var vector4 = vector3Values[vector3];
+                    // using float array to work around a bug in xunit corruptint the state of any Vector4 passed as MemberData
                     var vector4Components = new float[] { vector4.X, vector4.Y, vector4.Z, vector4.W };
 
                     yield return new object[] { new Argb(vector3.X, vector3.Y, vector3.Z), vector4Components };
@@ -132,6 +136,7 @@ namespace ImageSharp.Tests.Colors
         {
             // Arrange
             var precision = 2;
+            // using float array to work around a bug in xunit corruptint the state of any Vector4 passed as MemberData
             var expectedVector4 = new Vector4(expectedVector4Components[0], expectedVector4Components[1], expectedVector4Components[2], expectedVector4Components[3]);
 
             // Act

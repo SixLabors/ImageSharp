@@ -27,16 +27,18 @@ namespace ImageSharp.Tests.Colors
 
                 foreach (var vector4 in vector4Values)
                 {
-                    yield return new object[] { new Argb(), vector4 };
-                    yield return new object[] { new Bgra4444(), vector4 };
-                    yield return new object[] { new Bgra5551(), vector4 };
-                    yield return new object[] { new Byte4(), vector4 };
-                    yield return new object[] { new HalfVector4(), vector4 };
-                    yield return new object[] { new NormalizedByte4(), vector4 };
-                    yield return new object[] { new NormalizedShort4(), vector4 };
-                    yield return new object[] { new Rgba1010102(), vector4 };
-                    yield return new object[] { new Rgba64(), vector4 };
-                    yield return new object[] { new Short4(), vector4 };
+                    var vector4Components = new float[] { vector4.X, vector4.Y, vector4.Z, vector4.W };
+
+                    yield return new object[] { new Argb(), vector4Components };
+                    yield return new object[] { new Bgra4444(), vector4Components };
+                    yield return new object[] { new Bgra5551(), vector4Components };
+                    yield return new object[] { new Byte4(), vector4Components };
+                    yield return new object[] { new HalfVector4(), vector4Components };
+                    yield return new object[] { new NormalizedByte4(), vector4Components };
+                    yield return new object[] { new NormalizedShort4(), vector4Components };
+                    yield return new object[] { new Rgba1010102(), vector4Components };
+                    yield return new object[] { new Rgba64(), vector4Components };
+                    yield return new object[] { new Short4(), vector4Components };
                 }
             }
         }
@@ -56,8 +58,10 @@ namespace ImageSharp.Tests.Colors
 
                 foreach (var vector4 in vector4Values)
                 {
-                    yield return new object[] { new Argb(), vector4 };
-                    yield return new object[] { new Bgr565(), vector4 };
+                    var vector4Components = new float[] { vector4.X, vector4.Y, vector4.Z, vector4.W };
+
+                    yield return new object[] { new Argb(), vector4Components };
+                    yield return new object[] { new Bgr565(), vector4Components };
                 }
             }
         }
@@ -65,10 +69,11 @@ namespace ImageSharp.Tests.Colors
         [Theory]
         [MemberData(nameof(Vector4PackData))]
         [MemberData(nameof(Vector3PackData))]
-        public void FromVector4ToVector4(IPackedVector packedVector, Vector4 vector4ToPack)
+        public void FromVector4ToVector4(IPackedVector packedVector, float[] vector4ComponentsToPack)
         {
             // Arrange
             var precision = 2;
+            var vector4ToPack = new Vector4(vector4ComponentsToPack[0], vector4ComponentsToPack[1], vector4ComponentsToPack[2], vector4ComponentsToPack[3]);
             packedVector.PackFromVector4(vector4ToPack);
 
             // Act

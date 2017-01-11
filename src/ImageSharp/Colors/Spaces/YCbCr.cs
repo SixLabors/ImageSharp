@@ -51,19 +51,19 @@ namespace ImageSharp.Colors.Spaces
         /// Gets the Y luminance component.
         /// <remarks>A value ranging between 0 and 255.</remarks>
         /// </summary>
-        public float Y => this.backingVector.X;
+        public byte Y => (byte)this.backingVector.X;
 
         /// <summary>
         /// Gets the Cb chroma component.
         /// <remarks>A value ranging between 0 and 255.</remarks>
         /// </summary>
-        public float Cb => this.backingVector.Y;
+        public byte Cb => (byte)this.backingVector.Y;
 
         /// <summary>
         /// Gets the Cr chroma component.
         /// <remarks>A value ranging between 0 and 255.</remarks>
         /// </summary>
-        public float Cr => this.backingVector.Z;
+        public byte Cr => (byte)this.backingVector.Z;
 
         /// <summary>
         /// Gets a value indicating whether this <see cref="YCbCr"/> is empty.

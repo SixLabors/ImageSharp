@@ -304,12 +304,28 @@ namespace ImageSharp.Formats
                 int j8 = j * 8;
                 for (int i = 0; i < 8; i++)
                 {
-                    Vector3 v = new Vector3(data[0], data[1], data[2]);
-
                     // Convert returned bytes into the YCbCr color space. Assume RGBA
-                    float yy = (0.299F * v.X) + (0.587F * v.Y) + (0.114F * v.Z);
-                    float cb = 128 + ((-0.168736F * v.X) - (0.331264F * v.Y) + (0.5F * v.Z));
-                    float cr = 128 + ((0.5F * v.X) - (0.418688F * v.Y) - (0.081312F * v.Z));
+                    int r = data[0];
+                    int g = data[1];
+                    int b = data[2];
+
+                    // Speed up the algorithm by removing floating point calculation
+                    // Scale by 1024, add .5F and truncate value. We use bit shifting to divide the result
+                    int y0 = 306 * r; // (0.299F * 1024) + .5F
+                    int y1 = 601 * g; // (0.587F * 1024) + .5F
+                    int y2 = 117 * b; // (0.114F * 1024) + .5F
+
+                    int cb0 = -172 * r; // (-0.168736F * 1024) + .5F
+                    int cb1 = 339 * g; // (0.331264F * 1024) + .5F
+                    int cb2 = 512 * b; // (0.5F * 1024) + .5F
+
+                    int cr0 = 512 * r; // (0.5F * 1024) + .5F
+                    int cr1 = 429 * g; // (0.418688F * 1024) + .5F
+                    int cr2 = 83 * b; // (0.081312F * 1024) + .5F
+
+                    float yy = (y0 + y1 + y2) >> 10;
+                    float cb = 128 + ((cb0 - cb1 + cb2) >> 10);
+                    float cr = 128 + ((cr0 - cr1 - cr2) >> 10);
 
                     int index = j8 + i;
 

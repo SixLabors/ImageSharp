@@ -12,14 +12,12 @@ namespace ImageSharp.Tests
 {
     using System.Diagnostics;
     using System.Numerics;
-
-    using ImageSharp.Formats;
     using ImageSharp.Formats.Jpg;
 
     using Xunit;
     using Xunit.Abstractions;
 
-    public class Block8x8FTests : UtilityTestClassBase
+    public class Block8x8FTests : JpegTestBase
     {
 #if BENCHMARKING
         public const int Times = 1000000;

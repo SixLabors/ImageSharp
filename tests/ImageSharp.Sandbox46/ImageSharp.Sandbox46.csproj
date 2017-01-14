@@ -79,6 +79,63 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\ImageSharp.Tests\Drawing\BeziersTests.cs">
+      <Link>Tests\Drawing\BeziersTests.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\Drawing\DrawImageTest.cs">
+      <Link>Tests\Drawing\DrawImageTest.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\Drawing\DrawPathTests.cs">
+      <Link>Tests\Drawing\DrawPathTests.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\Drawing\FillPatternTests.cs">
+      <Link>Tests\Drawing\FillPatternTests.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\Drawing\FillSolidBrushTests.cs">
+      <Link>Tests\Drawing\FillSolidBrushTests.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\Drawing\LineComplexPolygonTests.cs">
+      <Link>Tests\Drawing\LineComplexPolygonTests.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\Drawing\LineTests.cs">
+      <Link>Tests\Drawing\LineTests.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\Drawing\PolygonTests.cs">
+      <Link>Tests\Drawing\PolygonTests.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\Drawing\RecolorImageTest.cs">
+      <Link>Tests\Drawing\RecolorImageTest.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\Drawing\SolidBezierTests.cs">
+      <Link>Tests\Drawing\SolidBezierTests.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\Drawing\SolidComplexPolygonTests.cs">
+      <Link>Tests\Drawing\SolidComplexPolygonTests.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\Drawing\SolidPolygonTests.cs">
+      <Link>Tests\Drawing\SolidPolygonTests.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\Formats\Jpg\Block8x8FTests.cs">
+      <Link>Tests\Formats\Jpg\Block8x8FTests.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\Formats\Jpg\JpegTests.cs">
+      <Link>Tests\Formats\Jpg\JpegTests.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\Formats\Jpg\ReferenceImplementations.cs">
+      <Link>Tests\Formats\Jpg\ReferenceImplementations.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\Formats\Jpg\ReferenceImplementationsTests.cs">
+      <Link>Tests\Formats\Jpg\ReferenceImplementationsTests.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\Formats\Jpg\UtilityTestClassBase.cs">
+      <Link>Tests\Formats\Jpg\UtilityTestClassBase.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\Formats\Jpg\YCbCrImageTests.cs">
+      <Link>Tests\Formats\Jpg\YCbCrImageTests.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\Processors\Filters\ResizeTests.cs">
+      <Link>Tests\Processors\Filters\ResizeTests.cs</Link>
+    </Compile>
     <Compile Include="Sandbox.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
@@ -86,7 +143,11 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="Tests\" />
+    <Folder Include="Tests\Image\" />
+    <Folder Include="Tests\TestUtilities\Attributes\" />
+    <Folder Include="Tests\TestUtilities\Factories\" />
+    <Folder Include="Tests\TestUtilities\ImageProviders\" />
+    <Folder Include="Tests\TestUtilities\Tests\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

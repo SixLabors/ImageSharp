@@ -35,7 +35,7 @@ namespace ImageSharp.Tests
         /// The file.
         /// </summary>
         private readonly string file;
-        
+
         /// <summary>
         /// Initializes a new instance of the <see cref="TestFile"/> class.
         /// </summary>
@@ -135,7 +135,8 @@ namespace ImageSharp.Tests
             var directories = new[] {
                  "TestImages/Formats/", // Here for code coverage tests.
                   "tests/ImageSharp.Tests/TestImages/Formats/", // from travis/build script
-                  "../../../../TestImages/Formats/" 
+                  "../../../ImageSharp.Tests/TestImages/Formats/", // from Sandbox46
+                  "../../../../TestImages/Formats/"
             };
 
             directories= directories.Select(x => Path.GetFullPath(x)).ToArray();

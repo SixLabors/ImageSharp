@@ -20,6 +20,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -28,10 +29,16 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Numerics" />
+    <Reference Include="System.Numerics.Vectors, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\System.Numerics.Vectors.4.1.1\lib\net46\System.Numerics.Vectors.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -75,48 +82,21 @@
       <HintPath>..\..\src\ImageSharp.Formats.Png\bin\$(Configuration)\net45\ImageSharp.Formats.Png.dll</HintPath>
     </Reference>
     <Reference Include="ImageSharp.Processing">
-      <HintPath>..\..\src\ImageSharp\bin\$(Configuration)\net45\ImageSharp.Processing.dll</HintPath>
+      <HintPath>..\..\src\ImageSharp.Processing\bin\$(Configuration)\net45\ImageSharp.Processing.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="..\ImageSharp.Tests\Drawing\BeziersTests.cs">
-      <Link>Tests\Drawing\BeziersTests.cs</Link>
-    </Compile>
-    <Compile Include="..\ImageSharp.Tests\Drawing\DrawImageTest.cs">
-      <Link>Tests\Drawing\DrawImageTest.cs</Link>
-    </Compile>
-    <Compile Include="..\ImageSharp.Tests\Drawing\DrawPathTests.cs">
-      <Link>Tests\Drawing\DrawPathTests.cs</Link>
-    </Compile>
-    <Compile Include="..\ImageSharp.Tests\Drawing\FillPatternTests.cs">
-      <Link>Tests\Drawing\FillPatternTests.cs</Link>
-    </Compile>
-    <Compile Include="..\ImageSharp.Tests\Drawing\FillSolidBrushTests.cs">
-      <Link>Tests\Drawing\FillSolidBrushTests.cs</Link>
-    </Compile>
-    <Compile Include="..\ImageSharp.Tests\Drawing\LineComplexPolygonTests.cs">
-      <Link>Tests\Drawing\LineComplexPolygonTests.cs</Link>
-    </Compile>
-    <Compile Include="..\ImageSharp.Tests\Drawing\LineTests.cs">
-      <Link>Tests\Drawing\LineTests.cs</Link>
-    </Compile>
     <Compile Include="..\ImageSharp.Tests\Drawing\PolygonTests.cs">
       <Link>Tests\Drawing\PolygonTests.cs</Link>
     </Compile>
-    <Compile Include="..\ImageSharp.Tests\Drawing\RecolorImageTest.cs">
-      <Link>Tests\Drawing\RecolorImageTest.cs</Link>
-    </Compile>
-    <Compile Include="..\ImageSharp.Tests\Drawing\SolidBezierTests.cs">
-      <Link>Tests\Drawing\SolidBezierTests.cs</Link>
-    </Compile>
-    <Compile Include="..\ImageSharp.Tests\Drawing\SolidComplexPolygonTests.cs">
-      <Link>Tests\Drawing\SolidComplexPolygonTests.cs</Link>
-    </Compile>
-    <Compile Include="..\ImageSharp.Tests\Drawing\SolidPolygonTests.cs">
-      <Link>Tests\Drawing\SolidPolygonTests.cs</Link>
+    <Compile Include="..\ImageSharp.Tests\FileTestBase.cs">
+      <Link>Tests\FileTestBase.cs</Link>
     </Compile>
     <Compile Include="..\ImageSharp.Tests\Formats\Jpg\Block8x8FTests.cs">
       <Link>Tests\Formats\Jpg\Block8x8FTests.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\Formats\Jpg\JpegTestBase.cs">
+      <Link>Tests\Formats\Jpg\JpegTestBase.cs</Link>
     </Compile>
     <Compile Include="..\ImageSharp.Tests\Formats\Jpg\JpegTests.cs">
       <Link>Tests\Formats\Jpg\JpegTests.cs</Link>
@@ -127,28 +107,93 @@
     <Compile Include="..\ImageSharp.Tests\Formats\Jpg\ReferenceImplementationsTests.cs">
       <Link>Tests\Formats\Jpg\ReferenceImplementationsTests.cs</Link>
     </Compile>
-    <Compile Include="..\ImageSharp.Tests\Formats\Jpg\UtilityTestClassBase.cs">
-      <Link>Tests\Formats\Jpg\UtilityTestClassBase.cs</Link>
-    </Compile>
     <Compile Include="..\ImageSharp.Tests\Formats\Jpg\YCbCrImageTests.cs">
       <Link>Tests\Formats\Jpg\YCbCrImageTests.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\Image\ImagePropertyTests.cs">
+      <Link>Tests\Image\ImagePropertyTests.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\Image\ImageTests.cs">
+      <Link>Tests\Image\ImageTests.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\Image\PixelAccessorTests.cs">
+      <Link>Tests\Image\PixelAccessorTests.cs</Link>
     </Compile>
     <Compile Include="..\ImageSharp.Tests\Processors\Filters\ResizeTests.cs">
       <Link>Tests\Processors\Filters\ResizeTests.cs</Link>
     </Compile>
-    <Compile Include="Sandbox.cs" />
+    <Compile Include="..\ImageSharp.Tests\TestBase.cs">
+      <Link>Tests\TestBase.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\TestFile.cs">
+      <Link>Tests\TestFile.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\TestImages.cs">
+      <Link>Tests\TestImages.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\TestUtilities\Attributes\ImageDataAttributeBase.cs">
+      <Link>Tests\TestUtilities\Attributes\ImageDataAttributeBase.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\TestUtilities\Attributes\WithBlankImageAttribute.cs">
+      <Link>Tests\TestUtilities\Attributes\WithBlankImageAttribute.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\TestUtilities\Attributes\WithFileAttribute.cs">
+      <Link>Tests\TestUtilities\Attributes\WithFileAttribute.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\TestUtilities\Attributes\WithFileCollectionAttribute.cs">
+      <Link>Tests\TestUtilities\Attributes\WithFileCollectionAttribute.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\TestUtilities\Attributes\WithMemberFactoryAttribute.cs">
+      <Link>Tests\TestUtilities\Attributes\WithMemberFactoryAttribute.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\TestUtilities\Attributes\WithSolidFilledImagesAttribute.cs">
+      <Link>Tests\TestUtilities\Attributes\WithSolidFilledImagesAttribute.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\TestUtilities\Factories\GenericFactory.cs">
+      <Link>Tests\TestUtilities\Factories\GenericFactory.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\TestUtilities\Factories\ImageFactory.cs">
+      <Link>Tests\TestUtilities\Factories\ImageFactory.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\TestUtilities\ImageProviders\BlankProvider.cs">
+      <Link>Tests\TestUtilities\ImageProviders\BlankProvider.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\TestUtilities\ImageProviders\FileProvider.cs">
+      <Link>Tests\TestUtilities\ImageProviders\FileProvider.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\TestUtilities\ImageProviders\LambdaProvider.cs">
+      <Link>Tests\TestUtilities\ImageProviders\LambdaProvider.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\TestUtilities\ImageProviders\SolidProvider.cs">
+      <Link>Tests\TestUtilities\ImageProviders\SolidProvider.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\TestUtilities\ImageProviders\TestImageProvider.cs">
+      <Link>Tests\TestUtilities\ImageProviders\TestImageProvider.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\TestUtilities\ImagingTestCaseUtility.cs">
+      <Link>Tests\TestUtilities\ImagingTestCaseUtility.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\TestUtilities\MeasureFixture.cs">
+      <Link>Tests\TestUtilities\MeasureFixture.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\TestUtilities\PixelTypes.cs">
+      <Link>Tests\TestUtilities\PixelTypes.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\TestUtilities\Tests\TestImageProviderTests.cs">
+      <Link>Tests\TestUtilities\Tests\TestImageProviderTests.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\TestUtilities\Tests\TestUtilityExtensionsTests.cs">
+      <Link>Tests\TestUtilities\Tests\TestUtilityExtensionsTests.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\TestUtilities\TestUtilityExtensions.cs">
+      <Link>Tests\TestUtilities\TestUtilityExtensions.cs</Link>
+    </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Tests\Image\" />
-    <Folder Include="Tests\TestUtilities\Attributes\" />
-    <Folder Include="Tests\TestUtilities\Factories\" />
-    <Folder Include="Tests\TestUtilities\ImageProviders\" />
-    <Folder Include="Tests\TestUtilities\Tests\" />
-  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

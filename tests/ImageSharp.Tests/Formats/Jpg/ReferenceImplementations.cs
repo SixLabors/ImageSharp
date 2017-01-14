@@ -13,7 +13,7 @@ namespace ImageSharp.Tests
 
     using ImageSharp.Formats;
     using ImageSharp.Formats.Jpg;
-    
+
     /// <summary>
     /// This class contains simplified (unefficient) reference implementations to produce verification data for unit tests
     /// Floating point DCT code Ported from https://github.com/norishigefukushima/dct_simd
@@ -546,8 +546,8 @@ namespace ImageSharp.Tests
             //y[1] = c0 + c3; y[7] = c0 - c3;
 
             /*for(i = 0;i < 8;i++)
-            { 
-            y[i] *= invsqrt2h; 
+            {
+            y[i] *= invsqrt2h;
             }*/
         }
 
@@ -643,10 +643,10 @@ namespace ImageSharp.Tests
 	        0: 1.414214
 	        1: 1.387040
 	        2: 1.306563
-	        3: 
+	        3:
 	        4: 1.000000
 	        5: 0.785695
-	        6: 
+	        6:
 	        7: 0.275899
 	        */
 
@@ -852,7 +852,7 @@ namespace ImageSharp.Tests
             bool offsetSourceByNeg128 = false)
         {
             MutableSpan<float> sWorker = offsetSourceByNeg128 ? s.AddScalarToAllValues(-128f) : s;
-            
+
             for (int j = 0; j < 8; j++)
             {
                 fDCT1Dllm_32f(sWorker.Slice(j * 8), temp.Slice(j * 8));
@@ -866,7 +866,7 @@ namespace ImageSharp.Tests
             }
 
             Transpose8x8(temp, d);
-            
+
             if (downscaleBy8)
             {
                 for (int j = 0; j < 64; j++)

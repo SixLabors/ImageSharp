@@ -114,7 +114,7 @@ namespace ImageSharp.Tests
             IEnumerable<KeyValuePair<PixelTypes, Type>> pixelTypesExp)
         {
             Assert.Contains(new KeyValuePair<PixelTypes, Type>(pt, typeof(T)), pixelTypesExp);
-            
+
         }
 
         [Fact]
@@ -125,7 +125,7 @@ namespace ImageSharp.Tests
             var expanded = pixelTypes.ExpandAllTypes();
 
             Assert.Equal(expanded.Count(), 5);
-            
+
             AssertContainsPixelType<Alpha8>(PixelTypes.Alpha8, expanded);
             AssertContainsPixelType<Bgr565>(PixelTypes.Bgr565, expanded);
             AssertContainsPixelType<Color>(PixelTypes.Color, expanded);
@@ -138,7 +138,7 @@ namespace ImageSharp.Tests
         {
             var expanded = PixelTypes.All.ExpandAllTypes().ToArray();
 
-            Assert.True(expanded.Length >= EnumHelper.GetSortedValues<PixelTypes>().Length - 2);
+            Assert.True(expanded.Length >= TestUtilityExtensions.GetAllPixelTypes().Length - 2);
             AssertContainsPixelType<Color>(PixelTypes.Color, expanded);
             AssertContainsPixelType<Color>(PixelTypes.StandardImageClass, expanded);
         }

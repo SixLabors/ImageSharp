@@ -16,7 +16,7 @@ This project aims to workaround certain .NET Core tooling issues in Visual Studi
 - Use the [context menu in Test Explorer](https://adamprescott.net/2012/12/12/performance-profiling-for-unit-tests/)
 
 NOTE: 
-There was no *Profile test* option in my VS Professional. Maybe things were messed by VS2017 RC installation. [This post suggests](http://stackoverflow.com/questions/32034375/profiling-tests-in-visual-studio-community-2015) that you need Premium or Ultimate edition of Visual Studio to profile tests. 
+There was no *Profile test* option in my VS Professional. Maybe things were messed by VS2017 RC installation. [This post suggests](http://stackoverflow.com/questions/32034375/profiling-tests-in-visual-studio-community-2015) it's necessary to won Premium or Ultimate edition of Visual Studio to profile tests.
 
 #### 2. With JetBrains ReSharper Ultimate
 - Use the [context menu](https://www.jetbrains.com/resharper/features/unit_testing.html) from your test class

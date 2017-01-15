@@ -5,11 +5,12 @@
 
 namespace ImageSharp.Tests
 {
+    using System;
     using System.Collections.Concurrent;
+    using System.Collections.Generic;
     using System.IO;
-
-    using ImageSharp.Formats;
     using System.Linq;
+    using System.Reflection;
 
     /// <summary>
     /// A test image file.
@@ -35,7 +36,7 @@ namespace ImageSharp.Tests
         /// The file.
         /// </summary>
         private readonly string file;
-        
+
         /// <summary>
         /// Initializes a new instance of the <see cref="TestFile"/> class.
         /// </summary>
@@ -132,13 +133,19 @@ namespace ImageSharp.Tests
         /// </returns>
         private static string GetFormatsDirectory()
         {
-            var directories = new[] {
+            List<string> directories = new List< string > {
                  "TestImages/Formats/", // Here for code coverage tests.
                   "tests/ImageSharp.Tests/TestImages/Formats/", // from travis/build script
-                  "../../../../TestImages/Formats/" 
+                  "../../../ImageSharp.Tests/TestImages/Formats/", // from Sandbox46
+                  "../../../../TestImages/Formats/"
             };
 
-            directories= directories.Select(x => Path.GetFullPath(x)).ToArray();
+            directories = directories.SelectMany(x => new[]
+                                     {
+                                         Path.GetFullPath(x)
+                                     }).ToList();
+
+            AddFormatsDirectoryFromTestAssebmlyPath(directories);
 
             var directory = directories.FirstOrDefault(x => Directory.Exists(x));
 
@@ -148,6 +155,25 @@ namespace ImageSharp.Tests
             }
 
             throw new System.Exception($"Unable to find Formats directory at any of these locations [{string.Join(", ", directories)}]");
+        }
+
+        /// <summary>
+        /// The path returned by Path.GetFullPath(x) can be relative to dotnet framework directory
+        /// in certain scenarios like dotTrace test profiling.
+        /// This method calculates and adds the format directory based on the ImageSharp.Tests assembly location.
+        /// </summary>
+        /// <param name="directories">The directories list</param>
+        private static void AddFormatsDirectoryFromTestAssebmlyPath(List<string> directories)
+        {
+            string assemblyLocation = typeof(TestFile).GetTypeInfo().Assembly.Location;
+            assemblyLocation = Path.GetDirectoryName(assemblyLocation);
+
+            if (assemblyLocation != null)
+            {
+                string dirFromAssemblyLocation = Path.Combine(assemblyLocation, "../../../TestImages/Formats/");
+                dirFromAssemblyLocation = Path.GetFullPath(dirFromAssemblyLocation);
+                directories.Add(dirFromAssemblyLocation);
+            }
         }
     }
 }

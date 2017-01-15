@@ -160,6 +160,7 @@ namespace ImageSharp.Tests
         /// <summary>
         /// The path returned by Path.GetFullPath(x) can be relative to dotnet framework directory
         /// in certain scenarios like dotTrace test profiling.
+        /// This method calculates and adds the format directory based on the ImageSharp.Tests assembly location.
         /// </summary>
         /// <param name="directories">The directories list</param>
         private static void AddFormatsDirectoryFromTestAssebmlyPath(List<string> directories)

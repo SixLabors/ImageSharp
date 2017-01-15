@@ -7,8 +7,6 @@ namespace ImageSharp.Tests
 {
     using System.Collections.Concurrent;
     using System.IO;
-
-    using ImageSharp.Formats;
     using System.Linq;
 
     /// <summary>

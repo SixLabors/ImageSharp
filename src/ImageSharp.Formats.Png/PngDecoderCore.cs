@@ -129,7 +129,7 @@ namespace ImageSharp.Formats
         /// Decodes the stream to the image.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-                /// <param name="image">The image to decode to.</param>
+        /// <param name="image">The image to decode to.</param>
         /// <param name="stream">The stream containing image data. </param>
         /// <exception cref="ImageFormatException">
         /// Thrown if the stream does not contain and end chunk.
@@ -139,7 +139,7 @@ namespace ImageSharp.Formats
         /// </exception>
         public void Decode<TColor>(Image<TColor> image, Stream stream)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
-                    {
+        {
             Image<TColor> currentImage = image;
             this.currentStream = stream;
             this.currentStream.Skip(8);
@@ -259,11 +259,11 @@ namespace ImageSharp.Formats
         /// Reads the data chunk containing physical dimension data.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-                /// <param name="image">The image to read to.</param>
+        /// <param name="image">The image to read to.</param>
         /// <param name="data">The data containing physical data.</param>
         private void ReadPhysicalChunk<TColor>(Image<TColor> image, byte[] data)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
-                    {
+        {
             data.ReverseBytes(0, 4);
             data.ReverseBytes(4, 4);
 
@@ -322,11 +322,11 @@ namespace ImageSharp.Formats
         /// Reads the scanlines within the image.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-                /// <param name="dataStream">The <see cref="MemoryStream"/> containing data.</param>
+        /// <param name="dataStream">The <see cref="MemoryStream"/> containing data.</param>
         /// <param name="pixels"> The pixel data.</param>
         private void ReadScanlines<TColor>(MemoryStream dataStream, PixelAccessor<TColor> pixels)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
-                    {
+        {
             this.bytesPerPixel = this.CalculateBytesPerPixel();
             this.bytesPerScanline = this.CalculateScanlineLength(this.header.Width) + 1;
             this.bytesPerSample = 1;
@@ -353,15 +353,16 @@ namespace ImageSharp.Formats
         /// Decodes the raw pixel data row by row
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-                /// <param name="compressedStream">The compressed pixel data stream.</param>
+        /// <param name="compressedStream">The compressed pixel data stream.</param>
         /// <param name="pixels">The image pixel accessor.</param>
         private void DecodePixelData<TColor>(Stream compressedStream, PixelAccessor<TColor> pixels)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
-                    {
+        {
             byte[] previousScanline = ArrayPool<byte>.Shared.Rent(this.bytesPerScanline);
             byte[] scanline = ArrayPool<byte>.Shared.Rent(this.bytesPerScanline);
 
-            // Zero out the previousScanline, because the bytes that are rented from the arraypool may not be zero.
+            // Zero out the scanlines, because the bytes that are rented from the arraypool may not be zero.
+            Array.Clear(scanline, 0, this.bytesPerScanline);
             Array.Clear(previousScanline, 0, this.bytesPerScanline);
 
             try
@@ -425,11 +426,11 @@ namespace ImageSharp.Formats
         /// <see href="https://github.com/juehv/DentalImageViewer/blob/8a1a4424b15d6cc453b5de3f273daf3ff5e3a90d/DentalImageViewer/lib/jiu-0.14.3/net/sourceforge/jiu/codecs/PNGCodec.java"/>
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-                /// <param name="compressedStream">The compressed pixel data stream.</param>
+        /// <param name="compressedStream">The compressed pixel data stream.</param>
         /// <param name="pixels">The image pixel accessor.</param>
         private void DecodeInterlacedPixelData<TColor>(Stream compressedStream, PixelAccessor<TColor> pixels)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
-                    {
+        {
             byte[] previousScanline = ArrayPool<byte>.Shared.Rent(this.bytesPerScanline);
             byte[] scanline = ArrayPool<byte>.Shared.Rent(this.bytesPerScanline);
 
@@ -437,7 +438,8 @@ namespace ImageSharp.Formats
             {
                 for (int pass = 0; pass < 7; pass++)
                 {
-                    // Zero out the previousScanline, because the bytes that are rented from the arraypool may not be zero.
+                    // Zero out the scanlines, because the bytes that are rented from the arraypool may not be zero.
+                    Array.Clear(scanline, 0, this.bytesPerScanline);
                     Array.Clear(previousScanline, 0, this.bytesPerScanline);
 
                     int y = Adam7FirstRow[pass];
@@ -512,12 +514,12 @@ namespace ImageSharp.Formats
         /// Processes the de-filtered scanline filling the image pixel data
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-                /// <param name="defilteredScanline">The de-filtered scanline</param>
+        /// <param name="defilteredScanline">The de-filtered scanline</param>
         /// <param name="row">The current image row.</param>
         /// <param name="pixels">The image pixels</param>
         private void ProcessDefilteredScanline<TColor>(byte[] defilteredScanline, int row, PixelAccessor<TColor> pixels)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
-                    {
+        {
             TColor color = default(TColor);
             switch (this.PngColorType)
             {
@@ -635,14 +637,14 @@ namespace ImageSharp.Formats
         /// Processes the interlaced de-filtered scanline filling the image pixel data
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-                /// <param name="defilteredScanline">The de-filtered scanline</param>
+        /// <param name="defilteredScanline">The de-filtered scanline</param>
         /// <param name="row">The current image row.</param>
         /// <param name="pixels">The image pixels</param>
         /// <param name="pixelOffset">The column start index. Always 0 for none interlaced images.</param>
         /// <param name="increment">The column increment. Always 1 for none interlaced images.</param>
         private void ProcessInterlacedDefilteredScanline<TColor>(byte[] defilteredScanline, int row, PixelAccessor<TColor> pixels, int pixelOffset = 0, int increment = 1)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
-                    {
+        {
             TColor color = default(TColor);
 
             switch (this.PngColorType)
@@ -755,12 +757,12 @@ namespace ImageSharp.Formats
         /// Reads a text chunk containing image properties from the data.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-                /// <param name="image">The image to decode to.</param>
+        /// <param name="image">The image to decode to.</param>
         /// <param name="data">The <see cref="T:byte[]"/> containing  data.</param>
         /// <param name="length">The maximum length to read.</param>
         private void ReadTextChunk<TColor>(Image<TColor> image, byte[] data, int length)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
-                    {
+        {
             int zeroIndex = 0;
 
             for (int i = 0; i < length; i++)

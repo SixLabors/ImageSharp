@@ -74,16 +74,19 @@ namespace ImageSharp.Tests
         /// <typeparam name="TColor">The pixel format of the image</typeparam>
         /// <param name="image">The image instance</param>
         /// <param name="extension">The requested extension</param>
-        public void SaveTestOutputFile<TColor>(Image<TColor> image, string extension = null)
+        /// <param name="encoder">Optional encoder</param>
+        public void SaveTestOutputFile<TColor>(Image<TColor> image, string extension = null, IImageEncoder encoder = null)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             string path = this.GetTestOutputFileName(extension);
 
             var format = GetImageFormatByExtension(extension);
 
+            encoder = encoder ?? format.Encoder;
+
             using (var stream = File.OpenWrite(path))
             {
-                image.Save(stream, format);
+                image.Save(stream, encoder);
             }
         }
 

@@ -71,7 +71,8 @@ namespace ImageSharp.Formats
             }
             else
             {
-                encode.Encode(image, stream, this.Quality, this.Quality >= 80 ? JpegSubsample.Ratio444 : JpegSubsample.Ratio420);
+                // Match Photoshop and use 4:2:0 SUpsampling at quality < 51%
+                encode.Encode(image, stream, this.Quality, this.Quality >= 51 ? JpegSubsample.Ratio444 : JpegSubsample.Ratio420);
             }
         }
     }

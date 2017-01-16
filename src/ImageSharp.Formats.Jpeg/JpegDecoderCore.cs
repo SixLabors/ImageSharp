@@ -514,12 +514,11 @@ namespace ImageSharp.Formats
 
                 if (errorCode == ErrorCodes.NoError)
                 {
-                    ushort v =
-                        huffmanTree.Lut[(this.Bits.Accumulator >> (this.Bits.UnreadBits - HuffmanTree.LutSize)) & 0xff];
+                    ushort v = huffmanTree.Lut[(this.Bits.Accumulator >> (this.Bits.UnreadBits - HuffmanTree.LutSize)) & 0xFF];
 
                     if (v != 0)
                     {
-                        byte n = (byte)((v & 0xff) - 1);
+                        int n = (v & 0xFF) - 1;
                         this.Bits.UnreadBits -= n;
                         this.Bits.Mask >>= n;
                         return (byte)(v >> 8);
@@ -1129,7 +1128,7 @@ namespace ImageSharp.Formats
 
                 remaining--;
                 byte x = this.ReadByte();
-                byte tq = (byte)(x & 0x0f);
+                int tq = x & 0x0F;
                 if (tq > MaxTq)
                 {
                     throw new ImageFormatException("Bad Tq value");

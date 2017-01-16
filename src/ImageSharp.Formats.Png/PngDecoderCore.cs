@@ -652,9 +652,9 @@ namespace ImageSharp.Formats
                 case PngColorType.Grayscale:
                     int factor = 255 / ((int)Math.Pow(2, this.header.BitDepth) - 1);
                     byte[] newScanline1 = ToArrayByBitsLength(defilteredScanline, this.bytesPerScanline, this.header.BitDepth);
-                    for (int x = pixelOffset; x < this.header.Width; x += increment)
+                    for (int x = pixelOffset, o = 1; x < this.header.Width; x += increment, o++)
                     {
-                        byte intensity = (byte)(newScanline1[x - pixelOffset] * factor);
+                        byte intensity = (byte)(newScanline1[o] * factor);
                         color.PackFromBytes(intensity, intensity, intensity, 255);
                         pixels[x, row] = color;
                     }
@@ -682,9 +682,9 @@ namespace ImageSharp.Formats
                     {
                         // If the alpha palette is not null and has one or more entries, this means, that the image contains an alpha
                         // channel and we should try to read it.
-                        for (int x = pixelOffset; x < this.header.Width; x += increment)
+                        for (int x = pixelOffset, o = 1; x < this.header.Width; x += increment, o++)
                         {
-                            int index = newScanline[x - pixelOffset];
+                            int index = newScanline[o];
                             int offset = index * 3;
 
                             byte a = this.paletteAlpha.Length > index ? this.paletteAlpha[index] : (byte)255;
@@ -706,9 +706,9 @@ namespace ImageSharp.Formats
                     }
                     else
                     {
-                        for (int x = pixelOffset; x < this.header.Width; x += increment)
+                        for (int x = pixelOffset, o = 1; x < this.header.Width; x += increment, o++)
                         {
-                            int index = newScanline[x - pixelOffset];
+                            int index = newScanline[o];
                             int offset = index * 3;
 
                             byte r = this.palette[offset];

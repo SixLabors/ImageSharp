@@ -22,7 +22,7 @@ namespace ImageSharp.Tests
 
         private static readonly Dictionary<PixelTypes, Type> PixelTypes2ClrTypes = new Dictionary<PixelTypes, Type>();
 
-        private static readonly PixelTypes[] AllConcretePixelTypes = EnumHelper.GetSortedValues<PixelTypes>()
+        private static readonly PixelTypes[] AllConcretePixelTypes = GetAllPixelTypes()
             .Except(new [] {PixelTypes.Undefined, PixelTypes.All })
             .ToArray();
 
@@ -130,5 +130,11 @@ namespace ImageSharp.Tests
                 .Where(pt => pixelTypes.HasFlag(pt))
                 .Select(pt => new KeyValuePair<PixelTypes, Type>(pt, pt.ToType()));
         }
+
+        /// <summary>
+        /// Enumerate all available <see cref="PixelTypes"/>-s
+        /// </summary>
+        /// <returns>The pixel types</returns>
+        internal static PixelTypes[] GetAllPixelTypes() => (PixelTypes[])Enum.GetValues(typeof(PixelTypes));
     }
 }

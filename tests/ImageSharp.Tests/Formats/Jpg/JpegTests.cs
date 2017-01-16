@@ -17,12 +17,71 @@ namespace ImageSharp.Tests
     using System.Numerics;
 
     using ImageSharp.Formats.Jpg;
+    using ImageSharp.Processing;
 
     public class JpegTests : MeasureFixture
     {
         public JpegTests(ITestOutputHelper output)
             : base(output)
         {
+        }
+
+        [Theory]
+        [WithFile(TestImages.Jpeg.Snake, PixelTypes.StandardImageClass, 75, JpegSubsample.Ratio420)]
+        [WithFile(TestImages.Jpeg.Lake, PixelTypes.StandardImageClass, 75, JpegSubsample.Ratio420)]
+        [WithFile(TestImages.Jpeg.Snake, PixelTypes.StandardImageClass, 75, JpegSubsample.Ratio444)]
+        [WithFile(TestImages.Jpeg.Lake, PixelTypes.StandardImageClass, 75, JpegSubsample.Ratio444)]
+        public void LoadResizeSave<TColor>(TestImageProvider<TColor> provider, int quality, JpegSubsample subsample)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
+        {
+            var image = provider.GetImage()
+                .Resize(new ResizeOptions
+                {
+                    Size = new Size(150, 100),
+                    Mode = ResizeMode.Max
+                });
+            image.Quality = quality;
+            image.ExifProfile = null; // Reduce the size of the file
+            JpegEncoder encoder = new JpegEncoder { Subsample = subsample, Quality = quality };
+
+            provider.Utility.TestName += $"{subsample}_Q{quality}";
+            provider.Utility.SaveTestOutputFile(image, "png");
+            provider.Utility.SaveTestOutputFile(image, "jpg", encoder);
+        }
+
+        // Benchmark, enable manually!
+        // [Theory]
+        [InlineData(1, 75, JpegSubsample.Ratio420)]
+        [InlineData(30, 75, JpegSubsample.Ratio420)]
+        [InlineData(30, 75, JpegSubsample.Ratio444)]
+        [InlineData(30, 100, JpegSubsample.Ratio444)]
+        public void Encoder_Benchmark(int executionCount, int quality, JpegSubsample subsample)
+        {
+            string[] testFiles = TestImages.Bmp.All
+                .Concat(new[] { TestImages.Jpeg.Calliphora, TestImages.Jpeg.Cmyk })
+                .ToArray();
+
+            var testImages =
+                testFiles.Select(
+                        tf => TestImageProvider<Color>.File(tf, pixelTypeOverride: PixelTypes.StandardImageClass).GetImage())
+                    .ToArray();
+
+            using (MemoryStream ms = new MemoryStream())
+            {
+                this.Measure(executionCount,
+                    () =>
+                        {
+                            foreach (Image<Color> img in testImages)
+                            {
+                                JpegEncoder encoder = new JpegEncoder() { Quality = quality, Subsample = subsample };
+                                img.Save(ms, encoder);
+                                ms.Seek(0, SeekOrigin.Begin);
+                            }
+                        },
+                    // ReSharper disable once ExplicitCallerInfoArgument
+                    $@"Encode {testFiles.Length} images"
+                    );
+            }
         }
 
         public static IEnumerable<string> AllJpegFiles => TestImages.Jpeg.All;

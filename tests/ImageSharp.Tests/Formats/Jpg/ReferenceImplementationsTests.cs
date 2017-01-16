@@ -13,7 +13,7 @@ namespace ImageSharp.Tests.Formats.Jpg
     using Xunit;
     using Xunit.Abstractions;
 
-    public class ReferenceImplementationsTests : UtilityTestClassBase
+    public class ReferenceImplementationsTests : JpegTestBase
     {
         public ReferenceImplementationsTests(ITestOutputHelper output)
             : base(output)
@@ -31,7 +31,7 @@ namespace ImageSharp.Tests.Formats.Jpg
             MutableSpan<float> floatSrc = intData.ConvertToFloat32MutableSpan();
 
             ReferenceImplementations.IntegerReferenceDCT.TransformIDCTInplace(intData);
-            
+
             MutableSpan<float> dest = new MutableSpan<float>(64);
             MutableSpan<float> temp = new MutableSpan<float>(64);
 
@@ -57,14 +57,14 @@ namespace ImageSharp.Tests.Formats.Jpg
             var block = original.AddScalarToAllValues(128);
 
             ReferenceImplementations.IntegerReferenceDCT.TransformFDCTInplace(block);
-            
+
             for (int i = 0; i < 64; i++)
             {
                 block[i] /= 8;
             }
 
             ReferenceImplementations.IntegerReferenceDCT.TransformIDCTInplace(block);
-            
+
             for (int i = startAt; i < 64; i++)
             {
                 float expected = original[i];
@@ -93,7 +93,7 @@ namespace ImageSharp.Tests.Formats.Jpg
             {
                 float expected = data[i];
                 float actual = (float)src[i];
-                
+
                 Assert.Equal(expected, actual, new ApproximateFloatComparer(2f));
             }
         }
@@ -112,9 +112,9 @@ namespace ImageSharp.Tests.Formats.Jpg
         {
             MutableSpan<int> intData = Create8x8RandomIntData(-200, 200, seed);
             MutableSpan<float> floatSrc = intData.ConvertToFloat32MutableSpan();
-            
+
             ReferenceImplementations.IntegerReferenceDCT.TransformFDCTInplace(intData);
-            
+
             MutableSpan<float> dest = new MutableSpan<float>(64);
             MutableSpan<float> temp = new MutableSpan<float>(64);
 
@@ -127,6 +127,6 @@ namespace ImageSharp.Tests.Formats.Jpg
 
                 Assert.Equal(expected, actual, new ApproximateFloatComparer(1f));
             }
-        }   
+        }
     }
 }

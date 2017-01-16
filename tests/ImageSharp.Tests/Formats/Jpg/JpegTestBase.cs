@@ -1,4 +1,4 @@
-﻿// <copyright file="UtilityTestClassBase.cs" company="James Jackson-South">
+﻿// <copyright file="JpegTestBase.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -13,46 +13,15 @@ namespace ImageSharp.Tests
     using System;
     using System.Collections.Generic;
     using System.Diagnostics;
-    using System.Runtime.CompilerServices;
 
     using ImageSharp.Formats.Jpg;
 
-    /// <summary>
-    /// Utility class to measure the execution of an operation.
-    /// </summary>
-    public class MeasureFixture : TestBase
+    public class JpegTestBase : MeasureFixture
     {
-        protected bool EnablePrinting = true;
-
-        protected void Measure(int times, Action action, [CallerMemberName] string operationName = null)
-        {
-            if (this.EnablePrinting) this.Output?.WriteLine($"{operationName} X {times} ...");
-            Stopwatch sw = Stopwatch.StartNew();
-
-            for (int i = 0; i < times; i++)
-            {
-                action();
-            }
-
-            sw.Stop();
-            if (this.EnablePrinting) this.Output?.WriteLine($"{operationName} finished in {sw.ElapsedMilliseconds} ms");
-        }
-
-        public MeasureFixture(ITestOutputHelper output)
-        {
-            this.Output = output;
-        }
-
-        protected ITestOutputHelper Output { get; }
-    }
-
-
-    public class UtilityTestClassBase : MeasureFixture
-    {
-        public UtilityTestClassBase(ITestOutputHelper output) : base(output)
+        public JpegTestBase(ITestOutputHelper output) : base(output)
         {
         }
-        
+
         // ReSharper disable once InconsistentNaming
         public static float[] Create8x8FloatData()
         {
@@ -66,7 +35,7 @@ namespace ImageSharp.Tests
             }
             return result;
         }
-        
+
         // ReSharper disable once InconsistentNaming
         public static int[] Create8x8IntData()
         {

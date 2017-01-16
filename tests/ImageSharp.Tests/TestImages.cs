@@ -19,6 +19,7 @@ namespace ImageSharp.Tests
             public const string Blur = "Png/blur.png";
             public const string Indexed = "Png/indexed.png";
             public const string Splash = "Png/splash.png";
+            public const string Powerpoint = "Png/pp.png";
 
             public const string SplashInterlaced = "Png/splash-interlaced.png";
 
@@ -49,6 +50,9 @@ namespace ImageSharp.Tests
 
             public const string Festzug = "Jpg/Festzug.jpg";
             public const string Hiyamugi = "Jpg/Hiyamugi.jpg";
+
+            public const string Snake = "Jpg/Snake.jpg";
+            public const string Lake = "Jpg/Lake.jpg";
 
             public const string Jpeg400 = "Jpg/baseline/jpeg400jfif.jpg";
             public const string Jpeg420 = "Jpg/baseline/jpeg420exif.jpg";

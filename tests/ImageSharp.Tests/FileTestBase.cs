@@ -33,6 +33,7 @@ namespace ImageSharp.Tests
             // TestFile.Create(TestImages.Png.Blur), // Perf: Enable for local testing only
             // TestFile.Create(TestImages.Png.Indexed), // Perf: Enable for local testing only
             TestFile.Create(TestImages.Png.Splash),
+            TestFile.Create(TestImages.Png.Powerpoint),
             // TestFile.Create(TestImages.Png.SplashInterlaced), // Perf: Enable for local testing only
             // TestFile.Create(TestImages.Png.Interlaced), // Perf: Enable for local testing only
             // TestFile.Create(TestImages.Png.Filter0), // Perf: Enable for local testing only

@@ -333,18 +333,19 @@ namespace ImageSharp.Formats.Jpg
         /// <param name="dest">Destination block</param>
         /// <param name="qt">Quantization table</param>
         /// <param name="unzigPtr">Pointer to <see cref="UnzigData"/> elements</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe void UnZigDivRound(Block8x8F* src, Block8x8F* dest, Block8x8F* qt, int* unzigPtr)
+        // [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static unsafe void UnZigDivRound(Block8x8F* src, int* dest, Block8x8F* qt, int* unzigPtr)
         {
             float* s = (float*)src;
-            float* d = (float*)dest;
             float* q = (float*)qt;
 
             for (int zig = 0; zig < ScalarCount; zig++)
             {
-                float val = s[unzigPtr[zig]] / q[zig];
-                val = (int)val;
-                d[zig] = val;
+                int a = (int)s[unzigPtr[zig]];
+                int b = (int)q[zig];
+
+                int val = DivideRound(a, b);
+                dest[zig] = val;
             }
         }
 
@@ -372,6 +373,23 @@ namespace ImageSharp.Formats.Jpg
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// Performs division and rounding of a rational number represented by a dividend and a divisior into an integer.
+        /// </summary>
+        /// <param name="dividend">The dividend</param>
+        /// <param name="divisor">The divisor</param>
+        /// <returns>The result integer</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int DivideRound(int dividend, int divisor)
+        {
+            if (dividend >= 0)
+            {
+                return (dividend + (divisor >> 1)) / divisor;
+            }
+
+            return -((-dividend + (divisor >> 1)) / divisor);
         }
     }
 }

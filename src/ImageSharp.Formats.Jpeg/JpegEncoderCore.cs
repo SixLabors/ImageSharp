@@ -434,7 +434,9 @@ namespace ImageSharp.Formats
             UnzigData unzig = UnzigData.Create();
 
             // ReSharper disable once InconsistentNaming
-            float prevDCY = 0, prevDCCb = 0, prevDCCr = 0;
+            int prevDCY = 0, prevDCCb = 0, prevDCCr = 0;
+
+            int* unzigDest = stackalloc int[Block8x8F.ScalarCount];
 
             using (PixelArea<TColor> rgbBytes = new PixelArea<TColor>(8, 8, ComponentOrder.Xyz))
             {
@@ -449,6 +451,7 @@ namespace ImageSharp.Formats
                             prevDCY,
                             &b,
                             &temp1,
+                            unzigDest,
                             &temp2,
                             &onStackLuminanceQuantTable,
                             unzig.Data);
@@ -457,6 +460,7 @@ namespace ImageSharp.Formats
                             prevDCCb,
                             &cb,
                             &temp1,
+                            unzigDest,
                             &temp2,
                             &onStackChrominanceQuantTable,
                             unzig.Data);
@@ -465,6 +469,7 @@ namespace ImageSharp.Formats
                             prevDCCr,
                             &cr,
                             &temp1,
+                            unzigDest,
                             &temp2,
                             &onStackChrominanceQuantTable,
                             unzig.Data);
@@ -522,31 +527,31 @@ namespace ImageSharp.Formats
         /// <param name="prevDC">The previous DC value.</param>
         /// <param name="src">Source block</param>
         /// <param name="tempDest">Temporal block to be used as FDCT Destination</param>
-        /// <param name="temp2">Temporal block 2</param>
+        /// <param name="d">Working buffer for unzigged stuff</param>
+        /// <param name="tempWorker">Temporal block 2</param>
         /// <param name="quant">Quantization table</param>
         /// <param name="unzigPtr">The 8x8 Unzig block pointer</param>
         /// <returns>
         /// The <see cref="int"/>
         /// </returns>
-        private float WriteBlock(
+        private int WriteBlock(
             QuantIndex index,
-            float prevDC,
+            int prevDC,
             Block8x8F* src,
             Block8x8F* tempDest,
-            Block8x8F* temp2,
+            int* d,
+            Block8x8F* tempWorker,
             Block8x8F* quant,
             int* unzigPtr)
         {
-            DCT.TransformFDCT(ref *src, ref *tempDest, ref *temp2);
+            DCT.TransformFDCT(ref *src, ref *tempDest, ref *tempWorker);
 
-            Block8x8F.UnZigDivRound(tempDest, temp2, quant, unzigPtr);
-
-            float* d = (float*)temp2;
+            Block8x8F.UnZigDivRound(tempDest, d, quant, unzigPtr);
 
             // Emit the DC delta.
-            float dc = d[0];
+            int dc = d[0];
 
-            this.EmitHuffRLE((HuffIndex)((2 * (int)index) + 0), 0, (int)(dc - prevDC));
+            this.EmitHuffRLE((HuffIndex)((2 * (int)index) + 0), 0, dc - prevDC);
 
             // Emit the AC components.
             HuffIndex h = (HuffIndex)((2 * (int)index) + 1);
@@ -554,7 +559,7 @@ namespace ImageSharp.Formats
 
             for (int zig = 1; zig < Block8x8F.ScalarCount; zig++)
             {
-                float ac = d[zig];
+                int ac = d[zig];
 
                 if (ac == 0)
                 {
@@ -568,7 +573,7 @@ namespace ImageSharp.Formats
                         runLength -= 16;
                     }
 
-                    this.EmitHuffRLE(h, runLength, (int)ac);
+                    this.EmitHuffRLE(h, runLength, ac);
                     runLength = 0;
                 }
             }
@@ -802,8 +807,10 @@ namespace ImageSharp.Formats
 
             UnzigData unzig = UnzigData.Create();
 
+            int* unzigDest = stackalloc int[Block8x8F.ScalarCount];
+
             // ReSharper disable once InconsistentNaming
-            float prevDCY = 0, prevDCCb = 0, prevDCCr = 0;
+            int prevDCY = 0, prevDCCb = 0, prevDCCr = 0;
 
             using (PixelArea<TColor> rgbBytes = new PixelArea<TColor>(8, 8, ComponentOrder.Xyz))
             {
@@ -823,6 +830,7 @@ namespace ImageSharp.Formats
                                 prevDCY,
                                 &b,
                                 &temp1,
+                                unzigDest,
                                 &temp2,
                                 &onStackLuminanceQuantTable,
                                 unzig.Data);
@@ -834,6 +842,7 @@ namespace ImageSharp.Formats
                             prevDCCb,
                             &b,
                             &temp1,
+                            unzigDest,
                             &temp2,
                             &onStackChrominanceQuantTable,
                             unzig.Data);
@@ -844,6 +853,7 @@ namespace ImageSharp.Formats
                             prevDCCr,
                             &b,
                             &temp1,
+                            unzigDest,
                             &temp2,
                             &onStackChrominanceQuantTable,
                             unzig.Data);

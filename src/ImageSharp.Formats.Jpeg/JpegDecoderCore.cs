@@ -958,14 +958,20 @@ namespace ImageSharp.Formats
             // CMY, and patch in the original K. The RGB to CMY inversion cancels
             // out the 'Adobe inversion' described in the applyBlack doc comment
             // above, so in practice, only the fourth channel (black) is inverted.
-            // TODO: We can speed this up further with Vector4
             int ccb = cb - 128;
             int ccr = cr - 128;
 
+            // Speed up the algorithm by removing floating point calculation
+            // Scale by 1024, add .5F and truncate value. We use bit shifting to divide the result
+            int r0 = 1436 * ccr; // (1.402F * 1024) + .5F
+            int g0 = 352 * ccb; // (0.34414F * 1024) + .5F
+            int g1 = 731 * ccr; // (0.71414F  * 1024) + .5F
+            int b0 = 1815 * ccb; // (1.772F * 1024) + .5F
+
             // First convert from YCbCr to CMY
-            float cyan = (y + (1.402F * ccr)).Clamp(0, 255) / 255F;
-            float magenta = (y - (0.34414F * ccb) - (0.71414F * ccr)).Clamp(0, 255) / 255F;
-            float yellow = (y + (1.772F * ccb)).Clamp(0, 255) / 255F;
+            float cyan = (y + (r0 >> 10)).Clamp(0, 255) / 255F;
+            float magenta = (byte)(y - (g0 >> 10) - (g1 >> 10)).Clamp(0, 255) / 255F;
+            float yellow = (byte)(y + (b0 >> 10)).Clamp(0, 255) / 255F;
 
             // Get keyline
             float keyline = (255 - this.blackImage[xx, yy]) / 255F;

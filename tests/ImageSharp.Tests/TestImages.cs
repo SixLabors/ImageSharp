@@ -51,6 +51,9 @@ namespace ImageSharp.Tests
             public const string Festzug = "Jpg/Festzug.jpg";
             public const string Hiyamugi = "Jpg/Hiyamugi.jpg";
 
+            public const string Snake = "Jpg/Snake.jpg";
+            public const string Lake = "Jpg/Lake.jpg";
+
             public const string Jpeg400 = "Jpg/baseline/jpeg400jfif.jpg";
             public const string Jpeg420 = "Jpg/baseline/jpeg420exif.jpg";
             public const string Jpeg422 = "Jpg/baseline/jpeg422jfif.jpg";

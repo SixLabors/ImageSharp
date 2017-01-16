@@ -37,10 +37,11 @@ namespace ImageSharp.Tests
             var image = provider.GetImage()
                 .Resize(new ResizeOptions
                 {
-                    Size = new Size(150, 150),
+                    Size = new Size(150, 100),
                     Mode = ResizeMode.Max
                 });
-            image.Quality = 75;
+            image.Quality = quality;
+            image.ExifProfile = null; // Reduce the size of the file
             JpegEncoder encoder = new JpegEncoder { Subsample = subsample, Quality = quality };
 
             provider.Utility.TestName += $"{subsample}_Q{quality}";

@@ -875,5 +875,31 @@ namespace ImageSharp.Tests
                 }
             }
         }
+
+        public static unsafe void UnZigDivRoundRational(Block8x8F* src, int* dest, Block8x8F* qt, int* unzigPtr)
+        {
+            float* s = (float*)src;
+            float* q = (float*)qt;
+
+            for (int zig = 0; zig < Block8x8F.ScalarCount; zig++)
+            {
+                int a = (int)s[unzigPtr[zig]];
+                int b = (int)q[zig];
+
+                int val = RationalRound(a, b);
+                dest[zig] = val;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int RationalRound(int dividend, int divisor)
+        {
+            if (dividend >= 0)
+            {
+                return (dividend + (divisor >> 1)) / divisor;
+            }
+
+            return -((-dividend + (divisor >> 1)) / divisor);
+        }
     }
 }

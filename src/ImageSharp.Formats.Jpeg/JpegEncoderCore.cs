@@ -452,8 +452,6 @@ namespace ImageSharp.Formats
             // ReSharper disable once InconsistentNaming
             int prevDCY = 0, prevDCCb = 0, prevDCCr = 0;
 
-            int* unzigDest = stackalloc int[Block8x8F.ScalarCount];
-
             using (PixelArea<TColor> rgbBytes = new PixelArea<TColor>(8, 8, ComponentOrder.Xyz))
             {
                 for (int y = 0; y < pixels.Height; y += 8)
@@ -467,7 +465,6 @@ namespace ImageSharp.Formats
                             prevDCY,
                             &b,
                             &temp1,
-                            unzigDest,
                             &temp2,
                             &onStackLuminanceQuantTable,
                             unzig.Data);
@@ -476,7 +473,6 @@ namespace ImageSharp.Formats
                             prevDCCb,
                             &cb,
                             &temp1,
-                            unzigDest,
                             &temp2,
                             &onStackChrominanceQuantTable,
                             unzig.Data);
@@ -485,7 +481,6 @@ namespace ImageSharp.Formats
                             prevDCCr,
                             &cr,
                             &temp1,
-                            unzigDest,
                             &temp2,
                             &onStackChrominanceQuantTable,
                             unzig.Data);
@@ -542,9 +537,8 @@ namespace ImageSharp.Formats
         /// <param name="index">The quantization table index.</param>
         /// <param name="prevDC">The previous DC value.</param>
         /// <param name="src">Source block</param>
-        /// <param name="tempDest">Temporal block to be used as FDCT Destination</param>
-        /// <param name="d">Working buffer for unzigged stuff</param>
-        /// <param name="tempWorker">Temporal block 2</param>
+        /// <param name="tempDest1">Temporal block to be used as FDCT Destination</param>
+        /// <param name="tempDest2">Temporal block 2</param>
         /// <param name="quant">Quantization table</param>
         /// <param name="unzigPtr">The 8x8 Unzig block pointer</param>
         /// <returns>
@@ -554,19 +548,19 @@ namespace ImageSharp.Formats
             QuantIndex index,
             int prevDC,
             Block8x8F* src,
-            Block8x8F* tempDest,
-            int* d,
-            Block8x8F* tempWorker,
+            Block8x8F* tempDest1,
+            Block8x8F* tempDest2,
             Block8x8F* quant,
             int* unzigPtr)
         {
-            DCT.TransformFDCT(ref *src, ref *tempDest, ref *tempWorker);
+            DCT.TransformFDCT(ref *src, ref *tempDest1, ref *tempDest2);
 
-            Block8x8F.UnZigDivRound(tempDest, d, quant, unzigPtr);
+            Block8x8F.UnzigDivRound(tempDest1, tempDest2, quant, unzigPtr);
+            float* unziggedDestPtr = (float*)tempDest2;
+
+            int dc = (int)unziggedDestPtr[0];
 
             // Emit the DC delta.
-            int dc = d[0];
-
             this.EmitHuffRLE((HuffIndex)((2 * (int)index) + 0), 0, dc - prevDC);
 
             // Emit the AC components.
@@ -575,7 +569,7 @@ namespace ImageSharp.Formats
 
             for (int zig = 1; zig < Block8x8F.ScalarCount; zig++)
             {
-                int ac = d[zig];
+                int ac = (int)unziggedDestPtr[zig];
 
                 if (ac == 0)
                 {
@@ -823,8 +817,6 @@ namespace ImageSharp.Formats
 
             UnzigData unzig = UnzigData.Create();
 
-            int* unzigDest = stackalloc int[Block8x8F.ScalarCount];
-
             // ReSharper disable once InconsistentNaming
             int prevDCY = 0, prevDCCb = 0, prevDCCr = 0;
 
@@ -846,7 +838,6 @@ namespace ImageSharp.Formats
                                 prevDCY,
                                 &b,
                                 &temp1,
-                                unzigDest,
                                 &temp2,
                                 &onStackLuminanceQuantTable,
                                 unzig.Data);
@@ -858,7 +849,6 @@ namespace ImageSharp.Formats
                             prevDCCb,
                             &b,
                             &temp1,
-                            unzigDest,
                             &temp2,
                             &onStackChrominanceQuantTable,
                             unzig.Data);
@@ -869,7 +859,6 @@ namespace ImageSharp.Formats
                             prevDCCr,
                             &b,
                             &temp1,
-                            unzigDest,
                             &temp2,
                             &onStackChrominanceQuantTable,
                             unzig.Data);

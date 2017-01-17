@@ -327,30 +327,6 @@ namespace ImageSharp.Formats.Jpg
         }
 
         /// <summary>
-        /// Unzig the elements of src into dest, while dividing them by elements of qt and rounding the values.
-        /// Sore the result to the memory area pointed by dest.
-        /// </summary>
-        /// <param name="src">Source block</param>
-        /// <param name="dest">Destination block of integers</param>
-        /// <param name="qt">Quantization table</param>
-        /// <param name="unzigPtr">Pointer to <see cref="UnzigData"/> elements</param>
-        // [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe void UnZigDivRound(Block8x8F* src, int* dest, Block8x8F* qt, int* unzigPtr)
-        {
-            float* s = (float*)src;
-            float* q = (float*)qt;
-
-            for (int zig = 0; zig < ScalarCount; zig++)
-            {
-                int a = (int)s[unzigPtr[zig]];
-                int b = (int)q[zig];
-
-                int val = DivideRound(a, b);
-                dest[zig] = val;
-            }
-        }
-
-        /// <summary>
         /// Unzig the elements of block into dest, while dividing them by elements of qt and "pre-rounding" the values.
         /// To finish the rounding it's enough to (int)-cast these values.
         /// </summary>

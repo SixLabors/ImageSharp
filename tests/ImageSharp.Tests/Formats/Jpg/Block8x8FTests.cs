@@ -12,6 +12,8 @@ namespace ImageSharp.Tests
 {
     using System.Diagnostics;
     using System.Numerics;
+
+    using ImageSharp.Formats;
     using ImageSharp.Formats.Jpg;
 
     using Xunit;
@@ -430,6 +432,35 @@ namespace ImageSharp.Tests
             destBlock.CopyTo(actualDest);
 
             Assert.Equal(actualDest.Data, expectedDest.Data, new ApproximateFloatComparer(1f));
+        }
+
+        [Theory]
+        [InlineData(1)]
+        [InlineData(2)]
+        public unsafe void UnzigDivRound(int seed)
+        {
+            Block8x8F block = new Block8x8F();
+            block.LoadFrom(Create8x8RandomFloatData(-2000, 2000, seed));
+
+            Block8x8F qt = new Block8x8F();
+            qt.LoadFrom(Create8x8RandomFloatData(-2000, 2000, seed));
+
+            UnzigData unzig = UnzigData.Create();
+
+            int* expectedResults = stackalloc int[Block8x8F.ScalarCount];
+            ReferenceImplementations.UnZigDivRoundRational(&block, expectedResults, &qt, unzig.Data);
+
+            Block8x8F actualResults = default(Block8x8F);
+
+            Block8x8F.UnzigDivRound(&block, &actualResults, &qt, unzig.Data);
+
+            for (int i = 0; i < Block8x8F.ScalarCount; i++)
+            {
+                int expected = expectedResults[i];
+                int actual = (int)actualResults[i];
+
+                Assert.Equal(expected, actual);
+            }
         }
     }
 }

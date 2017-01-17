@@ -327,10 +327,11 @@ namespace ImageSharp.Formats.Jpg
         }
 
         /// <summary>
-        /// Unzig the elements of src into dest, while dividing them by elements of qt and rounding the values
+        /// Unzig the elements of src into dest, while dividing them by elements of qt and rounding the values.
+        /// Sore the result to the memory area pointed by dest.
         /// </summary>
         /// <param name="src">Source block</param>
-        /// <param name="dest">Destination block</param>
+        /// <param name="dest">Destination block of integers</param>
         /// <param name="qt">Quantization table</param>
         /// <param name="unzigPtr">Pointer to <see cref="UnzigData"/> elements</param>
         // [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -347,6 +348,31 @@ namespace ImageSharp.Formats.Jpg
                 int val = DivideRound(a, b);
                 dest[zig] = val;
             }
+        }
+
+        /// <summary>
+        /// Unzig the elements of block into dest, while dividing them by elements of qt and "pre-rounding" the values.
+        /// To finish the rounding it's enough to (int)-cast these values.
+        /// </summary>
+        /// <param name="block">Source block</param>
+        /// <param name="dest">Destination block</param>
+        /// <param name="qt">The quantization table</param>
+        /// <param name="unzigPtr">Pointer to elements of <see cref="UnzigData"/></param>
+        public static unsafe void UnzigDivRound(
+            Block8x8F* block,
+            Block8x8F* dest,
+            Block8x8F* qt,
+            int* unzigPtr)
+        {
+            float* s = (float*)block;
+            float* d = (float*)dest;
+
+            for (int zig = 0; zig < ScalarCount; zig++)
+            {
+                d[zig] = s[unzigPtr[zig]];
+            }
+
+            DivideRoundAll(ref *dest, ref *qt);
         }
 
         /// <summary>
@@ -390,6 +416,36 @@ namespace ImageSharp.Formats.Jpg
             }
 
             return -((-dividend + (divisor >> 1)) / divisor);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void DivideRoundAll(ref Block8x8F a, ref Block8x8F b)
+        {
+            a.V0L = DivideRound(a.V0L, b.V0L);
+            a.V0R = DivideRound(a.V0R, b.V0R);
+            a.V1L = DivideRound(a.V1L, b.V1L);
+            a.V1R = DivideRound(a.V1R, b.V1R);
+            a.V2L = DivideRound(a.V2L, b.V2L);
+            a.V2R = DivideRound(a.V2R, b.V2R);
+            a.V3L = DivideRound(a.V3L, b.V3L);
+            a.V3R = DivideRound(a.V3R, b.V3R);
+            a.V4L = DivideRound(a.V4L, b.V4L);
+            a.V4R = DivideRound(a.V4R, b.V4R);
+            a.V5L = DivideRound(a.V5L, b.V5L);
+            a.V5R = DivideRound(a.V5R, b.V5R);
+            a.V6L = DivideRound(a.V6L, b.V6L);
+            a.V6R = DivideRound(a.V6R, b.V6R);
+            a.V7L = DivideRound(a.V7L, b.V7L);
+            a.V7R = DivideRound(a.V7R, b.V7R);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static Vector4 DivideRound(Vector4 dividend, Vector4 divisor)
+        {
+            Vector4 sign = Vector4.Min(dividend, Vector4.One);
+            sign = Vector4.Max(sign, new Vector4(-1));
+
+            return (dividend / divisor) + (sign * new Vector4(0.5f));
         }
     }
 }

@@ -96,7 +96,6 @@
             Block8x8F bDividend = this.inputDividend;
             Block8x8F bDivisor = this.inputDivisior;
             float* pDividend = (float*)&bDividend;
-            float* pDivisor = (float*)&bDivisor;
 
             for (int cnt = 0; cnt < ExecutionCount; cnt++)
             {

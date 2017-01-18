@@ -310,22 +310,22 @@ namespace ImageSharp.Formats
                     int b = data[2];
 
                     // Speed up the algorithm by removing floating point calculation
-                    // Scale by 1024, add .5F and truncate value. We use bit shifting to divide the result
-                    int y0 = 306 * r; // (0.299F * 1024) + .5F
-                    int y1 = 601 * g; // (0.587F * 1024) + .5F
-                    int y2 = 117 * b; // (0.114F * 1024) + .5F
+                    // Scale by 65536, add .5F and truncate value. We use bit shifting to divide the result
+                    int y0 = 19595 * r; // (0.299F * 65536) + .5F
+                    int y1 = 38470 * g; // (0.587F * 65536) + .5F
+                    int y2 = 7471 * b; // (0.114F * 65536) + .5F
 
-                    int cb0 = -172 * r; // (-0.168736F * 1024) + .5F
-                    int cb1 = 339 * g; // (0.331264F * 1024) + .5F
-                    int cb2 = 512 * b; // (0.5F * 1024) + .5F
+                    int cb0 = -11057 * r; // (-0.168736F * 65536) + .5F
+                    int cb1 = 21710 * g; // (0.331264F * 65536) + .5F
+                    int cb2 = 32768 * b; // (0.5F * 65536) + .5F
 
-                    int cr0 = 512 * r; // (0.5F * 1024) + .5F
-                    int cr1 = 429 * g; // (0.418688F * 1024) + .5F
-                    int cr2 = 83 * b; // (0.081312F * 1024) + .5F
+                    int cr0 = 32768 * r; // (0.5F * 65536) + .5F
+                    int cr1 = 27439 * g; // (0.418688F * 65536) + .5F
+                    int cr2 = 5329 * b; // (0.081312F * 65536) + .5F
 
-                    float yy = (y0 + y1 + y2) >> 10;
-                    float cb = 128 + ((cb0 - cb1 + cb2) >> 10);
-                    float cr = 128 + ((cr0 - cr1 - cr2) >> 10);
+                    float yy = (y0 + y1 + y2) >> 16;
+                    float cb = 128 + ((cb0 - cb1 + cb2) >> 16);
+                    float cr = 128 + ((cr0 - cr1 - cr2) >> 16);
 
                     int index = j8 + i;
 

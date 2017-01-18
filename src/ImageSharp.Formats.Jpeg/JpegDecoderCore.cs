@@ -607,15 +607,15 @@ namespace ImageSharp.Formats
             int ccr = cr - 128;
 
             // Speed up the algorithm by removing floating point calculation
-            // Scale by 1024, add .5F and truncate value. We use bit shifting to divide the result
-            int r0 = 1436 * ccr; // (1.402F * 1024) + .5F
-            int g0 = 352 * ccb; // (0.34414F * 1024) + .5F
-            int g1 = 731 * ccr; // (0.71414F  * 1024) + .5F
-            int b0 = 1815 * ccb; // (1.772F * 1024) + .5F
+            // Scale by 65536, add .5F and truncate value. We use bit shifting to divide the result
+            int r0 = 91881 * ccr; // (1.402F * 65536) + .5F
+            int g0 = 22554 * ccb; // (0.34414F * 65536) + .5F
+            int g1 = 46802 * ccr; // (0.71414F  * 65536) + .5F
+            int b0 = 116130 * ccb; // (1.772F * 65536) + .5F
 
-            byte r = (byte)(y + (r0 >> 10)).Clamp(0, 255);
-            byte g = (byte)(y - (g0 >> 10) - (g1 >> 10)).Clamp(0, 255);
-            byte b = (byte)(y + (b0 >> 10)).Clamp(0, 255);
+            byte r = (byte)(y + (r0 >> 16)).Clamp(0, 255);
+            byte g = (byte)(y - (g0 >> 16) - (g1 >> 16)).Clamp(0, 255);
+            byte b = (byte)(y + (b0 >> 16)).Clamp(0, 255);
             packed.PackFromBytes(r, g, b, 255);
         }
 
@@ -962,16 +962,16 @@ namespace ImageSharp.Formats
             int ccr = cr - 128;
 
             // Speed up the algorithm by removing floating point calculation
-            // Scale by 1024, add .5F and truncate value. We use bit shifting to divide the result
-            int r0 = 1436 * ccr; // (1.402F * 1024) + .5F
-            int g0 = 352 * ccb; // (0.34414F * 1024) + .5F
-            int g1 = 731 * ccr; // (0.71414F  * 1024) + .5F
-            int b0 = 1815 * ccb; // (1.772F * 1024) + .5F
+            // Scale by 65536, add .5F and truncate value. We use bit shifting to divide the result
+            int r0 = 91881 * ccr; // (1.402F * 65536) + .5F
+            int g0 = 22554 * ccb; // (0.34414F * 65536) + .5F
+            int g1 = 46802 * ccr; // (0.71414F  * 65536) + .5F
+            int b0 = 116130 * ccb; // (1.772F * 65536) + .5F
 
             // First convert from YCbCr to CMY
-            float cyan = (y + (r0 >> 10)).Clamp(0, 255) / 255F;
-            float magenta = (byte)(y - (g0 >> 10) - (g1 >> 10)).Clamp(0, 255) / 255F;
-            float yellow = (byte)(y + (b0 >> 10)).Clamp(0, 255) / 255F;
+            float cyan = (y + (r0 >> 16)).Clamp(0, 255) / 255F;
+            float magenta = (byte)(y - (g0 >> 16) - (g1 >> 16)).Clamp(0, 255) / 255F;
+            float yellow = (byte)(y + (b0 >> 16)).Clamp(0, 255) / 255F;
 
             // Get keyline
             float keyline = (255 - this.blackImage[xx, yy]) / 255F;

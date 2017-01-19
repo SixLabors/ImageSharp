@@ -24,12 +24,12 @@ namespace ImageSharp
         public static byte Clamp(this byte value, byte min, byte max)
         {
             // Order is important here as someone might set min to higher than max.
-            if (value > max)
+            if (value >= max)
             {
                 return max;
             }
 
-            if (value < min)
+            if (value <= min)
             {
                 return min;
             }
@@ -48,12 +48,12 @@ namespace ImageSharp
         /// </returns>
         public static uint Clamp(this uint value, uint min, uint max)
         {
-            if (value > max)
+            if (value >= max)
             {
                 return max;
             }
 
-            if (value < min)
+            if (value <= min)
             {
                 return min;
             }
@@ -72,12 +72,12 @@ namespace ImageSharp
         /// </returns>
         public static int Clamp(this int value, int min, int max)
         {
-            if (value > max)
+            if (value >= max)
             {
                 return max;
             }
 
-            if (value < min)
+            if (value <= min)
             {
                 return min;
             }
@@ -96,12 +96,12 @@ namespace ImageSharp
         /// </returns>
         public static float Clamp(this float value, float min, float max)
         {
-            if (value > max)
+            if (value >= max)
             {
                 return max;
             }
 
-            if (value < min)
+            if (value <= min)
             {
                 return min;
             }
@@ -120,12 +120,12 @@ namespace ImageSharp
         /// </returns>
         public static double Clamp(this double value, double min, double max)
         {
-            if (value > max)
+            if (value >= max)
             {
                 return max;
             }
 
-            if (value < min)
+            if (value <= min)
             {
                 return min;
             }

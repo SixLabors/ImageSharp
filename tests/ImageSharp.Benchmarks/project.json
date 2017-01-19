@@ -48,7 +48,7 @@
     "ImageSharp.Benchmarks": "ImageSharp.Benchmarks"
   },
   "frameworks": {
-    "net461": {
+    "net46": {
       "dependencies": {
       },
       "frameworkAssemblies": {

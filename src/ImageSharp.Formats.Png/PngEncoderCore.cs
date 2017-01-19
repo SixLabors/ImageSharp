@@ -362,25 +362,35 @@ namespace ImageSharp.Formats
         private byte[] GetOptimalFilteredScanline(byte[] rawScanline, byte[] previousScanline, byte[] result)
         {
             // Palette images don't compress well with adaptive filtering.
-            if (this.PngColorType == PngColorType.Palette)
+            if (this.PngColorType == PngColorType.Palette || this.bitDepth < 8)
             {
                 NoneFilter.Encode(rawScanline, result);
                 return result;
             }
 
-            SubFilter.Encode(rawScanline, this.sub, this.bytesPerPixel);
-            int currentSum = this.CalculateTotalVariation(this.sub, int.MaxValue);
-            int lowestSum = currentSum;
-
-            result = this.sub;
-
+            // This order, while different to the enumerated order is more likely to produce a smaller sum
+            // early on which shaves a couple of milliseconds off the processing time.
             UpFilter.Encode(rawScanline, previousScanline, this.up);
-            currentSum = this.CalculateTotalVariation(this.up, currentSum);
+            int currentSum = this.CalculateTotalVariation(this.up, int.MaxValue);
+            int lowestSum = currentSum;
+            result = this.up;
+
+            PaethFilter.Encode(rawScanline, previousScanline, this.paeth, this.bytesPerPixel);
+            currentSum = this.CalculateTotalVariation(this.paeth, currentSum);
 
             if (currentSum < lowestSum)
             {
                 lowestSum = currentSum;
-                result = this.up;
+                result = this.paeth;
+            }
+
+            SubFilter.Encode(rawScanline, this.sub, this.bytesPerPixel);
+            currentSum = this.CalculateTotalVariation(this.sub, int.MaxValue);
+
+            if (currentSum < lowestSum)
+            {
+                lowestSum = currentSum;
+                result = this.sub;
             }
 
             AverageFilter.Encode(rawScanline, previousScanline, this.average, this.bytesPerPixel);
@@ -388,16 +398,7 @@ namespace ImageSharp.Formats
 
             if (currentSum < lowestSum)
             {
-                lowestSum = currentSum;
                 result = this.average;
-            }
-
-            PaethFilter.Encode(rawScanline, previousScanline, this.paeth, this.bytesPerPixel);
-            currentSum = this.CalculateTotalVariation(this.paeth, currentSum);
-
-            if (currentSum < lowestSum)
-            {
-                result = this.paeth;
             }
 
             return result;

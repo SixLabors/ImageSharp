@@ -79,9 +79,9 @@ namespace ImageSharp.Formats
         private static byte PaethPredicator(byte left, byte above, byte upperLeft)
         {
             int p = left + above - upperLeft;
-            int pa = Math.Abs(p - left);
-            int pb = Math.Abs(p - above);
-            int pc = Math.Abs(p - upperLeft);
+            int pa = ImageMaths.FastAbs(p - left);
+            int pb = ImageMaths.FastAbs(p - above);
+            int pc = ImageMaths.FastAbs(p - upperLeft);
 
             if (pa <= pb && pa <= pc)
             {

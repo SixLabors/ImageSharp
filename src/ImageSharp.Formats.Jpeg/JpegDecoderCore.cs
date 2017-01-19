@@ -80,14 +80,9 @@ namespace ImageSharp.Formats
         private YCbCrImage ycbcrImage;
 
         /// <summary>
-        /// The MCU target
+        /// The MCU counter
         /// </summary>
-        private int mcuTarget;
-
-        /// <summary>
-        /// The MCUs processed
-        /// </summary>
-        private int mcusProcessed;
+        private int mcuCounter;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="JpegDecoderCore" /> class.
@@ -197,7 +192,10 @@ namespace ImageSharp.Formats
             }
 
             // Process the remaining segments until the End Of Image marker.
-            while (this.mcuTarget < 1 || this.mcuTarget != this.mcusProcessed)
+            bool mcuSet = false;
+
+            // we can't currently short circute progressive images so don't try.
+            while (this.IsProgressive || !mcuSet || this.mcuCounter > 0)
             {
                 this.ReadFull(this.Temp, 0, 2);
                 while (this.Temp[0] != 0xff)
@@ -304,6 +302,9 @@ namespace ImageSharp.Formats
                             return;
                         }
 
+                        // when this is a progressive image this gets called a number of times
+                        // need to know how many times this should be called in total.
+                        mcuSet = true;
                         this.ProcessStartOfScan(remaining);
                         break;
                     case JpegConstants.Markers.DRI:
@@ -874,7 +875,6 @@ namespace ImageSharp.Formats
         /// <param name="myy">The vertical MCU count</param>
         private void MakeImage(int mxx, int myy)
         {
-            this.mcuTarget = mxx * myy;
             if (this.grayImage.IsInitialized || this.ycbcrImage != null)
             {
                 return;
@@ -1406,7 +1406,9 @@ namespace ImageSharp.Formats
             JpegScanDecoder.Init(&scan, this, remaining);
             this.Bits = default(Bits);
             this.MakeImage(scan.XNumberOfMCUs, scan.YNumberOfMCUs);
-            this.mcusProcessed += scan.ProcessBlocks(this);
+
+            this.mcuCounter = scan.XNumberOfMCUs * scan.YNumberOfMCUs;
+            this.mcuCounter -= scan.ProcessBlocks(this);
         }
 
         /// <summary>

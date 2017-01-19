@@ -28,11 +28,13 @@ namespace ImageSharp.Tests
 
         [Theory]
         [WithFile(TestImages.Jpeg.BadEOF, PixelTypes.Color)]
+        [WithFile(TestImages.Jpeg.Progress, PixelTypes.Color)]
         public void LoadImage<TColor>(TestImageProvider<TColor> provider)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             var image = provider.GetImage();
             Assert.NotNull(image);
+            provider.Utility.SaveTestOutputFile(image, "bmp");
         }
     }
 }

@@ -118,7 +118,8 @@ namespace ImageSharp.Formats.Jpg
         /// Reads the blocks from the <see cref="JpegDecoderCore"/>-s stream, and processes them into the corresponding <see cref="JpegPixelArea"/> instances.
         /// </summary>
         /// <param name="decoder">The <see cref="JpegDecoderCore"/> instance</param>
-        public void ProcessBlocks(JpegDecoderCore decoder)
+        /// <returns>MCUs processed</returns>
+        public int ProcessBlocks(JpegDecoderCore decoder)
         {
             int blockCount = 0;
             int mcu = 0;
@@ -229,6 +230,8 @@ namespace ImageSharp.Formats.Jpg
 
                 // for mx
             }
+
+            return mcu;
         }
 
         private void ResetDc()

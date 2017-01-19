@@ -11,26 +11,54 @@ namespace ImageSharp.Benchmarks.General
 
     public class Clamp
     {
+        [Params(-1, 0, 255, 256)]
+        public int Value { get; set; }
+
         [Benchmark(Baseline = true, Description = "Maths Clamp")]
         public byte ClampMaths()
         {
-            double value = 256;
+            int value = this.Value;
             return (byte)Math.Min(Math.Max(0, value), 255);
         }
 
         [Benchmark(Description = "No Maths Clamp")]
         public byte ClampNoMaths()
         {
-            double value = 256;
-            value = (value > 255) ? 255 : value;
-            value = (value < 0) ? 0 : value;
-            return (byte)value;
+            int value = this.Value;
+            value = value >= 255 ? 255 : value;
+            return (byte)(value <= 0 ? 0 : value);
+        }
+
+        [Benchmark(Description = "No Maths No Equals Clamp")]
+        public byte ClampNoMathsNoEquals()
+        {
+            int value = this.Value;
+            value = value > 255 ? 255 : value;
+            return (byte)(value < 0 ? 0 : value);
         }
 
         [Benchmark(Description = "No Maths Clamp No Ternary")]
         public byte ClampNoMathsNoTernary()
         {
-            double value = 256;
+            int value = this.Value;
+
+            if (value >= 255)
+            {
+                return 255;
+            }
+
+            if (value <= 0)
+            {
+                return 0;
+            }
+
+            return (byte)value;
+        }
+
+        [Benchmark(Description = "No Maths No Equals Clamp No Ternary")]
+        public byte ClampNoMathsEqualsNoTernary()
+        {
+            int value = this.Value;
 
             if (value > 255)
             {

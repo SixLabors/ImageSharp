@@ -369,33 +369,33 @@ namespace ImageSharp.Formats
             }
 
             SubFilter.Encode(rawScanline, this.sub, this.bytesPerPixel);
-            int currentTotalVariation = this.CalculateTotalVariation(this.sub);
-            int lowestTotalVariation = currentTotalVariation;
+            int currentSum = this.CalculateTotalVariation(this.sub, int.MaxValue);
+            int lowestSum = currentSum;
 
             result = this.sub;
 
             UpFilter.Encode(rawScanline, previousScanline, this.up);
-            currentTotalVariation = this.CalculateTotalVariation(this.up);
+            currentSum = this.CalculateTotalVariation(this.up, currentSum);
 
-            if (currentTotalVariation < lowestTotalVariation)
+            if (currentSum < lowestSum)
             {
-                lowestTotalVariation = currentTotalVariation;
+                lowestSum = currentSum;
                 result = this.up;
             }
 
             AverageFilter.Encode(rawScanline, previousScanline, this.average, this.bytesPerPixel);
-            currentTotalVariation = this.CalculateTotalVariation(this.average);
+            currentSum = this.CalculateTotalVariation(this.average, currentSum);
 
-            if (currentTotalVariation < lowestTotalVariation)
+            if (currentSum < lowestSum)
             {
-                lowestTotalVariation = currentTotalVariation;
+                lowestSum = currentSum;
                 result = this.average;
             }
 
             PaethFilter.Encode(rawScanline, previousScanline, this.paeth, this.bytesPerPixel);
-            currentTotalVariation = this.CalculateTotalVariation(this.paeth);
+            currentSum = this.CalculateTotalVariation(this.paeth, currentSum);
 
-            if (currentTotalVariation < lowestTotalVariation)
+            if (currentSum < lowestSum)
             {
                 result = this.paeth;
             }
@@ -408,17 +408,25 @@ namespace ImageSharp.Formats
         /// neighbor differences.
         /// </summary>
         /// <param name="scanline">The scanline bytes</param>
+        /// <param name="lastSum">The last variation sum</param>
         /// <returns>The <see cref="int"/></returns>
-        private int CalculateTotalVariation(byte[] scanline)
+        private int CalculateTotalVariation(byte[] scanline, int lastSum)
         {
-            int totalVariation = 0;
+            int sum = 0;
 
             for (int i = 1; i < scanline.Length; i++)
             {
-                totalVariation += Math.Abs(scanline[i] - scanline[i - 1]);
+                byte v = scanline[i];
+                sum += v < 128 ? v : 256 - v;
+
+                // No point continuing if we are larger.
+                if (sum > lastSum)
+                {
+                    break;
+                }
             }
 
-            return totalVariation;
+            return sum;
         }
 
         /// <summary>

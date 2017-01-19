@@ -8,12 +8,26 @@ namespace ImageSharp
     using System;
     using System.Linq;
     using System.Numerics;
+    using System.Runtime.CompilerServices;
 
     /// <summary>
     /// Provides common mathematical methods.
     /// </summary>
     internal static class ImageMaths
     {
+        /// <summary>
+        /// Returns the absolute value of a 32-bit signed integer. Uses bit shifting to speed up the operation.
+        /// </summary>
+        /// <param name="x">
+        /// A number that is greater than <see cref="int.MinValue"/>, but less than or equal to <see cref="int.MaxValue"/>
+        /// </param>
+        /// <returns>The <see cref="int"/></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int FastAbs(int x)
+        {
+            return (x ^ (x >> 31)) - (x >> 31);
+        }
+
         /// <summary>
         /// Returns how many bits are required to store the specified number of colors.
         /// Performs a Log2() on the value.
@@ -273,6 +287,7 @@ namespace ImageSharp
         /// <returns>
         /// The <see cref="float"/>
         /// </returns>.
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static float Clean(float x)
         {
             if (Math.Abs(x) < Constants.Epsilon)

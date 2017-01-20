@@ -80,11 +80,6 @@ namespace ImageSharp.Formats
         private YCbCrImage ycbcrImage;
 
         /// <summary>
-        /// The MCU counter
-        /// </summary>
-        private int mcuCounter;
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="JpegDecoderCore" /> class.
         /// </summary>
         public JpegDecoderCore()
@@ -192,10 +187,10 @@ namespace ImageSharp.Formats
             }
 
             // Process the remaining segments until the End Of Image marker.
-            bool mcuSet = false;
+            bool processBytes = true;
 
             // we can't currently short circute progressive images so don't try.
-            while (this.IsProgressive || !mcuSet || this.mcuCounter > 0)
+            while (processBytes)
             {
                 this.ReadFull(this.Temp, 0, 2);
                 while (this.Temp[0] != 0xff)
@@ -304,8 +299,13 @@ namespace ImageSharp.Formats
 
                         // when this is a progressive image this gets called a number of times
                         // need to know how many times this should be called in total.
-                        mcuSet = true;
                         this.ProcessStartOfScan(remaining);
+                        if (!this.IsProgressive)
+                        {
+                            // if this is not a progressive image we can stop processing bytes as we now have the image data.
+                            processBytes = false;
+                        }
+
                         break;
                     case JpegConstants.Markers.DRI:
                         if (configOnly)
@@ -1406,9 +1406,7 @@ namespace ImageSharp.Formats
             JpegScanDecoder.Init(&scan, this, remaining);
             this.Bits = default(Bits);
             this.MakeImage(scan.XNumberOfMCUs, scan.YNumberOfMCUs);
-
-            this.mcuCounter = scan.XNumberOfMCUs * scan.YNumberOfMCUs;
-            this.mcuCounter -= scan.ProcessBlocks(this);
+            scan.ProcessBlocks(this);
         }
 
         /// <summary>

@@ -29,5 +29,13 @@
             int x = this.X;
             return (x ^ (x >> 31)) - (x >> 31);
         }
+
+        [Benchmark(Description = "Bitwise Abs With Variable")]
+        public int AbsBitwiseVer()
+        {
+            int x = this.X;
+            int y = x >> 31;
+            return (x ^ y) - y;
+        }
     }
 }

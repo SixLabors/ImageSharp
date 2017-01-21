@@ -15,7 +15,8 @@ namespace ImageSharp.Tests
         public static string[] BaselineTestJpegs =
             {
                 TestImages.Jpeg.Baseline.Calliphora, TestImages.Jpeg.Baseline.Cmyk,
-                TestImages.Jpeg.Baseline.Jpeg400, TestImages.Jpeg.Baseline.Jpeg444
+                TestImages.Jpeg.Baseline.Jpeg400, TestImages.Jpeg.Baseline.Jpeg444,
+                TestImages.Jpeg.Baseline.Testimgorig
             };
 
         public static string[] ProgressiveTestJpegs = TestImages.Jpeg.Progressive.All;

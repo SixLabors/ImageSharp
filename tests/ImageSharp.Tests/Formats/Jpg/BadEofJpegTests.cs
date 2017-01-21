@@ -28,8 +28,17 @@ namespace ImageSharp.Tests
 
         [Theory]
         [WithFile(TestImages.Jpeg.Baseline.Bad.MissingEOF, PixelTypes.Color)]
-        [WithFile(TestImages.Jpeg.Progressive.Progress, PixelTypes.Color)]
         public void LoadBaselineImage<TColor>(TestImageProvider<TColor> provider)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
+        {
+            var image = provider.GetImage();
+            Assert.NotNull(image);
+            provider.Utility.SaveTestOutputFile(image, "bmp");
+        }
+
+        // [Theory] // TODO: #18
+        [WithFile(TestImages.Jpeg.Progressive.Bad.BadEOF, PixelTypes.Color)]
+        public void LoadProgressiveImage<TColor>(TestImageProvider<TColor> provider)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             var image = provider.GetImage();

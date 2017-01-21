@@ -27,10 +27,10 @@ namespace ImageSharp.Tests
         }
 
         [Theory]
-        [WithFile(TestImages.Jpeg.Snake, PixelTypes.StandardImageClass, 75, JpegSubsample.Ratio420)]
-        [WithFile(TestImages.Jpeg.Lake, PixelTypes.StandardImageClass, 75, JpegSubsample.Ratio420)]
-        [WithFile(TestImages.Jpeg.Snake, PixelTypes.StandardImageClass, 75, JpegSubsample.Ratio444)]
-        [WithFile(TestImages.Jpeg.Lake, PixelTypes.StandardImageClass, 75, JpegSubsample.Ratio444)]
+        [WithFile(TestImages.Jpeg.Baseline.Snake, PixelTypes.StandardImageClass, 75, JpegSubsample.Ratio420)]
+        [WithFile(TestImages.Jpeg.Baseline.Lake, PixelTypes.StandardImageClass, 75, JpegSubsample.Ratio420)]
+        [WithFile(TestImages.Jpeg.Baseline.Snake, PixelTypes.StandardImageClass, 75, JpegSubsample.Ratio444)]
+        [WithFile(TestImages.Jpeg.Baseline.Lake, PixelTypes.StandardImageClass, 75, JpegSubsample.Ratio444)]
         public void LoadResizeSave<TColor>(TestImageProvider<TColor> provider, int quality, JpegSubsample subsample)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
@@ -58,7 +58,7 @@ namespace ImageSharp.Tests
         public void Encoder_Benchmark(int executionCount, int quality, JpegSubsample subsample)
         {
             string[] testFiles = TestImages.Bmp.All
-                .Concat(new[] { TestImages.Jpeg.Calliphora, TestImages.Jpeg.Cmyk })
+                .Concat(new[] { TestImages.Jpeg.Baseline.Calliphora, TestImages.Jpeg.Baseline.Cmyk })
                 .ToArray();
 
             Image<Color>[] testImages =
@@ -84,7 +84,7 @@ namespace ImageSharp.Tests
             }
         }
 
-        public static IEnumerable<string> AllJpegFiles => TestImages.Jpeg.All;
+        public static IEnumerable<string> AllJpegFiles => TestImages.Jpeg.Baseline.All;
 
         [Theory]
         [WithFileCollection(nameof(AllJpegFiles), PixelTypes.Color | PixelTypes.StandardImageClass | PixelTypes.Argb)]
@@ -128,19 +128,19 @@ namespace ImageSharp.Tests
             {
                 TestImages.Bmp.Car, TestImages.Bmp.NegHeight,
                 TestImages.Bmp.F, TestImages.Png.Splash,
-                TestImages.Jpeg.Jpeg420, TestImages.Jpeg.Calliphora,
-                TestImages.Jpeg.Cmyk
+                TestImages.Jpeg.Baseline.Jpeg420, TestImages.Jpeg.Baseline.Calliphora,
+                TestImages.Jpeg.Baseline.Cmyk
             };
 
         private const PixelTypes BenchmarkPixels = PixelTypes.StandardImageClass; //PixelTypes.Color | PixelTypes.Argb;
 
         //[Theory] // Benchmark, enable manually
-        [InlineData(TestImages.Jpeg.Cmyk)]
-        [InlineData(TestImages.Jpeg.Ycck)]
-        [InlineData(TestImages.Jpeg.Calliphora)]
-        [InlineData(TestImages.Jpeg.Jpeg400)]
-        [InlineData(TestImages.Jpeg.Jpeg420)]
-        [InlineData(TestImages.Jpeg.Jpeg444)]
+        [InlineData(TestImages.Jpeg.Baseline.Cmyk)]
+        [InlineData(TestImages.Jpeg.Baseline.Ycck)]
+        [InlineData(TestImages.Jpeg.Baseline.Calliphora)]
+        [InlineData(TestImages.Jpeg.Baseline.Jpeg400)]
+        [InlineData(TestImages.Jpeg.Baseline.Jpeg420)]
+        [InlineData(TestImages.Jpeg.Baseline.Jpeg444)]
         public void Benchmark_JpegDecoder(string fileName)
         {
             string path = TestFile.GetPath(fileName);

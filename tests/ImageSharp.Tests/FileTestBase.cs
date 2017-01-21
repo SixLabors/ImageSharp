@@ -21,13 +21,13 @@ namespace ImageSharp.Tests
             // TestFile.Create(TestImages.Png.P1), // Perf: Enable for local testing only
             // TestFile.Create(TestImages.Png.Pd), // Perf: Enable for local testing only
             // TestFile.Create(TestImages.Jpeg.Floorplan), // Perf: Enable for local testing only
-            TestFile.Create(TestImages.Jpeg.Calliphora),
-            // TestFile.Create(TestImages.Jpeg.Ycck), // Perf: Enable for local testing only
-            // TestFile.Create(TestImages.Jpeg.Cmyk), // Perf: Enable for local testing only
-            TestFile.Create(TestImages.Jpeg.Turtle),
-            // TestFile.Create(TestImages.Jpeg.Fb), // Perf: Enable for local testing only
-            // TestFile.Create(TestImages.Jpeg.Progress), // Perf: Enable for local testing only
-            // TestFile.Create(TestImages.Jpeg.GammaDalaiLamaGray), // Perf: Enable for local testing only
+            TestFile.Create(TestImages.Jpeg.Baseline.Calliphora),
+            // TestFile.Create(TestImages.Jpeg.Baseline.Ycck), // Perf: Enable for local testing only
+            // TestFile.Create(TestImages.Jpeg.Baseline.Cmyk), // Perf: Enable for local testing only
+            TestFile.Create(TestImages.Jpeg.Baseline.Turtle),
+            // TestFile.Create(TestImages.Jpeg.Progressive.Fb), // Perf: Enable for local testing only
+            // TestFile.Create(TestImages.Jpeg.Progressive.Progress), // Perf: Enable for local testing only
+            // TestFile.Create(TestImages.Jpeg.Baseline.GammaDalaiLamaGray), // Perf: Enable for local testing only
             TestFile.Create(TestImages.Bmp.Car),
             // TestFile.Create(TestImages.Bmp.Neg_height), // Perf: Enable for local testing only
             // TestFile.Create(TestImages.Png.Blur), // Perf: Enable for local testing only

@@ -25,7 +25,8 @@ namespace ImageSharp
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int FastAbs(int x)
         {
-            return (x ^ (x >> 31)) - (x >> 31);
+            int y = x >> 31;
+            return (x ^ y) - y;
         }
 
         /// <summary>

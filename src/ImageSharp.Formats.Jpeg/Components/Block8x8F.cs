@@ -377,23 +377,6 @@ namespace ImageSharp.Formats.Jpg
             }
         }
 
-        /// <summary>
-        /// Performs division and rounding of a rational number represented by a dividend and a divisior into an integer.
-        /// </summary>
-        /// <param name="dividend">The dividend</param>
-        /// <param name="divisor">The divisor</param>
-        /// <returns>The result integer</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int DivideRound(int dividend, int divisor)
-        {
-            if (dividend >= 0)
-            {
-                return (dividend + (divisor >> 1)) / divisor;
-            }
-
-            return -((-dividend + (divisor >> 1)) / divisor);
-        }
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void DivideRoundAll(ref Block8x8F a, ref Block8x8F b)
         {
@@ -418,9 +401,11 @@ namespace ImageSharp.Formats.Jpg
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Vector4 DivideRound(Vector4 dividend, Vector4 divisor)
         {
+            // sign(v) = max(min(v, 1), -1)
             Vector4 sign = Vector4.Min(dividend, Vector4.One);
             sign = Vector4.Max(sign, new Vector4(-1));
 
+            // AlmostRound(dividend/divisor) = dividend/divisior + 0.5*sign(dividend)
             return (dividend / divisor) + (sign * new Vector4(0.5f));
         }
     }

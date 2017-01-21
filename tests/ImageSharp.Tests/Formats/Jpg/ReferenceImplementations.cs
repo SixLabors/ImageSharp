@@ -21,7 +21,7 @@ namespace ImageSharp.Tests
     internal static class ReferenceImplementations
     {
         /// <summary>
-        /// Transpose 8x8 block stored linearly in a span (inplace)
+        /// Transpose 8x8 block stored linearly in a <see cref="MutableSpan{T}"/> (inplace)
         /// </summary>
         /// <param name="data"></param>
         internal static void Transpose8x8(MutableSpan<float> data)
@@ -39,7 +39,7 @@ namespace ImageSharp.Tests
         }
 
         /// <summary>
-        /// Transpose 8x8 block stored linearly in a span
+        /// Transpose 8x8 block stored linearly in a  <see cref="MutableSpan{T}"/>
         /// </summary>
         internal static void Transpose8x8(MutableSpan<float> src, MutableSpan<float> dest)
         {
@@ -876,6 +876,14 @@ namespace ImageSharp.Tests
             }
         }
 
+        /// <summary>
+        /// Reference implementation to test <see cref="Block8x8F.UnzigDivRound"/>.
+        /// Rounding is done used an integer-based algorithm defined in <see cref="RationalRound"/>.
+        /// </summary>
+        /// <param name="src">The input block</param>
+        /// <param name="dest">The destination block of integers</param>
+        /// <param name="qt">The quantization table</param>
+        /// <param name="unzigPtr">Pointer to <see cref="UnzigData.Data"/> </param>
         public static unsafe void UnZigDivRoundRational(Block8x8F* src, int* dest, Block8x8F* qt, int* unzigPtr)
         {
             float* s = (float*)src;
@@ -891,6 +899,12 @@ namespace ImageSharp.Tests
             }
         }
 
+        /// <summary>
+        /// Rounds a rational number defined as dividend/divisor into an integer
+        /// </summary>
+        /// <param name="dividend">The dividend</param>
+        /// <param name="divisor">The divisior</param>
+        /// <returns></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int RationalRound(int dividend, int divisor)
         {

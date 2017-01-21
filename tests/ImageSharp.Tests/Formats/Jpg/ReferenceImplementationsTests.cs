@@ -97,13 +97,7 @@ namespace ImageSharp.Tests.Formats.Jpg
                 Assert.Equal(expected, actual, new ApproximateFloatComparer(2f));
             }
         }
-
-        [Fact]
-        public void HowMuchIsTheFish()
-        {
-            Output.WriteLine(Vector<int>.Count.ToString());
-        }
-
+        
         [Theory]
         [InlineData(42)]
         [InlineData(1)]

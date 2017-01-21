@@ -187,7 +187,10 @@ namespace ImageSharp.Formats
             }
 
             // Process the remaining segments until the End Of Image marker.
-            while (true)
+            bool processBytes = true;
+
+            // we can't currently short circute progressive images so don't try.
+            while (processBytes)
             {
                 this.ReadFull(this.Temp, 0, 2);
                 while (this.Temp[0] != 0xff)
@@ -294,7 +297,15 @@ namespace ImageSharp.Formats
                             return;
                         }
 
+                        // when this is a progressive image this gets called a number of times
+                        // need to know how many times this should be called in total.
                         this.ProcessStartOfScan(remaining);
+                        if (!this.IsProgressive)
+                        {
+                            // if this is not a progressive image we can stop processing bytes as we now have the image data.
+                            processBytes = false;
+                        }
+
                         break;
                     case JpegConstants.Markers.DRI:
                         if (configOnly)

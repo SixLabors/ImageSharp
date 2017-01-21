@@ -43,7 +43,6 @@
       "type": "build"
     },
     "System.Buffers": "4.0.0",
-    "System.Numerics.Vectors": "4.1.1",
     "System.Runtime.CompilerServices.Unsafe": "4.0.0"
   },
   "frameworks": {
@@ -55,6 +54,7 @@
         "System.IO": "4.1.0",
         "System.IO.Compression": "4.1.0",
         "System.Linq": "4.1.0",
+        "System.Numerics.Vectors": "4.1.1",
         "System.ObjectModel": "4.0.12",
         "System.Resources.ResourceManager": "4.0.1",
         "System.Runtime.Extensions": "4.1.0",
@@ -68,9 +68,21 @@
     },
     "net45": {
       "dependencies": {
-        "System.Runtime": "4.0.0",
-        "System.IO": "4.0.0",
+        "System.Numerics.Vectors": "4.1.1",
         "System.Threading.Tasks.Parallel": "4.0.0"
+      },
+      "frameworkAssemblies": {
+        "System.Runtime": "4.0.0.0"
+      }
+    },
+    "net461": {
+      "dependencies": {
+        "System.Threading.Tasks.Parallel": "4.0.0"
+      },
+      "frameworkAssemblies": {
+        "System.Runtime": "4.0.20.0",
+        "System.Numerics": "4.0.0.0",
+        "System.Numerics.Vectors": "4.0.0.0"
       }
     }
   }

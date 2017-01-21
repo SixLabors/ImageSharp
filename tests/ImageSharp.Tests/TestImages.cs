@@ -52,7 +52,6 @@ namespace ImageSharp.Tests
             public const string Hiyamugi = "Jpg/Hiyamugi.jpg";
 
             public const string BadEOF = "Jpg/badeof.jpg";
-            public const string BadEOFProgressive = "Jpg/badeofprog.jpg";
             public const string Snake = "Jpg/Snake.jpg";
             public const string Lake = "Jpg/Lake.jpg";
 

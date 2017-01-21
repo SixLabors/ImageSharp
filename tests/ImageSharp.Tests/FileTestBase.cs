@@ -22,11 +22,9 @@ namespace ImageSharp.Tests
             // TestFile.Create(TestImages.Png.Pd), // Perf: Enable for local testing only
             // TestFile.Create(TestImages.Jpeg.Floorplan), // Perf: Enable for local testing only
             TestFile.Create(TestImages.Jpeg.Calliphora),
-            // TestFile.Create(TestImages.Jpeg.BadEOF), // Perf: Enable for local testing only
-            // TestFile.Create(TestImages.Jpeg.BadEOFProgressive),
             // TestFile.Create(TestImages.Jpeg.Ycck), // Perf: Enable for local testing only
             // TestFile.Create(TestImages.Jpeg.Cmyk), // Perf: Enable for local testing only
-            // TestFile.Create(TestImages.Jpeg.Turtle), // Perf: Enable for local testing only
+            TestFile.Create(TestImages.Jpeg.Turtle),
             // TestFile.Create(TestImages.Jpeg.Fb), // Perf: Enable for local testing only
             // TestFile.Create(TestImages.Jpeg.Progress), // Perf: Enable for local testing only
             // TestFile.Create(TestImages.Jpeg.GammaDalaiLamaGray), // Perf: Enable for local testing only
@@ -35,7 +33,7 @@ namespace ImageSharp.Tests
             // TestFile.Create(TestImages.Png.Blur), // Perf: Enable for local testing only
             // TestFile.Create(TestImages.Png.Indexed), // Perf: Enable for local testing only
             TestFile.Create(TestImages.Png.Splash),
-            // TestFile.Create(TestImages.Png.Powerpoint), // Perf: Enable for local testing only
+            TestFile.Create(TestImages.Png.Powerpoint),
             // TestFile.Create(TestImages.Png.SplashInterlaced), // Perf: Enable for local testing only
             // TestFile.Create(TestImages.Png.Interlaced), // Perf: Enable for local testing only
             // TestFile.Create(TestImages.Png.Filter0), // Perf: Enable for local testing only

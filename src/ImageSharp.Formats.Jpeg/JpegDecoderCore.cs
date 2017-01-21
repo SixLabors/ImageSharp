@@ -186,164 +186,162 @@ namespace ImageSharp.Formats
                 throw new ImageFormatException("Missing SOI marker.");
             }
 
-            // Process the remaining segments until the End Of Image marker.
-            bool processBytes = true;
-
-            // we can't currently short circute progressive images so don't try.
-            while (processBytes)
+            while (true)
             {
-                this.ReadFull(this.Temp, 0, 2);
-                while (this.Temp[0] != 0xff)
+                try
                 {
-                    // Strictly speaking, this is a format error. However, libjpeg is
-                    // liberal in what it accepts. As of version 9, next_marker in
-                    // jdmarker.c treats this as a warning (JWRN_EXTRANEOUS_DATA) and
-                    // continues to decode the stream. Even before next_marker sees
-                    // extraneous data, jpeg_fill_bit_buffer in jdhuff.c reads as many
-                    // bytes as it can, possibly past the end of a scan's data. It
-                    // effectively puts back any markers that it overscanned (e.g. an
-                    // "\xff\xd9" EOI marker), but it does not put back non-marker data,
-                    // and thus it can silently ignore a small number of extraneous
-                    // non-marker bytes before next_marker has a chance to see them (and
-                    // print a warning).
-                    // We are therefore also liberal in what we accept. Extraneous data
-                    // is silently ignore
-                    // This is similar to, but not exactly the same as, the restart
-                    // mechanism within a scan (the RST[0-7] markers).
-                    // Note that extraneous 0xff bytes in e.g. SOS data are escaped as
-                    // "\xff\x00", and so are detected a little further down below.
-                    this.Temp[0] = this.Temp[1];
-                    this.Temp[1] = this.ReadByte();
-                }
+                    this.ReadFull(this.Temp, 0, 2);
+                    while (this.Temp[0] != 0xff)
+                    {
+                        // Strictly speaking, this is a format error. However, libjpeg is
+                        // liberal in what it accepts. As of version 9, next_marker in
+                        // jdmarker.c treats this as a warning (JWRN_EXTRANEOUS_DATA) and
+                        // continues to decode the stream. Even before next_marker sees
+                        // extraneous data, jpeg_fill_bit_buffer in jdhuff.c reads as many
+                        // bytes as it can, possibly past the end of a scan's data. It
+                        // effectively puts back any markers that it overscanned (e.g. an
+                        // "\xff\xd9" EOI marker), but it does not put back non-marker data,
+                        // and thus it can silently ignore a small number of extraneous
+                        // non-marker bytes before next_marker has a chance to see them (and
+                        // print a warning).
+                        // We are therefore also liberal in what we accept. Extraneous data
+                        // is silently ignore
+                        // This is similar to, but not exactly the same as, the restart
+                        // mechanism within a scan (the RST[0-7] markers).
+                        // Note that extraneous 0xff bytes in e.g. SOS data are escaped as
+                        // "\xff\x00", and so are detected a little further down below.
+                        this.Temp[0] = this.Temp[1];
+                        this.Temp[1] = this.ReadByte();
+                    }
 
-                byte marker = this.Temp[1];
-                if (marker == 0)
-                {
-                    // Treat "\xff\x00" as extraneous data.
-                    continue;
-                }
+                    byte marker = this.Temp[1];
+                    if (marker == 0)
+                    {
+                        // Treat "\xff\x00" as extraneous data.
+                        continue;
+                    }
 
-                while (marker == 0xff)
-                {
-                    // Section B.1.1.2 says, "Any marker may optionally be preceded by any
-                    // number of fill bytes, which are bytes assigned code X'FF'".
-                    marker = this.ReadByte();
-                }
+                    while (marker == 0xff)
+                    {
+                        // Section B.1.1.2 says, "Any marker may optionally be preceded by any
+                        // number of fill bytes, which are bytes assigned code X'FF'".
+                        marker = this.ReadByte();
+                    }
 
-                // End Of Image.
-                if (marker == JpegConstants.Markers.EOI)
+                    // End Of Image.
+                    if (marker == JpegConstants.Markers.EOI)
+                    {
+                        break;
+                    }
+
+                    if (marker >= JpegConstants.Markers.RST0 && marker <= JpegConstants.Markers.RST7)
+                    {
+                        // Figures B.2 and B.16 of the specification suggest that restart markers should
+                        // only occur between Entropy Coded Segments and not after the final ECS.
+                        // However, some encoders may generate incorrect JPEGs with a final restart
+                        // marker. That restart marker will be seen here instead of inside the ProcessSOS
+                        // method, and is ignored as a harmless error. Restart markers have no extra data,
+                        // so we check for this before we read the 16-bit length of the segment.
+                        continue;
+                    }
+
+                    // Read the 16-bit length of the segment. The value includes the 2 bytes for the
+                    // length itself, so we subtract 2 to get the number of remaining bytes.
+                    this.ReadFull(this.Temp, 0, 2);
+                    int remaining = (this.Temp[0] << 8) + this.Temp[1] - 2;
+                    if (remaining < 0)
+                    {
+                        throw new ImageFormatException("Short segment length.");
+                    }
+
+                    switch (marker)
+                    {
+                        case JpegConstants.Markers.SOF0:
+                        case JpegConstants.Markers.SOF1:
+                        case JpegConstants.Markers.SOF2:
+                            this.IsProgressive = marker == JpegConstants.Markers.SOF2;
+                            this.ProcessStartOfFrameMarker(remaining);
+                            if (configOnly && this.isJfif)
+                            {
+                                return;
+                            }
+
+                            break;
+                        case JpegConstants.Markers.DHT:
+                            if (configOnly)
+                            {
+                                this.Skip(remaining);
+                            }
+                            else
+                            {
+                                this.ProcessDefineHuffmanTablesMarker(remaining);
+                            }
+
+                            break;
+                        case JpegConstants.Markers.DQT:
+                            if (configOnly)
+                            {
+                                this.Skip(remaining);
+                            }
+                            else
+                            {
+                                this.ProcessDqt(remaining);
+                            }
+
+                            break;
+                        case JpegConstants.Markers.SOS:
+                            if (configOnly)
+                            {
+                                return;
+                            }
+
+                            this.ProcessStartOfScan(remaining);
+
+                            break;
+                        case JpegConstants.Markers.DRI:
+                            if (configOnly)
+                            {
+                                this.Skip(remaining);
+                            }
+                            else
+                            {
+                                this.ProcessDefineRestartIntervalMarker(remaining);
+                            }
+
+                            break;
+                        case JpegConstants.Markers.APP0:
+                            this.ProcessApplicationHeader(remaining);
+                            break;
+                        case JpegConstants.Markers.APP1:
+                            this.ProcessApp1Marker(remaining, image);
+                            break;
+                        case JpegConstants.Markers.APP14:
+                            this.ProcessApp14Marker(remaining);
+                            break;
+                        default:
+                            if ((marker >= JpegConstants.Markers.APP0 && marker <= JpegConstants.Markers.APP15)
+                                || marker == JpegConstants.Markers.COM)
+                            {
+                                this.Skip(remaining);
+                            }
+                            else if (marker < JpegConstants.Markers.SOF0)
+                            {
+                                // See Table B.1 "Marker code assignments".
+                                throw new ImageFormatException("Unknown marker");
+                            }
+                            else
+                            {
+                                throw new ImageFormatException("Unknown marker");
+                            }
+
+                            break;
+                    }
+                }
+                catch (EOFException)
                 {
+                    // For non-progressive images this is a simple way to handle a missing EOI
+                    // TODO: For progressive we still have to handle the exception within JpegScanDecoder to include last scan
                     break;
-                }
-
-                if (marker >= JpegConstants.Markers.RST0 && marker <= JpegConstants.Markers.RST7)
-                {
-                    // Figures B.2 and B.16 of the specification suggest that restart markers should
-                    // only occur between Entropy Coded Segments and not after the final ECS.
-                    // However, some encoders may generate incorrect JPEGs with a final restart
-                    // marker. That restart marker will be seen here instead of inside the ProcessSOS
-                    // method, and is ignored as a harmless error. Restart markers have no extra data,
-                    // so we check for this before we read the 16-bit length of the segment.
-                    continue;
-                }
-
-                // Read the 16-bit length of the segment. The value includes the 2 bytes for the
-                // length itself, so we subtract 2 to get the number of remaining bytes.
-                this.ReadFull(this.Temp, 0, 2);
-                int remaining = (this.Temp[0] << 8) + this.Temp[1] - 2;
-                if (remaining < 0)
-                {
-                    throw new ImageFormatException("Short segment length.");
-                }
-
-                switch (marker)
-                {
-                    case JpegConstants.Markers.SOF0:
-                    case JpegConstants.Markers.SOF1:
-                    case JpegConstants.Markers.SOF2:
-                        this.IsProgressive = marker == JpegConstants.Markers.SOF2;
-                        this.ProcessStartOfFrameMarker(remaining);
-                        if (configOnly && this.isJfif)
-                        {
-                            return;
-                        }
-
-                        break;
-                    case JpegConstants.Markers.DHT:
-                        if (configOnly)
-                        {
-                            this.Skip(remaining);
-                        }
-                        else
-                        {
-                            this.ProcessDefineHuffmanTablesMarker(remaining);
-                        }
-
-                        break;
-                    case JpegConstants.Markers.DQT:
-                        if (configOnly)
-                        {
-                            this.Skip(remaining);
-                        }
-                        else
-                        {
-                            this.ProcessDqt(remaining);
-                        }
-
-                        break;
-                    case JpegConstants.Markers.SOS:
-                        if (configOnly)
-                        {
-                            return;
-                        }
-
-                        // when this is a progressive image this gets called a number of times
-                        // need to know how many times this should be called in total.
-                        this.ProcessStartOfScan(remaining);
-                        if (!this.IsProgressive)
-                        {
-                            // if this is not a progressive image we can stop processing bytes as we now have the image data.
-                            processBytes = false;
-                        }
-
-                        break;
-                    case JpegConstants.Markers.DRI:
-                        if (configOnly)
-                        {
-                            this.Skip(remaining);
-                        }
-                        else
-                        {
-                            this.ProcessDefineRestartIntervalMarker(remaining);
-                        }
-
-                        break;
-                    case JpegConstants.Markers.APP0:
-                        this.ProcessApplicationHeader(remaining);
-                        break;
-                    case JpegConstants.Markers.APP1:
-                        this.ProcessApp1Marker(remaining, image);
-                        break;
-                    case JpegConstants.Markers.APP14:
-                        this.ProcessApp14Marker(remaining);
-                        break;
-                    default:
-                        if ((marker >= JpegConstants.Markers.APP0 && marker <= JpegConstants.Markers.APP15)
-                            || marker == JpegConstants.Markers.COM)
-                        {
-                            this.Skip(remaining);
-                        }
-                        else if (marker < JpegConstants.Markers.SOF0)
-                        {
-                            // See Table B.1 "Marker code assignments".
-                            throw new ImageFormatException("Unknown marker");
-                        }
-                        else
-                        {
-                            throw new ImageFormatException("Unknown marker");
-                        }
-
-                        break;
                 }
             }
 

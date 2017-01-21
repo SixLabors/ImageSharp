@@ -38,10 +38,6 @@
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Numerics" />
-    <Reference Include="System.Numerics.Vectors, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\System.Numerics.Vectors.4.1.1\lib\net46\System.Numerics.Vectors.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -67,25 +63,25 @@
   </ItemGroup>
   <ItemGroup>
     <Reference Include="ImageSharp">
-      <HintPath>..\..\src\ImageSharp\bin\$(Configuration)\net45\ImageSharp.dll</HintPath>
+      <HintPath>..\..\src\ImageSharp\bin\$(Configuration)\net461\ImageSharp.dll</HintPath>
     </Reference>
     <Reference Include="ImageSharp.Drawing">
-      <HintPath>..\..\src\ImageSharp.Drawing\bin\$(Configuration)\net45\ImageSharp.Drawing.dll</HintPath>
+      <HintPath>..\..\src\ImageSharp.Drawing\bin\$(Configuration)\net461\ImageSharp.Drawing.dll</HintPath>
     </Reference>
     <Reference Include="ImageSharp.Formats.Bmp">
-      <HintPath>..\..\src\ImageSharp.Formats.Bmp\bin\$(Configuration)\net45\ImageSharp.Formats.Bmp.dll</HintPath>
+      <HintPath>..\..\src\ImageSharp.Formats.Bmp\bin\$(Configuration)\net461\ImageSharp.Formats.Bmp.dll</HintPath>
     </Reference>
     <Reference Include="ImageSharp.Formats.Gif">
-      <HintPath>..\..\src\ImageSharp.Formats.Gif\bin\$(Configuration)\net45\ImageSharp.Formats.Gif.dll</HintPath>
+      <HintPath>..\..\src\ImageSharp.Formats.Gif\bin\$(Configuration)\net461\ImageSharp.Formats.Gif.dll</HintPath>
     </Reference>
     <Reference Include="ImageSharp.Formats.Jpeg">
-      <HintPath>..\..\src\ImageSharp.Formats.Jpeg\bin\$(Configuration)\net45\ImageSharp.Formats.Jpeg.dll</HintPath>
+      <HintPath>..\..\src\ImageSharp.Formats.Jpeg\bin\$(Configuration)\net461\ImageSharp.Formats.Jpeg.dll</HintPath>
     </Reference>
     <Reference Include="ImageSharp.Formats.Png">
-      <HintPath>..\..\src\ImageSharp.Formats.Png\bin\$(Configuration)\net45\ImageSharp.Formats.Png.dll</HintPath>
+      <HintPath>..\..\src\ImageSharp.Formats.Png\bin\$(Configuration)\net461\ImageSharp.Formats.Png.dll</HintPath>
     </Reference>
     <Reference Include="ImageSharp.Processing">
-      <HintPath>..\..\src\ImageSharp.Processing\bin\$(Configuration)\net45\ImageSharp.Processing.dll</HintPath>
+      <HintPath>..\..\src\ImageSharp.Processing\bin\$(Configuration)\net461\ImageSharp.Processing.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>

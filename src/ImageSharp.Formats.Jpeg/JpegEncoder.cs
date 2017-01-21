@@ -63,7 +63,13 @@ namespace ImageSharp.Formats
         /// <inheritdoc/>
         public void Encode<TColor>(Image<TColor> image, Stream stream)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
-                    {
+        {
+            // Ensure that quality can be set but has a fallback.
+            if (image.Quality > 0)
+            {
+                this.Quality = image.Quality;
+            }
+
             JpegEncoderCore encode = new JpegEncoderCore();
             if (this.subsampleSet)
             {
@@ -71,8 +77,8 @@ namespace ImageSharp.Formats
             }
             else
             {
-                // Match Photoshop and use 4:2:0 SUpsampling at quality < 51%
-                encode.Encode(image, stream, this.Quality, this.Quality >= 51 ? JpegSubsample.Ratio444 : JpegSubsample.Ratio420);
+                // Use 4:2:0 Subsampling at quality < 91% for reduced filesize.
+                encode.Encode(image, stream, this.Quality, this.Quality >= 91 ? JpegSubsample.Ratio444 : JpegSubsample.Ratio420);
             }
         }
     }

@@ -34,7 +34,7 @@ namespace ImageSharp.Tests
         public void LoadResizeSave<TColor>(TestImageProvider<TColor> provider, int quality, JpegSubsample subsample)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            var image = provider.GetImage()
+            Image<TColor> image = provider.GetImage()
                 .Resize(new ResizeOptions
                 {
                     Size = new Size(150, 100),
@@ -61,7 +61,7 @@ namespace ImageSharp.Tests
                 .Concat(new[] { TestImages.Jpeg.Calliphora, TestImages.Jpeg.Cmyk })
                 .ToArray();
 
-            var testImages =
+            Image<Color>[] testImages =
                 testFiles.Select(
                         tf => TestImageProvider<Color>.File(tf, pixelTypeOverride: PixelTypes.StandardImageClass).GetImage())
                     .ToArray();
@@ -91,7 +91,7 @@ namespace ImageSharp.Tests
         public void OpenJpeg_SaveBmp<TColor>(TestImageProvider<TColor> provider)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            var image = provider.GetImage();
+            Image<TColor> image = provider.GetImage();
 
             provider.Utility.SaveTestOutputFile(image, "bmp");
         }
@@ -105,9 +105,9 @@ namespace ImageSharp.Tests
         public void OpenBmp_SaveJpeg<TColor>(TestImageProvider<TColor> provider, JpegSubsample subSample, int quality)
            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            var image = provider.GetImage();
+            Image<TColor> image = provider.GetImage();
 
-            var utility = provider.Utility;
+            ImagingTestCaseUtility utility = provider.Utility;
             utility.TestName += "_" + subSample + "_Q" + quality;
 
             using (var outputStream = File.OpenWrite(utility.GetTestOutputFileName("jpg")))
@@ -152,6 +152,7 @@ namespace ImageSharp.Tests
                     {
                         Image img = new Image(bytes);
                     },
+                // ReSharper disable once ExplicitCallerInfoArgument
                 $"Decode {fileName}");
 
         }
@@ -162,11 +163,11 @@ namespace ImageSharp.Tests
         public void Benchmark_JpegEncoder<TColor>(TestImageProvider<TColor> provider, JpegSubsample subSample, int quality)
            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            var image = provider.GetImage();
+            Image<TColor> image = provider.GetImage();
 
             using (var outputStream = new MemoryStream())
             {
-                var encoder = new JpegEncoder()
+                JpegEncoder encoder = new JpegEncoder()
                 {
                     Subsample = subSample,
                     Quality = quality
@@ -185,7 +186,7 @@ namespace ImageSharp.Tests
         {
             Image<TColor> image = factory.CreateImage(10, 10);
 
-            using (var pixels = image.Lock())
+            using (PixelAccessor<TColor> pixels = image.Lock())
             {
                 for (int i = 0; i < 10; i++)
                 {
@@ -208,10 +209,10 @@ namespace ImageSharp.Tests
         public void CopyStretchedRGBTo_FromOrigo<TColor>(TestImageProvider<TColor> provider)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            var src = provider.GetImage();
+            Image<TColor> src = provider.GetImage();
 
             PixelArea<TColor> area = new PixelArea<TColor>(8, 8, ComponentOrder.Xyz);
-            var dest = provider.Factory.CreateImage(8, 8);
+            Image<TColor> dest = provider.Factory.CreateImage(8, 8);
 
             using (var s = src.Lock())
             {
@@ -233,12 +234,12 @@ namespace ImageSharp.Tests
         public void CopyStretchedRGBTo_WithOffset<TColor>(TestImageProvider<TColor> provider)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            var src = provider.GetImage();
+            Image<TColor> src = provider.GetImage();
 
             PixelArea<TColor> area = new PixelArea<TColor>(8, 8, ComponentOrder.Xyz);
-            var dest = provider.Factory.CreateImage(8, 8);
+            Image<TColor> dest = provider.Factory.CreateImage(8, 8);
 
-            using (var s = src.Lock())
+            using (PixelAccessor<TColor> s = src.Lock())
             {
                 using (var d = dest.Lock())
                 {

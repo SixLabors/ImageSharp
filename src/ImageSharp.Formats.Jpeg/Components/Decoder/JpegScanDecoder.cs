@@ -356,11 +356,21 @@ namespace ImageSharp.Formats.Jpg
                         throw new ImageFormatException("Excessive DC component");
                     }
 
-                    int deltaDC = decoder.Bits.ReceiveExtend(value, decoder);
-                    this.pointers.Dc[compIndex] += deltaDC;
+                    // TODO: Handle the EOFException and piece together the final progressive scan.
+                    try
+                    {
+                        int deltaDC = decoder.Bits.ReceiveExtend(value, decoder);
+                        this.pointers.Dc[compIndex] += deltaDC;
 
-                    // b[0] = dc[compIndex] << al;
-                    Block8x8F.SetScalarAt(b, 0, this.pointers.Dc[compIndex] << this.al);
+                        // b[0] = dc[compIndex] << al;
+                        Block8x8F.SetScalarAt(b, 0, this.pointers.Dc[compIndex] << this.al);
+                    }
+                    catch (JpegDecoderCore.EOFException)
+                    {
+                        // Do something clever here. I'm just undoing ReceiveExtend
+                        decoder.Bits.UnreadBits += value;
+                        decoder.Bits.Mask >>= value;
+                    }
                 }
 
                 if (zig <= this.zigEnd && this.eobRun > 0)
@@ -383,7 +393,20 @@ namespace ImageSharp.Formats.Jpg
                                 break;
                             }
 
-                            int ac = decoder.Bits.ReceiveExtend(val1, decoder);
+                            int ac; // = decoder.Bits.ReceiveExtend(val1, decoder);
+
+                            // TODO: Handle the EOFException and piece together the final progressive scan.
+                            try
+                            {
+                                ac = decoder.Bits.ReceiveExtend(val1, decoder);
+                            }
+                            catch (JpegDecoderCore.EOFException)
+                            {
+                                // Do something clever here. I'm just undoing ReceiveExtend
+                                decoder.Bits.UnreadBits += val1;
+                                decoder.Bits.Mask >>= val1;
+                                break;
+                            }
 
                             // b[Unzig[zig]] = ac << al;
                             Block8x8F.SetScalarAt(b, this.pointers.Unzig[zig], ac << this.al);

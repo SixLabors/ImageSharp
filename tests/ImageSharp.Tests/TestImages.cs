@@ -44,6 +44,11 @@ namespace ImageSharp.Tests
                 public const string Progress = "Jpg/progressive/progress.jpg";
                 public const string Festzug = "Jpg/progressive/Festzug.jpg";
 
+                public static class Bad
+                {
+                    public const string BadEOF = "Jpg/progressive/BadEofProgressive.jpg";
+                }
+
                 public static readonly string[] All = { Fb, Progress, Festzug };
             }
 
@@ -67,6 +72,7 @@ namespace ImageSharp.Tests
                 public const string Jpeg400 = "Jpg/baseline/jpeg400jfif.jpg";
                 public const string Jpeg420 = "Jpg/baseline/jpeg420exif.jpg";
                 public const string Jpeg444 = "Jpg/baseline/jpeg444.jpg";
+                public const string Testimgorig = "Jpg/baseline/testorig.jpg";
 
                 public static readonly string[] All =
                     {

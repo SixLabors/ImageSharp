@@ -38,15 +38,15 @@ namespace ImageSharp.Benchmarks.Image
 
         [Params(InputImageCategory.AllImages, InputImageCategory.SmallImagesOnly, InputImageCategory.LargeImagesOnly)]
         public virtual InputImageCategory InputCategory { get; set; }
-        
+
         protected virtual string BaseFolder => "../ImageSharp.Tests/TestImages/Formats/";
 
         protected virtual IEnumerable<string> SearchPatterns => new[] { "*.*" };
-        
+
         /// <summary>
         /// Gets the file names containing these strings are substrings are not processed by the benchmark.
         /// </summary>
-        protected IEnumerable<string> ExcludeSubstringsInFileNames => new string[] { };
+        protected IEnumerable<string> ExcludeSubstringsInFileNames => new[] { "badeof", "BadEof" };
 
         /// <summary>
         /// Enumerates folders containing files OR files to be processed by the benchmark.
@@ -54,7 +54,7 @@ namespace ImageSharp.Benchmarks.Image
         protected IEnumerable<string> AllFoldersOrFiles => this.InputImageSubfoldersOrFiles.Select(f => Path.Combine(this.BaseFolder, f));
 
         /// <summary>
-        /// The images sized above this threshold will be included in 
+        /// The images sized above this threshold will be included in
         /// </summary>
         protected virtual int LargeImageThresholdInBytes => 100000;
 

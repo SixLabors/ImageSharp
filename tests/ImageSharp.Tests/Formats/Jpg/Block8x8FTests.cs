@@ -19,7 +19,7 @@ namespace ImageSharp.Tests
     using Xunit;
     using Xunit.Abstractions;
 
-    public class Block8x8FTests : JpegTestBase
+    public class Block8x8FTests : JpegUtilityTestFixture
     {
 #if BENCHMARKING
         public const int Times = 1000000;

@@ -97,11 +97,20 @@
     <Compile Include="..\ImageSharp.Tests\Formats\Jpg\Block8x8FTests.cs">
       <Link>Tests\Formats\Jpg\Block8x8FTests.cs</Link>
     </Compile>
-    <Compile Include="..\ImageSharp.Tests\Formats\Jpg\JpegTestBase.cs">
-      <Link>Tests\Formats\Jpg\JpegTestBase.cs</Link>
+    <Compile Include="..\ImageSharp.Tests\Formats\Jpg\JpegDecoderTests.cs">
+      <Link>Tests\Formats\Jpg\JpegDecoderTests.cs</Link>
     </Compile>
-    <Compile Include="..\ImageSharp.Tests\Formats\Jpg\JpegTests.cs">
-      <Link>Tests\Formats\Jpg\JpegTests.cs</Link>
+    <Compile Include="..\ImageSharp.Tests\Formats\Jpg\JpegEncoderTests.cs">
+      <Link>Tests\Formats\Jpg\JpegEncoderTests.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\Formats\Jpg\JpegProfilingBenchmarks.cs">
+      <Link>Tests\Formats\Jpg\JpegProfilingBenchmarks.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\Formats\Jpg\JpegUtilityTestFixture.cs">
+      <Link>Tests\Formats\Jpg\JpegUtilityTestFixture.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\Formats\Jpg\JpegUtilsTests.cs">
+      <Link>Tests\Formats\Jpg\JpegUtilsTests.cs</Link>
     </Compile>
     <Compile Include="..\ImageSharp.Tests\Formats\Jpg\ReferenceImplementations.cs">
       <Link>Tests\Formats\Jpg\ReferenceImplementations.cs</Link>

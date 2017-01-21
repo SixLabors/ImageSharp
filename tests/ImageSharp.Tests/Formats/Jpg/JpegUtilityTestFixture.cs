@@ -1,4 +1,4 @@
-﻿// <copyright file="JpegTestBase.cs" company="James Jackson-South">
+﻿// <copyright file="JpegUtilityTestFixture.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -16,9 +16,9 @@ namespace ImageSharp.Tests
 
     using ImageSharp.Formats.Jpg;
 
-    public class JpegTestBase : MeasureFixture
+    public class JpegUtilityTestFixture : MeasureFixture
     {
-        public JpegTestBase(ITestOutputHelper output) : base(output)
+        public JpegUtilityTestFixture(ITestOutputHelper output) : base(output)
         {
         }
 

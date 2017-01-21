@@ -91,6 +91,9 @@
     <Compile Include="..\ImageSharp.Tests\FileTestBase.cs">
       <Link>Tests\FileTestBase.cs</Link>
     </Compile>
+    <Compile Include="..\ImageSharp.Tests\Formats\Jpg\BadEofJpegTests.cs">
+      <Link>Tests\Formats\Jpg\BadEofJpegTests.cs</Link>
+    </Compile>
     <Compile Include="..\ImageSharp.Tests\Formats\Jpg\Block8x8FTests.cs">
       <Link>Tests\Formats\Jpg\Block8x8FTests.cs</Link>
     </Compile>

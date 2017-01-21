@@ -27,9 +27,9 @@ namespace ImageSharp.Tests
         }
 
         [Theory]
-        [WithFile(TestImages.Jpeg.BadEOF, PixelTypes.Color)]
-        [WithFile(TestImages.Jpeg.Progress, PixelTypes.Color)]
-        public void LoadImage<TColor>(TestImageProvider<TColor> provider)
+        [WithFile(TestImages.Jpeg.Baseline.Bad.MissingEOF, PixelTypes.Color)]
+        [WithFile(TestImages.Jpeg.Progressive.Progress, PixelTypes.Color)]
+        public void LoadBaselineImage<TColor>(TestImageProvider<TColor> provider)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             var image = provider.GetImage();

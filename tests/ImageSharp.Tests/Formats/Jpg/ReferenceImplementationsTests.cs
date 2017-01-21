@@ -13,7 +13,7 @@ namespace ImageSharp.Tests.Formats.Jpg
     using Xunit;
     using Xunit.Abstractions;
 
-    public class ReferenceImplementationsTests : JpegTestBase
+    public class ReferenceImplementationsTests : JpegUtilityTestFixture
     {
         public ReferenceImplementationsTests(ITestOutputHelper output)
             : base(output)

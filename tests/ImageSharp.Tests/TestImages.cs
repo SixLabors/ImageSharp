@@ -66,7 +66,6 @@ namespace ImageSharp.Tests
                 public const string Lake = "Jpg/baseline/Lake.jpg";
                 public const string Jpeg400 = "Jpg/baseline/jpeg400jfif.jpg";
                 public const string Jpeg420 = "Jpg/baseline/jpeg420exif.jpg";
-                public const string Jpeg422 = "Jpg/baseline/jpeg422jfif.jpg";
                 public const string Jpeg444 = "Jpg/baseline/jpeg444.jpg";
 
                 public static readonly string[] All =

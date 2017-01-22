@@ -47,17 +47,39 @@ namespace ImageSharp.Formats.Jpg
         }
 
         /// <summary>
+        /// Throws an exception if the given <see cref="DecoderErrorCode"/> is <see cref="DecoderErrorCode.UnexpectedEndOfStream"/>.
+        /// </summary>
+        /// <param name="errorCode">The <see cref="DecoderErrorCode"/></param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void EnsureNoEOF(this DecoderErrorCode errorCode)
+        {
+            if (errorCode == DecoderErrorCode.UnexpectedEndOfStream)
+            {
+                errorCode.ThrowExceptionForErrorCode();
+            }
+        }
+
+        /// <summary>
         /// Encapsulates methods throwing different flavours of <see cref="ImageFormatException"/>-s.
         /// </summary>
         public static class ThrowImageFormatException
         {
             /// <summary>
-            /// Throws "Fill called when unread bytes exist."
+            /// Throws "Fill called when unread bytes exist".
             /// </summary>
             [MethodImpl(MethodImplOptions.NoInlining)]
             public static void FillCalledWhenUnreadBytesExist()
             {
-                throw new ImageFormatException("Fill called when unread bytes exist.");
+                throw new ImageFormatException("Fill called when unread bytes exist!");
+            }
+
+            /// <summary>
+            /// Throws "Bad Huffman code".
+            /// </summary>
+            [MethodImpl(MethodImplOptions.NoInlining)]
+            public static void BadHuffmanCode()
+            {
+                throw new ImageFormatException("Bad Huffman code!");
             }
         }
     }

@@ -94,24 +94,45 @@ namespace ImageSharp.Formats.Jpg
         /// <param name="t">Byte</param>
         /// <param name="decoder">Jpeg decoder</param>
         /// <returns>Read bits value</returns>
-        internal int ReceiveExtend(byte t, JpegDecoderCore decoder)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public int ReceiveExtend(byte t, JpegDecoderCore decoder)
+        {
+            int x;
+            DecoderErrorCode errorCode = this.ReceiveExtendUnsafe(t, decoder, out x);
+            errorCode.EnsureNoError();
+            return x;
+        }
+
+        /// <summary>
+        /// Receive extend
+        /// </summary>
+        /// <param name="t">Byte</param>
+        /// <param name="decoder">Jpeg decoder</param>
+        /// <param name="x">Read bits value</param>
+        /// <returns>The <see cref="DecoderErrorCode"/></returns>
+        public DecoderErrorCode ReceiveExtendUnsafe(byte t, JpegDecoderCore decoder, out int x)
         {
             if (this.UnreadBits < t)
             {
-                this.EnsureNBits(t, decoder);
+                DecoderErrorCode errorCode = this.EnsureNBitsUnsafe(t, decoder);
+                if (errorCode != DecoderErrorCode.NoError)
+                {
+                    x = int.MaxValue;
+                    return errorCode;
+                }
             }
 
             this.UnreadBits -= t;
             this.Mask >>= t;
             int s = 1 << t;
-            int x = (int)((this.Accumulator >> this.UnreadBits) & (s - 1));
+            x = (int)((this.Accumulator >> this.UnreadBits) & (s - 1));
 
             if (x < (s >> 1))
             {
                 x += ((-1) << t) + 1;
             }
 
-            return x;
+            return DecoderErrorCode.NoError;
         }
     }
 }

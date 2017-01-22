@@ -308,7 +308,7 @@ namespace ImageSharp.Formats.Jpg
         private void ProcessBlockImpl(JpegDecoderCore decoder, int scanIndex)
         {
             var b = this.pointers.Block;
-
+            DecoderErrorCode errorCode;
             int huffmannIdx = (AcTableIndex * HuffmanTree.ThRowSize) + this.pointers.ComponentScan[scanIndex].AcTableSelector;
             if (this.ah != 0)
             {
@@ -322,9 +322,13 @@ namespace ImageSharp.Formats.Jpg
                     zig++;
 
                     // Decode the DC coefficient, as specified in section F.2.2.1.
-                    byte value =
-                        decoder.DecodeHuffman(
-                            ref decoder.HuffmanTrees[(DcTableIndex * HuffmanTree.ThRowSize) + this.pointers.ComponentScan[scanIndex].DcTableSelector]);
+                    byte value;
+                    int huffmanIndex = (DcTableIndex * HuffmanTree.ThRowSize) + this.pointers.ComponentScan[scanIndex].DcTableSelector;
+                    errorCode = decoder.DecodeHuffmanUnsafe(
+                            ref decoder.HuffmanTrees[huffmanIndex],
+                            out value);
+                    errorCode.EnsureNoEOF();
+
                     if (value > 16)
                     {
                         throw new ImageFormatException("Excessive DC component");
@@ -347,7 +351,10 @@ namespace ImageSharp.Formats.Jpg
                     // Decode the AC coefficients, as specified in section F.2.2.2.
                     for (; zig <= this.zigEnd; zig++)
                     {
-                        byte value = decoder.DecodeHuffman(ref decoder.HuffmanTrees[huffmannIdx]);
+                        byte value;
+                        errorCode = decoder.DecodeHuffmanUnsafe(ref decoder.HuffmanTrees[huffmannIdx], out value);
+                        errorCode.EnsureNoEOF();
+
                         byte val0 = (byte)(value >> 4);
                         byte val1 = (byte)(value & 0x0f);
                         if (val1 != 0)
@@ -370,7 +377,8 @@ namespace ImageSharp.Formats.Jpg
                                 this.eobRun = (ushort)(1 << val0);
                                 if (val0 != 0)
                                 {
-                                    this.eobRun |= (ushort)decoder.DecodeBits(val0);
+                                    errorCode = this.DecodeEobRun(val0, decoder);
+                                    errorCode.EnsureNoError();
                                 }
 
                                 this.eobRun--;
@@ -407,6 +415,19 @@ namespace ImageSharp.Formats.Jpg
             var destChannel = decoder.GetDestinationChannel(this.componentIndex);
             var destArea = destChannel.GetOffsetedSubAreaForBlock(this.bx, this.by);
             destArea.LoadColorsFrom(this.pointers.Temp1, this.pointers.Temp2);
+        }
+
+        private DecoderErrorCode DecodeEobRun(int count, JpegDecoderCore decoder)
+        {
+            uint bitsResult;
+            DecoderErrorCode errorCode = decoder.DecodeBitsUnsafe(count, out bitsResult);
+            if (errorCode != DecoderErrorCode.NoError)
+            {
+                return errorCode;
+            }
+
+            this.eobRun |= (ushort)bitsResult;
+            return DecoderErrorCode.NoError;
         }
 
         /// <summary>
@@ -496,7 +517,9 @@ namespace ImageSharp.Formats.Jpg
                     throw new ImageFormatException("Invalid state for zig DC component");
                 }
 
-                bool bit = decoder.DecodeBit();
+                bool bit;
+                DecoderErrorCode errorCode = decoder.DecodeBitUnsafe(out bit);
+                errorCode.EnsureNoError();
                 if (bit)
                 {
                     int stuff = (int)Block8x8F.GetScalarAt(b, 0);
@@ -519,7 +542,11 @@ namespace ImageSharp.Formats.Jpg
                 {
                     bool done = false;
                     int z = 0;
-                    byte val = decoder.DecodeHuffman(ref h);
+
+                    byte val;
+                    DecoderErrorCode errorCode = decoder.DecodeHuffmanUnsafe(ref h, out val);
+                    errorCode.EnsureNoEOF();
+
                     int val0 = val >> 4;
                     int val1 = val & 0x0f;
 
@@ -531,7 +558,8 @@ namespace ImageSharp.Formats.Jpg
                                 this.eobRun = (ushort)(1 << val0);
                                 if (val0 != 0)
                                 {
-                                    this.eobRun |= (ushort)decoder.DecodeBits(val0);
+                                    errorCode = this.DecodeEobRun(val0, decoder);
+                                    errorCode.EnsureNoError();
                                 }
 
                                 done = true;
@@ -540,7 +568,11 @@ namespace ImageSharp.Formats.Jpg
                             break;
                         case 1:
                             z = delta;
-                            bool bit = decoder.DecodeBit();
+
+                            bool bit;
+                            errorCode = decoder.DecodeBitUnsafe(out bit);
+                            errorCode.EnsureNoError();
+
                             if (!bit)
                             {
                                 z = -z;
@@ -606,7 +638,10 @@ namespace ImageSharp.Formats.Jpg
                     continue;
                 }
 
-                bool bit = decoder.DecodeBit();
+                bool bit;
+                DecoderErrorCode errorCode = decoder.DecodeBitUnsafe(out bit);
+                errorCode.EnsureNoError();
+
                 if (!bit)
                 {
                     continue;

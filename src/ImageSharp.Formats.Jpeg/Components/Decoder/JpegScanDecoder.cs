@@ -17,16 +17,6 @@ namespace ImageSharp.Formats.Jpg
     internal unsafe struct JpegScanDecoder
     {
         /// <summary>
-        /// Number of MCU-s (Minimum Coded Units) in the image along the X axis
-        /// </summary>
-        public int XNumberOfMCUs;
-
-        /// <summary>
-        /// Number of MCU-s (Minimum Coded Units) in the image along the Y axis
-        /// </summary>
-        public int YNumberOfMCUs;
-
-        /// <summary>
         /// The AC table index
         /// </summary>
         private const int AcTableIndex = 1;
@@ -77,7 +67,7 @@ namespace ImageSharp.Formats.Jpg
         private int ah;
 
         /// <summary>
-        /// Successive approximation high and low value
+        /// Successive approximation low value
         /// </summary>
         private int al;
 
@@ -124,9 +114,9 @@ namespace ImageSharp.Formats.Jpg
             int mcu = 0;
             byte expectedRst = JpegConstants.Markers.RST0;
 
-            for (int my = 0; my < this.YNumberOfMCUs; my++)
+            for (int my = 0; my < decoder.MCUCountY; my++)
             {
-                for (int mx = 0; mx < this.XNumberOfMCUs; mx++)
+                for (int mx = 0; mx < decoder.MCUCountX; mx++)
                 {
                     for (int i = 0; i < this.componentScanCount; i++)
                     {
@@ -165,7 +155,7 @@ namespace ImageSharp.Formats.Jpg
                             }
                             else
                             {
-                                int q = this.XNumberOfMCUs * hi;
+                                int q = decoder.MCUCountX * hi;
                                 this.bx = blockCount % q;
                                 this.by = blockCount / q;
                                 blockCount++;
@@ -183,7 +173,7 @@ namespace ImageSharp.Formats.Jpg
                             // Load the previous partially decoded coefficients, if applicable.
                             if (decoder.IsProgressive)
                             {
-                                int blockIndex = ((this.by * this.XNumberOfMCUs) * hi) + this.bx;
+                                int blockIndex = ((this.by * decoder.MCUCountX) * hi) + this.bx;
                                 this.data.Block = decoder.ProgCoeffs[compIndex][blockIndex];
                             }
                             else
@@ -200,7 +190,7 @@ namespace ImageSharp.Formats.Jpg
                     // for i
                     mcu++;
 
-                    if (decoder.RestartInterval > 0 && mcu % decoder.RestartInterval == 0 && mcu < this.XNumberOfMCUs * this.YNumberOfMCUs)
+                    if (decoder.RestartInterval > 0 && mcu % decoder.RestartInterval == 0 && mcu < decoder.TotalMCUCount)
                     {
                         // A more sophisticated decoder could use RST[0-7] markers to resynchronize from corrupt input,
                         // but this one assumes well-formed input, and hence the restart marker follows immediately.
@@ -302,12 +292,6 @@ namespace ImageSharp.Formats.Jpg
                 }
             }
 
-            // XNumberOfMCUs and YNumberOfMCUs are the number of MCUs (Minimum Coded Units) in the image.
-            int h0 = decoder.ComponentArray[0].HorizontalFactor;
-            int v0 = decoder.ComponentArray[0].VerticalFactor;
-            this.XNumberOfMCUs = (decoder.ImageWidth + (8 * h0) - 1) / (8 * h0);
-            this.YNumberOfMCUs = (decoder.ImageHeight + (8 * v0) - 1) / (8 * v0);
-
             if (decoder.IsProgressive)
             {
                 for (int i = 0; i < this.componentScanCount; i++)
@@ -315,8 +299,9 @@ namespace ImageSharp.Formats.Jpg
                     int compIndex = this.pointers.Scan[i].Index;
                     if (decoder.ProgCoeffs[compIndex] == null)
                     {
-                        int size = this.XNumberOfMCUs * this.YNumberOfMCUs * decoder.ComponentArray[compIndex].HorizontalFactor
-                                   * decoder.ComponentArray[compIndex].VerticalFactor;
+                        int size = decoder.TotalMCUCount
+                            * decoder.ComponentArray[compIndex].HorizontalFactor
+                            * decoder.ComponentArray[compIndex].VerticalFactor;
 
                         decoder.ProgCoeffs[compIndex] = new Block8x8F[size];
                     }
@@ -414,7 +399,7 @@ namespace ImageSharp.Formats.Jpg
                 {
                     // We haven't completely decoded this 8x8 block. Save the coefficients.
                     // this.ProgCoeffs[compIndex][((@by * XNumberOfMCUs) * hi) + bx] = b.Clone();
-                    decoder.ProgCoeffs[compIndex][((this.by * this.XNumberOfMCUs) * hi) + this.bx] = *b;
+                    decoder.ProgCoeffs[compIndex][((this.by * decoder.MCUCountX) * hi) + this.bx] = *b;
 
                     // At this point, we could execute the rest of the loop body to dequantize and
                     // perform the inverse DCT, to save early stages of a progressive image to the

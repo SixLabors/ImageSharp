@@ -37,9 +37,24 @@ namespace ImageSharp.Formats.Jpg
         /// </summary>
         /// <param name="n">The number of bits to ensure.</param>
         /// <param name="decoder">Jpeg decoder</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void EnsureNBits(int n, JpegDecoderCore decoder)
+        {
+            DecoderErrorCode errorCode = this.EnsureNBitsUnsafe(n, decoder);
+            errorCode.EnsureNoError();
+        }
+
+        /// <summary>
+        /// Reads bytes from the byte buffer to ensure that bits.UnreadBits is at
+        /// least n. For best performance (avoiding function calls inside hot loops),
+        /// the caller is the one responsible for first checking that bits.UnreadBits &lt; n.
+        /// This method does not throw. Returns <see cref="DecoderErrorCode"/> instead.
+        /// </summary>
+        /// <param name="n">The number of bits to ensure.</param>
+        /// <param name="decoder">Jpeg decoder</param>
         /// <returns>Error code</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal DecoderErrorCode EnsureNBits(int n, JpegDecoderCore decoder)
+        public DecoderErrorCode EnsureNBitsUnsafe(int n, JpegDecoderCore decoder)
         {
             while (true)
             {
@@ -84,8 +99,7 @@ namespace ImageSharp.Formats.Jpg
         {
             if (this.UnreadBits < t)
             {
-                DecoderErrorCode errorCode = this.EnsureNBits(t, decoder);
-                errorCode.EnsureNoError();
+                this.EnsureNBits(t, decoder);
             }
 
             this.UnreadBits -= t;

@@ -40,11 +40,7 @@ namespace ImageSharp.Formats
         public Bytes Bytes;
 #pragma warning restore SA401
 
-        /// <summary>
-        /// The <see cref="ArrayPool{T}"/> used to pool data in <see cref="DecodedBlocks"/>.
-        /// Should always clean arrays when returning!
-        /// </summary>
-        private static readonly ArrayPool<Block8x8F> BlockPool = ArrayPool<Block8x8F>.Create();
+
 
         /// <summary>
         /// The App14 marker color-space
@@ -95,7 +91,7 @@ namespace ImageSharp.Formats
             this.QuantizationTables = new Block8x8F[MaxTq + 1];
             this.Temp = new byte[2 * Block8x8F.ScalarCount];
             this.ComponentArray = new Component[MaxComponents];
-            this.DecodedBlocks = new Block8x8F[MaxComponents][];
+            this.DecodedBlocks = new DecodedBlockMemento[MaxComponents][];
             this.Bits = default(Bits);
             this.Bytes = Bytes.Create();
         }
@@ -114,7 +110,7 @@ namespace ImageSharp.Formats
         /// Gets the saved state between progressive-mode scans.
         /// TODO: Also save non-progressive data here. (Helps splitting and parallelizing JpegScanDecoder-s loop)
         /// </summary>
-        public Block8x8F[][] DecodedBlocks { get; }
+        public DecodedBlockMemento[][] DecodedBlocks { get; }
 
         /// <summary>
         /// Gets the quantization tables, in zigzag order.
@@ -413,12 +409,11 @@ namespace ImageSharp.Formats
                 this.HuffmanTrees[i].Dispose();
             }
 
-            for (int i = 0; i < this.DecodedBlocks.Length; i++)
+            foreach (DecodedBlockMemento[] blockArray in this.DecodedBlocks)
             {
-                Block8x8F[] blockArray = this.DecodedBlocks[i];
                 if (blockArray != null)
                 {
-                    BlockPool.Return(blockArray, true);
+                    DecodedBlockMemento.ArrayPool.Return(blockArray, true);
                 }
             }
 
@@ -1443,7 +1438,7 @@ namespace ImageSharp.Formats
             {
                 int size = this.TotalMCUCount * this.ComponentArray[i].HorizontalFactor
                            * this.ComponentArray[i].VerticalFactor;
-                this.DecodedBlocks[i] = BlockPool.Rent(size);
+                this.DecodedBlocks[i] = DecodedBlockMemento.ArrayPool.Rent(size);
             }
         }
 
@@ -1461,7 +1456,7 @@ namespace ImageSharp.Formats
             JpegScanDecoder.Init(&scan, this, remaining);
             this.Bits = default(Bits);
             this.MakeImage();
-            scan.ProcessBlocks(this);
+            scan.ReadBlocks(this);
         }
 
         /// <summary>

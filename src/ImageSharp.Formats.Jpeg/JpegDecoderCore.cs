@@ -112,7 +112,7 @@ namespace ImageSharp.Formats
 
         /// <summary>
         /// Gets the saved state between progressive-mode scans.
-        /// TODO: Also store non-progressive data here. (Helps splitting and parallelizing JpegScanDecoder-s loop)
+        /// TODO: Also save non-progressive data here. (Helps splitting and parallelizing JpegScanDecoder-s loop)
         /// </summary>
         public Block8x8F[][] DecodedBlocks { get; }
 
@@ -490,6 +490,7 @@ namespace ImageSharp.Formats
                 this.Bytes.UnreadableBytes = 0;
             }
 
+            DecoderErrorCode errorCode = DecoderErrorCode.NoError;
             while (length > 0)
             {
                 if (this.Bytes.J - this.Bytes.I >= length)
@@ -505,12 +506,12 @@ namespace ImageSharp.Formats
                     length -= this.Bytes.J - this.Bytes.I;
                     this.Bytes.I += this.Bytes.J - this.Bytes.I;
 
-                    this.Bytes.Fill(this.InputStream);
+                    errorCode = this.Bytes.FillUnsafe(this.InputStream);
                 }
             }
 
-            return DecoderErrorCode.NoError;
-         }
+            return errorCode;
+        }
 
         /// <summary>
         /// Decodes the given number of bits
@@ -560,7 +561,7 @@ namespace ImageSharp.Formats
                         return (byte)(v >> 8);
                     }
                 }
-                else if (errorCode == DecoderErrorCode.UnexpectedEndOfFile)
+                else if (errorCode == DecoderErrorCode.UnexpectedEndOfStream)
                 {
                     errorCode.ThrowExceptionForErrorCode();
                 }
@@ -1419,6 +1420,7 @@ namespace ImageSharp.Formats
             this.MCUCountX = (this.ImageWidth + (8 * h0) - 1) / (8 * h0);
             this.MCUCountY = (this.ImageHeight + (8 * v0) - 1) / (8 * v0);
 
+            // As a preparation for parallelizing Scan decoder, we also allocate DecodedBlocks in the non-progressive case!
             for (int i = 0; i < this.ComponentCount; i++)
             {
                 int size = this.TotalMCUCount * this.ComponentArray[i].HorizontalFactor
@@ -1489,7 +1491,11 @@ namespace ImageSharp.Formats
                     break;
                 }
 
-                this.Bytes.Fill(this.InputStream);
+                DecoderErrorCode errorCode = this.Bytes.FillUnsafe(this.InputStream);
+                if (errorCode != DecoderErrorCode.NoError)
+                {
+                    return errorCode;
+                }
             }
 
             return DecoderErrorCode.NoError;

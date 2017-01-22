@@ -26,7 +26,7 @@ namespace ImageSharp.Formats.Jpg
                     throw new ArgumentException("ThrowExceptionForErrorCode() called with NoError!", nameof(errorCode));
                 case DecoderErrorCode.MissingFF00:
                     throw new MissingFF00Exception();
-                case DecoderErrorCode.UnexpectedEndOfFile:
+                case DecoderErrorCode.UnexpectedEndOfStream:
                     throw new EOFException();
                 default:
                     throw new ArgumentOutOfRangeException(nameof(errorCode), errorCode, null);
@@ -43,6 +43,21 @@ namespace ImageSharp.Formats.Jpg
             if (errorCode != DecoderErrorCode.NoError)
             {
                 ThrowExceptionForErrorCode(errorCode);
+            }
+        }
+
+        /// <summary>
+        /// Encapsulates methods throwing different flavours of <see cref="ImageFormatException"/>-s.
+        /// </summary>
+        public static class ThrowImageFormatException
+        {
+            /// <summary>
+            /// Throws "Fill called when unread bytes exist."
+            /// </summary>
+            [MethodImpl(MethodImplOptions.NoInlining)]
+            public static void FillCalledWhenUnreadBytesExist()
+            {
+                throw new ImageFormatException("Fill called when unread bytes exist.");
             }
         }
     }

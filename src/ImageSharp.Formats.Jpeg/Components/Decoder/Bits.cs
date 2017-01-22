@@ -58,12 +58,11 @@ namespace ImageSharp.Formats.Jpg
         {
             while (true)
             {
-                DecoderErrorCode errorCode;
-
                 // Grab the decode bytes, use them and then set them
                 // back on the decoder.
                 Bytes decoderBytes = decoder.Bytes;
-                byte c = decoderBytes.ReadByteStuffedByte(decoder.InputStream, out errorCode);
+                byte c;
+                DecoderErrorCode errorCode = decoderBytes.ReadByteStuffedByteUnsafe(decoder.InputStream, out c);
                 decoder.Bytes = decoderBytes;
 
                 if (errorCode != DecoderErrorCode.NoError)

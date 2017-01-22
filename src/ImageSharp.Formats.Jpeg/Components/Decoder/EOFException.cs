@@ -10,6 +10,7 @@ namespace ImageSharp.Formats.Jpg
     /// <summary>
     /// The EOF (End of File exception).
     /// Thrown when the decoder encounters an EOF marker without a proceeding EOI (End Of Image) marker
+    /// TODO: Rename to UnexpectedEndOfStreamException
     /// </summary>
     internal class EOFException : Exception
     {

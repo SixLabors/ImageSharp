@@ -21,7 +21,7 @@ namespace ImageSharp.Tests
         {
         }
 
-        // [Theory] // Benchmark, enable manually
+        [Theory] // Benchmark, enable manually
         [InlineData(30, TestImages.Jpeg.Baseline.Cmyk)]
         [InlineData(30, TestImages.Jpeg.Baseline.Ycck)]
         [InlineData(30, TestImages.Jpeg.Baseline.Calliphora)]

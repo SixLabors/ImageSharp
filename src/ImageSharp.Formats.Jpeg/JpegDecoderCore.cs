@@ -435,25 +435,31 @@ namespace ImageSharp.Formats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public byte ReadByte()
         {
-            byte result = this.Bytes.ReadByte(this.InputStream);
-            return result;
+            return this.Bytes.ReadByte(this.InputStream);
         }
 
         /// <summary>
         /// Decodes a single bit
+        /// TODO: This method (and also the usages) could be optimized by batching!
         /// </summary>
-        /// <returns>The <see cref="bool" /></returns>
-        public bool DecodeBit()
+        /// <param name="result">The decoded bit as a <see cref="bool"/></param>
+        /// <returns>The <see cref="DecoderErrorCode" /></returns>
+        public DecoderErrorCode DecodeBitUnsafe(out bool result)
         {
             if (this.Bits.UnreadBits == 0)
             {
-                this.Bits.EnsureNBits(1, this);
+                DecoderErrorCode errorCode = this.Bits.EnsureNBitsUnsafe(1, this);
+                if (errorCode != DecoderErrorCode.NoError)
+                {
+                    result = false;
+                    return errorCode;
+                }
             }
 
-            bool ret = (this.Bits.Accumulator & this.Bits.Mask) != 0;
+            result = (this.Bits.Accumulator & this.Bits.Mask) != 0;
             this.Bits.UnreadBits--;
             this.Bits.Mask >>= 1;
-            return ret;
+            return DecoderErrorCode.NoError;
         }
 
         /// <summary>
@@ -517,28 +523,32 @@ namespace ImageSharp.Formats
         /// Decodes the given number of bits
         /// </summary>
         /// <param name="count">The number of bits to decode.</param>
-        /// <returns>The <see cref="uint" /></returns>
-        public uint DecodeBits(int count)
+        /// <param name="result">The <see cref="uint" /> result</param>
+        /// <returns>The <see cref="DecoderErrorCode"/></returns>
+        public DecoderErrorCode DecodeBitsUnsafe(int count, out uint result)
         {
             if (this.Bits.UnreadBits < count)
             {
                 this.Bits.EnsureNBits(count, this);
             }
 
-            uint ret = this.Bits.Accumulator >> (this.Bits.UnreadBits - count);
-            ret = (uint)(ret & ((1 << count) - 1));
+            result = this.Bits.Accumulator >> (this.Bits.UnreadBits - count);
+            result = (uint)(result & ((1 << count) - 1));
             this.Bits.UnreadBits -= count;
             this.Bits.Mask >>= count;
-            return ret;
+            return DecoderErrorCode.NoError;
         }
 
         /// <summary>
-        /// Returns the next Huffman-coded value from the bit-stream, decoded according to the given value.
+        /// Extracts the next Huffman-coded value from the bit-stream into result, decoded according to the given value.
         /// </summary>
         /// <param name="huffmanTree">The huffman value</param>
-        /// <returns>The <see cref="byte" /></returns>
-        public byte DecodeHuffman(ref HuffmanTree huffmanTree)
+        /// <param name="result">The decoded <see cref="byte" /></param>
+        /// <returns>The <see cref="DecoderErrorCode"/></returns>
+        public DecoderErrorCode DecodeHuffmanUnsafe(ref HuffmanTree huffmanTree, out byte result)
         {
+            result = 0;
+
             // Copy stuff to the stack:
             if (huffmanTree.Length == 0)
             {
@@ -558,16 +568,19 @@ namespace ImageSharp.Formats
                         int n = (v & 0xFF) - 1;
                         this.Bits.UnreadBits -= n;
                         this.Bits.Mask >>= n;
-                        return (byte)(v >> 8);
+                        result = (byte)(v >> 8);
+                        return errorCode;
                     }
                 }
-                else if (errorCode == DecoderErrorCode.UnexpectedEndOfStream)
-                {
-                    errorCode.ThrowExceptionForErrorCode();
-                }
+
+                // else if (errorCode == DecoderErrorCode.UnexpectedEndOfStream)
+                // {
+                //     errorCode.ThrowExceptionForErrorCode();
+                // }
                 else
                 {
                     this.UnreadByteStuffedByte();
+                    return errorCode;
                 }
             }
 
@@ -589,13 +602,18 @@ namespace ImageSharp.Formats
 
                 if (code <= huffmanTree.MaxCodes[i])
                 {
-                    return huffmanTree.Values[huffmanTree.Indices[i] + code - huffmanTree.MinCodes[i]];
+                    result = huffmanTree.Values[huffmanTree.Indices[i] + code - huffmanTree.MinCodes[i]];
+                    return DecoderErrorCode.NoError;
                 }
 
                 code <<= 1;
             }
 
-            throw new ImageFormatException("Bad Huffman code");
+            // Unrecoverable error, throwing:
+            DecoderThrowHelper.ThrowImageFormatException.BadHuffmanCode();
+
+            // DUMMY RETURN! C# doesn't know we have thrown an exception!
+            return DecoderErrorCode.NoError;
         }
 
         /// <summary>

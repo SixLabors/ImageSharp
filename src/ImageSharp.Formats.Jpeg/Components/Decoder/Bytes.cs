@@ -101,6 +101,7 @@ namespace ImageSharp.Formats.Jpg
             {
                 return errorCode;
             }
+
             if (x != JpegConstants.Markers.XFF)
             {
                 return DecoderErrorCode.NoError;
@@ -112,6 +113,7 @@ namespace ImageSharp.Formats.Jpg
             {
                 return errorCode;
             }
+
             if (x != 0x00)
             {
                 return DecoderErrorCode.MissingFF00;

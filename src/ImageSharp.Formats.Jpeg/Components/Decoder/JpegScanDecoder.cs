@@ -8,13 +8,12 @@ namespace ImageSharp.Formats.Jpg
 {
     using System;
     using System.Runtime.CompilerServices;
-    using System.Runtime.InteropServices;
 
     /// <summary>
     /// Encapsulates the impementation of Jpeg SOS decoder.
     /// See JpegScanDecoder.md!
     /// </summary>
-    internal unsafe struct JpegScanDecoder
+    internal unsafe partial struct JpegScanDecoder
     {
         /// <summary>
         /// The AC table index
@@ -411,6 +410,11 @@ namespace ImageSharp.Formats.Jpg
             destArea.LoadColorsFrom(this.pointers.Temp1, this.pointers.Temp2);
         }
 
+        /// <summary>
+        /// Gets the block index used to retieve blocks from in <see cref="JpegDecoderCore.DecodedBlocks"/>
+        /// </summary>
+        /// <param name="decoder">The <see cref="JpegDecoderCore"/> instance</param>
+        /// <returns>The index</returns>
         private int GetBlockIndex(JpegDecoderCore decoder)
         {
             return ((this.@by * decoder.MCUCountX) * this.hi) + this.bx;
@@ -622,115 +626,6 @@ namespace ImageSharp.Formats.Jpg
             }
 
             return zig;
-        }
-
-        /// <summary>
-        /// Holds the "large" data blocks needed for computations
-        /// </summary>
-        [StructLayout(LayoutKind.Sequential)]
-        public struct ComputationData
-        {
-            /// <summary>
-            /// The main input block
-            /// </summary>
-            public Block8x8F Block;
-
-            /// <summary>
-            /// Temporal block 1 to store intermediate and/or final computation results
-            /// </summary>
-            public Block8x8F Temp1;
-
-            /// <summary>
-            /// Temporal block 2 to store intermediate and/or final computation results
-            /// </summary>
-            public Block8x8F Temp2;
-
-            /// <summary>
-            /// The quantization table as <see cref="Block8x8F"/>
-            /// </summary>
-            public Block8x8F QuantiazationTable;
-
-            /// <summary>
-            /// The jpeg unzig data
-            /// </summary>
-            public UnzigData Unzig;
-
-            /// <summary>
-            /// The no-idea-what's this data
-            /// </summary>
-            public fixed byte ScanData[3 * JpegDecoderCore.MaxComponents];
-
-            /// <summary>
-            /// The DC component values
-            /// </summary>
-            public fixed int Dc[JpegDecoderCore.MaxComponents];
-
-            /// <summary>
-            /// Creates and initializes a new <see cref="ComputationData"/> instance
-            /// </summary>
-            /// <returns>The <see cref="ComputationData"/></returns>
-            public static ComputationData Create()
-            {
-                ComputationData data = default(ComputationData);
-                data.Unzig = UnzigData.Create();
-                return data;
-            }
-        }
-
-        /// <summary>
-        /// Contains pointers to the memory regions of <see cref="ComputationData"/> so they can be easily passed around to pointer based utility methods of <see cref="Block8x8F"/>
-        /// </summary>
-        public struct DataPointers
-        {
-            /// <summary>
-            /// Pointer to <see cref="ComputationData.Block"/>
-            /// </summary>
-            public Block8x8F* Block;
-
-            /// <summary>
-            /// Pointer to <see cref="ComputationData.Temp1"/>
-            /// </summary>
-            public Block8x8F* Temp1;
-
-            /// <summary>
-            /// Pointer to <see cref="ComputationData.Temp2"/>
-            /// </summary>
-            public Block8x8F* Temp2;
-
-            /// <summary>
-            /// Pointer to <see cref="ComputationData.QuantiazationTable"/>
-            /// </summary>
-            public Block8x8F* QuantiazationTable;
-
-            /// <summary>
-            /// Pointer to <see cref="ComputationData.Unzig"/> as int*
-            /// </summary>
-            public int* Unzig;
-
-            /// <summary>
-            /// Pointer to <see cref="ComputationData.ScanData"/> as Scan*
-            /// </summary>
-            public ComponentScan* ComponentScan;
-
-            /// <summary>
-            /// Pointer to <see cref="ComputationData.Dc"/>
-            /// </summary>
-            public int* Dc;
-
-            /// <summary>
-            /// Initializes a new instance of the <see cref="DataPointers" /> struct.
-            /// </summary>
-            /// <param name="basePtr">The pointer pointing to <see cref="ComputationData"/></param>
-            public DataPointers(ComputationData* basePtr)
-            {
-                this.Block = &basePtr->Block;
-                this.Temp1 = &basePtr->Temp1;
-                this.Temp2 = &basePtr->Temp2;
-                this.QuantiazationTable = &basePtr->QuantiazationTable;
-                this.Unzig = basePtr->Unzig.Data;
-                this.ComponentScan = (ComponentScan*)basePtr->ScanData;
-                this.Dc = basePtr->Dc;
-            }
         }
     }
 }

@@ -36,7 +36,7 @@ namespace ImageSharp.Tests
             provider.Utility.SaveTestOutputFile(image, "bmp");
         }
 
-        // [Theory] // TODO: #18
+        [Theory] // TODO: #18
         [WithFile(TestImages.Jpeg.Progressive.Bad.BadEOF, PixelTypes.Color)]
         public void LoadProgressiveImage<TColor>(TestImageProvider<TColor> provider)
             where TColor : struct, IPackedPixel, IEquatable<TColor>

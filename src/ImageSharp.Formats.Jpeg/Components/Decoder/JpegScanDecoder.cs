@@ -77,6 +77,16 @@ namespace ImageSharp.Formats.Jpg
         private int componentScanCount;
 
         /// <summary>
+        /// The current component index
+        /// </summary>
+        private int componentIndex;
+
+        /// <summary>
+        /// Horizontal sampling factor at the current component index
+        /// </summary>
+        private int hi;
+
+        /// <summary>
         /// End-of-Band run, specified in section G.1.2.2.
         /// </summary>
         private ushort eobRun;
@@ -120,11 +130,11 @@ namespace ImageSharp.Formats.Jpg
                 {
                     for (int i = 0; i < this.componentScanCount; i++)
                     {
-                        int compIndex = this.pointers.Scan[i].Index;
-                        int hi = decoder.ComponentArray[compIndex].HorizontalFactor;
-                        int vi = decoder.ComponentArray[compIndex].VerticalFactor;
+                        this.componentIndex = this.pointers.ComponentScan[i].ComponentIndex;
+                        this.hi = decoder.ComponentArray[this.componentIndex].HorizontalFactor;
+                        int vi = decoder.ComponentArray[this.componentIndex].VerticalFactor;
 
-                        for (int j = 0; j < hi * vi; j++)
+                        for (int j = 0; j < this.hi * vi; j++)
                         {
                             // The blocks are traversed one MCU at a time. For 4:2:0 chroma
                             // subsampling, there are four Y 8x8 blocks in every 16x16 MCU.
@@ -150,12 +160,12 @@ namespace ImageSharp.Formats.Jpg
                             // 3 4 5
                             if (this.componentScanCount != 1)
                             {
-                                this.bx = (hi * mx) + (j % hi);
-                                this.by = (vi * my) + (j / hi);
+                                this.bx = (this.hi * mx) + (j % this.hi);
+                                this.by = (vi * my) + (j / this.hi);
                             }
                             else
                             {
-                                int q = decoder.MCUCountX * hi;
+                                int q = decoder.MCUCountX * this.hi;
                                 this.bx = blockCount % q;
                                 this.by = blockCount / q;
                                 blockCount++;
@@ -165,7 +175,7 @@ namespace ImageSharp.Formats.Jpg
                                 }
                             }
 
-                            int qtIndex = decoder.ComponentArray[compIndex].Selector;
+                            int qtIndex = decoder.ComponentArray[this.componentIndex].Selector;
 
                             // TODO: Reading & processing blocks should be done in 2 separate loops. The second one could be parallelized. The first one could be async.
                             this.data.QuantiazationTable = decoder.QuantizationTables[qtIndex];
@@ -173,15 +183,15 @@ namespace ImageSharp.Formats.Jpg
                             // Load the previous partially decoded coefficients, if applicable.
                             if (decoder.IsProgressive)
                             {
-                                int blockIndex = ((this.by * decoder.MCUCountX) * hi) + this.bx;
-                                this.data.Block = decoder.ProgCoeffs[compIndex][blockIndex];
+                                int blockIndex = this.GetBlockIndex(decoder);
+                                this.data.Block = decoder.DecodedBlocks[this.componentIndex][blockIndex];
                             }
                             else
                             {
                                 this.data.Block.Clear();
                             }
 
-                            this.ProcessBlockImpl(decoder, i, compIndex, hi);
+                            this.ProcessBlockImpl(decoder, i);
                         }
 
                         // for j
@@ -256,7 +266,7 @@ namespace ImageSharp.Formats.Jpg
 
             for (int i = 0; i < this.componentScanCount; i++)
             {
-                this.ProcessScanImpl(decoder, i, ref this.pointers.Scan[i], ref totalHv);
+                this.ProcessScanImpl(decoder, i, ref this.pointers.ComponentScan[i], ref totalHv);
             }
 
             // Section B.2.3 states that if there is more than one component then the
@@ -291,22 +301,6 @@ namespace ImageSharp.Formats.Jpg
                     throw new ImageFormatException("Bad successive approximation values");
                 }
             }
-
-            if (decoder.IsProgressive)
-            {
-                for (int i = 0; i < this.componentScanCount; i++)
-                {
-                    int compIndex = this.pointers.Scan[i].Index;
-                    if (decoder.ProgCoeffs[compIndex] == null)
-                    {
-                        int size = decoder.TotalMCUCount
-                            * decoder.ComponentArray[compIndex].HorizontalFactor
-                            * decoder.ComponentArray[compIndex].VerticalFactor;
-
-                        decoder.ProgCoeffs[compIndex] = new Block8x8F[size];
-                    }
-                }
-            }
         }
 
         /// <summary>
@@ -314,13 +308,11 @@ namespace ImageSharp.Formats.Jpg
         /// </summary>
         /// <param name="decoder">The decoder</param>
         /// <param name="i">The index of the scan</param>
-        /// <param name="compIndex">The component index</param>
-        /// <param name="hi">Horizontal sampling factor at the given component index</param>
-        private void ProcessBlockImpl(JpegDecoderCore decoder, int i, int compIndex, int hi)
+        private void ProcessBlockImpl(JpegDecoderCore decoder, int i)
         {
             var b = this.pointers.Block;
 
-            int huffmannIdx = (AcTableIndex * HuffmanTree.ThRowSize) + this.pointers.Scan[i].AcTableSelector;
+            int huffmannIdx = (AcTableIndex * HuffmanTree.ThRowSize) + this.pointers.ComponentScan[i].AcTableSelector;
             if (this.ah != 0)
             {
                 this.Refine(decoder, ref decoder.HuffmanTrees[huffmannIdx], 1 << this.al);
@@ -335,17 +327,17 @@ namespace ImageSharp.Formats.Jpg
                     // Decode the DC coefficient, as specified in section F.2.2.1.
                     byte value =
                         decoder.DecodeHuffman(
-                            ref decoder.HuffmanTrees[(DcTableIndex * HuffmanTree.ThRowSize) + this.pointers.Scan[i].DcTableSelector]);
+                            ref decoder.HuffmanTrees[(DcTableIndex * HuffmanTree.ThRowSize) + this.pointers.ComponentScan[i].DcTableSelector]);
                     if (value > 16)
                     {
                         throw new ImageFormatException("Excessive DC component");
                     }
 
                     int deltaDC = decoder.Bits.ReceiveExtend(value, decoder);
-                    this.pointers.Dc[compIndex] += deltaDC;
+                    this.pointers.Dc[this.componentIndex] += deltaDC;
 
                     // b[0] = dc[compIndex] << al;
-                    Block8x8F.SetScalarAt(b, 0, this.pointers.Dc[compIndex] << this.al);
+                    Block8x8F.SetScalarAt(b, 0, this.pointers.Dc[this.componentIndex] << this.al);
                 }
 
                 if (zig <= this.zigEnd && this.eobRun > 0)
@@ -398,8 +390,7 @@ namespace ImageSharp.Formats.Jpg
                 if (this.zigEnd != Block8x8F.ScalarCount - 1 || this.al != 0)
                 {
                     // We haven't completely decoded this 8x8 block. Save the coefficients.
-                    // this.ProgCoeffs[compIndex][((@by * XNumberOfMCUs) * hi) + bx] = b.Clone();
-                    decoder.ProgCoeffs[compIndex][((this.by * decoder.MCUCountX) * hi) + this.bx] = *b;
+                    decoder.DecodedBlocks[this.componentIndex][this.GetBlockIndex(decoder)] = *b;
 
                     // At this point, we could execute the rest of the loop body to dequantize and
                     // perform the inverse DCT, to save early stages of a progressive image to the
@@ -415,12 +406,17 @@ namespace ImageSharp.Formats.Jpg
 
             DCT.TransformIDCT(ref *b, ref *this.pointers.Temp1, ref *this.pointers.Temp2);
 
-            var destChannel = decoder.GetDestinationChannel(compIndex);
+            var destChannel = decoder.GetDestinationChannel(this.componentIndex);
             var destArea = destChannel.GetOffsetedSubAreaForBlock(this.bx, this.by);
             destArea.LoadColorsFrom(this.pointers.Temp1, this.pointers.Temp2);
         }
 
-        private void ProcessScanImpl(JpegDecoderCore decoder, int i, ref Scan currentScan, ref int totalHv)
+        private int GetBlockIndex(JpegDecoderCore decoder)
+        {
+            return ((this.@by * decoder.MCUCountX) * this.hi) + this.bx;
+        }
+
+        private void ProcessScanImpl(JpegDecoderCore decoder, int i, ref ComponentScan currentComponentScan, ref int totalHv)
         {
             // Component selector.
             int cs = decoder.Temp[1 + (2 * i)];
@@ -439,15 +435,15 @@ namespace ImageSharp.Formats.Jpg
                 throw new ImageFormatException("Unknown component selector");
             }
 
-            currentScan.Index = (byte)compIndex;
+            currentComponentScan.ComponentIndex = (byte)compIndex;
 
-            this.ProcessComponentImpl(decoder, i, ref currentScan, ref totalHv, ref decoder.ComponentArray[compIndex]);
+            this.ProcessComponentImpl(decoder, i, ref currentComponentScan, ref totalHv, ref decoder.ComponentArray[compIndex]);
         }
 
         private void ProcessComponentImpl(
             JpegDecoderCore decoder,
             int i,
-            ref Scan currentScan,
+            ref ComponentScan currentComponentScan,
             ref int totalHv,
             ref Component currentComponent)
         {
@@ -458,7 +454,7 @@ namespace ImageSharp.Formats.Jpg
             // into comp are unique.
             for (int j = 0; j < i; j++)
             {
-                if (currentScan.Index == this.pointers.Scan[j].Index)
+                if (currentComponentScan.ComponentIndex == this.pointers.ComponentScan[j].ComponentIndex)
                 {
                     throw new ImageFormatException("Repeated component selector");
                 }
@@ -466,14 +462,14 @@ namespace ImageSharp.Formats.Jpg
 
             totalHv += currentComponent.HorizontalFactor * currentComponent.VerticalFactor;
 
-            currentScan.DcTableSelector = (byte)(decoder.Temp[2 + (2 * i)] >> 4);
-            if (currentScan.DcTableSelector > HuffmanTree.MaxTh)
+            currentComponentScan.DcTableSelector = (byte)(decoder.Temp[2 + (2 * i)] >> 4);
+            if (currentComponentScan.DcTableSelector > HuffmanTree.MaxTh)
             {
                 throw new ImageFormatException("Bad DC table selector value");
             }
 
-            currentScan.AcTableSelector = (byte)(decoder.Temp[2 + (2 * i)] & 0x0f);
-            if (currentScan.AcTableSelector > HuffmanTree.MaxTh)
+            currentComponentScan.AcTableSelector = (byte)(decoder.Temp[2 + (2 * i)] & 0x0f);
+            if (currentComponentScan.AcTableSelector > HuffmanTree.MaxTh)
             {
                 throw new ImageFormatException("Bad AC table selector  value");
             }
@@ -714,7 +710,7 @@ namespace ImageSharp.Formats.Jpg
             /// <summary>
             /// Pointer to <see cref="ComputationData.ScanData"/> as Scan*
             /// </summary>
-            public Scan* Scan;
+            public ComponentScan* ComponentScan;
 
             /// <summary>
             /// Pointer to <see cref="ComputationData.Dc"/>
@@ -732,7 +728,7 @@ namespace ImageSharp.Formats.Jpg
                 this.Temp2 = &basePtr->Temp2;
                 this.QuantiazationTable = &basePtr->QuantiazationTable;
                 this.Unzig = basePtr->Unzig.Data;
-                this.Scan = (Scan*)basePtr->ScanData;
+                this.ComponentScan = (ComponentScan*)basePtr->ScanData;
                 this.Dc = basePtr->Dc;
             }
         }

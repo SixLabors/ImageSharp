@@ -112,6 +112,28 @@ namespace ImageSharp.Formats.Jpg
 
         /// <summary>
         /// Reads the blocks from the <see cref="JpegDecoderCore"/>-s stream, and processes them into the corresponding <see cref="JpegPixelArea"/> instances.
+        /// The blocks are traversed one MCU at a time. For 4:2:0 chroma
+        /// subsampling, there are four Y 8x8 blocks in every 16x16 MCU.
+        /// For a baseline 32x16 pixel image, the Y blocks visiting order is:
+        /// 0 1 4 5
+        /// 2 3 6 7
+        /// For progressive images, the interleaved scans (those with component count &gt; 1)
+        /// are traversed as above, but non-interleaved scans are traversed left
+        /// to right, top to bottom:
+        /// 0 1 2 3
+        /// 4 5 6 7
+        /// Only DC scans (zigStart == 0) can be interleave AC scans must have
+        /// only one component.
+        /// To further complicate matters, for non-interleaved scans, there is no
+        /// data for any blocks that are inside the image at the MCU level but
+        /// outside the image at the pixel level. For example, a 24x16 pixel 4:2:0
+        /// progressive image consists of two 16x16 MCUs. The interleaved scans
+        /// will process 8 Y blocks:
+        /// 0 1 4 5
+        /// 2 3 6 7
+        /// The non-interleaved scans will process only 6 Y blocks:
+        /// 0 1 2
+        /// 3 4 5
         /// </summary>
         /// <param name="decoder">The <see cref="JpegDecoderCore"/> instance</param>
         public void ProcessBlocks(JpegDecoderCore decoder)
@@ -132,28 +154,6 @@ namespace ImageSharp.Formats.Jpg
 
                         for (int j = 0; j < this.hi * vi; j++)
                         {
-                            // The blocks are traversed one MCU at a time. For 4:2:0 chroma
-                            // subsampling, there are four Y 8x8 blocks in every 16x16 MCU.
-                            // For a baseline 32x16 pixel image, the Y blocks visiting order is:
-                            // 0 1 4 5
-                            // 2 3 6 7
-                            // For progressive images, the interleaved scans (those with component count > 1)
-                            // are traversed as above, but non-interleaved scans are traversed left
-                            // to right, top to bottom:
-                            // 0 1 2 3
-                            // 4 5 6 7
-                            // Only DC scans (zigStart == 0) can be interleave AC scans must have
-                            // only one component.
-                            // To further complicate matters, for non-interleaved scans, there is no
-                            // data for any blocks that are inside the image at the MCU level but
-                            // outside the image at the pixel level. For example, a 24x16 pixel 4:2:0
-                            // progressive image consists of two 16x16 MCUs. The interleaved scans
-                            // will process 8 Y blocks:
-                            // 0 1 4 5
-                            // 2 3 6 7
-                            // The non-interleaved scans will process only 6 Y blocks:
-                            // 0 1 2
-                            // 3 4 5
                             if (this.componentScanCount != 1)
                             {
                                 this.bx = (this.hi * mx) + (j % this.hi);
@@ -171,23 +171,8 @@ namespace ImageSharp.Formats.Jpg
                                 }
                             }
 
-                            int qtIndex = decoder.ComponentArray[this.componentIndex].Selector;
-
-                            // TODO: Reading & processing blocks should be done in 2 separate loops. The second one could be parallelized. The first one could be async.
-                            this.data.QuantiazationTable = decoder.QuantizationTables[qtIndex];
-
-                            // Load the previous partially decoded coefficients, if applicable.
-                            if (decoder.IsProgressive)
-                            {
-                                int blockIndex = this.GetBlockIndex(decoder);
-                                this.data.Block = decoder.DecodedBlocks[this.componentIndex][blockIndex];
-                            }
-                            else
-                            {
-                                this.data.Block.Clear();
-                            }
-
-                            this.ProcessBlockImpl(decoder, scanIndex);
+                            this.ReadBlock(decoder, scanIndex);
+                            this.ProcessBlock(decoder);
                         }
 
                         // for j
@@ -301,12 +286,15 @@ namespace ImageSharp.Formats.Jpg
         }
 
         /// <summary>
-        /// Process the current block at (<see cref="bx"/>, <see cref="by"/>)
+        /// Read the current the current block at (<see cref="bx"/>, <see cref="by"/>) from the decoders stream
         /// </summary>
         /// <param name="decoder">The decoder</param>
         /// <param name="scanIndex">The index of the scan</param>
-        private void ProcessBlockImpl(JpegDecoderCore decoder, int scanIndex)
+        private void ReadBlock(JpegDecoderCore decoder, int scanIndex)
         {
+            int blockIndex = this.GetBlockIndex(decoder);
+            this.data.Block = decoder.DecodedBlocks[this.componentIndex][blockIndex];
+
             var b = this.pointers.Block;
             DecoderErrorCode errorCode;
             int huffmannIdx = (AcTableIndex * HuffmanTree.ThRowSize) + this.pointers.ComponentScan[scanIndex].AcTableSelector;
@@ -391,23 +379,23 @@ namespace ImageSharp.Formats.Jpg
                 }
             }
 
-            if (decoder.IsProgressive)
-            {
-                if (this.zigEnd != Block8x8F.ScalarCount - 1 || this.al != 0)
-                {
-                    // We haven't completely decoded this 8x8 block. Save the coefficients.
-                    decoder.DecodedBlocks[this.componentIndex][this.GetBlockIndex(decoder)] = *b;
+            decoder.DecodedBlocks[this.componentIndex][blockIndex] = this.data.Block;
+        }
 
-                    // At this point, we could execute the rest of the loop body to dequantize and
-                    // perform the inverse DCT, to save early stages of a progressive image to the
-                    // *image.YCbCr buffers (the whole point of progressive encoding), but in Go,
-                    // the jpeg.Decode function does not return until the entire image is decoded,
-                    // so we "continue" here to avoid wasted computation.
-                    return;
-                }
-            }
+        private bool IsProgressiveBlockFinished(JpegDecoderCore decoder)
+            => decoder.IsProgressive && (this.zigEnd != Block8x8F.ScalarCount - 1 || this.al != 0);
 
-            // Dequantize, perform the inverse DCT and store the block to the image.
+        /// <summary>
+        /// Dequantize, perform the inverse DCT and store the block to the into the corresponding <see cref="JpegPixelArea"/> instances.
+        /// </summary>
+        /// <param name="decoder">The <see cref="JpegDecoderCore"/> instance</param>
+        private void ProcessBlock(JpegDecoderCore decoder)
+        {
+            int qtIndex = decoder.ComponentArray[this.componentIndex].Selector;
+            this.data.QuantiazationTable = decoder.QuantizationTables[qtIndex];
+
+            Block8x8F* b = this.pointers.Block;
+
             Block8x8F.UnZig(b, this.pointers.QuantiazationTable, this.pointers.Unzig);
 
             DCT.TransformIDCT(ref *b, ref *this.pointers.Temp1, ref *this.pointers.Temp2);
@@ -437,7 +425,7 @@ namespace ImageSharp.Formats.Jpg
         /// <returns>The index</returns>
         private int GetBlockIndex(JpegDecoderCore decoder)
         {
-            return ((this.@by * decoder.MCUCountX) * this.hi) + this.bx;
+            return ((this.by * decoder.MCUCountX) * this.hi) + this.bx;
         }
 
         private void ProcessScanImpl(JpegDecoderCore decoder, int i, ref ComponentScan currentComponentScan, ref int totalHv)

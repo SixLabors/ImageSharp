@@ -13,6 +13,9 @@ namespace ImageSharp.Formats.Jpg
     /// </summary>
     internal class EOFException : Exception
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="EOFException"/> class.
+        /// </summary>
         public EOFException()
             : base("Reached end of stream before proceeding EOI marker!")
         {

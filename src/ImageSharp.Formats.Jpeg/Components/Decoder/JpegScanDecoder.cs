@@ -2,7 +2,6 @@
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
-
 // ReSharper disable InconsistentNaming
 namespace ImageSharp.Formats.Jpg
 {
@@ -10,8 +9,21 @@ namespace ImageSharp.Formats.Jpg
     using System.Runtime.CompilerServices;
 
     /// <summary>
-    /// Encapsulates the impementation of Jpeg SOS decoder.
-    /// See JpegScanDecoder.md!
+    /// Encapsulates the impementation of Jpeg SOS decoder. See JpegScanDecoder.md!
+    /// <see cref="zigStart"/> and <see cref="zigEnd"/> are the spectral selection bounds.
+    /// <see cref="ah"/> and <see cref="al"/> are the successive approximation high and low values.
+    /// The spec calls these values Ss, Se, Ah and Al.
+    /// For progressive JPEGs, these are the two more-or-less independent
+    /// aspects of progression. Spectral selection progression is when not
+    /// all of a block's 64 DCT coefficients are transmitted in one pass.
+    /// For example, three passes could transmit coefficient 0 (the DC
+    /// component), coefficients 1-5, and coefficients 6-63, in zig-zag
+    /// order. Successive approximation is when not all of the bits of a
+    /// band of coefficients are transmitted in one pass. For example,
+    /// three passes could transmit the 6 most significant bits, followed
+    /// by the second-least significant bit, followed by the least
+    /// significant bit.
+    /// For baseline JPEGs, these parameters are hard-coded to 0/63/0/0.
     /// </summary>
     internal unsafe partial struct JpegScanDecoder
     {
@@ -34,21 +46,6 @@ namespace ImageSharp.Formats.Jpg
         /// Y coordinate of the current block, in units of 8x8. (The third block in the first row has (bx, by) = (2, 0))
         /// </summary>
         private int by;
-
-        // zigStart and zigEnd are the spectral selection bounds.
-        // ah and al are the successive approximation high and low values.
-        // The spec calls these values Ss, Se, Ah and Al.
-        // For progressive JPEGs, these are the two more-or-less independent
-        // aspects of progression. Spectral selection progression is when not
-        // all of a block's 64 DCT coefficients are transmitted in one pass.
-        // For example, three passes could transmit coefficient 0 (the DC
-        // component), coefficients 1-5, and coefficients 6-63, in zig-zag
-        // order. Successive approximation is when not all of the bits of a
-        // band of coefficients are transmitted in one pass. For example,
-        // three passes could transmit the 6 most significant bits, followed
-        // by the second-least significant bit, followed by the least
-        // significant bit.
-        // For baseline JPEGs, these parameters are hard-coded to 0/63/0/0.
 
         /// <summary>
         /// Start index of the zig-zag selection bound
@@ -91,14 +88,14 @@ namespace ImageSharp.Formats.Jpg
         private ushort eobRun;
 
         /// <summary>
-        /// The <see cref="ComputationData"/> buffer
-        /// </summary>
-        private ComputationData data;
-
-        /// <summary>
         /// Pointers to elements of <see cref="data"/>
         /// </summary>
         private DataPointers pointers;
+
+        /// <summary>
+        /// The <see cref="ComputationData"/> buffer
+        /// </summary>
+        private ComputationData data;
 
         /// <summary>
         /// Initializes the default instance after creation.
@@ -320,7 +317,6 @@ namespace ImageSharp.Formats.Jpg
             else
             {
                 int zig = this.zigStart;
-                DecoderErrorCode errorCode;
                 if (zig == 0)
                 {
                     zig++;
@@ -335,7 +331,6 @@ namespace ImageSharp.Formats.Jpg
                     }
 
                     int deltaDC = decoder.Bits.ReceiveExtend(value, decoder);
-                    // errorCode.EnsureNoError();
 
                     this.pointers.Dc[this.componentIndex] += deltaDC;
 
@@ -364,7 +359,6 @@ namespace ImageSharp.Formats.Jpg
                             }
 
                             int ac = decoder.Bits.ReceiveExtend(val1, decoder);
-                            // errorCode.EnsureNoError();
 
                             // b[Unzig[zig]] = ac << al;
                             Block8x8F.SetScalarAt(b, this.pointers.Unzig[zig], ac << this.al);

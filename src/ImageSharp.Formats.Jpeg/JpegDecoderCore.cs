@@ -431,8 +431,7 @@ namespace ImageSharp.Formats
         {
             if (this.Bits.UnreadBits == 0)
             {
-                DecoderErrorCode errorCode = this.Bits.EnsureNBits(1, this);
-                errorCode.EnsureNoError();
+                this.Bits.EnsureNBits(1, this);
             }
 
             bool ret = (this.Bits.Accumulator & this.Bits.Mask) != 0;
@@ -506,8 +505,7 @@ namespace ImageSharp.Formats
         {
             if (this.Bits.UnreadBits < count)
             {
-                DecoderErrorCode errorCode = this.Bits.EnsureNBits(count, this);
-                errorCode.EnsureNoError();
+                this.Bits.EnsureNBits(count, this);
             }
 
             uint ret = this.Bits.Accumulator >> (this.Bits.UnreadBits - count);
@@ -532,7 +530,7 @@ namespace ImageSharp.Formats
 
             if (this.Bits.UnreadBits < 8)
             {
-                DecoderErrorCode errorCode = this.Bits.EnsureNBits(8, this);
+                DecoderErrorCode errorCode = this.Bits.EnsureNBitsUnsafe(8, this);
 
                 if (errorCode == DecoderErrorCode.NoError)
                 {
@@ -561,8 +559,7 @@ namespace ImageSharp.Formats
             {
                 if (this.Bits.UnreadBits == 0)
                 {
-                    DecoderErrorCode errorCode = this.Bits.EnsureNBits(1, this);
-                    errorCode.EnsureNoError();
+                    this.Bits.EnsureNBits(1, this);
                 }
 
                 if ((this.Bits.Accumulator & this.Bits.Mask) != 0)

@@ -5,6 +5,7 @@
 namespace ImageSharp.Formats
 {
     using System;
+    using System.Buffers;
     using System.IO;
     using System.Runtime.CompilerServices;
     using System.Threading.Tasks;
@@ -21,6 +22,11 @@ namespace ImageSharp.Formats
         /// </summary>
         public const int MaxComponents = 4;
 
+        /// <summary>
+        /// The maximum number of quantization tables
+        /// </summary>
+        public const int MaxTq = 3;
+
         // Complex value type field + mutable + available to other classes = the field MUST NOT be private :P
 #pragma warning disable SA1401 // FieldsMustBePrivate
         /// <summary>
@@ -35,9 +41,10 @@ namespace ImageSharp.Formats
 #pragma warning restore SA401
 
         /// <summary>
-        /// The maximum number of quantization tables
+        /// The <see cref="ArrayPool{T}"/> used to pool data in <see cref="DecodedBlocks"/>.
+        /// Should always clean arrays when returning!
         /// </summary>
-        private const int MaxTq = 3;
+        private static readonly ArrayPool<Block8x8F> BlockPool = ArrayPool<Block8x8F>.Create();
 
         /// <summary>
         /// The App14 marker color-space
@@ -404,6 +411,15 @@ namespace ImageSharp.Formats
             for (int i = 0; i < this.HuffmanTrees.Length; i++)
             {
                 this.HuffmanTrees[i].Dispose();
+            }
+
+            for (int i = 0; i < this.DecodedBlocks.Length; i++)
+            {
+                Block8x8F[] blockArray = this.DecodedBlocks[i];
+                if (blockArray != null)
+                {
+                    BlockPool.Return(blockArray, true);
+                }
             }
 
             this.ycbcrImage?.Dispose();
@@ -1407,7 +1423,7 @@ namespace ImageSharp.Formats
             {
                 int size = this.TotalMCUCount * this.ComponentArray[i].HorizontalFactor
                            * this.ComponentArray[i].VerticalFactor;
-                this.DecodedBlocks[i] = new Block8x8F[size];
+                this.DecodedBlocks[i] = BlockPool.Rent(size);
             }
         }
 

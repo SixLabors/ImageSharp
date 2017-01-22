@@ -24,6 +24,6 @@ namespace ImageSharp.Formats
         /// <summary>
         /// End of stream reached unexpectedly
         /// </summary>
-        UnexpectedEndOfFile
+        UnexpectedEndOfStream
     }
 }

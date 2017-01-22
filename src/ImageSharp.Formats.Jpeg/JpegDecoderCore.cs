@@ -167,6 +167,21 @@ namespace ImageSharp.Formats
         public int RestartInterval { get; private set; }
 
         /// <summary>
+        /// Gets the number of MCU-s (Minimum Coded Units) in the image along the X axis
+        /// </summary>
+        public int MCUCountX { get; private set; }
+
+        /// <summary>
+        /// Gets the number of MCU-s (Minimum Coded Units) in the image along the Y axis
+        /// </summary>
+        public int MCUCountY { get; private set; }
+
+        /// <summary>
+        /// Gets the the total number of MCU-s (Minimum Coded Units) in the image.
+        /// </summary>
+        public int TotalMCUCount => this.MCUCountX * this.MCUCountY;
+
+        /// <summary>
         /// Decodes the image from the specified this._stream and sets
         /// the data to image.
         /// </summary>
@@ -871,9 +886,7 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Makes the image from the buffer.
         /// </summary>
-        /// <param name="mxx">The horizontal MCU count</param>
-        /// <param name="myy">The vertical MCU count</param>
-        private void MakeImage(int mxx, int myy)
+        private void MakeImage()
         {
             if (this.grayImage.IsInitialized || this.ycbcrImage != null)
             {
@@ -882,7 +895,7 @@ namespace ImageSharp.Formats
 
             if (this.ComponentCount == 1)
             {
-                this.grayImage = JpegPixelArea.CreatePooled(8 * mxx, 8 * myy);
+                this.grayImage = JpegPixelArea.CreatePooled(8 * this.MCUCountX, 8 * this.MCUCountY);
             }
             else
             {
@@ -914,14 +927,14 @@ namespace ImageSharp.Formats
                         break;
                 }
 
-                this.ycbcrImage = new YCbCrImage(8 * h0 * mxx, 8 * v0 * myy, ratio);
+                this.ycbcrImage = new YCbCrImage(8 * h0 * this.MCUCountX, 8 * v0 * this.MCUCountY, ratio);
 
                 if (this.ComponentCount == 4)
                 {
                     int h3 = this.ComponentArray[3].HorizontalFactor;
                     int v3 = this.ComponentArray[3].VerticalFactor;
 
-                    this.blackImage = JpegPixelArea.CreatePooled(8 * h3 * mxx, 8 * v3 * myy);
+                    this.blackImage = JpegPixelArea.CreatePooled(8 * h3 * this.MCUCountX, 8 * v3 * this.MCUCountY);
                 }
             }
         }
@@ -1390,6 +1403,11 @@ namespace ImageSharp.Formats
                 this.ComponentArray[i].HorizontalFactor = h;
                 this.ComponentArray[i].VerticalFactor = v;
             }
+
+            int h0 = this.ComponentArray[0].HorizontalFactor;
+            int v0 = this.ComponentArray[0].VerticalFactor;
+            this.MCUCountX = (this.ImageWidth + (8 * h0) - 1) / (8 * h0);
+            this.MCUCountY = (this.ImageHeight + (8 * v0) - 1) / (8 * v0);
         }
 
         /// <summary>
@@ -1405,7 +1423,7 @@ namespace ImageSharp.Formats
             JpegScanDecoder scan = default(JpegScanDecoder);
             JpegScanDecoder.Init(&scan, this, remaining);
             this.Bits = default(Bits);
-            this.MakeImage(scan.XNumberOfMCUs, scan.YNumberOfMCUs);
+            this.MakeImage();
             scan.ProcessBlocks(this);
         }
 

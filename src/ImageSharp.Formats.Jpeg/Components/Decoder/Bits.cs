@@ -39,11 +39,11 @@ namespace ImageSharp.Formats.Jpg
         /// <param name="decoder">Jpeg decoder</param>
         /// <returns>Error code</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal JpegDecoderCore.ErrorCodes EnsureNBits(int n, JpegDecoderCore decoder)
+        internal DecoderErrorCode EnsureNBits(int n, JpegDecoderCore decoder)
         {
             while (true)
             {
-                JpegDecoderCore.ErrorCodes errorCode;
+                DecoderErrorCode errorCode;
 
                 // Grab the decode bytes, use them and then set them
                 // back on the decoder.
@@ -51,7 +51,7 @@ namespace ImageSharp.Formats.Jpg
                 byte c = decoderBytes.ReadByteStuffedByte(decoder.InputStream, out errorCode);
                 decoder.Bytes = decoderBytes;
 
-                if (errorCode != JpegDecoderCore.ErrorCodes.NoError)
+                if (errorCode != DecoderErrorCode.NoError)
                 {
                     return errorCode;
                 }
@@ -69,7 +69,7 @@ namespace ImageSharp.Formats.Jpg
 
                 if (this.UnreadBits >= n)
                 {
-                    return JpegDecoderCore.ErrorCodes.NoError;
+                    return DecoderErrorCode.NoError;
                 }
             }
         }
@@ -84,11 +84,8 @@ namespace ImageSharp.Formats.Jpg
         {
             if (this.UnreadBits < t)
             {
-                JpegDecoderCore.ErrorCodes errorCode = this.EnsureNBits(t, decoder);
-                if (errorCode != JpegDecoderCore.ErrorCodes.NoError)
-                {
-                    throw new JpegDecoderCore.MissingFF00Exception();
-                }
+                DecoderErrorCode errorCode = this.EnsureNBits(t, decoder);
+                errorCode.EnsureNoError();
             }
 
             this.UnreadBits -= t;

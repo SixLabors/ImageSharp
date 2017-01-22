@@ -136,7 +136,7 @@ namespace ImageSharp.Formats.Jpg
         /// 3 4 5
         /// </summary>
         /// <param name="decoder">The <see cref="JpegDecoderCore"/> instance</param>
-        public void ProcessBlocks(JpegDecoderCore decoder)
+        public void ReadBlocks(JpegDecoderCore decoder)
         {
             int blockCount = 0;
             int mcu = 0;
@@ -213,6 +213,26 @@ namespace ImageSharp.Formats.Jpg
             }
         }
 
+        /// <summary>
+        /// Dequantize, perform the inverse DCT and store the block to the into the corresponding <see cref="JpegPixelArea"/> instances.
+        /// </summary>
+        /// <param name="decoder">The <see cref="JpegDecoderCore"/> instance</param>
+        public void ProcessBlock(JpegDecoderCore decoder)
+        {
+            int qtIndex = decoder.ComponentArray[this.componentIndex].Selector;
+            this.data.QuantiazationTable = decoder.QuantizationTables[qtIndex];
+
+            Block8x8F* b = this.pointers.Block;
+
+            Block8x8F.UnZig(b, this.pointers.QuantiazationTable, this.pointers.Unzig);
+
+            DCT.TransformIDCT(ref *b, ref *this.pointers.Temp1, ref *this.pointers.Temp2);
+
+            var destChannel = decoder.GetDestinationChannel(this.componentIndex);
+            var destArea = destChannel.GetOffsetedSubAreaForBlock(this.bx, this.by);
+            destArea.LoadColorsFrom(this.pointers.Temp1, this.pointers.Temp2);
+        }
+
         private void ResetDc()
         {
             Unsafe.InitBlock(this.pointers.Dc, default(byte), sizeof(int) * JpegDecoderCore.MaxComponents);
@@ -248,7 +268,7 @@ namespace ImageSharp.Formats.Jpg
 
             for (int i = 0; i < this.componentScanCount; i++)
             {
-                this.ProcessScanImpl(decoder, i, ref this.pointers.ComponentScan[i], ref totalHv);
+                this.InitComponentScan(decoder, i, ref this.pointers.ComponentScan[i], ref totalHv);
             }
 
             // Section B.2.3 states that if there is more than one component then the
@@ -293,7 +313,7 @@ namespace ImageSharp.Formats.Jpg
         private void ReadBlock(JpegDecoderCore decoder, int scanIndex)
         {
             int blockIndex = this.GetBlockIndex(decoder);
-            this.data.Block = decoder.DecodedBlocks[this.componentIndex][blockIndex];
+            this.data.Block = decoder.DecodedBlocks[this.componentIndex][blockIndex].Block;
 
             var b = this.pointers.Block;
             DecoderErrorCode errorCode;
@@ -379,31 +399,13 @@ namespace ImageSharp.Formats.Jpg
                 }
             }
 
-            decoder.DecodedBlocks[this.componentIndex][blockIndex] = this.data.Block;
+            DecodedBlockMemento[] blocks = decoder.DecodedBlocks[this.componentIndex];
+            DecodedBlockMemento.Store(blocks, blockIndex, this.bx, this.by, ref *b);
         }
 
         private bool IsProgressiveBlockFinished(JpegDecoderCore decoder)
             => decoder.IsProgressive && (this.zigEnd != Block8x8F.ScalarCount - 1 || this.al != 0);
 
-        /// <summary>
-        /// Dequantize, perform the inverse DCT and store the block to the into the corresponding <see cref="JpegPixelArea"/> instances.
-        /// </summary>
-        /// <param name="decoder">The <see cref="JpegDecoderCore"/> instance</param>
-        private void ProcessBlock(JpegDecoderCore decoder)
-        {
-            int qtIndex = decoder.ComponentArray[this.componentIndex].Selector;
-            this.data.QuantiazationTable = decoder.QuantizationTables[qtIndex];
-
-            Block8x8F* b = this.pointers.Block;
-
-            Block8x8F.UnZig(b, this.pointers.QuantiazationTable, this.pointers.Unzig);
-
-            DCT.TransformIDCT(ref *b, ref *this.pointers.Temp1, ref *this.pointers.Temp2);
-
-            var destChannel = decoder.GetDestinationChannel(this.componentIndex);
-            var destArea = destChannel.GetOffsetedSubAreaForBlock(this.bx, this.by);
-            destArea.LoadColorsFrom(this.pointers.Temp1, this.pointers.Temp2);
-        }
 
         private DecoderErrorCode DecodeEobRun(int count, JpegDecoderCore decoder)
         {
@@ -428,7 +430,7 @@ namespace ImageSharp.Formats.Jpg
             return ((this.by * decoder.MCUCountX) * this.hi) + this.bx;
         }
 
-        private void ProcessScanImpl(JpegDecoderCore decoder, int i, ref ComponentScan currentComponentScan, ref int totalHv)
+        private void InitComponentScan(JpegDecoderCore decoder, int i, ref ComponentScan currentComponentScan, ref int totalHv)
         {
             // Component selector.
             int cs = decoder.Temp[1 + (2 * i)];
@@ -649,5 +651,7 @@ namespace ImageSharp.Formats.Jpg
 
             return zig;
         }
+
+
     }
 }

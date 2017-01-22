@@ -88,7 +88,7 @@ namespace ImageSharp.Formats
             this.QuantizationTables = new Block8x8F[MaxTq + 1];
             this.Temp = new byte[2 * Block8x8F.ScalarCount];
             this.ComponentArray = new Component[MaxComponents];
-            this.ProgCoeffs = new Block8x8F[MaxComponents][];
+            this.DecodedBlocks = new Block8x8F[MaxComponents][];
             this.Bits = default(Bits);
             this.Bytes = Bytes.Create();
         }
@@ -107,6 +107,7 @@ namespace ImageSharp.Formats
             /// <summary>
             /// MissingFF00
             /// </summary>
+            // ReSharper disable once InconsistentNaming
             MissingFF00
         }
 
@@ -122,8 +123,9 @@ namespace ImageSharp.Formats
 
         /// <summary>
         /// Gets the saved state between progressive-mode scans.
+        /// TODO: Also store non-progressive data here. (Helps splitting and parallelizing JpegScanDecoder-s loop)
         /// </summary>
-        public Block8x8F[][] ProgCoeffs { get; }
+        public Block8x8F[][] DecodedBlocks { get; }
 
         /// <summary>
         /// Gets the quantization tables, in zigzag order.
@@ -131,9 +133,9 @@ namespace ImageSharp.Formats
         public Block8x8F[] QuantizationTables { get; }
 
         /// <summary>
-        /// Gets the temporary buffer for holding pixel (and other?) data
+        /// Gets the temporary buffer used to store bytes read from the stream.
+        /// TODO: Should be stack allocated, fixed sized buffer!
         /// </summary>
-        // TODO: the usage rules of this buffer seem to be unclean + need to consider stack-allocating it for perf
         public byte[] Temp { get; }
 
         /// <summary>
@@ -1408,6 +1410,13 @@ namespace ImageSharp.Formats
             int v0 = this.ComponentArray[0].VerticalFactor;
             this.MCUCountX = (this.ImageWidth + (8 * h0) - 1) / (8 * h0);
             this.MCUCountY = (this.ImageHeight + (8 * v0) - 1) / (8 * v0);
+
+            for (int i = 0; i < this.ComponentCount; i++)
+            {
+                int size = this.TotalMCUCount * this.ComponentArray[i].HorizontalFactor
+                           * this.ComponentArray[i].VerticalFactor;
+                this.DecodedBlocks[i] = new Block8x8F[size];
+            }
         }
 
         /// <summary>

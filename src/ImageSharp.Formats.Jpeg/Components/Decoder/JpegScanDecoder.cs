@@ -127,9 +127,9 @@ namespace ImageSharp.Formats.Jpg
             {
                 for (int mx = 0; mx < decoder.MCUCountX; mx++)
                 {
-                    for (int i = 0; i < this.componentScanCount; i++)
+                    for (int scanIndex = 0; scanIndex < this.componentScanCount; scanIndex++)
                     {
-                        this.componentIndex = this.pointers.ComponentScan[i].ComponentIndex;
+                        this.componentIndex = this.pointers.ComponentScan[scanIndex].ComponentIndex;
                         this.hi = decoder.ComponentArray[this.componentIndex].HorizontalFactor;
                         int vi = decoder.ComponentArray[this.componentIndex].VerticalFactor;
 
@@ -190,7 +190,7 @@ namespace ImageSharp.Formats.Jpg
                                 this.data.Block.Clear();
                             }
 
-                            this.ProcessBlockImpl(decoder, i);
+                            this.ProcessBlockImpl(decoder, scanIndex);
                         }
 
                         // for j
@@ -204,6 +204,7 @@ namespace ImageSharp.Formats.Jpg
                         // A more sophisticated decoder could use RST[0-7] markers to resynchronize from corrupt input,
                         // but this one assumes well-formed input, and hence the restart marker follows immediately.
                         decoder.ReadFull(decoder.Temp, 0, 2);
+
                         if (decoder.Temp[0] != 0xff || decoder.Temp[1] != expectedRst)
                         {
                             throw new ImageFormatException("Bad RST marker");
@@ -306,12 +307,12 @@ namespace ImageSharp.Formats.Jpg
         /// Process the current block at (<see cref="bx"/>, <see cref="by"/>)
         /// </summary>
         /// <param name="decoder">The decoder</param>
-        /// <param name="i">The index of the scan</param>
-        private void ProcessBlockImpl(JpegDecoderCore decoder, int i)
+        /// <param name="scanIndex">The index of the scan</param>
+        private void ProcessBlockImpl(JpegDecoderCore decoder, int scanIndex)
         {
             var b = this.pointers.Block;
 
-            int huffmannIdx = (AcTableIndex * HuffmanTree.ThRowSize) + this.pointers.ComponentScan[i].AcTableSelector;
+            int huffmannIdx = (AcTableIndex * HuffmanTree.ThRowSize) + this.pointers.ComponentScan[scanIndex].AcTableSelector;
             if (this.ah != 0)
             {
                 this.Refine(decoder, ref decoder.HuffmanTrees[huffmannIdx], 1 << this.al);
@@ -319,6 +320,7 @@ namespace ImageSharp.Formats.Jpg
             else
             {
                 int zig = this.zigStart;
+                DecoderErrorCode errorCode;
                 if (zig == 0)
                 {
                     zig++;
@@ -326,13 +328,15 @@ namespace ImageSharp.Formats.Jpg
                     // Decode the DC coefficient, as specified in section F.2.2.1.
                     byte value =
                         decoder.DecodeHuffman(
-                            ref decoder.HuffmanTrees[(DcTableIndex * HuffmanTree.ThRowSize) + this.pointers.ComponentScan[i].DcTableSelector]);
+                            ref decoder.HuffmanTrees[(DcTableIndex * HuffmanTree.ThRowSize) + this.pointers.ComponentScan[scanIndex].DcTableSelector]);
                     if (value > 16)
                     {
                         throw new ImageFormatException("Excessive DC component");
                     }
 
                     int deltaDC = decoder.Bits.ReceiveExtend(value, decoder);
+                    // errorCode.EnsureNoError();
+
                     this.pointers.Dc[this.componentIndex] += deltaDC;
 
                     // b[0] = dc[compIndex] << al;
@@ -360,6 +364,7 @@ namespace ImageSharp.Formats.Jpg
                             }
 
                             int ac = decoder.Bits.ReceiveExtend(val1, decoder);
+                            // errorCode.EnsureNoError();
 
                             // b[Unzig[zig]] = ac << al;
                             Block8x8F.SetScalarAt(b, this.pointers.Unzig[zig], ac << this.al);

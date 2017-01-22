@@ -69,11 +69,11 @@ namespace ImageSharp.Formats.Jpg
         /// <param name="inputStream">Input stream</param>
         /// <param name="errorCode">Error code</param>
         /// <returns>The <see cref="byte"/></returns>
-        internal byte ReadByteStuffedByte(Stream inputStream, out JpegDecoderCore.ErrorCodes errorCode)
+        internal byte ReadByteStuffedByte(Stream inputStream, out DecoderErrorCode errorCode)
         {
             byte x;
 
-            errorCode = JpegDecoderCore.ErrorCodes.NoError;
+            errorCode = DecoderErrorCode.NoError;
 
             // Take the fast path if bytes.buf contains at least two bytes.
             if (this.I + 2 <= this.J)
@@ -88,7 +88,7 @@ namespace ImageSharp.Formats.Jpg
 
                 if (this.Buffer[this.I] != 0x00)
                 {
-                    errorCode = JpegDecoderCore.ErrorCodes.MissingFF00;
+                    errorCode = DecoderErrorCode.MissingFF00;
                     return 0;
 
                     // throw new MissingFF00Exception();
@@ -112,7 +112,7 @@ namespace ImageSharp.Formats.Jpg
             this.UnreadableBytes = 2;
             if (x != 0x00)
             {
-                errorCode = JpegDecoderCore.ErrorCodes.MissingFF00;
+                errorCode = DecoderErrorCode.MissingFF00;
                 return 0;
 
                 // throw new MissingFF00Exception();
@@ -167,7 +167,7 @@ namespace ImageSharp.Formats.Jpg
             int n = inputStream.Read(this.Buffer, this.J, this.Buffer.Length - this.J);
             if (n == 0)
             {
-                throw new JpegDecoderCore.EOFException();
+                throw new EOFException();
             }
 
             this.J += n;

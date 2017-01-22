@@ -94,24 +94,6 @@ namespace ImageSharp.Formats
         }
 
         /// <summary>
-        /// ReadByteStuffedByte was throwing exceptions on normal execution path (very inefficent)
-        /// It's better tho have an error code for this!
-        /// </summary>
-        internal enum ErrorCodes
-        {
-            /// <summary>
-            /// NoError
-            /// </summary>
-            NoError,
-
-            /// <summary>
-            /// MissingFF00
-            /// </summary>
-            // ReSharper disable once InconsistentNaming
-            MissingFF00
-        }
-
-        /// <summary>
         /// Gets the component array
         /// </summary>
         public Component[] ComponentArray { get; }
@@ -437,7 +419,8 @@ namespace ImageSharp.Formats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public byte ReadByte()
         {
-            return this.Bytes.ReadByte(this.InputStream);
+            byte result = this.Bytes.ReadByte(this.InputStream);
+            return result;
         }
 
         /// <summary>
@@ -448,11 +431,8 @@ namespace ImageSharp.Formats
         {
             if (this.Bits.UnreadBits == 0)
             {
-                ErrorCodes errorCode = this.Bits.EnsureNBits(1, this);
-                if (errorCode != ErrorCodes.NoError)
-                {
-                    throw new MissingFF00Exception();
-                }
+                DecoderErrorCode errorCode = this.Bits.EnsureNBits(1, this);
+                errorCode.EnsureNoError();
             }
 
             bool ret = (this.Bits.Accumulator & this.Bits.Mask) != 0;
@@ -467,7 +447,22 @@ namespace ImageSharp.Formats
         /// <param name="data">The data to write to.</param>
         /// <param name="offset">The offset in the source buffer</param>
         /// <param name="length">The number of bytes to read</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ReadFull(byte[] data, int offset, int length)
+        {
+            DecoderErrorCode errorCode = this.ReadFullUnsafe(data, offset, length);
+            errorCode.EnsureNoError();
+        }
+
+        /// <summary>
+        /// Reads exactly length bytes into data. It does not care about byte stuffing.
+        /// Does not throw on errors, returns <see cref="JpegDecoderCore"/> instead!
+        /// </summary>
+        /// <param name="data">The data to write to.</param>
+        /// <param name="offset">The offset in the source buffer</param>
+        /// <param name="length">The number of bytes to read</param>
+        /// <returns>The <see cref="DecoderErrorCode"/></returns>
+        public DecoderErrorCode ReadFullUnsafe(byte[] data, int offset, int length)
         {
             // Unread the overshot bytes, if any.
             if (this.Bytes.UnreadableBytes != 0)
@@ -498,7 +493,9 @@ namespace ImageSharp.Formats
                     this.Bytes.Fill(this.InputStream);
                 }
             }
-        }
+
+            return DecoderErrorCode.NoError;
+         }
 
         /// <summary>
         /// Decodes the given number of bits
@@ -509,11 +506,8 @@ namespace ImageSharp.Formats
         {
             if (this.Bits.UnreadBits < count)
             {
-                ErrorCodes errorCode = this.Bits.EnsureNBits(count, this);
-                if (errorCode != ErrorCodes.NoError)
-                {
-                    throw new MissingFF00Exception();
-                }
+                DecoderErrorCode errorCode = this.Bits.EnsureNBits(count, this);
+                errorCode.EnsureNoError();
             }
 
             uint ret = this.Bits.Accumulator >> (this.Bits.UnreadBits - count);
@@ -538,9 +532,9 @@ namespace ImageSharp.Formats
 
             if (this.Bits.UnreadBits < 8)
             {
-                ErrorCodes errorCode = this.Bits.EnsureNBits(8, this);
+                DecoderErrorCode errorCode = this.Bits.EnsureNBits(8, this);
 
-                if (errorCode == ErrorCodes.NoError)
+                if (errorCode == DecoderErrorCode.NoError)
                 {
                     ushort v = huffmanTree.Lut[(this.Bits.Accumulator >> (this.Bits.UnreadBits - HuffmanTree.LutSize)) & 0xFF];
 
@@ -551,6 +545,10 @@ namespace ImageSharp.Formats
                         this.Bits.Mask >>= n;
                         return (byte)(v >> 8);
                     }
+                }
+                else if (errorCode == DecoderErrorCode.UnexpectedEndOfFile)
+                {
+                    errorCode.ThrowExceptionForErrorCode();
                 }
                 else
                 {
@@ -563,11 +561,8 @@ namespace ImageSharp.Formats
             {
                 if (this.Bits.UnreadBits == 0)
                 {
-                    ErrorCodes errorCode = this.Bits.EnsureNBits(1, this);
-                    if (errorCode != ErrorCodes.NoError)
-                    {
-                        throw new MissingFF00Exception();
-                    }
+                    DecoderErrorCode errorCode = this.Bits.EnsureNBits(1, this);
+                    errorCode.EnsureNoError();
                 }
 
                 if ((this.Bits.Accumulator & this.Bits.Mask) != 0)
@@ -1440,7 +1435,20 @@ namespace ImageSharp.Formats
         /// Skips the next n bytes.
         /// </summary>
         /// <param name="count">The number of bytes to ignore.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void Skip(int count)
+        {
+            DecoderErrorCode errorCode = this.SkipUnsafe(count);
+            errorCode.EnsureNoError();
+        }
+
+        /// <summary>
+        /// Skips the next n bytes.
+        /// Does not throw, returns <see cref="DecoderErrorCode"/> instead!
+        /// </summary>
+        /// <param name="count">The number of bytes to ignore.</param>
+        /// <returns>The <see cref="DecoderErrorCode"/></returns>
+        private DecoderErrorCode SkipUnsafe(int count)
         {
             // Unread the overshot bytes, if any.
             if (this.Bytes.UnreadableBytes != 0)
@@ -1470,6 +1478,8 @@ namespace ImageSharp.Formats
 
                 this.Bytes.Fill(this.InputStream);
             }
+
+            return DecoderErrorCode.NoError;
         }
 
         /// <summary>
@@ -1489,22 +1499,6 @@ namespace ImageSharp.Formats
                 this.Bits.UnreadBits -= 8;
                 this.Bits.Mask >>= 8;
             }
-        }
-
-        /// <summary>
-        /// The EOF (End of File exception).
-        /// Thrown when the decoder encounters an EOF marker without a proceeding EOI (End Of Image) marker
-        /// </summary>
-        internal class EOFException : Exception
-        {
-        }
-
-        /// <summary>
-        /// The missing ff00 exception.
-        /// </summary>
-        // ReSharper disable once InconsistentNaming
-        internal class MissingFF00Exception : Exception
-        {
         }
     }
 }

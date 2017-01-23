@@ -8,6 +8,7 @@ namespace ImageSharp.Tests
     using System;
     using System.IO;
     using System.Linq;
+    using System.Numerics;
 
     using ImageSharp.Formats;
 
@@ -30,11 +31,16 @@ namespace ImageSharp.Tests
         [InlineData(30, TestImages.Jpeg.Baseline.Jpeg444)]
         public void DecodeJpeg(int executionCount, string fileName)
         {
+            if (!Vector.IsHardwareAccelerated)
+            {
+                throw new Exception("Vector.IsHardwareAccelerated == false! (Wrong build?)");
+            }
+
             string path = TestFile.GetPath(fileName);
             byte[] bytes = File.ReadAllBytes(path);
 
             this.Measure(
-                100,
+                executionCount,
                 () =>
                     {
                         Image img = new Image(bytes);

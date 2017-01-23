@@ -38,6 +38,11 @@ namespace ImageSharp.Formats.Jpg
         private const int DcTableIndex = 0;
 
         /// <summary>
+        /// The current component index
+        /// </summary>
+        public int ComponentIndex;
+
+        /// <summary>
         /// X coordinate of the current block, in units of 8x8. (The third block in the first row has (bx, by) = (2, 0))
         /// </summary>
         private int bx;
@@ -73,11 +78,6 @@ namespace ImageSharp.Formats.Jpg
         private int componentScanCount;
 
         /// <summary>
-        /// The current component index
-        /// </summary>
-        private int componentIndex;
-
-        /// <summary>
         /// Horizontal sampling factor at the current component index
         /// </summary>
         private int hi;
@@ -103,11 +103,23 @@ namespace ImageSharp.Formats.Jpg
         /// <param name="p">Pointer to <see cref="JpegScanDecoder"/> on the stack</param>
         /// <param name="decoder">The <see cref="JpegDecoderCore"/> instance</param>
         /// <param name="remaining">The remaining bytes in the segment block.</param>
-        public static void Init(JpegScanDecoder* p, JpegDecoderCore decoder, int remaining)
+        public static void InitStreamReading(JpegScanDecoder* p, JpegDecoderCore decoder, int remaining)
+        {
+            Init(p);
+            p->InitStreamReadingImpl(decoder, remaining);
+        }
+
+        public static void Init(JpegScanDecoder* p)
         {
             p->data = ComputationData.Create();
             p->pointers = new DataPointers(&p->data);
-            p->InitImpl(decoder, remaining);
+        }
+
+        public void LoadMemento(ref DecodedBlockMemento memento)
+        {
+            this.bx = memento.Bx;
+            this.by = memento.By;
+            this.data.Block = memento.Block;
         }
 
         /// <summary>
@@ -148,9 +160,9 @@ namespace ImageSharp.Formats.Jpg
                 {
                     for (int scanIndex = 0; scanIndex < this.componentScanCount; scanIndex++)
                     {
-                        this.componentIndex = this.pointers.ComponentScan[scanIndex].ComponentIndex;
-                        this.hi = decoder.ComponentArray[this.componentIndex].HorizontalFactor;
-                        int vi = decoder.ComponentArray[this.componentIndex].VerticalFactor;
+                        this.ComponentIndex = this.pointers.ComponentScan[scanIndex].ComponentIndex;
+                        this.hi = decoder.ComponentArray[this.ComponentIndex].HorizontalFactor;
+                        int vi = decoder.ComponentArray[this.ComponentIndex].VerticalFactor;
 
                         for (int j = 0; j < this.hi * vi; j++)
                         {
@@ -172,7 +184,7 @@ namespace ImageSharp.Formats.Jpg
                             }
 
                             this.ReadBlock(decoder, scanIndex);
-                            this.ProcessBlock(decoder);
+                            //this.ProcessBlock(decoder);
                         }
 
                         // for j
@@ -219,7 +231,7 @@ namespace ImageSharp.Formats.Jpg
         /// <param name="decoder">The <see cref="JpegDecoderCore"/> instance</param>
         public void ProcessBlock(JpegDecoderCore decoder)
         {
-            int qtIndex = decoder.ComponentArray[this.componentIndex].Selector;
+            int qtIndex = decoder.ComponentArray[this.ComponentIndex].Selector;
             this.data.QuantiazationTable = decoder.QuantizationTables[qtIndex];
 
             Block8x8F* b = this.pointers.Block;
@@ -228,7 +240,7 @@ namespace ImageSharp.Formats.Jpg
 
             DCT.TransformIDCT(ref *b, ref *this.pointers.Temp1, ref *this.pointers.Temp2);
 
-            var destChannel = decoder.GetDestinationChannel(this.componentIndex);
+            var destChannel = decoder.GetDestinationChannel(this.ComponentIndex);
             var destArea = destChannel.GetOffsetedSubAreaForBlock(this.bx, this.by);
             destArea.LoadColorsFrom(this.pointers.Temp1, this.pointers.Temp2);
         }
@@ -239,11 +251,11 @@ namespace ImageSharp.Formats.Jpg
         }
 
         /// <summary>
-        /// The implementation part of <see cref="Init"/> as an instance method.
+        /// The implementation part of <see cref="InitStreamReading"/> as an instance method.
         /// </summary>
         /// <param name="decoder">The <see cref="JpegDecoderCore"/></param>
         /// <param name="remaining">The remaining bytes</param>
-        private void InitImpl(JpegDecoderCore decoder, int remaining)
+        private void InitStreamReadingImpl(JpegDecoderCore decoder, int remaining)
         {
             if (decoder.ComponentCount == 0)
             {
@@ -313,7 +325,7 @@ namespace ImageSharp.Formats.Jpg
         private void ReadBlock(JpegDecoderCore decoder, int scanIndex)
         {
             int blockIndex = this.GetBlockIndex(decoder);
-            this.data.Block = decoder.DecodedBlocks[this.componentIndex][blockIndex].Block;
+            this.data.Block = decoder.DecodedBlocks[this.ComponentIndex][blockIndex].Block;
 
             var b = this.pointers.Block;
             DecoderErrorCode errorCode;
@@ -344,10 +356,10 @@ namespace ImageSharp.Formats.Jpg
 
                     int deltaDC = decoder.Bits.ReceiveExtend(value, decoder);
 
-                    this.pointers.Dc[this.componentIndex] += deltaDC;
+                    this.pointers.Dc[this.ComponentIndex] += deltaDC;
 
                     // b[0] = dc[compIndex] << al;
-                    Block8x8F.SetScalarAt(b, 0, this.pointers.Dc[this.componentIndex] << this.al);
+                    Block8x8F.SetScalarAt(b, 0, this.pointers.Dc[this.ComponentIndex] << this.al);
                 }
 
                 if (zig <= this.zigEnd && this.eobRun > 0)
@@ -399,7 +411,7 @@ namespace ImageSharp.Formats.Jpg
                 }
             }
 
-            DecodedBlockMemento[] blocks = decoder.DecodedBlocks[this.componentIndex];
+            DecodedBlockMemento[] blocks = decoder.DecodedBlocks[this.ComponentIndex];
             DecodedBlockMemento.Store(blocks, blockIndex, this.bx, this.by, ref *b);
         }
 

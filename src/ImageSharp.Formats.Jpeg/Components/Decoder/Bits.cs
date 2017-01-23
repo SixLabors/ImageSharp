@@ -18,13 +18,13 @@ namespace ImageSharp.Formats.Jpg
         /// <summary>
         /// Gets or sets the accumulator.
         /// </summary>
-        public uint Accumulator;
+        public int Accumulator;
 
         /// <summary>
         /// Gets or sets the mask.
         /// <![CDATA[mask==1<<(unreadbits-1) when unreadbits>0, with mask==0 when unreadbits==0.]]>
         /// </summary>
-        public uint Mask;
+        public int Mask;
 
         /// <summary>
         /// Gets or sets the  number of unread bits in the accumulator.
@@ -89,7 +89,7 @@ namespace ImageSharp.Formats.Jpg
 
         private DecoderErrorCode EnsureBitsStepImpl(JpegDecoderCore decoder)
         {
-            byte c;
+            int c;
             DecoderErrorCode errorCode = decoder.Bytes.ReadByteStuffedByteUnsafe(decoder.InputStream, out c);
 
             if (errorCode != DecoderErrorCode.NoError)
@@ -117,7 +117,7 @@ namespace ImageSharp.Formats.Jpg
         /// <param name="decoder">Jpeg decoder</param>
         /// <returns>Read bits value</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public int ReceiveExtend(byte t, JpegDecoderCore decoder)
+        public int ReceiveExtend(int t, JpegDecoderCore decoder)
         {
             int x;
             DecoderErrorCode errorCode = this.ReceiveExtendUnsafe(t, decoder, out x);
@@ -132,7 +132,7 @@ namespace ImageSharp.Formats.Jpg
         /// <param name="decoder">Jpeg decoder</param>
         /// <param name="x">Read bits value</param>
         /// <returns>The <see cref="DecoderErrorCode"/></returns>
-        public DecoderErrorCode ReceiveExtendUnsafe(byte t, JpegDecoderCore decoder, out int x)
+        public DecoderErrorCode ReceiveExtendUnsafe(int t, JpegDecoderCore decoder, out int x)
         {
             if (this.UnreadBits < t)
             {

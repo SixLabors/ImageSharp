@@ -30,12 +30,12 @@ namespace ImageSharp.Formats.Jpg
         /// <summary>
         /// The AC table index
         /// </summary>
-        private const int AcTableIndex = 1;
+        public const int AcTableIndex = 1;
 
         /// <summary>
         /// The DC table index
         /// </summary>
-        private const int DcTableIndex = 0;
+        public const int DcTableIndex = 0;
 
         /// <summary>
         /// The current component index
@@ -98,7 +98,7 @@ namespace ImageSharp.Formats.Jpg
         private ComputationData data;
 
         /// <summary>
-        /// Initializes the default instance after creation.
+        /// Initializes a default-constructed <see cref="JpegScanDecoder"/> instance for reading data from <see cref="JpegDecoderCore"/>-s stream.
         /// </summary>
         /// <param name="p">Pointer to <see cref="JpegScanDecoder"/> on the stack</param>
         /// <param name="decoder">The <see cref="JpegDecoderCore"/> instance</param>
@@ -109,12 +109,20 @@ namespace ImageSharp.Formats.Jpg
             p->InitStreamReadingImpl(decoder, remaining);
         }
 
+        /// <summary>
+        /// Initializes a default-constructed <see cref="JpegScanDecoder"/> instance, filling the data and setting the pointers.
+        /// </summary>
+        /// <param name="p">Pointer to <see cref="JpegScanDecoder"/> on the stack</param>
         public static void Init(JpegScanDecoder* p)
         {
             p->data = ComputationData.Create();
             p->pointers = new DataPointers(&p->data);
         }
 
+        /// <summary>
+        /// Loads the data from the given <see cref="DecodedBlockMemento"/> into the block.
+        /// </summary>
+        /// <param name="memento">The <see cref="DecodedBlockMemento"/></param>
         public void LoadMemento(ref DecodedBlockMemento memento)
         {
             this.bx = memento.Bx;
@@ -184,7 +192,6 @@ namespace ImageSharp.Formats.Jpg
                             }
 
                             this.ReadBlock(decoder, scanIndex);
-                            //this.ProcessBlock(decoder);
                         }
 
                         // for j
@@ -414,10 +421,6 @@ namespace ImageSharp.Formats.Jpg
             DecodedBlockMemento[] blocks = decoder.DecodedBlocks[this.ComponentIndex];
             DecodedBlockMemento.Store(blocks, blockIndex, this.bx, this.by, ref *b);
         }
-
-        private bool IsProgressiveBlockFinished(JpegDecoderCore decoder)
-            => decoder.IsProgressive && (this.zigEnd != Block8x8F.ScalarCount - 1 || this.al != 0);
-
 
         private DecoderErrorCode DecodeEobRun(int count, JpegDecoderCore decoder)
         {
@@ -663,7 +666,5 @@ namespace ImageSharp.Formats.Jpg
 
             return zig;
         }
-
-
     }
 }

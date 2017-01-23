@@ -40,8 +40,6 @@ namespace ImageSharp.Formats
         public Bytes Bytes;
 #pragma warning restore SA401
 
-
-
         /// <summary>
         /// The App14 marker color-space
         /// </summary>
@@ -180,254 +178,10 @@ namespace ImageSharp.Formats
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             this.ProcessStream(image, stream, metadataOnly);
-            if (metadataOnly) return;
-            this.ConvertBlocksToImagePixels(image);
-        }
-
-        private void ConvertBlocksToImagePixels<TColor>(Image<TColor> image)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
-        {
-            this.ProcessBlocks<TColor>();
-
-            if (this.grayImage.IsInitialized)
+            if (!metadataOnly)
             {
-                this.ConvertFromGrayScale(this.ImageWidth, this.ImageHeight, image);
-            }
-            else if (this.ycbcrImage != null)
-            {
-                if (this.ComponentCount == 4)
-                {
-                    if (!this.adobeTransformValid)
-                    {
-                        throw new ImageFormatException(
-                            "Unknown color model: 4-component JPEG doesn't have Adobe APP14 metadata");
-                    }
-
-                    // See http://www.sno.phy.queensu.ca/~phil/exiftool/TagNames/JPEG.html#Adobe
-                    // See https://docs.oracle.com/javase/8/docs/api/javax/imageio/metadata/doc-files/jpeg_metadata.html
-                    // TODO: YCbCrA?
-                    if (this.adobeTransform == JpegConstants.Adobe.ColorTransformYcck)
-                    {
-                        this.ConvertFromYcck(this.ImageWidth, this.ImageHeight, image);
-                    }
-                    else if (this.adobeTransform == JpegConstants.Adobe.ColorTransformUnknown)
-                    {
-                        // Assume CMYK
-                        this.ConvertFromCmyk(this.ImageWidth, this.ImageHeight, image);
-                    }
-
-                    return;
-                }
-
-                if (this.ComponentCount == 3)
-                {
-                    if (this.IsRGB())
-                    {
-                        this.ConvertFromRGB(this.ImageWidth, this.ImageHeight, image);
-                        return;
-                    }
-
-                    this.ConvertFromYCbCr(this.ImageWidth, this.ImageHeight, image);
-                    return;
-                }
-
-                throw new ImageFormatException("JpegDecoder only supports RGB, CMYK and Grayscale color spaces.");
-            }
-            else
-            {
-                throw new ImageFormatException("Missing SOS marker.");
-            }
-        }
-
-        private void ProcessBlocks<TColor>()
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
-        {
-            JpegScanDecoder scanDecoder = default(JpegScanDecoder);
-            JpegScanDecoder.Init(&scanDecoder);
-
-            for(int componentIndex = 0; componentIndex < this.ComponentCount; componentIndex++)
-            {
-                scanDecoder.ComponentIndex = componentIndex;
-                DecodedBlockMemento[] blockArray = this.DecodedBlocks[componentIndex];
-                for (int i = 0; i < blockArray.Length; i++)
-                {
-                    scanDecoder.LoadMemento(ref blockArray[i]);
-                    scanDecoder.ProcessBlock(this);
-                }
-            }
-        }
-
-        private void ProcessStream<TColor>(Image<TColor> image, Stream stream, bool metadataOnly)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
-        {
-            this.InputStream = stream;
-
-            // Check for the Start Of Image marker.
-            this.ReadFull(this.Temp, 0, 2);
-            if (this.Temp[0] != JpegConstants.Markers.XFF || this.Temp[1] != JpegConstants.Markers.SOI)
-            {
-                throw new ImageFormatException("Missing SOI marker.");
-            }
-
-            // Process the remaining segments until the End Of Image marker.
-            bool processBytes = true;
-
-            // we can't currently short circute progressive images so don't try.
-            while (processBytes)
-            {
-                this.ReadFull(this.Temp, 0, 2);
-                while (this.Temp[0] != 0xff)
-                {
-                    // Strictly speaking, this is a format error. However, libjpeg is
-                    // liberal in what it accepts. As of version 9, next_marker in
-                    // jdmarker.c treats this as a warning (JWRN_EXTRANEOUS_DATA) and
-                    // continues to decode the stream. Even before next_marker sees
-                    // extraneous data, jpeg_fill_bit_buffer in jdhuff.c reads as many
-                    // bytes as it can, possibly past the end of a scan's data. It
-                    // effectively puts back any markers that it overscanned (e.g. an
-                    // "\xff\xd9" EOI marker), but it does not put back non-marker data,
-                    // and thus it can silently ignore a small number of extraneous
-                    // non-marker bytes before next_marker has a chance to see them (and
-                    // print a warning).
-                    // We are therefore also liberal in what we accept. Extraneous data
-                    // is silently ignore
-                    // This is similar to, but not exactly the same as, the restart
-                    // mechanism within a scan (the RST[0-7] markers).
-                    // Note that extraneous 0xff bytes in e.g. SOS data are escaped as
-                    // "\xff\x00", and so are detected a little further down below.
-                    this.Temp[0] = this.Temp[1];
-                    this.Temp[1] = this.ReadByte();
-                }
-
-                byte marker = this.Temp[1];
-                if (marker == 0)
-                {
-                    // Treat "\xff\x00" as extraneous data.
-                    continue;
-                }
-
-                while (marker == 0xff)
-                {
-                    // Section B.1.1.2 says, "Any marker may optionally be preceded by any
-                    // number of fill bytes, which are bytes assigned code X'FF'".
-                    marker = this.ReadByte();
-                }
-
-                // End Of Image.
-                if (marker == JpegConstants.Markers.EOI)
-                {
-                    break;
-                }
-
-                if (marker >= JpegConstants.Markers.RST0 && marker <= JpegConstants.Markers.RST7)
-                {
-                    // Figures B.2 and B.16 of the specification suggest that restart markers should
-                    // only occur between Entropy Coded Segments and not after the final ECS.
-                    // However, some encoders may generate incorrect JPEGs with a final restart
-                    // marker. That restart marker will be seen here instead of inside the ProcessSOS
-                    // method, and is ignored as a harmless error. Restart markers have no extra data,
-                    // so we check for this before we read the 16-bit length of the segment.
-                    continue;
-                }
-
-                // Read the 16-bit length of the segment. The value includes the 2 bytes for the
-                // length itself, so we subtract 2 to get the number of remaining bytes.
-                this.ReadFull(this.Temp, 0, 2);
-                int remaining = (this.Temp[0] << 8) + this.Temp[1] - 2;
-                if (remaining < 0)
-                {
-                    throw new ImageFormatException("Short segment length.");
-                }
-
-                switch (marker)
-                {
-                    case JpegConstants.Markers.SOF0:
-                    case JpegConstants.Markers.SOF1:
-                    case JpegConstants.Markers.SOF2:
-                        this.IsProgressive = marker == JpegConstants.Markers.SOF2;
-                        this.ProcessStartOfFrameMarker(remaining);
-                        if (metadataOnly && this.isJfif)
-                        {
-                            return;
-                        }
-
-                        break;
-                    case JpegConstants.Markers.DHT:
-                        if (metadataOnly)
-                        {
-                            this.Skip(remaining);
-                        }
-                        else
-                        {
-                            this.ProcessDefineHuffmanTablesMarker(remaining);
-                        }
-
-                        break;
-                    case JpegConstants.Markers.DQT:
-                        if (metadataOnly)
-                        {
-                            this.Skip(remaining);
-                        }
-                        else
-                        {
-                            this.ProcessDqt(remaining);
-                        }
-
-                        break;
-                    case JpegConstants.Markers.SOS:
-                        if (metadataOnly)
-                        {
-                            return;
-                        }
-
-                        // when this is a progressive image this gets called a number of times
-                        // need to know how many times this should be called in total.
-                        this.ProcessStartOfScan(remaining);
-                        if (!this.IsProgressive)
-                        {
-                            // if this is not a progressive image we can stop processing bytes as we now have the image data.
-                            processBytes = false;
-                        }
-
-                        break;
-                    case JpegConstants.Markers.DRI:
-                        if (metadataOnly)
-                        {
-                            this.Skip(remaining);
-                        }
-                        else
-                        {
-                            this.ProcessDefineRestartIntervalMarker(remaining);
-                        }
-
-                        break;
-                    case JpegConstants.Markers.APP0:
-                        this.ProcessApplicationHeader(remaining);
-                        break;
-                    case JpegConstants.Markers.APP1:
-                        this.ProcessApp1Marker(remaining, image);
-                        break;
-                    case JpegConstants.Markers.APP14:
-                        this.ProcessApp14Marker(remaining);
-                        break;
-                    default:
-                        if ((marker >= JpegConstants.Markers.APP0 && marker <= JpegConstants.Markers.APP15)
-                            || marker == JpegConstants.Markers.COM)
-                        {
-                            this.Skip(remaining);
-                        }
-                        else if (marker < JpegConstants.Markers.SOF0)
-                        {
-                            // See Table B.1 "Marker code assignments".
-                            throw new ImageFormatException("Unknown marker");
-                        }
-                        else
-                        {
-                            throw new ImageFormatException("Unknown marker");
-                        }
-
-                        break;
-                }
+                this.DecodeBlocksIntoJpegImageChannels<TColor>();
+                this.ConvertJpegPixelsToImagePixels(image);
             }
         }
 
@@ -445,7 +199,7 @@ namespace ImageSharp.Formats
             {
                 if (blockArray != null)
                 {
-                    DecodedBlockMemento.ArrayPool.Return(blockArray, true);
+                    DecodedBlockMemento.ReturnArray(blockArray);
                 }
             }
 
@@ -699,6 +453,267 @@ namespace ImageSharp.Formats
             byte g = (byte)(y - (g0 >> 16) - (g1 >> 16)).Clamp(0, 255);
             byte b = (byte)(y + (b0 >> 16)).Clamp(0, 255);
             packed.PackFromBytes(r, g, b, 255);
+        }
+
+        /// <summary>
+        /// Read metadata from stream and read the blocks in the scans into <see cref="DecodedBlocks"/>.
+        /// </summary>
+        /// <typeparam name="TColor">The pixel type</typeparam>
+        /// <param name="image">The <see cref="Image{TColor}"/></param>
+        /// <param name="stream">The stream</param>
+        /// <param name="metadataOnly">Whether to decode metadata only.</param>
+        private void ProcessStream<TColor>(Image<TColor> image, Stream stream, bool metadataOnly)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
+        {
+            this.InputStream = stream;
+
+            // Check for the Start Of Image marker.
+            this.ReadFull(this.Temp, 0, 2);
+            if (this.Temp[0] != JpegConstants.Markers.XFF || this.Temp[1] != JpegConstants.Markers.SOI)
+            {
+                throw new ImageFormatException("Missing SOI marker.");
+            }
+
+            // Process the remaining segments until the End Of Image marker.
+            bool processBytes = true;
+
+            // we can't currently short circute progressive images so don't try.
+            while (processBytes)
+            {
+                this.ReadFull(this.Temp, 0, 2);
+                while (this.Temp[0] != 0xff)
+                {
+                    // Strictly speaking, this is a format error. However, libjpeg is
+                    // liberal in what it accepts. As of version 9, next_marker in
+                    // jdmarker.c treats this as a warning (JWRN_EXTRANEOUS_DATA) and
+                    // continues to decode the stream. Even before next_marker sees
+                    // extraneous data, jpeg_fill_bit_buffer in jdhuff.c reads as many
+                    // bytes as it can, possibly past the end of a scan's data. It
+                    // effectively puts back any markers that it overscanned (e.g. an
+                    // "\xff\xd9" EOI marker), but it does not put back non-marker data,
+                    // and thus it can silently ignore a small number of extraneous
+                    // non-marker bytes before next_marker has a chance to see them (and
+                    // print a warning).
+                    // We are therefore also liberal in what we accept. Extraneous data
+                    // is silently ignore
+                    // This is similar to, but not exactly the same as, the restart
+                    // mechanism within a scan (the RST[0-7] markers).
+                    // Note that extraneous 0xff bytes in e.g. SOS data are escaped as
+                    // "\xff\x00", and so are detected a little further down below.
+                    this.Temp[0] = this.Temp[1];
+                    this.Temp[1] = this.ReadByte();
+                }
+
+                byte marker = this.Temp[1];
+                if (marker == 0)
+                {
+                    // Treat "\xff\x00" as extraneous data.
+                    continue;
+                }
+
+                while (marker == 0xff)
+                {
+                    // Section B.1.1.2 says, "Any marker may optionally be preceded by any
+                    // number of fill bytes, which are bytes assigned code X'FF'".
+                    marker = this.ReadByte();
+                }
+
+                // End Of Image.
+                if (marker == JpegConstants.Markers.EOI)
+                {
+                    break;
+                }
+
+                if (marker >= JpegConstants.Markers.RST0 && marker <= JpegConstants.Markers.RST7)
+                {
+                    // Figures B.2 and B.16 of the specification suggest that restart markers should
+                    // only occur between Entropy Coded Segments and not after the final ECS.
+                    // However, some encoders may generate incorrect JPEGs with a final restart
+                    // marker. That restart marker will be seen here instead of inside the ProcessSOS
+                    // method, and is ignored as a harmless error. Restart markers have no extra data,
+                    // so we check for this before we read the 16-bit length of the segment.
+                    continue;
+                }
+
+                // Read the 16-bit length of the segment. The value includes the 2 bytes for the
+                // length itself, so we subtract 2 to get the number of remaining bytes.
+                this.ReadFull(this.Temp, 0, 2);
+                int remaining = (this.Temp[0] << 8) + this.Temp[1] - 2;
+                if (remaining < 0)
+                {
+                    throw new ImageFormatException("Short segment length.");
+                }
+
+                switch (marker)
+                {
+                    case JpegConstants.Markers.SOF0:
+                    case JpegConstants.Markers.SOF1:
+                    case JpegConstants.Markers.SOF2:
+                        this.IsProgressive = marker == JpegConstants.Markers.SOF2;
+                        this.ProcessStartOfFrameMarker(remaining);
+                        if (metadataOnly && this.isJfif)
+                        {
+                            return;
+                        }
+
+                        break;
+                    case JpegConstants.Markers.DHT:
+                        if (metadataOnly)
+                        {
+                            this.Skip(remaining);
+                        }
+                        else
+                        {
+                            this.ProcessDefineHuffmanTablesMarker(remaining);
+                        }
+
+                        break;
+                    case JpegConstants.Markers.DQT:
+                        if (metadataOnly)
+                        {
+                            this.Skip(remaining);
+                        }
+                        else
+                        {
+                            this.ProcessDqt(remaining);
+                        }
+
+                        break;
+                    case JpegConstants.Markers.SOS:
+                        if (metadataOnly)
+                        {
+                            return;
+                        }
+
+                        // when this is a progressive image this gets called a number of times
+                        // need to know how many times this should be called in total.
+                        this.ProcessStartOfScan(remaining);
+                        if (!this.IsProgressive)
+                        {
+                            // if this is not a progressive image we can stop processing bytes as we now have the image data.
+                            processBytes = false;
+                        }
+
+                        break;
+                    case JpegConstants.Markers.DRI:
+                        if (metadataOnly)
+                        {
+                            this.Skip(remaining);
+                        }
+                        else
+                        {
+                            this.ProcessDefineRestartIntervalMarker(remaining);
+                        }
+
+                        break;
+                    case JpegConstants.Markers.APP0:
+                        this.ProcessApplicationHeader(remaining);
+                        break;
+                    case JpegConstants.Markers.APP1:
+                        this.ProcessApp1Marker(remaining, image);
+                        break;
+                    case JpegConstants.Markers.APP14:
+                        this.ProcessApp14Marker(remaining);
+                        break;
+                    default:
+                        if ((marker >= JpegConstants.Markers.APP0 && marker <= JpegConstants.Markers.APP15)
+                            || marker == JpegConstants.Markers.COM)
+                        {
+                            this.Skip(remaining);
+                        }
+                        else if (marker < JpegConstants.Markers.SOF0)
+                        {
+                            // See Table B.1 "Marker code assignments".
+                            throw new ImageFormatException("Unknown marker");
+                        }
+                        else
+                        {
+                            throw new ImageFormatException("Unknown marker");
+                        }
+
+                        break;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Process the blocks in <see cref="DecodedBlocks"/> into Jpeg image channels (<see cref="YCbCrImage"/> and <see cref="JpegPixelArea"/>)
+        /// </summary>
+        /// <typeparam name="TColor">The pixel type</typeparam>
+        private void DecodeBlocksIntoJpegImageChannels<TColor>()
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
+        {
+            JpegScanDecoder scanDecoder = default(JpegScanDecoder);
+            JpegScanDecoder.Init(&scanDecoder);
+
+            for (int componentIndex = 0; componentIndex < this.ComponentCount; componentIndex++)
+            {
+                scanDecoder.ComponentIndex = componentIndex;
+                DecodedBlockMemento[] blockArray = this.DecodedBlocks[componentIndex];
+                for (int i = 0; i < blockArray.Length; i++)
+                {
+                    scanDecoder.LoadMemento(ref blockArray[i]);
+                    scanDecoder.ProcessBlock(this);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Convert the pixel data in <see cref="YCbCrImage"/> and/or <see cref="JpegPixelArea"/> into pixels of <see cref="Image{TColor}"/>
+        /// </summary>
+        /// <typeparam name="TColor">The pixel type</typeparam>
+        /// <param name="image">The destination image</param>
+        private void ConvertJpegPixelsToImagePixels<TColor>(Image<TColor> image)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
+        {
+            if (this.grayImage.IsInitialized)
+            {
+                this.ConvertFromGrayScale(this.ImageWidth, this.ImageHeight, image);
+            }
+            else if (this.ycbcrImage != null)
+            {
+                if (this.ComponentCount == 4)
+                {
+                    if (!this.adobeTransformValid)
+                    {
+                        throw new ImageFormatException(
+                            "Unknown color model: 4-component JPEG doesn't have Adobe APP14 metadata");
+                    }
+
+                    // See http://www.sno.phy.queensu.ca/~phil/exiftool/TagNames/JPEG.html#Adobe
+                    // See https://docs.oracle.com/javase/8/docs/api/javax/imageio/metadata/doc-files/jpeg_metadata.html
+                    // TODO: YCbCrA?
+                    if (this.adobeTransform == JpegConstants.Adobe.ColorTransformYcck)
+                    {
+                        this.ConvertFromYcck(this.ImageWidth, this.ImageHeight, image);
+                    }
+                    else if (this.adobeTransform == JpegConstants.Adobe.ColorTransformUnknown)
+                    {
+                        // Assume CMYK
+                        this.ConvertFromCmyk(this.ImageWidth, this.ImageHeight, image);
+                    }
+
+                    return;
+                }
+
+                if (this.ComponentCount == 3)
+                {
+                    if (this.IsRGB())
+                    {
+                        this.ConvertFromRGB(this.ImageWidth, this.ImageHeight, image);
+                        return;
+                    }
+
+                    this.ConvertFromYCbCr(this.ImageWidth, this.ImageHeight, image);
+                    return;
+                }
+
+                throw new ImageFormatException("JpegDecoder only supports RGB, CMYK and Grayscale color spaces.");
+            }
+            else
+            {
+                throw new ImageFormatException("Missing SOS marker.");
+            }
         }
 
         /// <summary>
@@ -1470,7 +1485,7 @@ namespace ImageSharp.Formats
             {
                 int size = this.TotalMCUCount * this.ComponentArray[i].HorizontalFactor
                            * this.ComponentArray[i].VerticalFactor;
-                this.DecodedBlocks[i] = DecodedBlockMemento.ArrayPool.Rent(size);
+                this.DecodedBlocks[i] = DecodedBlockMemento.RentArray(size);
             }
         }
 

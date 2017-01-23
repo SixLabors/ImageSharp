@@ -54,7 +54,6 @@ namespace ImageSharp.Formats.Jpg
         /// <param name="n">The number of bits to ensure.</param>
         /// <param name="decoder">Jpeg decoder</param>
         /// <returns>Error code</returns>
-        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
         public DecoderErrorCode EnsureNBitsUnsafe(int n, JpegDecoderCore decoder)
         {
             while (true)
@@ -70,8 +69,8 @@ namespace ImageSharp.Formats.Jpg
         /// <summary>
         /// Unrolled version of <see cref="EnsureNBitsUnsafe"/> for n==8
         /// </summary>
-        /// <param name="decoder"></param>
-        /// <returns></returns>
+        /// <param name="decoder">The <see cref="JpegDecoderCore"/></param>
+        /// <returns>A <see cref="DecoderErrorCode"/></returns>
         public DecoderErrorCode Ensure8BitsUnsafe(JpegDecoderCore decoder)
         {
             return this.EnsureBitsStepImpl(decoder);
@@ -80,34 +79,11 @@ namespace ImageSharp.Formats.Jpg
         /// <summary>
         /// Unrolled version of <see cref="EnsureNBitsUnsafe"/> for n==1
         /// </summary>
-        /// <param name="decoder"></param>
-        /// <returns></returns>
+        /// <param name="decoder">The <see cref="JpegDecoderCore"/></param>
+        /// <returns>A <see cref="DecoderErrorCode"/></returns>
         public DecoderErrorCode Ensure1BitUnsafe(JpegDecoderCore decoder)
         {
             return this.EnsureBitsStepImpl(decoder);
-        }
-
-        private DecoderErrorCode EnsureBitsStepImpl(JpegDecoderCore decoder)
-        {
-            int c;
-            DecoderErrorCode errorCode = decoder.Bytes.ReadByteStuffedByteUnsafe(decoder.InputStream, out c);
-
-            if (errorCode != DecoderErrorCode.NoError)
-            {
-                return errorCode;
-            }
-
-            this.Accumulator = (this.Accumulator << 8) | c;
-            this.UnreadBits += 8;
-            if (this.Mask == 0)
-            {
-                this.Mask = 1 << 7;
-            }
-            else
-            {
-                this.Mask <<= 8;
-            }
-            return errorCode;
         }
 
         /// <summary>
@@ -155,6 +131,30 @@ namespace ImageSharp.Formats.Jpg
             }
 
             return DecoderErrorCode.NoError;
+        }
+
+        private DecoderErrorCode EnsureBitsStepImpl(JpegDecoderCore decoder)
+        {
+            int c;
+            DecoderErrorCode errorCode = decoder.Bytes.ReadByteStuffedByteUnsafe(decoder.InputStream, out c);
+
+            if (errorCode != DecoderErrorCode.NoError)
+            {
+                return errorCode;
+            }
+
+            this.Accumulator = (this.Accumulator << 8) | c;
+            this.UnreadBits += 8;
+            if (this.Mask == 0)
+            {
+                this.Mask = 1 << 7;
+            }
+            else
+            {
+                this.Mask <<= 8;
+            }
+
+            return errorCode;
         }
     }
 }

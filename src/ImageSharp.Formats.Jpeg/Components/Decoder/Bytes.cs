@@ -162,7 +162,6 @@ namespace ImageSharp.Formats.Jpg
         /// <param name="inputStream">Input stream</param>
         /// <param name="result">The result <see cref="byte"/> as out parameter</param>
         /// <returns>The <see cref="DecoderErrorCode"/></returns>
-        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
         public DecoderErrorCode ReadByteUnsafe(Stream inputStream, out byte result)
         {
             DecoderErrorCode errorCode = DecoderErrorCode.NoError;
@@ -182,6 +181,12 @@ namespace ImageSharp.Formats.Jpg
             return errorCode;
         }
 
+        /// <summary>
+        /// Same as <see cref="ReadByteUnsafe"/> but the result is an <see cref="int"/>
+        /// </summary>
+        /// <param name="inputStream">The input stream</param>
+        /// <param name="result">The result <see cref="int"/></param>
+        /// <returns>A <see cref="DecoderErrorCode"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public DecoderErrorCode ReadByteAsIntUnsafe(Stream inputStream, out int result)
         {
@@ -222,7 +227,6 @@ namespace ImageSharp.Formats.Jpg
         /// </summary>
         /// <param name="inputStream">Input stream</param>
         /// <returns>The <see cref="DecoderErrorCode"/></returns>
-        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
         public DecoderErrorCode FillUnsafe(Stream inputStream)
         {
             if (this.I != this.J)

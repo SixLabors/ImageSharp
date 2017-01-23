@@ -181,7 +181,7 @@ namespace ImageSharp.Formats
             this.ProcessStream(image, stream, metadataOnly);
             if (!metadataOnly)
             {
-                this.DecodeBlocksIntoJpegImageChannels<TColor>();
+                this.ProcessBlockColorsIntoJpegImageChannels<TColor>();
                 this.ConvertJpegPixelsToImagePixels(image);
             }
         }
@@ -636,7 +636,7 @@ namespace ImageSharp.Formats
         /// Process the blocks in <see cref="DecodedBlocks"/> into Jpeg image channels (<see cref="YCbCrImage"/> and <see cref="JpegPixelArea"/>)
         /// </summary>
         /// <typeparam name="TColor">The pixel type</typeparam>
-        private void DecodeBlocksIntoJpegImageChannels<TColor>()
+        private void ProcessBlockColorsIntoJpegImageChannels<TColor>()
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             JpegScanDecoder scanDecoder = default(JpegScanDecoder);
@@ -649,7 +649,7 @@ namespace ImageSharp.Formats
                 for (int i = 0; i < blockArray.Length; i++)
                 {
                     scanDecoder.LoadMemento(ref blockArray[i]);
-                    scanDecoder.ProcessBlock(this);
+                    scanDecoder.ProcessBlockColors(this);
                 }
             }
         }
@@ -1499,7 +1499,7 @@ namespace ImageSharp.Formats
             JpegScanDecoder.InitStreamReading(&scan, this, remaining);
             this.Bits = default(Bits);
             this.MakeImage();
-            scan.ReadBlocks(this);
+            scan.DecodeBlocks(this);
         }
 
         /// <summary>

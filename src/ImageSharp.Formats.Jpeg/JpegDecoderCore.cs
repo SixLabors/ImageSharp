@@ -8,6 +8,7 @@ namespace ImageSharp.Formats
     using System.Buffers;
     using System.IO;
     using System.Runtime.CompilerServices;
+    using System.Runtime.InteropServices;
     using System.Threading.Tasks;
 
     using ImageSharp.Formats.Jpg;
@@ -380,7 +381,6 @@ namespace ImageSharp.Formats
 
                 if (code <= huffmanTree.MaxCodes[i])
                 {
-                    // ValuesAsInt[huffmanTree.Indices[i] + code - huffmanTree.MinCodes[i]];
                     result = huffmanTree.GetValue(code, i);
                     return DecoderErrorCode.NoError;
                 }

@@ -182,6 +182,7 @@ namespace ImageSharp.Formats.Jpg
             return errorCode;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public DecoderErrorCode ReadByteAsIntUnsafe(Stream inputStream, out int result)
         {
             DecoderErrorCode errorCode = DecoderErrorCode.NoError;

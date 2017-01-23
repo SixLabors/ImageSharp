@@ -22,25 +22,32 @@ namespace ImageSharp.Tests
         {
         }
 
-        [Theory] // Benchmark, enable manually
-        [InlineData(30, TestImages.Jpeg.Baseline.Cmyk)]
-        [InlineData(30, TestImages.Jpeg.Baseline.Ycck)]
-        [InlineData(30, TestImages.Jpeg.Baseline.Calliphora)]
-        [InlineData(30, TestImages.Jpeg.Baseline.Jpeg400)]
-        [InlineData(30, TestImages.Jpeg.Baseline.Jpeg420)]
-        [InlineData(30, TestImages.Jpeg.Baseline.Jpeg444)]
-        public void DecodeJpeg(int executionCount, string fileName)
+        public static readonly TheoryData<string> DecodeJpegData = new TheoryData<string>()
         {
+            TestImages.Jpeg.Baseline.Cmyk,
+            TestImages.Jpeg.Baseline.Ycck,
+            TestImages.Jpeg.Baseline.Calliphora,
+            TestImages.Jpeg.Baseline.Jpeg400,
+            TestImages.Jpeg.Baseline.Jpeg420,
+            TestImages.Jpeg.Baseline.Jpeg444,
+        };
+
+        [Theory] // Benchmark, enable manually
+        [MemberData(nameof(DecodeJpegData))]
+        public void DecodeJpeg(string fileName)
+        {
+            const int ExecutionCount = 30;
+
             if (!Vector.IsHardwareAccelerated)
             {
-                throw new Exception("Vector.IsHardwareAccelerated == false! (Wrong build?)");
+                throw new Exception("Vector.IsHardwareAccelerated == false! ('prefer32 bit' enabled?)");
             }
 
             string path = TestFile.GetPath(fileName);
             byte[] bytes = File.ReadAllBytes(path);
 
             this.Measure(
-                executionCount,
+                ExecutionCount,
                 () =>
                     {
                         Image img = new Image(bytes);

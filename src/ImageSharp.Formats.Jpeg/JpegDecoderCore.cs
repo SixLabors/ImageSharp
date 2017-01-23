@@ -229,7 +229,8 @@ namespace ImageSharp.Formats
         {
             if (this.Bits.UnreadBits == 0)
             {
-                DecoderErrorCode errorCode = this.Bits.EnsureNBitsUnsafe(1, this);
+                //DecoderErrorCode errorCode = this.Bits.EnsureNBitsUnsafe(1, this);
+                DecoderErrorCode errorCode = this.Bits.Ensure1BitUnsafe(this);
                 if (errorCode != DecoderErrorCode.NoError)
                 {
                     result = false;
@@ -338,7 +339,8 @@ namespace ImageSharp.Formats
 
             if (this.Bits.UnreadBits < 8)
             {
-                DecoderErrorCode errorCode = this.Bits.EnsureNBitsUnsafe(8, this);
+                //DecoderErrorCode errorCode = this.Bits.EnsureNBitsUnsafe(8, this);
+                DecoderErrorCode errorCode = this.Bits.Ensure8BitsUnsafe(this);
 
                 if (errorCode == DecoderErrorCode.NoError)
                 {

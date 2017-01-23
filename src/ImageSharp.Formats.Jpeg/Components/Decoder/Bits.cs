@@ -5,6 +5,7 @@
 
 namespace ImageSharp.Formats.Jpg
 {
+    using System;
     using System.Runtime.CompilerServices;
 
     /// <summary>
@@ -53,39 +54,60 @@ namespace ImageSharp.Formats.Jpg
         /// <param name="n">The number of bits to ensure.</param>
         /// <param name="decoder">Jpeg decoder</param>
         /// <returns>Error code</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
         public DecoderErrorCode EnsureNBitsUnsafe(int n, JpegDecoderCore decoder)
         {
             while (true)
             {
-                // Grab the decode bytes, use them and then set them
-                // back on the decoder.
-                Bytes decoderBytes = decoder.Bytes;
-                byte c;
-                DecoderErrorCode errorCode = decoderBytes.ReadByteStuffedByteUnsafe(decoder.InputStream, out c);
-                decoder.Bytes = decoderBytes;
-
-                if (errorCode != DecoderErrorCode.NoError)
+                DecoderErrorCode errorCode = this.EnsureBitsStepImpl(decoder);
+                if (errorCode != DecoderErrorCode.NoError || this.UnreadBits >= n)
                 {
                     return errorCode;
                 }
-
-                this.Accumulator = (this.Accumulator << 8) | c;
-                this.UnreadBits += 8;
-                if (this.Mask == 0)
-                {
-                    this.Mask = 1 << 7;
-                }
-                else
-                {
-                    this.Mask <<= 8;
-                }
-
-                if (this.UnreadBits >= n)
-                {
-                    return DecoderErrorCode.NoError;
-                }
             }
+        }
+
+        /// <summary>
+        /// Unrolled version of <see cref="EnsureNBitsUnsafe"/> for n==8
+        /// </summary>
+        /// <param name="decoder"></param>
+        /// <returns></returns>
+        public DecoderErrorCode Ensure8BitsUnsafe(JpegDecoderCore decoder)
+        {
+            return this.EnsureBitsStepImpl(decoder);
+        }
+
+        /// <summary>
+        /// Unrolled version of <see cref="EnsureNBitsUnsafe"/> for n==1
+        /// </summary>
+        /// <param name="decoder"></param>
+        /// <returns></returns>
+        public DecoderErrorCode Ensure1BitUnsafe(JpegDecoderCore decoder)
+        {
+            return this.EnsureBitsStepImpl(decoder);
+        }
+
+        private DecoderErrorCode EnsureBitsStepImpl(JpegDecoderCore decoder)
+        {
+            byte c;
+            DecoderErrorCode errorCode = decoder.Bytes.ReadByteStuffedByteUnsafe(decoder.InputStream, out c);
+
+            if (errorCode != DecoderErrorCode.NoError)
+            {
+                return errorCode;
+            }
+
+            this.Accumulator = (this.Accumulator << 8) | c;
+            this.UnreadBits += 8;
+            if (this.Mask == 0)
+            {
+                this.Mask = 1 << 7;
+            }
+            else
+            {
+                this.Mask <<= 8;
+            }
+            return errorCode;
         }
 
         /// <summary>

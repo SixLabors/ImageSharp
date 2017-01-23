@@ -40,31 +40,5 @@ namespace ImageSharp.Tests
 
             provider.Utility.SaveTestOutputFile(image, "bmp");
         }
-
-        unsafe struct Buzisag
-        {
-            public int Value;
-
-            public delegate void BlockAction(Buzisag* b);
-
-            public static void Foo(Buzisag* buzisag)
-            {
-                Bar(buzisag, b => b->Value++);
-            }
-
-            public static void Bar(Buzisag* buzisag, BlockAction action)
-            {
-                action(buzisag);
-            }
-        }
-
-        [Fact]
-        public unsafe void Kabbe()
-        {
-            Buzisag b = default(Buzisag);
-            Buzisag.Foo(&b);
-
-            Assert.Equal(1, b.Value);
-        }
     }
 }

@@ -17,11 +17,21 @@ namespace ImageSharp.Formats.Jpg
     internal struct Bytes : IDisposable
     {
         /// <summary>
+        /// Specifies the buffer size for <see cref="Buffer"/> and <see cref="BufferAsInt"/>
+        /// </summary>
+        public const int BufferSize = 4096;
+
+        /// <summary>
         /// Gets or sets the buffer.
         /// buffer[i:j] are the buffered bytes read from the underlying
         /// stream that haven't yet been passed further on.
         /// </summary>
         public byte[] Buffer;
+
+        /// <summary>
+        /// Values of <see cref="Buffer"/> converted to <see cref="int"/>-s
+        /// </summary>
+        public int[] BufferAsInt;
 
         /// <summary>
         /// Start of bytes read
@@ -39,7 +49,9 @@ namespace ImageSharp.Formats.Jpg
         /// </summary>
         public int UnreadableBytes;
 
-        private static readonly ArrayPool<byte> ArrayPool = ArrayPool<byte>.Create(4096, 50);
+        private static readonly ArrayPool<byte> BytePool = ArrayPool<byte>.Create(BufferSize, 50);
+
+        private static readonly ArrayPool<int> IntPool = ArrayPool<int>.Create(BufferSize, 50);
 
         /// <summary>
         /// Creates a new instance of the <see cref="Bytes"/>, and initializes it's buffer.
@@ -47,7 +59,11 @@ namespace ImageSharp.Formats.Jpg
         /// <returns>The bytes created</returns>
         public static Bytes Create()
         {
-            return new Bytes { Buffer = ArrayPool.Rent(4096) };
+            return new Bytes
+                       {
+                           Buffer = BytePool.Rent(BufferSize),
+                           BufferAsInt = IntPool.Rent(BufferSize)
+                       };
         }
 
         /// <summary>
@@ -57,32 +73,34 @@ namespace ImageSharp.Formats.Jpg
         {
             if (this.Buffer != null)
             {
-                ArrayPool.Return(this.Buffer);
+                BytePool.Return(this.Buffer);
+                IntPool.Return(this.BufferAsInt);
             }
 
             this.Buffer = null;
+            this.BufferAsInt = null;
         }
 
         /// <summary>
         /// ReadByteStuffedByte is like ReadByte but is for byte-stuffed Huffman data.
         /// </summary>
         /// <param name="inputStream">Input stream</param>
-        /// <param name="x">The result <see cref="byte"/></param>
+        /// <param name="x">The result byte as <see cref="int"/></param>
         /// <returns>The <see cref="DecoderErrorCode"/></returns>
-        public DecoderErrorCode ReadByteStuffedByteUnsafe(Stream inputStream, out byte x)
+        public DecoderErrorCode ReadByteStuffedByteUnsafe(Stream inputStream, out int x)
         {
             // Take the fast path if bytes.buf contains at least two bytes.
             if (this.I + 2 <= this.J)
             {
-                x = this.Buffer[this.I];
+                x = this.BufferAsInt[this.I];
                 this.I++;
                 this.UnreadableBytes = 1;
-                if (x != JpegConstants.Markers.XFF)
+                if (x != JpegConstants.Markers.XFFInt)
                 {
                     return DecoderErrorCode.NoError;
                 }
 
-                if (this.Buffer[this.I] != 0x00)
+                if (this.BufferAsInt[this.I] != 0x00)
                 {
                     return DecoderErrorCode.MissingFF00;
                 }
@@ -95,7 +113,7 @@ namespace ImageSharp.Formats.Jpg
 
             this.UnreadableBytes = 0;
 
-            DecoderErrorCode errorCode = this.ReadByteUnsafe(inputStream, out x);
+            DecoderErrorCode errorCode = this.ReadByteAsIntUnsafe(inputStream, out x);
             this.UnreadableBytes = 1;
             if (errorCode != DecoderErrorCode.NoError)
             {
@@ -107,7 +125,7 @@ namespace ImageSharp.Formats.Jpg
                 return DecoderErrorCode.NoError;
             }
 
-            errorCode = this.ReadByteUnsafe(inputStream, out x);
+            errorCode = this.ReadByteAsIntUnsafe(inputStream, out x);
             this.UnreadableBytes = 2;
             if (errorCode != DecoderErrorCode.NoError)
             {
@@ -164,6 +182,25 @@ namespace ImageSharp.Formats.Jpg
             return errorCode;
         }
 
+        public DecoderErrorCode ReadByteAsIntUnsafe(Stream inputStream, out int result)
+        {
+            DecoderErrorCode errorCode = DecoderErrorCode.NoError;
+            while (this.I == this.J)
+            {
+                errorCode = this.FillUnsafe(inputStream);
+                if (errorCode != DecoderErrorCode.NoError)
+                {
+                    result = 0;
+                    return errorCode;
+                }
+            }
+
+            result = this.BufferAsInt[this.I];
+            this.I++;
+            this.UnreadableBytes = 0;
+            return errorCode;
+        }
+
         /// <summary>
         /// Fills up the bytes buffer from the underlying stream.
         /// It should only be called when there are no unread bytes in bytes.
@@ -211,6 +248,12 @@ namespace ImageSharp.Formats.Jpg
             }
 
             this.J += n;
+
+            for (int i = 0; i < this.Buffer.Length; i++)
+            {
+                this.BufferAsInt[i] = this.Buffer[i];
+            }
+
             return DecoderErrorCode.NoError;
         }
     }

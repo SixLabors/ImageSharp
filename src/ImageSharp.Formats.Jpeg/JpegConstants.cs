@@ -87,6 +87,11 @@ namespace ImageSharp.Formats
             public const byte XFF = 0xff;
 
             /// <summary>
+            /// Same as <see cref="XFF"/> but of type <see cref="int"/>
+            /// </summary>
+            public const int XFFInt = XFF;
+
+            /// <summary>
             /// Start of Image
             /// </summary>
             public const byte SOI = 0xd8;

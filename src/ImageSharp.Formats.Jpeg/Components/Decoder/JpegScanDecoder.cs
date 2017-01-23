@@ -85,7 +85,7 @@ namespace ImageSharp.Formats.Jpg
         /// <summary>
         /// End-of-Band run, specified in section G.1.2.2.
         /// </summary>
-        private ushort eobRun;
+        private int eobRun;
 
         /// <summary>
         /// Pointers to elements of <see cref="data"/>
@@ -349,7 +349,7 @@ namespace ImageSharp.Formats.Jpg
                     zig++;
 
                     // Decode the DC coefficient, as specified in section F.2.2.1.
-                    byte value;
+                    int value;
                     int huffmanIndex = (DcTableIndex * HuffmanTree.ThRowSize) + this.pointers.ComponentScan[scanIndex].DcTableSelector;
                     errorCode = decoder.DecodeHuffmanUnsafe(
                             ref decoder.HuffmanTrees[huffmanIndex],
@@ -378,12 +378,12 @@ namespace ImageSharp.Formats.Jpg
                     // Decode the AC coefficients, as specified in section F.2.2.2.
                     for (; zig <= this.zigEnd; zig++)
                     {
-                        byte value;
+                        int value;
                         errorCode = decoder.DecodeHuffmanUnsafe(ref decoder.HuffmanTrees[huffmannIdx], out value);
                         errorCode.EnsureNoEOF();
 
-                        byte val0 = (byte)(value >> 4);
-                        byte val1 = (byte)(value & 0x0f);
+                        int val0 = value >> 4;
+                        int val1 = value & 0x0f;
                         if (val1 != 0)
                         {
                             zig += val0;
@@ -424,14 +424,14 @@ namespace ImageSharp.Formats.Jpg
 
         private DecoderErrorCode DecodeEobRun(int count, JpegDecoderCore decoder)
         {
-            uint bitsResult;
+            int bitsResult;
             DecoderErrorCode errorCode = decoder.DecodeBitsUnsafe(count, out bitsResult);
             if (errorCode != DecoderErrorCode.NoError)
             {
                 return errorCode;
             }
 
-            this.eobRun |= (ushort)bitsResult;
+            this.eobRun |= bitsResult;
             return DecoderErrorCode.NoError;
         }
 
@@ -548,7 +548,7 @@ namespace ImageSharp.Formats.Jpg
                     bool done = false;
                     int z = 0;
 
-                    byte val;
+                    int val;
                     DecoderErrorCode errorCode = decoder.DecodeHuffmanUnsafe(ref h, out val);
                     errorCode.EnsureNoEOF();
 
@@ -560,7 +560,7 @@ namespace ImageSharp.Formats.Jpg
                         case 0:
                             if (val0 != 0x0f)
                             {
-                                this.eobRun = (ushort)(1 << val0);
+                                this.eobRun = 1 << val0;
                                 if (val0 != 0)
                                 {
                                     errorCode = this.DecodeEobRun(val0, decoder);

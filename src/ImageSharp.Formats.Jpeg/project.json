@@ -42,10 +42,10 @@
       "target": "project",
       "version": "1.0.0-*"
     },
-    //"StyleCop.Analyzers": {
-    //  "version": "1.1.0-beta001",
-    //  "type": "build"
-    //},
+    "StyleCop.Analyzers": {
+      "version": "1.1.0-beta001",
+      "type": "build"
+    },
     "System.Buffers": "4.0.0",
     "System.Runtime.CompilerServices.Unsafe": "4.0.0"
   },

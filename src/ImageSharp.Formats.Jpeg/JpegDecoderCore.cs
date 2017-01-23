@@ -307,7 +307,7 @@ namespace ImageSharp.Formats
         /// <param name="count">The number of bits to decode.</param>
         /// <param name="result">The <see cref="uint" /> result</param>
         /// <returns>The <see cref="DecoderErrorCode"/></returns>
-        public DecoderErrorCode DecodeBitsUnsafe(int count, out uint result)
+        public DecoderErrorCode DecodeBitsUnsafe(int count, out int result)
         {
             if (this.Bits.UnreadBits < count)
             {
@@ -315,7 +315,7 @@ namespace ImageSharp.Formats
             }
 
             result = this.Bits.Accumulator >> (this.Bits.UnreadBits - count);
-            result = (uint)(result & ((1 << count) - 1));
+            result = result & ((1 << count) - 1);
             this.Bits.UnreadBits -= count;
             this.Bits.Mask >>= count;
             return DecoderErrorCode.NoError;
@@ -327,14 +327,13 @@ namespace ImageSharp.Formats
         /// <param name="huffmanTree">The huffman value</param>
         /// <param name="result">The decoded <see cref="byte" /></param>
         /// <returns>The <see cref="DecoderErrorCode"/></returns>
-        public DecoderErrorCode DecodeHuffmanUnsafe(ref HuffmanTree huffmanTree, out byte result)
+        public DecoderErrorCode DecodeHuffmanUnsafe(ref HuffmanTree huffmanTree, out int result)
         {
             result = 0;
 
-            // Copy stuff to the stack:
             if (huffmanTree.Length == 0)
             {
-                throw new ImageFormatException("Uninitialized Huffman table");
+                DecoderThrowHelper.ThrowImageFormatException.UninitializedHuffmanTable();
             }
 
             if (this.Bits.UnreadBits < 8)
@@ -344,14 +343,15 @@ namespace ImageSharp.Formats
 
                 if (errorCode == DecoderErrorCode.NoError)
                 {
-                    ushort v = huffmanTree.Lut[(this.Bits.Accumulator >> (this.Bits.UnreadBits - HuffmanTree.LutSize)) & 0xFF];
+                    int lutIndex = (this.Bits.Accumulator >> (this.Bits.UnreadBits - HuffmanTree.LutSizeLog2)) & 0xFF;
+                    int v = huffmanTree.Lut[lutIndex];
 
                     if (v != 0)
                     {
                         int n = (v & 0xFF) - 1;
                         this.Bits.UnreadBits -= n;
                         this.Bits.Mask >>= n;
-                        result = (byte)(v >> 8);
+                        result = v >> 8;
                         return errorCode;
                     }
                 }
@@ -380,7 +380,8 @@ namespace ImageSharp.Formats
 
                 if (code <= huffmanTree.MaxCodes[i])
                 {
-                    result = huffmanTree.Values[huffmanTree.Indices[i] + code - huffmanTree.MinCodes[i]];
+                    // ValuesAsInt[huffmanTree.Indices[i] + code - huffmanTree.MinCodes[i]];
+                    result = huffmanTree.GetValue(code, i);
                     return DecoderErrorCode.NoError;
                 }
 

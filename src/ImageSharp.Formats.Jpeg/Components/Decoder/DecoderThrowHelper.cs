@@ -81,6 +81,15 @@ namespace ImageSharp.Formats.Jpg
             {
                 throw new ImageFormatException("Bad Huffman code!");
             }
+
+            /// <summary>
+            /// Throws "Uninitialized Huffman table".
+            /// </summary>
+            [MethodImpl(MethodImplOptions.NoInlining)]
+            public static void UninitializedHuffmanTable()
+            {
+                throw new ImageFormatException("Uninitialized Huffman table");
+            }
         }
     }
 }

@@ -353,11 +353,6 @@ namespace ImageSharp.Formats
                         return errorCode;
                     }
                 }
-
-                // else if (errorCode == DecoderErrorCode.UnexpectedEndOfStream)
-                // {
-                //     errorCode.ThrowExceptionForErrorCode();
-                // }
                 else
                 {
                     this.UnreadByteStuffedByte();

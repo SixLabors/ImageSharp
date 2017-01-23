@@ -10,6 +10,7 @@ namespace ImageSharp.Formats.Jpg
 
     /// <summary>
     /// Encapsulates the impementation of Jpeg SOS decoder. See JpegScanDecoder.md!
+    /// TODO: Split JpegScanDecoder: 1. JpegScanDecoder for Huffman-decoding (<see cref="DecodeBlocks"/>) 2. JpegBlockProcessor for processing (<see cref="ProcessBlockColors"/>)
     /// <see cref="zigStart"/> and <see cref="zigEnd"/> are the spectral selection bounds.
     /// <see cref="ah"/> and <see cref="al"/> are the successive approximation high and low values.
     /// The spec calls these values Ss, Se, Ah and Al.
@@ -131,7 +132,9 @@ namespace ImageSharp.Formats.Jpg
         }
 
         /// <summary>
-        /// Reads the blocks from the <see cref="JpegDecoderCore"/>-s stream, and processes them into the corresponding <see cref="JpegPixelArea"/> instances.
+        /// Read Huffman data from Jpeg scans in <see cref="JpegDecoderCore.InputStream"/>,
+        /// and decode it as <see cref="Block8x8F"/> into <see cref="JpegDecoderCore.DecodedBlocks"/>.
+        ///
         /// The blocks are traversed one MCU at a time. For 4:2:0 chroma
         /// subsampling, there are four Y 8x8 blocks in every 16x16 MCU.
         /// For a baseline 32x16 pixel image, the Y blocks visiting order is:
@@ -156,7 +159,7 @@ namespace ImageSharp.Formats.Jpg
         /// 3 4 5
         /// </summary>
         /// <param name="decoder">The <see cref="JpegDecoderCore"/> instance</param>
-        public void ReadBlocks(JpegDecoderCore decoder)
+        public void DecodeBlocks(JpegDecoderCore decoder)
         {
             int blockCount = 0;
             int mcu = 0;
@@ -191,7 +194,7 @@ namespace ImageSharp.Formats.Jpg
                                 }
                             }
 
-                            this.ReadBlock(decoder, scanIndex);
+                            this.DecodeBlock(decoder, scanIndex);
                         }
 
                         // for j
@@ -236,7 +239,7 @@ namespace ImageSharp.Formats.Jpg
         /// Dequantize, perform the inverse DCT and store the block to the into the corresponding <see cref="JpegPixelArea"/> instances.
         /// </summary>
         /// <param name="decoder">The <see cref="JpegDecoderCore"/> instance</param>
-        public void ProcessBlock(JpegDecoderCore decoder)
+        public void ProcessBlockColors(JpegDecoderCore decoder)
         {
             int qtIndex = decoder.ComponentArray[this.ComponentIndex].Selector;
             this.data.QuantiazationTable = decoder.QuantizationTables[qtIndex];
@@ -329,7 +332,7 @@ namespace ImageSharp.Formats.Jpg
         /// </summary>
         /// <param name="decoder">The decoder</param>
         /// <param name="scanIndex">The index of the scan</param>
-        private void ReadBlock(JpegDecoderCore decoder, int scanIndex)
+        private void DecodeBlock(JpegDecoderCore decoder, int scanIndex)
         {
             int blockIndex = this.GetBlockIndex(decoder);
             this.data.Block = decoder.DecodedBlocks[this.ComponentIndex][blockIndex].Block;

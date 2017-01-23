@@ -175,8 +175,89 @@ namespace ImageSharp.Formats
         /// <typeparam name="TColor">The pixel format.</typeparam>
         /// <param name="image">The image, where the data should be set to.</param>
         /// <param name="stream">The stream, where the image should be.</param>
-        /// <param name="configOnly">Whether to decode metadata only.</param>
-        public void Decode<TColor>(Image<TColor> image, Stream stream, bool configOnly)
+        /// <param name="metadataOnly">Whether to decode metadata only.</param>
+        public void Decode<TColor>(Image<TColor> image, Stream stream, bool metadataOnly)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
+        {
+            this.ProcessStream(image, stream, metadataOnly);
+            if (metadataOnly) return;
+            this.ConvertBlocksToImagePixels(image);
+        }
+
+        private void ConvertBlocksToImagePixels<TColor>(Image<TColor> image)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
+        {
+            this.ProcessBlocks<TColor>();
+
+            if (this.grayImage.IsInitialized)
+            {
+                this.ConvertFromGrayScale(this.ImageWidth, this.ImageHeight, image);
+            }
+            else if (this.ycbcrImage != null)
+            {
+                if (this.ComponentCount == 4)
+                {
+                    if (!this.adobeTransformValid)
+                    {
+                        throw new ImageFormatException(
+                            "Unknown color model: 4-component JPEG doesn't have Adobe APP14 metadata");
+                    }
+
+                    // See http://www.sno.phy.queensu.ca/~phil/exiftool/TagNames/JPEG.html#Adobe
+                    // See https://docs.oracle.com/javase/8/docs/api/javax/imageio/metadata/doc-files/jpeg_metadata.html
+                    // TODO: YCbCrA?
+                    if (this.adobeTransform == JpegConstants.Adobe.ColorTransformYcck)
+                    {
+                        this.ConvertFromYcck(this.ImageWidth, this.ImageHeight, image);
+                    }
+                    else if (this.adobeTransform == JpegConstants.Adobe.ColorTransformUnknown)
+                    {
+                        // Assume CMYK
+                        this.ConvertFromCmyk(this.ImageWidth, this.ImageHeight, image);
+                    }
+
+                    return;
+                }
+
+                if (this.ComponentCount == 3)
+                {
+                    if (this.IsRGB())
+                    {
+                        this.ConvertFromRGB(this.ImageWidth, this.ImageHeight, image);
+                        return;
+                    }
+
+                    this.ConvertFromYCbCr(this.ImageWidth, this.ImageHeight, image);
+                    return;
+                }
+
+                throw new ImageFormatException("JpegDecoder only supports RGB, CMYK and Grayscale color spaces.");
+            }
+            else
+            {
+                throw new ImageFormatException("Missing SOS marker.");
+            }
+        }
+
+        private void ProcessBlocks<TColor>()
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
+        {
+            JpegScanDecoder scanDecoder = default(JpegScanDecoder);
+            JpegScanDecoder.Init(&scanDecoder);
+
+            for(int componentIndex = 0; componentIndex < this.ComponentCount; componentIndex++)
+            {
+                scanDecoder.ComponentIndex = componentIndex;
+                DecodedBlockMemento[] blockArray = this.DecodedBlocks[componentIndex];
+                for (int i = 0; i < blockArray.Length; i++)
+                {
+                    scanDecoder.LoadMemento(ref blockArray[i]);
+                    scanDecoder.ProcessBlock(this);
+                }
+            }
+        }
+
+        private void ProcessStream<TColor>(Image<TColor> image, Stream stream, bool metadataOnly)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             this.InputStream = stream;
@@ -265,14 +346,14 @@ namespace ImageSharp.Formats
                     case JpegConstants.Markers.SOF2:
                         this.IsProgressive = marker == JpegConstants.Markers.SOF2;
                         this.ProcessStartOfFrameMarker(remaining);
-                        if (configOnly && this.isJfif)
+                        if (metadataOnly && this.isJfif)
                         {
                             return;
                         }
 
                         break;
                     case JpegConstants.Markers.DHT:
-                        if (configOnly)
+                        if (metadataOnly)
                         {
                             this.Skip(remaining);
                         }
@@ -283,7 +364,7 @@ namespace ImageSharp.Formats
 
                         break;
                     case JpegConstants.Markers.DQT:
-                        if (configOnly)
+                        if (metadataOnly)
                         {
                             this.Skip(remaining);
                         }
@@ -294,7 +375,7 @@ namespace ImageSharp.Formats
 
                         break;
                     case JpegConstants.Markers.SOS:
-                        if (configOnly)
+                        if (metadataOnly)
                         {
                             return;
                         }
@@ -310,7 +391,7 @@ namespace ImageSharp.Formats
 
                         break;
                     case JpegConstants.Markers.DRI:
-                        if (configOnly)
+                        if (metadataOnly)
                         {
                             this.Skip(remaining);
                         }
@@ -347,55 +428,6 @@ namespace ImageSharp.Formats
 
                         break;
                 }
-            }
-
-            if (this.grayImage.IsInitialized)
-            {
-                this.ConvertFromGrayScale(this.ImageWidth, this.ImageHeight, image);
-            }
-            else if (this.ycbcrImage != null)
-            {
-                if (this.ComponentCount == 4)
-                {
-                    if (!this.adobeTransformValid)
-                    {
-                        throw new ImageFormatException(
-                                  "Unknown color model: 4-component JPEG doesn't have Adobe APP14 metadata");
-                    }
-
-                    // See http://www.sno.phy.queensu.ca/~phil/exiftool/TagNames/JPEG.html#Adobe
-                    // See https://docs.oracle.com/javase/8/docs/api/javax/imageio/metadata/doc-files/jpeg_metadata.html
-                    // TODO: YCbCrA?
-                    if (this.adobeTransform == JpegConstants.Adobe.ColorTransformYcck)
-                    {
-                        this.ConvertFromYcck(this.ImageWidth, this.ImageHeight, image);
-                    }
-                    else if (this.adobeTransform == JpegConstants.Adobe.ColorTransformUnknown)
-                    {
-                        // Assume CMYK
-                        this.ConvertFromCmyk(this.ImageWidth, this.ImageHeight, image);
-                    }
-
-                    return;
-                }
-
-                if (this.ComponentCount == 3)
-                {
-                    if (this.IsRGB())
-                    {
-                        this.ConvertFromRGB(this.ImageWidth, this.ImageHeight, image);
-                        return;
-                    }
-
-                    this.ConvertFromYCbCr(this.ImageWidth, this.ImageHeight, image);
-                    return;
-                }
-
-                throw new ImageFormatException("JpegDecoder only supports RGB, CMYK and Grayscale color spaces.");
-            }
-            else
-            {
-                throw new ImageFormatException("Missing SOS marker.");
             }
         }
 
@@ -1453,7 +1485,7 @@ namespace ImageSharp.Formats
         private void ProcessStartOfScan(int remaining)
         {
             JpegScanDecoder scan = default(JpegScanDecoder);
-            JpegScanDecoder.Init(&scan, this, remaining);
+            JpegScanDecoder.InitStreamReading(&scan, this, remaining);
             this.Bits = default(Bits);
             this.MakeImage();
             scan.ReadBlocks(this);

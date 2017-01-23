@@ -189,7 +189,7 @@ namespace ImageSharp.Formats.Jpg
                     // whose codeLength's high bits matches code.
                     // The high 8 bits of lutValue are the encoded value.
                     // The low 8 bits are 1 plus the codeLength.
-                    int base2 = (code << (7 - i));
+                    int base2 = code << (7 - i);
                     int lutValue = (this.ValuesAsInt[x] << 8) | (2 + i);
 
                     for (int k = 0; k < 1 << (7 - i); k++)
@@ -226,6 +226,12 @@ namespace ImageSharp.Formats.Jpg
             }
         }
 
+        /// <summary>
+        /// Gets the value for the given code and index.
+        /// </summary>
+        /// <param name="code">The code</param>
+        /// <param name="i">The index</param>
+        /// <returns>The value</returns>
         public int GetValue(int code, int i)
         {
             return this.ValuesAsInt[this.Indices[i] + code - this.MinCodes[i]];

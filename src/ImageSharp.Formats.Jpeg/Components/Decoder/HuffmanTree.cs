@@ -63,11 +63,6 @@ namespace ImageSharp.Formats.Jpg
         /// <summary>
         /// Gets the the decoded values, sorted by their encoding.
         /// </summary>
-        public byte[] Values;
-
-        /// <summary>
-        /// Same as <see cref="Values"/>, converted to int-s
-        /// </summary>
         public int[] ValuesAsInt;
 
         /// <summary>
@@ -87,11 +82,11 @@ namespace ImageSharp.Formats.Jpg
         /// </summary>
         public int[] Indices;
 
-        private static readonly ArrayPool<int> IntBuffer256 = ArrayPool<int>.Create(MaxNCodes, 50);
+        private static readonly ArrayPool<int> IntPool256 = ArrayPool<int>.Create(MaxNCodes, 50);
 
-        private static readonly ArrayPool<byte> ByteBuffer256 = ArrayPool<byte>.Create(MaxNCodes, 50);
+        private static readonly ArrayPool<byte> BytePool256 = ArrayPool<byte>.Create(MaxNCodes, 50);
 
-        private static readonly ArrayPool<int> CodesBuffer16 = ArrayPool<int>.Create(MaxCodeLength, 50);
+        private static readonly ArrayPool<int> CodesPool16 = ArrayPool<int>.Create(MaxCodeLength, 50);
 
         /// <summary>
         /// Creates and initializes an array of <see cref="HuffmanTree" /> instances of size <see cref="NumberOfTrees" />
@@ -116,12 +111,11 @@ namespace ImageSharp.Formats.Jpg
         /// </summary>
         public void Dispose()
         {
-            IntBuffer256.Return(this.Lut, true);
-            IntBuffer256.Return(this.ValuesAsInt, true);
-            ByteBuffer256.Return(this.Values, true);
-            CodesBuffer16.Return(this.MinCodes, true);
-            CodesBuffer16.Return(this.MaxCodes, true);
-            CodesBuffer16.Return(this.Indices, true);
+            IntPool256.Return(this.Lut, true);
+            IntPool256.Return(this.ValuesAsInt, true);
+            CodesPool16.Return(this.MinCodes, true);
+            CodesPool16.Return(this.MaxCodes, true);
+            CodesPool16.Return(this.Indices, true);
         }
 
         /// <summary>
@@ -163,11 +157,20 @@ namespace ImageSharp.Formats.Jpg
                 throw new ImageFormatException("DHT has wrong length");
             }
 
-            inputProcessor.ReadFull(this.Values, 0, this.Length);
-
-            for (int i = 0; i < this.Values.Length; i++)
+            byte[] values = null;
+            try
             {
-                this.ValuesAsInt[i] = this.Values[i];
+                values = BytePool256.Rent(MaxNCodes);
+                inputProcessor.ReadFull(values, 0, this.Length);
+
+                for (int i = 0; i < values.Length; i++)
+                {
+                    this.ValuesAsInt[i] = values[i];
+                }
+            }
+            finally
+            {
+                BytePool256.Return(values, true);
             }
 
             // Derive the look-up table.
@@ -230,11 +233,11 @@ namespace ImageSharp.Formats.Jpg
         /// Gets the value for the given code and index.
         /// </summary>
         /// <param name="code">The code</param>
-        /// <param name="i">The index</param>
+        /// <param name="codeLength">The code length</param>
         /// <returns>The value</returns>
-        public int GetValue(int code, int i)
+        public int GetValue(int code, int codeLength)
         {
-            return this.ValuesAsInt[this.Indices[i] + code - this.MinCodes[i]];
+            return this.ValuesAsInt[this.Indices[codeLength] + code - this.MinCodes[codeLength]];
         }
 
         /// <summary>
@@ -242,12 +245,11 @@ namespace ImageSharp.Formats.Jpg
         /// </summary>
         private void Init()
         {
-            this.Lut = IntBuffer256.Rent(MaxNCodes);
-            this.Values = ByteBuffer256.Rent(MaxNCodes);
-            this.ValuesAsInt = IntBuffer256.Rent(MaxNCodes);
-            this.MinCodes = CodesBuffer16.Rent(MaxCodeLength);
-            this.MaxCodes = CodesBuffer16.Rent(MaxCodeLength);
-            this.Indices = CodesBuffer16.Rent(MaxCodeLength);
+            this.Lut = IntPool256.Rent(MaxNCodes);
+            this.ValuesAsInt = IntPool256.Rent(MaxNCodes);
+            this.MinCodes = CodesPool16.Rent(MaxCodeLength);
+            this.MaxCodes = CodesPool16.Rent(MaxCodeLength);
+            this.Indices = CodesPool16.Rent(MaxCodeLength);
         }
     }
 }

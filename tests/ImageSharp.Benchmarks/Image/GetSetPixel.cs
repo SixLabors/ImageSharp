@@ -13,7 +13,7 @@ namespace ImageSharp.Benchmarks.Image
     using CoreImage = ImageSharp.Image;
     using SystemColor = System.Drawing.Color;
 
-    public class GetSetPixel
+    public class GetSetPixel : BenchmarkBase
     {
         [Benchmark(Baseline = true, Description = "System.Drawing GetSet pixel")]
         public SystemColor ResizeSystemDrawing()
@@ -29,7 +29,7 @@ namespace ImageSharp.Benchmarks.Image
         public CoreColor ResizeCore()
         {
             CoreImage image = new CoreImage(400, 400);
-            using (PixelAccessor<CoreColor, uint> imagePixels = image.Lock())
+            using (PixelAccessor<CoreColor> imagePixels = image.Lock())
             {
                 imagePixels[200, 200] = CoreColor.White;
                 return imagePixels[200, 200];

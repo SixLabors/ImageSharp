@@ -6,7 +6,9 @@
 namespace ImageSharp
 {
     using System;
+    using System.Collections.Generic;
     using System.Diagnostics;
+    using System.Linq;
 
     /// <summary>
     /// Provides methods to protect against invalid parameters.
@@ -42,18 +44,45 @@ namespace ImageSharp
         /// </summary>
         /// <param name="target">The target string, which should be checked against being null or empty.</param>
         /// <param name="parameterName">Name of the parameter.</param>
+        /// <param name="message">The error message, if any to add to the exception.</param>
         /// <exception cref="ArgumentNullException"><paramref name="target"/> is null.</exception>
         /// <exception cref="ArgumentException"><paramref name="target"/> is empty or contains only blanks.</exception>
-        public static void NotNullOrEmpty(string target, string parameterName)
+        public static void NotNullOrEmpty(string target, string parameterName, string message = "")
         {
-            if (target == null)
-            {
-                throw new ArgumentNullException(parameterName);
-            }
+            NotNull(target, parameterName, message);
 
             if (string.IsNullOrWhiteSpace(target))
             {
+                if (!string.IsNullOrWhiteSpace(message))
+                {
+                    throw new ArgumentException(message, parameterName);
+                }
+
                 throw new ArgumentException("Value cannot be null or empty and cannot contain only blanks.", parameterName);
+            }
+        }
+
+        /// <summary>
+        /// Verifies, that the enumeration is not null and not empty.
+        /// </summary>
+        /// <typeparam name="T">The type of objects in the <paramref name="target"/></typeparam>
+        /// <param name="target">The target enumeration, which should be checked against being null or empty.</param>
+        /// <param name="parameterName">Name of the parameter.</param>
+        /// <param name="message">The error message, if any to add to the exception.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="target"/> is null.</exception>
+        /// <exception cref="ArgumentException"><paramref name="target"/> is empty.</exception>
+        public static void NotNullOrEmpty<T>(IEnumerable<T> target, string parameterName, string message = "")
+        {
+            NotNull(target, parameterName, message);
+
+            if (!target.Any())
+            {
+                if (!string.IsNullOrWhiteSpace(message))
+                {
+                    throw new ArgumentException(message, parameterName);
+                }
+
+                throw new ArgumentException("Value cannot be empty.", parameterName);
             }
         }
 

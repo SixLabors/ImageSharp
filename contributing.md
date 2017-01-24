@@ -20,9 +20,9 @@
 
 * Do not open an issue on GitHub until you have collected positive feedback about the change. GitHub issues are primarily intended for bug reports and fixes.
 
-#### **Do you have questions about the source code?**
+#### **Do you have questions about consuming the library or the source code?**
 
-* Ask any question about how to use ImageProcessor in the [ImageSharp Gitter Chat Room](https://gitter.im/ImageSharp/General).
+* Ask any question about how to use ImageSharp in the [ImageSharp Gitter Chat Room](https://gitter.im/ImageSharp/General).
 
 And please remember. ImageSharp is the work of a very, very, small number of developers who struggle balancing time to contribute to the project with family time and work commitments. We encourage you to pitch in and help make our vision of simple accessible imageprocessing available to all. Open Source can only exist with your help.
 

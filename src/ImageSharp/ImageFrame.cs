@@ -11,12 +11,18 @@ namespace ImageSharp
     /// An optimized frame for the <see cref="Image"/> class.
     /// </summary>
     [DebuggerDisplay("ImageFrame: {Width}x{Height}")]
-    public class ImageFrame : ImageFrame<Color, uint>
+    public sealed class ImageFrame : ImageFrame<Color>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageFrame"/> class.
         /// </summary>
-        public ImageFrame()
+        /// <param name="width">The width of the image in pixels.</param>
+        /// <param name="height">The height of the image in pixels.</param>
+        /// <param name="configuration">
+        /// The configuration providing initialization code which allows extending the library.
+        /// </param>
+        public ImageFrame(int width, int height, Configuration configuration = null)
+            : base(width, height, configuration)
         {
         }
 
@@ -26,19 +32,19 @@ namespace ImageSharp
         /// <param name="image">
         /// The image to create the frame from.
         /// </param>
-        public ImageFrame(ImageBase<Color, uint> image)
+        public ImageFrame(ImageBase<Color> image)
             : base(image)
         {
         }
 
         /// <inheritdoc />
-        public override PixelAccessor<Color, uint> Lock()
+        public override PixelAccessor<Color> Lock()
         {
             return new PixelAccessor(this);
         }
 
         /// <inheritdoc />
-        internal override ImageFrame<Color, uint> Clone()
+        internal override ImageFrame<Color> Clone()
         {
             return new ImageFrame(this);
         }

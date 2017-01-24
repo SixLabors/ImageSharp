@@ -13,6 +13,10 @@ namespace ImageSharp.Tests.Colors
     /// <summary>
     /// The packed pixel tests.
     /// </summary>
+    /// <remarks>
+    /// The "ToVector4" tests should now be covered in <see cref="ColorConstructorTests"/>
+    /// and at some point they can be safely removed from here.
+    /// </remarks>
     public class PackedPixelTests
     {
         [Fact]
@@ -43,16 +47,16 @@ namespace ImageSharp.Tests.Colors
             byte[] bgr = new byte[3];
             byte[] bgra = new byte[4];
 
-            new Alpha8(.5F).ToBytes(rgb, 0, ComponentOrder.XYZ);
+            new Alpha8(.5F).ToXyzBytes(rgb, 0);
             Assert.Equal(rgb, new byte[] { 0, 0, 0 });
 
-            new Alpha8(.5F).ToBytes(rgba, 0, ComponentOrder.XYZW);
+            new Alpha8(.5F).ToXyzwBytes(rgba, 0);
             Assert.Equal(rgba, new byte[] { 0, 0, 0, 128 });
 
-            new Alpha8(.5F).ToBytes(bgr, 0, ComponentOrder.ZYX);
+            new Alpha8(.5F).ToZyxBytes(bgr, 0);
             Assert.Equal(bgr, new byte[] { 0, 0, 0 });
 
-            new Alpha8(.5F).ToBytes(bgra, 0, ComponentOrder.ZYXW);
+            new Alpha8(.5F).ToZyxwBytes(bgra, 0);
             Assert.Equal(bgra, new byte[] { 0, 0, 0, 128 });
         }
 
@@ -88,16 +92,16 @@ namespace ImageSharp.Tests.Colors
             byte[] bgr = new byte[3];
             byte[] bgra = new byte[4];
 
-            argb.ToBytes(rgb, 0, ComponentOrder.XYZ);
+            argb.ToXyzBytes(rgb, 0);
             Assert.Equal(rgb, new byte[] { 0x1a, 0, 0x80 });
 
-            argb.ToBytes(rgba, 0, ComponentOrder.XYZW);
+            argb.ToXyzwBytes(rgba, 0);
             Assert.Equal(rgba, new byte[] { 0x1a, 0, 0x80, 0 });
 
-            argb.ToBytes(bgr, 0, ComponentOrder.ZYX);
+            argb.ToZyxBytes(bgr, 0);
             Assert.Equal(bgr, new byte[] { 0x80, 0, 0x1a });
 
-            argb.ToBytes(bgra, 0, ComponentOrder.ZYXW);
+            argb.ToZyxwBytes(bgra, 0);
             Assert.Equal(bgra, new byte[] { 0x80, 0, 0x1a, 0 });
         }
 
@@ -129,23 +133,22 @@ namespace ImageSharp.Tests.Colors
             float z = 0.5F;
             Assert.Equal(6160, new Bgr565(x, y, z).PackedValue);
 
-
             // Test ordering
             byte[] rgb = new byte[3];
             byte[] rgba = new byte[4];
             byte[] bgr = new byte[3];
             byte[] bgra = new byte[4];
 
-            new Bgr565(x, y, z).ToBytes(rgb, 0, ComponentOrder.XYZ);
+            new Bgr565(x, y, z).ToXyzBytes(rgb, 0);
             Assert.Equal(rgb, new byte[] { 25, 0, 132 });
 
-            new Bgr565(x, y, z).ToBytes(rgba, 0, ComponentOrder.XYZW);
+            new Bgr565(x, y, z).ToXyzwBytes(rgba, 0);
             Assert.Equal(rgba, new byte[] { 25, 0, 132, 255 });
 
-            new Bgr565(x, y, z).ToBytes(bgr, 0, ComponentOrder.ZYX);
+            new Bgr565(x, y, z).ToZyxBytes(bgr, 0);
             Assert.Equal(bgr, new byte[] { 132, 0, 25 });
 
-            new Bgr565(x, y, z).ToBytes(bgra, 0, ComponentOrder.ZYXW);
+            new Bgr565(x, y, z).ToZyxwBytes(bgra, 0);
             Assert.Equal(bgra, new byte[] { 132, 0, 25, 255 });
         }
 
@@ -186,16 +189,16 @@ namespace ImageSharp.Tests.Colors
             byte[] bgr = new byte[3];
             byte[] bgra = new byte[4];
 
-            new Bgra4444(x, y, z, w).ToBytes(rgb, 0, ComponentOrder.XYZ);
+            new Bgra4444(x, y, z, w).ToXyzBytes(rgb, 0);
             Assert.Equal(rgb, new byte[] { 34, 0, 136 });
 
-            new Bgra4444(x, y, z, w).ToBytes(rgba, 0, ComponentOrder.XYZW);
+            new Bgra4444(x, y, z, w).ToXyzwBytes(rgba, 0);
             Assert.Equal(rgba, new byte[] { 34, 0, 136, 0 });
 
-            new Bgra4444(x, y, z, w).ToBytes(bgr, 0, ComponentOrder.ZYX);
+            new Bgra4444(x, y, z, w).ToZyxBytes(bgr, 0);
             Assert.Equal(bgr, new byte[] { 136, 0, 34 });
 
-            new Bgra4444(x, y, z, w).ToBytes(bgra, 0, ComponentOrder.ZYXW);
+            new Bgra4444(x, y, z, w).ToZyxwBytes(bgra, 0);
             Assert.Equal(bgra, new byte[] { 136, 0, 34, 0 });
         }
 
@@ -232,16 +235,16 @@ namespace ImageSharp.Tests.Colors
             byte[] bgr = new byte[3];
             byte[] bgra = new byte[4];
 
-            new Bgra5551(x, y, z, w).ToBytes(rgb, 0, ComponentOrder.XYZ);
+            new Bgra5551(x, y, z, w).ToXyzBytes(rgb, 0);
             Assert.Equal(rgb, new byte[] { 24, 0, 131 });
 
-            new Bgra5551(x, y, z, w).ToBytes(rgba, 0, ComponentOrder.XYZW);
+            new Bgra5551(x, y, z, w).ToXyzwBytes(rgba, 0);
             Assert.Equal(rgba, new byte[] { 24, 0, 131, 0 });
 
-            new Bgra5551(x, y, z, w).ToBytes(bgr, 0, ComponentOrder.ZYX);
+            new Bgra5551(x, y, z, w).ToZyxBytes(bgr, 0);
             Assert.Equal(bgr, new byte[] { 131, 0, 24 });
 
-            new Bgra5551(x, y, z, w).ToBytes(bgra, 0, ComponentOrder.ZYXW);
+            new Bgra5551(x, y, z, w).ToZyxwBytes(bgra, 0);
             Assert.Equal(bgra, new byte[] { 131, 0, 24, 0 });
         }
 
@@ -283,21 +286,21 @@ namespace ImageSharp.Tests.Colors
             byte[] bgr = new byte[3];
             byte[] bgra = new byte[4];
 
-            new Byte4(x, y, z, w).ToBytes(rgb, 0, ComponentOrder.XYZ);
+            new Byte4(x, y, z, w).ToXyzBytes(rgb, 0);
             Assert.Equal(rgb, new byte[] { 128, 0, 0 });
 
-            new Byte4(x, y, z, w).ToBytes(rgba, 0, ComponentOrder.XYZW);
+            new Byte4(x, y, z, w).ToXyzwBytes(rgba, 0);
             Assert.Equal(rgba, new byte[] { 128, 0, 0, 0 });
 
-            new Byte4(x, y, z, w).ToBytes(bgr, 0, ComponentOrder.ZYX);
+            new Byte4(x, y, z, w).ToZyxBytes(bgr, 0);
             Assert.Equal(bgr, new byte[] { 0, 0, 128 });
 
-            new Byte4(x, y, z, w).ToBytes(bgra, 0, ComponentOrder.ZYXW);
+            new Byte4(x, y, z, w).ToZyxwBytes(bgra, 0);
             Assert.Equal(bgra, new byte[] { 0, 0, 128, 0 });
 
             Byte4 r = new Byte4();
             r.PackFromBytes(20, 38, 0, 255);
-            r.ToBytes(rgba, 0, ComponentOrder.XYZW);
+            r.ToXyzwBytes(rgba, 0);
             Assert.Equal(rgba, new byte[] { 20, 38, 0, 255 });
         }
 
@@ -322,16 +325,16 @@ namespace ImageSharp.Tests.Colors
             byte[] bgr = new byte[3];
             byte[] bgra = new byte[4];
 
-            new HalfSingle(x).ToBytes(rgb, 0, ComponentOrder.XYZ);
+            new HalfSingle(x).ToXyzBytes(rgb, 0);
             Assert.Equal(rgb, new byte[] { 128, 0, 0 });
 
-            new HalfSingle(x).ToBytes(rgba, 0, ComponentOrder.XYZW);
+            new HalfSingle(x).ToXyzwBytes(rgba, 0);
             Assert.Equal(rgba, new byte[] { 128, 0, 0, 255 });
 
-            new HalfSingle(x).ToBytes(bgr, 0, ComponentOrder.ZYX);
+            new HalfSingle(x).ToZyxBytes(bgr, 0);
             Assert.Equal(bgr, new byte[] { 0, 0, 128 });
 
-            new HalfSingle(x).ToBytes(bgra, 0, ComponentOrder.ZYXW);
+            new HalfSingle(x).ToZyxwBytes(bgra, 0);
             Assert.Equal(bgra, new byte[] { 0, 0, 128, 255 });
         }
 
@@ -359,16 +362,16 @@ namespace ImageSharp.Tests.Colors
             byte[] bgr = new byte[3];
             byte[] bgra = new byte[4];
 
-            new HalfVector2(x, y).ToBytes(rgb, 0, ComponentOrder.XYZ);
+            new HalfVector2(x, y).ToXyzBytes(rgb, 0);
             Assert.Equal(rgb, new byte[] { 128, 64, 0 });
 
-            new HalfVector2(x, y).ToBytes(rgba, 0, ComponentOrder.XYZW);
+            new HalfVector2(x, y).ToXyzwBytes(rgba, 0);
             Assert.Equal(rgba, new byte[] { 128, 64, 0, 255 });
 
-            new HalfVector2(x, y).ToBytes(bgr, 0, ComponentOrder.ZYX);
+            new HalfVector2(x, y).ToZyxBytes(bgr, 0);
             Assert.Equal(bgr, new byte[] { 0, 64, 128 });
 
-            new HalfVector2(x, y).ToBytes(bgra, 0, ComponentOrder.ZYXW);
+            new HalfVector2(x, y).ToZyxwBytes(bgra, 0);
             Assert.Equal(bgra, new byte[] { 0, 64, 128, 255 });
         }
 
@@ -405,16 +408,16 @@ namespace ImageSharp.Tests.Colors
             byte[] bgr = new byte[3];
             byte[] bgra = new byte[4];
 
-            new HalfVector4(x, y, z, w).ToBytes(rgb, 0, ComponentOrder.XYZ);
+            new HalfVector4(x, y, z, w).ToXyzBytes(rgb, 0);
             Assert.Equal(rgb, new byte[] { 64, 128, 191 });
 
-            new HalfVector4(x, y, z, w).ToBytes(rgba, 0, ComponentOrder.XYZW);
+            new HalfVector4(x, y, z, w).ToXyzwBytes(rgba, 0);
             Assert.Equal(rgba, new byte[] { 64, 128, 191, 255 });
 
-            new HalfVector4(x, y, z, w).ToBytes(bgr, 0, ComponentOrder.ZYX);
+            new HalfVector4(x, y, z, w).ToZyxBytes(bgr, 0);
             Assert.Equal(bgr, new byte[] { 191, 128, 64 });
 
-            new HalfVector4(x, y, z, w).ToBytes(bgra, 0, ComponentOrder.ZYXW);
+            new HalfVector4(x, y, z, w).ToZyxwBytes(bgra, 0);
             Assert.Equal(bgra, new byte[] { 191, 128, 64, 255 });
         }
 
@@ -450,16 +453,16 @@ namespace ImageSharp.Tests.Colors
             byte[] bgr = new byte[3];
             byte[] bgra = new byte[4];
 
-            new NormalizedByte2(x, y).ToBytes(rgb, 0, ComponentOrder.XYZ);
+            new NormalizedByte2(x, y).ToXyzBytes(rgb, 0);
             Assert.Equal(rgb, new byte[] { 141, 90, 0 });
 
-            new NormalizedByte2(x, y).ToBytes(rgba, 0, ComponentOrder.XYZW);
+            new NormalizedByte2(x, y).ToXyzwBytes(rgba, 0);
             Assert.Equal(rgba, new byte[] { 141, 90, 0, 255 });
 
-            new NormalizedByte2(x, y).ToBytes(bgr, 0, ComponentOrder.ZYX);
+            new NormalizedByte2(x, y).ToZyxBytes(bgr, 0);
             Assert.Equal(bgr, new byte[] { 0, 90, 141 });
 
-            new NormalizedByte2(x, y).ToBytes(bgra, 0, ComponentOrder.ZYXW);
+            new NormalizedByte2(x, y).ToZyxwBytes(bgra, 0);
             Assert.Equal(bgra, new byte[] { 0, 90, 141, 255 });
         }
 
@@ -495,26 +498,26 @@ namespace ImageSharp.Tests.Colors
             byte[] bgr = new byte[3];
             byte[] bgra = new byte[4];
 
-            new NormalizedByte4(x, y, z, w).ToBytes(rgb, 0, ComponentOrder.XYZ);
+            new NormalizedByte4(x, y, z, w).ToXyzBytes(rgb, 0);
             Assert.Equal(rgb, new byte[] { 141, 90, 192 });
 
-            new NormalizedByte4(x, y, z, w).ToBytes(rgba, 0, ComponentOrder.XYZW);
+            new NormalizedByte4(x, y, z, w).ToXyzwBytes(rgba, 0);
             Assert.Equal(rgba, new byte[] { 141, 90, 192, 39 });
 
-            new NormalizedByte4(x, y, z, w).ToBytes(bgr, 0, ComponentOrder.ZYX);
+            new NormalizedByte4(x, y, z, w).ToZyxBytes(bgr, 0);
             Assert.Equal(bgr, new byte[] { 192, 90, 141 });
 
-            new NormalizedByte4(x, y, z, w).ToBytes(bgra, 0, ComponentOrder.ZYXW);
+            new NormalizedByte4(x, y, z, w).ToZyxwBytes(bgra, 0);
             Assert.Equal(bgra, new byte[] { 192, 90, 141, 39 });
 
             // http://community.monogame.net/t/normalizedbyte4-texture2d-gives-different-results-from-xna/8012/8
             NormalizedByte4 r = new NormalizedByte4();
             r.PackFromBytes(9, 115, 202, 127);
-            r.ToBytes(rgba, 0, ComponentOrder.XYZW);
+            r.ToXyzwBytes(rgba, 0);
             Assert.Equal(rgba, new byte[] { 9, 115, 202, 127 });
 
             r.PackedValue = 0xff4af389;
-            r.ToBytes(rgba, 0, ComponentOrder.XYZW);
+            r.ToXyzwBytes(rgba, 0);
             Assert.Equal(rgba, new byte[] { 9, 115, 202, 127 });
         }
 
@@ -549,22 +552,22 @@ namespace ImageSharp.Tests.Colors
 
             NormalizedShort2 n = new NormalizedShort2();
             n.PackFromBytes(141, 90, 0, 0);
-            n.ToBytes(rgb, 0, ComponentOrder.XYZ);
+            n.ToXyzBytes(rgb, 0);
             Assert.Equal(rgb, new byte[] { 141, 90, 0 });
 
             // TODO: I don't think this can ever pass since the bytes are already truncated.
             // Assert.Equal(3650751693, n.PackedValue);
 
-            new NormalizedShort2(x, y).ToBytes(rgb, 0, ComponentOrder.XYZ);
+            new NormalizedShort2(x, y).ToXyzBytes(rgb, 0);
             Assert.Equal(rgb, new byte[] { 141, 90, 0 });
 
-            new NormalizedShort2(x, y).ToBytes(rgba, 0, ComponentOrder.XYZW);
+            new NormalizedShort2(x, y).ToXyzwBytes(rgba, 0);
             Assert.Equal(rgba, new byte[] { 141, 90, 0, 255 });
 
-            new NormalizedShort2(x, y).ToBytes(bgr, 0, ComponentOrder.ZYX);
+            new NormalizedShort2(x, y).ToZyxBytes(bgr, 0);
             Assert.Equal(bgr, new byte[] { 0, 90, 141 });
 
-            new NormalizedShort2(x, y).ToBytes(bgra, 0, ComponentOrder.ZYXW);
+            new NormalizedShort2(x, y).ToZyxwBytes(bgra, 0);
             Assert.Equal(bgra, new byte[] { 0, 90, 141, 255 });
         }
 
@@ -596,21 +599,21 @@ namespace ImageSharp.Tests.Colors
             byte[] bgr = new byte[3];
             byte[] bgra = new byte[4];
 
-            new NormalizedShort4(x, y, z, w).ToBytes(rgb, 0, ComponentOrder.XYZ);
+            new NormalizedShort4(x, y, z, w).ToXyzBytes(rgb, 0);
             Assert.Equal(rgb, new byte[] { 141, 90, 192 });
 
-            new NormalizedShort4(x, y, z, w).ToBytes(rgba, 0, ComponentOrder.XYZW);
+            new NormalizedShort4(x, y, z, w).ToXyzwBytes(rgba, 0);
             Assert.Equal(rgba, new byte[] { 141, 90, 192, 39 });
 
-            new NormalizedShort4(x, y, z, w).ToBytes(bgr, 0, ComponentOrder.ZYX);
+            new NormalizedShort4(x, y, z, w).ToZyxBytes(bgr, 0);
             Assert.Equal(bgr, new byte[] { 192, 90, 141 });
 
-            new NormalizedShort4(x, y, z, w).ToBytes(bgra, 0, ComponentOrder.ZYXW);
+            new NormalizedShort4(x, y, z, w).ToZyxwBytes(bgra, 0);
             Assert.Equal(bgra, new byte[] { 192, 90, 141, 39 });
 
             NormalizedShort4 r = new NormalizedShort4();
             r.PackFromBytes(9, 115, 202, 127);
-            r.ToBytes(rgba, 0, ComponentOrder.XYZW);
+            r.ToXyzwBytes(rgba, 0);
             Assert.Equal(rgba, new byte[] { 9, 115, 202, 127 });
         }
 
@@ -643,16 +646,16 @@ namespace ImageSharp.Tests.Colors
             byte[] bgr = new byte[3];
             byte[] bgra = new byte[4];
 
-            new Rg32(x, y).ToBytes(rgb, 0, ComponentOrder.XYZ);
+            new Rg32(x, y).ToXyzBytes(rgb, 0);
             Assert.Equal(rgb, new byte[] { 25, 0, 0 });
 
-            new Rg32(x, y).ToBytes(rgba, 0, ComponentOrder.XYZW);
+            new Rg32(x, y).ToXyzwBytes(rgba, 0);
             Assert.Equal(rgba, new byte[] { 25, 0, 0, 255 });
 
-            new Rg32(x, y).ToBytes(bgr, 0, ComponentOrder.ZYX);
+            new Rg32(x, y).ToZyxBytes(bgr, 0);
             Assert.Equal(bgr, new byte[] { 0, 0, 25 });
 
-            new Rg32(x, y).ToBytes(bgra, 0, ComponentOrder.ZYXW);
+            new Rg32(x, y).ToZyxwBytes(bgra, 0);
             Assert.Equal(bgra, new byte[] { 0, 0, 25, 255 });
         }
 
@@ -688,22 +691,22 @@ namespace ImageSharp.Tests.Colors
             byte[] bgr = new byte[3];
             byte[] bgra = new byte[4];
 
-            new Rgba1010102(x, y, z, w).ToBytes(rgb, 0, ComponentOrder.XYZ);
+            new Rgba1010102(x, y, z, w).ToXyzBytes(rgb, 0);
             Assert.Equal(rgb, new byte[] { 25, 0, 128 });
 
-            new Rgba1010102(x, y, z, w).ToBytes(rgba, 0, ComponentOrder.XYZW);
+            new Rgba1010102(x, y, z, w).ToXyzwBytes(rgba, 0);
             Assert.Equal(rgba, new byte[] { 25, 0, 128, 0 });
 
-            new Rgba1010102(x, y, z, w).ToBytes(bgr, 0, ComponentOrder.ZYX);
+            new Rgba1010102(x, y, z, w).ToZyxBytes(bgr, 0);
             Assert.Equal(bgr, new byte[] { 128, 0, 25 });
 
-            new Rgba1010102(x, y, z, w).ToBytes(bgra, 0, ComponentOrder.ZYXW);
+            new Rgba1010102(x, y, z, w).ToZyxwBytes(bgra, 0);
             Assert.Equal(bgra, new byte[] { 128, 0, 25, 0 });
 
             // Alpha component accuracy will be awful.
             Rgba1010102 r = new Rgba1010102();
             r.PackFromBytes(25, 0, 128, 0);
-            r.ToBytes(rgba, 0, ComponentOrder.XYZW);
+            r.ToXyzwBytes(rgba, 0);
             Assert.Equal(rgba, new byte[] { 25, 0, 128, 0 });
         }
 
@@ -737,21 +740,21 @@ namespace ImageSharp.Tests.Colors
             byte[] bgr = new byte[3];
             byte[] bgra = new byte[4];
 
-            new Rgba64(x, y, z, w).ToBytes(rgb, 0, ComponentOrder.XYZ);
+            new Rgba64(x, y, z, w).ToXyzBytes(rgb, 0);
             Assert.Equal(rgb, new byte[] { 20, 38, 76 });
 
-            new Rgba64(x, y, z, w).ToBytes(rgba, 0, ComponentOrder.XYZW);
+            new Rgba64(x, y, z, w).ToXyzwBytes(rgba, 0);
             Assert.Equal(rgba, new byte[] { 20, 38, 76, 115 });
 
-            new Rgba64(x, y, z, w).ToBytes(bgr, 0, ComponentOrder.ZYX);
+            new Rgba64(x, y, z, w).ToZyxBytes(bgr, 0);
             Assert.Equal(bgr, new byte[] { 76, 38, 20 });
 
-            new Rgba64(x, y, z, w).ToBytes(bgra, 0, ComponentOrder.ZYXW);
+            new Rgba64(x, y, z, w).ToZyxwBytes(bgra, 0);
             Assert.Equal(bgra, new byte[] { 76, 38, 20, 115 });
 
             Rgba64 r = new Rgba64();
             r.PackFromBytes(20, 38, 76, 115);
-            r.ToBytes(rgba, 0, ComponentOrder.XYZW);
+            r.ToXyzwBytes(rgba, 0);
             Assert.Equal(rgba, new byte[] { 20, 38, 76, 115 });
         }
 
@@ -792,21 +795,21 @@ namespace ImageSharp.Tests.Colors
             byte[] bgr = new byte[3];
             byte[] bgra = new byte[4];
 
-            new Short2(x, y).ToBytes(rgb, 0, ComponentOrder.XYZ);
+            new Short2(x, y).ToXyzBytes(rgb, 0);
             Assert.Equal(rgb, new byte[] { 128, 127, 0 });
 
-            new Short2(x, y).ToBytes(rgba, 0, ComponentOrder.XYZW);
+            new Short2(x, y).ToXyzwBytes(rgba, 0);
             Assert.Equal(rgba, new byte[] { 128, 127, 0, 255 });
 
-            new Short2(x, y).ToBytes(bgr, 0, ComponentOrder.ZYX);
+            new Short2(x, y).ToZyxBytes(bgr, 0);
             Assert.Equal(bgr, new byte[] { 0, 127, 128 });
 
-            new Short2(x, y).ToBytes(bgra, 0, ComponentOrder.ZYXW);
+            new Short2(x, y).ToZyxwBytes(bgra, 0);
             Assert.Equal(bgra, new byte[] { 0, 127, 128, 255 });
 
             Short2 r = new Short2();
             r.PackFromBytes(20, 38, 0, 255);
-            r.ToBytes(rgba, 0, ComponentOrder.XYZW);
+            r.ToXyzwBytes(rgba, 0);
             Assert.Equal(rgba, new byte[] { 20, 38, 0, 255 });
         }
 
@@ -849,21 +852,21 @@ namespace ImageSharp.Tests.Colors
             byte[] bgr = new byte[3];
             byte[] bgra = new byte[4];
 
-            new Short4(x, y, z, w).ToBytes(rgb, 0, ComponentOrder.XYZ);
+            new Short4(x, y, z, w).ToXyzBytes(rgb, 0);
             Assert.Equal(rgb, new byte[] { 172, 177, 243 });
 
-            new Short4(x, y, z, w).ToBytes(rgba, 0, ComponentOrder.XYZW);
+            new Short4(x, y, z, w).ToXyzwBytes(rgba, 0);
             Assert.Equal(rgba, new byte[] { 172, 177, 243, 128 });
 
-            new Short4(x, y, z, w).ToBytes(bgr, 0, ComponentOrder.ZYX);
+            new Short4(x, y, z, w).ToZyxBytes(bgr, 0);
             Assert.Equal(bgr, new byte[] { 243, 177, 172 });
 
-            new Short4(x, y, z, w).ToBytes(bgra, 0, ComponentOrder.ZYXW);
+            new Short4(x, y, z, w).ToZyxwBytes(bgra, 0);
             Assert.Equal(bgra, new byte[] { 243, 177, 172, 128 });
 
             Short4 r = new Short4();
             r.PackFromBytes(20, 38, 0, 255);
-            r.ToBytes(rgba, 0, ComponentOrder.XYZW);
+            r.ToXyzwBytes(rgba, 0);
             Assert.Equal(rgba, new byte[] { 20, 38, 0, 255 });
         }
 

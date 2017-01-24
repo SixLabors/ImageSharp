@@ -10,9 +10,8 @@ namespace ImageSharp.IO
     using System.Text;
 
     /// <summary>
-    /// Equivalent of <see cref="BinaryReader"/>, but with either endianness, depending on
-    /// the EndianBitConverter it is constructed with. No data is buffered in the
-    /// reader; the client may seek within the stream at will.
+    /// Equivalent of <see cref="BinaryReader"/>, but with either endianness, depending on the <see cref="EndianBitConverter"/> it is constructed with.
+    /// No data is buffered in the reader; the client may seek within the stream at will.
     /// </summary>
     internal class EndianBinaryReader : IDisposable
     {
@@ -24,7 +23,7 @@ namespace ImageSharp.IO
         /// <summary>
         /// Buffer used for temporary storage before conversion into primitives
         /// </summary>
-        private readonly byte[] buffer = new byte[16];
+        private readonly byte[] storageBuffer = new byte[16];
 
         /// <summary>
         /// Buffer used for temporary storage when reading a single character
@@ -46,14 +45,14 @@ namespace ImageSharp.IO
         /// Equivalent of <see cref="System.IO.BinaryWriter"/>, but with either endianness, depending on
         /// the EndianBitConverter it is constructed with.
         /// </summary>
-        /// <param name="bitConverter">
-        /// Converter to use when reading data
+        /// <param name="endianness">
+        /// Endianness to use when reading data
         /// </param>
         /// <param name="stream">
         /// Stream to read data from
         /// </param>
-        public EndianBinaryReader(EndianBitConverter bitConverter, Stream stream)
-            : this(bitConverter, stream, Encoding.UTF8)
+        public EndianBinaryReader(Endianness endianness, Stream stream)
+            : this(endianness, stream, Encoding.UTF8)
         {
         }
 
@@ -62,34 +61,17 @@ namespace ImageSharp.IO
         /// Constructs a new binary reader with the given bit converter, reading
         /// to the given stream, using the given encoding.
         /// </summary>
-        /// <param name="bitConverter">Converter to use when reading data</param>
+        /// <param name="endianness">Endianness to use when reading data</param>
         /// <param name="stream">Stream to read data from</param>
         /// <param name="encoding">Encoding to use when reading character data</param>
-        public EndianBinaryReader(EndianBitConverter bitConverter, Stream stream, Encoding encoding)
+        public EndianBinaryReader(Endianness endianness, Stream stream, Encoding encoding)
         {
-            // TODO: Use Guard
-            if (bitConverter == null)
-            {
-                throw new ArgumentNullException("bitConverter");
-            }
-
-            if (stream == null)
-            {
-                throw new ArgumentNullException("stream");
-            }
-
-            if (encoding == null)
-            {
-                throw new ArgumentNullException("encoding");
-            }
-
-            if (!stream.CanRead)
-            {
-                throw new ArgumentException("Stream isn't writable", "stream");
-            }
+            Guard.NotNull(stream, nameof(stream));
+            Guard.NotNull(encoding, nameof(encoding));
+            Guard.IsTrue(stream.CanRead, nameof(stream), "Stream isn't readable.");
 
             this.BaseStream = stream;
-            this.BitConverter = bitConverter;
+            this.BitConverter = EndianBitConverter.GetConverter(endianness);
             this.Encoding = encoding;
             this.decoder = encoding.GetDecoder();
             this.minBytesPerChar = 1;
@@ -101,11 +83,6 @@ namespace ImageSharp.IO
         }
 
         /// <summary>
-        /// Gets the bit converter used to read values from the stream.
-        /// </summary>
-        public EndianBitConverter BitConverter { get; }
-
-        /// <summary>
         /// Gets the encoding used to read strings
         /// </summary>
         public Encoding Encoding { get; }
@@ -114,6 +91,11 @@ namespace ImageSharp.IO
         /// Gets the underlying stream of the EndianBinaryReader.
         /// </summary>
         public Stream BaseStream { get; }
+
+        /// <summary>
+        /// Gets the bit converter used to read values from the stream.
+        /// </summary>
+        internal EndianBitConverter BitConverter { get; }
 
         /// <summary>
         /// Closes the reader, including the underlying stream.
@@ -140,8 +122,8 @@ namespace ImageSharp.IO
         /// <returns>The byte read</returns>
         public byte ReadByte()
         {
-            this.ReadInternal(this.buffer, 1);
-            return this.buffer[0];
+            this.ReadInternal(this.storageBuffer, 1);
+            return this.storageBuffer[0];
         }
 
         /// <summary>
@@ -150,8 +132,8 @@ namespace ImageSharp.IO
         /// <returns>The byte read</returns>
         public sbyte ReadSByte()
         {
-            this.ReadInternal(this.buffer, 1);
-            return unchecked((sbyte)this.buffer[0]);
+            this.ReadInternal(this.storageBuffer, 1);
+            return unchecked((sbyte)this.storageBuffer[0]);
         }
 
         /// <summary>
@@ -160,8 +142,8 @@ namespace ImageSharp.IO
         /// <returns>The boolean read</returns>
         public bool ReadBoolean()
         {
-            this.ReadInternal(this.buffer, 1);
-            return this.BitConverter.ToBoolean(this.buffer, 0);
+            this.ReadInternal(this.storageBuffer, 1);
+            return this.BitConverter.ToBoolean(this.storageBuffer, 0);
         }
 
         /// <summary>
@@ -171,8 +153,8 @@ namespace ImageSharp.IO
         /// <returns>The 16-bit integer read</returns>
         public short ReadInt16()
         {
-            this.ReadInternal(this.buffer, 2);
-            return this.BitConverter.ToInt16(this.buffer, 0);
+            this.ReadInternal(this.storageBuffer, 2);
+            return this.BitConverter.ToInt16(this.storageBuffer, 0);
         }
 
         /// <summary>
@@ -182,8 +164,8 @@ namespace ImageSharp.IO
         /// <returns>The 32-bit integer read</returns>
         public int ReadInt32()
         {
-            this.ReadInternal(this.buffer, 4);
-            return this.BitConverter.ToInt32(this.buffer, 0);
+            this.ReadInternal(this.storageBuffer, 4);
+            return this.BitConverter.ToInt32(this.storageBuffer, 0);
         }
 
         /// <summary>
@@ -193,8 +175,8 @@ namespace ImageSharp.IO
         /// <returns>The 64-bit integer read</returns>
         public long ReadInt64()
         {
-            this.ReadInternal(this.buffer, 8);
-            return this.BitConverter.ToInt64(this.buffer, 0);
+            this.ReadInternal(this.storageBuffer, 8);
+            return this.BitConverter.ToInt64(this.storageBuffer, 0);
         }
 
         /// <summary>
@@ -204,8 +186,8 @@ namespace ImageSharp.IO
         /// <returns>The 16-bit unsigned integer read</returns>
         public ushort ReadUInt16()
         {
-            this.ReadInternal(this.buffer, 2);
-            return this.BitConverter.ToUInt16(this.buffer, 0);
+            this.ReadInternal(this.storageBuffer, 2);
+            return this.BitConverter.ToUInt16(this.storageBuffer, 0);
         }
 
         /// <summary>
@@ -215,8 +197,8 @@ namespace ImageSharp.IO
         /// <returns>The 32-bit unsigned integer read</returns>
         public uint ReadUInt32()
         {
-            this.ReadInternal(this.buffer, 4);
-            return this.BitConverter.ToUInt32(this.buffer, 0);
+            this.ReadInternal(this.storageBuffer, 4);
+            return this.BitConverter.ToUInt32(this.storageBuffer, 0);
         }
 
         /// <summary>
@@ -226,8 +208,8 @@ namespace ImageSharp.IO
         /// <returns>The 64-bit unsigned integer read</returns>
         public ulong ReadUInt64()
         {
-            this.ReadInternal(this.buffer, 8);
-            return this.BitConverter.ToUInt64(this.buffer, 0);
+            this.ReadInternal(this.storageBuffer, 8);
+            return this.BitConverter.ToUInt64(this.storageBuffer, 0);
         }
 
         /// <summary>
@@ -237,8 +219,8 @@ namespace ImageSharp.IO
         /// <returns>The floating point value read</returns>
         public float ReadSingle()
         {
-            this.ReadInternal(this.buffer, 4);
-            return this.BitConverter.ToSingle(this.buffer, 0);
+            this.ReadInternal(this.storageBuffer, 4);
+            return this.BitConverter.ToSingle(this.storageBuffer, 0);
         }
 
         /// <summary>
@@ -248,8 +230,8 @@ namespace ImageSharp.IO
         /// <returns>The floating point value read</returns>
         public double ReadDouble()
         {
-            this.ReadInternal(this.buffer, 8);
-            return this.BitConverter.ToDouble(this.buffer, 0);
+            this.ReadInternal(this.storageBuffer, 8);
+            return this.BitConverter.ToDouble(this.storageBuffer, 0);
         }
 
         /// <summary>
@@ -259,8 +241,8 @@ namespace ImageSharp.IO
         /// <returns>The decimal value read</returns>
         public decimal ReadDecimal()
         {
-            this.ReadInternal(this.buffer, 16);
-            return this.BitConverter.ToDecimal(this.buffer, 0);
+            this.ReadInternal(this.storageBuffer, 16);
+            return this.BitConverter.ToDecimal(this.storageBuffer, 0);
         }
 
         /// <summary>
@@ -296,33 +278,17 @@ namespace ImageSharp.IO
         {
             this.CheckDisposed();
 
-            // TODO: Use Guard
-            if (this.buffer == null)
-            {
-                throw new ArgumentNullException("buffer");
-            }
-
-            if (index < 0)
-            {
-                throw new ArgumentOutOfRangeException("index");
-            }
-
-            if (count < 0)
-            {
-                throw new ArgumentOutOfRangeException("index");
-            }
-
-            if (count + index > data.Length)
-            {
-                throw new ArgumentException("Not enough space in buffer for specified number of characters starting at specified index");
-            }
+            Guard.NotNull(this.storageBuffer, nameof(this.storageBuffer));
+            Guard.MustBeGreaterThanOrEqualTo(index, 0, nameof(index));
+            Guard.MustBeGreaterThanOrEqualTo(count, 0, nameof(count));
+            Guard.IsFalse(count + index > data.Length, nameof(data.Length), "Not enough space in buffer for specified number of characters starting at specified index.");
 
             int read = 0;
             bool firstTime = true;
 
             // Use the normal buffer if we're only reading a small amount, otherwise
             // use at most 4K at a time.
-            byte[] byteBuffer = this.buffer;
+            byte[] byteBuffer = this.storageBuffer;
 
             if (byteBuffer.Length < count * this.minBytesPerChar)
             {
@@ -339,11 +305,10 @@ namespace ImageSharp.IO
                     amountToRead = count * this.minBytesPerChar;
                     firstTime = false;
                 }
-
-                // After that we can only assume we need to fully read 'chars left -1' characters
-                // and a single byte of the character we may be in the middle of
                 else
                 {
+                    // After that we can only assume we need to fully read 'chars left -1' characters
+                    // and a single byte of the character we may be in the middle of
                     amountToRead = ((count - read - 1) * this.minBytesPerChar) + 1;
                 }
 
@@ -379,25 +344,11 @@ namespace ImageSharp.IO
         public int Read(byte[] buffer, int index, int count)
         {
             this.CheckDisposed();
-            if (buffer == null)
-            {
-                throw new ArgumentNullException("buffer");
-            }
 
-            if (index < 0)
-            {
-                throw new ArgumentOutOfRangeException("index");
-            }
-
-            if (count < 0)
-            {
-                throw new ArgumentOutOfRangeException("index");
-            }
-
-            if (count + index > buffer.Length)
-            {
-                throw new ArgumentException("Not enough space in buffer for specified number of bytes starting at specified index");
-            }
+            Guard.NotNull(this.storageBuffer, nameof(this.storageBuffer));
+            Guard.MustBeGreaterThanOrEqualTo(index, 0, nameof(index));
+            Guard.MustBeGreaterThanOrEqualTo(count, 0, nameof(count));
+            Guard.IsFalse(count + index > buffer.Length, nameof(buffer.Length), "Not enough space in buffer for specified number of bytes starting at specified index.");
 
             int read = 0;
             while (count > 0)
@@ -426,10 +377,7 @@ namespace ImageSharp.IO
         public byte[] ReadBytes(int count)
         {
             this.CheckDisposed();
-            if (count < 0)
-            {
-                throw new ArgumentOutOfRangeException("count");
-            }
+            Guard.MustBeGreaterThanOrEqualTo(count, 0, nameof(count));
 
             byte[] ret = new byte[count];
             int index = 0;
@@ -581,11 +529,7 @@ namespace ImageSharp.IO
                 int read = this.BaseStream.Read(data, index, size - index);
                 if (read == 0)
                 {
-                    throw new EndOfStreamException(
-                        string.Format(
-                            "End of stream reached with {0} byte{1} left to read.",
-                            size - index,
-                            size - index == 1 ? "s" : string.Empty));
+                    throw new EndOfStreamException($"End of stream reached with {size - index} byte{(size - index == 1 ? "s" : string.Empty)} left to read.");
                 }
 
                 index += read;

@@ -17,33 +17,11 @@ install:
 # the parent CMD process).
 - "SET PATH=C:\\Program Files\\dotnet\\bin;%PATH%"
 
-- ps: .\build\appveyor-semver.ps1
-- ps: Update-AppveyorBuild -Version "v$Env:appveyor_version"
-
-assembly_info:
-  patch: true
-  file: '**\AssemblyInfo.*'
-  assembly_version: '$(ms_file_version)'
-  assembly_file_version: '$(ms_file_version)'
-  assembly_informational_version: '$(mssemver)'
-
-before_build:
-- cmd: >-
-    dotnet restore src\ImageSharp
-
-    cd build
-
-    npm install
-
-    node appveyor-project-version-patch.js
-
-    cd..
-
 build_script:
-- cmd: >-
-    dotnet pack src\ImageSharp --configuration Release --output "artifacts\bin\ImageSharp"
+- cmd: build.cmd
 
-test: off
+test_script:
+- tests\CodeCoverage\CodeCoverage.cmd
 
 artifacts:
 - path: artifacts\bin\ImageSharp\**\*.nupkg

@@ -5,6 +5,7 @@
 
 namespace ImageSharp.Formats
 {
+    using System;
     using System.IO;
 
     /// <summary>
@@ -13,40 +14,12 @@ namespace ImageSharp.Formats
     public interface IImageDecoder
     {
         /// <summary>
-        /// Gets the size of the header for this image type.
-        /// </summary>
-        /// <value>The size of the header.</value>
-        int HeaderSize { get; }
-
-        /// <summary>
-        /// Returns a value indicating whether the <see cref="IImageDecoder"/> supports the specified
-        /// file header.
-        /// </summary>
-        /// <param name="extension">The <see cref="string"/> containing the file extension.</param>
-        /// <returns>
-        /// True if the decoder supports the file extension; otherwise, false.
-        /// </returns>
-        bool IsSupportedFileExtension(string extension);
-
-        /// <summary>
-        /// Returns a value indicating whether the <see cref="IImageDecoder"/> supports the specified
-        /// file header.
-        /// </summary>
-        /// <param name="header">The <see cref="T:byte[]"/> containing the file header.</param>
-        /// <returns>
-        /// True if the decoder supports the file header; otherwise, false.
-        /// </returns>
-        bool IsSupportedFileFormat(byte[] header);
-
-        /// <summary>
-        /// Decodes the image from the specified stream to the <see cref="ImageBase{TColor, TPacked}"/>.
+        /// Decodes the image from the specified stream to the <see cref="ImageBase{TColor}"/>.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-        /// <param name="image">The <see cref="ImageBase{TColor, TPacked}"/> to decode to.</param>
+        /// <param name="image">The <see cref="ImageBase{TColor}"/> to decode to.</param>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
-        void Decode<TColor, TPacked>(Image<TColor, TPacked> image, Stream stream)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct;
+        void Decode<TColor>(Image<TColor> image, Stream stream)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>;
     }
 }

@@ -11,7 +11,7 @@ namespace ImageSharp.Benchmarks.Image
 
     using ImageSharp;
 
-    public class DecodeFilteredPng
+    public class DecodeFilteredPng : BenchmarkBase
     {
         private MemoryStream filter0;
         private MemoryStream filter1;

@@ -7,7 +7,7 @@ namespace ImageSharp.Tests
 {
     using System;
     using System.Diagnostics.CodeAnalysis;
-
+    using ImageSharp.Colors.Spaces;
     using Xunit;
 
     /// <summary>
@@ -48,24 +48,6 @@ namespace ImageSharp.Tests
             Assert.Equal(128, yCbCr3.Y);
             Assert.Equal(128, yCbCr3.Cb);
             Assert.Equal(128, yCbCr3.Cr);
-
-            //Assert.Equal(255, yCbCr.Y, 0);
-            //Assert.Equal(128, yCbCr.Cb, 0);
-            //Assert.Equal(128, yCbCr.Cr, 0);
-
-            //// Black
-            //Color color2 = Color.Black;
-            //YCbCr yCbCr2 = color2;
-            //Assert.Equal(0, yCbCr2.Y, 0);
-            //Assert.Equal(128, yCbCr2.Cb, 0);
-            //Assert.Equal(128, yCbCr2.Cr, 0);
-
-            //// Gray
-            //Color color3 = Color.Gray;
-            //YCbCr yCbCr3 = color3;
-            //Assert.Equal(128, yCbCr3.Y, 0);
-            //Assert.Equal(128, yCbCr3.Cb, 0);
-            //Assert.Equal(128, yCbCr3.Cr, 0);
         }
 
         /// <summary>
@@ -106,7 +88,7 @@ namespace ImageSharp.Tests
 
         /// <summary>
         /// Tests the implicit conversion from <see cref="Color"/> to <see cref="CieXyz"/>.
-        /// Comparison values obtained from 
+        /// Comparison values obtained from
         /// http://colormine.org/convert/rgb-to-xyz
         /// </summary>
         [Fact]
@@ -144,7 +126,7 @@ namespace ImageSharp.Tests
 
         /// <summary>
         /// Tests the implicit conversion from <see cref="CieXyz"/> to <see cref="Color"/>.
-        /// Comparison values obtained from 
+        /// Comparison values obtained from
         /// http://colormine.org/convert/rgb-to-xyz
         /// </summary>
         [Fact]
@@ -430,7 +412,7 @@ namespace ImageSharp.Tests
 
         /// <summary>
         /// Tests the implicit conversion from <see cref="Color"/> to <see cref="CieLab"/>.
-        /// Comparison values obtained from 
+        /// Comparison values obtained from
         /// http://colormine.org/convert/rgb-to-lab
         /// </summary>
         [Fact]
@@ -469,7 +451,7 @@ namespace ImageSharp.Tests
         /// <summary>
         /// Tests the implicit conversion from <see cref="CieLab"/> to <see cref="Color"/>.
         /// </summary>
-        /// Comparison values obtained from 
+        /// Comparison values obtained from
         /// http://colormine.org/convert/rgb-to-lab
         [Fact]
         public void CieLabToColor()

@@ -12,47 +12,26 @@ namespace ImageSharp.Benchmarks.Image
     using CoreColor = ImageSharp.Color;
     using CoreImage = ImageSharp.Image;
 
-    public class CopyPixels
+    public class CopyPixels : BenchmarkBase
     {
         [Benchmark(Description = "Copy by Pixel")]
         public CoreColor CopyByPixel()
         {
             CoreImage source = new CoreImage(1024, 768);
             CoreImage target = new CoreImage(1024, 768);
-            using (PixelAccessor<CoreColor, uint> sourcePixels = source.Lock())
-            using (PixelAccessor<CoreColor, uint> targetPixels = target.Lock())
+            using (PixelAccessor<CoreColor> sourcePixels = source.Lock())
+            using (PixelAccessor<CoreColor> targetPixels = target.Lock())
             {
                 Parallel.For(
                     0,
                     source.Height,
-                    Bootstrapper.Instance.ParallelOptions,
+                    Configuration.Default.ParallelOptions,
                     y =>
                     {
                         for (int x = 0; x < source.Width; x++)
                         {
                             targetPixels[x, y] = sourcePixels[x, y];
                         }
-                    });
-
-                return targetPixels[0, 0];
-            }
-        }
-
-        [Benchmark(Description = "Copy by Row")]
-        public CoreColor CopyByRow()
-        {
-            CoreImage source = new CoreImage(1024, 768);
-            CoreImage target = new CoreImage(1024, 768);
-            using (PixelAccessor<CoreColor, uint> sourcePixels = source.Lock())
-            using (PixelAccessor<CoreColor, uint> targetPixels = target.Lock())
-            {
-                Parallel.For(
-                    0,
-                    source.Height,
-                    Bootstrapper.Instance.ParallelOptions,
-                    y =>
-                    {
-                        sourcePixels.CopyBlock(0, y, targetPixels, 0, y, source.Width);
                     });
 
                 return targetPixels[0, 0];

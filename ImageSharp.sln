@@ -11,13 +11,19 @@ Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "ImageSharp.Benchmarks", "te
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SolutionItems", "SolutionItems", "{C317F1B1-D75E-4C6D-83EB-80367343E0D7}"
 	ProjectSection(SolutionItems) = preProject
-		build\appveyor-project-version-patch.js = build\appveyor-project-version-patch.js
-		build\appveyor-semver.ps1 = build\appveyor-semver.ps1
+		.editorconfig = .editorconfig
+		.travis.yml = .travis.yml
 		appveyor.yml = appveyor.yml
-		build\dotnet-latest.ps1 = build\dotnet-latest.ps1
+		CodeCoverage.runsettings = CodeCoverage.runsettings
+		contributing.md = contributing.md
+		dotnet-latest.ps1 = dotnet-latest.ps1
+		features.md = features.md
 		global.json = global.json
-		build\package.json = build\package.json
+		ImageSharp.ruleset = ImageSharp.ruleset
+		ImageSharp.sln.DotSettings = ImageSharp.sln.DotSettings
+		NuGet.config = NuGet.config
 		README.md = README.md
+		Rebracer.xml = Rebracer.xml
 		Settings.StyleCop = Settings.StyleCop
 	EndProjectSection
 EndProject
@@ -26,6 +32,40 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{56801022-D71A-4FBE-BC5B-CBA08E2284EC}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "docs", "src\docs\docs.csproj", "{338DCBC4-5A15-485E-805E-DE186BA3F99B}"
+EndProject
+Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "ImageSharp.Drawing", "src\ImageSharp.Drawing\ImageSharp.Drawing.xproj", "{2E33181E-6E28-4662-A801-E2E7DC206029}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{E919DF0B-2607-4462-8FC0-5C98FE50F8C9}"
+EndProject
+Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "build", "build\build.xproj", "{575A5002-DD9F-4335-AA47-1DD87FA13645}"
+EndProject
+Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "ImageSharp.Formats.Bmp", "src\ImageSharp.Formats.Bmp\ImageSharp.Formats.Bmp.xproj", "{C77661B9-F793-422E-8E27-AC60ECC5F215}"
+EndProject
+Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "ImageSharp.Formats.Gif", "src\ImageSharp.Formats.Gif\ImageSharp.Formats.Gif.xproj", "{27AD4B5F-ECC4-4C63-9ECB-04EC772FDB6F}"
+EndProject
+Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "ImageSharp.Formats.Jpeg", "src\ImageSharp.Formats.Jpeg\ImageSharp.Formats.Jpeg.xproj", "{7213767C-0003-41CA-AB18-0223CFA7CE4B}"
+EndProject
+Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "ImageSharp.Formats.Png", "src\ImageSharp.Formats.Png\ImageSharp.Formats.Png.xproj", "{556ABDCF-ED93-4327-BE98-F6815F78B9B8}"
+EndProject
+Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "ImageSharp.Processing", "src\ImageSharp.Processing\ImageSharp.Processing.xproj", "{A623CFE9-9D2B-4528-AD1F-2E834B061134}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Shared", "Shared", "{9E574A07-F879-4811-9C41-5CBDC6BAFDB7}"
+	ProjectSection(SolutionItems) = preProject
+		src\Shared\AssemblyInfo.Common.cs = src\Shared\AssemblyInfo.Common.cs
+		src\Shared\stylecop.json = src\Shared\stylecop.json
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageSharp.Sandbox46", "tests\ImageSharp.Sandbox46\ImageSharp.Sandbox46.csproj", "{96188137-5FA6-4924-AB6E-4EFF79C6E0BB}"
+	ProjectSection(ProjectDependencies) = postProject
+		{299D8E18-102C-42DE-ADBF-79098EE706A8} = {299D8E18-102C-42DE-ADBF-79098EE706A8}
+		{2E33181E-6E28-4662-A801-E2E7DC206029} = {2E33181E-6E28-4662-A801-E2E7DC206029}
+		{2AA31A1F-142C-43F4-8687-09ABCA4B3A26} = {2AA31A1F-142C-43F4-8687-09ABCA4B3A26}
+		{27AD4B5F-ECC4-4C63-9ECB-04EC772FDB6F} = {27AD4B5F-ECC4-4C63-9ECB-04EC772FDB6F}
+		{7213767C-0003-41CA-AB18-0223CFA7CE4B} = {7213767C-0003-41CA-AB18-0223CFA7CE4B}
+		{C77661B9-F793-422E-8E27-AC60ECC5F215} = {C77661B9-F793-422E-8E27-AC60ECC5F215}
+		{556ABDCF-ED93-4327-BE98-F6815F78B9B8} = {556ABDCF-ED93-4327-BE98-F6815F78B9B8}
+		{A623CFE9-9D2B-4528-AD1F-2E834B061134} = {A623CFE9-9D2B-4528-AD1F-2E834B061134}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -49,6 +89,38 @@ Global
 		{338DCBC4-5A15-485E-805E-DE186BA3F99B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{338DCBC4-5A15-485E-805E-DE186BA3F99B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{338DCBC4-5A15-485E-805E-DE186BA3F99B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2E33181E-6E28-4662-A801-E2E7DC206029}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2E33181E-6E28-4662-A801-E2E7DC206029}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2E33181E-6E28-4662-A801-E2E7DC206029}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2E33181E-6E28-4662-A801-E2E7DC206029}.Release|Any CPU.Build.0 = Release|Any CPU
+		{575A5002-DD9F-4335-AA47-1DD87FA13645}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{575A5002-DD9F-4335-AA47-1DD87FA13645}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{575A5002-DD9F-4335-AA47-1DD87FA13645}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{575A5002-DD9F-4335-AA47-1DD87FA13645}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C77661B9-F793-422E-8E27-AC60ECC5F215}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C77661B9-F793-422E-8E27-AC60ECC5F215}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C77661B9-F793-422E-8E27-AC60ECC5F215}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C77661B9-F793-422E-8E27-AC60ECC5F215}.Release|Any CPU.Build.0 = Release|Any CPU
+		{27AD4B5F-ECC4-4C63-9ECB-04EC772FDB6F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{27AD4B5F-ECC4-4C63-9ECB-04EC772FDB6F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{27AD4B5F-ECC4-4C63-9ECB-04EC772FDB6F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{27AD4B5F-ECC4-4C63-9ECB-04EC772FDB6F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7213767C-0003-41CA-AB18-0223CFA7CE4B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7213767C-0003-41CA-AB18-0223CFA7CE4B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7213767C-0003-41CA-AB18-0223CFA7CE4B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7213767C-0003-41CA-AB18-0223CFA7CE4B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{556ABDCF-ED93-4327-BE98-F6815F78B9B8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{556ABDCF-ED93-4327-BE98-F6815F78B9B8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{556ABDCF-ED93-4327-BE98-F6815F78B9B8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{556ABDCF-ED93-4327-BE98-F6815F78B9B8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A623CFE9-9D2B-4528-AD1F-2E834B061134}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A623CFE9-9D2B-4528-AD1F-2E834B061134}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A623CFE9-9D2B-4528-AD1F-2E834B061134}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A623CFE9-9D2B-4528-AD1F-2E834B061134}.Release|Any CPU.Build.0 = Release|Any CPU
+		{96188137-5FA6-4924-AB6E-4EFF79C6E0BB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{96188137-5FA6-4924-AB6E-4EFF79C6E0BB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{96188137-5FA6-4924-AB6E-4EFF79C6E0BB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{96188137-5FA6-4924-AB6E-4EFF79C6E0BB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -58,5 +130,14 @@ Global
 		{F836E8E6-B4D9-4208-8346-140C74678B91} = {56801022-D71A-4FBE-BC5B-CBA08E2284EC}
 		{299D8E18-102C-42DE-ADBF-79098EE706A8} = {56801022-D71A-4FBE-BC5B-CBA08E2284EC}
 		{338DCBC4-5A15-485E-805E-DE186BA3F99B} = {815C0625-CD3D-440F-9F80-2D83856AB7AE}
+		{2E33181E-6E28-4662-A801-E2E7DC206029} = {815C0625-CD3D-440F-9F80-2D83856AB7AE}
+		{575A5002-DD9F-4335-AA47-1DD87FA13645} = {E919DF0B-2607-4462-8FC0-5C98FE50F8C9}
+		{C77661B9-F793-422E-8E27-AC60ECC5F215} = {815C0625-CD3D-440F-9F80-2D83856AB7AE}
+		{27AD4B5F-ECC4-4C63-9ECB-04EC772FDB6F} = {815C0625-CD3D-440F-9F80-2D83856AB7AE}
+		{7213767C-0003-41CA-AB18-0223CFA7CE4B} = {815C0625-CD3D-440F-9F80-2D83856AB7AE}
+		{556ABDCF-ED93-4327-BE98-F6815F78B9B8} = {815C0625-CD3D-440F-9F80-2D83856AB7AE}
+		{A623CFE9-9D2B-4528-AD1F-2E834B061134} = {815C0625-CD3D-440F-9F80-2D83856AB7AE}
+		{9E574A07-F879-4811-9C41-5CBDC6BAFDB7} = {815C0625-CD3D-440F-9F80-2D83856AB7AE}
+		{96188137-5FA6-4924-AB6E-4EFF79C6E0BB} = {56801022-D71A-4FBE-BC5B-CBA08E2284EC}
 	EndGlobalSection
 EndGlobal

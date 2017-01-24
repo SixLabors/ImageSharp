@@ -8,12 +8,27 @@ namespace ImageSharp
     using System;
     using System.Linq;
     using System.Numerics;
+    using System.Runtime.CompilerServices;
 
     /// <summary>
     /// Provides common mathematical methods.
     /// </summary>
     internal static class ImageMaths
     {
+        /// <summary>
+        /// Returns the absolute value of a 32-bit signed integer. Uses bit shifting to speed up the operation.
+        /// </summary>
+        /// <param name="x">
+        /// A number that is greater than <see cref="int.MinValue"/>, but less than or equal to <see cref="int.MaxValue"/>
+        /// </param>
+        /// <returns>The <see cref="int"/></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int FastAbs(int x)
+        {
+            int y = x >> 31;
+            return (x ^ y) - y;
+        }
+
         /// <summary>
         /// Returns how many bits are required to store the specified number of colors.
         /// Performs a Log2() on the value.
@@ -91,9 +106,7 @@ namespace ImageSharp
         /// </returns>
         public static float SinC(float x)
         {
-            const float Epsilon = .00001F;
-
-            if (Math.Abs(x) > Epsilon)
+            if (Math.Abs(x) > Constants.Epsilon)
             {
                 x *= (float)Math.PI;
                 return Clean((float)Math.Sin(x) / x);
@@ -157,46 +170,43 @@ namespace ImageSharp
         /// than the given one.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="bitmap">The <see cref="Image"/> to search within.</param>
         /// <param name="componentValue">The color component value to remove.</param>
         /// <param name="channel">The <see cref="RgbaComponent"/> channel to test against.</param>
         /// <returns>
         /// The <see cref="Rectangle"/>.
         /// </returns>
-        public static Rectangle GetFilteredBoundingRectangle<TColor, TPacked>(ImageBase<TColor, TPacked> bitmap, float componentValue, RgbaComponent channel = RgbaComponent.B)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+        public static Rectangle GetFilteredBoundingRectangle<TColor>(ImageBase<TColor> bitmap, float componentValue, RgbaComponent channel = RgbaComponent.B)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            const float Epsilon = .00001f;
             int width = bitmap.Width;
             int height = bitmap.Height;
             Point topLeft = default(Point);
             Point bottomRight = default(Point);
 
-            Func<PixelAccessor<TColor, TPacked>, int, int, float, bool> delegateFunc;
+            Func<PixelAccessor<TColor>, int, int, float, bool> delegateFunc;
 
             // Determine which channel to check against
             switch (channel)
             {
                 case RgbaComponent.R:
-                    delegateFunc = (pixels, x, y, b) => Math.Abs(pixels[x, y].ToVector4().X - b) > Epsilon;
+                    delegateFunc = (pixels, x, y, b) => Math.Abs(pixels[x, y].ToVector4().X - b) > Constants.Epsilon;
                     break;
 
                 case RgbaComponent.G:
-                    delegateFunc = (pixels, x, y, b) => Math.Abs(pixels[x, y].ToVector4().Y - b) > Epsilon;
+                    delegateFunc = (pixels, x, y, b) => Math.Abs(pixels[x, y].ToVector4().Y - b) > Constants.Epsilon;
                     break;
 
                 case RgbaComponent.B:
-                    delegateFunc = (pixels, x, y, b) => Math.Abs(pixels[x, y].ToVector4().Z - b) > Epsilon;
+                    delegateFunc = (pixels, x, y, b) => Math.Abs(pixels[x, y].ToVector4().Z - b) > Constants.Epsilon;
                     break;
 
                 default:
-                    delegateFunc = (pixels, x, y, b) => Math.Abs(pixels[x, y].ToVector4().W - b) > Epsilon;
+                    delegateFunc = (pixels, x, y, b) => Math.Abs(pixels[x, y].ToVector4().W - b) > Constants.Epsilon;
                     break;
             }
 
-            Func<PixelAccessor<TColor, TPacked>, int> getMinY = pixels =>
+            Func<PixelAccessor<TColor>, int> getMinY = pixels =>
             {
                 for (int y = 0; y < height; y++)
                 {
@@ -212,7 +222,7 @@ namespace ImageSharp
                 return 0;
             };
 
-            Func<PixelAccessor<TColor, TPacked>, int> getMaxY = pixels =>
+            Func<PixelAccessor<TColor>, int> getMaxY = pixels =>
             {
                 for (int y = height - 1; y > -1; y--)
                 {
@@ -228,7 +238,7 @@ namespace ImageSharp
                 return height;
             };
 
-            Func<PixelAccessor<TColor, TPacked>, int> getMinX = pixels =>
+            Func<PixelAccessor<TColor>, int> getMinX = pixels =>
             {
                 for (int x = 0; x < width; x++)
                 {
@@ -244,7 +254,7 @@ namespace ImageSharp
                 return 0;
             };
 
-            Func<PixelAccessor<TColor, TPacked>, int> getMaxX = pixels =>
+            Func<PixelAccessor<TColor>, int> getMaxX = pixels =>
             {
                 for (int x = width - 1; x > -1; x--)
                 {
@@ -260,7 +270,7 @@ namespace ImageSharp
                 return height;
             };
 
-            using (PixelAccessor<TColor, TPacked> bitmapPixels = bitmap.Lock())
+            using (PixelAccessor<TColor> bitmapPixels = bitmap.Lock())
             {
                 topLeft.Y = getMinY(bitmapPixels);
                 topLeft.X = getMinX(bitmapPixels);
@@ -278,11 +288,10 @@ namespace ImageSharp
         /// <returns>
         /// The <see cref="float"/>
         /// </returns>.
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static float Clean(float x)
         {
-            const float Epsilon = .00001F;
-
-            if (Math.Abs(x) < Epsilon)
+            if (Math.Abs(x) < Constants.Epsilon)
             {
                 return 0F;
             }

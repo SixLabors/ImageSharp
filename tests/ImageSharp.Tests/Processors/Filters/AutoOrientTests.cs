@@ -6,6 +6,7 @@
 namespace ImageSharp.Tests
 {
     using System.IO;
+    using Processing;
     using Xunit;
 
     public class AutoOrientTests : FileTestBase
@@ -30,25 +31,20 @@ namespace ImageSharp.Tests
         {
             string path = CreateOutputDirectory("AutoOrient");
 
-            string file = TestImages.Bmp.F;
+            TestFile file = TestFile.Create(TestImages.Bmp.F);
 
-            using (FileStream stream = File.OpenRead(file))
+            Image image = file.CreateImage();
+            image.ExifProfile = new ExifProfile();
+            image.ExifProfile.SetValue(ExifTag.Orientation, orientation);
+
+            using (FileStream before = File.OpenWrite($"{path}/before-{file.FileName}"))
             {
-                string filename = Path.GetFileNameWithoutExtension(file) + "-" + orientation + Path.GetExtension(file);
-
-                Image image = new Image(stream);
-                image.ExifProfile = new ExifProfile();
-                image.ExifProfile.SetValue(ExifTag.Orientation, orientation);
-
-                using (FileStream before = File.OpenWrite($"{path}/before-{filename}"))
+                using (FileStream after = File.OpenWrite($"{path}/after-{file.FileName}"))
                 {
-                    using (FileStream after = File.OpenWrite($"{path}/after-{filename}"))
-                    {
-                        image.RotateFlip(rotateType, flipType)
-                             .Save(before)
-                             .AutoOrient()
-                             .Save(after);
-                    }
+                    image.RotateFlip(rotateType, flipType)
+                          .Save(before)
+                          .AutoOrient()
+                          .Save(after);
                 }
             }
         }

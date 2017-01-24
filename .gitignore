@@ -214,3 +214,6 @@ artifacts/
 #docfx
 _site/*
 log.txt
+
+#CodeCoverage
+**/CodeCoverage/*

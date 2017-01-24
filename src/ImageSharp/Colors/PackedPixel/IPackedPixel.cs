@@ -5,12 +5,21 @@
 
 namespace ImageSharp
 {
+    using System;
+
+    /// <summary>
+    /// An interface that represents a generic packed pixel type.
+    /// </summary>
+    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
+    public interface IPackedPixel<TPacked> : IPackedPixel, IPackedVector<TPacked>
+        where TPacked : struct, IEquatable<TPacked>
+    {
+    }
+
     /// <summary>
     /// An interface that represents a packed pixel type.
     /// </summary>
-    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public interface IPackedPixel<TPacked> : IPackedVector<TPacked>, IPackedBytes
-        where TPacked : struct
+    public interface IPackedPixel : IPackedVector, IPackedBytes
     {
     }
 }

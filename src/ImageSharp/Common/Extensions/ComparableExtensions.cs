@@ -6,6 +6,7 @@
 namespace ImageSharp
 {
     using System;
+    using System.Runtime.CompilerServices;
 
     /// <summary>
     /// Extension methods for classes that implement <see cref="IComparable{T}"/>.
@@ -21,15 +22,16 @@ namespace ImageSharp
         /// <returns>
         /// The <see cref="byte"/> representing the clamped value.
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static byte Clamp(this byte value, byte min, byte max)
         {
             // Order is important here as someone might set min to higher than max.
-            if (value > max)
+            if (value >= max)
             {
                 return max;
             }
 
-            if (value < min)
+            if (value <= min)
             {
                 return min;
             }
@@ -46,14 +48,15 @@ namespace ImageSharp
         /// <returns>
         /// The <see cref="int"/> representing the clamped value.
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static uint Clamp(this uint value, uint min, uint max)
         {
-            if (value > max)
+            if (value >= max)
             {
                 return max;
             }
 
-            if (value < min)
+            if (value <= min)
             {
                 return min;
             }
@@ -70,14 +73,15 @@ namespace ImageSharp
         /// <returns>
         /// The <see cref="int"/> representing the clamped value.
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int Clamp(this int value, int min, int max)
         {
-            if (value > max)
+            if (value >= max)
             {
                 return max;
             }
 
-            if (value < min)
+            if (value <= min)
             {
                 return min;
             }
@@ -94,14 +98,15 @@ namespace ImageSharp
         /// <returns>
         /// The <see cref="float"/> representing the clamped value.
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float Clamp(this float value, float min, float max)
         {
-            if (value > max)
+            if (value >= max)
             {
                 return max;
             }
 
-            if (value < min)
+            if (value <= min)
             {
                 return min;
             }
@@ -118,14 +123,15 @@ namespace ImageSharp
         /// <returns>
         /// The <see cref="double"/> representing the clamped value.
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static double Clamp(this double value, double min, double max)
         {
-            if (value > max)
+            if (value >= max)
             {
                 return max;
             }
 
-            if (value < min)
+            if (value <= min)
             {
                 return min;
             }
@@ -172,6 +178,7 @@ namespace ImageSharp
         /// <param name="first">The first reference.</param>
         /// <param name="second">The second reference.</param>
         /// <typeparam name="T">The type of object.</typeparam>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Swap<T>(ref T first, ref T second)
         {
             T temp = second;

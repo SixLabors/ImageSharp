@@ -5,6 +5,7 @@
 
 namespace ImageSharp
 {
+    using System;
     using System.Numerics;
 
     /// <summary>
@@ -13,7 +14,7 @@ namespace ImageSharp
     /// </summary>
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
     public interface IPackedVector<TPacked> : IPackedVector
-        where TPacked : struct
+        where TPacked : struct, IEquatable<TPacked>
     {
         /// <summary>
         /// Gets or sets the packed representation of the value.

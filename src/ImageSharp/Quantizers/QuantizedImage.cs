@@ -12,13 +12,11 @@ namespace ImageSharp.Quantizers
     /// Represents a quantized image where the pixels indexed by a color palette.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public class QuantizedImage<TColor, TPacked>
-        where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct
+    public class QuantizedImage<TColor>
+        where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="QuantizedImage{TColor, TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="QuantizedImage{TColor}"/> class.
         /// </summary>
         /// <param name="width">The image width.</param>
         /// <param name="height">The image height.</param>
@@ -33,8 +31,7 @@ namespace ImageSharp.Quantizers
 
             if (pixels.Length != width * height)
             {
-                throw new ArgumentException(
-                    $"Pixel array size must be {nameof(width)} * {nameof(height)}", nameof(pixels));
+                throw new ArgumentException($"Pixel array size must be {nameof(width)} * {nameof(height)}", nameof(pixels));
             }
 
             this.Width = width;
@@ -62,33 +59,5 @@ namespace ImageSharp.Quantizers
         /// Gets the pixels of this <see cref="T:QuantizedImage"/>.
         /// </summary>
         public byte[] Pixels { get; }
-
-        /// <summary>
-        /// Converts this quantized image to a normal image.
-        /// </summary>
-        /// <returns>
-        /// The <see cref="Image"/>
-        /// </returns>
-        public Image<TColor, TPacked> ToImage()
-        {
-            Image<TColor, TPacked> image = new Image<TColor, TPacked>();
-
-            int pixelCount = this.Pixels.Length;
-            int palletCount = this.Palette.Length - 1;
-            TColor[] pixels = new TColor[pixelCount];
-
-            Parallel.For(
-                0,
-                pixelCount,
-                Bootstrapper.Instance.ParallelOptions,
-                i =>
-                    {
-                        TColor color = this.Palette[Math.Min(palletCount, this.Pixels[i])];
-                        pixels[i] = color;
-                    });
-
-            image.SetPixels(this.Width, this.Height, pixels);
-            return image;
-        }
     }
 }

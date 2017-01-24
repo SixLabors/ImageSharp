@@ -5,17 +5,14 @@
 
 namespace ImageSharp.Quantizers
 {
-    using System.Collections.Generic;
-    using System.Threading.Tasks;
+    using System;
 
     /// <summary>
     /// Encapsulates methods to calculate the color palette of an image.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public abstract class Quantizer<TColor, TPacked> : IQuantizer<TColor, TPacked>
-        where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct
+    public abstract class Quantizer<TColor> : IQuantizer<TColor>
+        where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>
         /// Flag used to indicate whether a single pass or two passes are needed for quantization.
@@ -23,7 +20,7 @@ namespace ImageSharp.Quantizers
         private readonly bool singlePass;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Quantizer{TColor, TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="Quantizer{TColor}"/> class.
         /// </summary>
         /// <param name="singlePass">
         /// If true, the quantization only needs to loop through the source pixels once
@@ -39,7 +36,7 @@ namespace ImageSharp.Quantizers
         }
 
         /// <inheritdoc/>
-        public virtual QuantizedImage<TColor, TPacked> Quantize(ImageBase<TColor, TPacked> image, int maxColors)
+        public virtual QuantizedImage<TColor> Quantize(ImageBase<TColor> image, int maxColors)
         {
             Guard.NotNull(image, nameof(image));
 
@@ -47,9 +44,9 @@ namespace ImageSharp.Quantizers
             int height = image.Height;
             int width = image.Width;
             byte[] quantizedPixels = new byte[width * height];
-            List<TColor> palette;
+            TColor[] palette;
 
-            using (PixelAccessor<TColor, TPacked> pixels = image.Lock())
+            using (PixelAccessor<TColor> pixels = image.Lock())
             {
                 // Call the FirstPass function if not a single pass algorithm.
                 // For something like an Octree quantizer, this will run through
@@ -65,7 +62,7 @@ namespace ImageSharp.Quantizers
                 this.SecondPass(pixels, quantizedPixels, width, height);
             }
 
-            return new QuantizedImage<TColor, TPacked>(width, height, palette.ToArray(), quantizedPixels);
+            return new QuantizedImage<TColor>(width, height, palette, quantizedPixels);
         }
 
         /// <summary>
@@ -74,7 +71,7 @@ namespace ImageSharp.Quantizers
         /// <param name="source">The source data</param>
         /// <param name="width">The width in pixels of the image.</param>
         /// <param name="height">The height in pixels of the image.</param>
-        protected virtual void FirstPass(PixelAccessor<TColor, TPacked> source, int width, int height)
+        protected virtual void FirstPass(PixelAccessor<TColor> source, int width, int height)
         {
             // Loop through each row
             for (int y = 0; y < height; y++)
@@ -95,20 +92,16 @@ namespace ImageSharp.Quantizers
         /// <param name="output">The output pixel array</param>
         /// <param name="width">The width in pixels of the image</param>
         /// <param name="height">The height in pixels of the image</param>
-        protected virtual void SecondPass(PixelAccessor<TColor, TPacked> source, byte[] output, int width, int height)
+        protected virtual void SecondPass(PixelAccessor<TColor> source, byte[] output, int width, int height)
         {
-            Parallel.For(
-                0,
-                source.Height,
-                Bootstrapper.Instance.ParallelOptions,
-                y =>
-                    {
-                        for (int x = 0; x < source.Width; x++)
-                        {
-                            TColor sourcePixel = source[x, y];
-                            output[(y * source.Width) + x] = this.QuantizePixel(sourcePixel);
-                        }
-                    });
+            for (int y = 0; y < height; y++)
+            {
+                // And loop through each column
+                for (int x = 0; x < width; x++)
+                {
+                    output[(y * source.Width) + x] = this.QuantizePixel(source[x, y]);
+                }
+            }
         }
 
         /// <summary>
@@ -138,6 +131,6 @@ namespace ImageSharp.Quantizers
         /// <returns>
         /// The new color palette
         /// </returns>
-        protected abstract List<TColor> GetPalette();
+        protected abstract TColor[] GetPalette();
     }
 }

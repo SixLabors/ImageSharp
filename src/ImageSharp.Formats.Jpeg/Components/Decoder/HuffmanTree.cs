@@ -127,11 +127,11 @@ namespace ImageSharp.Formats.Jpg
         /// <summary>
         /// Internal part of the DHT processor, whatever does it mean
         /// </summary>
-        /// <param name="bufferProcessor">The decoder instance</param>
+        /// <param name="inputProcessor">The decoder instance</param>
         /// <param name="defineHuffmanTablesData">The temporal buffer that holds the data that has been read from the Jpeg stream</param>
         /// <param name="remaining">Remaining bits</param>
         public void ProcessDefineHuffmanTablesMarkerLoop(
-            ref BufferProcessor bufferProcessor,
+            ref InputProcessor inputProcessor,
             byte[] defineHuffmanTablesData,
             ref int remaining)
         {
@@ -163,7 +163,7 @@ namespace ImageSharp.Formats.Jpg
                 throw new ImageFormatException("DHT has wrong length");
             }
 
-            bufferProcessor.ReadFull(this.Values, 0, this.Length);
+            inputProcessor.ReadFull(this.Values, 0, this.Length);
 
             for (int i = 0; i < this.Values.Length; i++)
             {

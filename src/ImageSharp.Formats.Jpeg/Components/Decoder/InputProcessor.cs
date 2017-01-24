@@ -1,4 +1,4 @@
-// <copyright file="BufferProcessor.cs" company="James Jackson-South">
+// <copyright file="InputProcessor.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -13,7 +13,7 @@ namespace ImageSharp.Formats.Jpg
     /// Encapsulates stream reading and processing data and operations for <see cref="JpegDecoderCore"/>.
     /// It's a value type for imporved data locality, and reduced number of CALLVIRT-s
     /// </summary>
-    internal struct BufferProcessor : IDisposable
+    internal struct InputProcessor : IDisposable
     {
         /// <summary>
         /// Holds the unprocessed bits that have been taken from the byte-stream.
@@ -26,11 +26,11 @@ namespace ImageSharp.Formats.Jpg
         public Bytes Bytes;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="BufferProcessor"/> struct.
+        /// Initializes a new instance of the <see cref="InputProcessor"/> struct.
         /// </summary>
         /// <param name="inputStream">The input <see cref="Stream"/></param>
         /// <param name="temp">Temporal buffer, same as <see cref="JpegDecoderCore.Temp"/></param>
-        public BufferProcessor(Stream inputStream, byte[] temp)
+        public InputProcessor(Stream inputStream, byte[] temp)
         {
             this.Bits = default(Bits);
             this.Bytes = Bytes.Create();

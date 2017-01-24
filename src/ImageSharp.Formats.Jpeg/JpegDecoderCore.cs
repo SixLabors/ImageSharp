@@ -469,19 +469,22 @@ namespace ImageSharp.Formats
         private void ProcessBlockColorsIntoJpegImageChannels<TColor>()
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            JpegScanDecoder scanDecoder = default(JpegScanDecoder);
-            JpegScanDecoder.Init(&scanDecoder);
+            Parallel.For(
+                0,
+                this.ComponentCount,
+                componentIndex =>
+                    {
+                        JpegScanDecoder scanDecoder = default(JpegScanDecoder);
+                        JpegScanDecoder.Init(&scanDecoder);
 
-            for (int componentIndex = 0; componentIndex < this.ComponentCount; componentIndex++)
-            {
-                scanDecoder.ComponentIndex = componentIndex;
-                DecodedBlockMemento[] blockArray = this.DecodedBlocks[componentIndex];
-                for (int i = 0; i < blockArray.Length; i++)
-                {
-                    scanDecoder.LoadMemento(ref blockArray[i]);
-                    scanDecoder.ProcessBlockColors(this);
-                }
-            }
+                        scanDecoder.ComponentIndex = componentIndex;
+                        DecodedBlockMemento[] blockArray = this.DecodedBlocks[componentIndex];
+                        for (int i = 0; i < blockArray.Length; i++)
+                        {
+                            scanDecoder.LoadMemento(ref blockArray[i]);
+                            scanDecoder.ProcessBlockColors(this);
+                        }
+                    });
         }
 
         /// <summary>

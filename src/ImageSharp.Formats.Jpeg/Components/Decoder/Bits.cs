@@ -36,11 +36,11 @@ namespace ImageSharp.Formats.Jpg
         /// the caller is the one responsible for first checking that bits.UnreadBits &lt; n.
         /// </summary>
         /// <param name="n">The number of bits to ensure.</param>
-        /// <param name="bufferProcessor">The <see cref="BufferProcessor"/></param>
+        /// <param name="inputProcessor">The <see cref="InputProcessor"/></param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void EnsureNBits(int n, ref BufferProcessor bufferProcessor)
+        public void EnsureNBits(int n, ref InputProcessor inputProcessor)
         {
-            DecoderErrorCode errorCode = this.EnsureNBitsUnsafe(n, ref bufferProcessor);
+            DecoderErrorCode errorCode = this.EnsureNBitsUnsafe(n, ref inputProcessor);
             errorCode.EnsureNoError();
         }
 
@@ -51,13 +51,13 @@ namespace ImageSharp.Formats.Jpg
         /// This method does not throw. Returns <see cref="DecoderErrorCode"/> instead.
         /// </summary>
         /// <param name="n">The number of bits to ensure.</param>
-        /// <param name="bufferProcessor">The <see cref="BufferProcessor"/></param>
+        /// <param name="inputProcessor">The <see cref="InputProcessor"/></param>
         /// <returns>Error code</returns>
-        public DecoderErrorCode EnsureNBitsUnsafe(int n, ref BufferProcessor bufferProcessor)
+        public DecoderErrorCode EnsureNBitsUnsafe(int n, ref InputProcessor inputProcessor)
         {
             while (true)
             {
-                DecoderErrorCode errorCode = this.EnsureBitsStepImpl(ref bufferProcessor);
+                DecoderErrorCode errorCode = this.EnsureBitsStepImpl(ref inputProcessor);
                 if (errorCode != DecoderErrorCode.NoError || this.UnreadBits >= n)
                 {
                     return errorCode;
@@ -68,34 +68,34 @@ namespace ImageSharp.Formats.Jpg
         /// <summary>
         /// Unrolled version of <see cref="EnsureNBitsUnsafe"/> for n==8
         /// </summary>
-        /// <param name="bufferProcessor">The <see cref="BufferProcessor"/></param>
+        /// <param name="inputProcessor">The <see cref="InputProcessor"/></param>
         /// <returns>A <see cref="DecoderErrorCode"/></returns>
-        public DecoderErrorCode Ensure8BitsUnsafe(ref BufferProcessor bufferProcessor)
+        public DecoderErrorCode Ensure8BitsUnsafe(ref InputProcessor inputProcessor)
         {
-            return this.EnsureBitsStepImpl(ref bufferProcessor);
+            return this.EnsureBitsStepImpl(ref inputProcessor);
         }
 
         /// <summary>
         /// Unrolled version of <see cref="EnsureNBitsUnsafe"/> for n==1
         /// </summary>
-        /// <param name="bufferProcessor">The <see cref="BufferProcessor"/></param>
+        /// <param name="inputProcessor">The <see cref="InputProcessor"/></param>
         /// <returns>A <see cref="DecoderErrorCode"/></returns>
-        public DecoderErrorCode Ensure1BitUnsafe(ref BufferProcessor bufferProcessor)
+        public DecoderErrorCode Ensure1BitUnsafe(ref InputProcessor inputProcessor)
         {
-            return this.EnsureBitsStepImpl(ref bufferProcessor);
+            return this.EnsureBitsStepImpl(ref inputProcessor);
         }
 
         /// <summary>
         /// Receive extend
         /// </summary>
         /// <param name="t">Byte</param>
-        /// <param name="bufferProcessor">The <see cref="BufferProcessor"/></param>
+        /// <param name="inputProcessor">The <see cref="InputProcessor"/></param>
         /// <returns>Read bits value</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public int ReceiveExtend(int t, ref BufferProcessor bufferProcessor)
+        public int ReceiveExtend(int t, ref InputProcessor inputProcessor)
         {
             int x;
-            DecoderErrorCode errorCode = this.ReceiveExtendUnsafe(t, ref bufferProcessor, out x);
+            DecoderErrorCode errorCode = this.ReceiveExtendUnsafe(t, ref inputProcessor, out x);
             errorCode.EnsureNoError();
             return x;
         }
@@ -104,14 +104,14 @@ namespace ImageSharp.Formats.Jpg
         /// Receive extend
         /// </summary>
         /// <param name="t">Byte</param>
-        /// <param name="bufferProcessor">The <see cref="BufferProcessor"/></param>
+        /// <param name="inputProcessor">The <see cref="InputProcessor"/></param>
         /// <param name="x">Read bits value</param>
         /// <returns>The <see cref="DecoderErrorCode"/></returns>
-        public DecoderErrorCode ReceiveExtendUnsafe(int t, ref BufferProcessor bufferProcessor, out int x)
+        public DecoderErrorCode ReceiveExtendUnsafe(int t, ref InputProcessor inputProcessor, out int x)
         {
             if (this.UnreadBits < t)
             {
-                DecoderErrorCode errorCode = this.EnsureNBitsUnsafe(t, ref bufferProcessor);
+                DecoderErrorCode errorCode = this.EnsureNBitsUnsafe(t, ref inputProcessor);
                 if (errorCode != DecoderErrorCode.NoError)
                 {
                     x = int.MaxValue;
@@ -132,10 +132,10 @@ namespace ImageSharp.Formats.Jpg
             return DecoderErrorCode.NoError;
         }
 
-        private DecoderErrorCode EnsureBitsStepImpl(ref BufferProcessor bufferProcessor)
+        private DecoderErrorCode EnsureBitsStepImpl(ref InputProcessor inputProcessor)
         {
             int c;
-            DecoderErrorCode errorCode = bufferProcessor.Bytes.ReadByteStuffedByteUnsafe(bufferProcessor.InputStream, out c);
+            DecoderErrorCode errorCode = inputProcessor.Bytes.ReadByteStuffedByteUnsafe(inputProcessor.InputStream, out c);
 
             if (errorCode != DecoderErrorCode.NoError)
             {

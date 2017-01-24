@@ -35,7 +35,7 @@ namespace ImageSharp.Formats
         /// Encapsulates stream reading and processing data and operations for <see cref="JpegDecoderCore"/>.
         /// It's a value type for imporved data locality, and reduced number of CALLVIRT-s
         /// </summary>
-        public BufferProcessor BufferProcessor;
+        public InputProcessor InputProcessor;
 #pragma warning restore SA401
 
         /// <summary>
@@ -200,7 +200,7 @@ namespace ImageSharp.Formats
             }
 
             this.ycbcrImage?.Dispose();
-            this.BufferProcessor.Dispose();
+            this.InputProcessor.Dispose();
             this.grayImage.ReturnPooled();
             this.blackImage.ReturnPooled();
         }
@@ -274,10 +274,10 @@ namespace ImageSharp.Formats
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             this.InputStream = stream;
-            this.BufferProcessor = new BufferProcessor(stream, this.Temp);
+            this.InputProcessor = new InputProcessor(stream, this.Temp);
 
             // Check for the Start Of Image marker.
-            this.BufferProcessor.ReadFull(this.Temp, 0, 2);
+            this.InputProcessor.ReadFull(this.Temp, 0, 2);
             if (this.Temp[0] != JpegConstants.Markers.XFF || this.Temp[1] != JpegConstants.Markers.SOI)
             {
                 throw new ImageFormatException("Missing SOI marker.");
@@ -289,7 +289,7 @@ namespace ImageSharp.Formats
             // we can't currently short circute progressive images so don't try.
             while (processBytes)
             {
-                this.BufferProcessor.ReadFull(this.Temp, 0, 2);
+                this.InputProcessor.ReadFull(this.Temp, 0, 2);
                 while (this.Temp[0] != 0xff)
                 {
                     // Strictly speaking, this is a format error. However, libjpeg is
@@ -310,7 +310,7 @@ namespace ImageSharp.Formats
                     // Note that extraneous 0xff bytes in e.g. SOS data are escaped as
                     // "\xff\x00", and so are detected a little further down below.
                     this.Temp[0] = this.Temp[1];
-                    this.Temp[1] = this.BufferProcessor.ReadByte();
+                    this.Temp[1] = this.InputProcessor.ReadByte();
                 }
 
                 byte marker = this.Temp[1];
@@ -324,7 +324,7 @@ namespace ImageSharp.Formats
                 {
                     // Section B.1.1.2 says, "Any marker may optionally be preceded by any
                     // number of fill bytes, which are bytes assigned code X'FF'".
-                    marker = this.BufferProcessor.ReadByte();
+                    marker = this.InputProcessor.ReadByte();
                 }
 
                 // End Of Image.
@@ -346,7 +346,7 @@ namespace ImageSharp.Formats
 
                 // Read the 16-bit length of the segment. The value includes the 2 bytes for the
                 // length itself, so we subtract 2 to get the number of remaining bytes.
-                this.BufferProcessor.ReadFull(this.Temp, 0, 2);
+                this.InputProcessor.ReadFull(this.Temp, 0, 2);
                 int remaining = (this.Temp[0] << 8) + this.Temp[1] - 2;
                 if (remaining < 0)
                 {
@@ -369,7 +369,7 @@ namespace ImageSharp.Formats
                     case JpegConstants.Markers.DHT:
                         if (metadataOnly)
                         {
-                            this.BufferProcessor.Skip(remaining);
+                            this.InputProcessor.Skip(remaining);
                         }
                         else
                         {
@@ -380,7 +380,7 @@ namespace ImageSharp.Formats
                     case JpegConstants.Markers.DQT:
                         if (metadataOnly)
                         {
-                            this.BufferProcessor.Skip(remaining);
+                            this.InputProcessor.Skip(remaining);
                         }
                         else
                         {
@@ -397,7 +397,7 @@ namespace ImageSharp.Formats
                         // when this is a progressive image this gets called a number of times
                         // need to know how many times this should be called in total.
                         this.ProcessStartOfScan(remaining);
-                        if (this.BufferProcessor.UnexpectedEndOfStreamReached || !this.IsProgressive)
+                        if (this.InputProcessor.UnexpectedEndOfStreamReached || !this.IsProgressive)
                         {
                             // if unexpeced EOF reached or this is not a progressive image we can stop processing bytes as we now have the image data.
                             processBytes = false;
@@ -407,7 +407,7 @@ namespace ImageSharp.Formats
                     case JpegConstants.Markers.DRI:
                         if (metadataOnly)
                         {
-                            this.BufferProcessor.Skip(remaining);
+                            this.InputProcessor.Skip(remaining);
                         }
                         else
                         {
@@ -428,7 +428,7 @@ namespace ImageSharp.Formats
                         if ((marker >= JpegConstants.Markers.APP0 && marker <= JpegConstants.Markers.APP15)
                             || marker == JpegConstants.Markers.COM)
                         {
-                            this.BufferProcessor.Skip(remaining);
+                            this.InputProcessor.Skip(remaining);
                         }
                         else if (marker < JpegConstants.Markers.SOF0)
                         {
@@ -457,7 +457,7 @@ namespace ImageSharp.Formats
         {
             JpegScanDecoder scan = default(JpegScanDecoder);
             JpegScanDecoder.InitStreamReading(&scan, this, remaining);
-            this.BufferProcessor.Bits = default(Bits);
+            this.InputProcessor.Bits = default(Bits);
             this.MakeImage();
             scan.DecodeBlocks(this);
         }
@@ -918,11 +918,11 @@ namespace ImageSharp.Formats
         {
             if (remaining < 12)
             {
-                this.BufferProcessor.Skip(remaining);
+                this.InputProcessor.Skip(remaining);
                 return;
             }
 
-            this.BufferProcessor.ReadFull(this.Temp, 0, 12);
+            this.InputProcessor.ReadFull(this.Temp, 0, 12);
             remaining -= 12;
 
             if (this.Temp[0] == 'A' && this.Temp[1] == 'd' && this.Temp[2] == 'o' && this.Temp[3] == 'b'
@@ -934,7 +934,7 @@ namespace ImageSharp.Formats
 
             if (remaining > 0)
             {
-                this.BufferProcessor.Skip(remaining);
+                this.InputProcessor.Skip(remaining);
             }
         }
 
@@ -949,12 +949,12 @@ namespace ImageSharp.Formats
         {
             if (remaining < 6)
             {
-                this.BufferProcessor.Skip(remaining);
+                this.InputProcessor.Skip(remaining);
                 return;
             }
 
             byte[] profile = new byte[remaining];
-            this.BufferProcessor.ReadFull(profile, 0, remaining);
+            this.InputProcessor.ReadFull(profile, 0, remaining);
 
             if (profile[0] == 'E' && profile[1] == 'x' && profile[2] == 'i' && profile[3] == 'f' && profile[4] == '\0'
                 && profile[5] == '\0')
@@ -971,11 +971,11 @@ namespace ImageSharp.Formats
         {
             if (remaining < 5)
             {
-                this.BufferProcessor.Skip(remaining);
+                this.InputProcessor.Skip(remaining);
                 return;
             }
 
-            this.BufferProcessor.ReadFull(this.Temp, 0, 13);
+            this.InputProcessor.ReadFull(this.Temp, 0, 13);
             remaining -= 13;
 
             // TODO: We should be using constants for this.
@@ -990,7 +990,7 @@ namespace ImageSharp.Formats
 
             if (remaining > 0)
             {
-                this.BufferProcessor.Skip(remaining);
+                this.InputProcessor.Skip(remaining);
             }
         }
 
@@ -1008,7 +1008,7 @@ namespace ImageSharp.Formats
                     throw new ImageFormatException("DHT has wrong length");
                 }
 
-                this.BufferProcessor.ReadFull(this.Temp, 0, 17);
+                this.InputProcessor.ReadFull(this.Temp, 0, 17);
 
                 int tc = this.Temp[0] >> 4;
                 if (tc > HuffmanTree.MaxTc)
@@ -1024,7 +1024,7 @@ namespace ImageSharp.Formats
 
                 int huffTreeIndex = (tc * HuffmanTree.ThRowSize) + th;
                 this.HuffmanTrees[huffTreeIndex].ProcessDefineHuffmanTablesMarkerLoop(
-                    ref this.BufferProcessor,
+                    ref this.InputProcessor,
                     this.Temp,
                     ref remaining);
             }
@@ -1042,7 +1042,7 @@ namespace ImageSharp.Formats
                 throw new ImageFormatException("DRI has wrong length");
             }
 
-            this.BufferProcessor.ReadFull(this.Temp, 0, remaining);
+            this.InputProcessor.ReadFull(this.Temp, 0, remaining);
             this.RestartInterval = ((int)this.Temp[0] << 8) + (int)this.Temp[1];
         }
 
@@ -1060,7 +1060,7 @@ namespace ImageSharp.Formats
                 bool done = false;
 
                 remaining--;
-                byte x = this.BufferProcessor.ReadByte();
+                byte x = this.InputProcessor.ReadByte();
                 int tq = x & 0x0F;
                 if (tq > MaxTq)
                 {
@@ -1077,7 +1077,7 @@ namespace ImageSharp.Formats
                         }
 
                         remaining -= Block8x8F.ScalarCount;
-                        this.BufferProcessor.ReadFull(this.Temp, 0, Block8x8F.ScalarCount);
+                        this.InputProcessor.ReadFull(this.Temp, 0, Block8x8F.ScalarCount);
 
                         for (int i = 0; i < Block8x8F.ScalarCount; i++)
                         {
@@ -1093,7 +1093,7 @@ namespace ImageSharp.Formats
                         }
 
                         remaining -= 2 * Block8x8F.ScalarCount;
-                        this.BufferProcessor.ReadFull(this.Temp, 0, 2 * Block8x8F.ScalarCount);
+                        this.InputProcessor.ReadFull(this.Temp, 0, 2 * Block8x8F.ScalarCount);
 
                         for (int i = 0; i < Block8x8F.ScalarCount; i++)
                         {
@@ -1143,7 +1143,7 @@ namespace ImageSharp.Formats
                     throw new ImageFormatException("Incorrect number of components");
             }
 
-            this.BufferProcessor.ReadFull(this.Temp, 0, remaining);
+            this.InputProcessor.ReadFull(this.Temp, 0, remaining);
 
             // We only support 8-bit precision.
             if (this.Temp[0] != 8)

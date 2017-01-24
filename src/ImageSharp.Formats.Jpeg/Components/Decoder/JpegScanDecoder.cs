@@ -198,7 +198,10 @@ namespace ImageSharp.Formats.Jpg
                             int blockIndex = this.GetBlockIndex(decoder);
                             this.data.Block = decoder.DecodedBlocks[this.ComponentIndex][blockIndex].Block;
 
-                            this.DecodeBlock(decoder, scanIndex);
+                            if (!decoder.BufferProcessor.UnexpectedEndOfStreamReached)
+                            {
+                                this.DecodeBlock(decoder, scanIndex);
+                            }
 
                             // Store the decoded block
                             DecodedBlockMemento[] blocks = decoder.DecodedBlocks[this.ComponentIndex];
@@ -215,17 +218,22 @@ namespace ImageSharp.Formats.Jpg
                     {
                         // A more sophisticated decoder could use RST[0-7] markers to resynchronize from corrupt input,
                         // but this one assumes well-formed input, and hence the restart marker follows immediately.
-                        decoder.BufferProcessor.ReadFull(decoder.Temp, 0, 2);
-
-                        if (decoder.Temp[0] != 0xff || decoder.Temp[1] != expectedRst)
+                        if (!decoder.BufferProcessor.UnexpectedEndOfStreamReached)
                         {
-                            throw new ImageFormatException("Bad RST marker");
-                        }
+                            DecoderErrorCode errorCode = decoder.BufferProcessor.ReadFullUnsafe(decoder.Temp, 0, 2);
+                            if (decoder.BufferProcessor.CheckEOFEnsureNoError(errorCode))
+                            {
+                                if (decoder.Temp[0] != 0xff || decoder.Temp[1] != expectedRst)
+                                {
+                                    throw new ImageFormatException("Bad RST marker");
+                                }
 
-                        expectedRst++;
-                        if (expectedRst == JpegConstants.Markers.RST7 + 1)
-                        {
-                            expectedRst = JpegConstants.Markers.RST0;
+                                expectedRst++;
+                                if (expectedRst == JpegConstants.Markers.RST7 + 1)
+                                {
+                                    expectedRst = JpegConstants.Markers.RST0;
+                                }
+                            }
                         }
 
                         // Reset the Huffman decoder.
@@ -362,7 +370,10 @@ namespace ImageSharp.Formats.Jpg
                     errorCode = decoder.BufferProcessor.DecodeHuffmanUnsafe(
                             ref decoder.HuffmanTrees[huffmanIndex],
                             out value);
-                    errorCode.EnsureNoEOF();
+                    if (!decoder.BufferProcessor.CheckEOF(errorCode))
+                    {
+                        return;
+                    }
 
                     if (value > 16)
                     {
@@ -371,7 +382,10 @@ namespace ImageSharp.Formats.Jpg
 
                     int deltaDC;
                     errorCode = decoder.BufferProcessor.ReceiveExtendUnsafe(value, out deltaDC);
-                    errorCode.EnsureNoError();
+                    if (!decoder.BufferProcessor.CheckEOFEnsureNoError(errorCode))
+                    {
+                        return;
+                    }
 
                     this.pointers.Dc[this.ComponentIndex] += deltaDC;
 
@@ -390,7 +404,10 @@ namespace ImageSharp.Formats.Jpg
                     {
                         int value;
                         errorCode = decoder.BufferProcessor.DecodeHuffmanUnsafe(ref decoder.HuffmanTrees[huffmannIdx], out value);
-                        errorCode.EnsureNoEOF();
+                        if (!decoder.BufferProcessor.CheckEOF(errorCode))
+                        {
+                            return;
+                        }
 
                         int val0 = value >> 4;
                         int val1 = value & 0x0f;
@@ -404,7 +421,10 @@ namespace ImageSharp.Formats.Jpg
 
                             int ac;
                             errorCode = decoder.BufferProcessor.ReceiveExtendUnsafe(val1, out ac);
-                            errorCode.EnsureNoError();
+                            if (!decoder.BufferProcessor.CheckEOFEnsureNoError(errorCode))
+                            {
+                                return;
+                            }
 
                             // b[Unzig[zig]] = ac << al;
                             Block8x8F.SetScalarAt(b, this.pointers.Unzig[zig], ac << this.al);
@@ -417,7 +437,10 @@ namespace ImageSharp.Formats.Jpg
                                 if (val0 != 0)
                                 {
                                     errorCode = this.DecodeEobRun(val0, ref decoder.BufferProcessor);
-                                    errorCode.EnsureNoError();
+                                    if (!decoder.BufferProcessor.CheckEOFEnsureNoError(errorCode))
+                                    {
+                                        return;
+                                    }
                                 }
 
                                 this.eobRun--;
@@ -428,7 +451,7 @@ namespace ImageSharp.Formats.Jpg
                         }
                     }
                 }
-            }   
+            }
         }
 
         private DecoderErrorCode DecodeEobRun(int count, ref BufferProcessor decoder)
@@ -516,10 +539,10 @@ namespace ImageSharp.Formats.Jpg
         /// <summary>
         /// Decodes a successive approximation refinement block, as specified in section G.1.2.
         /// </summary>
-        /// <param name="decoder">The decoder instance</param>
+        /// <param name="bp">The <see cref="BufferProcessor"/> instance</param>
         /// <param name="h">The Huffman tree</param>
         /// <param name="delta">The low transform offset</param>
-        private void Refine(ref BufferProcessor decoder, ref HuffmanTree h, int delta)
+        private void Refine(ref BufferProcessor bp, ref HuffmanTree h, int delta)
         {
             Block8x8F* b = this.pointers.Block;
 
@@ -532,8 +555,12 @@ namespace ImageSharp.Formats.Jpg
                 }
 
                 bool bit;
-                DecoderErrorCode errorCode = decoder.DecodeBitUnsafe(out bit);
-                errorCode.EnsureNoError();
+                DecoderErrorCode errorCode = bp.DecodeBitUnsafe(out bit);
+                if (!bp.CheckEOFEnsureNoError(errorCode))
+                {
+                    return;
+                }
+
                 if (bit)
                 {
                     int stuff = (int)Block8x8F.GetScalarAt(b, 0);
@@ -558,8 +585,11 @@ namespace ImageSharp.Formats.Jpg
                     int z = 0;
 
                     int val;
-                    DecoderErrorCode errorCode = decoder.DecodeHuffmanUnsafe(ref h, out val);
-                    errorCode.EnsureNoEOF();
+                    DecoderErrorCode errorCode = bp.DecodeHuffmanUnsafe(ref h, out val);
+                    if (!bp.CheckEOF(errorCode))
+                    {
+                        return;
+                    }
 
                     int val0 = val >> 4;
                     int val1 = val & 0x0f;
@@ -572,8 +602,11 @@ namespace ImageSharp.Formats.Jpg
                                 this.eobRun = 1 << val0;
                                 if (val0 != 0)
                                 {
-                                    errorCode = this.DecodeEobRun(val0, ref decoder);
-                                    errorCode.EnsureNoError();
+                                    errorCode = this.DecodeEobRun(val0, ref bp);
+                                    if (!bp.CheckEOFEnsureNoError(errorCode))
+                                    {
+                                        return;
+                                    }
                                 }
 
                                 done = true;
@@ -584,8 +617,11 @@ namespace ImageSharp.Formats.Jpg
                             z = delta;
 
                             bool bit;
-                            errorCode = decoder.DecodeBitUnsafe(out bit);
-                            errorCode.EnsureNoError();
+                            errorCode = bp.DecodeBitUnsafe(out bit);
+                            if (!bp.CheckEOFEnsureNoError(errorCode))
+                            {
+                                return;
+                            }
 
                             if (!bit)
                             {
@@ -602,7 +638,12 @@ namespace ImageSharp.Formats.Jpg
                         break;
                     }
 
-                    zig = this.RefineNonZeroes(ref decoder, zig, val0, delta);
+                    zig = this.RefineNonZeroes(ref bp, zig, val0, delta);
+                    if (bp.UnexpectedEndOfStreamReached)
+                    {
+                        return;
+                    }
+
                     if (zig > this.zigEnd)
                     {
                         throw new ImageFormatException($"Too many coefficients {zig} > {this.zigEnd}");
@@ -619,7 +660,7 @@ namespace ImageSharp.Formats.Jpg
             if (this.eobRun > 0)
             {
                 this.eobRun--;
-                this.RefineNonZeroes(ref decoder, zig, -1, delta);
+                this.RefineNonZeroes(ref bp, zig, -1, delta);
             }
         }
 
@@ -627,12 +668,12 @@ namespace ImageSharp.Formats.Jpg
         /// Refines non-zero entries of b in zig-zag order.
         /// If <paramref name="nz" /> >= 0, the first <paramref name="nz" /> zero entries are skipped over.
         /// </summary>
-        /// <param name="decoder">The decoder</param>
+        /// <param name="bp">The <see cref="BufferProcessor"/></param>
         /// <param name="zig">The zig-zag start index</param>
         /// <param name="nz">The non-zero entry</param>
         /// <param name="delta">The low transform offset</param>
         /// <returns>The <see cref="int" /></returns>
-        private int RefineNonZeroes(ref BufferProcessor decoder, int zig, int nz, int delta)
+        private int RefineNonZeroes(ref BufferProcessor bp, int zig, int nz, int delta)
         {
             var b = this.pointers.Block;
             for (; zig <= this.zigEnd; zig++)
@@ -653,8 +694,11 @@ namespace ImageSharp.Formats.Jpg
                 }
 
                 bool bit;
-                DecoderErrorCode errorCode = decoder.DecodeBitUnsafe(out bit);
-                errorCode.EnsureNoError();
+                DecoderErrorCode errorCode = bp.DecodeBitUnsafe(out bit);
+                if (!bp.CheckEOFEnsureNoError(errorCode))
+                {
+                    return int.MinValue;
+                }
 
                 if (!bit)
                 {

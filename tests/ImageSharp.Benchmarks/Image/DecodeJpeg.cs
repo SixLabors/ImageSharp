@@ -22,7 +22,7 @@ namespace ImageSharp.Benchmarks.Image
         {
             if (this.jpegBytes == null)
             {
-                this.jpegBytes = File.ReadAllBytes("../ImageSharp.Tests/TestImages/Formats/Jpg/Calliphora.jpg");
+                this.jpegBytes = File.ReadAllBytes("../ImageSharp.Tests/TestImages/Formats/Jpg/Baseline/Calliphora.jpg");
             }
         }
 

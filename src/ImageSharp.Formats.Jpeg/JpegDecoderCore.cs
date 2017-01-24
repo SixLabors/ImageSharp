@@ -30,15 +30,12 @@ namespace ImageSharp.Formats
 
         // Complex value type field + mutable + available to other classes = the field MUST NOT be private :P
 #pragma warning disable SA1401 // FieldsMustBePrivate
-        /// <summary>
-        /// Holds the unprocessed bits that have been taken from the byte-stream.
-        /// </summary>
-        public Bits Bits;
 
         /// <summary>
-        /// The byte buffer.
+        /// Encapsulates stream reading and processing data and operations for <see cref="JpegDecoderCore"/>.
+        /// It's a value type for imporved data locality, and reduced number of CALLVIRT-s
         /// </summary>
-        public Bytes Bytes;
+        public BufferProcessor BufferProcessor;
 #pragma warning restore SA401
 
         /// <summary>
@@ -91,8 +88,6 @@ namespace ImageSharp.Formats
             this.Temp = new byte[2 * Block8x8F.ScalarCount];
             this.ComponentArray = new Component[MaxComponents];
             this.DecodedBlocks = new DecodedBlockMemento[MaxComponents][];
-            this.Bits = default(Bits);
-            this.Bytes = Bytes.Create();
         }
 
         /// <summary>
@@ -205,192 +200,9 @@ namespace ImageSharp.Formats
             }
 
             this.ycbcrImage?.Dispose();
-            this.Bytes.Dispose();
+            this.BufferProcessor.Dispose();
             this.grayImage.ReturnPooled();
             this.blackImage.ReturnPooled();
-        }
-
-        /// <summary>
-        /// Returns the next byte, whether buffered or not buffered. It does not care about byte stuffing.
-        /// </summary>
-        /// <returns>The <see cref="byte" /></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public byte ReadByte()
-        {
-            return this.Bytes.ReadByte(this.InputStream);
-        }
-
-        /// <summary>
-        /// Decodes a single bit
-        /// TODO: This method (and also the usages) could be optimized by batching!
-        /// </summary>
-        /// <param name="result">The decoded bit as a <see cref="bool"/></param>
-        /// <returns>The <see cref="DecoderErrorCode" /></returns>
-        public DecoderErrorCode DecodeBitUnsafe(out bool result)
-        {
-            if (this.Bits.UnreadBits == 0)
-            {
-                DecoderErrorCode errorCode = this.Bits.Ensure1BitUnsafe(this);
-                if (errorCode != DecoderErrorCode.NoError)
-                {
-                    result = false;
-                    return errorCode;
-                }
-            }
-
-            result = (this.Bits.Accumulator & this.Bits.Mask) != 0;
-            this.Bits.UnreadBits--;
-            this.Bits.Mask >>= 1;
-            return DecoderErrorCode.NoError;
-        }
-
-        /// <summary>
-        /// Reads exactly length bytes into data. It does not care about byte stuffing.
-        /// </summary>
-        /// <param name="data">The data to write to.</param>
-        /// <param name="offset">The offset in the source buffer</param>
-        /// <param name="length">The number of bytes to read</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ReadFull(byte[] data, int offset, int length)
-        {
-            DecoderErrorCode errorCode = this.ReadFullUnsafe(data, offset, length);
-            errorCode.EnsureNoError();
-        }
-
-        /// <summary>
-        /// Reads exactly length bytes into data. It does not care about byte stuffing.
-        /// Does not throw on errors, returns <see cref="JpegDecoderCore"/> instead!
-        /// </summary>
-        /// <param name="data">The data to write to.</param>
-        /// <param name="offset">The offset in the source buffer</param>
-        /// <param name="length">The number of bytes to read</param>
-        /// <returns>The <see cref="DecoderErrorCode"/></returns>
-        public DecoderErrorCode ReadFullUnsafe(byte[] data, int offset, int length)
-        {
-            // Unread the overshot bytes, if any.
-            if (this.Bytes.UnreadableBytes != 0)
-            {
-                if (this.Bits.UnreadBits >= 8)
-                {
-                    this.UnreadByteStuffedByte();
-                }
-
-                this.Bytes.UnreadableBytes = 0;
-            }
-
-            DecoderErrorCode errorCode = DecoderErrorCode.NoError;
-            while (length > 0)
-            {
-                if (this.Bytes.J - this.Bytes.I >= length)
-                {
-                    Array.Copy(this.Bytes.Buffer, this.Bytes.I, data, offset, length);
-                    this.Bytes.I += length;
-                    length -= length;
-                }
-                else
-                {
-                    Array.Copy(this.Bytes.Buffer, this.Bytes.I, data, offset, this.Bytes.J - this.Bytes.I);
-                    offset += this.Bytes.J - this.Bytes.I;
-                    length -= this.Bytes.J - this.Bytes.I;
-                    this.Bytes.I += this.Bytes.J - this.Bytes.I;
-
-                    errorCode = this.Bytes.FillUnsafe(this.InputStream);
-                }
-            }
-
-            return errorCode;
-        }
-
-        /// <summary>
-        /// Decodes the given number of bits
-        /// </summary>
-        /// <param name="count">The number of bits to decode.</param>
-        /// <param name="result">The <see cref="uint" /> result</param>
-        /// <returns>The <see cref="DecoderErrorCode"/></returns>
-        public DecoderErrorCode DecodeBitsUnsafe(int count, out int result)
-        {
-            if (this.Bits.UnreadBits < count)
-            {
-                this.Bits.EnsureNBits(count, this);
-            }
-
-            result = this.Bits.Accumulator >> (this.Bits.UnreadBits - count);
-            result = result & ((1 << count) - 1);
-            this.Bits.UnreadBits -= count;
-            this.Bits.Mask >>= count;
-            return DecoderErrorCode.NoError;
-        }
-
-        /// <summary>
-        /// Extracts the next Huffman-coded value from the bit-stream into result, decoded according to the given value.
-        /// </summary>
-        /// <param name="huffmanTree">The huffman value</param>
-        /// <param name="result">The decoded <see cref="byte" /></param>
-        /// <returns>The <see cref="DecoderErrorCode"/></returns>
-        public DecoderErrorCode DecodeHuffmanUnsafe(ref HuffmanTree huffmanTree, out int result)
-        {
-            result = 0;
-
-            if (huffmanTree.Length == 0)
-            {
-                DecoderThrowHelper.ThrowImageFormatException.UninitializedHuffmanTable();
-            }
-
-            if (this.Bits.UnreadBits < 8)
-            {
-                DecoderErrorCode errorCode = this.Bits.Ensure8BitsUnsafe(this);
-
-                if (errorCode == DecoderErrorCode.NoError)
-                {
-                    int lutIndex = (this.Bits.Accumulator >> (this.Bits.UnreadBits - HuffmanTree.LutSizeLog2)) & 0xFF;
-                    int v = huffmanTree.Lut[lutIndex];
-
-                    if (v != 0)
-                    {
-                        int n = (v & 0xFF) - 1;
-                        this.Bits.UnreadBits -= n;
-                        this.Bits.Mask >>= n;
-                        result = v >> 8;
-                        return errorCode;
-                    }
-                }
-                else
-                {
-                    this.UnreadByteStuffedByte();
-                    return errorCode;
-                }
-            }
-
-            int code = 0;
-            for (int i = 0; i < HuffmanTree.MaxCodeLength; i++)
-            {
-                if (this.Bits.UnreadBits == 0)
-                {
-                    this.Bits.EnsureNBits(1, this);
-                }
-
-                if ((this.Bits.Accumulator & this.Bits.Mask) != 0)
-                {
-                    code |= 1;
-                }
-
-                this.Bits.UnreadBits--;
-                this.Bits.Mask >>= 1;
-
-                if (code <= huffmanTree.MaxCodes[i])
-                {
-                    result = huffmanTree.GetValue(code, i);
-                    return DecoderErrorCode.NoError;
-                }
-
-                code <<= 1;
-            }
-
-            // Unrecoverable error, throwing:
-            DecoderThrowHelper.ThrowImageFormatException.BadHuffmanCode();
-
-            // DUMMY RETURN! C# doesn't know we have thrown an exception!
-            return DecoderErrorCode.NoError;
         }
 
         /// <summary>
@@ -462,9 +274,10 @@ namespace ImageSharp.Formats
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             this.InputStream = stream;
+            this.BufferProcessor = new BufferProcessor(stream, this.Temp);
 
             // Check for the Start Of Image marker.
-            this.ReadFull(this.Temp, 0, 2);
+            this.BufferProcessor.ReadFull(this.Temp, 0, 2);
             if (this.Temp[0] != JpegConstants.Markers.XFF || this.Temp[1] != JpegConstants.Markers.SOI)
             {
                 throw new ImageFormatException("Missing SOI marker.");
@@ -476,7 +289,7 @@ namespace ImageSharp.Formats
             // we can't currently short circute progressive images so don't try.
             while (processBytes)
             {
-                this.ReadFull(this.Temp, 0, 2);
+                this.BufferProcessor.ReadFull(this.Temp, 0, 2);
                 while (this.Temp[0] != 0xff)
                 {
                     // Strictly speaking, this is a format error. However, libjpeg is
@@ -497,7 +310,7 @@ namespace ImageSharp.Formats
                     // Note that extraneous 0xff bytes in e.g. SOS data are escaped as
                     // "\xff\x00", and so are detected a little further down below.
                     this.Temp[0] = this.Temp[1];
-                    this.Temp[1] = this.ReadByte();
+                    this.Temp[1] = this.BufferProcessor.ReadByte();
                 }
 
                 byte marker = this.Temp[1];
@@ -511,7 +324,7 @@ namespace ImageSharp.Formats
                 {
                     // Section B.1.1.2 says, "Any marker may optionally be preceded by any
                     // number of fill bytes, which are bytes assigned code X'FF'".
-                    marker = this.ReadByte();
+                    marker = this.BufferProcessor.ReadByte();
                 }
 
                 // End Of Image.
@@ -533,7 +346,7 @@ namespace ImageSharp.Formats
 
                 // Read the 16-bit length of the segment. The value includes the 2 bytes for the
                 // length itself, so we subtract 2 to get the number of remaining bytes.
-                this.ReadFull(this.Temp, 0, 2);
+                this.BufferProcessor.ReadFull(this.Temp, 0, 2);
                 int remaining = (this.Temp[0] << 8) + this.Temp[1] - 2;
                 if (remaining < 0)
                 {
@@ -556,7 +369,7 @@ namespace ImageSharp.Formats
                     case JpegConstants.Markers.DHT:
                         if (metadataOnly)
                         {
-                            this.Skip(remaining);
+                            this.BufferProcessor.Skip(remaining);
                         }
                         else
                         {
@@ -567,7 +380,7 @@ namespace ImageSharp.Formats
                     case JpegConstants.Markers.DQT:
                         if (metadataOnly)
                         {
-                            this.Skip(remaining);
+                            this.BufferProcessor.Skip(remaining);
                         }
                         else
                         {
@@ -594,7 +407,7 @@ namespace ImageSharp.Formats
                     case JpegConstants.Markers.DRI:
                         if (metadataOnly)
                         {
-                            this.Skip(remaining);
+                            this.BufferProcessor.Skip(remaining);
                         }
                         else
                         {
@@ -615,7 +428,7 @@ namespace ImageSharp.Formats
                         if ((marker >= JpegConstants.Markers.APP0 && marker <= JpegConstants.Markers.APP15)
                             || marker == JpegConstants.Markers.COM)
                         {
-                            this.Skip(remaining);
+                            this.BufferProcessor.Skip(remaining);
                         }
                         else if (marker < JpegConstants.Markers.SOF0)
                         {
@@ -630,6 +443,23 @@ namespace ImageSharp.Formats
                         break;
                 }
             }
+        }
+
+        /// <summary>
+        /// Processes the SOS (Start of scan marker).
+        /// </summary>
+        /// <param name="remaining">The remaining bytes in the segment block.</param>
+        /// <exception cref="ImageFormatException">
+        /// Missing SOF Marker
+        /// SOS has wrong length
+        /// </exception>
+        private void ProcessStartOfScan(int remaining)
+        {
+            JpegScanDecoder scan = default(JpegScanDecoder);
+            JpegScanDecoder.InitStreamReading(&scan, this, remaining);
+            this.BufferProcessor.Bits = default(Bits);
+            this.MakeImage();
+            scan.DecodeBlocks(this);
         }
 
         /// <summary>
@@ -1085,11 +915,11 @@ namespace ImageSharp.Formats
         {
             if (remaining < 12)
             {
-                this.Skip(remaining);
+                this.BufferProcessor.Skip(remaining);
                 return;
             }
 
-            this.ReadFull(this.Temp, 0, 12);
+            this.BufferProcessor.ReadFull(this.Temp, 0, 12);
             remaining -= 12;
 
             if (this.Temp[0] == 'A' && this.Temp[1] == 'd' && this.Temp[2] == 'o' && this.Temp[3] == 'b'
@@ -1101,7 +931,7 @@ namespace ImageSharp.Formats
 
             if (remaining > 0)
             {
-                this.Skip(remaining);
+                this.BufferProcessor.Skip(remaining);
             }
         }
 
@@ -1116,12 +946,12 @@ namespace ImageSharp.Formats
         {
             if (remaining < 6)
             {
-                this.Skip(remaining);
+                this.BufferProcessor.Skip(remaining);
                 return;
             }
 
             byte[] profile = new byte[remaining];
-            this.ReadFull(profile, 0, remaining);
+            this.BufferProcessor.ReadFull(profile, 0, remaining);
 
             if (profile[0] == 'E' && profile[1] == 'x' && profile[2] == 'i' && profile[3] == 'f' && profile[4] == '\0'
                 && profile[5] == '\0')
@@ -1138,11 +968,11 @@ namespace ImageSharp.Formats
         {
             if (remaining < 5)
             {
-                this.Skip(remaining);
+                this.BufferProcessor.Skip(remaining);
                 return;
             }
 
-            this.ReadFull(this.Temp, 0, 13);
+            this.BufferProcessor.ReadFull(this.Temp, 0, 13);
             remaining -= 13;
 
             // TODO: We should be using constants for this.
@@ -1157,7 +987,7 @@ namespace ImageSharp.Formats
 
             if (remaining > 0)
             {
-                this.Skip(remaining);
+                this.BufferProcessor.Skip(remaining);
             }
         }
 
@@ -1175,7 +1005,7 @@ namespace ImageSharp.Formats
                     throw new ImageFormatException("DHT has wrong length");
                 }
 
-                this.ReadFull(this.Temp, 0, 17);
+                this.BufferProcessor.ReadFull(this.Temp, 0, 17);
 
                 int tc = this.Temp[0] >> 4;
                 if (tc > HuffmanTree.MaxTc)
@@ -1190,7 +1020,10 @@ namespace ImageSharp.Formats
                 }
 
                 int huffTreeIndex = (tc * HuffmanTree.ThRowSize) + th;
-                this.HuffmanTrees[huffTreeIndex].ProcessDefineHuffmanTablesMarkerLoop(this, this.Temp, ref remaining);
+                this.HuffmanTrees[huffTreeIndex].ProcessDefineHuffmanTablesMarkerLoop(
+                    ref this.BufferProcessor,
+                    this.Temp,
+                    ref remaining);
             }
         }
 
@@ -1206,7 +1039,7 @@ namespace ImageSharp.Formats
                 throw new ImageFormatException("DRI has wrong length");
             }
 
-            this.ReadFull(this.Temp, 0, remaining);
+            this.BufferProcessor.ReadFull(this.Temp, 0, remaining);
             this.RestartInterval = ((int)this.Temp[0] << 8) + (int)this.Temp[1];
         }
 
@@ -1224,7 +1057,7 @@ namespace ImageSharp.Formats
                 bool done = false;
 
                 remaining--;
-                byte x = this.ReadByte();
+                byte x = this.BufferProcessor.ReadByte();
                 int tq = x & 0x0F;
                 if (tq > MaxTq)
                 {
@@ -1241,7 +1074,7 @@ namespace ImageSharp.Formats
                         }
 
                         remaining -= Block8x8F.ScalarCount;
-                        this.ReadFull(this.Temp, 0, Block8x8F.ScalarCount);
+                        this.BufferProcessor.ReadFull(this.Temp, 0, Block8x8F.ScalarCount);
 
                         for (int i = 0; i < Block8x8F.ScalarCount; i++)
                         {
@@ -1257,7 +1090,7 @@ namespace ImageSharp.Formats
                         }
 
                         remaining -= 2 * Block8x8F.ScalarCount;
-                        this.ReadFull(this.Temp, 0, 2 * Block8x8F.ScalarCount);
+                        this.BufferProcessor.ReadFull(this.Temp, 0, 2 * Block8x8F.ScalarCount);
 
                         for (int i = 0; i < Block8x8F.ScalarCount; i++)
                         {
@@ -1307,7 +1140,7 @@ namespace ImageSharp.Formats
                     throw new ImageFormatException("Incorrect number of components");
             }
 
-            this.ReadFull(this.Temp, 0, remaining);
+            this.BufferProcessor.ReadFull(this.Temp, 0, remaining);
 
             // We only support 8-bit precision.
             if (this.Temp[0] != 8)
@@ -1482,97 +1315,6 @@ namespace ImageSharp.Formats
                 int size = this.TotalMCUCount * this.ComponentArray[i].HorizontalFactor
                            * this.ComponentArray[i].VerticalFactor;
                 this.DecodedBlocks[i] = DecodedBlockMemento.RentArray(size);
-            }
-        }
-
-        /// <summary>
-        /// Processes the SOS (Start of scan marker).
-        /// </summary>
-        /// <param name="remaining">The remaining bytes in the segment block.</param>
-        /// <exception cref="ImageFormatException">
-        /// Missing SOF Marker
-        /// SOS has wrong length
-        /// </exception>
-        private void ProcessStartOfScan(int remaining)
-        {
-            JpegScanDecoder scan = default(JpegScanDecoder);
-            JpegScanDecoder.InitStreamReading(&scan, this, remaining);
-            this.Bits = default(Bits);
-            this.MakeImage();
-            scan.DecodeBlocks(this);
-        }
-
-        /// <summary>
-        /// Skips the next n bytes.
-        /// </summary>
-        /// <param name="count">The number of bytes to ignore.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void Skip(int count)
-        {
-            DecoderErrorCode errorCode = this.SkipUnsafe(count);
-            errorCode.EnsureNoError();
-        }
-
-        /// <summary>
-        /// Skips the next n bytes.
-        /// Does not throw, returns <see cref="DecoderErrorCode"/> instead!
-        /// </summary>
-        /// <param name="count">The number of bytes to ignore.</param>
-        /// <returns>The <see cref="DecoderErrorCode"/></returns>
-        private DecoderErrorCode SkipUnsafe(int count)
-        {
-            // Unread the overshot bytes, if any.
-            if (this.Bytes.UnreadableBytes != 0)
-            {
-                if (this.Bits.UnreadBits >= 8)
-                {
-                    this.UnreadByteStuffedByte();
-                }
-
-                this.Bytes.UnreadableBytes = 0;
-            }
-
-            while (true)
-            {
-                int m = this.Bytes.J - this.Bytes.I;
-                if (m > count)
-                {
-                    m = count;
-                }
-
-                this.Bytes.I += m;
-                count -= m;
-                if (count == 0)
-                {
-                    break;
-                }
-
-                DecoderErrorCode errorCode = this.Bytes.FillUnsafe(this.InputStream);
-                if (errorCode != DecoderErrorCode.NoError)
-                {
-                    return errorCode;
-                }
-            }
-
-            return DecoderErrorCode.NoError;
-        }
-
-        /// <summary>
-        /// Undoes the most recent ReadByteStuffedByte call,
-        /// giving a byte of data back from bits to bytes. The Huffman look-up table
-        /// requires at least 8 bits for look-up, which means that Huffman decoding can
-        /// sometimes overshoot and read one or two too many bytes. Two-byte overshoot
-        /// can happen when expecting to read a 0xff 0x00 byte-stuffed byte.
-        /// </summary>
-        private void UnreadByteStuffedByte()
-        {
-            this.Bytes.I -= this.Bytes.UnreadableBytes;
-            this.Bytes.UnreadableBytes = 0;
-            if (this.Bits.UnreadBits >= 8)
-            {
-                this.Bits.Accumulator >>= 8;
-                this.Bits.UnreadBits -= 8;
-                this.Bits.Mask >>= 8;
             }
         }
     }

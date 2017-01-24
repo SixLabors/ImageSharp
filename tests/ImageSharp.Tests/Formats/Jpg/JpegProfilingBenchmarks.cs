@@ -32,7 +32,7 @@ namespace ImageSharp.Tests
             TestImages.Jpeg.Baseline.Jpeg444,
         };
 
-        [Theory] // Benchmark, enable manually
+        // [Theory] // Benchmark, enable manually
         [MemberData(nameof(DecodeJpegData))]
         public void DecodeJpeg(string fileName)
         {

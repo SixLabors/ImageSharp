@@ -50,7 +50,7 @@ namespace ImageSharp.Formats.Jpg
         public byte[] Temp { get; }
 
         /// <summary>
-        /// Gets or sets the value indicating whether an unexpected EOF reached in <see cref="InputStream"/>.
+        /// Gets or sets a value indicating whether an unexpected EOF reached in <see cref="InputStream"/>.
         /// </summary>
         public bool UnexpectedEndOfStreamReached { get; set; }
 
@@ -58,8 +58,8 @@ namespace ImageSharp.Formats.Jpg
         /// If errorCode indicates unexpected EOF, sets <see cref="UnexpectedEndOfStreamReached"/> to true and returns false.
         /// Calls <see cref="DecoderThrowHelper.EnsureNoError"/> and returns true otherwise.
         /// </summary>
-        /// <param name="errorCode"></param>
-        /// <returns></returns>
+        /// <param name="errorCode">The <see cref="DecoderErrorCode"/></param>
+        /// <returns><see cref="bool"/> indicating whether everything is OK</returns>
         public bool CheckEOFEnsureNoError(DecoderErrorCode errorCode)
         {
             if (errorCode == DecoderErrorCode.UnexpectedEndOfStream)
@@ -67,7 +67,25 @@ namespace ImageSharp.Formats.Jpg
                 this.UnexpectedEndOfStreamReached = true;
                 return false;
             }
+
             errorCode.EnsureNoError();
+            return true;
+        }
+
+        /// <summary>
+        /// If errorCode indicates unexpected EOF, sets <see cref="UnexpectedEndOfStreamReached"/> to true and returns false.
+        /// Returns true otherwise.
+        /// </summary>
+        /// <param name="errorCode">The <see cref="DecoderErrorCode"/></param>
+        /// <returns><see cref="bool"/> indicating whether everything is OK</returns>
+        public bool CheckEOF(DecoderErrorCode errorCode)
+        {
+            if (errorCode == DecoderErrorCode.UnexpectedEndOfStream)
+            {
+                this.UnexpectedEndOfStreamReached = true;
+                return false;
+            }
+
             return true;
         }
 

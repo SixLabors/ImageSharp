@@ -63,7 +63,7 @@ namespace ImageSharp.Formats.Jpg
         /// <summary>
         /// Gets the the decoded values, sorted by their encoding.
         /// </summary>
-        public int[] ValuesAsInt;
+        public int[] Values;
 
         /// <summary>
         /// Gets the array of minimum codes.
@@ -112,7 +112,7 @@ namespace ImageSharp.Formats.Jpg
         public void Dispose()
         {
             IntPool256.Return(this.Lut, true);
-            IntPool256.Return(this.ValuesAsInt, true);
+            IntPool256.Return(this.Values, true);
             CodesPool16.Return(this.MinCodes, true);
             CodesPool16.Return(this.MaxCodes, true);
             CodesPool16.Return(this.Indices, true);
@@ -165,7 +165,7 @@ namespace ImageSharp.Formats.Jpg
 
                 for (int i = 0; i < values.Length; i++)
                 {
-                    this.ValuesAsInt[i] = values[i];
+                    this.Values[i] = values[i];
                 }
             }
             finally
@@ -193,7 +193,7 @@ namespace ImageSharp.Formats.Jpg
                     // The high 8 bits of lutValue are the encoded value.
                     // The low 8 bits are 1 plus the codeLength.
                     int base2 = code << (7 - i);
-                    int lutValue = (this.ValuesAsInt[x] << 8) | (2 + i);
+                    int lutValue = (this.Values[x] << 8) | (2 + i);
 
                     for (int k = 0; k < 1 << (7 - i); k++)
                     {
@@ -237,7 +237,7 @@ namespace ImageSharp.Formats.Jpg
         /// <returns>The value</returns>
         public int GetValue(int code, int codeLength)
         {
-            return this.ValuesAsInt[this.Indices[codeLength] + code - this.MinCodes[codeLength]];
+            return this.Values[this.Indices[codeLength] + code - this.MinCodes[codeLength]];
         }
 
         /// <summary>
@@ -246,7 +246,7 @@ namespace ImageSharp.Formats.Jpg
         private void Init()
         {
             this.Lut = IntPool256.Rent(MaxNCodes);
-            this.ValuesAsInt = IntPool256.Rent(MaxNCodes);
+            this.Values = IntPool256.Rent(MaxNCodes);
             this.MinCodes = CodesPool16.Rent(MaxCodeLength);
             this.MaxCodes = CodesPool16.Rent(MaxCodeLength);
             this.Indices = CodesPool16.Rent(MaxCodeLength);

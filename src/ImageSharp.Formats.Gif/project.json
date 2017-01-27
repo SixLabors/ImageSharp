@@ -84,7 +84,7 @@
         "System.Threading.Tasks.Parallel": "4.0.0"
       },
       "frameworkAssemblies": {
-        "System.Runtime": "4.0.20.0",
+        "System.Runtime": { "type": "build" },
         "System.Numerics": "4.0.0.0",
         "System.Numerics.Vectors": "4.0.0.0"
       }

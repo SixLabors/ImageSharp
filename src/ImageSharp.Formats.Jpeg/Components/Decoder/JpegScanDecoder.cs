@@ -121,10 +121,10 @@ namespace ImageSharp.Formats.Jpg
         }
 
         /// <summary>
-        /// Loads the data from the given <see cref="DecodedBlockMemento"/> into the block.
+        /// Loads the data from the given <see cref="DecodedBlock"/> into the block.
         /// </summary>
-        /// <param name="memento">The <see cref="DecodedBlockMemento"/></param>
-        public void LoadMemento(ref DecodedBlockMemento memento)
+        /// <param name="memento">The <see cref="DecodedBlock"/></param>
+        public void LoadMemento(ref DecodedBlock memento)
         {
             this.bx = memento.Bx;
             this.by = memento.By;
@@ -204,8 +204,8 @@ namespace ImageSharp.Formats.Jpg
                             }
 
                             // Store the decoded block
-                            DecodedBlockMemento.Array blocks = decoder.DecodedBlocks[this.ComponentIndex];
-                            DecodedBlockMemento.Store(ref blocks, blockIndex, this.bx, this.by, ref this.data.Block);
+                            DecodedBlockArray blocks = decoder.DecodedBlocks[this.ComponentIndex];
+                            DecodedBlock.Store(ref blocks, blockIndex, this.bx, this.by, ref this.data.Block);
                         }
 
                         // for j

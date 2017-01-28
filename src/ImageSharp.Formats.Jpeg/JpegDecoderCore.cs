@@ -87,7 +87,7 @@ namespace ImageSharp.Formats
             this.QuantizationTables = new Block8x8F[MaxTq + 1];
             this.Temp = new byte[2 * Block8x8F.ScalarCount];
             this.ComponentArray = new Component[MaxComponents];
-            this.DecodedBlocks = new DecodedBlockMemento.Array[MaxComponents];
+            this.DecodedBlocks = new DecodedBlockArray[MaxComponents];
         }
 
         /// <summary>
@@ -101,10 +101,12 @@ namespace ImageSharp.Formats
         public HuffmanTree[] HuffmanTrees { get; }
 
         /// <summary>
-        /// Gets the saved state between progressive-mode scans.
-        /// TODO: Also save non-progressive data here. (Helps splitting and parallelizing JpegScanDecoder-s loop)
+        /// Gets the array of <see cref="DecodedBlockArray"/>-s storing the "raw" frequency-domain decoded blocks.
+        /// We need to apply IDCT and unzigging to transform them into color-space blocks.
+        /// This is done by <see cref="ProcessBlocksIntoJpegImageChannels{TColor}"/>.
+        /// When <see cref="IsProgressive"/>==true, we are touching these blocks each time we process a Scan.
         /// </summary>
-        public DecodedBlockMemento.Array[] DecodedBlocks { get; }
+        public DecodedBlockArray[] DecodedBlocks { get; }
 
         /// <summary>
         /// Gets the quantization tables, in zigzag order.
@@ -191,7 +193,7 @@ namespace ImageSharp.Formats
                 this.HuffmanTrees[i].Dispose();
             }
 
-            foreach (DecodedBlockMemento.Array blockArray in this.DecodedBlocks)
+            foreach (DecodedBlockArray blockArray in this.DecodedBlocks)
             {
                 blockArray.Dispose();
             }
@@ -461,7 +463,7 @@ namespace ImageSharp.Formats
 
         /// <summary>
         /// Process the blocks in <see cref="DecodedBlocks"/> into Jpeg image channels (<see cref="YCbCrImage"/> and <see cref="JpegPixelArea"/>)
-        /// The blocks are expected in a "raw" frequency-domain decoded format. We need to apply IDCT and unzigging to transform them into color-space blocks.
+        /// <see cref="DecodedBlocks"/> are in a "raw" frequency-domain form. We need to apply IDCT and unzigging to transform them into color-space blocks.
         /// We can copy these blocks into <see cref="JpegPixelArea"/>-s afterwards.
         /// </summary>
         /// <typeparam name="TColor">The pixel type</typeparam>
@@ -477,7 +479,7 @@ namespace ImageSharp.Formats
                         JpegScanDecoder.Init(&scanDecoder);
 
                         scanDecoder.ComponentIndex = componentIndex;
-                        DecodedBlockMemento.Array blockArray = this.DecodedBlocks[componentIndex];
+                        DecodedBlockArray blockArray = this.DecodedBlocks[componentIndex];
                         for (int i = 0; i < blockArray.Count; i++)
                         {
                             scanDecoder.LoadMemento(ref blockArray.Buffer[i]);
@@ -1316,7 +1318,7 @@ namespace ImageSharp.Formats
             {
                 int count = this.TotalMCUCount * this.ComponentArray[i].HorizontalFactor
                            * this.ComponentArray[i].VerticalFactor;
-                this.DecodedBlocks[i] = new DecodedBlockMemento.Array(count);
+                this.DecodedBlocks[i] = new DecodedBlockArray(count);
             }
         }
     }

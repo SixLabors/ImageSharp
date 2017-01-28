@@ -87,7 +87,7 @@ namespace ImageSharp.Formats
             this.QuantizationTables = new Block8x8F[MaxTq + 1];
             this.Temp = new byte[2 * Block8x8F.ScalarCount];
             this.ComponentArray = new Component[MaxComponents];
-            this.DecodedBlocks = new DecodedBlockMemento[MaxComponents][];
+            this.DecodedBlocks = new DecodedBlockMemento.Array[MaxComponents];
         }
 
         /// <summary>
@@ -104,7 +104,7 @@ namespace ImageSharp.Formats
         /// Gets the saved state between progressive-mode scans.
         /// TODO: Also save non-progressive data here. (Helps splitting and parallelizing JpegScanDecoder-s loop)
         /// </summary>
-        public DecodedBlockMemento[][] DecodedBlocks { get; }
+        public DecodedBlockMemento.Array[] DecodedBlocks { get; }
 
         /// <summary>
         /// Gets the quantization tables, in zigzag order.
@@ -176,7 +176,7 @@ namespace ImageSharp.Formats
             this.ProcessStream(image, stream, metadataOnly);
             if (!metadataOnly)
             {
-                this.ProcessBlockColorsIntoJpegImageChannels<TColor>();
+                this.ProcessBlocksIntoJpegImageChannels<TColor>();
                 this.ConvertJpegPixelsToImagePixels(image);
             }
         }
@@ -191,12 +191,9 @@ namespace ImageSharp.Formats
                 this.HuffmanTrees[i].Dispose();
             }
 
-            foreach (DecodedBlockMemento[] blockArray in this.DecodedBlocks)
+            foreach (DecodedBlockMemento.Array blockArray in this.DecodedBlocks)
             {
-                if (blockArray != null)
-                {
-                    DecodedBlockMemento.ReturnArray(blockArray);
-                }
+                blockArray.Dispose();
             }
 
             this.ycbcrImage?.Dispose();
@@ -464,9 +461,11 @@ namespace ImageSharp.Formats
 
         /// <summary>
         /// Process the blocks in <see cref="DecodedBlocks"/> into Jpeg image channels (<see cref="YCbCrImage"/> and <see cref="JpegPixelArea"/>)
+        /// The blocks are expected in a "raw" frequency-domain decoded format. We need to apply IDCT and unzigging to transform them into color-space blocks.
+        /// We can copy these blocks into <see cref="JpegPixelArea"/>-s afterwards.
         /// </summary>
         /// <typeparam name="TColor">The pixel type</typeparam>
-        private void ProcessBlockColorsIntoJpegImageChannels<TColor>()
+        private void ProcessBlocksIntoJpegImageChannels<TColor>()
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             Parallel.For(
@@ -478,10 +477,10 @@ namespace ImageSharp.Formats
                         JpegScanDecoder.Init(&scanDecoder);
 
                         scanDecoder.ComponentIndex = componentIndex;
-                        DecodedBlockMemento[] blockArray = this.DecodedBlocks[componentIndex];
-                        for (int i = 0; i < blockArray.Length; i++)
+                        DecodedBlockMemento.Array blockArray = this.DecodedBlocks[componentIndex];
+                        for (int i = 0; i < blockArray.Count; i++)
                         {
-                            scanDecoder.LoadMemento(ref blockArray[i]);
+                            scanDecoder.LoadMemento(ref blockArray.Buffer[i]);
                             scanDecoder.ProcessBlockColors(this);
                         }
                     });
@@ -1315,9 +1314,9 @@ namespace ImageSharp.Formats
             // As a preparation for parallelizing Scan decoder, we also allocate DecodedBlocks in the non-progressive case!
             for (int i = 0; i < this.ComponentCount; i++)
             {
-                int size = this.TotalMCUCount * this.ComponentArray[i].HorizontalFactor
+                int count = this.TotalMCUCount * this.ComponentArray[i].HorizontalFactor
                            * this.ComponentArray[i].VerticalFactor;
-                this.DecodedBlocks[i] = DecodedBlockMemento.RentArray(size);
+                this.DecodedBlocks[i] = new DecodedBlockMemento.Array(count);
             }
         }
     }

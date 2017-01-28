@@ -43,23 +43,22 @@ namespace ImageSharp.Tests
 
             provider.Utility.SaveTestOutputFile(image, "bmp");
         }
-        
+
         [Theory]
         [WithSolidFilledImages(16, 16, 255, 0, 0, PixelTypes.StandardImageClass, JpegSubsample.Ratio420, 75)]
         [WithSolidFilledImages(16, 16, 255, 0, 0, PixelTypes.StandardImageClass, JpegSubsample.Ratio420, 100)]
         [WithSolidFilledImages(16, 16, 255, 0, 0, PixelTypes.StandardImageClass, JpegSubsample.Ratio444, 75)]
         [WithSolidFilledImages(16, 16, 255, 0, 0, PixelTypes.StandardImageClass, JpegSubsample.Ratio444, 100)]
         [WithSolidFilledImages(8, 8, 255, 0, 0, PixelTypes.StandardImageClass, JpegSubsample.Ratio444, 100)]
-        public void DecodeGenerated_SaveBmp<TColor>(TestImageProvider<TColor> provider, JpegSubsample subsample, int qulaity)
+        public void DecodeGenerated_SaveBmp<TColor>(
+            TestImageProvider<TColor> provider,
+            JpegSubsample subsample,
+            int quality) 
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             Image<TColor> image = provider.GetImage();
 
-            JpegEncoder encoder = new JpegEncoder()
-                                      {
-                                          Subsample = subsample,
-                                          Quality = qulaity
-                                      };
+            JpegEncoder encoder = new JpegEncoder() { Subsample = subsample, Quality = quality };
 
             byte[] data = new byte[65536];
             using (MemoryStream ms = new MemoryStream(data))
@@ -69,8 +68,32 @@ namespace ImageSharp.Tests
 
             // TODO: Automatic image comparers could help here a lot :P
             Image<TColor> mirror = provider.Factory.CreateImage(data);
-            provider.Utility.TestName += $"_{subsample}_Q{qulaity}";
+            provider.Utility.TestName += $"_{subsample}_Q{quality}";
             provider.Utility.SaveTestOutputFile(mirror, "bmp");
+        }
+
+        [Theory]
+        [WithSolidFilledImages(42, 88, 255, 0, 0, PixelTypes.StandardImageClass)]
+        public void DecodeGenerated_MetadataOnly<TColor>(
+            TestImageProvider<TColor> provider) 
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
+        {
+            Image<TColor> image = provider.GetImage();
+            
+            using (MemoryStream ms = new MemoryStream())
+            {
+                image.Save(ms, new JpegEncoder());
+                ms.Seek(0, SeekOrigin.Begin);
+
+                Image<TColor> mirror = provider.Factory.CreateImage(1, 1);
+                using (JpegDecoderCore decoder = new JpegDecoderCore())
+                {
+                    decoder.Decode(mirror, ms, true);
+                    
+                    Assert.Equal(decoder.ImageWidth, image.Width);
+                    Assert.Equal(decoder.ImageHeight, image.Height);
+                }
+            }
         }
     }
 }

@@ -86,6 +86,10 @@ namespace ImageSharp.Benchmarks.Image
         [Setup]
         public void ReadImages()
         {
+            if (!Vector.IsHardwareAccelerated)
+            {
+                throw new Exception("Vector.IsHardwareAccelerated == false! Check your build settings!");
+            }
             // Console.WriteLine("Vector.IsHardwareAccelerated: " + Vector.IsHardwareAccelerated);
             this.ReadFilesImpl();
         }

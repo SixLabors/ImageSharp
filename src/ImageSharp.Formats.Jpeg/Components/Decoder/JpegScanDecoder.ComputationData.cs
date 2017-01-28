@@ -13,7 +13,7 @@ namespace ImageSharp.Formats.Jpg
     internal unsafe partial struct JpegScanDecoder
     {
         /// <summary>
-        /// Holds the "large" data blocks needed for computations
+        /// Holds the "large" data blocks needed for computations.
         /// </summary>
         [StructLayout(LayoutKind.Sequential)]
         public struct ComputationData
@@ -44,12 +44,12 @@ namespace ImageSharp.Formats.Jpg
             public UnzigData Unzig;
 
             /// <summary>
-            /// The no-idea-what's this data
+            /// The buffer storing the <see cref="ComponentScan"/>-s for each component
             /// </summary>
             public fixed byte ScanData[3 * JpegDecoderCore.MaxComponents];
 
             /// <summary>
-            /// The DC component values
+            /// The DC values for each component
             /// </summary>
             public fixed int Dc[JpegDecoderCore.MaxComponents];
 

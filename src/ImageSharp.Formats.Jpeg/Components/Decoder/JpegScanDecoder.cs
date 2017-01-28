@@ -2,7 +2,6 @@
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
-
 // ReSharper disable InconsistentNaming
 namespace ImageSharp.Formats.Jpg
 {
@@ -10,20 +9,39 @@ namespace ImageSharp.Formats.Jpg
     using System.Runtime.CompilerServices;
 
     /// <summary>
-    /// Encapsulates the impementation of Jpeg SOS decoder.
-    /// See JpegScanDecoder.md!
+    /// Encapsulates the impementation of Jpeg SOS decoder. See JpegScanDecoder.md!
+    /// TODO: Split JpegScanDecoder: 1. JpegScanDecoder for Huffman-decoding (<see cref="DecodeBlocks"/>) 2. JpegBlockProcessor for processing (<see cref="ProcessBlockColors"/>)
+    /// <see cref="zigStart"/> and <see cref="zigEnd"/> are the spectral selection bounds.
+    /// <see cref="ah"/> and <see cref="al"/> are the successive approximation high and low values.
+    /// The spec calls these values Ss, Se, Ah and Al.
+    /// For progressive JPEGs, these are the two more-or-less independent
+    /// aspects of progression. Spectral selection progression is when not
+    /// all of a block's 64 DCT coefficients are transmitted in one pass.
+    /// For example, three passes could transmit coefficient 0 (the DC
+    /// component), coefficients 1-5, and coefficients 6-63, in zig-zag
+    /// order. Successive approximation is when not all of the bits of a
+    /// band of coefficients are transmitted in one pass. For example,
+    /// three passes could transmit the 6 most significant bits, followed
+    /// by the second-least significant bit, followed by the least
+    /// significant bit.
+    /// For baseline JPEGs, these parameters are hard-coded to 0/63/0/0.
     /// </summary>
     internal unsafe partial struct JpegScanDecoder
     {
         /// <summary>
         /// The AC table index
         /// </summary>
-        private const int AcTableIndex = 1;
+        public const int AcTableIndex = 1;
 
         /// <summary>
         /// The DC table index
         /// </summary>
-        private const int DcTableIndex = 0;
+        public const int DcTableIndex = 0;
+
+        /// <summary>
+        /// The current component index
+        /// </summary>
+        public int ComponentIndex;
 
         /// <summary>
         /// X coordinate of the current block, in units of 8x8. (The third block in the first row has (bx, by) = (2, 0))
@@ -34,21 +52,6 @@ namespace ImageSharp.Formats.Jpg
         /// Y coordinate of the current block, in units of 8x8. (The third block in the first row has (bx, by) = (2, 0))
         /// </summary>
         private int by;
-
-        // zigStart and zigEnd are the spectral selection bounds.
-        // ah and al are the successive approximation high and low values.
-        // The spec calls these values Ss, Se, Ah and Al.
-        // For progressive JPEGs, these are the two more-or-less independent
-        // aspects of progression. Spectral selection progression is when not
-        // all of a block's 64 DCT coefficients are transmitted in one pass.
-        // For example, three passes could transmit coefficient 0 (the DC
-        // component), coefficients 1-5, and coefficients 6-63, in zig-zag
-        // order. Successive approximation is when not all of the bits of a
-        // band of coefficients are transmitted in one pass. For example,
-        // three passes could transmit the 6 most significant bits, followed
-        // by the second-least significant bit, followed by the least
-        // significant bit.
-        // For baseline JPEGs, these parameters are hard-coded to 0/63/0/0.
 
         /// <summary>
         /// Start index of the zig-zag selection bound
@@ -76,11 +79,6 @@ namespace ImageSharp.Formats.Jpg
         private int componentScanCount;
 
         /// <summary>
-        /// The current component index
-        /// </summary>
-        private int componentIndex;
-
-        /// <summary>
         /// Horizontal sampling factor at the current component index
         /// </summary>
         private int hi;
@@ -88,12 +86,7 @@ namespace ImageSharp.Formats.Jpg
         /// <summary>
         /// End-of-Band run, specified in section G.1.2.2.
         /// </summary>
-        private ushort eobRun;
-
-        /// <summary>
-        /// The <see cref="ComputationData"/> buffer
-        /// </summary>
-        private ComputationData data;
+        private int eobRun;
 
         /// <summary>
         /// Pointers to elements of <see cref="data"/>
@@ -101,23 +94,72 @@ namespace ImageSharp.Formats.Jpg
         private DataPointers pointers;
 
         /// <summary>
-        /// Initializes the default instance after creation.
+        /// The <see cref="ComputationData"/> buffer
+        /// </summary>
+        private ComputationData data;
+
+        /// <summary>
+        /// Initializes a default-constructed <see cref="JpegScanDecoder"/> instance for reading data from <see cref="JpegDecoderCore"/>-s stream.
         /// </summary>
         /// <param name="p">Pointer to <see cref="JpegScanDecoder"/> on the stack</param>
         /// <param name="decoder">The <see cref="JpegDecoderCore"/> instance</param>
         /// <param name="remaining">The remaining bytes in the segment block.</param>
-        public static void Init(JpegScanDecoder* p, JpegDecoderCore decoder, int remaining)
+        public static void InitStreamReading(JpegScanDecoder* p, JpegDecoderCore decoder, int remaining)
         {
-            p->data = ComputationData.Create();
-            p->pointers = new DataPointers(&p->data);
-            p->InitImpl(decoder, remaining);
+            Init(p);
+            p->InitStreamReadingImpl(decoder, remaining);
         }
 
         /// <summary>
-        /// Reads the blocks from the <see cref="JpegDecoderCore"/>-s stream, and processes them into the corresponding <see cref="JpegPixelArea"/> instances.
+        /// Initializes a default-constructed <see cref="JpegScanDecoder"/> instance, filling the data and setting the pointers.
+        /// </summary>
+        /// <param name="p">Pointer to <see cref="JpegScanDecoder"/> on the stack</param>
+        public static void Init(JpegScanDecoder* p)
+        {
+            p->data = ComputationData.Create();
+            p->pointers = new DataPointers(&p->data);
+        }
+
+        /// <summary>
+        /// Loads the data from the given <see cref="DecodedBlockMemento"/> into the block.
+        /// </summary>
+        /// <param name="memento">The <see cref="DecodedBlockMemento"/></param>
+        public void LoadMemento(ref DecodedBlockMemento memento)
+        {
+            this.bx = memento.Bx;
+            this.by = memento.By;
+            this.data.Block = memento.Block;
+        }
+
+        /// <summary>
+        /// Read Huffman data from Jpeg scans in <see cref="JpegDecoderCore.InputStream"/>,
+        /// and decode it as <see cref="Block8x8F"/> into <see cref="JpegDecoderCore.DecodedBlocks"/>.
+        ///
+        /// The blocks are traversed one MCU at a time. For 4:2:0 chroma
+        /// subsampling, there are four Y 8x8 blocks in every 16x16 MCU.
+        /// For a baseline 32x16 pixel image, the Y blocks visiting order is:
+        /// 0 1 4 5
+        /// 2 3 6 7
+        /// For progressive images, the interleaved scans (those with component count &gt; 1)
+        /// are traversed as above, but non-interleaved scans are traversed left
+        /// to right, top to bottom:
+        /// 0 1 2 3
+        /// 4 5 6 7
+        /// Only DC scans (zigStart == 0) can be interleave AC scans must have
+        /// only one component.
+        /// To further complicate matters, for non-interleaved scans, there is no
+        /// data for any blocks that are inside the image at the MCU level but
+        /// outside the image at the pixel level. For example, a 24x16 pixel 4:2:0
+        /// progressive image consists of two 16x16 MCUs. The interleaved scans
+        /// will process 8 Y blocks:
+        /// 0 1 4 5
+        /// 2 3 6 7
+        /// The non-interleaved scans will process only 6 Y blocks:
+        /// 0 1 2
+        /// 3 4 5
         /// </summary>
         /// <param name="decoder">The <see cref="JpegDecoderCore"/> instance</param>
-        public void ProcessBlocks(JpegDecoderCore decoder)
+        public void DecodeBlocks(JpegDecoderCore decoder)
         {
             int blockCount = 0;
             int mcu = 0;
@@ -127,36 +169,14 @@ namespace ImageSharp.Formats.Jpg
             {
                 for (int mx = 0; mx < decoder.MCUCountX; mx++)
                 {
-                    for (int i = 0; i < this.componentScanCount; i++)
+                    for (int scanIndex = 0; scanIndex < this.componentScanCount; scanIndex++)
                     {
-                        this.componentIndex = this.pointers.ComponentScan[i].ComponentIndex;
-                        this.hi = decoder.ComponentArray[this.componentIndex].HorizontalFactor;
-                        int vi = decoder.ComponentArray[this.componentIndex].VerticalFactor;
+                        this.ComponentIndex = this.pointers.ComponentScan[scanIndex].ComponentIndex;
+                        this.hi = decoder.ComponentArray[this.ComponentIndex].HorizontalFactor;
+                        int vi = decoder.ComponentArray[this.ComponentIndex].VerticalFactor;
 
                         for (int j = 0; j < this.hi * vi; j++)
                         {
-                            // The blocks are traversed one MCU at a time. For 4:2:0 chroma
-                            // subsampling, there are four Y 8x8 blocks in every 16x16 MCU.
-                            // For a baseline 32x16 pixel image, the Y blocks visiting order is:
-                            // 0 1 4 5
-                            // 2 3 6 7
-                            // For progressive images, the interleaved scans (those with component count > 1)
-                            // are traversed as above, but non-interleaved scans are traversed left
-                            // to right, top to bottom:
-                            // 0 1 2 3
-                            // 4 5 6 7
-                            // Only DC scans (zigStart == 0) can be interleave AC scans must have
-                            // only one component.
-                            // To further complicate matters, for non-interleaved scans, there is no
-                            // data for any blocks that are inside the image at the MCU level but
-                            // outside the image at the pixel level. For example, a 24x16 pixel 4:2:0
-                            // progressive image consists of two 16x16 MCUs. The interleaved scans
-                            // will process 8 Y blocks:
-                            // 0 1 4 5
-                            // 2 3 6 7
-                            // The non-interleaved scans will process only 6 Y blocks:
-                            // 0 1 2
-                            // 3 4 5
                             if (this.componentScanCount != 1)
                             {
                                 this.bx = (this.hi * mx) + (j % this.hi);
@@ -174,23 +194,18 @@ namespace ImageSharp.Formats.Jpg
                                 }
                             }
 
-                            int qtIndex = decoder.ComponentArray[this.componentIndex].Selector;
+                            // Take an existing block (required when progressive):
+                            int blockIndex = this.GetBlockIndex(decoder);
+                            this.data.Block = decoder.DecodedBlocks[this.ComponentIndex].Buffer[blockIndex].Block;
 
-                            // TODO: Reading & processing blocks should be done in 2 separate loops. The second one could be parallelized. The first one could be async.
-                            this.data.QuantiazationTable = decoder.QuantizationTables[qtIndex];
-
-                            // Load the previous partially decoded coefficients, if applicable.
-                            if (decoder.IsProgressive)
+                            if (!decoder.InputProcessor.UnexpectedEndOfStreamReached)
                             {
-                                int blockIndex = this.GetBlockIndex(decoder);
-                                this.data.Block = decoder.DecodedBlocks[this.componentIndex][blockIndex];
-                            }
-                            else
-                            {
-                                this.data.Block.Clear();
+                                this.DecodeBlock(decoder, scanIndex);
                             }
 
-                            this.ProcessBlockImpl(decoder, i);
+                            // Store the decoded block
+                            DecodedBlockMemento.Array blocks = decoder.DecodedBlocks[this.ComponentIndex];
+                            DecodedBlockMemento.Store(ref blocks, blockIndex, this.bx, this.by, ref this.data.Block);
                         }
 
                         // for j
@@ -203,20 +218,26 @@ namespace ImageSharp.Formats.Jpg
                     {
                         // A more sophisticated decoder could use RST[0-7] markers to resynchronize from corrupt input,
                         // but this one assumes well-formed input, and hence the restart marker follows immediately.
-                        decoder.ReadFull(decoder.Temp, 0, 2);
-                        if (decoder.Temp[0] != 0xff || decoder.Temp[1] != expectedRst)
+                        if (!decoder.InputProcessor.UnexpectedEndOfStreamReached)
                         {
-                            throw new ImageFormatException("Bad RST marker");
-                        }
+                            DecoderErrorCode errorCode = decoder.InputProcessor.ReadFullUnsafe(decoder.Temp, 0, 2);
+                            if (decoder.InputProcessor.CheckEOFEnsureNoError(errorCode))
+                            {
+                                if (decoder.Temp[0] != 0xff || decoder.Temp[1] != expectedRst)
+                                {
+                                    throw new ImageFormatException("Bad RST marker");
+                                }
 
-                        expectedRst++;
-                        if (expectedRst == JpegConstants.Markers.RST7 + 1)
-                        {
-                            expectedRst = JpegConstants.Markers.RST0;
+                                expectedRst++;
+                                if (expectedRst == JpegConstants.Markers.RST7 + 1)
+                                {
+                                    expectedRst = JpegConstants.Markers.RST0;
+                                }
+                            }
                         }
 
                         // Reset the Huffman decoder.
-                        decoder.Bits = default(Bits);
+                        decoder.InputProcessor.Bits = default(Bits);
 
                         // Reset the DC components, as per section F.2.1.3.1.
                         this.ResetDc();
@@ -230,17 +251,37 @@ namespace ImageSharp.Formats.Jpg
             }
         }
 
+        /// <summary>
+        /// Dequantize, perform the inverse DCT and store the block to the into the corresponding <see cref="JpegPixelArea"/> instances.
+        /// </summary>
+        /// <param name="decoder">The <see cref="JpegDecoderCore"/> instance</param>
+        public void ProcessBlockColors(JpegDecoderCore decoder)
+        {
+            int qtIndex = decoder.ComponentArray[this.ComponentIndex].Selector;
+            this.data.QuantiazationTable = decoder.QuantizationTables[qtIndex];
+
+            Block8x8F* b = this.pointers.Block;
+
+            Block8x8F.UnZig(b, this.pointers.QuantiazationTable, this.pointers.Unzig);
+
+            DCT.TransformIDCT(ref *b, ref *this.pointers.Temp1, ref *this.pointers.Temp2);
+
+            var destChannel = decoder.GetDestinationChannel(this.ComponentIndex);
+            var destArea = destChannel.GetOffsetedSubAreaForBlock(this.bx, this.by);
+            destArea.LoadColorsFrom(this.pointers.Temp1, this.pointers.Temp2);
+        }
+
         private void ResetDc()
         {
             Unsafe.InitBlock(this.pointers.Dc, default(byte), sizeof(int) * JpegDecoderCore.MaxComponents);
         }
 
         /// <summary>
-        /// The implementation part of <see cref="Init"/> as an instance method.
+        /// The implementation part of <see cref="InitStreamReading"/> as an instance method.
         /// </summary>
         /// <param name="decoder">The <see cref="JpegDecoderCore"/></param>
         /// <param name="remaining">The remaining bytes</param>
-        private void InitImpl(JpegDecoderCore decoder, int remaining)
+        private void InitStreamReadingImpl(JpegDecoderCore decoder, int remaining)
         {
             if (decoder.ComponentCount == 0)
             {
@@ -252,7 +293,7 @@ namespace ImageSharp.Formats.Jpg
                 throw new ImageFormatException("SOS has wrong length");
             }
 
-            decoder.ReadFull(decoder.Temp, 0, remaining);
+            decoder.InputProcessor.ReadFull(decoder.Temp, 0, remaining);
             this.componentScanCount = decoder.Temp[0];
 
             int scanComponentCountX2 = 2 * this.componentScanCount;
@@ -265,7 +306,7 @@ namespace ImageSharp.Formats.Jpg
 
             for (int i = 0; i < this.componentScanCount; i++)
             {
-                this.ProcessScanImpl(decoder, i, ref this.pointers.ComponentScan[i], ref totalHv);
+                this.InitComponentScan(decoder, i, ref this.pointers.ComponentScan[i], ref totalHv);
             }
 
             // Section B.2.3 states that if there is more than one component then the
@@ -303,18 +344,18 @@ namespace ImageSharp.Formats.Jpg
         }
 
         /// <summary>
-        /// Process the current block at (<see cref="bx"/>, <see cref="by"/>)
+        /// Read the current the current block at (<see cref="bx"/>, <see cref="by"/>) from the decoders stream
         /// </summary>
         /// <param name="decoder">The decoder</param>
-        /// <param name="i">The index of the scan</param>
-        private void ProcessBlockImpl(JpegDecoderCore decoder, int i)
+        /// <param name="scanIndex">The index of the scan</param>
+        private void DecodeBlock(JpegDecoderCore decoder, int scanIndex)
         {
             var b = this.pointers.Block;
-
-            int huffmannIdx = (AcTableIndex * HuffmanTree.ThRowSize) + this.pointers.ComponentScan[i].AcTableSelector;
+            DecoderErrorCode errorCode;
+            int huffmannIdx = (AcTableIndex * HuffmanTree.ThRowSize) + this.pointers.ComponentScan[scanIndex].AcTableSelector;
             if (this.ah != 0)
             {
-                this.Refine(decoder, ref decoder.HuffmanTrees[huffmannIdx], 1 << this.al);
+                this.Refine(ref decoder.InputProcessor, ref decoder.HuffmanTrees[huffmannIdx], 1 << this.al);
             }
             else
             {
@@ -324,19 +365,32 @@ namespace ImageSharp.Formats.Jpg
                     zig++;
 
                     // Decode the DC coefficient, as specified in section F.2.2.1.
-                    byte value =
-                        decoder.DecodeHuffman(
-                            ref decoder.HuffmanTrees[(DcTableIndex * HuffmanTree.ThRowSize) + this.pointers.ComponentScan[i].DcTableSelector]);
+                    int value;
+                    int huffmanIndex = (DcTableIndex * HuffmanTree.ThRowSize) + this.pointers.ComponentScan[scanIndex].DcTableSelector;
+                    errorCode = decoder.InputProcessor.DecodeHuffmanUnsafe(
+                            ref decoder.HuffmanTrees[huffmanIndex],
+                            out value);
+                    if (!decoder.InputProcessor.CheckEOF(errorCode))
+                    {
+                        return;
+                    }
+
                     if (value > 16)
                     {
                         throw new ImageFormatException("Excessive DC component");
                     }
 
-                    int deltaDC = decoder.Bits.ReceiveExtend(value, decoder);
-                    this.pointers.Dc[this.componentIndex] += deltaDC;
+                    int deltaDC;
+                    errorCode = decoder.InputProcessor.ReceiveExtendUnsafe(value, out deltaDC);
+                    if (!decoder.InputProcessor.CheckEOFEnsureNoError(errorCode))
+                    {
+                        return;
+                    }
+
+                    this.pointers.Dc[this.ComponentIndex] += deltaDC;
 
                     // b[0] = dc[compIndex] << al;
-                    Block8x8F.SetScalarAt(b, 0, this.pointers.Dc[this.componentIndex] << this.al);
+                    Block8x8F.SetScalarAt(b, 0, this.pointers.Dc[this.ComponentIndex] << this.al);
                 }
 
                 if (zig <= this.zigEnd && this.eobRun > 0)
@@ -348,9 +402,15 @@ namespace ImageSharp.Formats.Jpg
                     // Decode the AC coefficients, as specified in section F.2.2.2.
                     for (; zig <= this.zigEnd; zig++)
                     {
-                        byte value = decoder.DecodeHuffman(ref decoder.HuffmanTrees[huffmannIdx]);
-                        byte val0 = (byte)(value >> 4);
-                        byte val1 = (byte)(value & 0x0f);
+                        int value;
+                        errorCode = decoder.InputProcessor.DecodeHuffmanUnsafe(ref decoder.HuffmanTrees[huffmannIdx], out value);
+                        if (!decoder.InputProcessor.CheckEOF(errorCode))
+                        {
+                            return;
+                        }
+
+                        int val0 = value >> 4;
+                        int val1 = value & 0x0f;
                         if (val1 != 0)
                         {
                             zig += val0;
@@ -359,7 +419,12 @@ namespace ImageSharp.Formats.Jpg
                                 break;
                             }
 
-                            int ac = decoder.Bits.ReceiveExtend(val1, decoder);
+                            int ac;
+                            errorCode = decoder.InputProcessor.ReceiveExtendUnsafe(val1, out ac);
+                            if (!decoder.InputProcessor.CheckEOFEnsureNoError(errorCode))
+                            {
+                                return;
+                            }
 
                             // b[Unzig[zig]] = ac << al;
                             Block8x8F.SetScalarAt(b, this.pointers.Unzig[zig], ac << this.al);
@@ -371,7 +436,11 @@ namespace ImageSharp.Formats.Jpg
                                 this.eobRun = (ushort)(1 << val0);
                                 if (val0 != 0)
                                 {
-                                    this.eobRun |= (ushort)decoder.DecodeBits(val0);
+                                    errorCode = this.DecodeEobRun(val0, ref decoder.InputProcessor);
+                                    if (!decoder.InputProcessor.CheckEOFEnsureNoError(errorCode))
+                                    {
+                                        return;
+                                    }
                                 }
 
                                 this.eobRun--;
@@ -383,31 +452,19 @@ namespace ImageSharp.Formats.Jpg
                     }
                 }
             }
+        }
 
-            if (decoder.IsProgressive)
+        private DecoderErrorCode DecodeEobRun(int count, ref InputProcessor decoder)
+        {
+            int bitsResult;
+            DecoderErrorCode errorCode = decoder.DecodeBitsUnsafe(count, out bitsResult);
+            if (errorCode != DecoderErrorCode.NoError)
             {
-                if (this.zigEnd != Block8x8F.ScalarCount - 1 || this.al != 0)
-                {
-                    // We haven't completely decoded this 8x8 block. Save the coefficients.
-                    decoder.DecodedBlocks[this.componentIndex][this.GetBlockIndex(decoder)] = *b;
-
-                    // At this point, we could execute the rest of the loop body to dequantize and
-                    // perform the inverse DCT, to save early stages of a progressive image to the
-                    // *image.YCbCr buffers (the whole point of progressive encoding), but in Go,
-                    // the jpeg.Decode function does not return until the entire image is decoded,
-                    // so we "continue" here to avoid wasted computation.
-                    return;
-                }
+                return errorCode;
             }
 
-            // Dequantize, perform the inverse DCT and store the block to the image.
-            Block8x8F.UnZig(b, this.pointers.QuantiazationTable, this.pointers.Unzig);
-
-            DCT.TransformIDCT(ref *b, ref *this.pointers.Temp1, ref *this.pointers.Temp2);
-
-            var destChannel = decoder.GetDestinationChannel(this.componentIndex);
-            var destArea = destChannel.GetOffsetedSubAreaForBlock(this.bx, this.by);
-            destArea.LoadColorsFrom(this.pointers.Temp1, this.pointers.Temp2);
+            this.eobRun |= bitsResult;
+            return DecoderErrorCode.NoError;
         }
 
         /// <summary>
@@ -417,10 +474,10 @@ namespace ImageSharp.Formats.Jpg
         /// <returns>The index</returns>
         private int GetBlockIndex(JpegDecoderCore decoder)
         {
-            return ((this.@by * decoder.MCUCountX) * this.hi) + this.bx;
+            return ((this.by * decoder.MCUCountX) * this.hi) + this.bx;
         }
 
-        private void ProcessScanImpl(JpegDecoderCore decoder, int i, ref ComponentScan currentComponentScan, ref int totalHv)
+        private void InitComponentScan(JpegDecoderCore decoder, int i, ref ComponentScan currentComponentScan, ref int totalHv)
         {
             // Component selector.
             int cs = decoder.Temp[1 + (2 * i)];
@@ -482,10 +539,10 @@ namespace ImageSharp.Formats.Jpg
         /// <summary>
         /// Decodes a successive approximation refinement block, as specified in section G.1.2.
         /// </summary>
-        /// <param name="decoder">The decoder instance</param>
+        /// <param name="bp">The <see cref="InputProcessor"/> instance</param>
         /// <param name="h">The Huffman tree</param>
         /// <param name="delta">The low transform offset</param>
-        private void Refine(JpegDecoderCore decoder, ref HuffmanTree h, int delta)
+        private void Refine(ref InputProcessor bp, ref HuffmanTree h, int delta)
         {
             Block8x8F* b = this.pointers.Block;
 
@@ -497,7 +554,13 @@ namespace ImageSharp.Formats.Jpg
                     throw new ImageFormatException("Invalid state for zig DC component");
                 }
 
-                bool bit = decoder.DecodeBit();
+                bool bit;
+                DecoderErrorCode errorCode = bp.DecodeBitUnsafe(out bit);
+                if (!bp.CheckEOFEnsureNoError(errorCode))
+                {
+                    return;
+                }
+
                 if (bit)
                 {
                     int stuff = (int)Block8x8F.GetScalarAt(b, 0);
@@ -520,7 +583,14 @@ namespace ImageSharp.Formats.Jpg
                 {
                     bool done = false;
                     int z = 0;
-                    byte val = decoder.DecodeHuffman(ref h);
+
+                    int val;
+                    DecoderErrorCode errorCode = bp.DecodeHuffmanUnsafe(ref h, out val);
+                    if (!bp.CheckEOF(errorCode))
+                    {
+                        return;
+                    }
+
                     int val0 = val >> 4;
                     int val1 = val & 0x0f;
 
@@ -529,10 +599,14 @@ namespace ImageSharp.Formats.Jpg
                         case 0:
                             if (val0 != 0x0f)
                             {
-                                this.eobRun = (ushort)(1 << val0);
+                                this.eobRun = 1 << val0;
                                 if (val0 != 0)
                                 {
-                                    this.eobRun |= (ushort)decoder.DecodeBits(val0);
+                                    errorCode = this.DecodeEobRun(val0, ref bp);
+                                    if (!bp.CheckEOFEnsureNoError(errorCode))
+                                    {
+                                        return;
+                                    }
                                 }
 
                                 done = true;
@@ -541,7 +615,14 @@ namespace ImageSharp.Formats.Jpg
                             break;
                         case 1:
                             z = delta;
-                            bool bit = decoder.DecodeBit();
+
+                            bool bit;
+                            errorCode = bp.DecodeBitUnsafe(out bit);
+                            if (!bp.CheckEOFEnsureNoError(errorCode))
+                            {
+                                return;
+                            }
+
                             if (!bit)
                             {
                                 z = -z;
@@ -557,7 +638,12 @@ namespace ImageSharp.Formats.Jpg
                         break;
                     }
 
-                    zig = this.RefineNonZeroes(decoder, zig, val0, delta);
+                    zig = this.RefineNonZeroes(ref bp, zig, val0, delta);
+                    if (bp.UnexpectedEndOfStreamReached)
+                    {
+                        return;
+                    }
+
                     if (zig > this.zigEnd)
                     {
                         throw new ImageFormatException($"Too many coefficients {zig} > {this.zigEnd}");
@@ -574,7 +660,7 @@ namespace ImageSharp.Formats.Jpg
             if (this.eobRun > 0)
             {
                 this.eobRun--;
-                this.RefineNonZeroes(decoder, zig, -1, delta);
+                this.RefineNonZeroes(ref bp, zig, -1, delta);
             }
         }
 
@@ -582,12 +668,12 @@ namespace ImageSharp.Formats.Jpg
         /// Refines non-zero entries of b in zig-zag order.
         /// If <paramref name="nz" /> >= 0, the first <paramref name="nz" /> zero entries are skipped over.
         /// </summary>
-        /// <param name="decoder">The decoder</param>
+        /// <param name="bp">The <see cref="InputProcessor"/></param>
         /// <param name="zig">The zig-zag start index</param>
         /// <param name="nz">The non-zero entry</param>
         /// <param name="delta">The low transform offset</param>
         /// <returns>The <see cref="int" /></returns>
-        private int RefineNonZeroes(JpegDecoderCore decoder, int zig, int nz, int delta)
+        private int RefineNonZeroes(ref InputProcessor bp, int zig, int nz, int delta)
         {
             var b = this.pointers.Block;
             for (; zig <= this.zigEnd; zig++)
@@ -607,7 +693,13 @@ namespace ImageSharp.Formats.Jpg
                     continue;
                 }
 
-                bool bit = decoder.DecodeBit();
+                bool bit;
+                DecoderErrorCode errorCode = bp.DecodeBitUnsafe(out bit);
+                if (!bp.CheckEOFEnsureNoError(errorCode))
+                {
+                    return int.MinValue;
+                }
+
                 if (!bit)
                 {
                     continue;

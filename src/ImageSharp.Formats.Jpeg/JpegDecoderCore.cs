@@ -163,7 +163,7 @@ namespace ImageSharp.Formats
         public int TotalMCUCount => this.MCUCountX * this.MCUCountY;
 
         /// <summary>
-        /// Decodes the image from the specified this._stream and sets
+        /// Decodes the image from the specified <see cref="Stream"/>  and sets
         /// the data to image.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>

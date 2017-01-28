@@ -196,7 +196,7 @@ namespace ImageSharp.Formats.Jpg
 
                             // Take an existing block (required when progressive):
                             int blockIndex = this.GetBlockIndex(decoder);
-                            this.data.Block = decoder.DecodedBlocks[this.ComponentIndex][blockIndex].Block;
+                            this.data.Block = decoder.DecodedBlocks[this.ComponentIndex].Buffer[blockIndex].Block;
 
                             if (!decoder.InputProcessor.UnexpectedEndOfStreamReached)
                             {
@@ -204,8 +204,8 @@ namespace ImageSharp.Formats.Jpg
                             }
 
                             // Store the decoded block
-                            DecodedBlockMemento[] blocks = decoder.DecodedBlocks[this.ComponentIndex];
-                            DecodedBlockMemento.Store(blocks, blockIndex, this.bx, this.by, ref this.data.Block);
+                            DecodedBlockMemento.Array blocks = decoder.DecodedBlocks[this.ComponentIndex];
+                            DecodedBlockMemento.Store(ref blocks, blockIndex, this.bx, this.by, ref this.data.Block);
                         }
 
                         // for j

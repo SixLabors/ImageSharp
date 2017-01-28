@@ -7,6 +7,9 @@
 namespace ImageSharp.Tests
 {
     using System;
+    using System.IO;
+
+    using ImageSharp.Formats;
 
     using Xunit;
 
@@ -30,7 +33,7 @@ namespace ImageSharp.Tests
 
             provider.Utility.SaveTestOutputFile(image, "bmp");
         }
-
+        
         [Theory]
         [WithFileCollection(nameof(ProgressiveTestJpegs), PixelTypes.Color | PixelTypes.StandardImageClass | PixelTypes.Argb)]
         public void OpenProgressiveJpeg_SaveBmp<TColor>(TestImageProvider<TColor> provider)
@@ -39,6 +42,35 @@ namespace ImageSharp.Tests
             Image<TColor> image = provider.GetImage();
 
             provider.Utility.SaveTestOutputFile(image, "bmp");
+        }
+        
+        [Theory]
+        [WithSolidFilledImages(16, 16, 255, 0, 0, PixelTypes.StandardImageClass, JpegSubsample.Ratio420, 75)]
+        [WithSolidFilledImages(16, 16, 255, 0, 0, PixelTypes.StandardImageClass, JpegSubsample.Ratio420, 100)]
+        [WithSolidFilledImages(16, 16, 255, 0, 0, PixelTypes.StandardImageClass, JpegSubsample.Ratio444, 75)]
+        [WithSolidFilledImages(16, 16, 255, 0, 0, PixelTypes.StandardImageClass, JpegSubsample.Ratio444, 100)]
+        [WithSolidFilledImages(8, 8, 255, 0, 0, PixelTypes.StandardImageClass, JpegSubsample.Ratio444, 100)]
+        public void DecodeGenerated_SaveBmp<TColor>(TestImageProvider<TColor> provider, JpegSubsample subsample, int qulaity)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
+        {
+            Image<TColor> image = provider.GetImage();
+
+            JpegEncoder encoder = new JpegEncoder()
+                                      {
+                                          Subsample = subsample,
+                                          Quality = qulaity
+                                      };
+
+            byte[] data = new byte[65536];
+            using (MemoryStream ms = new MemoryStream(data))
+            {
+                image.Save(ms, encoder);
+            }
+
+            // TODO: Automatic image comparers could help here a lot :P
+            Image<TColor> mirror = provider.Factory.CreateImage(data);
+            provider.Utility.TestName += $"_{subsample}_Q{qulaity}";
+            provider.Utility.SaveTestOutputFile(mirror, "bmp");
         }
     }
 }

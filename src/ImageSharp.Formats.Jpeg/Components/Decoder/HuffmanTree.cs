@@ -45,7 +45,7 @@ namespace ImageSharp.Formats.Jpg
         /// <summary>
         /// The log-2 size of the Huffman decoder's look-up table.
         /// </summary>
-        public const int LutSize = 8;
+        public const int LutSizeLog2 = 8;
 
         /// <summary>
         /// Gets or sets the number of codes in the tree.
@@ -58,12 +58,12 @@ namespace ImageSharp.Formats.Jpg
         /// are 1 plus the code length, or 0 if the value is too large to fit in
         /// lutSize bits.
         /// </summary>
-        public ushort[] Lut;
+        public int[] Lut;
 
         /// <summary>
         /// Gets the the decoded values, sorted by their encoding.
         /// </summary>
-        public byte[] Values;
+        public int[] Values;
 
         /// <summary>
         /// Gets the array of minimum codes.
@@ -82,11 +82,11 @@ namespace ImageSharp.Formats.Jpg
         /// </summary>
         public int[] Indices;
 
-        private static readonly ArrayPool<ushort> UshortBuffer = ArrayPool<ushort>.Create(1 << LutSize, 50);
+        private static readonly ArrayPool<int> IntPool256 = ArrayPool<int>.Create(MaxNCodes, 50);
 
-        private static readonly ArrayPool<byte> ByteBuffer = ArrayPool<byte>.Create(MaxNCodes, 50);
+        private static readonly ArrayPool<byte> BytePool256 = ArrayPool<byte>.Create(MaxNCodes, 50);
 
-        private static readonly ArrayPool<int> IntBuffer = ArrayPool<int>.Create(MaxCodeLength, 50);
+        private static readonly ArrayPool<int> CodesPool16 = ArrayPool<int>.Create(MaxCodeLength, 50);
 
         /// <summary>
         /// Creates and initializes an array of <see cref="HuffmanTree" /> instances of size <see cref="NumberOfTrees" />
@@ -111,21 +111,21 @@ namespace ImageSharp.Formats.Jpg
         /// </summary>
         public void Dispose()
         {
-            UshortBuffer.Return(this.Lut, true);
-            ByteBuffer.Return(this.Values, true);
-            IntBuffer.Return(this.MinCodes, true);
-            IntBuffer.Return(this.MaxCodes, true);
-            IntBuffer.Return(this.Indices, true);
+            IntPool256.Return(this.Lut, true);
+            IntPool256.Return(this.Values, true);
+            CodesPool16.Return(this.MinCodes, true);
+            CodesPool16.Return(this.MaxCodes, true);
+            CodesPool16.Return(this.Indices, true);
         }
 
         /// <summary>
         /// Internal part of the DHT processor, whatever does it mean
         /// </summary>
-        /// <param name="decoder">The decoder instance</param>
+        /// <param name="inputProcessor">The decoder instance</param>
         /// <param name="defineHuffmanTablesData">The temporal buffer that holds the data that has been read from the Jpeg stream</param>
         /// <param name="remaining">Remaining bits</param>
         public void ProcessDefineHuffmanTablesMarkerLoop(
-            JpegDecoderCore decoder,
+            ref InputProcessor inputProcessor,
             byte[] defineHuffmanTablesData,
             ref int remaining)
         {
@@ -157,7 +157,21 @@ namespace ImageSharp.Formats.Jpg
                 throw new ImageFormatException("DHT has wrong length");
             }
 
-            decoder.ReadFull(this.Values, 0, this.Length);
+            byte[] values = null;
+            try
+            {
+                values = BytePool256.Rent(MaxNCodes);
+                inputProcessor.ReadFull(values, 0, this.Length);
+
+                for (int i = 0; i < values.Length; i++)
+                {
+                    this.Values[i] = values[i];
+                }
+            }
+            finally
+            {
+                BytePool256.Return(values, true);
+            }
 
             // Derive the look-up table.
             for (int i = 0; i < this.Lut.Length; i++)
@@ -165,9 +179,9 @@ namespace ImageSharp.Formats.Jpg
                 this.Lut[i] = 0;
             }
 
-            uint x = 0, code = 0;
+            int x = 0, code = 0;
 
-            for (int i = 0; i < LutSize; i++)
+            for (int i = 0; i < LutSizeLog2; i++)
             {
                 code <<= 1;
 
@@ -178,8 +192,8 @@ namespace ImageSharp.Formats.Jpg
                     // whose codeLength's high bits matches code.
                     // The high 8 bits of lutValue are the encoded value.
                     // The low 8 bits are 1 plus the codeLength.
-                    byte base2 = (byte)(code << (7 - i));
-                    ushort lutValue = (ushort)((this.Values[x] << 8) | (2 + i));
+                    int base2 = code << (7 - i);
+                    int lutValue = (this.Values[x] << 8) | (2 + i);
 
                     for (int k = 0; k < 1 << (7 - i); k++)
                     {
@@ -216,15 +230,26 @@ namespace ImageSharp.Formats.Jpg
         }
 
         /// <summary>
+        /// Gets the value for the given code and index.
+        /// </summary>
+        /// <param name="code">The code</param>
+        /// <param name="codeLength">The code length</param>
+        /// <returns>The value</returns>
+        public int GetValue(int code, int codeLength)
+        {
+            return this.Values[this.Indices[codeLength] + code - this.MinCodes[codeLength]];
+        }
+
+        /// <summary>
         /// Initializes the Huffman tree
         /// </summary>
         private void Init()
         {
-            this.Lut = UshortBuffer.Rent(1 << LutSize);
-            this.Values = ByteBuffer.Rent(MaxNCodes);
-            this.MinCodes = IntBuffer.Rent(MaxCodeLength);
-            this.MaxCodes = IntBuffer.Rent(MaxCodeLength);
-            this.Indices = IntBuffer.Rent(MaxCodeLength);
+            this.Lut = IntPool256.Rent(MaxNCodes);
+            this.Values = IntPool256.Rent(MaxNCodes);
+            this.MinCodes = CodesPool16.Rent(MaxCodeLength);
+            this.MaxCodes = CodesPool16.Rent(MaxCodeLength);
+            this.Indices = CodesPool16.Rent(MaxCodeLength);
         }
     }
 }

@@ -1,5 +1,5 @@
 version: 1.0.0.{build}
-os: Visual Studio 2015
+image: Visual Studio 2017 RC
 
 init:
   - ps: iex ((new-object net.webclient).DownloadString('https://gist.githubusercontent.com/PureKrome/0f79e25693d574807939/raw/8cf3160c9516ef1f4effc825c0a44acc918a0b5a/appveyor-build-info.ps'))

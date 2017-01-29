@@ -9,7 +9,6 @@ namespace ImageSharp.Drawing.Pens
     using System.Numerics;
 
     using ImageSharp.Drawing.Brushes;
-    using ImageSharp.Drawing.Paths;
     using Processors;
 
     /// <summary>

@@ -7,10 +7,11 @@ namespace ImageSharp.Formats.Jpg
 {
     using System;
     using System.Runtime.CompilerServices;
+    using System.Runtime.InteropServices;
 
     /// <summary>
-    /// Encapsulates the impementation of Jpeg SOS decoder. See JpegScanDecoder.md!
-    /// TODO: Split JpegScanDecoder: 1. JpegScanDecoder for Huffman-decoding (<see cref="DecodeBlocks"/>) 2. JpegBlockProcessor for processing (<see cref="ProcessBlockColors"/>)
+    /// Encapsulates the impementation of Jpeg SOS Huffman decoding. See JpegScanDecoder.md!
+    ///
     /// <see cref="zigStart"/> and <see cref="zigEnd"/> are the spectral selection bounds.
     /// <see cref="ah"/> and <see cref="al"/> are the successive approximation high and low values.
     /// The spec calls these values Ss, Se, Ah and Al.
@@ -26,17 +27,21 @@ namespace ImageSharp.Formats.Jpg
     /// significant bit.
     /// For baseline JPEGs, these parameters are hard-coded to 0/63/0/0.
     /// </summary>
+    [StructLayout(LayoutKind.Sequential)]
     internal unsafe partial struct JpegScanDecoder
     {
-        /// <summary>
-        /// The AC table index
-        /// </summary>
-        public const int AcTableIndex = 1;
+        // The JpegScanDecoder members should be ordered in a way that results in optimal memory layout.
+#pragma warning disable SA1202 // ElementsMustBeOrderedByAccess
 
         /// <summary>
-        /// The DC table index
+        /// The <see cref="ComputationData"/> buffer
         /// </summary>
-        public const int DcTableIndex = 0;
+        private ComputationData data;
+
+        /// <summary>
+        /// Pointers to elements of <see cref="data"/>
+        /// </summary>
+        private DataPointers pointers;
 
         /// <summary>
         /// The current component index
@@ -89,16 +94,6 @@ namespace ImageSharp.Formats.Jpg
         private int eobRun;
 
         /// <summary>
-        /// Pointers to elements of <see cref="data"/>
-        /// </summary>
-        private DataPointers pointers;
-
-        /// <summary>
-        /// The <see cref="ComputationData"/> buffer
-        /// </summary>
-        private ComputationData data;
-
-        /// <summary>
         /// Initializes a default-constructed <see cref="JpegScanDecoder"/> instance for reading data from <see cref="JpegDecoderCore"/>-s stream.
         /// </summary>
         /// <param name="p">Pointer to <see cref="JpegScanDecoder"/> on the stack</param>
@@ -106,29 +101,9 @@ namespace ImageSharp.Formats.Jpg
         /// <param name="remaining">The remaining bytes in the segment block.</param>
         public static void InitStreamReading(JpegScanDecoder* p, JpegDecoderCore decoder, int remaining)
         {
-            Init(p);
-            p->InitStreamReadingImpl(decoder, remaining);
-        }
-
-        /// <summary>
-        /// Initializes a default-constructed <see cref="JpegScanDecoder"/> instance, filling the data and setting the pointers.
-        /// </summary>
-        /// <param name="p">Pointer to <see cref="JpegScanDecoder"/> on the stack</param>
-        public static void Init(JpegScanDecoder* p)
-        {
             p->data = ComputationData.Create();
             p->pointers = new DataPointers(&p->data);
-        }
-
-        /// <summary>
-        /// Loads the data from the given <see cref="DecodedBlock"/> into the block.
-        /// </summary>
-        /// <param name="memento">The <see cref="DecodedBlock"/></param>
-        public void LoadMemento(ref DecodedBlock memento)
-        {
-            this.bx = memento.Bx;
-            this.by = memento.By;
-            this.data.Block = memento.Block;
+            p->InitStreamReadingImpl(decoder, remaining);
         }
 
         /// <summary>
@@ -251,26 +226,6 @@ namespace ImageSharp.Formats.Jpg
             }
         }
 
-        /// <summary>
-        /// Dequantize, perform the inverse DCT and store the block to the into the corresponding <see cref="JpegPixelArea"/> instances.
-        /// </summary>
-        /// <param name="decoder">The <see cref="JpegDecoderCore"/> instance</param>
-        public void ProcessBlockColors(JpegDecoderCore decoder)
-        {
-            int qtIndex = decoder.ComponentArray[this.ComponentIndex].Selector;
-            this.data.QuantiazationTable = decoder.QuantizationTables[qtIndex];
-
-            Block8x8F* b = this.pointers.Block;
-
-            Block8x8F.UnZig(b, this.pointers.QuantiazationTable, this.pointers.Unzig);
-
-            DCT.TransformIDCT(ref *b, ref *this.pointers.Temp1, ref *this.pointers.Temp2);
-
-            var destChannel = decoder.GetDestinationChannel(this.ComponentIndex);
-            var destArea = destChannel.GetOffsetedSubAreaForBlock(this.bx, this.by);
-            destArea.LoadColorsFrom(this.pointers.Temp1, this.pointers.Temp2);
-        }
-
         private void ResetDc()
         {
             Unsafe.InitBlock(this.pointers.Dc, default(byte), sizeof(int) * JpegDecoderCore.MaxComponents);
@@ -351,8 +306,7 @@ namespace ImageSharp.Formats.Jpg
         private void DecodeBlock(JpegDecoderCore decoder, int scanIndex)
         {
             var b = this.pointers.Block;
-            DecoderErrorCode errorCode;
-            int huffmannIdx = (AcTableIndex * HuffmanTree.ThRowSize) + this.pointers.ComponentScan[scanIndex].AcTableSelector;
+            int huffmannIdx = (HuffmanTree.AcTableIndex * HuffmanTree.ThRowSize) + this.pointers.ComponentScan[scanIndex].AcTableSelector;
             if (this.ah != 0)
             {
                 this.Refine(ref decoder.InputProcessor, ref decoder.HuffmanTrees[huffmannIdx], 1 << this.al);
@@ -360,13 +314,14 @@ namespace ImageSharp.Formats.Jpg
             else
             {
                 int zig = this.zigStart;
+                DecoderErrorCode errorCode;
                 if (zig == 0)
                 {
                     zig++;
 
                     // Decode the DC coefficient, as specified in section F.2.2.1.
                     int value;
-                    int huffmanIndex = (DcTableIndex * HuffmanTree.ThRowSize) + this.pointers.ComponentScan[scanIndex].DcTableSelector;
+                    int huffmanIndex = (HuffmanTree.DcTableIndex * HuffmanTree.ThRowSize) + this.pointers.ComponentScan[scanIndex].DcTableSelector;
                     errorCode = decoder.InputProcessor.DecodeHuffmanUnsafe(
                             ref decoder.HuffmanTrees[huffmanIndex],
                             out value);

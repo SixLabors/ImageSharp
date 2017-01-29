@@ -102,9 +102,9 @@ namespace ImageSharp.Formats
 
         /// <summary>
         /// Gets the array of <see cref="DecodedBlockArray"/>-s storing the "raw" frequency-domain decoded blocks.
-        /// We need to apply IDCT and unzigging to transform them into color-space blocks.
+        /// We need to apply IDCT, dequantiazition and unzigging to transform them into color-space blocks.
         /// This is done by <see cref="ProcessBlocksIntoJpegImageChannels{TColor}"/>.
-        /// When <see cref="IsProgressive"/>==true, we are touching these blocks each time we process a Scan.
+        /// When <see cref="IsProgressive"/>==true, we are touching these blocks multiple times - each time we process a Scan.
         /// </summary>
         public DecodedBlockArray[] DecodedBlocks { get; }
 
@@ -463,7 +463,7 @@ namespace ImageSharp.Formats
 
         /// <summary>
         /// Process the blocks in <see cref="DecodedBlocks"/> into Jpeg image channels (<see cref="YCbCrImage"/> and <see cref="JpegPixelArea"/>)
-        /// <see cref="DecodedBlocks"/> are in a "raw" frequency-domain form. We need to apply IDCT and unzigging to transform them into color-space blocks.
+        /// <see cref="DecodedBlocks"/> are in a "raw" frequency-domain form. We need to apply IDCT, dequantization and unzigging to transform them into color-space blocks.
         /// We can copy these blocks into <see cref="JpegPixelArea"/>-s afterwards.
         /// </summary>
         /// <typeparam name="TColor">The pixel type</typeparam>
@@ -475,16 +475,9 @@ namespace ImageSharp.Formats
                 this.ComponentCount,
                 componentIndex =>
                     {
-                        JpegScanDecoder scanDecoder = default(JpegScanDecoder);
-                        JpegScanDecoder.Init(&scanDecoder);
-
-                        scanDecoder.ComponentIndex = componentIndex;
-                        DecodedBlockArray blockArray = this.DecodedBlocks[componentIndex];
-                        for (int i = 0; i < blockArray.Count; i++)
-                        {
-                            scanDecoder.LoadMemento(ref blockArray.Buffer[i]);
-                            scanDecoder.ProcessBlockColors(this);
-                        }
+                        JpegBlockProcessor processor = default(JpegBlockProcessor);
+                        JpegBlockProcessor.Init(&processor, componentIndex);
+                        processor.ProcessAllBlocks(this);
                     });
         }
 

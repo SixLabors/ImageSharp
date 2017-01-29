@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netcoreapp1.0</TargetFramework>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.0.0-preview-20170106-08" />
+    <PackageReference Include="xunit" Version="2.2.0-beta5-build3474" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.2.0-beta5-build1225" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ImageSharp.Drawing\ImageSharp.Drawing.csproj" />
+    <ProjectReference Include="..\..\src\ImageSharp.Formats.Bmp\ImageSharp.Formats.Bmp.csproj" />
+    <ProjectReference Include="..\..\src\ImageSharp.Formats.Gif\ImageSharp.Formats.Gif.csproj" />
+    <ProjectReference Include="..\..\src\ImageSharp.Formats.Jpeg\ImageSharp.Formats.Jpeg.csproj" />
+    <ProjectReference Include="..\..\src\ImageSharp.Formats.Png\ImageSharp.Formats.Png.csproj" />
+    <ProjectReference Include="..\..\src\ImageSharp.Processing\ImageSharp.Processing.csproj" />
+    <ProjectReference Include="..\..\src\ImageSharp\ImageSharp.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Service Include="{82a7f48d-3b50-4b1e-b82e-3ada8210c358}" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net461</TargetFramework>
+    <RuntimeIdentifier>win7-x64</RuntimeIdentifier>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.10.2.295" />
+    <PackageReference Include="System.Numerics.Vectors" Version="4.3.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ImageSharp.Drawing\ImageSharp.Drawing.csproj" />
+    <ProjectReference Include="..\..\src\ImageSharp.Formats.Bmp\ImageSharp.Formats.Bmp.csproj" />
+    <ProjectReference Include="..\..\src\ImageSharp.Formats.Gif\ImageSharp.Formats.Gif.csproj" />
+    <ProjectReference Include="..\..\src\ImageSharp.Formats.Jpeg\ImageSharp.Formats.Jpeg.csproj" />
+    <ProjectReference Include="..\..\src\ImageSharp.Formats.Png\ImageSharp.Formats.Png.csproj" />
+    <ProjectReference Include="..\..\src\ImageSharp.Processing\ImageSharp.Processing.csproj" />
+    <ProjectReference Include="..\..\src\ImageSharp\ImageSharp.csproj" />
+  </ItemGroup>
+</Project>

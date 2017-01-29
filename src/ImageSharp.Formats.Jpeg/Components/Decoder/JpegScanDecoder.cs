@@ -180,7 +180,7 @@ namespace ImageSharp.Formats.Jpg
 
                             // Store the decoded block
                             DecodedBlockArray blocks = decoder.DecodedBlocks[this.ComponentIndex];
-                            DecodedBlock.Store(ref blocks, blockIndex, this.bx, this.by, ref this.data.Block);
+                            blocks.Buffer[blockIndex].SaveBlock(this.bx, this.by, ref this.data.Block);
                         }
 
                         // for j

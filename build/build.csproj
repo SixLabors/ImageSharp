@@ -13,6 +13,7 @@
     <AdditionalFiles Include="..\src\Shared\stylecop.json" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="Microsoft.DotNet.ProjectModel" Version="1.0.0-rc3-003121" />
     <PackageReference Include="Microsoft.Build" Version="15.1.0-preview-000523-01" />
     <PackageReference Include="LibGit2Sharp" Version="0.23.0" />
     <PackageReference Include="StyleCop.Analyzers" Version="1.1.0-beta001">

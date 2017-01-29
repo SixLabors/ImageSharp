@@ -7,6 +7,10 @@ init:
 environment:
   # Version Suffix
   version_suffix: alpha
+  # Set the DOTNET_SKIP_FIRST_TIME_EXPERIENCE environment variable to stop wasting time caching packages
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  # Disable sending usage data to Microsoft
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
 
 install:
 # Use the install script to grab the latest dotnet install
@@ -21,7 +25,10 @@ build_script:
 - cmd: build.cmd
 
 test_script:
+- dotnet test tests\ImageSharp.Tests\ImageSharp.Tests.csproj --configuration release
 - tests\CodeCoverage\CodeCoverage.cmd
+
+test: off
 
 artifacts:
 - path: artifacts\bin\ImageSharp\**\*.nupkg

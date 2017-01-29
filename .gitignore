@@ -211,5 +211,8 @@ artifacts/
 #BenchmarkDotNet
 **/BenchmarkDotNet.Artifacts/
 
+# Build process
+*.csproj.bak
+
 #CodeCoverage
 **/CodeCoverage/*

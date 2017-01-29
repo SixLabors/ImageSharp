@@ -7,7 +7,7 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.10.2.295" />
+    <PackageReference Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.10.2" />
     <PackageReference Include="System.Numerics.Vectors" Version="4.3.0" />
   </ItemGroup>
   <ItemGroup>

@@ -35,24 +35,16 @@ namespace ImageSharp.Formats.Jpg
         public Block8x8F Block;
 
         /// <summary>
-        /// Store the block data into a <see cref="DecodedBlock"/> at the given index of an <see cref="DecodedBlockArray"/>.
+        /// Store the block data into a <see cref="DecodedBlock"/>
         /// </summary>
-        /// <param name="blockArray">The array <see cref="DecodedBlockArray"/></param>
-        /// <param name="index">The index in the array</param>
         /// <param name="bx">X coordinate of the block</param>
         /// <param name="by">Y coordinate of the block</param>
         /// <param name="block">The <see cref="Block8x8F"/></param>
-        public static void Store(ref DecodedBlockArray blockArray, int index, int bx, int by, ref Block8x8F block)
+        public void SaveBlock(int bx, int by, ref Block8x8F block)
         {
-            if (index >= blockArray.Count)
-            {
-                throw new IndexOutOfRangeException("Block index is out of range in DecodedBlock.Store()!");
-            }
-
-            blockArray.Buffer[index].Initialized = true;
-            blockArray.Buffer[index].Bx = bx;
-            blockArray.Buffer[index].By = by;
-            blockArray.Buffer[index].Block = block;
+            this.Bx = bx;
+            this.By = by;
+            this.Block = block;
         }
     }
 }

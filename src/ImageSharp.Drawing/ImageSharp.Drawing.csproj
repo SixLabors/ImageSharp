@@ -27,16 +27,12 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="..\Shared\*.cs" Exclude="bin\**;obj\**;**\*.xproj;packages\**" />
-    <AdditionalFiles Include="..\Shared\stylecop.json" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ImageSharp\ImageSharp.csproj" />
     <ProjectReference Include="..\ImageSharp.Processing\ImageSharp.Processing.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="StyleCop.Analyzers" Version="1.0.0">
-      <PrivateAssets>All</PrivateAssets>
-    </PackageReference>
     <PackageReference Include="System.Buffers" Version="4.3.0" />
     <PackageReference Include="System.Threading.Tasks.Parallel" Version="4.3.0" />
     <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.3.0" />
@@ -54,7 +50,7 @@
     <CodeAnalysisRuleSet>..\..\ImageSharp.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
-    <WarningsAsErrors>true</WarningsAsErrors>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
   <ItemGroup Condition=" '$(TargetFramework)' == 'net461' ">
     <Reference Include="System.Runtime" />

@@ -24,12 +24,8 @@ install:
 build_script:
 - cmd: build.cmd
 
-# run the tests in after build instead of tests to prevent appveryor trying to do its own thing and breaking
-after_build :
-- dotnet test tests\ImageSharp.Tests\ImageSharp.Tests.csproj --configuration release
+test_script:
 - tests\CodeCoverage\CodeCoverage.cmd
-
-test: off
 
 artifacts:
 - path: artifacts\bin\ImageSharp\**\*.nupkg

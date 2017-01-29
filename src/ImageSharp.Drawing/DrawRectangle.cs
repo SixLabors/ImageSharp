@@ -9,10 +9,10 @@ namespace ImageSharp
 
     using Drawing;
     using Drawing.Brushes;
-    using Drawing.Paths;
     using Drawing.Pens;
     using Drawing.Processors;
-    using Drawing.Shapes;
+
+    using SixLabors.Shapes;
 
     /// <summary>
     /// Extension methods for the <see cref="Image{TColor}"/> type.
@@ -33,7 +33,7 @@ namespace ImageSharp
         public static Image<TColor> DrawPolygon<TColor>(this Image<TColor> source, IPen<TColor> pen, RectangleF shape, GraphicsOptions options)
            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            return source.Apply(new DrawPathProcessor<TColor>(pen, (IPath)new RectangularPolygon(shape), options));
+            return source.Apply(new DrawPathProcessor<TColor>(pen, (IPath)new SixLabors.Shapes.Rectangle(shape.X, shape.Y, shape.Width, shape.Height), options));
         }
 
         /// <summary>

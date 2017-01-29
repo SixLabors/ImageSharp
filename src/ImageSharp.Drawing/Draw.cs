@@ -9,10 +9,9 @@ namespace ImageSharp
     using System.Numerics;
     using Drawing;
     using Drawing.Brushes;
-    using Drawing.Paths;
     using Drawing.Pens;
     using Drawing.Processors;
-    using Drawing.Shapes;
+    using SixLabors.Shapes;
 
     /// <summary>
     /// Extension methods for the <see cref="Image{TColor}"/> type.

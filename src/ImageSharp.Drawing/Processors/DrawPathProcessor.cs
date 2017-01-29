@@ -6,13 +6,13 @@
 namespace ImageSharp.Drawing.Processors
 {
     using System;
+    using System.Collections.Generic;
     using System.Linq;
     using System.Numerics;
     using System.Threading.Tasks;
     using ImageSharp.Processing;
-    using Paths;
     using Pens;
-    using Shapes;
+    using SixLabors.Shapes;
     using Rectangle = ImageSharp.Rectangle;
 
     /// <summary>
@@ -38,7 +38,7 @@ namespace ImageSharp.Drawing.Processors
         /// <param name="shape">The shape.</param>
         /// <param name="options">The options.</param>
         public DrawPathProcessor(IPen<TColor> pen, IShape shape, GraphicsOptions options)
-            : this(pen, shape.ToArray(), options)
+            : this(pen, shape.Paths, options)
         {
         }
 
@@ -59,24 +59,24 @@ namespace ImageSharp.Drawing.Processors
         /// <param name="pen">The pen.</param>
         /// <param name="paths">The paths.</param>
         /// <param name="options">The options.</param>
-        public DrawPathProcessor(IPen<TColor> pen, IPath[] paths, GraphicsOptions options)
+        public DrawPathProcessor(IPen<TColor> pen, IEnumerable<IPath> paths, GraphicsOptions options)
         {
-            this.paths = paths;
+            this.paths = paths.ToArray();
             this.pen = pen;
             this.options = options;
 
-            if (paths.Length != 1)
+            if (this.paths.Length != 1)
             {
-                var maxX = paths.Max(x => x.Bounds.Right);
-                var minX = paths.Min(x => x.Bounds.Left);
-                var maxY = paths.Max(x => x.Bounds.Bottom);
-                var minY = paths.Min(x => x.Bounds.Top);
+                var maxX = this.paths.Max(x => x.Bounds.Right);
+                var minX = this.paths.Min(x => x.Bounds.Left);
+                var maxY = this.paths.Max(x => x.Bounds.Bottom);
+                var minY = this.paths.Min(x => x.Bounds.Top);
 
                 this.region = new RectangleF(minX, minY, maxX - minX, maxY - minY);
             }
             else
             {
-                this.region = paths[0].Bounds;
+                this.region = this.paths[0].Bounds.Convert();
             }
         }
 
@@ -119,7 +119,7 @@ namespace ImageSharp.Drawing.Processors
                 minY,
                 maxY,
                 this.ParallelOptions,
-                y =>
+                (int y) =>
                 {
                     int offsetY = y - polyStartY;
                     var currentPoint = default(Vector2);
@@ -131,7 +131,7 @@ namespace ImageSharp.Drawing.Processors
 
                         var dist = this.Closest(currentPoint);
 
-                        var color = applicator.GetColor(dist);
+                        var color = applicator.GetColor(dist.Convert());
 
                         var opacity = this.Opacity(color.DistanceFromElement);
 
@@ -154,9 +154,9 @@ namespace ImageSharp.Drawing.Processors
             }
         }
 
-        private PointInfo Closest(Vector2 point)
+        private SixLabors.Shapes.PointInfo Closest(Vector2 point)
         {
-            PointInfo result = default(PointInfo);
+            SixLabors.Shapes.PointInfo result = default(SixLabors.Shapes.PointInfo);
             float distance = float.MaxValue;
 
             for (int i = 0; i < this.paths.Length; i++)

@@ -46,6 +46,7 @@
       "target": "project",
       "version": "1.0.0-*"
     },
+    "SixLabors.Shapes": "0.1.0-ci0043",
     "StyleCop.Analyzers": {
       "version": "1.0.0",
       "type": "build"

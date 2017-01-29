@@ -6,7 +6,6 @@
 namespace ImageSharp.Drawing.Processors
 {
     using System;
-    using Paths;
 
     /// <summary>
     /// primitive that converts a <see cref="PointInfo"/> into a color and a distance away from the drawable part of the path.

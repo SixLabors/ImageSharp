@@ -24,7 +24,8 @@ install:
 build_script:
 - cmd: build.cmd
 
-test_script:
+# run the tests in after build instead of tests to prevent appveryor trying to do its own thing and breaking
+after_build :
 - dotnet test tests\ImageSharp.Tests\ImageSharp.Tests.csproj --configuration release
 - tests\CodeCoverage\CodeCoverage.cmd
 

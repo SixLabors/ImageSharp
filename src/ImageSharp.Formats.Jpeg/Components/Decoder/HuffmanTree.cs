@@ -13,6 +13,16 @@ namespace ImageSharp.Formats.Jpg
     internal struct HuffmanTree : IDisposable
     {
         /// <summary>
+        /// The index of the AC table row
+        /// </summary>
+        public const int AcTableIndex = 1;
+
+        /// <summary>
+        /// The index of the DC table row
+        /// </summary>
+        public const int DcTableIndex = 0;
+
+        /// <summary>
         /// The maximum (inclusive) number of codes in a Huffman tree.
         /// </summary>
         public const int MaxNCodes = 256;

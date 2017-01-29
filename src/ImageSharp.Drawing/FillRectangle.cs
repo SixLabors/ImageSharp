@@ -10,7 +10,6 @@ namespace ImageSharp
     using Drawing;
     using Drawing.Brushes;
     using Drawing.Processors;
-    using Drawing.Shapes;
 
     /// <summary>
     /// Extension methods for the <see cref="Image{TColor}"/> type.
@@ -31,7 +30,7 @@ namespace ImageSharp
         public static Image<TColor> Fill<TColor>(this Image<TColor> source, IBrush<TColor> brush, RectangleF shape, GraphicsOptions options)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            return source.Apply(new FillShapeProcessor<TColor>(brush, new RectangularPolygon(shape), options));
+            return source.Apply(new FillShapeProcessor<TColor>(brush, new SixLabors.Shapes.Rectangle(shape.X, shape.Y, shape.Width, shape.Height), options));
         }
 
         /// <summary>
@@ -45,7 +44,7 @@ namespace ImageSharp
         public static Image<TColor> Fill<TColor>(this Image<TColor> source, IBrush<TColor> brush, RectangleF shape)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            return source.Apply(new FillShapeProcessor<TColor>(brush, new RectangularPolygon(shape), GraphicsOptions.Default));
+            return source.Apply(new FillShapeProcessor<TColor>(brush, new SixLabors.Shapes.Rectangle(shape.X, shape.Y, shape.Width, shape.Height), GraphicsOptions.Default));
         }
 
         /// <summary>

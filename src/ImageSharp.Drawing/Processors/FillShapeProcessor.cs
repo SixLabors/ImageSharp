@@ -11,7 +11,7 @@ namespace ImageSharp.Drawing.Processors
     using System.Threading.Tasks;
     using Drawing;
     using ImageSharp.Processing;
-    using Shapes;
+    using SixLabors.Shapes;
     using Rectangle = ImageSharp.Rectangle;
 
     /// <summary>
@@ -44,7 +44,7 @@ namespace ImageSharp.Drawing.Processors
         /// <inheritdoc/>
         protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
         {
-            Rectangle rect = RectangleF.Ceiling(this.poly.Bounds); // rounds the points out away from the center
+            Rectangle rect = RectangleF.Ceiling(this.poly.Bounds.Convert()); // rounds the points out away from the center
 
             int polyStartY = rect.Y - DrawPadding;
             int polyEndY = rect.Bottom + DrawPadding;

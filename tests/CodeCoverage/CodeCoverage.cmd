@@ -12,7 +12,7 @@ cd ..
 cd ..
 
 rem The -threshold options prevents this taking ages...
-tests\CodeCoverage\OpenCover.4.6.519\tools\OpenCover.Console.exe -target:"dotnet.exe" -targetargs:"test tests\ImageSharp.Tests\ImageSharp.Tests.csproj -c Release -f net451" -threshold:10 -register:user -filter:"+[ImageSharp*]*" -excludebyattribute:*.ExcludeFromCodeCoverage* -hideskipped:All -returntargetcode -output:.\ImageSharp.Coverage.xml
+tests\CodeCoverage\OpenCover.4.6.519\tools\OpenCover.Console.exe -target:"dotnet.exe" -targetargs:"test tests\ImageSharp.Tests\ImageSharp.Tests.csproj -c Release -f net451 --RuntimeIdentifier=win7-x64" -threshold:10 -register:user -filter:"+[ImageSharp*]*" -excludebyattribute:*.ExcludeFromCodeCoverage* -hideskipped:All -returntargetcode -output:.\ImageSharp.Coverage.xml
 
 if %errorlevel% neq 0 exit /b %errorlevel%
 

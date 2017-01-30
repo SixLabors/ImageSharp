@@ -9,6 +9,9 @@ namespace ImageSharp.Tests.Drawing
 
     using System.IO;
     using System.Numerics;
+
+    using SixLabors.Shapes;
+
     using Xunit;
 
     public class SolidBezierTests : FileTestBase

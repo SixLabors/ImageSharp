@@ -32,7 +32,7 @@ namespace ImageSharp
         public static Image<TColor> DrawPolygon<TColor>(this Image<TColor> source, IPen<TColor> pen, IShape shape, GraphicsOptions options)
            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            return source.Apply(new DrawPathProcessor<TColor>(pen, shape, options));
+            return source.Apply(new DrawPathProcessor<TColor>(pen, new ShapeRegion(shape), options));
         }
 
         /// <summary>
@@ -226,7 +226,7 @@ namespace ImageSharp
         public static Image<TColor> DrawPath<TColor>(this Image<TColor> source, IPen<TColor> pen, IPath path, GraphicsOptions options)
            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            return source.Apply(new DrawPathProcessor<TColor>(pen, path, options));
+            return source.Apply(new DrawPathProcessor<TColor>(pen, new ShapeRegion(path), options));
         }
 
         /// <summary>
@@ -240,7 +240,7 @@ namespace ImageSharp
         public static Image<TColor> DrawPath<TColor>(this Image<TColor> source, IPen<TColor> pen, IPath path)
            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            return source.Apply(new DrawPathProcessor<TColor>(pen, path, GraphicsOptions.Default));
+            return source.Apply(new DrawPathProcessor<TColor>(pen, new ShapeRegion(path), GraphicsOptions.Default));
         }
 
         /// <summary>

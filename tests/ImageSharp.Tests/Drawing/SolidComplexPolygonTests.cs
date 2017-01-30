@@ -7,9 +7,11 @@ namespace ImageSharp.Tests.Drawing
 {
     using System.IO;
     using Xunit;
-
+    using Drawing;
+    using ImageSharp.Drawing;
     using System.Numerics;
-    using ImageSharp.Drawing.Shapes;
+
+    using SixLabors.Shapes;
 
     public class SolidComplexPolygonTests : FileTestBase
     {
@@ -33,7 +35,7 @@ namespace ImageSharp.Tests.Drawing
                 {
                     image
                         .BackgroundColor(Color.Blue)
-                        .Fill(Color.HotPink, new ComplexPolygon(simplePath, hole1))
+                		.Fill(Color.HotPink, simplePath.Clip(hole1))
                         .Save(output);
                 }
 
@@ -76,7 +78,7 @@ namespace ImageSharp.Tests.Drawing
                 {
                     image
                         .BackgroundColor(Color.Blue)
-                        .Fill(Color.HotPink, new ComplexPolygon(simplePath, hole1))
+                   		.Fill(Color.HotPink, simplePath.Clip(hole1))
                         .Save(output);
                 }
 
@@ -119,8 +121,8 @@ namespace ImageSharp.Tests.Drawing
                 {
                     image
                         .BackgroundColor(Color.Blue)
-                        .Fill(color, new ComplexPolygon(simplePath, hole1))
-                        .Save(output);
+                    	.Fill(color, simplePath.Clip(hole1))
+                    	.Save(output);
                 }
 
                 //shift background color towards forground color by the opacity amount

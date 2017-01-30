@@ -82,18 +82,24 @@ namespace ImageSharp.Drawing.Brushes
             /// <summary>
             /// Gets the color for a single pixel.
             /// </summary>
-            /// <param name="point">The point.</param>
+            /// <param name="x">The x.</param>
+            /// <param name="y">The y.</param>
             /// <returns>
             /// The color
             /// </returns>
-            public override TColor GetColor(Vector2 point)
+            public override TColor this[int x, int y]
             {
-                // Offset the requested pixel by the value in the rectangle (the shapes position)
-                point = point - this.offset;
-                int x = (int)point.X % this.xLength;
-                int y = (int)point.Y % this.yLength;
+                get
+                {
+                    var point = new Vector2(x, y);
 
-                return this.source[x, y];
+                    // Offset the requested pixel by the value in the rectangle (the shapes position)
+                    point = point - this.offset;
+                    x = (int)point.X % this.xLength;
+                    y = (int)point.Y % this.yLength;
+
+                    return this.source[x, y];
+                }
             }
 
             /// <inheritdoc />

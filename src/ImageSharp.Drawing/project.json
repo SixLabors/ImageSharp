@@ -39,14 +39,12 @@
   },
   "dependencies": {
     "ImageSharp": {
-      "target": "project",
-      "version": "1.0.0-*"
+      "target": "project"
     },
     "ImageSharp.Processing": {
-      "target": "project",
-      "version": "1.0.0-*"
+      "target": "project"
     },
-    "SixLabors.Shapes": "0.1.0-ci0043",
+    "SixLabors.Shapes": "0.1.0-ci0047",
     "StyleCop.Analyzers": {
       "version": "1.0.0",
       "type": "build"

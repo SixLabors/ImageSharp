@@ -33,7 +33,7 @@ namespace ImageSharp
         public static Image<TColor> DrawPolygon<TColor>(this Image<TColor> source, IPen<TColor> pen, RectangleF shape, GraphicsOptions options)
            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            return source.Apply(new DrawPathProcessor<TColor>(pen, (IPath)new SixLabors.Shapes.Rectangle(shape.X, shape.Y, shape.Width, shape.Height), options));
+            return source.Apply(new DrawPathProcessor<TColor>(pen, new ShapeRegion(new SixLabors.Shapes.Rectangle(shape.X, shape.Y, shape.Width, shape.Height)), options));
         }
 
         /// <summary>

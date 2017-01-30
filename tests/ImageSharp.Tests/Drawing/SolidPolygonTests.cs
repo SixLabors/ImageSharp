@@ -5,8 +5,10 @@
 
 namespace ImageSharp.Tests.Drawing
 {
+    using Drawing;
     using ImageSharp.Drawing;
-
+    using System;
+    using System.Diagnostics.CodeAnalysis;
     using System.IO;
     using System.Numerics;
     using Xunit;
@@ -142,14 +144,15 @@ namespace ImageSharp.Tests.Drawing
         public void ImageShouldBeOverlayedByFilledRectangle()
         {
             string path = this.CreateOutputDirectory("Drawing", "FilledPolygons");
+ 			
             using (Image image = new Image(500, 500))
             {
                 using (FileStream output = File.OpenWrite($"{path}/Rectangle.png"))
                 {
                     image
                         .BackgroundColor(Color.Blue)
-                        .Fill(Color.HotPink, new ImageSharp.Drawing.Shapes.RectangularPolygon(new Rectangle(10, 10, 190, 140)))
-                        .Save(output);
+                    	.Fill(Color.HotPink, new SixLabors.Shapes.Rectangle(10,10, 190, 140))
+                         .Save(output);
                 }
 
                 using (PixelAccessor<Color> sourcePixels = image.Lock())

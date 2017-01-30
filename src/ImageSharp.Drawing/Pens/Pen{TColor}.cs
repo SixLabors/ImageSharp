@@ -144,10 +144,10 @@ namespace ImageSharp.Drawing.Pens
                 this.brush.Dispose();
             }
 
-            public override ColoredPointInfo<TColor> GetColor(PointInfo info)
+            public override ColoredPointInfo<TColor> GetColor(int x, int y, PointInfo info)
             {
                 var result = default(ColoredPointInfo<TColor>);
-                result.Color = this.brush.GetColor(info.SearchPoint);
+                result.Color = this.brush[x, y];
 
                 if (info.DistanceFromPath < this.halfWidth)
                 {
@@ -197,7 +197,7 @@ namespace ImageSharp.Drawing.Pens
                 this.brush.Dispose();
             }
 
-            public override ColoredPointInfo<TColor> GetColor(PointInfo info)
+            public override ColoredPointInfo<TColor> GetColor(int x, int y, PointInfo info)
             {
                 var infoResult = default(ColoredPointInfo<TColor>);
                 infoResult.DistanceFromElement = float.MaxValue; // is really outside the element
@@ -207,7 +207,7 @@ namespace ImageSharp.Drawing.Pens
                 // we can treat the DistanceAlongPath and DistanceFromPath as x,y coords for the pattern
                 // we need to calcualte the distance from the outside edge of the pattern
                 // and set them on the ColoredPointInfo<TColor> along with the color.
-                infoResult.Color = this.brush.GetColor(info.SearchPoint);
+                infoResult.Color = this.brush[x, y];
 
                 float distanceWAway = 0;
 

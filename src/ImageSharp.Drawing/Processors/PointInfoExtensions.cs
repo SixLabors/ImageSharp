@@ -12,6 +12,8 @@ namespace ImageSharp.Drawing.Processors
     using Drawing;
     using ImageSharp.Processing;
     using SixLabors.Shapes;
+
+    using PointInfo = ImageSharp.Drawing.PointInfo;
     using Rectangle = ImageSharp.Rectangle;
 
     /// <summary>
@@ -29,8 +31,7 @@ namespace ImageSharp.Drawing.Processors
             return new PointInfo
                     {
                         DistanceAlongPath = source.DistanceAlongPath,
-                        DistanceFromPath = source.DistanceFromPath,
-                        SearchPoint = source.SearchPoint
+                        DistanceFromPath = source.DistanceFromPath
                     };
         }
     }

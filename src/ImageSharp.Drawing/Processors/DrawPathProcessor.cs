@@ -27,64 +27,27 @@ namespace ImageSharp.Drawing.Processors
         private const int PaddingFactor = 1; // needs to been the same or greater than AntialiasFactor
 
         private readonly IPen<TColor> pen;
-        private readonly IPath[] paths;
-        private readonly RectangleF region;
+        private readonly IDrawableRegion region;
         private readonly GraphicsOptions options;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DrawPathProcessor{TColor}" /> class.
         /// </summary>
         /// <param name="pen">The pen.</param>
-        /// <param name="shape">The shape.</param>
+        /// <param name="region">The region.</param>
         /// <param name="options">The options.</param>
-        public DrawPathProcessor(IPen<TColor> pen, IShape shape, GraphicsOptions options)
-            : this(pen, shape.Paths, options)
+        public DrawPathProcessor(IPen<TColor> pen, IDrawableRegion region, GraphicsOptions options)
         {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="DrawPathProcessor{TColor}"/> class.
-        /// </summary>
-        /// <param name="pen">The pen.</param>
-        /// <param name="path">The path.</param>
-        /// <param name="options">The options.</param>
-        public DrawPathProcessor(IPen<TColor> pen, IPath path, GraphicsOptions options)
-            : this(pen, new[] { path }, options)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="DrawPathProcessor{TColor}" /> class.
-        /// </summary>
-        /// <param name="pen">The pen.</param>
-        /// <param name="paths">The paths.</param>
-        /// <param name="options">The options.</param>
-        public DrawPathProcessor(IPen<TColor> pen, IEnumerable<IPath> paths, GraphicsOptions options)
-        {
-            this.paths = paths.ToArray();
+            this.region = region;
             this.pen = pen;
             this.options = options;
-
-            if (this.paths.Length != 1)
-            {
-                var maxX = this.paths.Max(x => x.Bounds.Right);
-                var minX = this.paths.Min(x => x.Bounds.Left);
-                var maxY = this.paths.Max(x => x.Bounds.Bottom);
-                var minY = this.paths.Min(x => x.Bounds.Top);
-
-                this.region = new RectangleF(minX, minY, maxX - minX, maxY - minY);
-            }
-            else
-            {
-                this.region = this.paths[0].Bounds.Convert();
-            }
         }
 
         /// <inheritdoc/>
         protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
         {
             using (PixelAccessor<TColor> sourcePixels = source.Lock())
-            using (PenApplicator<TColor> applicator = this.pen.CreateApplicator(sourcePixels, this.region))
+            using (PenApplicator<TColor> applicator = this.pen.CreateApplicator(sourcePixels, this.region.Bounds))
             {
                 var rect = RectangleF.Ceiling(applicator.RequiredRegion);
 
@@ -122,16 +85,14 @@ namespace ImageSharp.Drawing.Processors
                 (int y) =>
                 {
                     int offsetY = y - polyStartY;
-                    var currentPoint = default(Vector2);
+
                     for (int x = minX; x < maxX; x++)
                     {
+                        // TODO add find intersections code to skip and scan large regions of this.
                         int offsetX = x - startX;
-                        currentPoint.X = offsetX;
-                        currentPoint.Y = offsetY;
+                        var info = this.region.GetPointInfo(offsetX, offsetY);
 
-                        var dist = this.Closest(currentPoint);
-
-                        var color = applicator.GetColor(dist.Convert());
+                        var color = applicator.GetColor(offsetX, offsetY, info);
 
                         var opacity = this.Opacity(color.DistanceFromElement);
 
@@ -152,24 +113,6 @@ namespace ImageSharp.Drawing.Processors
                     }
                 });
             }
-        }
-
-        private SixLabors.Shapes.PointInfo Closest(Vector2 point)
-        {
-            SixLabors.Shapes.PointInfo result = default(SixLabors.Shapes.PointInfo);
-            float distance = float.MaxValue;
-
-            for (int i = 0; i < this.paths.Length; i++)
-            {
-                var p = this.paths[i].Distance(point);
-                if (p.DistanceFromPath < distance)
-                {
-                    distance = p.DistanceFromPath;
-                    result = p;
-                }
-            }
-
-            return result;
         }
 
         private float Opacity(float distance)

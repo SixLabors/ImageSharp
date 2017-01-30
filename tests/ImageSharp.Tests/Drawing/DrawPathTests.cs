@@ -7,12 +7,13 @@ namespace ImageSharp.Tests.Drawing
 {
     using Drawing;
     using ImageSharp.Drawing;
-    using CorePath = ImageSharp.Drawing.Paths.Path;
-    using ImageSharp.Drawing.Paths;
+    using CorePath = SixLabors.Shapes.Path;
+    using SixLabors.Shapes;
     using System;
     using System.Diagnostics.CodeAnalysis;
     using System.IO;
     using System.Numerics;
+
     using Xunit;
 
     public class DrawPathTests : FileTestBase

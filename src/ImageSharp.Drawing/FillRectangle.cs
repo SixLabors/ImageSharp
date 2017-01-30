@@ -30,7 +30,7 @@ namespace ImageSharp
         public static Image<TColor> Fill<TColor>(this Image<TColor> source, IBrush<TColor> brush, RectangleF shape, GraphicsOptions options)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            return source.Apply(new FillShapeProcessor<TColor>(brush, new SixLabors.Shapes.Rectangle(shape.X, shape.Y, shape.Width, shape.Height), options));
+            return source.Fill(brush, new SixLabors.Shapes.Rectangle(shape.X, shape.Y, shape.Width, shape.Height), options);
         }
 
         /// <summary>
@@ -44,7 +44,7 @@ namespace ImageSharp
         public static Image<TColor> Fill<TColor>(this Image<TColor> source, IBrush<TColor> brush, RectangleF shape)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            return source.Apply(new FillShapeProcessor<TColor>(brush, new SixLabors.Shapes.Rectangle(shape.X, shape.Y, shape.Width, shape.Height), GraphicsOptions.Default));
+            return source.Fill(brush, new SixLabors.Shapes.Rectangle(shape.X, shape.Y, shape.Width, shape.Height));
         }
 
         /// <summary>

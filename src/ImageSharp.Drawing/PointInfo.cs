@@ -3,7 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.Drawing.Processors
+namespace ImageSharp.Drawing
 {
     using System;
     using System.Numerics;
@@ -22,10 +22,5 @@ namespace ImageSharp.Drawing.Processors
         /// The distance from path
         /// </summary>
         public float DistanceFromPath;
-
-        /// <summary>
-        /// The search point
-        /// </summary>
-        public Vector2 SearchPoint;
     }
 }

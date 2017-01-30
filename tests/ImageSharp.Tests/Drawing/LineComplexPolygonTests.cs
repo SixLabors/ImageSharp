@@ -7,10 +7,12 @@ namespace ImageSharp.Tests.Drawing
 {
     using System.IO;
     using Xunit;
-
+    using Drawing;
+    using ImageSharp.Drawing;
     using System.Numerics;
-    using ImageSharp.Drawing.Shapes;
     using ImageSharp.Drawing.Pens;
+
+    using SixLabors.Shapes;
 
     public class LineComplexPolygonTests : FileTestBase
     {
@@ -18,15 +20,16 @@ namespace ImageSharp.Tests.Drawing
         public void ImageShouldBeOverlayedByPolygonOutline()
         {
             string path = this.CreateOutputDirectory("Drawing", "LineComplexPolygon");
-            LinearPolygon simplePath = new LinearPolygon(
+
+            var simplePath = new Polygon(new LinearLineSegment(
                             new Vector2(10, 10),
                             new Vector2(200, 150),
-                            new Vector2(50, 300));
+                            new Vector2(50, 300)));
 
-            LinearPolygon hole1 = new LinearPolygon(
+            var hole1 = new Polygon(new LinearLineSegment(
                             new Vector2(37, 85),
                             new Vector2(93, 85),
-                            new Vector2(65, 137));
+                            new Vector2(65, 137)));
 
             using (Image image = new Image(500, 500))
             {
@@ -34,8 +37,8 @@ namespace ImageSharp.Tests.Drawing
                 {
                     image
                         .BackgroundColor(Color.Blue)
-                        .DrawPolygon(Color.HotPink, 5, new ComplexPolygon(simplePath, hole1))
-                        .Save(output);
+                		.DrawPolygon(Color.HotPink, 5, new ComplexPolygon(simplePath, hole1))
+                		.Save(output);
                 }
 
                 using (PixelAccessor<Color> sourcePixels = image.Lock())
@@ -128,6 +131,7 @@ namespace ImageSharp.Tests.Drawing
                             new Vector2(37, 85),
                             new Vector2(130, 40),
                             new Vector2(65, 137));
+            var clipped = simplePath.Clip(hole1);
 
             using (Image image = new Image(500, 500))
             {
@@ -135,7 +139,7 @@ namespace ImageSharp.Tests.Drawing
                 {
                     image
                         .BackgroundColor(Color.Blue)
-                        .DrawPolygon(Color.HotPink, 5, new ComplexPolygon(simplePath, hole1))
+                		.DrawPolygon(Color.HotPink, 5, clipped)
                         .Save(output);
                 }
 

@@ -20,13 +20,17 @@ namespace ImageSharp.Drawing.Processors
     internal static class RectangleExtensions
     {
         /// <summary>
-        /// Converts a Shaper2D <see cref="SixLabors.Shapes.Rectangle"/> to an ImageSharp <see cref="RectangleF"/>.
+        /// Converts a Shaper2D <see cref="SixLabors.Shapes.Rectangle"/> to an ImageSharp <see cref="Rectangle"/> by creating a <see cref="Rectangle"/> the entirely surrounds the source.
         /// </summary>
         /// <param name="source">The source.</param>
-        /// <returns>A <see cref="RectangleF"/> representation of this <see cref="SixLabors.Shapes.Rectangle"/></returns>
-        public static RectangleF Convert(this SixLabors.Shapes.Rectangle source)
+        /// <returns>A <see cref="Rectangle"/> representation of this <see cref="SixLabors.Shapes.Rectangle"/></returns>
+        public static Rectangle Convert(this SixLabors.Shapes.Rectangle source)
         {
-            return new RectangleF(source.Location.X, source.Location.Y, source.Size.Width, source.Size.Height);
+            int y = (int)Math.Floor(source.Y);
+            int width = (int)Math.Ceiling(source.Size.Width);
+            int x = (int)Math.Floor(source.X);
+            int height = (int)Math.Ceiling(source.Size.Height);
+            return new Rectangle(x, y, width, height);
         }
     }
 }

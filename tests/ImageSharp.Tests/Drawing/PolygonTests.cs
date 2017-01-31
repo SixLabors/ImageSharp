@@ -97,7 +97,7 @@ namespace ImageSharp.Tests.Drawing
                 {
                     image
                         .BackgroundColor(Color.Blue)
-                        .DrawPolygon(Color.HotPink, 10, new Rectangle(10, 10, 190, 140))
+                    	.Draw(Color.HotPink, 10, new Rectangle(10, 10, 190, 140))
                         .Save(output);
                 }
 

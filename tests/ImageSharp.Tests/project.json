@@ -21,34 +21,30 @@
   },
   "dependencies": {
     "ImageSharp": {
-      "target": "project",
-      "version": "1.0.0-*"
+      "target": "project"
     },
     "xunit": "2.2.0-*",
     "dotnet-test-xunit": "2.2.0-*",
     "ImageSharp.Drawing": {
-      "target": "project",
-      "version": "1.0.0-*"
+      "target": "project"
+    },
+    "ImageSharp.Drawing.Paths": {
+      "target": "project"
     },
     "ImageSharp.Formats.Png": {
-      "target": "project",
-      "version": "1.0.0-*"
+      "target": "project"
     },
     "ImageSharp.Formats.Jpeg": {
-      "target": "project",
-      "version": "1.0.0-*"
+      "target": "project"
     },
     "ImageSharp.Formats.Bmp": {
-      "target": "project",
-      "version": "1.0.0-*"
+      "target": "project"
     },
     "ImageSharp.Formats.Gif": {
-      "target": "project",
-      "version": "1.0.0-*"
+      "target": "project"
     },
     "ImageSharp.Processing": {
-      "target": "project",
-      "version": "1.0.0-*"
+      "target": "project"
     }
   },
   "frameworks": {

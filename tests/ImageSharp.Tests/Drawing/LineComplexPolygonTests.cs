@@ -37,7 +37,7 @@ namespace ImageSharp.Tests.Drawing
                 {
                     image
                         .BackgroundColor(Color.Blue)
-                		.DrawPolygon(Color.HotPink, 5, new ComplexPolygon(simplePath, hole1))
+                		.Draw(Color.HotPink, 5, simplePath.Clip(hole1))
                 		.Save(output);
                 }
 
@@ -87,7 +87,7 @@ namespace ImageSharp.Tests.Drawing
                 {
                     image
                         .BackgroundColor(Color.Blue)
-                        .DrawPolygon(Color.HotPink, 5, new ComplexPolygon(simplePath, hole1))
+                		.Draw(Color.HotPink, 5, simplePath.Clip(hole1))
                         .Save(output);
                 }
 
@@ -131,7 +131,7 @@ namespace ImageSharp.Tests.Drawing
                             new Vector2(37, 85),
                             new Vector2(130, 40),
                             new Vector2(65, 137));
-            var clipped = simplePath.Clip(hole1);
+							
 
             using (Image image = new Image(500, 500))
             {
@@ -139,7 +139,7 @@ namespace ImageSharp.Tests.Drawing
                 {
                     image
                         .BackgroundColor(Color.Blue)
-                		.DrawPolygon(Color.HotPink, 5, clipped)
+                		.Draw(Color.HotPink, 5, simplePath.Clip(hole1))
                         .Save(output);
                 }
 
@@ -185,7 +185,7 @@ namespace ImageSharp.Tests.Drawing
                 {
                     image
                         .BackgroundColor(Color.Blue)
-                        .DrawPolygon(Pens.Dash(Color.HotPink, 5), new ComplexPolygon(simplePath, hole1))
+                		.Draw(Pens.Dash(Color.HotPink, 5), simplePath.Clip(hole1))
                         .Save(output);
                 }
             }
@@ -213,7 +213,7 @@ namespace ImageSharp.Tests.Drawing
                 {
                     image
                         .BackgroundColor(Color.Blue)
-                        .DrawPolygon(color, 5, new ComplexPolygon(simplePath, hole1))
+                    	.Draw(color, 5, simplePath.Clip(hole1))
                         .Save(output);
                 }
 

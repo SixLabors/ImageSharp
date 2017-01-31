@@ -3,19 +3,8 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.Drawing.Processors
+namespace ImageSharp.Drawing
 {
-    using System;
-    using System.Buffers;
-    using System.Numerics;
-    using System.Threading.Tasks;
-    using Drawing;
-    using ImageSharp.Processing;
-    using SixLabors.Shapes;
-
-    using PointInfo = ImageSharp.Drawing.PointInfo;
-    using Rectangle = ImageSharp.Rectangle;
-
     /// <summary>
     /// Extension methods for helping to bridge Shaper2D and ImageSharp primitives.
     /// </summary>
@@ -29,10 +18,10 @@ namespace ImageSharp.Drawing.Processors
         public static PointInfo Convert(this SixLabors.Shapes.PointInfo source)
         {
             return new PointInfo
-                    {
-                        DistanceAlongPath = source.DistanceAlongPath,
-                        DistanceFromPath = source.DistanceFromPath
-                    };
+            {
+                DistanceAlongPath = source.DistanceAlongPath,
+                DistanceFromPath = source.DistanceFromPath
+            };
         }
     }
 }

@@ -12,7 +12,6 @@ namespace ImageSharp.Drawing.Processors
     using System.Threading.Tasks;
     using ImageSharp.Processing;
     using Pens;
-    using SixLabors.Shapes;
     using Rectangle = ImageSharp.Rectangle;
 
     /// <summary>
@@ -27,7 +26,7 @@ namespace ImageSharp.Drawing.Processors
         private const int PaddingFactor = 1; // needs to been the same or greater than AntialiasFactor
 
         private readonly IPen<TColor> pen;
-        private readonly IDrawableRegion region;
+        private readonly Path region;
         private readonly GraphicsOptions options;
 
         /// <summary>
@@ -36,7 +35,7 @@ namespace ImageSharp.Drawing.Processors
         /// <param name="pen">The pen.</param>
         /// <param name="region">The region.</param>
         /// <param name="options">The options.</param>
-        public DrawPathProcessor(IPen<TColor> pen, IDrawableRegion region, GraphicsOptions options)
+        public DrawPathProcessor(IPen<TColor> pen, Path region, GraphicsOptions options)
         {
             this.region = region;
             this.pen = pen;

@@ -1,4 +1,4 @@
-﻿// <copyright file="FillRectangle.cs" company="James Jackson-South">
+﻿// <copyright file="FillPaths.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -6,10 +6,12 @@
 namespace ImageSharp
 {
     using System;
-
+    using System.Numerics;
     using Drawing;
     using Drawing.Brushes;
     using Drawing.Processors;
+
+    using SixLabors.Shapes;
 
     /// <summary>
     /// Extension methods for the <see cref="Image{TColor}"/> type.
@@ -22,29 +24,31 @@ namespace ImageSharp
         /// <typeparam name="TColor">The type of the color.</typeparam>
         /// <param name="source">The source.</param>
         /// <param name="brush">The brush.</param>
-        /// <param name="shape">The shape.</param>
-        /// <param name="options">The options.</param>
+        /// <param name="path">The shape.</param>
+        /// <param name="options">The graphics options.</param>
         /// <returns>
         /// The Image
         /// </returns>
-        public static Image<TColor> Fill<TColor>(this Image<TColor> source, IBrush<TColor> brush, RectangleF shape, GraphicsOptions options)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+        public static Image<TColor> Fill<TColor>(this Image<TColor> source, IBrush<TColor> brush, IPath path, GraphicsOptions options)
+          where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            return source.Fill(brush, new SixLabors.Shapes.Rectangle(shape.X, shape.Y, shape.Width, shape.Height), options);
+            return source.Fill(brush, new ShapeRegion(path), options);
         }
 
         /// <summary>
-        /// Flood fills the image in the shape of the provided polygon with the specified brush..
+        /// Flood fills the image in the shape of the provided polygon with the specified brush.
         /// </summary>
         /// <typeparam name="TColor">The type of the color.</typeparam>
         /// <param name="source">The source.</param>
         /// <param name="brush">The brush.</param>
-        /// <param name="shape">The shape.</param>
-        /// <returns>The Image</returns>
-        public static Image<TColor> Fill<TColor>(this Image<TColor> source, IBrush<TColor> brush, RectangleF shape)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+        /// <param name="path">The path.</param>
+        /// <returns>
+        /// The Image
+        /// </returns>
+        public static Image<TColor> Fill<TColor>(this Image<TColor> source, IBrush<TColor> brush, IPath path)
+          where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            return source.Fill(brush, new SixLabors.Shapes.Rectangle(shape.X, shape.Y, shape.Width, shape.Height));
+            return source.Fill(brush, new ShapeRegion(path), GraphicsOptions.Default);
         }
 
         /// <summary>
@@ -53,15 +57,15 @@ namespace ImageSharp
         /// <typeparam name="TColor">The type of the color.</typeparam>
         /// <param name="source">The source.</param>
         /// <param name="color">The color.</param>
-        /// <param name="shape">The shape.</param>
+        /// <param name="path">The path.</param>
         /// <param name="options">The options.</param>
         /// <returns>
         /// The Image
         /// </returns>
-        public static Image<TColor> Fill<TColor>(this Image<TColor> source, TColor color, RectangleF shape, GraphicsOptions options)
+        public static Image<TColor> Fill<TColor>(this Image<TColor> source, TColor color, IPath path, GraphicsOptions options)
           where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            return source.Fill(new SolidBrush<TColor>(color), shape, options);
+            return source.Fill(new SolidBrush<TColor>(color), path, options);
         }
 
         /// <summary>
@@ -70,12 +74,14 @@ namespace ImageSharp
         /// <typeparam name="TColor">The type of the color.</typeparam>
         /// <param name="source">The source.</param>
         /// <param name="color">The color.</param>
-        /// <param name="shape">The shape.</param>
-        /// <returns>The Image</returns>
-        public static Image<TColor> Fill<TColor>(this Image<TColor> source, TColor color, RectangleF shape)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+        /// <param name="path">The path.</param>
+        /// <returns>
+        /// The Image
+        /// </returns>
+        public static Image<TColor> Fill<TColor>(this Image<TColor> source, TColor color, IPath path)
+          where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            return source.Fill(new SolidBrush<TColor>(color), shape);
+            return source.Fill(new SolidBrush<TColor>(color), path);
         }
     }
 }

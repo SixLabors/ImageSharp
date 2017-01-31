@@ -1,4 +1,4 @@
-﻿// <copyright file="ShapeRegion.cs" company="James Jackson-South">
+﻿// <copyright file="ShapePath.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -18,8 +18,7 @@ namespace ImageSharp.Drawing
     /// <summary>
     /// A drawable mapping between a <see cref="SixLabors.Shapes.IShape"/>/<see cref="SixLabors.Shapes.IPath"/> and a drawable/fillable region.
     /// </summary>
-    /// <seealso cref="ImageSharp.Drawing.IDrawableRegion" />
-    internal class ShapeRegion : IDrawableRegion
+    internal class ShapePath : ImageSharp.Drawing.Path
     {
         /// <summary>
         /// The fillable shape
@@ -32,10 +31,10 @@ namespace ImageSharp.Drawing
         private readonly ImmutableArray<IPath> paths;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ShapeRegion"/> class.
+        /// Initializes a new instance of the <see cref="ShapePath"/> class.
         /// </summary>
         /// <param name="path">The path.</param>
-        public ShapeRegion(IPath path)
+        public ShapePath(IPath path)
             : this(ImmutableArray.Create(path))
         {
             this.shape = path.AsShape();
@@ -43,10 +42,10 @@ namespace ImageSharp.Drawing
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ShapeRegion"/> class.
+        /// Initializes a new instance of the <see cref="ShapePath"/> class.
         /// </summary>
         /// <param name="shape">The shape.</param>
-        public ShapeRegion(IShape shape)
+        public ShapePath(IShape shape)
             : this(shape.Paths)
         {
             this.shape = shape;
@@ -54,10 +53,10 @@ namespace ImageSharp.Drawing
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ShapeRegion"/> class.
+        /// Initializes a new instance of the <see cref="ShapePath" /> class.
         /// </summary>
         /// <param name="paths">The paths.</param>
-        private ShapeRegion(ImmutableArray<IPath> paths)
+        private ShapePath(ImmutableArray<IPath> paths)
         {
             this.paths = paths;
         }
@@ -68,7 +67,7 @@ namespace ImageSharp.Drawing
         /// <value>
         /// The maximum intersections.
         /// </value>
-        public int MaxIntersections => this.shape.MaxIntersections;
+        public override int MaxIntersections => this.shape.MaxIntersections;
 
         /// <summary>
         /// Gets the bounds.
@@ -76,7 +75,7 @@ namespace ImageSharp.Drawing
         /// <value>
         /// The bounds.
         /// </value>
-        public Rectangle Bounds { get; }
+        public override Rectangle Bounds { get; }
 
         /// <summary>
         /// Scans the X axis for intersections.
@@ -88,7 +87,7 @@ namespace ImageSharp.Drawing
         /// <returns>
         /// The number of intersections found.
         /// </returns>
-        public int ScanX(int x, float[] buffer, int length, int offset)
+        public override int ScanX(int x, float[] buffer, int length, int offset)
         {
             var start = new Vector2(x, this.Bounds.Top - 1);
             var end = new Vector2(x, this.Bounds.Bottom + 1);
@@ -125,10 +124,10 @@ namespace ImageSharp.Drawing
         /// <returns>
         /// The number of intersections found.
         /// </returns>
-        public int ScanY(int y, float[] buffer, int length, int offset)
+        public override int ScanY(int y, float[] buffer, int length, int offset)
         {
-            var start = new Vector2(this.Bounds.Left - 1, y);
-            var end = new Vector2(this.Bounds.Right + 1, y);
+            var start = new Vector2(float.MinValue, y);
+            var end = new Vector2(float.MaxValue, y);
             Vector2[] innerbuffer = ArrayPool<Vector2>.Shared.Rent(length);
             try
             {
@@ -158,7 +157,7 @@ namespace ImageSharp.Drawing
         /// <param name="x">The x.</param>
         /// <param name="y">The y.</param>
         /// <returns>Information about the the point</returns>
-        public PointInfo GetPointInfo(int x, int y)
+        public override PointInfo GetPointInfo(int x, int y)
         {
             var point = new Vector2(x, y);
             SixLabors.Shapes.PointInfo result = default(SixLabors.Shapes.PointInfo);

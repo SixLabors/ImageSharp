@@ -39,7 +39,7 @@ namespace ImageSharp.Benchmarks
         {
             using (CoreImage image = new CoreImage(800, 800))
             {
-            	image.Fill(CoreColor.HotPink, new SixLabors.Shapes.Rectangle(10, 10, 190, 140));
+            	image.Fill(CoreColor.HotPink, new CoreRectangle(10, 10, 190, 140));
 
                 return new CoreSize(image.Width, image.Height);
             }

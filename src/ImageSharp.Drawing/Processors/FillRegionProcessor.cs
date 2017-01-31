@@ -1,4 +1,4 @@
-﻿// <copyright file="FillShapeProcessor.cs" company="James Jackson-South">
+﻿// <copyright file="FillRegionProcessor.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -11,30 +11,28 @@ namespace ImageSharp.Drawing.Processors
     using System.Threading.Tasks;
     using Drawing;
     using ImageSharp.Processing;
-    using SixLabors.Shapes;
-    using Rectangle = ImageSharp.Rectangle;
 
     /// <summary>
     /// Usinf a brsuh and a shape fills shape with contents of brush the
     /// </summary>
     /// <typeparam name="TColor">The type of the color.</typeparam>
     /// <seealso cref="ImageSharp.Processing.ImageProcessor{TColor}" />
-    public class FillShapeProcessor<TColor> : ImageProcessor<TColor>
+    public class FillRegionProcessor<TColor> : ImageProcessor<TColor>
         where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         private const float AntialiasFactor = 1f;
         private const int DrawPadding = 1;
         private readonly IBrush<TColor> fillColor;
-        private readonly IRegion region;
+        private readonly Region region;
         private readonly GraphicsOptions options;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="FillShapeProcessor{TColor}" /> class.
+        /// Initializes a new instance of the <see cref="FillRegionProcessor{TColor}" /> class.
         /// </summary>
         /// <param name="brush">The brush.</param>
         /// <param name="region">The region.</param>
         /// <param name="options">The options.</param>
-        public FillShapeProcessor(IBrush<TColor> brush, IRegion region, GraphicsOptions options)
+        public FillRegionProcessor(IBrush<TColor> brush, Region region, GraphicsOptions options)
         {
             this.region = region;
             this.fillColor = brush;
@@ -89,6 +87,12 @@ namespace ImageSharp.Drawing.Processors
                             return;
                         }
 
+                        if (pointsFound % 2 == 1)
+                        {
+                            // we seem to have just clipped a corner lets just skip it
+                            return;
+                        }
+
                         QuickSort(buffer, pointsFound);
 
                         int currentIntersection = 0;
@@ -96,13 +100,8 @@ namespace ImageSharp.Drawing.Processors
                         float lastPoint = float.MinValue;
                         bool isInside = false;
 
-                        // every odd point is the start of a line
-                        Vector2 currentPoint = default(Vector2);
-
                         for (int x = minX; x < maxX; x++)
                         {
-                            currentPoint.X = x;
-                            currentPoint.Y = y;
                             if (!isInside)
                             {
                                 if (x < (nextPoint - DrawPadding) && x > (lastPoint + DrawPadding))
@@ -229,6 +228,12 @@ namespace ImageSharp.Drawing.Processors
                             if (pointsFound == 0)
                             {
                                 // nothign on this line skip
+                                return;
+                            }
+
+                            if (pointsFound % 2 == 1)
+                            {
+                                // we seem to have just clipped a corner lets just skip it
                                 return;
                             }
 

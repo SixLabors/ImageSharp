@@ -1,4 +1,4 @@
-﻿// <copyright file="DrawRectangle.cs" company="James Jackson-South">
+﻿// <copyright file="DrawShape.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -6,12 +6,11 @@
 namespace ImageSharp
 {
     using System;
-
+    using System.Numerics;
     using Drawing;
     using Drawing.Brushes;
     using Drawing.Pens;
     using Drawing.Processors;
-
     using SixLabors.Shapes;
 
     /// <summary>
@@ -30,10 +29,10 @@ namespace ImageSharp
         /// <returns>
         /// The Image
         /// </returns>
-        public static Image<TColor> DrawPolygon<TColor>(this Image<TColor> source, IPen<TColor> pen, RectangleF shape, GraphicsOptions options)
+        public static Image<TColor> Draw<TColor>(this Image<TColor> source, IPen<TColor> pen, IShape shape, GraphicsOptions options)
            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            return source.Apply(new DrawPathProcessor<TColor>(pen, new ShapeRegion(new SixLabors.Shapes.Rectangle(shape.X, shape.Y, shape.Width, shape.Height)), options));
+            return source.Draw(pen, new ShapePath(shape), options);
         }
 
         /// <summary>
@@ -44,10 +43,10 @@ namespace ImageSharp
         /// <param name="pen">The pen.</param>
         /// <param name="shape">The shape.</param>
         /// <returns>The Image</returns>
-        public static Image<TColor> DrawPolygon<TColor>(this Image<TColor> source, IPen<TColor> pen, RectangleF shape)
+        public static Image<TColor> Draw<TColor>(this Image<TColor> source, IPen<TColor> pen, IShape shape)
            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            return source.DrawPolygon(pen, shape, GraphicsOptions.Default);
+            return source.Draw(pen, shape, GraphicsOptions.Default);
         }
 
         /// <summary>
@@ -62,10 +61,10 @@ namespace ImageSharp
         /// <returns>
         /// The Image
         /// </returns>
-        public static Image<TColor> DrawPolygon<TColor>(this Image<TColor> source, IBrush<TColor> brush, float thickness, RectangleF shape, GraphicsOptions options)
+        public static Image<TColor> Draw<TColor>(this Image<TColor> source, IBrush<TColor> brush, float thickness, IShape shape, GraphicsOptions options)
            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            return source.DrawPolygon(new Pen<TColor>(brush, thickness), shape, options);
+            return source.Draw(new Pen<TColor>(brush, thickness), shape, options);
         }
 
         /// <summary>
@@ -77,10 +76,10 @@ namespace ImageSharp
         /// <param name="thickness">The thickness.</param>
         /// <param name="shape">The shape.</param>
         /// <returns>The Image</returns>
-        public static Image<TColor> DrawPolygon<TColor>(this Image<TColor> source, IBrush<TColor> brush, float thickness, RectangleF shape)
+        public static Image<TColor> Draw<TColor>(this Image<TColor> source, IBrush<TColor> brush, float thickness, IShape shape)
            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            return source.DrawPolygon(new Pen<TColor>(brush, thickness), shape);
+            return source.Draw(new Pen<TColor>(brush, thickness), shape);
         }
 
         /// <summary>
@@ -95,10 +94,10 @@ namespace ImageSharp
         /// <returns>
         /// The Image
         /// </returns>
-        public static Image<TColor> DrawPolygon<TColor>(this Image<TColor> source, TColor color, float thickness, RectangleF shape, GraphicsOptions options)
+        public static Image<TColor> Draw<TColor>(this Image<TColor> source, TColor color, float thickness, IShape shape, GraphicsOptions options)
            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            return source.DrawPolygon(new SolidBrush<TColor>(color), thickness, shape, options);
+            return source.Draw(new SolidBrush<TColor>(color), thickness, shape, options);
         }
 
         /// <summary>
@@ -110,10 +109,10 @@ namespace ImageSharp
         /// <param name="thickness">The thickness.</param>
         /// <param name="shape">The shape.</param>
         /// <returns>The Image</returns>
-        public static Image<TColor> DrawPolygon<TColor>(this Image<TColor> source, TColor color, float thickness, RectangleF shape)
+        public static Image<TColor> Draw<TColor>(this Image<TColor> source, TColor color, float thickness, IShape shape)
            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            return source.DrawPolygon(new SolidBrush<TColor>(color), thickness, shape);
+            return source.Draw(new SolidBrush<TColor>(color), thickness, shape);
         }
     }
 }

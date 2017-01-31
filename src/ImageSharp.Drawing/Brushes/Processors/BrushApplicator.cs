@@ -16,7 +16,6 @@ namespace ImageSharp.Drawing.Processors
     public abstract class BrushApplicator<TColor> : IDisposable // disposable will be required if/when there is an ImageBrush
         where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
-
         /// <summary>
         /// Gets the color for a single pixel.
         /// </summary>

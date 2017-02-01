@@ -163,7 +163,7 @@ namespace ImageSharp
             int newWidth = pixelSource.Width;
             int newHeight = pixelSource.Height;
 
-            // push my memory into the accessor (which in turn unpins the old puffer ready for the images use)
+            // Push my memory into the accessor (which in turn unpins the old puffer ready for the images use)
             TColor[] newPixels = pixelSource.ReturnCurrentPixelsAndReplaceThemInternally(this.Width, this.Height, this.pixelBuffer, true);
             this.Width = newWidth;
             this.Height = newHeight;

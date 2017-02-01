@@ -334,9 +334,9 @@ namespace ImageSharp
                 target.ExifProfile = new ExifProfile(this.ExifProfile);
             }
 
-            foreach (ImageFrame<TColor> frame in this.Frames)
+            for (int i = 0; i < this.Frames.Count; i++)
             {
-                target.Frames.Add(frame.To<TColor2>());
+                target.Frames.Add(this.Frames[i].To<TColor2>());
             }
 
             return target;
@@ -370,6 +370,18 @@ namespace ImageSharp
         internal virtual ImageFrame<TColor> ToFrame()
         {
             return new ImageFrame<TColor>(this);
+        }
+
+        /// <inheritdoc />
+        protected override void Dispose(bool disposing)
+        {
+            // ReSharper disable once ForCanBeConvertedToForeach
+            for (int i = 0; i < this.Frames.Count; i++)
+            {
+                this.Frames[i].Dispose();
+            }
+
+            base.Dispose(disposing);
         }
 
         /// <summary>

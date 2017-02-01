@@ -55,10 +55,10 @@ namespace ImageSharp.Processing.Processors
             int height = source.Height;
             int halfHeight = (int)Math.Ceiling(source.Height * .5F);
 
-            TColor[] target = new TColor[width * height];
+            TColor[] target = PixelPool<TColor>.RentPixels(width * height);
 
             using (PixelAccessor<TColor> sourcePixels = source.Lock())
-            using (PixelAccessor<TColor> targetPixels = target.Lock<TColor>(width, height))
+            using (PixelAccessor<TColor> targetPixels = target.Lock(width, height))
             {
                 Parallel.For(
                     0,
@@ -89,10 +89,10 @@ namespace ImageSharp.Processing.Processors
             int height = source.Height;
             int halfWidth = (int)Math.Ceiling(width * .5F);
 
-            TColor[] target = new TColor[width * height];
+            TColor[] target = PixelPool<TColor>.RentPixels(width * height);
 
             using (PixelAccessor<TColor> sourcePixels = source.Lock())
-            using (PixelAccessor<TColor> targetPixels = target.Lock<TColor>(width, height))
+            using (PixelAccessor<TColor> targetPixels = target.Lock(width, height))
             {
                 Parallel.For(
                     0,

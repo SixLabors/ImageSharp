@@ -31,6 +31,8 @@ namespace ImageSharp.Tests
 
             ExifValue value = image.ExifProfile.Values.FirstOrDefault(val => val.Tag == ExifTag.Copyright);
             TestValue(value, "Dirk Lemstra");
+
+
         }
 
         [Fact]
@@ -247,6 +249,7 @@ namespace ImageSharp.Tests
             using (MemoryStream memStream = new MemoryStream())
             {
                 image.SaveAsJpeg(memStream);
+                image.Dispose();
 
                 memStream.Position = 0;
                 return new Image(memStream);

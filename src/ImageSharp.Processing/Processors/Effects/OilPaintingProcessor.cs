@@ -67,9 +67,9 @@ namespace ImageSharp.Processing.Processors
                 startX = 0;
             }
 
-            TColor[] target = new TColor[source.Width * source.Height];
+            TColor[] target = PixelPool<TColor>.RentPixels(source.Width * source.Height);
             using (PixelAccessor<TColor> sourcePixels = source.Lock())
-            using (PixelAccessor<TColor> targetPixels = target.Lock<TColor>(source.Width, source.Height))
+            using (PixelAccessor<TColor> targetPixels = target.Lock(source.Width, source.Height))
             {
                 Parallel.For(
                     minY,

@@ -19,20 +19,18 @@ namespace ImageSharp.Tests
         };
 
         [Theory]
-        [MemberData("BoxBlurValues")]
+        [MemberData(nameof(BoxBlurValues))]
         public void ImageShouldApplyBoxBlurFilter(int value)
         {
-            string path = CreateOutputDirectory("BoxBlur");
+            string path = this.CreateOutputDirectory("BoxBlur");
 
             foreach (TestFile file in Files)
             {
                 string filename = file.GetFileName(value);
-                Image image = file.CreateImage();
-
+                using (Image image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
-                    image.BoxBlur(value)
-                          .Save(output);
+                    image.BoxBlur(value).Save(output);
                 }
             }
         }

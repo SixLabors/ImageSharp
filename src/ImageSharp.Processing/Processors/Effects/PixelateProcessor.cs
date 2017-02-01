@@ -63,10 +63,10 @@ namespace ImageSharp.Processing.Processors
 
             // Get the range on the y-plane to choose from.
             IEnumerable<int> range = EnumerableExtensions.SteppedRange(minY, i => i < maxY, size);
-            TColor[] target = new TColor[source.Width * source.Height];
+            TColor[] target = PixelPool<TColor>.RentPixels(source.Width * source.Height);
 
             using (PixelAccessor<TColor> sourcePixels = source.Lock())
-            using (PixelAccessor<TColor> targetPixels = target.Lock<TColor>(source.Width, source.Height))
+            using (PixelAccessor<TColor> targetPixels = target.Lock(source.Width, source.Height))
             {
                 Parallel.ForEach(
                     range,

@@ -31,9 +31,11 @@ namespace ImageSharp.Tests
         public void LoadBaselineImage<TColor>(TestImageProvider<TColor> provider)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            var image = provider.GetImage();
-            Assert.NotNull(image);
-            provider.Utility.SaveTestOutputFile(image, "bmp");
+            using (Image<TColor> image = provider.GetImage())
+            {
+                Assert.NotNull(image);
+                provider.Utility.SaveTestOutputFile(image, "bmp");
+            }
         }
 
         [Theory] // TODO: #18
@@ -41,9 +43,11 @@ namespace ImageSharp.Tests
         public void LoadProgressiveImage<TColor>(TestImageProvider<TColor> provider)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            var image = provider.GetImage();
-            Assert.NotNull(image);
-            provider.Utility.SaveTestOutputFile(image, "bmp");
+            using (Image<TColor> image = provider.GetImage())
+            {
+                Assert.NotNull(image);
+                provider.Utility.SaveTestOutputFile(image, "bmp");
+            }
         }
     }
 }

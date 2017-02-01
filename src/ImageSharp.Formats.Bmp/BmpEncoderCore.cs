@@ -34,7 +34,7 @@ namespace ImageSharp.Formats
         /// <param name="bitsPerPixel">The <see cref="BmpBitsPerPixel"/></param>
         public void Encode<TColor>(ImageBase<TColor> image, Stream stream, BmpBitsPerPixel bitsPerPixel)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
-                    {
+        {
             Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));
 
@@ -119,23 +119,23 @@ namespace ImageSharp.Formats
         /// Writes the pixel data to the binary stream.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-                /// <param name="writer">The <see cref="EndianBinaryWriter"/> containing the stream to write to.</param>
+        /// <param name="writer">The <see cref="EndianBinaryWriter"/> containing the stream to write to.</param>
         /// <param name="image">
         /// The <see cref="ImageBase{TColor}"/> containing pixel data.
         /// </param>
         private void WriteImage<TColor>(EndianBinaryWriter writer, ImageBase<TColor> image)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
-                    {
+        {
             using (PixelAccessor<TColor> pixels = image.Lock())
             {
                 switch (this.bmpBitsPerPixel)
                 {
                     case BmpBitsPerPixel.Pixel32:
-                        this.Write32Bit<TColor>(writer, pixels);
+                        this.Write32Bit(writer, pixels);
                         break;
 
                     case BmpBitsPerPixel.Pixel24:
-                        this.Write24Bit<TColor>(writer, pixels);
+                        this.Write24Bit(writer, pixels);
                         break;
                 }
             }
@@ -145,11 +145,11 @@ namespace ImageSharp.Formats
         /// Writes the 32bit color palette to the stream.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-                /// <param name="writer">The <see cref="EndianBinaryWriter"/> containing the stream to write to.</param>
+        /// <param name="writer">The <see cref="EndianBinaryWriter"/> containing the stream to write to.</param>
         /// <param name="pixels">The <see cref="PixelAccessor{TColor}"/> containing pixel data.</param>
         private void Write32Bit<TColor>(EndianBinaryWriter writer, PixelAccessor<TColor> pixels)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
-                    {
+        {
             using (PixelArea<TColor> row = new PixelArea<TColor>(pixels.Width, ComponentOrder.Zyxw, this.padding))
             {
                 for (int y = pixels.Height - 1; y >= 0; y--)
@@ -164,11 +164,11 @@ namespace ImageSharp.Formats
         /// Writes the 24bit color palette to the stream.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-                /// <param name="writer">The <see cref="EndianBinaryWriter"/> containing the stream to write to.</param>
+        /// <param name="writer">The <see cref="EndianBinaryWriter"/> containing the stream to write to.</param>
         /// <param name="pixels">The <see cref="PixelAccessor{TColor}"/> containing pixel data.</param>
         private void Write24Bit<TColor>(EndianBinaryWriter writer, PixelAccessor<TColor> pixels)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
-                    {
+        {
             using (PixelArea<TColor> row = new PixelArea<TColor>(pixels.Width, ComponentOrder.Zyx, this.padding))
             {
                 for (int y = pixels.Height - 1; y >= 0; y--)

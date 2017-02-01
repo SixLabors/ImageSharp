@@ -15,14 +15,9 @@ namespace ImageSharp
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     [DebuggerDisplay("Image: {Width}x{Height}")]
-    public abstract class ImageBase<TColor> : IImageBase<TColor> // IImageBase implements IDisposable
+    public abstract class ImageBase<TColor> : IImageBase<TColor>
         where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
-        /// <summary>
-        /// The <see cref="ArrayPool{TColor}"/> used to pool data. TODO: Choose sensible default size and count
-        /// </summary>
-        private static readonly ArrayPool<TColor> ArrayPool = ArrayPool<TColor>.Create(int.MaxValue, 50);
-
         /// <summary>
         /// The image pixels
         /// </summary>
@@ -92,14 +87,6 @@ namespace ImageSharp
                 // Check we can do this without crashing
                 sourcePixels.CopyTo(target);
             }
-        }
-
-        /// <summary>
-        /// Finalizes an instance of the <see cref="ImageBase{TColor}"/> class.
-        /// </summary>
-        ~ImageBase()
-        {
-            this.Dispose(false);
         }
 
         /// <inheritdoc/>

@@ -94,7 +94,7 @@ namespace ImageSharp.Tests
 
                     using (Image image = new Image(srcImage))
                     {
-                        using (FileStream output = File.OpenWrite($"{path}/Wu-{file.FileName}"))
+                        using (FileStream output = File.OpenWrite($"{path}/Palette-{file.FileName}"))
                         {
                             image.Quantize(Quantization.Palette)
                                 .Save(output, image.CurrentImageFormat);

@@ -38,12 +38,14 @@ namespace ImageSharp.Benchmarks
         [Benchmark(Description = "ImageSharp Fill with Pattern")]
         public void DrawPatternPolygon3Core()
         {
-            CoreImage image = new CoreImage(800, 800);
-            image.Fill(CoreBrushes.BackwardDiagonal(CoreColor.HotPink));
-
-            using (MemoryStream ms = new MemoryStream())
+            using (CoreImage image = new CoreImage(800, 800))
             {
-                image.SaveAsBmp(ms);
+                image.Fill(CoreBrushes.BackwardDiagonal(CoreColor.HotPink));
+
+                using (MemoryStream ms = new MemoryStream())
+                {
+                    image.SaveAsBmp(ms);
+                }
             }
         }
     }

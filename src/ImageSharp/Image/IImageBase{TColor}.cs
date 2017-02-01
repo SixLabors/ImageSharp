@@ -11,11 +11,13 @@ namespace ImageSharp
     /// Encapsulates the basic properties and methods required to manipulate images in varying formats.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    public interface IImageBase<TColor> : IImageBase
+    public interface IImageBase<TColor> : IImageBase, IDisposable
         where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>
         /// Gets the pixels as an array of the given packed pixel format.
+        /// Important. Due to the nature in the way this is constructed do not rely on the length
+        /// of the array for calculations. Use Width * Height.
         /// </summary>
         TColor[] Pixels { get; }
 

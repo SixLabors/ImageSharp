@@ -14,16 +14,14 @@ namespace ImageSharp.Tests
         [Fact]
         public void ImageShouldApplyBackgroundColorFilter()
         {
-            string path = CreateOutputDirectory("BackgroundColor");
+            string path = this.CreateOutputDirectory("BackgroundColor");
 
             foreach (TestFile file in Files)
             {
-                Image image = file.CreateImage();
-
+                using (Image image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{file.FileName}"))
                 {
-                    image.BackgroundColor(Color.HotPink)
-                          .Save(output);
+                    image.BackgroundColor(Color.HotPink).Save(output);
                 }
             }
         }

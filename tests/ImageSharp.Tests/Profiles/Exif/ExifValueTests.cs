@@ -12,9 +12,12 @@ namespace ImageSharp.Tests
     {
         private static ExifValue GetExifValue()
         {
-            Image image = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan).CreateImage();
+            ExifProfile profile;
+            using (Image image = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan).CreateImage())
+            {
+                profile = image.ExifProfile;
+            }
 
-            ExifProfile profile = image.ExifProfile;
             Assert.NotNull(profile);
 
             return profile.Values.First();

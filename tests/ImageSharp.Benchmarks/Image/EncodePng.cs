@@ -31,6 +31,14 @@ namespace ImageSharp.Benchmarks.Image
             }
         }
 
+        [Cleanup]
+        public void Cleanup()
+        {
+            this.bmpStream.Dispose();
+            this.bmpCore.Dispose();
+            this.bmpDrawing.Dispose();
+        }
+
         [Benchmark(Baseline = true, Description = "System.Drawing Png")]
         public void PngSystemDrawing()
         {

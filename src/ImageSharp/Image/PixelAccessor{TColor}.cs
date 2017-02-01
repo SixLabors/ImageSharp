@@ -76,9 +76,9 @@ namespace ImageSharp
             Guard.MustBeGreaterThan(width, 0, nameof(width));
             Guard.MustBeGreaterThan(height, 0, nameof(height));
 
-            if (pixels.Length != width * height)
+            if (!(pixels.Length >= width * height))
             {
-                throw new ArgumentException("Pixel array must have the length of Width * Height.");
+                throw new ArgumentException($"Pixel array must have the length of at least {width * height}.");
             }
 
             this.Width = width;

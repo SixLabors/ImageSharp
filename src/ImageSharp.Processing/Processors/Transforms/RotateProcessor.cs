@@ -42,10 +42,10 @@ namespace ImageSharp.Processing.Processors
             int height = this.CanvasRectangle.Height;
             int width = this.CanvasRectangle.Width;
             Matrix3x2 matrix = this.GetCenteredMatrix(source, this.processMatrix);
-            TColor[] target = new TColor[width * height];
+            TColor[] target = PixelPool<TColor>.RentPixels(width * height);
 
             using (PixelAccessor<TColor> sourcePixels = source.Lock())
-            using (PixelAccessor<TColor> targetPixels = target.Lock<TColor>(width, height))
+            using (PixelAccessor<TColor> targetPixels = target.Lock(width, height))
             {
                 Parallel.For(
                     0,
@@ -124,10 +124,10 @@ namespace ImageSharp.Processing.Processors
         {
             int width = source.Width;
             int height = source.Height;
-            TColor[] target = new TColor[width * height];
+            TColor[] target = PixelPool<TColor>.RentPixels(width * height);
 
             using (PixelAccessor<TColor> sourcePixels = source.Lock())
-            using (PixelAccessor<TColor> targetPixels = target.Lock<TColor>(height, width))
+            using (PixelAccessor<TColor> targetPixels = target.Lock(height, width))
             {
                 Parallel.For(
                     0,
@@ -156,10 +156,10 @@ namespace ImageSharp.Processing.Processors
         {
             int width = source.Width;
             int height = source.Height;
-            TColor[] target = new TColor[width * height];
+            TColor[] target = PixelPool<TColor>.RentPixels(width * height);
 
             using (PixelAccessor<TColor> sourcePixels = source.Lock())
-            using (PixelAccessor<TColor> targetPixels = target.Lock<TColor>(width, height))
+            using (PixelAccessor<TColor> targetPixels = target.Lock(width, height))
             {
                 Parallel.For(
                     0,
@@ -187,10 +187,10 @@ namespace ImageSharp.Processing.Processors
         {
             int width = source.Width;
             int height = source.Height;
-            TColor[] target = new TColor[width * height];
+            TColor[] target = PixelPool<TColor>.RentPixels(width * height);
 
             using (PixelAccessor<TColor> sourcePixels = source.Lock())
-            using (PixelAccessor<TColor> targetPixels = target.Lock<TColor>(height, width))
+            using (PixelAccessor<TColor> targetPixels = target.Lock(height, width))
             {
                 Parallel.For(
                     0,

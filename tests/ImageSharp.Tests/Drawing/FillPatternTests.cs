@@ -15,55 +15,56 @@ namespace ImageSharp.Tests.Drawing
 
     public class FillPatternBrushTests : FileTestBase
     {
-        private Image Test(string name, Color background, IBrush<Color> brush, Color[,] expectedPattern)
+        private void Test(string name, Color background, IBrush<Color> brush, Color[,] expectedPattern)
         {
-            string path = CreateOutputDirectory("Fill", "PatternBrush");
-            Image image = new Image(20, 20);
-            image
-                  .Fill(background)
-                  .Fill(brush);
+            string path = this.CreateOutputDirectory("Fill", "PatternBrush");
+            using (Image image = new Image(20, 20))
+            {
+                image
+                    .Fill(background)
+                    .Fill(brush);
 
-            using (FileStream output = File.OpenWrite($"{path}/{name}.png"))
-            {
-                image.Save(output);
-            }
-            using (var sourcePixels = image.Lock())
-            {
-                // lets pick random spots to start checking
-                var r = new Random();
-                var xStride = expectedPattern.GetLength(1);
-                var yStride = expectedPattern.GetLength(0);
-                var offsetX = r.Next(image.Width / xStride) * xStride;
-                var offsetY = r.Next(image.Height / yStride) * yStride;
-                for (var x = 0; x < xStride; x++)
+                using (FileStream output = File.OpenWrite($"{path}/{name}.png"))
                 {
-                    for (var y = 0; y < yStride; y++)
+                    image.Save(output);
+                }
+
+                using (PixelAccessor<Color> sourcePixels = image.Lock())
+                {
+                    // lets pick random spots to start checking
+                    Random r = new Random();
+                    int xStride = expectedPattern.GetLength(1);
+                    int yStride = expectedPattern.GetLength(0);
+                    int offsetX = r.Next(image.Width / xStride) * xStride;
+                    int offsetY = r.Next(image.Height / yStride) * yStride;
+                    for (int x = 0; x < xStride; x++)
                     {
-                        var actualX = x + offsetX;
-                        var actualY = y + offsetY;
-                        var expected = expectedPattern[y, x]; // inverted pattern
-                        var actual = sourcePixels[actualX, actualY];
-                        if (expected != actual)
+                        for (int y = 0; y < yStride; y++)
                         {
-                            Assert.True(false, $"Expected {expected} but found {actual} at ({actualX},{actualY})");
+                            int actualX = x + offsetX;
+                            int actualY = y + offsetY;
+                            Color expected = expectedPattern[y, x]; // inverted pattern
+                            Color actual = sourcePixels[actualX, actualY];
+                            if (expected != actual)
+                            {
+                                Assert.True(false, $"Expected {expected} but found {actual} at ({actualX},{actualY})");
+                            }
                         }
                     }
                 }
+                using (FileStream output = File.OpenWrite($"{path}/{name}x4.png"))
+                {
+                    image.Resize(80, 80).Save(output);
+                }
             }
-            using (FileStream output = File.OpenWrite($"{path}/{name}x4.png"))
-            {
-                image.Resize(80, 80).Save(output);
-            }
-
-
-
-            return image;
         }
 
         [Fact]
         public void ImageShouldBeFloodFilledWithPercent10()
         {
-            Test("Percent10", Color.Blue, Brushes.Percent10(Color.HotPink, Color.LimeGreen), new Color[,] {
+            this.Test("Percent10", Color.Blue, Brushes.Percent10(Color.HotPink, Color.LimeGreen),
+                new[,]
+                {
                 { Color.HotPink , Color.LimeGreen, Color.LimeGreen, Color.LimeGreen},
                 { Color.LimeGreen, Color.LimeGreen, Color.LimeGreen, Color.LimeGreen},
                 { Color.LimeGreen, Color.LimeGreen, Color.HotPink , Color.LimeGreen},

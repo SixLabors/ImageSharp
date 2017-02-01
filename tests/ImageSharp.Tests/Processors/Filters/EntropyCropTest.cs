@@ -19,20 +19,18 @@ namespace ImageSharp.Tests
         };
 
         [Theory]
-        [MemberData("EntropyCropValues")]
+        [MemberData(nameof(EntropyCropValues))]
         public void ImageShouldApplyEntropyCropSampler(float value)
         {
-            string path = CreateOutputDirectory("EntropyCrop");
+            string path = this.CreateOutputDirectory("EntropyCrop");
 
             foreach (TestFile file in Files)
             {
                 string filename = file.GetFileName(value);
-                Image image = file.CreateImage();
-
+                using (Image image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
-                    image.EntropyCrop(value)
-                          .Save(output);
+                    image.EntropyCrop(value).Save(output);
                 }
             }
         }

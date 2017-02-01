@@ -45,13 +45,20 @@ namespace ImageSharp.Processing.Processors
             int width = source.Width;
             int height = source.Height;
 
-            TColor[] target = new TColor[width * height];
-            TColor[] firstPass = new TColor[width * height];
+            TColor[] target = PixelPool<TColor>.RentPixels(width * height);
+            TColor[] firstPass = PixelPool<TColor>.RentPixels(width * height);
 
-            this.ApplyConvolution(width, height, firstPass, source.Pixels, sourceRectangle, kernelX);
-            this.ApplyConvolution(width, height, target, firstPass, sourceRectangle, kernelY);
+            try
+            {
+                this.ApplyConvolution(width, height, firstPass, source.Pixels, sourceRectangle, kernelX);
+                this.ApplyConvolution(width, height, target, firstPass, sourceRectangle, kernelY);
 
-            source.SetPixels(width, height, target);
+                source.SetPixels(width, height, target);
+            }
+            finally
+            {
+                PixelPool<TColor>.ReturnPixels(firstPass);
+            }
         }
 
         /// <summary>
@@ -80,8 +87,8 @@ namespace ImageSharp.Processing.Processors
             int maxY = endY - 1;
             int maxX = endX - 1;
 
-            using (PixelAccessor<TColor> sourcePixels = source.Lock<TColor>(width, height))
-            using (PixelAccessor<TColor> targetPixels = target.Lock<TColor>(width, height))
+            using (PixelAccessor<TColor> sourcePixels = source.Lock(width, height))
+            using (PixelAccessor<TColor> targetPixels = target.Lock(width, height))
             {
                 Parallel.For(
                 startY,

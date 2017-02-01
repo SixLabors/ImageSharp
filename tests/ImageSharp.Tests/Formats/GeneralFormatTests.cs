@@ -71,30 +71,34 @@ namespace ImageSharp.Tests
 
             foreach (TestFile file in Files)
             {
-                using (Image image = file.CreateImage())
+                using (Image srcImage = file.CreateImage())
                 {
-                    Color[] pixels = new Color[image.Width * image.Height];
-                    Array.Copy(image.Pixels, pixels, image.Width * image.Height);
-
-                    using (FileStream output = File.OpenWrite($"{path}/Octree-{file.FileName}"))
+                    using (Image image = new Image(srcImage))
                     {
-                        image.Quantize(Quantization.Octree)
-                            .Save(output, image.CurrentImageFormat);
+                        using (FileStream output = File.OpenWrite($"{path}/Octree-{file.FileName}"))
+                        {
+                            image.Quantize(Quantization.Octree)
+                                .Save(output, image.CurrentImageFormat);
 
+                        }
                     }
 
-                    image.SetPixels(image.Width, image.Height, pixels);
-                    using (FileStream output = File.OpenWrite($"{path}/Wu-{file.FileName}"))
+                    using (Image image = new Image(srcImage))
                     {
-                        image.Quantize(Quantization.Wu)
-                            .Save(output, image.CurrentImageFormat);
+                        using (FileStream output = File.OpenWrite($"{path}/Wu-{file.FileName}"))
+                        {
+                            image.Quantize(Quantization.Wu)
+                                .Save(output, image.CurrentImageFormat);
+                        }
                     }
 
-                    image.SetPixels(image.Width, image.Height, pixels);
-                    using (FileStream output = File.OpenWrite($"{path}/Palette-{file.FileName}"))
+                    using (Image image = new Image(srcImage))
                     {
-                        image.Quantize(Quantization.Palette)
-                            .Save(output, image.CurrentImageFormat);
+                        using (FileStream output = File.OpenWrite($"{path}/Wu-{file.FileName}"))
+                        {
+                            image.Quantize(Quantization.Palette)
+                                .Save(output, image.CurrentImageFormat);
+                        }
                     }
                 }
             }

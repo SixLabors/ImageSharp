@@ -6,7 +6,6 @@
 namespace ImageSharp
 {
     using System;
-    using System.Buffers;
     using System.Diagnostics;
 
     /// <summary>

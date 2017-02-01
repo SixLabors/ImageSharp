@@ -42,10 +42,10 @@ namespace ImageSharp.Processing.Processors
             int minX = Math.Max(this.CropRectangle.X, sourceRectangle.X);
             int maxX = Math.Min(this.CropRectangle.Right, sourceRectangle.Right);
 
-            TColor[] target = new TColor[this.CropRectangle.Width * this.CropRectangle.Height];
+            TColor[] target = PixelPool<TColor>.RentPixels(this.CropRectangle.Width * this.CropRectangle.Height);
 
             using (PixelAccessor<TColor> sourcePixels = source.Lock())
-            using (PixelAccessor<TColor> targetPixels = target.Lock<TColor>(this.CropRectangle.Width, this.CropRectangle.Height))
+            using (PixelAccessor<TColor> targetPixels = target.Lock(this.CropRectangle.Width, this.CropRectangle.Height))
             {
                 Parallel.For(
                     minY,

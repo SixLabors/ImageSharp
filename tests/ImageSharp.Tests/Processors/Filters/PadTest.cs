@@ -14,16 +14,14 @@ namespace ImageSharp.Tests
         [Fact]
         public void ImageShouldApplyPadSampler()
         {
-            string path = CreateOutputDirectory("Pad");
+            string path = this.CreateOutputDirectory("Pad");
 
             foreach (TestFile file in Files)
             {
-                Image image = file.CreateImage();
-
+                using (Image image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{file.FileName}"))
                 {
-                    image.Pad(image.Width + 50, image.Height + 50)
-                          .Save(output);
+                    image.Pad(image.Width + 50, image.Height + 50).Save(output);
                 }
             }
         }

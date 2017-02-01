@@ -10,7 +10,7 @@ namespace ImageSharp.Tests
     public class ExifDescriptionAttributeTests
     {
         [Fact]
-        public void Test_ExifTag()
+        public void TestExifTag()
         {
             var exifProfile = new ExifProfile();
 

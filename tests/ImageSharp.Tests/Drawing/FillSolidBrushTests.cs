@@ -18,71 +18,73 @@ namespace ImageSharp.Tests.Drawing
         [Fact]
         public void ImageShouldBeFloodFilledWithColorOnDefaultBackground()
         {
-            string path = CreateOutputDirectory("Fill", "SolidBrush");
-            var image = new Image(500, 500);
-
-            using (FileStream output = File.OpenWrite($"{path}/DefaultBack.png"))
+            string path = this.CreateOutputDirectory("Fill", "SolidBrush");
+            using (Image image = new Image(500, 500))
             {
-                image
-                    .Fill(Color.HotPink)
-                    .Save(output);
-            }
+                using (FileStream output = File.OpenWrite($"{path}/DefaultBack.png"))
+                {
+                    image
+                        .Fill(Color.HotPink)
+                        .Save(output);
+                }
 
-            using (var sourcePixels = image.Lock())
-            {
-                Assert.Equal(Color.HotPink, sourcePixels[9, 9]);
+                using (PixelAccessor<Color> sourcePixels = image.Lock())
+                {
+                    Assert.Equal(Color.HotPink, sourcePixels[9, 9]);
 
-                Assert.Equal(Color.HotPink, sourcePixels[199, 149]);
+                    Assert.Equal(Color.HotPink, sourcePixels[199, 149]);
+                }
             }
         }
 
         [Fact]
         public void ImageShouldBeFloodFilledWithColor()
         {
-            string path = CreateOutputDirectory("Fill", "SolidBrush");
-            var image = new Image(500, 500);
-
-            using (FileStream output = File.OpenWrite($"{path}/Simple.png"))
+            string path = this.CreateOutputDirectory("Fill", "SolidBrush");
+            using (Image image = new Image(500, 500))
             {
-                image
-                    .BackgroundColor(Color.Blue)
-                    .Fill(Color.HotPink)
-                    .Save(output);
-            }
+                using (FileStream output = File.OpenWrite($"{path}/Simple.png"))
+                {
+                    image
+                        .BackgroundColor(Color.Blue)
+                        .Fill(Color.HotPink)
+                        .Save(output);
+                }
 
-            using (var sourcePixels = image.Lock())
-            {
-                Assert.Equal(Color.HotPink, sourcePixels[9, 9]);
+                using (PixelAccessor<Color> sourcePixels = image.Lock())
+                {
+                    Assert.Equal(Color.HotPink, sourcePixels[9, 9]);
 
-                Assert.Equal(Color.HotPink, sourcePixels[199, 149]);
+                    Assert.Equal(Color.HotPink, sourcePixels[199, 149]);
+                }
             }
         }
 
         [Fact]
         public void ImageShouldBeFloodFilledWithColorOpacity()
         {
-            string path = CreateOutputDirectory("Fill", "SolidBrush");
-            var image = new Image(500, 500);
-
-            var color = new Color(Color.HotPink.R, Color.HotPink.G, Color.HotPink.B, 150);
-
-            using (FileStream output = File.OpenWrite($"{path}/Opacity.png"))
+            string path = this.CreateOutputDirectory("Fill", "SolidBrush");
+            using (Image image = new Image(500, 500))
             {
-                image
-                    .BackgroundColor(Color.Blue)
-                    .Fill(color)
-                    .Save(output);
+                Color color = new Color(Color.HotPink.R, Color.HotPink.G, Color.HotPink.B, 150);
+
+                using (FileStream output = File.OpenWrite($"{path}/Opacity.png"))
+                {
+                    image
+                        .BackgroundColor(Color.Blue)
+                        .Fill(color)
+                        .Save(output);
+                }
+                //shift background color towards forground color by the opacity amount
+                Color mergedColor = new Color(Vector4.Lerp(Color.Blue.ToVector4(), Color.HotPink.ToVector4(), 150f / 255f));
+
+
+                using (PixelAccessor<Color> sourcePixels = image.Lock())
+                {
+                    Assert.Equal(mergedColor, sourcePixels[9, 9]);
+                    Assert.Equal(mergedColor, sourcePixels[199, 149]);
+                }
             }
-            //shift background color towards forground color by the opacity amount
-            var mergedColor = new Color(Vector4.Lerp(Color.Blue.ToVector4(), Color.HotPink.ToVector4(), 150f / 255f));
-
-
-            using (var sourcePixels = image.Lock())
-            {
-                Assert.Equal(mergedColor, sourcePixels[9, 9]);
-                Assert.Equal(mergedColor, sourcePixels[199, 149]);
-            }
-
         }
 
     }

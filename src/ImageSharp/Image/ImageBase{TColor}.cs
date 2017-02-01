@@ -146,49 +146,28 @@ namespace ImageSharp
         }
 
         /// <inheritdoc/>
-        public void SetPixels(int width, int height, TColor[] pixels)
-        {
-            Guard.MustBeGreaterThan(width, 0, nameof(width));
-            Guard.MustBeGreaterThan(height, 0, nameof(height));
-            Guard.NotNull(pixels, nameof(pixels));
-
-            if (!(pixels.Length >= width * height))
-            {
-                throw new ArgumentException($"Pixel array must have the length of at least {width * height}.");
-            }
-
-            this.Width = width;
-            this.Height = height;
-
-            this.ReturnPixels();
-            this.pixelBuffer = pixels;
-        }
-
-        /// <inheritdoc/>
-        public void ClonePixels(int width, int height, TColor[] pixels)
-        {
-            Guard.MustBeGreaterThan(width, 0, nameof(width));
-            Guard.MustBeGreaterThan(height, 0, nameof(height));
-            Guard.NotNull(pixels, nameof(pixels));
-
-            if (!(pixels.Length >= width * height))
-            {
-                throw new ArgumentException($"Pixel array must have the length of at least {width * height}.");
-            }
-
-            this.Width = width;
-            this.Height = height;
-
-            // Copy the pixels. TODO: use Unsafe.Copy.
-            this.ReturnPixels();
-            this.RentPixels();
-            Array.Copy(pixels, this.pixelBuffer, width * height);
-        }
-
-        /// <inheritdoc/>
         public virtual PixelAccessor<TColor> Lock()
         {
             return new PixelAccessor<TColor>(this);
+        }
+
+        /// <summary>
+        /// Switches the buffers used by the image and the PixelAccessor meaning that the Image will "own" the buffer from the PixelAccessor and the PixelAccessor will now own the Images buffer.
+        /// </summary>
+        /// <param name="pixelSource">The pixel source.</param>
+        internal void SwapPixelsBuffers(PixelAccessor<TColor> pixelSource)
+        {
+            Guard.NotNull(pixelSource, nameof(pixelSource));
+            Guard.IsTrue(pixelSource.PooledMemory, nameof(pixelSource.PooledMemory), "pixelSource must be using pooled memory");
+
+            int newWidth = pixelSource.Width;
+            int newHeight = pixelSource.Height;
+
+            // push my memory into the accessor (which in turn unpins the old puffer ready for the images use)
+            TColor[] newPixels = pixelSource.ReturnCurrentPixelsAndReplaceThemInternally(this.Width, this.Height, this.pixelBuffer, true);
+            this.Width = newWidth;
+            this.Height = newHeight;
+            this.pixelBuffer = newPixels;
         }
 
         /// <summary>

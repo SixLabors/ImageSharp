@@ -60,20 +60,26 @@ namespace ImageSharp
 
             int pixelCount = quantized.Pixels.Length;
             int palleteCount = quantized.Palette.Length - 1;
-            TColor[] pixels = new TColor[pixelCount];
 
-            Parallel.For(
-                0,
-                pixelCount,
-                source.Configuration.ParallelOptions,
-                i =>
-                {
-                    TColor color = quantized.Palette[Math.Min(palleteCount, quantized.Pixels[i])];
-                    pixels[i] = color;
-                });
+            using (PixelAccessor<TColor> pixels = new PixelAccessor<TColor>(quantized.Width, quantized.Height))
+            {
+                Parallel.For(
+                    0,
+                    pixels.Height,
+                    source.Configuration.ParallelOptions,
+                    y =>
+                    {
+                        for (var x = 0; x < pixels.Width; x++)
+                        {
+                            var i = x + (y * pixels.Width);
+                            TColor color = quantized.Palette[Math.Min(palleteCount, quantized.Pixels[i])];
+                            pixels[x, y] = color;
+                        }
+                    });
 
-            source.SetPixels(source.Width, source.Height, pixels);
-            return source;
+                source.SwapPixelsBuffers(pixels);
+                return source;
+            }
         }
     }
 }

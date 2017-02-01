@@ -65,19 +65,15 @@ namespace ImageSharp.Processing.Processors
             int minY = Math.Max(0, startY);
             int maxY = Math.Min(height, endY);
 
-            TColor[] firstPass = null;
-
-            try
+            if (this.Sampler is NearestNeighborResampler)
             {
-                TColor[] target = PixelPool<TColor>.RentPixels(width * height);
-                if (this.Sampler is NearestNeighborResampler)
-                {
-                    // Scaling factors
-                    float widthFactor = sourceRectangle.Width / (float)this.ResizeRectangle.Width;
-                    float heightFactor = sourceRectangle.Height / (float)this.ResizeRectangle.Height;
+                // Scaling factors
+                float widthFactor = sourceRectangle.Width / (float)this.ResizeRectangle.Width;
+                float heightFactor = sourceRectangle.Height / (float)this.ResizeRectangle.Height;
 
+                using (PixelAccessor<TColor> targetPixels = new PixelAccessor<TColor>(width, height))
+                {
                     using (PixelAccessor<TColor> sourcePixels = source.Lock())
-                    using (PixelAccessor<TColor> targetPixels = target.Lock(width, height))
                     {
                         Parallel.For(
                             minY,
@@ -97,18 +93,19 @@ namespace ImageSharp.Processing.Processors
                     }
 
                     // Break out now.
-                    source.SetPixels(width, height, target);
+                    source.SwapPixelsBuffers(targetPixels);
                     return;
                 }
+            }
 
-                // Interpolate the image using the calculated weights.
-                // A 2-pass 1D algorithm appears to be faster than splitting a 1-pass 2D algorithm
-                // First process the columns. Since we are not using multiple threads startY and endY
-                // are the upper and lower bounds of the source rectangle.
-                firstPass = PixelPool<TColor>.RentPixels(width * source.Height);
+            // Interpolate the image using the calculated weights.
+            // A 2-pass 1D algorithm appears to be faster than splitting a 1-pass 2D algorithm
+            // First process the columns. Since we are not using multiple threads startY and endY
+            // are the upper and lower bounds of the source rectangle.
+            using (PixelAccessor<TColor> targetPixels = new PixelAccessor<TColor>(width, height))
+            {
                 using (PixelAccessor<TColor> sourcePixels = source.Lock())
-                using (PixelAccessor<TColor> firstPassPixels = firstPass.Lock(width, source.Height))
-                using (PixelAccessor<TColor> targetPixels = target.Lock(width, height))
+                using (PixelAccessor<TColor> firstPassPixels = new PixelAccessor<TColor>(width, source.Height))
                 {
                     Parallel.For(
                         0,
@@ -164,12 +161,7 @@ namespace ImageSharp.Processing.Processors
                         });
                 }
 
-                source.SetPixels(width, height, target);
-            }
-            finally
-            {
-                // We don't return target or source pixels as they are handled in the image itself.
-                PixelPool<TColor>.ReturnPixels(firstPass);
+                source.SwapPixelsBuffers(targetPixels);
             }
         }
     }

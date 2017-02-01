@@ -32,35 +32,6 @@ namespace ImageSharp
         void InitPixels(int width, int height);
 
         /// <summary>
-        /// Sets the pixel array of the image to the given value.
-        /// </summary>
-        /// <param name="width">The new width of the image. Must be greater than zero.</param>
-        /// <param name="height">The new height of the image. Must be greater than zero.</param>
-        /// <param name="pixels">The array with pixels. Must be a multiple of the width and height.</param>
-        /// <exception cref="System.ArgumentOutOfRangeException">
-        /// Thrown if either <paramref name="width"/> or <paramref name="height"/> are less than or equal to 0.
-        /// </exception>
-        /// <exception cref="System.ArgumentException">
-        /// Thrown if the <paramref name="pixels"/> length is not equal to Width * Height.
-        /// </exception>
-        void SetPixels(int width, int height, TColor[] pixels);
-
-        /// <summary>
-        /// Sets the pixel array of the image to the given value, creating a copy of
-        /// the original pixels.
-        /// </summary>
-        /// <param name="width">The new width of the image. Must be greater than zero.</param>
-        /// <param name="height">The new height of the image. Must be greater than zero.</param>
-        /// <param name="pixels">The array with pixels. Must be a multiple of four times the width and height.</param>
-        /// <exception cref="System.ArgumentOutOfRangeException">
-        /// Thrown if either <paramref name="width"/> or <paramref name="height"/> are less than or equal to 0.
-        /// </exception>
-        /// <exception cref="System.ArgumentException">
-        /// Thrown if the <paramref name="pixels"/> length is not equal to Width * Height.
-        /// </exception>
-        void ClonePixels(int width, int height, TColor[] pixels);
-
-        /// <summary>
         /// Locks the image providing access to the pixels.
         /// <remarks>
         /// It is imperative that the accessor is correctly disposed off after use.

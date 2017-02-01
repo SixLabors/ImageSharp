@@ -36,15 +36,7 @@ namespace ImageSharp
         /// <param name="array">The array to return to the buffer pool.</param>
         public static void ReturnPixels(TColor[] array)
         {
-            try
-            {
-                ArrayPool.Return(array, true);
-            }
-            catch
-            {
-                // Do nothing.
-                // Hacky but it allows us to attempt to return non-pooled arrays and arrays that have already been returned
-            }
+            ArrayPool.Return(array, true);
         }
     }
 }

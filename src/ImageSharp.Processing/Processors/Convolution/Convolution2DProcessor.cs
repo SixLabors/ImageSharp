@@ -54,73 +54,74 @@ namespace ImageSharp.Processing.Processors
             int maxY = endY - 1;
             int maxX = endX - 1;
 
-            TColor[] target = PixelPool<TColor>.RentPixels(source.Width * source.Height);
-            using (PixelAccessor<TColor> sourcePixels = source.Lock())
-            using (PixelAccessor<TColor> targetPixels = target.Lock(source.Width, source.Height))
+            using (PixelAccessor<TColor> targetPixels = new PixelAccessor<TColor>(source.Width, source.Height))
             {
-                Parallel.For(
-                startY,
-                endY,
-                this.ParallelOptions,
-                y =>
+                using (PixelAccessor<TColor> sourcePixels = source.Lock())
                 {
-                    for (int x = startX; x < endX; x++)
+                    Parallel.For(
+                    startY,
+                    endY,
+                    this.ParallelOptions,
+                    y =>
                     {
-                        float rX = 0;
-                        float gX = 0;
-                        float bX = 0;
-                        float rY = 0;
-                        float gY = 0;
-                        float bY = 0;
-
-                        // Apply each matrix multiplier to the color components for each pixel.
-                        for (int fy = 0; fy < kernelYHeight; fy++)
+                        for (int x = startX; x < endX; x++)
                         {
-                            int fyr = fy - radiusY;
-                            int offsetY = y + fyr;
+                            float rX = 0;
+                            float gX = 0;
+                            float bX = 0;
+                            float rY = 0;
+                            float gY = 0;
+                            float bY = 0;
 
-                            offsetY = offsetY.Clamp(0, maxY);
-
-                            for (int fx = 0; fx < kernelXWidth; fx++)
+                            // Apply each matrix multiplier to the color components for each pixel.
+                            for (int fy = 0; fy < kernelYHeight; fy++)
                             {
-                                int fxr = fx - radiusX;
-                                int offsetX = x + fxr;
+                                int fyr = fy - radiusY;
+                                int offsetY = y + fyr;
 
-                                offsetX = offsetX.Clamp(0, maxX);
+                                offsetY = offsetY.Clamp(0, maxY);
 
-                                Vector4 currentColor = sourcePixels[offsetX, offsetY].ToVector4();
-                                float r = currentColor.X;
-                                float g = currentColor.Y;
-                                float b = currentColor.Z;
-
-                                if (fy < kernelXHeight)
+                                for (int fx = 0; fx < kernelXWidth; fx++)
                                 {
-                                    rX += this.KernelX[fy][fx] * r;
-                                    gX += this.KernelX[fy][fx] * g;
-                                    bX += this.KernelX[fy][fx] * b;
-                                }
+                                    int fxr = fx - radiusX;
+                                    int offsetX = x + fxr;
 
-                                if (fx < kernelYWidth)
-                                {
-                                    rY += this.KernelY[fy][fx] * r;
-                                    gY += this.KernelY[fy][fx] * g;
-                                    bY += this.KernelY[fy][fx] * b;
+                                    offsetX = offsetX.Clamp(0, maxX);
+
+                                    Vector4 currentColor = sourcePixels[offsetX, offsetY].ToVector4();
+                                    float r = currentColor.X;
+                                    float g = currentColor.Y;
+                                    float b = currentColor.Z;
+
+                                    if (fy < kernelXHeight)
+                                    {
+                                        rX += this.KernelX[fy][fx] * r;
+                                        gX += this.KernelX[fy][fx] * g;
+                                        bX += this.KernelX[fy][fx] * b;
+                                    }
+
+                                    if (fx < kernelYWidth)
+                                    {
+                                        rY += this.KernelY[fy][fx] * r;
+                                        gY += this.KernelY[fy][fx] * g;
+                                        bY += this.KernelY[fy][fx] * b;
+                                    }
                                 }
                             }
+
+                            float red = (float)Math.Sqrt((rX * rX) + (rY * rY));
+                            float green = (float)Math.Sqrt((gX * gX) + (gY * gY));
+                            float blue = (float)Math.Sqrt((bX * bX) + (bY * bY));
+
+                            TColor packed = default(TColor);
+                            packed.PackFromVector4(new Vector4(red, green, blue, sourcePixels[x, y].ToVector4().W));
+                            targetPixels[x, y] = packed;
                         }
+                    });
+                }
 
-                        float red = (float)Math.Sqrt((rX * rX) + (rY * rY));
-                        float green = (float)Math.Sqrt((gX * gX) + (gY * gY));
-                        float blue = (float)Math.Sqrt((bX * bX) + (bY * bY));
-
-                        TColor packed = default(TColor);
-                        packed.PackFromVector4(new Vector4(red, green, blue, sourcePixels[x, y].ToVector4().W));
-                        targetPixels[x, y] = packed;
-                    }
-                });
+                source.SwapPixelsBuffers(targetPixels);
             }
-
-            source.SetPixels(source.Width, source.Height, target);
         }
     }
 }

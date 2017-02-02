@@ -42,29 +42,30 @@ namespace ImageSharp.Processing.Processors
             int height = this.CanvasRectangle.Height;
             int width = this.CanvasRectangle.Width;
             Matrix3x2 matrix = this.GetCenteredMatrix(source, this.processMatrix);
-            TColor[] target = new TColor[width * height];
 
-            using (PixelAccessor<TColor> sourcePixels = source.Lock())
-            using (PixelAccessor<TColor> targetPixels = target.Lock<TColor>(width, height))
+            using (PixelAccessor<TColor> targetPixels = new PixelAccessor<TColor>(width, height))
             {
-                Parallel.For(
-                    0,
-                    height,
-                    this.ParallelOptions,
-                    y =>
-                        {
-                            for (int x = 0; x < width; x++)
+                using (PixelAccessor<TColor> sourcePixels = source.Lock())
+                {
+                    Parallel.For(
+                        0,
+                        height,
+                        this.ParallelOptions,
+                        y =>
                             {
-                                Point transformedPoint = Point.Skew(new Point(x, y), matrix);
-                                if (source.Bounds.Contains(transformedPoint.X, transformedPoint.Y))
+                                for (int x = 0; x < width; x++)
                                 {
-                                    targetPixels[x, y] = sourcePixels[transformedPoint.X, transformedPoint.Y];
+                                    Point transformedPoint = Point.Skew(new Point(x, y), matrix);
+                                    if (source.Bounds.Contains(transformedPoint.X, transformedPoint.Y))
+                                    {
+                                        targetPixels[x, y] = sourcePixels[transformedPoint.X, transformedPoint.Y];
+                                    }
                                 }
-                            }
-                        });
-            }
+                            });
+                }
 
-            source.SetPixels(width, height, target);
+                source.SwapPixelsBuffers(targetPixels);
+            }
         }
 
         /// <inheritdoc/>

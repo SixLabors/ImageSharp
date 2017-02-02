@@ -5,10 +5,8 @@
 namespace ImageSharp.Formats
 {
     using System;
-    using System.Buffers;
     using System.IO;
     using System.Runtime.CompilerServices;
-    using System.Runtime.InteropServices;
     using System.Threading.Tasks;
 
     using ImageSharp.Formats.Jpg;
@@ -586,7 +584,7 @@ namespace ImageSharp.Formats
                             byte yellow = this.ycbcrImage.CrChannel.Pixels[co + (x / scale)];
 
                             TColor packed = default(TColor);
-                            this.PackCmyk<TColor>(ref packed, cyan, magenta, yellow, x, y);
+                            this.PackCmyk(ref packed, cyan, magenta, yellow, x, y);
                             pixels[x, y] = packed;
                         }
                     });
@@ -744,7 +742,7 @@ namespace ImageSharp.Formats
                             byte cr = this.ycbcrImage.CrChannel.Pixels[co + (x / scale)];
 
                             TColor packed = default(TColor);
-                            this.PackYcck<TColor>(ref packed, yy, cb, cr, x, y);
+                            this.PackYcck(ref packed, yy, cb, cr, x, y);
                             pixels[x, y] = packed;
                         }
                     });
@@ -1037,7 +1035,7 @@ namespace ImageSharp.Formats
             }
 
             this.InputProcessor.ReadFull(this.Temp, 0, remaining);
-            this.RestartInterval = ((int)this.Temp[0] << 8) + (int)this.Temp[1];
+            this.RestartInterval = (this.Temp[0] << 8) + this.Temp[1];
         }
 
         /// <summary>

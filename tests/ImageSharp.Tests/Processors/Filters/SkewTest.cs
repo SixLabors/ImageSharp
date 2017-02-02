@@ -19,22 +19,20 @@ namespace ImageSharp.Tests
         };
 
         [Theory]
-        [MemberData("SkewValues")]
+        [MemberData(nameof(SkewValues))]
         public void ImageShouldApplySkewSampler(float x, float y)
         {
-            string path = CreateOutputDirectory("Skew");
+            string path = this.CreateOutputDirectory("Skew");
 
-            // Matches live example 
+            // Matches live example
             // http://www.w3schools.com/css/tryit.asp?filename=trycss3_transform_skew
             foreach (TestFile file in Files)
             {
                 string filename = file.GetFileName(x + "-" + y);
-                Image image = file.CreateImage();
-
+                using (Image image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
-                    image.Skew(x, y)
-                          .Save(output);
+                    image.Skew(x, y).Save(output);
                 }
             }
         }

@@ -28,7 +28,6 @@ namespace ImageSharp.Benchmarks
                 {
                     graphics.InterpolationMode = InterpolationMode.Default;
                     graphics.SmoothingMode = SmoothingMode.AntiAlias;
-                    var pen = new Pen(Color.HotPink, 10);
                     graphics.FillRectangle(Brushes.HotPink, new Rectangle(10, 10, 190, 140));
                 }
                 return destination.Size;
@@ -38,25 +37,29 @@ namespace ImageSharp.Benchmarks
         [Benchmark(Description = "ImageSharp Fill Rectangle")]
         public CoreSize FillRactangleCore()
         {
-            CoreImage image = new CoreImage(800, 800);
+            using (CoreImage image = new CoreImage(800, 800))
+            {
+                image.Fill(CoreColor.HotPink, new ImageSharp.Drawing.Shapes.RectangularPolygon(new CoreRectangle(10, 10, 190, 140)));
 
-            image.Fill(CoreColor.HotPink, new ImageSharp.Drawing.Shapes.RectangularPolygon(new CoreRectangle(10, 10, 190, 140)));
-
-            return new CoreSize(image.Width, image.Height);
+                return new CoreSize(image.Width, image.Height);
+            }
         }
 
         [Benchmark(Description = "ImageSharp Fill Rectangle - As Polygon")]
         public CoreSize FillPolygonCore()
         {
-            CoreImage image = new CoreImage(800, 800);
+            using (CoreImage image = new CoreImage(800, 800))
+            {
+                image.FillPolygon(
+                    CoreColor.HotPink,
+                    new[] {
+                new Vector2(10, 10),
+                new Vector2(200, 10),
+                new Vector2(200, 150),
+                new Vector2(10, 150) });
 
-            image.FillPolygon(CoreColor.HotPink, new[] {
-                            new Vector2(10, 10),
-                            new Vector2(200, 10),
-                            new Vector2(200, 150),
-                            new Vector2(10, 150) });
-
-            return new CoreSize(image.Width, image.Height);
+                return new CoreSize(image.Width, image.Height);
+            }
         }
     }
 }

@@ -16,17 +16,18 @@ namespace ImageSharp.Tests
         [Fact]
         public void ResolutionShouldChange()
         {
-            string path = CreateOutputDirectory("Resolution");
+            string path = this.CreateOutputDirectory("Resolution");
 
             foreach (TestFile file in Files)
             {
-                Image image = file.CreateImage();
-
-                using (FileStream output = File.OpenWrite($"{path}/{file.FileName}"))
+                using (Image image = file.CreateImage())
                 {
-                    image.VerticalResolution = 150;
-                    image.HorizontalResolution = 150;
-                    image.Save(output);
+                    using (FileStream output = File.OpenWrite($"{path}/{file.FileName}"))
+                    {
+                        image.VerticalResolution = 150;
+                        image.HorizontalResolution = 150;
+                        image.Save(output);
+                    }
                 }
             }
         }
@@ -34,45 +35,31 @@ namespace ImageSharp.Tests
         [Fact]
         public void ImageCanEncodeToString()
         {
-            string path = CreateOutputDirectory("ToString");
+            string path = this.CreateOutputDirectory("ToString");
 
             foreach (TestFile file in Files)
             {
-                Image image = file.CreateImage();
-
-                string filename = path + "/" + file.FileNameWithoutExtension + ".txt";
-                File.WriteAllText(filename, image.ToBase64String());
+                using (Image image = file.CreateImage())
+                {
+                    string filename = path + "/" + file.FileNameWithoutExtension + ".txt";
+                    File.WriteAllText(filename, image.ToBase64String());
+                }
             }
         }
 
         [Fact]
         public void DecodeThenEncodeImageFromStreamShouldSucceed()
         {
-            string path = CreateOutputDirectory("Encode");
+            string path = this.CreateOutputDirectory("Encode");
 
             foreach (TestFile file in Files)
             {
-                Image image = file.CreateImage();
-
-                //Image<Bgr565> image = file.CreateImage().To<Bgr565>();
-                //Image<Bgra4444> image = file.CreateImage().To<Bgra4444>();
-                //Image<Bgra5551> image = file.CreateImage().To<Bgra5551>();
-                //Image<Byte4> image = file.CreateImage().To<Byte4>();
-                //Image<HalfSingle> image = file.CreateImage().To<HalfSingle>();
-                //Image<HalfVector2> image = file.CreateImage().To<HalfVector2>();
-                //Image<HalfVector4> image = file.CreateImage().To<HalfVector4>();
-                //Image<Rg32> image = file.CreateImage().To<Rg32>();
-                //Image<Rgba1010102> image = file.CreateImage().To<Rgba1010102>();
-                //Image<Rgba64> image = file.CreateImage().To<Rgba64>();
-                //Image<NormalizedByte2> image = file.CreateImage().To<NormalizedByte2>();
-                //Image<NormalizedByte4> image = file.CreateImage().To<NormalizedByte4>();
-                //Image<NormalizedShort2> image = file.CreateImage().To<NormalizedShort2>();
-                //Image<NormalizedShort4> image = file.CreateImage().To<NormalizedShort4>();
-                //Image<Short2> image = file.CreateImage().To<Short2>();
-                //Image<Short4> image = file.CreateImage().To<Short4>();
-                using (FileStream output = File.OpenWrite($"{path}/{file.FileName}"))
+                using (Image image = file.CreateImage())
                 {
-                    image.Save(output);
+                    using (FileStream output = File.OpenWrite($"{path}/{file.FileName}"))
+                    {
+                        image.Save(output);
+                    }
                 }
             }
         }
@@ -80,35 +67,39 @@ namespace ImageSharp.Tests
         [Fact]
         public void QuantizeImageShouldPreserveMaximumColorPrecision()
         {
-            string path = CreateOutputDirectory("Quantize");
+            string path = this.CreateOutputDirectory("Quantize");
 
             foreach (TestFile file in Files)
             {
-                Image image = file.CreateImage();
-
-                // Copy the original pixels to save decoding time.
-                Color[] pixels = new Color[image.Width * image.Height];
-                Array.Copy(image.Pixels, pixels, image.Pixels.Length);
-
-                using (FileStream output = File.OpenWrite($"{path}/Octree-{file.FileName}"))
+                using (Image srcImage = file.CreateImage())
                 {
-                    image.Quantize(Quantization.Octree)
-                          .Save(output, image.CurrentImageFormat);
+                    using (Image image = new Image(srcImage))
+                    {
+                        using (FileStream output = File.OpenWrite($"{path}/Octree-{file.FileName}"))
+                        {
+                            image.Quantize(Quantization.Octree)
+                                .Save(output, image.CurrentImageFormat);
 
-                }
+                        }
+                    }
 
-                image.SetPixels(image.Width, image.Height, pixels);
-                using (FileStream output = File.OpenWrite($"{path}/Wu-{file.FileName}"))
-                {
-                    image.Quantize(Quantization.Wu)
-                          .Save(output, image.CurrentImageFormat);
-                }
+                    using (Image image = new Image(srcImage))
+                    {
+                        using (FileStream output = File.OpenWrite($"{path}/Wu-{file.FileName}"))
+                        {
+                            image.Quantize(Quantization.Wu)
+                                .Save(output, image.CurrentImageFormat);
+                        }
+                    }
 
-                image.SetPixels(image.Width, image.Height, pixels);
-                using (FileStream output = File.OpenWrite($"{path}/Palette-{file.FileName}"))
-                {
-                    image.Quantize(Quantization.Palette)
-                          .Save(output, image.CurrentImageFormat);
+                    using (Image image = new Image(srcImage))
+                    {
+                        using (FileStream output = File.OpenWrite($"{path}/Palette-{file.FileName}"))
+                        {
+                            image.Quantize(Quantization.Palette)
+                                .Save(output, image.CurrentImageFormat);
+                        }
+                    }
                 }
             }
         }
@@ -116,7 +107,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void ImageCanConvertFormat()
         {
-            string path = CreateOutputDirectory("Format");
+            string path = this.CreateOutputDirectory("Format");
 
             foreach (TestFile file in Files)
             {
@@ -147,7 +138,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void ImageShouldPreservePixelByteOrderWhenSerialized()
         {
-            string path = CreateOutputDirectory("Serialized");
+            string path = this.CreateOutputDirectory("Serialized");
 
             foreach (TestFile file in Files)
             {

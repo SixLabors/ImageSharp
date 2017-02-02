@@ -8,7 +8,6 @@ namespace ImageSharp.Formats
     using System;
     using System.Buffers;
     using System.IO;
-    using System.Numerics;
     using System.Runtime.CompilerServices;
 
     using ImageSharp.Formats.Jpg;

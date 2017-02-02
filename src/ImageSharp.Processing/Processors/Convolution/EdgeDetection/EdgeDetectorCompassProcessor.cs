@@ -75,64 +75,62 @@ namespace ImageSharp.Processing.Processors
             int minY = Math.Max(0, startY);
             int maxY = Math.Min(source.Height, endY);
 
-            // First run.
-            ImageBase<TColor> target = new Image<TColor>(source.Width, source.Height);
-            target.ClonePixels(source.Width, source.Height, source.Pixels);
-            new ConvolutionProcessor<TColor>(kernels[0]).Apply(target, sourceRectangle);
-
-            if (kernels.Length == 1)
+            // we need a clean copy for each pass to start from
+            using (ImageBase<TColor> cleanCopy = new Image<TColor>(source))
             {
-                return;
-            }
+                new ConvolutionProcessor<TColor>(kernels[0]).Apply(source, sourceRectangle);
 
-            int shiftY = startY;
-            int shiftX = startX;
-
-            // Reset offset if necessary.
-            if (minX > 0)
-            {
-                shiftX = 0;
-            }
-
-            if (minY > 0)
-            {
-                shiftY = 0;
-            }
-
-            // Additional runs.
-            // ReSharper disable once ForCanBeConvertedToForeach
-            for (int i = 1; i < kernels.Length; i++)
-            {
-                // Create a clone for each pass and copy the offset pixels across.
-                ImageBase<TColor> pass = new Image<TColor>(source.Width, source.Height);
-                pass.ClonePixels(source.Width, source.Height, source.Pixels);
-
-                new ConvolutionProcessor<TColor>(kernels[i]).Apply(pass, sourceRectangle);
-
-                using (PixelAccessor<TColor> passPixels = pass.Lock())
-                using (PixelAccessor<TColor> targetPixels = target.Lock())
+                if (kernels.Length == 1)
                 {
-                    Parallel.For(
-                        minY,
-                        maxY,
-                        this.ParallelOptions,
-                        y =>
-                        {
-                            int offsetY = y - shiftY;
-                            for (int x = minX; x < maxX; x++)
-                            {
-                                int offsetX = x - shiftX;
+                    return;
+                }
 
-                                // Grab the max components of the two pixels
-                                TColor packed = default(TColor);
-                                packed.PackFromVector4(Vector4.Max(passPixels[offsetX, offsetY].ToVector4(), targetPixels[offsetX, offsetY].ToVector4()));
-                                targetPixels[offsetX, offsetY] = packed;
-                            }
-                        });
+                int shiftY = startY;
+                int shiftX = startX;
+
+                // Reset offset if necessary.
+                if (minX > 0)
+                {
+                    shiftX = 0;
+                }
+
+                if (minY > 0)
+                {
+                    shiftY = 0;
+                }
+
+                // Additional runs.
+                // ReSharper disable once ForCanBeConvertedToForeach
+                for (int i = 1; i < kernels.Length; i++)
+                {
+                    using (ImageBase<TColor> pass = new Image<TColor>(cleanCopy))
+                    {
+                        new ConvolutionProcessor<TColor>(kernels[i]).Apply(pass, sourceRectangle);
+
+                        using (PixelAccessor<TColor> passPixels = pass.Lock())
+                        using (PixelAccessor<TColor> targetPixels = source.Lock())
+                        {
+                            Parallel.For(
+                                minY,
+                                maxY,
+                                this.ParallelOptions,
+                                y =>
+                                {
+                                    int offsetY = y - shiftY;
+                                    for (int x = minX; x < maxX; x++)
+                                    {
+                                        int offsetX = x - shiftX;
+
+                                        // Grab the max components of the two pixels
+                                        TColor packed = default(TColor);
+                                        packed.PackFromVector4(Vector4.Max(passPixels[offsetX, offsetY].ToVector4(), targetPixels[offsetX, offsetY].ToVector4()));
+                                        targetPixels[offsetX, offsetY] = packed;
+                                    }
+                                });
+                        }
+                    }
                 }
             }
-
-            source.SetPixels(source.Width, source.Height, target.Pixels);
         }
 
         /// <inheritdoc/>

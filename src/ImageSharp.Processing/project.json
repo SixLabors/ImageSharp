@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0-alpha1-*",
+  "version": "1.0.0-alpha2-*",
   "title": "ImageSharp.Processing",
   "description": "A cross-platform library for the processing of image files; written in C#",
   "authors": [
@@ -39,8 +39,7 @@
   },
   "dependencies": {
     "ImageSharp": {
-      "target": "project",
-      "version": "1.0.0-alpha1"
+      "target": "project"
     },
     "StyleCop.Analyzers": {
       "version": "1.1.0-beta001",

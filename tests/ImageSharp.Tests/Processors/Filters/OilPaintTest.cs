@@ -23,19 +23,17 @@ namespace ImageSharp.Tests
         [MemberData(nameof(OilPaintValues))]
         public void ImageShouldApplyOilPaintFilter(Tuple<int, int> value)
         {
-            string path = CreateOutputDirectory("OilPaint");
+            string path = this.CreateOutputDirectory("OilPaint");
 
             foreach (TestFile file in Files)
             {
                 string filename = file.GetFileName(value);
-                Image image = file.CreateImage();
-
+                using (Image image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
                     if (image.Width > value.Item2 && image.Height > value.Item2)
                     {
-                        image.OilPaint(value.Item1, value.Item2)
-                             .Save(output);
+                        image.OilPaint(value.Item1, value.Item2).Save(output);
                     }
                 }
             }
@@ -45,18 +43,19 @@ namespace ImageSharp.Tests
         [MemberData(nameof(OilPaintValues))]
         public void ImageShouldApplyOilPaintFilterInBox(Tuple<int, int> value)
         {
-            string path = CreateOutputDirectory("OilPaint");
+            string path = this.CreateOutputDirectory("OilPaint");
 
             foreach (TestFile file in Files)
             {
                 string filename = file.GetFileName(value + "-InBox");
-                Image image = file.CreateImage();
-
-                if (image.Width > value.Item2 && image.Height > value.Item2)
+                using (Image image = file.CreateImage())
                 {
-                    using (FileStream output = File.OpenWrite($"{path}/{filename}"))
+                    if (image.Width > value.Item2 && image.Height > value.Item2)
                     {
-                        image.OilPaint(value.Item1, value.Item2, new Rectangle(image.Width / 4, image.Width / 4, image.Width / 2, image.Height / 2)).Save(output);
+                        using (FileStream output = File.OpenWrite($"{path}/{filename}"))
+                        {
+                            image.OilPaint(value.Item1, value.Item2, new Rectangle(image.Width / 4, image.Width / 4, image.Width / 2, image.Height / 2)).Save(output);
+                        }
                     }
                 }
             }

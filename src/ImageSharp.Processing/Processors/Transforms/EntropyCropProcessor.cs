@@ -36,24 +36,24 @@ namespace ImageSharp.Processing.Processors
         /// <inheritdoc/>
         protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
         {
-            ImageBase<TColor> temp = new Image<TColor>(source.Width, source.Height);
-            temp.ClonePixels(source.Width, source.Height, source.Pixels);
-
-            // Detect the edges.
-            new SobelProcessor<TColor>().Apply(temp, sourceRectangle);
-
-            // Apply threshold binarization filter.
-            new BinaryThresholdProcessor<TColor>(this.Value).Apply(temp, sourceRectangle);
-
-            // Search for the first white pixels
-            Rectangle rectangle = ImageMaths.GetFilteredBoundingRectangle(temp, 0);
-
-            if (rectangle == sourceRectangle)
+            using (ImageBase<TColor> temp = new Image<TColor>(source))
             {
-                return;
-            }
+                // Detect the edges.
+                new SobelProcessor<TColor>().Apply(temp, sourceRectangle);
 
-            new CropProcessor<TColor>(rectangle).Apply(source, sourceRectangle);
+                // Apply threshold binarization filter.
+                new BinaryThresholdProcessor<TColor>(this.Value).Apply(temp, sourceRectangle);
+
+                // Search for the first white pixels
+                Rectangle rectangle = ImageMaths.GetFilteredBoundingRectangle(temp, 0);
+
+                if (rectangle == sourceRectangle)
+                {
+                    return;
+                }
+
+                new CropProcessor<TColor>(rectangle).Apply(source, sourceRectangle);
+            }
         }
     }
 }

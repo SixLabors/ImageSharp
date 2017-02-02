@@ -29,37 +29,40 @@ namespace ImageSharp.Benchmarks.Image
             this.filter4 = new MemoryStream(File.ReadAllBytes("../ImageSharp.Tests/TestImages/Formats/Png/filter4.png"));
         }
 
-        private Image LoadPng(MemoryStream stream)
+        private Size LoadPng(MemoryStream stream)
         {
-            return new Image(stream);
+            using (Image image = new Image(stream))
+            {
+                return new Size(image.Width, image.Height);
+            }
         }
 
         [Benchmark(Baseline = true, Description = "None-filtered PNG file")]
-        public Image PngFilter0()
+        public Size PngFilter0()
         {
             return LoadPng(filter0);
         }
 
         [Benchmark(Description = "Sub-filtered PNG file")]
-        public Image PngFilter1()
+        public Size PngFilter1()
         {
             return LoadPng(filter1);
         }
 
         [Benchmark(Description = "Up-filtered PNG file")]
-        public Image PngFilter2()
+        public Size PngFilter2()
         {
             return LoadPng(filter2);
         }
 
         [Benchmark(Description = "Average-filtered PNG file")]
-        public Image PngFilter3()
+        public Size PngFilter3()
         {
             return LoadPng(filter3);
         }
 
         [Benchmark(Description = "Paeth-filtered PNG file")]
-        public Image PngFilter4()
+        public Size PngFilter4()
         {
             return LoadPng(filter4);
         }

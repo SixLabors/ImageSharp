@@ -34,19 +34,16 @@ namespace ImageSharp.Tests
         public void LoadResizeSave<TColor>(TestImageProvider<TColor> provider, int quality, JpegSubsample subsample)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            Image<TColor> image = provider.GetImage()
-                .Resize(new ResizeOptions
-                {
-                    Size = new Size(150, 100),
-                    Mode = ResizeMode.Max
-                });
-            image.Quality = quality;
-            image.ExifProfile = null; // Reduce the size of the file
-            JpegEncoder encoder = new JpegEncoder { Subsample = subsample, Quality = quality };
+            using (Image<TColor> image = provider.GetImage().Resize(new ResizeOptions { Size = new Size(150, 100), Mode = ResizeMode.Max }))
+            {
+                image.Quality = quality;
+                image.ExifProfile = null; // Reduce the size of the file
+                JpegEncoder encoder = new JpegEncoder { Subsample = subsample, Quality = quality };
 
-            provider.Utility.TestName += $"{subsample}_Q{quality}";
-            provider.Utility.SaveTestOutputFile(image, "png");
-            provider.Utility.SaveTestOutputFile(image, "jpg", encoder);
+                provider.Utility.TestName += $"{subsample}_Q{quality}";
+                provider.Utility.SaveTestOutputFile(image, "png");
+                provider.Utility.SaveTestOutputFile(image, "jpg", encoder);
+            }
         }
 
         [Theory]
@@ -55,20 +52,21 @@ namespace ImageSharp.Tests
         public void OpenBmp_SaveJpeg<TColor>(TestImageProvider<TColor> provider, JpegSubsample subSample, int quality)
            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            Image<TColor> image = provider.GetImage();
-
-            ImagingTestCaseUtility utility = provider.Utility;
-            utility.TestName += "_" + subSample + "_Q" + quality;
-
-            using (var outputStream = File.OpenWrite(utility.GetTestOutputFileName("jpg")))
+            using (Image<TColor> image = provider.GetImage())
             {
-                var encoder = new JpegEncoder()
-                {
-                    Subsample = subSample,
-                    Quality = quality
-                };
+                ImagingTestCaseUtility utility = provider.Utility;
+                utility.TestName += "_" + subSample + "_Q" + quality;
 
-                image.Save(outputStream, encoder);
+                using (FileStream outputStream = File.OpenWrite(utility.GetTestOutputFileName("jpg")))
+                {
+                    JpegEncoder encoder = new JpegEncoder()
+                                              {
+                                                  Subsample = subSample,
+                                                  Quality = quality
+                                              };
+
+                    image.Save(outputStream, encoder);
+                }
             }
         }
     }

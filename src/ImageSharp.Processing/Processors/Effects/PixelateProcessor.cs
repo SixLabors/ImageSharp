@@ -63,51 +63,52 @@ namespace ImageSharp.Processing.Processors
 
             // Get the range on the y-plane to choose from.
             IEnumerable<int> range = EnumerableExtensions.SteppedRange(minY, i => i < maxY, size);
-            TColor[] target = new TColor[source.Width * source.Height];
 
-            using (PixelAccessor<TColor> sourcePixels = source.Lock())
-            using (PixelAccessor<TColor> targetPixels = target.Lock<TColor>(source.Width, source.Height))
+            using (PixelAccessor<TColor> targetPixels = new PixelAccessor<TColor>(source.Width, source.Height))
             {
-                Parallel.ForEach(
-                    range,
-                    this.ParallelOptions,
-                    y =>
-                        {
-                            int offsetY = y - startY;
-                            int offsetPy = offset;
-
-                            for (int x = minX; x < maxX; x += size)
+                using (PixelAccessor<TColor> sourcePixels = source.Lock())
+                {
+                    Parallel.ForEach(
+                        range,
+                        this.ParallelOptions,
+                        y =>
                             {
-                                int offsetX = x - startX;
-                                int offsetPx = offset;
+                                int offsetY = y - startY;
+                                int offsetPy = offset;
 
-                                // Make sure that the offset is within the boundary of the image.
-                                while (offsetY + offsetPy >= maxY)
+                                for (int x = minX; x < maxX; x += size)
                                 {
-                                    offsetPy--;
-                                }
+                                    int offsetX = x - startX;
+                                    int offsetPx = offset;
 
-                                while (x + offsetPx >= maxX)
-                                {
-                                    offsetPx--;
-                                }
-
-                                // Get the pixel color in the centre of the soon to be pixelated area.
-                                // ReSharper disable AccessToDisposedClosure
-                                TColor pixel = sourcePixels[offsetX + offsetPx, offsetY + offsetPy];
-
-                                // For each pixel in the pixelate size, set it to the centre color.
-                                for (int l = offsetY; l < offsetY + size && l < maxY; l++)
-                                {
-                                    for (int k = offsetX; k < offsetX + size && k < maxX; k++)
+                                    // Make sure that the offset is within the boundary of the image.
+                                    while (offsetY + offsetPy >= maxY)
                                     {
-                                        targetPixels[k, l] = pixel;
+                                        offsetPy--;
+                                    }
+
+                                    while (x + offsetPx >= maxX)
+                                    {
+                                        offsetPx--;
+                                    }
+
+                                    // Get the pixel color in the centre of the soon to be pixelated area.
+                                    // ReSharper disable AccessToDisposedClosure
+                                    TColor pixel = sourcePixels[offsetX + offsetPx, offsetY + offsetPy];
+
+                                    // For each pixel in the pixelate size, set it to the centre color.
+                                    for (int l = offsetY; l < offsetY + size && l < maxY; l++)
+                                    {
+                                        for (int k = offsetX; k < offsetX + size && k < maxX; k++)
+                                        {
+                                            targetPixels[k, l] = pixel;
+                                        }
                                     }
                                 }
-                            }
-                        });
+                            });
 
-                source.SetPixels(source.Width, source.Height, target);
+                    source.SwapPixelsBuffers(targetPixels);
+                }
             }
         }
     }

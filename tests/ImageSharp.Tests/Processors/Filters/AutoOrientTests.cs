@@ -26,25 +26,22 @@ namespace ImageSharp.Tests
         };
 
         [Theory]
-        [MemberData("OrientationValues")]
+        [MemberData(nameof(OrientationValues))]
         public void ImageShouldFlip(RotateType rotateType, FlipType flipType, ushort orientation)
         {
-            string path = CreateOutputDirectory("AutoOrient");
+            string path = this.CreateOutputDirectory("AutoOrient");
 
             TestFile file = TestFile.Create(TestImages.Bmp.F);
 
-            Image image = file.CreateImage();
-            image.ExifProfile = new ExifProfile();
-            image.ExifProfile.SetValue(ExifTag.Orientation, orientation);
-
-            using (FileStream before = File.OpenWrite($"{path}/before-{file.FileName}"))
+            using (Image image = file.CreateImage())
             {
+                image.ExifProfile = new ExifProfile();
+                image.ExifProfile.SetValue(ExifTag.Orientation, orientation);
+
+                using (FileStream before = File.OpenWrite($"{path}/before-{file.FileName}"))
                 using (FileStream after = File.OpenWrite($"{path}/after-{file.FileName}"))
                 {
-                    image.RotateFlip(rotateType, flipType)
-                          .Save(before)
-                          .AutoOrient()
-                          .Save(after);
+                    image.RotateFlip(rotateType, flipType).Save(before).AutoOrient().Save(after);
                 }
             }
         }

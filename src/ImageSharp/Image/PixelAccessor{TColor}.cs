@@ -45,6 +45,11 @@ namespace ImageSharp
         private bool isDisposed;
 
         /// <summary>
+        /// The pixel buffer
+        /// </summary>
+        private TColor[] pixelBuffer;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="PixelAccessor{TColor}"/> class.
         /// </summary>
         /// <param name="image">The image to provide pixel access for.</param>
@@ -54,40 +59,51 @@ namespace ImageSharp
             Guard.MustBeGreaterThan(image.Width, 0, "image width");
             Guard.MustBeGreaterThan(image.Height, 0, "image height");
 
-            this.Width = image.Width;
-            this.Height = image.Height;
-            this.pixelsHandle = GCHandle.Alloc(image.Pixels, GCHandleType.Pinned);
-            this.dataPointer = this.pixelsHandle.AddrOfPinnedObject();
-            this.pixelsBase = (byte*)this.dataPointer.ToPointer();
-            this.PixelSize = Unsafe.SizeOf<TColor>();
-            this.RowStride = this.Width * this.PixelSize;
+            this.SetPixelBufferUnsafe(image.Width, image.Height, image.Pixels, false);
             this.ParallelOptions = image.Configuration.ParallelOptions;
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PixelAccessor{TColor}"/> class.
         /// </summary>
-        /// <param name="width">Gets the width of the image represented by the pixel buffer.</param>
+        /// <param name="width">The width of the image represented by the pixel buffer.</param>
         /// <param name="height">The height of the image represented by the pixel buffer.</param>
         /// <param name="pixels">The pixel buffer.</param>
         public PixelAccessor(int width, int height, TColor[] pixels)
+            : this(width, height, pixels, false)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PixelAccessor{TColor}"/> class.
+        /// </summary>
+        /// <param name="width">The width of the image represented by the pixel buffer.</param>
+        /// <param name="height">The height of the image represented by the pixel buffer.</param>
+        public PixelAccessor(int width, int height)
+            : this(width, height, PixelPool<TColor>.RentPixels(width * height), true)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PixelAccessor{TColor}" /> class.
+        /// </summary>
+        /// <param name="width">The width of the image represented by the pixel buffer.</param>
+        /// <param name="height">The height of the image represented by the pixel buffer.</param>
+        /// <param name="pixels">The pixel buffer.</param>
+        /// <param name="pooledMemory">if set to <c>true</c> then the <see cref="T:TColor[]"/> is from the <see cref="PixelPool{TColor}"/> thus should be returned once disposed.</param>
+        private PixelAccessor(int width, int height, TColor[] pixels, bool pooledMemory)
         {
             Guard.NotNull(pixels, nameof(pixels));
             Guard.MustBeGreaterThan(width, 0, nameof(width));
             Guard.MustBeGreaterThan(height, 0, nameof(height));
 
-            if (pixels.Length != width * height)
+            if (!(pixels.Length >= width * height))
             {
-                throw new ArgumentException("Pixel array must have the length of Width * Height.");
+                throw new ArgumentException($"Pixel array must have the length of at least {width * height}.");
             }
 
-            this.Width = width;
-            this.Height = height;
-            this.pixelsHandle = GCHandle.Alloc(pixels, GCHandleType.Pinned);
-            this.dataPointer = this.pixelsHandle.AddrOfPinnedObject();
-            this.pixelsBase = (byte*)this.dataPointer.ToPointer();
-            this.PixelSize = Unsafe.SizeOf<TColor>();
-            this.RowStride = this.Width * this.PixelSize;
+            this.SetPixelBufferUnsafe(width, height, pixels, pooledMemory);
+
             this.ParallelOptions = Configuration.Default.ParallelOptions;
         }
 
@@ -100,6 +116,11 @@ namespace ImageSharp
         }
 
         /// <summary>
+        /// Gets a value indicating whether the current pixel buffer is from a pooled source.
+        /// </summary>
+        public bool PooledMemory { get; private set; }
+
+        /// <summary>
         /// Gets the pointer to the pixel buffer.
         /// </summary>
         public IntPtr DataPointer => this.dataPointer;
@@ -107,22 +128,22 @@ namespace ImageSharp
         /// <summary>
         /// Gets the size of a single pixel in the number of bytes.
         /// </summary>
-        public int PixelSize { get; }
+        public int PixelSize { get; private set; }
 
         /// <summary>
         /// Gets the width of one row in the number of bytes.
         /// </summary>
-        public int RowStride { get; }
+        public int RowStride { get; private set; }
 
         /// <summary>
         /// Gets the width of the image.
         /// </summary>
-        public int Width { get; }
+        public int Width { get; private set; }
 
         /// <summary>
         /// Gets the height of the image.
         /// </summary>
-        public int Height { get; }
+        public int Height { get; private set; }
 
         /// <summary>
         /// Gets the global parallel options for processing tasks in parallel.
@@ -221,13 +242,7 @@ namespace ImageSharp
                 return;
             }
 
-            if (this.pixelsHandle.IsAllocated)
-            {
-                this.pixelsHandle.Free();
-            }
-
-            this.dataPointer = IntPtr.Zero;
-            this.pixelsBase = null;
+            this.UnPinPixels();
 
             // Note disposing is done.
             this.isDisposed = true;
@@ -238,6 +253,12 @@ namespace ImageSharp
             // and prevent finalization code for this object
             // from executing a second time.
             GC.SuppressFinalize(this);
+
+            if (this.PooledMemory)
+            {
+                PixelPool<TColor>.ReturnPixels(this.pixelBuffer);
+                this.pixelBuffer = null;
+            }
         }
 
         /// <summary>
@@ -246,6 +267,22 @@ namespace ImageSharp
         public void Reset()
         {
             Unsafe.InitBlock(this.pixelsBase, 0, (uint)(this.RowStride * this.Height));
+        }
+
+        /// <summary>
+        /// Sets the pixel buffer in an unsafe manner. This should not be used unless you know what its doing!!!
+        /// </summary>
+        /// <param name="width">The width.</param>
+        /// <param name="height">The height.</param>
+        /// <param name="pixels">The pixels.</param>
+        /// <param name="pooledMemory">If set to <c>true</c> this indicates that the pixel buffer is from a pooled source.</param>
+        /// <returns>Returns the old pixel data thats has gust been replaced.</returns>
+        /// <remarks>If <see cref="M:PixelAccessor.PooledMemory"/> is true then caller is responsible for ensuring <see cref="M:PixelPool.ReturnPixels()"/> is called.</remarks>
+        internal TColor[] ReturnCurrentPixelsAndReplaceThemInternally(int width, int height, TColor[] pixels, bool pooledMemory)
+        {
+            TColor[] oldPixels = this.pixelBuffer;
+            this.SetPixelBufferUnsafe(width, height, pixels, pooledMemory);
+            return oldPixels;
         }
 
         /// <summary>
@@ -473,6 +510,54 @@ namespace ImageSharp
         }
 
         /// <summary>
+        /// Sets the pixel buffer in an unsafe manor this should not be used unless you know what its doing!!!
+        /// </summary>
+        /// <param name="width">The width.</param>
+        /// <param name="height">The height.</param>
+        /// <param name="pixels">The pixels.</param>
+        /// <param name="pooledMemory">If set to <c>true</c> this indicates that the pixel buffer is from a pooled source.</param>
+        private void SetPixelBufferUnsafe(int width, int height, TColor[] pixels, bool pooledMemory)
+        {
+            this.pixelBuffer = pixels;
+            this.PooledMemory = pooledMemory;
+            this.Width = width;
+            this.Height = height;
+            this.PinPixels();
+            this.PixelSize = Unsafe.SizeOf<TColor>();
+            this.RowStride = this.Width * this.PixelSize;
+        }
+
+        /// <summary>
+        /// Pins the pixels data.
+        /// </summary>
+        private void PinPixels()
+        {
+            // unpin any old pixels just incase
+            this.UnPinPixels();
+
+            this.pixelsHandle = GCHandle.Alloc(this.pixelBuffer, GCHandleType.Pinned);
+            this.dataPointer = this.pixelsHandle.AddrOfPinnedObject();
+            this.pixelsBase = (byte*)this.dataPointer.ToPointer();
+        }
+
+        /// <summary>
+        /// Unpins pixels data.
+        /// </summary>
+        private void UnPinPixels()
+        {
+            if (this.pixelsBase != null)
+            {
+                if (this.pixelsHandle.IsAllocated)
+                {
+                    this.pixelsHandle.Free();
+                }
+
+                this.dataPointer = IntPtr.Zero;
+                this.pixelsBase = null;
+            }
+        }
+
+        /// <summary>
         /// Copy an area of pixels to the image.
         /// </summary>
         /// <param name="area">The area.</param>
@@ -551,13 +636,13 @@ namespace ImageSharp
             int width = Math.Min(area.Width, this.Width - x);
             if (width < 1)
             {
-                throw new ArgumentOutOfRangeException(nameof(width), width, $"Invalid area size specified.");
+                throw new ArgumentOutOfRangeException(nameof(width), width, "Invalid area size specified.");
             }
 
             int height = Math.Min(area.Height, this.Height - y);
             if (height < 1)
             {
-                throw new ArgumentOutOfRangeException(nameof(height), height, $"Invalid area size specified.");
+                throw new ArgumentOutOfRangeException(nameof(height), height, "Invalid area size specified.");
             }
         }
 

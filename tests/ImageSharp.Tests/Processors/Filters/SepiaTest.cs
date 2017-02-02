@@ -18,12 +18,10 @@ namespace ImageSharp.Tests
 
             foreach (TestFile file in Files)
             {
-                Image image = file.CreateImage();
-
+                using (Image image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{file.FileName}"))
                 {
-                    image.Sepia()
-                          .Save(output);
+                    image.Sepia().Save(output);
                 }
             }
         }

@@ -23,12 +23,13 @@ namespace ImageSharp.Tests
 
             foreach (TestFile file in Files)
             {
-                Image image = file.CreateImage();
-
-                using (FileStream output = File.OpenWrite($"{path}/{file.FileNameWithoutExtension}.png"))
+                using (Image image = file.CreateImage())
                 {
-                    image.Quality = 256;
-                    image.Save(output, new PngFormat());
+                    using (FileStream output = File.OpenWrite($"{path}/{file.FileNameWithoutExtension}.png"))
+                    {
+                        image.Quality = 256;
+                        image.Save(output, new PngFormat());
+                    }
                 }
             }
         }
@@ -42,11 +43,12 @@ namespace ImageSharp.Tests
                 Files,
                 file =>
                     {
-                        Image image = file.CreateImage();
-
-                        using (FileStream output = File.OpenWrite($"{path}/{file.FileNameWithoutExtension}.png"))
+                        using (Image image = file.CreateImage())
                         {
-                            image.SaveAsPng(output);
+                            using (FileStream output = File.OpenWrite($"{path}/{file.FileNameWithoutExtension}.png"))
+                            {
+                                image.SaveAsPng(output);
+                            }
                         }
                     });
         }

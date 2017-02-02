@@ -28,39 +28,35 @@ namespace ImageSharp.Tests
         };
 
         [Theory]
-        [MemberData("RotateFloatValues")]
+        [MemberData(nameof(RotateFloatValues))]
         public void ImageShouldApplyRotateSampler(float value)
         {
-            string path = CreateOutputDirectory("Rotate");
+            string path = this.CreateOutputDirectory("Rotate");
 
             foreach (TestFile file in Files)
             {
                 string filename = file.GetFileName(value);
-                Image image = file.CreateImage();
-
+                using (Image image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
-                    image.Rotate(value)
-                          .Save(output);
+                    image.Rotate(value).Save(output);
                 }
             }
         }
 
         [Theory]
-        [MemberData("RotateEnumValues")]
+        [MemberData(nameof(RotateEnumValues))]
         public void ImageShouldApplyRotateSampler(RotateType value)
         {
-            string path = CreateOutputDirectory("Rotate");
+            string path = this.CreateOutputDirectory("Rotate");
 
             foreach (TestFile file in Files)
             {
                 string filename = file.GetFileName(value);
-                Image image = file.CreateImage();
-
+                using (Image image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
-                    image.Rotate(value)
-                          .Save(output);
+                    image.Rotate(value).Save(output);
                 }
             }
         }

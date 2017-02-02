@@ -28,11 +28,13 @@ namespace ImageSharp.Benchmarks.Image
         [Benchmark(Description = "ImageSharp GetSet pixel")]
         public CoreColor ResizeCore()
         {
-            CoreImage image = new CoreImage(400, 400);
-            using (PixelAccessor<CoreColor> imagePixels = image.Lock())
+            using (CoreImage image = new CoreImage(400, 400))
             {
-                imagePixels[200, 200] = CoreColor.White;
-                return imagePixels[200, 200];
+                using (PixelAccessor<CoreColor> imagePixels = image.Lock())
+                {
+                    imagePixels[200, 200] = CoreColor.White;
+                    return imagePixels[200, 200];
+                }
             }
         }
     }

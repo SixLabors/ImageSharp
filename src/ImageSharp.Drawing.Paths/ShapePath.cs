@@ -26,11 +26,6 @@ namespace ImageSharp.Drawing
         private readonly IShape shape;
 
         /// <summary>
-        /// The drawable paths
-        /// </summary>
-        private readonly ImmutableArray<IPath> paths;
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="ShapePath"/> class.
         /// </summary>
         /// <param name="path">The path.</param>
@@ -58,8 +53,16 @@ namespace ImageSharp.Drawing
         /// <param name="paths">The paths.</param>
         private ShapePath(ImmutableArray<IPath> paths)
         {
-            this.paths = paths;
+            this.Paths = paths;
         }
+
+        /// <summary>
+        /// Gets the drawable paths
+        /// </summary>
+        /// <value>
+        /// The paths.
+        /// </value>
+        public ImmutableArray<IPath> Paths { get; }
 
         /// <summary>
         /// Gets the maximum number of intersections to could be returned.
@@ -163,9 +166,9 @@ namespace ImageSharp.Drawing
             SixLabors.Shapes.PointInfo result = default(SixLabors.Shapes.PointInfo);
             float distance = float.MaxValue;
 
-            for (int i = 0; i < this.paths.Length; i++)
+            for (int i = 0; i < this.Paths.Length; i++)
             {
-                var p = this.paths[i].Distance(point);
+                var p = this.Paths[i].Distance(point);
                 if (p.DistanceFromPath < distance)
                 {
                     distance = p.DistanceFromPath;

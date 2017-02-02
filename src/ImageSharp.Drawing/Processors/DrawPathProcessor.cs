@@ -25,10 +25,6 @@ namespace ImageSharp.Drawing.Processors
         private const float AntialiasFactor = 1f;
         private const int PaddingFactor = 1; // needs to been the same or greater than AntialiasFactor
 
-        private readonly IPen<TColor> pen;
-        private readonly Path region;
-        private readonly GraphicsOptions options;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="DrawPathProcessor{TColor}" /> class.
         /// </summary>
@@ -37,16 +33,40 @@ namespace ImageSharp.Drawing.Processors
         /// <param name="options">The options.</param>
         public DrawPathProcessor(IPen<TColor> pen, Path region, GraphicsOptions options)
         {
-            this.region = region;
-            this.pen = pen;
-            this.options = options;
+            this.Path = region;
+            this.Pen = pen;
+            this.Options = options;
         }
+
+        /// <summary>
+        /// Gets the options.
+        /// </summary>
+        /// <value>
+        /// The options.
+        /// </value>
+        public GraphicsOptions Options { get; }
+
+        /// <summary>
+        /// Gets the pen.
+        /// </summary>
+        /// <value>
+        /// The pen.
+        /// </value>
+        public IPen<TColor> Pen { get; }
+
+        /// <summary>
+        /// Gets the path.
+        /// </summary>
+        /// <value>
+        /// The path.
+        /// </value>
+        public Path Path { get; }
 
         /// <inheritdoc/>
         protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
         {
             using (PixelAccessor<TColor> sourcePixels = source.Lock())
-            using (PenApplicator<TColor> applicator = this.pen.CreateApplicator(sourcePixels, this.region.Bounds))
+            using (PenApplicator<TColor> applicator = this.Pen.CreateApplicator(sourcePixels, this.Path.Bounds))
             {
                 var rect = RectangleF.Ceiling(applicator.RequiredRegion);
 
@@ -89,7 +109,7 @@ namespace ImageSharp.Drawing.Processors
                     {
                         // TODO add find intersections code to skip and scan large regions of this.
                         int offsetX = x - startX;
-                        var info = this.region.GetPointInfo(offsetX, offsetY);
+                        var info = this.Path.GetPointInfo(offsetX, offsetY);
 
                         var color = applicator.GetColor(offsetX, offsetY, info);
 
@@ -120,7 +140,7 @@ namespace ImageSharp.Drawing.Processors
             {
                 return 1;
             }
-            else if (this.options.Antialias && distance < AntialiasFactor)
+            else if (this.Options.Antialias && distance < AntialiasFactor)
             {
                 return 1 - (distance / AntialiasFactor);
             }

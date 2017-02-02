@@ -18,7 +18,7 @@ namespace ImageSharp.Benchmarks.Image
         protected override IEnumerable<string> InputImageSubfoldersOrFiles => new[] { "Bmp/", "Jpg/baseline" };
 
         [Benchmark(Description = "EncodeBmpMultiple - ImageSharp")]
-        public void EncodeGifImageSharp()
+        public void EncodeBmpImageSharp()
         {
             this.ForEachImageSharpImage(
                 (img, ms) =>
@@ -29,7 +29,7 @@ namespace ImageSharp.Benchmarks.Image
         }
 
         [Benchmark(Baseline = true, Description = "EncodeBmpMultiple - System.Drawing")]
-        public void EncodeGifSystemDrawing()
+        public void EncodeBmpSystemDrawing()
         {
             this.ForEachSystemDrawingImage(
                 (img, ms) =>

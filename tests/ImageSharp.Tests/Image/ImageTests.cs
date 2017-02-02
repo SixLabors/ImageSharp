@@ -23,10 +23,11 @@ namespace ImageSharp.Tests
             });
 
             TestFile file = TestFile.Create(TestImages.Bmp.Car);
-            Image image = new Image(file.Bytes);
-
-            Assert.Equal(600, image.Width);
-            Assert.Equal(450, image.Height);
+            using (Image image = new Image(file.Bytes))
+            {
+                Assert.Equal(600, image.Width);
+                Assert.Equal(450, image.Height);
+            }
         }
     }
 }

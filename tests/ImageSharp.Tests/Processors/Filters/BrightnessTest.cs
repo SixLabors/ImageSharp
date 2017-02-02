@@ -19,20 +19,18 @@ namespace ImageSharp.Tests
         };
 
         [Theory]
-        [MemberData("BrightnessValues")]
+        [MemberData(nameof(BrightnessValues))]
         public void ImageShouldApplyBrightnessFilter(int value)
         {
-            string path = CreateOutputDirectory("Brightness");
+            string path = this.CreateOutputDirectory("Brightness");
 
             foreach (TestFile file in Files)
             {
                 string filename = file.GetFileName(value);
-                Image image = file.CreateImage();
-
+                using (Image image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
-                    image.Brightness(value)
-                          .Save(output);
+                    image.Brightness(value).Save(output);
                 }
             }
         }

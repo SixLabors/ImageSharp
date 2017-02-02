@@ -45,13 +45,17 @@ namespace ImageSharp.Processing.Processors
             int width = source.Width;
             int height = source.Height;
 
-            TColor[] target = new TColor[width * height];
-            TColor[] firstPass = new TColor[width * height];
+            using (PixelAccessor<TColor> targetPixels = new PixelAccessor<TColor>(width, height))
+            {
+                using (PixelAccessor<TColor> firstPassPixels = new PixelAccessor<TColor>(width, height))
+                using (PixelAccessor<TColor> sourcePixels = source.Lock())
+                {
+                    this.ApplyConvolution(width, height, firstPassPixels, sourcePixels, sourceRectangle, kernelX);
+                    this.ApplyConvolution(width, height, targetPixels, firstPassPixels, sourceRectangle, kernelY);
+                }
 
-            this.ApplyConvolution(width, height, firstPass, source.Pixels, sourceRectangle, kernelX);
-            this.ApplyConvolution(width, height, target, firstPass, sourceRectangle, kernelY);
-
-            source.SetPixels(width, height, target);
+                source.SwapPixelsBuffers(targetPixels);
+            }
         }
 
         /// <summary>
@@ -60,13 +64,13 @@ namespace ImageSharp.Processing.Processors
         /// </summary>
         /// <param name="width">The image width.</param>
         /// <param name="height">The image height.</param>
-        /// <param name="target">The target pixels to apply the process to.</param>
-        /// <param name="source">The source pixels. Cannot be null.</param>
+        /// <param name="targetPixels">The target pixels to apply the process to.</param>
+        /// <param name="sourcePixels">The source pixels. Cannot be null.</param>
         /// <param name="sourceRectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
         /// </param>
         /// <param name="kernel">The kernel operator.</param>
-        private void ApplyConvolution(int width, int height, TColor[] target, TColor[] source, Rectangle sourceRectangle, float[][] kernel)
+        private void ApplyConvolution(int width, int height, PixelAccessor<TColor> targetPixels, PixelAccessor<TColor> sourcePixels, Rectangle sourceRectangle, float[][] kernel)
         {
             int kernelHeight = kernel.Length;
             int kernelWidth = kernel[0].Length;
@@ -80,45 +84,41 @@ namespace ImageSharp.Processing.Processors
             int maxY = endY - 1;
             int maxX = endX - 1;
 
-            using (PixelAccessor<TColor> sourcePixels = source.Lock<TColor>(width, height))
-            using (PixelAccessor<TColor> targetPixels = target.Lock<TColor>(width, height))
+            Parallel.For(
+            startY,
+            endY,
+            this.ParallelOptions,
+            y =>
             {
-                Parallel.For(
-                startY,
-                endY,
-                this.ParallelOptions,
-                y =>
+                for (int x = startX; x < endX; x++)
                 {
-                    for (int x = startX; x < endX; x++)
+                    Vector4 destination = default(Vector4);
+
+                    // Apply each matrix multiplier to the color components for each pixel.
+                    for (int fy = 0; fy < kernelHeight; fy++)
                     {
-                        Vector4 destination = default(Vector4);
+                        int fyr = fy - radiusY;
+                        int offsetY = y + fyr;
 
-                        // Apply each matrix multiplier to the color components for each pixel.
-                        for (int fy = 0; fy < kernelHeight; fy++)
+                        offsetY = offsetY.Clamp(0, maxY);
+
+                        for (int fx = 0; fx < kernelWidth; fx++)
                         {
-                            int fyr = fy - radiusY;
-                            int offsetY = y + fyr;
+                            int fxr = fx - radiusX;
+                            int offsetX = x + fxr;
 
-                            offsetY = offsetY.Clamp(0, maxY);
+                            offsetX = offsetX.Clamp(0, maxX);
 
-                            for (int fx = 0; fx < kernelWidth; fx++)
-                            {
-                                int fxr = fx - radiusX;
-                                int offsetX = x + fxr;
-
-                                offsetX = offsetX.Clamp(0, maxX);
-
-                                Vector4 currentColor = sourcePixels[offsetX, offsetY].ToVector4();
-                                destination += kernel[fy][fx] * currentColor;
-                            }
+                            Vector4 currentColor = sourcePixels[offsetX, offsetY].ToVector4();
+                            destination += kernel[fy][fx] * currentColor;
                         }
-
-                        TColor packed = default(TColor);
-                        packed.PackFromVector4(destination);
-                        targetPixels[x, y] = packed;
                     }
-                });
-            }
+
+                    TColor packed = default(TColor);
+                    packed.PackFromVector4(destination);
+                    targetPixels[x, y] = packed;
+                }
+            });
         }
     }
 }

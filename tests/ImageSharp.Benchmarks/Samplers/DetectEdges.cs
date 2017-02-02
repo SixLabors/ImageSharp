@@ -28,6 +28,12 @@ namespace ImageSharp.Benchmarks
             }
         }
 
+        [Cleanup]
+        public void Cleanup()
+        {
+            this.image.Dispose();
+        }
+
         [Benchmark(Description = "ImageSharp DetectEdges")]
         public void ImageProcessorCoreDetectEdges()
         {

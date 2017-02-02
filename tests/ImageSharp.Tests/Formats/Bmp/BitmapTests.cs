@@ -9,8 +9,6 @@ namespace ImageSharp.Tests
 {
     using System.IO;
 
-    using Formats;
-
     using Xunit;
 
     public class BitmapTests : FileTestBase
@@ -23,19 +21,20 @@ namespace ImageSharp.Tests
         };
 
         [Theory]
-        [MemberData("BitsPerPixel")]
+        [MemberData(nameof(BitsPerPixel))]
         public void BitmapCanEncodeDifferentBitRates(BmpBitsPerPixel bitsPerPixel)
         {
-            string path = CreateOutputDirectory("Bmp");
+            string path = this.CreateOutputDirectory("Bmp");
 
             foreach (TestFile file in Files)
             {
                 string filename = file.GetFileNameWithoutExtension(bitsPerPixel);
-                Image image = file.CreateImage();
-
-                using (FileStream output = File.OpenWrite($"{path}/{filename}.bmp"))
+                using (Image image = file.CreateImage())
                 {
-                    image.Save(output, new BmpEncoder { BitsPerPixel = bitsPerPixel });
+                    using (FileStream output = File.OpenWrite($"{path}/{filename}.bmp"))
+                    {
+                        image.Save(output, new BmpEncoder { BitsPerPixel = bitsPerPixel });
+                    }
                 }
             }
         }

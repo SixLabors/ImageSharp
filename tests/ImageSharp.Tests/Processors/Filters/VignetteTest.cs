@@ -14,16 +14,14 @@ namespace ImageSharp.Tests
         [Fact]
         public void ImageShouldApplyVignetteFilter()
         {
-            string path = CreateOutputDirectory("Vignette");
+            string path = this.CreateOutputDirectory("Vignette");
 
             foreach (TestFile file in Files)
             {
-                Image image = file.CreateImage();
-
+                using (Image image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{file.FileName}"))
                 {
-                    image.Vignette()
-                          .Save(output);
+                    image.Vignette().Save(output);
                 }
             }
         }
@@ -31,17 +29,15 @@ namespace ImageSharp.Tests
         [Fact]
         public void ImageShouldApplyVignetteFilterColor()
         {
-            string path = CreateOutputDirectory("Vignette");
+            string path = this.CreateOutputDirectory("Vignette");
 
             foreach (TestFile file in Files)
             {
                 string filename = file.GetFileName("Color");
-                Image image = file.CreateImage();
-
+                using (Image image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
-                    image.Vignette(Color.HotPink)
-                          .Save(output);
+                    image.Vignette(Color.HotPink).Save(output);
                 }
             }
         }
@@ -49,17 +45,15 @@ namespace ImageSharp.Tests
         [Fact]
         public void ImageShouldApplyVignetteFilterRadius()
         {
-            string path = CreateOutputDirectory("Vignette");
+            string path = this.CreateOutputDirectory("Vignette");
 
             foreach (TestFile file in Files)
             {
                 string filename = file.GetFileName("Radius");
-                Image image = file.CreateImage();
-
+                using (Image image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
-                    image.Vignette(image.Width / 4, image.Height / 4)
-                          .Save(output);
+                    image.Vignette(image.Width / 4F, image.Height / 4F).Save(output);
                 }
             }
         }
@@ -67,17 +61,16 @@ namespace ImageSharp.Tests
         [Fact]
         public void ImageShouldApplyVignetteFilterInBox()
         {
-            string path = CreateOutputDirectory("Vignette");
+            string path = this.CreateOutputDirectory("Vignette");
 
             foreach (TestFile file in Files)
             {
                 string filename = file.GetFileName("InBox");
-                Image image = file.CreateImage();
-
+                using (Image image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
                     image.Vignette(new Rectangle(image.Width / 4, image.Height / 4, image.Width / 2, image.Height / 2))
-                          .Save(output);
+                        .Save(output);
                 }
             }
         }

@@ -37,17 +37,21 @@ namespace ImageSharp.Benchmarks
         [Benchmark(Description = "ImageSharp Resize")]
         public CoreSize ResizeCore()
         {
-            CoreImage image = new CoreImage(2000, 2000);
-            image.Resize(400, 400);
-            return new CoreSize(image.Width, image.Height);
+            using (CoreImage image = new CoreImage(2000, 2000))
+            {
+                image.Resize(400, 400);
+                return new CoreSize(image.Width, image.Height);
+            }
         }
 
         [Benchmark(Description = "ImageSharp Compand Resize")]
         public CoreSize ResizeCoreCompand()
         {
-            CoreImage image = new CoreImage(2000, 2000);
-            image.Resize(400, 400, true);
-            return new CoreSize(image.Width, image.Height);
+            using (CoreImage image = new CoreImage(2000, 2000))
+            {
+                image.Resize(400, 400, true);
+                return new CoreSize(image.Width, image.Height);
+            }
         }
     }
 }

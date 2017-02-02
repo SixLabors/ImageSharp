@@ -55,27 +55,27 @@ namespace ImageSharp.Processing.Processors
             int height = source.Height;
             int halfHeight = (int)Math.Ceiling(source.Height * .5F);
 
-            TColor[] target = new TColor[width * height];
-
-            using (PixelAccessor<TColor> sourcePixels = source.Lock())
-            using (PixelAccessor<TColor> targetPixels = target.Lock<TColor>(width, height))
+            using (PixelAccessor<TColor> targetPixels = new PixelAccessor<TColor>(width, height))
             {
-                Parallel.For(
-                    0,
-                    halfHeight,
-                    this.ParallelOptions,
-                    y =>
-                        {
-                            for (int x = 0; x < width; x++)
+                using (PixelAccessor<TColor> sourcePixels = source.Lock())
+                {
+                    Parallel.For(
+                        0,
+                        halfHeight,
+                        this.ParallelOptions,
+                        y =>
                             {
-                                int newY = height - y - 1;
-                                targetPixels[x, y] = sourcePixels[x, newY];
-                                targetPixels[x, newY] = sourcePixels[x, y];
-                            }
-                        });
-            }
+                                for (int x = 0; x < width; x++)
+                                {
+                                    int newY = height - y - 1;
+                                    targetPixels[x, y] = sourcePixels[x, newY];
+                                    targetPixels[x, newY] = sourcePixels[x, y];
+                                }
+                            });
+                }
 
-            source.SetPixels(width, height, target);
+                source.SwapPixelsBuffers(targetPixels);
+            }
         }
 
         /// <summary>
@@ -89,27 +89,27 @@ namespace ImageSharp.Processing.Processors
             int height = source.Height;
             int halfWidth = (int)Math.Ceiling(width * .5F);
 
-            TColor[] target = new TColor[width * height];
-
-            using (PixelAccessor<TColor> sourcePixels = source.Lock())
-            using (PixelAccessor<TColor> targetPixels = target.Lock<TColor>(width, height))
+            using (PixelAccessor<TColor> targetPixels = new PixelAccessor<TColor>(width, height))
             {
-                Parallel.For(
-                    0,
-                    height,
-                    this.ParallelOptions,
-                    y =>
-                        {
-                            for (int x = 0; x < halfWidth; x++)
+                using (PixelAccessor<TColor> sourcePixels = source.Lock())
+                {
+                    Parallel.For(
+                        0,
+                        height,
+                        this.ParallelOptions,
+                        y =>
                             {
-                                int newX = width - x - 1;
-                                targetPixels[x, y] = sourcePixels[newX, y];
-                                targetPixels[newX, y] = sourcePixels[x, y];
-                            }
-                        });
-            }
+                                for (int x = 0; x < halfWidth; x++)
+                                {
+                                    int newX = width - x - 1;
+                                    targetPixels[x, y] = sourcePixels[newX, y];
+                                    targetPixels[newX, y] = sourcePixels[x, y];
+                                }
+                            });
+                }
 
-            source.SetPixels(width, height, target);
+                source.SwapPixelsBuffers(targetPixels);
+            }
         }
     }
 }

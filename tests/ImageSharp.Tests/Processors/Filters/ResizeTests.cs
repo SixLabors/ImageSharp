@@ -42,12 +42,10 @@ namespace ImageSharp.Tests
             foreach (TestFile file in Files)
             {
                 string filename = file.GetFileName(name);
-                Image image = file.CreateImage();
-
+                using (Image image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
-                    image.Resize(image.Width / 2, image.Height / 2, sampler, true)
-                         .Save(output);
+                    image.Resize(image.Width / 2, image.Height / 2, sampler, true).Save(output);
                 }
             }
         }
@@ -63,12 +61,10 @@ namespace ImageSharp.Tests
             foreach (TestFile file in Files)
             {
                 string filename = file.GetFileName(name);
-                Image image = file.CreateImage();
-
+                using (Image image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
-                    image.Resize(image.Width / 3, 0, sampler, false)
-                          .Save(output);
+                    image.Resize(image.Width / 3, 0, sampler, false).Save(output);
                 }
             }
         }
@@ -84,12 +80,10 @@ namespace ImageSharp.Tests
             foreach (TestFile file in Files)
             {
                 string filename = file.GetFileName(name);
-                Image image = file.CreateImage();
-
+                using (Image image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
-                    image.Resize(0, image.Height / 3, sampler, false)
-                          .Save(output);
+                    image.Resize(0, image.Height / 3, sampler, false).Save(output);
                 }
             }
         }
@@ -105,18 +99,16 @@ namespace ImageSharp.Tests
             foreach (TestFile file in Files)
             {
                 string filename = file.GetFileName(name);
-                Image image = file.CreateImage();
-
+                using (Image image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
-                    ResizeOptions options = new ResizeOptions()
+                    ResizeOptions options = new ResizeOptions
                     {
                         Sampler = sampler,
                         Size = new Size(image.Width / 2, image.Height)
                     };
 
-                    image.Resize(options)
-                          .Save(output);
+                    image.Resize(options).Save(output);
                 }
             }
         }
@@ -132,18 +124,16 @@ namespace ImageSharp.Tests
             foreach (TestFile file in Files)
             {
                 string filename = file.GetFileName(name);
-                Image image = file.CreateImage();
-
+                using (Image image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
-                    ResizeOptions options = new ResizeOptions()
+                    ResizeOptions options = new ResizeOptions
                     {
                         Sampler = sampler,
                         Size = new Size(image.Width, image.Height / 2)
                     };
 
-                    image.Resize(options)
-                          .Save(output);
+                    image.Resize(options).Save(output);
                 }
             }
         }
@@ -159,18 +149,16 @@ namespace ImageSharp.Tests
             foreach (TestFile file in Files)
             {
                 string filename = file.GetFileName(name);
-                Image image = file.CreateImage();
-
+                using (Image image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
-                    ResizeOptions options = new ResizeOptions()
+                    ResizeOptions options = new ResizeOptions
                     {
                         Size = new Size(image.Width + 200, image.Height),
                         Mode = ResizeMode.Pad
                     };
 
-                    image.Resize(options)
-                          .Save(output);
+                    image.Resize(options).Save(output);
                 }
             }
         }
@@ -186,19 +174,17 @@ namespace ImageSharp.Tests
             foreach (TestFile file in Files)
             {
                 string filename = file.GetFileName(name);
-                Image image = file.CreateImage();
-
+                using (Image image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
-                    ResizeOptions options = new ResizeOptions()
+                    ResizeOptions options = new ResizeOptions
                     {
                         Sampler = sampler,
                         Size = new Size(image.Width + 200, image.Height + 200),
                         Mode = ResizeMode.BoxPad
                     };
 
-                    image.Resize(options)
-                          .Save(output);
+                    image.Resize(options).Save(output);
                 }
             }
         }
@@ -214,19 +200,17 @@ namespace ImageSharp.Tests
             foreach (TestFile file in Files)
             {
                 string filename = file.GetFileName(name);
-                Image image = file.CreateImage();
-
+                using (Image image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
-                    ResizeOptions options = new ResizeOptions()
+                    ResizeOptions options = new ResizeOptions
                     {
                         Sampler = sampler,
                         Size = new Size(300, 300),
                         Mode = ResizeMode.Max
                     };
 
-                    image.Resize(options)
-                          .Save(output);
+                    image.Resize(options).Save(output);
                 }
             }
         }
@@ -242,19 +226,17 @@ namespace ImageSharp.Tests
             foreach (TestFile file in Files)
             {
                 string filename = file.GetFileName(name);
-                Image image = file.CreateImage();
-
+                using (Image image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
-                    ResizeOptions options = new ResizeOptions()
+                    ResizeOptions options = new ResizeOptions
                     {
                         Sampler = sampler,
-                        Size = new Size((int)Math.Round(image.Width * .75F), (int)Math.Round(image.Height * 95F)),
+                        Size = new Size((int)Math.Round(image.Width * .75F), (int)Math.Round(image.Height * .95F)),
                         Mode = ResizeMode.Min
                     };
 
-                    image.Resize(options)
-                          .Save(output);
+                    image.Resize(options).Save(output);
                 }
             }
         }
@@ -270,19 +252,17 @@ namespace ImageSharp.Tests
             foreach (TestFile file in Files)
             {
                 string filename = file.GetFileName(name);
-                Image image = file.CreateImage();
-
+                using (Image image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
-                    ResizeOptions options = new ResizeOptions()
+                    ResizeOptions options = new ResizeOptions
                     {
                         Sampler = sampler,
                         Size = new Size(image.Width / 2, image.Height),
                         Mode = ResizeMode.Stretch
                     };
 
-                    image.Resize(options)
-                          .Save(output);
+                    image.Resize(options).Save(output);
                 }
             }
         }

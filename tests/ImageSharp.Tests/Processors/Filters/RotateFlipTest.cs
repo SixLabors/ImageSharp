@@ -22,20 +22,18 @@ namespace ImageSharp.Tests
         };
 
         [Theory]
-        [MemberData("RotateFlipValues")]
+        [MemberData(nameof(RotateFlipValues))]
         public void ImageShouldRotateFlip(RotateType rotateType, FlipType flipType)
         {
-            string path = CreateOutputDirectory("RotateFlip");
+            string path = this.CreateOutputDirectory("RotateFlip");
 
             foreach (TestFile file in Files)
             {
                 string filename = file.GetFileName(rotateType + "-" + flipType);
-                Image image = file.CreateImage();
-
+                using (Image image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
-                    image.RotateFlip(rotateType, flipType)
-                          .Save(output);
+                    image.RotateFlip(rotateType, flipType).Save(output);
                 }
             }
         }

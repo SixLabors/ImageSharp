@@ -45,7 +45,9 @@ Packages include:
   Contains methods like Resize, Crop, Skew, Rotate - Anything that alters the dimensions of the image.
   Contains methods like Gaussian Blur, Pixelate, Edge Detection - Anything that maintains the original image dimensions.
 - **ImageSharp.Drawing**
-  Brushes and various drawing algorithms.
+  Brushes and various drawing algorithms, including drawing Images
+  - **ImageSharp.Drawing.Paths**
+  various vector drawing methods for drawing paths, polygons etc.
 
 ### Manual build
 

@@ -5,8 +5,6 @@
 
 namespace ImageSharp.Tests.Drawing
 {
-    using ImageSharp.Drawing.Shapes;
-
     using System.IO;
     using System.Numerics;
 

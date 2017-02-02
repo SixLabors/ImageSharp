@@ -45,7 +45,9 @@
     },
     "ImageSharp.Processing": {
       "target": "project"
-    }
+    },
+    //alpha supports netstandard
+    "Moq": "4.6.38-alpha"
   },
   "frameworks": {
     "netcoreapp1.1": {

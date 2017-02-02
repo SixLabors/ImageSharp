@@ -16,6 +16,7 @@ namespace ImageSharp
     using System.Threading.Tasks;
 
     using Formats;
+    using Processing;
 
     /// <summary>
     /// Encapsulates an image, which consists of the pixel data for a graphics image and its attributes.
@@ -218,6 +219,21 @@ namespace ImageSharp
         /// Gets or sets the Exif profile.
         /// </summary>
         public ExifProfile ExifProfile { get; set; }
+
+        /// <summary>
+        /// Applies the processor to the image.
+        /// </summary>
+        /// <param name="processor">The processor to apply to the image.</param>
+        /// <param name="rectangle">The <see cref="Rectangle" /> structure that specifies the portion of the image object to draw.</param>
+        public override void ApplyProcessor(IImageProcessor<TColor> processor, Rectangle rectangle)
+        {
+            // we want to put this on on here as it gives us a really go place to test/verify processor settings
+            base.ApplyProcessor(processor, rectangle);
+            foreach (ImageFrame<TColor> sourceFrame in this.Frames)
+            {
+                sourceFrame.ApplyProcessor(processor, rectangle);
+            }
+        }
 
         /// <summary>
         /// Saves the image to the given stream using the currently loaded image format.

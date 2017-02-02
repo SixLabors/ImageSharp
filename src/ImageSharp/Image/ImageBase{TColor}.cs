@@ -7,6 +7,7 @@ namespace ImageSharp
 {
     using System;
     using System.Diagnostics;
+    using Processing;
 
     /// <summary>
     /// The base class of all images. Encapsulates the basic properties and methods required to manipulate
@@ -119,6 +120,16 @@ namespace ImageSharp
         /// Gets the configuration providing initialization code which allows extending the library.
         /// </summary>
         public Configuration Configuration { get; private set; }
+
+        /// <summary>
+        /// Applies the processor.
+        /// </summary>
+        /// <param name="processor">The processor.</param>
+        /// <param name="rectangle">The rectangle.</param>
+        public virtual void ApplyProcessor(IImageProcessor<TColor> processor, Rectangle rectangle)
+        {
+            processor.Apply(this, rectangle);
+        }
 
         /// <inheritdoc />
         public void Dispose()

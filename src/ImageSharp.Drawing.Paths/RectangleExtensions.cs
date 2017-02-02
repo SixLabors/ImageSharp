@@ -26,11 +26,11 @@ namespace ImageSharp.Drawing.Processors
         /// <returns>A <see cref="Rectangle"/> representation of this <see cref="SixLabors.Shapes.Rectangle"/></returns>
         public static Rectangle Convert(this SixLabors.Shapes.Rectangle source)
         {
-            int y = (int)Math.Floor(source.Y);
-            int width = (int)Math.Ceiling(source.Size.Width);
-            int x = (int)Math.Floor(source.X);
-            int height = (int)Math.Ceiling(source.Size.Height);
-            return new Rectangle(x, y, width, height);
+            int left = (int)Math.Floor(source.Left);
+            int right = (int)Math.Ceiling(source.Right);
+            int top = (int)Math.Floor(source.Top);
+            int bottom = (int)Math.Ceiling(source.Bottom);
+            return new Rectangle(left, top, right - left, bottom - top);
         }
     }
 }

@@ -41,13 +41,7 @@ namespace ImageSharp
         public static Image<TColor> Apply<TColor>(this Image<TColor> source, Rectangle sourceRectangle, IImageProcessor<TColor> processor)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            processor.Apply(source, sourceRectangle);
-
-            foreach (ImageFrame<TColor> sourceFrame in source.Frames)
-            {
-                processor.Apply(sourceFrame, sourceRectangle);
-            }
-
+            source.ApplyProcessor(processor, sourceRectangle);
             return source;
         }
     }

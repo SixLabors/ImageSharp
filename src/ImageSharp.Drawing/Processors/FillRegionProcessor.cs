@@ -22,9 +22,6 @@ namespace ImageSharp.Drawing.Processors
     {
         private const float AntialiasFactor = 1f;
         private const int DrawPadding = 1;
-        private readonly IBrush<TColor> fillColor;
-        private readonly Region region;
-        private readonly GraphicsOptions options;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="FillRegionProcessor{TColor}" /> class.
@@ -34,15 +31,39 @@ namespace ImageSharp.Drawing.Processors
         /// <param name="options">The options.</param>
         public FillRegionProcessor(IBrush<TColor> brush, Region region, GraphicsOptions options)
         {
-            this.region = region;
-            this.fillColor = brush;
-            this.options = options;
+            this.Region = region;
+            this.Brush = brush;
+            this.Options = options;
         }
+
+        /// <summary>
+        /// Gets the brush.
+        /// </summary>
+        /// <value>
+        /// The brush.
+        /// </value>
+        public IBrush<TColor> Brush { get; }
+
+        /// <summary>
+        /// Gets the region.
+        /// </summary>
+        /// <value>
+        /// The region.
+        /// </value>
+        public Region Region { get; }
+
+        /// <summary>
+        /// Gets the options.
+        /// </summary>
+        /// <value>
+        /// The options.
+        /// </value>
+        public GraphicsOptions Options { get; }
 
         /// <inheritdoc/>
         protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
         {
-            Rectangle rect = RectangleF.Ceiling(this.region.Bounds); // rounds the points out away from the center
+            Rectangle rect = RectangleF.Ceiling(this.Region.Bounds); // rounds the points out away from the center
 
             int polyStartY = sourceRectangle.Y - DrawPadding;
             int polyEndY = sourceRectangle.Bottom + DrawPadding;
@@ -62,10 +83,10 @@ namespace ImageSharp.Drawing.Processors
 
             ArrayPool<float> arrayPool = ArrayPool<float>.Shared;
 
-            int maxIntersections = this.region.MaxIntersections;
+            int maxIntersections = this.Region.MaxIntersections;
 
             using (PixelAccessor<TColor> sourcePixels = source.Lock())
-            using (BrushApplicator<TColor> applicator = this.fillColor.CreateApplicator(sourcePixels, rect))
+            using (BrushApplicator<TColor> applicator = this.Brush.CreateApplicator(sourcePixels, rect))
             {
                 Parallel.For(
                 minY,
@@ -80,7 +101,7 @@ namespace ImageSharp.Drawing.Processors
                         float right = endX;
 
                         // foreach line we get all the points where this line crosses the polygon
-                        int pointsFound = this.region.ScanY(y, buffer, maxIntersections, 0);
+                        int pointsFound = this.Region.ScanY(y, buffer, maxIntersections, 0);
                         if (pointsFound == 0)
                         {
                             // nothign on this line skip
@@ -156,7 +177,7 @@ namespace ImageSharp.Drawing.Processors
                             float opacity = 1;
                             if (!isInside && !onCorner)
                             {
-                                if (this.options.Antialias)
+                                if (this.Options.Antialias)
                                 {
                                     float distance = float.MaxValue;
                                     if (x == lastPoint || x == nextPoint)
@@ -207,7 +228,7 @@ namespace ImageSharp.Drawing.Processors
                     }
                 });
 
-                if (this.options.Antialias)
+                if (this.Options.Antialias)
                 {
                     // we only need to do the X can for antialiasing purposes
                     Parallel.For(
@@ -224,7 +245,7 @@ namespace ImageSharp.Drawing.Processors
                             float right = polyEndY;
 
                             // foreach line we get all the points where this line crosses the polygon
-                            int pointsFound = this.region.ScanX(x, buffer, maxIntersections, 0);
+                            int pointsFound = this.Region.ScanX(x, buffer, maxIntersections, 0);
                             if (pointsFound == 0)
                             {
                                 // nothign on this line skip
@@ -314,7 +335,7 @@ namespace ImageSharp.Drawing.Processors
                                 float opacity = 1;
                                 if (!isInside && !onCorner)
                                 {
-                                    if (this.options.Antialias)
+                                    if (this.Options.Antialias)
                                     {
                                         float distance = float.MaxValue;
                                         if (y == lastPoint || y == nextPoint)

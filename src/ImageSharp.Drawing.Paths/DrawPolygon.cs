@@ -91,6 +91,22 @@ namespace ImageSharp
         /// <param name="source">The source.</param>
         /// <param name="pen">The pen.</param>
         /// <param name="points">The points.</param>
+        /// <returns>
+        /// The Image
+        /// </returns>
+        public static Image<TColor> DrawPolygon<TColor>(this Image<TColor> source, IPen<TColor> pen, Vector2[] points)
+           where TColor : struct, IPackedPixel, IEquatable<TColor>
+        {
+            return source.Draw(pen, new Polygon(new LinearLineSegment(points)), GraphicsOptions.Default);
+        }
+
+        /// <summary>
+        /// Draws the provided Points as a closed Linear Polygon with the provided Pen.
+        /// </summary>
+        /// <typeparam name="TColor">The type of the color.</typeparam>
+        /// <param name="source">The source.</param>
+        /// <param name="pen">The pen.</param>
+        /// <param name="points">The points.</param>
         /// <param name="options">The options.</param>
         /// <returns>
         /// The Image

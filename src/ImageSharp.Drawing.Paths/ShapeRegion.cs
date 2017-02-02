@@ -21,11 +21,6 @@ namespace ImageSharp.Drawing
     internal class ShapeRegion : Region
     {
         /// <summary>
-        /// The fillable shape
-        /// </summary>
-        private readonly IShape shape;
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="ShapeRegion"/> class.
         /// </summary>
         /// <param name="path">The path.</param>
@@ -40,9 +35,14 @@ namespace ImageSharp.Drawing
         /// <param name="shape">The shape.</param>
         public ShapeRegion(IShape shape)
         {
-            this.shape = shape;
+            this.Shape = shape;
             this.Bounds = shape.Bounds.Convert();
         }
+
+        /// <summary>
+        /// Gets the fillable shape
+        /// </summary>
+        public IShape Shape { get; }
 
         /// <summary>
         /// Gets the maximum number of intersections to could be returned.
@@ -50,7 +50,7 @@ namespace ImageSharp.Drawing
         /// <value>
         /// The maximum intersections.
         /// </value>
-        public override int MaxIntersections => this.shape.MaxIntersections;
+        public override int MaxIntersections => this.Shape.MaxIntersections;
 
         /// <summary>
         /// Gets the bounds.
@@ -77,7 +77,7 @@ namespace ImageSharp.Drawing
             Vector2[] innerbuffer = ArrayPool<Vector2>.Shared.Rent(length);
             try
             {
-                int count = this.shape.FindIntersections(
+                int count = this.Shape.FindIntersections(
                     start,
                     end,
                     innerbuffer,
@@ -114,7 +114,7 @@ namespace ImageSharp.Drawing
             Vector2[] innerbuffer = ArrayPool<Vector2>.Shared.Rent(length);
             try
             {
-                int count = this.shape.FindIntersections(
+                int count = this.Shape.FindIntersections(
                     start,
                     end,
                     innerbuffer,

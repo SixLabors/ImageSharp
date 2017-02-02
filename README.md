@@ -75,8 +75,8 @@ Here's an example of the code required to resize an image using the default Bicu
 ```csharp
 using (FileStream stream = File.OpenRead("foo.jpg"))
 using (FileStream output = File.OpenWrite("bar.jpg"))
+using (Image image = new Image(stream))
 {
-    Image image = new Image(stream);
     image.Resize(image.Width / 2, image.Height / 2)
          .Grayscale()
          .Save(output);
@@ -92,7 +92,7 @@ new BrightnessProcessor(50).Apply(sourceImage, sourceImage.Bounds);
 Setting individual pixel values is perfomed as follows:
 
 ```csharp
-Image image = new Image(400, 400);
+using (image = new Image(400, 400)
 using (var pixels = image.Lock())
 {
     pixels[200, 200] = Color.White;

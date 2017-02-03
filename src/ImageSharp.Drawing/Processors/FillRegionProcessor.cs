@@ -57,7 +57,7 @@ namespace ImageSharp.Drawing.Processors
         /// <inheritdoc/>
         protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
         {
-            Rectangle rect = RectangleF.Ceiling(this.Region.Bounds); // rounds the points out away from the center
+            Rectangle rect = this.Region.Bounds;
 
             int polyStartY = sourceRectangle.Y - DrawPadding;
             int polyEndY = sourceRectangle.Bottom + DrawPadding;
@@ -100,6 +100,13 @@ namespace ImageSharp.Drawing.Processors
                         {
                             // nothign on this line skip
                             return;
+                        }
+
+                        if (pointsFound == 1 && maxIntersections > 1)
+                        {
+                            // we must have clipped a corner lets just duplicate it into point 2 and continue :)
+                            buffer[1] = buffer[0];
+                            pointsFound++;
                         }
 
                         if (pointsFound % 2 == 1)
@@ -244,6 +251,13 @@ namespace ImageSharp.Drawing.Processors
                             {
                                 // nothign on this line skip
                                 return;
+                            }
+
+                            if (pointsFound == 1 && maxIntersections > 1)
+                            {
+                                // we must have clipped a corner lets just duplicate it into point 2 and continue :)
+                                buffer[1] = buffer[0];
+                                pointsFound++;
                             }
 
                             if (pointsFound % 2 == 1)

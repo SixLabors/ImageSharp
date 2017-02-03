@@ -13,7 +13,7 @@ namespace ImageSharp.Drawing
         /// <summary>
         /// Converts a <see cref="SixLabors.Shapes.PointInfo"/> to an ImageSharp <see cref="PointInfo"/>.
         /// </summary>
-        /// <param name="source">The source.</param>
+        /// <param name="source">The image this method extends.</param>
         /// <returns>A <see cref="PointInfo"/> representation of this <see cref="SixLabors.Shapes.PointInfo"/></returns>
         public static PointInfo Convert(this SixLabors.Shapes.PointInfo source)
         {

@@ -23,13 +23,11 @@ namespace ImageSharp
         /// Draws the outline of the polygon with the provided pen.
         /// </summary>
         /// <typeparam name="TColor">The type of the color.</typeparam>
-        /// <param name="source">The source.</param>
+        /// <param name="source">The image this method extends.</param>
         /// <param name="pen">The pen.</param>
         /// <param name="shape">The shape.</param>
         /// <param name="options">The options.</param>
-        /// <returns>
-        /// The Image
-        /// </returns>
+        /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Draw<TColor>(this Image<TColor> source, IPen<TColor> pen, Rectangle shape, GraphicsOptions options)
            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
@@ -40,10 +38,10 @@ namespace ImageSharp
         /// Draws the outline of the polygon with the provided pen.
         /// </summary>
         /// <typeparam name="TColor">The type of the color.</typeparam>
-        /// <param name="source">The source.</param>
+        /// <param name="source">The image this method extends.</param>
         /// <param name="pen">The pen.</param>
         /// <param name="shape">The shape.</param>
-        /// <returns>The Image</returns>
+        /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Draw<TColor>(this Image<TColor> source, IPen<TColor> pen, Rectangle shape)
            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
@@ -54,14 +52,12 @@ namespace ImageSharp
         /// Draws the outline of the polygon with the provided brush at the provided thickness.
         /// </summary>
         /// <typeparam name="TColor">The type of the color.</typeparam>
-        /// <param name="source">The source.</param>
+        /// <param name="source">The image this method extends.</param>
         /// <param name="brush">The brush.</param>
         /// <param name="thickness">The thickness.</param>
         /// <param name="shape">The shape.</param>
         /// <param name="options">The options.</param>
-        /// <returns>
-        /// The Image
-        /// </returns>
+        /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Draw<TColor>(this Image<TColor> source, IBrush<TColor> brush, float thickness, Rectangle shape, GraphicsOptions options)
            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
@@ -72,11 +68,11 @@ namespace ImageSharp
         /// Draws the outline of the polygon with the provided brush at the provided thickness.
         /// </summary>
         /// <typeparam name="TColor">The type of the color.</typeparam>
-        /// <param name="source">The source.</param>
+        /// <param name="source">The image this method extends.</param>
         /// <param name="brush">The brush.</param>
         /// <param name="thickness">The thickness.</param>
         /// <param name="shape">The shape.</param>
-        /// <returns>The Image</returns>
+        /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Draw<TColor>(this Image<TColor> source, IBrush<TColor> brush, float thickness, Rectangle shape)
            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
@@ -87,14 +83,12 @@ namespace ImageSharp
         /// Draws the outline of the polygon with the provided brush at the provided thickness.
         /// </summary>
         /// <typeparam name="TColor">The type of the color.</typeparam>
-        /// <param name="source">The source.</param>
+        /// <param name="source">The image this method extends.</param>
         /// <param name="color">The color.</param>
         /// <param name="thickness">The thickness.</param>
         /// <param name="shape">The shape.</param>
         /// <param name="options">The options.</param>
-        /// <returns>
-        /// The Image
-        /// </returns>
+        /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Draw<TColor>(this Image<TColor> source, TColor color, float thickness, Rectangle shape, GraphicsOptions options)
            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
@@ -105,11 +99,11 @@ namespace ImageSharp
         /// Draws the outline of the polygon with the provided brush at the provided thickness.
         /// </summary>
         /// <typeparam name="TColor">The type of the color.</typeparam>
-        /// <param name="source">The source.</param>
+        /// <param name="source">The image this method extends.</param>
         /// <param name="color">The color.</param>
         /// <param name="thickness">The thickness.</param>
         /// <param name="shape">The shape.</param>
-        /// <returns>The Image</returns>
+        /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Draw<TColor>(this Image<TColor> source, TColor color, float thickness, Rectangle shape)
            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {

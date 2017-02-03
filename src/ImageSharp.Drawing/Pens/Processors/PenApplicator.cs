@@ -22,10 +22,8 @@ namespace ImageSharp.Drawing.Processors
         /// The required region.
         /// </value>
         public abstract RectangleF RequiredRegion { get; }
-
-        /// <summary>
-        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
-        /// </summary>
+        
+        /// <inheritdoc/>
         public abstract void Dispose();
 
         /// <summary>

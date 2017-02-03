@@ -39,17 +39,11 @@ namespace ImageSharp.Drawing.Processors
         /// <summary>
         /// Gets the brush.
         /// </summary>
-        /// <value>
-        /// The brush.
-        /// </value>
         public IBrush<TColor> Brush { get; }
 
         /// <summary>
-        /// Gets the region.
+        /// Gets the region that this processor applies to.
         /// </summary>
-        /// <value>
-        /// The region.
-        /// </value>
         public Region Region { get; }
 
         /// <summary>

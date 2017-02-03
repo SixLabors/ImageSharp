@@ -38,73 +38,72 @@ namespace ImageSharp.Tests.Drawing.Paths
         }
 
         [Fact]
-        public void Brush_path()
+        public void CorrectlySetsBrushAndPath()
         {
             img.FillPolygon(brush, path);
 
             Assert.NotEmpty(img.ProcessorApplications);
-            var processor = Assert.IsType<FillRegionProcessor<Color>>(img.ProcessorApplications[0].processor);
+            FillRegionProcessor<Color> processor = Assert.IsType<FillRegionProcessor<Color>>(img.ProcessorApplications[0].processor);
 
             Assert.Equal(GraphicsOptions.Default, processor.Options);
 
-            var region = Assert.IsType<ShapeRegion>(processor.Region);
-            var polygon = Assert.IsType<Polygon>(region.Shape);
-            var segemnt = Assert.IsType<LinearLineSegment>(polygon.LineSegments[0]);
+            ShapeRegion region = Assert.IsType<ShapeRegion>(processor.Region);
+            Polygon polygon = Assert.IsType<Polygon>(region.Shape);
+            LinearLineSegment segemnt = Assert.IsType<LinearLineSegment>(polygon.LineSegments[0]);
             
             Assert.Equal(brush, processor.Brush);
         }
 
         [Fact]
-        public void Brush_path_options()
+        public void CorrectlySetsBrushPathAndOptions()
         {
             img.FillPolygon(brush, path, noneDefault);
 
             Assert.NotEmpty(img.ProcessorApplications);
-            var processor = Assert.IsType<FillRegionProcessor<Color>>(img.ProcessorApplications[0].processor);
+            FillRegionProcessor<Color> processor = Assert.IsType<FillRegionProcessor<Color>>(img.ProcessorApplications[0].processor);
 
             Assert.Equal(noneDefault, processor.Options);
 
-            var region = Assert.IsType<ShapeRegion>(processor.Region);
-            var polygon = Assert.IsType<Polygon>(region.Shape);
-            var segemnt = Assert.IsType<LinearLineSegment>(polygon.LineSegments[0]);
+            ShapeRegion region = Assert.IsType<ShapeRegion>(processor.Region);
+            Polygon polygon = Assert.IsType<Polygon>(region.Shape);
+            LinearLineSegment segemnt = Assert.IsType<LinearLineSegment>(polygon.LineSegments[0]);
 
             Assert.Equal(brush, processor.Brush);
         }
 
         [Fact]
-        public void color_path()
+        public void CorrectlySetsColorAndPath()
         {
             img.FillPolygon(color, path);
             
             Assert.NotEmpty(img.ProcessorApplications);
-            var processor = Assert.IsType<FillRegionProcessor<Color>>(img.ProcessorApplications[0].processor);
+            FillRegionProcessor<Color> processor = Assert.IsType<FillRegionProcessor<Color>>(img.ProcessorApplications[0].processor);
 
             Assert.Equal(GraphicsOptions.Default, processor.Options);
 
-            var region = Assert.IsType<ShapeRegion>(processor.Region);
-            var polygon = Assert.IsType<Polygon>(region.Shape);
-            var segemnt = Assert.IsType<LinearLineSegment>(polygon.LineSegments[0]);
+            ShapeRegion region = Assert.IsType<ShapeRegion>(processor.Region);
+            Polygon polygon = Assert.IsType<Polygon>(region.Shape);
+            LinearLineSegment segemnt = Assert.IsType<LinearLineSegment>(polygon.LineSegments[0]);
 
-            var brush = Assert.IsType<SolidBrush<Color>>(processor.Brush);
+            SolidBrush<Color> brush = Assert.IsType<SolidBrush<Color>>(processor.Brush);
             Assert.Equal(color, brush.Color);
         }
 
         [Fact]
-        public void color_path_options()
+        public void CorrectlySetsColorPathAndOptions()
         {
             img.FillPolygon(color, path, noneDefault);
 
-
             Assert.NotEmpty(img.ProcessorApplications);
-            var processor = Assert.IsType<FillRegionProcessor<Color>>(img.ProcessorApplications[0].processor);
+            FillRegionProcessor<Color> processor = Assert.IsType<FillRegionProcessor<Color>>(img.ProcessorApplications[0].processor);
 
             Assert.Equal(noneDefault, processor.Options);
 
-            var region = Assert.IsType<ShapeRegion>(processor.Region);
-            var polygon = Assert.IsType<Polygon>(region.Shape);
-            var segemnt = Assert.IsType<LinearLineSegment>(polygon.LineSegments[0]);
+            ShapeRegion region = Assert.IsType<ShapeRegion>(processor.Region);
+            Polygon polygon = Assert.IsType<Polygon>(region.Shape);
+            LinearLineSegment segemnt = Assert.IsType<LinearLineSegment>(polygon.LineSegments[0]);
 
-            var brush = Assert.IsType<SolidBrush<Color>>(processor.Brush);
+            SolidBrush<Color> brush = Assert.IsType<SolidBrush<Color>>(processor.Brush);
             Assert.Equal(color, brush.Color);
         }
     }

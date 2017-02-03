@@ -40,127 +40,127 @@ namespace ImageSharp.Tests.Drawing.Paths
         }
 
         [Fact]
-        public void Brush_Thickness_points()
+        public void CorrectlySetsBrushThicknessAndPoints()
         {
             img.DrawLines(brush, thickness, points);
 
             Assert.NotEmpty(img.ProcessorApplications);
-            var processor = Assert.IsType<DrawPathProcessor<Color>>(img.ProcessorApplications[0].processor);
+            DrawPathProcessor<Color> processor = Assert.IsType<DrawPathProcessor<Color>>(img.ProcessorApplications[0].processor);
 
             Assert.Equal(GraphicsOptions.Default, processor.Options);
 
-            var path = Assert.IsType<ShapePath>(processor.Path);
+            ShapePath path = Assert.IsType<ShapePath>(processor.Path);
             Assert.NotEmpty(path.Paths);
 
-            var vector = Assert.IsType<SixLabors.Shapes.Path>(path.Paths[0]);
-            var segment = Assert.IsType<LinearLineSegment>(vector.LineSegments[0]);
+            SixLabors.Shapes.Path vector = Assert.IsType<SixLabors.Shapes.Path>(path.Paths[0]);
+            LinearLineSegment segment = Assert.IsType<LinearLineSegment>(vector.LineSegments[0]);
 
-            var pen = Assert.IsType<Pen<Color>>(processor.Pen);
+            Pen<Color> pen = Assert.IsType<Pen<Color>>(processor.Pen);
             Assert.Equal(brush, pen.Brush);
             Assert.Equal(thickness, pen.Width);
         }
 
         [Fact]
-        public void Brush_Thickness_points_options()
+        public void CorrectlySetsBrushThicknessPointsAndOptions()
         {
             img.DrawLines(brush, thickness, points, noneDefault);
 
             Assert.NotEmpty(img.ProcessorApplications);
-            var processor = Assert.IsType<DrawPathProcessor<Color>>(img.ProcessorApplications[0].processor);
+            DrawPathProcessor<Color> processor = Assert.IsType<DrawPathProcessor<Color>>(img.ProcessorApplications[0].processor);
 
             Assert.Equal(noneDefault, processor.Options);
 
-            var path = Assert.IsType<ShapePath>(processor.Path);
+            ShapePath path = Assert.IsType<ShapePath>(processor.Path);
             Assert.NotEmpty(path.Paths);
 
-            var vector = Assert.IsType<SixLabors.Shapes.Path>(path.Paths[0]);
-            var segment = Assert.IsType<LinearLineSegment>(vector.LineSegments[0]);
+            SixLabors.Shapes.Path vector = Assert.IsType<SixLabors.Shapes.Path>(path.Paths[0]);
+            LinearLineSegment segment = Assert.IsType<LinearLineSegment>(vector.LineSegments[0]);
 
-            var pen = Assert.IsType<Pen<Color>>(processor.Pen);
+            Pen<Color> pen = Assert.IsType<Pen<Color>>(processor.Pen);
             Assert.Equal(brush, pen.Brush);
             Assert.Equal(thickness, pen.Width);
         }
 
         [Fact]
-        public void color_Thickness_points()
+        public void CorrectlySetsColorThicknessAndPoints()
         {
             img.DrawLines(color, thickness, points);
 
             Assert.NotEmpty(img.ProcessorApplications);
-            var processor = Assert.IsType<DrawPathProcessor<Color>>(img.ProcessorApplications[0].processor);
+            DrawPathProcessor<Color> processor = Assert.IsType<DrawPathProcessor<Color>>(img.ProcessorApplications[0].processor);
 
             Assert.Equal(GraphicsOptions.Default, processor.Options);
 
-            var path = Assert.IsType<ShapePath>(processor.Path);
+            ShapePath path = Assert.IsType<ShapePath>(processor.Path);
             Assert.NotEmpty(path.Paths);
 
-            var vector = Assert.IsType<SixLabors.Shapes.Path>(path.Paths[0]);
-            var segment = Assert.IsType<LinearLineSegment>(vector.LineSegments[0]);
+            SixLabors.Shapes.Path vector = Assert.IsType<SixLabors.Shapes.Path>(path.Paths[0]);
+            LinearLineSegment segment = Assert.IsType<LinearLineSegment>(vector.LineSegments[0]);
 
-            var pen = Assert.IsType<Pen<Color>>(processor.Pen);
+            Pen<Color> pen = Assert.IsType<Pen<Color>>(processor.Pen);
             Assert.Equal(thickness, pen.Width);
 
-            var brush = Assert.IsType<SolidBrush<Color>>(pen.Brush);
+            SolidBrush<Color> brush = Assert.IsType<SolidBrush<Color>>(pen.Brush);
             Assert.Equal(color, brush.Color);
         }
 
         [Fact]
-        public void color_Thickness_points_options()
+        public void CorrectlySetsColorThicknessPointsAndOptions()
         {
             img.DrawLines(color, thickness, points, noneDefault);
 
             Assert.NotEmpty(img.ProcessorApplications);
-            var processor = Assert.IsType<DrawPathProcessor<Color>>(img.ProcessorApplications[0].processor);
+            DrawPathProcessor<Color> processor = Assert.IsType<DrawPathProcessor<Color>>(img.ProcessorApplications[0].processor);
 
             Assert.Equal(noneDefault, processor.Options);
 
-            var path = Assert.IsType<ShapePath>(processor.Path);
+            ShapePath path = Assert.IsType<ShapePath>(processor.Path);
             Assert.NotEmpty(path.Paths);
 
-            var vector = Assert.IsType<SixLabors.Shapes.Path>(path.Paths[0]);
-            var segment = Assert.IsType<LinearLineSegment>(vector.LineSegments[0]);
+            SixLabors.Shapes.Path vector = Assert.IsType<SixLabors.Shapes.Path>(path.Paths[0]);
+            LinearLineSegment segment = Assert.IsType<LinearLineSegment>(vector.LineSegments[0]);
 
-            var pen = Assert.IsType<Pen<Color>>(processor.Pen);
+            Pen<Color> pen = Assert.IsType<Pen<Color>>(processor.Pen);
             Assert.Equal(thickness, pen.Width);
 
-            var brush = Assert.IsType<SolidBrush<Color>>(pen.Brush);
+            SolidBrush<Color> brush = Assert.IsType<SolidBrush<Color>>(pen.Brush);
             Assert.Equal(color, brush.Color);
         }
 
         [Fact]
-        public void pen_points()
+        public void CorrectlySetsPenAndPoints()
         {
             img.DrawLines(pen, points);
 
             Assert.NotEmpty(img.ProcessorApplications);
-            var processor = Assert.IsType<DrawPathProcessor<Color>>(img.ProcessorApplications[0].processor);
+            DrawPathProcessor<Color> processor = Assert.IsType<DrawPathProcessor<Color>>(img.ProcessorApplications[0].processor);
 
             Assert.Equal(GraphicsOptions.Default, processor.Options);
 
-            var path = Assert.IsType<ShapePath>(processor.Path);
+            ShapePath path = Assert.IsType<ShapePath>(processor.Path);
             Assert.NotEmpty(path.Paths);
 
-            var vector = Assert.IsType<SixLabors.Shapes.Path>(path.Paths[0]);
-            var segment = Assert.IsType<LinearLineSegment>(vector.LineSegments[0]);
+            SixLabors.Shapes.Path vector = Assert.IsType<SixLabors.Shapes.Path>(path.Paths[0]);
+            LinearLineSegment segment = Assert.IsType<LinearLineSegment>(vector.LineSegments[0]);
 
             Assert.Equal(pen, processor.Pen);
         }
 
         [Fact]
-        public void pen_points_options()
+        public void CorrectlySetsPenPointsAndOptions()
         {
             img.DrawLines(pen, points, noneDefault);
 
             Assert.NotEmpty(img.ProcessorApplications);
-            var processor = Assert.IsType<DrawPathProcessor<Color>>(img.ProcessorApplications[0].processor);
+            DrawPathProcessor<Color> processor = Assert.IsType<DrawPathProcessor<Color>>(img.ProcessorApplications[0].processor);
 
             Assert.Equal(noneDefault, processor.Options);
 
-            var path = Assert.IsType<ShapePath>(processor.Path);
+            ShapePath path = Assert.IsType<ShapePath>(processor.Path);
             Assert.NotEmpty(path.Paths);
 
-            var vector = Assert.IsType<SixLabors.Shapes.Path>(path.Paths[0]);
-            var segment = Assert.IsType<LinearLineSegment>(vector.LineSegments[0]);
+            SixLabors.Shapes.Path vector = Assert.IsType<SixLabors.Shapes.Path>(path.Paths[0]);
+            LinearLineSegment segment = Assert.IsType<LinearLineSegment>(vector.LineSegments[0]);
 
             Assert.Equal(pen, processor.Pen);
         }

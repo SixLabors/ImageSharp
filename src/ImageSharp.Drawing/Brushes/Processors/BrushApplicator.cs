@@ -19,16 +19,12 @@ namespace ImageSharp.Drawing.Processors
         /// <summary>
         /// Gets the color for a single pixel.
         /// </summary>
-        /// <param name="x">The x.</param>
-        /// <param name="y">The y.</param>
-        /// <returns>
-        /// The color
-        /// </returns>
+        /// <param name="x">The x cordinate.</param>
+        /// <param name="y">The y cordinate.</param>
+        /// <returns>The a <typeparamref name="TColor"/> that should be applied to the pixel.</returns>
         public abstract TColor this[int x, int y] { get; }
 
-        /// <summary>
-        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
-        /// </summary>
+        /// <inheritdoc/>
         public abstract void Dispose();
     }
 }

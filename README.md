@@ -47,7 +47,7 @@ Packages include:
 - **ImageSharp.Drawing**
   Brushes and various drawing algorithms, including drawing Images
   - **ImageSharp.Drawing.Paths**
-  various vector drawing methods for drawing paths, polygons etc.
+  Various vector drawing methods for drawing paths, polygons etc.
 
 ### Manual build
 

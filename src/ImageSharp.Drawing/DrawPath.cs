@@ -28,7 +28,7 @@ namespace ImageSharp
         /// <returns>
         /// The Image
         /// </returns>
-        public static Image<TColor> Draw<TColor>(this Image<TColor> source, IPen<TColor> pen, Path path, GraphicsOptions options)
+        public static Image<TColor> Draw<TColor>(this Image<TColor> source, IPen<TColor> pen, Drawable path, GraphicsOptions options)
            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             return source.Apply(new DrawPathProcessor<TColor>(pen, path, options));
@@ -44,7 +44,7 @@ namespace ImageSharp
         /// <returns>
         /// The Image
         /// </returns>
-        public static Image<TColor> Draw<TColor>(this Image<TColor> source, IPen<TColor> pen, Path path)
+        public static Image<TColor> Draw<TColor>(this Image<TColor> source, IPen<TColor> pen, Drawable path)
            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             return source.Draw(pen, path, GraphicsOptions.Default);
@@ -62,7 +62,7 @@ namespace ImageSharp
         /// <returns>
         /// The Image
         /// </returns>
-        public static Image<TColor> Draw<TColor>(this Image<TColor> source, IBrush<TColor> brush, float thickness, Path path, GraphicsOptions options)
+        public static Image<TColor> Draw<TColor>(this Image<TColor> source, IBrush<TColor> brush, float thickness, Drawable path, GraphicsOptions options)
            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             return source.Draw(new Pen<TColor>(brush, thickness), path, options);
@@ -79,7 +79,7 @@ namespace ImageSharp
         /// <returns>
         /// The Image
         /// </returns>
-        public static Image<TColor> Draw<TColor>(this Image<TColor> source, IBrush<TColor> brush, float thickness, Path path)
+        public static Image<TColor> Draw<TColor>(this Image<TColor> source, IBrush<TColor> brush, float thickness, Drawable path)
            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             return source.Draw(new Pen<TColor>(brush, thickness), path);
@@ -97,7 +97,7 @@ namespace ImageSharp
         /// <returns>
         /// The Image
         /// </returns>
-        public static Image<TColor> Draw<TColor>(this Image<TColor> source, TColor color, float thickness, Path path, GraphicsOptions options)
+        public static Image<TColor> Draw<TColor>(this Image<TColor> source, TColor color, float thickness, Drawable path, GraphicsOptions options)
            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             return source.Draw(new SolidBrush<TColor>(color), thickness, path, options);
@@ -114,7 +114,7 @@ namespace ImageSharp
         /// <returns>
         /// The Image
         /// </returns>
-        public static Image<TColor> Draw<TColor>(this Image<TColor> source, TColor color, float thickness, Path path)
+        public static Image<TColor> Draw<TColor>(this Image<TColor> source, TColor color, float thickness, Drawable path)
            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             return source.Draw(new SolidBrush<TColor>(color), thickness, path);

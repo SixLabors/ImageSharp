@@ -72,8 +72,8 @@ namespace ImageSharp.Drawing
         /// </returns>
         public override int ScanX(int x, float[] buffer, int length, int offset)
         {
-            var start = new Vector2(x, this.Bounds.Top - 1);
-            var end = new Vector2(x, this.Bounds.Bottom + 1);
+            Vector2 start = new Vector2(x, this.Bounds.Top - 1);
+            Vector2 end = new Vector2(x, this.Bounds.Bottom + 1);
             Vector2[] innerbuffer = ArrayPool<Vector2>.Shared.Rent(length);
             try
             {
@@ -84,7 +84,7 @@ namespace ImageSharp.Drawing
                     length,
                     0);
 
-                for (var i = 0; i < count; i++)
+                for (int i = 0; i < count; i++)
                 {
                     buffer[i + offset] = innerbuffer[i].Y;
                 }
@@ -109,8 +109,8 @@ namespace ImageSharp.Drawing
         /// </returns>
         public override int ScanY(int y, float[] buffer, int length, int offset)
         {
-            var start = new Vector2(float.MinValue, y);
-            var end = new Vector2(float.MaxValue, y);
+            Vector2 start = new Vector2(float.MinValue, y);
+            Vector2 end = new Vector2(float.MaxValue, y);
             Vector2[] innerbuffer = ArrayPool<Vector2>.Shared.Rent(length);
             try
             {
@@ -121,7 +121,7 @@ namespace ImageSharp.Drawing
                     length,
                     0);
 
-                for (var i = 0; i < count; i++)
+                for (int i = 0; i < count; i++)
                 {
                     buffer[i + offset] = innerbuffer[i].X;
                 }

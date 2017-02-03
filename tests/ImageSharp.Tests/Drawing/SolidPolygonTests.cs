@@ -71,7 +71,7 @@ namespace ImageSharp.Tests.Drawing
                 {
                     Assert.Equal(Color.HotPink, sourcePixels[11, 11]);
 
-                	Assert.Equal(Color.HotPink, sourcePixels[199, 150]);
+                    Assert.Equal(Color.HotPink, sourcePixels[199, 150]);
 
                     Assert.Equal(Color.HotPink, sourcePixels[50, 50]);
 
@@ -144,14 +144,14 @@ namespace ImageSharp.Tests.Drawing
         public void ImageShouldBeOverlayedByFilledRectangle()
         {
             string path = this.CreateOutputDirectory("Drawing", "FilledPolygons");
- 			
+
             using (Image image = new Image(500, 500))
             {
                 using (FileStream output = File.OpenWrite($"{path}/Rectangle.png"))
                 {
                     image
                         .BackgroundColor(Color.Blue)
-                    	.Fill(Color.HotPink, new SixLabors.Shapes.Rectangle(10,10, 190, 140))
+                        .Fill(Color.HotPink, new SixLabors.Shapes.Rectangle(10,10, 190, 140))
                          .Save(output);
                 }
 

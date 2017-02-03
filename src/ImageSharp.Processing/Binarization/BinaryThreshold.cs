@@ -40,7 +40,8 @@ namespace ImageSharp
         public static Image<TColor> BinaryThreshold<TColor>(this Image<TColor> source, float threshold, Rectangle rectangle)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            return source.Apply(rectangle, new BinaryThresholdProcessor<TColor>(threshold));
+            source.ApplyProcessor(new BinaryThresholdProcessor<TColor>(threshold), rectangle);
+            return source;
         }
     }
 }

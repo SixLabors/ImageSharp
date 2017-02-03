@@ -41,7 +41,9 @@ namespace ImageSharp
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             SkewProcessor<TColor> processor = new SkewProcessor<TColor> { AngleX = degreesX, AngleY = degreesY, Expand = expand };
-            return source.Apply(source.Bounds, processor);
+
+            source.ApplyProcessor(processor, source.Bounds);
+            return source;
         }
     }
 }

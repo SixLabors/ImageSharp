@@ -146,7 +146,8 @@ namespace ImageSharp
         public static Image<TColor> DetectEdges<TColor>(this Image<TColor> source, Rectangle rectangle, IEdgeDetectorProcessor<TColor> filter)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            return source.Apply(rectangle, filter);
+            source.ApplyProcessor(filter, rectangle);
+            return source;
         }
     }
 }

@@ -41,7 +41,8 @@ namespace ImageSharp
         public static Image<TColor> Saturation<TColor>(this Image<TColor> source, int amount, Rectangle rectangle)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            return source.Apply(rectangle, new SaturationProcessor<TColor>(amount));
+            source.ApplyProcessor(new SaturationProcessor<TColor>(amount), rectangle);
+            return source;
         }
     }
 }

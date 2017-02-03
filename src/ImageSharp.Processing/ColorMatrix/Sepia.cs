@@ -39,7 +39,8 @@ namespace ImageSharp
         public static Image<TColor> Sepia<TColor>(this Image<TColor> source, Rectangle rectangle)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            return source.Apply(rectangle, new SepiaProcessor<TColor>());
+            source.ApplyProcessor(new SepiaProcessor<TColor>(), rectangle);
+            return source;
         }
     }
 }

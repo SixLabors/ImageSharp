@@ -39,7 +39,8 @@ namespace ImageSharp
         public static Image<TColor> BlackWhite<TColor>(this Image<TColor> source, Rectangle rectangle)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            return source.Apply(rectangle, new BlackWhiteProcessor<TColor>());
+            source.ApplyProcessor(new BlackWhiteProcessor<TColor>(), rectangle);
+            return source;
         }
     }
 }

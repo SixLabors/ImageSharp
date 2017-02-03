@@ -88,7 +88,8 @@ namespace ImageSharp
                 processor.GlowColor = color;
             }
 
-            return source.Apply(rectangle, processor);
+            source.ApplyProcessor(processor, rectangle);
+            return source;
         }
     }
 }

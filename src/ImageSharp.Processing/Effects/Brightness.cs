@@ -39,8 +39,9 @@ namespace ImageSharp
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Brightness<TColor>(this Image<TColor> source, int amount, Rectangle rectangle)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
-                    {
-            return source.Apply(rectangle, new BrightnessProcessor<TColor>(amount));
+        {
+            source.ApplyProcessor(new BrightnessProcessor<TColor>(amount), rectangle);
+            return source;
         }
     }
 }

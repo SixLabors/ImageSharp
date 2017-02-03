@@ -40,96 +40,96 @@ namespace ImageSharp.Tests.Drawing.Paths
         }
 
         [Fact]
-        public void Brush_Thickness_path()
+        public void CorrectlySetsBrushThicknessAndPath()
         {
             img.Draw(brush, thickness, path);
 
             Assert.NotEmpty(img.ProcessorApplications);
-            var processor = Assert.IsType<DrawPathProcessor<Color>>(img.ProcessorApplications[0].processor);
+            DrawPathProcessor<Color> processor = Assert.IsType<DrawPathProcessor<Color>>(img.ProcessorApplications[0].processor);
 
             Assert.Equal(GraphicsOptions.Default, processor.Options);
 
-            var shapepath = Assert.IsType<ShapePath>(processor.Path);
+            ShapePath shapepath = Assert.IsType<ShapePath>(processor.Path);
             Assert.NotEmpty(shapepath.Paths);
             Assert.Equal(path, shapepath.Paths[0]);
             
-            var pen = Assert.IsType<Pen<Color>>(processor.Pen);
+            Pen<Color> pen = Assert.IsType<Pen<Color>>(processor.Pen);
             Assert.Equal(brush, pen.Brush);
             Assert.Equal(thickness, pen.Width);
         }
 
         [Fact]
-        public void Brush_Thickness_path_options()
+        public void CorrectlySetsBrushThicknessPathAndOptions()
         {
             img.Draw(brush, thickness, path, noneDefault);
 
             Assert.NotEmpty(img.ProcessorApplications);
-            var processor = Assert.IsType<DrawPathProcessor<Color>>(img.ProcessorApplications[0].processor);
+            DrawPathProcessor<Color> processor = Assert.IsType<DrawPathProcessor<Color>>(img.ProcessorApplications[0].processor);
 
             Assert.Equal(noneDefault, processor.Options);
 
-            var shapepath = Assert.IsType<ShapePath>(processor.Path);
+            ShapePath shapepath = Assert.IsType<ShapePath>(processor.Path);
             Assert.NotEmpty(shapepath.Paths);
             Assert.Equal(path, shapepath.Paths[0]);
 
-            var pen = Assert.IsType<Pen<Color>>(processor.Pen);
+            Pen<Color> pen = Assert.IsType<Pen<Color>>(processor.Pen);
             Assert.Equal(brush, pen.Brush);
             Assert.Equal(thickness, pen.Width);
         }
 
         [Fact]
-        public void color_Thickness_path()
+        public void CorrectlySetsColorThicknessAndPath()
         {
             img.Draw(color, thickness, path);
 
             Assert.NotEmpty(img.ProcessorApplications);
-            var processor = Assert.IsType<DrawPathProcessor<Color>>(img.ProcessorApplications[0].processor);
+            DrawPathProcessor<Color> processor = Assert.IsType<DrawPathProcessor<Color>>(img.ProcessorApplications[0].processor);
 
             Assert.Equal(GraphicsOptions.Default, processor.Options);
 
-            var shapepath = Assert.IsType<ShapePath>(processor.Path);
+            ShapePath shapepath = Assert.IsType<ShapePath>(processor.Path);
             Assert.NotEmpty(shapepath.Paths);
             Assert.Equal(path, shapepath.Paths[0]);
 
-            var pen = Assert.IsType<Pen<Color>>(processor.Pen);
+            Pen<Color> pen = Assert.IsType<Pen<Color>>(processor.Pen);
             Assert.Equal(thickness, pen.Width);
 
-            var brush = Assert.IsType<SolidBrush<Color>>(pen.Brush);
+            SolidBrush<Color> brush = Assert.IsType<SolidBrush<Color>>(pen.Brush);
             Assert.Equal(color, brush.Color);
         }
 
         [Fact]
-        public void color_Thickness_path_options()
+        public void CorrectlySetsColorThicknessPathAndOptions()
         {
             img.Draw(color, thickness, path, noneDefault);
 
             Assert.NotEmpty(img.ProcessorApplications);
-            var processor = Assert.IsType<DrawPathProcessor<Color>>(img.ProcessorApplications[0].processor);
+            DrawPathProcessor<Color> processor = Assert.IsType<DrawPathProcessor<Color>>(img.ProcessorApplications[0].processor);
 
             Assert.Equal(noneDefault, processor.Options);
 
-            var shapepath = Assert.IsType<ShapePath>(processor.Path);
+            ShapePath shapepath = Assert.IsType<ShapePath>(processor.Path);
             Assert.NotEmpty(shapepath.Paths);
             Assert.Equal(path, shapepath.Paths[0]);
 
-            var pen = Assert.IsType<Pen<Color>>(processor.Pen);
+            Pen<Color> pen = Assert.IsType<Pen<Color>>(processor.Pen);
             Assert.Equal(thickness, pen.Width);
 
-            var brush = Assert.IsType<SolidBrush<Color>>(pen.Brush);
+            SolidBrush<Color> brush = Assert.IsType<SolidBrush<Color>>(pen.Brush);
             Assert.Equal(color, brush.Color);
         }
 
         [Fact]
-        public void pen_path()
+        public void CorrectlySetsPenAndPath()
         {
             img.Draw(pen, path);
 
             Assert.NotEmpty(img.ProcessorApplications);
-            var processor = Assert.IsType<DrawPathProcessor<Color>>(img.ProcessorApplications[0].processor);
+            DrawPathProcessor<Color> processor = Assert.IsType<DrawPathProcessor<Color>>(img.ProcessorApplications[0].processor);
 
             Assert.Equal(GraphicsOptions.Default, processor.Options);
 
-            var shapepath = Assert.IsType<ShapePath>(processor.Path);
+            ShapePath shapepath = Assert.IsType<ShapePath>(processor.Path);
             Assert.NotEmpty(shapepath.Paths);
             Assert.Equal(path, shapepath.Paths[0]);
 
@@ -137,16 +137,16 @@ namespace ImageSharp.Tests.Drawing.Paths
         }
 
         [Fact]
-        public void pen_path_options()
+        public void CorrectlySetsPenPathAndOptions()
         {
             img.Draw(pen, path, noneDefault);
 
             Assert.NotEmpty(img.ProcessorApplications);
-            var processor = Assert.IsType<DrawPathProcessor<Color>>(img.ProcessorApplications[0].processor);
+            DrawPathProcessor<Color> processor = Assert.IsType<DrawPathProcessor<Color>>(img.ProcessorApplications[0].processor);
 
             Assert.Equal(noneDefault, processor.Options);
 
-            var shapepath = Assert.IsType<ShapePath>(processor.Path);
+            ShapePath shapepath = Assert.IsType<ShapePath>(processor.Path);
             Assert.NotEmpty(shapepath.Paths);
             Assert.Equal(path, shapepath.Paths[0]);
 

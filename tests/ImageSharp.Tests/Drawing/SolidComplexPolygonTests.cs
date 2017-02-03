@@ -19,15 +19,15 @@ namespace ImageSharp.Tests.Drawing
         public void ImageShouldBeOverlayedByPolygonOutline()
         {
             string path = this.CreateOutputDirectory("Drawing", "ComplexPolygon");
-            LinearPolygon simplePath = new LinearPolygon(
+            Polygon simplePath = new Polygon(new LinearLineSegment(
                             new Vector2(10, 10),
                             new Vector2(200, 150),
-                            new Vector2(50, 300));
+                            new Vector2(50, 300)));
 
-            LinearPolygon hole1 = new LinearPolygon(
+            Polygon hole1 = new Polygon(new LinearLineSegment(
                             new Vector2(37, 85),
                             new Vector2(93, 85),
-                            new Vector2(65, 137));
+                            new Vector2(65, 137)));
 
             using (Image image = new Image(500, 500))
             {
@@ -62,15 +62,15 @@ namespace ImageSharp.Tests.Drawing
         public void ImageShouldBeOverlayedPolygonOutlineWithOverlap()
         {
             string path = this.CreateOutputDirectory("Drawing", "ComplexPolygon");
-            LinearPolygon simplePath = new LinearPolygon(
+            Polygon simplePath = new Polygon(new LinearLineSegment(
                             new Vector2(10, 10),
                             new Vector2(200, 150),
-                            new Vector2(50, 300));
+                            new Vector2(50, 300)));
 
-            LinearPolygon hole1 = new LinearPolygon(
+            Polygon hole1 = new Polygon(new LinearLineSegment(
                             new Vector2(37, 85),
                             new Vector2(130, 40),
-                            new Vector2(65, 137));
+                            new Vector2(65, 137)));
 
             using (Image image = new Image(500, 500))
             {
@@ -104,15 +104,15 @@ namespace ImageSharp.Tests.Drawing
         public void ImageShouldBeOverlayedPolygonOutlineWithOpacity()
         {
             string path = this.CreateOutputDirectory("Drawing", "ComplexPolygon");
-            LinearPolygon simplePath = new LinearPolygon(
+            Polygon simplePath = new Polygon(new LinearLineSegment(
                             new Vector2(10, 10),
                             new Vector2(200, 150),
-                            new Vector2(50, 300));
+                            new Vector2(50, 300)));
 
-            LinearPolygon hole1 = new LinearPolygon(
+            Polygon hole1 = new Polygon(new LinearLineSegment(
                             new Vector2(37, 85),
                             new Vector2(93, 85),
-                            new Vector2(65, 137));
+                            new Vector2(65, 137)));
             Color color = new Color(Color.HotPink.R, Color.HotPink.G, Color.HotPink.B, 150);
 
             using (Image image = new Image(500, 500))

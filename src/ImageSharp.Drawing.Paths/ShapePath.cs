@@ -130,20 +130,24 @@ namespace ImageSharp.Drawing
         public override PointInfo GetPointInfo(int x, int y)
         {
             Vector2 point = new Vector2(x, y);
-            SixLabors.Shapes.PointInfo result = default(SixLabors.Shapes.PointInfo);
-            float distance = float.MaxValue;
+            float distanceFromPath = float.MaxValue;
+            float distanceAlongPath = 0;
 
             for (int i = 0; i < this.Paths.Length; i++)
             {
                 SixLabors.Shapes.PointInfo p = this.Paths[i].Distance(point);
-                if (p.DistanceFromPath < distance)
+                if (p.DistanceFromPath < distanceFromPath)
                 {
-                    distance = p.DistanceFromPath;
-                    result = p;
+                    distanceFromPath = p.DistanceFromPath;
+                    distanceAlongPath = p.DistanceAlongPath;
                 }
             }
 
-            return result.Convert();
+            return new PointInfo
+            {
+                DistanceAlongPath = distanceAlongPath,
+                DistanceFromPath = distanceFromPath
+            };
         }
     }
 }

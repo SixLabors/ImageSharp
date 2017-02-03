@@ -28,12 +28,12 @@ namespace ImageSharp.Drawing.Processors
         /// <summary>
         /// Initializes a new instance of the <see cref="DrawPathProcessor{TColor}" /> class.
         /// </summary>
-        /// <param name="pen">The pen.</param>
-        /// <param name="region">The region.</param>
-        /// <param name="options">The options.</param>
-        public DrawPathProcessor(IPen<TColor> pen, Drawable region, GraphicsOptions options)
+        /// <param name="pen">The details how to draw the outline/path.</param>
+        /// <param name="drawable">The details of the paths and outlines to draw.</param>
+        /// <param name="options">The drawing configuration options.</param>
+        public DrawPathProcessor(IPen<TColor> pen, Drawable drawable, GraphicsOptions options)
         {
-            this.Path = region;
+            this.Path = drawable;
             this.Pen = pen;
             this.Options = options;
         }

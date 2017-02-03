@@ -44,32 +44,13 @@ namespace ImageSharp.Drawing
         /// </summary>
         public IShape Shape { get; }
 
-        /// <summary>
-        /// Gets the maximum number of intersections to could be returned.
-        /// </summary>
-        /// <value>
-        /// The maximum intersections.
-        /// </value>
+        /// <inheritdoc/>
         public override int MaxIntersections => this.Shape.MaxIntersections;
 
-        /// <summary>
-        /// Gets the bounds.
-        /// </summary>
-        /// <value>
-        /// The bounds.
-        /// </value>
+        /// <inheritdoc/>
         public override Rectangle Bounds { get; }
 
-        /// <summary>
-        /// Scans the X axis for intersections.
-        /// </summary>
-        /// <param name="x">The x.</param>
-        /// <param name="buffer">The buffer.</param>
-        /// <param name="length">The length.</param>
-        /// <param name="offset">The offset.</param>
-        /// <returns>
-        /// The number of intersections found.
-        /// </returns>
+        /// <inheritdoc/>
         public override int ScanX(int x, float[] buffer, int length, int offset)
         {
             Vector2 start = new Vector2(x, this.Bounds.Top - 1);
@@ -97,16 +78,7 @@ namespace ImageSharp.Drawing
             }
         }
 
-        /// <summary>
-        /// Scans the Y axis for intersections.
-        /// </summary>
-        /// <param name="y">The position along the y axis to find intersections.</param>
-        /// <param name="buffer">The buffer.</param>
-        /// <param name="length">The length.</param>
-        /// <param name="offset">The offset.</param>
-        /// <returns>
-        /// The number of intersections found.
-        /// </returns>
+        /// <inheritdoc/>
         public override int ScanY(int y, float[] buffer, int length, int offset)
         {
             Vector2 start = new Vector2(float.MinValue, y);

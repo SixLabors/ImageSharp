@@ -26,9 +26,9 @@ namespace ImageSharp.Drawing.Processors
         /// <summary>
         /// Initializes a new instance of the <see cref="FillRegionProcessor{TColor}" /> class.
         /// </summary>
-        /// <param name="brush">The brush.</param>
-        /// <param name="region">The region.</param>
-        /// <param name="options">The options.</param>
+        /// <param name="brush">The details how to fill the region of interest.</param>
+        /// <param name="region">The region of interest to be filled.</param>
+        /// <param name="options">The configuration options.</param>
         public FillRegionProcessor(IBrush<TColor> brush, Region region, GraphicsOptions options)
         {
             this.Region = region;

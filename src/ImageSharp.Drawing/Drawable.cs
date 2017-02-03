@@ -13,17 +13,11 @@ namespace ImageSharp.Drawing
         /// <summary>
         /// Gets the maximum number of intersections to could be returned.
         /// </summary>
-        /// <value>
-        /// The maximum intersections.
-        /// </value>
         public abstract int MaxIntersections { get; }
 
         /// <summary>
         /// Gets the bounds.
         /// </summary>
-        /// <value>
-        /// The bounds.
-        /// </value>
         public abstract Rectangle Bounds { get; }
 
         /// <summary>

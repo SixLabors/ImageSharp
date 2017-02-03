@@ -22,7 +22,7 @@ namespace ImageSharp.Drawing.Processors
         /// <summary>
         /// Converts a Shaper2D <see cref="SixLabors.Shapes.Rectangle"/> to an ImageSharp <see cref="Rectangle"/> by creating a <see cref="Rectangle"/> the entirely surrounds the source.
         /// </summary>
-        /// <param name="source">The source.</param>
+        /// <param name="source">The image this method extends.</param>
         /// <returns>A <see cref="Rectangle"/> representation of this <see cref="SixLabors.Shapes.Rectangle"/></returns>
         public static Rectangle Convert(this SixLabors.Shapes.Rectangle source)
         {

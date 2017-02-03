@@ -24,14 +24,12 @@ namespace ImageSharp
         /// Draws the provided Points as an open Bezier path at the provided thickness with the supplied brush
         /// </summary>
         /// <typeparam name="TColor">The type of the color.</typeparam>
-        /// <param name="source">The source.</param>
+        /// <param name="source">The image this method extends.</param>
         /// <param name="brush">The brush.</param>
         /// <param name="thickness">The thickness.</param>
         /// <param name="points">The points.</param>
         /// <param name="options">The options.</param>
-        /// <returns>
-        /// The Image
-        /// </returns>
+        /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> DrawBeziers<TColor>(this Image<TColor> source, IBrush<TColor> brush, float thickness, Vector2[] points, GraphicsOptions options)
            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
@@ -42,11 +40,11 @@ namespace ImageSharp
         /// Draws the provided Points as an open Bezier path at the provided thickness with the supplied brush
         /// </summary>
         /// <typeparam name="TColor">The type of the color.</typeparam>
-        /// <param name="source">The source.</param>
+        /// <param name="source">The image this method extends.</param>
         /// <param name="brush">The brush.</param>
         /// <param name="thickness">The thickness.</param>
         /// <param name="points">The points.</param>
-        /// <returns>The Image</returns>
+        /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> DrawBeziers<TColor>(this Image<TColor> source, IBrush<TColor> brush, float thickness, Vector2[] points)
            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
@@ -57,11 +55,11 @@ namespace ImageSharp
         /// Draws the provided Points as an open Bezier path at the provided thickness with the supplied brush
         /// </summary>
         /// <typeparam name="TColor">The type of the color.</typeparam>
-        /// <param name="source">The source.</param>
+        /// <param name="source">The image this method extends.</param>
         /// <param name="color">The color.</param>
         /// <param name="thickness">The thickness.</param>
         /// <param name="points">The points.</param>
-        /// <returns>The Image</returns>
+        /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> DrawBeziers<TColor>(this Image<TColor> source, TColor color, float thickness, Vector2[] points)
            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
@@ -72,14 +70,12 @@ namespace ImageSharp
         /// Draws the provided Points as an open Bezier path at the provided thickness with the supplied brush
         /// </summary>
         /// <typeparam name="TColor">The type of the color.</typeparam>
-        /// <param name="source">The source.</param>
+        /// <param name="source">The image this method extends.</param>
         /// <param name="color">The color.</param>
         /// <param name="thickness">The thickness.</param>
         /// <param name="points">The points.</param>
         /// <param name="options">The options.</param>
-        /// <returns>
-        /// The Image
-        /// </returns>
+        /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> DrawBeziers<TColor>(this Image<TColor> source, TColor color, float thickness, Vector2[] points, GraphicsOptions options)
            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
@@ -90,13 +86,11 @@ namespace ImageSharp
         /// Draws the provided Points as an open Bezier path with the supplied pen
         /// </summary>
         /// <typeparam name="TColor">The type of the color.</typeparam>
-        /// <param name="source">The source.</param>
+        /// <param name="source">The image this method extends.</param>
         /// <param name="pen">The pen.</param>
         /// <param name="points">The points.</param>
         /// <param name="options">The options.</param>
-        /// <returns>
-        /// The Image
-        /// </returns>
+        /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> DrawBeziers<TColor>(this Image<TColor> source, IPen<TColor> pen, Vector2[] points, GraphicsOptions options)
            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
@@ -107,10 +101,10 @@ namespace ImageSharp
         /// Draws the provided Points as an open Bezier path with the supplied pen
         /// </summary>
         /// <typeparam name="TColor">The type of the color.</typeparam>
-        /// <param name="source">The source.</param>
+        /// <param name="source">The image this method extends.</param>
         /// <param name="pen">The pen.</param>
         /// <param name="points">The points.</param>
-        /// <returns>The Image</returns>
+        /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> DrawBeziers<TColor>(this Image<TColor> source, IPen<TColor> pen, Vector2[] points)
            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {

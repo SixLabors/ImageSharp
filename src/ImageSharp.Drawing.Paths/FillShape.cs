@@ -22,13 +22,11 @@ namespace ImageSharp
         /// Flood fills the image in the shape of the provided polygon with the specified brush..
         /// </summary>
         /// <typeparam name="TColor">The type of the color.</typeparam>
-        /// <param name="source">The source.</param>
+        /// <param name="source">The image this method extends.</param>
         /// <param name="brush">The brush.</param>
         /// <param name="shape">The shape.</param>
         /// <param name="options">The graphics options.</param>
-        /// <returns>
-        /// The Image
-        /// </returns>
+        /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Fill<TColor>(this Image<TColor> source, IBrush<TColor> brush, IShape shape, GraphicsOptions options)
           where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
@@ -39,10 +37,10 @@ namespace ImageSharp
         /// Flood fills the image in the shape of the provided polygon with the specified brush.
         /// </summary>
         /// <typeparam name="TColor">The type of the color.</typeparam>
-        /// <param name="source">The source.</param>
+        /// <param name="source">The image this method extends.</param>
         /// <param name="brush">The brush.</param>
         /// <param name="shape">The shape.</param>
-        /// <returns>The Image</returns>
+        /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Fill<TColor>(this Image<TColor> source, IBrush<TColor> brush, IShape shape)
           where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
@@ -53,13 +51,11 @@ namespace ImageSharp
         /// Flood fills the image in the shape of the provided polygon with the specified brush..
         /// </summary>
         /// <typeparam name="TColor">The type of the color.</typeparam>
-        /// <param name="source">The source.</param>
+        /// <param name="source">The image this method extends.</param>
         /// <param name="color">The color.</param>
         /// <param name="shape">The shape.</param>
         /// <param name="options">The options.</param>
-        /// <returns>
-        /// The Image
-        /// </returns>
+        /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Fill<TColor>(this Image<TColor> source, TColor color, IShape shape, GraphicsOptions options)
           where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
@@ -70,10 +66,10 @@ namespace ImageSharp
         /// Flood fills the image in the shape of the provided polygon with the specified brush..
         /// </summary>
         /// <typeparam name="TColor">The type of the color.</typeparam>
-        /// <param name="source">The source.</param>
+        /// <param name="source">The image this method extends.</param>
         /// <param name="color">The color.</param>
         /// <param name="shape">The shape.</param>
-        /// <returns>The Image</returns>
+        /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Fill<TColor>(this Image<TColor> source, TColor color, IShape shape)
           where TColor : struct, IPackedPixel, IEquatable<TColor>
         {

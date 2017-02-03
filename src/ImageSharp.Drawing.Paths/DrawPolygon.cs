@@ -22,14 +22,12 @@ namespace ImageSharp
         /// Draws the provided Points as a closed Linear Polygon with the provided brush at the provided thickness.
         /// </summary>
         /// <typeparam name="TColor">The type of the color.</typeparam>
-        /// <param name="source">The source.</param>
+        /// <param name="source">The image this method extends.</param>
         /// <param name="brush">The brush.</param>
         /// <param name="thickness">The thickness.</param>
         /// <param name="points">The points.</param>
         /// <param name="options">The options.</param>
-        /// <returns>
-        /// The Image
-        /// </returns>
+        /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> DrawPolygon<TColor>(this Image<TColor> source, IBrush<TColor> brush, float thickness, Vector2[] points, GraphicsOptions options)
            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
@@ -40,11 +38,11 @@ namespace ImageSharp
         /// Draws the provided Points as a closed Linear Polygon with the provided brush at the provided thickness.
         /// </summary>
         /// <typeparam name="TColor">The type of the color.</typeparam>
-        /// <param name="source">The source.</param>
+        /// <param name="source">The image this method extends.</param>
         /// <param name="brush">The brush.</param>
         /// <param name="thickness">The thickness.</param>
         /// <param name="points">The points.</param>
-        /// <returns>The Image</returns>
+        /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> DrawPolygon<TColor>(this Image<TColor> source, IBrush<TColor> brush, float thickness, Vector2[] points)
            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
@@ -55,11 +53,11 @@ namespace ImageSharp
         /// Draws the provided Points as a closed Linear Polygon with the provided brush at the provided thickness.
         /// </summary>
         /// <typeparam name="TColor">The type of the color.</typeparam>
-        /// <param name="source">The source.</param>
+        /// <param name="source">The image this method extends.</param>
         /// <param name="color">The color.</param>
         /// <param name="thickness">The thickness.</param>
         /// <param name="points">The points.</param>
-        /// <returns>The Image</returns>
+        /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> DrawPolygon<TColor>(this Image<TColor> source, TColor color, float thickness, Vector2[] points)
            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
@@ -70,14 +68,12 @@ namespace ImageSharp
         /// Draws the provided Points as a closed Linear Polygon with the provided brush at the provided thickness.
         /// </summary>
         /// <typeparam name="TColor">The type of the color.</typeparam>
-        /// <param name="source">The source.</param>
+        /// <param name="source">The image this method extends.</param>
         /// <param name="color">The color.</param>
         /// <param name="thickness">The thickness.</param>
         /// <param name="points">The points.</param>
         /// <param name="options">The options.</param>
-        /// <returns>
-        /// The Image
-        /// </returns>
+        /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> DrawPolygon<TColor>(this Image<TColor> source, TColor color, float thickness, Vector2[] points, GraphicsOptions options)
            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
@@ -88,12 +84,10 @@ namespace ImageSharp
         /// Draws the provided Points as a closed Linear Polygon with the provided Pen.
         /// </summary>
         /// <typeparam name="TColor">The type of the color.</typeparam>
-        /// <param name="source">The source.</param>
+        /// <param name="source">The image this method extends.</param>
         /// <param name="pen">The pen.</param>
         /// <param name="points">The points.</param>
-        /// <returns>
-        /// The Image
-        /// </returns>
+        /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> DrawPolygon<TColor>(this Image<TColor> source, IPen<TColor> pen, Vector2[] points)
            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
@@ -104,13 +98,11 @@ namespace ImageSharp
         /// Draws the provided Points as a closed Linear Polygon with the provided Pen.
         /// </summary>
         /// <typeparam name="TColor">The type of the color.</typeparam>
-        /// <param name="source">The source.</param>
+        /// <param name="source">The image this method extends.</param>
         /// <param name="pen">The pen.</param>
         /// <param name="points">The points.</param>
         /// <param name="options">The options.</param>
-        /// <returns>
-        /// The Image
-        /// </returns>
+        /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> DrawPolygon<TColor>(this Image<TColor> source, IPen<TColor> pen, Vector2[] points, GraphicsOptions options)
            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {

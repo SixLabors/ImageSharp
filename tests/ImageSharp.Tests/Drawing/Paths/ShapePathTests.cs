@@ -39,7 +39,7 @@ namespace ImageSharp.Tests.Drawing.Paths
         }
 
         [Fact]
-        public void ShapePathWithPath_CallsAsShape()
+        public void ShapePathWithPathCallsAsShape()
         {
             new ShapePath(pathMock1.Object);
 

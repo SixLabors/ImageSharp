@@ -34,17 +34,17 @@ namespace ImageSharp.Tests.Drawing.Paths
         }
 
         [Fact]
-        public void Brush_path()
+        public void CorrectlySetsBrushAndRectangle()
         {
             img.Fill(brush, rectangle);
 
             Assert.NotEmpty(img.ProcessorApplications);
-            var processor = Assert.IsType<FillRegionProcessor<Color>>(img.ProcessorApplications[0].processor);
+            FillRegionProcessor<Color> processor = Assert.IsType<FillRegionProcessor<Color>>(img.ProcessorApplications[0].processor);
 
             Assert.Equal(GraphicsOptions.Default, processor.Options);
 
-            var region = Assert.IsType<ShapeRegion>(processor.Region);
-            var rect = Assert.IsType<SixLabors.Shapes.Rectangle>(region.Shape);
+            ShapeRegion region = Assert.IsType<ShapeRegion>(processor.Region);
+            SixLabors.Shapes.Rectangle rect = Assert.IsType<SixLabors.Shapes.Rectangle>(region.Shape);
             Assert.Equal(rect.Location.X, rectangle.X);
             Assert.Equal(rect.Location.Y, rectangle.Y);
             Assert.Equal(rect.Size.Width, rectangle.Width);
@@ -54,17 +54,17 @@ namespace ImageSharp.Tests.Drawing.Paths
         }
 
         [Fact]
-        public void Brush_path_options()
+        public void CorrectlySetsBrushRectangleAndOptions()
         {
             img.Fill(brush, rectangle, noneDefault);
 
             Assert.NotEmpty(img.ProcessorApplications);
-            var processor = Assert.IsType<FillRegionProcessor<Color>>(img.ProcessorApplications[0].processor);
+            FillRegionProcessor<Color> processor = Assert.IsType<FillRegionProcessor<Color>>(img.ProcessorApplications[0].processor);
 
             Assert.Equal(noneDefault, processor.Options);
 
-            var region = Assert.IsType<ShapeRegion>(processor.Region);
-            var rect = Assert.IsType<SixLabors.Shapes.Rectangle>(region.Shape);
+            ShapeRegion region = Assert.IsType<ShapeRegion>(processor.Region);
+            SixLabors.Shapes.Rectangle rect = Assert.IsType<SixLabors.Shapes.Rectangle>(region.Shape);
             Assert.Equal(rect.Location.X, rectangle.X);
             Assert.Equal(rect.Location.Y, rectangle.Y);
             Assert.Equal(rect.Size.Width, rectangle.Width);
@@ -74,45 +74,44 @@ namespace ImageSharp.Tests.Drawing.Paths
         }
 
         [Fact]
-        public void color_path()
+        public void CorrectlySetsColorAndRectangle()
         {
             img.Fill(color, rectangle);
             
             Assert.NotEmpty(img.ProcessorApplications);
-            var processor = Assert.IsType<FillRegionProcessor<Color>>(img.ProcessorApplications[0].processor);
+            FillRegionProcessor<Color> processor = Assert.IsType<FillRegionProcessor<Color>>(img.ProcessorApplications[0].processor);
 
             Assert.Equal(GraphicsOptions.Default, processor.Options);
 
-            var region = Assert.IsType<ShapeRegion>(processor.Region);
-            var rect = Assert.IsType<SixLabors.Shapes.Rectangle>(region.Shape);
+            ShapeRegion region = Assert.IsType<ShapeRegion>(processor.Region);
+            SixLabors.Shapes.Rectangle rect = Assert.IsType<SixLabors.Shapes.Rectangle>(region.Shape);
             Assert.Equal(rect.Location.X, rectangle.X);
             Assert.Equal(rect.Location.Y, rectangle.Y);
             Assert.Equal(rect.Size.Width, rectangle.Width);
             Assert.Equal(rect.Size.Height, rectangle.Height);
 
-            var brush = Assert.IsType<SolidBrush<Color>>(processor.Brush);
+            SolidBrush<Color> brush = Assert.IsType<SolidBrush<Color>>(processor.Brush);
             Assert.Equal(color, brush.Color);
         }
 
         [Fact]
-        public void color_path_options()
+        public void CorrectlySetsColorRectangleAndOptions()
         {
             img.Fill(color, rectangle, noneDefault);
 
-
             Assert.NotEmpty(img.ProcessorApplications);
-            var processor = Assert.IsType<FillRegionProcessor<Color>>(img.ProcessorApplications[0].processor);
+            FillRegionProcessor<Color> processor = Assert.IsType<FillRegionProcessor<Color>>(img.ProcessorApplications[0].processor);
 
             Assert.Equal(noneDefault, processor.Options);
 
-            var region = Assert.IsType<ShapeRegion>(processor.Region);
-            var rect = Assert.IsType<SixLabors.Shapes.Rectangle>(region.Shape);
+            ShapeRegion region = Assert.IsType<ShapeRegion>(processor.Region);
+            SixLabors.Shapes.Rectangle rect = Assert.IsType<SixLabors.Shapes.Rectangle>(region.Shape);
             Assert.Equal(rect.Location.X, rectangle.X);
             Assert.Equal(rect.Location.Y, rectangle.Y);
             Assert.Equal(rect.Size.Width, rectangle.Width);
             Assert.Equal(rect.Size.Height, rectangle.Height);
 
-            var brush = Assert.IsType<SolidBrush<Color>>(processor.Brush);
+            SolidBrush<Color> brush = Assert.IsType<SolidBrush<Color>>(processor.Brush);
             Assert.Equal(color, brush.Color);
         }
     }

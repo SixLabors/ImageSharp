@@ -36,122 +36,122 @@ namespace ImageSharp.Tests.Drawing.Paths
         }
 
         [Fact]
-        public void Brush_Thickness_rectangle()
+        public void CorrectlySetsBrushThicknessAndRectangle()
         {
             img.Draw(brush, thickness, rectangle);
 
             Assert.NotEmpty(img.ProcessorApplications);
-            var processor = Assert.IsType<DrawPathProcessor<Color>>(img.ProcessorApplications[0].processor);
+            DrawPathProcessor<Color> processor = Assert.IsType<DrawPathProcessor<Color>>(img.ProcessorApplications[0].processor);
 
             Assert.Equal(GraphicsOptions.Default, processor.Options);
 
-            var shapepath = Assert.IsType<ShapePath>(processor.Path);
+            ShapePath shapepath = Assert.IsType<ShapePath>(processor.Path);
             Assert.NotEmpty(shapepath.Paths);
-            var rect = Assert.IsType<SixLabors.Shapes.Rectangle>(shapepath.Paths[0].AsShape());
+            SixLabors.Shapes.Rectangle rect = Assert.IsType<SixLabors.Shapes.Rectangle>(shapepath.Paths[0].AsShape());
 
             Assert.Equal(rect.Location.X, rectangle.X);
             Assert.Equal(rect.Location.Y, rectangle.Y);
             Assert.Equal(rect.Size.Width, rectangle.Width);
             Assert.Equal(rect.Size.Height, rectangle.Height);
 
-            var pen = Assert.IsType<Pen<Color>>(processor.Pen);
+            Pen<Color> pen = Assert.IsType<Pen<Color>>(processor.Pen);
             Assert.Equal(brush, pen.Brush);
             Assert.Equal(thickness, pen.Width);
         }
 
         [Fact]
-        public void Brush_Thickness_rectangle_options()
+        public void CorrectlySetsBrushThicknessRectangleAndOptions()
         {
             img.Draw(brush, thickness, rectangle, noneDefault);
 
             Assert.NotEmpty(img.ProcessorApplications);
-            var processor = Assert.IsType<DrawPathProcessor<Color>>(img.ProcessorApplications[0].processor);
+            DrawPathProcessor<Color> processor = Assert.IsType<DrawPathProcessor<Color>>(img.ProcessorApplications[0].processor);
 
             Assert.Equal(noneDefault, processor.Options);
 
-            var shapepath = Assert.IsType<ShapePath>(processor.Path);
+            ShapePath shapepath = Assert.IsType<ShapePath>(processor.Path);
             Assert.NotEmpty(shapepath.Paths);
 
-            var rect = Assert.IsType<SixLabors.Shapes.Rectangle>(shapepath.Paths[0].AsShape());
+            SixLabors.Shapes.Rectangle rect = Assert.IsType<SixLabors.Shapes.Rectangle>(shapepath.Paths[0].AsShape());
 
             Assert.Equal(rect.Location.X, rectangle.X);
             Assert.Equal(rect.Location.Y, rectangle.Y);
             Assert.Equal(rect.Size.Width, rectangle.Width);
             Assert.Equal(rect.Size.Height, rectangle.Height);
 
-            var pen = Assert.IsType<Pen<Color>>(processor.Pen);
+            Pen<Color> pen = Assert.IsType<Pen<Color>>(processor.Pen);
             Assert.Equal(brush, pen.Brush);
             Assert.Equal(thickness, pen.Width);
         }
 
         [Fact]
-        public void color_Thickness_rectangle()
+        public void CorrectlySetsColorThicknessAndRectangle()
         {
             img.Draw(color, thickness, rectangle);
 
             Assert.NotEmpty(img.ProcessorApplications);
-            var processor = Assert.IsType<DrawPathProcessor<Color>>(img.ProcessorApplications[0].processor);
+            DrawPathProcessor<Color> processor = Assert.IsType<DrawPathProcessor<Color>>(img.ProcessorApplications[0].processor);
 
             Assert.Equal(GraphicsOptions.Default, processor.Options);
 
-            var shapepath = Assert.IsType<ShapePath>(processor.Path);
+            ShapePath shapepath = Assert.IsType<ShapePath>(processor.Path);
             Assert.NotEmpty(shapepath.Paths);
 
-            var rect = Assert.IsType<SixLabors.Shapes.Rectangle>(shapepath.Paths[0].AsShape());
+            SixLabors.Shapes.Rectangle rect = Assert.IsType<SixLabors.Shapes.Rectangle>(shapepath.Paths[0].AsShape());
 
             Assert.Equal(rect.Location.X, rectangle.X);
             Assert.Equal(rect.Location.Y, rectangle.Y);
             Assert.Equal(rect.Size.Width, rectangle.Width);
             Assert.Equal(rect.Size.Height, rectangle.Height);
 
-            var pen = Assert.IsType<Pen<Color>>(processor.Pen);
+            Pen<Color> pen = Assert.IsType<Pen<Color>>(processor.Pen);
             Assert.Equal(thickness, pen.Width);
 
-            var brush = Assert.IsType<SolidBrush<Color>>(pen.Brush);
+            SolidBrush<Color> brush = Assert.IsType<SolidBrush<Color>>(pen.Brush);
             Assert.Equal(color, brush.Color);
         }
 
         [Fact]
-        public void color_Thickness_rectangle_options()
+        public void CorrectlySetsColorThicknessRectangleAndOptions()
         {
             img.Draw(color, thickness, rectangle, noneDefault);
 
             Assert.NotEmpty(img.ProcessorApplications);
-            var processor = Assert.IsType<DrawPathProcessor<Color>>(img.ProcessorApplications[0].processor);
+            DrawPathProcessor<Color> processor = Assert.IsType<DrawPathProcessor<Color>>(img.ProcessorApplications[0].processor);
 
             Assert.Equal(noneDefault, processor.Options);
 
-            var shapepath = Assert.IsType<ShapePath>(processor.Path);
+            ShapePath shapepath = Assert.IsType<ShapePath>(processor.Path);
             Assert.NotEmpty(shapepath.Paths);
 
-            var rect = Assert.IsType<SixLabors.Shapes.Rectangle>(shapepath.Paths[0].AsShape());
+            SixLabors.Shapes.Rectangle rect = Assert.IsType<SixLabors.Shapes.Rectangle>(shapepath.Paths[0].AsShape());
 
             Assert.Equal(rect.Location.X, rectangle.X);
             Assert.Equal(rect.Location.Y, rectangle.Y);
             Assert.Equal(rect.Size.Width, rectangle.Width);
             Assert.Equal(rect.Size.Height, rectangle.Height);
 
-            var pen = Assert.IsType<Pen<Color>>(processor.Pen);
+            Pen<Color> pen = Assert.IsType<Pen<Color>>(processor.Pen);
             Assert.Equal(thickness, pen.Width);
 
-            var brush = Assert.IsType<SolidBrush<Color>>(pen.Brush);
+            SolidBrush<Color> brush = Assert.IsType<SolidBrush<Color>>(pen.Brush);
             Assert.Equal(color, brush.Color);
         }
 
         [Fact]
-        public void pen_rectangle()
+        public void CorrectlySetsPenAndRectangle()
         {
             img.Draw(pen, rectangle);
 
             Assert.NotEmpty(img.ProcessorApplications);
-            var processor = Assert.IsType<DrawPathProcessor<Color>>(img.ProcessorApplications[0].processor);
+            DrawPathProcessor<Color> processor = Assert.IsType<DrawPathProcessor<Color>>(img.ProcessorApplications[0].processor);
 
             Assert.Equal(GraphicsOptions.Default, processor.Options);
 
-            var shapepath = Assert.IsType<ShapePath>(processor.Path);
+            ShapePath shapepath = Assert.IsType<ShapePath>(processor.Path);
             Assert.NotEmpty(shapepath.Paths);
 
-            var rect = Assert.IsType<SixLabors.Shapes.Rectangle>(shapepath.Paths[0].AsShape());
+            SixLabors.Shapes.Rectangle rect = Assert.IsType<SixLabors.Shapes.Rectangle>(shapepath.Paths[0].AsShape());
 
             Assert.Equal(rect.Location.X, rectangle.X);
             Assert.Equal(rect.Location.Y, rectangle.Y);
@@ -162,19 +162,19 @@ namespace ImageSharp.Tests.Drawing.Paths
         }
 
         [Fact]
-        public void pen_rectangle_options()
+        public void CorrectlySetsPenRectangleAndOptions()
         {
             img.Draw(pen, rectangle, noneDefault);
 
             Assert.NotEmpty(img.ProcessorApplications);
-            var processor = Assert.IsType<DrawPathProcessor<Color>>(img.ProcessorApplications[0].processor);
+            DrawPathProcessor<Color> processor = Assert.IsType<DrawPathProcessor<Color>>(img.ProcessorApplications[0].processor);
 
             Assert.Equal(noneDefault, processor.Options);
 
-            var shapepath = Assert.IsType<ShapePath>(processor.Path);
+            ShapePath shapepath = Assert.IsType<ShapePath>(processor.Path);
             Assert.NotEmpty(shapepath.Paths);
 
-            var rect = Assert.IsType<SixLabors.Shapes.Rectangle>(shapepath.Paths[0].AsShape());
+            SixLabors.Shapes.Rectangle rect = Assert.IsType<SixLabors.Shapes.Rectangle>(shapepath.Paths[0].AsShape());
 
             Assert.Equal(rect.Location.X, rectangle.X);
             Assert.Equal(rect.Location.Y, rectangle.Y);

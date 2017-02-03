@@ -35,7 +35,7 @@ namespace ImageSharp.Tests.Drawing.Paths
         }
 
         [Fact]
-        public void ShapeRegionWithPath_CallsAsShape()
+        public void ShapeRegionWithPathCallsAsShape()
         {
             new ShapeRegion(pathMock.Object);
 
@@ -43,7 +43,7 @@ namespace ImageSharp.Tests.Drawing.Paths
         }
 
         [Fact]
-        public void ShapeRegionWithPath_RetainsShape()
+        public void ShapeRegionWithPathRetainsShape()
         {
             ShapeRegion region = new ShapeRegion(pathMock.Object);
 

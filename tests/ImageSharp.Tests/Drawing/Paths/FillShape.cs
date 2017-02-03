@@ -19,7 +19,7 @@ namespace ImageSharp.Tests.Drawing.Paths
         GraphicsOptions noneDefault = new GraphicsOptions();
         Color color = Color.HotPink;
         SolidBrush brush = Brushes.Solid(Color.HotPink);
-        IShape shape = new SixLabors.Shapes.Polygon(new LinearLineSegment(new Vector2[] {
+        IShape shape = new Polygon(new LinearLineSegment(new Vector2[] {
                     new Vector2(10,10),
                     new Vector2(20,10),
                     new Vector2(20,10),
@@ -38,69 +38,68 @@ namespace ImageSharp.Tests.Drawing.Paths
         }
 
         [Fact]
-        public void Brush_shape()
+        public void CorrectlySetsBrushAndShape()
         {
             img.Fill(brush, shape);
 
             Assert.NotEmpty(img.ProcessorApplications);
-            var processor = Assert.IsType<FillRegionProcessor<Color>>(img.ProcessorApplications[0].processor);
+            FillRegionProcessor<Color> processor = Assert.IsType<FillRegionProcessor<Color>>(img.ProcessorApplications[0].processor);
 
             Assert.Equal(GraphicsOptions.Default, processor.Options);
 
-            var region = Assert.IsType<ShapeRegion>(processor.Region);
+            ShapeRegion region = Assert.IsType<ShapeRegion>(processor.Region);
             Assert.Equal(shape, region.Shape);
 
             Assert.Equal(brush, processor.Brush);
         }
 
         [Fact]
-        public void Brush_shape_options()
+        public void CorrectlySetsBrushShapeAndOptions()
         {
             img.Fill(brush, shape, noneDefault);
 
             Assert.NotEmpty(img.ProcessorApplications);
-            var processor = Assert.IsType<FillRegionProcessor<Color>>(img.ProcessorApplications[0].processor);
+            FillRegionProcessor<Color> processor = Assert.IsType<FillRegionProcessor<Color>>(img.ProcessorApplications[0].processor);
 
             Assert.Equal(noneDefault, processor.Options);
 
-            var region = Assert.IsType<ShapeRegion>(processor.Region);
+            ShapeRegion region = Assert.IsType<ShapeRegion>(processor.Region);
             Assert.Equal(shape, region.Shape);
 
             Assert.Equal(brush, processor.Brush);
         }
 
         [Fact]
-        public void color_shape()
+        public void CorrectlySetsColorAndShape()
         {
             img.Fill(color, shape);
             
             Assert.NotEmpty(img.ProcessorApplications);
-            var processor = Assert.IsType<FillRegionProcessor<Color>>(img.ProcessorApplications[0].processor);
+            FillRegionProcessor<Color> processor = Assert.IsType<FillRegionProcessor<Color>>(img.ProcessorApplications[0].processor);
 
             Assert.Equal(GraphicsOptions.Default, processor.Options);
 
-            var region = Assert.IsType<ShapeRegion>(processor.Region);
+            ShapeRegion region = Assert.IsType<ShapeRegion>(processor.Region);
             Assert.Equal(shape, region.Shape);
 
-            var brush = Assert.IsType<SolidBrush<Color>>(processor.Brush);
+            SolidBrush<Color> brush = Assert.IsType<SolidBrush<Color>>(processor.Brush);
             Assert.Equal(color, brush.Color);
         }
 
         [Fact]
-        public void color_shape_options()
+        public void CorrectlySetsColorShapeAndOptions()
         {
             img.Fill(color, shape, noneDefault);
 
-
             Assert.NotEmpty(img.ProcessorApplications);
-            var processor = Assert.IsType<FillRegionProcessor<Color>>(img.ProcessorApplications[0].processor);
+            FillRegionProcessor<Color> processor = Assert.IsType<FillRegionProcessor<Color>>(img.ProcessorApplications[0].processor);
 
             Assert.Equal(noneDefault, processor.Options);
 
-            var region = Assert.IsType<ShapeRegion>(processor.Region);
+            ShapeRegion region = Assert.IsType<ShapeRegion>(processor.Region);
             Assert.Equal(shape, region.Shape);
 
-            var brush = Assert.IsType<SolidBrush<Color>>(processor.Brush);
+            SolidBrush<Color> brush = Assert.IsType<SolidBrush<Color>>(processor.Brush);
             Assert.Equal(color, brush.Color);
 
         }

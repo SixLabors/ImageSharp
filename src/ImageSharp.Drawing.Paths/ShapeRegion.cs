@@ -81,8 +81,8 @@ namespace ImageSharp.Drawing
         /// <inheritdoc/>
         public override int ScanY(int y, float[] buffer, int length, int offset)
         {
-            Vector2 start = new Vector2(float.MinValue, y);
-            Vector2 end = new Vector2(float.MaxValue, y);
+            Vector2 start = new Vector2(this.Bounds.Left - 1, y);
+            Vector2 end = new Vector2(this.Bounds.Right + 1, y);
             Vector2[] innerbuffer = ArrayPool<Vector2>.Shared.Rent(length);
             try
             {

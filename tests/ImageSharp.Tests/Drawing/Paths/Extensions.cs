@@ -16,22 +16,6 @@ namespace ImageSharp.Tests.Drawing.Paths
 
     public class Extensions 
     {
-        [Fact]
-        public void ConvertPointInfo()
-        {
-            SixLabors.Shapes.PointInfo src =  new SixLabors.Shapes.PointInfo
-            {
-                ClosestPointOnPath = Vector2.UnitX,
-                SearchPoint = Vector2.UnitY,
-                DistanceAlongPath = 99f,
-                DistanceFromPath = 82f
-            };
-            ImageSharp.Drawing.PointInfo info = src.Convert();
-
-            Assert.Equal(src.DistanceAlongPath, info.DistanceAlongPath);
-            Assert.Equal(src.DistanceFromPath, info.DistanceFromPath);
-        }
-
         [Theory]
         [InlineData(0.5, 0.5, 5, 5, 0,0,6,6)]
         [InlineData(1, 1, 5, 5, 1,1,5,5)]

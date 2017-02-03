@@ -22,7 +22,7 @@ namespace ImageSharp.Drawing.Processors
         /// The required region.
         /// </value>
         public abstract RectangleF RequiredRegion { get; }
-        
+
         /// <inheritdoc/>
         public abstract void Dispose();
 

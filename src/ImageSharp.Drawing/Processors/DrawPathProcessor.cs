@@ -31,7 +31,7 @@ namespace ImageSharp.Drawing.Processors
         /// <param name="pen">The pen.</param>
         /// <param name="region">The region.</param>
         /// <param name="options">The options.</param>
-        public DrawPathProcessor(IPen<TColor> pen, Path region, GraphicsOptions options)
+        public DrawPathProcessor(IPen<TColor> pen, Drawable region, GraphicsOptions options)
         {
             this.Path = region;
             this.Pen = pen;
@@ -60,7 +60,7 @@ namespace ImageSharp.Drawing.Processors
         /// <value>
         /// The path.
         /// </value>
-        public Path Path { get; }
+        public Drawable Path { get; }
 
         /// <inheritdoc/>
         protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)

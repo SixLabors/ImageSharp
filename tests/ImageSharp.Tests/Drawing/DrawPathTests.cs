@@ -33,13 +33,13 @@ namespace ImageSharp.Tests.Drawing
                     new Vector2(60, 10),
                     new Vector2(10, 400));
 
-            	ShapePath p = new ShapePath(linerSegemnt, bazierSegment);
+                ShapePath p = new ShapePath(linerSegemnt, bazierSegment);
 
                 using (FileStream output = File.OpenWrite($"{path}/Simple.png"))
                 {
                     image
                         .BackgroundColor(Color.Blue)
-                    	.Draw(Color.HotPink, 5, p)
+                        .Draw(Color.HotPink, 5, p)
                         .Save(output);
                 }
 
@@ -82,7 +82,7 @@ namespace ImageSharp.Tests.Drawing
                 {
                     image
                         .BackgroundColor(Color.Blue)
-                    	.Draw(color, 10, p)
+                        .Draw(color, 10, p)
                         .Save(output);
                 }
 

@@ -1,4 +1,4 @@
-﻿// <copyright file="Path.cs" company="James Jackson-South">
+﻿// <copyright file="Drawable.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -6,9 +6,9 @@
 namespace ImageSharp.Drawing
 {
     /// <summary>
-    /// Represents a something that has knowledge about its outline.
+    /// Represents a path or set of paths that can be drawn as an outline.
     /// </summary>
-    public abstract class Path
+    public abstract class Drawable
     {
         /// <summary>
         /// Gets the maximum number of intersections to could be returned.

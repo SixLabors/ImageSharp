@@ -35,7 +35,7 @@ namespace ImageSharp.Tests.Drawing
                 {
                     image
                         .BackgroundColor(Color.Blue)
-                		.Fill(Color.HotPink, simplePath.Clip(hole1))
+                        .Fill(Color.HotPink, simplePath.Clip(hole1))
                         .Save(output);
                 }
 
@@ -78,7 +78,7 @@ namespace ImageSharp.Tests.Drawing
                 {
                     image
                         .BackgroundColor(Color.Blue)
-                   		.Fill(Color.HotPink, simplePath.Clip(hole1))
+                        .Fill(Color.HotPink, simplePath.Clip(hole1))
                         .Save(output);
                 }
 
@@ -121,8 +121,8 @@ namespace ImageSharp.Tests.Drawing
                 {
                     image
                         .BackgroundColor(Color.Blue)
-                    	.Fill(color, simplePath.Clip(hole1))
-                    	.Save(output);
+                        .Fill(color, simplePath.Clip(hole1))
+                        .Save(output);
                 }
 
                 //shift background color towards forground color by the opacity amount

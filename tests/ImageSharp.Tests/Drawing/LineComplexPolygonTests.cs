@@ -37,8 +37,8 @@ namespace ImageSharp.Tests.Drawing
                 {
                     image
                         .BackgroundColor(Color.Blue)
-                		.Draw(Color.HotPink, 5, simplePath.Clip(hole1))
-                		.Save(output);
+                        .Draw(Color.HotPink, 5, simplePath.Clip(hole1))
+                        .Save(output);
                 }
 
                 using (PixelAccessor<Color> sourcePixels = image.Lock())
@@ -87,7 +87,7 @@ namespace ImageSharp.Tests.Drawing
                 {
                     image
                         .BackgroundColor(Color.Blue)
-                		.Draw(Color.HotPink, 5, simplePath.Clip(hole1))
+                        .Draw(Color.HotPink, 5, simplePath.Clip(hole1))
                         .Save(output);
                 }
 
@@ -131,7 +131,6 @@ namespace ImageSharp.Tests.Drawing
                             new Vector2(37, 85),
                             new Vector2(130, 40),
                             new Vector2(65, 137)));
-							
 
             using (Image image = new Image(500, 500))
             {
@@ -139,7 +138,7 @@ namespace ImageSharp.Tests.Drawing
                 {
                     image
                         .BackgroundColor(Color.Blue)
-                		.Draw(Color.HotPink, 5, simplePath.Clip(hole1))
+                        .Draw(Color.HotPink, 5, simplePath.Clip(hole1))
                         .Save(output);
                 }
 
@@ -185,7 +184,7 @@ namespace ImageSharp.Tests.Drawing
                 {
                     image
                         .BackgroundColor(Color.Blue)
-                		.Draw(Pens.Dash(Color.HotPink, 5), simplePath.Clip(hole1))
+                        .Draw(Pens.Dash(Color.HotPink, 5), simplePath.Clip(hole1))
                         .Save(output);
                 }
             }
@@ -213,7 +212,7 @@ namespace ImageSharp.Tests.Drawing
                 {
                     image
                         .BackgroundColor(Color.Blue)
-                    	.Draw(color, 5, simplePath.Clip(hole1))
+                        .Draw(color, 5, simplePath.Clip(hole1))
                         .Save(output);
                 }
 

@@ -38,7 +38,8 @@ namespace ImageSharp
         public static Image<TColor> Invert<TColor>(this Image<TColor> source, Rectangle rectangle)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            return source.Apply(rectangle, new InvertProcessor<TColor>());
+            source.ApplyProcessor(new InvertProcessor<TColor>(), rectangle);
+            return source;
         }
     }
 }

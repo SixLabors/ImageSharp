@@ -41,7 +41,8 @@ namespace ImageSharp
         public static Image<TColor> GaussianBlur<TColor>(this Image<TColor> source, float sigma, Rectangle rectangle)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            return source.Apply(rectangle, new GaussianBlurProcessor<TColor>(sigma));
+            source.ApplyProcessor(new GaussianBlurProcessor<TColor>(sigma), rectangle);
+            return source;
         }
     }
 }

@@ -50,9 +50,7 @@ namespace ImageSharp
         /// <param name="brush">The brush.</param>
         /// <param name="region">The region.</param>
         /// <param name="options">The graphics options.</param>
-        /// <returns>
-        /// The Image
-        /// </returns>
+        /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Fill<TColor>(this Image<TColor> source, IBrush<TColor> brush, Region region, GraphicsOptions options)
           where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
@@ -66,9 +64,7 @@ namespace ImageSharp
         /// <param name="source">The image this method extends.</param>
         /// <param name="brush">The brush.</param>
         /// <param name="region">The region.</param>
-        /// <returns>
-        /// The Image
-        /// </returns>
+        /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Fill<TColor>(this Image<TColor> source, IBrush<TColor> brush, Region region)
           where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
@@ -83,9 +79,7 @@ namespace ImageSharp
         /// <param name="color">The color.</param>
         /// <param name="region">The region.</param>
         /// <param name="options">The options.</param>
-        /// <returns>
-        /// The Image
-        /// </returns>
+        /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Fill<TColor>(this Image<TColor> source, TColor color, Region region, GraphicsOptions options)
           where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
@@ -99,9 +93,7 @@ namespace ImageSharp
         /// <param name="source">The image this method extends.</param>
         /// <param name="color">The color.</param>
         /// <param name="region">The region.</param>
-        /// <returns>
-        /// The Image
-        /// </returns>
+        /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Fill<TColor>(this Image<TColor> source, TColor color, Region region)
           where TColor : struct, IPackedPixel, IEquatable<TColor>
         {

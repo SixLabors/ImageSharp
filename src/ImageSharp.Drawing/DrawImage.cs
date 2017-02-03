@@ -51,7 +51,8 @@ namespace ImageSharp
                 location = Point.Empty;
             }
 
-            return source.Apply(source.Bounds, new DrawImageProcessor<TColor>(image, size, location, percent));
+            source.ApplyProcessor(new DrawImageProcessor<TColor>(image, size, location, percent), source.Bounds);
+            return source;
         }
     }
 }

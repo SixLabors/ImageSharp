@@ -40,7 +40,8 @@ namespace ImageSharp
         public static Image<TColor> Alpha<TColor>(this Image<TColor> source, int percent, Rectangle rectangle)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            return source.Apply(rectangle, new AlphaProcessor<TColor>(percent));
+            source.ApplyProcessor(new AlphaProcessor<TColor>(percent), rectangle);
+            return source;
         }
     }
 }

@@ -39,7 +39,8 @@ namespace ImageSharp
         public static Image<TColor> Lomograph<TColor>(this Image<TColor> source, Rectangle rectangle)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            return source.Apply(rectangle, new LomographProcessor<TColor>());
+            source.ApplyProcessor(new LomographProcessor<TColor>(), rectangle);
+            return source;
         }
     }
 }

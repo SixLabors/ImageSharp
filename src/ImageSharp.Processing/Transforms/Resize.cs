@@ -167,7 +167,8 @@ namespace ImageSharp
                 processor = new ResizeProcessor<TColor>(sampler, width, height, targetRectangle);
             }
 
-            return source.Apply(sourceRectangle, processor);
+            source.ApplyProcessor(processor, sourceRectangle);
+            return source;
         }
     }
 }

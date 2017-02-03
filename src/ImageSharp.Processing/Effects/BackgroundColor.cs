@@ -24,7 +24,8 @@ namespace ImageSharp
         public static Image<TColor> BackgroundColor<TColor>(this Image<TColor> source, TColor color)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            return source.Apply(source.Bounds, new BackgroundColorProcessor<TColor>(color));
+            source.ApplyProcessor(new BackgroundColorProcessor<TColor>(color), source.Bounds);
+            return source;
         }
     }
 }

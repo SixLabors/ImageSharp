@@ -173,29 +173,6 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Reference Include="ImageSharp">
-      <HintPath>..\..\src\ImageSharp\bin\$(Configuration)\net461\ImageSharp.dll</HintPath>
-    </Reference>
-    <Reference Include="ImageSharp.Drawing">
-      <HintPath>..\..\src\ImageSharp.Drawing\bin\$(Configuration)\net461\ImageSharp.Drawing.dll</HintPath>
-    </Reference>
-    <Reference Include="ImageSharp.Formats.Bmp">
-      <HintPath>..\..\src\ImageSharp.Formats.Bmp\bin\$(Configuration)\net461\ImageSharp.Formats.Bmp.dll</HintPath>
-    </Reference>
-    <Reference Include="ImageSharp.Formats.Gif">
-      <HintPath>..\..\src\ImageSharp.Formats.Gif\bin\$(Configuration)\net461\ImageSharp.Formats.Gif.dll</HintPath>
-    </Reference>
-    <Reference Include="ImageSharp.Formats.Jpeg">
-      <HintPath>..\..\src\ImageSharp.Formats.Jpeg\bin\$(Configuration)\net461\ImageSharp.Formats.Jpeg.dll</HintPath>
-    </Reference>
-    <Reference Include="ImageSharp.Formats.Png">
-      <HintPath>..\..\src\ImageSharp.Formats.Png\bin\$(Configuration)\net461\ImageSharp.Formats.Png.dll</HintPath>
-    </Reference>
-    <Reference Include="ImageSharp.Processing">
-      <HintPath>..\..\src\ImageSharp.Processing\bin\$(Configuration)\net461\ImageSharp.Processing.dll</HintPath>
-    </Reference>
-  </ItemGroup>
-  <ItemGroup>
     <Compile Include="..\ImageSharp.Tests\Drawing\PolygonTests.cs">
       <Link>Tests\Drawing\PolygonTests.cs</Link>
     </Compile>
@@ -327,6 +304,40 @@
   <ItemGroup>
     <Analyzer Include="..\..\packages\Microsoft.CodeAnalysis.Analyzers.1.1.0\analyzers\dotnet\cs\Microsoft.CodeAnalysis.Analyzers.dll" />
     <Analyzer Include="..\..\packages\Microsoft.CodeAnalysis.Analyzers.1.1.0\analyzers\dotnet\cs\Microsoft.CodeAnalysis.CSharp.Analyzers.dll" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ImageSharp.Drawing\ImageSharp.Drawing.csproj">
+      <Project>{2e33181e-6e28-4662-a801-e2e7dc206029}</Project>
+      <Name>ImageSharp.Drawing</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\src\ImageSharp.Formats.Bmp\ImageSharp.Formats.Bmp.csproj">
+      <Project>{c77661b9-f793-422e-8e27-ac60ecc5f215}</Project>
+      <Name>ImageSharp.Formats.Bmp</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\src\ImageSharp.Formats.Gif\ImageSharp.Formats.Gif.csproj">
+      <Project>{27ad4b5f-ecc4-4c63-9ecb-04ec772fdb6f}</Project>
+      <Name>ImageSharp.Formats.Gif</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\src\ImageSharp.Formats.Jpeg\ImageSharp.Formats.Jpeg.csproj">
+      <Project>{7213767c-0003-41ca-ab18-0223cfa7ce4b}</Project>
+      <Name>ImageSharp.Formats.Jpeg</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\src\ImageSharp.Formats.Png\ImageSharp.Formats.Png.csproj">
+      <Project>{556abdcf-ed93-4327-be98-f6815f78b9b8}</Project>
+      <Name>ImageSharp.Formats.Png</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\src\ImageSharp.Processing\ImageSharp.Processing.csproj">
+      <Project>{a623cfe9-9d2b-4528-ad1f-2e834b061134}</Project>
+      <Name>ImageSharp.Processing</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\src\ImageSharp\ImageSharp.csproj">
+      <Project>{2aa31a1f-142c-43f4-8687-09abca4b3a26}</Project>
+      <Name>ImageSharp</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\ImageSharp.Benchmarks\ImageSharp.Benchmarks.csproj">
+      <Project>{2bf743d8-2a06-412d-96d7-f448f00c5ea5}</Project>
+      <Name>ImageSharp.Benchmarks</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">

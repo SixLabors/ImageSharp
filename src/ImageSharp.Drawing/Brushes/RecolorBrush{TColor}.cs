@@ -109,24 +109,31 @@ namespace ImageSharp.Drawing.Brushes
             /// <summary>
             /// Gets the color for a single pixel.
             /// </summary>
-            /// <param name="point">The point.</param>
+            /// <param name="x">The x.</param>
+            /// <param name="y">The y.</param>
             /// <returns>
             /// The color
             /// </returns>
-            public override TColor GetColor(Vector2 point)
+            public override TColor this[int x, int y]
             {
-                // Offset the requested pixel by the value in the rectangle (the shapes position)
-                TColor result = this.source[(int)point.X, (int)point.Y];
-                Vector4 background = result.ToVector4();
-                float distance = Vector4.DistanceSquared(background, this.sourceColor);
-                if (distance <= this.threshold)
+                get
                 {
-                    var lerpAmount = (this.threshold - distance) / this.threshold;
-                    Vector4 blended = Vector4BlendTransforms.PremultipliedLerp(background, this.targetColor, lerpAmount);
-                    result.PackFromVector4(blended);
-                }
+                    // Offset the requested pixel by the value in the rectangle (the shapes position)
+                    TColor result = this.source[x, y];
+                    Vector4 background = result.ToVector4();
+                    float distance = Vector4.DistanceSquared(background, this.sourceColor);
+                    if (distance <= this.threshold)
+                    {
+                        var lerpAmount = (this.threshold - distance) / this.threshold;
+                        Vector4 blended = Vector4BlendTransforms.PremultipliedLerp(
+                            background,
+                            this.targetColor,
+                            lerpAmount);
+                        result.PackFromVector4(blended);
+                    }
 
-                return result;
+                    return result;
+                }
             }
 
             /// <inheritdoc />

@@ -49,7 +49,8 @@ namespace ImageSharp
                 throw new ArgumentOutOfRangeException(nameof(brushSize));
             }
 
-            return source.Apply(rectangle, new OilPaintingProcessor<TColor>(levels, brushSize));
+            source.ApplyProcessor(new OilPaintingProcessor<TColor>(levels, brushSize), rectangle);
+            return source;
         }
     }
 }

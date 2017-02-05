@@ -39,7 +39,8 @@ namespace ImageSharp
         public static Image<TColor> Polaroid<TColor>(this Image<TColor> source, Rectangle rectangle)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            return source.Apply(rectangle, new PolaroidProcessor<TColor>());
+            source.ApplyProcessor(new PolaroidProcessor<TColor>(), rectangle);
+            return source;
         }
     }
 }

@@ -45,7 +45,8 @@ namespace ImageSharp
                 ? (IImageProcessor<TColor>)new GrayscaleBt709Processor<TColor>()
                 : new GrayscaleBt601Processor<TColor>();
 
-            return source.Apply(rectangle, processor);
+            source.ApplyProcessor(processor, rectangle);
+            return source;
         }
     }
 }

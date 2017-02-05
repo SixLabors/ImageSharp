@@ -16,32 +16,28 @@
   "dependencies": {
     "BenchmarkDotNet.Diagnostics.Windows": "0.10.1",
     "ImageSharp": {
-      "target": "project",
-      "version": "1.0.0-*"
+      "target": "project"
     },
     "ImageSharp.Drawing": {
-      "target": "project",
-      "version": "1.0.0-*"
+      "target": "project"
+    },
+    "ImageSharp.Drawing.Paths": {
+      "target": "project"
     },
     "ImageSharp.Formats.Jpeg": {
-      "target": "project",
-      "version": "1.0.0-*"
+      "target": "project"
     },
     "ImageSharp.Formats.Png": {
-      "target": "project",
-      "version": "1.0.0-*"
+      "target": "project"
     },
     "ImageSharp.Formats.Bmp": {
-      "target": "project",
-      "version": "1.0.0-*"
+      "target": "project"
     },
     "ImageSharp.Formats.Gif": {
-      "target": "project",
-      "version": "1.0.0-*"
+      "target": "project"
     },
     "ImageSharp.Processing": {
-      "target": "project",
-      "version": "1.0.0-*"
+      "target": "project"
     }
   },
   "commands": {

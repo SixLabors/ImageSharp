@@ -7,12 +7,13 @@ namespace ImageSharp.Tests.Drawing
 {
     using Drawing;
     using ImageSharp.Drawing;
-    using CorePath = ImageSharp.Drawing.Paths.Path;
-    using ImageSharp.Drawing.Paths;
+    using ShapePath = SixLabors.Shapes.Path;
+    using SixLabors.Shapes;
     using System;
     using System.Diagnostics.CodeAnalysis;
     using System.IO;
     using System.Numerics;
+
     using Xunit;
 
     public class DrawPathTests : FileTestBase
@@ -32,13 +33,13 @@ namespace ImageSharp.Tests.Drawing
                     new Vector2(60, 10),
                     new Vector2(10, 400));
 
-                CorePath p = new CorePath(linerSegemnt, bazierSegment);
+                ShapePath p = new ShapePath(linerSegemnt, bazierSegment);
 
                 using (FileStream output = File.OpenWrite($"{path}/Simple.png"))
                 {
                     image
                         .BackgroundColor(Color.Blue)
-                        .DrawPath(Color.HotPink, 5, p)
+                        .Draw(Color.HotPink, 5, p)
                         .Save(output);
                 }
 
@@ -73,7 +74,7 @@ namespace ImageSharp.Tests.Drawing
                 new Vector2(60, 10),
                 new Vector2(10, 400));
 
-            CorePath p = new CorePath(linerSegemnt, bazierSegment);
+            ShapePath p = new ShapePath(linerSegemnt, bazierSegment);
 
             using (Image image = new Image(500, 500))
             {
@@ -81,7 +82,7 @@ namespace ImageSharp.Tests.Drawing
                 {
                     image
                         .BackgroundColor(Color.Blue)
-                        .DrawPath(color, 10, p)
+                        .Draw(color, 10, p)
                         .Save(output);
                 }
 

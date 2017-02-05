@@ -26,7 +26,9 @@ namespace ImageSharp
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             FlipProcessor<TColor> processor = new FlipProcessor<TColor>(flipType);
-            return source.Apply(source.Bounds, processor);
+
+            source.ApplyProcessor(processor, source.Bounds);
+            return source;
         }
     }
 }

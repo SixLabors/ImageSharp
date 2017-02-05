@@ -41,7 +41,8 @@ namespace ImageSharp
         public static Image<TColor> Hue<TColor>(this Image<TColor> source, float degrees, Rectangle rectangle)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            return source.Apply(rectangle, new HueProcessor<TColor>(degrees));
+            source.ApplyProcessor(new HueProcessor<TColor>(degrees), rectangle);
+            return source;
         }
     }
 }

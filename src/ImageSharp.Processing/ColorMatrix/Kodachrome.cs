@@ -39,7 +39,8 @@ namespace ImageSharp
         public static Image<TColor> Kodachrome<TColor>(this Image<TColor> source, Rectangle rectangle)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            return source.Apply(rectangle, new KodachromeProcessor<TColor>());
+            source.ApplyProcessor(new KodachromeProcessor<TColor>(), rectangle);
+            return source;
         }
     }
 }

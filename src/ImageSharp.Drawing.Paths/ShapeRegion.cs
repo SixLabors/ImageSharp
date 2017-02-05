@@ -6,17 +6,14 @@
 namespace ImageSharp.Drawing
 {
     using System.Buffers;
-    using System.Collections.Immutable;
     using System.Numerics;
-
-    using ImageSharp.Drawing.Processors;
 
     using SixLabors.Shapes;
 
     using Rectangle = ImageSharp.Rectangle;
 
     /// <summary>
-    /// A drawable mapping between a <see cref="SixLabors.Shapes.IShape"/>/<see cref="SixLabors.Shapes.IPath"/> and a drawable/fillable region.
+    /// A drawable mapping between a <see cref="IShape"/>/<see cref="IPath"/> and a drawable/fillable region.
     /// </summary>
     internal class ShapeRegion : Region
     {
@@ -58,12 +55,7 @@ namespace ImageSharp.Drawing
             Vector2[] innerbuffer = ArrayPool<Vector2>.Shared.Rent(length);
             try
             {
-                int count = this.Shape.FindIntersections(
-                    start,
-                    end,
-                    innerbuffer,
-                    length,
-                    0);
+                int count = this.Shape.FindIntersections(start, end, innerbuffer, length, 0);
 
                 for (int i = 0; i < count; i++)
                 {
@@ -86,12 +78,7 @@ namespace ImageSharp.Drawing
             Vector2[] innerbuffer = ArrayPool<Vector2>.Shared.Rent(length);
             try
             {
-                int count = this.Shape.FindIntersections(
-                    start,
-                    end,
-                    innerbuffer,
-                    length,
-                    0);
+                int count = this.Shape.FindIntersections(start, end, innerbuffer, length, 0);
 
                 for (int i = 0; i < count; i++)
                 {

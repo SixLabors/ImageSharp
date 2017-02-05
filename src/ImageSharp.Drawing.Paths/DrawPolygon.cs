@@ -10,7 +10,7 @@ namespace ImageSharp
     using Drawing;
     using Drawing.Brushes;
     using Drawing.Pens;
-    using Drawing.Processors;
+
     using SixLabors.Shapes;
 
     /// <summary>

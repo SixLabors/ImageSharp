@@ -5,9 +5,6 @@
 
 namespace ImageSharp.Drawing
 {
-    using System;
-    using System.Numerics;
-
     /// <summary>
     /// Returns details about how far away from the inside of a shape and the color the pixel could be.
     /// </summary>

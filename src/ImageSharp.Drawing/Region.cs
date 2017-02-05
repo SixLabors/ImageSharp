@@ -16,17 +16,17 @@ namespace ImageSharp.Drawing
         public abstract int MaxIntersections { get; }
 
         /// <summary>
-        /// Gets the bounding box that entirly surrounds this region.
+        /// Gets the bounding box that entirely surrounds this region.
         /// </summary>
         /// <remarks>
-        /// This should always contains all possible points returned from eather <see cref="ScanX(int, float[], int, int)"/> or <see cref="ScanY(int, float[], int, int)"/>.
+        /// This should always contains all possible points returned from either <see cref="ScanX(int, float[], int, int)"/> or <see cref="ScanY(int, float[], int, int)"/>.
         /// </remarks>
         public abstract Rectangle Bounds { get; }
 
         /// <summary>
         /// Scans the X axis for intersections.
         /// </summary>
-        /// <param name="x">The position along the X axies to find intersections.</param>
+        /// <param name="x">The position along the X axis to find intersections.</param>
         /// <param name="buffer">The buffer.</param>
         /// <param name="length">The length.</param>
         /// <param name="offset">The offset.</param>

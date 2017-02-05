@@ -6,10 +6,9 @@
 namespace ImageSharp
 {
     using System;
-    using System.Numerics;
+
     using Drawing;
     using Drawing.Brushes;
-    using Drawing.Processors;
 
     using SixLabors.Shapes;
 

@@ -6,13 +6,11 @@
 namespace ImageSharp.Drawing.Processors
 {
     using System;
-    using System.Collections.Generic;
-    using System.Linq;
     using System.Numerics;
     using System.Threading.Tasks;
+
     using ImageSharp.Processing;
     using Pens;
-    using Rectangle = ImageSharp.Rectangle;
 
     /// <summary>
     /// Draws a path using the processor pipeline
@@ -39,27 +37,18 @@ namespace ImageSharp.Drawing.Processors
         }
 
         /// <summary>
-        /// Gets the options.
+        /// Gets the graphics options.
         /// </summary>
-        /// <value>
-        /// The options.
-        /// </value>
         public GraphicsOptions Options { get; }
 
         /// <summary>
         /// Gets the pen.
         /// </summary>
-        /// <value>
-        /// The pen.
-        /// </value>
         public IPen<TColor> Pen { get; }
 
         /// <summary>
         /// Gets the path.
         /// </summary>
-        /// <value>
-        /// The path.
-        /// </value>
         public Drawable Path { get; }
 
         /// <inheritdoc/>
@@ -68,7 +57,7 @@ namespace ImageSharp.Drawing.Processors
             using (PixelAccessor<TColor> sourcePixels = source.Lock())
             using (PenApplicator<TColor> applicator = this.Pen.CreateApplicator(sourcePixels, this.Path.Bounds))
             {
-                var rect = RectangleF.Ceiling(applicator.RequiredRegion);
+                Rectangle rect = RectangleF.Ceiling(applicator.RequiredRegion);
 
                 int polyStartY = rect.Y - PaddingFactor;
                 int polyEndY = rect.Bottom + PaddingFactor;
@@ -98,49 +87,53 @@ namespace ImageSharp.Drawing.Processors
                 }
 
                 Parallel.For(
-                minY,
-                maxY,
-                this.ParallelOptions,
-                (int y) =>
-                {
-                    int offsetY = y - polyStartY;
-
-                    for (int x = minX; x < maxX; x++)
+                    minY,
+                    maxY,
+                    this.ParallelOptions,
+                    y =>
                     {
-                        // TODO add find intersections code to skip and scan large regions of this.
-                        int offsetX = x - startX;
-                        var info = this.Path.GetPointInfo(offsetX, offsetY);
+                        int offsetY = y - polyStartY;
 
-                        var color = applicator.GetColor(offsetX, offsetY, info);
-
-                        var opacity = this.Opacity(color.DistanceFromElement);
-
-                        if (opacity > Constants.Epsilon)
+                        for (int x = minX; x < maxX; x++)
                         {
-                            int offsetColorX = x - minX;
+                            // TODO add find intersections code to skip and scan large regions of this.
+                            int offsetX = x - startX;
+                            PointInfo info = this.Path.GetPointInfo(offsetX, offsetY);
 
-                            Vector4 backgroundVector = sourcePixels[offsetX, offsetY].ToVector4();
-                            Vector4 sourceVector = color.Color.ToVector4();
+                            ColoredPointInfo<TColor> color = applicator.GetColor(offsetX, offsetY, info);
 
-                            var finalColor = Vector4BlendTransforms.PremultipliedLerp(backgroundVector, sourceVector, opacity);
-                            finalColor.W = backgroundVector.W;
+                            float opacity = this.Opacity(color.DistanceFromElement);
 
-                            TColor packed = default(TColor);
-                            packed.PackFromVector4(finalColor);
-                            sourcePixels[offsetX, offsetY] = packed;
+                            if (opacity > Constants.Epsilon)
+                            {
+                                Vector4 backgroundVector = sourcePixels[offsetX, offsetY].ToVector4();
+                                Vector4 sourceVector = color.Color.ToVector4();
+
+                                Vector4 finalColor = Vector4BlendTransforms.PremultipliedLerp(backgroundVector, sourceVector, opacity);
+                                finalColor.W = backgroundVector.W;
+
+                                TColor packed = default(TColor);
+                                packed.PackFromVector4(finalColor);
+                                sourcePixels[offsetX, offsetY] = packed;
+                            }
                         }
-                    }
-                });
+                    });
             }
         }
 
+        /// <summary>
+        /// Returns the correct opacity for the given distance.
+        /// </summary>
+        /// <param name="distance">Thw distance from the central point.</param>
+        /// <returns>The <see cref="float"/></returns>
         private float Opacity(float distance)
         {
             if (distance <= 0)
             {
                 return 1;
             }
-            else if (this.Options.Antialias && distance < AntialiasFactor)
+
+            if (this.Options.Antialias && distance < AntialiasFactor)
             {
                 return 1 - (distance / AntialiasFactor);
             }

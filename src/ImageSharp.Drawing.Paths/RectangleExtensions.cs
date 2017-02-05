@@ -3,16 +3,9 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.Drawing.Processors
+namespace ImageSharp.Drawing
 {
     using System;
-    using System.Buffers;
-    using System.Numerics;
-    using System.Threading.Tasks;
-    using Drawing;
-    using ImageSharp.Processing;
-    using SixLabors.Shapes;
-    using Rectangle = ImageSharp.Rectangle;
 
     /// <summary>
     /// Extension methods for helping to bridge Shaper2D and ImageSharp primitives.

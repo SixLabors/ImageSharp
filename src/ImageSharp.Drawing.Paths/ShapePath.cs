@@ -9,16 +9,14 @@ namespace ImageSharp.Drawing
     using System.Collections.Immutable;
     using System.Numerics;
 
-    using ImageSharp.Drawing.Processors;
-
     using SixLabors.Shapes;
 
     using Rectangle = ImageSharp.Rectangle;
 
     /// <summary>
-    /// A drawable mapping between a <see cref="SixLabors.Shapes.IShape"/>/<see cref="SixLabors.Shapes.IPath"/> and a drawable/fillable region.
+    /// A drawable mapping between a <see cref="IShape"/>/<see cref="IPath"/> and a drawable/fillable region.
     /// </summary>
-    internal class ShapePath : ImageSharp.Drawing.Drawable
+    internal class ShapePath : Drawable
     {
         /// <summary>
         /// The fillable shape
@@ -59,9 +57,6 @@ namespace ImageSharp.Drawing
         /// <summary>
         /// Gets the drawable paths
         /// </summary>
-        /// <value>
-        /// The paths.
-        /// </value>
         public ImmutableArray<IPath> Paths { get; }
 
         /// <inheritdoc/>
@@ -78,12 +73,7 @@ namespace ImageSharp.Drawing
             Vector2[] innerbuffer = ArrayPool<Vector2>.Shared.Rent(length);
             try
             {
-                int count = this.shape.FindIntersections(
-                    start,
-                    end,
-                    innerbuffer,
-                    length,
-                    0);
+                int count = this.shape.FindIntersections(start, end, innerbuffer, length, 0);
 
                 for (int i = 0; i < count; i++)
                 {
@@ -106,12 +96,7 @@ namespace ImageSharp.Drawing
             Vector2[] innerbuffer = ArrayPool<Vector2>.Shared.Rent(length);
             try
             {
-                int count = this.shape.FindIntersections(
-                    start,
-                    end,
-                    innerbuffer,
-                    length,
-                    0);
+                int count = this.shape.FindIntersections(start, end, innerbuffer, length, 0);
 
                 for (int i = 0; i < count; i++)
                 {
@@ -133,6 +118,7 @@ namespace ImageSharp.Drawing
             float distanceFromPath = float.MaxValue;
             float distanceAlongPath = 0;
 
+            // ReSharper disable once ForCanBeConvertedToForeach
             for (int i = 0; i < this.Paths.Length; i++)
             {
                 SixLabors.Shapes.PointInfo p = this.Paths[i].Distance(point);

@@ -179,6 +179,12 @@
     <Reference Include="ImageSharp.Drawing">
       <HintPath>..\..\src\ImageSharp.Drawing\bin\$(Configuration)\net461\ImageSharp.Drawing.dll</HintPath>
     </Reference>
+    <Reference Include="ImageSharp.Drawing.Paths">
+      <HintPath>..\..\src\ImageSharp.Drawing.Paths\bin\$(Configuration)\net461\ImageSharp.Drawing.Paths.dll</HintPath>
+    </Reference>
+    <Reference Include="SixLabors.Shapes">
+      <HintPath>..\..\src\ImageSharp.Drawing.Paths\bin\$(Configuration)\net461\SixLabors.Shapes.dll</HintPath>
+    </Reference>
     <Reference Include="ImageSharp.Formats.Bmp">
       <HintPath>..\..\src\ImageSharp.Formats.Bmp\bin\$(Configuration)\net461\ImageSharp.Formats.Bmp.dll</HintPath>
     </Reference>

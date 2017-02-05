@@ -41,7 +41,8 @@ namespace ImageSharp
         public static Image<TColor> BoxBlur<TColor>(this Image<TColor> source, int radius, Rectangle rectangle)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            return source.Apply(rectangle, new BoxBlurProcessor<TColor>(radius));
+            source.ApplyProcessor(new BoxBlurProcessor<TColor>(), rectangle);
+            return source;
         }
     }
 }

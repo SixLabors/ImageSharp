@@ -40,7 +40,8 @@ namespace ImageSharp
         public static Image<TColor> Contrast<TColor>(this Image<TColor> source, int amount, Rectangle rectangle)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            return source.Apply(rectangle, new ContrastProcessor<TColor>(amount));
+            source.ApplyProcessor(new ContrastProcessor<TColor>(amount), rectangle);
+            return source;
         }
     }
 }

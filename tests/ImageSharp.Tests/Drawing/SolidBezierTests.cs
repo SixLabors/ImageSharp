@@ -5,10 +5,11 @@
 
 namespace ImageSharp.Tests.Drawing
 {
-    using ImageSharp.Drawing.Shapes;
-
     using System.IO;
     using System.Numerics;
+
+    using SixLabors.Shapes;
+
     using Xunit;
 
     public class SolidBezierTests : FileTestBase
@@ -29,7 +30,7 @@ namespace ImageSharp.Tests.Drawing
                 {
                     image
                         .BackgroundColor(Color.Blue)
-                        .Fill(Color.HotPink,new BezierPolygon(simplePath))
+                        .Fill(Color.HotPink, new Polygon(new BezierLineSegment(simplePath)))
                         .Save(output);
                 }
 
@@ -70,7 +71,7 @@ namespace ImageSharp.Tests.Drawing
                 {
                     image
                         .BackgroundColor(Color.Blue)
-                        .Fill(color, new BezierPolygon(simplePath))
+                        .Fill(color, new Polygon(new BezierLineSegment(simplePath)))
                         .Save(output);
                 }
 

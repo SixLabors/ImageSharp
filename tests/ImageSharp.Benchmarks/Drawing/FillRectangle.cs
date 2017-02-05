@@ -39,7 +39,7 @@ namespace ImageSharp.Benchmarks
         {
             using (CoreImage image = new CoreImage(800, 800))
             {
-                image.Fill(CoreColor.HotPink, new ImageSharp.Drawing.Shapes.RectangularPolygon(new CoreRectangle(10, 10, 190, 140)));
+            	image.Fill(CoreColor.HotPink, new CoreRectangle(10, 10, 190, 140));
 
                 return new CoreSize(image.Width, image.Height);
             }
@@ -53,10 +53,10 @@ namespace ImageSharp.Benchmarks
                 image.FillPolygon(
                     CoreColor.HotPink,
                     new[] {
-                new Vector2(10, 10),
-                new Vector2(200, 10),
-                new Vector2(200, 150),
-                new Vector2(10, 150) });
+		                new Vector2(10, 10),
+		                new Vector2(200, 10),
+		                new Vector2(200, 150),
+		                new Vector2(10, 150) });
 
                 return new CoreSize(image.Width, image.Height);
             }

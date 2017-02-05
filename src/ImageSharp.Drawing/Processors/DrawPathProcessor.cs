@@ -6,13 +6,12 @@
 namespace ImageSharp.Drawing.Processors
 {
     using System;
+    using System.Collections.Generic;
     using System.Linq;
     using System.Numerics;
     using System.Threading.Tasks;
     using ImageSharp.Processing;
-    using Paths;
     using Pens;
-    using Shapes;
     using Rectangle = ImageSharp.Rectangle;
 
     /// <summary>
@@ -26,65 +25,48 @@ namespace ImageSharp.Drawing.Processors
         private const float AntialiasFactor = 1f;
         private const int PaddingFactor = 1; // needs to been the same or greater than AntialiasFactor
 
-        private readonly IPen<TColor> pen;
-        private readonly IPath[] paths;
-        private readonly RectangleF region;
-        private readonly GraphicsOptions options;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="DrawPathProcessor{TColor}" /> class.
         /// </summary>
-        /// <param name="pen">The pen.</param>
-        /// <param name="shape">The shape.</param>
-        /// <param name="options">The options.</param>
-        public DrawPathProcessor(IPen<TColor> pen, IShape shape, GraphicsOptions options)
-            : this(pen, shape.ToArray(), options)
+        /// <param name="pen">The details how to draw the outline/path.</param>
+        /// <param name="drawable">The details of the paths and outlines to draw.</param>
+        /// <param name="options">The drawing configuration options.</param>
+        public DrawPathProcessor(IPen<TColor> pen, Drawable drawable, GraphicsOptions options)
         {
+            this.Path = drawable;
+            this.Pen = pen;
+            this.Options = options;
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="DrawPathProcessor{TColor}"/> class.
+        /// Gets the options.
         /// </summary>
-        /// <param name="pen">The pen.</param>
-        /// <param name="path">The path.</param>
-        /// <param name="options">The options.</param>
-        public DrawPathProcessor(IPen<TColor> pen, IPath path, GraphicsOptions options)
-            : this(pen, new[] { path }, options)
-        {
-        }
+        /// <value>
+        /// The options.
+        /// </value>
+        public GraphicsOptions Options { get; }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="DrawPathProcessor{TColor}" /> class.
+        /// Gets the pen.
         /// </summary>
-        /// <param name="pen">The pen.</param>
-        /// <param name="paths">The paths.</param>
-        /// <param name="options">The options.</param>
-        public DrawPathProcessor(IPen<TColor> pen, IPath[] paths, GraphicsOptions options)
-        {
-            this.paths = paths;
-            this.pen = pen;
-            this.options = options;
+        /// <value>
+        /// The pen.
+        /// </value>
+        public IPen<TColor> Pen { get; }
 
-            if (paths.Length != 1)
-            {
-                var maxX = paths.Max(x => x.Bounds.Right);
-                var minX = paths.Min(x => x.Bounds.Left);
-                var maxY = paths.Max(x => x.Bounds.Bottom);
-                var minY = paths.Min(x => x.Bounds.Top);
-
-                this.region = new RectangleF(minX, minY, maxX - minX, maxY - minY);
-            }
-            else
-            {
-                this.region = paths[0].Bounds;
-            }
-        }
+        /// <summary>
+        /// Gets the path.
+        /// </summary>
+        /// <value>
+        /// The path.
+        /// </value>
+        public Drawable Path { get; }
 
         /// <inheritdoc/>
         protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
         {
             using (PixelAccessor<TColor> sourcePixels = source.Lock())
-            using (PenApplicator<TColor> applicator = this.pen.CreateApplicator(sourcePixels, this.region))
+            using (PenApplicator<TColor> applicator = this.Pen.CreateApplicator(sourcePixels, this.Path.Bounds))
             {
                 var rect = RectangleF.Ceiling(applicator.RequiredRegion);
 
@@ -119,19 +101,17 @@ namespace ImageSharp.Drawing.Processors
                 minY,
                 maxY,
                 this.ParallelOptions,
-                y =>
+                (int y) =>
                 {
                     int offsetY = y - polyStartY;
-                    var currentPoint = default(Vector2);
+
                     for (int x = minX; x < maxX; x++)
                     {
+                        // TODO add find intersections code to skip and scan large regions of this.
                         int offsetX = x - startX;
-                        currentPoint.X = offsetX;
-                        currentPoint.Y = offsetY;
+                        var info = this.Path.GetPointInfo(offsetX, offsetY);
 
-                        var dist = this.Closest(currentPoint);
-
-                        var color = applicator.GetColor(dist);
+                        var color = applicator.GetColor(offsetX, offsetY, info);
 
                         var opacity = this.Opacity(color.DistanceFromElement);
 
@@ -154,31 +134,13 @@ namespace ImageSharp.Drawing.Processors
             }
         }
 
-        private PointInfo Closest(Vector2 point)
-        {
-            PointInfo result = default(PointInfo);
-            float distance = float.MaxValue;
-
-            for (int i = 0; i < this.paths.Length; i++)
-            {
-                var p = this.paths[i].Distance(point);
-                if (p.DistanceFromPath < distance)
-                {
-                    distance = p.DistanceFromPath;
-                    result = p;
-                }
-            }
-
-            return result;
-        }
-
         private float Opacity(float distance)
         {
             if (distance <= 0)
             {
                 return 1;
             }
-            else if (this.options.Antialias && distance < AntialiasFactor)
+            else if (this.Options.Antialias && distance < AntialiasFactor)
             {
                 return 1 - (distance / AntialiasFactor);
             }

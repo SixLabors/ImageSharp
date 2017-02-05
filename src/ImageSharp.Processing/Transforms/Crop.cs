@@ -41,7 +41,9 @@ namespace ImageSharp
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             CropProcessor<TColor> processor = new CropProcessor<TColor>(cropRectangle);
-            return source.Apply(source.Bounds, processor);
+
+            source.ApplyProcessor(processor, source.Bounds);
+            return source;
         }
     }
 }

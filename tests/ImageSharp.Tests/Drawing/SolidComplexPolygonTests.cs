@@ -28,14 +28,15 @@ namespace ImageSharp.Tests.Drawing
                             new Vector2(37, 85),
                             new Vector2(93, 85),
                             new Vector2(65, 137)));
-
+            var clipped = simplePath.Clip(hole1);
+           // var clipped = new Rectangle(10, 10, 100, 100).Clip(new Rectangle(20, 0, 20, 20));
             using (Image image = new Image(500, 500))
             {
                 using (FileStream output = File.OpenWrite($"{path}/Simple.png"))
                 {
                     image
                         .BackgroundColor(Color.Blue)
-                        .Fill(Color.HotPink, simplePath.Clip(hole1))
+                        .Fill(Color.HotPink, clipped)
                         .Save(output);
                 }
 
@@ -44,6 +45,8 @@ namespace ImageSharp.Tests.Drawing
                     Assert.Equal(Color.HotPink, sourcePixels[11, 11]);
 
                     Assert.Equal(Color.HotPink, sourcePixels[200, 150]);
+
+                    Assert.Equal(Color.HotPink, sourcePixels[70, 137]);
 
                     Assert.Equal(Color.HotPink, sourcePixels[50, 50]);
 

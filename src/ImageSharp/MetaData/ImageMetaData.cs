@@ -136,5 +136,34 @@ namespace ImageSharp
         /// <remarks>0 means to repeat indefinitely.</remarks>
         /// </summary>
         public ushort RepeatCount { get; set; }
+
+        /// <summary>
+        /// Synchronizes the profiles with the current meta data.
+        /// </summary>
+        internal void SyncProfiles()
+        {
+            this.SyncExifProfile();
+        }
+
+        private void SyncExifProfile()
+        {
+            if (this.ExifProfile == null)
+            {
+                return;
+            }
+
+            this.SyncExifResolution(ExifTag.XResolution, this.HorizontalResolution);
+            this.SyncExifResolution(ExifTag.YResolution, this.VerticalResolution);
+        }
+
+        private void SyncExifResolution(ExifTag tag, double resolution)
+        {
+            ExifValue value = this.ExifProfile.GetValue(tag);
+            if (value != null)
+            {
+                Rational newResolution = new Rational(resolution, false);
+                this.ExifProfile.SetValue(tag, newResolution);
+            }
+        }
     }
 }

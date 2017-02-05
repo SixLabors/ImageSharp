@@ -150,6 +150,9 @@ namespace ImageSharp.Tests
 
             image.MetaData.ExifProfile.SetValue(ExifTag.XResolution, new Rational(150.0));
 
+            // We also need to change this value because this overrides XResolution when the image is written.
+            image.MetaData.HorizontalResolution = 150.0;
+
             value = image.MetaData.ExifProfile.GetValue(ExifTag.XResolution);
             TestValue(value, new Rational(150, 1));
 

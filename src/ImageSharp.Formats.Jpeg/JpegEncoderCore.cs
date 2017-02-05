@@ -706,6 +706,7 @@ namespace ImageSharp.Formats
         private void WriteProfiles<TColor>(Image<TColor> image)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
+            image.MetaData.SyncProfiles();
             this.WriteProfile(image.MetaData.ExifProfile);
         }
 

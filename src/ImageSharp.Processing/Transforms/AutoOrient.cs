@@ -66,12 +66,12 @@ namespace ImageSharp
         private static Orientation GetExifOrientation<TColor>(Image<TColor> source)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            if (source.ExifProfile == null)
+            if (source.MetaData.ExifProfile == null)
             {
                 return Orientation.Unknown;
             }
 
-            ExifValue value = source.ExifProfile.GetValue(ExifTag.Orientation);
+            ExifValue value = source.MetaData.ExifProfile.GetValue(ExifTag.Orientation);
             if (value == null)
             {
                 return Orientation.Unknown;
@@ -79,7 +79,7 @@ namespace ImageSharp
 
             Orientation orientation = (Orientation)value.Value;
 
-            source.ExifProfile.SetValue(ExifTag.Orientation, (ushort)Orientation.TopLeft);
+            source.MetaData.ExifProfile.SetValue(ExifTag.Orientation, (ushort)Orientation.TopLeft);
 
             return orientation;
         }

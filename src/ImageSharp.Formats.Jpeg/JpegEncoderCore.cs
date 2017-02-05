@@ -200,7 +200,7 @@ namespace ImageSharp.Formats
             int componentCount = 3;
 
             // Write the Start Of Image marker.
-            this.WriteApplicationHeader((short)image.HorizontalResolution, (short)image.VerticalResolution);
+            this.WriteApplicationHeader((short)image.MetaData.HorizontalResolution, (short)image.MetaData.VerticalResolution);
 
             this.WriteProfiles(image);
 
@@ -706,7 +706,7 @@ namespace ImageSharp.Formats
         private void WriteProfiles<TColor>(Image<TColor> image)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            this.WriteProfile(image.ExifProfile);
+            this.WriteProfile(image.MetaData.ExifProfile);
         }
 
         /// <summary>

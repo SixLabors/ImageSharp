@@ -239,7 +239,7 @@ namespace ImageSharp.Formats
                 try
                 {
                     this.currentStream.Read(flagBuffer, 0, flag);
-                    this.decodedImage.Properties.Add(new ImageProperty("Comments", BitConverter.ToString(flagBuffer, 0, flag)));
+                    this.decodedImage.MetaData.Properties.Add(new ImageProperty("Comments", BitConverter.ToString(flagBuffer, 0, flag)));
                 }
                 finally
                 {
@@ -323,7 +323,7 @@ namespace ImageSharp.Formats
             {
                 image = this.decodedImage;
 
-                image.Quality = colorTableLength / 3;
+                this.decodedImage.MetaData.Quality = colorTableLength / 3;
 
                 // This initializes the image to become fully transparent because the alpha channel is zero.
                 image.InitPixels(imageWidth, imageHeight);

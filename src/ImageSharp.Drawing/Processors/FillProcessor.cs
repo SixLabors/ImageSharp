@@ -71,17 +71,12 @@ namespace ImageSharp.Drawing.Processors
                     y =>
                     {
                         int offsetY = y - startY;
-
-                        Vector2 currentPoint = default(Vector2);
                         for (int x = minX; x < maxX; x++)
                         {
                             int offsetX = x - startX;
-                            int offsetColorX = x - minX;
-                            currentPoint.X = offsetX;
-                            currentPoint.Y = offsetY;
 
                             Vector4 backgroundVector = sourcePixels[offsetX, offsetY].ToVector4();
-                            Vector4 sourceVector = applicator.GetColor(currentPoint).ToVector4();
+                            Vector4 sourceVector = applicator[offsetX, offsetY].ToVector4();
 
                             Vector4 finalColor = Vector4BlendTransforms.PremultipliedLerp(backgroundVector, sourceVector, 1);
 

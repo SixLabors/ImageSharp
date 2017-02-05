@@ -41,7 +41,8 @@ namespace ImageSharp
         public static Image<TColor> GaussianSharpen<TColor>(this Image<TColor> source, float sigma, Rectangle rectangle)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            return source.Apply(rectangle, new GaussianSharpenProcessor<TColor>(sigma));
+            source.ApplyProcessor(new GaussianSharpenProcessor<TColor>(sigma), rectangle);
+            return source;
         }
     }
 }

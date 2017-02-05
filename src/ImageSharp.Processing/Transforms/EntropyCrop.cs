@@ -25,7 +25,9 @@ namespace ImageSharp
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             EntropyCropProcessor<TColor> processor = new EntropyCropProcessor<TColor>(threshold);
-            return source.Apply(source.Bounds, processor);
+
+            source.ApplyProcessor(processor, source.Bounds);
+            return source;
         }
     }
 }

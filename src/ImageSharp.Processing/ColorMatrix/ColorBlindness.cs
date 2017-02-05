@@ -78,7 +78,8 @@ namespace ImageSharp
                     break;
             }
 
-            return source.Apply(rectangle, processor);
+            source.ApplyProcessor(processor, rectangle);
+            return source;
         }
     }
 }

@@ -84,8 +84,7 @@
       },
       "frameworkAssemblies": {
         "System.Runtime": { "type": "build" },
-        "System.Numerics": "4.0.0.0",
-        "System.Numerics.Vectors": "4.0.0.0"
+        "System.Numerics": "4.0.0.0"
       }
     }
   }

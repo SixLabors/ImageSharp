@@ -23,21 +23,9 @@ namespace ImageSharp
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     [DebuggerDisplay("Image: {Width}x{Height}")]
-    public class Image<TColor> : ImageBase<TColor>
+    public class Image<TColor> : ImageBase<TColor>, IImage
         where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
-        /// <summary>
-        /// The default horizontal resolution value (dots per inch) in x direction.
-        /// <remarks>The default value is 96 dots per inch.</remarks>
-        /// </summary>
-        public const double DefaultHorizontalResolution = 96;
-
-        /// <summary>
-        /// The default vertical resolution value (dots per inch) in y direction.
-        /// <remarks>The default value is 96 dots per inch.</remarks>
-        /// </summary>
-        public const double DefaultVerticalResolution = 96;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="Image{TColor}"/> class
         /// with the height and the width of the image.
@@ -129,18 +117,9 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Gets or sets the resolution of the image in x- direction. It is defined as
-        ///  number of dots per inch and should be an positive value.
+        /// Gets the meta data of the image.
         /// </summary>
-        /// <value>The density of the image in x- direction.</value>
-        public double HorizontalResolution { get; set; } = DefaultHorizontalResolution;
-
-        /// <summary>
-        /// Gets or sets the resolution of the image in y- direction. It is defined as
-        /// number of dots per inch and should be an positive value.
-        /// </summary>
-        /// <value>The density of the image in y- direction.</value>
-        public double VerticalResolution { get; set; } = DefaultVerticalResolution;
+        public ImageMetaData MetaData { get; private set; } = new ImageMetaData();
 
         /// <summary>
         /// Gets the width of the image in inches. It is calculated as the width of the image
@@ -152,14 +131,7 @@ namespace ImageSharp
         {
             get
             {
-                double resolution = this.HorizontalResolution;
-
-                if (resolution <= 0)
-                {
-                    resolution = DefaultHorizontalResolution;
-                }
-
-                return this.Width / resolution;
+                return this.Width / this.MetaData.HorizontalResolution;
             }
         }
 
@@ -173,14 +145,7 @@ namespace ImageSharp
         {
             get
             {
-                double resolution = this.VerticalResolution;
-
-                if (resolution <= 0)
-                {
-                    resolution = DefaultVerticalResolution;
-                }
-
-                return this.Height / resolution;
+                return this.Height / this.MetaData.VerticalResolution;
             }
         }
 
@@ -193,32 +158,15 @@ namespace ImageSharp
         public bool IsAnimated => this.Frames.Count > 0;
 
         /// <summary>
-        /// Gets or sets the number of times any animation is repeated.
-        /// <remarks>0 means to repeat indefinitely.</remarks>
-        /// </summary>
-        public ushort RepeatCount { get; set; }
-
-        /// <summary>
         /// Gets the other frames for the animation.
         /// </summary>
         /// <value>The list of frame images.</value>
         public IList<ImageFrame<TColor>> Frames { get; } = new List<ImageFrame<TColor>>();
 
         /// <summary>
-        /// Gets the list of properties for storing meta information about this image.
-        /// </summary>
-        /// <value>A list of image properties.</value>
-        public IList<ImageProperty> Properties { get; } = new List<ImageProperty>();
-
-        /// <summary>
         /// Gets the currently loaded image format.
         /// </summary>
         public IImageFormat CurrentImageFormat { get; internal set; }
-
-        /// <summary>
-        /// Gets or sets the Exif profile.
-        /// </summary>
-        public ExifProfile ExifProfile { get; set; }
 
         /// <summary>
         /// Applies the processor to the image.
@@ -317,15 +265,8 @@ namespace ImageSharp
         {
             scaleFunc = PackedPixelConverterHelper.ComputeScaleFunction<TColor, TColor2>(scaleFunc);
 
-            Image<TColor2> target = new Image<TColor2>(this.Width, this.Height, this.Configuration)
-            {
-                Quality = this.Quality,
-                FrameDelay = this.FrameDelay,
-                HorizontalResolution = this.HorizontalResolution,
-                VerticalResolution = this.VerticalResolution,
-                CurrentImageFormat = this.CurrentImageFormat,
-                RepeatCount = this.RepeatCount
-            };
+            Image<TColor2> target = new Image<TColor2>(this.Width, this.Height, this.Configuration);
+            target.CopyProperties(this);
 
             using (PixelAccessor<TColor> pixels = this.Lock())
             using (PixelAccessor<TColor2> targetPixels = target.Lock())
@@ -345,38 +286,12 @@ namespace ImageSharp
                         });
             }
 
-            if (this.ExifProfile != null)
-            {
-                target.ExifProfile = new ExifProfile(this.ExifProfile);
-            }
-
             for (int i = 0; i < this.Frames.Count; i++)
             {
                 target.Frames.Add(this.Frames[i].To<TColor2>());
             }
 
             return target;
-        }
-
-        /// <summary>
-        /// Copies the properties from the other <see cref="Image{TColor}"/>.
-        /// </summary>
-        /// <param name="other">
-        /// The other <see cref="Image{TColor}"/> to copy the properties from.
-        /// </param>
-        internal void CopyProperties(Image<TColor> other)
-        {
-            base.CopyProperties(other);
-
-            this.HorizontalResolution = other.HorizontalResolution;
-            this.VerticalResolution = other.VerticalResolution;
-            this.CurrentImageFormat = other.CurrentImageFormat;
-            this.RepeatCount = other.RepeatCount;
-
-            if (other.ExifProfile != null)
-            {
-                this.ExifProfile = new ExifProfile(other.ExifProfile);
-            }
         }
 
         /// <summary>
@@ -398,6 +313,20 @@ namespace ImageSharp
             }
 
             base.Dispose(disposing);
+        }
+
+        /// <summary>
+        /// Copies the properties from the other <see cref="IImage"/>.
+        /// </summary>
+        /// <param name="other">
+        /// The other <see cref="IImage"/> to copy the properties from.
+        /// </param>
+        private void CopyProperties(IImage other)
+        {
+            base.CopyProperties(other);
+
+            this.CurrentImageFormat = other.CurrentImageFormat;
+            this.MetaData = new ImageMetaData(other.MetaData);
         }
 
         /// <summary>

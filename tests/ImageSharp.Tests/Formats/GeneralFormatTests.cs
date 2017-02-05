@@ -24,8 +24,8 @@ namespace ImageSharp.Tests
                 {
                     using (FileStream output = File.OpenWrite($"{path}/{file.FileName}"))
                     {
-                        image.VerticalResolution = 150;
-                        image.HorizontalResolution = 150;
+                        image.MetaData.VerticalResolution = 150;
+                        image.MetaData.HorizontalResolution = 150;
                         image.Save(output);
                     }
                 }

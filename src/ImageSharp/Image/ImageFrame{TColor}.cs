@@ -55,11 +55,8 @@ namespace ImageSharp
         {
             scaleFunc = PackedPixelConverterHelper.ComputeScaleFunction<TColor, TColor2>(scaleFunc);
 
-            ImageFrame<TColor2> target = new ImageFrame<TColor2>(this.Width, this.Height, this.Configuration)
-            {
-                Quality = this.Quality,
-                FrameDelay = this.FrameDelay
-            };
+            ImageFrame<TColor2> target = new ImageFrame<TColor2>(this.Width, this.Height, this.Configuration);
+            target.CopyProperties(this);
 
             using (PixelAccessor<TColor> pixels = this.Lock())
             using (PixelAccessor<TColor2> targetPixels = target.Lock())

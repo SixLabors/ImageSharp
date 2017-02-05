@@ -11,7 +11,7 @@ namespace ImageSharp
     /// <summary>
     /// Encapsulates the metadata of an image.
     /// </summary>
-    public sealed class ImageMetaData
+    public sealed class ImageMetaData : IMetaData
     {
         /// <summary>
         /// The default horizontal resolution value (dots per inch) in x direction.
@@ -51,6 +51,8 @@ namespace ImageSharp
             this.HorizontalResolution = other.HorizontalResolution;
             this.VerticalResolution = other.VerticalResolution;
             this.Quality = other.Quality;
+            this.FrameDelay = other.FrameDelay;
+            this.RepeatCount = other.RepeatCount;
 
             foreach (ImageProperty property in other.Properties)
             {
@@ -109,6 +111,14 @@ namespace ImageSharp
         /// Gets or sets the Exif profile.
         /// </summary>
         public ExifProfile ExifProfile { get; set; }
+
+        /// <summary>
+        /// Gets or sets the frame delay for animated images.
+        /// If not 0, this field specifies the number of hundredths (1/100) of a second to
+        /// wait before continuing with the processing of the Data Stream.
+        /// The clock starts ticking immediately after the graphic is rendered.
+        /// </summary>
+        public int FrameDelay { get; set; }
 
         /// <summary>
         /// Gets the list of properties for storing meta information about this image.

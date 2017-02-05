@@ -126,12 +126,12 @@ namespace ImageSharp.Formats
         public byte Threshold { get; set; }
 
         /// <summary>
-        /// Encodes the image to the specified stream from the <see cref="ImageBase{TColor}"/>.
+        /// Encodes the image to the specified stream from the <see cref="Image{TColor}"/>.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
         /// <param name="image">The <see cref="ImageBase{TColor}"/> to encode from.</param>
         /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
-        public void Encode<TColor>(ImageBase<TColor> image, Stream stream)
+        public void Encode<TColor>(Image<TColor> image, Stream stream)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             Guard.NotNull(image, nameof(image));
@@ -153,7 +153,7 @@ namespace ImageSharp.Formats
             stream.Write(this.chunkDataBuffer, 0, 8);
 
             // Ensure that quality can be set but has a fallback.
-            int quality = this.Quality > 0 ? this.Quality : image.Quality;
+            int quality = this.Quality > 0 ? this.Quality : image.MetaData.Quality;
             this.Quality = quality > 0 ? quality.Clamp(1, int.MaxValue) : int.MaxValue;
 
             // Set correct color type if the color count is 256 or less.
@@ -557,11 +557,11 @@ namespace ImageSharp.Formats
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             Image<TColor> image = imageBase as Image<TColor>;
-            if (image != null && image.HorizontalResolution > 0 && image.VerticalResolution > 0)
+            if (image != null && image.MetaData.HorizontalResolution > 0 && image.MetaData.VerticalResolution > 0)
             {
                 // 39.3700787 = inches in a meter.
-                int dpmX = (int)Math.Round(image.HorizontalResolution * 39.3700787D);
-                int dpmY = (int)Math.Round(image.VerticalResolution * 39.3700787D);
+                int dpmX = (int)Math.Round(image.MetaData.HorizontalResolution * 39.3700787D);
+                int dpmY = (int)Math.Round(image.MetaData.VerticalResolution * 39.3700787D);
 
                 WriteInteger(this.chunkDataBuffer, 0, dpmX);
                 WriteInteger(this.chunkDataBuffer, 4, dpmY);

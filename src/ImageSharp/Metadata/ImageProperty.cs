@@ -6,6 +6,7 @@
 namespace ImageSharp
 {
     using System;
+    using System.Diagnostics;
 
     /// <summary>
     /// Stores meta information about a image, like the name of the author,
@@ -25,6 +26,21 @@ namespace ImageSharp
 
             this.Name = name;
             this.Value = value;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ImageProperty"/> class
+        /// by making a copy from another property.
+        /// </summary>
+        /// <param name="other">
+        /// The other <see cref="ImageProperty"/> to create this instance from.
+        /// </param>
+        internal ImageProperty(ImageProperty other)
+        {
+            Debug.Assert(other != null);
+
+            this.Name = other.Name;
+            this.Value = other.Value;
         }
 
         /// <summary>

@@ -111,9 +111,6 @@ namespace ImageSharp
         public Rectangle Bounds => new Rectangle(0, 0, this.Width, this.Height);
 
         /// <inheritdoc/>
-        public int Quality { get; set; }
-
-        /// <inheritdoc/>
         public int FrameDelay { get; set; }
 
         /// <summary>
@@ -181,16 +178,17 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Copies the properties from the other <see cref="ImageBase{TColor}"/>.
+        /// Copies the properties from the other <see cref="IImageBase"/>.
         /// </summary>
         /// <param name="other">
-        /// The other <see cref="ImageBase{TColor}"/> to copy the properties from.
+        /// The other <see cref="IImageBase"/> to copy the properties from.
         /// </param>
-        protected void CopyProperties(ImageBase<TColor> other)
+        protected void CopyProperties(IImageBase other)
         {
-            this.Configuration = other.Configuration;
-            this.Quality = other.Quality;
+            Debug.Assert(other != null);
+
             this.FrameDelay = other.FrameDelay;
+            this.Configuration = other.Configuration;
         }
 
         /// <summary>

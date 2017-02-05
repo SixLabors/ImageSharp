@@ -65,7 +65,7 @@ namespace ImageSharp.Formats
             EndianBinaryWriter writer = new EndianBinaryWriter(Endianness.LittleEndian, stream);
 
             // Ensure that quality can be set but has a fallback.
-            int quality = this.Quality > 0 ? this.Quality : image.Quality;
+            int quality = this.Quality > 0 ? this.Quality : image.MetaData.Quality;
             this.Quality = quality > 0 ? quality.Clamp(1, 256) : 256;
 
             // Get the number of bits.
@@ -91,7 +91,7 @@ namespace ImageSharp.Formats
             // Write additional frames.
             if (image.Frames.Any())
             {
-                this.WriteApplicationExtension(writer, image.RepeatCount, image.Frames.Count);
+                this.WriteApplicationExtension(writer, image.MetaData.RepeatCount, image.Frames.Count);
 
                 // ReSharper disable once ForCanBeConvertedToForeach
                 for (int i = 0; i < image.Frames.Count; i++)

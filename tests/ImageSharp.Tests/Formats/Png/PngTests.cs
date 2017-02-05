@@ -27,7 +27,7 @@ namespace ImageSharp.Tests
                 {
                     using (FileStream output = File.OpenWrite($"{path}/{file.FileNameWithoutExtension}.png"))
                     {
-                        image.Quality = 256;
+                        image.MetaData.Quality = 256;
                         image.Save(output, new PngFormat());
                     }
                 }

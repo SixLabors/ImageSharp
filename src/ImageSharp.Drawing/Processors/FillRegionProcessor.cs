@@ -98,20 +98,7 @@ namespace ImageSharp.Drawing.Processors
                         int pointsFound = this.Region.ScanY(y, buffer, maxIntersections, 0);
                         if (pointsFound == 0)
                         {
-                            // nothign on this line skip
-                            return;
-                        }
-
-                        if (pointsFound == 1 && maxIntersections > 1)
-                        {
-                            // we must have clipped a corner lets just duplicate it into point 2 and continue :)
-                            buffer[1] = buffer[0];
-                            pointsFound++;
-                        }
-
-                        if (pointsFound % 2 == 1)
-                        {
-                            // we seem to have just clipped a corner lets just skip it
+                            // nothing on this line skip
                             return;
                         }
 
@@ -250,19 +237,6 @@ namespace ImageSharp.Drawing.Processors
                             if (pointsFound == 0)
                             {
                                 // nothign on this line skip
-                                return;
-                            }
-
-                            if (pointsFound == 1 && maxIntersections > 1)
-                            {
-                                // we must have clipped a corner lets just duplicate it into point 2 and continue :)
-                                buffer[1] = buffer[0];
-                                pointsFound++;
-                            }
-
-                            if (pointsFound % 2 == 1)
-                            {
-                                // we seem to have just clipped a corner lets just skip it
                                 return;
                             }
 

@@ -40,6 +40,38 @@ namespace ImageSharp.Tests
         }
 
         [Fact]
+        public void HorizontalResolution()
+        {
+            ImageMetaData metaData = new ImageMetaData();
+            Assert.Equal(96, metaData.HorizontalResolution);
+
+            metaData.HorizontalResolution=0;
+            Assert.Equal(96, metaData.HorizontalResolution);
+
+            metaData.HorizontalResolution=-1;
+            Assert.Equal(96, metaData.HorizontalResolution);
+
+            metaData.HorizontalResolution=1;
+            Assert.Equal(1, metaData.HorizontalResolution);
+        }
+
+        [Fact]
+        public void VerticalResolution()
+        {
+            ImageMetaData metaData = new ImageMetaData();
+            Assert.Equal(96, metaData.VerticalResolution);
+
+            metaData.VerticalResolution = 0;
+            Assert.Equal(96, metaData.VerticalResolution);
+
+            metaData.VerticalResolution = -1;
+            Assert.Equal(96, metaData.VerticalResolution);
+
+            metaData.VerticalResolution = 1;
+            Assert.Equal(1, metaData.VerticalResolution);
+        }
+
+        [Fact]
         public void SyncProfiles()
         {
             ExifProfile exifProfile = new ExifProfile();

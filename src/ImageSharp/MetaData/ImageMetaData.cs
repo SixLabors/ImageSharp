@@ -79,7 +79,7 @@ namespace ImageSharp
 
             set
             {
-              if (value >= 0)
+              if (value > 0)
               {
                   this.horizontalResolution = value;
               }
@@ -100,7 +100,7 @@ namespace ImageSharp
 
             set
             {
-                if (value >= 0)
+                if (value > 0)
                 {
                     this.verticalResolution = value;
                 }

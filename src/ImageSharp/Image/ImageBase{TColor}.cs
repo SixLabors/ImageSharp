@@ -110,9 +110,6 @@ namespace ImageSharp
         /// <inheritdoc/>
         public Rectangle Bounds => new Rectangle(0, 0, this.Width, this.Height);
 
-        /// <inheritdoc/>
-        public int FrameDelay { get; set; }
-
         /// <summary>
         /// Gets the configuration providing initialization code which allows extending the library.
         /// </summary>
@@ -187,7 +184,6 @@ namespace ImageSharp
         {
             Debug.Assert(other != null);
 
-            this.FrameDelay = other.FrameDelay;
             this.Configuration = other.Configuration;
         }
 

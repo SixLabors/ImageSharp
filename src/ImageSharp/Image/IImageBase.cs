@@ -16,14 +16,6 @@ namespace ImageSharp
         Rectangle Bounds { get; }
 
         /// <summary>
-        /// Gets or sets the frame delay for animated images.
-        /// If not 0, this field specifies the number of hundredths (1/100) of a second to
-        /// wait before continuing with the processing of the Data Stream.
-        /// The clock starts ticking immediately after the graphic is rendered.
-        /// </summary>
-        int FrameDelay { get; set; }
-
-        /// <summary>
         /// Gets or sets the maximum allowable width in pixels.
         /// </summary>
         int MaxWidth { get; set; }

@@ -233,10 +233,37 @@ namespace ImageSharp.Formats
         /// Writes the graphics control extension to the stream.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <param name="image">The <see cref="ImageBase{TColor}"/> to encode.</param>
+        /// <param name="image">The <see cref="Image{TColor}"/> to encode.</param>
         /// <param name="writer">The stream to write to.</param>
         /// <param name="transparencyIndex">The index of the color in the color palette to make transparent.</param>
-        private void WriteGraphicalControlExtension<TColor>(ImageBase<TColor> image, EndianBinaryWriter writer, int transparencyIndex)
+        private void WriteGraphicalControlExtension<TColor>(Image<TColor> image, EndianBinaryWriter writer, int transparencyIndex)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
+        {
+            this.WriteGraphicalControlExtension(image, image.MetaData, writer, transparencyIndex);
+        }
+
+        /// <summary>
+        /// Writes the graphics control extension to the stream.
+        /// </summary>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <param name="imageFrame">The <see cref="ImageFrame{TColor}"/> to encode.</param>
+        /// <param name="writer">The stream to write to.</param>
+        /// <param name="transparencyIndex">The index of the color in the color palette to make transparent.</param>
+        private void WriteGraphicalControlExtension<TColor>(ImageFrame<TColor> imageFrame, EndianBinaryWriter writer, int transparencyIndex)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
+        {
+            this.WriteGraphicalControlExtension(imageFrame, imageFrame.MetaData, writer, transparencyIndex);
+        }
+
+        /// <summary>
+        /// Writes the graphics control extension to the stream.
+        /// </summary>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <param name="image">The <see cref="ImageBase{TColor}"/> to encode.</param>
+        /// <param name="metaData">The metadata of the image or frame.</param>
+        /// <param name="writer">The stream to write to.</param>
+        /// <param name="transparencyIndex">The index of the color in the color palette to make transparent.</param>
+        private void WriteGraphicalControlExtension<TColor>(ImageBase<TColor> image, IMetaData metaData, EndianBinaryWriter writer, int transparencyIndex)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             // TODO: Check transparency logic.
@@ -250,7 +277,7 @@ namespace ImageSharp.Formats
                 DisposalMethod = disposalMethod,
                 TransparencyFlag = hasTransparent,
                 TransparencyIndex = transparencyIndex,
-                DelayTime = image.FrameDelay
+                DelayTime = metaData.FrameDelay
             };
 
             // Write the intro.

@@ -6,10 +6,9 @@
 namespace ImageSharp
 {
     using System;
-    using System.Numerics;
+
     using Drawing;
     using Drawing.Brushes;
-    using Drawing.Processors;
 
     using SixLabors.Shapes;
 
@@ -19,7 +18,7 @@ namespace ImageSharp
     public static partial class ImageExtensions
     {
         /// <summary>
-        /// Flood fills the image in the shape of the provided polygon with the specified brush..
+        /// Flood fills the image in the shape of the provided polygon with the specified brush.
         /// </summary>
         /// <typeparam name="TColor">The type of the color.</typeparam>
         /// <param name="source">The image this method extends.</param>

@@ -7,6 +7,7 @@ namespace ImageSharp
 {
     using System;
     using System.Numerics;
+    using System.Runtime.CompilerServices;
 
     /// <summary>
     /// Packed pixel type containing four 8-bit unsigned integer values, ranging from 0 to 255.
@@ -66,19 +67,14 @@ namespace ImageSharp
             return left.PackedValue != right.PackedValue;
         }
 
-        /// <summary>
-        /// Sets the packed representation from a Vector4.
-        /// </summary>
-        /// <param name="vector">The vector to create the packed representation from.</param>
+        /// <inheritdoc />
         public void PackFromVector4(Vector4 vector)
         {
             this.PackedValue = Pack(ref vector);
         }
 
-        /// <summary>
-        /// Expands the packed representation into a Vector4.
-        /// </summary>
-        /// <returns>The expanded vector.</returns>
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vector4 ToVector4()
         {
             return new Vector4(

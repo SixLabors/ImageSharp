@@ -8,6 +8,7 @@ namespace ImageSharp
     using System;
     using System.Globalization;
     using System.Numerics;
+    using System.Runtime.CompilerServices;
 
     /// <summary>
     /// Packed pixel type containing four 8-bit unsigned normalized values ranging from 0 to 255.
@@ -313,6 +314,7 @@ namespace ImageSharp
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vector4 ToVector4()
         {
             return new Vector4(this.R, this.G, this.B, this.A) / MaxBytes;

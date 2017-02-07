@@ -80,28 +80,13 @@ namespace ImageSharp.Tests
 
             Image image = new Image(1, 1);
             image.MetaData.ExifProfile = exifProfile;
-            image.MetaData.HorizontalResolution = 200;
-            image.MetaData.VerticalResolution = 300;
-
-            image.MetaData.HorizontalResolution = 100;
-
-            Assert.Equal(200, ((Rational)image.MetaData.ExifProfile.GetValue(ExifTag.XResolution).Value).ToDouble());
-            Assert.Equal(300, ((Rational)image.MetaData.ExifProfile.GetValue(ExifTag.YResolution).Value).ToDouble());
+            image.MetaData.HorizontalResolution = 400;
+            image.MetaData.VerticalResolution = 500;
 
             image.MetaData.SyncProfiles();
 
-            Assert.Equal(100, ((Rational)image.MetaData.ExifProfile.GetValue(ExifTag.XResolution).Value).ToDouble());
-            Assert.Equal(300, ((Rational)image.MetaData.ExifProfile.GetValue(ExifTag.YResolution).Value).ToDouble());
-
-            image.MetaData.VerticalResolution = 150;
-
-            Assert.Equal(100, ((Rational)image.MetaData.ExifProfile.GetValue(ExifTag.XResolution).Value).ToDouble());
-            Assert.Equal(300, ((Rational)image.MetaData.ExifProfile.GetValue(ExifTag.YResolution).Value).ToDouble());
-
-            image.MetaData.SyncProfiles();
-
-            Assert.Equal(100, ((Rational)image.MetaData.ExifProfile.GetValue(ExifTag.XResolution).Value).ToDouble());
-            Assert.Equal(150, ((Rational)image.MetaData.ExifProfile.GetValue(ExifTag.YResolution).Value).ToDouble());
+            Assert.Equal(400, ((Rational)image.MetaData.ExifProfile.GetValue(ExifTag.XResolution).Value).ToDouble());
+            Assert.Equal(500, ((Rational)image.MetaData.ExifProfile.GetValue(ExifTag.YResolution).Value).ToDouble());
         }
     }
 }

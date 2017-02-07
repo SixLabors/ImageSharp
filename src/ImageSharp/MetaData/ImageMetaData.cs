@@ -142,28 +142,7 @@ namespace ImageSharp
         /// </summary>
         internal void SyncProfiles()
         {
-            this.SyncExifProfile();
-        }
-
-        private void SyncExifProfile()
-        {
-            if (this.ExifProfile == null)
-            {
-                return;
-            }
-
-            this.SyncExifResolution(ExifTag.XResolution, this.HorizontalResolution);
-            this.SyncExifResolution(ExifTag.YResolution, this.VerticalResolution);
-        }
-
-        private void SyncExifResolution(ExifTag tag, double resolution)
-        {
-            ExifValue value = this.ExifProfile.GetValue(tag);
-            if (value != null)
-            {
-                Rational newResolution = new Rational(resolution, false);
-                this.ExifProfile.SetValue(tag, newResolution);
-            }
+            this.ExifProfile?.Sync(this);
         }
     }
 }

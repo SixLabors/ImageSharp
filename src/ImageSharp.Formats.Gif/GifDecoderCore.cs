@@ -239,7 +239,7 @@ namespace ImageSharp.Formats
                 try
                 {
                     this.currentStream.Read(flagBuffer, 0, flag);
-                    this.decodedImage.Properties.Add(new ImageProperty("Comments", BitConverter.ToString(flagBuffer, 0, flag)));
+                    this.decodedImage.MetaData.Properties.Add(new ImageProperty("Comments", BitConverter.ToString(flagBuffer, 0, flag)));
                 }
                 finally
                 {
@@ -321,12 +321,14 @@ namespace ImageSharp.Formats
 
             if (this.previousFrame == null)
             {
-                image = this.decodedImage;
-
-                image.Quality = colorTableLength / 3;
+                this.decodedImage.MetaData.Quality = colorTableLength / 3;
 
                 // This initializes the image to become fully transparent because the alpha channel is zero.
-                image.InitPixels(imageWidth, imageHeight);
+                this.decodedImage.InitPixels(imageWidth, imageHeight);
+
+                this.SetFrameDelay(this.decodedImage.MetaData);
+
+                image = this.decodedImage;
             }
             else
             {
@@ -338,16 +340,13 @@ namespace ImageSharp.Formats
 
                 currentFrame = this.previousFrame.Clone();
 
+                this.SetFrameDelay(currentFrame.MetaData);
+
                 image = currentFrame;
 
                 this.RestoreToBackground(image);
 
                 this.decodedImage.Frames.Add(currentFrame);
-            }
-
-            if (this.graphicsControlExtension != null && this.graphicsControlExtension.DelayTime > 0)
-            {
-                image.FrameDelay = this.graphicsControlExtension.DelayTime;
             }
 
             int i = 0;
@@ -464,6 +463,18 @@ namespace ImageSharp.Formats
             }
 
             this.restoreArea = null;
+        }
+
+        /// <summary>
+        /// Sets the frame delay in the metadata.
+        /// </summary>
+        /// <param name="metaData">The meta data.</param>
+        private void SetFrameDelay(IMetaData metaData)
+        {
+            if (this.graphicsControlExtension != null && this.graphicsControlExtension.DelayTime > 0)
+            {
+                metaData.FrameDelay = this.graphicsControlExtension.DelayTime;
+            }
         }
     }
 }

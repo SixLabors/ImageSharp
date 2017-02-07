@@ -174,7 +174,7 @@ namespace ImageSharp.Formats
                                 byte[] pal = new byte[currentChunk.Length];
                                 Buffer.BlockCopy(currentChunk.Data, 0, pal, 0, currentChunk.Length);
                                 this.palette = pal;
-                                image.Quality = pal.Length / 3;
+                                image.MetaData.Quality = pal.Length / 3;
                                 break;
                             case PngChunkTypes.PaletteAlpha:
                                 byte[] alpha = new byte[currentChunk.Length];
@@ -268,8 +268,8 @@ namespace ImageSharp.Formats
             data.ReverseBytes(4, 4);
 
             // 39.3700787 = inches in a meter.
-            image.HorizontalResolution = BitConverter.ToInt32(data, 0) / 39.3700787d;
-            image.VerticalResolution = BitConverter.ToInt32(data, 4) / 39.3700787d;
+            image.MetaData.HorizontalResolution = BitConverter.ToInt32(data, 0) / 39.3700787d;
+            image.MetaData.VerticalResolution = BitConverter.ToInt32(data, 4) / 39.3700787d;
         }
 
         /// <summary>
@@ -777,7 +777,7 @@ namespace ImageSharp.Formats
             string name = Encoding.Unicode.GetString(data, 0, zeroIndex);
             string value = Encoding.Unicode.GetString(data, zeroIndex + 1, length - zeroIndex - 1);
 
-            image.Properties.Add(new ImageProperty(name, value));
+            image.MetaData.Properties.Add(new ImageProperty(name, value));
         }
 
         /// <summary>

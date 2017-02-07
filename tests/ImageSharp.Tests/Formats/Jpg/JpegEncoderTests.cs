@@ -36,8 +36,8 @@ namespace ImageSharp.Tests
         {
             using (Image<TColor> image = provider.GetImage().Resize(new ResizeOptions { Size = new Size(150, 100), Mode = ResizeMode.Max }))
             {
-                image.Quality = quality;
-                image.ExifProfile = null; // Reduce the size of the file
+                image.MetaData.Quality = quality;
+                image.MetaData.ExifProfile = null; // Reduce the size of the file
                 JpegEncoder encoder = new JpegEncoder { Subsample = subsample, Quality = quality };
 
                 provider.Utility.TestName += $"{subsample}_Q{quality}";

@@ -127,13 +127,7 @@ namespace ImageSharp
         /// the default value is used.
         /// </summary>
         /// <value>The width of the image in inches.</value>
-        public double InchWidth
-        {
-            get
-            {
-                return this.Width / this.MetaData.HorizontalResolution;
-            }
-        }
+        public double InchWidth => this.Width / this.MetaData.HorizontalResolution;
 
         /// <summary>
         /// Gets the height of the image in inches. It is calculated as the height of the image
@@ -141,13 +135,7 @@ namespace ImageSharp
         /// the default value is used.
         /// </summary>
         /// <value>The height of the image in inches.</value>
-        public double InchHeight
-        {
-            get
-            {
-                return this.Height / this.MetaData.VerticalResolution;
-            }
-        }
+        public double InchHeight => this.Height / this.MetaData.VerticalResolution;
 
         /// <summary>
         /// Gets a value indicating whether this image is animated.

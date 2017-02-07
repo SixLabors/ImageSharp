@@ -46,6 +46,7 @@ namespace ImageSharp
         /// <returns>
         /// True if the <paramref name="left"/> parameter is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator ==(Bgra4444 left, Bgra4444 right)
         {
             return left.PackedValue == right.PackedValue;
@@ -59,6 +60,7 @@ namespace ImageSharp
         /// <returns>
         /// True if the <paramref name="left"/> parameter is not equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator !=(Bgra4444 left, Bgra4444 right)
         {
             return left.PackedValue != right.PackedValue;
@@ -78,18 +80,21 @@ namespace ImageSharp
         }
 
         /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void PackFromVector4(Vector4 vector)
         {
             this.PackedValue = Pack(vector.X, vector.Y, vector.Z, vector.W);
         }
 
         /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void PackFromBytes(byte x, byte y, byte z, byte w)
         {
             this.PackFromVector4(new Vector4(x, y, z, w) / 255F);
         }
 
         /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ToXyzBytes(byte[] bytes, int startIndex)
         {
             Vector4 vector = this.ToVector4() * 255F;
@@ -99,6 +104,7 @@ namespace ImageSharp
         }
 
         /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ToXyzwBytes(byte[] bytes, int startIndex)
         {
             Vector4 vector = this.ToVector4() * 255F;
@@ -109,6 +115,7 @@ namespace ImageSharp
         }
 
         /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ToZyxBytes(byte[] bytes, int startIndex)
         {
             Vector4 vector = this.ToVector4() * 255F;
@@ -118,6 +125,7 @@ namespace ImageSharp
         }
 
         /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ToZyxwBytes(byte[] bytes, int startIndex)
         {
             Vector4 vector = this.ToVector4() * 255F;
@@ -134,6 +142,7 @@ namespace ImageSharp
         }
 
         /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Equals(Bgra4444 other)
         {
             return this.PackedValue == other.PackedValue;
@@ -146,6 +155,7 @@ namespace ImageSharp
         }
 
         /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override int GetHashCode()
         {
             return this.PackedValue.GetHashCode();
@@ -159,6 +169,7 @@ namespace ImageSharp
         /// <param name="z">The z-component</param>
         /// <param name="w">The w-component</param>
         /// <returns>The <see cref="ushort"/> containing the packed values.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static ushort Pack(float x, float y, float z, float w)
         {
             return (ushort)((((int)Math.Round(w.Clamp(0, 1) * 15F) & 0x0F) << 12) |

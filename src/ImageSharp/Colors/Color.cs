@@ -139,11 +139,13 @@ namespace ImageSharp
         /// </summary>
         public byte R
         {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
                 return (byte)(this.packedValue >> RedShift);
             }
 
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set
             {
                 this.packedValue = this.packedValue & 0xFFFFFF00 | (uint)value << RedShift;
@@ -155,11 +157,13 @@ namespace ImageSharp
         /// </summary>
         public byte G
         {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
                 return (byte)(this.packedValue >> GreenShift);
             }
 
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set
             {
                 this.packedValue = this.packedValue & 0xFFFF00FF | (uint)value << GreenShift;
@@ -171,11 +175,13 @@ namespace ImageSharp
         /// </summary>
         public byte B
         {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
                 return (byte)(this.packedValue >> BlueShift);
             }
 
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set
             {
                 this.packedValue = this.packedValue & 0xFF00FFFF | (uint)value << BlueShift;
@@ -187,11 +193,13 @@ namespace ImageSharp
         /// </summary>
         public byte A
         {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
                 return (byte)(this.packedValue >> AlphaShift);
             }
 
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set
             {
                 this.packedValue = this.packedValue & 0x00FFFFFF | (uint)value << AlphaShift;
@@ -224,6 +232,7 @@ namespace ImageSharp
         /// <returns>
         /// True if the <paramref name="left"/> parameter is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator ==(Color left, Color right)
         {
             return left.packedValue == right.packedValue;
@@ -237,6 +246,7 @@ namespace ImageSharp
         /// <returns>
         /// True if the <paramref name="left"/> parameter is not equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator !=(Color left, Color right)
         {
             return left.packedValue != right.packedValue;
@@ -258,6 +268,7 @@ namespace ImageSharp
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void PackFromBytes(byte x, byte y, byte z, byte w)
         {
             this.packedValue = Pack(x, y, z, w);
@@ -274,6 +285,7 @@ namespace ImageSharp
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ToXyzBytes(byte[] bytes, int startIndex)
         {
             bytes[startIndex] = this.R;
@@ -282,6 +294,7 @@ namespace ImageSharp
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ToXyzwBytes(byte[] bytes, int startIndex)
         {
             bytes[startIndex] = this.R;
@@ -291,6 +304,7 @@ namespace ImageSharp
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ToZyxBytes(byte[] bytes, int startIndex)
         {
             bytes[startIndex] = this.B;
@@ -299,6 +313,7 @@ namespace ImageSharp
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ToZyxwBytes(byte[] bytes, int startIndex)
         {
             bytes[startIndex] = this.B;
@@ -308,6 +323,7 @@ namespace ImageSharp
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void PackFromVector4(Vector4 vector)
         {
             this.packedValue = Pack(ref vector);
@@ -327,6 +343,7 @@ namespace ImageSharp
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Equals(Color other)
         {
             return this.packedValue == other.packedValue;
@@ -352,6 +369,7 @@ namespace ImageSharp
         /// </summary>
         /// <param name="vector">The vector containing the values to pack.</param>
         /// <returns>The <see cref="uint"/> containing the packed values.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static uint Pack(ref Vector4 vector)
         {
             vector = Vector4.Clamp(vector, Vector4.Zero, Vector4.One);
@@ -368,6 +386,7 @@ namespace ImageSharp
         /// </summary>
         /// <param name="vector">The vector containing the values to pack.</param>
         /// <returns>The <see cref="uint"/> containing the packed values.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static uint Pack(ref Vector3 vector)
         {
             Vector4 value = new Vector4(vector, 1);
@@ -382,6 +401,7 @@ namespace ImageSharp
         /// <param name="z">The z-component</param>
         /// <param name="w">The w-component</param>
         /// <returns>The <see cref="uint"/></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static uint Pack(float x, float y, float z, float w)
         {
             Vector4 value = new Vector4(x, y, z, w);
@@ -396,6 +416,7 @@ namespace ImageSharp
         /// <param name="z">The z-component</param>
         /// <param name="w">The w-component</param>
         /// <returns>The <see cref="uint"/></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static uint Pack(byte x, byte y, byte z, byte w)
         {
             return (uint)(x << RedShift | y << GreenShift | z << BlueShift | w << AlphaShift);

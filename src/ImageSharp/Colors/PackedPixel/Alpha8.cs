@@ -7,6 +7,7 @@ namespace ImageSharp
 {
     using System;
     using System.Numerics;
+    using System.Runtime.CompilerServices;
 
     /// <summary>
     /// Packed pixel type containing a single 8 bit normalized W values that is ranging from 0 to 1.
@@ -62,6 +63,7 @@ namespace ImageSharp
         }
 
         /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vector4 ToVector4()
         {
             return new Vector4(0, 0, 0, this.PackedValue / 255F);

@@ -7,6 +7,7 @@ namespace ImageSharp
 {
     using System;
     using System.Numerics;
+    using System.Runtime.CompilerServices;
 
     /// <summary>
     /// Packed pixel type containing unsigned normalized values, ranging from 0 to 1, using 4 bits each for x, y, z, and w.
@@ -64,6 +65,7 @@ namespace ImageSharp
         }
 
         /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vector4 ToVector4()
         {
             const float Max = 1 / 15F;

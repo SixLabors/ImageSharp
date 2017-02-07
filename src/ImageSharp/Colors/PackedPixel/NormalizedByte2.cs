@@ -7,6 +7,7 @@ namespace ImageSharp
 {
     using System;
     using System.Numerics;
+    using System.Runtime.CompilerServices;
 
     /// <summary>
     /// Packed packed pixel type containing two 8-bit signed normalized values, ranging from −1 to 1.
@@ -103,6 +104,7 @@ namespace ImageSharp
         }
 
         /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vector4 ToVector4()
         {
             return new Vector4(this.ToVector2(), 0F, 1F);

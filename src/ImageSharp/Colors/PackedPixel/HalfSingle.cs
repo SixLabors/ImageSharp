@@ -7,6 +7,7 @@ namespace ImageSharp
 {
     using System;
     using System.Numerics;
+    using System.Runtime.CompilerServices;
 
     /// <summary>
     /// Packed pixel type containing a single 16 bit floating point value.
@@ -85,6 +86,7 @@ namespace ImageSharp
         }
 
         /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vector4 ToVector4()
         {
             return new Vector4(this.ToSingle(), 0, 0, 1);

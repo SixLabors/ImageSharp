@@ -2,6 +2,7 @@
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
+
 namespace ImageSharp.Formats
 {
     using System;
@@ -65,6 +66,11 @@ namespace ImageSharp.Formats
         /// Whether the image has a JFIF header
         /// </summary>
         private bool isJfif;
+
+        /// <summary>
+        /// Whether the image has a EXIF header
+        /// </summary>
+        private bool isExif;
 
         /// <summary>
         /// The vertical resolution. Calculated if the image has a JFIF header.
@@ -550,6 +556,19 @@ namespace ImageSharp.Formats
                 image.MetaData.HorizontalResolution = this.horizontalResolution;
                 image.MetaData.VerticalResolution = this.verticalResolution;
             }
+            else if (this.isExif)
+            {
+                ExifValue horizontal = image.MetaData.ExifProfile.GetValue(ExifTag.XResolution);
+                ExifValue vertical = image.MetaData.ExifProfile.GetValue(ExifTag.YResolution);
+                double horizontalValue = horizontal != null ? ((Rational)horizontal.Value).ToDouble() : 0;
+                double verticalValue = vertical != null ? ((Rational)vertical.Value).ToDouble() : 0;
+
+                if (horizontalValue > 0 && verticalValue > 0)
+                {
+                    image.MetaData.HorizontalResolution = horizontalValue;
+                    image.MetaData.VerticalResolution = verticalValue;
+                }
+            }
         }
 
         /// <summary>
@@ -951,6 +970,7 @@ namespace ImageSharp.Formats
             if (profile[0] == 'E' && profile[1] == 'x' && profile[2] == 'i' && profile[3] == 'f' && profile[4] == '\0'
                 && profile[5] == '\0')
             {
+                this.isExif = true;
                 image.MetaData.ExifProfile = new ExifProfile(profile);
             }
         }
@@ -976,8 +996,8 @@ namespace ImageSharp.Formats
 
             if (this.isJfif)
             {
-                this.horizontalResolution = (short)(this.Temp[9] + (this.Temp[10] << 8));
-                this.verticalResolution = (short)(this.Temp[11] + (this.Temp[12] << 8));
+                this.horizontalResolution = (short)(this.Temp[9] + (this.Temp[8] << 8));
+                this.verticalResolution = (short)(this.Temp[11] + (this.Temp[10] << 8));
             }
 
             if (remaining > 0)

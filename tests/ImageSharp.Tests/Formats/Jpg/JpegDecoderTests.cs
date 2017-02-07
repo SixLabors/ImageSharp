@@ -100,5 +100,25 @@ namespace ImageSharp.Tests
                 }
             }
         }
+
+        [Fact]
+        public void Decoder_Reads_Correct_Resolution_From_Jfif()
+        {
+            using (Image image = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan).CreateImage())
+            {
+                Assert.Equal(300, image.MetaData.HorizontalResolution);
+                Assert.Equal(300, image.MetaData.VerticalResolution);
+            }
+        }
+
+        [Fact]
+        public void Decoder_Reads_Correct_Resolution_From_Exif()
+        {
+            using (Image image = TestFile.Create(TestImages.Jpeg.Baseline.Jpeg420).CreateImage())
+            {
+                Assert.Equal(72, image.MetaData.HorizontalResolution);
+                Assert.Equal(72, image.MetaData.VerticalResolution);
+            }
+        }
     }
 }

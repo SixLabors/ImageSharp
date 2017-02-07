@@ -5,6 +5,7 @@
 
 namespace ImageSharp
 {
+    using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
 
     /// <summary>
@@ -17,6 +18,7 @@ namespace ImageSharp
         /// </summary>
         /// <param name="value">The float to pack</param>
         /// <returns>The <see cref="ushort"/></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static ushort Pack(float value)
         {
             Uif uif = new Uif { F = value };

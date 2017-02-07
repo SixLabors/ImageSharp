@@ -204,6 +204,39 @@ namespace ImageSharp.Tests
         }
 
         [Fact]
+        public void Syncs()
+        {
+            ExifProfile exifProfile = new ExifProfile();
+            exifProfile.SetValue(ExifTag.XResolution, new Rational(200));
+            exifProfile.SetValue(ExifTag.YResolution, new Rational(300));
+
+            ImageMetaData metaData = new ImageMetaData();
+            metaData.ExifProfile = exifProfile;
+            metaData.HorizontalResolution = 200;
+            metaData.VerticalResolution = 300;
+
+            metaData.HorizontalResolution = 100;
+
+            Assert.Equal(200, ((Rational)metaData.ExifProfile.GetValue(ExifTag.XResolution).Value).ToDouble());
+            Assert.Equal(300, ((Rational)metaData.ExifProfile.GetValue(ExifTag.YResolution).Value).ToDouble());
+
+            exifProfile.Sync(metaData);
+
+            Assert.Equal(100, ((Rational)metaData.ExifProfile.GetValue(ExifTag.XResolution).Value).ToDouble());
+            Assert.Equal(300, ((Rational)metaData.ExifProfile.GetValue(ExifTag.YResolution).Value).ToDouble());
+
+            metaData.VerticalResolution = 150;
+
+            Assert.Equal(100, ((Rational)metaData.ExifProfile.GetValue(ExifTag.XResolution).Value).ToDouble());
+            Assert.Equal(300, ((Rational)metaData.ExifProfile.GetValue(ExifTag.YResolution).Value).ToDouble());
+
+            exifProfile.Sync(metaData);
+
+            Assert.Equal(100, ((Rational)metaData.ExifProfile.GetValue(ExifTag.XResolution).Value).ToDouble());
+            Assert.Equal(150, ((Rational)metaData.ExifProfile.GetValue(ExifTag.YResolution).Value).ToDouble());
+        }
+
+        [Fact]
         public void Values()
         {
             ExifProfile profile = GetExifProfile();

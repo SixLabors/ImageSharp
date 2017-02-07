@@ -19,20 +19,18 @@ namespace ImageSharp.Tests
         {
             Image image = TestFile.Create(TestImages.Jpeg.Baseline.Calliphora).CreateImage();
 
-            Assert.Null(image.ExifProfile);
+            Assert.Null(image.MetaData.ExifProfile);
 
-            image.ExifProfile = new ExifProfile();
-            image.ExifProfile.SetValue(ExifTag.Copyright, "Dirk Lemstra");
+            image.MetaData.ExifProfile = new ExifProfile();
+            image.MetaData.ExifProfile.SetValue(ExifTag.Copyright, "Dirk Lemstra");
 
             image = WriteAndRead(image);
 
-            Assert.NotNull(image.ExifProfile);
-            Assert.Equal(1, image.ExifProfile.Values.Count());
+            Assert.NotNull(image.MetaData.ExifProfile);
+            Assert.Equal(1, image.MetaData.ExifProfile.Values.Count());
 
-            ExifValue value = image.ExifProfile.Values.FirstOrDefault(val => val.Tag == ExifTag.Copyright);
+            ExifValue value = image.MetaData.ExifProfile.Values.FirstOrDefault(val => val.Tag == ExifTag.Copyright);
             TestValue(value, "Dirk Lemstra");
-
-
         }
 
         [Fact]
@@ -70,14 +68,14 @@ namespace ImageSharp.Tests
                 profile.SetValue(ExifTag.ExposureTime, new Rational(exposureTime));
 
                 Image image = new Image(1, 1);
-                image.ExifProfile = profile;
+                image.MetaData.ExifProfile = profile;
 
                 image.SaveAsJpeg(memStream);
 
                 memStream.Position = 0;
                 image = new Image(memStream);
 
-                profile = image.ExifProfile;
+                profile = image.MetaData.ExifProfile;
                 Assert.NotNull(profile);
 
                 ExifValue value = profile.GetValue(ExifTag.ExposureTime);
@@ -88,14 +86,14 @@ namespace ImageSharp.Tests
                 profile = GetExifProfile();
 
                 profile.SetValue(ExifTag.ExposureTime, new Rational(exposureTime, true));
-                image.ExifProfile = profile;
+                image.MetaData.ExifProfile = profile;
 
                 image.SaveAsJpeg(memStream);
 
                 memStream.Position = 0;
                 image = new Image(memStream);
 
-                profile = image.ExifProfile;
+                profile = image.MetaData.ExifProfile;
                 Assert.NotNull(profile);
 
                 value = profile.GetValue(ExifTag.ExposureTime);
@@ -107,24 +105,24 @@ namespace ImageSharp.Tests
         public void ReadWriteInfinity()
         {
             Image image = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan).CreateImage();
-            image.ExifProfile.SetValue(ExifTag.ExposureBiasValue, new SignedRational(double.PositiveInfinity));
+            image.MetaData.ExifProfile.SetValue(ExifTag.ExposureBiasValue, new SignedRational(double.PositiveInfinity));
 
             image = WriteAndRead(image);
-            ExifValue value = image.ExifProfile.GetValue(ExifTag.ExposureBiasValue);
+            ExifValue value = image.MetaData.ExifProfile.GetValue(ExifTag.ExposureBiasValue);
             Assert.NotNull(value);
             Assert.Equal(new SignedRational(double.PositiveInfinity), value.Value);
 
-            image.ExifProfile.SetValue(ExifTag.ExposureBiasValue, new SignedRational(double.NegativeInfinity));
+            image.MetaData.ExifProfile.SetValue(ExifTag.ExposureBiasValue, new SignedRational(double.NegativeInfinity));
 
             image = WriteAndRead(image);
-            value = image.ExifProfile.GetValue(ExifTag.ExposureBiasValue);
+            value = image.MetaData.ExifProfile.GetValue(ExifTag.ExposureBiasValue);
             Assert.NotNull(value);
             Assert.Equal(new SignedRational(double.NegativeInfinity), value.Value);
 
-            image.ExifProfile.SetValue(ExifTag.FlashEnergy, new Rational(double.NegativeInfinity));
+            image.MetaData.ExifProfile.SetValue(ExifTag.FlashEnergy, new Rational(double.NegativeInfinity));
 
             image = WriteAndRead(image);
-            value = image.ExifProfile.GetValue(ExifTag.FlashEnergy);
+            value = image.MetaData.ExifProfile.GetValue(ExifTag.FlashEnergy);
             Assert.NotNull(value);
             Assert.Equal(new Rational(double.PositiveInfinity), value.Value);
         }
@@ -135,71 +133,107 @@ namespace ImageSharp.Tests
             Rational[] latitude = new Rational[] { new Rational(12.3), new Rational(4.56), new Rational(789.0) };
 
             Image image = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan).CreateImage();
-            image.ExifProfile.SetValue(ExifTag.Software, "ImageSharp");
+            image.MetaData.ExifProfile.SetValue(ExifTag.Software, "ImageSharp");
 
-            ExifValue value = image.ExifProfile.GetValue(ExifTag.Software);
+            ExifValue value = image.MetaData.ExifProfile.GetValue(ExifTag.Software);
             TestValue(value, "ImageSharp");
 
             Assert.Throws<ArgumentException>(() => { value.Value = 15; });
 
-            image.ExifProfile.SetValue(ExifTag.ShutterSpeedValue, new SignedRational(75.55));
+            image.MetaData.ExifProfile.SetValue(ExifTag.ShutterSpeedValue, new SignedRational(75.55));
 
-            value = image.ExifProfile.GetValue(ExifTag.ShutterSpeedValue);
+            value = image.MetaData.ExifProfile.GetValue(ExifTag.ShutterSpeedValue);
 
             TestValue(value, new SignedRational(7555, 100));
 
             Assert.Throws<ArgumentException>(() => { value.Value = 75; });
 
-            image.ExifProfile.SetValue(ExifTag.XResolution, new Rational(150.0));
+            image.MetaData.ExifProfile.SetValue(ExifTag.XResolution, new Rational(150.0));
 
-            value = image.ExifProfile.GetValue(ExifTag.XResolution);
+            // We also need to change this value because this overrides XResolution when the image is written.
+            image.MetaData.HorizontalResolution = 150.0;
+
+            value = image.MetaData.ExifProfile.GetValue(ExifTag.XResolution);
             TestValue(value, new Rational(150, 1));
 
             Assert.Throws<ArgumentException>(() => { value.Value = "ImageSharp"; });
 
-            image.ExifProfile.SetValue(ExifTag.ReferenceBlackWhite, null);
+            image.MetaData.ExifProfile.SetValue(ExifTag.ReferenceBlackWhite, null);
 
-            value = image.ExifProfile.GetValue(ExifTag.ReferenceBlackWhite);
+            value = image.MetaData.ExifProfile.GetValue(ExifTag.ReferenceBlackWhite);
             TestValue(value, (string)null);
 
-            image.ExifProfile.SetValue(ExifTag.GPSLatitude, latitude);
+            image.MetaData.ExifProfile.SetValue(ExifTag.GPSLatitude, latitude);
 
-            value = image.ExifProfile.GetValue(ExifTag.GPSLatitude);
+            value = image.MetaData.ExifProfile.GetValue(ExifTag.GPSLatitude);
             TestValue(value, latitude);
 
             image = WriteAndRead(image);
 
-            Assert.NotNull(image.ExifProfile);
-            Assert.Equal(17, image.ExifProfile.Values.Count());
+            Assert.NotNull(image.MetaData.ExifProfile);
+            Assert.Equal(17, image.MetaData.ExifProfile.Values.Count());
 
-            value = image.ExifProfile.GetValue(ExifTag.Software);
+            value = image.MetaData.ExifProfile.GetValue(ExifTag.Software);
             TestValue(value, "ImageSharp");
 
-            value = image.ExifProfile.GetValue(ExifTag.ShutterSpeedValue);
+            value = image.MetaData.ExifProfile.GetValue(ExifTag.ShutterSpeedValue);
             TestValue(value, new SignedRational(75.55));
 
-            value = image.ExifProfile.GetValue(ExifTag.XResolution);
+            value = image.MetaData.ExifProfile.GetValue(ExifTag.XResolution);
             TestValue(value, new Rational(150.0));
 
-            value = image.ExifProfile.GetValue(ExifTag.ReferenceBlackWhite);
+            value = image.MetaData.ExifProfile.GetValue(ExifTag.ReferenceBlackWhite);
             Assert.Null(value);
 
-            value = image.ExifProfile.GetValue(ExifTag.GPSLatitude);
+            value = image.MetaData.ExifProfile.GetValue(ExifTag.GPSLatitude);
             TestValue(value, latitude);
 
-            image.ExifProfile.Parts = ExifParts.ExifTags;
+            image.MetaData.ExifProfile.Parts = ExifParts.ExifTags;
 
             image = WriteAndRead(image);
 
-            Assert.NotNull(image.ExifProfile);
-            Assert.Equal(8, image.ExifProfile.Values.Count());
+            Assert.NotNull(image.MetaData.ExifProfile);
+            Assert.Equal(8, image.MetaData.ExifProfile.Values.Count());
 
-            Assert.NotNull(image.ExifProfile.GetValue(ExifTag.ColorSpace));
-            Assert.True(image.ExifProfile.RemoveValue(ExifTag.ColorSpace));
-            Assert.False(image.ExifProfile.RemoveValue(ExifTag.ColorSpace));
-            Assert.Null(image.ExifProfile.GetValue(ExifTag.ColorSpace));
+            Assert.NotNull(image.MetaData.ExifProfile.GetValue(ExifTag.ColorSpace));
+            Assert.True(image.MetaData.ExifProfile.RemoveValue(ExifTag.ColorSpace));
+            Assert.False(image.MetaData.ExifProfile.RemoveValue(ExifTag.ColorSpace));
+            Assert.Null(image.MetaData.ExifProfile.GetValue(ExifTag.ColorSpace));
 
-            Assert.Equal(7, image.ExifProfile.Values.Count());
+            Assert.Equal(7, image.MetaData.ExifProfile.Values.Count());
+        }
+
+        [Fact]
+        public void Syncs()
+        {
+            ExifProfile exifProfile = new ExifProfile();
+            exifProfile.SetValue(ExifTag.XResolution, new Rational(200));
+            exifProfile.SetValue(ExifTag.YResolution, new Rational(300));
+
+            ImageMetaData metaData = new ImageMetaData();
+            metaData.ExifProfile = exifProfile;
+            metaData.HorizontalResolution = 200;
+            metaData.VerticalResolution = 300;
+
+            metaData.HorizontalResolution = 100;
+
+            Assert.Equal(200, ((Rational)metaData.ExifProfile.GetValue(ExifTag.XResolution).Value).ToDouble());
+            Assert.Equal(300, ((Rational)metaData.ExifProfile.GetValue(ExifTag.YResolution).Value).ToDouble());
+
+            exifProfile.Sync(metaData);
+
+            Assert.Equal(100, ((Rational)metaData.ExifProfile.GetValue(ExifTag.XResolution).Value).ToDouble());
+            Assert.Equal(300, ((Rational)metaData.ExifProfile.GetValue(ExifTag.YResolution).Value).ToDouble());
+
+            metaData.VerticalResolution = 150;
+
+            Assert.Equal(100, ((Rational)metaData.ExifProfile.GetValue(ExifTag.XResolution).Value).ToDouble());
+            Assert.Equal(300, ((Rational)metaData.ExifProfile.GetValue(ExifTag.YResolution).Value).ToDouble());
+
+            exifProfile.Sync(metaData);
+
+            Assert.Equal(100, ((Rational)metaData.ExifProfile.GetValue(ExifTag.XResolution).Value).ToDouble());
+            Assert.Equal(150, ((Rational)metaData.ExifProfile.GetValue(ExifTag.YResolution).Value).ToDouble());
         }
 
         [Fact]
@@ -225,8 +259,8 @@ namespace ImageSharp.Tests
             }
 
             Image image = new Image(100, 100);
-            image.ExifProfile = new ExifProfile();
-            image.ExifProfile.SetValue(ExifTag.ImageDescription, junk.ToString());
+            image.MetaData.ExifProfile = new ExifProfile();
+            image.MetaData.ExifProfile.SetValue(ExifTag.ImageDescription, junk.ToString());
 
             using (MemoryStream memStream = new MemoryStream())
             {
@@ -238,7 +272,7 @@ namespace ImageSharp.Tests
         {
             Image image = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan).CreateImage();
 
-            ExifProfile profile = image.ExifProfile;
+            ExifProfile profile = image.MetaData.ExifProfile;
             Assert.NotNull(profile);
 
             return profile;

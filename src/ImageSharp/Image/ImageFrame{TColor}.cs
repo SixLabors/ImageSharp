@@ -13,7 +13,7 @@ namespace ImageSharp
     /// Represents a single frame in a animation.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    public class ImageFrame<TColor> : ImageBase<TColor>
+    public class ImageFrame<TColor> : ImageBase<TColor>, IImageFrame
         where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>
@@ -38,6 +38,11 @@ namespace ImageSharp
         {
         }
 
+        /// <summary>
+        /// Gets the meta data of the frame.
+        /// </summary>
+        public ImageFrameMetaData MetaData { get; private set; } = new ImageFrameMetaData();
+
         /// <inheritdoc/>
         public override string ToString()
         {
@@ -55,11 +60,8 @@ namespace ImageSharp
         {
             scaleFunc = PackedPixelConverterHelper.ComputeScaleFunction<TColor, TColor2>(scaleFunc);
 
-            ImageFrame<TColor2> target = new ImageFrame<TColor2>(this.Width, this.Height, this.Configuration)
-            {
-                Quality = this.Quality,
-                FrameDelay = this.FrameDelay
-            };
+            ImageFrame<TColor2> target = new ImageFrame<TColor2>(this.Width, this.Height, this.Configuration);
+            target.CopyProperties(this);
 
             using (PixelAccessor<TColor> pixels = this.Lock())
             using (PixelAccessor<TColor2> targetPixels = target.Lock())
@@ -89,6 +91,19 @@ namespace ImageSharp
         internal virtual ImageFrame<TColor> Clone()
         {
             return new ImageFrame<TColor>(this);
+        }
+
+        /// <summary>
+        /// Copies the properties from the other <see cref="IImageFrame"/>.
+        /// </summary>
+        /// <param name="other">
+        /// The other <see cref="IImageFrame"/> to copy the properties from.
+        /// </param>
+        private void CopyProperties(IImageFrame other)
+        {
+            base.CopyProperties(other);
+
+            this.MetaData = new ImageFrameMetaData(other.MetaData);
         }
     }
 }

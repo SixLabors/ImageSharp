@@ -15,7 +15,7 @@ namespace ImageSharp.Tests
             ExifProfile profile;
             using (Image image = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan).CreateImage())
             {
-                profile = image.ExifProfile;
+                profile = image.MetaData.ExifProfile;
             }
 
             Assert.NotNull(profile);

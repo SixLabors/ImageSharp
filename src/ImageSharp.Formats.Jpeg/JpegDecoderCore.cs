@@ -547,8 +547,8 @@ namespace ImageSharp.Formats
         {
             if (this.isJfif && this.horizontalResolution > 0 && this.verticalResolution > 0)
             {
-                image.HorizontalResolution = this.horizontalResolution;
-                image.VerticalResolution = this.verticalResolution;
+                image.MetaData.HorizontalResolution = this.horizontalResolution;
+                image.MetaData.VerticalResolution = this.verticalResolution;
             }
         }
 
@@ -951,7 +951,7 @@ namespace ImageSharp.Formats
             if (profile[0] == 'E' && profile[1] == 'x' && profile[2] == 'i' && profile[3] == 'f' && profile[4] == '\0'
                 && profile[5] == '\0')
             {
-                image.ExifProfile = new ExifProfile(profile);
+                image.MetaData.ExifProfile = new ExifProfile(profile);
             }
         }
 

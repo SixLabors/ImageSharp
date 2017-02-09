@@ -14,53 +14,27 @@ namespace ImageSharp.Drawing
     using Rectangle = ImageSharp.Rectangle;
 
     /// <summary>
-    /// A drawable mapping between a <see cref="IShape"/>/<see cref="IPath"/> and a drawable/fillable region.
+    /// A drawable mapping between a <see cref="IPath"/> and a drawable region.
     /// </summary>
     internal class ShapePath : Drawable
     {
-        /// <summary>
-        /// The fillable shape
-        /// </summary>
-        private readonly IShape shape;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="ShapePath"/> class.
         /// </summary>
         /// <param name="path">The path.</param>
         public ShapePath(IPath path)
-            : this(ImmutableArray.Create(path))
         {
-            this.shape = path.AsShape();
-            this.Bounds = RectangleF.Ceiling(path.Bounds.Convert());
+            this.Path = path;
+            this.Bounds = path.Bounds.Convert();
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ShapePath"/> class.
+        /// Gets the fillable shape
         /// </summary>
-        /// <param name="shape">The shape.</param>
-        public ShapePath(IShape shape)
-            : this(shape.Paths)
-        {
-            this.shape = shape;
-            this.Bounds = RectangleF.Ceiling(shape.Bounds.Convert());
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ShapePath" /> class.
-        /// </summary>
-        /// <param name="paths">The paths.</param>
-        private ShapePath(ImmutableArray<IPath> paths)
-        {
-            this.Paths = paths;
-        }
-
-        /// <summary>
-        /// Gets the drawable paths
-        /// </summary>
-        public ImmutableArray<IPath> Paths { get; }
+        public IPath Path { get; }
 
         /// <inheritdoc/>
-        public override int MaxIntersections => this.shape.MaxIntersections;
+        public override int MaxIntersections => this.Path.MaxIntersections;
 
         /// <inheritdoc/>
         public override Rectangle Bounds { get; }
@@ -73,7 +47,7 @@ namespace ImageSharp.Drawing
             Vector2[] innerbuffer = ArrayPool<Vector2>.Shared.Rent(length);
             try
             {
-                int count = this.shape.FindIntersections(start, end, innerbuffer, length, 0);
+                int count = this.Path.FindIntersections(start, end, innerbuffer, length, 0);
 
                 for (int i = 0; i < count; i++)
                 {
@@ -96,7 +70,7 @@ namespace ImageSharp.Drawing
             Vector2[] innerbuffer = ArrayPool<Vector2>.Shared.Rent(length);
             try
             {
-                int count = this.shape.FindIntersections(start, end, innerbuffer, length, 0);
+                int count = this.Path.FindIntersections(start, end, innerbuffer, length, 0);
 
                 for (int i = 0; i < count; i++)
                 {
@@ -115,24 +89,15 @@ namespace ImageSharp.Drawing
         public override PointInfo GetPointInfo(int x, int y)
         {
             Vector2 point = new Vector2(x, y);
-            float distanceFromPath = float.MaxValue;
-            float distanceAlongPath = 0;
-
-            // ReSharper disable once ForCanBeConvertedToForeach
-            for (int i = 0; i < this.Paths.Length; i++)
-            {
-                SixLabors.Shapes.PointInfo p = this.Paths[i].Distance(point);
-                if (p.DistanceFromPath < distanceFromPath)
-                {
-                    distanceFromPath = p.DistanceFromPath;
-                    distanceAlongPath = p.DistanceAlongPath;
-                }
-            }
+            SixLabors.Shapes.PointInfo dist = this.Path.Distance(point);
 
             return new PointInfo
             {
-                DistanceAlongPath = distanceAlongPath,
-                DistanceFromPath = distanceFromPath
+                DistanceAlongPath = dist.DistanceAlongPath,
+                DistanceFromPath =
+                               dist.DistanceFromPath < 0
+                                   ? -dist.DistanceFromPath
+                                   : dist.DistanceFromPath
             };
         }
     }

@@ -46,8 +46,7 @@ namespace ImageSharp.Tests.Drawing.Paths
             Assert.Equal(GraphicsOptions.Default, processor.Options);
 
             ShapePath shapepath = Assert.IsType<ShapePath>(processor.Path);
-            Assert.NotEmpty(shapepath.Paths);
-            SixLabors.Shapes.Rectangle rect = Assert.IsType<SixLabors.Shapes.Rectangle>(shapepath.Paths[0].AsShape());
+            SixLabors.Shapes.Rectangle rect = Assert.IsType<SixLabors.Shapes.Rectangle>(shapepath.Path);
 
             Assert.Equal(rect.Location.X, rectangle.X);
             Assert.Equal(rect.Location.Y, rectangle.Y);
@@ -70,9 +69,8 @@ namespace ImageSharp.Tests.Drawing.Paths
             Assert.Equal(noneDefault, processor.Options);
 
             ShapePath shapepath = Assert.IsType<ShapePath>(processor.Path);
-            Assert.NotEmpty(shapepath.Paths);
 
-            SixLabors.Shapes.Rectangle rect = Assert.IsType<SixLabors.Shapes.Rectangle>(shapepath.Paths[0].AsShape());
+            SixLabors.Shapes.Rectangle rect = Assert.IsType<SixLabors.Shapes.Rectangle>(shapepath.Path);
 
             Assert.Equal(rect.Location.X, rectangle.X);
             Assert.Equal(rect.Location.Y, rectangle.Y);
@@ -95,9 +93,8 @@ namespace ImageSharp.Tests.Drawing.Paths
             Assert.Equal(GraphicsOptions.Default, processor.Options);
 
             ShapePath shapepath = Assert.IsType<ShapePath>(processor.Path);
-            Assert.NotEmpty(shapepath.Paths);
 
-            SixLabors.Shapes.Rectangle rect = Assert.IsType<SixLabors.Shapes.Rectangle>(shapepath.Paths[0].AsShape());
+            SixLabors.Shapes.Rectangle rect = Assert.IsType<SixLabors.Shapes.Rectangle>(shapepath.Path);
 
             Assert.Equal(rect.Location.X, rectangle.X);
             Assert.Equal(rect.Location.Y, rectangle.Y);
@@ -122,9 +119,8 @@ namespace ImageSharp.Tests.Drawing.Paths
             Assert.Equal(noneDefault, processor.Options);
 
             ShapePath shapepath = Assert.IsType<ShapePath>(processor.Path);
-            Assert.NotEmpty(shapepath.Paths);
 
-            SixLabors.Shapes.Rectangle rect = Assert.IsType<SixLabors.Shapes.Rectangle>(shapepath.Paths[0].AsShape());
+            SixLabors.Shapes.Rectangle rect = Assert.IsType<SixLabors.Shapes.Rectangle>(shapepath.Path);
 
             Assert.Equal(rect.Location.X, rectangle.X);
             Assert.Equal(rect.Location.Y, rectangle.Y);
@@ -149,9 +145,8 @@ namespace ImageSharp.Tests.Drawing.Paths
             Assert.Equal(GraphicsOptions.Default, processor.Options);
 
             ShapePath shapepath = Assert.IsType<ShapePath>(processor.Path);
-            Assert.NotEmpty(shapepath.Paths);
 
-            SixLabors.Shapes.Rectangle rect = Assert.IsType<SixLabors.Shapes.Rectangle>(shapepath.Paths[0].AsShape());
+            SixLabors.Shapes.Rectangle rect = Assert.IsType<SixLabors.Shapes.Rectangle>(shapepath.Path);
 
             Assert.Equal(rect.Location.X, rectangle.X);
             Assert.Equal(rect.Location.Y, rectangle.Y);
@@ -172,9 +167,8 @@ namespace ImageSharp.Tests.Drawing.Paths
             Assert.Equal(noneDefault, processor.Options);
 
             ShapePath shapepath = Assert.IsType<ShapePath>(processor.Path);
-            Assert.NotEmpty(shapepath.Paths);
 
-            SixLabors.Shapes.Rectangle rect = Assert.IsType<SixLabors.Shapes.Rectangle>(shapepath.Paths[0].AsShape());
+            SixLabors.Shapes.Rectangle rect = Assert.IsType<SixLabors.Shapes.Rectangle>(shapepath.Path);
 
             Assert.Equal(rect.Location.X, rectangle.X);
             Assert.Equal(rect.Location.Y, rectangle.Y);

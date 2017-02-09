@@ -13,33 +13,24 @@ namespace ImageSharp.Drawing
     using Rectangle = ImageSharp.Rectangle;
 
     /// <summary>
-    /// A drawable mapping between a <see cref="IShape"/>/<see cref="IPath"/> and a drawable/fillable region.
+    /// A mapping between a <see cref="IPath"/> and a region.
     /// </summary>
     internal class ShapeRegion : Region
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ShapeRegion"/> class.
         /// </summary>
-        /// <param name="path">The path.</param>
-        public ShapeRegion(IPath path)
-            : this(path.AsShape())
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ShapeRegion"/> class.
-        /// </summary>
         /// <param name="shape">The shape.</param>
-        public ShapeRegion(IShape shape)
+        public ShapeRegion(IPath shape)
         {
-            this.Shape = shape;
+            this.Shape = shape.AsClosedPath();
             this.Bounds = shape.Bounds.Convert();
         }
 
         /// <summary>
         /// Gets the fillable shape
         /// </summary>
-        public IShape Shape { get; }
+        public IPath Shape { get; }
 
         /// <inheritdoc/>
         public override int MaxIntersections => this.Shape.MaxIntersections;

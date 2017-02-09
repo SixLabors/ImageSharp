@@ -19,19 +19,16 @@ namespace ImageSharp.Tests.Drawing.Paths
     public class ShapeRegionTests 
     {
         private readonly Mock<IPath> pathMock;
-        private readonly Mock<IShape> shapeMock;
         private readonly SixLabors.Shapes.Rectangle bounds;
 
         public ShapeRegionTests()
         {
-            this.shapeMock = new Mock<IShape>();
             this.pathMock = new Mock<IPath>();
 
             this.bounds = new SixLabors.Shapes.Rectangle(10.5f, 10, 10, 10);
-            shapeMock.Setup(x => x.Bounds).Returns(this.bounds);
+            pathMock.Setup(x => x.Bounds).Returns(this.bounds);
             // wire up the 2 mocks to reference eachother
-            pathMock.Setup(x => x.AsShape()).Returns(() => shapeMock.Object);
-            shapeMock.Setup(x => x.Paths).Returns(() => ImmutableArray.Create(pathMock.Object));
+            pathMock.Setup(x => x.AsClosedPath()).Returns(() => pathMock.Object);
         }
 
         [Fact]
@@ -39,7 +36,7 @@ namespace ImageSharp.Tests.Drawing.Paths
         {
             new ShapeRegion(pathMock.Object);
 
-            pathMock.Verify(x => x.AsShape());
+            pathMock.Verify(x => x.AsClosedPath());
         }
 
         [Fact]
@@ -47,7 +44,7 @@ namespace ImageSharp.Tests.Drawing.Paths
         {
             ShapeRegion region = new ShapeRegion(pathMock.Object);
 
-            Assert.Equal(shapeMock.Object, region.Shape);
+            Assert.Equal(pathMock.Object, region.Shape);
         }
 
         [Fact]
@@ -58,7 +55,7 @@ namespace ImageSharp.Tests.Drawing.Paths
             Assert.Equal(Math.Floor(bounds.Left), region.Bounds.Left);
             Assert.Equal(Math.Ceiling(bounds.Right), region.Bounds.Right);
 
-            shapeMock.Verify(x => x.Bounds);
+            pathMock.Verify(x => x.Bounds);
         }
 
         [Fact]
@@ -67,7 +64,7 @@ namespace ImageSharp.Tests.Drawing.Paths
             ShapeRegion region = new ShapeRegion(pathMock.Object);
 
             int i = region.MaxIntersections;
-            shapeMock.Verify(x => x.MaxIntersections);
+            pathMock.Verify(x => x.MaxIntersections);
         }
 
         [Fact]
@@ -76,7 +73,7 @@ namespace ImageSharp.Tests.Drawing.Paths
             int xToScan = 10;
             ShapeRegion region = new ShapeRegion(pathMock.Object);
 
-            shapeMock.Setup(x => x.FindIntersections(It.IsAny<Vector2>(), It.IsAny<Vector2>(), It.IsAny<Vector2[]>(), It.IsAny<int>(), It.IsAny<int>()))
+            pathMock.Setup(x => x.FindIntersections(It.IsAny<Vector2>(), It.IsAny<Vector2>(), It.IsAny<Vector2[]>(), It.IsAny<int>(), It.IsAny<int>()))
                 .Callback<Vector2, Vector2, Vector2[], int, int>((s, e, b, c, o) => {
                     Assert.Equal(xToScan, s.X);
                     Assert.Equal(xToScan, e.X);
@@ -86,7 +83,7 @@ namespace ImageSharp.Tests.Drawing.Paths
 
             int i = region.ScanX(xToScan, new float[0], 0, 0);
 
-            shapeMock.Verify(x => x.FindIntersections(It.IsAny<Vector2>(), It.IsAny<Vector2>(), It.IsAny<Vector2[]>(), It.IsAny<int>(), It.IsAny<int>()), Times.Once);
+            pathMock.Verify(x => x.FindIntersections(It.IsAny<Vector2>(), It.IsAny<Vector2>(), It.IsAny<Vector2[]>(), It.IsAny<int>(), It.IsAny<int>()), Times.Once);
         }
 
         [Fact]
@@ -95,7 +92,7 @@ namespace ImageSharp.Tests.Drawing.Paths
             int yToScan = 10;
             ShapeRegion region = new ShapeRegion(pathMock.Object);
 
-            shapeMock.Setup(x => x.FindIntersections(It.IsAny<Vector2>(), It.IsAny<Vector2>(), It.IsAny<Vector2[]>(), It.IsAny<int>(), It.IsAny<int>()))
+            pathMock.Setup(x => x.FindIntersections(It.IsAny<Vector2>(), It.IsAny<Vector2>(), It.IsAny<Vector2[]>(), It.IsAny<int>(), It.IsAny<int>()))
                 .Callback<Vector2, Vector2, Vector2[], int, int>((s, e, b, c, o) => {
                     Assert.Equal(yToScan, s.Y);
                     Assert.Equal(yToScan, e.Y);
@@ -105,7 +102,7 @@ namespace ImageSharp.Tests.Drawing.Paths
 
             int i = region.ScanY(yToScan, new float[0], 0, 0);
 
-            shapeMock.Verify(x => x.FindIntersections(It.IsAny<Vector2>(), It.IsAny<Vector2>(), It.IsAny<Vector2[]>(), It.IsAny<int>(), It.IsAny<int>()), Times.Once);
+            pathMock.Verify(x => x.FindIntersections(It.IsAny<Vector2>(), It.IsAny<Vector2>(), It.IsAny<Vector2[]>(), It.IsAny<int>(), It.IsAny<int>()), Times.Once);
         }
 
 
@@ -113,9 +110,9 @@ namespace ImageSharp.Tests.Drawing.Paths
         public void ShapeRegionFromShapeScanXProxyToShape()
         {
             int xToScan = 10;
-            ShapeRegion region = new ShapeRegion(shapeMock.Object);
+            ShapeRegion region = new ShapeRegion(pathMock.Object);
 
-            shapeMock.Setup(x => x.FindIntersections(It.IsAny<Vector2>(), It.IsAny<Vector2>(), It.IsAny<Vector2[]>(), It.IsAny<int>(), It.IsAny<int>()))
+            pathMock.Setup(x => x.FindIntersections(It.IsAny<Vector2>(), It.IsAny<Vector2>(), It.IsAny<Vector2[]>(), It.IsAny<int>(), It.IsAny<int>()))
                 .Callback<Vector2, Vector2, Vector2[], int, int>((s, e, b, c, o) => {
                     Assert.Equal(xToScan, s.X);
                     Assert.Equal(xToScan, e.X);
@@ -125,16 +122,16 @@ namespace ImageSharp.Tests.Drawing.Paths
 
             int i = region.ScanX(xToScan, new float[0], 0, 0);
 
-            shapeMock.Verify(x => x.FindIntersections(It.IsAny<Vector2>(), It.IsAny<Vector2>(), It.IsAny<Vector2[]>(), It.IsAny<int>(), It.IsAny<int>()), Times.Once);
+            pathMock.Verify(x => x.FindIntersections(It.IsAny<Vector2>(), It.IsAny<Vector2>(), It.IsAny<Vector2[]>(), It.IsAny<int>(), It.IsAny<int>()), Times.Once);
         }
 
         [Fact]
         public void ShapeRegionFromShapeScanYProxyToShape()
         {
             int yToScan = 10;
-            ShapeRegion region = new ShapeRegion(shapeMock.Object);
+            ShapeRegion region = new ShapeRegion(pathMock.Object);
 
-            shapeMock.Setup(x => x.FindIntersections(It.IsAny<Vector2>(), It.IsAny<Vector2>(), It.IsAny<Vector2[]>(), It.IsAny<int>(), It.IsAny<int>()))
+            pathMock.Setup(x => x.FindIntersections(It.IsAny<Vector2>(), It.IsAny<Vector2>(), It.IsAny<Vector2[]>(), It.IsAny<int>(), It.IsAny<int>()))
                 .Callback<Vector2, Vector2, Vector2[], int, int>((s, e, b, c, o) => {
                     Assert.Equal(yToScan, s.Y);
                     Assert.Equal(yToScan, e.Y);
@@ -144,27 +141,27 @@ namespace ImageSharp.Tests.Drawing.Paths
 
             int i = region.ScanY(yToScan, new float[0], 0, 0);
 
-            shapeMock.Verify(x => x.FindIntersections(It.IsAny<Vector2>(), It.IsAny<Vector2>(), It.IsAny<Vector2[]>(), It.IsAny<int>(), It.IsAny<int>()), Times.Once);
+            pathMock.Verify(x => x.FindIntersections(It.IsAny<Vector2>(), It.IsAny<Vector2>(), It.IsAny<Vector2[]>(), It.IsAny<int>(), It.IsAny<int>()), Times.Once);
         }
 
         [Fact]
         public void ShapeRegionFromShapeConvertsBoundsProxyToShape()
         {
-            ShapeRegion region = new ShapeRegion(shapeMock.Object);
+            ShapeRegion region = new ShapeRegion(pathMock.Object);
 
             Assert.Equal(Math.Floor(bounds.Left), region.Bounds.Left);
             Assert.Equal(Math.Ceiling(bounds.Right), region.Bounds.Right);
 
-            shapeMock.Verify(x => x.Bounds);
+            pathMock.Verify(x => x.Bounds);
         }
 
         [Fact]
         public void ShapeRegionFromShapeMaxIntersectionsProxyToShape()
         {
-            ShapeRegion region = new ShapeRegion(shapeMock.Object);
+            ShapeRegion region = new ShapeRegion(pathMock.Object);
 
             int i = region.MaxIntersections;
-            shapeMock.Verify(x => x.MaxIntersections);
+            pathMock.Verify(x => x.MaxIntersections);
         }
     }
 }

@@ -50,9 +50,8 @@ namespace ImageSharp.Tests.Drawing.Paths
             Assert.Equal(GraphicsOptions.Default, processor.Options);
 
             ShapePath path = Assert.IsType<ShapePath>(processor.Path);
-            Assert.NotEmpty(path.Paths);
 
-            SixLabors.Shapes.Path vector = Assert.IsType<SixLabors.Shapes.Path>(path.Paths[0]);
+            SixLabors.Shapes.Path vector = Assert.IsType<SixLabors.Shapes.Path>(path.Path);
             LinearLineSegment segment = Assert.IsType<LinearLineSegment>(vector.LineSegments[0]);
 
             Pen<Color> pen = Assert.IsType<Pen<Color>>(processor.Pen);
@@ -71,9 +70,8 @@ namespace ImageSharp.Tests.Drawing.Paths
             Assert.Equal(noneDefault, processor.Options);
 
             ShapePath path = Assert.IsType<ShapePath>(processor.Path);
-            Assert.NotEmpty(path.Paths);
 
-            SixLabors.Shapes.Path vector = Assert.IsType<SixLabors.Shapes.Path>(path.Paths[0]);
+            SixLabors.Shapes.Path vector = Assert.IsType<SixLabors.Shapes.Path>(path.Path);
             LinearLineSegment segment = Assert.IsType<LinearLineSegment>(vector.LineSegments[0]);
 
             Pen<Color> pen = Assert.IsType<Pen<Color>>(processor.Pen);
@@ -92,9 +90,8 @@ namespace ImageSharp.Tests.Drawing.Paths
             Assert.Equal(GraphicsOptions.Default, processor.Options);
 
             ShapePath path = Assert.IsType<ShapePath>(processor.Path);
-            Assert.NotEmpty(path.Paths);
 
-            SixLabors.Shapes.Path vector = Assert.IsType<SixLabors.Shapes.Path>(path.Paths[0]);
+            SixLabors.Shapes.Path vector = Assert.IsType<SixLabors.Shapes.Path>(path.Path);
             LinearLineSegment segment = Assert.IsType<LinearLineSegment>(vector.LineSegments[0]);
 
             Pen<Color> pen = Assert.IsType<Pen<Color>>(processor.Pen);
@@ -115,9 +112,8 @@ namespace ImageSharp.Tests.Drawing.Paths
             Assert.Equal(noneDefault, processor.Options);
 
             ShapePath path = Assert.IsType<ShapePath>(processor.Path);
-            Assert.NotEmpty(path.Paths);
 
-            SixLabors.Shapes.Path vector = Assert.IsType<SixLabors.Shapes.Path>(path.Paths[0]);
+            SixLabors.Shapes.Path vector = Assert.IsType<SixLabors.Shapes.Path>(path.Path);
             LinearLineSegment segment = Assert.IsType<LinearLineSegment>(vector.LineSegments[0]);
 
             Pen<Color> pen = Assert.IsType<Pen<Color>>(processor.Pen);
@@ -138,9 +134,8 @@ namespace ImageSharp.Tests.Drawing.Paths
             Assert.Equal(GraphicsOptions.Default, processor.Options);
 
             ShapePath path = Assert.IsType<ShapePath>(processor.Path);
-            Assert.NotEmpty(path.Paths);
 
-            SixLabors.Shapes.Path vector = Assert.IsType<SixLabors.Shapes.Path>(path.Paths[0]);
+            SixLabors.Shapes.Path vector = Assert.IsType<SixLabors.Shapes.Path>(path.Path);
             LinearLineSegment segment = Assert.IsType<LinearLineSegment>(vector.LineSegments[0]);
 
             Assert.Equal(pen, processor.Pen);
@@ -157,9 +152,8 @@ namespace ImageSharp.Tests.Drawing.Paths
             Assert.Equal(noneDefault, processor.Options);
 
             ShapePath path = Assert.IsType<ShapePath>(processor.Path);
-            Assert.NotEmpty(path.Paths);
 
-            SixLabors.Shapes.Path vector = Assert.IsType<SixLabors.Shapes.Path>(path.Paths[0]);
+            SixLabors.Shapes.Path vector = Assert.IsType<SixLabors.Shapes.Path>(path.Path);
             LinearLineSegment segment = Assert.IsType<LinearLineSegment>(vector.LineSegments[0]);
 
             Assert.Equal(pen, processor.Pen);

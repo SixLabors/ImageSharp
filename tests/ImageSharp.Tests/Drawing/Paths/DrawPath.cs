@@ -50,8 +50,7 @@ namespace ImageSharp.Tests.Drawing.Paths
             Assert.Equal(GraphicsOptions.Default, processor.Options);
 
             ShapePath shapepath = Assert.IsType<ShapePath>(processor.Path);
-            Assert.NotEmpty(shapepath.Paths);
-            Assert.Equal(path, shapepath.Paths[0]);
+            Assert.Equal(path, shapepath.Path);
             
             Pen<Color> pen = Assert.IsType<Pen<Color>>(processor.Pen);
             Assert.Equal(brush, pen.Brush);
@@ -69,8 +68,7 @@ namespace ImageSharp.Tests.Drawing.Paths
             Assert.Equal(noneDefault, processor.Options);
 
             ShapePath shapepath = Assert.IsType<ShapePath>(processor.Path);
-            Assert.NotEmpty(shapepath.Paths);
-            Assert.Equal(path, shapepath.Paths[0]);
+            Assert.Equal(path, shapepath.Path);
 
             Pen<Color> pen = Assert.IsType<Pen<Color>>(processor.Pen);
             Assert.Equal(brush, pen.Brush);
@@ -88,8 +86,7 @@ namespace ImageSharp.Tests.Drawing.Paths
             Assert.Equal(GraphicsOptions.Default, processor.Options);
 
             ShapePath shapepath = Assert.IsType<ShapePath>(processor.Path);
-            Assert.NotEmpty(shapepath.Paths);
-            Assert.Equal(path, shapepath.Paths[0]);
+            Assert.Equal(path, shapepath.Path);
 
             Pen<Color> pen = Assert.IsType<Pen<Color>>(processor.Pen);
             Assert.Equal(thickness, pen.Width);
@@ -109,8 +106,7 @@ namespace ImageSharp.Tests.Drawing.Paths
             Assert.Equal(noneDefault, processor.Options);
 
             ShapePath shapepath = Assert.IsType<ShapePath>(processor.Path);
-            Assert.NotEmpty(shapepath.Paths);
-            Assert.Equal(path, shapepath.Paths[0]);
+            Assert.Equal(path, shapepath.Path);
 
             Pen<Color> pen = Assert.IsType<Pen<Color>>(processor.Pen);
             Assert.Equal(thickness, pen.Width);
@@ -130,8 +126,7 @@ namespace ImageSharp.Tests.Drawing.Paths
             Assert.Equal(GraphicsOptions.Default, processor.Options);
 
             ShapePath shapepath = Assert.IsType<ShapePath>(processor.Path);
-            Assert.NotEmpty(shapepath.Paths);
-            Assert.Equal(path, shapepath.Paths[0]);
+            Assert.Equal(path, shapepath.Path);
 
             Assert.Equal(pen, processor.Pen);
         }
@@ -147,8 +142,7 @@ namespace ImageSharp.Tests.Drawing.Paths
             Assert.Equal(noneDefault, processor.Options);
 
             ShapePath shapepath = Assert.IsType<ShapePath>(processor.Path);
-            Assert.NotEmpty(shapepath.Paths);
-            Assert.Equal(path, shapepath.Paths[0]);
+            Assert.Equal(path, shapepath.Path);
 
             Assert.Equal(pen, processor.Pen);
         }

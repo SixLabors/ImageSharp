@@ -44,7 +44,7 @@
     "ImageSharp.Drawing": {
       "target": "project"
     },
-    "SixLabors.Shapes": "0.1.0-alpha0004",
+    "SixLabors.Shapes": "0.1.0-alpha0005",
     "StyleCop.Analyzers": {
       "version": "1.0.0",
       "type": "build"

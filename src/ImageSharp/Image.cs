@@ -44,6 +44,23 @@ namespace ImageSharp
         {
         }
 
+#if !NO_FILE_IO
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Image"/> class.
+        /// </summary>
+        /// <param name="filePath">
+        /// A file path to read image information.
+        /// </param>
+        /// <param name="configuration">
+        /// The configuration providing initialization code which allows extending the library.
+        /// </param>
+        /// <exception cref="System.ArgumentNullException">Thrown if the <paramref name="filePath"/> is null.</exception>
+        public Image(string filePath, Configuration configuration = null)
+            : base(filePath, configuration)
+        {
+        }
+#endif
+
         /// <summary>
         /// Initializes a new instance of the <see cref="Image"/> class.
         /// </summary>

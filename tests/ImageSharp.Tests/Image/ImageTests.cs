@@ -7,6 +7,8 @@ namespace ImageSharp.Tests
 {
     using System;
 
+    using ImageSharp.Formats;
+
     using Xunit;
 
     /// <summary>
@@ -59,6 +61,71 @@ namespace ImageSharp.Tests
                 {
                     new Image(null);
                 });
+        }
+
+        [Fact]
+        public void Save_DetecedEncoding()
+        {
+            string file = TestFile.GetPath("../../TestOutput/Save_DetecedEncoding.png");
+            var dir = System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(file));
+            using (Image image = new Image(10, 10))
+            {
+                image.Save(file);
+            }
+
+            var c = TestFile.Create("../../TestOutput/Save_DetecedEncoding.png");
+            using (var img = c.CreateImage())
+            {
+                Assert.IsType<PngFormat>(img.CurrentImageFormat);
+            }
+        }
+
+        [Fact]
+        public void Save_UnknownExtensionsEncoding()
+        {
+            string file = TestFile.GetPath("../../TestOutput/Save_DetecedEncoding.tmp");
+            var ex = Assert.Throws<InvalidOperationException>(
+                () =>
+                    {
+                        using (Image image = new Image(10, 10))
+                        {
+                            image.Save(file);
+                        }
+                    });
+        }
+
+        [Fact]
+        public void Save_SetFormat()
+        {
+            string file = TestFile.GetPath("../../TestOutput/Save_SetFormat.dat");
+            var dir = System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(file));
+            using (Image image = new Image(10, 10))
+            {
+                image.Save(file, new PngFormat());
+            }
+
+            var c = TestFile.Create("../../TestOutput/Save_SetFormat.dat");
+            using (var img = c.CreateImage())
+            {
+                Assert.IsType<PngFormat>(img.CurrentImageFormat);
+            }
+        }
+
+        [Fact]
+        public void Save_SetEncoding()
+        {
+            string file = TestFile.GetPath("../../TestOutput/Save_SetEncoding.dat");
+            var dir = System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(file));
+            using (Image image = new Image(10, 10))
+            {
+                image.Save(file, new PngEncoder());
+            }
+
+            var c = TestFile.Create("../../TestOutput/Save_SetEncoding.dat");
+            using (var img = c.CreateImage())
+            {
+                Assert.IsType<PngFormat>(img.CurrentImageFormat);
+            }
         }
     }
 }

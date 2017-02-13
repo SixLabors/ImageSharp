@@ -6,18 +6,27 @@
 namespace ImageSharp.Quantizers
 {
     using System;
+    using System.Numerics;
+    using System.Runtime.CompilerServices;
+
+    using ImageSharp.Dithering;
 
     /// <summary>
     /// Encapsulates methods to calculate the color palette of an image.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    public abstract class Quantizer<TColor> : IQuantizer<TColor>
+    public abstract class Quantizer<TColor> : IDitheredQuantizer<TColor>
         where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>
         /// Flag used to indicate whether a single pass or two passes are needed for quantization.
         /// </summary>
         private readonly bool singlePass;
+
+        /// <summary>
+        /// The reduced image palette
+        /// </summary>
+        private TColor[] palette;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Quantizer{TColor}"/> class.
@@ -35,6 +44,12 @@ namespace ImageSharp.Quantizers
             this.singlePass = singlePass;
         }
 
+        /// <inheritdoc />
+        public bool Dither { get; set; } = true;
+
+        /// <inheritdoc />
+        public IErrorDiffusion DitherType { get; set; } = new SierraLite();
+
         /// <inheritdoc/>
         public virtual QuantizedImage<TColor> Quantize(ImageBase<TColor> image, int maxColors)
         {
@@ -44,7 +59,6 @@ namespace ImageSharp.Quantizers
             int height = image.Height;
             int width = image.Width;
             byte[] quantizedPixels = new byte[width * height];
-            TColor[] palette;
 
             using (PixelAccessor<TColor> pixels = image.Lock())
             {
@@ -57,12 +71,24 @@ namespace ImageSharp.Quantizers
                 }
 
                 // Get the palette
-                palette = this.GetPalette();
+                this.palette = this.GetPalette();
 
-                this.SecondPass(pixels, quantizedPixels, width, height);
+                if (this.Dither)
+                {
+                    // We clone the image as we don't want to alter the original.
+                    using (Image<TColor> clone = new Image<TColor>(image))
+                    using (PixelAccessor<TColor> clonedPixels = clone.Lock())
+                    {
+                        this.SecondPass(clonedPixels, quantizedPixels, width, height);
+                    }
+                }
+                else
+                {
+                    this.SecondPass(pixels, quantizedPixels, width, height);
+                }
             }
 
-            return new QuantizedImage<TColor>(width, height, palette, quantizedPixels);
+            return new QuantizedImage<TColor>(width, height, this.palette, quantizedPixels);
         }
 
         /// <summary>
@@ -99,6 +125,14 @@ namespace ImageSharp.Quantizers
                 // And loop through each column
                 for (int x = 0; x < width; x++)
                 {
+                    if (this.Dither)
+                    {
+                        // Apply the dithering matrix
+                        TColor sourcePixel = source[x, y];
+                        TColor transformedPixel = this.palette[GetClosestColor(sourcePixel, this.palette)];
+                        this.DitherType.Dither(source, sourcePixel, transformedPixel, x, y, width, height);
+                    }
+
                     output[(y * source.Width) + x] = this.QuantizePixel(source[x, y]);
                 }
             }
@@ -129,8 +163,41 @@ namespace ImageSharp.Quantizers
         /// Retrieve the palette for the quantized image
         /// </summary>
         /// <returns>
-        /// The new color palette
+        /// <see cref="T:TColor[]"/>
         /// </returns>
         protected abstract TColor[] GetPalette();
+
+        /// <summary>
+        /// Returns the closest color from the palette to the given color by calculating the Euclidean distance.
+        /// </summary>
+        /// <param name="pixel">The color.</param>
+        /// <param name="palette">The color palette.</param>
+        /// <returns>The <see cref="byte"/></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static byte GetClosestColor(TColor pixel, TColor[] palette)
+        {
+            float leastDistance = int.MaxValue;
+            Vector4 vector = pixel.ToVector4();
+
+            byte colorIndex = 0;
+            for (int index = 0; index < palette.Length; index++)
+            {
+                float distance = Vector4.Distance(vector, palette[index].ToVector4());
+
+                if (distance < leastDistance)
+                {
+                    colorIndex = (byte)index;
+                    leastDistance = distance;
+
+                    // And if it's an exact match, exit the loop
+                    if (Math.Abs(distance) < Constants.Epsilon)
+                    {
+                        break;
+                    }
+                }
+            }
+
+            return colorIndex;
+        }
     }
 }

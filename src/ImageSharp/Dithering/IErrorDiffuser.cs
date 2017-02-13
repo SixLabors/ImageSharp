@@ -1,4 +1,4 @@
-﻿// <copyright file="IErrorDiffusion.cs" company="James Jackson-South">
+﻿// <copyright file="IErrorDiffuser.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -10,7 +10,7 @@ namespace ImageSharp.Dithering
     /// <summary>
     /// Encapsulates properties and methods required to perfom diffused error dithering on an image.
     /// </summary>
-    public interface IErrorDiffusion
+    public interface IErrorDiffuser
     {
         /// <summary>
         /// Gets the dithering matrix

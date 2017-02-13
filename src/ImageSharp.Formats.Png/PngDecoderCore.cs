@@ -927,12 +927,12 @@ namespace ImageSharp.Formats
         private void ReadChunkLength(PngChunk chunk)
         {
             int numBytes = this.currentStream.Read(this.chunkLengthBuffer, 0, 4);
-            if (numBytes >= 1 && numBytes <= 3)
+            if (numBytes > 1 && numBytes <= 3)
             {
                 throw new ImageFormatException("Image stream is not valid!");
             }
 
-            if (numBytes <= 0)
+            if (numBytes <= 1)
             {
                 chunk.Length = -1;
                 return;

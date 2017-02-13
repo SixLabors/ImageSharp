@@ -34,6 +34,9 @@ namespace ImageSharp.Tests
 
             // filter changing per scanline
             public const string FilterVar = "Png/filterVar.png";
+
+            // Chunk length of 1 by end marker
+            public const string ChunkLength = "Png/chunklength1.png";
         }
 
         public static class Jpeg

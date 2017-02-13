@@ -254,8 +254,8 @@ namespace ImageSharp
         /// <returns>The <see cref="Image{TColor}"/></returns>
         public Image<TColor> Save(string filePath)
         {
-            var ext = Path.GetExtension(filePath).Trim('.');
-            var format = this.Configuration.ImageFormats.SingleOrDefault(f => f.SupportedExtensions.Contains(ext, StringComparer.OrdinalIgnoreCase));
+            string ext = Path.GetExtension(filePath).Trim('.');
+            IImageFormat format = this.Configuration.ImageFormats.SingleOrDefault(f => f.SupportedExtensions.Contains(ext, StringComparer.OrdinalIgnoreCase));
             if (format == null)
             {
                 throw new InvalidOperationException($"No image formats have been registered for the file extension '{ext}'.");
@@ -274,7 +274,7 @@ namespace ImageSharp
         public Image<TColor> Save(string filePath, IImageFormat format)
         {
             Guard.NotNull(format, nameof(format));
-            using (var fs = File.Create(filePath))
+            using (FileStream fs = File.Create(filePath))
             {
                 return this.Save(fs, format);
             }
@@ -290,7 +290,7 @@ namespace ImageSharp
         public Image<TColor> Save(string filePath, IImageEncoder encoder)
         {
             Guard.NotNull(encoder, nameof(encoder));
-            using (var fs = File.Create(filePath))
+            using (FileStream fs = File.Create(filePath))
             {
                 return this.Save(fs, encoder);
             }

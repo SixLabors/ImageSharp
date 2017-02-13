@@ -48,7 +48,7 @@ namespace ImageSharp.Quantizers
         public bool Dither { get; set; } = true;
 
         /// <inheritdoc />
-        public IErrorDiffusion DitherType { get; set; } = new SierraLite();
+        public IErrorDiffuser DitherType { get; set; } = new SierraLite();
 
         /// <inheritdoc/>
         public virtual QuantizedImage<TColor> Quantize(ImageBase<TColor> image, int maxColors)

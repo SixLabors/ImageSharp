@@ -1,4 +1,4 @@
-﻿// <copyright file="ErrorDiffusion.cs" company="James Jackson-South">
+﻿// <copyright file="ErrorDiffuser.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -12,7 +12,7 @@ namespace ImageSharp.Dithering
     /// <summary>
     /// The base class for performing effor diffusion based dithering.
     /// </summary>
-    public abstract class ErrorDiffusion : IErrorDiffusion
+    public abstract class ErrorDiffuser : IErrorDiffuser
     {
         /// <summary>
         /// The vector to perform division.
@@ -35,11 +35,11 @@ namespace ImageSharp.Dithering
         private readonly int startingOffset;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ErrorDiffusion"/> class.
+        /// Initializes a new instance of the <see cref="ErrorDiffuser"/> class.
         /// </summary>
         /// <param name="matrix">The dithering matrix.</param>
         /// <param name="divisor">The divisor.</param>
-        protected ErrorDiffusion(byte[,] matrix, byte divisor)
+        protected ErrorDiffuser(byte[,] matrix, byte divisor)
         {
             Guard.NotNull(matrix, nameof(matrix));
             Guard.MustBeGreaterThan(divisor, 0, nameof(divisor));

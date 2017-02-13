@@ -9,7 +9,7 @@ namespace ImageSharp.Dithering
     /// Applies error diffusion based dithering using the Sierra3 image dithering algorithm.
     /// <see href="http://www.efg2.com/Lab/Library/ImageProcessing/DHALF.TXT"/>
     /// </summary>
-    public class Sierra3 : ErrorDiffusion
+    public sealed class Sierra3 : ErrorDiffuser
     {
         /// <summary>
         /// The diffusion matrix

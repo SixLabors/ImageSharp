@@ -9,7 +9,7 @@ namespace ImageSharp.Dithering
     /// Applies error diffusion based dithering using the Atkinson image dithering algorithm.
     /// <see href="http://www.efg2.com/Lab/Library/ImageProcessing/DHALF.TXT"/>
     /// </summary>
-    public class Atkinson : ErrorDiffusion
+    public sealed class Atkinson : ErrorDiffuser
     {
         /// <summary>
         /// The diffusion matrix

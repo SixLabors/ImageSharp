@@ -1,0 +1,31 @@
+﻿// <copyright file="Sierra2.cs" company="James Jackson-South">
+// Copyright (c) James Jackson-South and contributors.
+// Licensed under the Apache License, Version 2.0.
+// </copyright>
+
+namespace ImageSharp.Dithering
+{
+    /// <summary>
+    /// Applies error diffusion based dithering using the Sierra2 image dithering algorithm.
+    /// <see href="http://www.efg2.com/Lab/Library/ImageProcessing/DHALF.TXT"/>
+    /// </summary>
+    public class Sierra2 : ErrorDiffusion
+    {
+        /// <summary>
+        /// The diffusion matrix
+        /// </summary>
+        private static readonly byte[,] Sierra2Matrix =
+            {
+               { 0, 0, 0, 4, 3 },
+               { 1, 2, 3, 2, 1 }
+            };
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Sierra2"/> class.
+        /// </summary>
+        public Sierra2()
+            : base(Sierra2Matrix, 16)
+        {
+        }
+    }
+}

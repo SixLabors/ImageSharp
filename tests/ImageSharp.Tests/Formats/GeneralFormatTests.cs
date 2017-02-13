@@ -111,26 +111,27 @@ namespace ImageSharp.Tests
 
             foreach (TestFile file in Files)
             {
-                Image image = file.CreateImage();
-
-                using (FileStream output = File.OpenWrite($"{path}/{file.FileNameWithoutExtension}.gif"))
+                using (Image image = file.CreateImage())
                 {
-                    image.SaveAsGif(output);
-                }
+                    using (FileStream output = File.OpenWrite($"{path}/{file.FileNameWithoutExtension}.bmp"))
+                    {
+                        image.SaveAsBmp(output);
+                    }
 
-                using (FileStream output = File.OpenWrite($"{path}/{file.FileNameWithoutExtension}.bmp"))
-                {
-                    image.SaveAsBmp(output);
-                }
+                    using (FileStream output = File.OpenWrite($"{path}/{file.FileNameWithoutExtension}.jpg"))
+                    {
+                        image.SaveAsJpeg(output);
+                    }
 
-                using (FileStream output = File.OpenWrite($"{path}/{file.FileNameWithoutExtension}.jpg"))
-                {
-                    image.SaveAsJpeg(output);
-                }
+                    using (FileStream output = File.OpenWrite($"{path}/{file.FileNameWithoutExtension}.png"))
+                    {
+                        image.SaveAsPng(output);
+                    }
 
-                using (FileStream output = File.OpenWrite($"{path}/{file.FileNameWithoutExtension}.png"))
-                {
-                    image.SaveAsPng(output);
+                    using (FileStream output = File.OpenWrite($"{path}/{file.FileNameWithoutExtension}.gif"))
+                    {
+                        image.SaveAsGif(output);
+                    }
                 }
             }
         }
@@ -142,22 +143,25 @@ namespace ImageSharp.Tests
 
             foreach (TestFile file in Files)
             {
-                Image image = file.CreateImage();
-
                 byte[] serialized;
-                using (MemoryStream memoryStream = new MemoryStream())
+                using (Image image = file.CreateImage())
                 {
-                    image.Save(memoryStream);
-                    memoryStream.Flush();
-                    serialized = memoryStream.ToArray();
+                    using (MemoryStream memoryStream = new MemoryStream())
+                    {
+                        image.Save(memoryStream);
+                        memoryStream.Flush();
+                        serialized = memoryStream.ToArray();
+                    }
                 }
 
                 using (MemoryStream memoryStream = new MemoryStream(serialized))
                 {
-                    Image image2 = new Image(memoryStream);
-                    using (FileStream output = File.OpenWrite($"{path}/{file.FileName}"))
+                    using (Image image2 = new Image(memoryStream))
                     {
-                        image2.Save(output);
+                        using (FileStream output = File.OpenWrite($"{path}/{file.FileName}"))
+                        {
+                            image2.Save(output);
+                        }
                     }
                 }
             }

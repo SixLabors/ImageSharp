@@ -12,10 +12,10 @@ What follows is everything you ever wanted to know (for the time being)
 about digital halftoning, or dithering.  I'm sure it will be out of date as
 soon as it is released, but it does serve to collect data from a wide
 variety of sources into a single document, and should save you considerable
-searching time.  
+searching time.
 
 Numbers in brackets (e.g. [4] or [12]) are references.  A list of these
-works appears at the end of this document.  
+works appears at the end of this document.
 
 Because this document describes ideas and algorithms which are constantly
 changing, I expect that it may have many editions, additions, and
@@ -23,7 +23,7 @@ corrections before it gets to you.  I will list my name below as original
 author, but I do not wish to deter others from adding their own thoughts and
 discoveries.   This is not copyrighted in any way, and was created solely
 for the purpose of organizing my own knowledge on the subject, and sharing
-this with others.  Please distribute it to anyone who might be interested.  
+this with others.  Please distribute it to anyone who might be interested.
 
 If you add anything to this document, please feel free to include your name
 below as a contributor or as a reference.  I would particularly like to see
@@ -31,7 +31,7 @@ additions to the "Other books of interest" section.  Please keep the text in
 this simple format: no margins, no pagination, no lines longer than 79
 characters, and no non-ASCII or non-printing characters other than a CR/LF
 pair at the end of each line.  It is intended that this be read on as many
-different machines as possible.  
+different machines as possible.
 
 
 Original Author:
@@ -50,7 +50,7 @@ Contributors:
 COMMENTS BY MIKE MORRA
 
 I first entered the world of imaging in the fall of 1990 when my employer,
-Epson America Inc., began shipping the ES-300C color flatbed scanner. 
+Epson America Inc., began shipping the ES-300C color flatbed scanner.
 Suddenly, here I was, a field systems analyst who had worked almost
 exclusively with printers and PCs, thrust into a new and arcane world of
 look-up tables and dithering and color reduction and .GIF files!  I realized
@@ -60,10 +60,10 @@ Graphics Support Forum on a very regular basis.
 
 Lee Crocker's excellent paper called DITHER.TXT was one of the first pieces
 of information that I came across, and it went a very long way toward
-answering a lot of questions that I'd had about the subject of dithering. 
+answering a lot of questions that I'd had about the subject of dithering.
 It also provided me with the names of other essential reference works upon
 which Lee had based his paper, and I immediately began an eager search for
-these other references. 
+these other references.
 
 In the course of my self-study, however, I found that DITHER.TXT does
 presume the reader's familiarity with some fundamental imaging concepts,
@@ -90,7 +90,7 @@ second, distinct document.  Too, I may very well have misconstrued or
 misinterpreted some factual information in my revision.  As such, I welcome
 criticism and comment from all the original authors and contributors, and
 any readers, with the hope that their feedback will help me to address these
-issues.  
+issues.
 
 If this revision it is received favorably, I will submit it to the public
 domain; if it is met with brickbats (for whatever reason), I will withdraw
@@ -103,7 +103,7 @@ my questions that I needed.  I'd like to publicly thank the whole Forum
 community in general for putting up with my unending barrage of questions
 and inquiries over the past few months <g>.  In particular, I would thank
 John Swenson, Chris Young, and (of course) Lee Crocker for their invaluable
-assistance. 
+assistance.
 
 Mike Morra [76703,4051]
 June 20, 1991
@@ -118,7 +118,7 @@ digitized images on display devices which were incapable of reproducing the
 full spectrum of intensities or colors present in the source image.  The
 challenge is even more pronounced in today's world of personal computing
 because of the technology gap between image generation and image rendering
-equipment.  
+equipment.
 
 Today, we now have affordable 24-bit image scanners which can generate
 nearly true-to-life scans having as many as 256 shades of gray, or in excess
@@ -127,7 +127,7 @@ behind with 16- and 256-color VGA/SVGA video monitors and printers with
 binary (black/white) "marking engines" as the norm.  Without specialized
 techniques for color reduction -- the process of finding the "best fit" of
 the display device's available gray shades and/or colors -- the imaging
-experimenter would be plagued with blotchy, noisy, off-color images.  
+experimenter would be plagued with blotchy, noisy, off-color images.
 
 (As of this writing, "true color" 24-bit video display devices, capable of
 reproducing all of the color/intensity information in the source image, are
@@ -135,7 +135,7 @@ now beginning to migrate downward into the PC environment, but they exact a
 premium in cost and processor power which many users are loathe to pay.  So-
 called "high-color" video displays -- typically 16-bit, with 32,768-color
 capability -- are moving into the mainstream, but color reduction techniques
-would still be required with these devices.) 
+would still be required with these devices.)
 
 The science of digital halftoning (more commonly referred to as dithering,
 or spatial dithering) is one of the techniques used to achieve satisfactory
@@ -146,7 +146,7 @@ full white pixels, or on printers which could produce only full black spots
 on a printed page.  Indeed, Ulichney [3] gives a definition of digital
 halftoning as "... any algorithmic process which creates the illusion of
 continuous-tone images from the judicious arrangement of binary picture
-elements."  
+elements."
 
 Ulichney's study, as well as the earlier literature on the subject (and this
 paper itself), discusses the process mostly in this context.  Since we in
@@ -164,8 +164,8 @@ range of colors or gray shades that are contained in the source image.
 Intensity/Color Resolution
 
 The concept of resolution is essential to the understanding of digital
-halftoning.  Resolution can be defined as "fineness" and is used to 
-describe the level of detail in a digitally sampled signal.  
+halftoning.  Resolution can be defined as "fineness" and is used to
+describe the level of detail in a digitally sampled signal.
 
 Typically, when we hear the term "resolution" applied to images, we think of
 what's known as "spatial resolution," which is the basic sampling rate for
@@ -194,7 +194,7 @@ display device has a higher spatial resolution than the image you are trying
 to reproduce, it can show a very good image even if its color resolution is
 less.  This is what most of us know as "dithering" and is the subject of
 this paper.  (The other tradeoff, i.e., trading color resolution for spatial
-resolution, is called "anti-aliasing," and is not discussed here.)  
+resolution, is called "anti-aliasing," and is not discussed here.)
 
 
 For the following discussions I will assume that we are given a grayscale
@@ -205,7 +205,7 @@ printer, or an HP LaserJet laser printer.  Most of these methods can be
 extended in obvious ways to deal with displays that have more than two
 levels (but still fewer than the source image), or to color images.  Where
 such extension is not obvious, or where better results can be obtained, I
-will go into more detail.  
+will go into more detail.
 
 
 =====================================
@@ -217,7 +217,7 @@ black and white device.  This is accomplished by establishing a demarcation
 point, or threshold, at the 50% gray level.  Each dot of the source image is
 compared against this threshold value: if it is darker than the value, the
 device plots it black, and if it's lighter, the device plots it white.
-  
+
 What happens to the image during this operation?  Well, some detail
 survives, but our perception of gray levels is completely gone.  This means
 that a lot of the image content is obliterated.  Take an area of the image
@@ -281,16 +281,16 @@ categories:
      3.  Ordered dither
      4.  Error-diffusion halftoning
 
-Each of these methods is generally better than those listed before it, but 
-other considerations such as processing time, memory constraints, etc. may 
-weigh in favor of one of the simpler methods.  
+Each of these methods is generally better than those listed before it, but
+other considerations such as processing time, memory constraints, etc. may
+weigh in favor of one of the simpler methods.
 
 To convert any of the first three methods into color, simply apply the
-algorithm separately for each primary color and mix the resulting values. 
+algorithm separately for each primary color and mix the resulting values.
 This assumes that you have at least eight output colors: black, red, green,
 blue, cyan, magenta, yellow, and white.  Though this will work for error
 diffusion as well, there are better methods which will be discussed in more
-detail later. 
+detail later.
 
 
 =====================================
@@ -307,7 +307,7 @@ While it is not really acceptable as a production method, it is very simple
 to describe and implement.  For each dot in our grayscale image, we generate
 a random number in the range 0 - 255: if the random number is greater than
 the image value at that dot, the display device plots the dot white;
-otherwise, it plots it black.  That's it.  
+otherwise, it plots it black.  That's it.
 
 This generates a picture with a lot of "white noise", which looks like TV
 picture "snow".  Although inaccurate and grainy, the image is free from
@@ -317,7 +317,7 @@ more important than noise.  For example, a whole screen containing a
 gradient of all levels from black to white would actually look best with a
 random dither.  With this image, other digital halftoning algorithms would
 produce significant artifacts like diagonal patterns (in ordered dithering)
-and clustering (in error diffusion halftones). 
+and clustering (in error diffusion halftones).
 
 I should mention, of course, that unless your computer has a hardware-based
 random number generator (and most don't), there may be some artifacts from
@@ -399,7 +399,7 @@ like:
 
 
 because if they were repeated over a large area (a common occurrence in many
-images [1]) they would create vertical, horizontal, or diagonal lines. 
+images [1]) they would create vertical, horizontal, or diagonal lines.
 Also, studies [1] have shown that the patterns should form a "growth
 sequence:"  once a pixel is intensified for a particular value, it should
 remain intensified for all subsequent values.  In this fashion, each pattern
@@ -407,7 +407,7 @@ is a superset of the previous one; this similarity between adjacent
 intensity patterns minimizes any contouring artifacts.
 
 Here is a good pattern for a 3-by-3 matrix which subscribes to the rules set
-forth above: 
+forth above:
 
 
      ---   ---   ---   -X-   -XX   -XX   -XX   -XX   XXX   XXX
@@ -427,7 +427,7 @@ greater than that of the image.
 Another limitation of patterning is that the effective spatial resolution is
 decreased, since a multiple-pixel "cell" is used to simulate the single,
 larger halftone dot.  The more intensity resolution we want, the larger the
-halftone cell used and, by extension, the lower the spatial resolution.  
+halftone cell used and, by extension, the lower the spatial resolution.
 
 In the above example, using 3 x 3 patterning, we are able to simulate 10
 intensity levels (not a very good rendering) but we must reduce the spatial
@@ -437,22 +437,22 @@ eight-fold decrease in spatial resolution.  And to get the full 256 levels
 of intensity in our source image, we would need a 16 x 16 pattern and would
 incur a 16-fold reduction in spatial resolution.  Because of this size
 distortion of the image, and with the development of more effective digital
-halftoning methods, patterning is only infrequently used today.  
+halftoning methods, patterning is only infrequently used today.
 
 To extend this method to color images, we would use patterns of colored
 pixels to represent shades not directly printable by the hardware.  For
 example, if your hardware is capable of printing only red, green, blue, and
 black (the minimal case for color dithering), other colors can be
-represented with 2 x 2 patterns of these four: 
+represented with 2 x 2 patterns of these four:
 
 
-    Yellow = R G    Cyan = G B      Magenta = R B       Gray = R G           
+    Yellow = R G    Cyan = G B      Magenta = R B       Gray = R G
              G R           B G                B R              B K
 
 
 (B here represents blue, K is black).  In this particular example, there are
 a total of 31 such distinct patterns which can be used; their enumeration is
-left "as an exercise for the reader" (don't you hate books that do that?). 
+left "as an exercise for the reader" (don't you hate books that do that?).
 
 
 =====================================
@@ -503,13 +503,13 @@ PATTERN.  Returning to our example of a 3 x 3 pattern, this means that we
 would be mapping NINE image dots into this pattern.
 
 The simplest way to do this in programming is to map the X and Y coordinates
-of each image dot into the pixel (X mod 3, Y mod 3) in the pattern.  
+of each image dot into the pixel (X mod 3, Y mod 3) in the pattern.
 
 Returning to our two patterns (clustered and dispersed) as defined earlier,
 we can derive an effective mathematical algorithm that can be used to plot
 the correct pixel patterns.  Because each of the patterns above is a
 superset of the previous, we can express the patterns in a compact array
-form as the order of pixels added: 
+form as the order of pixels added:
 
 
         8  3  4                       1  7  4
@@ -534,7 +534,7 @@ allows) is preferred in order to decrease the graininess of the displayed
 images.  Bayer [2] has shown that for matrices of orders which are powers of
 two there is an optimal pattern of dispersed dots which results in the
 pattern noise being as high-frequency as possible.  The pattern for a 2x2
-and 4x4 matrices are as follows: 
+and 4x4 matrices are as follows:
 
 
 1  3        1  9  3 11        These patterns (and their rotations
@@ -548,7 +548,7 @@ patterns.  (To fully reproduce our 256-level image, we would need to use an
 8x8 pattern.)
 
 The Bayer ordered dither is in very common use and is easily identified by
-the cross-hatch pattern artifacts it produces in the resulting display. 
+the cross-hatch pattern artifacts it produces in the resulting display.
 This artifacting is the major drawback of an otherwise powerful and very
 fast technique.
 
@@ -616,7 +616,7 @@ we use for processing this point.
 
 If we are dithering our sample grayscale image for output to a black-and-
 white device, the "find closest intensity/color" operation is just a simple
-thresholding (the closest intensity is going to be either black or white). 
+thresholding (the closest intensity is going to be either black or white).
 In color imaging -- for instance, color-reducing a 24-bit true color Targa
 file to an 8-bit, mapped GIF file -- this involves matching the input color
 to the closest available hardware color.  Depending on how the display
@@ -653,7 +653,7 @@ position.  The expression in parentheses is the divisor used to break up the
 error weights.  In the Floyd-Steinberg filter, each pixel "communicates"
 with 4 "neighbors."  The pixel immediately to the right gets 7/16 of the
 error value, the pixel directly below gets 5/16 of the error, and the
-diagonally adjacent pixels get 3/16 and 1/16.  
+diagonally adjacent pixels get 3/16 and 1/16.
 
 The weighting shown is for the traditional left-to-right scanning of the
 image.  If the line were scanned right-to-left (more about this later), this
@@ -683,11 +683,11 @@ The output from this filter is nowhere near as good as that from the real
 Floyd-Steinberg filter.  There aren't enough weights to the dispersion,
 which means that the error value isn't distributed finely enough.  With the
 entire image scanned left-to-right, the artifacting produced would be
-totally unacceptable.  
+totally unacceptable.
 
 Much better results would be obtained by using an alternating, or
 serpentine, raster scan: processing the first line left-to-right, the next
-line right-to-left, and so on (reversing the filter pattern appropriately). 
+line right-to-left, and so on (reversing the filter pattern appropriately).
 Serpentine scanning -- which can be used with any of the error-diffusion
 filters detailed here -- introduces an additional perturbation which
 contributes more randomness to the resultant halftone.  Even with serpentine
@@ -702,9 +702,9 @@ If the false Floyd-Steinberg filter fails because the error isn't
 distributed well enough, then it follows that a filter with a wider
 distribution would be better.  This is exactly what Jarvis, Judice, and
 Ninke [6] did in 1976 with their filter:
- 
 
-             *   7   5 
+
+             *   7   5
      3   5   7   5   3
      1   3   5   3   1   (1/48)
 
@@ -723,7 +723,7 @@ requires extra memory and time for processing.
 The Stucki filter
 
 P. Stucki [7] offered a rework of the Jarvis, Judice, and Ninke filter in
-1981: 
+1981:
 
 
              *   8   4
@@ -731,12 +731,12 @@ P. Stucki [7] offered a rework of the Jarvis, Judice, and Ninke filter in
      1   2   4   2   1   (1/42)
 
 
-Once again, division by 42 is quite slow to calculate (requiring DIVs). 
+Once again, division by 42 is quite slow to calculate (requiring DIVs).
 However, after the initial 8/42 is calculated, some time can be saved by
 producing the remaining fractions by shifts.  The Stucki filter has been
 observed to give very clean, sharp output, which helps to offset the slow
 processing time.
- 
+
 
 =====================================
 The Burkes filter
@@ -752,7 +752,7 @@ in 1988:
 Notice that this is just a simplification of the Stucki filter with the
 bottom row removed.  The main improvement is that the divisor is now 32,
 which allows the error values to be calculated using shifts once more, and
-the number of neighbors communicated with has been reduced to seven. 
+the number of neighbors communicated with has been reduced to seven.
 Furthermore, the removal of one row reduces the memory requirements of the
 filter by eliminating the second forward array which would otherwise be
 needed.
@@ -807,9 +807,9 @@ would also include HP-compatible and PostScript desktop laser printers using
 
 Some displays may use "rectangular pixels," where the horizontal and
 vertical spacings are unequal.  This would include various EGA and CGA video
-modes and other specialized video displays, and most dot-matrix printers. 
+modes and other specialized video displays, and most dot-matrix printers.
 In many cases, the filters described earlier will do a decent job on
-rectangular pixel grids, but an optimized filter would be preferred. 
+rectangular pixel grids, but an optimized filter would be preferred.
 Slinkman [10] describes one such filter for his 640 x 240 monochrome display
 with a 1:2 aspect ratio.
 
@@ -832,7 +832,7 @@ be interested in further information.
 While technically not an error-diffusion filter, a method proposed by Gozum
 [11] offers color resolutions in excess of 256 colors by plotting red,
 green, and blue pixel "triplets" or triads to simulate an "interlaced"
-television display (sacrificing some horizontal resolution in the process). 
+television display (sacrificing some horizontal resolution in the process).
 Again, I would refer interested readers to his document for more
 information.
 
@@ -848,7 +848,7 @@ various filters in the same program, but the speed benefits are enormous.
 It is critical with all of these algorithms that when error values are added
 to neighboring pixels, the resultant summed values must be truncated to fit
 within the limits of hardware.  Otherwise, an area of very intense color may
-cause streaks into an adjacent area of less intense color.  
+cause streaks into an adjacent area of less intense color.
 
 This truncation is known as "clipping," and is analogous to the audio
 world's concept of the same name.  As in the case of an audio amplifier,
@@ -856,13 +856,13 @@ clipping adds undesired noise to the data.  Unlike the audio world, however,
 the visual clipping performed in error-diffusion halftoning is acceptable
 since it is not nearly so offensive as the color streaking that would occur
 otherwise.  It is mainly for this reason that the larger filters work better
--- they split the errors up more finely and produce less clipping noise.  
+-- they split the errors up more finely and produce less clipping noise.
 
 With all of these filters, it is also important to ensure that the sum of
 the distributed error values is equal to the original error value.  This is
 most easily accomplished by subtracting each fraction, as it is calculated,
 from the whole error value, and using the final remainder as the last
-fraction.  
+fraction.
 
 
 =====================================
@@ -880,7 +880,7 @@ constantly-varying pattern).  As you might imagine, any of these methods
 incur a penalty in processing time.
 
 Indeed, some of the above filters (particularly the simpler ones) can be
-greatly improved by skewing the weights with a little randomness [3].  
+greatly improved by skewing the weights with a little randomness [3].
 
 
 =====================================
@@ -888,7 +888,7 @@ Nearest available color
 
 Calculating the nearest available intensity is trivial with a monochrome
 image;  calculating the nearest available color in a color image requires
-more work.  
+more work.
 
 A table of RGB values of all available colors must be scanned sequentially
 for each input pixel to find the closest.  The "distance" formula most often
@@ -896,7 +896,7 @@ used is a simple pythagorean "least squares".  The difference for each color
 is squared, and the three squares added to produce the distance value.  This
 value is equivalent to the square of the distance between the points in RGB-
 space.  It is not necessary to compute the square root of this value because
-we are not interested in the actual distance, only in which is smallest. 
+we are not interested in the actual distance, only in which is smallest.
 The square root function is a monotonic increasing function and does not
 affect the order of its operands.  If the total number of colors with which
 you are dealing is small, this part of the algorithm can be replaced by a
@@ -907,7 +907,7 @@ results can be achieved by selecting colors from the image itself.  You must
 reserve at least 8 colors for the primaries, secondaries, black, and white
 for best results.  If you do not know the colors in your image ahead of
 time, or if you are going to use the same map to dither several different
-images, you will have to fill your color map with a good range of colors. 
+images, you will have to fill your color map with a good range of colors.
 This can be done either by assigning a certain number of bits to each
 primary and computing all combinations, or by a smoother distribution as
 suggested by Heckbert [8].
@@ -927,7 +927,7 @@ the "raw" scan is then already in a 1- or 2-bit/pixel format.  While this
 feature would probably be unsuitable for cases where the image would need
 further processing (see the "Loss of image information" section below), it
 is very useful where the operator wants to generate a final image, ready for
-printing or displaying, with little or no subsequent processing.  
+printing or displaying, with little or no subsequent processing.
 
 As an example, the Epson ES-300C color scanner (and its European equivalent,
 the Epson GT-6000) offers three internal halftone modes.  One is a standard
@@ -953,12 +953,12 @@ needs to be rendered on a bilevel display device.  In this situation, one
 would almost never want to store the dithered image.
 
 On the other hand, when color images are dithered for display on color
-displays with a lower color resolution, the dithered images are more useful. 
+displays with a lower color resolution, the dithered images are more useful.
 In fact, the bulk of today's scanned-image GIF files which abound on
 electronic BBSs and information services are 8-bit (256 color), colormapped
 and dithered files created from 24-bit true-color scans.  Only rarely are
 the 24-bit files exchanged, because of the huge amount of data contained in
-them.  
+them.
 
 In some cases, these mapped GIF files may be further processed with special
 paint/processing utilities, with very respectable results.  However, the
@@ -1214,10 +1214,10 @@ Bibliography
 
 [2]  Bayer, B.E., "An Optimum Method for Two-Level Rendition of Continuous
      Tone Pictures," IEEE International Conference on Communications,
-     Conference Records, 1973, pp. 26-11 to 26-15.  
+     Conference Records, 1973, pp. 26-11 to 26-15.
 
           A short article proving the optimality of Bayer's pattern in the
-          dispersed-dot ordered dither.  
+          dispersed-dot ordered dither.
 
 [3]  Ulichney, R., Digital Halftoning, The MIT Press, Cambridge, MA, 1987.
 
@@ -1226,7 +1226,7 @@ Bibliography
           higher math may come in handy) and wonderful illustrations.  It
           does not contain any code, but don't let that keep you from
           getting this book.  Computer Literacy normally carries it but the
-          title is often sold out.  
+          title is often sold out.
 
           [MFM note:  I can't describe how much information I got from this
           book!  Several different writers have praised this reference to
@@ -1242,8 +1242,8 @@ Bibliography
      Scale."  SID 1975, International Symposium Digest of Technical Papers,
      vol 1975m, pp. 36-37.
 
-          Short article in which Floyd and Steinberg introduce their filter. 
-          
+          Short article in which Floyd and Steinberg introduce their filter.
+
 [5]  Daniel Burkes is unpublished, but can be reached at this address:
 
           Daniel Burkes
@@ -1266,7 +1266,7 @@ Bibliography
      for bilevel image hardcopy reproduction."  Research Report RZ1060, IBM
      Research Laboratory, Zurich, Switzerland, 1981.
 
-[8]  Heckbert, P. "Color Image Quantization for Frame Buffer Display." 
+[8]  Heckbert, P. "Color Image Quantization for Frame Buffer Display."
      Computer Graphics (SIGGRAPH 82), vol. 16, pp. 297-307, 1982.
 
 [9]  Frankie Sierra is unpublished, but can be reached via CIS at UID#
@@ -1317,13 +1317,13 @@ York, 1985.
 Rogers, D.F. and J. A. Adams, Mathematical Elements for Computer Graphics,
 McGraw-Hill, New York, 1976.
 
-     A good detailed discussion of producing graphic images on a computer. 
+     A good detailed discussion of producing graphic images on a computer.
      Plenty of sample code.
 
 Kuto, S., "Continuous Color Presentation Using a Low-Cost Ink Jet Printer,"
 Proc. Computer Graphics Tokyo 84, 24-27 April, 1984, Tokyo, Japan.
 
-Mitchell, W.J., R.S. Liggett, and T. Kvan, The Art of Computer Graphics 
+Mitchell, W.J., R.S. Liggett, and T. Kvan, The Art of Computer Graphics
 Programming, Van Nostrand Reinhold Co., New York, 1987.
 
 Pavlidis, T., Algorithms for Graphics and Image Processing, Computer Science

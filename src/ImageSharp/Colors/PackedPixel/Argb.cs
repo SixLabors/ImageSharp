@@ -342,9 +342,9 @@ namespace ImageSharp
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static uint Pack(ref Vector4 vector)
         {
-            vector = Vector4.Clamp(vector, Vector4.Zero, Vector4.One);
             vector *= MaxBytes;
             vector += Half;
+            vector = Vector4.Clamp(vector, Vector4.Zero, MaxBytes);
             return (uint)(((byte)vector.X << RedShift)
                         | ((byte)vector.Y << GreenShift)
                         | ((byte)vector.Z << BlueShift)

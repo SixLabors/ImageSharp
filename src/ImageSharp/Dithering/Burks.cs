@@ -9,7 +9,7 @@ namespace ImageSharp.Dithering
     /// Applies error diffusion based dithering using the Burks image dithering algorithm.
     /// <see href="http://www.efg2.com/Lab/Library/ImageProcessing/DHALF.TXT"/>
     /// </summary>
-    public class Burks : ErrorDiffusion
+    public sealed class Burks : ErrorDiffuser
     {
         /// <summary>
         /// The diffusion matrix

@@ -9,7 +9,7 @@ namespace ImageSharp.Dithering
     /// Applies error diffusion based dithering using the Floyd–Steinberg image dithering algorithm.
     /// <see href="http://www.efg2.com/Lab/Library/ImageProcessing/DHALF.TXT"/>
     /// </summary>
-    public class FloydSteinberg : ErrorDiffusion
+    public sealed class FloydSteinberg : ErrorDiffuser
     {
         /// <summary>
         /// The diffusion matrix

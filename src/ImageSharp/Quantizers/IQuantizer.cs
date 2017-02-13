@@ -42,7 +42,7 @@ namespace ImageSharp.Quantizers
         /// <summary>
         /// Gets or sets the dithering algorithm to apply to the output image.
         /// </summary>
-        IErrorDiffusion DitherType { get; set; }
+        IErrorDiffuser DitherType { get; set; }
     }
 
     /// <summary>

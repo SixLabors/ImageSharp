@@ -9,7 +9,7 @@ namespace ImageSharp.Dithering
     /// Applies error diffusion based dithering using the Stucki image dithering algorithm.
     /// <see href="http://www.efg2.com/Lab/Library/ImageProcessing/DHALF.TXT"/>
     /// </summary>
-    public class Stucki : ErrorDiffusion
+    public sealed class Stucki : ErrorDiffuser
     {
         /// <summary>
         /// The diffusion matrix
@@ -25,7 +25,7 @@ namespace ImageSharp.Dithering
         /// Initializes a new instance of the <see cref="Stucki"/> class.
         /// </summary>
         public Stucki()
-            : base(StuckiMatrix, 4)
+            : base(StuckiMatrix, 42)
         {
         }
     }

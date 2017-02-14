@@ -44,7 +44,7 @@ namespace ImageSharp
         {
         }
 
-#if !NO_FILE_IO
+#if !NETSTANDARD11
         /// <summary>
         /// Initializes a new instance of the <see cref="Image"/> class.
         /// </summary>

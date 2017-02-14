@@ -32,7 +32,7 @@ namespace ImageSharp.Dithering.Ordered
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             source.ToXyzwBytes(bytes, 0);
-            pixels[x, y] = ThresholdMatrix[x % 3, y % 3] >= bytes[index] ? upper : lower;
+            pixels[x, y] = ThresholdMatrix[x % 3, y % 3] >= bytes[index] ? lower : upper;
         }
     }
 }

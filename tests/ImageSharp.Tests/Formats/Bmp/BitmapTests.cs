@@ -31,10 +31,7 @@ namespace ImageSharp.Tests
                 string filename = file.GetFileNameWithoutExtension(bitsPerPixel);
                 using (Image image = file.CreateImage())
                 {
-                    using (FileStream output = File.OpenWrite($"{path}/{filename}.bmp"))
-                    {
-                        image.Save(output, new BmpEncoder { BitsPerPixel = bitsPerPixel });
-                    }
+                    image.Save($"{path}/{filename}.bmp", new BmpEncoder { BitsPerPixel = bitsPerPixel });
                 }
             }
         }

@@ -8,6 +8,7 @@ namespace ImageSharp.Tests
     using System.IO;
 
     using ImageSharp.Dithering;
+    using ImageSharp.Dithering.Ordered;
 
     using Xunit;
 
@@ -16,7 +17,38 @@ namespace ImageSharp.Tests
         [Fact]
         public void ImageShouldApplyDitherFilter()
         {
-            string path = this.CreateOutputDirectory("Dither");
+            string path = this.CreateOutputDirectory("Dither", "Dither");
+
+            foreach (TestFile file in Files)
+            {
+                using (Image image = file.CreateImage())
+                using (FileStream output = File.OpenWrite($"{path}/{file.FileName}"))
+                {
+                    image.Dither(new Bayer()).Save(output);
+                }
+            }
+        }
+
+        [Fact]
+        public void ImageShouldApplyDitherFilterInBox()
+        {
+            string path = this.CreateOutputDirectory("Dither", "Dither");
+
+            foreach (TestFile file in Files)
+            {
+                string filename = file.GetFileName("-InBox");
+                using (Image image = file.CreateImage())
+                using (FileStream output = File.OpenWrite($"{path}/{filename}"))
+                {
+                    image.Dither(new Bayer(), new Rectangle(10, 10, image.Width / 2, image.Height / 2)).Save(output);
+                }
+            }
+        }
+
+        [Fact]
+        public void ImageShouldApplyDiffusionFilter()
+        {
+            string path = this.CreateOutputDirectory("Dither", "Diffusion");
 
             foreach (TestFile file in Files)
             {
@@ -29,9 +61,9 @@ namespace ImageSharp.Tests
         }
 
         [Fact]
-        public void ImageShouldApplyDitherFilterInBox()
+        public void ImageShouldApplyDiffusionFilterInBox()
         {
-            string path = this.CreateOutputDirectory("Dither");
+            string path = this.CreateOutputDirectory("Dither", "Diffusion");
 
             foreach (TestFile file in Files)
             {

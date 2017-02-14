@@ -6,6 +6,7 @@
 namespace ImageSharp.Tests.Colors
 {
     using System;
+    using System.Diagnostics;
     using System.Numerics;
 
     using Xunit;

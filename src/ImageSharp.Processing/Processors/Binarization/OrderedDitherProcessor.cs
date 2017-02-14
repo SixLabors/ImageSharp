@@ -6,6 +6,7 @@
 namespace ImageSharp.Processing.Processors
 {
     using System;
+    using System.Buffers;
 
     using ImageSharp.Dithering;
 
@@ -13,20 +14,27 @@ namespace ImageSharp.Processing.Processors
     /// An <see cref="IImageProcessor{TColor}"/> that dithers an image using error diffusion.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    public class ErrorDiffusionDitherProcessor<TColor> : ImageProcessor<TColor>
+    public class OrderedDitherProcessor<TColor> : ImageProcessor<TColor>
         where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ErrorDiffusionDitherProcessor{TColor}"/> class.
         /// </summary>
-        /// <param name="diffuser">The error diffuser</param>
-        /// <param name="threshold">The threshold to split the image. Must be between 0 and 1.</param>
-        public ErrorDiffusionDitherProcessor(IErrorDiffuser diffuser, float threshold)
+        /// <param name="dither">The ordered ditherer.</param>
+        /// <param name="index">The component index to test the threshold against. Must range from 0 to 3.</param>
+        public OrderedDitherProcessor(IOrderedDither dither, int index)
         {
-            Guard.NotNull(diffuser, nameof(diffuser));
+            Guard.NotNull(dither, nameof(dither));
+            Guard.MustBeBetweenOrEqualTo(index, 0, 3, nameof(index));
 
-            this.Diffuser = diffuser;
-            this.Threshold = threshold;
+            // Alpha8 only stores the pixel data in the alpha channel.
+            if (typeof(TColor) == typeof(Alpha8))
+            {
+                index = 3;
+            }
+
+            this.Dither = dither;
+            this.Index = index;
 
             // Default to white/black for upper/lower.
             TColor upper = default(TColor);
@@ -39,14 +47,14 @@ namespace ImageSharp.Processing.Processors
         }
 
         /// <summary>
-        /// Gets the error diffuser.
+        /// Gets the ditherer.
         /// </summary>
-        public IErrorDiffuser Diffuser { get; }
+        public IOrderedDither Dither { get; }
 
         /// <summary>
-        /// Gets the threshold value.
+        /// Gets the component index to test the threshold against.
         /// </summary>
-        public float Threshold { get; }
+        public int Index { get; }
 
         /// <summary>
         /// Gets or sets the color to use for pixels that are above the threshold.
@@ -94,13 +102,16 @@ namespace ImageSharp.Processing.Processors
                 for (int y = minY; y < maxY; y++)
                 {
                     int offsetY = y - startY;
+                    byte[] bytes = ArrayPool<byte>.Shared.Rent(4);
+
                     for (int x = minX; x < maxX; x++)
                     {
                         int offsetX = x - startX;
                         TColor sourceColor = sourcePixels[offsetX, offsetY];
-                        TColor transformedColor = sourceColor.ToVector4().X >= this.Threshold ? this.UpperColor : this.LowerColor;
-                        this.Diffuser.Dither(sourcePixels, sourceColor, transformedColor, offsetX, offsetY, maxX, maxY);
+                        this.Dither.Dither(sourcePixels, sourceColor, this.UpperColor, this.LowerColor, bytes, this.Index, offsetX, offsetY, maxX, maxY);
                     }
+
+                    ArrayPool<byte>.Shared.Return(bytes);
                 }
             }
         }

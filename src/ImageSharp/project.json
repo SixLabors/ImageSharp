@@ -69,7 +69,7 @@
     },
     "netstandard1.1": {
       "buildOptions": {
-        "define": [ "NO_FILE_IO" ]
+        "define": [ "NETSTANDARD11" ]
       },
       "dependencies": {
         "System.Collections": "4.0.11",

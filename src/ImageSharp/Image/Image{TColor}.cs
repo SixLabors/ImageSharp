@@ -63,7 +63,7 @@ namespace ImageSharp
             this.Load(stream);
         }
 
-#if !NETSTANDARD11
+#if !NETSTANDARD1_1
         /// <summary>
         /// Initializes a new instance of the <see cref="Image{TColor}"/> class.
         /// </summary>
@@ -245,7 +245,7 @@ namespace ImageSharp
             return this;
         }
 
-#if !NETSTANDARD11
+#if !NETSTANDARD1_1
         /// <summary>
         /// Saves the image to the given stream using the currently loaded image format.
         /// </summary>

@@ -68,9 +68,6 @@
       }
     },
     "netstandard1.1": {
-      "buildOptions": {
-        "define": [ "NETSTANDARD11" ]
-      },
       "dependencies": {
         "System.Collections": "4.0.11",
         "System.Diagnostics.Debug": "4.0.11",

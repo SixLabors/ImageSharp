@@ -16,7 +16,39 @@ namespace ImageSharp
     public static partial class ImageExtensions
     {
         /// <summary>
-        /// Alters the alpha component of the image.
+        /// Dithers the image reducing it to two colors using ordered dithering.
+        /// </summary>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="dither">The ordered ditherer.</param>
+        /// <param name="index">The component index to test the threshold against. Must range from 0 to 3.</param>
+        /// <returns>The <see cref="Image{TColor}"/>.</returns>
+        public static Image<TColor> Dither<TColor>(this Image<TColor> source, IOrderedDither dither, int index = 0)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
+        {
+            return Dither(source, dither, source.Bounds, index);
+        }
+
+        /// <summary>
+        /// Dithers the image reducing it to two colors using ordered dithering.
+        /// </summary>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="dither">The ordered ditherer.</param>
+        /// <param name="rectangle">
+        /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
+        /// </param>
+        /// <param name="index">The component index to test the threshold against. Must range from 0 to 3.</param>
+        /// <returns>The <see cref="Image"/>.</returns>
+        public static Image<TColor> Dither<TColor>(this Image<TColor> source, IOrderedDither dither, Rectangle rectangle, int index = 0)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
+        {
+            source.ApplyProcessor(new OrderedDitherProcessor<TColor>(dither, index), rectangle);
+            return source;
+        }
+
+        /// <summary>
+        /// Dithers the image reducing it to two colors using error diffusion.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
@@ -30,7 +62,7 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Alters the alpha component of the image.
+        /// Dithers the image reducing it to two colors using error diffusion.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>

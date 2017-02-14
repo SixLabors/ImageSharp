@@ -10,7 +10,7 @@ namespace ImageSharp
     using System.Runtime.CompilerServices;
 
     /// <summary>
-    /// Packed pixel type containing a single 8 bit normalized W values that is ranging from 0 to 1.
+    /// Packed pixel type containing a single 8 bit normalized W values ranging from 0 to 1.
     /// </summary>
     public struct Alpha8 : IPackedPixel<byte>, IEquatable<Alpha8>
     {

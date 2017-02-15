@@ -91,17 +91,12 @@ namespace ImageSharp.Tests
         [WithBlankImages(16, 16, PixelTypes.All, ComponentOrder.Zyxw)]
         public void CopyToThenCopyFromWithOffset<TColor>(TestImageProvider<TColor> provider, ComponentOrder order)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
-
         {
             using (Image<TColor> destImage = new Image<TColor>(8, 8))
             {
-                TColor color;
                 using (Image<TColor> srcImage = provider.GetImage())
                 {
-                    color = default(TColor);
-                    color.PackFromBytes(255, 0, 0, 255);
-
-                    Fill(srcImage, new Rectangle(4, 4, 8, 8), color);
+                    Fill(srcImage, new Rectangle(4, 4, 8, 8), NamedColors<TColor>.Red);
                     using (PixelAccessor<TColor> srcPixels = srcImage.Lock())
                     {
                         using (PixelArea<TColor> area = new PixelArea<TColor>(8, 8, order))
@@ -119,7 +114,7 @@ namespace ImageSharp.Tests
                 provider.Utility.SourceFileOrDescription = order.ToString();
                 provider.Utility.SaveTestOutputFile(destImage, "bmp");
 
-                using (Image<TColor> expectedImage = new Image<TColor>(8, 8).Fill(color))
+                using (Image<TColor> expectedImage = new Image<TColor>(8, 8).Fill(NamedColors<TColor>.Red))
                 {
                     Assert.True(destImage.IsEquivalentTo(expectedImage));
                 }

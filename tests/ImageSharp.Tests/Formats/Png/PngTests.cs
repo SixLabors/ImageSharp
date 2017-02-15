@@ -19,7 +19,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void ImageCanSaveIndexedPng()
         {
-            string path = CreateOutputDirectory("Png");
+            string path = CreateOutputDirectory("Png", "Indexed");
 
             foreach (TestFile file in Files)
             {

@@ -1,4 +1,4 @@
-﻿// <copyright file="ErrorDiffusionDitherProcessor.cs" company="James Jackson-South">
+﻿// <copyright file="OrderedDitherProcessor.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -18,7 +18,7 @@ namespace ImageSharp.Processing.Processors
         where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="ErrorDiffusionDitherProcessor{TColor}"/> class.
+        /// Initializes a new instance of the <see cref="OrderedDitherProcessor{TColor}"/> class.
         /// </summary>
         /// <param name="dither">The ordered ditherer.</param>
         /// <param name="index">The component index to test the threshold against. Must range from 0 to 3.</param>

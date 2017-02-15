@@ -17,11 +17,12 @@ namespace ImageSharp.Dithering.Ordered
         /// The threshold matrix.
         /// This is calculated by multiplying each value in the original matrix by 16 and subtracting 1
         /// </summary>
-        private static readonly byte[,] ThresholdMatrix = {
-            {  15, 143,  47, 175 },
-            { 207,  79, 239, 111 },
-            {  63, 191,  31, 159 },
-            { 255, 127, 223,  95 }
+        private static readonly byte[,] ThresholdMatrix =
+        {
+            { 15, 143, 47, 175 },
+            { 207, 79, 239, 111 },
+            { 63, 191, 31, 159 },
+            { 255, 127, 223, 95 }
         };
 
         /// <inheritdoc />

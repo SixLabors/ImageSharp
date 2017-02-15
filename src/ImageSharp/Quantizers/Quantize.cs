@@ -57,8 +57,6 @@ namespace ImageSharp
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             QuantizedImage<TColor> quantized = quantizer.Quantize(source, maxColors);
-
-            int pixelCount = quantized.Pixels.Length;
             int palleteCount = quantized.Palette.Length - 1;
 
             using (PixelAccessor<TColor> pixels = new PixelAccessor<TColor>(quantized.Width, quantized.Height))
@@ -69,9 +67,9 @@ namespace ImageSharp
                     source.Configuration.ParallelOptions,
                     y =>
                     {
-                        for (var x = 0; x < pixels.Width; x++)
+                        for (int x = 0; x < pixels.Width; x++)
                         {
-                            var i = x + (y * pixels.Width);
+                            int i = x + (y * pixels.Width);
                             TColor color = quantized.Palette[Math.Min(palleteCount, quantized.Pixels[i])];
                             pixels[x, y] = color;
                         }

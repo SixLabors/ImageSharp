@@ -14,11 +14,11 @@ namespace ImageSharp.Dithering
         /// <summary>
         /// The diffusion matrix
         /// </summary>
-        private static readonly byte[,] JarvisJudiceNinkeMatrix =
+        private static readonly byte[][] JarvisJudiceNinkeMatrix =
             {
-                { 0, 0, 0, 7, 5 },
-                { 3, 5, 7, 5, 3 },
-                { 1, 3, 5, 3, 1 }
+                new byte[] { 0, 0, 0, 7, 5 },
+                new byte[] { 3, 5, 7, 5, 3 },
+                new byte[] { 1, 3, 5, 3, 1 }
             };
 
         /// <summary>

@@ -14,10 +14,10 @@ namespace ImageSharp.Dithering
         /// <summary>
         /// The diffusion matrix
         /// </summary>
-        private static readonly byte[,] BurksMatrix =
+        private static readonly byte[][] BurksMatrix =
             {
-                { 0, 0, 0, 8, 4 },
-                { 2, 4, 8, 4, 2 }
+                new byte[] { 0, 0, 0, 8, 4 },
+                new byte[] { 2, 4, 8, 4, 2 }
             };
 
         /// <summary>

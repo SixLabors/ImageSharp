@@ -5,9 +5,7 @@
 
 namespace ImageSharp.Tests
 {
-    using System;
     using System.IO;
-    using System.Numerics;
 
     using Xunit;
 
@@ -145,24 +143,17 @@ namespace ImageSharp.Tests
             {
                 byte[] serialized;
                 using (Image image = file.CreateImage())
+                using (MemoryStream memoryStream = new MemoryStream())
                 {
-                    using (MemoryStream memoryStream = new MemoryStream())
-                    {
-                        image.Save(memoryStream);
-                        memoryStream.Flush();
-                        serialized = memoryStream.ToArray();
-                    }
+                    image.Save(memoryStream);
+                    memoryStream.Flush();
+                    serialized = memoryStream.ToArray();
                 }
 
-                using (MemoryStream memoryStream = new MemoryStream(serialized))
+                using (Image image2 = new Image(serialized))
+                using (FileStream output = File.OpenWrite($"{path}/{file.FileName}"))
                 {
-                    using (Image image2 = new Image(memoryStream))
-                    {
-                        using (FileStream output = File.OpenWrite($"{path}/{file.FileName}"))
-                        {
-                            image2.Save(output);
-                        }
-                    }
+                    image2.Save(output);
                 }
             }
         }

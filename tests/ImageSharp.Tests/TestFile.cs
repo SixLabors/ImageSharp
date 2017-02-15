@@ -57,6 +57,11 @@ namespace ImageSharp.Tests
         /// <summary>
         /// The file name.
         /// </summary>
+        public string FilePath => this.file;
+
+        /// <summary>
+        /// The file name.
+        /// </summary>
         public string FileName => Path.GetFileName(this.file);
 
         /// <summary>

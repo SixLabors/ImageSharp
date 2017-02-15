@@ -74,6 +74,16 @@ Many `Image` methods are also fluent.
 
 Here's an example of the code required to resize an image using the default Bicubic resampler then turn the colors into their grayscale equivalent using the BT709 standard matrix.
 
+On platforms supporting netstandard 1.3+
+```csharp
+using (Image image = new Image("foo.jpg"))
+{
+    image.Resize(image.Width / 2, image.Height / 2)
+         .Grayscale()
+         .Save("bar.jpg"); // automatic encoder selected based on extension.
+}
+```
+on netstandard 1.1 - 1.2
 ```csharp
 using (FileStream stream = File.OpenRead("foo.jpg"))
 using (FileStream output = File.OpenWrite("bar.jpg"))

@@ -14,11 +14,11 @@ namespace ImageSharp.Dithering
         /// <summary>
         /// The diffusion matrix
         /// </summary>
-        private static readonly byte[,] AtkinsonMatrix =
+        private static readonly byte[][] AtkinsonMatrix =
             {
-                { 0, 0, 1, 1 },
-                { 1, 1, 1, 0 },
-                { 0, 1, 0, 0 }
+               new byte[] { 0, 0, 1, 1 },
+               new byte[] { 1, 1, 1, 0 },
+               new byte[] { 0, 1, 0, 0 }
             };
 
         /// <summary>

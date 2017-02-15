@@ -14,10 +14,10 @@ namespace ImageSharp.Dithering
         /// <summary>
         /// The diffusion matrix
         /// </summary>
-        private static readonly byte[,] SierraLiteMatrix =
+        private static readonly byte[][] SierraLiteMatrix =
             {
-               { 0, 0, 2 },
-               { 1, 1, 0 }
+               new byte[] { 0, 0, 2 },
+               new byte[] { 1, 1, 0 }
             };
 
         /// <summary>

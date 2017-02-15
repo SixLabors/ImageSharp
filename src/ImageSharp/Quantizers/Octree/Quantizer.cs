@@ -6,6 +6,7 @@
 namespace ImageSharp.Quantizers
 {
     using System;
+    using System.Collections.Generic;
     using System.Numerics;
     using System.Runtime.CompilerServices;
 
@@ -18,6 +19,11 @@ namespace ImageSharp.Quantizers
     public abstract class Quantizer<TColor> : IDitheredQuantizer<TColor>
         where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
+        /// <summary>
+        /// A lookup table for colors
+        /// </summary>
+        private readonly Dictionary<TColor, byte> colorMap = new Dictionary<TColor, byte>();
+
         /// <summary>
         /// Flag used to indicate whether a single pass or two passes are needed for quantization.
         /// </summary>
@@ -129,7 +135,7 @@ namespace ImageSharp.Quantizers
                     {
                         // Apply the dithering matrix
                         TColor sourcePixel = source[x, y];
-                        TColor transformedPixel = this.palette[GetClosestColor(sourcePixel, this.palette)];
+                        TColor transformedPixel = this.palette[this.GetClosestColor(sourcePixel, this.palette, this.colorMap)];
                         this.DitherType.Dither(source, sourcePixel, transformedPixel, x, y, width, height);
                     }
 
@@ -171,31 +177,45 @@ namespace ImageSharp.Quantizers
         /// Returns the closest color from the palette to the given color by calculating the Euclidean distance.
         /// </summary>
         /// <param name="pixel">The color.</param>
-        /// <param name="palette">The color palette.</param>
+        /// <param name="colorPalette">The color palette.</param>
+        /// <param name="cache">The cache to store the result in.</param>
         /// <returns>The <see cref="byte"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static byte GetClosestColor(TColor pixel, TColor[] palette)
+        protected byte GetClosestColor(TColor pixel, TColor[] colorPalette, Dictionary<TColor, byte> cache)
         {
+            // Check if the color is in the lookup table
+            if (this.colorMap.ContainsKey(pixel))
+            {
+                return this.colorMap[pixel];
+            }
+
+            // Not found - loop through the palette and find the nearest match.
+            byte colorIndex = 0;
             float leastDistance = int.MaxValue;
             Vector4 vector = pixel.ToVector4();
 
-            byte colorIndex = 0;
-            for (int index = 0; index < palette.Length; index++)
+            for (int index = 0; index < colorPalette.Length; index++)
             {
-                float distance = Vector4.Distance(vector, palette[index].ToVector4());
+                float distance = Vector4.Distance(vector, colorPalette[index].ToVector4());
 
-                if (distance < leastDistance)
+                // Greater... Move on.
+                if (!(distance < leastDistance))
                 {
-                    colorIndex = (byte)index;
-                    leastDistance = distance;
+                    continue;
+                }
 
-                    // And if it's an exact match, exit the loop
-                    if (Math.Abs(distance) < Constants.Epsilon)
-                    {
-                        break;
-                    }
+                colorIndex = (byte)index;
+                leastDistance = distance;
+
+                // And if it's an exact match, exit the loop
+                if (Math.Abs(distance) < Constants.Epsilon)
+                {
+                    break;
                 }
             }
+
+            // Now I have the index, pop it into the cache for next time
+            this.colorMap.Add(pixel, colorIndex);
 
             return colorIndex;
         }

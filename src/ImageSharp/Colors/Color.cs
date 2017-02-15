@@ -70,28 +70,6 @@ namespace ImageSharp
         /// <summary>
         /// Initializes a new instance of the <see cref="Color"/> struct.
         /// </summary>
-        /// <param name="hex">
-        /// The hexadecimal representation of the combined color components arranged
-        /// in rgb, rgba, rrggbb, or rrggbbaa format to match web syntax.
-        /// </param>
-        public Color(string hex)
-        {
-            Guard.NotNullOrEmpty(hex, nameof(hex));
-
-            hex = ToRgbaHex(hex);
-
-            if (hex == null || !uint.TryParse(hex, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out this.packedValue))
-            {
-                throw new ArgumentException("Hexadecimal string is not in the correct format.", nameof(hex));
-            }
-
-            // Order parsed from hex string will be backwards, so reverse it.
-            this.packedValue = Pack(this.A, this.B, this.G, this.R);
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Color"/> struct.
-        /// </summary>
         /// <param name="r">The red component.</param>
         /// <param name="g">The green component.</param>
         /// <param name="b">The blue component.</param>
@@ -264,7 +242,7 @@ namespace ImageSharp
         /// </returns>
         public static Color FromHex(string hex)
         {
-            return new Color(hex);
+            return ColorBuilder<Color>.FromHex(hex);
         }
 
         /// <inheritdoc/>
@@ -420,40 +398,6 @@ namespace ImageSharp
         private static uint Pack(byte x, byte y, byte z, byte w)
         {
             return (uint)(x << RedShift | y << GreenShift | z << BlueShift | w << AlphaShift);
-        }
-
-        /// <summary>
-        /// Converts the specified hex value to an rrggbbaa hex value.
-        /// </summary>
-        /// <param name="hex">The hex value to convert.</param>
-        /// <returns>
-        /// A rrggbbaa hex value.
-        /// </returns>
-        private static string ToRgbaHex(string hex)
-        {
-            hex = hex.StartsWith("#") ? hex.Substring(1) : hex;
-
-            if (hex.Length == 8)
-            {
-                return hex;
-            }
-
-            if (hex.Length == 6)
-            {
-                return hex + "FF";
-            }
-
-            if (hex.Length < 3 || hex.Length > 4)
-            {
-                return null;
-            }
-
-            string red = char.ToString(hex[0]);
-            string green = char.ToString(hex[1]);
-            string blue = char.ToString(hex[2]);
-            string alpha = hex.Length == 3 ? "F" : char.ToString(hex[3]);
-
-            return red + red + green + green + blue + blue + alpha + alpha;
         }
     }
 }

@@ -495,7 +495,7 @@ namespace ImageSharp.Formats
 
             if (this.Quantizer == null)
             {
-                this.Quantizer = new WuQuantizer<TColor>();
+                this.Quantizer = new OctreeQuantizer<TColor>();
             }
 
             // Quantize the image returning a palette. This boxing is icky.

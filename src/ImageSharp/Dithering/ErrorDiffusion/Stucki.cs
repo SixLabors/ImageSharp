@@ -14,11 +14,11 @@ namespace ImageSharp.Dithering
         /// <summary>
         /// The diffusion matrix
         /// </summary>
-        private static readonly byte[,] StuckiMatrix =
+        private static readonly byte[][] StuckiMatrix =
             {
-               { 0, 0, 0, 8, 4 },
-               { 2, 4, 8, 4, 2 },
-               { 1, 2, 4, 2, 1 }
+               new byte[] { 0, 0, 0, 8, 4 },
+               new byte[] { 2, 4, 8, 4, 2 },
+               new byte[] { 1, 2, 4, 2, 1 }
             };
 
         /// <summary>

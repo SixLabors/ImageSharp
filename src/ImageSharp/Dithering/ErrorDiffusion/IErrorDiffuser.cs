@@ -15,7 +15,7 @@ namespace ImageSharp.Dithering
         /// <summary>
         /// Gets the dithering matrix
         /// </summary>
-        byte[,] Matrix { get; }
+        byte[][] Matrix { get; }
 
         /// <summary>
         /// Transforms the image applying the dither matrix. This method alters the input pixels array

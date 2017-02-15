@@ -39,20 +39,20 @@ namespace ImageSharp.Dithering
         /// </summary>
         /// <param name="matrix">The dithering matrix.</param>
         /// <param name="divisor">The divisor.</param>
-        protected ErrorDiffuser(byte[,] matrix, byte divisor)
+        protected ErrorDiffuser(byte[][] matrix, byte divisor)
         {
             Guard.NotNull(matrix, nameof(matrix));
             Guard.MustBeGreaterThan(divisor, 0, nameof(divisor));
 
             this.Matrix = matrix;
-            this.matrixWidth = (byte)(matrix.GetUpperBound(1) + 1);
-            this.matrixHeight = (byte)(matrix.GetUpperBound(0) + 1);
+            this.matrixWidth = (byte)matrix[0].Length;
+            this.matrixHeight = (byte)matrix.Length;
             this.divisorVector = new Vector4(divisor);
 
             this.startingOffset = 0;
             for (int i = 0; i < this.matrixWidth; i++)
             {
-                if (matrix[0, i] != 0)
+                if (matrix[0][i] != 0)
                 {
                     this.startingOffset = (byte)(i - 1);
                     break;
@@ -61,7 +61,7 @@ namespace ImageSharp.Dithering
         }
 
         /// <inheritdoc />
-        public byte[,] Matrix { get; }
+        public byte[][] Matrix { get; }
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -85,13 +85,13 @@ namespace ImageSharp.Dithering
 
                     if (matrixX > 0 && matrixX < width && matrixY > 0 && matrixY < height)
                     {
-                        byte coefficient = this.Matrix[row, col];
+                        byte coefficient = this.Matrix[row][col];
                         if (coefficient == 0)
                         {
                             continue;
                         }
 
-                        Vector4 coefficientVector = new Vector4(this.Matrix[row, col]);
+                        Vector4 coefficientVector = new Vector4(this.Matrix[row][col]);
                         Vector4 offsetColor = pixels[matrixX, matrixY].ToVector4();
                         Vector4 result = ((error * coefficientVector) / this.divisorVector) + offsetColor;
                         result.W = offsetColor.W;

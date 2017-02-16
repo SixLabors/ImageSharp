@@ -14,12 +14,13 @@ namespace ImageSharp.Dithering
         /// <summary>
         /// The diffusion matrix
         /// </summary>
-        private static readonly byte[][] AtkinsonMatrix =
+        private static readonly Fast2DArray<float> AtkinsonMatrix =
+            new Fast2DArray<float>(new float[,]
             {
-               new byte[] { 0, 0, 1, 1 },
-               new byte[] { 1, 1, 1, 0 },
-               new byte[] { 0, 1, 0, 0 }
-            };
+               { 0, 0, 1, 1 },
+               { 1, 1, 1, 0 },
+               { 0, 1, 0, 0 }
+            });
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Atkinson"/> class.

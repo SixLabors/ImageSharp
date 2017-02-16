@@ -17,23 +17,24 @@ namespace ImageSharp.Dithering.Ordered
         /// The threshold matrix.
         /// This is calculated by multiplying each value in the original matrix by 16 and subtracting 1
         /// </summary>
-        private static readonly byte[][] ThresholdMatrix =
-        {
-            new byte[] { 15, 143, 47, 175 },
-            new byte[] { 207, 79, 239, 111 },
-            new byte[] { 63, 191, 31, 159 },
-            new byte[] { 255, 127, 223, 95 }
-        };
+        private static readonly Fast2DArray<byte> ThresholdMatrix =
+            new Fast2DArray<byte>(new byte[,]
+            {
+                { 15, 143, 47, 175 },
+                { 207, 79, 239, 111 },
+                { 63, 191, 31, 159 },
+                { 255, 127, 223, 95 }
+            });
 
         /// <inheritdoc />
-        public byte[][] Matrix { get; } = ThresholdMatrix;
+        public Fast2DArray<byte> Matrix { get; } = ThresholdMatrix;
 
         /// <inheritdoc />
         public void Dither<TColor>(PixelAccessor<TColor> pixels, TColor source, TColor upper, TColor lower, byte[] bytes, int index, int x, int y, int width, int height)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             source.ToXyzwBytes(bytes, 0);
-            pixels[x, y] = ThresholdMatrix[x % 3][y % 3] >= bytes[index] ? lower : upper;
+            pixels[x, y] = ThresholdMatrix[y % 3, x % 3] >= bytes[index] ? lower : upper;
         }
     }
 }

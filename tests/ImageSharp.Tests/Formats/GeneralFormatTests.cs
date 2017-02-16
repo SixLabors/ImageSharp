@@ -5,9 +5,7 @@
 
 namespace ImageSharp.Tests
 {
-    using System;
     using System.IO;
-    using System.Numerics;
 
     using Xunit;
 
@@ -111,26 +109,27 @@ namespace ImageSharp.Tests
 
             foreach (TestFile file in Files)
             {
-                Image image = file.CreateImage();
-
-                using (FileStream output = File.OpenWrite($"{path}/{file.FileNameWithoutExtension}.gif"))
+                using (Image image = file.CreateImage())
                 {
-                    image.SaveAsGif(output);
-                }
+                    using (FileStream output = File.OpenWrite($"{path}/{file.FileNameWithoutExtension}.bmp"))
+                    {
+                        image.SaveAsBmp(output);
+                    }
 
-                using (FileStream output = File.OpenWrite($"{path}/{file.FileNameWithoutExtension}.bmp"))
-                {
-                    image.SaveAsBmp(output);
-                }
+                    using (FileStream output = File.OpenWrite($"{path}/{file.FileNameWithoutExtension}.jpg"))
+                    {
+                        image.SaveAsJpeg(output);
+                    }
 
-                using (FileStream output = File.OpenWrite($"{path}/{file.FileNameWithoutExtension}.jpg"))
-                {
-                    image.SaveAsJpeg(output);
-                }
+                    using (FileStream output = File.OpenWrite($"{path}/{file.FileNameWithoutExtension}.png"))
+                    {
+                        image.SaveAsPng(output);
+                    }
 
-                using (FileStream output = File.OpenWrite($"{path}/{file.FileNameWithoutExtension}.png"))
-                {
-                    image.SaveAsPng(output);
+                    using (FileStream output = File.OpenWrite($"{path}/{file.FileNameWithoutExtension}.gif"))
+                    {
+                        image.SaveAsGif(output);
+                    }
                 }
             }
         }
@@ -142,9 +141,8 @@ namespace ImageSharp.Tests
 
             foreach (TestFile file in Files)
             {
-                Image image = file.CreateImage();
-
                 byte[] serialized;
+                using (Image image = file.CreateImage())
                 using (MemoryStream memoryStream = new MemoryStream())
                 {
                     image.Save(memoryStream);
@@ -152,13 +150,10 @@ namespace ImageSharp.Tests
                     serialized = memoryStream.ToArray();
                 }
 
-                using (MemoryStream memoryStream = new MemoryStream(serialized))
+                using (Image image2 = new Image(serialized))
+                using (FileStream output = File.OpenWrite($"{path}/{file.FileName}"))
                 {
-                    Image image2 = new Image(memoryStream);
-                    using (FileStream output = File.OpenWrite($"{path}/{file.FileName}"))
-                    {
-                        image2.Save(output);
-                    }
+                    image2.Save(output);
                 }
             }
         }

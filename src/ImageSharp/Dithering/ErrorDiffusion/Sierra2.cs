@@ -14,11 +14,12 @@ namespace ImageSharp.Dithering
         /// <summary>
         /// The diffusion matrix
         /// </summary>
-        private static readonly byte[][] Sierra2Matrix =
+        private static readonly Fast2DArray<float> Sierra2Matrix =
+            new Fast2DArray<float>(new float[,]
             {
-               new byte[] { 0, 0, 0, 4, 3 },
-               new byte[] { 1, 2, 3, 2, 1 }
-            };
+               { 0, 0, 0, 4, 3 },
+               { 1, 2, 3, 2, 1 }
+            });
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Sierra2"/> class.

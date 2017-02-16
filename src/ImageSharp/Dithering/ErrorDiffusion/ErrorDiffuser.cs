@@ -22,12 +22,12 @@ namespace ImageSharp.Dithering
         /// <summary>
         /// The matrix width
         /// </summary>
-        private readonly byte matrixHeight;
+        private readonly int matrixHeight;
 
         /// <summary>
         /// The matrix height
         /// </summary>
-        private readonly byte matrixWidth;
+        private readonly int matrixWidth;
 
         /// <summary>
         /// The offset at which to start the dithering operation.
@@ -39,20 +39,22 @@ namespace ImageSharp.Dithering
         /// </summary>
         /// <param name="matrix">The dithering matrix.</param>
         /// <param name="divisor">The divisor.</param>
-        protected ErrorDiffuser(byte[][] matrix, byte divisor)
+        protected ErrorDiffuser(Fast2DArray<float> matrix, byte divisor)
         {
             Guard.NotNull(matrix, nameof(matrix));
             Guard.MustBeGreaterThan(divisor, 0, nameof(divisor));
 
             this.Matrix = matrix;
-            this.matrixWidth = (byte)matrix[0].Length;
-            this.matrixHeight = (byte)matrix.Length;
+            this.matrixWidth = this.Matrix.Width;
+            this.matrixHeight = this.Matrix.Height;
             this.divisorVector = new Vector4(divisor);
 
             this.startingOffset = 0;
             for (int i = 0; i < this.matrixWidth; i++)
             {
-                if (matrix[0][i] != 0)
+                // Good to disable here as we are not comparing matematical output.
+                // ReSharper disable once CompareOfFloatsByEqualityOperator
+                if (matrix[0, i] != 0)
                 {
                     this.startingOffset = (byte)(i - 1);
                     break;
@@ -61,7 +63,7 @@ namespace ImageSharp.Dithering
         }
 
         /// <inheritdoc />
-        public byte[][] Matrix { get; }
+        public Fast2DArray<float> Matrix { get; }
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -85,13 +87,16 @@ namespace ImageSharp.Dithering
 
                     if (matrixX > 0 && matrixX < width && matrixY > 0 && matrixY < height)
                     {
-                        byte coefficient = this.Matrix[row][col];
+                        float coefficient = this.Matrix[row, col];
+
+                        // Good to disable here as we are not comparing matematical output.
+                        // ReSharper disable once CompareOfFloatsByEqualityOperator
                         if (coefficient == 0)
                         {
                             continue;
                         }
 
-                        Vector4 coefficientVector = new Vector4(this.Matrix[row][col]);
+                        Vector4 coefficientVector = new Vector4(coefficient);
                         Vector4 offsetColor = pixels[matrixX, matrixY].ToVector4();
                         Vector4 result = ((error * coefficientVector) / this.divisorVector) + offsetColor;
                         result.W = offsetColor.W;

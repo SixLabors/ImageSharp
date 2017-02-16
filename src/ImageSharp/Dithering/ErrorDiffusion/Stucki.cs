@@ -14,12 +14,13 @@ namespace ImageSharp.Dithering
         /// <summary>
         /// The diffusion matrix
         /// </summary>
-        private static readonly byte[][] StuckiMatrix =
+        private static readonly Fast2DArray<float> StuckiMatrix =
+            new Fast2DArray<float>(new float[,]
             {
-               new byte[] { 0, 0, 0, 8, 4 },
-               new byte[] { 2, 4, 8, 4, 2 },
-               new byte[] { 1, 2, 4, 2, 1 }
-            };
+               { 0, 0, 0, 8, 4 },
+               { 2, 4, 8, 4, 2 },
+               { 1, 2, 4, 2, 1 }
+            });
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Stucki"/> class.

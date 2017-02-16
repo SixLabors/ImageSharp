@@ -14,12 +14,13 @@ namespace ImageSharp.Dithering
         /// <summary>
         /// The diffusion matrix
         /// </summary>
-        private static readonly byte[][] JarvisJudiceNinkeMatrix =
+        private static readonly Fast2DArray<float> JarvisJudiceNinkeMatrix =
+            new Fast2DArray<float>(new float[,]
             {
-                new byte[] { 0, 0, 0, 7, 5 },
-                new byte[] { 3, 5, 7, 5, 3 },
-                new byte[] { 1, 3, 5, 3, 1 }
-            };
+                { 0, 0, 0, 7, 5 },
+                { 3, 5, 7, 5, 3 },
+                { 1, 3, 5, 3, 1 }
+            });
 
         /// <summary>
         /// Initializes a new instance of the <see cref="JarvisJudiceNinke"/> class.

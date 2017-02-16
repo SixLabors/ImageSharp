@@ -1,4 +1,4 @@
-﻿// <copyright file="BinaryThresholdProcessor.cs" company="James Jackson-South">
+﻿// <copyright file="OrderedDitherProcessor.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -6,25 +6,35 @@
 namespace ImageSharp.Processing.Processors
 {
     using System;
-    using System.Threading.Tasks;
+    using System.Buffers;
+
+    using ImageSharp.Dithering;
 
     /// <summary>
-    /// An <see cref="IImageProcessor{TColor}"/> to perform binary threshold filtering against an
-    /// <see cref="Image"/>. The image will be converted to grayscale before thresholding occurs.
+    /// An <see cref="IImageProcessor{TColor}"/> that dithers an image using error diffusion.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    public class BinaryThresholdProcessor<TColor> : ImageProcessor<TColor>
+    public class OrderedDitherProcessor<TColor> : ImageProcessor<TColor>
         where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="BinaryThresholdProcessor{TColor}"/> class.
+        /// Initializes a new instance of the <see cref="OrderedDitherProcessor{TColor}"/> class.
         /// </summary>
-        /// <param name="threshold">The threshold to split the image. Must be between 0 and 1.</param>
-        public BinaryThresholdProcessor(float threshold)
+        /// <param name="dither">The ordered ditherer.</param>
+        /// <param name="index">The component index to test the threshold against. Must range from 0 to 3.</param>
+        public OrderedDitherProcessor(IOrderedDither dither, int index)
         {
-            // TODO: Check thresholding limit. Colors should probably have Max/Min/Middle properties.
-            Guard.MustBeBetweenOrEqualTo(threshold, 0, 1, nameof(threshold));
-            this.Threshold = threshold;
+            Guard.NotNull(dither, nameof(dither));
+            Guard.MustBeBetweenOrEqualTo(index, 0, 3, nameof(index));
+
+            // Alpha8 only stores the pixel data in the alpha channel.
+            if (typeof(TColor) == typeof(Alpha8))
+            {
+                index = 3;
+            }
+
+            this.Dither = dither;
+            this.Index = index;
 
             // Default to white/black for upper/lower.
             TColor upper = default(TColor);
@@ -37,9 +47,14 @@ namespace ImageSharp.Processing.Processors
         }
 
         /// <summary>
-        /// Gets the threshold value.
+        /// Gets the ditherer.
         /// </summary>
-        public float Threshold { get; }
+        public IOrderedDither Dither { get; }
+
+        /// <summary>
+        /// Gets the component index to test the threshold against.
+        /// </summary>
+        public int Index { get; }
 
         /// <summary>
         /// Gets or sets the color to use for pixels that are above the threshold.
@@ -60,10 +75,6 @@ namespace ImageSharp.Processing.Processors
         /// <inheritdoc/>
         protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
         {
-            float threshold = this.Threshold;
-            TColor upper = this.UpperColor;
-            TColor lower = this.LowerColor;
-
             int startY = sourceRectangle.Y;
             int endY = sourceRectangle.Bottom;
             int startX = sourceRectangle.X;
@@ -88,22 +99,20 @@ namespace ImageSharp.Processing.Processors
 
             using (PixelAccessor<TColor> sourcePixels = source.Lock())
             {
-                Parallel.For(
-                    minY,
-                    maxY,
-                    this.ParallelOptions,
-                    y =>
-                    {
-                        int offsetY = y - startY;
-                        for (int x = minX; x < maxX; x++)
-                        {
-                            int offsetX = x - startX;
-                            TColor color = sourcePixels[offsetX, offsetY];
+                for (int y = minY; y < maxY; y++)
+                {
+                    int offsetY = y - startY;
+                    byte[] bytes = ArrayPool<byte>.Shared.Rent(4);
 
-                            // Any channel will do since it's Grayscale.
-                            sourcePixels[offsetX, offsetY] = color.ToVector4().X >= threshold ? upper : lower;
-                        }
-                    });
+                    for (int x = minX; x < maxX; x++)
+                    {
+                        int offsetX = x - startX;
+                        TColor sourceColor = sourcePixels[offsetX, offsetY];
+                        this.Dither.Dither(sourcePixels, sourceColor, this.UpperColor, this.LowerColor, bytes, this.Index, offsetX, offsetY, maxX, maxY);
+                    }
+
+                    ArrayPool<byte>.Shared.Return(bytes);
+                }
             }
         }
     }

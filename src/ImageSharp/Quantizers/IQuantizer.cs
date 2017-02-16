@@ -7,6 +7,8 @@ namespace ImageSharp.Quantizers
 {
     using System;
 
+    using ImageSharp.Dithering;
+
     /// <summary>
     /// Provides methods for allowing quantization of images pixels.
     /// </summary>
@@ -23,6 +25,24 @@ namespace ImageSharp.Quantizers
         /// A <see cref="T:QuantizedImage"/> representing a quantized version of the image pixels.
         /// </returns>
         QuantizedImage<TColor> Quantize(ImageBase<TColor> image, int maxColors);
+    }
+
+    /// <summary>
+    /// Provides methods for allowing dithering of quantized image pixels.
+    /// </summary>
+    /// <typeparam name="TColor">The pixel format.</typeparam>
+    public interface IDitheredQuantizer<TColor> : IQuantizer<TColor>
+        where TColor : struct, IPackedPixel, IEquatable<TColor>
+    {
+        /// <summary>
+        /// Gets or sets a value indicating whether to apply dithering to the output image.
+        /// </summary>
+        bool Dither { get; set; }
+
+        /// <summary>
+        /// Gets or sets the dithering algorithm to apply to the output image.
+        /// </summary>
+        IErrorDiffuser DitherType { get; set; }
     }
 
     /// <summary>

@@ -15,7 +15,7 @@ namespace ImageSharp.Dithering
         /// <summary>
         /// Gets the dithering matrix
         /// </summary>
-        byte[][] Matrix { get; }
+        Fast2DArray<byte> Matrix { get; }
 
         /// <summary>
         /// Transforms the image applying the dither matrix. This method alters the input pixels array

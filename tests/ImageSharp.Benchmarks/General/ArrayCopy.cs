@@ -2,6 +2,7 @@
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
+
 namespace ImageSharp.Benchmarks.General
 {
     using System;
@@ -14,9 +15,9 @@ namespace ImageSharp.Benchmarks.General
         [Params(100, 1000, 10000)]
         public int Count { get; set; }
 
-        byte[] source;
+        private byte[] source;
 
-        byte[] destination;
+        private byte[] destination;
 
         [Setup]
         public void SetUp()

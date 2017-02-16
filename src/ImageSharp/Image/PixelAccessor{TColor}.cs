@@ -153,8 +153,8 @@ namespace ImageSharp
         /// <summary>
         /// Gets or sets the pixel at the specified position.
         /// </summary>
-        /// <param name="x">The x-coordinate of the pixel. Must be greater than zero and smaller than the width of the pixel.</param>
-        /// <param name="y">The y-coordinate of the pixel. Must be greater than zero and smaller than the width of the pixel.</param>
+        /// <param name="x">The x-coordinate of the pixel. Must be greater than or equal to zero and less than the width of the image.</param>
+        /// <param name="y">The y-coordinate of the pixel. Must be greater than or equal to zero and less than the height of the image.</param>
         /// <returns>The <see typeparam="TColor"/> at the specified position.</returns>
         public TColor this[int x, int y]
         {
@@ -625,8 +625,8 @@ namespace ImageSharp
         /// Checks that the given area and offset are within the bounds of the image.
         /// </summary>
         /// <param name="area">The area.</param>
-        /// <param name="x">The x-coordinate of the pixel. Must be greater than zero and smaller than the width of the pixel.</param>
-        /// <param name="y">The y-coordinate of the pixel. Must be greater than zero and smaller than the width of the pixel.</param>
+        /// <param name="x">The x-coordinate of the pixel. Must be greater than zero and less than the width of the image.</param>
+        /// <param name="y">The y-coordinate of the pixel. Must be greater than zero and less than the height of the image.</param>
         /// <exception cref="ArgumentOutOfRangeException">
         /// Thrown if the dimensions are not within the bounds of the image.
         /// </exception>
@@ -649,8 +649,8 @@ namespace ImageSharp
         /// <summary>
         /// Checks the coordinates to ensure they are within bounds.
         /// </summary>
-        /// <param name="x">The x-coordinate of the pixel. Must be greater than zero and smaller than the width of the pixel.</param>
-        /// <param name="y">The y-coordinate of the pixel. Must be greater than zero and smaller than the width of the pixel.</param>
+        /// <param name="x">The x-coordinate of the pixel. Must be greater than zero and less than the width of the image.</param>
+        /// <param name="y">The y-coordinate of the pixel. Must be greater than zero and less than the height of the image.</param>
         /// <exception cref="ArgumentOutOfRangeException">
         /// Thrown if the coordinates are not within the bounds of the image.
         /// </exception>

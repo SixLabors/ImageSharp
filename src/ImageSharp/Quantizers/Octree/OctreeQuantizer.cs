@@ -437,7 +437,7 @@ namespace ImageSharp.Quantizers
                 {
                     if (this.leaf)
                     {
-                        // TODO: Test Vector4 here
+                        // This seems faster than using Vector4
                         byte r = (this.red / this.pixelCount).ToByte();
                         byte g = (this.green / this.pixelCount).ToByte();
                         byte b = (this.blue / this.pixelCount).ToByte();

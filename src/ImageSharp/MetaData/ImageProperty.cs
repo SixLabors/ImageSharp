@@ -6,7 +6,6 @@
 namespace ImageSharp
 {
     using System;
-    using System.Diagnostics;
 
     /// <summary>
     /// Stores meta information about a image, like the name of the author,
@@ -37,7 +36,7 @@ namespace ImageSharp
         /// </param>
         internal ImageProperty(ImageProperty other)
         {
-            Debug.Assert(other != null);
+            DebugGuard.NotNull(other, nameof(other));
 
             this.Name = other.Name;
             this.Value = other.Value;

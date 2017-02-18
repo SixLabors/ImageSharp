@@ -57,15 +57,7 @@ namespace ImageSharp.Tests
             var fake = typeof(Color).GetTypeInfo().Assembly.GetType("ImageSharp.dsaada_DASqewrr");
             Assert.Null(fake);
         }
-
-        [Fact]
-        public void GetPackedType()
-        {
-            Type shouldBeUIint32 = TestUtilityExtensions.GetPackedType(typeof(Color));
-
-            Assert.Equal(shouldBeUIint32, typeof(uint));
-        }
-
+        
         [Theory]
         [WithFile(TestImages.Bmp.Car, PixelTypes.Color, true)]
         [WithFile(TestImages.Bmp.Car, PixelTypes.Color, false)]

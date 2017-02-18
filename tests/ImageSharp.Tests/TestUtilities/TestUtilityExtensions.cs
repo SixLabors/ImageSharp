@@ -45,15 +45,6 @@ namespace ImageSharp.Tests
             PixelTypes2ClrTypes[PixelTypes.StandardImageClass] = typeof(Color);
         }
 
-        public static Type GetPackedType(Type pixelType)
-        {
-            var intrfcType =
-                pixelType.GetInterfaces()
-                    .Single(i => i.IsConstructedGenericType && i.GetGenericTypeDefinition() == typeof(IPackedPixel<>));
-
-            return intrfcType.GetGenericArguments().Single();
-        }
-
         public static bool HasFlag(this PixelTypes pixelTypes, PixelTypes flag) => (pixelTypes & flag) == flag;
 
         public static bool IsEquivalentTo<TColor>(this Image<TColor> a, Image<TColor> b, bool compareAlpha = true)

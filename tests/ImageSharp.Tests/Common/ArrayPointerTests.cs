@@ -10,9 +10,11 @@ namespace ImageSharp.Tests.Common
     {
         public struct Foo
         {
+#pragma warning disable CS0414
             private int a;
 
             private double b;
+#pragma warning restore CS0414
 
             internal static Foo[] CreateArray(int size)
             {

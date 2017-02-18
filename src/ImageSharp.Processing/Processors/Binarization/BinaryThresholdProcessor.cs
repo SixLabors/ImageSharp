@@ -27,13 +27,8 @@ namespace ImageSharp.Processing.Processors
             this.Threshold = threshold;
 
             // Default to white/black for upper/lower.
-            TColor upper = default(TColor);
-            upper.PackFromBytes(255, 255, 255, 255);
-            this.UpperColor = upper;
-
-            TColor lower = default(TColor);
-            lower.PackFromBytes(0, 0, 0, 255);
-            this.LowerColor = lower;
+            this.UpperColor = NamedColors<TColor>.White;
+            this.LowerColor = NamedColors<TColor>.Black;
         }
 
         /// <summary>

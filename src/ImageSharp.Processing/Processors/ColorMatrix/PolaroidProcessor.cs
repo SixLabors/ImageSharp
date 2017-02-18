@@ -15,6 +15,9 @@ namespace ImageSharp.Processing.Processors
     public class PolaroidProcessor<TColor> : ColorMatrixFilter<TColor>
         where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
+        private static TColor veryDarkOrange = ColorBuilder<TColor>.FromRGB(102, 34, 0);
+        private static TColor lightOrange = ColorBuilder<TColor>.FromRGBA(255, 153, 102, 178);
+
         /// <inheritdoc/>
         public override Matrix4x4 Matrix => new Matrix4x4()
         {
@@ -36,13 +39,8 @@ namespace ImageSharp.Processing.Processors
         /// <inheritdoc/>
         protected override void AfterApply(ImageBase<TColor> source, Rectangle sourceRectangle)
         {
-            TColor packedV = default(TColor);
-            packedV.PackFromVector4(new Color(102, 34, 0).ToVector4()); // Very dark orange [Brown tone]
-            new VignetteProcessor<TColor> { VignetteColor = packedV }.Apply(source, sourceRectangle);
-
-            TColor packedG = default(TColor);
-            packedG.PackFromVector4(new Color(255, 153, 102, 178).ToVector4()); // Light orange
-            new GlowProcessor<TColor> { GlowColor = packedG, Radius = source.Width / 4F }.Apply(source, sourceRectangle);
+            new VignetteProcessor<TColor>(veryDarkOrange).Apply(source, sourceRectangle);
+            new GlowProcessor<TColor>(lightOrange) { Radius = source.Width / 4F }.Apply(source, sourceRectangle);
         }
     }
 }

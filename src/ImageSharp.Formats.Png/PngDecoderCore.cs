@@ -65,6 +65,11 @@ namespace ImageSharp.Formats
         private readonly char[] chars = new char[4];
 
         /// <summary>
+        /// The decoder options.
+        /// </summary>
+        private readonly IPngDecoderOptions options;
+
+        /// <summary>
         /// Reusable crc for validating chunks.
         /// </summary>
         private readonly Crc32 crc = new Crc32();
@@ -118,6 +123,15 @@ namespace ImageSharp.Formats
             ColorTypes.Add((int)PngColorType.GrayscaleWithAlpha, new byte[] { 8 });
 
             ColorTypes.Add((int)PngColorType.RgbWithAlpha, new byte[] { 8 });
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PngDecoderCore"/> class.
+        /// </summary>
+        /// <param name="options">The decoder options.</param>
+        public PngDecoderCore(IPngDecoderOptions options)
+        {
+            this.options = options ?? new PngDecoderOptions();
         }
 
         /// <summary>
@@ -763,6 +777,11 @@ namespace ImageSharp.Formats
         private void ReadTextChunk<TColor>(Image<TColor> image, byte[] data, int length)
             where TColor : struct, IPixel<TColor>
         {
+            if (this.options.IgnoreMetadata)
+            {
+                return;
+            }
+
             int zeroIndex = 0;
 
             for (int i = 0; i < length; i++)
@@ -774,8 +793,8 @@ namespace ImageSharp.Formats
                 }
             }
 
-            string name = Encoding.Unicode.GetString(data, 0, zeroIndex);
-            string value = Encoding.Unicode.GetString(data, zeroIndex + 1, length - zeroIndex - 1);
+            string name = this.options.TextEncoding.GetString(data, 0, zeroIndex);
+            string value = this.options.TextEncoding.GetString(data, zeroIndex + 1, length - zeroIndex - 1);
 
             image.MetaData.Properties.Add(new ImageProperty(name, value));
         }

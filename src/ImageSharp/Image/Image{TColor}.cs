@@ -52,15 +52,18 @@ namespace ImageSharp
         /// <param name="stream">
         /// The stream containing image information.
         /// </param>
+        /// <param name="options">
+        /// The options for the decoder.
+        /// </param>
         /// <param name="configuration">
         /// The configuration providing initialization code which allows extending the library.
         /// </param>
         /// <exception cref="System.ArgumentNullException">Thrown if the <paramref name="stream"/> is null.</exception>
-        public Image(Stream stream, Configuration configuration = null)
+        public Image(Stream stream, IDecoderOptions options = null, Configuration configuration = null)
             : base(configuration)
         {
             Guard.NotNull(stream, nameof(stream));
-            this.Load(stream);
+            this.Load(stream, options);
         }
 
 #if !NETSTANDARD1_1
@@ -70,17 +73,20 @@ namespace ImageSharp
         /// <param name="filePath">
         /// The file containing image information.
         /// </param>
+        /// <param name="options">
+        /// The options for the decoder.
+        /// </param>
         /// <param name="configuration">
         /// The configuration providing initialization code which allows extending the library.
         /// </param>
         /// <exception cref="System.ArgumentNullException">Thrown if the <paramref name="filePath"/> is null.</exception>
-        public Image(string filePath, Configuration configuration = null)
+        public Image(string filePath, IDecoderOptions options = null, Configuration configuration = null)
             : base(configuration)
         {
             Guard.NotNull(filePath, nameof(filePath));
             using (var fs = File.OpenRead(filePath))
             {
-                this.Load(fs);
+                this.Load(fs, options);
             }
         }
 #endif
@@ -91,18 +97,21 @@ namespace ImageSharp
         /// <param name="bytes">
         /// The byte array containing image information.
         /// </param>
+        /// <param name="options">
+        /// The options for the decoder.
+        /// </param>
         /// <param name="configuration">
         /// The configuration providing initialization code which allows extending the library.
         /// </param>
         /// <exception cref="System.ArgumentNullException">Thrown if the <paramref name="bytes"/> is null.</exception>
-        public Image(byte[] bytes, Configuration configuration = null)
+        public Image(byte[] bytes, IDecoderOptions options = null, Configuration configuration = null)
             : base(configuration)
         {
             Guard.NotNull(bytes, nameof(bytes));
 
             using (MemoryStream stream = new MemoryStream(bytes, false))
             {
-                this.Load(stream);
+                this.Load(stream, options);
             }
         }
 
@@ -397,10 +406,11 @@ namespace ImageSharp
         /// Loads the image from the given stream.
         /// </summary>
         /// <param name="stream">The stream containing image information.</param>
+        /// <param name="options">The options for the decoder.</param>
         /// <exception cref="NotSupportedException">
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
-        private void Load(Stream stream)
+        private void Load(Stream stream, IDecoderOptions options)
         {
             if (!this.Configuration.ImageFormats.Any())
             {
@@ -414,7 +424,7 @@ namespace ImageSharp
 
             if (stream.CanSeek)
             {
-                if (this.Decode(stream))
+                if (this.Decode(stream, options))
                 {
                     return;
                 }
@@ -427,7 +437,7 @@ namespace ImageSharp
                     stream.CopyTo(ms);
                     ms.Position = 0;
 
-                    if (this.Decode(ms))
+                    if (this.Decode(ms, options))
                     {
                         return;
                     }
@@ -449,10 +459,11 @@ namespace ImageSharp
         /// Decodes the image stream to the current image.
         /// </summary>
         /// <param name="stream">The stream.</param>
+        /// <param name="options">The options for the decoder.</param>
         /// <returns>
         /// The <see cref="bool"/>.
         /// </returns>
-        private bool Decode(Stream stream)
+        private bool Decode(Stream stream, IDecoderOptions options)
         {
             int maxHeaderSize = this.Configuration.MaxHeaderSize;
             if (maxHeaderSize <= 0)
@@ -479,7 +490,7 @@ namespace ImageSharp
                 return false;
             }
 
-            format.Decoder.Decode(this, stream);
+            format.Decoder.Decode(this, stream, options);
             this.CurrentImageFormat = format;
             return true;
         }

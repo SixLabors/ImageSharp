@@ -12,7 +12,7 @@ namespace ImageSharp
     /// </summary>
     /// <typeparam name="TColor">The type of the color.</typeparam>
     public static class NamedColors<TColor>
-        where TColor : struct, IPackedPixel, IEquatable<TColor>
+        where TColor : struct, IPixel<TColor>
     {
         /// <summary>
         /// Represents a <see cref="Color"/> matching the W3C definition that has an hex value of #F0F8FF.

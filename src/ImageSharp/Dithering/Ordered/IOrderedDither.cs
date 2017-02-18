@@ -32,6 +32,6 @@ namespace ImageSharp.Dithering
         /// <param name="height">The image height.</param>
         /// <typeparam name="TColor">The pixel format.</typeparam>
         void Dither<TColor>(PixelAccessor<TColor> pixels, TColor source, TColor upper, TColor lower, byte[] bytes, int index, int x, int y, int width, int height)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>;
+            where TColor : struct, IPixel<TColor>;
     }
 }

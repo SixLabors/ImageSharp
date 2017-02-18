@@ -12,7 +12,7 @@ namespace ImageSharp.Drawing.Pens
     /// </summary>
     /// <typeparam name="TColor">The type of the color.</typeparam>
     public class Pens<TColor>
-        where TColor : struct, IPackedPixel, IEquatable<TColor>
+        where TColor : struct, IPixel<TColor>
     {
         private static readonly float[] DashDotPattern = new[] { 3f, 1f, 1f, 1f };
         private static readonly float[] DashDotDotPattern = new[] { 3f, 1f, 1f, 1f, 1f, 1f };

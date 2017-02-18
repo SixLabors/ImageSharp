@@ -16,7 +16,7 @@ namespace ImageSharp.Tests
     public class JpegUtilsTests : TestBase
     {
         public static Image<TColor> CreateTestImage<TColor>(GenericFactory<TColor> factory)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             Image<TColor> image = factory.CreateImage(10, 10);
             using (PixelAccessor<TColor> pixels = image.Lock())
@@ -41,7 +41,7 @@ namespace ImageSharp.Tests
         [Theory]
         [WithMemberFactory(nameof(CreateTestImage), PixelTypes.Color | PixelTypes.StandardImageClass | PixelTypes.Argb)]
         public void CopyStretchedRGBTo_FromOrigo<TColor>(TestImageProvider<TColor> provider)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             using (Image<TColor> src = provider.GetImage())
             using (Image<TColor> dest = provider.Factory.CreateImage(8, 8))
@@ -63,7 +63,7 @@ namespace ImageSharp.Tests
         [Theory]
         [WithMemberFactory(nameof(CreateTestImage), PixelTypes.Color | PixelTypes.StandardImageClass | PixelTypes.Argb)]
         public void CopyStretchedRGBTo_WithOffset<TColor>(TestImageProvider<TColor> provider)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             using (Image<TColor> src = provider.GetImage())
             using (PixelArea<TColor> area = new PixelArea<TColor>(8, 8, ComponentOrder.Xyz))

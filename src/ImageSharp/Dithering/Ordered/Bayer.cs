@@ -31,7 +31,7 @@ namespace ImageSharp.Dithering.Ordered
 
         /// <inheritdoc />
         public void Dither<TColor>(PixelAccessor<TColor> pixels, TColor source, TColor upper, TColor lower, byte[] bytes, int index, int x, int y, int width, int height)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             source.ToXyzwBytes(bytes, 0);
             pixels[x, y] = ThresholdMatrix[y % 3, x % 3] >= bytes[index] ? lower : upper;

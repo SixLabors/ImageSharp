@@ -13,7 +13,7 @@ namespace ImageSharp.Processing
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     public abstract class ImageProcessor<TColor> : IImageProcessor<TColor>
-        where TColor : struct, IPackedPixel, IEquatable<TColor>
+        where TColor : struct, IPixel<TColor>
     {
         /// <inheritdoc/>
         public virtual ParallelOptions ParallelOptions { get; set; }

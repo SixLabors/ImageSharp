@@ -76,7 +76,7 @@ namespace ImageSharp.Tests
         /// <param name="extension">The requested extension</param>
         /// <param name="encoder">Optional encoder</param>
         public void SaveTestOutputFile<TColor>(Image<TColor> image, string extension = null, IImageEncoder encoder = null)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             string path = this.GetTestOutputFileName(extension);
 

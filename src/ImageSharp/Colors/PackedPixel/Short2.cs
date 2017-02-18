@@ -12,7 +12,7 @@ namespace ImageSharp
     /// <summary>
     /// Packed pixel type containing two 16-bit signed integer values.
     /// </summary>
-    public struct Short2 : IPackedPixel<uint>, IEquatable<Short2>
+    public struct Short2 : IPixel<Short2>
     {
         /// <summary>
         /// The maximum byte value.
@@ -48,7 +48,9 @@ namespace ImageSharp
             this.PackedValue = Pack(x, y);
         }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Gets or sets the packed representation of the value.
+        /// </summary>
         public uint PackedValue { get; set; }
 
         /// <summary>

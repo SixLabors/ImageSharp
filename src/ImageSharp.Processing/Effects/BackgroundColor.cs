@@ -22,7 +22,7 @@ namespace ImageSharp
         /// <param name="color">The color to set as the background.</param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> BackgroundColor<TColor>(this Image<TColor> source, TColor color)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             source.ApplyProcessor(new BackgroundColorProcessor<TColor>(color), source.Bounds);
             return source;

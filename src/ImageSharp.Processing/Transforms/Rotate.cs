@@ -23,7 +23,7 @@ namespace ImageSharp
         /// <param name="degrees">The angle in degrees to perform the rotation.</param>
         /// <returns>The <see cref="Image"/></returns>
         public static Image<TColor> Rotate<TColor>(this Image<TColor> source, float degrees)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             return Rotate(source, degrees, true);
         }
@@ -36,7 +36,7 @@ namespace ImageSharp
         /// <param name="rotateType">The <see cref="RotateType"/> to perform the rotation.</param>
         /// <returns>The <see cref="Image"/></returns>
         public static Image<TColor> Rotate<TColor>(this Image<TColor> source, RotateType rotateType)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             return Rotate(source, (float)rotateType, false);
         }
@@ -50,7 +50,7 @@ namespace ImageSharp
         /// <param name="expand">Whether to expand the image to fit the rotated result.</param>
         /// <returns>The <see cref="Image"/></returns>
         public static Image<TColor> Rotate<TColor>(this Image<TColor> source, float degrees, bool expand)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             RotateProcessor<TColor> processor = new RotateProcessor<TColor> { Angle = degrees, Expand = expand };
 

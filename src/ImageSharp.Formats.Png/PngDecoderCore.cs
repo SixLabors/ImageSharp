@@ -138,7 +138,7 @@ namespace ImageSharp.Formats
         /// Thrown if the image is larger than the maximum allowable size.
         /// </exception>
         public void Decode<TColor>(Image<TColor> image, Stream stream)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             Image<TColor> currentImage = image;
             this.currentStream = stream;
@@ -262,7 +262,7 @@ namespace ImageSharp.Formats
         /// <param name="image">The image to read to.</param>
         /// <param name="data">The data containing physical data.</param>
         private void ReadPhysicalChunk<TColor>(Image<TColor> image, byte[] data)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             data.ReverseBytes(0, 4);
             data.ReverseBytes(4, 4);
@@ -325,7 +325,7 @@ namespace ImageSharp.Formats
         /// <param name="dataStream">The <see cref="MemoryStream"/> containing data.</param>
         /// <param name="pixels"> The pixel data.</param>
         private void ReadScanlines<TColor>(MemoryStream dataStream, PixelAccessor<TColor> pixels)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             this.bytesPerPixel = this.CalculateBytesPerPixel();
             this.bytesPerScanline = this.CalculateScanlineLength(this.header.Width) + 1;
@@ -356,7 +356,7 @@ namespace ImageSharp.Formats
         /// <param name="compressedStream">The compressed pixel data stream.</param>
         /// <param name="pixels">The image pixel accessor.</param>
         private void DecodePixelData<TColor>(Stream compressedStream, PixelAccessor<TColor> pixels)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             byte[] previousScanline = ArrayPool<byte>.Shared.Rent(this.bytesPerScanline);
             byte[] scanline = ArrayPool<byte>.Shared.Rent(this.bytesPerScanline);
@@ -429,7 +429,7 @@ namespace ImageSharp.Formats
         /// <param name="compressedStream">The compressed pixel data stream.</param>
         /// <param name="pixels">The image pixel accessor.</param>
         private void DecodeInterlacedPixelData<TColor>(Stream compressedStream, PixelAccessor<TColor> pixels)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             byte[] previousScanline = ArrayPool<byte>.Shared.Rent(this.bytesPerScanline);
             byte[] scanline = ArrayPool<byte>.Shared.Rent(this.bytesPerScanline);
@@ -518,7 +518,7 @@ namespace ImageSharp.Formats
         /// <param name="row">The current image row.</param>
         /// <param name="pixels">The image pixels</param>
         private void ProcessDefilteredScanline<TColor>(byte[] defilteredScanline, int row, PixelAccessor<TColor> pixels)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             TColor color = default(TColor);
             switch (this.PngColorType)
@@ -643,7 +643,7 @@ namespace ImageSharp.Formats
         /// <param name="pixelOffset">The column start index. Always 0 for none interlaced images.</param>
         /// <param name="increment">The column increment. Always 1 for none interlaced images.</param>
         private void ProcessInterlacedDefilteredScanline<TColor>(byte[] defilteredScanline, int row, PixelAccessor<TColor> pixels, int pixelOffset = 0, int increment = 1)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             TColor color = default(TColor);
 
@@ -761,7 +761,7 @@ namespace ImageSharp.Formats
         /// <param name="data">The <see cref="T:byte[]"/> containing  data.</param>
         /// <param name="length">The maximum length to read.</param>
         private void ReadTextChunk<TColor>(Image<TColor> image, byte[] data, int length)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             int zeroIndex = 0;
 

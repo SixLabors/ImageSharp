@@ -22,7 +22,7 @@ namespace ImageSharp
         /// <param name="processor">The processor to apply to the image.</param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Apply<TColor>(this Image<TColor> source, IImageProcessor<TColor> processor)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             source.ApplyProcessor(processor, source.Bounds);
             return source;

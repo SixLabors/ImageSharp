@@ -24,7 +24,7 @@ namespace ImageSharp.Processing
         /// The <see cref="Rectangle"/>.
         /// </returns>
         public static Rectangle CalculateTargetLocationAndBounds<TColor>(ImageBase<TColor> source, ResizeOptions options)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             switch (options.Mode)
             {
@@ -55,7 +55,7 @@ namespace ImageSharp.Processing
         /// The <see cref="Rectangle"/>.
         /// </returns>
         private static Rectangle CalculateCropRectangle<TColor>(ImageBase<TColor> source, ResizeOptions options)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             int width = options.Size.Width;
             int height = options.Size.Height;
@@ -174,7 +174,7 @@ namespace ImageSharp.Processing
         /// The <see cref="Rectangle"/>.
         /// </returns>
         private static Rectangle CalculatePadRectangle<TColor>(ImageBase<TColor> source, ResizeOptions options)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             int width = options.Size.Width;
             int height = options.Size.Height;
@@ -255,7 +255,7 @@ namespace ImageSharp.Processing
         /// The <see cref="Rectangle"/>.
         /// </returns>
         private static Rectangle CalculateBoxPadRectangle<TColor>(ImageBase<TColor> source, ResizeOptions options)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             int width = options.Size.Width;
             int height = options.Size.Height;
@@ -342,7 +342,7 @@ namespace ImageSharp.Processing
         /// The <see cref="Rectangle"/>.
         /// </returns>
         private static Rectangle CalculateMaxRectangle<TColor>(ImageBase<TColor> source, ResizeOptions options)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             int width = options.Size.Width;
             int height = options.Size.Height;
@@ -383,7 +383,7 @@ namespace ImageSharp.Processing
         /// The <see cref="Rectangle"/>.
         /// </returns>
         private static Rectangle CalculateMinRectangle<TColor>(ImageBase<TColor> source, ResizeOptions options)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             int width = options.Size.Width;
             int height = options.Size.Height;

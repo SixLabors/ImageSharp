@@ -12,7 +12,7 @@ namespace ImageSharp.Drawing.Processors
     /// </summary>
     /// <typeparam name="TColor">The type of the color.</typeparam>
     public struct ColoredPointInfo<TColor>
-        where TColor : struct, IPackedPixel, IEquatable<TColor>
+        where TColor : struct, IPixel<TColor>
     {
         /// <summary>
         /// The color

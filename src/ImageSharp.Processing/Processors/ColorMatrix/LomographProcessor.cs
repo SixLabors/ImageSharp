@@ -13,7 +13,7 @@ namespace ImageSharp.Processing.Processors
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     public class LomographProcessor<TColor> : ColorMatrixFilter<TColor>
-        where TColor : struct, IPackedPixel, IEquatable<TColor>
+        where TColor : struct, IPixel<TColor>
     {
         private static readonly TColor VeryDarkGreen = ColorBuilder<TColor>.FromRGBA(0, 10, 0, 255);
 

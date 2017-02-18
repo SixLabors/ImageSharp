@@ -21,14 +21,14 @@ namespace ImageSharp.Processing.Processors
         /// The 2d gradient operator.
         /// </summary>
         private static readonly Fast2DArray<float> LaplacianOfGaussianXY =
-            new Fast2DArray<float>(new float[,]
+            new float[,]
             {
                 { 0, 0, -1,  0,  0 },
                 { 0, -1, -2, -1,  0 },
                 { -1, -2, 16, -2, -1 },
                 { 0, -1, -2, -1,  0 },
                 { 0, 0, -1,  0,  0 }
-            });
+            };
 
         /// <summary>
         /// Initializes a new instance of the <see cref="LaplacianOfGaussianProcessor{TColor}"/> class.

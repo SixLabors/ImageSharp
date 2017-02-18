@@ -38,6 +38,11 @@ namespace ImageSharp.Formats
 #pragma warning restore SA401
 
         /// <summary>
+        /// The decoder options.
+        /// </summary>
+        private readonly IDecoderOptions options;
+
+        /// <summary>
         /// The App14 marker color-space
         /// </summary>
         private byte adobeTransform;
@@ -85,8 +90,10 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Initializes a new instance of the <see cref="JpegDecoderCore" /> class.
         /// </summary>
-        public JpegDecoderCore()
+        /// <param name="options">The decoder options.</param>
+        public JpegDecoderCore(IDecoderOptions options)
         {
+            this.options = options ?? DecoderOptions.Default;
             this.HuffmanTrees = HuffmanTree.CreateHuffmanTrees();
             this.QuantizationTables = new Block8x8F[MaxTq + 1];
             this.Temp = new byte[2 * Block8x8F.ScalarCount];
@@ -958,7 +965,7 @@ namespace ImageSharp.Formats
         private void ProcessApp1Marker<TColor>(int remaining, Image<TColor> image)
             where TColor : struct, IPixel<TColor>
         {
-            if (remaining < 6)
+            if (remaining < 6 || this.options.IgnoreMetadata)
             {
                 this.InputProcessor.Skip(remaining);
                 return;

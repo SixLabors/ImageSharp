@@ -73,7 +73,7 @@ namespace ImageSharp.Formats
         /// <param name="options">The decoder options.</param>
         public GifDecoderCore(IDecoderOptions options)
         {
-            this.options = options ?? DecoderOptions.Default;
+            this.options = options ?? new DecoderOptions();
         }
 
         /// <summary>

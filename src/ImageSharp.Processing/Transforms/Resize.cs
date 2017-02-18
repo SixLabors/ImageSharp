@@ -24,7 +24,7 @@ namespace ImageSharp
         /// <returns>The <see cref="Image{TColor}"/></returns>
         /// <remarks>Passing zero for one of height or width within the resize options will automatically preserve the aspect ratio of the original image</remarks>
         public static Image<TColor> Resize<TColor>(this Image<TColor> source, ResizeOptions options)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             // Ensure size is populated across both dimensions.
             if (options.Size.Width == 0 && options.Size.Height > 0)
@@ -51,7 +51,7 @@ namespace ImageSharp
         /// <returns>The <see cref="Image{TColor}"/></returns>
         /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image</remarks>
         public static Image<TColor> Resize<TColor>(this Image<TColor> source, Size size)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             return Resize(source, size.Width, size.Height, new BicubicResampler(), false);
         }
@@ -66,7 +66,7 @@ namespace ImageSharp
         /// <returns>The <see cref="Image{TColor}"/></returns>
         /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image</remarks>
         public static Image<TColor> Resize<TColor>(this Image<TColor> source, int width, int height)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             return Resize(source, width, height, new BicubicResampler(), false);
         }
@@ -82,7 +82,7 @@ namespace ImageSharp
         /// <returns>The <see cref="Image{TColor}"/></returns>
         /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image</remarks>
         public static Image<TColor> Resize<TColor>(this Image<TColor> source, int width, int height, bool compand)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             return Resize(source, width, height, new BicubicResampler(), compand);
         }
@@ -98,7 +98,7 @@ namespace ImageSharp
         /// <returns>The <see cref="Image{TColor}"/></returns>
         /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image</remarks>
         public static Image<TColor> Resize<TColor>(this Image<TColor> source, int width, int height, IResampler sampler)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             return Resize(source, width, height, sampler, false);
         }
@@ -115,7 +115,7 @@ namespace ImageSharp
         /// <returns>The <see cref="Image{TColor}"/></returns>
         /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image</remarks>
         public static Image<TColor> Resize<TColor>(this Image<TColor> source, int width, int height, IResampler sampler, bool compand)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             return Resize(source, width, height, sampler, source.Bounds, new Rectangle(0, 0, width, height), compand);
         }
@@ -139,7 +139,7 @@ namespace ImageSharp
         /// <returns>The <see cref="Image{TColor}"/></returns>
         /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image</remarks>
         public static Image<TColor> Resize<TColor>(this Image<TColor> source, int width, int height, IResampler sampler, Rectangle sourceRectangle, Rectangle targetRectangle, bool compand = false)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             if (width == 0 && height > 0)
             {

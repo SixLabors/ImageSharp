@@ -28,7 +28,7 @@ namespace ImageSharp
         /// <param name="options">The options.</param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Draw<TColor>(this Image<TColor> source, IPen<TColor> pen, IPath path, GraphicsOptions options)
-           where TColor : struct, IPackedPixel, IEquatable<TColor>
+           where TColor : struct, IPixel<TColor>
         {
             return source.Draw(pen, new ShapePath(path), options);
         }
@@ -42,7 +42,7 @@ namespace ImageSharp
         /// <param name="path">The path.</param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Draw<TColor>(this Image<TColor> source, IPen<TColor> pen, IPath path)
-           where TColor : struct, IPackedPixel, IEquatable<TColor>
+           where TColor : struct, IPixel<TColor>
         {
             return source.Draw(pen, path, GraphicsOptions.Default);
         }
@@ -58,7 +58,7 @@ namespace ImageSharp
         /// <param name="options">The options.</param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Draw<TColor>(this Image<TColor> source, IBrush<TColor> brush, float thickness, IPath path, GraphicsOptions options)
-           where TColor : struct, IPackedPixel, IEquatable<TColor>
+           where TColor : struct, IPixel<TColor>
         {
             return source.Draw(new Pen<TColor>(brush, thickness), path, options);
         }
@@ -73,7 +73,7 @@ namespace ImageSharp
         /// <param name="path">The path.</param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Draw<TColor>(this Image<TColor> source, IBrush<TColor> brush, float thickness, IPath path)
-           where TColor : struct, IPackedPixel, IEquatable<TColor>
+           where TColor : struct, IPixel<TColor>
         {
             return source.Draw(new Pen<TColor>(brush, thickness), path);
         }
@@ -89,7 +89,7 @@ namespace ImageSharp
         /// <param name="options">The options.</param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Draw<TColor>(this Image<TColor> source, TColor color, float thickness, IPath path, GraphicsOptions options)
-           where TColor : struct, IPackedPixel, IEquatable<TColor>
+           where TColor : struct, IPixel<TColor>
         {
             return source.Draw(new SolidBrush<TColor>(color), thickness, path, options);
         }
@@ -104,7 +104,7 @@ namespace ImageSharp
         /// <param name="path">The path.</param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Draw<TColor>(this Image<TColor> source, TColor color, float thickness, IPath path)
-           where TColor : struct, IPackedPixel, IEquatable<TColor>
+           where TColor : struct, IPixel<TColor>
         {
             return source.Draw(new SolidBrush<TColor>(color), thickness, path);
         }

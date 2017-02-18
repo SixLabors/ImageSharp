@@ -13,7 +13,7 @@ namespace ImageSharp.Drawing.Pens
     /// </summary>
     /// <typeparam name="TColor">The type of the color.</typeparam>
     public interface IPen<TColor>
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
     {
         /// <summary>
         /// Creates the applicator for applying this pen to an Image

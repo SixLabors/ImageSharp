@@ -32,7 +32,7 @@ namespace ImageSharp.Tests
         [WithFile(TestImages.Jpeg.Baseline.Snake, PixelTypes.StandardImageClass, 75, JpegSubsample.Ratio444)]
         [WithFile(TestImages.Jpeg.Baseline.Lake, PixelTypes.StandardImageClass, 75, JpegSubsample.Ratio444)]
         public void LoadResizeSave<TColor>(TestImageProvider<TColor> provider, int quality, JpegSubsample subsample)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             using (Image<TColor> image = provider.GetImage().Resize(new ResizeOptions { Size = new Size(150, 100), Mode = ResizeMode.Max }))
             {
@@ -50,7 +50,7 @@ namespace ImageSharp.Tests
         [WithFileCollection(nameof(AllBmpFiles), PixelTypes.Color | PixelTypes.StandardImageClass | PixelTypes.Argb, JpegSubsample.Ratio420, 75)]
         [WithFileCollection(nameof(AllBmpFiles), PixelTypes.Color | PixelTypes.StandardImageClass | PixelTypes.Argb, JpegSubsample.Ratio444, 75)]
         public void OpenBmp_SaveJpeg<TColor>(TestImageProvider<TColor> provider, JpegSubsample subSample, int quality)
-           where TColor : struct, IPackedPixel, IEquatable<TColor>
+           where TColor : struct, IPixel<TColor>
         {
             using (Image<TColor> image = provider.GetImage())
             {

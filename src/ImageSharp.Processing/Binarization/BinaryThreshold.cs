@@ -22,7 +22,7 @@ namespace ImageSharp
         /// <param name="threshold">The threshold to apply binarization of the image. Must be between 0 and 1.</param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> BinaryThreshold<TColor>(this Image<TColor> source, float threshold)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             return BinaryThreshold(source, threshold, source.Bounds);
         }
@@ -38,7 +38,7 @@ namespace ImageSharp
         /// </param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> BinaryThreshold<TColor>(this Image<TColor> source, float threshold, Rectangle rectangle)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             source.ApplyProcessor(new BinaryThresholdProcessor<TColor>(threshold), rectangle);
             return source;

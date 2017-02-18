@@ -23,7 +23,7 @@ namespace ImageSharp
         /// <param name="flipType">The <see cref="FlipType"/> to perform the flip.</param>
         /// <returns>The <see cref="Image"/></returns>
         public static Image<TColor> Flip<TColor>(this Image<TColor> source, FlipType flipType)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             FlipProcessor<TColor> processor = new FlipProcessor<TColor>(flipType);
 

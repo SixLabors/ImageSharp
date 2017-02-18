@@ -24,7 +24,7 @@ namespace ImageSharp
         /// <param name="index">The component index to test the threshold against. Must range from 0 to 3.</param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Dither<TColor>(this Image<TColor> source, IOrderedDither dither, int index = 0)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             return Dither(source, dither, source.Bounds, index);
         }
@@ -41,7 +41,7 @@ namespace ImageSharp
         /// <param name="index">The component index to test the threshold against. Must range from 0 to 3.</param>
         /// <returns>The <see cref="Image"/>.</returns>
         public static Image<TColor> Dither<TColor>(this Image<TColor> source, IOrderedDither dither, Rectangle rectangle, int index = 0)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             source.ApplyProcessor(new OrderedDitherProcessor<TColor>(dither, index), rectangle);
             return source;
@@ -56,7 +56,7 @@ namespace ImageSharp
         /// <param name="threshold">The threshold to apply binarization of the image. Must be between 0 and 1.</param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Dither<TColor>(this Image<TColor> source, IErrorDiffuser diffuser, float threshold)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             return Dither(source, diffuser, threshold, source.Bounds);
         }
@@ -73,7 +73,7 @@ namespace ImageSharp
         /// </param>
         /// <returns>The <see cref="Image"/>.</returns>
         public static Image<TColor> Dither<TColor>(this Image<TColor> source, IErrorDiffuser diffuser, float threshold, Rectangle rectangle)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             source.ApplyProcessor(new ErrorDiffusionDitherProcessor<TColor>(diffuser, threshold), rectangle);
             return source;

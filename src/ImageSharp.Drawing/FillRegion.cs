@@ -24,7 +24,7 @@ namespace ImageSharp
         /// <param name="brush">The details how to fill the region of interest.</param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Fill<TColor>(this Image<TColor> source, IBrush<TColor> brush)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             return source.Apply(new FillProcessor<TColor>(brush));
         }
@@ -37,7 +37,7 @@ namespace ImageSharp
         /// <param name="color">The color.</param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Fill<TColor>(this Image<TColor> source, TColor color)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             return source.Fill(new SolidBrush<TColor>(color));
         }
@@ -52,7 +52,7 @@ namespace ImageSharp
         /// <param name="options">The graphics options.</param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Fill<TColor>(this Image<TColor> source, IBrush<TColor> brush, Region region, GraphicsOptions options)
-          where TColor : struct, IPackedPixel, IEquatable<TColor>
+          where TColor : struct, IPixel<TColor>
         {
             return source.Apply(new FillRegionProcessor<TColor>(brush, region, options));
         }
@@ -66,7 +66,7 @@ namespace ImageSharp
         /// <param name="region">The region.</param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Fill<TColor>(this Image<TColor> source, IBrush<TColor> brush, Region region)
-          where TColor : struct, IPackedPixel, IEquatable<TColor>
+          where TColor : struct, IPixel<TColor>
         {
             return source.Fill(brush, region, GraphicsOptions.Default);
         }
@@ -81,7 +81,7 @@ namespace ImageSharp
         /// <param name="options">The options.</param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Fill<TColor>(this Image<TColor> source, TColor color, Region region, GraphicsOptions options)
-          where TColor : struct, IPackedPixel, IEquatable<TColor>
+          where TColor : struct, IPixel<TColor>
         {
             return source.Fill(new SolidBrush<TColor>(color), region, options);
         }
@@ -95,7 +95,7 @@ namespace ImageSharp
         /// <param name="region">The region.</param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Fill<TColor>(this Image<TColor> source, TColor color, Region region)
-          where TColor : struct, IPackedPixel, IEquatable<TColor>
+          where TColor : struct, IPixel<TColor>
         {
             return source.Fill(new SolidBrush<TColor>(color), region);
         }

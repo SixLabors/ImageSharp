@@ -27,7 +27,7 @@ namespace ImageSharp
         /// <param name="options">The graphics options.</param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Fill<TColor>(this Image<TColor> source, IBrush<TColor> brush, IPath path, GraphicsOptions options)
-          where TColor : struct, IPackedPixel, IEquatable<TColor>
+          where TColor : struct, IPixel<TColor>
         {
             return source.Fill(brush, new ShapeRegion(path), options);
         }
@@ -41,7 +41,7 @@ namespace ImageSharp
         /// <param name="path">The path.</param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Fill<TColor>(this Image<TColor> source, IBrush<TColor> brush, IPath path)
-          where TColor : struct, IPackedPixel, IEquatable<TColor>
+          where TColor : struct, IPixel<TColor>
         {
             return source.Fill(brush, new ShapeRegion(path), GraphicsOptions.Default);
         }
@@ -56,7 +56,7 @@ namespace ImageSharp
         /// <param name="options">The options.</param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Fill<TColor>(this Image<TColor> source, TColor color, IPath path, GraphicsOptions options)
-          where TColor : struct, IPackedPixel, IEquatable<TColor>
+          where TColor : struct, IPixel<TColor>
         {
             return source.Fill(new SolidBrush<TColor>(color), path, options);
         }
@@ -70,7 +70,7 @@ namespace ImageSharp
         /// <param name="path">The path.</param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Fill<TColor>(this Image<TColor> source, TColor color, IPath path)
-          where TColor : struct, IPackedPixel, IEquatable<TColor>
+          where TColor : struct, IPixel<TColor>
         {
             return source.Fill(new SolidBrush<TColor>(color), path);
         }

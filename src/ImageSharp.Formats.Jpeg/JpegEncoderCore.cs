@@ -157,7 +157,7 @@ namespace ImageSharp.Formats
         /// <param name="quality">The quality.</param>
         /// <param name="sample">The subsampling mode.</param>
         public void Encode<TColor>(Image<TColor> image, Stream stream, int quality, JpegSubsample sample)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));
@@ -287,7 +287,7 @@ namespace ImageSharp.Formats
             Block8x8F* cbBlock,
             Block8x8F* crBlock,
             PixelArea<TColor> rgbBytes)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             float* yBlockRaw = (float*)yBlock;
             float* cbBlockRaw = (float*)cbBlock;
@@ -433,7 +433,7 @@ namespace ImageSharp.Formats
         /// <typeparam name="TColor">The pixel format.</typeparam>
         /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
         private void Encode444<TColor>(PixelAccessor<TColor> pixels)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             // TODO: Need a JpegScanEncoder<TColor> class or struct that encapsulates the scan-encoding implementation. (Similar to JpegScanDecoder.)
             Block8x8F b = default(Block8x8F);
@@ -704,7 +704,7 @@ namespace ImageSharp.Formats
         /// <param name="image">The image.</param>
         /// <typeparam name="TColor">The pixel format.</typeparam>
         private void WriteProfiles<TColor>(Image<TColor> image)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             image.MetaData.SyncProfiles();
             this.WriteProfile(image.MetaData.ExifProfile);
@@ -772,7 +772,7 @@ namespace ImageSharp.Formats
         /// <typeparam name="TColor">The pixel format.</typeparam>
         /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
         private void WriteStartOfScan<TColor>(PixelAccessor<TColor> pixels)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             // TODO: Need a JpegScanEncoder<TColor> class or struct that encapsulates the scan-encoding implementation. (Similar to JpegScanDecoder.)
             // TODO: We should allow grayscale writing.
@@ -799,7 +799,7 @@ namespace ImageSharp.Formats
         /// <typeparam name="TColor">The pixel format.</typeparam>
         /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
         private void Encode420<TColor>(PixelAccessor<TColor> pixels)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             // TODO: Need a JpegScanEncoder<TColor> class or struct that encapsulates the scan-encoding implementation. (Similar to JpegScanDecoder.)
             Block8x8F b = default(Block8x8F);

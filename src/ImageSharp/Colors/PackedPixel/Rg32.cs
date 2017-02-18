@@ -12,7 +12,7 @@ namespace ImageSharp
     /// <summary>
     /// Packed pixel type containing two 16-bit unsigned normalized values ranging from 0 to 1.
     /// </summary>
-    public struct Rg32 : IPackedPixel<uint>, IEquatable<Rg32>, IPackedVector
+    public struct Rg32 : IPixel<Rg32>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="Rg32"/> struct.
@@ -33,7 +33,9 @@ namespace ImageSharp
             this.PackedValue = Pack(vector.X, vector.Y);
         }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Gets or sets the packed representation of the value.
+        /// </summary>
         public uint PackedValue { get; set; }
 
         /// <summary>

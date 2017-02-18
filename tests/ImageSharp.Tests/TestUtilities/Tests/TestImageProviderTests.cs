@@ -22,7 +22,7 @@ namespace ImageSharp.Tests
         [Theory]
         [WithBlankImages(42, 666, PixelTypes.Color | PixelTypes.Argb | PixelTypes.HalfSingle, "hello")]
         public void Use_WithEmptyImageAttribute<TColor>(TestImageProvider<TColor> provider, string message)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             var img = provider.GetImage();
 
@@ -36,7 +36,7 @@ namespace ImageSharp.Tests
         public void Use_WithBlankImagesAttribute_WithAllPixelTypes<TColor>(
             TestImageProvider<TColor> provider,
             string message)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             var img = provider.GetImage();
 
@@ -50,7 +50,7 @@ namespace ImageSharp.Tests
         [WithBlankImages(1, 1, PixelTypes.Alpha8, PixelTypes.Alpha8)]
         [WithBlankImages(1, 1, PixelTypes.StandardImageClass, PixelTypes.StandardImageClass)]
         public void PixelType_PropertyValueIsCorrect<TColor>(TestImageProvider<TColor> provider, PixelTypes expected)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             Assert.Equal(expected, provider.PixelType);
         }
@@ -60,7 +60,7 @@ namespace ImageSharp.Tests
         [WithFile(TestImages.Bmp.F, PixelTypes.StandardImageClass)]
         public void PixelTypes_ColorWithDefaultImageClass_TriggersCreatingTheNonGenericDerivedImageClass<TColor>(
             TestImageProvider<TColor> provider)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             var img = provider.GetImage();
 
@@ -71,7 +71,7 @@ namespace ImageSharp.Tests
         [WithFile(TestImages.Bmp.Car, PixelTypes.All, 88)]
         [WithFile(TestImages.Bmp.F, PixelTypes.All, 88)]
         public void Use_WithFileAttribute<TColor>(TestImageProvider<TColor> provider, int yo)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             Assert.NotNull(provider.Utility.SourceFileOrDescription);
             var img = provider.GetImage();
@@ -88,7 +88,7 @@ namespace ImageSharp.Tests
         [Theory]
         [WithFileCollection(nameof(AllBmpFiles), PixelTypes.Color | PixelTypes.Argb)]
         public void Use_WithFileCollection<TColor>(TestImageProvider<TColor> provider)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             Assert.NotNull(provider.Utility.SourceFileOrDescription);
             var image = provider.GetImage();
@@ -98,7 +98,7 @@ namespace ImageSharp.Tests
         [Theory]
         [WithSolidFilledImages(10, 20, 255, 100, 50, 200, PixelTypes.Color | PixelTypes.Argb)]
         public void Use_WithSolidFilledImagesAttribute<TColor>(TestImageProvider<TColor> provider)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             var img = provider.GetImage();
             Assert.Equal(img.Width, 10);
@@ -130,7 +130,7 @@ namespace ImageSharp.Tests
         /// <param name="factory"></param>
         /// <returns></returns>
         public static Image<TColor> CreateTestImage<TColor>(GenericFactory<TColor> factory)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             return factory.CreateImage(3, 3);
         }
@@ -138,7 +138,7 @@ namespace ImageSharp.Tests
         [Theory]
         [WithMemberFactory(nameof(CreateTestImage), PixelTypes.All)]
         public void Use_WithMemberFactoryAttribute<TColor>(TestImageProvider<TColor> provider)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             var img = provider.GetImage();
             Assert.Equal(img.Width, 3);
@@ -160,7 +160,7 @@ namespace ImageSharp.Tests
         [Theory]
         [MemberData(nameof(BasicData))]
         public void Blank_MemberData<TColor>(TestImageProvider<TColor> provider)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             var img = provider.GetImage();
 
@@ -178,7 +178,7 @@ namespace ImageSharp.Tests
         [Theory]
         [MemberData(nameof(FileData))]
         public void File_MemberData<TColor>(TestImageProvider<TColor> provider)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             this.Output.WriteLine("SRC: " + provider.Utility.SourceFileOrDescription);
             this.Output.WriteLine("OUT: " + provider.Utility.GetTestOutputFileName());

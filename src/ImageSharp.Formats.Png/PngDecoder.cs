@@ -34,7 +34,9 @@ namespace ImageSharp.Formats
         public void Decode<TColor>(Image<TColor> image, Stream stream, IDecoderOptions options)
             where TColor : struct, IPixel<TColor>
         {
-            new PngDecoderCore().Decode(image, stream);
+            IPngDecoderOptions pngOptions = PngDecoderOptions.Create(options);
+
+            new PngDecoderCore(pngOptions).Decode(image, stream);
         }
     }
 }

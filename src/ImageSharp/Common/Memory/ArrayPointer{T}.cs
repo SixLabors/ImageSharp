@@ -16,7 +16,7 @@ namespace ImageSharp
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ArrayPointer(T[] array, void* pointerToArray, int offset)
         {
-            // TODO: Use Guard.NotNull() here after optimizing it with ThrowHelper!
+            // TODO: Use Guard.NotNull() here after optimizing it by eliminating the default argument case and applying ThrowHelper!
             if (array == null)
             {
                 ThrowHelper.ThrowArgumentNullException(nameof(array));
@@ -29,7 +29,7 @@ namespace ImageSharp
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ArrayPointer(T[] array, void* pointerToArray)
         {
-            // TODO: Use Guard.NotNull() here after optimizing it with ThrowHelper!
+            // TODO: Use Guard.NotNull() here after optimizing it by eliminating the default argument case and applying ThrowHelper!
             if (array == null)
             {
                 ThrowHelper.ThrowArgumentNullException(nameof(array));

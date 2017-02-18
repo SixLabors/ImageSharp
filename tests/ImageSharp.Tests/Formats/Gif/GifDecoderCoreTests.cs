@@ -5,7 +5,10 @@
 
 namespace ImageSharp.Tests
 {
+    using System.Text;
     using Xunit;
+
+    using ImageSharp.Formats;
 
     public class GifDecoderCoreTests
     {
@@ -40,6 +43,23 @@ namespace ImageSharp.Tests
             using (Image image = new Image(testFile.FilePath, options))
             {
                 Assert.Equal(0, image.MetaData.Properties.Count);
+            }
+        }
+
+        [Fact]
+        public void Decode_TextEncodingSetToUnicode_TextIsReadWithCorrectEncoding()
+        {
+            var options = new GifDecoderOptions()
+            {
+                TextEncoding = Encoding.Unicode
+            };
+
+            TestFile testFile = TestFile.Create(TestImages.Gif.Rings);
+
+            using (Image image = new Image(testFile.FilePath, options))
+            {
+                Assert.Equal(1, image.MetaData.Properties.Count);
+                Assert.Equal("浉条卥慨灲", image.MetaData.Properties[0].Value);
             }
         }
     }

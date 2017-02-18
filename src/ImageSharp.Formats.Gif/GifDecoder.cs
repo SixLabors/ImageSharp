@@ -17,7 +17,9 @@ namespace ImageSharp.Formats
         public void Decode<TColor>(Image<TColor> image, Stream stream, IDecoderOptions options)
             where TColor : struct, IPixel<TColor>
         {
-            new GifDecoderCore<TColor>(options).Decode(image, stream);
+            IGifDecoderOptions gifOptions = GifDecoderOptions.Create(options);
+
+            new GifDecoderCore<TColor>(gifOptions).Decode(image, stream);
         }
     }
 }

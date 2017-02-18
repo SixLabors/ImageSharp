@@ -25,7 +25,7 @@ namespace ImageSharp.Formats
         /// <summary>
         /// The decoder options.
         /// </summary>
-        private readonly IDecoderOptions options;
+        private readonly IGifDecoderOptions options;
 
         /// <summary>
         /// The image to decode the information to.
@@ -71,9 +71,9 @@ namespace ImageSharp.Formats
         /// Initializes a new instance of the <see cref="GifDecoderCore{TColor}"/> class.
         /// </summary>
         /// <param name="options">The decoder options.</param>
-        public GifDecoderCore(IDecoderOptions options)
+        public GifDecoderCore(IGifDecoderOptions options)
         {
-            this.options = options ?? new DecoderOptions();
+            this.options = options ?? new GifDecoderOptions();
         }
 
         /// <summary>
@@ -260,7 +260,7 @@ namespace ImageSharp.Formats
                 try
                 {
                     this.currentStream.Read(commentsBuffer, 0, length);
-                    string comments = Encoding.GetEncoding("ASCII").GetString(commentsBuffer, 0, length);
+                    string comments = this.options.TextEncoding.GetString(commentsBuffer, 0, length);
                     this.decodedImage.MetaData.Properties.Add(new ImageProperty("Comments", comments));
                 }
                 finally

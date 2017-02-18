@@ -22,7 +22,7 @@ namespace ImageSharp.Formats
         /// <inheritdoc/>
         public void Encode<TColor>(Image<TColor> image, Stream stream)
             where TColor : struct, IPixel<TColor>
-                    {
+        {
             BmpEncoderCore encoder = new BmpEncoderCore();
             encoder.Encode(image, stream, this.BitsPerPixel);
         }

@@ -58,7 +58,7 @@ namespace ImageSharp.Formats
         /// <inheritdoc/>
         public void Encode<TColor>(Image<TColor> image, Stream stream)
             where TColor : struct, IPixel<TColor>
-                    {
+        {
             PngEncoderCore encoder = new PngEncoderCore
             {
                 CompressionLevel = this.CompressionLevel,

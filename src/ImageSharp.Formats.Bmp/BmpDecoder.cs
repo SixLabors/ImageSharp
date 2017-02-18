@@ -27,8 +27,8 @@ namespace ImageSharp.Formats
     {
         /// <inheritdoc/>
         public void Decode<TColor>(Image<TColor> image, Stream stream)
-        where TColor : struct, IPixel<TColor>
-                {
+            where TColor : struct, IPixel<TColor>
+        {
             Guard.NotNull(image, "image");
             Guard.NotNull(stream, "stream");
 

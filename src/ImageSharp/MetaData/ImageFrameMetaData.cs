@@ -5,8 +5,6 @@
 
 namespace ImageSharp
 {
-    using System.Diagnostics;
-
     /// <summary>
     /// Encapsulates the metadata of an image frame.
     /// </summary>
@@ -28,7 +26,7 @@ namespace ImageSharp
         /// </param>
         internal ImageFrameMetaData(ImageFrameMetaData other)
         {
-            Debug.Assert(other != null);
+            DebugGuard.NotNull(other, nameof(other));
 
             this.FrameDelay = other.FrameDelay;
         }

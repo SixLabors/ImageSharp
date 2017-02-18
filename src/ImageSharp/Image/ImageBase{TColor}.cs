@@ -182,7 +182,7 @@ namespace ImageSharp
         /// </param>
         protected void CopyProperties(IImageBase other)
         {
-            Debug.Assert(other != null);
+            DebugGuard.NotNull(other, nameof(other));
 
             this.Configuration = other.Configuration;
         }

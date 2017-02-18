@@ -15,14 +15,25 @@ namespace ImageSharp.Processing.Processors
         where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>
+        /// Initializes a new instance of the <see cref="EdgeDetector2DProcessor{TColor}"/> class.
+        /// </summary>
+        /// <param name="kernelX">The horizontal gradient operator.</param>
+        /// <param name="kernelY">The vertical gradient operator.</param>
+        protected EdgeDetector2DProcessor(Fast2DArray<float> kernelX, Fast2DArray<float> kernelY)
+        {
+            this.KernelX = kernelX;
+            this.KernelY = kernelY;
+        }
+
+        /// <summary>
         /// Gets the horizontal gradient operator.
         /// </summary>
-        public abstract float[][] KernelX { get; }
+        public Fast2DArray<float> KernelX { get; }
 
         /// <summary>
         /// Gets the vertical gradient operator.
         /// </summary>
-        public abstract float[][] KernelY { get; }
+        public Fast2DArray<float> KernelY { get; }
 
         /// <inheritdoc/>
         public bool Grayscale { get; set; }

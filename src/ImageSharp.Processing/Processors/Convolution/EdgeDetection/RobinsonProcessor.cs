@@ -2,6 +2,7 @@
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
+
 namespace ImageSharp.Processing.Processors
 {
     using System;
@@ -19,105 +20,113 @@ namespace ImageSharp.Processing.Processors
         /// <summary>
         /// The North gradient operator
         /// </summary>
-        private static readonly float[][] RobinsonNorth =
-        {
-           new float[] { 1, 2, 1 },
-           new float[] { 0,  0, 0 },
-           new float[] { -1, -2, -1 }
-        };
+        private static readonly Fast2DArray<float> RobinsonNorth =
+            new Fast2DArray<float>(new float[,]
+            {
+               { 1, 2, 1 },
+               { 0,  0, 0 },
+               { -1, -2, -1 }
+            });
 
         /// <summary>
         /// The NorthWest gradient operator
         /// </summary>
-        private static readonly float[][] RobinsonNorthWest =
-        {
-           new float[] { 2,  1, 0 },
-           new float[] { 1,  0, -1 },
-           new float[] { 0, -1, -2 }
-        };
+        private static readonly Fast2DArray<float> RobinsonNorthWest =
+            new Fast2DArray<float>(new float[,]
+            {
+               { 2,  1, 0 },
+               { 1,  0, -1 },
+               { 0, -1, -2 }
+            });
 
         /// <summary>
         /// The West gradient operator
         /// </summary>
-        private static readonly float[][] RobinsonWest =
-        {
-           new float[] { 1, 0, -1 },
-           new float[] { 2, 0, -2 },
-           new float[] { 1, 0, -1 }
-        };
+        private static readonly Fast2DArray<float> RobinsonWest =
+            new Fast2DArray<float>(new float[,]
+            {
+               { 1, 0, -1 },
+               { 2, 0, -2 },
+               { 1, 0, -1 }
+            });
 
         /// <summary>
         /// The SouthWest gradient operator
         /// </summary>
-        private static readonly float[][] RobinsonSouthWest =
-        {
-           new float[] { 0, -1, -2 },
-           new float[] { 1, 0, -1 },
-           new float[] { 2, 1,  0 }
-        };
+        private static readonly Fast2DArray<float> RobinsonSouthWest =
+            new Fast2DArray<float>(new float[,]
+            {
+               { 0, -1, -2 },
+               { 1, 0, -1 },
+               { 2, 1,  0 }
+            });
 
         /// <summary>
         /// The South gradient operator
         /// </summary>
-        private static readonly float[][] RobinsonSouth =
-        {
-           new float[] { -1, -2, -1 },
-           new float[] { 0,  0, 0 },
-           new float[] { 1,  2,  1 }
-        };
+        private static readonly Fast2DArray<float> RobinsonSouth =
+            new Fast2DArray<float>(new float[,]
+            {
+               { -1, -2, -1 },
+               { 0,  0, 0 },
+               { 1,  2,  1 }
+            });
 
         /// <summary>
         /// The SouthEast gradient operator
         /// </summary>
-        private static readonly float[][] RobinsonSouthEast =
-        {
-           new float[] { -2, -1, 0 },
-           new float[] { -1,  0, 1 },
-           new float[] { 0,  1,  2 }
-        };
+        private static readonly Fast2DArray<float> RobinsonSouthEast =
+            new Fast2DArray<float>(new float[,]
+            {
+               { -2, -1, 0 },
+               { -1,  0, 1 },
+               { 0,  1,  2 }
+            });
 
         /// <summary>
         /// The East gradient operator
         /// </summary>
-        private static readonly float[][] RobinsonEast =
-        {
-           new float[] { -1, 0, 1 },
-           new float[] { -2, 0, 2 },
-           new float[] { -1, 0, 1 }
-        };
+        private static readonly Fast2DArray<float> RobinsonEast =
+            new Fast2DArray<float>(new float[,]
+            {
+               { -1, 0, 1 },
+               { -2, 0, 2 },
+               { -1, 0, 1 }
+            });
 
         /// <summary>
         /// The NorthEast gradient operator
         /// </summary>
-        private static readonly float[][] RobinsonNorthEast =
-        {
-           new float[] { 0,  1,  2 },
-           new float[] { -1,  0, 1 },
-           new float[] { -2, -1, 0 }
-        };
+        private static readonly Fast2DArray<float> RobinsonNorthEast =
+            new Fast2DArray<float>(new float[,]
+            {
+               { 0,  1,  2 },
+               { -1,  0, 1 },
+               { -2, -1, 0 }
+            });
 
         /// <inheritdoc/>
-        public override float[][] North => RobinsonNorth;
+        public override Fast2DArray<float> North => RobinsonNorth;
 
         /// <inheritdoc/>
-        public override float[][] NorthWest => RobinsonNorthWest;
+        public override Fast2DArray<float> NorthWest => RobinsonNorthWest;
 
         /// <inheritdoc/>
-        public override float[][] West => RobinsonWest;
+        public override Fast2DArray<float> West => RobinsonWest;
 
         /// <inheritdoc/>
-        public override float[][] SouthWest => RobinsonSouthWest;
+        public override Fast2DArray<float> SouthWest => RobinsonSouthWest;
 
         /// <inheritdoc/>
-        public override float[][] South => RobinsonSouth;
+        public override Fast2DArray<float> South => RobinsonSouth;
 
         /// <inheritdoc/>
-        public override float[][] SouthEast => RobinsonSouthEast;
+        public override Fast2DArray<float> SouthEast => RobinsonSouthEast;
 
         /// <inheritdoc/>
-        public override float[][] East => RobinsonEast;
+        public override Fast2DArray<float> East => RobinsonEast;
 
         /// <inheritdoc/>
-        public override float[][] NorthEast => RobinsonNorthEast;
+        public override Fast2DArray<float> NorthEast => RobinsonNorthEast;
     }
 }

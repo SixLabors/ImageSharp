@@ -20,27 +20,31 @@ namespace ImageSharp.Processing.Processors
         /// <summary>
         /// The horizontal gradient operator.
         /// </summary>
-        private static readonly float[][] SobelX =
-        {
-            new float[] { -1, 0, 1 },
-            new float[] { -2, 0, 2 },
-            new float[] { -1, 0, 1 }
-        };
+        private static readonly Fast2DArray<float> SobelX =
+            new Fast2DArray<float>(new float[,]
+            {
+                { -1, 0, 1 },
+                { -2, 0, 2 },
+                { -1, 0, 1 }
+            });
 
         /// <summary>
         /// The vertical gradient operator.
         /// </summary>
-        private static readonly float[][] SobelY =
+        private static readonly Fast2DArray<float> SobelY =
+            new Fast2DArray<float>(new float[,]
+            {
+                { -1, -2, -1 },
+                { 0, 0, 0 },
+                { 1, 2, 1 }
+            });
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SobelProcessor{TColor}"/> class.
+        /// </summary>
+        public SobelProcessor()
+            : base(SobelX, SobelY)
         {
-            new float[] { -1, -2, -1 },
-            new float[] { 0, 0, 0 },
-            new float[] { 1, 2, 1 }
-        };
-
-        /// <inheritdoc/>
-        public override float[][] KernelX => SobelX;
-
-        /// <inheritdoc/>
-        public override float[][] KernelY => SobelY;
+        }
     }
 }

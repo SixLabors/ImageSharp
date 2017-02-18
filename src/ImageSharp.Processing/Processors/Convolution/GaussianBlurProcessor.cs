@@ -71,12 +71,12 @@ namespace ImageSharp.Processing.Processors
         /// <summary>
         /// Gets the horizontal gradient operator.
         /// </summary>
-        public float[][] KernelX { get; }
+        public Fast2DArray<float> KernelX { get; }
 
         /// <summary>
         /// Gets the vertical gradient operator.
         /// </summary>
-        public float[][] KernelY { get; }
+        public Fast2DArray<float> KernelY { get; }
 
         /// <inheritdoc/>
         protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
@@ -88,21 +88,18 @@ namespace ImageSharp.Processing.Processors
         /// Create a 1 dimensional Gaussian kernel using the Gaussian G(x) function
         /// </summary>
         /// <param name="horizontal">Whether to calculate a horizontal kernel.</param>
-        /// <returns>The <see cref="T:float[][]"/></returns>
-        private float[][] CreateGaussianKernel(bool horizontal)
+        /// <returns>The <see cref="Fast2DArray{T}"/></returns>
+        private Fast2DArray<float> CreateGaussianKernel(bool horizontal)
         {
             int size = this.kernelSize;
             float weight = this.sigma;
-            float[][] kernel = horizontal ? new float[1][] : new float[size][];
+            Fast2DArray<float> kernel = horizontal
+                ? new Fast2DArray<float>(new float[1, size])
+                : new Fast2DArray<float>(new float[size, 1]);
 
-            if (horizontal)
-            {
-                kernel[0] = new float[size];
-            }
+            float sum = 0F;
+            float midpoint = (size - 1) / 2F;
 
-            float sum = 0.0f;
-
-            float midpoint = (size - 1) / 2f;
             for (int i = 0; i < size; i++)
             {
                 float x = i - midpoint;
@@ -110,27 +107,27 @@ namespace ImageSharp.Processing.Processors
                 sum += gx;
                 if (horizontal)
                 {
-                    kernel[0][i] = gx;
+                    kernel[0, i] = gx;
                 }
                 else
                 {
-                    kernel[i] = new[] { gx };
+                    kernel[i, 0] = gx;
                 }
             }
 
-            // Normalise kernel so that the sum of all weights equals 1
+            // Normalize kernel so that the sum of all weights equals 1
             if (horizontal)
             {
                 for (int i = 0; i < size; i++)
                 {
-                    kernel[0][i] = kernel[0][i] / sum;
+                    kernel[0, i] = kernel[0, i] / sum;
                 }
             }
             else
             {
                 for (int i = 0; i < size; i++)
                 {
-                    kernel[i][0] = kernel[i][0] / sum;
+                    kernel[i, 0] = kernel[i, 0] / sum;
                 }
             }
 

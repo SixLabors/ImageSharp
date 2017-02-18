@@ -20,16 +20,22 @@ namespace ImageSharp.Processing.Processors
         /// <summary>
         /// The 2d gradient operator.
         /// </summary>
-        private static readonly float[][] Laplacian5X5XY =
-        {
-            new float[] { -1, -1, -1, -1, -1 },
-            new float[] { -1, -1, -1, -1, -1 },
-            new float[] { -1, -1, 24, -1, -1 },
-            new float[] { -1, -1, -1, -1, -1 },
-            new float[] { -1, -1, -1, -1, -1 }
-        };
+        private static readonly Fast2DArray<float> Laplacian5X5XY =
+            new Fast2DArray<float>(new float[,]
+            {
+                { -1, -1, -1, -1, -1 },
+                { -1, -1, -1, -1, -1 },
+                { -1, -1, 24, -1, -1 },
+                { -1, -1, -1, -1, -1 },
+                { -1, -1, -1, -1, -1 }
+            });
 
-        /// <inheritdoc/>
-        public override float[][] KernelXY => Laplacian5X5XY;
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Laplacian5X5Processor{TColor}"/> class.
+        /// </summary>
+        public Laplacian5X5Processor()
+            : base(Laplacian5X5XY)
+        {
+        }
     }
 }

@@ -7,7 +7,6 @@ namespace ImageSharp
 {
     using System;
 
-    using Processing;
     using Processing.Processors;
 
     /// <summary>
@@ -41,7 +40,7 @@ namespace ImageSharp
         public static Image<TColor> BoxBlur<TColor>(this Image<TColor> source, int radius, Rectangle rectangle)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            source.ApplyProcessor(new BoxBlurProcessor<TColor>(), rectangle);
+            source.ApplyProcessor(new BoxBlurProcessor<TColor>(radius), rectangle);
             return source;
         }
     }

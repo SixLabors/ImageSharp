@@ -14,13 +14,13 @@ namespace ImageSharp.Processing.Processors
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     public class ConvolutionProcessor<TColor> : ImageProcessor<TColor>
-    where TColor : struct, IPackedPixel, IEquatable<TColor>
+        where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ConvolutionProcessor{TColor}"/> class.
         /// </summary>
         /// <param name="kernelXY">The 2d gradient operator.</param>
-        public ConvolutionProcessor(float[][] kernelXY)
+        public ConvolutionProcessor(Fast2DArray<float> kernelXY)
         {
             this.KernelXY = kernelXY;
         }
@@ -28,13 +28,12 @@ namespace ImageSharp.Processing.Processors
         /// <summary>
         /// Gets the 2d gradient operator.
         /// </summary>
-        public virtual float[][] KernelXY { get; }
+        public Fast2DArray<float> KernelXY { get; }
 
         /// <inheritdoc/>
         protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
         {
-            float[][] kernelX = this.KernelXY;
-            int kernelLength = kernelX.GetLength(0);
+            int kernelLength = this.KernelXY.Height;
             int radius = kernelLength >> 1;
 
             int startY = sourceRectangle.Y;
@@ -56,9 +55,9 @@ namespace ImageSharp.Processing.Processors
                     {
                         for (int x = startX; x < endX; x++)
                         {
-                            float rX = 0;
-                            float gX = 0;
-                            float bX = 0;
+                            float red = 0;
+                            float green = 0;
+                            float blue = 0;
 
                             // Apply each matrix multiplier to the color components for each pixel.
                             for (int fy = 0; fy < kernelLength; fy++)
@@ -76,19 +75,13 @@ namespace ImageSharp.Processing.Processors
                                     offsetX = offsetX.Clamp(0, maxX);
 
                                     Vector4 currentColor = sourcePixels[offsetX, offsetY].ToVector4();
-                                    float r = currentColor.X;
-                                    float g = currentColor.Y;
-                                    float b = currentColor.Z;
+                                    currentColor *= this.KernelXY[fy, fx];
 
-                                    rX += kernelX[fy][fx] * r;
-                                    gX += kernelX[fy][fx] * g;
-                                    bX += kernelX[fy][fx] * b;
+                                    red += currentColor.X;
+                                    green += currentColor.Y;
+                                    blue += currentColor.Z;
                                 }
                             }
-
-                            float red = rX;
-                            float green = gX;
-                            float blue = bX;
 
                             TColor packed = default(TColor);
                             packed.PackFromVector4(new Vector4(red, green, blue, sourcePixels[x, y].ToVector4().W));

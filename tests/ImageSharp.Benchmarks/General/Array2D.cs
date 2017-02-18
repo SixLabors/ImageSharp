@@ -5,25 +5,31 @@
 
 namespace ImageSharp.Benchmarks.General
 {
+    using System;
+
     using BenchmarkDotNet.Attributes;
 
     public class Array2D
     {
-        private float[,] data;
+        private float[] flatArray;
+
+        private float[,] array2D;
 
         private float[][] jaggedData;
 
         private Fast2DArray<float> fastData;
-
-        [Params(10, 100, 1000, 10000)]
+        
+        [Params(4, 16, 128)]
         public int Count { get; set; }
 
-        public int Index { get; set; }
+        public int Min { get; private set; }
+        public int Max { get; private set; }
 
         [Setup]
         public void SetUp()
         {
-            this.data = new float[this.Count, this.Count];
+            this.flatArray = new float[this.Count * this.Count];
+            this.array2D = new float[this.Count, this.Count];
             this.jaggedData = new float[this.Count][];
 
             for (int i = 0; i < this.Count; i++)
@@ -31,27 +37,72 @@ namespace ImageSharp.Benchmarks.General
                 this.jaggedData[i] = new float[this.Count];
             }
 
-            this.fastData = new Fast2DArray<float>(this.data);
+            this.fastData = new Fast2DArray<float>(this.array2D);
 
-            this.Index = this.Count / 2;
+            this.Min = this.Count / 2 - 10;
+            this.Min = Math.Max(0, this.Min);
+            this.Max = this.Min + Math.Min(10, this.Count);
+        }
+
+        [Benchmark(Description = "Emulated 2D array access using flat array")]
+        public float FlatArrayIndex()
+        {
+            float[] a = this.flatArray;
+            float s = 0;
+            int count = this.Count;
+            for (int i = this.Min; i < this.Max; i++)
+            {
+                for (int j = this.Min; j < this.Max; j++)
+                {
+                    s += a[count * i + j];
+                }
+            }
+            return s;
         }
 
         [Benchmark(Baseline = true, Description = "Array access using 2D array")]
-        public float ArrayIndex()
+        public float Array2DIndex()
         {
-            return this.data[this.Index, this.Index];
+            float s = 0;
+            float[,] a = this.array2D;
+            for (int i = this.Min; i < this.Max; i++)
+            {
+                for (int j = this.Min; j < this.Max; j++)
+                {
+                    s += a[i, j];
+                }
+            }
+            return s;
         }
 
         [Benchmark(Description = "Array access using a jagged array")]
         public float ArrayJaggedIndex()
         {
-            return this.jaggedData[this.Index][this.Index];
+            float s = 0;
+            float[][] a = this.jaggedData;
+            for (int i = this.Min; i < this.Max; i++)
+            {
+                for (int j = this.Min; j < this.Max; j++)
+                {
+                    s += a[i][j];
+                }
+            }
+            return s;
         }
 
         [Benchmark(Description = "Array access using Fast2DArray")]
         public float ArrayFastIndex()
         {
-            return this.fastData[this.Index, this.Index];
+            float s = 0;
+            Fast2DArray<float> a = this.fastData;
+            for (int i = this.Min; i < this.Max; i++)
+            {
+                for (int j = this.Min; j < this.Max; j++)
+                {
+                    s += a[i, j];
+                }
+            }
+            return s;
         }
     }
 }

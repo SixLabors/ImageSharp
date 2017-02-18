@@ -93,7 +93,7 @@ namespace ImageSharp.Formats
         /// <param name="options">The decoder options.</param>
         public JpegDecoderCore(IDecoderOptions options)
         {
-            this.options = options ?? DecoderOptions.Default;
+            this.options = options ?? new DecoderOptions();
             this.HuffmanTrees = HuffmanTree.CreateHuffmanTrees();
             this.QuantizationTables = new Block8x8F[MaxTq + 1];
             this.Temp = new byte[2 * Block8x8F.ScalarCount];

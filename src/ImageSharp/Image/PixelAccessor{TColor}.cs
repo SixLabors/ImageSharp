@@ -16,7 +16,7 @@ namespace ImageSharp
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     public unsafe class PixelAccessor<TColor> : IDisposable
-        where TColor : struct, IPackedPixel, IEquatable<TColor>
+        where TColor : struct, IPixel<TColor>
     {
         /// <summary>
         /// The pointer to the pixel buffer.

@@ -21,7 +21,7 @@ namespace ImageSharp
         /// <param name="source">The image this method extends.</param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Glow<TColor>(this Image<TColor> source)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             return Glow(source, NamedColors<TColor>.Black, source.Bounds.Width * .5F, source.Bounds);
         }
@@ -34,7 +34,7 @@ namespace ImageSharp
         /// <param name="color">The color to set as the glow.</param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Glow<TColor>(this Image<TColor> source, TColor color)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             return Glow(source, color, source.Bounds.Width * .5F, source.Bounds);
         }
@@ -47,7 +47,7 @@ namespace ImageSharp
         /// <param name="radius">The the radius.</param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Glow<TColor>(this Image<TColor> source, float radius)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             return Glow(source, NamedColors<TColor>.Black, radius, source.Bounds);
         }
@@ -62,7 +62,7 @@ namespace ImageSharp
         /// </param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Glow<TColor>(this Image<TColor> source, Rectangle rectangle)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             return Glow(source, NamedColors<TColor>.Black, 0, rectangle);
         }
@@ -79,7 +79,7 @@ namespace ImageSharp
         /// </param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Glow<TColor>(this Image<TColor> source, TColor color, float radius, Rectangle rectangle)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             GlowProcessor<TColor> processor = new GlowProcessor<TColor>(color) { Radius = radius, };
             source.ApplyProcessor(processor, rectangle);

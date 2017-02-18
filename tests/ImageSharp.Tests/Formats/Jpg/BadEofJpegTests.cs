@@ -29,7 +29,7 @@ namespace ImageSharp.Tests
         [Theory]
         [WithFile(TestImages.Jpeg.Baseline.Bad.MissingEOF, PixelTypes.Color)]
         public void LoadBaselineImage<TColor>(TestImageProvider<TColor> provider)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             using (Image<TColor> image = provider.GetImage())
             {
@@ -41,7 +41,7 @@ namespace ImageSharp.Tests
         [Theory] // TODO: #18
         [WithFile(TestImages.Jpeg.Progressive.Bad.BadEOF, PixelTypes.Color)]
         public void LoadProgressiveImage<TColor>(TestImageProvider<TColor> provider)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             using (Image<TColor> image = provider.GetImage())
             {

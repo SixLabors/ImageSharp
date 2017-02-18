@@ -23,7 +23,7 @@ namespace ImageSharp
         /// <param name="amount">The new saturation of the image. Must be between -100 and 100.</param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Saturation<TColor>(this Image<TColor> source, int amount)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             return Saturation(source, amount, source.Bounds);
         }
@@ -39,7 +39,7 @@ namespace ImageSharp
         /// </param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Saturation<TColor>(this Image<TColor> source, int amount, Rectangle rectangle)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             source.ApplyProcessor(new SaturationProcessor<TColor>(amount), rectangle);
             return source;

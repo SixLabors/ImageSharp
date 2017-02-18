@@ -20,6 +20,6 @@ namespace ImageSharp.Formats
         /// <param name="image">The <see cref="ImageBase{TColor}"/> to decode to.</param>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
         void Decode<TColor>(Image<TColor> image, Stream stream)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>;
+            where TColor : struct, IPixel<TColor>;
     }
 }

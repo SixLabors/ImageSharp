@@ -23,7 +23,7 @@ namespace ImageSharp
         /// <param name="degreesY">The angle in degrees to perform the rotation along the y-axis.</param>
         /// <returns>The <see cref="Image"/></returns>
         public static Image<TColor> Skew<TColor>(this Image<TColor> source, float degreesX, float degreesY)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             return Skew(source, degreesX, degreesY, true);
         }
@@ -38,7 +38,7 @@ namespace ImageSharp
         /// <param name="expand">Whether to expand the image to fit the skewed result.</param>
         /// <returns>The <see cref="Image"/></returns>
         public static Image<TColor> Skew<TColor>(this Image<TColor> source, float degreesX, float degreesY, bool expand)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             SkewProcessor<TColor> processor = new SkewProcessor<TColor> { AngleX = degreesX, AngleY = degreesY, Expand = expand };
 

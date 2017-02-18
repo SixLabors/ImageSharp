@@ -25,7 +25,7 @@ namespace ImageSharp
         /// <param name="options">The options.</param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Fill<TColor>(this Image<TColor> source, IBrush<TColor> brush, Rectangle shape, GraphicsOptions options)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             return source.Fill(brush, new SixLabors.Shapes.Rectangle(shape.X, shape.Y, shape.Width, shape.Height), options);
         }
@@ -39,7 +39,7 @@ namespace ImageSharp
         /// <param name="shape">The shape.</param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Fill<TColor>(this Image<TColor> source, IBrush<TColor> brush, Rectangle shape)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             return source.Fill(brush, new SixLabors.Shapes.Rectangle(shape.X, shape.Y, shape.Width, shape.Height));
         }
@@ -54,7 +54,7 @@ namespace ImageSharp
         /// <param name="options">The options.</param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Fill<TColor>(this Image<TColor> source, TColor color, Rectangle shape, GraphicsOptions options)
-          where TColor : struct, IPackedPixel, IEquatable<TColor>
+          where TColor : struct, IPixel<TColor>
         {
             return source.Fill(new SolidBrush<TColor>(color), shape, options);
         }
@@ -68,7 +68,7 @@ namespace ImageSharp
         /// <param name="shape">The shape.</param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Fill<TColor>(this Image<TColor> source, TColor color, Rectangle shape)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             return source.Fill(new SolidBrush<TColor>(color), shape);
         }

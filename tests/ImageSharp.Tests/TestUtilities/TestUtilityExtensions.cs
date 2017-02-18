@@ -57,7 +57,7 @@ namespace ImageSharp.Tests
         public static bool HasFlag(this PixelTypes pixelTypes, PixelTypes flag) => (pixelTypes & flag) == flag;
 
         public static bool IsEquivalentTo<TColor>(this Image<TColor> a, Image<TColor> b, bool compareAlpha = true)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             if (a.Width != b.Width || a.Height != b.Height)
             {

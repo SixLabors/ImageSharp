@@ -16,7 +16,7 @@ namespace ImageSharp
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     public sealed unsafe class PixelArea<TColor> : IDisposable
-        where TColor : struct, IPackedPixel, IEquatable<TColor>
+        where TColor : struct, IPixel<TColor>
     {
         /// <summary>
         /// True if <see cref="Bytes"/> was rented from <see cref="BytesPool"/> by the constructor

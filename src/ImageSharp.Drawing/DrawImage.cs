@@ -23,7 +23,7 @@ namespace ImageSharp
         /// <param name="percent">The opacity of the image image to blend. Must be between 0 and 100.</param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Blend<TColor>(this Image<TColor> source, Image<TColor> image, int percent = 50)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             return DrawImage(source, image, percent, default(Size), default(Point));
         }
@@ -39,7 +39,7 @@ namespace ImageSharp
         /// <param name="location">The location to draw the blended image.</param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> DrawImage<TColor>(this Image<TColor> source, Image<TColor> image, int percent, Size size, Point location)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             if (size == default(Size))
             {

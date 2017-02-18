@@ -177,7 +177,7 @@ namespace ImageSharp.Formats
         /// <param name="stream">The stream, where the image should be.</param>
         /// <param name="metadataOnly">Whether to decode metadata only.</param>
         public void Decode<TColor>(Image<TColor> image, Stream stream, bool metadataOnly)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             this.ProcessStream(image, stream, metadataOnly);
             if (!metadataOnly)
@@ -248,7 +248,7 @@ namespace ImageSharp.Formats
         /// <param name="cr">The cr chroma component.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void PackYcbCr<TColor>(ref TColor packed, byte y, byte cb, byte cr)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             int ccb = cb - 128;
             int ccr = cr - 128;
@@ -274,7 +274,7 @@ namespace ImageSharp.Formats
         /// <param name="stream">The stream</param>
         /// <param name="metadataOnly">Whether to decode metadata only.</param>
         private void ProcessStream<TColor>(Image<TColor> image, Stream stream, bool metadataOnly)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             this.InputStream = stream;
             this.InputProcessor = new InputProcessor(stream, this.Temp);
@@ -472,7 +472,7 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <typeparam name="TColor">The pixel type</typeparam>
         private void ProcessBlocksIntoJpegImageChannels<TColor>()
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             Parallel.For(
                 0,
@@ -491,7 +491,7 @@ namespace ImageSharp.Formats
         /// <typeparam name="TColor">The pixel type</typeparam>
         /// <param name="image">The destination image</param>
         private void ConvertJpegPixelsToImagePixels<TColor>(Image<TColor> image)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             if (this.grayImage.IsInitialized)
             {
@@ -549,7 +549,7 @@ namespace ImageSharp.Formats
         /// <typeparam name="TColor">The pixel format.</typeparam>
         /// <param name="image">The image to assign the resolution to.</param>
         private void AssignResolution<TColor>(Image<TColor> image)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             if (this.isJfif && this.horizontalResolution > 0 && this.verticalResolution > 0)
             {
@@ -579,7 +579,7 @@ namespace ImageSharp.Formats
         /// <param name="height">The image height.</param>
         /// <param name="image">The image.</param>
         private void ConvertFromCmyk<TColor>(int width, int height, Image<TColor> image)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             int scale = this.ComponentArray[0].HorizontalFactor / this.ComponentArray[1].HorizontalFactor;
 
@@ -620,7 +620,7 @@ namespace ImageSharp.Formats
         /// <param name="height">The image height.</param>
         /// <param name="image">The image.</param>
         private void ConvertFromGrayScale<TColor>(int width, int height, Image<TColor> image)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             image.InitPixels(width, height);
 
@@ -655,7 +655,7 @@ namespace ImageSharp.Formats
         /// <param name="height">The height.</param>
         /// <param name="image">The image.</param>
         private void ConvertFromRGB<TColor>(int width, int height, Image<TColor> image)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             int scale = this.ComponentArray[0].HorizontalFactor / this.ComponentArray[1].HorizontalFactor;
             image.InitPixels(width, height);
@@ -696,7 +696,7 @@ namespace ImageSharp.Formats
         /// <param name="height">The image height.</param>
         /// <param name="image">The image.</param>
         private void ConvertFromYCbCr<TColor>(int width, int height, Image<TColor> image)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             int scale = this.ComponentArray[0].HorizontalFactor / this.ComponentArray[1].HorizontalFactor;
             image.InitPixels(width, height);
@@ -737,7 +737,7 @@ namespace ImageSharp.Formats
         /// <param name="height">The image height.</param>
         /// <param name="image">The image.</param>
         private void ConvertFromYcck<TColor>(int width, int height, Image<TColor> image)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             int scale = this.ComponentArray[0].HorizontalFactor / this.ComponentArray[1].HorizontalFactor;
 
@@ -862,7 +862,7 @@ namespace ImageSharp.Formats
         /// <param name="xx">The x-position within the image.</param>
         /// <param name="yy">The y-position within the image.</param>
         private void PackCmyk<TColor>(ref TColor packed, byte c, byte m, byte y, int xx, int yy)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             // Get keyline
             float keyline = (255 - this.blackImage[xx, yy]) / 255F;
@@ -887,7 +887,7 @@ namespace ImageSharp.Formats
         /// <param name="xx">The x-position within the image.</param>
         /// <param name="yy">The y-position within the image.</param>
         private void PackYcck<TColor>(ref TColor packed, byte y, byte cb, byte cr, int xx, int yy)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             // Convert the YCbCr part of the YCbCrK to RGB, invert the RGB to get
             // CMY, and patch in the original K. The RGB to CMY inversion cancels
@@ -956,7 +956,7 @@ namespace ImageSharp.Formats
         /// <param name="remaining">The remaining bytes in the segment block.</param>
         /// <param name="image">The image.</param>
         private void ProcessApp1Marker<TColor>(int remaining, Image<TColor> image)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             if (remaining < 6)
             {

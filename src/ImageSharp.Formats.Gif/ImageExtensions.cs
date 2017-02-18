@@ -27,7 +27,7 @@ namespace ImageSharp
         /// The <see cref="Image{TColor}"/>.
         /// </returns>
         public static Image<TColor> SaveAsGif<TColor>(this Image<TColor> source, Stream stream, int quality = 256)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
                         => source.Save(stream, new GifEncoder { Quality = quality });
     }
 }

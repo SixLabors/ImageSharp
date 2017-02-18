@@ -23,7 +23,7 @@ namespace ImageSharp
         /// <param name="colorBlindness">The type of color blindness simulator to apply.</param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> ColorBlindness<TColor>(this Image<TColor> source, ColorBlindness colorBlindness)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             return ColorBlindness(source, colorBlindness, source.Bounds);
         }
@@ -39,7 +39,7 @@ namespace ImageSharp
         /// </param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> ColorBlindness<TColor>(this Image<TColor> source, ColorBlindness colorBlindness, Rectangle rectangle)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             IImageProcessor<TColor> processor;
 

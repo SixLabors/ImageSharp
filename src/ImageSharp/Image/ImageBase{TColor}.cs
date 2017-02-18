@@ -16,7 +16,7 @@ namespace ImageSharp
     /// <typeparam name="TColor">The pixel format.</typeparam>
     [DebuggerDisplay("Image: {Width}x{Height}")]
     public abstract class ImageBase<TColor> : IImageBase<TColor>
-        where TColor : struct, IPackedPixel, IEquatable<TColor>
+        where TColor : struct, IPixel<TColor>
     {
         /// <summary>
         /// The image pixels

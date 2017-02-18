@@ -18,7 +18,7 @@ namespace ImageSharp.Drawing.Processors
     /// <typeparam name="TColor">The type of the color.</typeparam>
     /// <seealso cref="ImageSharp.Processing.ImageProcessor{TColor}" />
     public class FillRegionProcessor<TColor> : ImageProcessor<TColor>
-        where TColor : struct, IPackedPixel, IEquatable<TColor>
+        where TColor : struct, IPixel<TColor>
     {
         private const float AntialiasFactor = 1f;
         private const int DrawPadding = 1;

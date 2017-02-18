@@ -29,7 +29,7 @@ namespace ImageSharp
         /// The <see cref="Image{TColor}"/>.
         /// </returns>
         public static Image<TColor> SaveAsPng<TColor>(this Image<TColor> source, Stream stream, int quality = int.MaxValue)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
                         => source.Save(stream, new PngEncoder { Quality = quality });
     }
 }

@@ -23,7 +23,7 @@ namespace ImageSharp
         /// <param name="brushSize">The number of neighboring pixels used in calculating each individual pixel value.</param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> OilPaint<TColor>(this Image<TColor> source, int levels = 10, int brushSize = 15)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             return OilPaint(source, levels, brushSize, source.Bounds);
         }
@@ -40,7 +40,7 @@ namespace ImageSharp
         /// </param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> OilPaint<TColor>(this Image<TColor> source, int levels, int brushSize, Rectangle rectangle)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             Guard.MustBeGreaterThan(levels, 0, nameof(levels));
 

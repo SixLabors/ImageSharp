@@ -25,7 +25,7 @@ namespace ImageSharp.Formats.Jpg
             PixelArea<TColor> dest,
             int sourceY,
             int sourceX)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             pixels.SafeCopyTo(dest, sourceY, sourceX);
             int stretchFromX = pixels.Width - sourceX;
@@ -49,13 +49,13 @@ namespace ImageSharp.Formats.Jpg
         // Nothing to stretch if (fromX, fromY) is outside the area, or is at (0,0)
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static bool IsInvalidStretchStartingPosition<TColor>(PixelArea<TColor> area, int fromX, int fromY)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             return fromX <= 0 || fromY <= 0 || fromX >= area.Width || fromY >= area.Height;
         }
 
         private static void StretchPixels<TColor>(PixelArea<TColor> area, int fromX, int fromY)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             if (IsInvalidStretchStartingPosition(area, fromX, fromY))
             {

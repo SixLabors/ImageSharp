@@ -13,7 +13,7 @@ namespace ImageSharp.Drawing.Processors
     /// </summary>
     /// <typeparam name="TColor">The type of the color.</typeparam>
     public abstract class PenApplicator<TColor> : IDisposable
-        where TColor : struct, IPackedPixel, IEquatable<TColor>
+        where TColor : struct, IPixel<TColor>
     {
         /// <summary>
         /// Gets the required region.

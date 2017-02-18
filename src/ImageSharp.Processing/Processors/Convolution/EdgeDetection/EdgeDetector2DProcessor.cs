@@ -12,7 +12,7 @@ namespace ImageSharp.Processing.Processors
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     public abstract class EdgeDetector2DProcessor<TColor> : ImageProcessor<TColor>, IEdgeDetectorProcessor<TColor>
-        where TColor : struct, IPackedPixel, IEquatable<TColor>
+        where TColor : struct, IPixel<TColor>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="EdgeDetector2DProcessor{TColor}"/> class.

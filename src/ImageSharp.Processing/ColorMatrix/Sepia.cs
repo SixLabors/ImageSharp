@@ -22,7 +22,7 @@ namespace ImageSharp
         /// <param name="source">The image this method extends.</param>
         /// <returns>The <see cref="Image"/>.</returns>
         public static Image<TColor> Sepia<TColor>(this Image<TColor> source)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             return Sepia(source, source.Bounds);
         }
@@ -37,7 +37,7 @@ namespace ImageSharp
         /// </param>
         /// <returns>The <see cref="Image"/>.</returns>
         public static Image<TColor> Sepia<TColor>(this Image<TColor> source, Rectangle rectangle)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             source.ApplyProcessor(new SepiaProcessor<TColor>(), rectangle);
             return source;

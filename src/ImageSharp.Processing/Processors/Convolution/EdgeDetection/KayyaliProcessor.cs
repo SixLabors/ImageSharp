@@ -21,23 +21,23 @@ namespace ImageSharp.Processing.Processors
         /// The horizontal gradient operator.
         /// </summary>
         private static readonly Fast2DArray<float> KayyaliX =
-            new Fast2DArray<float>(new float[,]
+            new float[,]
             {
                 { 6, 0, -6 },
                 { 0, 0, 0 },
                 { -6, 0, 6 }
-            });
+            };
 
         /// <summary>
         /// The vertical gradient operator.
         /// </summary>
         private static readonly Fast2DArray<float> KayyaliY =
-            new Fast2DArray<float>(new float[,]
+            new float[,]
             {
                 { -6, 0, 6 },
                 { 0, 0, 0 },
                 { 6, 0, -6 }
-            });
+            };
 
         /// <summary>
         /// Initializes a new instance of the <see cref="KayyaliProcessor{TColor}"/> class.

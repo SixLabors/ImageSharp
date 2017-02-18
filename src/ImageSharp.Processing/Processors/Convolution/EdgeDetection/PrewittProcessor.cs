@@ -21,23 +21,23 @@ namespace ImageSharp.Processing.Processors
         /// The horizontal gradient operator.
         /// </summary>
         private static readonly Fast2DArray<float> PrewittX =
-            new Fast2DArray<float>(new float[,]
+            new float[,]
             {
                 { -1, 0, 1 },
                 { -1, 0, 1 },
                 { -1, 0, 1 }
-            });
+            };
 
         /// <summary>
         /// The vertical gradient operator.
         /// </summary>
         private static readonly Fast2DArray<float> PrewittY =
-            new Fast2DArray<float>(new float[,]
+            new float[,]
             {
                 { 1, 1, 1 },
                 { 0, 0, 0 },
                 { -1, -1, -1 }
-            });
+            };
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PrewittProcessor{TColor}"/> class.

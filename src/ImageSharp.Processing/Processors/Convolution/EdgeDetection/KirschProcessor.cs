@@ -21,89 +21,89 @@ namespace ImageSharp.Processing.Processors
         /// The North gradient operator
         /// </summary>
         private static readonly Fast2DArray<float> KirschNorth =
-            new Fast2DArray<float>(new float[,]
+            new float[,]
             {
                { 5,  5,  5 },
                { -3,  0, -3 },
                { -3, -3, -3 }
-            });
+            };
 
         /// <summary>
         /// The NorthWest gradient operator
         /// </summary>
         private static readonly Fast2DArray<float> KirschNorthWest =
-            new Fast2DArray<float>(new float[,]
+            new float[,]
             {
                { 5,  5, -3 },
                { 5,  0, -3 },
                { -3, -3, -3 }
-            });
+            };
 
         /// <summary>
         /// The West gradient operator
         /// </summary>
         private static readonly Fast2DArray<float> KirschWest =
-            new Fast2DArray<float>(new float[,]
+            new float[,]
             {
                { 5, -3, -3 },
                { 5,  0, -3 },
                { 5, -3, -3 }
-            });
+            };
 
         /// <summary>
         /// The SouthWest gradient operator
         /// </summary>
         private static readonly Fast2DArray<float> KirschSouthWest =
-            new Fast2DArray<float>(new float[,]
+            new float[,]
             {
                { -3, -3, -3 },
                { 5, 0, -3 },
                { 5,  5, -3 }
-            });
+            };
 
         /// <summary>
         /// The South gradient operator
         /// </summary>
         private static readonly Fast2DArray<float> KirschSouth =
-            new Fast2DArray<float>(new float[,]
+            new float[,]
             {
                { -3, -3, -3 },
                { -3,  0, -3 },
                { 5,  5,  5 }
-            });
+            };
 
         /// <summary>
         /// The SouthEast gradient operator
         /// </summary>
         private static readonly Fast2DArray<float> KirschSouthEast =
-            new Fast2DArray<float>(new float[,]
+            new float[,]
             {
                { -3, -3, -3 },
                { -3,  0,  5 },
                { -3,  5,  5 }
-            });
+            };
 
         /// <summary>
         /// The East gradient operator
         /// </summary>
         private static readonly Fast2DArray<float> KirschEast =
-            new Fast2DArray<float>(new float[,]
+            new float[,]
             {
                { -3, -3, 5 },
                { -3,  0, 5 },
                { -3, -3, 5 }
-            });
+            };
 
         /// <summary>
         /// The NorthEast gradient operator
         /// </summary>
         private static readonly Fast2DArray<float> KirschNorthEast =
-            new Fast2DArray<float>(new float[,]
+            new float[,]
             {
                { -3,  5,  5 },
                { -3,  0,  5 },
                { -3, -3, -3 }
-            });
+            };
 
         /// <inheritdoc/>
         public override Fast2DArray<float> North => KirschNorth;

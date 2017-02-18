@@ -23,7 +23,7 @@ namespace ImageSharp
         public static Image<TColor> Glow<TColor>(this Image<TColor> source)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            return Glow(source, default(TColor), source.Bounds.Width * .5F, source.Bounds);
+            return Glow(source, NamedColors<TColor>.Black, source.Bounds.Width * .5F, source.Bounds);
         }
 
         /// <summary>
@@ -49,7 +49,7 @@ namespace ImageSharp
         public static Image<TColor> Glow<TColor>(this Image<TColor> source, float radius)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            return Glow(source, default(TColor), radius, source.Bounds);
+            return Glow(source, NamedColors<TColor>.Black, radius, source.Bounds);
         }
 
         /// <summary>
@@ -64,7 +64,7 @@ namespace ImageSharp
         public static Image<TColor> Glow<TColor>(this Image<TColor> source, Rectangle rectangle)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            return Glow(source, default(TColor), 0, rectangle);
+            return Glow(source, NamedColors<TColor>.Black, 0, rectangle);
         }
 
         /// <summary>
@@ -81,13 +81,7 @@ namespace ImageSharp
         public static Image<TColor> Glow<TColor>(this Image<TColor> source, TColor color, float radius, Rectangle rectangle)
             where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            GlowProcessor<TColor> processor = new GlowProcessor<TColor> { Radius = radius, };
-
-            if (!color.Equals(default(TColor)))
-            {
-                processor.GlowColor = color;
-            }
-
+            GlowProcessor<TColor> processor = new GlowProcessor<TColor>(color) { Radius = radius, };
             source.ApplyProcessor(processor, rectangle);
             return source;
         }

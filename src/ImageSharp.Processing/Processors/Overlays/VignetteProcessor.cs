@@ -17,12 +17,11 @@ namespace ImageSharp.Processing.Processors
         where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="VignetteProcessor{TColor}"/> class.
+        /// Initializes a new instance of the <see cref="VignetteProcessor{TColor}" /> class.
         /// </summary>
-        public VignetteProcessor()
+        /// <param name="color">The color of the vignette.</param>
+        public VignetteProcessor(TColor color)
         {
-            TColor color = default(TColor);
-            color.PackFromVector4(Color.Black.ToVector4());
             this.VignetteColor = color;
         }
 

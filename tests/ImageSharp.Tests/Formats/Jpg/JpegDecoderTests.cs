@@ -90,7 +90,7 @@ namespace ImageSharp.Tests
                     ms.Seek(0, SeekOrigin.Begin);
 
                     Image<TColor> mirror = provider.Factory.CreateImage(1, 1);
-                    using (JpegDecoderCore decoder = new JpegDecoderCore())
+                    using (JpegDecoderCore decoder = new JpegDecoderCore(null))
                     {
                         decoder.Decode(mirror, ms, true);
 

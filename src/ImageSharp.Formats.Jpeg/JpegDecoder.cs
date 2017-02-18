@@ -20,7 +20,7 @@ namespace ImageSharp.Formats
             Guard.NotNull(image, "image");
             Guard.NotNull(stream, "stream");
 
-            using (JpegDecoderCore decoder = new JpegDecoderCore())
+            using (JpegDecoderCore decoder = new JpegDecoderCore(options))
             {
                 decoder.Decode(image, stream, false);
             }

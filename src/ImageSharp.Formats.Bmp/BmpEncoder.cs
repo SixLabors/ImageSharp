@@ -31,7 +31,7 @@ namespace ImageSharp.Formats
         /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
         /// <param name="options">The options for the encoder.</param>
         public void Encode<TColor>(Image<TColor> image, Stream stream, IBmpEncoderOptions options)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             BmpEncoderCore encoder = new BmpEncoderCore(options);
             encoder.Encode(image, stream);

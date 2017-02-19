@@ -15,7 +15,7 @@ namespace ImageSharp.Formats
     {
         /// <inheritdoc/>
         public void Encode<TColor>(Image<TColor> image, Stream stream, IEncoderOptions options)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             IGifEncoderOptions gifOptions = GifEncoderOptions.Create(options);
 

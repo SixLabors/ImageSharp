@@ -15,7 +15,6 @@ namespace ImageSharp
         /// </summary>
         public DecoderOptions()
         {
-            this.InitializeWithDefaults();
         }
 
         /// <summary>
@@ -24,23 +23,15 @@ namespace ImageSharp
         /// <param name="options">The decoder options</param>
         protected DecoderOptions(IDecoderOptions options)
         {
-            if (options == null)
+            if (options != null)
             {
-                this.InitializeWithDefaults();
-                return;
+                this.IgnoreMetadata = options.IgnoreMetadata;
             }
-
-            this.IgnoreMetadata = options.IgnoreMetadata;
         }
 
         /// <summary>
         /// Gets or sets a value indicating whether the metadata should be ignored when the image is being decoded.
         /// </summary>
-        public bool IgnoreMetadata { get; set; }
-
-        private void InitializeWithDefaults()
-        {
-            this.IgnoreMetadata = false;
-        }
+        public bool IgnoreMetadata { get; set; } = false;
     }
 }

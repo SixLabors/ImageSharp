@@ -32,7 +32,7 @@ namespace ImageSharp.Formats
         public IQuantizer Quantizer { get; set; }
 
         /// <inheritdoc/>
-        public void Encode<TColor>(Image<TColor> image, Stream stream)
+        public void Encode<TColor>(Image<TColor> image, Stream stream, IEncoderOptions options)
             where TColor : struct, IPixel<TColor>
         {
             GifEncoderCore encoder = new GifEncoderCore

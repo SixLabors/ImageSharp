@@ -206,12 +206,13 @@ namespace ImageSharp
         /// Saves the image to the given stream using the currently loaded image format.
         /// </summary>
         /// <param name="stream">The stream to save the image to.</param>
+        /// <param name="options">The options for the encoder.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
         /// <returns>The <see cref="Image{TColor}"/></returns>
-        public Image<TColor> Save(Stream stream)
+        public Image<TColor> Save(Stream stream, IEncoderOptions options = null)
         {
             Guard.NotNull(stream, nameof(stream));
-            this.CurrentImageFormat.Encoder.Encode(this, stream);
+            this.CurrentImageFormat.Encoder.Encode(this, stream, options);
             return this;
         }
 
@@ -220,13 +221,13 @@ namespace ImageSharp
         /// </summary>
         /// <param name="stream">The stream to save the image to.</param>
         /// <param name="format">The format to save the image as.</param>
-        /// <exception cref="System.ArgumentNullException">Thrown if the stream or format is null.</exception>
+        /// <param name="options">The options for the encoder.</param>
         /// <returns>The <see cref="Image{TColor}"/></returns>
-        public Image<TColor> Save(Stream stream, IImageFormat format)
+        public Image<TColor> Save(Stream stream, IImageFormat format, IEncoderOptions options = null)
         {
             Guard.NotNull(stream, nameof(stream));
             Guard.NotNull(format, nameof(format));
-            format.Encoder.Encode(this, stream);
+            format.Encoder.Encode(this, stream, options);
             return this;
         }
 
@@ -235,15 +236,16 @@ namespace ImageSharp
         /// </summary>
         /// <param name="stream">The stream to save the image to.</param>
         /// <param name="encoder">The encoder to save the image with.</param>
+        /// <param name="options">The options for the encoder.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the stream or encoder is null.</exception>
         /// <returns>
         /// The <see cref="Image{TColor}"/>.
         /// </returns>
-        public Image<TColor> Save(Stream stream, IImageEncoder encoder)
+        public Image<TColor> Save(Stream stream, IImageEncoder encoder, IEncoderOptions options = null)
         {
             Guard.NotNull(stream, nameof(stream));
             Guard.NotNull(encoder, nameof(encoder));
-            encoder.Encode(this, stream);
+            encoder.Encode(this, stream, options);
 
             // Reset to the start of the stream.
             if (stream.CanSeek)

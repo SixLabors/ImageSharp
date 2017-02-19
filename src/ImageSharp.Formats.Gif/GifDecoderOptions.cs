@@ -33,7 +33,7 @@ namespace ImageSharp.Formats
         }
 
         /// <summary>
-        /// Gets the encoding that should be used when reading comments.
+        /// Gets or sets the encoding that should be used when reading comments.
         /// </summary>
         public Encoding TextEncoding { get; set; }
 

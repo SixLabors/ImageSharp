@@ -12,7 +12,7 @@ namespace ImageSharp
     /// <summary>
     /// Packed pixel type containing two 16-bit floating-point values.
     /// </summary>
-    public struct HalfVector2 : IPixel<HalfVector2>
+    public struct HalfVector2 : IPixel<HalfVector2>, IPackedVector<uint>
     {
         /// <summary>
         /// The maximum byte value.

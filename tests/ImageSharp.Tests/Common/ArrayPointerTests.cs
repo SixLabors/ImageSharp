@@ -26,23 +26,7 @@ namespace ImageSharp.Tests.Common
                 return result;
             }
         }
-
-        [Fact]
-        public void ConstructWithNullArray_Throws()
-        {
-            Assert.Throws<ArgumentNullException>(
-                () =>
-                    {
-                        new ArrayPointer<int>(null, (void*)0);
-                    });
-
-            Assert.Throws<ArgumentNullException>(
-                () =>
-                {
-                    new ArrayPointer<int>(null, (void*)0);
-                });
-        }
-
+        
         [Fact]
         public void ConstructWithoutOffset()
         {

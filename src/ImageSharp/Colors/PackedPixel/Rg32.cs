@@ -12,7 +12,7 @@ namespace ImageSharp
     /// <summary>
     /// Packed pixel type containing two 16-bit unsigned normalized values ranging from 0 to 1.
     /// </summary>
-    public struct Rg32 : IPixel<Rg32>
+    public struct Rg32 : IPixel<Rg32>, IPackedVector<uint>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="Rg32"/> struct.

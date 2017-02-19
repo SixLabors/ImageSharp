@@ -12,7 +12,7 @@ namespace ImageSharp
     /// <summary>
     /// Packed pixel type containing unsigned normalized values ranging from 0 to 1. The x , y and z components use 5 bits, and the w component uses 1 bit.
     /// </summary>
-    public struct Bgra5551 : IPixel<Bgra5551>
+    public struct Bgra5551 : IPixel<Bgra5551>, IPackedVector<ushort>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="Bgra5551"/> struct.

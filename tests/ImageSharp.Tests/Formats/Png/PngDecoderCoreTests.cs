@@ -22,7 +22,7 @@ namespace ImageSharp.Tests
 
             TestFile testFile = TestFile.Create(TestImages.Png.Blur);
 
-            using (Image image = new Image(testFile.FilePath, options))
+            using (Image image = testFile.CreateImage(options))
             {
                 Assert.Equal(1, image.MetaData.Properties.Count);
                 Assert.Equal("Software", image.MetaData.Properties[0].Name);
@@ -40,7 +40,7 @@ namespace ImageSharp.Tests
 
             TestFile testFile = TestFile.Create(TestImages.Png.Blur);
 
-            using (Image image = new Image(testFile.FilePath, options))
+            using (Image image = testFile.CreateImage(options))
             {
                 Assert.Equal(0, image.MetaData.Properties.Count);
             }
@@ -56,7 +56,7 @@ namespace ImageSharp.Tests
 
             TestFile testFile = TestFile.Create(TestImages.Png.Blur);
 
-            using (Image image = new Image(testFile.FilePath, options))
+            using (Image image = testFile.CreateImage(options))
             {
                 Assert.Equal(1, image.MetaData.Properties.Count);
                 Assert.Equal("潓瑦慷敲", image.MetaData.Properties[0].Name);

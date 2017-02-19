@@ -131,6 +131,18 @@ namespace ImageSharp.Tests
         }
 
         /// <summary>
+        /// Creates a new image.
+        /// </summary>
+        /// <param name="options">The options for the decoder.</param>
+        /// <returns>
+        /// The <see cref="Image"/>.
+        /// </returns>
+        public Image CreateImage(IDecoderOptions options)
+        {
+            return new Image(this.Bytes, options);
+        }
+
+        /// <summary>
         /// Gets the correct path to the formats directory.
         /// </summary>
         /// <returns>

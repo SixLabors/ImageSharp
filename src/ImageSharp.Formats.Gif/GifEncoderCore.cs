@@ -237,7 +237,7 @@ namespace ImageSharp.Formats
         /// <param name="image">The <see cref="ImageBase{TColor}"/> to be encoded.</param>
         /// <param name="writer">The stream to write to.</param>
         private void WriteComments<TColor>(Image<TColor> image, EndianBinaryWriter writer)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             if (this.options.IgnoreMetadata == true)
             {

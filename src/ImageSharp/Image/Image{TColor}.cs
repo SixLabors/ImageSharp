@@ -261,9 +261,10 @@ namespace ImageSharp
         /// Saves the image to the given stream using the currently loaded image format.
         /// </summary>
         /// <param name="filePath">The file path to save the image to.</param>
+        /// <param name="options">The options for the encoder.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
         /// <returns>The <see cref="Image{TColor}"/></returns>
-        public Image<TColor> Save(string filePath)
+        public Image<TColor> Save(string filePath, IEncoderOptions options = null)
         {
             string ext = Path.GetExtension(filePath).Trim('.');
             IImageFormat format = this.Configuration.ImageFormats.SingleOrDefault(f => f.SupportedExtensions.Contains(ext, StringComparer.OrdinalIgnoreCase));
@@ -280,9 +281,10 @@ namespace ImageSharp
         /// </summary>
         /// <param name="filePath">The file path to save the image to.</param>
         /// <param name="format">The format to save the image as.</param>
+        /// <param name="options">The options for the encoder.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the format is null.</exception>
         /// <returns>The <see cref="Image{TColor}"/></returns>
-        public Image<TColor> Save(string filePath, IImageFormat format)
+        public Image<TColor> Save(string filePath, IImageFormat format, IEncoderOptions options = null)
         {
             Guard.NotNull(format, nameof(format));
             using (FileStream fs = File.Create(filePath))
@@ -296,9 +298,10 @@ namespace ImageSharp
         /// </summary>
         /// <param name="filePath">The file path to save the image to.</param>
         /// <param name="encoder">The encoder to save the image with.</param>
+        /// <param name="options">The options for the encoder.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the encoder is null.</exception>
         /// <returns>The <see cref="Image{TColor}"/></returns>
-        public Image<TColor> Save(string filePath, IImageEncoder encoder)
+        public Image<TColor> Save(string filePath, IImageEncoder encoder, IEncoderOptions options = null)
         {
             Guard.NotNull(encoder, nameof(encoder));
             using (FileStream fs = File.Create(filePath))

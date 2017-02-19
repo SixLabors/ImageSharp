@@ -5,10 +5,12 @@
 
 namespace ImageSharp.Formats
 {
+    using System.Text;
+
     /// <summary>
     /// Constants that define specific points within a gif.
     /// </summary>
-    internal sealed class GifConstants
+    internal static class GifConstants
     {
         /// <summary>
         /// The file type.
@@ -51,6 +53,11 @@ namespace ImageSharp.Formats
         public const byte CommentLabel = 0xFE;
 
         /// <summary>
+        /// The name of the property inside the image properties for the comments.
+        /// </summary>
+        public const string Comments = "Comments";
+
+        /// <summary>
         /// The maximum comment length.
         /// </summary>
         public const int MaxCommentLength = 1024 * 8;
@@ -79,5 +86,10 @@ namespace ImageSharp.Formats
         /// The end introducer trailer <value>;</value>.
         /// </summary>
         public const byte EndIntroducer = 0x3B;
+
+        /// <summary>
+        /// Gets the default encoding to use when reading comments.
+        /// </summary>
+        public static Encoding DefaultEncoding { get; } = Encoding.GetEncoding("ASCII");
     }
 }

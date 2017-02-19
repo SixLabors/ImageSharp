@@ -12,8 +12,6 @@ namespace ImageSharp.Formats
     /// </summary>
     public sealed class GifDecoderOptions : DecoderOptions, IGifDecoderOptions
     {
-        private static readonly Encoding DefaultEncoding = Encoding.GetEncoding("ASCII");
-
         /// <summary>
         /// Initializes a new instance of the <see cref="GifDecoderOptions"/> class.
         /// </summary>
@@ -33,7 +31,7 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Gets or sets the encoding that should be used when reading comments.
         /// </summary>
-        public Encoding TextEncoding { get; set; } = DefaultEncoding;
+        public Encoding TextEncoding { get; set; } = GifConstants.DefaultEncoding;
 
         /// <summary>
         /// Converts the options to a <see cref="IGifDecoderOptions"/> instance with a cast

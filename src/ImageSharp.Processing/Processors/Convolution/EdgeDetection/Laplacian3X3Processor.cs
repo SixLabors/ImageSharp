@@ -21,12 +21,12 @@ namespace ImageSharp.Processing.Processors
         /// The 2d gradient operator.
         /// </summary>
         private static readonly Fast2DArray<float> Laplacian3X3XY =
-            new Fast2DArray<float>(new float[,]
+            new float[,]
             {
                { -1, -1, -1 },
                { -1,  8, -1 },
                { -1, -1, -1 }
-            });
+            };
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Laplacian3X3Processor{TColor}"/> class.

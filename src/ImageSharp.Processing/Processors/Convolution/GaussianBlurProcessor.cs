@@ -94,8 +94,8 @@ namespace ImageSharp.Processing.Processors
             int size = this.kernelSize;
             float weight = this.sigma;
             Fast2DArray<float> kernel = horizontal
-                ? new Fast2DArray<float>(new float[1, size])
-                : new Fast2DArray<float>(new float[size, 1]);
+                ? new Fast2DArray<float>(size, 1)
+                : new Fast2DArray<float>(1, size);
 
             float sum = 0F;
             float midpoint = (size - 1) / 2F;

@@ -8,7 +8,7 @@ namespace ImageSharp.Formats
     using System.Text;
 
     /// <summary>
-    /// Encapsulates the gif decoder options.
+    /// Encapsulates the options for the <see cref="GifDecoder"/>.
     /// </summary>
     public sealed class GifDecoderOptions : DecoderOptions, IGifDecoderOptions
     {
@@ -40,7 +40,7 @@ namespace ImageSharp.Formats
         /// or by creating a new instance with the specfied options.
         /// </summary>
         /// <param name="options">The options for the decoder.</param>
-        /// <returns>The options for the png decoder.</returns>
+        /// <returns>The options for the <see cref="GifDecoder"/>.</returns>
         internal static IGifDecoderOptions Create(IDecoderOptions options)
         {
             IGifDecoderOptions gifOptions = options as IGifDecoderOptions;

@@ -31,6 +31,22 @@ namespace ImageSharp
         public int Height;
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="Fast2DArray{T}" /> struct.
+        /// </summary>
+        /// <param name="width">The width.</param>
+        /// <param name="height">The height.</param>
+        public Fast2DArray(int width, int height)
+        {
+            this.Height = height;
+            this.Width = width;
+
+            Guard.MustBeGreaterThan(width, 0, nameof(width));
+            Guard.MustBeGreaterThan(height, 0, nameof(height));
+
+            this.Data = new T[this.Width * this.Height];
+        }
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="Fast2DArray{T}"/> struct.
         /// </summary>
         /// <param name="data">The 2D array to provide access to.</param>
@@ -75,6 +91,19 @@ namespace ImageSharp
                 this.CheckCoordinates(row, column);
                 this.Data[(row * this.Width) + column] = value;
             }
+        }
+
+        /// <summary>
+        /// Performs an implicit conversion from a 2D array to a <see cref="ImageSharp.Fast2DArray{T}" />.
+        /// </summary>
+        /// <param name="data">The source array.</param>
+        /// <returns>
+        /// The <see cref="ImageSharp.Fast2DArray{T}"/> represenation on the source data.
+        /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static implicit operator Fast2DArray<T>(T[,] data)
+        {
+            return new Fast2DArray<T>(data);
         }
 
         /// <summary>

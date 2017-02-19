@@ -14,17 +14,27 @@ namespace ImageSharp.Formats
     /// <remarks>The encoder can currently only write 24-bit rgb images to streams.</remarks>
     public class BmpEncoder : IImageEncoder
     {
-        /// <summary>
-        /// Gets or sets the number of bits per pixel.
-        /// </summary>
-        public BmpBitsPerPixel BitsPerPixel { get; set; } = BmpBitsPerPixel.Pixel24;
-
         /// <inheritdoc/>
         public void Encode<TColor>(Image<TColor> image, Stream stream, IEncoderOptions options)
             where TColor : struct, IPixel<TColor>
         {
-            BmpEncoderCore encoder = new BmpEncoderCore();
-            encoder.Encode(image, stream, this.BitsPerPixel);
+            IBmpEncoderOptions bmpOptions = BmpEncoderOptions.Create(options);
+
+            this.Encode(image, stream, bmpOptions);
+        }
+
+        /// <summary>
+        /// Encodes the image to the specified stream from the <see cref="Image{TColor}"/>.
+        /// </summary>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <param name="image">The <see cref="Image{TColor}"/> to encode from.</param>
+        /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
+        /// <param name="options">The options for the encoder.</param>
+        public void Encode<TColor>(Image<TColor> image, Stream stream, IBmpEncoderOptions options)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
+        {
+            BmpEncoderCore encoder = new BmpEncoderCore(options);
+            encoder.Encode(image, stream);
         }
     }
 }

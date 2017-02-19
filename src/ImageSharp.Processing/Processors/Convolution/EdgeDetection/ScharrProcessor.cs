@@ -20,27 +20,31 @@ namespace ImageSharp.Processing.Processors
         /// <summary>
         /// The horizontal gradient operator.
         /// </summary>
-        private static readonly float[][] ScharrX = new float[3][]
-        {
-            new float[] { -3, 0, 3 },
-            new float[] { -10, 0, 10 },
-            new float[] { -3, 0, 3 }
-        };
+        private static readonly Fast2DArray<float> ScharrX =
+            new float[,]
+            {
+                { -3, 0, 3 },
+                { -10, 0, 10 },
+                { -3, 0, 3 }
+            };
 
         /// <summary>
         /// The vertical gradient operator.
         /// </summary>
-        private static readonly float[][] ScharrY = new float[3][]
+        private static readonly Fast2DArray<float> ScharrY =
+            new float[,]
+            {
+                { 3, 10, 3 },
+                { 0, 0, 0 },
+                { -3, -10, -3 }
+            };
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ScharrProcessor{TColor}"/> class.
+        /// </summary>
+        public ScharrProcessor()
+            : base(ScharrX, ScharrY)
         {
-            new float[] { 3, 10, 3 },
-            new float[] { 0, 0, 0 },
-            new float[] { -3, -10, -3 }
-        };
-
-        /// <inheritdoc/>
-        public override float[][] KernelX => ScharrX;
-
-        /// <inheritdoc/>
-        public override float[][] KernelY => ScharrY;
+        }
     }
 }

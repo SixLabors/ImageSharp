@@ -21,7 +21,7 @@ namespace ImageSharp.Processing.Processors
         /// </summary>
         /// <param name="kernelX">The horizontal gradient operator.</param>
         /// <param name="kernelY">The vertical gradient operator.</param>
-        public Convolution2DProcessor(float[][] kernelX, float[][] kernelY)
+        public Convolution2DProcessor(Fast2DArray<float> kernelX, Fast2DArray<float> kernelY)
         {
             this.KernelX = kernelX;
             this.KernelY = kernelY;
@@ -30,20 +30,20 @@ namespace ImageSharp.Processing.Processors
         /// <summary>
         /// Gets the horizontal gradient operator.
         /// </summary>
-        public float[][] KernelX { get; }
+        public Fast2DArray<float> KernelX { get; }
 
         /// <summary>
         /// Gets the vertical gradient operator.
         /// </summary>
-        public float[][] KernelY { get; }
+        public Fast2DArray<float> KernelY { get; }
 
         /// <inheritdoc/>
         protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
         {
-            int kernelYHeight = this.KernelY.Length;
-            int kernelYWidth = this.KernelY[0].Length;
-            int kernelXHeight = this.KernelX.Length;
-            int kernelXWidth = this.KernelX[0].Length;
+            int kernelYHeight = this.KernelY.Height;
+            int kernelYWidth = this.KernelY.Width;
+            int kernelXHeight = this.KernelX.Height;
+            int kernelXWidth = this.KernelX.Width;
             int radiusY = kernelYHeight >> 1;
             int radiusX = kernelXWidth >> 1;
 
@@ -89,22 +89,21 @@ namespace ImageSharp.Processing.Processors
                                     offsetX = offsetX.Clamp(0, maxX);
 
                                     Vector4 currentColor = sourcePixels[offsetX, offsetY].ToVector4();
-                                    float r = currentColor.X;
-                                    float g = currentColor.Y;
-                                    float b = currentColor.Z;
 
                                     if (fy < kernelXHeight)
                                     {
-                                        rX += this.KernelX[fy][fx] * r;
-                                        gX += this.KernelX[fy][fx] * g;
-                                        bX += this.KernelX[fy][fx] * b;
+                                        Vector4 kx = this.KernelX[fy, fx] * currentColor;
+                                        rX += kx.X;
+                                        gX += kx.Y;
+                                        bX += kx.Z;
                                     }
 
                                     if (fx < kernelYWidth)
                                     {
-                                        rY += this.KernelY[fy][fx] * r;
-                                        gY += this.KernelY[fy][fx] * g;
-                                        bY += this.KernelY[fy][fx] * b;
+                                        Vector4 ky = this.KernelY[fy, fx] * currentColor;
+                                        rY += ky.X;
+                                        gY += ky.Y;
+                                        bY += ky.Z;
                                     }
                                 }
                             }

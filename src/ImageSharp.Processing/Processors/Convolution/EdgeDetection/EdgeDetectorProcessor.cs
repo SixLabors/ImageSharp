@@ -14,19 +14,22 @@ namespace ImageSharp.Processing.Processors
     public abstract class EdgeDetectorProcessor<TColor> : ImageProcessor<TColor>, IEdgeDetectorProcessor<TColor>
         where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="EdgeDetectorProcessor{TColor}"/> class.
+        /// </summary>
+        /// <param name="kernelXY">The 2d gradient operator.</param>
+        protected EdgeDetectorProcessor(Fast2DArray<float> kernelXY)
+        {
+            this.KernelXY = kernelXY;
+        }
+
         /// <inheritdoc/>
         public bool Grayscale { get; set; }
 
         /// <summary>
         /// Gets the 2d gradient operator.
         /// </summary>
-        public abstract float[][] KernelXY { get; }
-
-        /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
-        {
-            new ConvolutionProcessor<TColor>(this.KernelXY).Apply(source, sourceRectangle);
-        }
+        public Fast2DArray<float> KernelXY { get; }
 
         /// <inheritdoc/>
         protected override void BeforeApply(ImageBase<TColor> source, Rectangle sourceRectangle)
@@ -35,6 +38,12 @@ namespace ImageSharp.Processing.Processors
             {
                 new GrayscaleBt709Processor<TColor>().Apply(source, sourceRectangle);
             }
+        }
+
+        /// <inheritdoc/>
+        protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
+        {
+            new ConvolutionProcessor<TColor>(this.KernelXY).Apply(source, sourceRectangle);
         }
     }
 }

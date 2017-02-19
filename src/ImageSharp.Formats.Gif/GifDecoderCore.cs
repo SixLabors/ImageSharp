@@ -261,7 +261,7 @@ namespace ImageSharp.Formats
                 {
                     this.currentStream.Read(commentsBuffer, 0, length);
                     string comments = this.options.TextEncoding.GetString(commentsBuffer, 0, length);
-                    this.decodedImage.MetaData.Properties.Add(new ImageProperty("Comments", comments));
+                    this.decodedImage.MetaData.Properties.Add(new ImageProperty(GifConstants.Comments, comments));
                 }
                 finally
                 {

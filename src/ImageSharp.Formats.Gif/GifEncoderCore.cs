@@ -24,20 +24,23 @@ namespace ImageSharp.Formats
         private readonly byte[] buffer = new byte[16];
 
         /// <summary>
+        /// The options for the encoder.
+        /// </summary>
+        private readonly IGifEncoderOptions options;
+
+        /// <summary>
         /// The number of bits requires to store the image palette.
         /// </summary>
         private int bitDepth;
 
         /// <summary>
-        /// Gets or sets the quality of output for images.
+        /// Initializes a new instance of the <see cref="GifEncoderCore"/> class.
         /// </summary>
-        /// <remarks>For gifs the value ranges from 1 to 256.</remarks>
-        public int Quality { get; set; }
-
-        /// <summary>
-        /// Gets or sets the transparency threshold.
-        /// </summary>
-        public byte Threshold { get; set; } = 128;
+        /// <param name="options">The options for the encoder.</param>
+        public GifEncoderCore(IGifEncoderOptions options)
+        {
+            this.options = options ?? new GifEncoderOptions();
+        }
 
         /// <summary>
         /// Gets or sets the quantizer for reducing the color count.
@@ -56,23 +59,20 @@ namespace ImageSharp.Formats
             Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));
 
-            if (this.Quantizer == null)
-            {
-                this.Quantizer = new OctreeQuantizer<TColor>();
-            }
+            this.Quantizer = this.options.Quantizer ?? new OctreeQuantizer<TColor>();
 
             // Do not use IDisposable pattern here as we want to preserve the stream.
             EndianBinaryWriter writer = new EndianBinaryWriter(Endianness.LittleEndian, stream);
 
             // Ensure that quality can be set but has a fallback.
-            int quality = this.Quality > 0 ? this.Quality : image.MetaData.Quality;
-            this.Quality = quality > 0 ? quality.Clamp(1, 256) : 256;
+            int quality = this.options.Quality > 0 ? this.options.Quality : image.MetaData.Quality;
+            quality = quality > 0 ? quality.Clamp(1, 256) : 256;
 
             // Get the number of bits.
-            this.bitDepth = ImageMaths.GetBitsNeededForColorDepth(this.Quality);
+            this.bitDepth = ImageMaths.GetBitsNeededForColorDepth(quality);
 
             // Quantize the image returning a palette.
-            QuantizedImage<TColor> quantized = ((IQuantizer<TColor>)this.Quantizer).Quantize(image, this.Quality);
+            QuantizedImage<TColor> quantized = ((IQuantizer<TColor>)this.Quantizer).Quantize(image, quality);
 
             int index = this.GetTransparentIndex(quantized);
 
@@ -84,6 +84,7 @@ namespace ImageSharp.Formats
 
             // Write the first frame.
             this.WriteGraphicalControlExtension(image, writer, index);
+            this.WriteComments(image, writer);
             this.WriteImageDescriptor(image, writer);
             this.WriteColorTable(quantized, writer);
             this.WriteImageData(quantized, writer);
@@ -97,7 +98,7 @@ namespace ImageSharp.Formats
                 for (int i = 0; i < image.Frames.Count; i++)
                 {
                     ImageFrame<TColor> frame = image.Frames[i];
-                    QuantizedImage<TColor> quantizedFrame = ((IQuantizer<TColor>)this.Quantizer).Quantize(frame, this.Quality);
+                    QuantizedImage<TColor> quantizedFrame = ((IQuantizer<TColor>)this.Quantizer).Quantize(frame, quality);
 
                     this.WriteGraphicalControlExtension(frame, writer, this.GetTransparentIndex(quantizedFrame));
                     this.WriteImageDescriptor(frame, writer);
@@ -106,7 +107,7 @@ namespace ImageSharp.Formats
                 }
             }
 
-            // TODO: Write Comments extension etc
+            // TODO: Write extension etc
             writer.Write(GifConstants.EndIntroducer);
         }
 
@@ -227,6 +228,39 @@ namespace ImageSharp.Formats
 
                 writer.Write(GifConstants.Terminator); // Terminator
             }
+        }
+
+        /// <summary>
+        /// Writes the image comments to the stream.
+        /// </summary>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <param name="image">The <see cref="ImageBase{TColor}"/> to be encoded.</param>
+        /// <param name="writer">The stream to write to.</param>
+        private void WriteComments<TColor>(Image<TColor> image, EndianBinaryWriter writer)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
+        {
+            if (this.options.IgnoreMetadata == true)
+            {
+                return;
+            }
+
+            ImageProperty property = image.MetaData.Properties.FirstOrDefault(p => p.Name == GifConstants.Comments);
+            if (property == null || string.IsNullOrEmpty(property.Value))
+            {
+                return;
+            }
+
+            byte[] comments = this.options.TextEncoding.GetBytes(property.Value);
+
+            int count = Math.Min(comments.Length, 255);
+
+            this.buffer[0] = GifConstants.ExtensionIntroducer;
+            this.buffer[1] = GifConstants.CommentLabel;
+            this.buffer[2] = (byte)count;
+
+            writer.Write(this.buffer, 0, 3);
+            writer.Write(comments, 0, count);
+            writer.Write(GifConstants.Terminator);
         }
 
         /// <summary>

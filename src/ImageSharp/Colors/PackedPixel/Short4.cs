@@ -50,9 +50,7 @@ namespace ImageSharp
             this.PackedValue = Pack(x, y, z, w);
         }
 
-        /// <summary>
-        /// Gets or sets the packed representation of the value.
-        /// </summary>
+        /// <inheritdoc/>
         public ulong PackedValue { get; set; }
 
         /// <summary>

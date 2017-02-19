@@ -19,7 +19,6 @@ namespace ImageSharp.Formats
         /// </summary>
         public GifDecoderOptions()
         {
-            this.InitializeWithDefaults();
         }
 
         /// <summary>
@@ -29,13 +28,12 @@ namespace ImageSharp.Formats
         private GifDecoderOptions(IDecoderOptions options)
             : base(options)
         {
-            this.InitializeWithDefaults();
         }
 
         /// <summary>
         /// Gets or sets the encoding that should be used when reading comments.
         /// </summary>
-        public Encoding TextEncoding { get; set; }
+        public Encoding TextEncoding { get; set; } = DefaultEncoding;
 
         /// <summary>
         /// Converts the options to a <see cref="GifDecoderOptions"/> instance with a cast
@@ -52,11 +50,6 @@ namespace ImageSharp.Formats
             }
 
             return new GifDecoderOptions(options);
-        }
-
-        private void InitializeWithDefaults()
-        {
-            this.TextEncoding = DefaultEncoding;
         }
     }
 }

@@ -46,9 +46,7 @@ namespace ImageSharp
             this.PackedValue = Pack(ref vector);
         }
 
-        /// <summary>
-        /// Gets or sets the packed representation of the value.
-        /// </summary>
+        /// <inheritdoc/>
         public ulong PackedValue { get; set; }
 
         /// <summary>

@@ -48,9 +48,7 @@ namespace ImageSharp
             this.PackedValue = Pack(x, y);
         }
 
-        /// <summary>
-        /// Gets or sets the packed representation of the value.
-        /// </summary>
+        /// <inheritdoc/>
         public uint PackedValue { get; set; }
 
         /// <summary>

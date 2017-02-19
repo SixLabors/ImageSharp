@@ -19,7 +19,7 @@ namespace ImageSharp.Tests
 
           TestFile testFile = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan);
 
-          using (Image image = new Image(testFile.FilePath, options))
+          using (Image image = testFile.CreateImage(options))
           {
               Assert.NotNull(image.MetaData.ExifProfile);
           }
@@ -35,7 +35,7 @@ namespace ImageSharp.Tests
 
           TestFile testFile = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan);
 
-          using (Image image = new Image(testFile.FilePath, options))
+          using (Image image = testFile.CreateImage(options))
           {
               Assert.Null(image.MetaData.ExifProfile);
           }

@@ -12,7 +12,7 @@ namespace ImageSharp
     /// <summary>
     /// Packed pixel type containing a single 8 bit normalized W values ranging from 0 to 1.
     /// </summary>
-    public struct Alpha8 : IPixel<Alpha8>
+    public struct Alpha8 : IPixel<Alpha8>, IPackedVector<byte>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="Alpha8"/> struct.

@@ -12,7 +12,7 @@ namespace ImageSharp
     /// <summary>
     /// Packed pixel type containing two 16-bit signed normalized values, ranging from −1 to 1.
     /// </summary>
-    public struct NormalizedShort2 : IPixel<NormalizedShort2>
+    public struct NormalizedShort2 : IPixel<NormalizedShort2>, IPackedVector<uint>
     {
         /// <summary>
         /// The maximum byte value.

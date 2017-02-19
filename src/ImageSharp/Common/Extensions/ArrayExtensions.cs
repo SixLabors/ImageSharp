@@ -21,7 +21,7 @@ namespace ImageSharp
         /// <param name="height">The height of the image represented by the pixel buffer.</param>
         /// <returns>The <see cref="PixelAccessor{TColor}"/></returns>
         public static PixelAccessor<TColor> Lock<TColor>(this TColor[] pixels, int width, int height)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             return new PixelAccessor<TColor>(width, height, pixels);
         }

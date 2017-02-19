@@ -13,7 +13,7 @@ namespace ImageSharp.Processing.Processors
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     public class PolaroidProcessor<TColor> : ColorMatrixFilter<TColor>
-        where TColor : struct, IPackedPixel, IEquatable<TColor>
+        where TColor : struct, IPixel<TColor>
     {
         private static TColor veryDarkOrange = ColorBuilder<TColor>.FromRGB(102, 34, 0);
         private static TColor lightOrange = ColorBuilder<TColor>.FromRGBA(255, 153, 102, 178);

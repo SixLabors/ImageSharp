@@ -14,7 +14,7 @@ namespace ImageSharp.Quantizers
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     public interface IQuantizer<TColor> : IQuantizer
-        where TColor : struct, IPackedPixel, IEquatable<TColor>
+        where TColor : struct, IPixel<TColor>
     {
         /// <summary>
         /// Quantize an image and return the resulting output pixels.
@@ -32,7 +32,7 @@ namespace ImageSharp.Quantizers
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     public interface IDitheredQuantizer<TColor> : IQuantizer<TColor>
-        where TColor : struct, IPackedPixel, IEquatable<TColor>
+        where TColor : struct, IPixel<TColor>
     {
         /// <summary>
         /// Gets or sets a value indicating whether to apply dithering to the output image.

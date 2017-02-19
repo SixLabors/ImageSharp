@@ -29,7 +29,7 @@ namespace ImageSharp
         /// <param name="options">The options.</param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> DrawPolygon<TColor>(this Image<TColor> source, IBrush<TColor> brush, float thickness, Vector2[] points, GraphicsOptions options)
-           where TColor : struct, IPackedPixel, IEquatable<TColor>
+           where TColor : struct, IPixel<TColor>
         {
             return source.Draw(new Pen<TColor>(brush, thickness), new Polygon(new LinearLineSegment(points)), options);
         }
@@ -44,7 +44,7 @@ namespace ImageSharp
         /// <param name="points">The points.</param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> DrawPolygon<TColor>(this Image<TColor> source, IBrush<TColor> brush, float thickness, Vector2[] points)
-           where TColor : struct, IPackedPixel, IEquatable<TColor>
+           where TColor : struct, IPixel<TColor>
         {
             return source.Draw(new Pen<TColor>(brush, thickness), new Polygon(new LinearLineSegment(points)));
         }
@@ -59,7 +59,7 @@ namespace ImageSharp
         /// <param name="points">The points.</param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> DrawPolygon<TColor>(this Image<TColor> source, TColor color, float thickness, Vector2[] points)
-           where TColor : struct, IPackedPixel, IEquatable<TColor>
+           where TColor : struct, IPixel<TColor>
         {
             return source.DrawPolygon(new SolidBrush<TColor>(color), thickness, points);
         }
@@ -75,7 +75,7 @@ namespace ImageSharp
         /// <param name="options">The options.</param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> DrawPolygon<TColor>(this Image<TColor> source, TColor color, float thickness, Vector2[] points, GraphicsOptions options)
-           where TColor : struct, IPackedPixel, IEquatable<TColor>
+           where TColor : struct, IPixel<TColor>
         {
             return source.DrawPolygon(new SolidBrush<TColor>(color), thickness, points, options);
         }
@@ -89,7 +89,7 @@ namespace ImageSharp
         /// <param name="points">The points.</param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> DrawPolygon<TColor>(this Image<TColor> source, IPen<TColor> pen, Vector2[] points)
-           where TColor : struct, IPackedPixel, IEquatable<TColor>
+           where TColor : struct, IPixel<TColor>
         {
             return source.Draw(pen, new Polygon(new LinearLineSegment(points)), GraphicsOptions.Default);
         }
@@ -104,7 +104,7 @@ namespace ImageSharp
         /// <param name="options">The options.</param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> DrawPolygon<TColor>(this Image<TColor> source, IPen<TColor> pen, Vector2[] points, GraphicsOptions options)
-           where TColor : struct, IPackedPixel, IEquatable<TColor>
+           where TColor : struct, IPixel<TColor>
         {
             return source.Draw(pen, new Polygon(new LinearLineSegment(points)), options);
         }

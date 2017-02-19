@@ -12,7 +12,7 @@ namespace ImageSharp
     /// <summary>
     /// Packed pixel type containing a single 16 bit floating point value.
     /// </summary>
-    public struct HalfSingle : IPackedPixel<ushort>, IEquatable<HalfSingle>
+    public struct HalfSingle : IPixel<HalfSingle>, IPackedVector<ushort>
     {
         /// <summary>
         /// The maximum byte value.
@@ -33,7 +33,9 @@ namespace ImageSharp
             this.PackedValue = HalfTypeHelper.Pack(single);
         }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Gets or sets the packed representation of the value.
+        /// </summary>
         public ushort PackedValue { get; set; }
 
         /// <summary>

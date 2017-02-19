@@ -15,7 +15,7 @@ namespace ImageSharp.Drawing.Brushes
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     public class SolidBrush<TColor> : IBrush<TColor>
-        where TColor : struct, IPackedPixel, IEquatable<TColor>
+        where TColor : struct, IPixel<TColor>
     {
         /// <summary>
         /// The color to paint.

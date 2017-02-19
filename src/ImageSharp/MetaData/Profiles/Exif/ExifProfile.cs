@@ -121,7 +121,7 @@ namespace ImageSharp
         /// The <see cref="Image{TColor}"/>.
         /// </returns>
         public Image<TColor> CreateThumbnail<TColor>()
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             this.InitializeValues();
 

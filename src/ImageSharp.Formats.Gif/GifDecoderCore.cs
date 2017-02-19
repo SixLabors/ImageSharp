@@ -14,7 +14,7 @@ namespace ImageSharp.Formats
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     internal class GifDecoderCore<TColor>
-        where TColor : struct, IPackedPixel, IEquatable<TColor>
+        where TColor : struct, IPixel<TColor>
     {
         /// <summary>
         /// The temp buffer used to reduce allocations.

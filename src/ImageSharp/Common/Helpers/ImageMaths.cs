@@ -183,7 +183,7 @@ namespace ImageSharp
         /// The <see cref="Rectangle"/>.
         /// </returns>
         public static Rectangle GetFilteredBoundingRectangle<TColor>(ImageBase<TColor> bitmap, float componentValue, RgbaComponent channel = RgbaComponent.B)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             int width = bitmap.Width;
             int height = bitmap.Height;

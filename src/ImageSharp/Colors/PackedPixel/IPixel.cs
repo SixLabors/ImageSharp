@@ -1,16 +1,40 @@
-﻿// <copyright file="IPackedBytes.cs" company="James Jackson-South">
+﻿// <copyright file="IPixel.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
 namespace ImageSharp
 {
+    using System;
+    using System.Numerics;
+
     /// <summary>
-    /// An interface that converts packed vector types to and from <see cref="T:byte[]"/> values,
-    /// allowing multiple encodings to be manipulated in a generic manner.
+    /// An interface that represents a generic pixel type.
     /// </summary>
-    public interface IPackedBytes
+    /// <typeparam name="TSelf">The type implementing this interface</typeparam>
+    public interface IPixel<TSelf> : IPixel, IEquatable<TSelf>
+        where TSelf : struct, IPixel<TSelf>
     {
+    }
+
+    /// <summary>
+    /// An interface that represents a pixel type.
+    /// </summary>
+    public interface IPixel
+    {
+        /// <summary>
+        /// Sets the packed representation from a <see cref="Vector4"/>.
+        /// </summary>
+        /// <param name="vector">The vector to create the packed representation from.</param>
+        void PackFromVector4(Vector4 vector);
+
+        /// <summary>
+        /// Expands the packed representation into a <see cref="Vector4"/>.
+        /// The vector components are typically expanded in least to greatest significance order.
+        /// </summary>
+        /// <returns>The <see cref="Vector4"/>.</returns>
+        Vector4 ToVector4();
+
         /// <summary>
         /// Sets the packed representation from the given byte array.
         /// </summary>

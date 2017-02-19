@@ -12,7 +12,7 @@ namespace ImageSharp
     /// <summary>
     /// Packed pixel type containing four 16-bit signed normalized values, ranging from −1 to 1.
     /// </summary>
-    public struct NormalizedShort4 : IPackedPixel<ulong>, IEquatable<NormalizedShort4>
+    public struct NormalizedShort4 : IPixel<NormalizedShort4>, IPackedVector<ulong>
     {
         /// <summary>
         /// The maximum byte value.
@@ -50,7 +50,9 @@ namespace ImageSharp
             this.PackedValue = Pack(x, y, z, w);
         }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Gets or sets the packed representation of the value.
+        /// </summary>
         public ulong PackedValue { get; set; }
 
         /// <summary>

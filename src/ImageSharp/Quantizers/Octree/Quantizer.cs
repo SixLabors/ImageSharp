@@ -17,7 +17,7 @@ namespace ImageSharp.Quantizers
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     public abstract class Quantizer<TColor> : IDitheredQuantizer<TColor>
-        where TColor : struct, IPackedPixel, IEquatable<TColor>
+        where TColor : struct, IPixel<TColor>
     {
         /// <summary>
         /// A lookup table for colors

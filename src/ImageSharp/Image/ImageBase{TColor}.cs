@@ -16,7 +16,7 @@ namespace ImageSharp
     /// <typeparam name="TColor">The pixel format.</typeparam>
     [DebuggerDisplay("Image: {Width}x{Height}")]
     public abstract class ImageBase<TColor> : IImageBase<TColor>
-        where TColor : struct, IPackedPixel, IEquatable<TColor>
+        where TColor : struct, IPixel<TColor>
     {
         /// <summary>
         /// The image pixels
@@ -182,7 +182,7 @@ namespace ImageSharp
         /// </param>
         protected void CopyProperties(IImageBase other)
         {
-            Debug.Assert(other != null);
+            DebugGuard.NotNull(other, nameof(other));
 
             this.Configuration = other.Configuration;
         }

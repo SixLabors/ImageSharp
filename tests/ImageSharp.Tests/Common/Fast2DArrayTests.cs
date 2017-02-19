@@ -21,9 +21,27 @@ namespace ImageSharp.Tests.Common
         public void Fast2DArrayThrowsOnNullInitializer()
         {
             Assert.Throws<ArgumentNullException>(() =>
-                {
-                    Fast2DArray<float> fast = new Fast2DArray<float>(null);
-                });
+            {
+                Fast2DArray<float> fast = new Fast2DArray<float>(null);
+            });
+        }
+
+        [Fact]
+        public void Fast2DArrayThrowsOnEmptyZeroWidth()
+        {
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+            {
+                Fast2DArray<float> fast = new Fast2DArray<float>(0, 10);
+            });
+        }
+
+        [Fact]
+        public void Fast2DArrayThrowsOnEmptyZeroHeight()
+        {
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+            {
+                Fast2DArray<float> fast = new Fast2DArray<float>(10, 0);
+            });
         }
 
         [Fact]
@@ -46,7 +64,7 @@ namespace ImageSharp.Tests.Common
         [Fact]
         public void Fast2DArrayGetReturnsCorrectResults()
         {
-            Fast2DArray<float> fast = new Fast2DArray<float>(FloydSteinbergMatrix);
+            Fast2DArray<float> fast = FloydSteinbergMatrix;
 
             for (int row = 0; row < fast.Height; row++)
             {
@@ -60,7 +78,7 @@ namespace ImageSharp.Tests.Common
         [Fact]
         public void Fast2DArrayGetSetReturnsCorrectResults()
         {
-            Fast2DArray<float> fast = new Fast2DArray<float>(new float[4, 4]);
+            Fast2DArray<float> fast = new Fast2DArray<float>(4, 4);
             const float Val = 5F;
 
             fast[3, 3] = Val;

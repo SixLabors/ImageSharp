@@ -20,25 +20,29 @@ namespace ImageSharp.Processing.Processors
         /// <summary>
         /// The horizontal gradient operator.
         /// </summary>
-        private static readonly float[][] RobertsCrossX =
-        {
-            new float[] { 1, 0 },
-            new float[] { 0, -1 }
-        };
+        private static readonly Fast2DArray<float> RobertsCrossX =
+            new float[,]
+            {
+                { 1, 0 },
+                { 0, -1 }
+            };
 
         /// <summary>
         /// The vertical gradient operator.
         /// </summary>
-        private static readonly float[][] RobertsCrossY =
+        private static readonly Fast2DArray<float> RobertsCrossY =
+            new float[,]
+            {
+                { 0, 1 },
+                { -1, 0 }
+            };
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="RobertsCrossProcessor{TColor}"/> class.
+        /// </summary>
+        public RobertsCrossProcessor()
+            : base(RobertsCrossX, RobertsCrossY)
         {
-            new float[] { 0, 1 },
-            new float[] { -1, 0 }
-        };
-
-        /// <inheritdoc/>
-        public override float[][] KernelX => RobertsCrossX;
-
-        /// <inheritdoc/>
-        public override float[][] KernelY => RobertsCrossY;
+        }
     }
 }

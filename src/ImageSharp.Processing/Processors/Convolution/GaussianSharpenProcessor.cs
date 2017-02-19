@@ -73,12 +73,12 @@ namespace ImageSharp.Processing.Processors
         /// <summary>
         /// Gets the horizontal gradient operator.
         /// </summary>
-        public float[][] KernelX { get; }
+        public Fast2DArray<float> KernelX { get; }
 
         /// <summary>
         /// Gets the vertical gradient operator.
         /// </summary>
-        public float[][] KernelY { get; }
+        public Fast2DArray<float> KernelY { get; }
 
         /// <inheritdoc/>
         protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
@@ -90,17 +90,14 @@ namespace ImageSharp.Processing.Processors
         /// Create a 1 dimensional Gaussian kernel using the Gaussian G(x) function
         /// </summary>
         /// <param name="horizontal">Whether to calculate a horizontal kernel.</param>
-        /// <returns>The <see cref="T:float[][]"/></returns>
-        private float[][] CreateGaussianKernel(bool horizontal)
+        /// <returns>The <see cref="Fast2DArray{T}"/></returns>
+        private Fast2DArray<float> CreateGaussianKernel(bool horizontal)
         {
             int size = this.kernelSize;
             float weight = this.sigma;
-            float[][] kernel = horizontal ? new float[1][] : new float[size][];
-
-            if (horizontal)
-            {
-                kernel[0] = new float[size];
-            }
+            Fast2DArray<float> kernel = horizontal
+                ? new Fast2DArray<float>(size, 1)
+                : new Fast2DArray<float>(1, size);
 
             float sum = 0;
 
@@ -112,11 +109,11 @@ namespace ImageSharp.Processing.Processors
                 sum += gx;
                 if (horizontal)
                 {
-                    kernel[0][i] = gx;
+                    kernel[0, i] = gx;
                 }
                 else
                 {
-                    kernel[i] = new[] { gx };
+                    kernel[i, 0] = gx;
                 }
             }
 
@@ -130,12 +127,12 @@ namespace ImageSharp.Processing.Processors
                     if (i == midpointRounded)
                     {
                         // Calculate central value
-                        kernel[0][i] = (2f * sum) - kernel[0][i];
+                        kernel[0, i] = (2F * sum) - kernel[0, i];
                     }
                     else
                     {
                         // invert value
-                        kernel[0][i] = -kernel[0][i];
+                        kernel[0, i] = -kernel[0, i];
                     }
                 }
             }
@@ -146,12 +143,12 @@ namespace ImageSharp.Processing.Processors
                     if (i == midpointRounded)
                     {
                         // Calculate central value
-                        kernel[i][0] = (2 * sum) - kernel[i][0];
+                        kernel[i, 0] = (2 * sum) - kernel[i, 0];
                     }
                     else
                     {
                         // invert value
-                        kernel[i][0] = -kernel[i][0];
+                        kernel[i, 0] = -kernel[i, 0];
                     }
                 }
             }
@@ -161,14 +158,14 @@ namespace ImageSharp.Processing.Processors
             {
                 for (int i = 0; i < size; i++)
                 {
-                    kernel[0][i] = kernel[0][i] / sum;
+                    kernel[0, i] = kernel[0, i] / sum;
                 }
             }
             else
             {
                 for (int i = 0; i < size; i++)
                 {
-                    kernel[i][0] = kernel[i][0] / sum;
+                    kernel[i, 0] = kernel[i, 0] / sum;
                 }
             }
 

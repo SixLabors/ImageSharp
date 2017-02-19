@@ -20,7 +20,7 @@ namespace ImageSharp.Formats
         public BmpBitsPerPixel BitsPerPixel { get; set; } = BmpBitsPerPixel.Pixel24;
 
         /// <inheritdoc/>
-        public void Encode<TColor>(Image<TColor> image, Stream stream)
+        public void Encode<TColor>(Image<TColor> image, Stream stream, IEncoderOptions options)
             where TColor : struct, IPixel<TColor>
         {
             BmpEncoderCore encoder = new BmpEncoderCore();

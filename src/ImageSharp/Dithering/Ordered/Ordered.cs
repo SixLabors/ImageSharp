@@ -18,13 +18,13 @@ namespace ImageSharp.Dithering.Ordered
         /// This is calculated by multiplying each value in the original matrix by 16
         /// </summary>
         private static readonly Fast2DArray<byte> ThresholdMatrix =
-            new Fast2DArray<byte>(new byte[,]
+            new byte[,]
             {
                { 0, 128, 32, 160 },
                { 192, 64, 224, 96 },
                { 48, 176, 16, 144 },
                { 240, 112, 208, 80 }
-            });
+            };
 
         /// <inheritdoc />
         public Fast2DArray<byte> Matrix { get; } = ThresholdMatrix;

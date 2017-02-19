@@ -15,11 +15,11 @@ namespace ImageSharp.Dithering
         /// The diffusion matrix
         /// </summary>
         private static readonly Fast2DArray<float> FloydSteinbergMatrix =
-            new Fast2DArray<float>(new float[,]
+            new float[,]
             {
                 { 0, 0, 7 },
                 { 3, 5, 1 }
-            });
+            };
 
         /// <summary>
         /// Initializes a new instance of the <see cref="FloydSteinberg"/> class.

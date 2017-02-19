@@ -6,7 +6,6 @@
 namespace ImageSharp
 {
     using System.Collections.Generic;
-    using System.Diagnostics;
 
     /// <summary>
     /// Encapsulates the metadata of an image.
@@ -46,7 +45,7 @@ namespace ImageSharp
         /// </param>
         internal ImageMetaData(ImageMetaData other)
         {
-            Debug.Assert(other != null);
+            DebugGuard.NotNull(other, nameof(other));
 
             this.HorizontalResolution = other.HorizontalResolution;
             this.VerticalResolution = other.VerticalResolution;

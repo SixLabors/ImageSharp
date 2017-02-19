@@ -24,7 +24,7 @@ namespace ImageSharp.Drawing.Pens
     /// the the pattern will imidiatly repeat without gap.
     /// </remarks>
     public class Pen<TColor> : IPen<TColor>
-        where TColor : struct, IPackedPixel, IEquatable<TColor>
+        where TColor : struct, IPixel<TColor>
     {
         private static readonly float[] EmptyPattern = new float[0];
         private readonly float[] pattern;

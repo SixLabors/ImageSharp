@@ -27,7 +27,7 @@ namespace ImageSharp.Tests
         [Theory]
         [WithFileCollection(nameof(BaselineTestJpegs), PixelTypes.Color | PixelTypes.StandardImageClass | PixelTypes.Argb)]
         public void OpenBaselineJpeg_SaveBmp<TColor>(TestImageProvider<TColor> provider)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             using (Image<TColor> image = provider.GetImage())
             {
@@ -38,7 +38,7 @@ namespace ImageSharp.Tests
         [Theory]
         [WithFileCollection(nameof(ProgressiveTestJpegs), PixelTypes.Color | PixelTypes.StandardImageClass | PixelTypes.Argb)]
         public void OpenProgressiveJpeg_SaveBmp<TColor>(TestImageProvider<TColor> provider)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             using (Image<TColor> image = provider.GetImage())
             {
@@ -56,7 +56,7 @@ namespace ImageSharp.Tests
             TestImageProvider<TColor> provider,
             JpegSubsample subsample,
             int quality)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             byte[] data;
             using (Image<TColor> image = provider.GetImage())
@@ -80,7 +80,7 @@ namespace ImageSharp.Tests
         [WithSolidFilledImages(42, 88, 255, 0, 0, PixelTypes.StandardImageClass)]
         public void DecodeGenerated_MetadataOnly<TColor>(
             TestImageProvider<TColor> provider)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             using (Image<TColor> image = provider.GetImage())
             {

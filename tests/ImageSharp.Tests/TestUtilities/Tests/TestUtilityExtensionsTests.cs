@@ -24,7 +24,7 @@ namespace ImageSharp.Tests
         private ITestOutputHelper Output { get; }
 
         public static Image<TColor> CreateTestImage<TColor>(GenericFactory<TColor> factory)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             Image<TColor> image = factory.CreateImage(10, 10);
 
@@ -57,20 +57,12 @@ namespace ImageSharp.Tests
             var fake = typeof(Color).GetTypeInfo().Assembly.GetType("ImageSharp.dsaada_DASqewrr");
             Assert.Null(fake);
         }
-
-        [Fact]
-        public void GetPackedType()
-        {
-            Type shouldBeUIint32 = TestUtilityExtensions.GetPackedType(typeof(Color));
-
-            Assert.Equal(shouldBeUIint32, typeof(uint));
-        }
-
+        
         [Theory]
         [WithFile(TestImages.Bmp.Car, PixelTypes.Color, true)]
         [WithFile(TestImages.Bmp.Car, PixelTypes.Color, false)]
         public void IsEquivalentTo_WhenFalse<TColor>(TestImageProvider<TColor> provider, bool compareAlpha)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             var a = provider.GetImage();
             var b = provider.GetImage();
@@ -83,7 +75,7 @@ namespace ImageSharp.Tests
         [WithMemberFactory(nameof(CreateTestImage), PixelTypes.Color | PixelTypes.Bgr565, true)]
         [WithMemberFactory(nameof(CreateTestImage), PixelTypes.Color | PixelTypes.Bgr565, false)]
         public void IsEquivalentTo_WhenTrue<TColor>(TestImageProvider<TColor> provider, bool compareAlpha)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             var a = provider.GetImage();
             var b = provider.GetImage();

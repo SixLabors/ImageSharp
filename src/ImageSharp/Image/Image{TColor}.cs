@@ -24,7 +24,7 @@ namespace ImageSharp
     /// <typeparam name="TColor">The pixel format.</typeparam>
     [DebuggerDisplay("Image: {Width}x{Height}")]
     public class Image<TColor> : ImageBase<TColor>, IImage
-        where TColor : struct, IPackedPixel, IEquatable<TColor>
+        where TColor : struct, IPixel<TColor>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="Image{TColor}"/> class
@@ -325,7 +325,7 @@ namespace ImageSharp
         /// <typeparam name="TColor2">The pixel format.</typeparam>
         /// <returns>The <see cref="Image{TColor2}"/></returns>
         public Image<TColor2> To<TColor2>(Func<Vector4, Vector4> scaleFunc = null)
-            where TColor2 : struct, IPackedPixel, IEquatable<TColor2>
+            where TColor2 : struct, IPixel<TColor2>
         {
             scaleFunc = PackedPixelConverterHelper.ComputeScaleFunction<TColor, TColor2>(scaleFunc);
 

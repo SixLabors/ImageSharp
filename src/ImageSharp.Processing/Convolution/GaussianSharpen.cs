@@ -23,7 +23,7 @@ namespace ImageSharp
         /// <param name="sigma">The 'sigma' value representing the weight of the blur.</param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> GaussianSharpen<TColor>(this Image<TColor> source, float sigma = 3f)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             return GaussianSharpen(source, sigma, source.Bounds);
         }
@@ -39,7 +39,7 @@ namespace ImageSharp
         /// </param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> GaussianSharpen<TColor>(this Image<TColor> source, float sigma, Rectangle rectangle)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             source.ApplyProcessor(new GaussianSharpenProcessor<TColor>(sigma), rectangle);
             return source;

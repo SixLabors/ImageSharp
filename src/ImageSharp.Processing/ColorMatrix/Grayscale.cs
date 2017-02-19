@@ -23,7 +23,7 @@ namespace ImageSharp
         /// <param name="mode">The formula to apply to perform the operation.</param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Grayscale<TColor>(this Image<TColor> source, GrayscaleMode mode = GrayscaleMode.Bt709)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             return Grayscale(source, source.Bounds, mode);
         }
@@ -39,7 +39,7 @@ namespace ImageSharp
         /// <param name="mode">The formula to apply to perform the operation.</param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Grayscale<TColor>(this Image<TColor> source, Rectangle rectangle, GrayscaleMode mode = GrayscaleMode.Bt709)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             IImageProcessor<TColor> processor = mode == GrayscaleMode.Bt709
                 ? (IImageProcessor<TColor>)new GrayscaleBt709Processor<TColor>()

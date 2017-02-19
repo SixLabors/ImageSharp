@@ -13,7 +13,7 @@ namespace ImageSharp
     /// </summary>
     /// <typeparam name="TColor">The type of the color.</typeparam>
     public static class ColorBuilder<TColor>
-        where TColor : struct, IPackedPixel, IEquatable<TColor>
+        where TColor : struct, IPixel<TColor>
     {
         /// <summary>
         /// Creates a new <typeparamref name="TColor"/> representation from the string representing a color.

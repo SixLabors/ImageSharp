@@ -27,7 +27,7 @@ namespace ImageSharp
         /// <param name="options">The options.</param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> FillPolygon<TColor>(this Image<TColor> source, IBrush<TColor> brush, Vector2[] points, GraphicsOptions options)
-           where TColor : struct, IPackedPixel, IEquatable<TColor>
+           where TColor : struct, IPixel<TColor>
         {
             return source.Fill(brush, new Polygon(new LinearLineSegment(points)), options);
         }
@@ -41,7 +41,7 @@ namespace ImageSharp
         /// <param name="points">The points.</param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> FillPolygon<TColor>(this Image<TColor> source, IBrush<TColor> brush, Vector2[] points)
-           where TColor : struct, IPackedPixel, IEquatable<TColor>
+           where TColor : struct, IPixel<TColor>
         {
             return source.Fill(brush, new Polygon(new LinearLineSegment(points)));
         }
@@ -56,7 +56,7 @@ namespace ImageSharp
         /// <param name="options">The options.</param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> FillPolygon<TColor>(this Image<TColor> source, TColor color, Vector2[] points, GraphicsOptions options)
-           where TColor : struct, IPackedPixel, IEquatable<TColor>
+           where TColor : struct, IPixel<TColor>
         {
             return source.Fill(new SolidBrush<TColor>(color), new Polygon(new LinearLineSegment(points)), options);
         }
@@ -70,7 +70,7 @@ namespace ImageSharp
         /// <param name="points">The points.</param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> FillPolygon<TColor>(this Image<TColor> source, TColor color, Vector2[] points)
-           where TColor : struct, IPackedPixel, IEquatable<TColor>
+           where TColor : struct, IPixel<TColor>
         {
             return source.Fill(new SolidBrush<TColor>(color), new Polygon(new LinearLineSegment(points)));
         }

@@ -15,7 +15,7 @@ namespace ImageSharp.Processing.Processors
     /// <remarks>Adapted from <see href="https://softwarebydefault.com/2013/06/29/oil-painting-cartoon-filter/"/> by Dewald Esterhuizen.</remarks>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     public class OilPaintingProcessor<TColor> : ImageProcessor<TColor>
-        where TColor : struct, IPackedPixel, IEquatable<TColor>
+        where TColor : struct, IPixel<TColor>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="OilPaintingProcessor{TColor}"/> class.

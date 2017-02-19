@@ -13,7 +13,7 @@ namespace ImageSharp
     /// Packed vector type containing unsigned normalized values ranging from 0 to 1.
     /// The x, y and z components use 10 bits, and the w component uses 2 bits.
     /// </summary>
-    public struct Rgba1010102 : IPackedPixel<uint>, IEquatable<Rgba1010102>, IPackedVector
+    public struct Rgba1010102 : IPixel<Rgba1010102>, IPackedVector<uint>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="Rgba1010102"/> struct.
@@ -36,7 +36,9 @@ namespace ImageSharp
             this.PackedValue = Pack(vector.X, vector.Y, vector.Z, vector.W);
         }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Gets or sets the packed representation of the value.
+        /// </summary>
         public uint PackedValue { get; set; }
 
         /// <summary>

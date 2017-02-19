@@ -13,7 +13,7 @@ namespace ImageSharp
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     public static class PixelPool<TColor>
-        where TColor : struct, IPackedPixel, IEquatable<TColor>
+        where TColor : struct, IPixel<TColor>
     {
         /// <summary>
         /// The <see cref="ArrayPool{T}"/> used to pool data. TODO: Choose sensible default size and count

@@ -26,7 +26,7 @@ namespace ImageSharp
         /// The <see cref="Image{TColoR}"/>.
         /// </returns>
         public static Image<TColor> SaveAsBmp<TColor>(this Image<TColor> source, Stream stream)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
                         => source.Save(stream, new BmpEncoder());
     }
 }

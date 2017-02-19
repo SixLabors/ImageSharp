@@ -22,7 +22,7 @@ namespace ImageSharp
         /// <param name="percent">The new opacity of the image. Must be between 0 and 100.</param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Alpha<TColor>(this Image<TColor> source, int percent)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             return Alpha(source, percent, source.Bounds);
         }
@@ -38,7 +38,7 @@ namespace ImageSharp
         /// </param>
         /// <returns>The <see cref="Image"/>.</returns>
         public static Image<TColor> Alpha<TColor>(this Image<TColor> source, int percent, Rectangle rectangle)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             source.ApplyProcessor(new AlphaProcessor<TColor>(percent), rectangle);
             return source;

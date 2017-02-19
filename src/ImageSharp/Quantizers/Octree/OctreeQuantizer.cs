@@ -14,7 +14,7 @@ namespace ImageSharp.Quantizers
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     public sealed class OctreeQuantizer<TColor> : Quantizer<TColor>
-        where TColor : struct, IPackedPixel, IEquatable<TColor>
+        where TColor : struct, IPixel<TColor>
     {
         /// <summary>
         /// The pixel buffer, used to reduce allocations.

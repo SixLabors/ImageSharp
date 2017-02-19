@@ -23,7 +23,7 @@ namespace ImageSharp
         /// <param name="degrees">The angle in degrees to adjust the image.</param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Hue<TColor>(this Image<TColor> source, float degrees)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             return Hue(source, degrees, source.Bounds);
         }
@@ -39,7 +39,7 @@ namespace ImageSharp
         /// </param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Hue<TColor>(this Image<TColor> source, float degrees, Rectangle rectangle)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             source.ApplyProcessor(new HueProcessor<TColor>(degrees), rectangle);
             return source;

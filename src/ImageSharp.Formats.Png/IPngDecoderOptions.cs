@@ -8,7 +8,7 @@ namespace ImageSharp.Formats
     using System.Text;
 
     /// <summary>
-    /// Encapsulates the png decoder options.
+    /// Encapsulates the options for the <see cref="PngDecoder"/>.
     /// </summary>
     public interface IPngDecoderOptions : IDecoderOptions
     {

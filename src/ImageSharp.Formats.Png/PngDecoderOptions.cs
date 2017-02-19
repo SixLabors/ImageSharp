@@ -8,7 +8,7 @@ namespace ImageSharp.Formats
     using System.Text;
 
     /// <summary>
-    /// Encapsulates the png decoder options.
+    /// Encapsulates the options for the <see cref="PngDecoder"/>.
     /// </summary>
     public sealed class PngDecoderOptions : DecoderOptions, IPngDecoderOptions
     {
@@ -40,7 +40,7 @@ namespace ImageSharp.Formats
         /// or by creating a new instance with the specfied options.
         /// </summary>
         /// <param name="options">The options for the decoder.</param>
-        /// <returns>The options for the png decoder.</returns>
+        /// <returns>The options for the <see cref="PngDecoder"/>.</returns>
         internal static IPngDecoderOptions Create(IDecoderOptions options)
         {
             IPngDecoderOptions pngOptions = options as IPngDecoderOptions;

@@ -8,7 +8,7 @@ namespace ImageSharp.Formats
     using System.Text;
 
     /// <summary>
-    /// Encapsulates the gif decoder options.
+    /// Encapsulates the options for the <see cref="GifDecoder"/>.
     /// </summary>
     public interface IGifDecoderOptions : IDecoderOptions
     {

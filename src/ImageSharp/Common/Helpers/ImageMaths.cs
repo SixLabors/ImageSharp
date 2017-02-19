@@ -37,6 +37,7 @@ namespace ImageSharp
         /// <returns>
         /// The <see cref="int"/>
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int GetBitsNeededForColorDepth(int colors)
         {
             return (int)Math.Ceiling(Math.Log(colors, 2));
@@ -48,6 +49,7 @@ namespace ImageSharp
         /// <param name="x">The x provided to G(x).</param>
         /// <param name="sigma">The spread of the blur.</param>
         /// <returns>The Gaussian G(x)</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float Gaussian(float x, float sigma)
         {
             const float Numerator = 1.0f;
@@ -72,6 +74,7 @@ namespace ImageSharp
         /// <returns>
         /// The <see cref="float"/>.
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float GetBcValue(float x, float b, float c)
         {
             float temp;
@@ -104,6 +107,7 @@ namespace ImageSharp
         /// <returns>
         /// The <see cref="float"/>.
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float SinC(float x)
         {
             if (Math.Abs(x) > Constants.Epsilon)
@@ -122,6 +126,7 @@ namespace ImageSharp
         /// <returns>
         /// The <see cref="float"/> representing the degree as radians.
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float DegreesToRadians(float degrees)
         {
             return degrees * (float)(Math.PI / 180);
@@ -139,6 +144,7 @@ namespace ImageSharp
         /// <returns>
         /// The bounding <see cref="Rectangle"/>.
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Rectangle GetBoundingRectangle(Point topLeft, Point bottomRight)
         {
             return new Rectangle(topLeft.X, topLeft.Y, bottomRight.X - topLeft.X, bottomRight.Y - topLeft.Y);

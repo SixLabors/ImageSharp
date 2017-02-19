@@ -20,27 +20,31 @@ namespace ImageSharp.Processing.Processors
         /// <summary>
         /// The horizontal gradient operator.
         /// </summary>
-        private static readonly float[][] PrewittX =
-        {
-            new float[] { -1, 0, 1 },
-            new float[] { -1, 0, 1 },
-            new float[] { -1, 0, 1 }
-        };
+        private static readonly Fast2DArray<float> PrewittX =
+            new float[,]
+            {
+                { -1, 0, 1 },
+                { -1, 0, 1 },
+                { -1, 0, 1 }
+            };
 
         /// <summary>
         /// The vertical gradient operator.
         /// </summary>
-        private static readonly float[][] PrewittY =
+        private static readonly Fast2DArray<float> PrewittY =
+            new float[,]
+            {
+                { 1, 1, 1 },
+                { 0, 0, 0 },
+                { -1, -1, -1 }
+            };
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PrewittProcessor{TColor}"/> class.
+        /// </summary>
+        public PrewittProcessor()
+            : base(PrewittX, PrewittY)
         {
-            new float[] { 1, 1, 1 },
-            new float[] { 0, 0, 0 },
-            new float[] { -1, -1, -1 }
-        };
-
-        /// <inheritdoc/>
-        public override float[][] KernelX => PrewittX;
-
-        /// <inheritdoc/>
-        public override float[][] KernelY => PrewittY;
+        }
     }
 }

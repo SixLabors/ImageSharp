@@ -184,9 +184,7 @@ namespace ImageSharp
             }
         }
 
-        /// <summary>
-        /// Gets or sets the packed representation of the value.
-        /// </summary>
+        /// <inheritdoc/>
         public uint PackedValue
         {
             get

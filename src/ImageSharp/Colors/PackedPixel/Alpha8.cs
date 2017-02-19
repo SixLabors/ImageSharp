@@ -23,9 +23,7 @@ namespace ImageSharp
             this.PackedValue = Pack(alpha);
         }
 
-        /// <summary>
-        /// Gets or sets the packed representation of the value.
-        /// </summary>
+        /// <inheritdoc />
         public byte PackedValue { get; set; }
 
         /// <summary>

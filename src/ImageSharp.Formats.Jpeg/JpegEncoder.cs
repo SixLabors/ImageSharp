@@ -61,7 +61,7 @@ namespace ImageSharp.Formats
         }
 
         /// <inheritdoc/>
-        public void Encode<TColor>(Image<TColor> image, Stream stream)
+        public void Encode<TColor>(Image<TColor> image, Stream stream, IEncoderOptions options)
             where TColor : struct, IPixel<TColor>
         {
             // Ensure that quality can be set but has a fallback.

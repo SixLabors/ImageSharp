@@ -23,7 +23,7 @@ namespace ImageSharp
         /// <param name="height">The target image height.</param>
         /// <returns>The <see cref="Image{TColor}"/></returns>
         public static Image<TColor> Crop<TColor>(this Image<TColor> source, int width, int height)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             return Crop(source, new Rectangle(0, 0, width, height));
         }
@@ -38,7 +38,7 @@ namespace ImageSharp
         /// </param>
         /// <returns>The <see cref="Image"/></returns>
         public static Image<TColor> Crop<TColor>(this Image<TColor> source, Rectangle cropRectangle)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             CropProcessor<TColor> processor = new CropProcessor<TColor>(cropRectangle);
 

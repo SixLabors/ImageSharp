@@ -24,7 +24,7 @@ namespace ImageSharp
         /// <param name="maxColors">The maximum number of colors to return. Defaults to 256.</param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Quantize<TColor>(this Image<TColor> source, Quantization mode = Quantization.Octree, int maxColors = 256)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             IQuantizer<TColor> quantizer;
             switch (mode)
@@ -54,7 +54,7 @@ namespace ImageSharp
         /// <param name="maxColors">The maximum number of colors to return.</param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Quantize<TColor>(this Image<TColor> source, IQuantizer<TColor> quantizer, int maxColors)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             QuantizedImage<TColor> quantized = quantizer.Quantize(source, maxColors);
             int palleteCount = quantized.Palette.Length - 1;

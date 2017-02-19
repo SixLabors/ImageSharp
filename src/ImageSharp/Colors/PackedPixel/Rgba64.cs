@@ -12,7 +12,7 @@ namespace ImageSharp
     /// <summary>
     /// Packed pixel type containing four 16-bit unsigned normalized values ranging from 0 to 1.
     /// </summary>
-    public struct Rgba64 : IPackedPixel<ulong>, IEquatable<Rgba64>, IPackedVector
+    public struct Rgba64 : IPixel<Rgba64>, IPackedVector<ulong>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="Rgba64"/> struct.
@@ -35,7 +35,9 @@ namespace ImageSharp
             this.PackedValue = Pack(vector.X, vector.Y, vector.Z, vector.W);
         }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Gets or sets the packed representation of the value.
+        /// </summary>
         public ulong PackedValue { get; set; }
 
         /// <summary>

@@ -14,7 +14,7 @@ namespace ImageSharp.Processing.Processors
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     public abstract class ColorMatrixFilter<TColor> : ImageProcessor<TColor>, IColorMatrixFilter<TColor>
-        where TColor : struct, IPackedPixel, IEquatable<TColor>
+        where TColor : struct, IPixel<TColor>
     {
         /// <inheritdoc/>
         public abstract Matrix4x4 Matrix { get; }

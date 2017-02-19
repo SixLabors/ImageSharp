@@ -22,7 +22,7 @@ namespace ImageSharp
         /// <param name="amount">The new contrast of the image. Must be between -100 and 100.</param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Contrast<TColor>(this Image<TColor> source, int amount)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             return Contrast(source, amount, source.Bounds);
         }
@@ -38,7 +38,7 @@ namespace ImageSharp
         /// </param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Contrast<TColor>(this Image<TColor> source, int amount, Rectangle rectangle)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             source.ApplyProcessor(new ContrastProcessor<TColor>(amount), rectangle);
             return source;

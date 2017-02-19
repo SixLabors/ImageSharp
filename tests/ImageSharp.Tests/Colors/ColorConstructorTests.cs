@@ -132,7 +132,7 @@ namespace ImageSharp.Tests.Colors
         [MemberData(nameof(Vector3Data))]
         [MemberData(nameof(Float4Data))]
         [MemberData(nameof(Float3Data))]
-        public void ConstructorToVector4(IPackedVector packedVector, float[] expectedVector4Components)
+        public void ConstructorToVector4(IPixel packedVector, float[] expectedVector4Components)
         {
             // Arrange
             var precision = 2;

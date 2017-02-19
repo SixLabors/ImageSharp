@@ -22,7 +22,7 @@ namespace ImageSharp
         /// <param name="size">The size of the pixels.</param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Pixelate<TColor>(this Image<TColor> source, int size = 4)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             return Pixelate(source, size, source.Bounds);
         }
@@ -38,7 +38,7 @@ namespace ImageSharp
         /// </param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Pixelate<TColor>(this Image<TColor> source, int size, Rectangle rectangle)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             if (size <= 0 || size > source.Height || size > source.Width)
             {

@@ -68,7 +68,7 @@ namespace ImageSharp.Dithering
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Dither<TColor>(PixelAccessor<TColor> pixels, TColor source, TColor transformed, int x, int y, int width, int height)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             // Assign the transformed pixel to the array.
             pixels[x, y] = transformed;

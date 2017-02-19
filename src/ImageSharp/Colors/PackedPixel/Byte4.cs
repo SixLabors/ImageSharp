@@ -12,7 +12,7 @@ namespace ImageSharp
     /// <summary>
     /// Packed pixel type containing four 8-bit unsigned integer values, ranging from 0 to 255.
     /// </summary>
-    public struct Byte4 : IPixel<Byte4>
+    public struct Byte4 : IPixel<Byte4>, IPackedVector<uint>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="Byte4"/> struct.

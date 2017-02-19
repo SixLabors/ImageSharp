@@ -18,7 +18,7 @@ namespace ImageSharp
     /// This struct is fully mutable. This is done (against the guidelines) for the sake of performance,
     /// as it avoids the need to create new values for modification operations.
     /// </remarks>
-    public partial struct Color : IPixel<Color>
+    public partial struct Color : IPixel<Color>, IPackedVector<uint>
     {
         /// <summary>
         /// The shift count for the red component

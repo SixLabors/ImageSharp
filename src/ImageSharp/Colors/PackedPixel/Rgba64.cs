@@ -12,7 +12,7 @@ namespace ImageSharp
     /// <summary>
     /// Packed pixel type containing four 16-bit unsigned normalized values ranging from 0 to 1.
     /// </summary>
-    public struct Rgba64 : IPixel<Rgba64>
+    public struct Rgba64 : IPixel<Rgba64>, IPackedVector<ulong>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="Rgba64"/> struct.

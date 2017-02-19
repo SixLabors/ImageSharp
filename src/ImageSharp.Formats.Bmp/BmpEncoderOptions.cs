@@ -32,7 +32,7 @@ namespace ImageSharp.Formats
         public BmpBitsPerPixel BitsPerPixel { get; set; } = BmpBitsPerPixel.Pixel24;
 
         /// <summary>
-        /// Converts the options to a <see cref="BmpEncoderOptions"/> instance with a cast
+        /// Converts the options to a <see cref="IBmpEncoderOptions"/> instance with a cast
         /// or by creating a new instance with the specfied options.
         /// </summary>
         /// <param name="options">The options for the encoder.</param>

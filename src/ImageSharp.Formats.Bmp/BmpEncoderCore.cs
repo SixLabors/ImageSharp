@@ -18,7 +18,7 @@ namespace ImageSharp.Formats
         /// <summary>
         /// The options for the encoder.
         /// </summary>
-        private IBmpEncoderOptions options;
+        private readonly IBmpEncoderOptions options;
 
         /// <summary>
         /// The amount to pad each row by.

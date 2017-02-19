@@ -36,7 +36,7 @@ namespace ImageSharp.Formats
         public Encoding TextEncoding { get; set; } = DefaultEncoding;
 
         /// <summary>
-        /// Converts the options to a <see cref="GifDecoderOptions"/> instance with a cast
+        /// Converts the options to a <see cref="IGifDecoderOptions"/> instance with a cast
         /// or by creating a new instance with the specfied options.
         /// </summary>
         /// <param name="options">The options for the decoder.</param>

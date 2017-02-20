@@ -1,4 +1,4 @@
-﻿// <copyright file="BitmapTests.cs" company="James Jackson-South">
+﻿// <copyright file="BmpEncoderTests.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -9,7 +9,7 @@ namespace ImageSharp.Tests
 {
     using Xunit;
 
-    public class BitmapTests : FileTestBase
+    public class BmpEncoderTests : FileTestBase
     {
         public static readonly TheoryData<BmpBitsPerPixel> BitsPerPixel
         = new TheoryData<BmpBitsPerPixel>

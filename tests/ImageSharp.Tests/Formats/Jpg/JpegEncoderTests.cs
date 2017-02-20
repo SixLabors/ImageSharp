@@ -38,11 +38,12 @@ namespace ImageSharp.Tests
             {
                 image.MetaData.Quality = quality;
                 image.MetaData.ExifProfile = null; // Reduce the size of the file
-                JpegEncoder encoder = new JpegEncoder { Subsample = subsample, Quality = quality };
+                JpegEncoder encoder = new JpegEncoder();
+                JpegEncoderOptions options = new JpegEncoderOptions { Subsample = subsample, Quality = quality };
 
                 provider.Utility.TestName += $"{subsample}_Q{quality}";
                 provider.Utility.SaveTestOutputFile(image, "png");
-                provider.Utility.SaveTestOutputFile(image, "jpg", encoder);
+                provider.Utility.SaveTestOutputFile(image, "jpg", encoder, options);
             }
         }
 
@@ -59,13 +60,63 @@ namespace ImageSharp.Tests
 
                 using (FileStream outputStream = File.OpenWrite(utility.GetTestOutputFileName("jpg")))
                 {
-                    JpegEncoder encoder = new JpegEncoder()
-                                              {
-                                                  Subsample = subSample,
-                                                  Quality = quality
-                                              };
+                    JpegEncoder encoder = new JpegEncoder();
 
-                    image.Save(outputStream, encoder);
+                    image.Save(outputStream, encoder, new JpegEncoderOptions()
+                    {
+                      Subsample = subSample,
+                      Quality = quality
+                    });
+                }
+            }
+        }
+
+        [Fact]
+        public void Encode_IgnoreMetadataIsFalse_ExifProfileIsWritten()
+        {
+            var options = new EncoderOptions()
+            {
+                IgnoreMetadata = false
+            };
+
+            TestFile testFile = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan);
+
+            using (Image input = testFile.CreateImage())
+            {
+                using (MemoryStream memStream = new MemoryStream())
+                {
+                    input.Save(memStream, new JpegFormat(), options);
+
+                    memStream.Position = 0;
+                    using (Image output = new Image(memStream))
+                    {
+                        Assert.NotNull(output.MetaData.ExifProfile);
+                    }
+                }
+            }
+        }
+
+        [Fact]
+        public void Encode_IgnoreMetadataIsTrue_ExifProfileIgnored()
+        {
+            var options = new JpegEncoderOptions()
+            {
+                IgnoreMetadata = true
+            };
+
+            TestFile testFile = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan);
+
+            using (Image input = testFile.CreateImage())
+            {
+                using (MemoryStream memStream = new MemoryStream())
+                {
+                    input.SaveAsJpeg(memStream, options);
+
+                    memStream.Position = 0;
+                    using (Image output = new Image(memStream))
+                    {
+                        Assert.Null(output.MetaData.ExifProfile);
+                    }
                 }
             }
         }

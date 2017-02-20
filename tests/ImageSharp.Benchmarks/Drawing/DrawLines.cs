@@ -28,7 +28,7 @@ namespace ImageSharp.Benchmarks
                 {
                     graphics.InterpolationMode = InterpolationMode.Default;
                     graphics.SmoothingMode = SmoothingMode.AntiAlias;
-                    var pen = new Pen(Color.HotPink, 10);
+                    var pen = new Pen(System.Drawing.Color.HotPink, 10);
                     graphics.DrawLines(pen, new[] {
                         new PointF(10, 10),
                         new PointF(550, 50),

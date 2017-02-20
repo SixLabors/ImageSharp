@@ -61,12 +61,13 @@ namespace ImageSharp.Tests
             byte[] data;
             using (Image<TColor> image = provider.GetImage())
             {
-                JpegEncoder encoder = new JpegEncoder() { Subsample = subsample, Quality = quality };
+                JpegEncoder encoder = new JpegEncoder();
+                JpegEncoderOptions options = new JpegEncoderOptions { Subsample = subsample, Quality = quality };
 
                 data = new byte[65536];
                 using (MemoryStream ms = new MemoryStream(data))
                 {
-                    image.Save(ms, encoder);
+                    image.Save(ms, encoder, options);
                 }
             }
 

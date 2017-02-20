@@ -14,7 +14,7 @@
     "allowUnsafe": true
   },
   "dependencies": {
-    "BenchmarkDotNet.Diagnostics.Windows": "0.10.1",
+    "BenchmarkDotNet.Diagnostics.Windows": "0.10.2",
     "ImageSharp": {
       "target": "project"
     },

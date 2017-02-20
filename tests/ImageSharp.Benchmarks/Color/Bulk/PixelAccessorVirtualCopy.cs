@@ -37,7 +37,7 @@ namespace ImageSharp.Benchmarks.Color.Bulk
 
         private CopyExecutor executor;
         
-        [Params(64, 256)]
+        [Params(64, 256, 512)]
         public int Width { get; set; }
 
         public int Height { get; set; } = 256;

@@ -63,5 +63,28 @@ namespace ImageSharp.Tests
                 }
             }
         }
+
+        [Fact]
+        public void Encode_CommentIsToLong_CommentIsTrimmed()
+        {
+            using (Image input = new Image(1, 1))
+            {
+                string comments = new string('c', 256);
+                input.MetaData.Properties.Add(new ImageProperty("Comments", comments));
+
+                using (MemoryStream memStream = new MemoryStream())
+                {
+                    input.Save(memStream, new GifFormat());
+
+                    memStream.Position = 0;
+                    using (Image output = new Image(memStream))
+                    {
+                        Assert.Equal(1, output.MetaData.Properties.Count);
+                        Assert.Equal("Comments", output.MetaData.Properties[0].Name);
+                        Assert.Equal(255, output.MetaData.Properties[0].Value.Length);
+                    }
+                }
+            }
+        }
     }
 }

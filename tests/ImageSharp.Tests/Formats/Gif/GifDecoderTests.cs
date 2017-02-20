@@ -1,4 +1,4 @@
-﻿// <copyright file="GifDecoderCoreTests.cs" company="James Jackson-South">
+﻿// <copyright file="GifDecoderTests.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -10,7 +10,7 @@ namespace ImageSharp.Tests
 
     using ImageSharp.Formats;
 
-    public class GifDecoderCoreTests
+    public class GifDecoderTests
     {
         [Fact]
         public void Decode_IgnoreMetadataIsFalse_CommentsAreRead()

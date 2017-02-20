@@ -1,4 +1,4 @@
-﻿// <copyright file="JpegDecoderCoreTests.cs" company="James Jackson-South">
+﻿// <copyright file="PngDecoderTests.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -10,7 +10,7 @@ namespace ImageSharp.Tests
 
     using ImageSharp.Formats;
 
-    public class PngDecoderCoreTests
+    public class PngDecoderTests
     {
         [Fact]
         public void Decode_IgnoreMetadataIsFalse_TextChunckIsRead()

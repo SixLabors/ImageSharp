@@ -1,4 +1,4 @@
-﻿// <copyright file="PngTests.cs" company="James Jackson-South">
+﻿// <copyright file="PngEncoderTests.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -10,11 +10,9 @@ namespace ImageSharp.Tests
     using System.IO;
     using System.Threading.Tasks;
 
-    using Formats;
-
     using Xunit;
 
-    public class PngTests : FileTestBase
+    public class PngEncoderTests : FileTestBase
     {
         [Fact]
         public void ImageCanSaveIndexedPng()

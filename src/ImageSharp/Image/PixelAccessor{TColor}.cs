@@ -121,6 +121,11 @@ namespace ImageSharp
         public bool PooledMemory { get; private set; }
 
         /// <summary>
+        /// Gets the pixel buffer array.
+        /// </summary>
+        public TColor[] PixelBuffer => this.pixelBuffer;
+
+        /// <summary>
         /// Gets the pointer to the pixel buffer.
         /// </summary>
         public IntPtr DataPointer => this.dataPointer;

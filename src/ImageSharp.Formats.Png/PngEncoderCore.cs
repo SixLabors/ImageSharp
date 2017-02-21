@@ -41,6 +41,11 @@ namespace ImageSharp.Formats
         private readonly Crc32 crc = new Crc32();
 
         /// <summary>
+        /// The options for the encoder.
+        /// </summary>
+        private readonly IPngEncoderOptions options;
+
+        /// <summary>
         /// Contains the raw pixel data from an indexed image.
         /// </summary>
         private byte[] palettePixelData;
@@ -86,44 +91,28 @@ namespace ImageSharp.Formats
         private byte[] paeth;
 
         /// <summary>
-        /// Gets or sets the quality of output for images.
+        /// The quality of output for images.
         /// </summary>
-        public int Quality { get; set; }
+        private int quality;
 
         /// <summary>
-        /// Gets or sets the png color type
+        /// The png color type.
         /// </summary>
-        public PngColorType PngColorType { get; set; }
+        private PngColorType pngColorType;
 
         /// <summary>
-        /// Gets or sets the compression level 1-9.
-        /// <remarks>Defaults to 6.</remarks>
+        /// The quantizer for reducing the color count.
         /// </summary>
-        public int CompressionLevel { get; set; } = 6;
+        private IQuantizer quantizer;
 
         /// <summary>
-        /// Gets or sets a value indicating whether this instance should write
-        /// gamma information to the stream. The default value is false.
+        /// Initializes a new instance of the <see cref="PngEncoderCore"/> class.
         /// </summary>
-        public bool WriteGamma { get; set; }
-
-        /// <summary>
-        /// Gets or sets the gamma value, that will be written
-        /// the the stream, when the <see cref="WriteGamma"/> property
-        /// is set to true. The default value is 2.2F.
-        /// </summary>
-        /// <value>The gamma value of the image.</value>
-        public float Gamma { get; set; } = 2.2F;
-
-        /// <summary>
-        /// Gets or sets the quantizer for reducing the color count.
-        /// </summary>
-        public IQuantizer Quantizer { get; set; }
-
-        /// <summary>
-        /// Gets or sets the transparency threshold.
-        /// </summary>
-        public byte Threshold { get; set; }
+        /// <param name="options">The options for the encoder.</param>
+        public PngEncoderCore(IPngEncoderOptions options)
+        {
+            this.options = options ?? new PngEncoderOptions();
+        }
 
         /// <summary>
         /// Encodes the image to the specified stream from the <see cref="Image{TColor}"/>.
@@ -153,23 +142,25 @@ namespace ImageSharp.Formats
             stream.Write(this.chunkDataBuffer, 0, 8);
 
             // Ensure that quality can be set but has a fallback.
-            int quality = this.Quality > 0 ? this.Quality : image.MetaData.Quality;
-            this.Quality = quality > 0 ? quality.Clamp(1, int.MaxValue) : int.MaxValue;
+            this.quality = this.options.Quality > 0 ? this.options.Quality : image.MetaData.Quality;
+            this.quality = this.quality > 0 ? this.quality.Clamp(1, int.MaxValue) : int.MaxValue;
+
+            this.pngColorType = this.options.PngColorType;
 
             // Set correct color type if the color count is 256 or less.
-            if (this.Quality <= 256)
+            if (this.quality <= 256)
             {
-                this.PngColorType = PngColorType.Palette;
+                this.pngColorType = PngColorType.Palette;
             }
 
-            if (this.PngColorType == PngColorType.Palette && this.Quality > 256)
+            if (this.pngColorType == PngColorType.Palette && this.quality > 256)
             {
-                this.Quality = 256;
+                this.quality = 256;
             }
 
             // Set correct bit depth.
-            this.bitDepth = this.Quality <= 256
-                               ? (byte)ImageMaths.GetBitsNeededForColorDepth(this.Quality).Clamp(1, 8)
+            this.bitDepth = this.quality <= 256
+                               ? (byte)ImageMaths.GetBitsNeededForColorDepth(this.quality).Clamp(1, 8)
                                : (byte)8;
 
             // Png only supports in four pixel depths: 1, 2, 4, and 8 bits when using the PLTE chunk
@@ -188,7 +179,7 @@ namespace ImageSharp.Formats
             {
                 Width = image.Width,
                 Height = image.Height,
-                ColorType = (byte)this.PngColorType,
+                ColorType = (byte)this.pngColorType,
                 BitDepth = this.bitDepth,
                 FilterMethod = 0, // None
                 CompressionMethod = 0,
@@ -198,7 +189,7 @@ namespace ImageSharp.Formats
             this.WriteHeaderChunk(stream, header);
 
             // Collect the indexed pixel data
-            if (this.PngColorType == PngColorType.Palette)
+            if (this.pngColorType == PngColorType.Palette)
             {
                 this.CollectIndexedBytes(image, stream, header);
             }
@@ -334,7 +325,7 @@ namespace ImageSharp.Formats
         private byte[] EncodePixelRow<TColor>(PixelAccessor<TColor> pixels, int row, byte[] previousScanline, byte[] rawScanline, byte[] result)
             where TColor : struct, IPixel<TColor>
         {
-            switch (this.PngColorType)
+            switch (this.pngColorType)
             {
                 case PngColorType.Palette:
                     Buffer.BlockCopy(this.palettePixelData, row * rawScanline.Length, rawScanline, 0, rawScanline.Length);
@@ -362,7 +353,7 @@ namespace ImageSharp.Formats
         private byte[] GetOptimalFilteredScanline(byte[] rawScanline, byte[] previousScanline, byte[] result)
         {
             // Palette images don't compress well with adaptive filtering.
-            if (this.PngColorType == PngColorType.Palette || this.bitDepth < 8)
+            if (this.pngColorType == PngColorType.Palette || this.bitDepth < 8)
             {
                 NoneFilter.Encode(rawScanline, result);
                 return result;
@@ -436,7 +427,7 @@ namespace ImageSharp.Formats
         /// <returns>The <see cref="int"/></returns>
         private int CalculateBytesPerPixel()
         {
-            switch (this.PngColorType)
+            switch (this.pngColorType)
             {
                 case PngColorType.Grayscale:
                     return 1;
@@ -488,18 +479,18 @@ namespace ImageSharp.Formats
         private QuantizedImage<TColor> WritePaletteChunk<TColor>(Stream stream, PngHeader header, ImageBase<TColor> image)
             where TColor : struct, IPixel<TColor>
         {
-            if (this.Quality > 256)
+            if (this.quality > 256)
             {
                 return null;
             }
 
-            if (this.Quantizer == null)
+            if (this.quantizer == null)
             {
-                this.Quantizer = new OctreeQuantizer<TColor>();
+                this.quantizer = new OctreeQuantizer<TColor>();
             }
 
             // Quantize the image returning a palette. This boxing is icky.
-            QuantizedImage<TColor> quantized = ((IQuantizer<TColor>)this.Quantizer).Quantize(image, this.Quality);
+            QuantizedImage<TColor> quantized = ((IQuantizer<TColor>)this.quantizer).Quantize(image, this.quality);
 
             // Grab the palette and write it to the stream.
             TColor[] palette = quantized.Palette;
@@ -524,7 +515,7 @@ namespace ImageSharp.Formats
                     colorTable[offset + 1] = bytes[1];
                     colorTable[offset + 2] = bytes[2];
 
-                    if (alpha <= this.Threshold)
+                    if (alpha <= this.options.Threshold)
                     {
                         transparentPixels.Add((byte)offset);
                     }
@@ -578,9 +569,9 @@ namespace ImageSharp.Formats
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
         private void WriteGammaChunk(Stream stream)
         {
-            if (this.WriteGamma)
+            if (this.options.WriteGamma)
             {
-                int gammaValue = (int)(this.Gamma * 100000F);
+                int gammaValue = (int)(this.options.Gamma * 100000F);
 
                 byte[] size = BitConverter.GetBytes(gammaValue);
 
@@ -608,7 +599,7 @@ namespace ImageSharp.Formats
             int resultLength = bytesPerScanline + 1;
             byte[] result = new byte[resultLength];
 
-            if (this.PngColorType != PngColorType.Palette)
+            if (this.pngColorType != PngColorType.Palette)
             {
                 this.sub = new byte[resultLength];
                 this.up = new byte[resultLength];
@@ -622,7 +613,7 @@ namespace ImageSharp.Formats
             try
             {
                 memoryStream = new MemoryStream();
-                using (ZlibDeflateStream deflateStream = new ZlibDeflateStream(memoryStream, this.CompressionLevel))
+                using (ZlibDeflateStream deflateStream = new ZlibDeflateStream(memoryStream, this.options.CompressionLevel))
                 {
                     for (int y = 0; y < this.height; y++)
                     {

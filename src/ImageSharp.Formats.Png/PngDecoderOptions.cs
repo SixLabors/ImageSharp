@@ -43,13 +43,7 @@ namespace ImageSharp.Formats
         /// <returns>The options for the <see cref="PngDecoder"/>.</returns>
         internal static IPngDecoderOptions Create(IDecoderOptions options)
         {
-            IPngDecoderOptions pngOptions = options as IPngDecoderOptions;
-            if (pngOptions != null)
-            {
-                return pngOptions;
-            }
-
-            return new PngDecoderOptions(options);
+            return options as IPngDecoderOptions ?? new PngDecoderOptions(options);
         }
     }
 }

@@ -50,13 +50,7 @@ namespace ImageSharp.Formats
         /// <returns>The options for the <see cref="JpegEncoder"/>.</returns>
         internal static IJpegEncoderOptions Create(IEncoderOptions options)
         {
-            IJpegEncoderOptions jpegOptions = options as IJpegEncoderOptions;
-            if (jpegOptions != null)
-            {
-                return jpegOptions;
-            }
-
-            return new JpegEncoderOptions(options);
+            return options as IJpegEncoderOptions ?? new JpegEncoderOptions(options);
         }
     }
 }

@@ -39,13 +39,7 @@ namespace ImageSharp.Formats
         /// <returns>The options for the <see cref="BmpEncoder"/>.</returns>
         internal static IBmpEncoderOptions Create(IEncoderOptions options)
         {
-            IBmpEncoderOptions bmpOptions = options as IBmpEncoderOptions;
-            if (bmpOptions != null)
-            {
-                return bmpOptions;
-            }
-
-            return new BmpEncoderOptions(options);
+            return options as IBmpEncoderOptions ?? new BmpEncoderOptions(options);
         }
     }
 }

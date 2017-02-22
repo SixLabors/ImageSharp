@@ -14,9 +14,6 @@ namespace ImageSharp.Formats
         /// Gets the quality, that will be used to encode the image. Quality
         /// index must be between 0 and 100 (compression from max to min).
         /// </summary>
-        /// <remarks>
-        /// If the quality is less than or equal to 80, the subsampling ratio will switch to <see cref="JpegSubsample.Ratio420"/>
-        /// </remarks>
         /// <value>The quality of the jpg image from 0 to 100.</value>
         int Quality { get; }
 

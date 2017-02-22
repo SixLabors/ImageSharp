@@ -21,12 +21,28 @@ namespace ImageSharp
         /// <typeparam name="TColor">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="stream">The stream to save the image to.</param>
+        /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
+        /// <returns>
+        /// The <see cref="Image{TColor}"/>.
+        /// </returns>
+        public static Image<TColor> SaveAsGif<TColor>(this Image<TColor> source, Stream stream)
+            where TColor : struct, IPixel<TColor>
+        {
+            return SaveAsGif(source, stream, null);
+        }
+
+        /// <summary>
+        /// Saves the image to the given stream with the gif format.
+        /// </summary>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="stream">The stream to save the image to.</param>
         /// <param name="options">The options for the encoder.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
         /// <returns>
         /// The <see cref="Image{TColor}"/>.
         /// </returns>
-        public static Image<TColor> SaveAsGif<TColor>(this Image<TColor> source, Stream stream, IGifEncoderOptions options = null)
+        public static Image<TColor> SaveAsGif<TColor>(this Image<TColor> source, Stream stream, IGifEncoderOptions options)
             where TColor : struct, IPixel<TColor>
         {
             GifEncoder encoder = new GifEncoder();

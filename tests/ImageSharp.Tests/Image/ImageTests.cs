@@ -59,7 +59,7 @@ namespace ImageSharp.Tests
             ArgumentNullException ex = Assert.Throws<ArgumentNullException>(
                 () =>
                 {
-                    new Image(null);
+                    new Image((string) null);
                 });
         }
 

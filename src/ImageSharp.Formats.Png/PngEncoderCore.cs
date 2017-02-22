@@ -146,6 +146,7 @@ namespace ImageSharp.Formats
             this.quality = this.quality > 0 ? this.quality.Clamp(1, int.MaxValue) : int.MaxValue;
 
             this.pngColorType = this.options.PngColorType;
+            this.quantizer = this.options.Quantizer;
 
             // Set correct color type if the color count is 256 or less.
             if (this.quality <= 256)

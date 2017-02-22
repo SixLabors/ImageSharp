@@ -76,13 +76,7 @@ namespace ImageSharp.Formats
         /// <returns>The options for the <see cref="PngEncoder"/>.</returns>
         internal static IPngEncoderOptions Create(IEncoderOptions options)
         {
-            IPngEncoderOptions pngOptions = options as IPngEncoderOptions;
-            if (pngOptions != null)
-            {
-                return pngOptions;
-            }
-
-            return new PngEncoderOptions(options);
+            return options as IPngEncoderOptions ?? new PngEncoderOptions(options);
         }
     }
 }

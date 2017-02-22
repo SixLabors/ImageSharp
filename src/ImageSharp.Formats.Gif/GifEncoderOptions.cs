@@ -59,13 +59,7 @@ namespace ImageSharp.Formats
         /// <returns>The options for the <see cref="GifEncoder"/>.</returns>
         internal static IGifEncoderOptions Create(IEncoderOptions options)
         {
-            IGifEncoderOptions gifOptions = options as IGifEncoderOptions;
-            if (gifOptions != null)
-            {
-                return gifOptions;
-            }
-
-            return new GifEncoderOptions(options);
+            return options as IGifEncoderOptions ?? new GifEncoderOptions(options);
         }
     }
 }

@@ -37,6 +37,48 @@ namespace ImageSharp
         /// <param name="stream">
         /// The stream containing image information.
         /// </param>
+        /// <exception cref="System.ArgumentNullException">Thrown if the <paramref name="stream"/> is null.</exception>
+        public Image(Stream stream)
+            : base(stream, null, null)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Image"/> class.
+        /// </summary>
+        /// <param name="stream">
+        /// The stream containing image information.
+        /// </param>
+        /// <param name="options">
+        /// The options for the decoder.
+        /// </param>
+        /// <exception cref="System.ArgumentNullException">Thrown if the <paramref name="stream"/> is null.</exception>
+        public Image(Stream stream, IDecoderOptions options)
+            : base(stream, options, null)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Image"/> class.
+        /// </summary>
+        /// <param name="stream">
+        /// The stream containing image information.
+        /// </param>
+        /// <param name="configuration">
+        /// The configuration providing initialization code which allows extending the library.
+        /// </param>
+        /// <exception cref="System.ArgumentNullException">Thrown if the <paramref name="stream"/> is null.</exception>
+        public Image(Stream stream, Configuration configuration)
+            : base(stream, null, configuration)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Image"/> class.
+        /// </summary>
+        /// <param name="stream">
+        /// The stream containing image information.
+        /// </param>
         /// <param name="options">
         /// The options for the decoder.
         /// </param>
@@ -44,12 +86,54 @@ namespace ImageSharp
         /// The configuration providing initialization code which allows extending the library.
         /// </param>
         /// <exception cref="System.ArgumentNullException">Thrown if the <paramref name="stream"/> is null.</exception>
-        public Image(Stream stream, IDecoderOptions options = null, Configuration configuration = null)
+        public Image(Stream stream, IDecoderOptions options, Configuration configuration)
             : base(stream, options, configuration)
         {
         }
 
 #if !NETSTANDARD1_1
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Image"/> class.
+        /// </summary>
+        /// <param name="filePath">
+        /// A file path to read image information.
+        /// </param>
+        /// <exception cref="System.ArgumentNullException">Thrown if the <paramref name="filePath"/> is null.</exception>
+        public Image(string filePath)
+            : base(filePath, null, null)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Image"/> class.
+        /// </summary>
+        /// <param name="filePath">
+        /// A file path to read image information.
+        /// </param>
+        /// <param name="options">
+        /// The options for the decoder.
+        /// </param>
+        /// <exception cref="System.ArgumentNullException">Thrown if the <paramref name="filePath"/> is null.</exception>
+        public Image(string filePath, IDecoderOptions options)
+            : base(filePath, options, null)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Image"/> class.
+        /// </summary>
+        /// <param name="filePath">
+        /// A file path to read image information.
+        /// </param>
+        /// <param name="configuration">
+        /// The configuration providing initialization code which allows extending the library.
+        /// </param>
+        /// <exception cref="System.ArgumentNullException">Thrown if the <paramref name="filePath"/> is null.</exception>
+        public Image(string filePath, Configuration configuration)
+            : base(filePath, null, configuration)
+        {
+        }
+
         /// <summary>
         /// Initializes a new instance of the <see cref="Image"/> class.
         /// </summary>
@@ -63,11 +147,53 @@ namespace ImageSharp
         /// The configuration providing initialization code which allows extending the library.
         /// </param>
         /// <exception cref="System.ArgumentNullException">Thrown if the <paramref name="filePath"/> is null.</exception>
-        public Image(string filePath, IDecoderOptions options = null, Configuration configuration = null)
+        public Image(string filePath, IDecoderOptions options, Configuration configuration)
             : base(filePath, options, configuration)
         {
         }
 #endif
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Image"/> class.
+        /// </summary>
+        /// <param name="bytes">
+        /// The byte array containing image information.
+        /// </param>
+        /// <exception cref="System.ArgumentNullException">Thrown if the <paramref name="bytes"/> is null.</exception>
+        public Image(byte[] bytes)
+           : base(bytes, null, null)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Image"/> class.
+        /// </summary>
+        /// <param name="bytes">
+        /// The byte array containing image information.
+        /// </param>
+        /// <param name="options">
+        /// The options for the decoder.
+        /// </param>
+        /// <exception cref="System.ArgumentNullException">Thrown if the <paramref name="bytes"/> is null.</exception>
+        public Image(byte[] bytes, IDecoderOptions options)
+           : base(bytes, options, null)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Image"/> class.
+        /// </summary>
+        /// <param name="bytes">
+        /// The byte array containing image information.
+        /// </param>
+        /// <param name="configuration">
+        /// The configuration providing initialization code which allows extending the library.
+        /// </param>
+        /// <exception cref="System.ArgumentNullException">Thrown if the <paramref name="bytes"/> is null.</exception>
+        public Image(byte[] bytes, Configuration configuration)
+           : base(bytes, null, configuration)
+        {
+        }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Image"/> class.
@@ -82,7 +208,7 @@ namespace ImageSharp
         /// The configuration providing initialization code which allows extending the library.
         /// </param>
         /// <exception cref="System.ArgumentNullException">Thrown if the <paramref name="bytes"/> is null.</exception>
-        public Image(byte[] bytes, IDecoderOptions options = null, Configuration configuration = null)
+        public Image(byte[] bytes, IDecoderOptions options, Configuration configuration)
            : base(bytes, options, configuration)
         {
         }

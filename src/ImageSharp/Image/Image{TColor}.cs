@@ -52,6 +52,48 @@ namespace ImageSharp
         /// <param name="stream">
         /// The stream containing image information.
         /// </param>
+        /// <exception cref="System.ArgumentNullException">Thrown if the <paramref name="stream"/> is null.</exception>
+        public Image(Stream stream)
+            : this(stream, null, null)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Image{TColor}"/> class.
+        /// </summary>
+        /// <param name="stream">
+        /// The stream containing image information.
+        /// </param>
+        /// <param name="options">
+        /// The options for the decoder.
+        /// </param>
+        /// <exception cref="System.ArgumentNullException">Thrown if the <paramref name="stream"/> is null.</exception>
+        public Image(Stream stream, IDecoderOptions options)
+            : this(stream, options, null)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Image{TColor}"/> class.
+        /// </summary>
+        /// <param name="stream">
+        /// The stream containing image information.
+        /// </param>
+        /// <param name="configuration">
+        /// The configuration providing initialization code which allows extending the library.
+        /// </param>
+        /// <exception cref="System.ArgumentNullException">Thrown if the <paramref name="stream"/> is null.</exception>
+        public Image(Stream stream, Configuration configuration)
+            : this(stream, null, configuration)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Image{TColor}"/> class.
+        /// </summary>
+        /// <param name="stream">
+        /// The stream containing image information.
+        /// </param>
         /// <param name="options">
         /// The options for the decoder.
         /// </param>
@@ -59,7 +101,7 @@ namespace ImageSharp
         /// The configuration providing initialization code which allows extending the library.
         /// </param>
         /// <exception cref="System.ArgumentNullException">Thrown if the <paramref name="stream"/> is null.</exception>
-        public Image(Stream stream, IDecoderOptions options = null, Configuration configuration = null)
+        public Image(Stream stream, IDecoderOptions options, Configuration configuration)
             : base(configuration)
         {
             Guard.NotNull(stream, nameof(stream));
@@ -73,6 +115,48 @@ namespace ImageSharp
         /// <param name="filePath">
         /// The file containing image information.
         /// </param>
+        /// <exception cref="System.ArgumentNullException">Thrown if the <paramref name="filePath"/> is null.</exception>
+        public Image(string filePath)
+            : this(filePath, null, null)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Image{TColor}"/> class.
+        /// </summary>
+        /// <param name="filePath">
+        /// The file containing image information.
+        /// </param>
+        /// <param name="options">
+        /// The options for the decoder.
+        /// </param>
+        /// <exception cref="System.ArgumentNullException">Thrown if the <paramref name="filePath"/> is null.</exception>
+        public Image(string filePath, IDecoderOptions options)
+            : this(filePath, options, null)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Image{TColor}"/> class.
+        /// </summary>
+        /// <param name="filePath">
+        /// The file containing image information.
+        /// </param>
+        /// <param name="configuration">
+        /// The configuration providing initialization code which allows extending the library.
+        /// </param>
+        /// <exception cref="System.ArgumentNullException">Thrown if the <paramref name="filePath"/> is null.</exception>
+        public Image(string filePath, Configuration configuration)
+            : this(filePath, null, configuration)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Image{TColor}"/> class.
+        /// </summary>
+        /// <param name="filePath">
+        /// The file containing image information.
+        /// </param>
         /// <param name="options">
         /// The options for the decoder.
         /// </param>
@@ -80,7 +164,7 @@ namespace ImageSharp
         /// The configuration providing initialization code which allows extending the library.
         /// </param>
         /// <exception cref="System.ArgumentNullException">Thrown if the <paramref name="filePath"/> is null.</exception>
-        public Image(string filePath, IDecoderOptions options = null, Configuration configuration = null)
+        public Image(string filePath, IDecoderOptions options, Configuration configuration)
             : base(configuration)
         {
             Guard.NotNull(filePath, nameof(filePath));
@@ -97,6 +181,48 @@ namespace ImageSharp
         /// <param name="bytes">
         /// The byte array containing image information.
         /// </param>
+        /// <exception cref="System.ArgumentNullException">Thrown if the <paramref name="bytes"/> is null.</exception>
+        public Image(byte[] bytes)
+            : this(bytes, null, null)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Image{TColor}"/> class.
+        /// </summary>
+        /// <param name="bytes">
+        /// The byte array containing image information.
+        /// </param>
+        /// <param name="options">
+        /// The options for the decoder.
+        /// </param>
+        /// <exception cref="System.ArgumentNullException">Thrown if the <paramref name="bytes"/> is null.</exception>
+        public Image(byte[] bytes, IDecoderOptions options)
+            : this(bytes, options, null)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Image{TColor}"/> class.
+        /// </summary>
+        /// <param name="bytes">
+        /// The byte array containing image information.
+        /// </param>
+        /// <param name="configuration">
+        /// The configuration providing initialization code which allows extending the library.
+        /// </param>
+        /// <exception cref="System.ArgumentNullException">Thrown if the <paramref name="bytes"/> is null.</exception>
+        public Image(byte[] bytes, Configuration configuration)
+            : this(bytes, null, configuration)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Image{TColor}"/> class.
+        /// </summary>
+        /// <param name="bytes">
+        /// The byte array containing image information.
+        /// </param>
         /// <param name="options">
         /// The options for the decoder.
         /// </param>
@@ -104,7 +230,7 @@ namespace ImageSharp
         /// The configuration providing initialization code which allows extending the library.
         /// </param>
         /// <exception cref="System.ArgumentNullException">Thrown if the <paramref name="bytes"/> is null.</exception>
-        public Image(byte[] bytes, IDecoderOptions options = null, Configuration configuration = null)
+        public Image(byte[] bytes, IDecoderOptions options, Configuration configuration)
             : base(configuration)
         {
             Guard.NotNull(bytes, nameof(bytes));
@@ -206,10 +332,21 @@ namespace ImageSharp
         /// Saves the image to the given stream using the currently loaded image format.
         /// </summary>
         /// <param name="stream">The stream to save the image to.</param>
+        /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
+        /// <returns>The <see cref="Image{TColor}"/></returns>
+        public Image<TColor> Save(Stream stream)
+        {
+            return this.Save(stream, (IEncoderOptions)null);
+        }
+
+        /// <summary>
+        /// Saves the image to the given stream using the currently loaded image format.
+        /// </summary>
+        /// <param name="stream">The stream to save the image to.</param>
         /// <param name="options">The options for the encoder.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
         /// <returns>The <see cref="Image{TColor}"/></returns>
-        public Image<TColor> Save(Stream stream, IEncoderOptions options = null)
+        public Image<TColor> Save(Stream stream, IEncoderOptions options)
         {
             Guard.NotNull(stream, nameof(stream));
             this.CurrentImageFormat.Encoder.Encode(this, stream, options);
@@ -221,9 +358,20 @@ namespace ImageSharp
         /// </summary>
         /// <param name="stream">The stream to save the image to.</param>
         /// <param name="format">The format to save the image as.</param>
+        /// <returns>The <see cref="Image{TColor}"/></returns>
+        public Image<TColor> Save(Stream stream, IImageFormat format)
+        {
+            return this.Save(stream, format, null);
+        }
+
+        /// <summary>
+        /// Saves the image to the given stream using the given image format.
+        /// </summary>
+        /// <param name="stream">The stream to save the image to.</param>
+        /// <param name="format">The format to save the image as.</param>
         /// <param name="options">The options for the encoder.</param>
         /// <returns>The <see cref="Image{TColor}"/></returns>
-        public Image<TColor> Save(Stream stream, IImageFormat format, IEncoderOptions options = null)
+        public Image<TColor> Save(Stream stream, IImageFormat format, IEncoderOptions options)
         {
             Guard.NotNull(stream, nameof(stream));
             Guard.NotNull(format, nameof(format));
@@ -236,12 +384,26 @@ namespace ImageSharp
         /// </summary>
         /// <param name="stream">The stream to save the image to.</param>
         /// <param name="encoder">The encoder to save the image with.</param>
+        /// <exception cref="System.ArgumentNullException">Thrown if the stream or encoder is null.</exception>
+        /// <returns>
+        /// The <see cref="Image{TColor}"/>.
+        /// </returns>
+        public Image<TColor> Save(Stream stream, IImageEncoder encoder)
+        {
+            return this.Save(stream, encoder, null);
+        }
+
+        /// <summary>
+        /// Saves the image to the given stream using the given image encoder.
+        /// </summary>
+        /// <param name="stream">The stream to save the image to.</param>
+        /// <param name="encoder">The encoder to save the image with.</param>
         /// <param name="options">The options for the encoder.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the stream or encoder is null.</exception>
         /// <returns>
         /// The <see cref="Image{TColor}"/>.
         /// </returns>
-        public Image<TColor> Save(Stream stream, IImageEncoder encoder, IEncoderOptions options = null)
+        public Image<TColor> Save(Stream stream, IImageEncoder encoder, IEncoderOptions options)
         {
             Guard.NotNull(stream, nameof(stream));
             Guard.NotNull(encoder, nameof(encoder));
@@ -261,10 +423,21 @@ namespace ImageSharp
         /// Saves the image to the given stream using the currently loaded image format.
         /// </summary>
         /// <param name="filePath">The file path to save the image to.</param>
+        /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
+        /// <returns>The <see cref="Image{TColor}"/></returns>
+        public Image<TColor> Save(string filePath)
+        {
+            return this.Save(filePath, (IEncoderOptions)null);
+        }
+
+        /// <summary>
+        /// Saves the image to the given stream using the currently loaded image format.
+        /// </summary>
+        /// <param name="filePath">The file path to save the image to.</param>
         /// <param name="options">The options for the encoder.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
         /// <returns>The <see cref="Image{TColor}"/></returns>
-        public Image<TColor> Save(string filePath, IEncoderOptions options = null)
+        public Image<TColor> Save(string filePath, IEncoderOptions options)
         {
             string ext = Path.GetExtension(filePath).Trim('.');
             IImageFormat format = this.Configuration.ImageFormats.SingleOrDefault(f => f.SupportedExtensions.Contains(ext, StringComparer.OrdinalIgnoreCase));
@@ -281,10 +454,22 @@ namespace ImageSharp
         /// </summary>
         /// <param name="filePath">The file path to save the image to.</param>
         /// <param name="format">The format to save the image as.</param>
+        /// <exception cref="System.ArgumentNullException">Thrown if the format is null.</exception>
+        /// <returns>The <see cref="Image{TColor}"/></returns>
+        public Image<TColor> Save(string filePath, IImageFormat format)
+        {
+            return this.Save(filePath, format, null);
+        }
+
+        /// <summary>
+        /// Saves the image to the given stream using the currently loaded image format.
+        /// </summary>
+        /// <param name="filePath">The file path to save the image to.</param>
+        /// <param name="format">The format to save the image as.</param>
         /// <param name="options">The options for the encoder.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the format is null.</exception>
         /// <returns>The <see cref="Image{TColor}"/></returns>
-        public Image<TColor> Save(string filePath, IImageFormat format, IEncoderOptions options = null)
+        public Image<TColor> Save(string filePath, IImageFormat format, IEncoderOptions options)
         {
             Guard.NotNull(format, nameof(format));
             using (FileStream fs = File.Create(filePath))
@@ -298,10 +483,22 @@ namespace ImageSharp
         /// </summary>
         /// <param name="filePath">The file path to save the image to.</param>
         /// <param name="encoder">The encoder to save the image with.</param>
+        /// <exception cref="System.ArgumentNullException">Thrown if the encoder is null.</exception>
+        /// <returns>The <see cref="Image{TColor}"/></returns>
+        public Image<TColor> Save(string filePath, IImageEncoder encoder)
+        {
+            return this.Save(filePath, encoder, null);
+        }
+
+        /// <summary>
+        /// Saves the image to the given stream using the currently loaded image format.
+        /// </summary>
+        /// <param name="filePath">The file path to save the image to.</param>
+        /// <param name="encoder">The encoder to save the image with.</param>
         /// <param name="options">The options for the encoder.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the encoder is null.</exception>
         /// <returns>The <see cref="Image{TColor}"/></returns>
-        public Image<TColor> Save(string filePath, IImageEncoder encoder, IEncoderOptions options = null)
+        public Image<TColor> Save(string filePath, IImageEncoder encoder, IEncoderOptions options)
         {
             Guard.NotNull(encoder, nameof(encoder));
             using (FileStream fs = File.Create(filePath))

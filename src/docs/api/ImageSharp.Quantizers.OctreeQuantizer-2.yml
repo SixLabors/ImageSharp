@@ -1,0 +1,1946 @@
+### YamlMime:ManagedReference
+items:
+- uid: ImageSharp.Quantizers.OctreeQuantizer`2
+  commentId: T:ImageSharp.Quantizers.OctreeQuantizer`2
+  id: OctreeQuantizer`2
+  parent: ImageSharp.Quantizers
+  children:
+  - ImageSharp.Quantizers.OctreeQuantizer`2.#ctor
+  - ImageSharp.Quantizers.OctreeQuantizer`2.GetPalette
+  - ImageSharp.Quantizers.OctreeQuantizer`2.InitialQuantizePixel(`0)
+  - ImageSharp.Quantizers.OctreeQuantizer`2.Quantize(ImageSharp.ImageBase{`0,`1},System.Int32)
+  - ImageSharp.Quantizers.OctreeQuantizer`2.QuantizePixel(`0)
+  langs:
+  - csharp
+  - vb
+  name: OctreeQuantizer<TColor, TPacked>
+  nameWithType: OctreeQuantizer<TColor, TPacked>
+  fullName: ImageSharp.Quantizers.OctreeQuantizer<TColor, TPacked>
+  type: Class
+  source:
+    id: OctreeQuantizer
+    path: ''
+    startLine: 26580
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Quantizers
+  summary: "\nEncapsulates methods to calculate the colour palette if an image using an Octree pattern.\n<a href=\"http://msdn.microsoft.com/en-us/library/aa479306.aspx\"></a>\n"
+  example: []
+  syntax:
+    content: 'public sealed class OctreeQuantizer<TColor, TPacked> : Quantizer<TColor, TPacked>, IQuantizer<TColor, TPacked>, IQuantizer where TColor : struct, IPackedPixel<TPacked> where TPacked : struct'
+    content.vb: >-
+      Public NotInheritable Class OctreeQuantizer(Of TColor As {Structure, IPackedPixel(Of TPacked)}, TPacked As Structure)
+          Inherits Quantizer(Of TColor, TPacked)
+          Implements IQuantizer(Of TColor, TPacked), IQuantizer
+    typeParameters:
+    - id: TColor
+      description: The pixel format.
+    - id: TPacked
+      description: The packed format. <example>uint, long, float.</example>
+  inheritance:
+  - System.Object
+  - ImageSharp.Quantizers.Quantizer{{TColor},{TPacked}}
+  implements:
+  - ImageSharp.Quantizers.IQuantizer{{TColor},{TPacked}}
+  - ImageSharp.Quantizers.IQuantizer
+  inheritedMembers:
+  - ImageSharp.Quantizers.Quantizer{{TColor},{TPacked}}.Quantize(ImageSharp.ImageBase{{TColor},{TPacked}},System.Int32)
+  - ImageSharp.Quantizers.Quantizer{{TColor},{TPacked}}.FirstPass(ImageSharp.PixelAccessor{{TColor},{TPacked}},System.Int32,System.Int32)
+  - ImageSharp.Quantizers.Quantizer{{TColor},{TPacked}}.SecondPass(ImageSharp.PixelAccessor{{TColor},{TPacked}},System.Byte[],System.Int32,System.Int32)
+  - ImageSharp.Quantizers.Quantizer{{TColor},{TPacked}}.InitialQuantizePixel({TColor})
+  - ImageSharp.Quantizers.Quantizer{{TColor},{TPacked}}.QuantizePixel({TColor})
+  - ImageSharp.Quantizers.Quantizer{{TColor},{TPacked}}.GetPalette
+  - System.Object.ToString
+  - System.Object.Equals(System.Object)
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+  - System.Object.GetHashCode
+  - System.Object.GetType
+  - System.Object.MemberwiseClone
+  nameWithType.vb: OctreeQuantizer(Of TColor, TPacked)
+  modifiers.csharp:
+  - public
+  - sealed
+  - class
+  modifiers.vb:
+  - Public
+  - NotInheritable
+  - Class
+  fullName.vb: ImageSharp.Quantizers.OctreeQuantizer(Of TColor, TPacked)
+  name.vb: OctreeQuantizer(Of TColor, TPacked)
+- uid: ImageSharp.Quantizers.OctreeQuantizer`2.#ctor
+  commentId: M:ImageSharp.Quantizers.OctreeQuantizer`2.#ctor
+  id: '#ctor'
+  parent: ImageSharp.Quantizers.OctreeQuantizer`2
+  langs:
+  - csharp
+  - vb
+  name: OctreeQuantizer()
+  nameWithType: OctreeQuantizer<TColor, TPacked>.OctreeQuantizer()
+  fullName: ImageSharp.Quantizers.OctreeQuantizer<TColor, TPacked>.OctreeQuantizer()
+  type: Constructor
+  source:
+    id: .ctor
+    path: ''
+    startLine: 26601
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Quantizers
+  summary: "\nInitializes a new instance of the <xref href=\"ImageSharp.Quantizers.OctreeQuantizer%602\" data-throw-if-not-resolved=\"false\"></xref> class.\n"
+  remarks: "\nThe Octree quantizer is a two pass algorithm. The initial pass sets up the Octree,\nthe second pass quantizes a color based on the nodes in the tree\n"
+  example: []
+  syntax:
+    content: public OctreeQuantizer()
+    content.vb: Public Sub New
+  nameWithType.vb: OctreeQuantizer(Of TColor, TPacked).OctreeQuantizer()
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+  fullName.vb: ImageSharp.Quantizers.OctreeQuantizer(Of TColor, TPacked).OctreeQuantizer()
+- uid: ImageSharp.Quantizers.OctreeQuantizer`2.Quantize(ImageSharp.ImageBase{`0,`1},System.Int32)
+  commentId: M:ImageSharp.Quantizers.OctreeQuantizer`2.Quantize(ImageSharp.ImageBase{`0,`1},System.Int32)
+  id: Quantize(ImageSharp.ImageBase{`0,`1},System.Int32)
+  parent: ImageSharp.Quantizers.OctreeQuantizer`2
+  langs:
+  - csharp
+  - vb
+  name: Quantize(ImageBase<TColor, TPacked>, Int32)
+  nameWithType: OctreeQuantizer<TColor, TPacked>.Quantize(ImageBase<TColor, TPacked>, Int32)
+  fullName: ImageSharp.Quantizers.OctreeQuantizer<TColor, TPacked>.Quantize(ImageSharp.ImageBase<TColor, TPacked>, System.Int32)
+  type: Method
+  source:
+    id: Quantize
+    path: ''
+    startLine: 26607
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Quantizers
+  example: []
+  syntax:
+    content: public override QuantizedImage<TColor, TPacked> Quantize(ImageBase<TColor, TPacked> image, int maxColors)
+    content.vb: Public Overrides Function Quantize(image As ImageBase(Of TColor, TPacked), maxColors As Integer) As QuantizedImage(Of TColor, TPacked)
+    parameters:
+    - id: image
+      type: ImageSharp.ImageBase{{TColor},{TPacked}}
+    - id: maxColors
+      type: System.Int32
+    return:
+      type: ImageSharp.Quantizers.QuantizedImage{{TColor},{TPacked}}
+  overridden: ImageSharp.Quantizers.Quantizer{{TColor},{TPacked}}.Quantize(ImageSharp.ImageBase{{TColor},{TPacked}},System.Int32)
+  nameWithType.vb: OctreeQuantizer(Of TColor, TPacked).Quantize(ImageBase(Of TColor, TPacked), Int32)
+  modifiers.csharp:
+  - public
+  - override
+  modifiers.vb:
+  - Public
+  - Overrides
+  fullName.vb: ImageSharp.Quantizers.OctreeQuantizer(Of TColor, TPacked).Quantize(ImageSharp.ImageBase(Of TColor, TPacked), System.Int32)
+  name.vb: Quantize(ImageBase(Of TColor, TPacked), Int32)
+- uid: ImageSharp.Quantizers.OctreeQuantizer`2.InitialQuantizePixel(`0)
+  commentId: M:ImageSharp.Quantizers.OctreeQuantizer`2.InitialQuantizePixel(`0)
+  id: InitialQuantizePixel(`0)
+  parent: ImageSharp.Quantizers.OctreeQuantizer`2
+  langs:
+  - csharp
+  - vb
+  name: InitialQuantizePixel(TColor)
+  nameWithType: OctreeQuantizer<TColor, TPacked>.InitialQuantizePixel(TColor)
+  fullName: ImageSharp.Quantizers.OctreeQuantizer<TColor, TPacked>.InitialQuantizePixel(TColor)
+  type: Method
+  source:
+    id: InitialQuantizePixel
+    path: ''
+    startLine: 26630
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Quantizers
+  summary: "\nProcess the pixel in the first pass of the algorithm\n"
+  remarks: "\nThis function need only be overridden if your quantize algorithm needs two passes,\nsuch as an Octree quantizer.\n"
+  example: []
+  syntax:
+    content: protected override void InitialQuantizePixel(TColor pixel)
+    content.vb: Protected Overrides Sub InitialQuantizePixel(pixel As TColor)
+    parameters:
+    - id: pixel
+      type: '{TColor}'
+      description: "\nThe pixel to quantize\n"
+  overridden: ImageSharp.Quantizers.Quantizer{{TColor},{TPacked}}.InitialQuantizePixel({TColor})
+  nameWithType.vb: OctreeQuantizer(Of TColor, TPacked).InitialQuantizePixel(TColor)
+  modifiers.csharp:
+  - protected
+  - override
+  modifiers.vb:
+  - Protected
+  - Overrides
+  fullName.vb: ImageSharp.Quantizers.OctreeQuantizer(Of TColor, TPacked).InitialQuantizePixel(TColor)
+- uid: ImageSharp.Quantizers.OctreeQuantizer`2.QuantizePixel(`0)
+  commentId: M:ImageSharp.Quantizers.OctreeQuantizer`2.QuantizePixel(`0)
+  id: QuantizePixel(`0)
+  parent: ImageSharp.Quantizers.OctreeQuantizer`2
+  langs:
+  - csharp
+  - vb
+  name: QuantizePixel(TColor)
+  nameWithType: OctreeQuantizer<TColor, TPacked>.QuantizePixel(TColor)
+  fullName: ImageSharp.Quantizers.OctreeQuantizer<TColor, TPacked>.QuantizePixel(TColor)
+  type: Method
+  source:
+    id: QuantizePixel
+    path: ''
+    startLine: 26643
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Quantizers
+  summary: "\nOverride this to process the pixel in the second pass of the algorithm\n"
+  example: []
+  syntax:
+    content: protected override byte QuantizePixel(TColor pixel)
+    content.vb: Protected Overrides Function QuantizePixel(pixel As TColor) As Byte
+    parameters:
+    - id: pixel
+      type: '{TColor}'
+      description: The pixel to quantize
+    return:
+      type: System.Byte
+      description: "\nThe quantized value\n"
+  overridden: ImageSharp.Quantizers.Quantizer{{TColor},{TPacked}}.QuantizePixel({TColor})
+  nameWithType.vb: OctreeQuantizer(Of TColor, TPacked).QuantizePixel(TColor)
+  modifiers.csharp:
+  - protected
+  - override
+  modifiers.vb:
+  - Protected
+  - Overrides
+  fullName.vb: ImageSharp.Quantizers.OctreeQuantizer(Of TColor, TPacked).QuantizePixel(TColor)
+- uid: ImageSharp.Quantizers.OctreeQuantizer`2.GetPalette
+  commentId: M:ImageSharp.Quantizers.OctreeQuantizer`2.GetPalette
+  id: GetPalette
+  parent: ImageSharp.Quantizers.OctreeQuantizer`2
+  langs:
+  - csharp
+  - vb
+  name: GetPalette()
+  nameWithType: OctreeQuantizer<TColor, TPacked>.GetPalette()
+  fullName: ImageSharp.Quantizers.OctreeQuantizer<TColor, TPacked>.GetPalette()
+  type: Method
+  source:
+    id: GetPalette
+    path: ''
+    startLine: 26654
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Quantizers
+  summary: "\nRetrieve the palette for the quantized image.\n"
+  example: []
+  syntax:
+    content: protected override List<TColor> GetPalette()
+    content.vb: Protected Overrides Function GetPalette As List(Of TColor)
+    return:
+      type: System.Collections.Generic.List{{TColor}}
+      description: "\nThe new color palette\n"
+  overridden: ImageSharp.Quantizers.Quantizer{{TColor},{TPacked}}.GetPalette
+  nameWithType.vb: OctreeQuantizer(Of TColor, TPacked).GetPalette()
+  modifiers.csharp:
+  - protected
+  - override
+  modifiers.vb:
+  - Protected
+  - Overrides
+  fullName.vb: ImageSharp.Quantizers.OctreeQuantizer(Of TColor, TPacked).GetPalette()
+references:
+- uid: ImageSharp.Quantizers
+  commentId: N:ImageSharp.Quantizers
+  isExternal: false
+  name: ImageSharp.Quantizers
+  nameWithType: ImageSharp.Quantizers
+  fullName: ImageSharp.Quantizers
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  name: Object
+  nameWithType: Object
+  fullName: System.Object
+- uid: ImageSharp.Quantizers.Quantizer{{TColor},{TPacked}}
+  commentId: T:ImageSharp.Quantizers.Quantizer{`0,`1}
+  parent: ImageSharp.Quantizers
+  definition: ImageSharp.Quantizers.Quantizer`2
+  name: Quantizer<TColor, TPacked>
+  nameWithType: Quantizer<TColor, TPacked>
+  fullName: ImageSharp.Quantizers.Quantizer<TColor, TPacked>
+  nameWithType.vb: Quantizer(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Quantizers.Quantizer(Of TColor, TPacked)
+  name.vb: Quantizer(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Quantizers.Quantizer`2
+    name: Quantizer
+    nameWithType: Quantizer
+    fullName: ImageSharp.Quantizers.Quantizer
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Quantizers.Quantizer`2
+    name: Quantizer
+    nameWithType: Quantizer
+    fullName: ImageSharp.Quantizers.Quantizer
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Quantizers.IQuantizer{{TColor},{TPacked}}
+  commentId: T:ImageSharp.Quantizers.IQuantizer{``0,``1}
+  parent: ImageSharp.Quantizers
+  definition: ImageSharp.Quantizers.IQuantizer`2
+  name: IQuantizer<TColor, TPacked>
+  nameWithType: IQuantizer<TColor, TPacked>
+  fullName: ImageSharp.Quantizers.IQuantizer<TColor, TPacked>
+  nameWithType.vb: IQuantizer(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Quantizers.IQuantizer(Of TColor, TPacked)
+  name.vb: IQuantizer(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Quantizers.IQuantizer`2
+    name: IQuantizer
+    nameWithType: IQuantizer
+    fullName: ImageSharp.Quantizers.IQuantizer
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Quantizers.IQuantizer`2
+    name: IQuantizer
+    nameWithType: IQuantizer
+    fullName: ImageSharp.Quantizers.IQuantizer
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Quantizers.IQuantizer
+  commentId: T:ImageSharp.Quantizers.IQuantizer
+  parent: ImageSharp.Quantizers
+  isExternal: false
+  name: IQuantizer
+  nameWithType: IQuantizer
+  fullName: ImageSharp.Quantizers.IQuantizer
+- uid: ImageSharp.Quantizers.Quantizer{{TColor},{TPacked}}.Quantize(ImageSharp.ImageBase{{TColor},{TPacked}},System.Int32)
+  commentId: M:ImageSharp.Quantizers.Quantizer{`0,`1}.Quantize(ImageSharp.ImageBase{`0,`1},System.Int32)
+  parent: ImageSharp.Quantizers.Quantizer{{TColor},{TPacked}}
+  definition: ImageSharp.Quantizers.Quantizer`2.Quantize(ImageSharp.ImageBase{`0,`1},System.Int32)
+  name: Quantize(ImageBase<TColor, TPacked>, Int32)
+  nameWithType: Quantizer<TColor, TPacked>.Quantize(ImageBase<TColor, TPacked>, Int32)
+  fullName: ImageSharp.Quantizers.Quantizer<TColor, TPacked>.Quantize(ImageSharp.ImageBase<TColor, TPacked>, System.Int32)
+  nameWithType.vb: Quantizer(Of TColor, TPacked).Quantize(ImageBase(Of TColor, TPacked), Int32)
+  fullname.vb: ImageSharp.Quantizers.Quantizer(Of TColor, TPacked).Quantize(ImageSharp.ImageBase(Of TColor, TPacked), System.Int32)
+  name.vb: Quantize(ImageBase(Of TColor, TPacked), Int32)
+  spec.csharp:
+  - uid: ImageSharp.Quantizers.Quantizer`2.Quantize(ImageSharp.ImageBase{`0,`1},System.Int32)
+    name: Quantize
+    nameWithType: Quantizer<TColor, TPacked>.Quantize
+    fullName: ImageSharp.Quantizers.Quantizer<TColor, TPacked>.Quantize
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: ImageSharp.Quantizers.Quantizer`2.Quantize(ImageSharp.ImageBase{`0,`1},System.Int32)
+    name: Quantize
+    nameWithType: Quantizer(Of TColor, TPacked).Quantize
+    fullName: ImageSharp.Quantizers.Quantizer(Of TColor, TPacked).Quantize
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Quantizers.Quantizer{{TColor},{TPacked}}.FirstPass(ImageSharp.PixelAccessor{{TColor},{TPacked}},System.Int32,System.Int32)
+  commentId: M:ImageSharp.Quantizers.Quantizer{`0,`1}.FirstPass(ImageSharp.PixelAccessor{`0,`1},System.Int32,System.Int32)
+  parent: ImageSharp.Quantizers.Quantizer{{TColor},{TPacked}}
+  definition: ImageSharp.Quantizers.Quantizer`2.FirstPass(ImageSharp.PixelAccessor{`0,`1},System.Int32,System.Int32)
+  name: FirstPass(PixelAccessor<TColor, TPacked>, Int32, Int32)
+  nameWithType: Quantizer<TColor, TPacked>.FirstPass(PixelAccessor<TColor, TPacked>, Int32, Int32)
+  fullName: ImageSharp.Quantizers.Quantizer<TColor, TPacked>.FirstPass(ImageSharp.PixelAccessor<TColor, TPacked>, System.Int32, System.Int32)
+  nameWithType.vb: Quantizer(Of TColor, TPacked).FirstPass(PixelAccessor(Of TColor, TPacked), Int32, Int32)
+  fullname.vb: ImageSharp.Quantizers.Quantizer(Of TColor, TPacked).FirstPass(ImageSharp.PixelAccessor(Of TColor, TPacked), System.Int32, System.Int32)
+  name.vb: FirstPass(PixelAccessor(Of TColor, TPacked), Int32, Int32)
+  spec.csharp:
+  - uid: ImageSharp.Quantizers.Quantizer`2.FirstPass(ImageSharp.PixelAccessor{`0,`1},System.Int32,System.Int32)
+    name: FirstPass
+    nameWithType: Quantizer<TColor, TPacked>.FirstPass
+    fullName: ImageSharp.Quantizers.Quantizer<TColor, TPacked>.FirstPass
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.PixelAccessor`2
+    name: PixelAccessor
+    nameWithType: PixelAccessor
+    fullName: ImageSharp.PixelAccessor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: ImageSharp.Quantizers.Quantizer`2.FirstPass(ImageSharp.PixelAccessor{`0,`1},System.Int32,System.Int32)
+    name: FirstPass
+    nameWithType: Quantizer(Of TColor, TPacked).FirstPass
+    fullName: ImageSharp.Quantizers.Quantizer(Of TColor, TPacked).FirstPass
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.PixelAccessor`2
+    name: PixelAccessor
+    nameWithType: PixelAccessor
+    fullName: ImageSharp.PixelAccessor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Quantizers.Quantizer{{TColor},{TPacked}}.SecondPass(ImageSharp.PixelAccessor{{TColor},{TPacked}},System.Byte[],System.Int32,System.Int32)
+  commentId: M:ImageSharp.Quantizers.Quantizer{`0,`1}.SecondPass(ImageSharp.PixelAccessor{`0,`1},System.Byte[],System.Int32,System.Int32)
+  parent: ImageSharp.Quantizers.Quantizer{{TColor},{TPacked}}
+  definition: ImageSharp.Quantizers.Quantizer`2.SecondPass(ImageSharp.PixelAccessor{`0,`1},System.Byte[],System.Int32,System.Int32)
+  name: SecondPass(PixelAccessor<TColor, TPacked>, Byte[], Int32, Int32)
+  nameWithType: Quantizer<TColor, TPacked>.SecondPass(PixelAccessor<TColor, TPacked>, Byte[], Int32, Int32)
+  fullName: ImageSharp.Quantizers.Quantizer<TColor, TPacked>.SecondPass(ImageSharp.PixelAccessor<TColor, TPacked>, System.Byte[], System.Int32, System.Int32)
+  nameWithType.vb: Quantizer(Of TColor, TPacked).SecondPass(PixelAccessor(Of TColor, TPacked), Byte(), Int32, Int32)
+  fullname.vb: ImageSharp.Quantizers.Quantizer(Of TColor, TPacked).SecondPass(ImageSharp.PixelAccessor(Of TColor, TPacked), System.Byte(), System.Int32, System.Int32)
+  name.vb: SecondPass(PixelAccessor(Of TColor, TPacked), Byte(), Int32, Int32)
+  spec.csharp:
+  - uid: ImageSharp.Quantizers.Quantizer`2.SecondPass(ImageSharp.PixelAccessor{`0,`1},System.Byte[],System.Int32,System.Int32)
+    name: SecondPass
+    nameWithType: Quantizer<TColor, TPacked>.SecondPass
+    fullName: ImageSharp.Quantizers.Quantizer<TColor, TPacked>.SecondPass
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.PixelAccessor`2
+    name: PixelAccessor
+    nameWithType: PixelAccessor
+    fullName: ImageSharp.PixelAccessor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Byte
+    name: Byte
+    nameWithType: Byte
+    fullName: System.Byte
+    isExternal: true
+  - name: '[]'
+    nameWithType: '[]'
+    fullName: '[]'
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: ImageSharp.Quantizers.Quantizer`2.SecondPass(ImageSharp.PixelAccessor{`0,`1},System.Byte[],System.Int32,System.Int32)
+    name: SecondPass
+    nameWithType: Quantizer(Of TColor, TPacked).SecondPass
+    fullName: ImageSharp.Quantizers.Quantizer(Of TColor, TPacked).SecondPass
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.PixelAccessor`2
+    name: PixelAccessor
+    nameWithType: PixelAccessor
+    fullName: ImageSharp.PixelAccessor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Byte
+    name: Byte
+    nameWithType: Byte
+    fullName: System.Byte
+    isExternal: true
+  - name: ()
+    nameWithType: ()
+    fullName: ()
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Quantizers.Quantizer{{TColor},{TPacked}}.InitialQuantizePixel({TColor})
+  commentId: M:ImageSharp.Quantizers.Quantizer{`0,`1}.InitialQuantizePixel(`0)
+  parent: ImageSharp.Quantizers.Quantizer{{TColor},{TPacked}}
+  definition: ImageSharp.Quantizers.Quantizer`2.InitialQuantizePixel(`0)
+  name: InitialQuantizePixel(TColor)
+  nameWithType: Quantizer<TColor, TPacked>.InitialQuantizePixel(TColor)
+  fullName: ImageSharp.Quantizers.Quantizer<TColor, TPacked>.InitialQuantizePixel(TColor)
+  nameWithType.vb: Quantizer(Of TColor, TPacked).InitialQuantizePixel(TColor)
+  fullname.vb: ImageSharp.Quantizers.Quantizer(Of TColor, TPacked).InitialQuantizePixel(TColor)
+  spec.csharp:
+  - uid: ImageSharp.Quantizers.Quantizer`2.InitialQuantizePixel(`0)
+    name: InitialQuantizePixel
+    nameWithType: Quantizer<TColor, TPacked>.InitialQuantizePixel
+    fullName: ImageSharp.Quantizers.Quantizer<TColor, TPacked>.InitialQuantizePixel
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: ImageSharp.Quantizers.Quantizer`2.InitialQuantizePixel(`0)
+    name: InitialQuantizePixel
+    nameWithType: Quantizer(Of TColor, TPacked).InitialQuantizePixel
+    fullName: ImageSharp.Quantizers.Quantizer(Of TColor, TPacked).InitialQuantizePixel
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Quantizers.Quantizer{{TColor},{TPacked}}.QuantizePixel({TColor})
+  commentId: M:ImageSharp.Quantizers.Quantizer{`0,`1}.QuantizePixel(`0)
+  parent: ImageSharp.Quantizers.Quantizer{{TColor},{TPacked}}
+  definition: ImageSharp.Quantizers.Quantizer`2.QuantizePixel(`0)
+  name: QuantizePixel(TColor)
+  nameWithType: Quantizer<TColor, TPacked>.QuantizePixel(TColor)
+  fullName: ImageSharp.Quantizers.Quantizer<TColor, TPacked>.QuantizePixel(TColor)
+  nameWithType.vb: Quantizer(Of TColor, TPacked).QuantizePixel(TColor)
+  fullname.vb: ImageSharp.Quantizers.Quantizer(Of TColor, TPacked).QuantizePixel(TColor)
+  spec.csharp:
+  - uid: ImageSharp.Quantizers.Quantizer`2.QuantizePixel(`0)
+    name: QuantizePixel
+    nameWithType: Quantizer<TColor, TPacked>.QuantizePixel
+    fullName: ImageSharp.Quantizers.Quantizer<TColor, TPacked>.QuantizePixel
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: ImageSharp.Quantizers.Quantizer`2.QuantizePixel(`0)
+    name: QuantizePixel
+    nameWithType: Quantizer(Of TColor, TPacked).QuantizePixel
+    fullName: ImageSharp.Quantizers.Quantizer(Of TColor, TPacked).QuantizePixel
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Quantizers.Quantizer{{TColor},{TPacked}}.GetPalette
+  commentId: M:ImageSharp.Quantizers.Quantizer{`0,`1}.GetPalette
+  parent: ImageSharp.Quantizers.Quantizer{{TColor},{TPacked}}
+  definition: ImageSharp.Quantizers.Quantizer`2.GetPalette
+  name: GetPalette()
+  nameWithType: Quantizer<TColor, TPacked>.GetPalette()
+  fullName: ImageSharp.Quantizers.Quantizer<TColor, TPacked>.GetPalette()
+  nameWithType.vb: Quantizer(Of TColor, TPacked).GetPalette()
+  fullname.vb: ImageSharp.Quantizers.Quantizer(Of TColor, TPacked).GetPalette()
+  spec.csharp:
+  - uid: ImageSharp.Quantizers.Quantizer`2.GetPalette
+    name: GetPalette
+    nameWithType: Quantizer<TColor, TPacked>.GetPalette
+    fullName: ImageSharp.Quantizers.Quantizer<TColor, TPacked>.GetPalette
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: ImageSharp.Quantizers.Quantizer`2.GetPalette
+    name: GetPalette
+    nameWithType: Quantizer(Of TColor, TPacked).GetPalette
+    fullName: ImageSharp.Quantizers.Quantizer(Of TColor, TPacked).GetPalette
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.ToString
+  commentId: M:System.Object.ToString
+  parent: System.Object
+  isExternal: true
+  name: ToString()
+  nameWithType: Object.ToString()
+  fullName: System.Object.ToString()
+  spec.csharp:
+  - uid: System.Object.ToString
+    name: ToString
+    nameWithType: Object.ToString
+    fullName: System.Object.ToString
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.ToString
+    name: ToString
+    nameWithType: Object.ToString
+    fullName: System.Object.ToString
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.Equals(System.Object)
+  commentId: M:System.Object.Equals(System.Object)
+  parent: System.Object
+  isExternal: true
+  name: Equals(Object)
+  nameWithType: Object.Equals(Object)
+  fullName: System.Object.Equals(System.Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  name: Equals(Object, Object)
+  nameWithType: Object.Equals(Object, Object)
+  fullName: System.Object.Equals(System.Object, System.Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  name: ReferenceEquals(Object, Object)
+  nameWithType: Object.ReferenceEquals(Object, Object)
+  fullName: System.Object.ReferenceEquals(System.Object, System.Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    nameWithType: Object.ReferenceEquals
+    fullName: System.Object.ReferenceEquals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    nameWithType: Object.ReferenceEquals
+    fullName: System.Object.ReferenceEquals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.GetHashCode
+  commentId: M:System.Object.GetHashCode
+  parent: System.Object
+  isExternal: true
+  name: GetHashCode()
+  nameWithType: Object.GetHashCode()
+  fullName: System.Object.GetHashCode()
+  spec.csharp:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    nameWithType: Object.GetHashCode
+    fullName: System.Object.GetHashCode
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    nameWithType: Object.GetHashCode
+    fullName: System.Object.GetHashCode
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  name: GetType()
+  nameWithType: Object.GetType()
+  fullName: System.Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    nameWithType: Object.GetType
+    fullName: System.Object.GetType
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    nameWithType: Object.GetType
+    fullName: System.Object.GetType
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.MemberwiseClone
+  commentId: M:System.Object.MemberwiseClone
+  parent: System.Object
+  isExternal: true
+  name: MemberwiseClone()
+  nameWithType: Object.MemberwiseClone()
+  fullName: System.Object.MemberwiseClone()
+  spec.csharp:
+  - uid: System.Object.MemberwiseClone
+    name: MemberwiseClone
+    nameWithType: Object.MemberwiseClone
+    fullName: System.Object.MemberwiseClone
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.MemberwiseClone
+    name: MemberwiseClone
+    nameWithType: Object.MemberwiseClone
+    fullName: System.Object.MemberwiseClone
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System
+  commentId: N:System
+  isExternal: false
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: ImageSharp.Quantizers.Quantizer`2
+  commentId: T:ImageSharp.Quantizers.Quantizer`2
+  isExternal: false
+  name: Quantizer<TColor, TPacked>
+  nameWithType: Quantizer<TColor, TPacked>
+  fullName: ImageSharp.Quantizers.Quantizer<TColor, TPacked>
+  nameWithType.vb: Quantizer(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Quantizers.Quantizer(Of TColor, TPacked)
+  name.vb: Quantizer(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Quantizers.Quantizer`2
+    name: Quantizer
+    nameWithType: Quantizer
+    fullName: ImageSharp.Quantizers.Quantizer
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Quantizers.Quantizer`2
+    name: Quantizer
+    nameWithType: Quantizer
+    fullName: ImageSharp.Quantizers.Quantizer
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Quantizers.IQuantizer`2
+  commentId: T:ImageSharp.Quantizers.IQuantizer`2
+  isExternal: false
+  name: IQuantizer<TColor, TPacked>
+  nameWithType: IQuantizer<TColor, TPacked>
+  fullName: ImageSharp.Quantizers.IQuantizer<TColor, TPacked>
+  nameWithType.vb: IQuantizer(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Quantizers.IQuantizer(Of TColor, TPacked)
+  name.vb: IQuantizer(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Quantizers.IQuantizer`2
+    name: IQuantizer
+    nameWithType: IQuantizer
+    fullName: ImageSharp.Quantizers.IQuantizer
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Quantizers.IQuantizer`2
+    name: IQuantizer
+    nameWithType: IQuantizer
+    fullName: ImageSharp.Quantizers.IQuantizer
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Quantizers.Quantizer`2.Quantize(ImageSharp.ImageBase{`0,`1},System.Int32)
+  commentId: M:ImageSharp.Quantizers.Quantizer`2.Quantize(ImageSharp.ImageBase{`0,`1},System.Int32)
+  isExternal: true
+  name: Quantize(ImageBase<TColor, TPacked>, Int32)
+  nameWithType: Quantizer<TColor, TPacked>.Quantize(ImageBase<TColor, TPacked>, Int32)
+  fullName: ImageSharp.Quantizers.Quantizer<TColor, TPacked>.Quantize(ImageSharp.ImageBase<TColor, TPacked>, System.Int32)
+  nameWithType.vb: Quantizer(Of TColor, TPacked).Quantize(ImageBase(Of TColor, TPacked), Int32)
+  fullname.vb: ImageSharp.Quantizers.Quantizer(Of TColor, TPacked).Quantize(ImageSharp.ImageBase(Of TColor, TPacked), System.Int32)
+  name.vb: Quantize(ImageBase(Of TColor, TPacked), Int32)
+  spec.csharp:
+  - uid: ImageSharp.Quantizers.Quantizer`2.Quantize(ImageSharp.ImageBase{`0,`1},System.Int32)
+    name: Quantize
+    nameWithType: Quantizer<TColor, TPacked>.Quantize
+    fullName: ImageSharp.Quantizers.Quantizer<TColor, TPacked>.Quantize
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: ImageSharp.Quantizers.Quantizer`2.Quantize(ImageSharp.ImageBase{`0,`1},System.Int32)
+    name: Quantize
+    nameWithType: Quantizer(Of TColor, TPacked).Quantize
+    fullName: ImageSharp.Quantizers.Quantizer(Of TColor, TPacked).Quantize
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Quantizers.Quantizer`2.FirstPass(ImageSharp.PixelAccessor{`0,`1},System.Int32,System.Int32)
+  commentId: M:ImageSharp.Quantizers.Quantizer`2.FirstPass(ImageSharp.PixelAccessor{`0,`1},System.Int32,System.Int32)
+  isExternal: true
+  name: FirstPass(PixelAccessor<TColor, TPacked>, Int32, Int32)
+  nameWithType: Quantizer<TColor, TPacked>.FirstPass(PixelAccessor<TColor, TPacked>, Int32, Int32)
+  fullName: ImageSharp.Quantizers.Quantizer<TColor, TPacked>.FirstPass(ImageSharp.PixelAccessor<TColor, TPacked>, System.Int32, System.Int32)
+  nameWithType.vb: Quantizer(Of TColor, TPacked).FirstPass(PixelAccessor(Of TColor, TPacked), Int32, Int32)
+  fullname.vb: ImageSharp.Quantizers.Quantizer(Of TColor, TPacked).FirstPass(ImageSharp.PixelAccessor(Of TColor, TPacked), System.Int32, System.Int32)
+  name.vb: FirstPass(PixelAccessor(Of TColor, TPacked), Int32, Int32)
+  spec.csharp:
+  - uid: ImageSharp.Quantizers.Quantizer`2.FirstPass(ImageSharp.PixelAccessor{`0,`1},System.Int32,System.Int32)
+    name: FirstPass
+    nameWithType: Quantizer<TColor, TPacked>.FirstPass
+    fullName: ImageSharp.Quantizers.Quantizer<TColor, TPacked>.FirstPass
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.PixelAccessor`2
+    name: PixelAccessor
+    nameWithType: PixelAccessor
+    fullName: ImageSharp.PixelAccessor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: ImageSharp.Quantizers.Quantizer`2.FirstPass(ImageSharp.PixelAccessor{`0,`1},System.Int32,System.Int32)
+    name: FirstPass
+    nameWithType: Quantizer(Of TColor, TPacked).FirstPass
+    fullName: ImageSharp.Quantizers.Quantizer(Of TColor, TPacked).FirstPass
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.PixelAccessor`2
+    name: PixelAccessor
+    nameWithType: PixelAccessor
+    fullName: ImageSharp.PixelAccessor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Quantizers.Quantizer`2.SecondPass(ImageSharp.PixelAccessor{`0,`1},System.Byte[],System.Int32,System.Int32)
+  commentId: M:ImageSharp.Quantizers.Quantizer`2.SecondPass(ImageSharp.PixelAccessor{`0,`1},System.Byte[],System.Int32,System.Int32)
+  isExternal: true
+  name: SecondPass(PixelAccessor<TColor, TPacked>, Byte[], Int32, Int32)
+  nameWithType: Quantizer<TColor, TPacked>.SecondPass(PixelAccessor<TColor, TPacked>, Byte[], Int32, Int32)
+  fullName: ImageSharp.Quantizers.Quantizer<TColor, TPacked>.SecondPass(ImageSharp.PixelAccessor<TColor, TPacked>, System.Byte[], System.Int32, System.Int32)
+  nameWithType.vb: Quantizer(Of TColor, TPacked).SecondPass(PixelAccessor(Of TColor, TPacked), Byte(), Int32, Int32)
+  fullname.vb: ImageSharp.Quantizers.Quantizer(Of TColor, TPacked).SecondPass(ImageSharp.PixelAccessor(Of TColor, TPacked), System.Byte(), System.Int32, System.Int32)
+  name.vb: SecondPass(PixelAccessor(Of TColor, TPacked), Byte(), Int32, Int32)
+  spec.csharp:
+  - uid: ImageSharp.Quantizers.Quantizer`2.SecondPass(ImageSharp.PixelAccessor{`0,`1},System.Byte[],System.Int32,System.Int32)
+    name: SecondPass
+    nameWithType: Quantizer<TColor, TPacked>.SecondPass
+    fullName: ImageSharp.Quantizers.Quantizer<TColor, TPacked>.SecondPass
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.PixelAccessor`2
+    name: PixelAccessor
+    nameWithType: PixelAccessor
+    fullName: ImageSharp.PixelAccessor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Byte
+    name: Byte
+    nameWithType: Byte
+    fullName: System.Byte
+    isExternal: true
+  - name: '[]'
+    nameWithType: '[]'
+    fullName: '[]'
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: ImageSharp.Quantizers.Quantizer`2.SecondPass(ImageSharp.PixelAccessor{`0,`1},System.Byte[],System.Int32,System.Int32)
+    name: SecondPass
+    nameWithType: Quantizer(Of TColor, TPacked).SecondPass
+    fullName: ImageSharp.Quantizers.Quantizer(Of TColor, TPacked).SecondPass
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.PixelAccessor`2
+    name: PixelAccessor
+    nameWithType: PixelAccessor
+    fullName: ImageSharp.PixelAccessor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Byte
+    name: Byte
+    nameWithType: Byte
+    fullName: System.Byte
+    isExternal: true
+  - name: ()
+    nameWithType: ()
+    fullName: ()
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Quantizers.Quantizer`2.InitialQuantizePixel(`0)
+  commentId: M:ImageSharp.Quantizers.Quantizer`2.InitialQuantizePixel(`0)
+  isExternal: false
+  name: InitialQuantizePixel(TColor)
+  nameWithType: Quantizer<TColor, TPacked>.InitialQuantizePixel(TColor)
+  fullName: ImageSharp.Quantizers.Quantizer<TColor, TPacked>.InitialQuantizePixel(TColor)
+  nameWithType.vb: Quantizer(Of TColor, TPacked).InitialQuantizePixel(TColor)
+  fullname.vb: ImageSharp.Quantizers.Quantizer(Of TColor, TPacked).InitialQuantizePixel(TColor)
+  spec.csharp:
+  - uid: ImageSharp.Quantizers.Quantizer`2.InitialQuantizePixel(`0)
+    name: InitialQuantizePixel
+    nameWithType: Quantizer<TColor, TPacked>.InitialQuantizePixel
+    fullName: ImageSharp.Quantizers.Quantizer<TColor, TPacked>.InitialQuantizePixel
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: ImageSharp.Quantizers.Quantizer`2.InitialQuantizePixel(`0)
+    name: InitialQuantizePixel
+    nameWithType: Quantizer(Of TColor, TPacked).InitialQuantizePixel
+    fullName: ImageSharp.Quantizers.Quantizer(Of TColor, TPacked).InitialQuantizePixel
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Quantizers.Quantizer`2.QuantizePixel(`0)
+  commentId: M:ImageSharp.Quantizers.Quantizer`2.QuantizePixel(`0)
+  isExternal: false
+  name: QuantizePixel(TColor)
+  nameWithType: Quantizer<TColor, TPacked>.QuantizePixel(TColor)
+  fullName: ImageSharp.Quantizers.Quantizer<TColor, TPacked>.QuantizePixel(TColor)
+  nameWithType.vb: Quantizer(Of TColor, TPacked).QuantizePixel(TColor)
+  fullname.vb: ImageSharp.Quantizers.Quantizer(Of TColor, TPacked).QuantizePixel(TColor)
+  spec.csharp:
+  - uid: ImageSharp.Quantizers.Quantizer`2.QuantizePixel(`0)
+    name: QuantizePixel
+    nameWithType: Quantizer<TColor, TPacked>.QuantizePixel
+    fullName: ImageSharp.Quantizers.Quantizer<TColor, TPacked>.QuantizePixel
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: ImageSharp.Quantizers.Quantizer`2.QuantizePixel(`0)
+    name: QuantizePixel
+    nameWithType: Quantizer(Of TColor, TPacked).QuantizePixel
+    fullName: ImageSharp.Quantizers.Quantizer(Of TColor, TPacked).QuantizePixel
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Quantizers.Quantizer`2.GetPalette
+  commentId: M:ImageSharp.Quantizers.Quantizer`2.GetPalette
+  isExternal: false
+  name: GetPalette()
+  nameWithType: Quantizer<TColor, TPacked>.GetPalette()
+  fullName: ImageSharp.Quantizers.Quantizer<TColor, TPacked>.GetPalette()
+  nameWithType.vb: Quantizer(Of TColor, TPacked).GetPalette()
+  fullname.vb: ImageSharp.Quantizers.Quantizer(Of TColor, TPacked).GetPalette()
+  spec.csharp:
+  - uid: ImageSharp.Quantizers.Quantizer`2.GetPalette
+    name: GetPalette
+    nameWithType: Quantizer<TColor, TPacked>.GetPalette
+    fullName: ImageSharp.Quantizers.Quantizer<TColor, TPacked>.GetPalette
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: ImageSharp.Quantizers.Quantizer`2.GetPalette
+    name: GetPalette
+    nameWithType: Quantizer(Of TColor, TPacked).GetPalette
+    fullName: ImageSharp.Quantizers.Quantizer(Of TColor, TPacked).GetPalette
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Quantizers.OctreeQuantizer`2
+  commentId: T:ImageSharp.Quantizers.OctreeQuantizer`2
+  isExternal: false
+  name: OctreeQuantizer<TColor, TPacked>
+  nameWithType: OctreeQuantizer<TColor, TPacked>
+  fullName: ImageSharp.Quantizers.OctreeQuantizer<TColor, TPacked>
+  nameWithType.vb: OctreeQuantizer(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Quantizers.OctreeQuantizer(Of TColor, TPacked)
+  name.vb: OctreeQuantizer(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Quantizers.OctreeQuantizer`2
+    name: OctreeQuantizer
+    nameWithType: OctreeQuantizer
+    fullName: ImageSharp.Quantizers.OctreeQuantizer
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Quantizers.OctreeQuantizer`2
+    name: OctreeQuantizer
+    nameWithType: OctreeQuantizer
+    fullName: ImageSharp.Quantizers.OctreeQuantizer
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.ImageBase{{TColor},{TPacked}}
+  commentId: T:ImageSharp.ImageBase{``0,``1}
+  parent: ImageSharp
+  definition: ImageSharp.ImageBase`2
+  name: ImageBase<TColor, TPacked>
+  nameWithType: ImageBase<TColor, TPacked>
+  fullName: ImageSharp.ImageBase<TColor, TPacked>
+  nameWithType.vb: ImageBase(Of TColor, TPacked)
+  fullname.vb: ImageSharp.ImageBase(Of TColor, TPacked)
+  name.vb: ImageBase(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Int32
+  commentId: T:System.Int32
+  parent: System
+  isExternal: true
+  name: Int32
+  nameWithType: Int32
+  fullName: System.Int32
+- uid: ImageSharp.Quantizers.QuantizedImage{{TColor},{TPacked}}
+  commentId: T:ImageSharp.Quantizers.QuantizedImage{`0,`1}
+  parent: ImageSharp.Quantizers
+  definition: ImageSharp.Quantizers.QuantizedImage`2
+  name: QuantizedImage<TColor, TPacked>
+  nameWithType: QuantizedImage<TColor, TPacked>
+  fullName: ImageSharp.Quantizers.QuantizedImage<TColor, TPacked>
+  nameWithType.vb: QuantizedImage(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Quantizers.QuantizedImage(Of TColor, TPacked)
+  name.vb: QuantizedImage(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Quantizers.QuantizedImage`2
+    name: QuantizedImage
+    nameWithType: QuantizedImage
+    fullName: ImageSharp.Quantizers.QuantizedImage
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Quantizers.QuantizedImage`2
+    name: QuantizedImage
+    nameWithType: QuantizedImage
+    fullName: ImageSharp.Quantizers.QuantizedImage
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.ImageBase`2
+  commentId: T:ImageSharp.ImageBase`2
+  parent: ImageSharp
+  isExternal: false
+  name: ImageBase<TColor, TPacked>
+  nameWithType: ImageBase<TColor, TPacked>
+  fullName: ImageSharp.ImageBase<TColor, TPacked>
+  nameWithType.vb: ImageBase(Of TColor, TPacked)
+  fullname.vb: ImageSharp.ImageBase(Of TColor, TPacked)
+  name.vb: ImageBase(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp
+  commentId: N:ImageSharp
+  isExternal: false
+  name: ImageSharp
+  nameWithType: ImageSharp
+  fullName: ImageSharp
+- uid: ImageSharp.Quantizers.QuantizedImage`2
+  commentId: T:ImageSharp.Quantizers.QuantizedImage`2
+  isExternal: false
+  name: QuantizedImage<TColor, TPacked>
+  nameWithType: QuantizedImage<TColor, TPacked>
+  fullName: ImageSharp.Quantizers.QuantizedImage<TColor, TPacked>
+  nameWithType.vb: QuantizedImage(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Quantizers.QuantizedImage(Of TColor, TPacked)
+  name.vb: QuantizedImage(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Quantizers.QuantizedImage`2
+    name: QuantizedImage
+    nameWithType: QuantizedImage
+    fullName: ImageSharp.Quantizers.QuantizedImage
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Quantizers.QuantizedImage`2
+    name: QuantizedImage
+    nameWithType: QuantizedImage
+    fullName: ImageSharp.Quantizers.QuantizedImage
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: '{TColor}'
+  commentId: '!:TColor'
+  definition: TColor
+  name: TColor
+  nameWithType: TColor
+  fullName: TColor
+- uid: TColor
+  isExternal: false
+  name: TColor
+  nameWithType: TColor
+  fullName: TColor
+- uid: System.Byte
+  commentId: T:System.Byte
+  parent: System
+  isExternal: true
+  name: Byte
+  nameWithType: Byte
+  fullName: System.Byte
+- uid: System.Collections.Generic.List{{TColor}}
+  commentId: T:System.Collections.Generic.List{`0}
+  parent: System.Collections.Generic
+  definition: System.Collections.Generic.List`1
+  name: List<TColor>
+  nameWithType: List<TColor>
+  fullName: System.Collections.Generic.List<TColor>
+  nameWithType.vb: List(Of TColor)
+  fullname.vb: System.Collections.Generic.List(Of TColor)
+  name.vb: List(Of TColor)
+  spec.csharp:
+  - uid: System.Collections.Generic.List`1
+    name: List
+    nameWithType: List
+    fullName: System.Collections.Generic.List
+    isExternal: true
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: System.Collections.Generic.List`1
+    name: List
+    nameWithType: List
+    fullName: System.Collections.Generic.List
+    isExternal: true
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Collections.Generic.List`1
+  commentId: T:System.Collections.Generic.List`1
+  isExternal: true
+  name: List<T>
+  nameWithType: List<T>
+  fullName: System.Collections.Generic.List<T>
+  nameWithType.vb: List(Of T)
+  fullname.vb: System.Collections.Generic.List(Of T)
+  name.vb: List(Of T)
+  spec.csharp:
+  - uid: System.Collections.Generic.List`1
+    name: List
+    nameWithType: List
+    fullName: System.Collections.Generic.List
+    isExternal: true
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: T
+    nameWithType: T
+    fullName: T
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: System.Collections.Generic.List`1
+    name: List
+    nameWithType: List
+    fullName: System.Collections.Generic.List
+    isExternal: true
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: T
+    nameWithType: T
+    fullName: T
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Collections.Generic
+  commentId: N:System.Collections.Generic
+  isExternal: false
+  name: System.Collections.Generic
+  nameWithType: System.Collections.Generic
+  fullName: System.Collections.Generic

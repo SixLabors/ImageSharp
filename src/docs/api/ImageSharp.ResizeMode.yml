@@ -1,0 +1,234 @@
+### YamlMime:ManagedReference
+items:
+- uid: ImageSharp.ResizeMode
+  commentId: T:ImageSharp.ResizeMode
+  id: ResizeMode
+  parent: ImageSharp
+  children:
+  - ImageSharp.ResizeMode.BoxPad
+  - ImageSharp.ResizeMode.Crop
+  - ImageSharp.ResizeMode.Max
+  - ImageSharp.ResizeMode.Min
+  - ImageSharp.ResizeMode.Pad
+  - ImageSharp.ResizeMode.Stretch
+  langs:
+  - csharp
+  - vb
+  name: ResizeMode
+  nameWithType: ResizeMode
+  fullName: ImageSharp.ResizeMode
+  type: Enum
+  source:
+    id: ResizeMode
+    path: ''
+    startLine: 29766
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nEnumerated resize modes to apply to resized images.\n"
+  example: []
+  syntax:
+    content: public enum ResizeMode
+    content.vb: Public Enum ResizeMode
+  modifiers.csharp:
+  - public
+  - enum
+  modifiers.vb:
+  - Public
+  - Enum
+- uid: ImageSharp.ResizeMode.Crop
+  commentId: F:ImageSharp.ResizeMode.Crop
+  id: Crop
+  parent: ImageSharp.ResizeMode
+  langs:
+  - csharp
+  - vb
+  name: Crop
+  nameWithType: ResizeMode.Crop
+  fullName: ImageSharp.ResizeMode.Crop
+  type: Field
+  source:
+    id: Crop
+    path: ''
+    startLine: 29771
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nCrops the resized image to fit the bounds of its container.\n"
+  example: []
+  syntax:
+    content: Crop = 0
+    return:
+      type: ImageSharp.ResizeMode
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ResizeMode.Pad
+  commentId: F:ImageSharp.ResizeMode.Pad
+  id: Pad
+  parent: ImageSharp.ResizeMode
+  langs:
+  - csharp
+  - vb
+  name: Pad
+  nameWithType: ResizeMode.Pad
+  fullName: ImageSharp.ResizeMode.Pad
+  type: Field
+  source:
+    id: Pad
+    path: ''
+    startLine: 29777
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nPads the resized image to fit the bounds of its container.\nIf only one dimension is passed, will maintain the original aspect ratio.\n"
+  example: []
+  syntax:
+    content: Pad = 1
+    return:
+      type: ImageSharp.ResizeMode
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ResizeMode.BoxPad
+  commentId: F:ImageSharp.ResizeMode.BoxPad
+  id: BoxPad
+  parent: ImageSharp.ResizeMode
+  langs:
+  - csharp
+  - vb
+  name: BoxPad
+  nameWithType: ResizeMode.BoxPad
+  fullName: ImageSharp.ResizeMode.BoxPad
+  type: Field
+  source:
+    id: BoxPad
+    path: ''
+    startLine: 29784
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nPads the image to fit the bound of the container without resizing the\noriginal source.\nWhen downscaling, performs the same functionality as <xref href=\"ImageSharp.ResizeMode.Pad\" data-throw-if-not-resolved=\"false\"></xref>\n"
+  example: []
+  syntax:
+    content: BoxPad = 2
+    return:
+      type: ImageSharp.ResizeMode
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ResizeMode.Max
+  commentId: F:ImageSharp.ResizeMode.Max
+  id: Max
+  parent: ImageSharp.ResizeMode
+  langs:
+  - csharp
+  - vb
+  name: Max
+  nameWithType: ResizeMode.Max
+  fullName: ImageSharp.ResizeMode.Max
+  type: Field
+  source:
+    id: Max
+    path: ''
+    startLine: 29790
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nConstrains the resized image to fit the bounds of its container maintaining\nthe original aspect ratio.\n"
+  example: []
+  syntax:
+    content: Max = 3
+    return:
+      type: ImageSharp.ResizeMode
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ResizeMode.Min
+  commentId: F:ImageSharp.ResizeMode.Min
+  id: Min
+  parent: ImageSharp.ResizeMode
+  langs:
+  - csharp
+  - vb
+  name: Min
+  nameWithType: ResizeMode.Min
+  fullName: ImageSharp.ResizeMode.Min
+  type: Field
+  source:
+    id: Min
+    path: ''
+    startLine: 29797
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nResizes the image until the shortest side reaches the set given dimension.\nUpscaling is disabled in this mode and the original image will be returned\nif attempted.\n"
+  example: []
+  syntax:
+    content: Min = 4
+    return:
+      type: ImageSharp.ResizeMode
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ResizeMode.Stretch
+  commentId: F:ImageSharp.ResizeMode.Stretch
+  id: Stretch
+  parent: ImageSharp.ResizeMode
+  langs:
+  - csharp
+  - vb
+  name: Stretch
+  nameWithType: ResizeMode.Stretch
+  fullName: ImageSharp.ResizeMode.Stretch
+  type: Field
+  source:
+    id: Stretch
+    path: ''
+    startLine: 29802
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nStretches the resized image to fit the bounds of its container.\n"
+  example: []
+  syntax:
+    content: Stretch = 5
+    return:
+      type: ImageSharp.ResizeMode
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+references:
+- uid: ImageSharp
+  commentId: N:ImageSharp
+  isExternal: false
+  name: ImageSharp
+  nameWithType: ImageSharp
+  fullName: ImageSharp
+- uid: ImageSharp.ResizeMode
+  commentId: T:ImageSharp.ResizeMode
+  parent: ImageSharp
+  isExternal: false
+  name: ResizeMode
+  nameWithType: ResizeMode
+  fullName: ImageSharp.ResizeMode
+- uid: ImageSharp.ResizeMode.Pad
+  commentId: F:ImageSharp.ResizeMode.Pad

@@ -1,0 +1,3309 @@
+### YamlMime:ManagedReference
+items:
+- uid: ImageSharp.Processors
+  commentId: N:ImageSharp.Processors
+  id: ImageSharp.Processors
+  children:
+  - ImageSharp.Processors.AchromatomalyProcessor`2
+  - ImageSharp.Processors.AchromatopsiaProcessor`2
+  - ImageSharp.Processors.AlphaProcessor`2
+  - ImageSharp.Processors.BackgroundColorProcessor`2
+  - ImageSharp.Processors.BinaryThresholdProcessor`2
+  - ImageSharp.Processors.BlackWhiteProcessor`2
+  - ImageSharp.Processors.BlendProcessor`2
+  - ImageSharp.Processors.BoxBlurProcessor`2
+  - ImageSharp.Processors.BrightnessProcessor`2
+  - ImageSharp.Processors.ColorMatrixFilter`2
+  - ImageSharp.Processors.CompandingResizeProcessor`2
+  - ImageSharp.Processors.ContrastProcessor`2
+  - ImageSharp.Processors.Convolution2DFilter`2
+  - ImageSharp.Processors.Convolution2PassFilter`2
+  - ImageSharp.Processors.ConvolutionFilter`2
+  - ImageSharp.Processors.CropProcessor`2
+  - ImageSharp.Processors.DeuteranomalyProcessor`2
+  - ImageSharp.Processors.DeuteranopiaProcessor`2
+  - ImageSharp.Processors.EdgeDetector2DFilter`2
+  - ImageSharp.Processors.EdgeDetectorCompassFilter`2
+  - ImageSharp.Processors.EdgeDetectorFilter`2
+  - ImageSharp.Processors.EntropyCropProcessor`2
+  - ImageSharp.Processors.FlipProcessor`2
+  - ImageSharp.Processors.GlowProcessor`2
+  - ImageSharp.Processors.GrayscaleBt601Processor`2
+  - ImageSharp.Processors.GrayscaleBt709Processor`2
+  - ImageSharp.Processors.GuassianBlurProcessor`2
+  - ImageSharp.Processors.GuassianSharpenProcessor`2
+  - ImageSharp.Processors.HermiteResampler
+  - ImageSharp.Processors.HueProcessor`2
+  - ImageSharp.Processors.IColorMatrixFilter`2
+  - ImageSharp.Processors.IEdgeDetectorFilter
+  - ImageSharp.Processors.IEdgeDetectorFilter`2
+  - ImageSharp.Processors.IImageFilter`2
+  - ImageSharp.Processors.IImageProcessor
+  - ImageSharp.Processors.IImageSampler`2
+  - ImageSharp.Processors.ImageFilter`2
+  - ImageSharp.Processors.ImageProcessor`2
+  - ImageSharp.Processors.ImageSampler`2
+  - ImageSharp.Processors.InvertProcessor`2
+  - ImageSharp.Processors.KayyaliProcessor`2
+  - ImageSharp.Processors.KirschProcessor`2
+  - ImageSharp.Processors.KodachromeProcessor`2
+  - ImageSharp.Processors.Laplacian3X3Processor`2
+  - ImageSharp.Processors.Laplacian5X5Processor`2
+  - ImageSharp.Processors.LaplacianOfGaussianProcessor`2
+  - ImageSharp.Processors.LomographProcessor`2
+  - ImageSharp.Processors.Matrix3x2Processor`2
+  - ImageSharp.Processors.OilPaintingProcessor`2
+  - ImageSharp.Processors.PixelateProcessor`2
+  - ImageSharp.Processors.PolaroidProcessor`2
+  - ImageSharp.Processors.PrewittProcessor`2
+  - ImageSharp.Processors.ProtanomalyProcessor`2
+  - ImageSharp.Processors.ProtanopiaProcessor`2
+  - ImageSharp.Processors.ResamplingWeightedProcessor`2
+  - ImageSharp.Processors.ResamplingWeightedProcessor`2.Weight
+  - ImageSharp.Processors.ResamplingWeightedProcessor`2.Weights
+  - ImageSharp.Processors.ResizeProcessor`2
+  - ImageSharp.Processors.RobertsCrossProcessor`2
+  - ImageSharp.Processors.RobinsonProcessor`2
+  - ImageSharp.Processors.RotateProcessor`2
+  - ImageSharp.Processors.SaturationProcessor`2
+  - ImageSharp.Processors.ScharrProcessor`2
+  - ImageSharp.Processors.SepiaProcessor`2
+  - ImageSharp.Processors.SkewProcessor`2
+  - ImageSharp.Processors.SobelProcessor`2
+  - ImageSharp.Processors.TritanomalyProcessor`2
+  - ImageSharp.Processors.TritanopiaProcessor`2
+  - ImageSharp.Processors.VignetteProcessor`2
+  langs:
+  - csharp
+  - vb
+  name: ImageSharp.Processors
+  nameWithType: ImageSharp.Processors
+  fullName: ImageSharp.Processors
+  type: Namespace
+  assemblies:
+  - cs.temp.dll
+references:
+- uid: ImageSharp.Processors.ImageProcessor`2
+  commentId: T:ImageSharp.Processors.ImageProcessor`2
+  isExternal: false
+  name: ImageProcessor<TColor, TPacked>
+  nameWithType: ImageProcessor<TColor, TPacked>
+  fullName: ImageSharp.Processors.ImageProcessor<TColor, TPacked>
+  nameWithType.vb: ImageProcessor(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.ImageProcessor(Of TColor, TPacked)
+  name.vb: ImageProcessor(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.ImageProcessor`2
+    name: ImageProcessor
+    nameWithType: ImageProcessor
+    fullName: ImageSharp.Processors.ImageProcessor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.ImageProcessor`2
+    name: ImageProcessor
+    nameWithType: ImageProcessor
+    fullName: ImageSharp.Processors.ImageProcessor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.AlphaProcessor`2
+  commentId: T:ImageSharp.Processors.AlphaProcessor`2
+  isExternal: false
+  name: AlphaProcessor<TColor, TPacked>
+  nameWithType: AlphaProcessor<TColor, TPacked>
+  fullName: ImageSharp.Processors.AlphaProcessor<TColor, TPacked>
+  nameWithType.vb: AlphaProcessor(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.AlphaProcessor(Of TColor, TPacked)
+  name.vb: AlphaProcessor(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.AlphaProcessor`2
+    name: AlphaProcessor
+    nameWithType: AlphaProcessor
+    fullName: ImageSharp.Processors.AlphaProcessor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.AlphaProcessor`2
+    name: AlphaProcessor
+    nameWithType: AlphaProcessor
+    fullName: ImageSharp.Processors.AlphaProcessor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.BackgroundColorProcessor`2
+  commentId: T:ImageSharp.Processors.BackgroundColorProcessor`2
+  isExternal: false
+  name: BackgroundColorProcessor<TColor, TPacked>
+  nameWithType: BackgroundColorProcessor<TColor, TPacked>
+  fullName: ImageSharp.Processors.BackgroundColorProcessor<TColor, TPacked>
+  nameWithType.vb: BackgroundColorProcessor(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.BackgroundColorProcessor(Of TColor, TPacked)
+  name.vb: BackgroundColorProcessor(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.BackgroundColorProcessor`2
+    name: BackgroundColorProcessor
+    nameWithType: BackgroundColorProcessor
+    fullName: ImageSharp.Processors.BackgroundColorProcessor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.BackgroundColorProcessor`2
+    name: BackgroundColorProcessor
+    nameWithType: BackgroundColorProcessor
+    fullName: ImageSharp.Processors.BackgroundColorProcessor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.BlendProcessor`2
+  commentId: T:ImageSharp.Processors.BlendProcessor`2
+  isExternal: false
+  name: BlendProcessor<TColor, TPacked>
+  nameWithType: BlendProcessor<TColor, TPacked>
+  fullName: ImageSharp.Processors.BlendProcessor<TColor, TPacked>
+  nameWithType.vb: BlendProcessor(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.BlendProcessor(Of TColor, TPacked)
+  name.vb: BlendProcessor(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.BlendProcessor`2
+    name: BlendProcessor
+    nameWithType: BlendProcessor
+    fullName: ImageSharp.Processors.BlendProcessor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.BlendProcessor`2
+    name: BlendProcessor
+    nameWithType: BlendProcessor
+    fullName: ImageSharp.Processors.BlendProcessor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.BrightnessProcessor`2
+  commentId: T:ImageSharp.Processors.BrightnessProcessor`2
+  isExternal: false
+  name: BrightnessProcessor<TColor, TPacked>
+  nameWithType: BrightnessProcessor<TColor, TPacked>
+  fullName: ImageSharp.Processors.BrightnessProcessor<TColor, TPacked>
+  nameWithType.vb: BrightnessProcessor(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.BrightnessProcessor(Of TColor, TPacked)
+  name.vb: BrightnessProcessor(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.BrightnessProcessor`2
+    name: BrightnessProcessor
+    nameWithType: BrightnessProcessor
+    fullName: ImageSharp.Processors.BrightnessProcessor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.BrightnessProcessor`2
+    name: BrightnessProcessor
+    nameWithType: BrightnessProcessor
+    fullName: ImageSharp.Processors.BrightnessProcessor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.ContrastProcessor`2
+  commentId: T:ImageSharp.Processors.ContrastProcessor`2
+  isExternal: false
+  name: ContrastProcessor<TColor, TPacked>
+  nameWithType: ContrastProcessor<TColor, TPacked>
+  fullName: ImageSharp.Processors.ContrastProcessor<TColor, TPacked>
+  nameWithType.vb: ContrastProcessor(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.ContrastProcessor(Of TColor, TPacked)
+  name.vb: ContrastProcessor(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.ContrastProcessor`2
+    name: ContrastProcessor
+    nameWithType: ContrastProcessor
+    fullName: ImageSharp.Processors.ContrastProcessor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.ContrastProcessor`2
+    name: ContrastProcessor
+    nameWithType: ContrastProcessor
+    fullName: ImageSharp.Processors.ContrastProcessor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.GlowProcessor`2
+  commentId: T:ImageSharp.Processors.GlowProcessor`2
+  isExternal: false
+  name: GlowProcessor<TColor, TPacked>
+  nameWithType: GlowProcessor<TColor, TPacked>
+  fullName: ImageSharp.Processors.GlowProcessor<TColor, TPacked>
+  nameWithType.vb: GlowProcessor(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.GlowProcessor(Of TColor, TPacked)
+  name.vb: GlowProcessor(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.GlowProcessor`2
+    name: GlowProcessor
+    nameWithType: GlowProcessor
+    fullName: ImageSharp.Processors.GlowProcessor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.GlowProcessor`2
+    name: GlowProcessor
+    nameWithType: GlowProcessor
+    fullName: ImageSharp.Processors.GlowProcessor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.IImageFilter`2
+  commentId: T:ImageSharp.Processors.IImageFilter`2
+  isExternal: false
+  name: IImageFilter<TColor, TPacked>
+  nameWithType: IImageFilter<TColor, TPacked>
+  fullName: ImageSharp.Processors.IImageFilter<TColor, TPacked>
+  nameWithType.vb: IImageFilter(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.IImageFilter(Of TColor, TPacked)
+  name.vb: IImageFilter(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.IImageFilter`2
+    name: IImageFilter
+    nameWithType: IImageFilter
+    fullName: ImageSharp.Processors.IImageFilter
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.IImageFilter`2
+    name: IImageFilter
+    nameWithType: IImageFilter
+    fullName: ImageSharp.Processors.IImageFilter
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.ImageFilter`2
+  commentId: T:ImageSharp.Processors.ImageFilter`2
+  isExternal: false
+  name: ImageFilter<TColor, TPacked>
+  nameWithType: ImageFilter<TColor, TPacked>
+  fullName: ImageSharp.Processors.ImageFilter<TColor, TPacked>
+  nameWithType.vb: ImageFilter(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.ImageFilter(Of TColor, TPacked)
+  name.vb: ImageFilter(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.ImageFilter`2
+    name: ImageFilter
+    nameWithType: ImageFilter
+    fullName: ImageSharp.Processors.ImageFilter
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.ImageFilter`2
+    name: ImageFilter
+    nameWithType: ImageFilter
+    fullName: ImageSharp.Processors.ImageFilter
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.InvertProcessor`2
+  commentId: T:ImageSharp.Processors.InvertProcessor`2
+  isExternal: false
+  name: InvertProcessor<TColor, TPacked>
+  nameWithType: InvertProcessor<TColor, TPacked>
+  fullName: ImageSharp.Processors.InvertProcessor<TColor, TPacked>
+  nameWithType.vb: InvertProcessor(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.InvertProcessor(Of TColor, TPacked)
+  name.vb: InvertProcessor(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.InvertProcessor`2
+    name: InvertProcessor
+    nameWithType: InvertProcessor
+    fullName: ImageSharp.Processors.InvertProcessor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.InvertProcessor`2
+    name: InvertProcessor
+    nameWithType: InvertProcessor
+    fullName: ImageSharp.Processors.InvertProcessor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.VignetteProcessor`2
+  commentId: T:ImageSharp.Processors.VignetteProcessor`2
+  isExternal: false
+  name: VignetteProcessor<TColor, TPacked>
+  nameWithType: VignetteProcessor<TColor, TPacked>
+  fullName: ImageSharp.Processors.VignetteProcessor<TColor, TPacked>
+  nameWithType.vb: VignetteProcessor(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.VignetteProcessor(Of TColor, TPacked)
+  name.vb: VignetteProcessor(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.VignetteProcessor`2
+    name: VignetteProcessor
+    nameWithType: VignetteProcessor
+    fullName: ImageSharp.Processors.VignetteProcessor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.VignetteProcessor`2
+    name: VignetteProcessor
+    nameWithType: VignetteProcessor
+    fullName: ImageSharp.Processors.VignetteProcessor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.BinaryThresholdProcessor`2
+  commentId: T:ImageSharp.Processors.BinaryThresholdProcessor`2
+  isExternal: false
+  name: BinaryThresholdProcessor<TColor, TPacked>
+  nameWithType: BinaryThresholdProcessor<TColor, TPacked>
+  fullName: ImageSharp.Processors.BinaryThresholdProcessor<TColor, TPacked>
+  nameWithType.vb: BinaryThresholdProcessor(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.BinaryThresholdProcessor(Of TColor, TPacked)
+  name.vb: BinaryThresholdProcessor(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.BinaryThresholdProcessor`2
+    name: BinaryThresholdProcessor
+    nameWithType: BinaryThresholdProcessor
+    fullName: ImageSharp.Processors.BinaryThresholdProcessor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.BinaryThresholdProcessor`2
+    name: BinaryThresholdProcessor
+    nameWithType: BinaryThresholdProcessor
+    fullName: ImageSharp.Processors.BinaryThresholdProcessor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.BlackWhiteProcessor`2
+  commentId: T:ImageSharp.Processors.BlackWhiteProcessor`2
+  isExternal: false
+  name: BlackWhiteProcessor<TColor, TPacked>
+  nameWithType: BlackWhiteProcessor<TColor, TPacked>
+  fullName: ImageSharp.Processors.BlackWhiteProcessor<TColor, TPacked>
+  nameWithType.vb: BlackWhiteProcessor(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.BlackWhiteProcessor(Of TColor, TPacked)
+  name.vb: BlackWhiteProcessor(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.BlackWhiteProcessor`2
+    name: BlackWhiteProcessor
+    nameWithType: BlackWhiteProcessor
+    fullName: ImageSharp.Processors.BlackWhiteProcessor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.BlackWhiteProcessor`2
+    name: BlackWhiteProcessor
+    nameWithType: BlackWhiteProcessor
+    fullName: ImageSharp.Processors.BlackWhiteProcessor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.ColorMatrixFilter`2
+  commentId: T:ImageSharp.Processors.ColorMatrixFilter`2
+  isExternal: false
+  name: ColorMatrixFilter<TColor, TPacked>
+  nameWithType: ColorMatrixFilter<TColor, TPacked>
+  fullName: ImageSharp.Processors.ColorMatrixFilter<TColor, TPacked>
+  nameWithType.vb: ColorMatrixFilter(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.ColorMatrixFilter(Of TColor, TPacked)
+  name.vb: ColorMatrixFilter(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.ColorMatrixFilter`2
+    name: ColorMatrixFilter
+    nameWithType: ColorMatrixFilter
+    fullName: ImageSharp.Processors.ColorMatrixFilter
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.ColorMatrixFilter`2
+    name: ColorMatrixFilter
+    nameWithType: ColorMatrixFilter
+    fullName: ImageSharp.Processors.ColorMatrixFilter
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.GrayscaleBt601Processor`2
+  commentId: T:ImageSharp.Processors.GrayscaleBt601Processor`2
+  isExternal: false
+  name: GrayscaleBt601Processor<TColor, TPacked>
+  nameWithType: GrayscaleBt601Processor<TColor, TPacked>
+  fullName: ImageSharp.Processors.GrayscaleBt601Processor<TColor, TPacked>
+  nameWithType.vb: GrayscaleBt601Processor(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.GrayscaleBt601Processor(Of TColor, TPacked)
+  name.vb: GrayscaleBt601Processor(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.GrayscaleBt601Processor`2
+    name: GrayscaleBt601Processor
+    nameWithType: GrayscaleBt601Processor
+    fullName: ImageSharp.Processors.GrayscaleBt601Processor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.GrayscaleBt601Processor`2
+    name: GrayscaleBt601Processor
+    nameWithType: GrayscaleBt601Processor
+    fullName: ImageSharp.Processors.GrayscaleBt601Processor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.GrayscaleBt709Processor`2
+  commentId: T:ImageSharp.Processors.GrayscaleBt709Processor`2
+  isExternal: false
+  name: GrayscaleBt709Processor<TColor, TPacked>
+  nameWithType: GrayscaleBt709Processor<TColor, TPacked>
+  fullName: ImageSharp.Processors.GrayscaleBt709Processor<TColor, TPacked>
+  nameWithType.vb: GrayscaleBt709Processor(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.GrayscaleBt709Processor(Of TColor, TPacked)
+  name.vb: GrayscaleBt709Processor(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.GrayscaleBt709Processor`2
+    name: GrayscaleBt709Processor
+    nameWithType: GrayscaleBt709Processor
+    fullName: ImageSharp.Processors.GrayscaleBt709Processor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.GrayscaleBt709Processor`2
+    name: GrayscaleBt709Processor
+    nameWithType: GrayscaleBt709Processor
+    fullName: ImageSharp.Processors.GrayscaleBt709Processor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.HueProcessor`2
+  commentId: T:ImageSharp.Processors.HueProcessor`2
+  isExternal: false
+  name: HueProcessor<TColor, TPacked>
+  nameWithType: HueProcessor<TColor, TPacked>
+  fullName: ImageSharp.Processors.HueProcessor<TColor, TPacked>
+  nameWithType.vb: HueProcessor(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.HueProcessor(Of TColor, TPacked)
+  name.vb: HueProcessor(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.HueProcessor`2
+    name: HueProcessor
+    nameWithType: HueProcessor
+    fullName: ImageSharp.Processors.HueProcessor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.HueProcessor`2
+    name: HueProcessor
+    nameWithType: HueProcessor
+    fullName: ImageSharp.Processors.HueProcessor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.IColorMatrixFilter`2
+  commentId: T:ImageSharp.Processors.IColorMatrixFilter`2
+  isExternal: false
+  name: IColorMatrixFilter<TColor, TPacked>
+  nameWithType: IColorMatrixFilter<TColor, TPacked>
+  fullName: ImageSharp.Processors.IColorMatrixFilter<TColor, TPacked>
+  nameWithType.vb: IColorMatrixFilter(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.IColorMatrixFilter(Of TColor, TPacked)
+  name.vb: IColorMatrixFilter(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.IColorMatrixFilter`2
+    name: IColorMatrixFilter
+    nameWithType: IColorMatrixFilter
+    fullName: ImageSharp.Processors.IColorMatrixFilter
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.IColorMatrixFilter`2
+    name: IColorMatrixFilter
+    nameWithType: IColorMatrixFilter
+    fullName: ImageSharp.Processors.IColorMatrixFilter
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.KodachromeProcessor`2
+  commentId: T:ImageSharp.Processors.KodachromeProcessor`2
+  isExternal: false
+  name: KodachromeProcessor<TColor, TPacked>
+  nameWithType: KodachromeProcessor<TColor, TPacked>
+  fullName: ImageSharp.Processors.KodachromeProcessor<TColor, TPacked>
+  nameWithType.vb: KodachromeProcessor(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.KodachromeProcessor(Of TColor, TPacked)
+  name.vb: KodachromeProcessor(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.KodachromeProcessor`2
+    name: KodachromeProcessor
+    nameWithType: KodachromeProcessor
+    fullName: ImageSharp.Processors.KodachromeProcessor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.KodachromeProcessor`2
+    name: KodachromeProcessor
+    nameWithType: KodachromeProcessor
+    fullName: ImageSharp.Processors.KodachromeProcessor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.LomographProcessor`2
+  commentId: T:ImageSharp.Processors.LomographProcessor`2
+  isExternal: false
+  name: LomographProcessor<TColor, TPacked>
+  nameWithType: LomographProcessor<TColor, TPacked>
+  fullName: ImageSharp.Processors.LomographProcessor<TColor, TPacked>
+  nameWithType.vb: LomographProcessor(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.LomographProcessor(Of TColor, TPacked)
+  name.vb: LomographProcessor(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.LomographProcessor`2
+    name: LomographProcessor
+    nameWithType: LomographProcessor
+    fullName: ImageSharp.Processors.LomographProcessor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.LomographProcessor`2
+    name: LomographProcessor
+    nameWithType: LomographProcessor
+    fullName: ImageSharp.Processors.LomographProcessor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.PolaroidProcessor`2
+  commentId: T:ImageSharp.Processors.PolaroidProcessor`2
+  isExternal: false
+  name: PolaroidProcessor<TColor, TPacked>
+  nameWithType: PolaroidProcessor<TColor, TPacked>
+  fullName: ImageSharp.Processors.PolaroidProcessor<TColor, TPacked>
+  nameWithType.vb: PolaroidProcessor(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.PolaroidProcessor(Of TColor, TPacked)
+  name.vb: PolaroidProcessor(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.PolaroidProcessor`2
+    name: PolaroidProcessor
+    nameWithType: PolaroidProcessor
+    fullName: ImageSharp.Processors.PolaroidProcessor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.PolaroidProcessor`2
+    name: PolaroidProcessor
+    nameWithType: PolaroidProcessor
+    fullName: ImageSharp.Processors.PolaroidProcessor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.SaturationProcessor`2
+  commentId: T:ImageSharp.Processors.SaturationProcessor`2
+  isExternal: false
+  name: SaturationProcessor<TColor, TPacked>
+  nameWithType: SaturationProcessor<TColor, TPacked>
+  fullName: ImageSharp.Processors.SaturationProcessor<TColor, TPacked>
+  nameWithType.vb: SaturationProcessor(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.SaturationProcessor(Of TColor, TPacked)
+  name.vb: SaturationProcessor(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.SaturationProcessor`2
+    name: SaturationProcessor
+    nameWithType: SaturationProcessor
+    fullName: ImageSharp.Processors.SaturationProcessor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.SaturationProcessor`2
+    name: SaturationProcessor
+    nameWithType: SaturationProcessor
+    fullName: ImageSharp.Processors.SaturationProcessor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.SepiaProcessor`2
+  commentId: T:ImageSharp.Processors.SepiaProcessor`2
+  isExternal: false
+  name: SepiaProcessor<TColor, TPacked>
+  nameWithType: SepiaProcessor<TColor, TPacked>
+  fullName: ImageSharp.Processors.SepiaProcessor<TColor, TPacked>
+  nameWithType.vb: SepiaProcessor(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.SepiaProcessor(Of TColor, TPacked)
+  name.vb: SepiaProcessor(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.SepiaProcessor`2
+    name: SepiaProcessor
+    nameWithType: SepiaProcessor
+    fullName: ImageSharp.Processors.SepiaProcessor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.SepiaProcessor`2
+    name: SepiaProcessor
+    nameWithType: SepiaProcessor
+    fullName: ImageSharp.Processors.SepiaProcessor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.AchromatomalyProcessor`2
+  commentId: T:ImageSharp.Processors.AchromatomalyProcessor`2
+  isExternal: false
+  name: AchromatomalyProcessor<TColor, TPacked>
+  nameWithType: AchromatomalyProcessor<TColor, TPacked>
+  fullName: ImageSharp.Processors.AchromatomalyProcessor<TColor, TPacked>
+  nameWithType.vb: AchromatomalyProcessor(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.AchromatomalyProcessor(Of TColor, TPacked)
+  name.vb: AchromatomalyProcessor(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.AchromatomalyProcessor`2
+    name: AchromatomalyProcessor
+    nameWithType: AchromatomalyProcessor
+    fullName: ImageSharp.Processors.AchromatomalyProcessor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.AchromatomalyProcessor`2
+    name: AchromatomalyProcessor
+    nameWithType: AchromatomalyProcessor
+    fullName: ImageSharp.Processors.AchromatomalyProcessor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.AchromatopsiaProcessor`2
+  commentId: T:ImageSharp.Processors.AchromatopsiaProcessor`2
+  isExternal: false
+  name: AchromatopsiaProcessor<TColor, TPacked>
+  nameWithType: AchromatopsiaProcessor<TColor, TPacked>
+  fullName: ImageSharp.Processors.AchromatopsiaProcessor<TColor, TPacked>
+  nameWithType.vb: AchromatopsiaProcessor(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.AchromatopsiaProcessor(Of TColor, TPacked)
+  name.vb: AchromatopsiaProcessor(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.AchromatopsiaProcessor`2
+    name: AchromatopsiaProcessor
+    nameWithType: AchromatopsiaProcessor
+    fullName: ImageSharp.Processors.AchromatopsiaProcessor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.AchromatopsiaProcessor`2
+    name: AchromatopsiaProcessor
+    nameWithType: AchromatopsiaProcessor
+    fullName: ImageSharp.Processors.AchromatopsiaProcessor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.DeuteranomalyProcessor`2
+  commentId: T:ImageSharp.Processors.DeuteranomalyProcessor`2
+  isExternal: false
+  name: DeuteranomalyProcessor<TColor, TPacked>
+  nameWithType: DeuteranomalyProcessor<TColor, TPacked>
+  fullName: ImageSharp.Processors.DeuteranomalyProcessor<TColor, TPacked>
+  nameWithType.vb: DeuteranomalyProcessor(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.DeuteranomalyProcessor(Of TColor, TPacked)
+  name.vb: DeuteranomalyProcessor(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.DeuteranomalyProcessor`2
+    name: DeuteranomalyProcessor
+    nameWithType: DeuteranomalyProcessor
+    fullName: ImageSharp.Processors.DeuteranomalyProcessor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.DeuteranomalyProcessor`2
+    name: DeuteranomalyProcessor
+    nameWithType: DeuteranomalyProcessor
+    fullName: ImageSharp.Processors.DeuteranomalyProcessor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.DeuteranopiaProcessor`2
+  commentId: T:ImageSharp.Processors.DeuteranopiaProcessor`2
+  isExternal: false
+  name: DeuteranopiaProcessor<TColor, TPacked>
+  nameWithType: DeuteranopiaProcessor<TColor, TPacked>
+  fullName: ImageSharp.Processors.DeuteranopiaProcessor<TColor, TPacked>
+  nameWithType.vb: DeuteranopiaProcessor(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.DeuteranopiaProcessor(Of TColor, TPacked)
+  name.vb: DeuteranopiaProcessor(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.DeuteranopiaProcessor`2
+    name: DeuteranopiaProcessor
+    nameWithType: DeuteranopiaProcessor
+    fullName: ImageSharp.Processors.DeuteranopiaProcessor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.DeuteranopiaProcessor`2
+    name: DeuteranopiaProcessor
+    nameWithType: DeuteranopiaProcessor
+    fullName: ImageSharp.Processors.DeuteranopiaProcessor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.ProtanomalyProcessor`2
+  commentId: T:ImageSharp.Processors.ProtanomalyProcessor`2
+  isExternal: false
+  name: ProtanomalyProcessor<TColor, TPacked>
+  nameWithType: ProtanomalyProcessor<TColor, TPacked>
+  fullName: ImageSharp.Processors.ProtanomalyProcessor<TColor, TPacked>
+  nameWithType.vb: ProtanomalyProcessor(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.ProtanomalyProcessor(Of TColor, TPacked)
+  name.vb: ProtanomalyProcessor(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.ProtanomalyProcessor`2
+    name: ProtanomalyProcessor
+    nameWithType: ProtanomalyProcessor
+    fullName: ImageSharp.Processors.ProtanomalyProcessor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.ProtanomalyProcessor`2
+    name: ProtanomalyProcessor
+    nameWithType: ProtanomalyProcessor
+    fullName: ImageSharp.Processors.ProtanomalyProcessor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.ProtanopiaProcessor`2
+  commentId: T:ImageSharp.Processors.ProtanopiaProcessor`2
+  isExternal: false
+  name: ProtanopiaProcessor<TColor, TPacked>
+  nameWithType: ProtanopiaProcessor<TColor, TPacked>
+  fullName: ImageSharp.Processors.ProtanopiaProcessor<TColor, TPacked>
+  nameWithType.vb: ProtanopiaProcessor(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.ProtanopiaProcessor(Of TColor, TPacked)
+  name.vb: ProtanopiaProcessor(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.ProtanopiaProcessor`2
+    name: ProtanopiaProcessor
+    nameWithType: ProtanopiaProcessor
+    fullName: ImageSharp.Processors.ProtanopiaProcessor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.ProtanopiaProcessor`2
+    name: ProtanopiaProcessor
+    nameWithType: ProtanopiaProcessor
+    fullName: ImageSharp.Processors.ProtanopiaProcessor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.TritanomalyProcessor`2
+  commentId: T:ImageSharp.Processors.TritanomalyProcessor`2
+  isExternal: false
+  name: TritanomalyProcessor<TColor, TPacked>
+  nameWithType: TritanomalyProcessor<TColor, TPacked>
+  fullName: ImageSharp.Processors.TritanomalyProcessor<TColor, TPacked>
+  nameWithType.vb: TritanomalyProcessor(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.TritanomalyProcessor(Of TColor, TPacked)
+  name.vb: TritanomalyProcessor(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.TritanomalyProcessor`2
+    name: TritanomalyProcessor
+    nameWithType: TritanomalyProcessor
+    fullName: ImageSharp.Processors.TritanomalyProcessor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.TritanomalyProcessor`2
+    name: TritanomalyProcessor
+    nameWithType: TritanomalyProcessor
+    fullName: ImageSharp.Processors.TritanomalyProcessor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.TritanopiaProcessor`2
+  commentId: T:ImageSharp.Processors.TritanopiaProcessor`2
+  isExternal: false
+  name: TritanopiaProcessor<TColor, TPacked>
+  nameWithType: TritanopiaProcessor<TColor, TPacked>
+  fullName: ImageSharp.Processors.TritanopiaProcessor<TColor, TPacked>
+  nameWithType.vb: TritanopiaProcessor(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.TritanopiaProcessor(Of TColor, TPacked)
+  name.vb: TritanopiaProcessor(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.TritanopiaProcessor`2
+    name: TritanopiaProcessor
+    nameWithType: TritanopiaProcessor
+    fullName: ImageSharp.Processors.TritanopiaProcessor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.TritanopiaProcessor`2
+    name: TritanopiaProcessor
+    nameWithType: TritanopiaProcessor
+    fullName: ImageSharp.Processors.TritanopiaProcessor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.IImageProcessor
+  commentId: T:ImageSharp.Processors.IImageProcessor
+  parent: ImageSharp.Processors
+  isExternal: false
+  name: IImageProcessor
+  nameWithType: IImageProcessor
+  fullName: ImageSharp.Processors.IImageProcessor
+- uid: ImageSharp.Processors.CompandingResizeProcessor`2
+  commentId: T:ImageSharp.Processors.CompandingResizeProcessor`2
+  isExternal: false
+  name: CompandingResizeProcessor<TColor, TPacked>
+  nameWithType: CompandingResizeProcessor<TColor, TPacked>
+  fullName: ImageSharp.Processors.CompandingResizeProcessor<TColor, TPacked>
+  nameWithType.vb: CompandingResizeProcessor(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.CompandingResizeProcessor(Of TColor, TPacked)
+  name.vb: CompandingResizeProcessor(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.CompandingResizeProcessor`2
+    name: CompandingResizeProcessor
+    nameWithType: CompandingResizeProcessor
+    fullName: ImageSharp.Processors.CompandingResizeProcessor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.CompandingResizeProcessor`2
+    name: CompandingResizeProcessor
+    nameWithType: CompandingResizeProcessor
+    fullName: ImageSharp.Processors.CompandingResizeProcessor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.CropProcessor`2
+  commentId: T:ImageSharp.Processors.CropProcessor`2
+  isExternal: false
+  name: CropProcessor<TColor, TPacked>
+  nameWithType: CropProcessor<TColor, TPacked>
+  fullName: ImageSharp.Processors.CropProcessor<TColor, TPacked>
+  nameWithType.vb: CropProcessor(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.CropProcessor(Of TColor, TPacked)
+  name.vb: CropProcessor(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.CropProcessor`2
+    name: CropProcessor
+    nameWithType: CropProcessor
+    fullName: ImageSharp.Processors.CropProcessor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.CropProcessor`2
+    name: CropProcessor
+    nameWithType: CropProcessor
+    fullName: ImageSharp.Processors.CropProcessor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.EntropyCropProcessor`2
+  commentId: T:ImageSharp.Processors.EntropyCropProcessor`2
+  isExternal: false
+  name: EntropyCropProcessor<TColor, TPacked>
+  nameWithType: EntropyCropProcessor<TColor, TPacked>
+  fullName: ImageSharp.Processors.EntropyCropProcessor<TColor, TPacked>
+  nameWithType.vb: EntropyCropProcessor(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.EntropyCropProcessor(Of TColor, TPacked)
+  name.vb: EntropyCropProcessor(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.EntropyCropProcessor`2
+    name: EntropyCropProcessor
+    nameWithType: EntropyCropProcessor
+    fullName: ImageSharp.Processors.EntropyCropProcessor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.EntropyCropProcessor`2
+    name: EntropyCropProcessor
+    nameWithType: EntropyCropProcessor
+    fullName: ImageSharp.Processors.EntropyCropProcessor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.FlipProcessor`2
+  commentId: T:ImageSharp.Processors.FlipProcessor`2
+  isExternal: false
+  name: FlipProcessor<TColor, TPacked>
+  nameWithType: FlipProcessor<TColor, TPacked>
+  fullName: ImageSharp.Processors.FlipProcessor<TColor, TPacked>
+  nameWithType.vb: FlipProcessor(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.FlipProcessor(Of TColor, TPacked)
+  name.vb: FlipProcessor(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.FlipProcessor`2
+    name: FlipProcessor
+    nameWithType: FlipProcessor
+    fullName: ImageSharp.Processors.FlipProcessor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.FlipProcessor`2
+    name: FlipProcessor
+    nameWithType: FlipProcessor
+    fullName: ImageSharp.Processors.FlipProcessor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.IImageSampler`2
+  commentId: T:ImageSharp.Processors.IImageSampler`2
+  isExternal: false
+  name: IImageSampler<TColor, TPacked>
+  nameWithType: IImageSampler<TColor, TPacked>
+  fullName: ImageSharp.Processors.IImageSampler<TColor, TPacked>
+  nameWithType.vb: IImageSampler(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.IImageSampler(Of TColor, TPacked)
+  name.vb: IImageSampler(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.IImageSampler`2
+    name: IImageSampler
+    nameWithType: IImageSampler
+    fullName: ImageSharp.Processors.IImageSampler
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.IImageSampler`2
+    name: IImageSampler
+    nameWithType: IImageSampler
+    fullName: ImageSharp.Processors.IImageSampler
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.ImageSampler`2
+  commentId: T:ImageSharp.Processors.ImageSampler`2
+  isExternal: false
+  name: ImageSampler<TColor, TPacked>
+  nameWithType: ImageSampler<TColor, TPacked>
+  fullName: ImageSharp.Processors.ImageSampler<TColor, TPacked>
+  nameWithType.vb: ImageSampler(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.ImageSampler(Of TColor, TPacked)
+  name.vb: ImageSampler(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.ImageSampler`2
+    name: ImageSampler
+    nameWithType: ImageSampler
+    fullName: ImageSharp.Processors.ImageSampler
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.ImageSampler`2
+    name: ImageSampler
+    nameWithType: ImageSampler
+    fullName: ImageSharp.Processors.ImageSampler
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.Matrix3x2Processor`2
+  commentId: T:ImageSharp.Processors.Matrix3x2Processor`2
+  isExternal: false
+  name: Matrix3x2Processor<TColor, TPacked>
+  nameWithType: Matrix3x2Processor<TColor, TPacked>
+  fullName: ImageSharp.Processors.Matrix3x2Processor<TColor, TPacked>
+  nameWithType.vb: Matrix3x2Processor(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.Matrix3x2Processor(Of TColor, TPacked)
+  name.vb: Matrix3x2Processor(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.Matrix3x2Processor`2
+    name: Matrix3x2Processor
+    nameWithType: Matrix3x2Processor
+    fullName: ImageSharp.Processors.Matrix3x2Processor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.Matrix3x2Processor`2
+    name: Matrix3x2Processor
+    nameWithType: Matrix3x2Processor
+    fullName: ImageSharp.Processors.Matrix3x2Processor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.OilPaintingProcessor`2
+  commentId: T:ImageSharp.Processors.OilPaintingProcessor`2
+  isExternal: false
+  name: OilPaintingProcessor<TColor, TPacked>
+  nameWithType: OilPaintingProcessor<TColor, TPacked>
+  fullName: ImageSharp.Processors.OilPaintingProcessor<TColor, TPacked>
+  nameWithType.vb: OilPaintingProcessor(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.OilPaintingProcessor(Of TColor, TPacked)
+  name.vb: OilPaintingProcessor(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.OilPaintingProcessor`2
+    name: OilPaintingProcessor
+    nameWithType: OilPaintingProcessor
+    fullName: ImageSharp.Processors.OilPaintingProcessor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.OilPaintingProcessor`2
+    name: OilPaintingProcessor
+    nameWithType: OilPaintingProcessor
+    fullName: ImageSharp.Processors.OilPaintingProcessor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.PixelateProcessor`2
+  commentId: T:ImageSharp.Processors.PixelateProcessor`2
+  isExternal: false
+  name: PixelateProcessor<TColor, TPacked>
+  nameWithType: PixelateProcessor<TColor, TPacked>
+  fullName: ImageSharp.Processors.PixelateProcessor<TColor, TPacked>
+  nameWithType.vb: PixelateProcessor(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.PixelateProcessor(Of TColor, TPacked)
+  name.vb: PixelateProcessor(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.PixelateProcessor`2
+    name: PixelateProcessor
+    nameWithType: PixelateProcessor
+    fullName: ImageSharp.Processors.PixelateProcessor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.PixelateProcessor`2
+    name: PixelateProcessor
+    nameWithType: PixelateProcessor
+    fullName: ImageSharp.Processors.PixelateProcessor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.ResamplingWeightedProcessor`2
+  commentId: T:ImageSharp.Processors.ResamplingWeightedProcessor`2
+  isExternal: false
+  name: ResamplingWeightedProcessor<TColor, TPacked>
+  nameWithType: ResamplingWeightedProcessor<TColor, TPacked>
+  fullName: ImageSharp.Processors.ResamplingWeightedProcessor<TColor, TPacked>
+  nameWithType.vb: ResamplingWeightedProcessor(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.ResamplingWeightedProcessor(Of TColor, TPacked)
+  name.vb: ResamplingWeightedProcessor(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.ResamplingWeightedProcessor`2
+    name: ResamplingWeightedProcessor
+    nameWithType: ResamplingWeightedProcessor
+    fullName: ImageSharp.Processors.ResamplingWeightedProcessor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.ResamplingWeightedProcessor`2
+    name: ResamplingWeightedProcessor
+    nameWithType: ResamplingWeightedProcessor
+    fullName: ImageSharp.Processors.ResamplingWeightedProcessor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.ResamplingWeightedProcessor`2.Weight
+  commentId: T:ImageSharp.Processors.ResamplingWeightedProcessor`2.Weight
+  isExternal: false
+  name: ResamplingWeightedProcessor.Weight<>
+  nameWithType: ResamplingWeightedProcessor.Weight<>
+  fullName: ImageSharp.Processors.ResamplingWeightedProcessor.Weight<>
+  nameWithType.vb: ResamplingWeightedProcessor.Weight(Of )
+  fullname.vb: ImageSharp.Processors.ResamplingWeightedProcessor.Weight(Of )
+  name.vb: ResamplingWeightedProcessor.Weight(Of )
+  spec.csharp:
+  - uid: ImageSharp.Processors.ResamplingWeightedProcessor`2.Weight
+    name: ResamplingWeightedProcessor.Weight
+    nameWithType: ResamplingWeightedProcessor.Weight
+    fullName: ImageSharp.Processors.ResamplingWeightedProcessor.Weight
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.ResamplingWeightedProcessor`2.Weight
+    name: ResamplingWeightedProcessor.Weight
+    nameWithType: ResamplingWeightedProcessor.Weight
+    fullName: ImageSharp.Processors.ResamplingWeightedProcessor.Weight
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.ResamplingWeightedProcessor`2.Weights
+  commentId: T:ImageSharp.Processors.ResamplingWeightedProcessor`2.Weights
+  isExternal: false
+  name: ResamplingWeightedProcessor.Weights<>
+  nameWithType: ResamplingWeightedProcessor.Weights<>
+  fullName: ImageSharp.Processors.ResamplingWeightedProcessor.Weights<>
+  nameWithType.vb: ResamplingWeightedProcessor.Weights(Of )
+  fullname.vb: ImageSharp.Processors.ResamplingWeightedProcessor.Weights(Of )
+  name.vb: ResamplingWeightedProcessor.Weights(Of )
+  spec.csharp:
+  - uid: ImageSharp.Processors.ResamplingWeightedProcessor`2.Weights
+    name: ResamplingWeightedProcessor.Weights
+    nameWithType: ResamplingWeightedProcessor.Weights
+    fullName: ImageSharp.Processors.ResamplingWeightedProcessor.Weights
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.ResamplingWeightedProcessor`2.Weights
+    name: ResamplingWeightedProcessor.Weights
+    nameWithType: ResamplingWeightedProcessor.Weights
+    fullName: ImageSharp.Processors.ResamplingWeightedProcessor.Weights
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.ResizeProcessor`2
+  commentId: T:ImageSharp.Processors.ResizeProcessor`2
+  isExternal: false
+  name: ResizeProcessor<TColor, TPacked>
+  nameWithType: ResizeProcessor<TColor, TPacked>
+  fullName: ImageSharp.Processors.ResizeProcessor<TColor, TPacked>
+  nameWithType.vb: ResizeProcessor(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.ResizeProcessor(Of TColor, TPacked)
+  name.vb: ResizeProcessor(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.ResizeProcessor`2
+    name: ResizeProcessor
+    nameWithType: ResizeProcessor
+    fullName: ImageSharp.Processors.ResizeProcessor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.ResizeProcessor`2
+    name: ResizeProcessor
+    nameWithType: ResizeProcessor
+    fullName: ImageSharp.Processors.ResizeProcessor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.RotateProcessor`2
+  commentId: T:ImageSharp.Processors.RotateProcessor`2
+  isExternal: false
+  name: RotateProcessor<TColor, TPacked>
+  nameWithType: RotateProcessor<TColor, TPacked>
+  fullName: ImageSharp.Processors.RotateProcessor<TColor, TPacked>
+  nameWithType.vb: RotateProcessor(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.RotateProcessor(Of TColor, TPacked)
+  name.vb: RotateProcessor(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.RotateProcessor`2
+    name: RotateProcessor
+    nameWithType: RotateProcessor
+    fullName: ImageSharp.Processors.RotateProcessor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.RotateProcessor`2
+    name: RotateProcessor
+    nameWithType: RotateProcessor
+    fullName: ImageSharp.Processors.RotateProcessor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.SkewProcessor`2
+  commentId: T:ImageSharp.Processors.SkewProcessor`2
+  isExternal: false
+  name: SkewProcessor<TColor, TPacked>
+  nameWithType: SkewProcessor<TColor, TPacked>
+  fullName: ImageSharp.Processors.SkewProcessor<TColor, TPacked>
+  nameWithType.vb: SkewProcessor(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.SkewProcessor(Of TColor, TPacked)
+  name.vb: SkewProcessor(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.SkewProcessor`2
+    name: SkewProcessor
+    nameWithType: SkewProcessor
+    fullName: ImageSharp.Processors.SkewProcessor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.SkewProcessor`2
+    name: SkewProcessor
+    nameWithType: SkewProcessor
+    fullName: ImageSharp.Processors.SkewProcessor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.BoxBlurProcessor`2
+  commentId: T:ImageSharp.Processors.BoxBlurProcessor`2
+  isExternal: false
+  name: BoxBlurProcessor<TColor, TPacked>
+  nameWithType: BoxBlurProcessor<TColor, TPacked>
+  fullName: ImageSharp.Processors.BoxBlurProcessor<TColor, TPacked>
+  nameWithType.vb: BoxBlurProcessor(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.BoxBlurProcessor(Of TColor, TPacked)
+  name.vb: BoxBlurProcessor(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.BoxBlurProcessor`2
+    name: BoxBlurProcessor
+    nameWithType: BoxBlurProcessor
+    fullName: ImageSharp.Processors.BoxBlurProcessor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.BoxBlurProcessor`2
+    name: BoxBlurProcessor
+    nameWithType: BoxBlurProcessor
+    fullName: ImageSharp.Processors.BoxBlurProcessor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.Convolution2DFilter`2
+  commentId: T:ImageSharp.Processors.Convolution2DFilter`2
+  isExternal: false
+  name: Convolution2DFilter<TColor, TPacked>
+  nameWithType: Convolution2DFilter<TColor, TPacked>
+  fullName: ImageSharp.Processors.Convolution2DFilter<TColor, TPacked>
+  nameWithType.vb: Convolution2DFilter(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.Convolution2DFilter(Of TColor, TPacked)
+  name.vb: Convolution2DFilter(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.Convolution2DFilter`2
+    name: Convolution2DFilter
+    nameWithType: Convolution2DFilter
+    fullName: ImageSharp.Processors.Convolution2DFilter
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.Convolution2DFilter`2
+    name: Convolution2DFilter
+    nameWithType: Convolution2DFilter
+    fullName: ImageSharp.Processors.Convolution2DFilter
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.Convolution2PassFilter`2
+  commentId: T:ImageSharp.Processors.Convolution2PassFilter`2
+  isExternal: false
+  name: Convolution2PassFilter<TColor, TPacked>
+  nameWithType: Convolution2PassFilter<TColor, TPacked>
+  fullName: ImageSharp.Processors.Convolution2PassFilter<TColor, TPacked>
+  nameWithType.vb: Convolution2PassFilter(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.Convolution2PassFilter(Of TColor, TPacked)
+  name.vb: Convolution2PassFilter(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.Convolution2PassFilter`2
+    name: Convolution2PassFilter
+    nameWithType: Convolution2PassFilter
+    fullName: ImageSharp.Processors.Convolution2PassFilter
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.Convolution2PassFilter`2
+    name: Convolution2PassFilter
+    nameWithType: Convolution2PassFilter
+    fullName: ImageSharp.Processors.Convolution2PassFilter
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.ConvolutionFilter`2
+  commentId: T:ImageSharp.Processors.ConvolutionFilter`2
+  isExternal: false
+  name: ConvolutionFilter<TColor, TPacked>
+  nameWithType: ConvolutionFilter<TColor, TPacked>
+  fullName: ImageSharp.Processors.ConvolutionFilter<TColor, TPacked>
+  nameWithType.vb: ConvolutionFilter(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.ConvolutionFilter(Of TColor, TPacked)
+  name.vb: ConvolutionFilter(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.ConvolutionFilter`2
+    name: ConvolutionFilter
+    nameWithType: ConvolutionFilter
+    fullName: ImageSharp.Processors.ConvolutionFilter
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.ConvolutionFilter`2
+    name: ConvolutionFilter
+    nameWithType: ConvolutionFilter
+    fullName: ImageSharp.Processors.ConvolutionFilter
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.GuassianBlurProcessor`2
+  commentId: T:ImageSharp.Processors.GuassianBlurProcessor`2
+  isExternal: false
+  name: GuassianBlurProcessor<TColor, TPacked>
+  nameWithType: GuassianBlurProcessor<TColor, TPacked>
+  fullName: ImageSharp.Processors.GuassianBlurProcessor<TColor, TPacked>
+  nameWithType.vb: GuassianBlurProcessor(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.GuassianBlurProcessor(Of TColor, TPacked)
+  name.vb: GuassianBlurProcessor(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.GuassianBlurProcessor`2
+    name: GuassianBlurProcessor
+    nameWithType: GuassianBlurProcessor
+    fullName: ImageSharp.Processors.GuassianBlurProcessor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.GuassianBlurProcessor`2
+    name: GuassianBlurProcessor
+    nameWithType: GuassianBlurProcessor
+    fullName: ImageSharp.Processors.GuassianBlurProcessor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.GuassianSharpenProcessor`2
+  commentId: T:ImageSharp.Processors.GuassianSharpenProcessor`2
+  isExternal: false
+  name: GuassianSharpenProcessor<TColor, TPacked>
+  nameWithType: GuassianSharpenProcessor<TColor, TPacked>
+  fullName: ImageSharp.Processors.GuassianSharpenProcessor<TColor, TPacked>
+  nameWithType.vb: GuassianSharpenProcessor(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.GuassianSharpenProcessor(Of TColor, TPacked)
+  name.vb: GuassianSharpenProcessor(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.GuassianSharpenProcessor`2
+    name: GuassianSharpenProcessor
+    nameWithType: GuassianSharpenProcessor
+    fullName: ImageSharp.Processors.GuassianSharpenProcessor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.GuassianSharpenProcessor`2
+    name: GuassianSharpenProcessor
+    nameWithType: GuassianSharpenProcessor
+    fullName: ImageSharp.Processors.GuassianSharpenProcessor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.EdgeDetector2DFilter`2
+  commentId: T:ImageSharp.Processors.EdgeDetector2DFilter`2
+  isExternal: false
+  name: EdgeDetector2DFilter<TColor, TPacked>
+  nameWithType: EdgeDetector2DFilter<TColor, TPacked>
+  fullName: ImageSharp.Processors.EdgeDetector2DFilter<TColor, TPacked>
+  nameWithType.vb: EdgeDetector2DFilter(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.EdgeDetector2DFilter(Of TColor, TPacked)
+  name.vb: EdgeDetector2DFilter(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.EdgeDetector2DFilter`2
+    name: EdgeDetector2DFilter
+    nameWithType: EdgeDetector2DFilter
+    fullName: ImageSharp.Processors.EdgeDetector2DFilter
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.EdgeDetector2DFilter`2
+    name: EdgeDetector2DFilter
+    nameWithType: EdgeDetector2DFilter
+    fullName: ImageSharp.Processors.EdgeDetector2DFilter
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.EdgeDetectorCompassFilter`2
+  commentId: T:ImageSharp.Processors.EdgeDetectorCompassFilter`2
+  isExternal: false
+  name: EdgeDetectorCompassFilter<TColor, TPacked>
+  nameWithType: EdgeDetectorCompassFilter<TColor, TPacked>
+  fullName: ImageSharp.Processors.EdgeDetectorCompassFilter<TColor, TPacked>
+  nameWithType.vb: EdgeDetectorCompassFilter(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.EdgeDetectorCompassFilter(Of TColor, TPacked)
+  name.vb: EdgeDetectorCompassFilter(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.EdgeDetectorCompassFilter`2
+    name: EdgeDetectorCompassFilter
+    nameWithType: EdgeDetectorCompassFilter
+    fullName: ImageSharp.Processors.EdgeDetectorCompassFilter
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.EdgeDetectorCompassFilter`2
+    name: EdgeDetectorCompassFilter
+    nameWithType: EdgeDetectorCompassFilter
+    fullName: ImageSharp.Processors.EdgeDetectorCompassFilter
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.EdgeDetectorFilter`2
+  commentId: T:ImageSharp.Processors.EdgeDetectorFilter`2
+  isExternal: false
+  name: EdgeDetectorFilter<TColor, TPacked>
+  nameWithType: EdgeDetectorFilter<TColor, TPacked>
+  fullName: ImageSharp.Processors.EdgeDetectorFilter<TColor, TPacked>
+  nameWithType.vb: EdgeDetectorFilter(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.EdgeDetectorFilter(Of TColor, TPacked)
+  name.vb: EdgeDetectorFilter(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.EdgeDetectorFilter`2
+    name: EdgeDetectorFilter
+    nameWithType: EdgeDetectorFilter
+    fullName: ImageSharp.Processors.EdgeDetectorFilter
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.EdgeDetectorFilter`2
+    name: EdgeDetectorFilter
+    nameWithType: EdgeDetectorFilter
+    fullName: ImageSharp.Processors.EdgeDetectorFilter
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.IEdgeDetectorFilter`2
+  commentId: T:ImageSharp.Processors.IEdgeDetectorFilter`2
+  isExternal: false
+  name: IEdgeDetectorFilter<TColor, TPacked>
+  nameWithType: IEdgeDetectorFilter<TColor, TPacked>
+  fullName: ImageSharp.Processors.IEdgeDetectorFilter<TColor, TPacked>
+  nameWithType.vb: IEdgeDetectorFilter(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.IEdgeDetectorFilter(Of TColor, TPacked)
+  name.vb: IEdgeDetectorFilter(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.IEdgeDetectorFilter`2
+    name: IEdgeDetectorFilter
+    nameWithType: IEdgeDetectorFilter
+    fullName: ImageSharp.Processors.IEdgeDetectorFilter
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.IEdgeDetectorFilter`2
+    name: IEdgeDetectorFilter
+    nameWithType: IEdgeDetectorFilter
+    fullName: ImageSharp.Processors.IEdgeDetectorFilter
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.IEdgeDetectorFilter
+  commentId: T:ImageSharp.Processors.IEdgeDetectorFilter
+  parent: ImageSharp.Processors
+  isExternal: false
+  name: IEdgeDetectorFilter
+  nameWithType: IEdgeDetectorFilter
+  fullName: ImageSharp.Processors.IEdgeDetectorFilter
+- uid: ImageSharp.Processors.KayyaliProcessor`2
+  commentId: T:ImageSharp.Processors.KayyaliProcessor`2
+  isExternal: false
+  name: KayyaliProcessor<TColor, TPacked>
+  nameWithType: KayyaliProcessor<TColor, TPacked>
+  fullName: ImageSharp.Processors.KayyaliProcessor<TColor, TPacked>
+  nameWithType.vb: KayyaliProcessor(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.KayyaliProcessor(Of TColor, TPacked)
+  name.vb: KayyaliProcessor(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.KayyaliProcessor`2
+    name: KayyaliProcessor
+    nameWithType: KayyaliProcessor
+    fullName: ImageSharp.Processors.KayyaliProcessor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.KayyaliProcessor`2
+    name: KayyaliProcessor
+    nameWithType: KayyaliProcessor
+    fullName: ImageSharp.Processors.KayyaliProcessor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.KirschProcessor`2
+  commentId: T:ImageSharp.Processors.KirschProcessor`2
+  isExternal: false
+  name: KirschProcessor<TColor, TPacked>
+  nameWithType: KirschProcessor<TColor, TPacked>
+  fullName: ImageSharp.Processors.KirschProcessor<TColor, TPacked>
+  nameWithType.vb: KirschProcessor(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.KirschProcessor(Of TColor, TPacked)
+  name.vb: KirschProcessor(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.KirschProcessor`2
+    name: KirschProcessor
+    nameWithType: KirschProcessor
+    fullName: ImageSharp.Processors.KirschProcessor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.KirschProcessor`2
+    name: KirschProcessor
+    nameWithType: KirschProcessor
+    fullName: ImageSharp.Processors.KirschProcessor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.Laplacian3X3Processor`2
+  commentId: T:ImageSharp.Processors.Laplacian3X3Processor`2
+  isExternal: false
+  name: Laplacian3X3Processor<TColor, TPacked>
+  nameWithType: Laplacian3X3Processor<TColor, TPacked>
+  fullName: ImageSharp.Processors.Laplacian3X3Processor<TColor, TPacked>
+  nameWithType.vb: Laplacian3X3Processor(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.Laplacian3X3Processor(Of TColor, TPacked)
+  name.vb: Laplacian3X3Processor(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.Laplacian3X3Processor`2
+    name: Laplacian3X3Processor
+    nameWithType: Laplacian3X3Processor
+    fullName: ImageSharp.Processors.Laplacian3X3Processor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.Laplacian3X3Processor`2
+    name: Laplacian3X3Processor
+    nameWithType: Laplacian3X3Processor
+    fullName: ImageSharp.Processors.Laplacian3X3Processor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.Laplacian5X5Processor`2
+  commentId: T:ImageSharp.Processors.Laplacian5X5Processor`2
+  isExternal: false
+  name: Laplacian5X5Processor<TColor, TPacked>
+  nameWithType: Laplacian5X5Processor<TColor, TPacked>
+  fullName: ImageSharp.Processors.Laplacian5X5Processor<TColor, TPacked>
+  nameWithType.vb: Laplacian5X5Processor(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.Laplacian5X5Processor(Of TColor, TPacked)
+  name.vb: Laplacian5X5Processor(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.Laplacian5X5Processor`2
+    name: Laplacian5X5Processor
+    nameWithType: Laplacian5X5Processor
+    fullName: ImageSharp.Processors.Laplacian5X5Processor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.Laplacian5X5Processor`2
+    name: Laplacian5X5Processor
+    nameWithType: Laplacian5X5Processor
+    fullName: ImageSharp.Processors.Laplacian5X5Processor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.LaplacianOfGaussianProcessor`2
+  commentId: T:ImageSharp.Processors.LaplacianOfGaussianProcessor`2
+  isExternal: false
+  name: LaplacianOfGaussianProcessor<TColor, TPacked>
+  nameWithType: LaplacianOfGaussianProcessor<TColor, TPacked>
+  fullName: ImageSharp.Processors.LaplacianOfGaussianProcessor<TColor, TPacked>
+  nameWithType.vb: LaplacianOfGaussianProcessor(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.LaplacianOfGaussianProcessor(Of TColor, TPacked)
+  name.vb: LaplacianOfGaussianProcessor(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.LaplacianOfGaussianProcessor`2
+    name: LaplacianOfGaussianProcessor
+    nameWithType: LaplacianOfGaussianProcessor
+    fullName: ImageSharp.Processors.LaplacianOfGaussianProcessor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.LaplacianOfGaussianProcessor`2
+    name: LaplacianOfGaussianProcessor
+    nameWithType: LaplacianOfGaussianProcessor
+    fullName: ImageSharp.Processors.LaplacianOfGaussianProcessor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.PrewittProcessor`2
+  commentId: T:ImageSharp.Processors.PrewittProcessor`2
+  isExternal: false
+  name: PrewittProcessor<TColor, TPacked>
+  nameWithType: PrewittProcessor<TColor, TPacked>
+  fullName: ImageSharp.Processors.PrewittProcessor<TColor, TPacked>
+  nameWithType.vb: PrewittProcessor(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.PrewittProcessor(Of TColor, TPacked)
+  name.vb: PrewittProcessor(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.PrewittProcessor`2
+    name: PrewittProcessor
+    nameWithType: PrewittProcessor
+    fullName: ImageSharp.Processors.PrewittProcessor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.PrewittProcessor`2
+    name: PrewittProcessor
+    nameWithType: PrewittProcessor
+    fullName: ImageSharp.Processors.PrewittProcessor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.RobertsCrossProcessor`2
+  commentId: T:ImageSharp.Processors.RobertsCrossProcessor`2
+  isExternal: false
+  name: RobertsCrossProcessor<TColor, TPacked>
+  nameWithType: RobertsCrossProcessor<TColor, TPacked>
+  fullName: ImageSharp.Processors.RobertsCrossProcessor<TColor, TPacked>
+  nameWithType.vb: RobertsCrossProcessor(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.RobertsCrossProcessor(Of TColor, TPacked)
+  name.vb: RobertsCrossProcessor(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.RobertsCrossProcessor`2
+    name: RobertsCrossProcessor
+    nameWithType: RobertsCrossProcessor
+    fullName: ImageSharp.Processors.RobertsCrossProcessor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.RobertsCrossProcessor`2
+    name: RobertsCrossProcessor
+    nameWithType: RobertsCrossProcessor
+    fullName: ImageSharp.Processors.RobertsCrossProcessor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.RobinsonProcessor`2
+  commentId: T:ImageSharp.Processors.RobinsonProcessor`2
+  isExternal: false
+  name: RobinsonProcessor<TColor, TPacked>
+  nameWithType: RobinsonProcessor<TColor, TPacked>
+  fullName: ImageSharp.Processors.RobinsonProcessor<TColor, TPacked>
+  nameWithType.vb: RobinsonProcessor(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.RobinsonProcessor(Of TColor, TPacked)
+  name.vb: RobinsonProcessor(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.RobinsonProcessor`2
+    name: RobinsonProcessor
+    nameWithType: RobinsonProcessor
+    fullName: ImageSharp.Processors.RobinsonProcessor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.RobinsonProcessor`2
+    name: RobinsonProcessor
+    nameWithType: RobinsonProcessor
+    fullName: ImageSharp.Processors.RobinsonProcessor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.ScharrProcessor`2
+  commentId: T:ImageSharp.Processors.ScharrProcessor`2
+  isExternal: false
+  name: ScharrProcessor<TColor, TPacked>
+  nameWithType: ScharrProcessor<TColor, TPacked>
+  fullName: ImageSharp.Processors.ScharrProcessor<TColor, TPacked>
+  nameWithType.vb: ScharrProcessor(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.ScharrProcessor(Of TColor, TPacked)
+  name.vb: ScharrProcessor(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.ScharrProcessor`2
+    name: ScharrProcessor
+    nameWithType: ScharrProcessor
+    fullName: ImageSharp.Processors.ScharrProcessor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.ScharrProcessor`2
+    name: ScharrProcessor
+    nameWithType: ScharrProcessor
+    fullName: ImageSharp.Processors.ScharrProcessor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.SobelProcessor`2
+  commentId: T:ImageSharp.Processors.SobelProcessor`2
+  isExternal: false
+  name: SobelProcessor<TColor, TPacked>
+  nameWithType: SobelProcessor<TColor, TPacked>
+  fullName: ImageSharp.Processors.SobelProcessor<TColor, TPacked>
+  nameWithType.vb: SobelProcessor(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.SobelProcessor(Of TColor, TPacked)
+  name.vb: SobelProcessor(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.SobelProcessor`2
+    name: SobelProcessor
+    nameWithType: SobelProcessor
+    fullName: ImageSharp.Processors.SobelProcessor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.SobelProcessor`2
+    name: SobelProcessor
+    nameWithType: SobelProcessor
+    fullName: ImageSharp.Processors.SobelProcessor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.HermiteResampler
+  commentId: T:ImageSharp.Processors.HermiteResampler
+  isExternal: false
+  name: HermiteResampler
+  nameWithType: HermiteResampler
+  fullName: ImageSharp.Processors.HermiteResampler
+- uid: ImageSharp.Processors
+  commentId: N:ImageSharp.Processors
+  isExternal: false
+  name: ImageSharp.Processors
+  nameWithType: ImageSharp.Processors
+  fullName: ImageSharp.Processors

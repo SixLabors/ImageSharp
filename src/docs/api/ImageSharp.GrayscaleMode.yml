@@ -1,0 +1,108 @@
+### YamlMime:ManagedReference
+items:
+- uid: ImageSharp.GrayscaleMode
+  commentId: T:ImageSharp.GrayscaleMode
+  id: GrayscaleMode
+  parent: ImageSharp
+  children:
+  - ImageSharp.GrayscaleMode.Bt601
+  - ImageSharp.GrayscaleMode.Bt709
+  langs:
+  - csharp
+  - vb
+  name: GrayscaleMode
+  nameWithType: GrayscaleMode
+  fullName: ImageSharp.GrayscaleMode
+  type: Enum
+  source:
+    id: GrayscaleMode
+    path: ''
+    startLine: 5632
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nEnumerates the various types of defined Grayscale filters.\n"
+  example: []
+  syntax:
+    content: public enum GrayscaleMode
+    content.vb: Public Enum GrayscaleMode
+  modifiers.csharp:
+  - public
+  - enum
+  modifiers.vb:
+  - Public
+  - Enum
+- uid: ImageSharp.GrayscaleMode.Bt709
+  commentId: F:ImageSharp.GrayscaleMode.Bt709
+  id: Bt709
+  parent: ImageSharp.GrayscaleMode
+  langs:
+  - csharp
+  - vb
+  name: Bt709
+  nameWithType: GrayscaleMode.Bt709
+  fullName: ImageSharp.GrayscaleMode.Bt709
+  type: Field
+  source:
+    id: Bt709
+    path: ''
+    startLine: 5637
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nITU-R Recommendation BT.709\n"
+  example: []
+  syntax:
+    content: Bt709 = 0
+    return:
+      type: ImageSharp.GrayscaleMode
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.GrayscaleMode.Bt601
+  commentId: F:ImageSharp.GrayscaleMode.Bt601
+  id: Bt601
+  parent: ImageSharp.GrayscaleMode
+  langs:
+  - csharp
+  - vb
+  name: Bt601
+  nameWithType: GrayscaleMode.Bt601
+  fullName: ImageSharp.GrayscaleMode.Bt601
+  type: Field
+  source:
+    id: Bt601
+    path: ''
+    startLine: 5642
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nITU-R Recommendation BT.601\n"
+  example: []
+  syntax:
+    content: Bt601 = 1
+    return:
+      type: ImageSharp.GrayscaleMode
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+references:
+- uid: ImageSharp
+  commentId: N:ImageSharp
+  isExternal: false
+  name: ImageSharp
+  nameWithType: ImageSharp
+  fullName: ImageSharp
+- uid: ImageSharp.GrayscaleMode
+  commentId: T:ImageSharp.GrayscaleMode
+  parent: ImageSharp
+  isExternal: false
+  name: GrayscaleMode
+  nameWithType: GrayscaleMode
+  fullName: ImageSharp.GrayscaleMode

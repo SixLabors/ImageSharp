@@ -1,0 +1,108 @@
+### YamlMime:ManagedReference
+items:
+- uid: ImageSharp.Formats.BmpBitsPerPixel
+  commentId: T:ImageSharp.Formats.BmpBitsPerPixel
+  id: BmpBitsPerPixel
+  parent: ImageSharp.Formats
+  children:
+  - ImageSharp.Formats.BmpBitsPerPixel.Pixel24
+  - ImageSharp.Formats.BmpBitsPerPixel.Pixel32
+  langs:
+  - csharp
+  - vb
+  name: BmpBitsPerPixel
+  nameWithType: BmpBitsPerPixel
+  fullName: ImageSharp.Formats.BmpBitsPerPixel
+  type: Enum
+  source:
+    id: BmpBitsPerPixel
+    path: ''
+    startLine: 7534
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Formats
+  summary: "\nEnumerates the available bits per pixel for bitmap.\n"
+  example: []
+  syntax:
+    content: public enum BmpBitsPerPixel
+    content.vb: Public Enum BmpBitsPerPixel
+  modifiers.csharp:
+  - public
+  - enum
+  modifiers.vb:
+  - Public
+  - Enum
+- uid: ImageSharp.Formats.BmpBitsPerPixel.Pixel24
+  commentId: F:ImageSharp.Formats.BmpBitsPerPixel.Pixel24
+  id: Pixel24
+  parent: ImageSharp.Formats.BmpBitsPerPixel
+  langs:
+  - csharp
+  - vb
+  name: Pixel24
+  nameWithType: BmpBitsPerPixel.Pixel24
+  fullName: ImageSharp.Formats.BmpBitsPerPixel.Pixel24
+  type: Field
+  source:
+    id: Pixel24
+    path: ''
+    startLine: 7539
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Formats
+  summary: "\n24 bits per pixel. Each pixel consists of 3 bytes.\n"
+  example: []
+  syntax:
+    content: Pixel24 = 3
+    return:
+      type: ImageSharp.Formats.BmpBitsPerPixel
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.Formats.BmpBitsPerPixel.Pixel32
+  commentId: F:ImageSharp.Formats.BmpBitsPerPixel.Pixel32
+  id: Pixel32
+  parent: ImageSharp.Formats.BmpBitsPerPixel
+  langs:
+  - csharp
+  - vb
+  name: Pixel32
+  nameWithType: BmpBitsPerPixel.Pixel32
+  fullName: ImageSharp.Formats.BmpBitsPerPixel.Pixel32
+  type: Field
+  source:
+    id: Pixel32
+    path: ''
+    startLine: 7544
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Formats
+  summary: "\n32 bits per pixel. Each pixel consists of 4 bytes.\n"
+  example: []
+  syntax:
+    content: Pixel32 = 4
+    return:
+      type: ImageSharp.Formats.BmpBitsPerPixel
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+references:
+- uid: ImageSharp.Formats
+  commentId: N:ImageSharp.Formats
+  isExternal: false
+  name: ImageSharp.Formats
+  nameWithType: ImageSharp.Formats
+  fullName: ImageSharp.Formats
+- uid: ImageSharp.Formats.BmpBitsPerPixel
+  commentId: T:ImageSharp.Formats.BmpBitsPerPixel
+  parent: ImageSharp.Formats
+  isExternal: false
+  name: BmpBitsPerPixel
+  nameWithType: BmpBitsPerPixel
+  fullName: ImageSharp.Formats.BmpBitsPerPixel

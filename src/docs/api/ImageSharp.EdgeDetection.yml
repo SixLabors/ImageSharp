@@ -1,0 +1,356 @@
+### YamlMime:ManagedReference
+items:
+- uid: ImageSharp.EdgeDetection
+  commentId: T:ImageSharp.EdgeDetection
+  id: EdgeDetection
+  parent: ImageSharp
+  children:
+  - ImageSharp.EdgeDetection.Kayyali
+  - ImageSharp.EdgeDetection.Kirsch
+  - ImageSharp.EdgeDetection.Lapacian3X3
+  - ImageSharp.EdgeDetection.Lapacian5X5
+  - ImageSharp.EdgeDetection.LaplacianOfGaussian
+  - ImageSharp.EdgeDetection.Prewitt
+  - ImageSharp.EdgeDetection.RobertsCross
+  - ImageSharp.EdgeDetection.Robinson
+  - ImageSharp.EdgeDetection.Scharr
+  - ImageSharp.EdgeDetection.Sobel
+  langs:
+  - csharp
+  - vb
+  name: EdgeDetection
+  nameWithType: EdgeDetection
+  fullName: ImageSharp.EdgeDetection
+  type: Enum
+  source:
+    id: EdgeDetection
+    path: ''
+    startLine: 5568
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nEnumerates the various types of defined edge detection filters.\n"
+  example: []
+  syntax:
+    content: public enum EdgeDetection
+    content.vb: Public Enum EdgeDetection
+  modifiers.csharp:
+  - public
+  - enum
+  modifiers.vb:
+  - Public
+  - Enum
+- uid: ImageSharp.EdgeDetection.Kayyali
+  commentId: F:ImageSharp.EdgeDetection.Kayyali
+  id: Kayyali
+  parent: ImageSharp.EdgeDetection
+  langs:
+  - csharp
+  - vb
+  name: Kayyali
+  nameWithType: EdgeDetection.Kayyali
+  fullName: ImageSharp.EdgeDetection.Kayyali
+  type: Field
+  source:
+    id: Kayyali
+    path: ''
+    startLine: 5573
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nThe Kayyali operator filter.\n"
+  example: []
+  syntax:
+    content: Kayyali = 0
+    return:
+      type: ImageSharp.EdgeDetection
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.EdgeDetection.Kirsch
+  commentId: F:ImageSharp.EdgeDetection.Kirsch
+  id: Kirsch
+  parent: ImageSharp.EdgeDetection
+  langs:
+  - csharp
+  - vb
+  name: Kirsch
+  nameWithType: EdgeDetection.Kirsch
+  fullName: ImageSharp.EdgeDetection.Kirsch
+  type: Field
+  source:
+    id: Kirsch
+    path: ''
+    startLine: 5578
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nThe Kirsch operator filter.\n"
+  example: []
+  syntax:
+    content: Kirsch = 1
+    return:
+      type: ImageSharp.EdgeDetection
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.EdgeDetection.Lapacian3X3
+  commentId: F:ImageSharp.EdgeDetection.Lapacian3X3
+  id: Lapacian3X3
+  parent: ImageSharp.EdgeDetection
+  langs:
+  - csharp
+  - vb
+  name: Lapacian3X3
+  nameWithType: EdgeDetection.Lapacian3X3
+  fullName: ImageSharp.EdgeDetection.Lapacian3X3
+  type: Field
+  source:
+    id: Lapacian3X3
+    path: ''
+    startLine: 5583
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nThe Lapacian3X3 operator filter.\n"
+  example: []
+  syntax:
+    content: Lapacian3X3 = 2
+    return:
+      type: ImageSharp.EdgeDetection
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.EdgeDetection.Lapacian5X5
+  commentId: F:ImageSharp.EdgeDetection.Lapacian5X5
+  id: Lapacian5X5
+  parent: ImageSharp.EdgeDetection
+  langs:
+  - csharp
+  - vb
+  name: Lapacian5X5
+  nameWithType: EdgeDetection.Lapacian5X5
+  fullName: ImageSharp.EdgeDetection.Lapacian5X5
+  type: Field
+  source:
+    id: Lapacian5X5
+    path: ''
+    startLine: 5588
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nThe Lapacian5X5 operator filter.\n"
+  example: []
+  syntax:
+    content: Lapacian5X5 = 3
+    return:
+      type: ImageSharp.EdgeDetection
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.EdgeDetection.LaplacianOfGaussian
+  commentId: F:ImageSharp.EdgeDetection.LaplacianOfGaussian
+  id: LaplacianOfGaussian
+  parent: ImageSharp.EdgeDetection
+  langs:
+  - csharp
+  - vb
+  name: LaplacianOfGaussian
+  nameWithType: EdgeDetection.LaplacianOfGaussian
+  fullName: ImageSharp.EdgeDetection.LaplacianOfGaussian
+  type: Field
+  source:
+    id: LaplacianOfGaussian
+    path: ''
+    startLine: 5593
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nThe LaplacianOfGaussian operator filter.\n"
+  example: []
+  syntax:
+    content: LaplacianOfGaussian = 4
+    return:
+      type: ImageSharp.EdgeDetection
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.EdgeDetection.Prewitt
+  commentId: F:ImageSharp.EdgeDetection.Prewitt
+  id: Prewitt
+  parent: ImageSharp.EdgeDetection
+  langs:
+  - csharp
+  - vb
+  name: Prewitt
+  nameWithType: EdgeDetection.Prewitt
+  fullName: ImageSharp.EdgeDetection.Prewitt
+  type: Field
+  source:
+    id: Prewitt
+    path: ''
+    startLine: 5598
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nThe Prewitt operator filter.\n"
+  example: []
+  syntax:
+    content: Prewitt = 5
+    return:
+      type: ImageSharp.EdgeDetection
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.EdgeDetection.RobertsCross
+  commentId: F:ImageSharp.EdgeDetection.RobertsCross
+  id: RobertsCross
+  parent: ImageSharp.EdgeDetection
+  langs:
+  - csharp
+  - vb
+  name: RobertsCross
+  nameWithType: EdgeDetection.RobertsCross
+  fullName: ImageSharp.EdgeDetection.RobertsCross
+  type: Field
+  source:
+    id: RobertsCross
+    path: ''
+    startLine: 5603
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nThe RobertsCross operator filter.\n"
+  example: []
+  syntax:
+    content: RobertsCross = 6
+    return:
+      type: ImageSharp.EdgeDetection
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.EdgeDetection.Robinson
+  commentId: F:ImageSharp.EdgeDetection.Robinson
+  id: Robinson
+  parent: ImageSharp.EdgeDetection
+  langs:
+  - csharp
+  - vb
+  name: Robinson
+  nameWithType: EdgeDetection.Robinson
+  fullName: ImageSharp.EdgeDetection.Robinson
+  type: Field
+  source:
+    id: Robinson
+    path: ''
+    startLine: 5608
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nThe Robinson operator filter.\n"
+  example: []
+  syntax:
+    content: Robinson = 7
+    return:
+      type: ImageSharp.EdgeDetection
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.EdgeDetection.Scharr
+  commentId: F:ImageSharp.EdgeDetection.Scharr
+  id: Scharr
+  parent: ImageSharp.EdgeDetection
+  langs:
+  - csharp
+  - vb
+  name: Scharr
+  nameWithType: EdgeDetection.Scharr
+  fullName: ImageSharp.EdgeDetection.Scharr
+  type: Field
+  source:
+    id: Scharr
+    path: ''
+    startLine: 5613
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nThe Scharr operator filter.\n"
+  example: []
+  syntax:
+    content: Scharr = 8
+    return:
+      type: ImageSharp.EdgeDetection
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.EdgeDetection.Sobel
+  commentId: F:ImageSharp.EdgeDetection.Sobel
+  id: Sobel
+  parent: ImageSharp.EdgeDetection
+  langs:
+  - csharp
+  - vb
+  name: Sobel
+  nameWithType: EdgeDetection.Sobel
+  fullName: ImageSharp.EdgeDetection.Sobel
+  type: Field
+  source:
+    id: Sobel
+    path: ''
+    startLine: 5618
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nThe Sobel operator filter.\n"
+  example: []
+  syntax:
+    content: Sobel = 9
+    return:
+      type: ImageSharp.EdgeDetection
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+references:
+- uid: ImageSharp
+  commentId: N:ImageSharp
+  isExternal: false
+  name: ImageSharp
+  nameWithType: ImageSharp
+  fullName: ImageSharp
+- uid: ImageSharp.EdgeDetection
+  commentId: T:ImageSharp.EdgeDetection
+  parent: ImageSharp
+  isExternal: false
+  name: EdgeDetection
+  nameWithType: EdgeDetection
+  fullName: ImageSharp.EdgeDetection

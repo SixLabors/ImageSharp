@@ -1,0 +1,177 @@
+### YamlMime:ManagedReference
+items:
+- uid: ImageSharp.ComponentOrder
+  commentId: T:ImageSharp.ComponentOrder
+  id: ComponentOrder
+  parent: ImageSharp
+  children:
+  - ImageSharp.ComponentOrder.XYZ
+  - ImageSharp.ComponentOrder.XYZW
+  - ImageSharp.ComponentOrder.ZYX
+  - ImageSharp.ComponentOrder.ZYXW
+  langs:
+  - csharp
+  - vb
+  name: ComponentOrder
+  nameWithType: ComponentOrder
+  fullName: ImageSharp.ComponentOrder
+  type: Enum
+  source:
+    id: ComponentOrder
+    path: ''
+    startLine: 1981
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nEnumerates the various component orders.\n"
+  example: []
+  syntax:
+    content: public enum ComponentOrder
+    content.vb: Public Enum ComponentOrder
+  modifiers.csharp:
+  - public
+  - enum
+  modifiers.vb:
+  - Public
+  - Enum
+- uid: ImageSharp.ComponentOrder.ZYX
+  commentId: F:ImageSharp.ComponentOrder.ZYX
+  id: ZYX
+  parent: ImageSharp.ComponentOrder
+  langs:
+  - csharp
+  - vb
+  name: ZYX
+  nameWithType: ComponentOrder.ZYX
+  fullName: ImageSharp.ComponentOrder.ZYX
+  type: Field
+  source:
+    id: ZYX
+    path: ''
+    startLine: 1986
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nZ-&gt; Y-&gt; X order. Equivalent to B-&gt; G-&gt; R in <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref>\n"
+  example: []
+  syntax:
+    content: ZYX = 0
+    return:
+      type: ImageSharp.ComponentOrder
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ComponentOrder.ZYXW
+  commentId: F:ImageSharp.ComponentOrder.ZYXW
+  id: ZYXW
+  parent: ImageSharp.ComponentOrder
+  langs:
+  - csharp
+  - vb
+  name: ZYXW
+  nameWithType: ComponentOrder.ZYXW
+  fullName: ImageSharp.ComponentOrder.ZYXW
+  type: Field
+  source:
+    id: ZYXW
+    path: ''
+    startLine: 1991
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nZ-&gt; Y-&gt; X-&gt; W order. Equivalent to B-&gt; G-&gt; R-&gt; A in <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref>\n"
+  example: []
+  syntax:
+    content: ZYXW = 1
+    return:
+      type: ImageSharp.ComponentOrder
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ComponentOrder.XYZ
+  commentId: F:ImageSharp.ComponentOrder.XYZ
+  id: XYZ
+  parent: ImageSharp.ComponentOrder
+  langs:
+  - csharp
+  - vb
+  name: XYZ
+  nameWithType: ComponentOrder.XYZ
+  fullName: ImageSharp.ComponentOrder.XYZ
+  type: Field
+  source:
+    id: XYZ
+    path: ''
+    startLine: 1996
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nX-&gt; Y-&gt; Z order. Equivalent to R-&gt; G-&gt; B in <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref>\n"
+  example: []
+  syntax:
+    content: XYZ = 2
+    return:
+      type: ImageSharp.ComponentOrder
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ComponentOrder.XYZW
+  commentId: F:ImageSharp.ComponentOrder.XYZW
+  id: XYZW
+  parent: ImageSharp.ComponentOrder
+  langs:
+  - csharp
+  - vb
+  name: XYZW
+  nameWithType: ComponentOrder.XYZW
+  fullName: ImageSharp.ComponentOrder.XYZW
+  type: Field
+  source:
+    id: XYZW
+    path: ''
+    startLine: 2001
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nX-&gt; Y-&gt; Z-&gt; W order. Equivalent to R-&gt; G-&gt; B-&gt; A in <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref>\n"
+  example: []
+  syntax:
+    content: XYZW = 3
+    return:
+      type: ImageSharp.ComponentOrder
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+references:
+- uid: ImageSharp
+  commentId: N:ImageSharp
+  isExternal: false
+  name: ImageSharp
+  nameWithType: ImageSharp
+  fullName: ImageSharp
+- uid: ImageSharp.Color
+  commentId: T:ImageSharp.Color
+  parent: ImageSharp
+  isExternal: false
+  name: Color
+  nameWithType: Color
+  fullName: ImageSharp.Color
+- uid: ImageSharp.ComponentOrder
+  commentId: T:ImageSharp.ComponentOrder
+  parent: ImageSharp
+  isExternal: false
+  name: ComponentOrder
+  nameWithType: ComponentOrder
+  fullName: ImageSharp.ComponentOrder

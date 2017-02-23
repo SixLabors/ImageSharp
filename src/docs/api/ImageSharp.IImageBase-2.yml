@@ -1,0 +1,446 @@
+### YamlMime:ManagedReference
+items:
+- uid: ImageSharp.IImageBase`2
+  commentId: T:ImageSharp.IImageBase`2
+  id: IImageBase`2
+  parent: ImageSharp
+  children:
+  - ImageSharp.IImageBase`2.ClonePixels(System.Int32,System.Int32,`0[])
+  - ImageSharp.IImageBase`2.InitPixels(System.Int32,System.Int32)
+  - ImageSharp.IImageBase`2.Lock
+  - ImageSharp.IImageBase`2.Pixels
+  - ImageSharp.IImageBase`2.SetPixels(System.Int32,System.Int32,`0[])
+  langs:
+  - csharp
+  - vb
+  name: IImageBase<TColor, TPacked>
+  nameWithType: IImageBase<TColor, TPacked>
+  fullName: ImageSharp.IImageBase<TColor, TPacked>
+  type: Interface
+  source:
+    id: IImageBase
+    path: ''
+    startLine: 17969
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nEncapsulates the basic properties and methods required to manipulate images in varying formats.\n"
+  example: []
+  syntax:
+    content: 'public interface IImageBase<TColor, TPacked> : IImageBase where TColor : struct, IPackedPixel<TPacked> where TPacked : struct'
+    content.vb: >-
+      Public Interface IImageBase(Of TColor As {Structure, IPackedPixel(Of TPacked)}, TPacked As Structure)
+          Inherits IImageBase
+    typeParameters:
+    - id: TColor
+      description: The pixel format.
+    - id: TPacked
+      description: The packed format. <example>uint, long, float.</example>
+  inheritedMembers:
+  - ImageSharp.IImageBase.Bounds
+  - ImageSharp.IImageBase.Quality
+  - ImageSharp.IImageBase.FrameDelay
+  - ImageSharp.IImageBase.MaxWidth
+  - ImageSharp.IImageBase.MaxHeight
+  - ImageSharp.IImageBase.Width
+  - ImageSharp.IImageBase.Height
+  - ImageSharp.IImageBase.PixelRatio
+  nameWithType.vb: IImageBase(Of TColor, TPacked)
+  modifiers.csharp:
+  - public
+  - interface
+  modifiers.vb:
+  - Public
+  - Interface
+  fullName.vb: ImageSharp.IImageBase(Of TColor, TPacked)
+  name.vb: IImageBase(Of TColor, TPacked)
+- uid: ImageSharp.IImageBase`2.Pixels
+  commentId: P:ImageSharp.IImageBase`2.Pixels
+  id: Pixels
+  parent: ImageSharp.IImageBase`2
+  langs:
+  - csharp
+  - vb
+  name: Pixels
+  nameWithType: IImageBase<TColor, TPacked>.Pixels
+  fullName: ImageSharp.IImageBase<TColor, TPacked>.Pixels
+  type: Property
+  source:
+    id: Pixels
+    path: ''
+    startLine: 17976
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets the pixels as an array of the given packed pixel format.\n"
+  example: []
+  syntax:
+    content: TColor[] Pixels { get; }
+    content.vb: ReadOnly Property Pixels As TColor()
+    parameters: []
+    return:
+      type: '{TColor}[]'
+  nameWithType.vb: IImageBase(Of TColor, TPacked).Pixels
+  modifiers.csharp:
+  - get
+  modifiers.vb:
+  - ReadOnly
+  fullName.vb: ImageSharp.IImageBase(Of TColor, TPacked).Pixels
+- uid: ImageSharp.IImageBase`2.InitPixels(System.Int32,System.Int32)
+  commentId: M:ImageSharp.IImageBase`2.InitPixels(System.Int32,System.Int32)
+  id: InitPixels(System.Int32,System.Int32)
+  parent: ImageSharp.IImageBase`2
+  langs:
+  - csharp
+  - vb
+  name: InitPixels(Int32, Int32)
+  nameWithType: IImageBase<TColor, TPacked>.InitPixels(Int32, Int32)
+  fullName: ImageSharp.IImageBase<TColor, TPacked>.InitPixels(System.Int32, System.Int32)
+  type: Method
+  source:
+    id: InitPixels
+    path: ''
+    startLine: 17986
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nSets the size of the pixel array of the image to the given width and height.\n"
+  example: []
+  syntax:
+    content: void InitPixels(int width, int height)
+    content.vb: Sub InitPixels(width As Integer, height As Integer)
+    parameters:
+    - id: width
+      type: System.Int32
+      description: The new width of the image. Must be greater than zero.
+    - id: height
+      type: System.Int32
+      description: The new height of the image. Must be greater than zero.
+  exceptions:
+  - type: System.ArgumentOutOfRangeException
+    commentId: T:System.ArgumentOutOfRangeException
+    description: "\nThrown if either <em>width</em> or <em>height</em> are less than or equal to 0.\n"
+  nameWithType.vb: IImageBase(Of TColor, TPacked).InitPixels(Int32, Int32)
+  fullName.vb: ImageSharp.IImageBase(Of TColor, TPacked).InitPixels(System.Int32, System.Int32)
+- uid: ImageSharp.IImageBase`2.SetPixels(System.Int32,System.Int32,`0[])
+  commentId: M:ImageSharp.IImageBase`2.SetPixels(System.Int32,System.Int32,`0[])
+  id: SetPixels(System.Int32,System.Int32,`0[])
+  parent: ImageSharp.IImageBase`2
+  langs:
+  - csharp
+  - vb
+  name: SetPixels(Int32, Int32, TColor[])
+  nameWithType: IImageBase<TColor, TPacked>.SetPixels(Int32, Int32, TColor[])
+  fullName: ImageSharp.IImageBase<TColor, TPacked>.SetPixels(System.Int32, System.Int32, TColor[])
+  type: Method
+  source:
+    id: SetPixels
+    path: ''
+    startLine: 18000
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nSets the pixel array of the image to the given value.\n"
+  example: []
+  syntax:
+    content: void SetPixels(int width, int height, TColor[] pixels)
+    content.vb: Sub SetPixels(width As Integer, height As Integer, pixels As TColor())
+    parameters:
+    - id: width
+      type: System.Int32
+      description: The new width of the image. Must be greater than zero.
+    - id: height
+      type: System.Int32
+      description: The new height of the image. Must be greater than zero.
+    - id: pixels
+      type: '{TColor}[]'
+      description: The array with pixels. Must be a multiple of the width and height.
+  exceptions:
+  - type: System.ArgumentOutOfRangeException
+    commentId: T:System.ArgumentOutOfRangeException
+    description: "\nThrown if either <em>width</em> or <em>height</em> are less than or equal to 0.\n"
+  - type: System.ArgumentException
+    commentId: T:System.ArgumentException
+    description: "\nThrown if the <em>pixels</em> length is not equal to Width * Height.\n"
+  nameWithType.vb: IImageBase(Of TColor, TPacked).SetPixels(Int32, Int32, TColor())
+  fullName.vb: ImageSharp.IImageBase(Of TColor, TPacked).SetPixels(System.Int32, System.Int32, TColor())
+  name.vb: SetPixels(Int32, Int32, TColor())
+- uid: ImageSharp.IImageBase`2.ClonePixels(System.Int32,System.Int32,`0[])
+  commentId: M:ImageSharp.IImageBase`2.ClonePixels(System.Int32,System.Int32,`0[])
+  id: ClonePixels(System.Int32,System.Int32,`0[])
+  parent: ImageSharp.IImageBase`2
+  langs:
+  - csharp
+  - vb
+  name: ClonePixels(Int32, Int32, TColor[])
+  nameWithType: IImageBase<TColor, TPacked>.ClonePixels(Int32, Int32, TColor[])
+  fullName: ImageSharp.IImageBase<TColor, TPacked>.ClonePixels(System.Int32, System.Int32, TColor[])
+  type: Method
+  source:
+    id: ClonePixels
+    path: ''
+    startLine: 18015
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nSets the pixel array of the image to the given value, creating a copy of\nthe original pixels.\n"
+  example: []
+  syntax:
+    content: void ClonePixels(int width, int height, TColor[] pixels)
+    content.vb: Sub ClonePixels(width As Integer, height As Integer, pixels As TColor())
+    parameters:
+    - id: width
+      type: System.Int32
+      description: The new width of the image. Must be greater than zero.
+    - id: height
+      type: System.Int32
+      description: The new height of the image. Must be greater than zero.
+    - id: pixels
+      type: '{TColor}[]'
+      description: The array with pixels. Must be a multiple of four times the width and height.
+  exceptions:
+  - type: System.ArgumentOutOfRangeException
+    commentId: T:System.ArgumentOutOfRangeException
+    description: "\nThrown if either <em>width</em> or <em>height</em> are less than or equal to 0.\n"
+  - type: System.ArgumentException
+    commentId: T:System.ArgumentException
+    description: "\nThrown if the <em>pixels</em> length is not equal to Width * Height.\n"
+  nameWithType.vb: IImageBase(Of TColor, TPacked).ClonePixels(Int32, Int32, TColor())
+  fullName.vb: ImageSharp.IImageBase(Of TColor, TPacked).ClonePixels(System.Int32, System.Int32, TColor())
+  name.vb: ClonePixels(Int32, Int32, TColor())
+- uid: ImageSharp.IImageBase`2.Lock
+  commentId: M:ImageSharp.IImageBase`2.Lock
+  id: Lock
+  parent: ImageSharp.IImageBase`2
+  langs:
+  - csharp
+  - vb
+  name: Lock()
+  nameWithType: IImageBase<TColor, TPacked>.Lock()
+  fullName: ImageSharp.IImageBase<TColor, TPacked>.Lock()
+  type: Method
+  source:
+    id: Lock
+    path: ''
+    startLine: 18024
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nLocks the image providing access to the pixels.\n<remarks>\nIt is imperative that the accessor is correctly disposed off after use.\n</remarks>\n"
+  example: []
+  syntax:
+    content: PixelAccessor<TColor, TPacked> Lock()
+    content.vb: Function Lock As PixelAccessor(Of TColor, TPacked)
+    return:
+      type: ImageSharp.PixelAccessor{{TColor},{TPacked}}
+      description: The <xref href="ImageSharp.PixelAccessor%602" data-throw-if-not-resolved="false"></xref>
+  nameWithType.vb: IImageBase(Of TColor, TPacked).Lock()
+  fullName.vb: ImageSharp.IImageBase(Of TColor, TPacked).Lock()
+references:
+- uid: ImageSharp
+  commentId: N:ImageSharp
+  isExternal: false
+  name: ImageSharp
+  nameWithType: ImageSharp
+  fullName: ImageSharp
+- uid: ImageSharp.IImageBase.Bounds
+  commentId: P:ImageSharp.IImageBase.Bounds
+  parent: ImageSharp.IImageBase
+  isExternal: false
+  name: Bounds
+  nameWithType: IImageBase.Bounds
+  fullName: ImageSharp.IImageBase.Bounds
+- uid: ImageSharp.IImageBase.Quality
+  commentId: P:ImageSharp.IImageBase.Quality
+  parent: ImageSharp.IImageBase
+  isExternal: false
+  name: Quality
+  nameWithType: IImageBase.Quality
+  fullName: ImageSharp.IImageBase.Quality
+- uid: ImageSharp.IImageBase.FrameDelay
+  commentId: P:ImageSharp.IImageBase.FrameDelay
+  parent: ImageSharp.IImageBase
+  isExternal: false
+  name: FrameDelay
+  nameWithType: IImageBase.FrameDelay
+  fullName: ImageSharp.IImageBase.FrameDelay
+- uid: ImageSharp.IImageBase.MaxWidth
+  commentId: P:ImageSharp.IImageBase.MaxWidth
+  parent: ImageSharp.IImageBase
+  isExternal: false
+  name: MaxWidth
+  nameWithType: IImageBase.MaxWidth
+  fullName: ImageSharp.IImageBase.MaxWidth
+- uid: ImageSharp.IImageBase.MaxHeight
+  commentId: P:ImageSharp.IImageBase.MaxHeight
+  parent: ImageSharp.IImageBase
+  isExternal: false
+  name: MaxHeight
+  nameWithType: IImageBase.MaxHeight
+  fullName: ImageSharp.IImageBase.MaxHeight
+- uid: ImageSharp.IImageBase.Width
+  commentId: P:ImageSharp.IImageBase.Width
+  parent: ImageSharp.IImageBase
+  isExternal: false
+  name: Width
+  nameWithType: IImageBase.Width
+  fullName: ImageSharp.IImageBase.Width
+- uid: ImageSharp.IImageBase.Height
+  commentId: P:ImageSharp.IImageBase.Height
+  parent: ImageSharp.IImageBase
+  isExternal: false
+  name: Height
+  nameWithType: IImageBase.Height
+  fullName: ImageSharp.IImageBase.Height
+- uid: ImageSharp.IImageBase.PixelRatio
+  commentId: P:ImageSharp.IImageBase.PixelRatio
+  parent: ImageSharp.IImageBase
+  isExternal: false
+  name: PixelRatio
+  nameWithType: IImageBase.PixelRatio
+  fullName: ImageSharp.IImageBase.PixelRatio
+- uid: ImageSharp.IImageBase
+  commentId: T:ImageSharp.IImageBase
+  parent: ImageSharp
+  isExternal: false
+  name: IImageBase
+  nameWithType: IImageBase
+  fullName: ImageSharp.IImageBase
+- uid: '{TColor}[]'
+  name: TColor[]
+  nameWithType: TColor[]
+  fullName: TColor[]
+  nameWithType.vb: TColor()
+  fullname.vb: TColor()
+  name.vb: TColor()
+  spec.csharp:
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: '[]'
+    nameWithType: '[]'
+    fullName: '[]'
+  spec.vb:
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ()
+    nameWithType: ()
+    fullName: ()
+- uid: System.ArgumentOutOfRangeException
+  commentId: T:System.ArgumentOutOfRangeException
+- uid: System.Int32
+  commentId: T:System.Int32
+  parent: System
+  isExternal: true
+  name: Int32
+  nameWithType: Int32
+  fullName: System.Int32
+- uid: System
+  commentId: N:System
+  isExternal: false
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: System.ArgumentException
+  commentId: T:System.ArgumentException
+- uid: ImageSharp.PixelAccessor`2
+  commentId: T:ImageSharp.PixelAccessor`2
+  parent: ImageSharp
+  isExternal: false
+  name: PixelAccessor<TColor, TPacked>
+  nameWithType: PixelAccessor<TColor, TPacked>
+  fullName: ImageSharp.PixelAccessor<TColor, TPacked>
+  nameWithType.vb: PixelAccessor(Of TColor, TPacked)
+  fullname.vb: ImageSharp.PixelAccessor(Of TColor, TPacked)
+  name.vb: PixelAccessor(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.PixelAccessor`2
+    name: PixelAccessor
+    nameWithType: PixelAccessor
+    fullName: ImageSharp.PixelAccessor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.PixelAccessor`2
+    name: PixelAccessor
+    nameWithType: PixelAccessor
+    fullName: ImageSharp.PixelAccessor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.PixelAccessor{{TColor},{TPacked}}
+  commentId: T:ImageSharp.PixelAccessor{`0,`1}
+  parent: ImageSharp
+  definition: ImageSharp.PixelAccessor`2
+  name: PixelAccessor<TColor, TPacked>
+  nameWithType: PixelAccessor<TColor, TPacked>
+  fullName: ImageSharp.PixelAccessor<TColor, TPacked>
+  nameWithType.vb: PixelAccessor(Of TColor, TPacked)
+  fullname.vb: ImageSharp.PixelAccessor(Of TColor, TPacked)
+  name.vb: PixelAccessor(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.PixelAccessor`2
+    name: PixelAccessor
+    nameWithType: PixelAccessor
+    fullName: ImageSharp.PixelAccessor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.PixelAccessor`2
+    name: PixelAccessor
+    nameWithType: PixelAccessor
+    fullName: ImageSharp.PixelAccessor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )

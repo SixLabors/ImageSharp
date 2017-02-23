@@ -1,0 +1,1119 @@
+### YamlMime:ManagedReference
+items:
+- uid: ImageSharp.Rational
+  commentId: T:ImageSharp.Rational
+  id: Rational
+  parent: ImageSharp
+  children:
+  - ImageSharp.Rational.#ctor(System.Double)
+  - ImageSharp.Rational.#ctor(System.Double,System.Boolean)
+  - ImageSharp.Rational.#ctor(System.UInt32)
+  - ImageSharp.Rational.#ctor(System.UInt32,System.UInt32)
+  - ImageSharp.Rational.#ctor(System.UInt32,System.UInt32,System.Boolean)
+  - ImageSharp.Rational.Denominator
+  - ImageSharp.Rational.Equals(ImageSharp.Rational)
+  - ImageSharp.Rational.Equals(System.Object)
+  - ImageSharp.Rational.FromDouble(System.Double)
+  - ImageSharp.Rational.FromDouble(System.Double,System.Boolean)
+  - ImageSharp.Rational.GetHashCode
+  - ImageSharp.Rational.Numerator
+  - ImageSharp.Rational.op_Equality(ImageSharp.Rational,ImageSharp.Rational)
+  - ImageSharp.Rational.op_Inequality(ImageSharp.Rational,ImageSharp.Rational)
+  - ImageSharp.Rational.ToDouble
+  - ImageSharp.Rational.ToString
+  - ImageSharp.Rational.ToString(System.IFormatProvider)
+  langs:
+  - csharp
+  - vb
+  name: Rational
+  nameWithType: Rational
+  fullName: ImageSharp.Rational
+  type: Struct
+  source:
+    id: Rational
+    path: ''
+    startLine: 22388
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a number that can be expressed as a fraction.\n"
+  remarks: "\nThis is a very simplified implementation of a rational number designed for use with metadata only.\n"
+  example: []
+  syntax:
+    content: 'public struct Rational : IEquatable<Rational>'
+    content.vb: >-
+      Public Structure Rational
+          Implements IEquatable(Of Rational)
+  implements:
+  - System.IEquatable{ImageSharp.Rational}
+  inheritedMembers:
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+  - System.Object.GetType
+  modifiers.csharp:
+  - public
+  - struct
+  modifiers.vb:
+  - Public
+  - Structure
+- uid: ImageSharp.Rational.#ctor(System.UInt32)
+  commentId: M:ImageSharp.Rational.#ctor(System.UInt32)
+  id: '#ctor(System.UInt32)'
+  parent: ImageSharp.Rational
+  langs:
+  - csharp
+  - vb
+  name: Rational(UInt32)
+  nameWithType: Rational.Rational(UInt32)
+  fullName: ImageSharp.Rational.Rational(System.UInt32)
+  type: Constructor
+  source:
+    id: .ctor
+    path: ''
+    startLine: 22394
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nInitializes a new instance of the <xref href=\"ImageSharp.Rational\" data-throw-if-not-resolved=\"false\"></xref> struct.\n"
+  example: []
+  syntax:
+    content: public Rational(uint value)
+    content.vb: Public Sub New(value As UInteger)
+    parameters:
+    - id: value
+      type: System.UInt32
+      description: The <xref href="System.UInt32" data-throw-if-not-resolved="false"></xref> to create the rational from.
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.Rational.#ctor(System.UInt32,System.UInt32)
+  commentId: M:ImageSharp.Rational.#ctor(System.UInt32,System.UInt32)
+  id: '#ctor(System.UInt32,System.UInt32)'
+  parent: ImageSharp.Rational
+  langs:
+  - csharp
+  - vb
+  name: Rational(UInt32, UInt32)
+  nameWithType: Rational.Rational(UInt32, UInt32)
+  fullName: ImageSharp.Rational.Rational(System.UInt32, System.UInt32)
+  type: Constructor
+  source:
+    id: .ctor
+    path: ''
+    startLine: 22404
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nInitializes a new instance of the <xref href=\"ImageSharp.Rational\" data-throw-if-not-resolved=\"false\"></xref> struct.\n"
+  example: []
+  syntax:
+    content: public Rational(uint numerator, uint denominator)
+    content.vb: Public Sub New(numerator As UInteger, denominator As UInteger)
+    parameters:
+    - id: numerator
+      type: System.UInt32
+      description: The number above the line in a vulgar fraction showing how many of the parts indicated by the denominator are taken.
+    - id: denominator
+      type: System.UInt32
+      description: The number below the line in a vulgar fraction; a divisor.
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.Rational.#ctor(System.UInt32,System.UInt32,System.Boolean)
+  commentId: M:ImageSharp.Rational.#ctor(System.UInt32,System.UInt32,System.Boolean)
+  id: '#ctor(System.UInt32,System.UInt32,System.Boolean)'
+  parent: ImageSharp.Rational
+  langs:
+  - csharp
+  - vb
+  name: Rational(UInt32, UInt32, Boolean)
+  nameWithType: Rational.Rational(UInt32, UInt32, Boolean)
+  fullName: ImageSharp.Rational.Rational(System.UInt32, System.UInt32, System.Boolean)
+  type: Constructor
+  source:
+    id: .ctor
+    path: ''
+    startLine: 22415
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nInitializes a new instance of the <xref href=\"ImageSharp.Rational\" data-throw-if-not-resolved=\"false\"></xref> struct.\n"
+  example: []
+  syntax:
+    content: public Rational(uint numerator, uint denominator, bool simplify)
+    content.vb: Public Sub New(numerator As UInteger, denominator As UInteger, simplify As Boolean)
+    parameters:
+    - id: numerator
+      type: System.UInt32
+      description: The number above the line in a vulgar fraction showing how many of the parts indicated by the denominator are taken.
+    - id: denominator
+      type: System.UInt32
+      description: The number below the line in a vulgar fraction; a divisor.
+    - id: simplify
+      type: System.Boolean
+      description: Specified if the rational should be simplified.
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.Rational.#ctor(System.Double)
+  commentId: M:ImageSharp.Rational.#ctor(System.Double)
+  id: '#ctor(System.Double)'
+  parent: ImageSharp.Rational
+  langs:
+  - csharp
+  - vb
+  name: Rational(Double)
+  nameWithType: Rational.Rational(Double)
+  fullName: ImageSharp.Rational.Rational(System.Double)
+  type: Constructor
+  source:
+    id: .ctor
+    path: ''
+    startLine: 22427
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nInitializes a new instance of the <xref href=\"ImageSharp.Rational\" data-throw-if-not-resolved=\"false\"></xref> struct.\n"
+  example: []
+  syntax:
+    content: public Rational(double value)
+    content.vb: Public Sub New(value As Double)
+    parameters:
+    - id: value
+      type: System.Double
+      description: The <xref href="System.Double" data-throw-if-not-resolved="false"></xref> to create the instance from.
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.Rational.#ctor(System.Double,System.Boolean)
+  commentId: M:ImageSharp.Rational.#ctor(System.Double,System.Boolean)
+  id: '#ctor(System.Double,System.Boolean)'
+  parent: ImageSharp.Rational
+  langs:
+  - csharp
+  - vb
+  name: Rational(Double, Boolean)
+  nameWithType: Rational.Rational(Double, Boolean)
+  fullName: ImageSharp.Rational.Rational(System.Double, System.Boolean)
+  type: Constructor
+  source:
+    id: .ctor
+    path: ''
+    startLine: 22437
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nInitializes a new instance of the <xref href=\"ImageSharp.Rational\" data-throw-if-not-resolved=\"false\"></xref> struct.\n"
+  example: []
+  syntax:
+    content: public Rational(double value, bool bestPrecision)
+    content.vb: Public Sub New(value As Double, bestPrecision As Boolean)
+    parameters:
+    - id: value
+      type: System.Double
+      description: The <xref href="System.Double" data-throw-if-not-resolved="false"></xref> to create the instance from.
+    - id: bestPrecision
+      type: System.Boolean
+      description: Whether to use the best possible precision when parsing the value.
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.Rational.Numerator
+  commentId: P:ImageSharp.Rational.Numerator
+  id: Numerator
+  parent: ImageSharp.Rational
+  langs:
+  - csharp
+  - vb
+  name: Numerator
+  nameWithType: Rational.Numerator
+  fullName: ImageSharp.Rational.Numerator
+  type: Property
+  source:
+    id: Numerator
+    path: ''
+    startLine: 22448
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets the numerator of a number.\n"
+  example: []
+  syntax:
+    content: public uint Numerator { get; }
+    content.vb: Public ReadOnly Property Numerator As UInteger
+    parameters: []
+    return:
+      type: System.UInt32
+  modifiers.csharp:
+  - public
+  - get
+  modifiers.vb:
+  - Public
+  - ReadOnly
+- uid: ImageSharp.Rational.Denominator
+  commentId: P:ImageSharp.Rational.Denominator
+  id: Denominator
+  parent: ImageSharp.Rational
+  langs:
+  - csharp
+  - vb
+  name: Denominator
+  nameWithType: Rational.Denominator
+  fullName: ImageSharp.Rational.Denominator
+  type: Property
+  source:
+    id: Denominator
+    path: ''
+    startLine: 22453
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets the denominator of a number.\n"
+  example: []
+  syntax:
+    content: public uint Denominator { get; }
+    content.vb: Public ReadOnly Property Denominator As UInteger
+    parameters: []
+    return:
+      type: System.UInt32
+  modifiers.csharp:
+  - public
+  - get
+  modifiers.vb:
+  - Public
+  - ReadOnly
+- uid: ImageSharp.Rational.op_Equality(ImageSharp.Rational,ImageSharp.Rational)
+  commentId: M:ImageSharp.Rational.op_Equality(ImageSharp.Rational,ImageSharp.Rational)
+  id: op_Equality(ImageSharp.Rational,ImageSharp.Rational)
+  parent: ImageSharp.Rational
+  langs:
+  - csharp
+  - vb
+  name: Equality(Rational, Rational)
+  nameWithType: Rational.Equality(Rational, Rational)
+  fullName: ImageSharp.Rational.Equality(ImageSharp.Rational, ImageSharp.Rational)
+  type: Operator
+  source:
+    id: op_Equality
+    path: ''
+    startLine: 22461
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nDetermines whether the specified <xref href=\"ImageSharp.Rational\" data-throw-if-not-resolved=\"false\"></xref> instances are considered equal.\n"
+  example: []
+  syntax:
+    content: public static bool operator ==(Rational left, Rational right)
+    content.vb: Public Shared Operator =(left As Rational, right As Rational) As Boolean
+    parameters:
+    - id: left
+      type: ImageSharp.Rational
+      description: The first <xref href="ImageSharp.Rational" data-throw-if-not-resolved="false"></xref>  to compare.
+    - id: right
+      type: ImageSharp.Rational
+      description: The second <xref href="ImageSharp.Rational" data-throw-if-not-resolved="false"></xref>  to compare.
+    return:
+      type: System.Boolean
+      description: The <xref href="System.Boolean" data-throw-if-not-resolved="false"></xref>
+  modifiers.csharp:
+  - public
+  - static
+  modifiers.vb:
+  - Public
+  - Shared
+- uid: ImageSharp.Rational.op_Inequality(ImageSharp.Rational,ImageSharp.Rational)
+  commentId: M:ImageSharp.Rational.op_Inequality(ImageSharp.Rational,ImageSharp.Rational)
+  id: op_Inequality(ImageSharp.Rational,ImageSharp.Rational)
+  parent: ImageSharp.Rational
+  langs:
+  - csharp
+  - vb
+  name: Inequality(Rational, Rational)
+  nameWithType: Rational.Inequality(Rational, Rational)
+  fullName: ImageSharp.Rational.Inequality(ImageSharp.Rational, ImageSharp.Rational)
+  type: Operator
+  source:
+    id: op_Inequality
+    path: ''
+    startLine: 22472
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nDetermines whether the specified <xref href=\"ImageSharp.Rational\" data-throw-if-not-resolved=\"false\"></xref> instances are not considered equal.\n"
+  example: []
+  syntax:
+    content: public static bool operator !=(Rational left, Rational right)
+    content.vb: Public Shared Operator <>(left As Rational, right As Rational) As Boolean
+    parameters:
+    - id: left
+      type: ImageSharp.Rational
+      description: The first <xref href="ImageSharp.Rational" data-throw-if-not-resolved="false"></xref> to compare.
+    - id: right
+      type: ImageSharp.Rational
+      description: The second <xref href="ImageSharp.Rational" data-throw-if-not-resolved="false"></xref> to compare.
+    return:
+      type: System.Boolean
+      description: The <xref href="System.Boolean" data-throw-if-not-resolved="false"></xref>
+  modifiers.csharp:
+  - public
+  - static
+  modifiers.vb:
+  - Public
+  - Shared
+- uid: ImageSharp.Rational.FromDouble(System.Double)
+  commentId: M:ImageSharp.Rational.FromDouble(System.Double)
+  id: FromDouble(System.Double)
+  parent: ImageSharp.Rational
+  langs:
+  - csharp
+  - vb
+  name: FromDouble(Double)
+  nameWithType: Rational.FromDouble(Double)
+  fullName: ImageSharp.Rational.FromDouble(System.Double)
+  type: Method
+  source:
+    id: FromDouble
+    path: ''
+    startLine: 22484
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nConverts the specified <xref href=\"System.Double\" data-throw-if-not-resolved=\"false\"></xref> to an instance of this type.\n"
+  example: []
+  syntax:
+    content: public static Rational FromDouble(double value)
+    content.vb: Public Shared Function FromDouble(value As Double) As Rational
+    parameters:
+    - id: value
+      type: System.Double
+      description: The <xref href="System.Double" data-throw-if-not-resolved="false"></xref> to convert to an instance of this type.
+    return:
+      type: ImageSharp.Rational
+      description: "\nThe <xref href=\"ImageSharp.Rational\" data-throw-if-not-resolved=\"false\"></xref>.\n"
+  modifiers.csharp:
+  - public
+  - static
+  modifiers.vb:
+  - Public
+  - Shared
+- uid: ImageSharp.Rational.FromDouble(System.Double,System.Boolean)
+  commentId: M:ImageSharp.Rational.FromDouble(System.Double,System.Boolean)
+  id: FromDouble(System.Double,System.Boolean)
+  parent: ImageSharp.Rational
+  langs:
+  - csharp
+  - vb
+  name: FromDouble(Double, Boolean)
+  nameWithType: Rational.FromDouble(Double, Boolean)
+  fullName: ImageSharp.Rational.FromDouble(System.Double, System.Boolean)
+  type: Method
+  source:
+    id: FromDouble
+    path: ''
+    startLine: 22497
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nConverts the specified <xref href=\"System.Double\" data-throw-if-not-resolved=\"false\"></xref> to an instance of this type.\n"
+  example: []
+  syntax:
+    content: public static Rational FromDouble(double value, bool bestPrecision)
+    content.vb: Public Shared Function FromDouble(value As Double, bestPrecision As Boolean) As Rational
+    parameters:
+    - id: value
+      type: System.Double
+      description: The <xref href="System.Double" data-throw-if-not-resolved="false"></xref> to convert to an instance of this type.
+    - id: bestPrecision
+      type: System.Boolean
+      description: Whether to use the best possible precision when parsing the value.
+    return:
+      type: ImageSharp.Rational
+      description: "\nThe <xref href=\"ImageSharp.Rational\" data-throw-if-not-resolved=\"false\"></xref>.\n"
+  modifiers.csharp:
+  - public
+  - static
+  modifiers.vb:
+  - Public
+  - Shared
+- uid: ImageSharp.Rational.Equals(System.Object)
+  commentId: M:ImageSharp.Rational.Equals(System.Object)
+  id: Equals(System.Object)
+  parent: ImageSharp.Rational
+  langs:
+  - csharp
+  - vb
+  name: Equals(Object)
+  nameWithType: Rational.Equals(Object)
+  fullName: ImageSharp.Rational.Equals(System.Object)
+  type: Method
+  source:
+    id: Equals
+    path: ''
+    startLine: 22503
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  example: []
+  syntax:
+    content: public override bool Equals(object obj)
+    content.vb: Public Overrides Function Equals(obj As Object) As Boolean
+    parameters:
+    - id: obj
+      type: System.Object
+    return:
+      type: System.Boolean
+  overridden: System.ValueType.Equals(System.Object)
+  modifiers.csharp:
+  - public
+  - override
+  modifiers.vb:
+  - Public
+  - Overrides
+- uid: ImageSharp.Rational.Equals(ImageSharp.Rational)
+  commentId: M:ImageSharp.Rational.Equals(ImageSharp.Rational)
+  id: Equals(ImageSharp.Rational)
+  parent: ImageSharp.Rational
+  langs:
+  - csharp
+  - vb
+  name: Equals(Rational)
+  nameWithType: Rational.Equals(Rational)
+  fullName: ImageSharp.Rational.Equals(ImageSharp.Rational)
+  type: Method
+  source:
+    id: Equals
+    path: ''
+    startLine: 22514
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  example: []
+  syntax:
+    content: public bool Equals(Rational other)
+    content.vb: Public Function Equals(other As Rational) As Boolean
+    parameters:
+    - id: other
+      type: ImageSharp.Rational
+    return:
+      type: System.Boolean
+  implements:
+  - System.IEquatable{ImageSharp.Rational}.Equals(ImageSharp.Rational)
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.Rational.GetHashCode
+  commentId: M:ImageSharp.Rational.GetHashCode
+  id: GetHashCode
+  parent: ImageSharp.Rational
+  langs:
+  - csharp
+  - vb
+  name: GetHashCode()
+  nameWithType: Rational.GetHashCode()
+  fullName: ImageSharp.Rational.GetHashCode()
+  type: Method
+  source:
+    id: GetHashCode
+    path: ''
+    startLine: 22523
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  example: []
+  syntax:
+    content: public override int GetHashCode()
+    content.vb: Public Overrides Function GetHashCode As Integer
+    return:
+      type: System.Int32
+  overridden: System.ValueType.GetHashCode
+  modifiers.csharp:
+  - public
+  - override
+  modifiers.vb:
+  - Public
+  - Overrides
+- uid: ImageSharp.Rational.ToDouble
+  commentId: M:ImageSharp.Rational.ToDouble
+  id: ToDouble
+  parent: ImageSharp.Rational
+  langs:
+  - csharp
+  - vb
+  name: ToDouble()
+  nameWithType: Rational.ToDouble()
+  fullName: ImageSharp.Rational.ToDouble()
+  type: Method
+  source:
+    id: ToDouble
+    path: ''
+    startLine: 22535
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nConverts a rational number to the nearest <xref href=\"System.Double\" data-throw-if-not-resolved=\"false\"></xref>.\n"
+  example: []
+  syntax:
+    content: public double ToDouble()
+    content.vb: Public Function ToDouble As Double
+    return:
+      type: System.Double
+      description: "\nThe <xref href=\"System.Double\" data-throw-if-not-resolved=\"false\"></xref>.\n"
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.Rational.ToString
+  commentId: M:ImageSharp.Rational.ToString
+  id: ToString
+  parent: ImageSharp.Rational
+  langs:
+  - csharp
+  - vb
+  name: ToString()
+  nameWithType: Rational.ToString()
+  fullName: ImageSharp.Rational.ToString()
+  type: Method
+  source:
+    id: ToString
+    path: ''
+    startLine: 22541
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  example: []
+  syntax:
+    content: public override string ToString()
+    content.vb: Public Overrides Function ToString As String
+    return:
+      type: System.String
+  overridden: System.ValueType.ToString
+  modifiers.csharp:
+  - public
+  - override
+  modifiers.vb:
+  - Public
+  - Overrides
+- uid: ImageSharp.Rational.ToString(System.IFormatProvider)
+  commentId: M:ImageSharp.Rational.ToString(System.IFormatProvider)
+  id: ToString(System.IFormatProvider)
+  parent: ImageSharp.Rational
+  langs:
+  - csharp
+  - vb
+  name: ToString(IFormatProvider)
+  nameWithType: Rational.ToString(IFormatProvider)
+  fullName: ImageSharp.Rational.ToString(System.IFormatProvider)
+  type: Method
+  source:
+    id: ToString
+    path: ''
+    startLine: 22554
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nConverts the numeric value of this instance to its equivalent string representation using\nthe specified culture-specific format information.\n"
+  example: []
+  syntax:
+    content: public string ToString(IFormatProvider provider)
+    content.vb: Public Function ToString(provider As IFormatProvider) As String
+    parameters:
+    - id: provider
+      type: System.IFormatProvider
+      description: "\nAn object that supplies culture-specific formatting information.\n"
+    return:
+      type: System.String
+      description: The <xref href="System.String" data-throw-if-not-resolved="false"></xref>
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+references:
+- uid: ImageSharp
+  commentId: N:ImageSharp
+  isExternal: false
+  name: ImageSharp
+  nameWithType: ImageSharp
+  fullName: ImageSharp
+- uid: System.IEquatable{ImageSharp.Rational}
+  commentId: T:System.IEquatable{ImageSharp.Rational}
+  parent: System
+  definition: System.IEquatable`1
+  name: IEquatable<Rational>
+  nameWithType: IEquatable<Rational>
+  fullName: System.IEquatable<ImageSharp.Rational>
+  nameWithType.vb: IEquatable(Of Rational)
+  fullname.vb: System.IEquatable(Of ImageSharp.Rational)
+  name.vb: IEquatable(Of Rational)
+  spec.csharp:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    nameWithType: IEquatable
+    fullName: System.IEquatable
+    isExternal: true
+  - name: <
+    nameWithType: <
+    fullName: <
+  - uid: ImageSharp.Rational
+    name: Rational
+    nameWithType: Rational
+    fullName: ImageSharp.Rational
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    nameWithType: IEquatable
+    fullName: System.IEquatable
+    isExternal: true
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - uid: ImageSharp.Rational
+    name: Rational
+    nameWithType: Rational
+    fullName: ImageSharp.Rational
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  name: Equals(Object, Object)
+  nameWithType: Object.Equals(Object, Object)
+  fullName: System.Object.Equals(System.Object, System.Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  name: ReferenceEquals(Object, Object)
+  nameWithType: Object.ReferenceEquals(Object, Object)
+  fullName: System.Object.ReferenceEquals(System.Object, System.Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    nameWithType: Object.ReferenceEquals
+    fullName: System.Object.ReferenceEquals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    nameWithType: Object.ReferenceEquals
+    fullName: System.Object.ReferenceEquals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  name: GetType()
+  nameWithType: Object.GetType()
+  fullName: System.Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    nameWithType: Object.GetType
+    fullName: System.Object.GetType
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    nameWithType: Object.GetType
+    fullName: System.Object.GetType
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.IEquatable`1
+  commentId: T:System.IEquatable`1
+  isExternal: true
+  name: IEquatable<T>
+  nameWithType: IEquatable<T>
+  fullName: System.IEquatable<T>
+  nameWithType.vb: IEquatable(Of T)
+  fullname.vb: System.IEquatable(Of T)
+  name.vb: IEquatable(Of T)
+  spec.csharp:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    nameWithType: IEquatable
+    fullName: System.IEquatable
+    isExternal: true
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: T
+    nameWithType: T
+    fullName: T
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    nameWithType: IEquatable
+    fullName: System.IEquatable
+    isExternal: true
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: T
+    nameWithType: T
+    fullName: T
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System
+  commentId: N:System
+  isExternal: false
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  name: Object
+  nameWithType: Object
+  fullName: System.Object
+- uid: ImageSharp.Rational
+  commentId: T:ImageSharp.Rational
+  parent: ImageSharp
+  isExternal: false
+  name: Rational
+  nameWithType: Rational
+  fullName: ImageSharp.Rational
+- uid: System.UInt32
+  commentId: T:System.UInt32
+  parent: System
+  isExternal: true
+  name: UInt32
+  nameWithType: UInt32
+  fullName: System.UInt32
+- uid: System.Boolean
+  commentId: T:System.Boolean
+  parent: System
+  isExternal: true
+  name: Boolean
+  nameWithType: Boolean
+  fullName: System.Boolean
+- uid: System.Double
+  commentId: T:System.Double
+  parent: System
+  isExternal: true
+  name: Double
+  nameWithType: Double
+  fullName: System.Double
+- uid: System.ValueType.Equals(System.Object)
+  commentId: M:System.ValueType.Equals(System.Object)
+  parent: System.ValueType
+  isExternal: true
+  name: Equals(Object)
+  nameWithType: ValueType.Equals(Object)
+  fullName: System.ValueType.Equals(System.Object)
+  spec.csharp:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    nameWithType: ValueType.Equals
+    fullName: System.ValueType.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    nameWithType: ValueType.Equals
+    fullName: System.ValueType.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.ValueType
+  commentId: T:System.ValueType
+  parent: System
+  isExternal: true
+  name: ValueType
+  nameWithType: ValueType
+  fullName: System.ValueType
+- uid: System.IEquatable{ImageSharp.Rational}.Equals(ImageSharp.Rational)
+  commentId: M:System.IEquatable{ImageSharp.Rational}.Equals(ImageSharp.Rational)
+  parent: System.IEquatable{ImageSharp.Rational}
+  definition: System.IEquatable`1.Equals(`0)
+  name: Equals(Rational)
+  nameWithType: IEquatable<Rational>.Equals(Rational)
+  fullName: System.IEquatable<ImageSharp.Rational>.Equals(ImageSharp.Rational)
+  nameWithType.vb: IEquatable(Of Rational).Equals(Rational)
+  fullname.vb: System.IEquatable(Of ImageSharp.Rational).Equals(ImageSharp.Rational)
+  spec.csharp:
+  - uid: System.IEquatable`1.Equals(`0)
+    name: Equals
+    nameWithType: IEquatable<Rational>.Equals
+    fullName: System.IEquatable<ImageSharp.Rational>.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.Rational
+    name: Rational
+    nameWithType: Rational
+    fullName: ImageSharp.Rational
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.IEquatable`1.Equals(`0)
+    name: Equals
+    nameWithType: IEquatable(Of Rational).Equals
+    fullName: System.IEquatable(Of ImageSharp.Rational).Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.Rational
+    name: Rational
+    nameWithType: Rational
+    fullName: ImageSharp.Rational
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.IEquatable`1.Equals(`0)
+  commentId: M:System.IEquatable`1.Equals(`0)
+  isExternal: true
+  name: Equals(T)
+  nameWithType: IEquatable<T>.Equals(T)
+  fullName: System.IEquatable<T>.Equals(T)
+  nameWithType.vb: IEquatable(Of T).Equals(T)
+  fullname.vb: System.IEquatable(Of T).Equals(T)
+  spec.csharp:
+  - uid: System.IEquatable`1.Equals(`0)
+    name: Equals
+    nameWithType: IEquatable<T>.Equals
+    fullName: System.IEquatable<T>.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: T
+    nameWithType: T
+    fullName: T
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.IEquatable`1.Equals(`0)
+    name: Equals
+    nameWithType: IEquatable(Of T).Equals
+    fullName: System.IEquatable(Of T).Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: T
+    nameWithType: T
+    fullName: T
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.ValueType.GetHashCode
+  commentId: M:System.ValueType.GetHashCode
+  parent: System.ValueType
+  isExternal: true
+  name: GetHashCode()
+  nameWithType: ValueType.GetHashCode()
+  fullName: System.ValueType.GetHashCode()
+  spec.csharp:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    nameWithType: ValueType.GetHashCode
+    fullName: System.ValueType.GetHashCode
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    nameWithType: ValueType.GetHashCode
+    fullName: System.ValueType.GetHashCode
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Int32
+  commentId: T:System.Int32
+  parent: System
+  isExternal: true
+  name: Int32
+  nameWithType: Int32
+  fullName: System.Int32
+- uid: System.ValueType.ToString
+  commentId: M:System.ValueType.ToString
+  parent: System.ValueType
+  isExternal: true
+  name: ToString()
+  nameWithType: ValueType.ToString()
+  fullName: System.ValueType.ToString()
+  spec.csharp:
+  - uid: System.ValueType.ToString
+    name: ToString
+    nameWithType: ValueType.ToString
+    fullName: System.ValueType.ToString
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.ValueType.ToString
+    name: ToString
+    nameWithType: ValueType.ToString
+    fullName: System.ValueType.ToString
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.String
+  commentId: T:System.String
+  parent: System
+  isExternal: true
+  name: String
+  nameWithType: String
+  fullName: System.String
+- uid: System.IFormatProvider
+  commentId: T:System.IFormatProvider
+  parent: System
+  isExternal: true
+  name: IFormatProvider
+  nameWithType: IFormatProvider
+  fullName: System.IFormatProvider

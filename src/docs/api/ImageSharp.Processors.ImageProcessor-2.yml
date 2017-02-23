@@ -1,0 +1,472 @@
+### YamlMime:ManagedReference
+items:
+- uid: ImageSharp.Processors.ImageProcessor`2
+  commentId: T:ImageSharp.Processors.ImageProcessor`2
+  id: ImageProcessor`2
+  parent: ImageSharp.Processors
+  children:
+  - ImageSharp.Processors.ImageProcessor`2.Compand
+  - ImageSharp.Processors.ImageProcessor`2.ParallelOptions
+  langs:
+  - csharp
+  - vb
+  name: ImageProcessor<TColor, TPacked>
+  nameWithType: ImageProcessor<TColor, TPacked>
+  fullName: ImageSharp.Processors.ImageProcessor<TColor, TPacked>
+  type: Class
+  source:
+    id: ImageProcessor
+    path: ''
+    startLine: 151
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Processors
+  summary: "\nAllows the application of processors to images.\n"
+  example: []
+  syntax:
+    content: 'public abstract class ImageProcessor<TColor, TPacked> : IImageProcessor where TColor : struct, IPackedPixel<TPacked> where TPacked : struct'
+    content.vb: >-
+      Public MustInherit Class ImageProcessor(Of TColor As {Structure, IPackedPixel(Of TPacked)}, TPacked As Structure)
+          Implements IImageProcessor
+    typeParameters:
+    - id: TColor
+      description: The pixel format.
+    - id: TPacked
+      description: The packed format. <example>uint, long, float.</example>
+  inheritance:
+  - System.Object
+  implements:
+  - ImageSharp.Processors.IImageProcessor
+  inheritedMembers:
+  - System.Object.ToString
+  - System.Object.Equals(System.Object)
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+  - System.Object.GetHashCode
+  - System.Object.GetType
+  - System.Object.MemberwiseClone
+  nameWithType.vb: ImageProcessor(Of TColor, TPacked)
+  modifiers.csharp:
+  - public
+  - abstract
+  - class
+  modifiers.vb:
+  - Public
+  - MustInherit
+  - Class
+  fullName.vb: ImageSharp.Processors.ImageProcessor(Of TColor, TPacked)
+  name.vb: ImageProcessor(Of TColor, TPacked)
+- uid: ImageSharp.Processors.ImageProcessor`2.ParallelOptions
+  commentId: P:ImageSharp.Processors.ImageProcessor`2.ParallelOptions
+  id: ParallelOptions
+  parent: ImageSharp.Processors.ImageProcessor`2
+  langs:
+  - csharp
+  - vb
+  name: ParallelOptions
+  nameWithType: ImageProcessor<TColor, TPacked>.ParallelOptions
+  fullName: ImageSharp.Processors.ImageProcessor<TColor, TPacked>.ParallelOptions
+  type: Property
+  source:
+    id: ParallelOptions
+    path: ''
+    startLine: 156
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Processors
+  example: []
+  syntax:
+    content: public virtual ParallelOptions ParallelOptions { get; set; }
+    content.vb: Public Overridable Property ParallelOptions As ParallelOptions
+    parameters: []
+    return:
+      type: System.Threading.Tasks.ParallelOptions
+  implements:
+  - ImageSharp.Processors.IImageProcessor.ParallelOptions
+  nameWithType.vb: ImageProcessor(Of TColor, TPacked).ParallelOptions
+  modifiers.csharp:
+  - public
+  - virtual
+  - get
+  - set
+  modifiers.vb:
+  - Public
+  - Overridable
+  fullName.vb: ImageSharp.Processors.ImageProcessor(Of TColor, TPacked).ParallelOptions
+- uid: ImageSharp.Processors.ImageProcessor`2.Compand
+  commentId: P:ImageSharp.Processors.ImageProcessor`2.Compand
+  id: Compand
+  parent: ImageSharp.Processors.ImageProcessor`2
+  langs:
+  - csharp
+  - vb
+  name: Compand
+  nameWithType: ImageProcessor<TColor, TPacked>.Compand
+  fullName: ImageSharp.Processors.ImageProcessor<TColor, TPacked>.Compand
+  type: Property
+  source:
+    id: Compand
+    path: ''
+    startLine: 159
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Processors
+  example: []
+  syntax:
+    content: public virtual bool Compand { get; set; }
+    content.vb: Public Overridable Property Compand As Boolean
+    parameters: []
+    return:
+      type: System.Boolean
+  implements:
+  - ImageSharp.Processors.IImageProcessor.Compand
+  nameWithType.vb: ImageProcessor(Of TColor, TPacked).Compand
+  modifiers.csharp:
+  - public
+  - virtual
+  - get
+  - set
+  modifiers.vb:
+  - Public
+  - Overridable
+  fullName.vb: ImageSharp.Processors.ImageProcessor(Of TColor, TPacked).Compand
+references:
+- uid: ImageSharp.Processors
+  commentId: N:ImageSharp.Processors
+  isExternal: false
+  name: ImageSharp.Processors
+  nameWithType: ImageSharp.Processors
+  fullName: ImageSharp.Processors
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  name: Object
+  nameWithType: Object
+  fullName: System.Object
+- uid: ImageSharp.Processors.IImageProcessor
+  commentId: T:ImageSharp.Processors.IImageProcessor
+  parent: ImageSharp.Processors
+  isExternal: false
+  name: IImageProcessor
+  nameWithType: IImageProcessor
+  fullName: ImageSharp.Processors.IImageProcessor
+- uid: System.Object.ToString
+  commentId: M:System.Object.ToString
+  parent: System.Object
+  isExternal: true
+  name: ToString()
+  nameWithType: Object.ToString()
+  fullName: System.Object.ToString()
+  spec.csharp:
+  - uid: System.Object.ToString
+    name: ToString
+    nameWithType: Object.ToString
+    fullName: System.Object.ToString
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.ToString
+    name: ToString
+    nameWithType: Object.ToString
+    fullName: System.Object.ToString
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.Equals(System.Object)
+  commentId: M:System.Object.Equals(System.Object)
+  parent: System.Object
+  isExternal: true
+  name: Equals(Object)
+  nameWithType: Object.Equals(Object)
+  fullName: System.Object.Equals(System.Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  name: Equals(Object, Object)
+  nameWithType: Object.Equals(Object, Object)
+  fullName: System.Object.Equals(System.Object, System.Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  name: ReferenceEquals(Object, Object)
+  nameWithType: Object.ReferenceEquals(Object, Object)
+  fullName: System.Object.ReferenceEquals(System.Object, System.Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    nameWithType: Object.ReferenceEquals
+    fullName: System.Object.ReferenceEquals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    nameWithType: Object.ReferenceEquals
+    fullName: System.Object.ReferenceEquals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.GetHashCode
+  commentId: M:System.Object.GetHashCode
+  parent: System.Object
+  isExternal: true
+  name: GetHashCode()
+  nameWithType: Object.GetHashCode()
+  fullName: System.Object.GetHashCode()
+  spec.csharp:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    nameWithType: Object.GetHashCode
+    fullName: System.Object.GetHashCode
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    nameWithType: Object.GetHashCode
+    fullName: System.Object.GetHashCode
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  name: GetType()
+  nameWithType: Object.GetType()
+  fullName: System.Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    nameWithType: Object.GetType
+    fullName: System.Object.GetType
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    nameWithType: Object.GetType
+    fullName: System.Object.GetType
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.MemberwiseClone
+  commentId: M:System.Object.MemberwiseClone
+  parent: System.Object
+  isExternal: true
+  name: MemberwiseClone()
+  nameWithType: Object.MemberwiseClone()
+  fullName: System.Object.MemberwiseClone()
+  spec.csharp:
+  - uid: System.Object.MemberwiseClone
+    name: MemberwiseClone
+    nameWithType: Object.MemberwiseClone
+    fullName: System.Object.MemberwiseClone
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.MemberwiseClone
+    name: MemberwiseClone
+    nameWithType: Object.MemberwiseClone
+    fullName: System.Object.MemberwiseClone
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System
+  commentId: N:System
+  isExternal: false
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: ImageSharp.Processors.IImageProcessor.ParallelOptions
+  commentId: P:ImageSharp.Processors.IImageProcessor.ParallelOptions
+  parent: ImageSharp.Processors.IImageProcessor
+  isExternal: false
+  name: ParallelOptions
+  nameWithType: IImageProcessor.ParallelOptions
+  fullName: ImageSharp.Processors.IImageProcessor.ParallelOptions
+- uid: System.Threading.Tasks.ParallelOptions
+  commentId: T:System.Threading.Tasks.ParallelOptions
+  parent: System.Threading.Tasks
+  isExternal: true
+  name: ParallelOptions
+  nameWithType: ParallelOptions
+  fullName: System.Threading.Tasks.ParallelOptions
+- uid: System.Threading.Tasks
+  commentId: N:System.Threading.Tasks
+  isExternal: false
+  name: System.Threading.Tasks
+  nameWithType: System.Threading.Tasks
+  fullName: System.Threading.Tasks
+- uid: ImageSharp.Processors.IImageProcessor.Compand
+  commentId: P:ImageSharp.Processors.IImageProcessor.Compand
+  parent: ImageSharp.Processors.IImageProcessor
+  isExternal: false
+  name: Compand
+  nameWithType: IImageProcessor.Compand
+  fullName: ImageSharp.Processors.IImageProcessor.Compand
+- uid: System.Boolean
+  commentId: T:System.Boolean
+  parent: System
+  isExternal: true
+  name: Boolean
+  nameWithType: Boolean
+  fullName: System.Boolean

@@ -1,0 +1,170 @@
+### YamlMime:ManagedReference
+items:
+- uid: ImageSharp.Formats.DisposalMethod
+  commentId: T:ImageSharp.Formats.DisposalMethod
+  id: DisposalMethod
+  parent: ImageSharp.Formats
+  children:
+  - ImageSharp.Formats.DisposalMethod.NotDispose
+  - ImageSharp.Formats.DisposalMethod.RestoreToBackground
+  - ImageSharp.Formats.DisposalMethod.RestoreToPrevious
+  - ImageSharp.Formats.DisposalMethod.Unspecified
+  langs:
+  - csharp
+  - vb
+  name: DisposalMethod
+  nameWithType: DisposalMethod
+  fullName: ImageSharp.Formats.DisposalMethod
+  type: Enum
+  source:
+    id: DisposalMethod
+    path: ''
+    startLine: 8511
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Formats
+  summary: "\nProvides enumeration for instructing the decoder what to do with the last image\nin an animation sequence.\n<a href=\"http://www.w3.org/Graphics/GIF/spec-gif89a.txt\"></a> section 23\n"
+  example: []
+  syntax:
+    content: public enum DisposalMethod
+    content.vb: Public Enum DisposalMethod
+  modifiers.csharp:
+  - public
+  - enum
+  modifiers.vb:
+  - Public
+  - Enum
+- uid: ImageSharp.Formats.DisposalMethod.Unspecified
+  commentId: F:ImageSharp.Formats.DisposalMethod.Unspecified
+  id: Unspecified
+  parent: ImageSharp.Formats.DisposalMethod
+  langs:
+  - csharp
+  - vb
+  name: Unspecified
+  nameWithType: DisposalMethod.Unspecified
+  fullName: ImageSharp.Formats.DisposalMethod.Unspecified
+  type: Field
+  source:
+    id: Unspecified
+    path: ''
+    startLine: 8516
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Formats
+  summary: "\nNo disposal specified. The decoder is not required to take any action.\n"
+  example: []
+  syntax:
+    content: Unspecified = 0
+    return:
+      type: ImageSharp.Formats.DisposalMethod
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.Formats.DisposalMethod.NotDispose
+  commentId: F:ImageSharp.Formats.DisposalMethod.NotDispose
+  id: NotDispose
+  parent: ImageSharp.Formats.DisposalMethod
+  langs:
+  - csharp
+  - vb
+  name: NotDispose
+  nameWithType: DisposalMethod.NotDispose
+  fullName: ImageSharp.Formats.DisposalMethod.NotDispose
+  type: Field
+  source:
+    id: NotDispose
+    path: ''
+    startLine: 8521
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Formats
+  summary: "\nDo not dispose. The graphic is to be left in place.\n"
+  example: []
+  syntax:
+    content: NotDispose = 1
+    return:
+      type: ImageSharp.Formats.DisposalMethod
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.Formats.DisposalMethod.RestoreToBackground
+  commentId: F:ImageSharp.Formats.DisposalMethod.RestoreToBackground
+  id: RestoreToBackground
+  parent: ImageSharp.Formats.DisposalMethod
+  langs:
+  - csharp
+  - vb
+  name: RestoreToBackground
+  nameWithType: DisposalMethod.RestoreToBackground
+  fullName: ImageSharp.Formats.DisposalMethod.RestoreToBackground
+  type: Field
+  source:
+    id: RestoreToBackground
+    path: ''
+    startLine: 8527
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Formats
+  summary: "\nRestore to background color. The area used by the graphic must be restored to\nthe background color.\n"
+  example: []
+  syntax:
+    content: RestoreToBackground = 2
+    return:
+      type: ImageSharp.Formats.DisposalMethod
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.Formats.DisposalMethod.RestoreToPrevious
+  commentId: F:ImageSharp.Formats.DisposalMethod.RestoreToPrevious
+  id: RestoreToPrevious
+  parent: ImageSharp.Formats.DisposalMethod
+  langs:
+  - csharp
+  - vb
+  name: RestoreToPrevious
+  nameWithType: DisposalMethod.RestoreToPrevious
+  fullName: ImageSharp.Formats.DisposalMethod.RestoreToPrevious
+  type: Field
+  source:
+    id: RestoreToPrevious
+    path: ''
+    startLine: 8533
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Formats
+  summary: "\nRestore to previous. The decoder is required to restore the area overwritten by the\ngraphic with what was there prior to rendering the graphic.\n"
+  example: []
+  syntax:
+    content: RestoreToPrevious = 3
+    return:
+      type: ImageSharp.Formats.DisposalMethod
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+references:
+- uid: ImageSharp.Formats
+  commentId: N:ImageSharp.Formats
+  isExternal: false
+  name: ImageSharp.Formats
+  nameWithType: ImageSharp.Formats
+  fullName: ImageSharp.Formats
+- uid: ImageSharp.Formats.DisposalMethod
+  commentId: T:ImageSharp.Formats.DisposalMethod
+  parent: ImageSharp.Formats
+  isExternal: false
+  name: DisposalMethod
+  nameWithType: DisposalMethod
+  fullName: ImageSharp.Formats.DisposalMethod

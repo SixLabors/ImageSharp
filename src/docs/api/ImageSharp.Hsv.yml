@@ -1,0 +1,1219 @@
+### YamlMime:ManagedReference
+items:
+- uid: ImageSharp.Hsv
+  commentId: T:ImageSharp.Hsv
+  id: Hsv
+  parent: ImageSharp
+  children:
+  - ImageSharp.Hsv.#ctor(System.Single,System.Single,System.Single)
+  - ImageSharp.Hsv.AlmostEquals(ImageSharp.Hsv,System.Single)
+  - ImageSharp.Hsv.Empty
+  - ImageSharp.Hsv.Equals(ImageSharp.Hsv)
+  - ImageSharp.Hsv.Equals(System.Object)
+  - ImageSharp.Hsv.GetHashCode
+  - ImageSharp.Hsv.H
+  - ImageSharp.Hsv.IsEmpty
+  - ImageSharp.Hsv.op_Equality(ImageSharp.Hsv,ImageSharp.Hsv)
+  - ImageSharp.Hsv.op_Implicit(ImageSharp.Color)~ImageSharp.Hsv
+  - ImageSharp.Hsv.op_Inequality(ImageSharp.Hsv,ImageSharp.Hsv)
+  - ImageSharp.Hsv.S
+  - ImageSharp.Hsv.ToString
+  - ImageSharp.Hsv.V
+  langs:
+  - csharp
+  - vb
+  name: Hsv
+  nameWithType: Hsv
+  fullName: ImageSharp.Hsv
+  type: Struct
+  source:
+    id: Hsv
+    path: ''
+    startLine: 3009
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a HSV (hue, saturation, value) color. Also known as HSB (hue, saturation, brightness).\n"
+  example: []
+  syntax:
+    content: 'public struct Hsv : IEquatable<Hsv>, IAlmostEquatable<Hsv, float>'
+    content.vb: >-
+      Public Structure Hsv
+          Implements IEquatable(Of Hsv), IAlmostEquatable(Of Hsv, Single)
+  implements:
+  - System.IEquatable{ImageSharp.Hsv}
+  - ImageSharp.IAlmostEquatable{ImageSharp.Hsv,System.Single}
+  inheritedMembers:
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+  - System.Object.GetType
+  modifiers.csharp:
+  - public
+  - struct
+  modifiers.vb:
+  - Public
+  - Structure
+- uid: ImageSharp.Hsv.Empty
+  commentId: F:ImageSharp.Hsv.Empty
+  id: Empty
+  parent: ImageSharp.Hsv
+  langs:
+  - csharp
+  - vb
+  name: Empty
+  nameWithType: Hsv.Empty
+  fullName: ImageSharp.Hsv.Empty
+  type: Field
+  source:
+    id: Empty
+    path: ''
+    startLine: 3014
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Hsv\" data-throw-if-not-resolved=\"false\"></xref> that has H, S, and V values set to zero.\n"
+  example: []
+  syntax:
+    content: public static readonly Hsv Empty
+    content.vb: Public Shared ReadOnly Empty As Hsv
+    return:
+      type: ImageSharp.Hsv
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Hsv.#ctor(System.Single,System.Single,System.Single)
+  commentId: M:ImageSharp.Hsv.#ctor(System.Single,System.Single,System.Single)
+  id: '#ctor(System.Single,System.Single,System.Single)'
+  parent: ImageSharp.Hsv
+  langs:
+  - csharp
+  - vb
+  name: Hsv(Single, Single, Single)
+  nameWithType: Hsv.Hsv(Single, Single, Single)
+  fullName: ImageSharp.Hsv.Hsv(System.Single, System.Single, System.Single)
+  type: Constructor
+  source:
+    id: .ctor
+    path: ''
+    startLine: 3032
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nInitializes a new instance of the <xref href=\"ImageSharp.Hsv\" data-throw-if-not-resolved=\"false\"></xref> struct.\n"
+  example: []
+  syntax:
+    content: public Hsv(float h, float s, float v)
+    content.vb: Public Sub New(h As Single, s As Single, v As Single)
+    parameters:
+    - id: h
+      type: System.Single
+      description: The h hue component.
+    - id: s
+      type: System.Single
+      description: The s saturation component.
+    - id: v
+      type: System.Single
+      description: The v value (brightness) component.
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.Hsv.H
+  commentId: P:ImageSharp.Hsv.H
+  id: H
+  parent: ImageSharp.Hsv
+  langs:
+  - csharp
+  - vb
+  name: H
+  nameWithType: Hsv.H
+  fullName: ImageSharp.Hsv.H
+  type: Property
+  source:
+    id: H
+    path: ''
+    startLine: 3041
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets the hue component.\n<remarks>A value ranging between 0 and 360.</remarks>\n"
+  example: []
+  syntax:
+    content: public float H { get; }
+    content.vb: Public ReadOnly Property H As Single
+    parameters: []
+    return:
+      type: System.Single
+  modifiers.csharp:
+  - public
+  - get
+  modifiers.vb:
+  - Public
+  - ReadOnly
+- uid: ImageSharp.Hsv.S
+  commentId: P:ImageSharp.Hsv.S
+  id: S
+  parent: ImageSharp.Hsv
+  langs:
+  - csharp
+  - vb
+  name: S
+  nameWithType: Hsv.S
+  fullName: ImageSharp.Hsv.S
+  type: Property
+  source:
+    id: S
+    path: ''
+    startLine: 3047
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets the saturation component.\n<remarks>A value ranging between 0 and 1.</remarks>\n"
+  example: []
+  syntax:
+    content: public float S { get; }
+    content.vb: Public ReadOnly Property S As Single
+    parameters: []
+    return:
+      type: System.Single
+  modifiers.csharp:
+  - public
+  - get
+  modifiers.vb:
+  - Public
+  - ReadOnly
+- uid: ImageSharp.Hsv.V
+  commentId: P:ImageSharp.Hsv.V
+  id: V
+  parent: ImageSharp.Hsv
+  langs:
+  - csharp
+  - vb
+  name: V
+  nameWithType: Hsv.V
+  fullName: ImageSharp.Hsv.V
+  type: Property
+  source:
+    id: V
+    path: ''
+    startLine: 3053
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets the value (brightness) component.\n<remarks>A value ranging between 0 and 1.</remarks>\n"
+  example: []
+  syntax:
+    content: public float V { get; }
+    content.vb: Public ReadOnly Property V As Single
+    parameters: []
+    return:
+      type: System.Single
+  modifiers.csharp:
+  - public
+  - get
+  modifiers.vb:
+  - Public
+  - ReadOnly
+- uid: ImageSharp.Hsv.IsEmpty
+  commentId: P:ImageSharp.Hsv.IsEmpty
+  id: IsEmpty
+  parent: ImageSharp.Hsv
+  langs:
+  - csharp
+  - vb
+  name: IsEmpty
+  nameWithType: Hsv.IsEmpty
+  fullName: ImageSharp.Hsv.IsEmpty
+  type: Property
+  source:
+    id: IsEmpty
+    path: ''
+    startLine: 3058
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets a value indicating whether this <xref href=\"ImageSharp.Hsv\" data-throw-if-not-resolved=\"false\"></xref> is empty.\n"
+  example: []
+  syntax:
+    content: public bool IsEmpty { get; }
+    content.vb: Public ReadOnly Property IsEmpty As Boolean
+    parameters: []
+    return:
+      type: System.Boolean
+  modifiers.csharp:
+  - public
+  - get
+  modifiers.vb:
+  - Public
+  - ReadOnly
+- uid: ImageSharp.Hsv.op_Implicit(ImageSharp.Color)~ImageSharp.Hsv
+  commentId: M:ImageSharp.Hsv.op_Implicit(ImageSharp.Color)~ImageSharp.Hsv
+  id: op_Implicit(ImageSharp.Color)~ImageSharp.Hsv
+  parent: ImageSharp.Hsv
+  langs:
+  - csharp
+  - vb
+  name: Implicit(Color to Hsv)
+  nameWithType: Hsv.Implicit(Color to Hsv)
+  fullName: ImageSharp.Hsv.Implicit(ImageSharp.Color to ImageSharp.Hsv)
+  type: Operator
+  source:
+    id: op_Implicit
+    path: ''
+    startLine: 3069
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nAllows the implicit conversion of an instance of <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> to a\n<xref href=\"ImageSharp.Hsv\" data-throw-if-not-resolved=\"false\"></xref>.\n"
+  example: []
+  syntax:
+    content: public static implicit operator Hsv(Color color)
+    content.vb: Public Shared Widening Operator CType(color As Color) As Hsv
+    parameters:
+    - id: color
+      type: ImageSharp.Color
+      description: The instance of <xref href="ImageSharp.Color" data-throw-if-not-resolved="false"></xref> to convert.
+    return:
+      type: ImageSharp.Hsv
+      description: "\nAn instance of <xref href=\"ImageSharp.Hsv\" data-throw-if-not-resolved=\"false\"></xref>.\n"
+  nameWithType.vb: Hsv.Widening(Color to Hsv)
+  modifiers.csharp:
+  - public
+  - static
+  modifiers.vb:
+  - Public
+  - Shared
+  fullName.vb: ImageSharp.Hsv.Widening(ImageSharp.Color to ImageSharp.Hsv)
+  name.vb: Widening(Color to Hsv)
+- uid: ImageSharp.Hsv.op_Equality(ImageSharp.Hsv,ImageSharp.Hsv)
+  commentId: M:ImageSharp.Hsv.op_Equality(ImageSharp.Hsv,ImageSharp.Hsv)
+  id: op_Equality(ImageSharp.Hsv,ImageSharp.Hsv)
+  parent: ImageSharp.Hsv
+  langs:
+  - csharp
+  - vb
+  name: Equality(Hsv, Hsv)
+  nameWithType: Hsv.Equality(Hsv, Hsv)
+  fullName: ImageSharp.Hsv.Equality(ImageSharp.Hsv, ImageSharp.Hsv)
+  type: Operator
+  source:
+    id: op_Equality
+    path: ''
+    startLine: 3123
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nCompares two <xref href=\"ImageSharp.Hsv\" data-throw-if-not-resolved=\"false\"></xref> objects for equality.\n"
+  example: []
+  syntax:
+    content: public static bool operator ==(Hsv left, Hsv right)
+    content.vb: Public Shared Operator =(left As Hsv, right As Hsv) As Boolean
+    parameters:
+    - id: left
+      type: ImageSharp.Hsv
+      description: "\nThe <xref href=\"ImageSharp.Hsv\" data-throw-if-not-resolved=\"false\"></xref> on the left side of the operand.\n"
+    - id: right
+      type: ImageSharp.Hsv
+      description: "\nThe <xref href=\"ImageSharp.Hsv\" data-throw-if-not-resolved=\"false\"></xref> on the right side of the operand.\n"
+    return:
+      type: System.Boolean
+      description: "\nTrue if the current left is equal to the <em>right</em> parameter; otherwise, false.\n"
+  modifiers.csharp:
+  - public
+  - static
+  modifiers.vb:
+  - Public
+  - Shared
+- uid: ImageSharp.Hsv.op_Inequality(ImageSharp.Hsv,ImageSharp.Hsv)
+  commentId: M:ImageSharp.Hsv.op_Inequality(ImageSharp.Hsv,ImageSharp.Hsv)
+  id: op_Inequality(ImageSharp.Hsv,ImageSharp.Hsv)
+  parent: ImageSharp.Hsv
+  langs:
+  - csharp
+  - vb
+  name: Inequality(Hsv, Hsv)
+  nameWithType: Hsv.Inequality(Hsv, Hsv)
+  fullName: ImageSharp.Hsv.Inequality(ImageSharp.Hsv, ImageSharp.Hsv)
+  type: Operator
+  source:
+    id: op_Inequality
+    path: ''
+    startLine: 3140
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nCompares two <xref href=\"ImageSharp.Hsv\" data-throw-if-not-resolved=\"false\"></xref> objects for inequality.\n"
+  example: []
+  syntax:
+    content: public static bool operator !=(Hsv left, Hsv right)
+    content.vb: Public Shared Operator <>(left As Hsv, right As Hsv) As Boolean
+    parameters:
+    - id: left
+      type: ImageSharp.Hsv
+      description: "\nThe <xref href=\"ImageSharp.Hsv\" data-throw-if-not-resolved=\"false\"></xref> on the left side of the operand.\n"
+    - id: right
+      type: ImageSharp.Hsv
+      description: "\nThe <xref href=\"ImageSharp.Hsv\" data-throw-if-not-resolved=\"false\"></xref> on the right side of the operand.\n"
+    return:
+      type: System.Boolean
+      description: "\nTrue if the current left is unequal to the <em>right</em> parameter; otherwise, false.\n"
+  modifiers.csharp:
+  - public
+  - static
+  modifiers.vb:
+  - Public
+  - Shared
+- uid: ImageSharp.Hsv.GetHashCode
+  commentId: M:ImageSharp.Hsv.GetHashCode
+  id: GetHashCode
+  parent: ImageSharp.Hsv
+  langs:
+  - csharp
+  - vb
+  name: GetHashCode()
+  nameWithType: Hsv.GetHashCode()
+  fullName: ImageSharp.Hsv.GetHashCode()
+  type: Method
+  source:
+    id: GetHashCode
+    path: ''
+    startLine: 3146
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  example: []
+  syntax:
+    content: public override int GetHashCode()
+    content.vb: Public Overrides Function GetHashCode As Integer
+    return:
+      type: System.Int32
+  overridden: System.ValueType.GetHashCode
+  modifiers.csharp:
+  - public
+  - override
+  modifiers.vb:
+  - Public
+  - Overrides
+- uid: ImageSharp.Hsv.ToString
+  commentId: M:ImageSharp.Hsv.ToString
+  id: ToString
+  parent: ImageSharp.Hsv
+  langs:
+  - csharp
+  - vb
+  name: ToString()
+  nameWithType: Hsv.ToString()
+  fullName: ImageSharp.Hsv.ToString()
+  type: Method
+  source:
+    id: ToString
+    path: ''
+    startLine: 3152
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  example: []
+  syntax:
+    content: public override string ToString()
+    content.vb: Public Overrides Function ToString As String
+    return:
+      type: System.String
+  overridden: System.ValueType.ToString
+  modifiers.csharp:
+  - public
+  - override
+  modifiers.vb:
+  - Public
+  - Overrides
+- uid: ImageSharp.Hsv.Equals(System.Object)
+  commentId: M:ImageSharp.Hsv.Equals(System.Object)
+  id: Equals(System.Object)
+  parent: ImageSharp.Hsv
+  langs:
+  - csharp
+  - vb
+  name: Equals(Object)
+  nameWithType: Hsv.Equals(Object)
+  fullName: ImageSharp.Hsv.Equals(System.Object)
+  type: Method
+  source:
+    id: Equals
+    path: ''
+    startLine: 3163
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  example: []
+  syntax:
+    content: public override bool Equals(object obj)
+    content.vb: Public Overrides Function Equals(obj As Object) As Boolean
+    parameters:
+    - id: obj
+      type: System.Object
+    return:
+      type: System.Boolean
+  overridden: System.ValueType.Equals(System.Object)
+  modifiers.csharp:
+  - public
+  - override
+  modifiers.vb:
+  - Public
+  - Overrides
+- uid: ImageSharp.Hsv.Equals(ImageSharp.Hsv)
+  commentId: M:ImageSharp.Hsv.Equals(ImageSharp.Hsv)
+  id: Equals(ImageSharp.Hsv)
+  parent: ImageSharp.Hsv
+  langs:
+  - csharp
+  - vb
+  name: Equals(Hsv)
+  nameWithType: Hsv.Equals(Hsv)
+  fullName: ImageSharp.Hsv.Equals(ImageSharp.Hsv)
+  type: Method
+  source:
+    id: Equals
+    path: ''
+    startLine: 3174
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  example: []
+  syntax:
+    content: public bool Equals(Hsv other)
+    content.vb: Public Function Equals(other As Hsv) As Boolean
+    parameters:
+    - id: other
+      type: ImageSharp.Hsv
+    return:
+      type: System.Boolean
+  implements:
+  - System.IEquatable{ImageSharp.Hsv}.Equals(ImageSharp.Hsv)
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.Hsv.AlmostEquals(ImageSharp.Hsv,System.Single)
+  commentId: M:ImageSharp.Hsv.AlmostEquals(ImageSharp.Hsv,System.Single)
+  id: AlmostEquals(ImageSharp.Hsv,System.Single)
+  parent: ImageSharp.Hsv
+  langs:
+  - csharp
+  - vb
+  name: AlmostEquals(Hsv, Single)
+  nameWithType: Hsv.AlmostEquals(Hsv, Single)
+  fullName: ImageSharp.Hsv.AlmostEquals(ImageSharp.Hsv, System.Single)
+  type: Method
+  source:
+    id: AlmostEquals
+    path: ''
+    startLine: 3180
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  example: []
+  syntax:
+    content: public bool AlmostEquals(Hsv other, float precision)
+    content.vb: Public Function AlmostEquals(other As Hsv, precision As Single) As Boolean
+    parameters:
+    - id: other
+      type: ImageSharp.Hsv
+    - id: precision
+      type: System.Single
+    return:
+      type: System.Boolean
+  implements:
+  - ImageSharp.IAlmostEquatable{ImageSharp.Hsv,System.Single}.AlmostEquals(ImageSharp.Hsv,System.Single)
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+references:
+- uid: ImageSharp
+  commentId: N:ImageSharp
+  isExternal: false
+  name: ImageSharp
+  nameWithType: ImageSharp
+  fullName: ImageSharp
+- uid: System.IEquatable{ImageSharp.Hsv}
+  commentId: T:System.IEquatable{ImageSharp.Hsv}
+  parent: System
+  definition: System.IEquatable`1
+  name: IEquatable<Hsv>
+  nameWithType: IEquatable<Hsv>
+  fullName: System.IEquatable<ImageSharp.Hsv>
+  nameWithType.vb: IEquatable(Of Hsv)
+  fullname.vb: System.IEquatable(Of ImageSharp.Hsv)
+  name.vb: IEquatable(Of Hsv)
+  spec.csharp:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    nameWithType: IEquatable
+    fullName: System.IEquatable
+    isExternal: true
+  - name: <
+    nameWithType: <
+    fullName: <
+  - uid: ImageSharp.Hsv
+    name: Hsv
+    nameWithType: Hsv
+    fullName: ImageSharp.Hsv
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    nameWithType: IEquatable
+    fullName: System.IEquatable
+    isExternal: true
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - uid: ImageSharp.Hsv
+    name: Hsv
+    nameWithType: Hsv
+    fullName: ImageSharp.Hsv
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.IAlmostEquatable{ImageSharp.Hsv,System.Single}
+  commentId: T:ImageSharp.IAlmostEquatable{ImageSharp.Hsv,System.Single}
+  parent: ImageSharp
+  definition: ImageSharp.IAlmostEquatable`2
+  name: IAlmostEquatable<Hsv, Single>
+  nameWithType: IAlmostEquatable<Hsv, Single>
+  fullName: ImageSharp.IAlmostEquatable<ImageSharp.Hsv, System.Single>
+  nameWithType.vb: IAlmostEquatable(Of Hsv, Single)
+  fullname.vb: ImageSharp.IAlmostEquatable(Of ImageSharp.Hsv, System.Single)
+  name.vb: IAlmostEquatable(Of Hsv, Single)
+  spec.csharp:
+  - uid: ImageSharp.IAlmostEquatable`2
+    name: IAlmostEquatable
+    nameWithType: IAlmostEquatable
+    fullName: ImageSharp.IAlmostEquatable
+  - name: <
+    nameWithType: <
+    fullName: <
+  - uid: ImageSharp.Hsv
+    name: Hsv
+    nameWithType: Hsv
+    fullName: ImageSharp.Hsv
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Single
+    name: Single
+    nameWithType: Single
+    fullName: System.Single
+    isExternal: true
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.IAlmostEquatable`2
+    name: IAlmostEquatable
+    nameWithType: IAlmostEquatable
+    fullName: ImageSharp.IAlmostEquatable
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - uid: ImageSharp.Hsv
+    name: Hsv
+    nameWithType: Hsv
+    fullName: ImageSharp.Hsv
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Single
+    name: Single
+    nameWithType: Single
+    fullName: System.Single
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  name: Equals(Object, Object)
+  nameWithType: Object.Equals(Object, Object)
+  fullName: System.Object.Equals(System.Object, System.Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  name: ReferenceEquals(Object, Object)
+  nameWithType: Object.ReferenceEquals(Object, Object)
+  fullName: System.Object.ReferenceEquals(System.Object, System.Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    nameWithType: Object.ReferenceEquals
+    fullName: System.Object.ReferenceEquals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    nameWithType: Object.ReferenceEquals
+    fullName: System.Object.ReferenceEquals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  name: GetType()
+  nameWithType: Object.GetType()
+  fullName: System.Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    nameWithType: Object.GetType
+    fullName: System.Object.GetType
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    nameWithType: Object.GetType
+    fullName: System.Object.GetType
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.IEquatable`1
+  commentId: T:System.IEquatable`1
+  isExternal: true
+  name: IEquatable<T>
+  nameWithType: IEquatable<T>
+  fullName: System.IEquatable<T>
+  nameWithType.vb: IEquatable(Of T)
+  fullname.vb: System.IEquatable(Of T)
+  name.vb: IEquatable(Of T)
+  spec.csharp:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    nameWithType: IEquatable
+    fullName: System.IEquatable
+    isExternal: true
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: T
+    nameWithType: T
+    fullName: T
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    nameWithType: IEquatable
+    fullName: System.IEquatable
+    isExternal: true
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: T
+    nameWithType: T
+    fullName: T
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System
+  commentId: N:System
+  isExternal: false
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: ImageSharp.IAlmostEquatable`2
+  commentId: T:ImageSharp.IAlmostEquatable`2
+  isExternal: false
+  name: IAlmostEquatable<TColor, TPrecision>
+  nameWithType: IAlmostEquatable<TColor, TPrecision>
+  fullName: ImageSharp.IAlmostEquatable<TColor, TPrecision>
+  nameWithType.vb: IAlmostEquatable(Of TColor, TPrecision)
+  fullname.vb: ImageSharp.IAlmostEquatable(Of TColor, TPrecision)
+  name.vb: IAlmostEquatable(Of TColor, TPrecision)
+  spec.csharp:
+  - uid: ImageSharp.IAlmostEquatable`2
+    name: IAlmostEquatable
+    nameWithType: IAlmostEquatable
+    fullName: ImageSharp.IAlmostEquatable
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPrecision
+    nameWithType: TPrecision
+    fullName: TPrecision
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.IAlmostEquatable`2
+    name: IAlmostEquatable
+    nameWithType: IAlmostEquatable
+    fullName: ImageSharp.IAlmostEquatable
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPrecision
+    nameWithType: TPrecision
+    fullName: TPrecision
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  name: Object
+  nameWithType: Object
+  fullName: System.Object
+- uid: ImageSharp.Hsv
+  commentId: T:ImageSharp.Hsv
+  parent: ImageSharp
+  isExternal: false
+  name: Hsv
+  nameWithType: Hsv
+  fullName: ImageSharp.Hsv
+- uid: System.Single
+  commentId: T:System.Single
+  parent: System
+  isExternal: true
+  name: Single
+  nameWithType: Single
+  fullName: System.Single
+- uid: System.Boolean
+  commentId: T:System.Boolean
+  parent: System
+  isExternal: true
+  name: Boolean
+  nameWithType: Boolean
+  fullName: System.Boolean
+- uid: ImageSharp.Color
+  commentId: T:ImageSharp.Color
+  parent: ImageSharp
+  isExternal: false
+  name: Color
+  nameWithType: Color
+  fullName: ImageSharp.Color
+- uid: System.ValueType.GetHashCode
+  commentId: M:System.ValueType.GetHashCode
+  parent: System.ValueType
+  isExternal: true
+  name: GetHashCode()
+  nameWithType: ValueType.GetHashCode()
+  fullName: System.ValueType.GetHashCode()
+  spec.csharp:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    nameWithType: ValueType.GetHashCode
+    fullName: System.ValueType.GetHashCode
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    nameWithType: ValueType.GetHashCode
+    fullName: System.ValueType.GetHashCode
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Int32
+  commentId: T:System.Int32
+  parent: System
+  isExternal: true
+  name: Int32
+  nameWithType: Int32
+  fullName: System.Int32
+- uid: System.ValueType
+  commentId: T:System.ValueType
+  parent: System
+  isExternal: true
+  name: ValueType
+  nameWithType: ValueType
+  fullName: System.ValueType
+- uid: System.ValueType.ToString
+  commentId: M:System.ValueType.ToString
+  parent: System.ValueType
+  isExternal: true
+  name: ToString()
+  nameWithType: ValueType.ToString()
+  fullName: System.ValueType.ToString()
+  spec.csharp:
+  - uid: System.ValueType.ToString
+    name: ToString
+    nameWithType: ValueType.ToString
+    fullName: System.ValueType.ToString
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.ValueType.ToString
+    name: ToString
+    nameWithType: ValueType.ToString
+    fullName: System.ValueType.ToString
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.String
+  commentId: T:System.String
+  parent: System
+  isExternal: true
+  name: String
+  nameWithType: String
+  fullName: System.String
+- uid: System.ValueType.Equals(System.Object)
+  commentId: M:System.ValueType.Equals(System.Object)
+  parent: System.ValueType
+  isExternal: true
+  name: Equals(Object)
+  nameWithType: ValueType.Equals(Object)
+  fullName: System.ValueType.Equals(System.Object)
+  spec.csharp:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    nameWithType: ValueType.Equals
+    fullName: System.ValueType.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    nameWithType: ValueType.Equals
+    fullName: System.ValueType.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.IEquatable{ImageSharp.Hsv}.Equals(ImageSharp.Hsv)
+  commentId: M:System.IEquatable{ImageSharp.Hsv}.Equals(ImageSharp.Hsv)
+  parent: System.IEquatable{ImageSharp.Hsv}
+  definition: System.IEquatable`1.Equals(`0)
+  name: Equals(Hsv)
+  nameWithType: IEquatable<Hsv>.Equals(Hsv)
+  fullName: System.IEquatable<ImageSharp.Hsv>.Equals(ImageSharp.Hsv)
+  nameWithType.vb: IEquatable(Of Hsv).Equals(Hsv)
+  fullname.vb: System.IEquatable(Of ImageSharp.Hsv).Equals(ImageSharp.Hsv)
+  spec.csharp:
+  - uid: System.IEquatable`1.Equals(`0)
+    name: Equals
+    nameWithType: IEquatable<Hsv>.Equals
+    fullName: System.IEquatable<ImageSharp.Hsv>.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.Hsv
+    name: Hsv
+    nameWithType: Hsv
+    fullName: ImageSharp.Hsv
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.IEquatable`1.Equals(`0)
+    name: Equals
+    nameWithType: IEquatable(Of Hsv).Equals
+    fullName: System.IEquatable(Of ImageSharp.Hsv).Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.Hsv
+    name: Hsv
+    nameWithType: Hsv
+    fullName: ImageSharp.Hsv
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.IEquatable`1.Equals(`0)
+  commentId: M:System.IEquatable`1.Equals(`0)
+  isExternal: true
+  name: Equals(T)
+  nameWithType: IEquatable<T>.Equals(T)
+  fullName: System.IEquatable<T>.Equals(T)
+  nameWithType.vb: IEquatable(Of T).Equals(T)
+  fullname.vb: System.IEquatable(Of T).Equals(T)
+  spec.csharp:
+  - uid: System.IEquatable`1.Equals(`0)
+    name: Equals
+    nameWithType: IEquatable<T>.Equals
+    fullName: System.IEquatable<T>.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: T
+    nameWithType: T
+    fullName: T
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.IEquatable`1.Equals(`0)
+    name: Equals
+    nameWithType: IEquatable(Of T).Equals
+    fullName: System.IEquatable(Of T).Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: T
+    nameWithType: T
+    fullName: T
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.IAlmostEquatable{ImageSharp.Hsv,System.Single}.AlmostEquals(ImageSharp.Hsv,System.Single)
+  commentId: M:ImageSharp.IAlmostEquatable{ImageSharp.Hsv,System.Single}.AlmostEquals(ImageSharp.Hsv,System.Single)
+  parent: ImageSharp.IAlmostEquatable{ImageSharp.Hsv,System.Single}
+  definition: ImageSharp.IAlmostEquatable`2.AlmostEquals(`0,`1)
+  name: AlmostEquals(Hsv, Single)
+  nameWithType: IAlmostEquatable<Hsv, Single>.AlmostEquals(Hsv, Single)
+  fullName: ImageSharp.IAlmostEquatable<ImageSharp.Hsv, System.Single>.AlmostEquals(ImageSharp.Hsv, System.Single)
+  nameWithType.vb: IAlmostEquatable(Of Hsv, Single).AlmostEquals(Hsv, Single)
+  fullname.vb: ImageSharp.IAlmostEquatable(Of ImageSharp.Hsv, System.Single).AlmostEquals(ImageSharp.Hsv, System.Single)
+  spec.csharp:
+  - uid: ImageSharp.IAlmostEquatable`2.AlmostEquals(`0,`1)
+    name: AlmostEquals
+    nameWithType: IAlmostEquatable<Hsv, Single>.AlmostEquals
+    fullName: ImageSharp.IAlmostEquatable<ImageSharp.Hsv, System.Single>.AlmostEquals
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.Hsv
+    name: Hsv
+    nameWithType: Hsv
+    fullName: ImageSharp.Hsv
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Single
+    name: Single
+    nameWithType: Single
+    fullName: System.Single
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: ImageSharp.IAlmostEquatable`2.AlmostEquals(`0,`1)
+    name: AlmostEquals
+    nameWithType: IAlmostEquatable(Of Hsv, Single).AlmostEquals
+    fullName: ImageSharp.IAlmostEquatable(Of ImageSharp.Hsv, System.Single).AlmostEquals
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.Hsv
+    name: Hsv
+    nameWithType: Hsv
+    fullName: ImageSharp.Hsv
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Single
+    name: Single
+    nameWithType: Single
+    fullName: System.Single
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.IAlmostEquatable`2.AlmostEquals(`0,`1)
+  commentId: M:ImageSharp.IAlmostEquatable`2.AlmostEquals(`0,`1)
+  isExternal: false
+  name: AlmostEquals(TColor, TPrecision)
+  nameWithType: IAlmostEquatable<TColor, TPrecision>.AlmostEquals(TColor, TPrecision)
+  fullName: ImageSharp.IAlmostEquatable<TColor, TPrecision>.AlmostEquals(TColor, TPrecision)
+  nameWithType.vb: IAlmostEquatable(Of TColor, TPrecision).AlmostEquals(TColor, TPrecision)
+  fullname.vb: ImageSharp.IAlmostEquatable(Of TColor, TPrecision).AlmostEquals(TColor, TPrecision)
+  spec.csharp:
+  - uid: ImageSharp.IAlmostEquatable`2.AlmostEquals(`0,`1)
+    name: AlmostEquals
+    nameWithType: IAlmostEquatable<TColor, TPrecision>.AlmostEquals
+    fullName: ImageSharp.IAlmostEquatable<TColor, TPrecision>.AlmostEquals
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPrecision
+    nameWithType: TPrecision
+    fullName: TPrecision
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: ImageSharp.IAlmostEquatable`2.AlmostEquals(`0,`1)
+    name: AlmostEquals
+    nameWithType: IAlmostEquatable(Of TColor, TPrecision).AlmostEquals
+    fullName: ImageSharp.IAlmostEquatable(Of TColor, TPrecision).AlmostEquals
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPrecision
+    nameWithType: TPrecision
+    fullName: TPrecision
+  - name: )
+    nameWithType: )
+    fullName: )

@@ -1,0 +1,169 @@
+### YamlMime:ManagedReference
+items:
+- uid: ImageSharp.IPackedVector`1
+  commentId: T:ImageSharp.IPackedVector`1
+  id: IPackedVector`1
+  parent: ImageSharp
+  children:
+  - ImageSharp.IPackedVector`1.PackedValue
+  langs:
+  - csharp
+  - vb
+  name: IPackedVector<TPacked>
+  nameWithType: IPackedVector<TPacked>
+  fullName: ImageSharp.IPackedVector<TPacked>
+  type: Interface
+  source:
+    id: IPackedVector
+    path: ''
+    startLine: 3479
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nAn interface that converts packed vector types to and from <see cref=\"!:Vector4\"></see> values,\nallowing multiple encodings to be manipulated in a generic manner.\n"
+  example: []
+  syntax:
+    content: 'public interface IPackedVector<TPacked> : IPackedVector where TPacked : struct'
+    content.vb: >-
+      Public Interface IPackedVector(Of TPacked As Structure)
+          Inherits IPackedVector
+    typeParameters:
+    - id: TPacked
+      description: The packed format. <example>uint, long, float.</example>
+  inheritedMembers:
+  - ImageSharp.IPackedVector.PackFromVector4(Vector4)
+  - ImageSharp.IPackedVector.ToVector4
+  nameWithType.vb: IPackedVector(Of TPacked)
+  modifiers.csharp:
+  - public
+  - interface
+  modifiers.vb:
+  - Public
+  - Interface
+  fullName.vb: ImageSharp.IPackedVector(Of TPacked)
+  name.vb: IPackedVector(Of TPacked)
+- uid: ImageSharp.IPackedVector`1.PackedValue
+  commentId: P:ImageSharp.IPackedVector`1.PackedValue
+  id: PackedValue
+  parent: ImageSharp.IPackedVector`1
+  langs:
+  - csharp
+  - vb
+  name: PackedValue
+  nameWithType: IPackedVector<TPacked>.PackedValue
+  fullName: ImageSharp.IPackedVector<TPacked>.PackedValue
+  type: Property
+  source:
+    id: PackedValue
+    path: ''
+    startLine: 3485
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets or sets the packed representation of the value.\n"
+  example: []
+  syntax:
+    content: TPacked PackedValue { get; set; }
+    content.vb: Property PackedValue As TPacked
+    parameters: []
+    return:
+      type: '{TPacked}'
+  nameWithType.vb: IPackedVector(Of TPacked).PackedValue
+  modifiers.csharp:
+  - get
+  - set
+  fullName.vb: ImageSharp.IPackedVector(Of TPacked).PackedValue
+references:
+- uid: ImageSharp
+  commentId: N:ImageSharp
+  isExternal: false
+  name: ImageSharp
+  nameWithType: ImageSharp
+  fullName: ImageSharp
+- uid: ImageSharp.IPackedVector.PackFromVector4(Vector4)
+  commentId: M:ImageSharp.IPackedVector.PackFromVector4(Vector4)
+  parent: ImageSharp.IPackedVector
+  isExternal: true
+  name: PackFromVector4(Vector4)
+  nameWithType: IPackedVector.PackFromVector4(Vector4)
+  fullName: ImageSharp.IPackedVector.PackFromVector4(Vector4)
+  spec.csharp:
+  - uid: ImageSharp.IPackedVector.PackFromVector4(Vector4)
+    name: PackFromVector4
+    nameWithType: IPackedVector.PackFromVector4
+    fullName: ImageSharp.IPackedVector.PackFromVector4
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: Vector4
+    name: Vector4
+    nameWithType: Vector4
+    fullName: Vector4
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: ImageSharp.IPackedVector.PackFromVector4(Vector4)
+    name: PackFromVector4
+    nameWithType: IPackedVector.PackFromVector4
+    fullName: ImageSharp.IPackedVector.PackFromVector4
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: Vector4
+    name: Vector4
+    nameWithType: Vector4
+    fullName: Vector4
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.IPackedVector.ToVector4
+  commentId: M:ImageSharp.IPackedVector.ToVector4
+  parent: ImageSharp.IPackedVector
+  isExternal: false
+  name: ToVector4()
+  nameWithType: IPackedVector.ToVector4()
+  fullName: ImageSharp.IPackedVector.ToVector4()
+  spec.csharp:
+  - uid: ImageSharp.IPackedVector.ToVector4
+    name: ToVector4
+    nameWithType: IPackedVector.ToVector4
+    fullName: ImageSharp.IPackedVector.ToVector4
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: ImageSharp.IPackedVector.ToVector4
+    name: ToVector4
+    nameWithType: IPackedVector.ToVector4
+    fullName: ImageSharp.IPackedVector.ToVector4
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.IPackedVector
+  commentId: T:ImageSharp.IPackedVector
+  parent: ImageSharp
+  isExternal: false
+  name: IPackedVector
+  nameWithType: IPackedVector
+  fullName: ImageSharp.IPackedVector
+- uid: '{TPacked}'
+  commentId: '!:TPacked'
+  definition: TPacked
+  name: TPacked
+  nameWithType: TPacked
+  fullName: TPacked
+- uid: TPacked
+  commentId: '!:TPacked'
+  isExternal: false
+  name: TPacked
+  nameWithType: TPacked
+  fullName: TPacked

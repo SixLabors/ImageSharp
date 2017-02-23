@@ -1,0 +1,1043 @@
+### YamlMime:ManagedReference
+items:
+- uid: ImageSharp.Bgra32
+  commentId: T:ImageSharp.Bgra32
+  id: Bgra32
+  parent: ImageSharp
+  children:
+  - ImageSharp.Bgra32.#ctor(System.Byte,System.Byte,System.Byte,System.Byte)
+  - ImageSharp.Bgra32.A
+  - ImageSharp.Bgra32.B
+  - ImageSharp.Bgra32.Bgra
+  - ImageSharp.Bgra32.Empty
+  - ImageSharp.Bgra32.Equals(ImageSharp.Bgra32)
+  - ImageSharp.Bgra32.Equals(System.Object)
+  - ImageSharp.Bgra32.G
+  - ImageSharp.Bgra32.GetHashCode
+  - ImageSharp.Bgra32.IsEmpty
+  - ImageSharp.Bgra32.op_Equality(ImageSharp.Bgra32,ImageSharp.Bgra32)
+  - ImageSharp.Bgra32.op_Implicit(ImageSharp.Color)~ImageSharp.Bgra32
+  - ImageSharp.Bgra32.op_Inequality(ImageSharp.Bgra32,ImageSharp.Bgra32)
+  - ImageSharp.Bgra32.R
+  - ImageSharp.Bgra32.ToString
+  langs:
+  - csharp
+  - vb
+  name: Bgra32
+  nameWithType: Bgra32
+  fullName: ImageSharp.Bgra32
+  type: Struct
+  source:
+    id: Bgra32
+    path: ''
+    startLine: 2053
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents an BGRA (blue, green, red, alpha) color.\n"
+  example: []
+  syntax:
+    content: 'public struct Bgra32 : IEquatable<Bgra32>'
+    content.vb: >-
+      Public Structure Bgra32
+          Implements IEquatable(Of Bgra32)
+  implements:
+  - System.IEquatable{ImageSharp.Bgra32}
+  inheritedMembers:
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+  - System.Object.GetType
+  modifiers.csharp:
+  - public
+  - struct
+  modifiers.vb:
+  - Public
+  - Structure
+- uid: ImageSharp.Bgra32.Empty
+  commentId: F:ImageSharp.Bgra32.Empty
+  id: Empty
+  parent: ImageSharp.Bgra32
+  langs:
+  - csharp
+  - vb
+  name: Empty
+  nameWithType: Bgra32.Empty
+  fullName: ImageSharp.Bgra32.Empty
+  type: Field
+  source:
+    id: Empty
+    path: ''
+    startLine: 2058
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a 32 bit <xref href=\"ImageSharp.Bgra32\" data-throw-if-not-resolved=\"false\"></xref> that has B, G, R, and A values set to zero.\n"
+  example: []
+  syntax:
+    content: public static readonly Bgra32 Empty
+    content.vb: Public Shared ReadOnly Empty As Bgra32
+    return:
+      type: ImageSharp.Bgra32
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Bgra32.#ctor(System.Byte,System.Byte,System.Byte,System.Byte)
+  commentId: M:ImageSharp.Bgra32.#ctor(System.Byte,System.Byte,System.Byte,System.Byte)
+  id: '#ctor(System.Byte,System.Byte,System.Byte,System.Byte)'
+  parent: ImageSharp.Bgra32
+  langs:
+  - csharp
+  - vb
+  name: Bgra32(Byte, Byte, Byte, Byte)
+  nameWithType: Bgra32.Bgra32(Byte, Byte, Byte, Byte)
+  fullName: ImageSharp.Bgra32.Bgra32(System.Byte, System.Byte, System.Byte, System.Byte)
+  type: Constructor
+  source:
+    id: .ctor
+    path: ''
+    startLine: 2072
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nInitializes a new instance of the <xref href=\"ImageSharp.Bgra32\" data-throw-if-not-resolved=\"false\"></xref> struct.\n"
+  example: []
+  syntax:
+    content: public Bgra32(byte b, byte g, byte r, byte a = 255)
+    content.vb: Public Sub New(b As Byte, g As Byte, r As Byte, a As Byte = 255)
+    parameters:
+    - id: b
+      type: System.Byte
+      description: The blue component of this <xref href="ImageSharp.Bgra32" data-throw-if-not-resolved="false"></xref>.
+    - id: g
+      type: System.Byte
+      description: The green component of this <xref href="ImageSharp.Bgra32" data-throw-if-not-resolved="false"></xref>.
+    - id: r
+      type: System.Byte
+      description: The red component of this <xref href="ImageSharp.Bgra32" data-throw-if-not-resolved="false"></xref>.
+    - id: a
+      type: System.Byte
+      description: The alpha component of this <xref href="ImageSharp.Bgra32" data-throw-if-not-resolved="false"></xref>.
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.Bgra32.B
+  commentId: P:ImageSharp.Bgra32.B
+  id: B
+  parent: ImageSharp.Bgra32
+  langs:
+  - csharp
+  - vb
+  name: B
+  nameWithType: Bgra32.B
+  fullName: ImageSharp.Bgra32.B
+  type: Property
+  source:
+    id: B
+    path: ''
+    startLine: 2081
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets the blue component of the color\n"
+  example: []
+  syntax:
+    content: public byte B { get; }
+    content.vb: Public ReadOnly Property B As Byte
+    parameters: []
+    return:
+      type: System.Byte
+  modifiers.csharp:
+  - public
+  - get
+  modifiers.vb:
+  - Public
+  - ReadOnly
+- uid: ImageSharp.Bgra32.G
+  commentId: P:ImageSharp.Bgra32.G
+  id: G
+  parent: ImageSharp.Bgra32
+  langs:
+  - csharp
+  - vb
+  name: G
+  nameWithType: Bgra32.G
+  fullName: ImageSharp.Bgra32.G
+  type: Property
+  source:
+    id: G
+    path: ''
+    startLine: 2086
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets the green component of the color\n"
+  example: []
+  syntax:
+    content: public byte G { get; }
+    content.vb: Public ReadOnly Property G As Byte
+    parameters: []
+    return:
+      type: System.Byte
+  modifiers.csharp:
+  - public
+  - get
+  modifiers.vb:
+  - Public
+  - ReadOnly
+- uid: ImageSharp.Bgra32.R
+  commentId: P:ImageSharp.Bgra32.R
+  id: R
+  parent: ImageSharp.Bgra32
+  langs:
+  - csharp
+  - vb
+  name: R
+  nameWithType: Bgra32.R
+  fullName: ImageSharp.Bgra32.R
+  type: Property
+  source:
+    id: R
+    path: ''
+    startLine: 2091
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets the red component of the color\n"
+  example: []
+  syntax:
+    content: public byte R { get; }
+    content.vb: Public ReadOnly Property R As Byte
+    parameters: []
+    return:
+      type: System.Byte
+  modifiers.csharp:
+  - public
+  - get
+  modifiers.vb:
+  - Public
+  - ReadOnly
+- uid: ImageSharp.Bgra32.A
+  commentId: P:ImageSharp.Bgra32.A
+  id: A
+  parent: ImageSharp.Bgra32
+  langs:
+  - csharp
+  - vb
+  name: A
+  nameWithType: Bgra32.A
+  fullName: ImageSharp.Bgra32.A
+  type: Property
+  source:
+    id: A
+    path: ''
+    startLine: 2096
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets the alpha component of the color\n"
+  example: []
+  syntax:
+    content: public byte A { get; }
+    content.vb: Public ReadOnly Property A As Byte
+    parameters: []
+    return:
+      type: System.Byte
+  modifiers.csharp:
+  - public
+  - get
+  modifiers.vb:
+  - Public
+  - ReadOnly
+- uid: ImageSharp.Bgra32.Bgra
+  commentId: P:ImageSharp.Bgra32.Bgra
+  id: Bgra
+  parent: ImageSharp.Bgra32
+  langs:
+  - csharp
+  - vb
+  name: Bgra
+  nameWithType: Bgra32.Bgra
+  fullName: ImageSharp.Bgra32.Bgra
+  type: Property
+  source:
+    id: Bgra
+    path: ''
+    startLine: 2101
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets the <xref href=\"ImageSharp.Bgra32\" data-throw-if-not-resolved=\"false\"></xref> integer representation of the color.\n"
+  example: []
+  syntax:
+    content: public int Bgra { get; }
+    content.vb: Public ReadOnly Property Bgra As Integer
+    parameters: []
+    return:
+      type: System.Int32
+  modifiers.csharp:
+  - public
+  - get
+  modifiers.vb:
+  - Public
+  - ReadOnly
+- uid: ImageSharp.Bgra32.IsEmpty
+  commentId: P:ImageSharp.Bgra32.IsEmpty
+  id: IsEmpty
+  parent: ImageSharp.Bgra32
+  langs:
+  - csharp
+  - vb
+  name: IsEmpty
+  nameWithType: Bgra32.IsEmpty
+  fullName: ImageSharp.Bgra32.IsEmpty
+  type: Property
+  source:
+    id: IsEmpty
+    path: ''
+    startLine: 2106
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets a value indicating whether this <xref href=\"ImageSharp.Bgra32\" data-throw-if-not-resolved=\"false\"></xref> is empty.\n"
+  example: []
+  syntax:
+    content: public bool IsEmpty { get; }
+    content.vb: Public ReadOnly Property IsEmpty As Boolean
+    parameters: []
+    return:
+      type: System.Boolean
+  modifiers.csharp:
+  - public
+  - get
+  modifiers.vb:
+  - Public
+  - ReadOnly
+- uid: ImageSharp.Bgra32.op_Implicit(ImageSharp.Color)~ImageSharp.Bgra32
+  commentId: M:ImageSharp.Bgra32.op_Implicit(ImageSharp.Color)~ImageSharp.Bgra32
+  id: op_Implicit(ImageSharp.Color)~ImageSharp.Bgra32
+  parent: ImageSharp.Bgra32
+  langs:
+  - csharp
+  - vb
+  name: Implicit(Color to Bgra32)
+  nameWithType: Bgra32.Implicit(Color to Bgra32)
+  fullName: ImageSharp.Bgra32.Implicit(ImageSharp.Color to ImageSharp.Bgra32)
+  type: Operator
+  source:
+    id: op_Implicit
+    path: ''
+    startLine: 2119
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nAllows the implicit conversion of an instance of <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> to a\n<xref href=\"ImageSharp.Bgra32\" data-throw-if-not-resolved=\"false\"></xref>.\n"
+  example: []
+  syntax:
+    content: public static implicit operator Bgra32(Color color)
+    content.vb: Public Shared Widening Operator CType(color As Color) As Bgra32
+    parameters:
+    - id: color
+      type: ImageSharp.Color
+      description: "\nThe instance of <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> to convert.\n"
+    return:
+      type: ImageSharp.Bgra32
+      description: "\nAn instance of <xref href=\"ImageSharp.Bgra32\" data-throw-if-not-resolved=\"false\"></xref>.\n"
+  nameWithType.vb: Bgra32.Widening(Color to Bgra32)
+  modifiers.csharp:
+  - public
+  - static
+  modifiers.vb:
+  - Public
+  - Shared
+  fullName.vb: ImageSharp.Bgra32.Widening(ImageSharp.Color to ImageSharp.Bgra32)
+  name.vb: Widening(Color to Bgra32)
+- uid: ImageSharp.Bgra32.op_Equality(ImageSharp.Bgra32,ImageSharp.Bgra32)
+  commentId: M:ImageSharp.Bgra32.op_Equality(ImageSharp.Bgra32,ImageSharp.Bgra32)
+  id: op_Equality(ImageSharp.Bgra32,ImageSharp.Bgra32)
+  parent: ImageSharp.Bgra32
+  langs:
+  - csharp
+  - vb
+  name: Equality(Bgra32, Bgra32)
+  nameWithType: Bgra32.Equality(Bgra32, Bgra32)
+  fullName: ImageSharp.Bgra32.Equality(ImageSharp.Bgra32, ImageSharp.Bgra32)
+  type: Operator
+  source:
+    id: op_Equality
+    path: ''
+    startLine: 2136
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nCompares two <xref href=\"ImageSharp.Bgra32\" data-throw-if-not-resolved=\"false\"></xref> objects for equality.\n"
+  example: []
+  syntax:
+    content: public static bool operator ==(Bgra32 left, Bgra32 right)
+    content.vb: Public Shared Operator =(left As Bgra32, right As Bgra32) As Boolean
+    parameters:
+    - id: left
+      type: ImageSharp.Bgra32
+      description: "\nThe <xref href=\"ImageSharp.Bgra32\" data-throw-if-not-resolved=\"false\"></xref> on the left side of the operand.\n"
+    - id: right
+      type: ImageSharp.Bgra32
+      description: "\nThe <xref href=\"ImageSharp.Bgra32\" data-throw-if-not-resolved=\"false\"></xref> on the right side of the operand.\n"
+    return:
+      type: System.Boolean
+      description: "\nTrue if the current left is equal to the <em>right</em> parameter; otherwise, false.\n"
+  modifiers.csharp:
+  - public
+  - static
+  modifiers.vb:
+  - Public
+  - Shared
+- uid: ImageSharp.Bgra32.op_Inequality(ImageSharp.Bgra32,ImageSharp.Bgra32)
+  commentId: M:ImageSharp.Bgra32.op_Inequality(ImageSharp.Bgra32,ImageSharp.Bgra32)
+  id: op_Inequality(ImageSharp.Bgra32,ImageSharp.Bgra32)
+  parent: ImageSharp.Bgra32
+  langs:
+  - csharp
+  - vb
+  name: Inequality(Bgra32, Bgra32)
+  nameWithType: Bgra32.Inequality(Bgra32, Bgra32)
+  fullName: ImageSharp.Bgra32.Inequality(ImageSharp.Bgra32, ImageSharp.Bgra32)
+  type: Operator
+  source:
+    id: op_Inequality
+    path: ''
+    startLine: 2153
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nCompares two <xref href=\"ImageSharp.Bgra32\" data-throw-if-not-resolved=\"false\"></xref> objects for inequality.\n"
+  example: []
+  syntax:
+    content: public static bool operator !=(Bgra32 left, Bgra32 right)
+    content.vb: Public Shared Operator <>(left As Bgra32, right As Bgra32) As Boolean
+    parameters:
+    - id: left
+      type: ImageSharp.Bgra32
+      description: "\nThe <xref href=\"ImageSharp.Bgra32\" data-throw-if-not-resolved=\"false\"></xref> on the left side of the operand.\n"
+    - id: right
+      type: ImageSharp.Bgra32
+      description: "\nThe <xref href=\"ImageSharp.Bgra32\" data-throw-if-not-resolved=\"false\"></xref> on the right side of the operand.\n"
+    return:
+      type: System.Boolean
+      description: "\nTrue if the current left is unequal to the <em>right</em> parameter; otherwise, false.\n"
+  modifiers.csharp:
+  - public
+  - static
+  modifiers.vb:
+  - Public
+  - Shared
+- uid: ImageSharp.Bgra32.Equals(System.Object)
+  commentId: M:ImageSharp.Bgra32.Equals(System.Object)
+  id: Equals(System.Object)
+  parent: ImageSharp.Bgra32
+  langs:
+  - csharp
+  - vb
+  name: Equals(Object)
+  nameWithType: Bgra32.Equals(Object)
+  fullName: ImageSharp.Bgra32.Equals(System.Object)
+  type: Method
+  source:
+    id: Equals
+    path: ''
+    startLine: 2159
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  example: []
+  syntax:
+    content: public override bool Equals(object obj)
+    content.vb: Public Overrides Function Equals(obj As Object) As Boolean
+    parameters:
+    - id: obj
+      type: System.Object
+    return:
+      type: System.Boolean
+  overridden: System.ValueType.Equals(System.Object)
+  modifiers.csharp:
+  - public
+  - override
+  modifiers.vb:
+  - Public
+  - Overrides
+- uid: ImageSharp.Bgra32.GetHashCode
+  commentId: M:ImageSharp.Bgra32.GetHashCode
+  id: GetHashCode
+  parent: ImageSharp.Bgra32
+  langs:
+  - csharp
+  - vb
+  name: GetHashCode()
+  nameWithType: Bgra32.GetHashCode()
+  fullName: ImageSharp.Bgra32.GetHashCode()
+  type: Method
+  source:
+    id: GetHashCode
+    path: ''
+    startLine: 2172
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  example: []
+  syntax:
+    content: public override int GetHashCode()
+    content.vb: Public Overrides Function GetHashCode As Integer
+    return:
+      type: System.Int32
+  overridden: System.ValueType.GetHashCode
+  modifiers.csharp:
+  - public
+  - override
+  modifiers.vb:
+  - Public
+  - Overrides
+- uid: ImageSharp.Bgra32.ToString
+  commentId: M:ImageSharp.Bgra32.ToString
+  id: ToString
+  parent: ImageSharp.Bgra32
+  langs:
+  - csharp
+  - vb
+  name: ToString()
+  nameWithType: Bgra32.ToString()
+  fullName: ImageSharp.Bgra32.ToString()
+  type: Method
+  source:
+    id: ToString
+    path: ''
+    startLine: 2178
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  example: []
+  syntax:
+    content: public override string ToString()
+    content.vb: Public Overrides Function ToString As String
+    return:
+      type: System.String
+  overridden: System.ValueType.ToString
+  modifiers.csharp:
+  - public
+  - override
+  modifiers.vb:
+  - Public
+  - Overrides
+- uid: ImageSharp.Bgra32.Equals(ImageSharp.Bgra32)
+  commentId: M:ImageSharp.Bgra32.Equals(ImageSharp.Bgra32)
+  id: Equals(ImageSharp.Bgra32)
+  parent: ImageSharp.Bgra32
+  langs:
+  - csharp
+  - vb
+  name: Equals(Bgra32)
+  nameWithType: Bgra32.Equals(Bgra32)
+  fullName: ImageSharp.Bgra32.Equals(ImageSharp.Bgra32)
+  type: Method
+  source:
+    id: Equals
+    path: ''
+    startLine: 2189
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  example: []
+  syntax:
+    content: public bool Equals(Bgra32 other)
+    content.vb: Public Function Equals(other As Bgra32) As Boolean
+    parameters:
+    - id: other
+      type: ImageSharp.Bgra32
+    return:
+      type: System.Boolean
+  implements:
+  - System.IEquatable{ImageSharp.Bgra32}.Equals(ImageSharp.Bgra32)
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+references:
+- uid: ImageSharp
+  commentId: N:ImageSharp
+  isExternal: false
+  name: ImageSharp
+  nameWithType: ImageSharp
+  fullName: ImageSharp
+- uid: System.IEquatable{ImageSharp.Bgra32}
+  commentId: T:System.IEquatable{ImageSharp.Bgra32}
+  parent: System
+  definition: System.IEquatable`1
+  name: IEquatable<Bgra32>
+  nameWithType: IEquatable<Bgra32>
+  fullName: System.IEquatable<ImageSharp.Bgra32>
+  nameWithType.vb: IEquatable(Of Bgra32)
+  fullname.vb: System.IEquatable(Of ImageSharp.Bgra32)
+  name.vb: IEquatable(Of Bgra32)
+  spec.csharp:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    nameWithType: IEquatable
+    fullName: System.IEquatable
+    isExternal: true
+  - name: <
+    nameWithType: <
+    fullName: <
+  - uid: ImageSharp.Bgra32
+    name: Bgra32
+    nameWithType: Bgra32
+    fullName: ImageSharp.Bgra32
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    nameWithType: IEquatable
+    fullName: System.IEquatable
+    isExternal: true
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - uid: ImageSharp.Bgra32
+    name: Bgra32
+    nameWithType: Bgra32
+    fullName: ImageSharp.Bgra32
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  name: Equals(Object, Object)
+  nameWithType: Object.Equals(Object, Object)
+  fullName: System.Object.Equals(System.Object, System.Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  name: ReferenceEquals(Object, Object)
+  nameWithType: Object.ReferenceEquals(Object, Object)
+  fullName: System.Object.ReferenceEquals(System.Object, System.Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    nameWithType: Object.ReferenceEquals
+    fullName: System.Object.ReferenceEquals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    nameWithType: Object.ReferenceEquals
+    fullName: System.Object.ReferenceEquals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  name: GetType()
+  nameWithType: Object.GetType()
+  fullName: System.Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    nameWithType: Object.GetType
+    fullName: System.Object.GetType
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    nameWithType: Object.GetType
+    fullName: System.Object.GetType
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.IEquatable`1
+  commentId: T:System.IEquatable`1
+  isExternal: true
+  name: IEquatable<T>
+  nameWithType: IEquatable<T>
+  fullName: System.IEquatable<T>
+  nameWithType.vb: IEquatable(Of T)
+  fullname.vb: System.IEquatable(Of T)
+  name.vb: IEquatable(Of T)
+  spec.csharp:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    nameWithType: IEquatable
+    fullName: System.IEquatable
+    isExternal: true
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: T
+    nameWithType: T
+    fullName: T
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    nameWithType: IEquatable
+    fullName: System.IEquatable
+    isExternal: true
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: T
+    nameWithType: T
+    fullName: T
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System
+  commentId: N:System
+  isExternal: false
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  name: Object
+  nameWithType: Object
+  fullName: System.Object
+- uid: ImageSharp.Bgra32
+  commentId: T:ImageSharp.Bgra32
+  parent: ImageSharp
+  isExternal: false
+  name: Bgra32
+  nameWithType: Bgra32
+  fullName: ImageSharp.Bgra32
+- uid: System.Byte
+  commentId: T:System.Byte
+  parent: System
+  isExternal: true
+  name: Byte
+  nameWithType: Byte
+  fullName: System.Byte
+- uid: System.Int32
+  commentId: T:System.Int32
+  parent: System
+  isExternal: true
+  name: Int32
+  nameWithType: Int32
+  fullName: System.Int32
+- uid: System.Boolean
+  commentId: T:System.Boolean
+  parent: System
+  isExternal: true
+  name: Boolean
+  nameWithType: Boolean
+  fullName: System.Boolean
+- uid: ImageSharp.Color
+  commentId: T:ImageSharp.Color
+  parent: ImageSharp
+  isExternal: false
+  name: Color
+  nameWithType: Color
+  fullName: ImageSharp.Color
+- uid: System.ValueType.Equals(System.Object)
+  commentId: M:System.ValueType.Equals(System.Object)
+  parent: System.ValueType
+  isExternal: true
+  name: Equals(Object)
+  nameWithType: ValueType.Equals(Object)
+  fullName: System.ValueType.Equals(System.Object)
+  spec.csharp:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    nameWithType: ValueType.Equals
+    fullName: System.ValueType.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    nameWithType: ValueType.Equals
+    fullName: System.ValueType.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.ValueType
+  commentId: T:System.ValueType
+  parent: System
+  isExternal: true
+  name: ValueType
+  nameWithType: ValueType
+  fullName: System.ValueType
+- uid: System.ValueType.GetHashCode
+  commentId: M:System.ValueType.GetHashCode
+  parent: System.ValueType
+  isExternal: true
+  name: GetHashCode()
+  nameWithType: ValueType.GetHashCode()
+  fullName: System.ValueType.GetHashCode()
+  spec.csharp:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    nameWithType: ValueType.GetHashCode
+    fullName: System.ValueType.GetHashCode
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    nameWithType: ValueType.GetHashCode
+    fullName: System.ValueType.GetHashCode
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.ValueType.ToString
+  commentId: M:System.ValueType.ToString
+  parent: System.ValueType
+  isExternal: true
+  name: ToString()
+  nameWithType: ValueType.ToString()
+  fullName: System.ValueType.ToString()
+  spec.csharp:
+  - uid: System.ValueType.ToString
+    name: ToString
+    nameWithType: ValueType.ToString
+    fullName: System.ValueType.ToString
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.ValueType.ToString
+    name: ToString
+    nameWithType: ValueType.ToString
+    fullName: System.ValueType.ToString
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.String
+  commentId: T:System.String
+  parent: System
+  isExternal: true
+  name: String
+  nameWithType: String
+  fullName: System.String
+- uid: System.IEquatable{ImageSharp.Bgra32}.Equals(ImageSharp.Bgra32)
+  commentId: M:System.IEquatable{ImageSharp.Bgra32}.Equals(ImageSharp.Bgra32)
+  parent: System.IEquatable{ImageSharp.Bgra32}
+  definition: System.IEquatable`1.Equals(`0)
+  name: Equals(Bgra32)
+  nameWithType: IEquatable<Bgra32>.Equals(Bgra32)
+  fullName: System.IEquatable<ImageSharp.Bgra32>.Equals(ImageSharp.Bgra32)
+  nameWithType.vb: IEquatable(Of Bgra32).Equals(Bgra32)
+  fullname.vb: System.IEquatable(Of ImageSharp.Bgra32).Equals(ImageSharp.Bgra32)
+  spec.csharp:
+  - uid: System.IEquatable`1.Equals(`0)
+    name: Equals
+    nameWithType: IEquatable<Bgra32>.Equals
+    fullName: System.IEquatable<ImageSharp.Bgra32>.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.Bgra32
+    name: Bgra32
+    nameWithType: Bgra32
+    fullName: ImageSharp.Bgra32
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.IEquatable`1.Equals(`0)
+    name: Equals
+    nameWithType: IEquatable(Of Bgra32).Equals
+    fullName: System.IEquatable(Of ImageSharp.Bgra32).Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.Bgra32
+    name: Bgra32
+    nameWithType: Bgra32
+    fullName: ImageSharp.Bgra32
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.IEquatable`1.Equals(`0)
+  commentId: M:System.IEquatable`1.Equals(`0)
+  isExternal: true
+  name: Equals(T)
+  nameWithType: IEquatable<T>.Equals(T)
+  fullName: System.IEquatable<T>.Equals(T)
+  nameWithType.vb: IEquatable(Of T).Equals(T)
+  fullname.vb: System.IEquatable(Of T).Equals(T)
+  spec.csharp:
+  - uid: System.IEquatable`1.Equals(`0)
+    name: Equals
+    nameWithType: IEquatable<T>.Equals
+    fullName: System.IEquatable<T>.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: T
+    nameWithType: T
+    fullName: T
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.IEquatable`1.Equals(`0)
+    name: Equals
+    nameWithType: IEquatable(Of T).Equals
+    fullName: System.IEquatable(Of T).Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: T
+    nameWithType: T
+    fullName: T
+  - name: )
+    nameWithType: )
+    fullName: )

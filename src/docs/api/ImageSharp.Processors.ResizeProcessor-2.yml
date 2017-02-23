@@ -1,0 +1,3359 @@
+### YamlMime:ManagedReference
+items:
+- uid: ImageSharp.Processors.ResizeProcessor`2
+  commentId: T:ImageSharp.Processors.ResizeProcessor`2
+  id: ResizeProcessor`2
+  parent: ImageSharp.Processors
+  children:
+  - ImageSharp.Processors.ResizeProcessor`2.#ctor(ImageSharp.IResampler)
+  - ImageSharp.Processors.ResizeProcessor`2.Apply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle,ImageSharp.Rectangle,System.Int32,System.Int32)
+  langs:
+  - csharp
+  - vb
+  name: ResizeProcessor<TColor, TPacked>
+  nameWithType: ResizeProcessor<TColor, TPacked>
+  fullName: ImageSharp.Processors.ResizeProcessor<TColor, TPacked>
+  type: Class
+  source:
+    id: ResizeProcessor
+    path: ''
+    startLine: 30995
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Processors
+  summary: "\nProvides methods that allow the resizing of images using various algorithms.\n"
+  remarks: "\nThis version and the <xref href=\"ImageSharp.Processors.CompandingResizeProcessor%602\" data-throw-if-not-resolved=\"false\"></xref> have been separated out to improve performance.\n"
+  example: []
+  syntax:
+    content: 'public class ResizeProcessor<TColor, TPacked> : ResamplingWeightedProcessor<TColor, TPacked>, IImageSampler<TColor, TPacked>, IImageProcessor where TColor : struct, IPackedPixel<TPacked> where TPacked : struct'
+    content.vb: >-
+      Public Class ResizeProcessor(Of TColor As {Structure, IPackedPixel(Of TPacked)}, TPacked As Structure)
+          Inherits ResamplingWeightedProcessor(Of TColor, TPacked)
+          Implements IImageSampler(Of TColor, TPacked), IImageProcessor
+    typeParameters:
+    - id: TColor
+      description: The pixel format.
+    - id: TPacked
+      description: The packed format. <example>uint, long, float.</example>
+  inheritance:
+  - System.Object
+  - ImageSharp.Processors.ImageProcessor{{TColor},{TPacked}}
+  - ImageSharp.Processors.ImageSampler{{TColor},{TPacked}}
+  - ImageSharp.Processors.ResamplingWeightedProcessor{{TColor},{TPacked}}
+  implements:
+  - ImageSharp.Processors.IImageSampler{{TColor},{TPacked}}
+  - ImageSharp.Processors.IImageProcessor
+  inheritedMembers:
+  - ImageSharp.Processors.ResamplingWeightedProcessor{{TColor},{TPacked}}.Sampler
+  - ImageSharp.Processors.ResamplingWeightedProcessor{{TColor},{TPacked}}.HorizontalWeights
+  - ImageSharp.Processors.ResamplingWeightedProcessor{{TColor},{TPacked}}.VerticalWeights
+  - ImageSharp.Processors.ResamplingWeightedProcessor{{TColor},{TPacked}}.OnApply(ImageSharp.ImageBase{{TColor},{TPacked}},ImageSharp.ImageBase{{TColor},{TPacked}},ImageSharp.Rectangle,ImageSharp.Rectangle)
+  - ImageSharp.Processors.ResamplingWeightedProcessor{{TColor},{TPacked}}.AfterApply(ImageSharp.ImageBase{{TColor},{TPacked}},ImageSharp.ImageBase{{TColor},{TPacked}},ImageSharp.Rectangle,ImageSharp.Rectangle)
+  - ImageSharp.Processors.ResamplingWeightedProcessor{{TColor},{TPacked}}.PrecomputeWeights(System.Int32,System.Int32)
+  - ImageSharp.Processors.ImageSampler{{TColor},{TPacked}}.Apply(ImageSharp.ImageBase{{TColor},{TPacked}},ImageSharp.ImageBase{{TColor},{TPacked}},ImageSharp.Rectangle)
+  - ImageSharp.Processors.ImageSampler{{TColor},{TPacked}}.Apply(ImageSharp.ImageBase{{TColor},{TPacked}},ImageSharp.ImageBase{{TColor},{TPacked}},System.Int32,System.Int32,ImageSharp.Rectangle,ImageSharp.Rectangle)
+  - ImageSharp.Processors.ImageSampler{{TColor},{TPacked}}.Apply(ImageSharp.ImageBase{{TColor},{TPacked}},ImageSharp.ImageBase{{TColor},{TPacked}},ImageSharp.Rectangle,ImageSharp.Rectangle,System.Int32,System.Int32)
+  - ImageSharp.Processors.ImageSampler{{TColor},{TPacked}}.OnApply(ImageSharp.ImageBase{{TColor},{TPacked}},ImageSharp.ImageBase{{TColor},{TPacked}},ImageSharp.Rectangle,ImageSharp.Rectangle)
+  - ImageSharp.Processors.ImageSampler{{TColor},{TPacked}}.AfterApply(ImageSharp.ImageBase{{TColor},{TPacked}},ImageSharp.ImageBase{{TColor},{TPacked}},ImageSharp.Rectangle,ImageSharp.Rectangle)
+  - ImageSharp.Processors.ImageProcessor{{TColor},{TPacked}}.ParallelOptions
+  - ImageSharp.Processors.ImageProcessor{{TColor},{TPacked}}.Compand
+  - System.Object.ToString
+  - System.Object.Equals(System.Object)
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+  - System.Object.GetHashCode
+  - System.Object.GetType
+  - System.Object.MemberwiseClone
+  nameWithType.vb: ResizeProcessor(Of TColor, TPacked)
+  modifiers.csharp:
+  - public
+  - class
+  modifiers.vb:
+  - Public
+  - Class
+  fullName.vb: ImageSharp.Processors.ResizeProcessor(Of TColor, TPacked)
+  name.vb: ResizeProcessor(Of TColor, TPacked)
+- uid: ImageSharp.Processors.ResizeProcessor`2.#ctor(ImageSharp.IResampler)
+  commentId: M:ImageSharp.Processors.ResizeProcessor`2.#ctor(ImageSharp.IResampler)
+  id: '#ctor(ImageSharp.IResampler)'
+  parent: ImageSharp.Processors.ResizeProcessor`2
+  langs:
+  - csharp
+  - vb
+  name: ResizeProcessor(IResampler)
+  nameWithType: ResizeProcessor<TColor, TPacked>.ResizeProcessor(IResampler)
+  fullName: ImageSharp.Processors.ResizeProcessor<TColor, TPacked>.ResizeProcessor(ImageSharp.IResampler)
+  type: Constructor
+  source:
+    id: .ctor
+    path: ''
+    startLine: 31005
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Processors
+  summary: "\nInitializes a new instance of the <xref href=\"ImageSharp.Processors.ResizeProcessor%602\" data-throw-if-not-resolved=\"false\"></xref> class.\n"
+  example: []
+  syntax:
+    content: public ResizeProcessor(IResampler sampler)
+    content.vb: Public Sub New(sampler As IResampler)
+    parameters:
+    - id: sampler
+      type: ImageSharp.IResampler
+      description: "\nThe sampler to perform the resize operation.\n"
+  nameWithType.vb: ResizeProcessor(Of TColor, TPacked).ResizeProcessor(IResampler)
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+  fullName.vb: ImageSharp.Processors.ResizeProcessor(Of TColor, TPacked).ResizeProcessor(ImageSharp.IResampler)
+- uid: ImageSharp.Processors.ResizeProcessor`2.Apply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle,ImageSharp.Rectangle,System.Int32,System.Int32)
+  commentId: M:ImageSharp.Processors.ResizeProcessor`2.Apply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle,ImageSharp.Rectangle,System.Int32,System.Int32)
+  id: Apply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle,ImageSharp.Rectangle,System.Int32,System.Int32)
+  parent: ImageSharp.Processors.ResizeProcessor`2
+  langs:
+  - csharp
+  - vb
+  name: Apply(ImageBase<TColor, TPacked>, ImageBase<TColor, TPacked>, Rectangle, Rectangle, Int32, Int32)
+  nameWithType: ResizeProcessor<TColor, TPacked>.Apply(ImageBase<TColor, TPacked>, ImageBase<TColor, TPacked>, Rectangle, Rectangle, Int32, Int32)
+  fullName: ImageSharp.Processors.ResizeProcessor<TColor, TPacked>.Apply(ImageSharp.ImageBase<TColor, TPacked>, ImageSharp.ImageBase<TColor, TPacked>, ImageSharp.Rectangle, ImageSharp.Rectangle, System.Int32, System.Int32)
+  type: Method
+  source:
+    id: Apply
+    path: ''
+    startLine: 31011
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Processors
+  example: []
+  syntax:
+    content: public override void Apply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
+    content.vb: Public Overrides Sub Apply(target As ImageBase(Of TColor, TPacked), source As ImageBase(Of TColor, TPacked), targetRectangle As Rectangle, sourceRectangle As Rectangle, startY As Integer, endY As Integer)
+    parameters:
+    - id: target
+      type: ImageSharp.ImageBase{{TColor},{TPacked}}
+    - id: source
+      type: ImageSharp.ImageBase{{TColor},{TPacked}}
+    - id: targetRectangle
+      type: ImageSharp.Rectangle
+    - id: sourceRectangle
+      type: ImageSharp.Rectangle
+    - id: startY
+      type: System.Int32
+    - id: endY
+      type: System.Int32
+  overridden: ImageSharp.Processors.ImageSampler{{TColor},{TPacked}}.Apply(ImageSharp.ImageBase{{TColor},{TPacked}},ImageSharp.ImageBase{{TColor},{TPacked}},ImageSharp.Rectangle,ImageSharp.Rectangle,System.Int32,System.Int32)
+  nameWithType.vb: ResizeProcessor(Of TColor, TPacked).Apply(ImageBase(Of TColor, TPacked), ImageBase(Of TColor, TPacked), Rectangle, Rectangle, Int32, Int32)
+  modifiers.csharp:
+  - public
+  - override
+  modifiers.vb:
+  - Public
+  - Overrides
+  fullName.vb: ImageSharp.Processors.ResizeProcessor(Of TColor, TPacked).Apply(ImageSharp.ImageBase(Of TColor, TPacked), ImageSharp.ImageBase(Of TColor, TPacked), ImageSharp.Rectangle, ImageSharp.Rectangle, System.Int32, System.Int32)
+  name.vb: Apply(ImageBase(Of TColor, TPacked), ImageBase(Of TColor, TPacked), Rectangle, Rectangle, Int32, Int32)
+references:
+- uid: ImageSharp.Processors.CompandingResizeProcessor`2
+  commentId: T:ImageSharp.Processors.CompandingResizeProcessor`2
+  isExternal: false
+  name: CompandingResizeProcessor<TColor, TPacked>
+  nameWithType: CompandingResizeProcessor<TColor, TPacked>
+  fullName: ImageSharp.Processors.CompandingResizeProcessor<TColor, TPacked>
+  nameWithType.vb: CompandingResizeProcessor(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.CompandingResizeProcessor(Of TColor, TPacked)
+  name.vb: CompandingResizeProcessor(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.CompandingResizeProcessor`2
+    name: CompandingResizeProcessor
+    nameWithType: CompandingResizeProcessor
+    fullName: ImageSharp.Processors.CompandingResizeProcessor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.CompandingResizeProcessor`2
+    name: CompandingResizeProcessor
+    nameWithType: CompandingResizeProcessor
+    fullName: ImageSharp.Processors.CompandingResizeProcessor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors
+  commentId: N:ImageSharp.Processors
+  isExternal: false
+  name: ImageSharp.Processors
+  nameWithType: ImageSharp.Processors
+  fullName: ImageSharp.Processors
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  name: Object
+  nameWithType: Object
+  fullName: System.Object
+- uid: ImageSharp.Processors.ImageProcessor{{TColor},{TPacked}}
+  commentId: T:ImageSharp.Processors.ImageProcessor{`0,`1}
+  parent: ImageSharp.Processors
+  definition: ImageSharp.Processors.ImageProcessor`2
+  name: ImageProcessor<TColor, TPacked>
+  nameWithType: ImageProcessor<TColor, TPacked>
+  fullName: ImageSharp.Processors.ImageProcessor<TColor, TPacked>
+  nameWithType.vb: ImageProcessor(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.ImageProcessor(Of TColor, TPacked)
+  name.vb: ImageProcessor(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.ImageProcessor`2
+    name: ImageProcessor
+    nameWithType: ImageProcessor
+    fullName: ImageSharp.Processors.ImageProcessor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.ImageProcessor`2
+    name: ImageProcessor
+    nameWithType: ImageProcessor
+    fullName: ImageSharp.Processors.ImageProcessor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.ImageSampler{{TColor},{TPacked}}
+  commentId: T:ImageSharp.Processors.ImageSampler{`0,`1}
+  parent: ImageSharp.Processors
+  definition: ImageSharp.Processors.ImageSampler`2
+  name: ImageSampler<TColor, TPacked>
+  nameWithType: ImageSampler<TColor, TPacked>
+  fullName: ImageSharp.Processors.ImageSampler<TColor, TPacked>
+  nameWithType.vb: ImageSampler(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.ImageSampler(Of TColor, TPacked)
+  name.vb: ImageSampler(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.ImageSampler`2
+    name: ImageSampler
+    nameWithType: ImageSampler
+    fullName: ImageSharp.Processors.ImageSampler
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.ImageSampler`2
+    name: ImageSampler
+    nameWithType: ImageSampler
+    fullName: ImageSharp.Processors.ImageSampler
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.ResamplingWeightedProcessor{{TColor},{TPacked}}
+  commentId: T:ImageSharp.Processors.ResamplingWeightedProcessor{`0,`1}
+  parent: ImageSharp.Processors
+  definition: ImageSharp.Processors.ResamplingWeightedProcessor`2
+  name: ResamplingWeightedProcessor<TColor, TPacked>
+  nameWithType: ResamplingWeightedProcessor<TColor, TPacked>
+  fullName: ImageSharp.Processors.ResamplingWeightedProcessor<TColor, TPacked>
+  nameWithType.vb: ResamplingWeightedProcessor(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.ResamplingWeightedProcessor(Of TColor, TPacked)
+  name.vb: ResamplingWeightedProcessor(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.ResamplingWeightedProcessor`2
+    name: ResamplingWeightedProcessor
+    nameWithType: ResamplingWeightedProcessor
+    fullName: ImageSharp.Processors.ResamplingWeightedProcessor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.ResamplingWeightedProcessor`2
+    name: ResamplingWeightedProcessor
+    nameWithType: ResamplingWeightedProcessor
+    fullName: ImageSharp.Processors.ResamplingWeightedProcessor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.IImageSampler{{TColor},{TPacked}}
+  commentId: T:ImageSharp.Processors.IImageSampler{`0,`1}
+  parent: ImageSharp.Processors
+  definition: ImageSharp.Processors.IImageSampler`2
+  name: IImageSampler<TColor, TPacked>
+  nameWithType: IImageSampler<TColor, TPacked>
+  fullName: ImageSharp.Processors.IImageSampler<TColor, TPacked>
+  nameWithType.vb: IImageSampler(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.IImageSampler(Of TColor, TPacked)
+  name.vb: IImageSampler(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.IImageSampler`2
+    name: IImageSampler
+    nameWithType: IImageSampler
+    fullName: ImageSharp.Processors.IImageSampler
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.IImageSampler`2
+    name: IImageSampler
+    nameWithType: IImageSampler
+    fullName: ImageSharp.Processors.IImageSampler
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.IImageProcessor
+  commentId: T:ImageSharp.Processors.IImageProcessor
+  parent: ImageSharp.Processors
+  isExternal: false
+  name: IImageProcessor
+  nameWithType: IImageProcessor
+  fullName: ImageSharp.Processors.IImageProcessor
+- uid: ImageSharp.Processors.ResamplingWeightedProcessor{{TColor},{TPacked}}.Sampler
+  commentId: P:ImageSharp.Processors.ResamplingWeightedProcessor{`0,`1}.Sampler
+  parent: ImageSharp.Processors.ResamplingWeightedProcessor{{TColor},{TPacked}}
+  definition: ImageSharp.Processors.ResamplingWeightedProcessor`2.Sampler
+  name: Sampler
+  nameWithType: ResamplingWeightedProcessor<TColor, TPacked>.Sampler
+  fullName: ImageSharp.Processors.ResamplingWeightedProcessor<TColor, TPacked>.Sampler
+  nameWithType.vb: ResamplingWeightedProcessor(Of TColor, TPacked).Sampler
+  fullname.vb: ImageSharp.Processors.ResamplingWeightedProcessor(Of TColor, TPacked).Sampler
+- uid: ImageSharp.Processors.ResamplingWeightedProcessor{{TColor},{TPacked}}.HorizontalWeights
+  commentId: P:ImageSharp.Processors.ResamplingWeightedProcessor{`0,`1}.HorizontalWeights
+  parent: ImageSharp.Processors.ResamplingWeightedProcessor{{TColor},{TPacked}}
+  definition: ImageSharp.Processors.ResamplingWeightedProcessor`2.HorizontalWeights
+  name: HorizontalWeights
+  nameWithType: ResamplingWeightedProcessor<TColor, TPacked>.HorizontalWeights
+  fullName: ImageSharp.Processors.ResamplingWeightedProcessor<TColor, TPacked>.HorizontalWeights
+  nameWithType.vb: ResamplingWeightedProcessor(Of TColor, TPacked).HorizontalWeights
+  fullname.vb: ImageSharp.Processors.ResamplingWeightedProcessor(Of TColor, TPacked).HorizontalWeights
+- uid: ImageSharp.Processors.ResamplingWeightedProcessor{{TColor},{TPacked}}.VerticalWeights
+  commentId: P:ImageSharp.Processors.ResamplingWeightedProcessor{`0,`1}.VerticalWeights
+  parent: ImageSharp.Processors.ResamplingWeightedProcessor{{TColor},{TPacked}}
+  definition: ImageSharp.Processors.ResamplingWeightedProcessor`2.VerticalWeights
+  name: VerticalWeights
+  nameWithType: ResamplingWeightedProcessor<TColor, TPacked>.VerticalWeights
+  fullName: ImageSharp.Processors.ResamplingWeightedProcessor<TColor, TPacked>.VerticalWeights
+  nameWithType.vb: ResamplingWeightedProcessor(Of TColor, TPacked).VerticalWeights
+  fullname.vb: ImageSharp.Processors.ResamplingWeightedProcessor(Of TColor, TPacked).VerticalWeights
+- uid: ImageSharp.Processors.ResamplingWeightedProcessor{{TColor},{TPacked}}.OnApply(ImageSharp.ImageBase{{TColor},{TPacked}},ImageSharp.ImageBase{{TColor},{TPacked}},ImageSharp.Rectangle,ImageSharp.Rectangle)
+  commentId: M:ImageSharp.Processors.ResamplingWeightedProcessor{`0,`1}.OnApply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle,ImageSharp.Rectangle)
+  parent: ImageSharp.Processors.ResamplingWeightedProcessor{{TColor},{TPacked}}
+  definition: ImageSharp.Processors.ResamplingWeightedProcessor`2.OnApply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle,ImageSharp.Rectangle)
+  name: OnApply(ImageBase<TColor, TPacked>, ImageBase<TColor, TPacked>, Rectangle, Rectangle)
+  nameWithType: ResamplingWeightedProcessor<TColor, TPacked>.OnApply(ImageBase<TColor, TPacked>, ImageBase<TColor, TPacked>, Rectangle, Rectangle)
+  fullName: ImageSharp.Processors.ResamplingWeightedProcessor<TColor, TPacked>.OnApply(ImageSharp.ImageBase<TColor, TPacked>, ImageSharp.ImageBase<TColor, TPacked>, ImageSharp.Rectangle, ImageSharp.Rectangle)
+  nameWithType.vb: ResamplingWeightedProcessor(Of TColor, TPacked).OnApply(ImageBase(Of TColor, TPacked), ImageBase(Of TColor, TPacked), Rectangle, Rectangle)
+  fullname.vb: ImageSharp.Processors.ResamplingWeightedProcessor(Of TColor, TPacked).OnApply(ImageSharp.ImageBase(Of TColor, TPacked), ImageSharp.ImageBase(Of TColor, TPacked), ImageSharp.Rectangle, ImageSharp.Rectangle)
+  name.vb: OnApply(ImageBase(Of TColor, TPacked), ImageBase(Of TColor, TPacked), Rectangle, Rectangle)
+  spec.csharp:
+  - uid: ImageSharp.Processors.ResamplingWeightedProcessor`2.OnApply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle,ImageSharp.Rectangle)
+    name: OnApply
+    nameWithType: ResamplingWeightedProcessor<TColor, TPacked>.OnApply
+    fullName: ImageSharp.Processors.ResamplingWeightedProcessor<TColor, TPacked>.OnApply
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.Rectangle
+    name: Rectangle
+    nameWithType: Rectangle
+    fullName: ImageSharp.Rectangle
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.Rectangle
+    name: Rectangle
+    nameWithType: Rectangle
+    fullName: ImageSharp.Rectangle
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: ImageSharp.Processors.ResamplingWeightedProcessor`2.OnApply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle,ImageSharp.Rectangle)
+    name: OnApply
+    nameWithType: ResamplingWeightedProcessor(Of TColor, TPacked).OnApply
+    fullName: ImageSharp.Processors.ResamplingWeightedProcessor(Of TColor, TPacked).OnApply
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.Rectangle
+    name: Rectangle
+    nameWithType: Rectangle
+    fullName: ImageSharp.Rectangle
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.Rectangle
+    name: Rectangle
+    nameWithType: Rectangle
+    fullName: ImageSharp.Rectangle
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.ResamplingWeightedProcessor{{TColor},{TPacked}}.AfterApply(ImageSharp.ImageBase{{TColor},{TPacked}},ImageSharp.ImageBase{{TColor},{TPacked}},ImageSharp.Rectangle,ImageSharp.Rectangle)
+  commentId: M:ImageSharp.Processors.ResamplingWeightedProcessor{`0,`1}.AfterApply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle,ImageSharp.Rectangle)
+  parent: ImageSharp.Processors.ResamplingWeightedProcessor{{TColor},{TPacked}}
+  definition: ImageSharp.Processors.ResamplingWeightedProcessor`2.AfterApply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle,ImageSharp.Rectangle)
+  name: AfterApply(ImageBase<TColor, TPacked>, ImageBase<TColor, TPacked>, Rectangle, Rectangle)
+  nameWithType: ResamplingWeightedProcessor<TColor, TPacked>.AfterApply(ImageBase<TColor, TPacked>, ImageBase<TColor, TPacked>, Rectangle, Rectangle)
+  fullName: ImageSharp.Processors.ResamplingWeightedProcessor<TColor, TPacked>.AfterApply(ImageSharp.ImageBase<TColor, TPacked>, ImageSharp.ImageBase<TColor, TPacked>, ImageSharp.Rectangle, ImageSharp.Rectangle)
+  nameWithType.vb: ResamplingWeightedProcessor(Of TColor, TPacked).AfterApply(ImageBase(Of TColor, TPacked), ImageBase(Of TColor, TPacked), Rectangle, Rectangle)
+  fullname.vb: ImageSharp.Processors.ResamplingWeightedProcessor(Of TColor, TPacked).AfterApply(ImageSharp.ImageBase(Of TColor, TPacked), ImageSharp.ImageBase(Of TColor, TPacked), ImageSharp.Rectangle, ImageSharp.Rectangle)
+  name.vb: AfterApply(ImageBase(Of TColor, TPacked), ImageBase(Of TColor, TPacked), Rectangle, Rectangle)
+  spec.csharp:
+  - uid: ImageSharp.Processors.ResamplingWeightedProcessor`2.AfterApply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle,ImageSharp.Rectangle)
+    name: AfterApply
+    nameWithType: ResamplingWeightedProcessor<TColor, TPacked>.AfterApply
+    fullName: ImageSharp.Processors.ResamplingWeightedProcessor<TColor, TPacked>.AfterApply
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.Rectangle
+    name: Rectangle
+    nameWithType: Rectangle
+    fullName: ImageSharp.Rectangle
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.Rectangle
+    name: Rectangle
+    nameWithType: Rectangle
+    fullName: ImageSharp.Rectangle
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: ImageSharp.Processors.ResamplingWeightedProcessor`2.AfterApply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle,ImageSharp.Rectangle)
+    name: AfterApply
+    nameWithType: ResamplingWeightedProcessor(Of TColor, TPacked).AfterApply
+    fullName: ImageSharp.Processors.ResamplingWeightedProcessor(Of TColor, TPacked).AfterApply
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.Rectangle
+    name: Rectangle
+    nameWithType: Rectangle
+    fullName: ImageSharp.Rectangle
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.Rectangle
+    name: Rectangle
+    nameWithType: Rectangle
+    fullName: ImageSharp.Rectangle
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.ResamplingWeightedProcessor{{TColor},{TPacked}}.PrecomputeWeights(System.Int32,System.Int32)
+  commentId: M:ImageSharp.Processors.ResamplingWeightedProcessor{`0,`1}.PrecomputeWeights(System.Int32,System.Int32)
+  parent: ImageSharp.Processors.ResamplingWeightedProcessor{{TColor},{TPacked}}
+  definition: ImageSharp.Processors.ResamplingWeightedProcessor`2.PrecomputeWeights(System.Int32,System.Int32)
+  name: PrecomputeWeights(Int32, Int32)
+  nameWithType: ResamplingWeightedProcessor<TColor, TPacked>.PrecomputeWeights(Int32, Int32)
+  fullName: ImageSharp.Processors.ResamplingWeightedProcessor<TColor, TPacked>.PrecomputeWeights(System.Int32, System.Int32)
+  nameWithType.vb: ResamplingWeightedProcessor(Of TColor, TPacked).PrecomputeWeights(Int32, Int32)
+  fullname.vb: ImageSharp.Processors.ResamplingWeightedProcessor(Of TColor, TPacked).PrecomputeWeights(System.Int32, System.Int32)
+  spec.csharp:
+  - uid: ImageSharp.Processors.ResamplingWeightedProcessor`2.PrecomputeWeights(System.Int32,System.Int32)
+    name: PrecomputeWeights
+    nameWithType: ResamplingWeightedProcessor<TColor, TPacked>.PrecomputeWeights
+    fullName: ImageSharp.Processors.ResamplingWeightedProcessor<TColor, TPacked>.PrecomputeWeights
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: ImageSharp.Processors.ResamplingWeightedProcessor`2.PrecomputeWeights(System.Int32,System.Int32)
+    name: PrecomputeWeights
+    nameWithType: ResamplingWeightedProcessor(Of TColor, TPacked).PrecomputeWeights
+    fullName: ImageSharp.Processors.ResamplingWeightedProcessor(Of TColor, TPacked).PrecomputeWeights
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.ImageSampler{{TColor},{TPacked}}.Apply(ImageSharp.ImageBase{{TColor},{TPacked}},ImageSharp.ImageBase{{TColor},{TPacked}},ImageSharp.Rectangle)
+  commentId: M:ImageSharp.Processors.ImageSampler{`0,`1}.Apply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle)
+  parent: ImageSharp.Processors.ImageSampler{{TColor},{TPacked}}
+  definition: ImageSharp.Processors.ImageSampler`2.Apply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle)
+  name: Apply(ImageBase<TColor, TPacked>, ImageBase<TColor, TPacked>, Rectangle)
+  nameWithType: ImageSampler<TColor, TPacked>.Apply(ImageBase<TColor, TPacked>, ImageBase<TColor, TPacked>, Rectangle)
+  fullName: ImageSharp.Processors.ImageSampler<TColor, TPacked>.Apply(ImageSharp.ImageBase<TColor, TPacked>, ImageSharp.ImageBase<TColor, TPacked>, ImageSharp.Rectangle)
+  nameWithType.vb: ImageSampler(Of TColor, TPacked).Apply(ImageBase(Of TColor, TPacked), ImageBase(Of TColor, TPacked), Rectangle)
+  fullname.vb: ImageSharp.Processors.ImageSampler(Of TColor, TPacked).Apply(ImageSharp.ImageBase(Of TColor, TPacked), ImageSharp.ImageBase(Of TColor, TPacked), ImageSharp.Rectangle)
+  name.vb: Apply(ImageBase(Of TColor, TPacked), ImageBase(Of TColor, TPacked), Rectangle)
+  spec.csharp:
+  - uid: ImageSharp.Processors.ImageSampler`2.Apply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle)
+    name: Apply
+    nameWithType: ImageSampler<TColor, TPacked>.Apply
+    fullName: ImageSharp.Processors.ImageSampler<TColor, TPacked>.Apply
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.Rectangle
+    name: Rectangle
+    nameWithType: Rectangle
+    fullName: ImageSharp.Rectangle
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: ImageSharp.Processors.ImageSampler`2.Apply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle)
+    name: Apply
+    nameWithType: ImageSampler(Of TColor, TPacked).Apply
+    fullName: ImageSharp.Processors.ImageSampler(Of TColor, TPacked).Apply
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.Rectangle
+    name: Rectangle
+    nameWithType: Rectangle
+    fullName: ImageSharp.Rectangle
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.ImageSampler{{TColor},{TPacked}}.Apply(ImageSharp.ImageBase{{TColor},{TPacked}},ImageSharp.ImageBase{{TColor},{TPacked}},System.Int32,System.Int32,ImageSharp.Rectangle,ImageSharp.Rectangle)
+  commentId: M:ImageSharp.Processors.ImageSampler{`0,`1}.Apply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},System.Int32,System.Int32,ImageSharp.Rectangle,ImageSharp.Rectangle)
+  parent: ImageSharp.Processors.ImageSampler{{TColor},{TPacked}}
+  definition: ImageSharp.Processors.ImageSampler`2.Apply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},System.Int32,System.Int32,ImageSharp.Rectangle,ImageSharp.Rectangle)
+  name: Apply(ImageBase<TColor, TPacked>, ImageBase<TColor, TPacked>, Int32, Int32, Rectangle, Rectangle)
+  nameWithType: ImageSampler<TColor, TPacked>.Apply(ImageBase<TColor, TPacked>, ImageBase<TColor, TPacked>, Int32, Int32, Rectangle, Rectangle)
+  fullName: ImageSharp.Processors.ImageSampler<TColor, TPacked>.Apply(ImageSharp.ImageBase<TColor, TPacked>, ImageSharp.ImageBase<TColor, TPacked>, System.Int32, System.Int32, ImageSharp.Rectangle, ImageSharp.Rectangle)
+  nameWithType.vb: ImageSampler(Of TColor, TPacked).Apply(ImageBase(Of TColor, TPacked), ImageBase(Of TColor, TPacked), Int32, Int32, Rectangle, Rectangle)
+  fullname.vb: ImageSharp.Processors.ImageSampler(Of TColor, TPacked).Apply(ImageSharp.ImageBase(Of TColor, TPacked), ImageSharp.ImageBase(Of TColor, TPacked), System.Int32, System.Int32, ImageSharp.Rectangle, ImageSharp.Rectangle)
+  name.vb: Apply(ImageBase(Of TColor, TPacked), ImageBase(Of TColor, TPacked), Int32, Int32, Rectangle, Rectangle)
+  spec.csharp:
+  - uid: ImageSharp.Processors.ImageSampler`2.Apply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},System.Int32,System.Int32,ImageSharp.Rectangle,ImageSharp.Rectangle)
+    name: Apply
+    nameWithType: ImageSampler<TColor, TPacked>.Apply
+    fullName: ImageSharp.Processors.ImageSampler<TColor, TPacked>.Apply
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.Rectangle
+    name: Rectangle
+    nameWithType: Rectangle
+    fullName: ImageSharp.Rectangle
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.Rectangle
+    name: Rectangle
+    nameWithType: Rectangle
+    fullName: ImageSharp.Rectangle
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: ImageSharp.Processors.ImageSampler`2.Apply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},System.Int32,System.Int32,ImageSharp.Rectangle,ImageSharp.Rectangle)
+    name: Apply
+    nameWithType: ImageSampler(Of TColor, TPacked).Apply
+    fullName: ImageSharp.Processors.ImageSampler(Of TColor, TPacked).Apply
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.Rectangle
+    name: Rectangle
+    nameWithType: Rectangle
+    fullName: ImageSharp.Rectangle
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.Rectangle
+    name: Rectangle
+    nameWithType: Rectangle
+    fullName: ImageSharp.Rectangle
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.ImageSampler{{TColor},{TPacked}}.Apply(ImageSharp.ImageBase{{TColor},{TPacked}},ImageSharp.ImageBase{{TColor},{TPacked}},ImageSharp.Rectangle,ImageSharp.Rectangle,System.Int32,System.Int32)
+  commentId: M:ImageSharp.Processors.ImageSampler{`0,`1}.Apply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle,ImageSharp.Rectangle,System.Int32,System.Int32)
+  parent: ImageSharp.Processors.ImageSampler{{TColor},{TPacked}}
+  definition: ImageSharp.Processors.ImageSampler`2.Apply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle,ImageSharp.Rectangle,System.Int32,System.Int32)
+  name: Apply(ImageBase<TColor, TPacked>, ImageBase<TColor, TPacked>, Rectangle, Rectangle, Int32, Int32)
+  nameWithType: ImageSampler<TColor, TPacked>.Apply(ImageBase<TColor, TPacked>, ImageBase<TColor, TPacked>, Rectangle, Rectangle, Int32, Int32)
+  fullName: ImageSharp.Processors.ImageSampler<TColor, TPacked>.Apply(ImageSharp.ImageBase<TColor, TPacked>, ImageSharp.ImageBase<TColor, TPacked>, ImageSharp.Rectangle, ImageSharp.Rectangle, System.Int32, System.Int32)
+  nameWithType.vb: ImageSampler(Of TColor, TPacked).Apply(ImageBase(Of TColor, TPacked), ImageBase(Of TColor, TPacked), Rectangle, Rectangle, Int32, Int32)
+  fullname.vb: ImageSharp.Processors.ImageSampler(Of TColor, TPacked).Apply(ImageSharp.ImageBase(Of TColor, TPacked), ImageSharp.ImageBase(Of TColor, TPacked), ImageSharp.Rectangle, ImageSharp.Rectangle, System.Int32, System.Int32)
+  name.vb: Apply(ImageBase(Of TColor, TPacked), ImageBase(Of TColor, TPacked), Rectangle, Rectangle, Int32, Int32)
+  spec.csharp:
+  - uid: ImageSharp.Processors.ImageSampler`2.Apply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle,ImageSharp.Rectangle,System.Int32,System.Int32)
+    name: Apply
+    nameWithType: ImageSampler<TColor, TPacked>.Apply
+    fullName: ImageSharp.Processors.ImageSampler<TColor, TPacked>.Apply
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.Rectangle
+    name: Rectangle
+    nameWithType: Rectangle
+    fullName: ImageSharp.Rectangle
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.Rectangle
+    name: Rectangle
+    nameWithType: Rectangle
+    fullName: ImageSharp.Rectangle
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: ImageSharp.Processors.ImageSampler`2.Apply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle,ImageSharp.Rectangle,System.Int32,System.Int32)
+    name: Apply
+    nameWithType: ImageSampler(Of TColor, TPacked).Apply
+    fullName: ImageSharp.Processors.ImageSampler(Of TColor, TPacked).Apply
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.Rectangle
+    name: Rectangle
+    nameWithType: Rectangle
+    fullName: ImageSharp.Rectangle
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.Rectangle
+    name: Rectangle
+    nameWithType: Rectangle
+    fullName: ImageSharp.Rectangle
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.ImageSampler{{TColor},{TPacked}}.OnApply(ImageSharp.ImageBase{{TColor},{TPacked}},ImageSharp.ImageBase{{TColor},{TPacked}},ImageSharp.Rectangle,ImageSharp.Rectangle)
+  commentId: M:ImageSharp.Processors.ImageSampler{`0,`1}.OnApply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle,ImageSharp.Rectangle)
+  parent: ImageSharp.Processors.ImageSampler{{TColor},{TPacked}}
+  definition: ImageSharp.Processors.ImageSampler`2.OnApply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle,ImageSharp.Rectangle)
+  name: OnApply(ImageBase<TColor, TPacked>, ImageBase<TColor, TPacked>, Rectangle, Rectangle)
+  nameWithType: ImageSampler<TColor, TPacked>.OnApply(ImageBase<TColor, TPacked>, ImageBase<TColor, TPacked>, Rectangle, Rectangle)
+  fullName: ImageSharp.Processors.ImageSampler<TColor, TPacked>.OnApply(ImageSharp.ImageBase<TColor, TPacked>, ImageSharp.ImageBase<TColor, TPacked>, ImageSharp.Rectangle, ImageSharp.Rectangle)
+  nameWithType.vb: ImageSampler(Of TColor, TPacked).OnApply(ImageBase(Of TColor, TPacked), ImageBase(Of TColor, TPacked), Rectangle, Rectangle)
+  fullname.vb: ImageSharp.Processors.ImageSampler(Of TColor, TPacked).OnApply(ImageSharp.ImageBase(Of TColor, TPacked), ImageSharp.ImageBase(Of TColor, TPacked), ImageSharp.Rectangle, ImageSharp.Rectangle)
+  name.vb: OnApply(ImageBase(Of TColor, TPacked), ImageBase(Of TColor, TPacked), Rectangle, Rectangle)
+  spec.csharp:
+  - uid: ImageSharp.Processors.ImageSampler`2.OnApply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle,ImageSharp.Rectangle)
+    name: OnApply
+    nameWithType: ImageSampler<TColor, TPacked>.OnApply
+    fullName: ImageSharp.Processors.ImageSampler<TColor, TPacked>.OnApply
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.Rectangle
+    name: Rectangle
+    nameWithType: Rectangle
+    fullName: ImageSharp.Rectangle
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.Rectangle
+    name: Rectangle
+    nameWithType: Rectangle
+    fullName: ImageSharp.Rectangle
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: ImageSharp.Processors.ImageSampler`2.OnApply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle,ImageSharp.Rectangle)
+    name: OnApply
+    nameWithType: ImageSampler(Of TColor, TPacked).OnApply
+    fullName: ImageSharp.Processors.ImageSampler(Of TColor, TPacked).OnApply
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.Rectangle
+    name: Rectangle
+    nameWithType: Rectangle
+    fullName: ImageSharp.Rectangle
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.Rectangle
+    name: Rectangle
+    nameWithType: Rectangle
+    fullName: ImageSharp.Rectangle
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.ImageSampler{{TColor},{TPacked}}.AfterApply(ImageSharp.ImageBase{{TColor},{TPacked}},ImageSharp.ImageBase{{TColor},{TPacked}},ImageSharp.Rectangle,ImageSharp.Rectangle)
+  commentId: M:ImageSharp.Processors.ImageSampler{`0,`1}.AfterApply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle,ImageSharp.Rectangle)
+  parent: ImageSharp.Processors.ImageSampler{{TColor},{TPacked}}
+  definition: ImageSharp.Processors.ImageSampler`2.AfterApply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle,ImageSharp.Rectangle)
+  name: AfterApply(ImageBase<TColor, TPacked>, ImageBase<TColor, TPacked>, Rectangle, Rectangle)
+  nameWithType: ImageSampler<TColor, TPacked>.AfterApply(ImageBase<TColor, TPacked>, ImageBase<TColor, TPacked>, Rectangle, Rectangle)
+  fullName: ImageSharp.Processors.ImageSampler<TColor, TPacked>.AfterApply(ImageSharp.ImageBase<TColor, TPacked>, ImageSharp.ImageBase<TColor, TPacked>, ImageSharp.Rectangle, ImageSharp.Rectangle)
+  nameWithType.vb: ImageSampler(Of TColor, TPacked).AfterApply(ImageBase(Of TColor, TPacked), ImageBase(Of TColor, TPacked), Rectangle, Rectangle)
+  fullname.vb: ImageSharp.Processors.ImageSampler(Of TColor, TPacked).AfterApply(ImageSharp.ImageBase(Of TColor, TPacked), ImageSharp.ImageBase(Of TColor, TPacked), ImageSharp.Rectangle, ImageSharp.Rectangle)
+  name.vb: AfterApply(ImageBase(Of TColor, TPacked), ImageBase(Of TColor, TPacked), Rectangle, Rectangle)
+  spec.csharp:
+  - uid: ImageSharp.Processors.ImageSampler`2.AfterApply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle,ImageSharp.Rectangle)
+    name: AfterApply
+    nameWithType: ImageSampler<TColor, TPacked>.AfterApply
+    fullName: ImageSharp.Processors.ImageSampler<TColor, TPacked>.AfterApply
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.Rectangle
+    name: Rectangle
+    nameWithType: Rectangle
+    fullName: ImageSharp.Rectangle
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.Rectangle
+    name: Rectangle
+    nameWithType: Rectangle
+    fullName: ImageSharp.Rectangle
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: ImageSharp.Processors.ImageSampler`2.AfterApply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle,ImageSharp.Rectangle)
+    name: AfterApply
+    nameWithType: ImageSampler(Of TColor, TPacked).AfterApply
+    fullName: ImageSharp.Processors.ImageSampler(Of TColor, TPacked).AfterApply
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.Rectangle
+    name: Rectangle
+    nameWithType: Rectangle
+    fullName: ImageSharp.Rectangle
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.Rectangle
+    name: Rectangle
+    nameWithType: Rectangle
+    fullName: ImageSharp.Rectangle
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.ImageProcessor{{TColor},{TPacked}}.ParallelOptions
+  commentId: P:ImageSharp.Processors.ImageProcessor{`0,`1}.ParallelOptions
+  parent: ImageSharp.Processors.ImageProcessor{{TColor},{TPacked}}
+  definition: ImageSharp.Processors.ImageProcessor`2.ParallelOptions
+  name: ParallelOptions
+  nameWithType: ImageProcessor<TColor, TPacked>.ParallelOptions
+  fullName: ImageSharp.Processors.ImageProcessor<TColor, TPacked>.ParallelOptions
+  nameWithType.vb: ImageProcessor(Of TColor, TPacked).ParallelOptions
+  fullname.vb: ImageSharp.Processors.ImageProcessor(Of TColor, TPacked).ParallelOptions
+- uid: ImageSharp.Processors.ImageProcessor{{TColor},{TPacked}}.Compand
+  commentId: P:ImageSharp.Processors.ImageProcessor{`0,`1}.Compand
+  parent: ImageSharp.Processors.ImageProcessor{{TColor},{TPacked}}
+  definition: ImageSharp.Processors.ImageProcessor`2.Compand
+  name: Compand
+  nameWithType: ImageProcessor<TColor, TPacked>.Compand
+  fullName: ImageSharp.Processors.ImageProcessor<TColor, TPacked>.Compand
+  nameWithType.vb: ImageProcessor(Of TColor, TPacked).Compand
+  fullname.vb: ImageSharp.Processors.ImageProcessor(Of TColor, TPacked).Compand
+- uid: System.Object.ToString
+  commentId: M:System.Object.ToString
+  parent: System.Object
+  isExternal: true
+  name: ToString()
+  nameWithType: Object.ToString()
+  fullName: System.Object.ToString()
+  spec.csharp:
+  - uid: System.Object.ToString
+    name: ToString
+    nameWithType: Object.ToString
+    fullName: System.Object.ToString
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.ToString
+    name: ToString
+    nameWithType: Object.ToString
+    fullName: System.Object.ToString
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.Equals(System.Object)
+  commentId: M:System.Object.Equals(System.Object)
+  parent: System.Object
+  isExternal: true
+  name: Equals(Object)
+  nameWithType: Object.Equals(Object)
+  fullName: System.Object.Equals(System.Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  name: Equals(Object, Object)
+  nameWithType: Object.Equals(Object, Object)
+  fullName: System.Object.Equals(System.Object, System.Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  name: ReferenceEquals(Object, Object)
+  nameWithType: Object.ReferenceEquals(Object, Object)
+  fullName: System.Object.ReferenceEquals(System.Object, System.Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    nameWithType: Object.ReferenceEquals
+    fullName: System.Object.ReferenceEquals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    nameWithType: Object.ReferenceEquals
+    fullName: System.Object.ReferenceEquals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.GetHashCode
+  commentId: M:System.Object.GetHashCode
+  parent: System.Object
+  isExternal: true
+  name: GetHashCode()
+  nameWithType: Object.GetHashCode()
+  fullName: System.Object.GetHashCode()
+  spec.csharp:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    nameWithType: Object.GetHashCode
+    fullName: System.Object.GetHashCode
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    nameWithType: Object.GetHashCode
+    fullName: System.Object.GetHashCode
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  name: GetType()
+  nameWithType: Object.GetType()
+  fullName: System.Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    nameWithType: Object.GetType
+    fullName: System.Object.GetType
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    nameWithType: Object.GetType
+    fullName: System.Object.GetType
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.MemberwiseClone
+  commentId: M:System.Object.MemberwiseClone
+  parent: System.Object
+  isExternal: true
+  name: MemberwiseClone()
+  nameWithType: Object.MemberwiseClone()
+  fullName: System.Object.MemberwiseClone()
+  spec.csharp:
+  - uid: System.Object.MemberwiseClone
+    name: MemberwiseClone
+    nameWithType: Object.MemberwiseClone
+    fullName: System.Object.MemberwiseClone
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.MemberwiseClone
+    name: MemberwiseClone
+    nameWithType: Object.MemberwiseClone
+    fullName: System.Object.MemberwiseClone
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System
+  commentId: N:System
+  isExternal: false
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: ImageSharp.Processors.ImageProcessor`2
+  commentId: T:ImageSharp.Processors.ImageProcessor`2
+  isExternal: false
+  name: ImageProcessor<TColor, TPacked>
+  nameWithType: ImageProcessor<TColor, TPacked>
+  fullName: ImageSharp.Processors.ImageProcessor<TColor, TPacked>
+  nameWithType.vb: ImageProcessor(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.ImageProcessor(Of TColor, TPacked)
+  name.vb: ImageProcessor(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.ImageProcessor`2
+    name: ImageProcessor
+    nameWithType: ImageProcessor
+    fullName: ImageSharp.Processors.ImageProcessor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.ImageProcessor`2
+    name: ImageProcessor
+    nameWithType: ImageProcessor
+    fullName: ImageSharp.Processors.ImageProcessor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.ImageSampler`2
+  commentId: T:ImageSharp.Processors.ImageSampler`2
+  isExternal: false
+  name: ImageSampler<TColor, TPacked>
+  nameWithType: ImageSampler<TColor, TPacked>
+  fullName: ImageSharp.Processors.ImageSampler<TColor, TPacked>
+  nameWithType.vb: ImageSampler(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.ImageSampler(Of TColor, TPacked)
+  name.vb: ImageSampler(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.ImageSampler`2
+    name: ImageSampler
+    nameWithType: ImageSampler
+    fullName: ImageSharp.Processors.ImageSampler
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.ImageSampler`2
+    name: ImageSampler
+    nameWithType: ImageSampler
+    fullName: ImageSharp.Processors.ImageSampler
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.ResamplingWeightedProcessor`2
+  commentId: T:ImageSharp.Processors.ResamplingWeightedProcessor`2
+  isExternal: false
+  name: ResamplingWeightedProcessor<TColor, TPacked>
+  nameWithType: ResamplingWeightedProcessor<TColor, TPacked>
+  fullName: ImageSharp.Processors.ResamplingWeightedProcessor<TColor, TPacked>
+  nameWithType.vb: ResamplingWeightedProcessor(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.ResamplingWeightedProcessor(Of TColor, TPacked)
+  name.vb: ResamplingWeightedProcessor(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.ResamplingWeightedProcessor`2
+    name: ResamplingWeightedProcessor
+    nameWithType: ResamplingWeightedProcessor
+    fullName: ImageSharp.Processors.ResamplingWeightedProcessor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.ResamplingWeightedProcessor`2
+    name: ResamplingWeightedProcessor
+    nameWithType: ResamplingWeightedProcessor
+    fullName: ImageSharp.Processors.ResamplingWeightedProcessor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.IImageSampler`2
+  commentId: T:ImageSharp.Processors.IImageSampler`2
+  isExternal: false
+  name: IImageSampler<TColor, TPacked>
+  nameWithType: IImageSampler<TColor, TPacked>
+  fullName: ImageSharp.Processors.IImageSampler<TColor, TPacked>
+  nameWithType.vb: IImageSampler(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.IImageSampler(Of TColor, TPacked)
+  name.vb: IImageSampler(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.IImageSampler`2
+    name: IImageSampler
+    nameWithType: IImageSampler
+    fullName: ImageSharp.Processors.IImageSampler
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.IImageSampler`2
+    name: IImageSampler
+    nameWithType: IImageSampler
+    fullName: ImageSharp.Processors.IImageSampler
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.ResamplingWeightedProcessor`2.Sampler
+  commentId: P:ImageSharp.Processors.ResamplingWeightedProcessor`2.Sampler
+  isExternal: false
+  name: Sampler
+  nameWithType: ResamplingWeightedProcessor<TColor, TPacked>.Sampler
+  fullName: ImageSharp.Processors.ResamplingWeightedProcessor<TColor, TPacked>.Sampler
+  nameWithType.vb: ResamplingWeightedProcessor(Of TColor, TPacked).Sampler
+  fullname.vb: ImageSharp.Processors.ResamplingWeightedProcessor(Of TColor, TPacked).Sampler
+- uid: ImageSharp.Processors.ResamplingWeightedProcessor`2.HorizontalWeights
+  commentId: P:ImageSharp.Processors.ResamplingWeightedProcessor`2.HorizontalWeights
+  isExternal: false
+  name: HorizontalWeights
+  nameWithType: ResamplingWeightedProcessor<TColor, TPacked>.HorizontalWeights
+  fullName: ImageSharp.Processors.ResamplingWeightedProcessor<TColor, TPacked>.HorizontalWeights
+  nameWithType.vb: ResamplingWeightedProcessor(Of TColor, TPacked).HorizontalWeights
+  fullname.vb: ImageSharp.Processors.ResamplingWeightedProcessor(Of TColor, TPacked).HorizontalWeights
+- uid: ImageSharp.Processors.ResamplingWeightedProcessor`2.VerticalWeights
+  commentId: P:ImageSharp.Processors.ResamplingWeightedProcessor`2.VerticalWeights
+  isExternal: false
+  name: VerticalWeights
+  nameWithType: ResamplingWeightedProcessor<TColor, TPacked>.VerticalWeights
+  fullName: ImageSharp.Processors.ResamplingWeightedProcessor<TColor, TPacked>.VerticalWeights
+  nameWithType.vb: ResamplingWeightedProcessor(Of TColor, TPacked).VerticalWeights
+  fullname.vb: ImageSharp.Processors.ResamplingWeightedProcessor(Of TColor, TPacked).VerticalWeights
+- uid: ImageSharp.Processors.ResamplingWeightedProcessor`2.OnApply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle,ImageSharp.Rectangle)
+  commentId: M:ImageSharp.Processors.ResamplingWeightedProcessor`2.OnApply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle,ImageSharp.Rectangle)
+  isExternal: false
+  name: OnApply(ImageBase<TColor, TPacked>, ImageBase<TColor, TPacked>, Rectangle, Rectangle)
+  nameWithType: ResamplingWeightedProcessor<TColor, TPacked>.OnApply(ImageBase<TColor, TPacked>, ImageBase<TColor, TPacked>, Rectangle, Rectangle)
+  fullName: ImageSharp.Processors.ResamplingWeightedProcessor<TColor, TPacked>.OnApply(ImageSharp.ImageBase<TColor, TPacked>, ImageSharp.ImageBase<TColor, TPacked>, ImageSharp.Rectangle, ImageSharp.Rectangle)
+  nameWithType.vb: ResamplingWeightedProcessor(Of TColor, TPacked).OnApply(ImageBase(Of TColor, TPacked), ImageBase(Of TColor, TPacked), Rectangle, Rectangle)
+  fullname.vb: ImageSharp.Processors.ResamplingWeightedProcessor(Of TColor, TPacked).OnApply(ImageSharp.ImageBase(Of TColor, TPacked), ImageSharp.ImageBase(Of TColor, TPacked), ImageSharp.Rectangle, ImageSharp.Rectangle)
+  name.vb: OnApply(ImageBase(Of TColor, TPacked), ImageBase(Of TColor, TPacked), Rectangle, Rectangle)
+  spec.csharp:
+  - uid: ImageSharp.Processors.ResamplingWeightedProcessor`2.OnApply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle,ImageSharp.Rectangle)
+    name: OnApply
+    nameWithType: ResamplingWeightedProcessor<TColor, TPacked>.OnApply
+    fullName: ImageSharp.Processors.ResamplingWeightedProcessor<TColor, TPacked>.OnApply
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.Rectangle
+    name: Rectangle
+    nameWithType: Rectangle
+    fullName: ImageSharp.Rectangle
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.Rectangle
+    name: Rectangle
+    nameWithType: Rectangle
+    fullName: ImageSharp.Rectangle
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: ImageSharp.Processors.ResamplingWeightedProcessor`2.OnApply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle,ImageSharp.Rectangle)
+    name: OnApply
+    nameWithType: ResamplingWeightedProcessor(Of TColor, TPacked).OnApply
+    fullName: ImageSharp.Processors.ResamplingWeightedProcessor(Of TColor, TPacked).OnApply
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.Rectangle
+    name: Rectangle
+    nameWithType: Rectangle
+    fullName: ImageSharp.Rectangle
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.Rectangle
+    name: Rectangle
+    nameWithType: Rectangle
+    fullName: ImageSharp.Rectangle
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.ResamplingWeightedProcessor`2.AfterApply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle,ImageSharp.Rectangle)
+  commentId: M:ImageSharp.Processors.ResamplingWeightedProcessor`2.AfterApply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle,ImageSharp.Rectangle)
+  isExternal: false
+  name: AfterApply(ImageBase<TColor, TPacked>, ImageBase<TColor, TPacked>, Rectangle, Rectangle)
+  nameWithType: ResamplingWeightedProcessor<TColor, TPacked>.AfterApply(ImageBase<TColor, TPacked>, ImageBase<TColor, TPacked>, Rectangle, Rectangle)
+  fullName: ImageSharp.Processors.ResamplingWeightedProcessor<TColor, TPacked>.AfterApply(ImageSharp.ImageBase<TColor, TPacked>, ImageSharp.ImageBase<TColor, TPacked>, ImageSharp.Rectangle, ImageSharp.Rectangle)
+  nameWithType.vb: ResamplingWeightedProcessor(Of TColor, TPacked).AfterApply(ImageBase(Of TColor, TPacked), ImageBase(Of TColor, TPacked), Rectangle, Rectangle)
+  fullname.vb: ImageSharp.Processors.ResamplingWeightedProcessor(Of TColor, TPacked).AfterApply(ImageSharp.ImageBase(Of TColor, TPacked), ImageSharp.ImageBase(Of TColor, TPacked), ImageSharp.Rectangle, ImageSharp.Rectangle)
+  name.vb: AfterApply(ImageBase(Of TColor, TPacked), ImageBase(Of TColor, TPacked), Rectangle, Rectangle)
+  spec.csharp:
+  - uid: ImageSharp.Processors.ResamplingWeightedProcessor`2.AfterApply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle,ImageSharp.Rectangle)
+    name: AfterApply
+    nameWithType: ResamplingWeightedProcessor<TColor, TPacked>.AfterApply
+    fullName: ImageSharp.Processors.ResamplingWeightedProcessor<TColor, TPacked>.AfterApply
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.Rectangle
+    name: Rectangle
+    nameWithType: Rectangle
+    fullName: ImageSharp.Rectangle
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.Rectangle
+    name: Rectangle
+    nameWithType: Rectangle
+    fullName: ImageSharp.Rectangle
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: ImageSharp.Processors.ResamplingWeightedProcessor`2.AfterApply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle,ImageSharp.Rectangle)
+    name: AfterApply
+    nameWithType: ResamplingWeightedProcessor(Of TColor, TPacked).AfterApply
+    fullName: ImageSharp.Processors.ResamplingWeightedProcessor(Of TColor, TPacked).AfterApply
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.Rectangle
+    name: Rectangle
+    nameWithType: Rectangle
+    fullName: ImageSharp.Rectangle
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.Rectangle
+    name: Rectangle
+    nameWithType: Rectangle
+    fullName: ImageSharp.Rectangle
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.ResamplingWeightedProcessor`2.PrecomputeWeights(System.Int32,System.Int32)
+  commentId: M:ImageSharp.Processors.ResamplingWeightedProcessor`2.PrecomputeWeights(System.Int32,System.Int32)
+  isExternal: true
+  name: PrecomputeWeights(Int32, Int32)
+  nameWithType: ResamplingWeightedProcessor<TColor, TPacked>.PrecomputeWeights(Int32, Int32)
+  fullName: ImageSharp.Processors.ResamplingWeightedProcessor<TColor, TPacked>.PrecomputeWeights(System.Int32, System.Int32)
+  nameWithType.vb: ResamplingWeightedProcessor(Of TColor, TPacked).PrecomputeWeights(Int32, Int32)
+  fullname.vb: ImageSharp.Processors.ResamplingWeightedProcessor(Of TColor, TPacked).PrecomputeWeights(System.Int32, System.Int32)
+  spec.csharp:
+  - uid: ImageSharp.Processors.ResamplingWeightedProcessor`2.PrecomputeWeights(System.Int32,System.Int32)
+    name: PrecomputeWeights
+    nameWithType: ResamplingWeightedProcessor<TColor, TPacked>.PrecomputeWeights
+    fullName: ImageSharp.Processors.ResamplingWeightedProcessor<TColor, TPacked>.PrecomputeWeights
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: ImageSharp.Processors.ResamplingWeightedProcessor`2.PrecomputeWeights(System.Int32,System.Int32)
+    name: PrecomputeWeights
+    nameWithType: ResamplingWeightedProcessor(Of TColor, TPacked).PrecomputeWeights
+    fullName: ImageSharp.Processors.ResamplingWeightedProcessor(Of TColor, TPacked).PrecomputeWeights
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.ImageSampler`2.Apply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle)
+  commentId: M:ImageSharp.Processors.ImageSampler`2.Apply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle)
+  isExternal: false
+  name: Apply(ImageBase<TColor, TPacked>, ImageBase<TColor, TPacked>, Rectangle)
+  nameWithType: ImageSampler<TColor, TPacked>.Apply(ImageBase<TColor, TPacked>, ImageBase<TColor, TPacked>, Rectangle)
+  fullName: ImageSharp.Processors.ImageSampler<TColor, TPacked>.Apply(ImageSharp.ImageBase<TColor, TPacked>, ImageSharp.ImageBase<TColor, TPacked>, ImageSharp.Rectangle)
+  nameWithType.vb: ImageSampler(Of TColor, TPacked).Apply(ImageBase(Of TColor, TPacked), ImageBase(Of TColor, TPacked), Rectangle)
+  fullname.vb: ImageSharp.Processors.ImageSampler(Of TColor, TPacked).Apply(ImageSharp.ImageBase(Of TColor, TPacked), ImageSharp.ImageBase(Of TColor, TPacked), ImageSharp.Rectangle)
+  name.vb: Apply(ImageBase(Of TColor, TPacked), ImageBase(Of TColor, TPacked), Rectangle)
+  spec.csharp:
+  - uid: ImageSharp.Processors.ImageSampler`2.Apply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle)
+    name: Apply
+    nameWithType: ImageSampler<TColor, TPacked>.Apply
+    fullName: ImageSharp.Processors.ImageSampler<TColor, TPacked>.Apply
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.Rectangle
+    name: Rectangle
+    nameWithType: Rectangle
+    fullName: ImageSharp.Rectangle
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: ImageSharp.Processors.ImageSampler`2.Apply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle)
+    name: Apply
+    nameWithType: ImageSampler(Of TColor, TPacked).Apply
+    fullName: ImageSharp.Processors.ImageSampler(Of TColor, TPacked).Apply
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.Rectangle
+    name: Rectangle
+    nameWithType: Rectangle
+    fullName: ImageSharp.Rectangle
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.ImageSampler`2.Apply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},System.Int32,System.Int32,ImageSharp.Rectangle,ImageSharp.Rectangle)
+  commentId: M:ImageSharp.Processors.ImageSampler`2.Apply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},System.Int32,System.Int32,ImageSharp.Rectangle,ImageSharp.Rectangle)
+  isExternal: true
+  name: Apply(ImageBase<TColor, TPacked>, ImageBase<TColor, TPacked>, Int32, Int32, Rectangle, Rectangle)
+  nameWithType: ImageSampler<TColor, TPacked>.Apply(ImageBase<TColor, TPacked>, ImageBase<TColor, TPacked>, Int32, Int32, Rectangle, Rectangle)
+  fullName: ImageSharp.Processors.ImageSampler<TColor, TPacked>.Apply(ImageSharp.ImageBase<TColor, TPacked>, ImageSharp.ImageBase<TColor, TPacked>, System.Int32, System.Int32, ImageSharp.Rectangle, ImageSharp.Rectangle)
+  nameWithType.vb: ImageSampler(Of TColor, TPacked).Apply(ImageBase(Of TColor, TPacked), ImageBase(Of TColor, TPacked), Int32, Int32, Rectangle, Rectangle)
+  fullname.vb: ImageSharp.Processors.ImageSampler(Of TColor, TPacked).Apply(ImageSharp.ImageBase(Of TColor, TPacked), ImageSharp.ImageBase(Of TColor, TPacked), System.Int32, System.Int32, ImageSharp.Rectangle, ImageSharp.Rectangle)
+  name.vb: Apply(ImageBase(Of TColor, TPacked), ImageBase(Of TColor, TPacked), Int32, Int32, Rectangle, Rectangle)
+  spec.csharp:
+  - uid: ImageSharp.Processors.ImageSampler`2.Apply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},System.Int32,System.Int32,ImageSharp.Rectangle,ImageSharp.Rectangle)
+    name: Apply
+    nameWithType: ImageSampler<TColor, TPacked>.Apply
+    fullName: ImageSharp.Processors.ImageSampler<TColor, TPacked>.Apply
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.Rectangle
+    name: Rectangle
+    nameWithType: Rectangle
+    fullName: ImageSharp.Rectangle
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.Rectangle
+    name: Rectangle
+    nameWithType: Rectangle
+    fullName: ImageSharp.Rectangle
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: ImageSharp.Processors.ImageSampler`2.Apply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},System.Int32,System.Int32,ImageSharp.Rectangle,ImageSharp.Rectangle)
+    name: Apply
+    nameWithType: ImageSampler(Of TColor, TPacked).Apply
+    fullName: ImageSharp.Processors.ImageSampler(Of TColor, TPacked).Apply
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.Rectangle
+    name: Rectangle
+    nameWithType: Rectangle
+    fullName: ImageSharp.Rectangle
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.Rectangle
+    name: Rectangle
+    nameWithType: Rectangle
+    fullName: ImageSharp.Rectangle
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.ImageSampler`2.Apply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle,ImageSharp.Rectangle,System.Int32,System.Int32)
+  commentId: M:ImageSharp.Processors.ImageSampler`2.Apply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle,ImageSharp.Rectangle,System.Int32,System.Int32)
+  isExternal: true
+  name: Apply(ImageBase<TColor, TPacked>, ImageBase<TColor, TPacked>, Rectangle, Rectangle, Int32, Int32)
+  nameWithType: ImageSampler<TColor, TPacked>.Apply(ImageBase<TColor, TPacked>, ImageBase<TColor, TPacked>, Rectangle, Rectangle, Int32, Int32)
+  fullName: ImageSharp.Processors.ImageSampler<TColor, TPacked>.Apply(ImageSharp.ImageBase<TColor, TPacked>, ImageSharp.ImageBase<TColor, TPacked>, ImageSharp.Rectangle, ImageSharp.Rectangle, System.Int32, System.Int32)
+  nameWithType.vb: ImageSampler(Of TColor, TPacked).Apply(ImageBase(Of TColor, TPacked), ImageBase(Of TColor, TPacked), Rectangle, Rectangle, Int32, Int32)
+  fullname.vb: ImageSharp.Processors.ImageSampler(Of TColor, TPacked).Apply(ImageSharp.ImageBase(Of TColor, TPacked), ImageSharp.ImageBase(Of TColor, TPacked), ImageSharp.Rectangle, ImageSharp.Rectangle, System.Int32, System.Int32)
+  name.vb: Apply(ImageBase(Of TColor, TPacked), ImageBase(Of TColor, TPacked), Rectangle, Rectangle, Int32, Int32)
+  spec.csharp:
+  - uid: ImageSharp.Processors.ImageSampler`2.Apply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle,ImageSharp.Rectangle,System.Int32,System.Int32)
+    name: Apply
+    nameWithType: ImageSampler<TColor, TPacked>.Apply
+    fullName: ImageSharp.Processors.ImageSampler<TColor, TPacked>.Apply
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.Rectangle
+    name: Rectangle
+    nameWithType: Rectangle
+    fullName: ImageSharp.Rectangle
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.Rectangle
+    name: Rectangle
+    nameWithType: Rectangle
+    fullName: ImageSharp.Rectangle
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: ImageSharp.Processors.ImageSampler`2.Apply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle,ImageSharp.Rectangle,System.Int32,System.Int32)
+    name: Apply
+    nameWithType: ImageSampler(Of TColor, TPacked).Apply
+    fullName: ImageSharp.Processors.ImageSampler(Of TColor, TPacked).Apply
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.Rectangle
+    name: Rectangle
+    nameWithType: Rectangle
+    fullName: ImageSharp.Rectangle
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.Rectangle
+    name: Rectangle
+    nameWithType: Rectangle
+    fullName: ImageSharp.Rectangle
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.ImageSampler`2.OnApply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle,ImageSharp.Rectangle)
+  commentId: M:ImageSharp.Processors.ImageSampler`2.OnApply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle,ImageSharp.Rectangle)
+  isExternal: false
+  name: OnApply(ImageBase<TColor, TPacked>, ImageBase<TColor, TPacked>, Rectangle, Rectangle)
+  nameWithType: ImageSampler<TColor, TPacked>.OnApply(ImageBase<TColor, TPacked>, ImageBase<TColor, TPacked>, Rectangle, Rectangle)
+  fullName: ImageSharp.Processors.ImageSampler<TColor, TPacked>.OnApply(ImageSharp.ImageBase<TColor, TPacked>, ImageSharp.ImageBase<TColor, TPacked>, ImageSharp.Rectangle, ImageSharp.Rectangle)
+  nameWithType.vb: ImageSampler(Of TColor, TPacked).OnApply(ImageBase(Of TColor, TPacked), ImageBase(Of TColor, TPacked), Rectangle, Rectangle)
+  fullname.vb: ImageSharp.Processors.ImageSampler(Of TColor, TPacked).OnApply(ImageSharp.ImageBase(Of TColor, TPacked), ImageSharp.ImageBase(Of TColor, TPacked), ImageSharp.Rectangle, ImageSharp.Rectangle)
+  name.vb: OnApply(ImageBase(Of TColor, TPacked), ImageBase(Of TColor, TPacked), Rectangle, Rectangle)
+  spec.csharp:
+  - uid: ImageSharp.Processors.ImageSampler`2.OnApply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle,ImageSharp.Rectangle)
+    name: OnApply
+    nameWithType: ImageSampler<TColor, TPacked>.OnApply
+    fullName: ImageSharp.Processors.ImageSampler<TColor, TPacked>.OnApply
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.Rectangle
+    name: Rectangle
+    nameWithType: Rectangle
+    fullName: ImageSharp.Rectangle
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.Rectangle
+    name: Rectangle
+    nameWithType: Rectangle
+    fullName: ImageSharp.Rectangle
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: ImageSharp.Processors.ImageSampler`2.OnApply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle,ImageSharp.Rectangle)
+    name: OnApply
+    nameWithType: ImageSampler(Of TColor, TPacked).OnApply
+    fullName: ImageSharp.Processors.ImageSampler(Of TColor, TPacked).OnApply
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.Rectangle
+    name: Rectangle
+    nameWithType: Rectangle
+    fullName: ImageSharp.Rectangle
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.Rectangle
+    name: Rectangle
+    nameWithType: Rectangle
+    fullName: ImageSharp.Rectangle
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.ImageSampler`2.AfterApply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle,ImageSharp.Rectangle)
+  commentId: M:ImageSharp.Processors.ImageSampler`2.AfterApply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle,ImageSharp.Rectangle)
+  isExternal: false
+  name: AfterApply(ImageBase<TColor, TPacked>, ImageBase<TColor, TPacked>, Rectangle, Rectangle)
+  nameWithType: ImageSampler<TColor, TPacked>.AfterApply(ImageBase<TColor, TPacked>, ImageBase<TColor, TPacked>, Rectangle, Rectangle)
+  fullName: ImageSharp.Processors.ImageSampler<TColor, TPacked>.AfterApply(ImageSharp.ImageBase<TColor, TPacked>, ImageSharp.ImageBase<TColor, TPacked>, ImageSharp.Rectangle, ImageSharp.Rectangle)
+  nameWithType.vb: ImageSampler(Of TColor, TPacked).AfterApply(ImageBase(Of TColor, TPacked), ImageBase(Of TColor, TPacked), Rectangle, Rectangle)
+  fullname.vb: ImageSharp.Processors.ImageSampler(Of TColor, TPacked).AfterApply(ImageSharp.ImageBase(Of TColor, TPacked), ImageSharp.ImageBase(Of TColor, TPacked), ImageSharp.Rectangle, ImageSharp.Rectangle)
+  name.vb: AfterApply(ImageBase(Of TColor, TPacked), ImageBase(Of TColor, TPacked), Rectangle, Rectangle)
+  spec.csharp:
+  - uid: ImageSharp.Processors.ImageSampler`2.AfterApply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle,ImageSharp.Rectangle)
+    name: AfterApply
+    nameWithType: ImageSampler<TColor, TPacked>.AfterApply
+    fullName: ImageSharp.Processors.ImageSampler<TColor, TPacked>.AfterApply
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.Rectangle
+    name: Rectangle
+    nameWithType: Rectangle
+    fullName: ImageSharp.Rectangle
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.Rectangle
+    name: Rectangle
+    nameWithType: Rectangle
+    fullName: ImageSharp.Rectangle
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: ImageSharp.Processors.ImageSampler`2.AfterApply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle,ImageSharp.Rectangle)
+    name: AfterApply
+    nameWithType: ImageSampler(Of TColor, TPacked).AfterApply
+    fullName: ImageSharp.Processors.ImageSampler(Of TColor, TPacked).AfterApply
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.Rectangle
+    name: Rectangle
+    nameWithType: Rectangle
+    fullName: ImageSharp.Rectangle
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.Rectangle
+    name: Rectangle
+    nameWithType: Rectangle
+    fullName: ImageSharp.Rectangle
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.ImageProcessor`2.ParallelOptions
+  commentId: P:ImageSharp.Processors.ImageProcessor`2.ParallelOptions
+  isExternal: false
+  name: ParallelOptions
+  nameWithType: ImageProcessor<TColor, TPacked>.ParallelOptions
+  fullName: ImageSharp.Processors.ImageProcessor<TColor, TPacked>.ParallelOptions
+  nameWithType.vb: ImageProcessor(Of TColor, TPacked).ParallelOptions
+  fullname.vb: ImageSharp.Processors.ImageProcessor(Of TColor, TPacked).ParallelOptions
+- uid: ImageSharp.Processors.ImageProcessor`2.Compand
+  commentId: P:ImageSharp.Processors.ImageProcessor`2.Compand
+  isExternal: false
+  name: Compand
+  nameWithType: ImageProcessor<TColor, TPacked>.Compand
+  fullName: ImageSharp.Processors.ImageProcessor<TColor, TPacked>.Compand
+  nameWithType.vb: ImageProcessor(Of TColor, TPacked).Compand
+  fullname.vb: ImageSharp.Processors.ImageProcessor(Of TColor, TPacked).Compand
+- uid: ImageSharp.Processors.ResizeProcessor`2
+  commentId: T:ImageSharp.Processors.ResizeProcessor`2
+  isExternal: false
+  name: ResizeProcessor<TColor, TPacked>
+  nameWithType: ResizeProcessor<TColor, TPacked>
+  fullName: ImageSharp.Processors.ResizeProcessor<TColor, TPacked>
+  nameWithType.vb: ResizeProcessor(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.ResizeProcessor(Of TColor, TPacked)
+  name.vb: ResizeProcessor(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.ResizeProcessor`2
+    name: ResizeProcessor
+    nameWithType: ResizeProcessor
+    fullName: ImageSharp.Processors.ResizeProcessor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.ResizeProcessor`2
+    name: ResizeProcessor
+    nameWithType: ResizeProcessor
+    fullName: ImageSharp.Processors.ResizeProcessor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.IResampler
+  commentId: T:ImageSharp.IResampler
+  parent: ImageSharp
+  isExternal: false
+  name: IResampler
+  nameWithType: IResampler
+  fullName: ImageSharp.IResampler
+- uid: ImageSharp
+  commentId: N:ImageSharp
+  isExternal: false
+  name: ImageSharp
+  nameWithType: ImageSharp
+  fullName: ImageSharp
+- uid: ImageSharp.ImageBase{{TColor},{TPacked}}
+  commentId: T:ImageSharp.ImageBase{``0,``1}
+  parent: ImageSharp
+  definition: ImageSharp.ImageBase`2
+  name: ImageBase<TColor, TPacked>
+  nameWithType: ImageBase<TColor, TPacked>
+  fullName: ImageSharp.ImageBase<TColor, TPacked>
+  nameWithType.vb: ImageBase(Of TColor, TPacked)
+  fullname.vb: ImageSharp.ImageBase(Of TColor, TPacked)
+  name.vb: ImageBase(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Rectangle
+  commentId: T:ImageSharp.Rectangle
+  parent: ImageSharp
+  isExternal: false
+  name: Rectangle
+  nameWithType: Rectangle
+  fullName: ImageSharp.Rectangle
+- uid: System.Int32
+  commentId: T:System.Int32
+  parent: System
+  isExternal: true
+  name: Int32
+  nameWithType: Int32
+  fullName: System.Int32
+- uid: ImageSharp.ImageBase`2
+  commentId: T:ImageSharp.ImageBase`2
+  parent: ImageSharp
+  isExternal: false
+  name: ImageBase<TColor, TPacked>
+  nameWithType: ImageBase<TColor, TPacked>
+  fullName: ImageSharp.ImageBase<TColor, TPacked>
+  nameWithType.vb: ImageBase(Of TColor, TPacked)
+  fullname.vb: ImageSharp.ImageBase(Of TColor, TPacked)
+  name.vb: ImageBase(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )

@@ -1,0 +1,115 @@
+### YamlMime:ManagedReference
+items:
+- uid: ImageSharp.Formats.IImageFormat
+  commentId: T:ImageSharp.Formats.IImageFormat
+  id: IImageFormat
+  parent: ImageSharp.Formats
+  children:
+  - ImageSharp.Formats.IImageFormat.Decoder
+  - ImageSharp.Formats.IImageFormat.Encoder
+  langs:
+  - csharp
+  - vb
+  name: IImageFormat
+  nameWithType: IImageFormat
+  fullName: ImageSharp.Formats.IImageFormat
+  type: Interface
+  source:
+    id: IImageFormat
+    path: ''
+    startLine: 7510
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Formats
+  summary: "\nEncapsulates a supported image format, providing means to encode and decode an image.\n"
+  example: []
+  syntax:
+    content: public interface IImageFormat
+    content.vb: Public Interface IImageFormat
+  modifiers.csharp:
+  - public
+  - interface
+  modifiers.vb:
+  - Public
+  - Interface
+- uid: ImageSharp.Formats.IImageFormat.Encoder
+  commentId: P:ImageSharp.Formats.IImageFormat.Encoder
+  id: Encoder
+  parent: ImageSharp.Formats.IImageFormat
+  langs:
+  - csharp
+  - vb
+  name: Encoder
+  nameWithType: IImageFormat.Encoder
+  fullName: ImageSharp.Formats.IImageFormat.Encoder
+  type: Property
+  source:
+    id: Encoder
+    path: ''
+    startLine: 7515
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Formats
+  summary: "\nGets the image encoder for encoding an image from a stream.\n"
+  example: []
+  syntax:
+    content: IImageEncoder Encoder { get; }
+    content.vb: ReadOnly Property Encoder As IImageEncoder
+    parameters: []
+    return:
+      type: ImageSharp.Formats.IImageEncoder
+  modifiers.csharp:
+  - get
+  modifiers.vb:
+  - ReadOnly
+- uid: ImageSharp.Formats.IImageFormat.Decoder
+  commentId: P:ImageSharp.Formats.IImageFormat.Decoder
+  id: Decoder
+  parent: ImageSharp.Formats.IImageFormat
+  langs:
+  - csharp
+  - vb
+  name: Decoder
+  nameWithType: IImageFormat.Decoder
+  fullName: ImageSharp.Formats.IImageFormat.Decoder
+  type: Property
+  source:
+    id: Decoder
+    path: ''
+    startLine: 7520
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Formats
+  summary: "\nGets the image decoder for decoding an image from a stream.\n"
+  example: []
+  syntax:
+    content: IImageDecoder Decoder { get; }
+    content.vb: ReadOnly Property Decoder As IImageDecoder
+    parameters: []
+    return:
+      type: ImageSharp.Formats.IImageDecoder
+  modifiers.csharp:
+  - get
+  modifiers.vb:
+  - ReadOnly
+references:
+- uid: ImageSharp.Formats
+  commentId: N:ImageSharp.Formats
+  isExternal: false
+  name: ImageSharp.Formats
+  nameWithType: ImageSharp.Formats
+  fullName: ImageSharp.Formats
+- uid: ImageSharp.Formats.IImageEncoder
+  commentId: T:ImageSharp.Formats.IImageEncoder
+  parent: ImageSharp.Formats
+  isExternal: false
+  name: IImageEncoder
+  nameWithType: IImageEncoder
+  fullName: ImageSharp.Formats.IImageEncoder
+- uid: ImageSharp.Formats.IImageDecoder
+  commentId: T:ImageSharp.Formats.IImageDecoder
+  parent: ImageSharp.Formats
+  isExternal: false
+  name: IImageDecoder
+  nameWithType: IImageDecoder
+  fullName: ImageSharp.Formats.IImageDecoder

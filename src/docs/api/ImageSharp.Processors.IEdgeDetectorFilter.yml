@@ -1,0 +1,82 @@
+### YamlMime:ManagedReference
+items:
+- uid: ImageSharp.Processors.IEdgeDetectorFilter
+  commentId: T:ImageSharp.Processors.IEdgeDetectorFilter
+  id: IEdgeDetectorFilter
+  parent: ImageSharp.Processors
+  children:
+  - ImageSharp.Processors.IEdgeDetectorFilter.Grayscale
+  langs:
+  - csharp
+  - vb
+  name: IEdgeDetectorFilter
+  nameWithType: IEdgeDetectorFilter
+  fullName: ImageSharp.Processors.IEdgeDetectorFilter
+  type: Interface
+  source:
+    id: IEdgeDetectorFilter
+    path: ''
+    startLine: 32451
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Processors
+  summary: "\nProvides properties and methods allowing the detection of edges within an image.\n"
+  example: []
+  syntax:
+    content: public interface IEdgeDetectorFilter
+    content.vb: Public Interface IEdgeDetectorFilter
+  modifiers.csharp:
+  - public
+  - interface
+  modifiers.vb:
+  - Public
+  - Interface
+- uid: ImageSharp.Processors.IEdgeDetectorFilter.Grayscale
+  commentId: P:ImageSharp.Processors.IEdgeDetectorFilter.Grayscale
+  id: Grayscale
+  parent: ImageSharp.Processors.IEdgeDetectorFilter
+  langs:
+  - csharp
+  - vb
+  name: Grayscale
+  nameWithType: IEdgeDetectorFilter.Grayscale
+  fullName: ImageSharp.Processors.IEdgeDetectorFilter.Grayscale
+  type: Property
+  source:
+    id: Grayscale
+    path: ''
+    startLine: 32456
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Processors
+  summary: "\nGets or sets a value indicating whether to convert the image to grayscale before performing edge detection.\n"
+  example: []
+  syntax:
+    content: bool Grayscale { get; set; }
+    content.vb: Property Grayscale As Boolean
+    parameters: []
+    return:
+      type: System.Boolean
+  modifiers.csharp:
+  - get
+  - set
+references:
+- uid: ImageSharp.Processors
+  commentId: N:ImageSharp.Processors
+  isExternal: false
+  name: ImageSharp.Processors
+  nameWithType: ImageSharp.Processors
+  fullName: ImageSharp.Processors
+- uid: System.Boolean
+  commentId: T:System.Boolean
+  parent: System
+  isExternal: true
+  name: Boolean
+  nameWithType: Boolean
+  fullName: System.Boolean
+- uid: System
+  commentId: N:System
+  isExternal: false
+  name: System
+  nameWithType: System
+  fullName: System

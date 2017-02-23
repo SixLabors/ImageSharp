@@ -1,0 +1,933 @@
+### YamlMime:ManagedReference
+items:
+- uid: ImageSharp.ExifValue
+  commentId: T:ImageSharp.ExifValue
+  id: ExifValue
+  parent: ImageSharp
+  children:
+  - ImageSharp.ExifValue.#ctor(ImageSharp.ExifValue)
+  - ImageSharp.ExifValue.DataType
+  - ImageSharp.ExifValue.Equals(ImageSharp.ExifValue)
+  - ImageSharp.ExifValue.Equals(System.Object)
+  - ImageSharp.ExifValue.GetHashCode
+  - ImageSharp.ExifValue.IsArray
+  - ImageSharp.ExifValue.op_Equality(ImageSharp.ExifValue,ImageSharp.ExifValue)
+  - ImageSharp.ExifValue.op_Inequality(ImageSharp.ExifValue,ImageSharp.ExifValue)
+  - ImageSharp.ExifValue.Tag
+  - ImageSharp.ExifValue.ToString
+  - ImageSharp.ExifValue.Value
+  langs:
+  - csharp
+  - vb
+  name: ExifValue
+  nameWithType: ExifValue
+  fullName: ImageSharp.ExifValue
+  type: Class
+  source:
+    id: ExifValue
+    path: ''
+    startLine: 25306
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nA value of the exif profile.\n"
+  example: []
+  syntax:
+    content: 'public sealed class ExifValue : IEquatable<ExifValue>'
+    content.vb: >-
+      Public NotInheritable Class ExifValue
+          Implements IEquatable(Of ExifValue)
+  inheritance:
+  - System.Object
+  implements:
+  - System.IEquatable{ImageSharp.ExifValue}
+  inheritedMembers:
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+  - System.Object.GetType
+  - System.Object.MemberwiseClone
+  modifiers.csharp:
+  - public
+  - sealed
+  - class
+  modifiers.vb:
+  - Public
+  - NotInheritable
+  - Class
+- uid: ImageSharp.ExifValue.#ctor(ImageSharp.ExifValue)
+  commentId: M:ImageSharp.ExifValue.#ctor(ImageSharp.ExifValue)
+  id: '#ctor(ImageSharp.ExifValue)'
+  parent: ImageSharp.ExifValue
+  langs:
+  - csharp
+  - vb
+  name: ExifValue(ExifValue)
+  nameWithType: ExifValue.ExifValue(ExifValue)
+  fullName: ImageSharp.ExifValue.ExifValue(ImageSharp.ExifValue)
+  type: Constructor
+  source:
+    id: .ctor
+    path: ''
+    startLine: 25316
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nInitializes a new instance of the <xref href=\"ImageSharp.ExifValue\" data-throw-if-not-resolved=\"false\"></xref> class\nby making a copy from another exif value.\n"
+  example: []
+  syntax:
+    content: public ExifValue(ExifValue other)
+    content.vb: Public Sub New(other As ExifValue)
+    parameters:
+    - id: other
+      type: ImageSharp.ExifValue
+      description: The other exif value, where the clone should be made from.
+  exceptions:
+  - type: System.ArgumentNullException
+    commentId: T:System.ArgumentNullException
+    description: <em>other</em> is null.
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.ExifValue.DataType
+  commentId: P:ImageSharp.ExifValue.DataType
+  id: DataType
+  parent: ImageSharp.ExifValue
+  langs:
+  - csharp
+  - vb
+  name: DataType
+  nameWithType: ExifValue.DataType
+  fullName: ImageSharp.ExifValue.DataType
+  type: Property
+  source:
+    id: DataType
+    path: ''
+    startLine: 25338
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nThe data type of the exif value.\n"
+  example: []
+  syntax:
+    content: public ExifDataType DataType { get; }
+    content.vb: Public ReadOnly Property DataType As ExifDataType
+    parameters: []
+    return:
+      type: ImageSharp.ExifDataType
+  modifiers.csharp:
+  - public
+  - get
+  modifiers.vb:
+  - Public
+  - ReadOnly
+- uid: ImageSharp.ExifValue.IsArray
+  commentId: P:ImageSharp.ExifValue.IsArray
+  id: IsArray
+  parent: ImageSharp.ExifValue
+  langs:
+  - csharp
+  - vb
+  name: IsArray
+  nameWithType: ExifValue.IsArray
+  fullName: ImageSharp.ExifValue.IsArray
+  type: Property
+  source:
+    id: IsArray
+    path: ''
+    startLine: 25346
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nReturns true if the value is an array.\n"
+  example: []
+  syntax:
+    content: public bool IsArray { get; }
+    content.vb: Public ReadOnly Property IsArray As Boolean
+    parameters: []
+    return:
+      type: System.Boolean
+  modifiers.csharp:
+  - public
+  - get
+  modifiers.vb:
+  - Public
+  - ReadOnly
+- uid: ImageSharp.ExifValue.Tag
+  commentId: P:ImageSharp.ExifValue.Tag
+  id: Tag
+  parent: ImageSharp.ExifValue
+  langs:
+  - csharp
+  - vb
+  name: Tag
+  nameWithType: ExifValue.Tag
+  fullName: ImageSharp.ExifValue.Tag
+  type: Property
+  source:
+    id: Tag
+    path: ''
+    startLine: 25354
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nThe tag of the exif value.\n"
+  example: []
+  syntax:
+    content: public ExifTag Tag { get; }
+    content.vb: Public ReadOnly Property Tag As ExifTag
+    parameters: []
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - get
+  modifiers.vb:
+  - Public
+  - ReadOnly
+- uid: ImageSharp.ExifValue.Value
+  commentId: P:ImageSharp.ExifValue.Value
+  id: Value
+  parent: ImageSharp.ExifValue
+  langs:
+  - csharp
+  - vb
+  name: Value
+  nameWithType: ExifValue.Value
+  fullName: ImageSharp.ExifValue.Value
+  type: Property
+  source:
+    id: Value
+    path: ''
+    startLine: 25362
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nThe value.\n"
+  example: []
+  syntax:
+    content: public object Value { get; set; }
+    content.vb: Public Property Value As Object
+    parameters: []
+    return:
+      type: System.Object
+  modifiers.csharp:
+  - public
+  - get
+  - set
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.ExifValue.op_Equality(ImageSharp.ExifValue,ImageSharp.ExifValue)
+  commentId: M:ImageSharp.ExifValue.op_Equality(ImageSharp.ExifValue,ImageSharp.ExifValue)
+  id: op_Equality(ImageSharp.ExifValue,ImageSharp.ExifValue)
+  parent: ImageSharp.ExifValue
+  langs:
+  - csharp
+  - vb
+  name: Equality(ExifValue, ExifValue)
+  nameWithType: ExifValue.Equality(ExifValue, ExifValue)
+  fullName: ImageSharp.ExifValue.Equality(ImageSharp.ExifValue, ImageSharp.ExifValue)
+  type: Operator
+  source:
+    id: op_Equality
+    path: ''
+    startLine: 25381
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nDetermines whether the specified ExifValue instances are considered equal.\n"
+  example: []
+  syntax:
+    content: public static bool operator ==(ExifValue left, ExifValue right)
+    content.vb: Public Shared Operator =(left As ExifValue, right As ExifValue) As Boolean
+    parameters:
+    - id: left
+      type: ImageSharp.ExifValue
+      description: The first ExifValue to compare.
+    - id: right
+      type: ImageSharp.ExifValue
+      description: The second ExifValue to compare.
+    return:
+      type: System.Boolean
+      description: ''
+  modifiers.csharp:
+  - public
+  - static
+  modifiers.vb:
+  - Public
+  - Shared
+- uid: ImageSharp.ExifValue.op_Inequality(ImageSharp.ExifValue,ImageSharp.ExifValue)
+  commentId: M:ImageSharp.ExifValue.op_Inequality(ImageSharp.ExifValue,ImageSharp.ExifValue)
+  id: op_Inequality(ImageSharp.ExifValue,ImageSharp.ExifValue)
+  parent: ImageSharp.ExifValue
+  langs:
+  - csharp
+  - vb
+  name: Inequality(ExifValue, ExifValue)
+  nameWithType: ExifValue.Inequality(ExifValue, ExifValue)
+  fullName: ImageSharp.ExifValue.Inequality(ImageSharp.ExifValue, ImageSharp.ExifValue)
+  type: Operator
+  source:
+    id: op_Inequality
+    path: ''
+    startLine: 25392
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nDetermines whether the specified ExifValue instances are not considered equal.\n"
+  example: []
+  syntax:
+    content: public static bool operator !=(ExifValue left, ExifValue right)
+    content.vb: Public Shared Operator <>(left As ExifValue, right As ExifValue) As Boolean
+    parameters:
+    - id: left
+      type: ImageSharp.ExifValue
+      description: The first ExifValue to compare.
+    - id: right
+      type: ImageSharp.ExifValue
+      description: The second ExifValue to compare.
+    return:
+      type: System.Boolean
+      description: ''
+  modifiers.csharp:
+  - public
+  - static
+  modifiers.vb:
+  - Public
+  - Shared
+- uid: ImageSharp.ExifValue.Equals(System.Object)
+  commentId: M:ImageSharp.ExifValue.Equals(System.Object)
+  id: Equals(System.Object)
+  parent: ImageSharp.ExifValue
+  langs:
+  - csharp
+  - vb
+  name: Equals(Object)
+  nameWithType: ExifValue.Equals(Object)
+  fullName: ImageSharp.ExifValue.Equals(System.Object)
+  type: Method
+  source:
+    id: Equals
+    path: ''
+    startLine: 25401
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nDetermines whether the specified object is equal to the current exif value.\n"
+  example: []
+  syntax:
+    content: public override bool Equals(object obj)
+    content.vb: Public Overrides Function Equals(obj As Object) As Boolean
+    parameters:
+    - id: obj
+      type: System.Object
+      description: The object to compare this exif value with.
+    return:
+      type: System.Boolean
+  overridden: System.Object.Equals(System.Object)
+  modifiers.csharp:
+  - public
+  - override
+  modifiers.vb:
+  - Public
+  - Overrides
+- uid: ImageSharp.ExifValue.Equals(ImageSharp.ExifValue)
+  commentId: M:ImageSharp.ExifValue.Equals(ImageSharp.ExifValue)
+  id: Equals(ImageSharp.ExifValue)
+  parent: ImageSharp.ExifValue
+  langs:
+  - csharp
+  - vb
+  name: Equals(ExifValue)
+  nameWithType: ExifValue.Equals(ExifValue)
+  fullName: ImageSharp.ExifValue.Equals(ImageSharp.ExifValue)
+  type: Method
+  source:
+    id: Equals
+    path: ''
+    startLine: 25415
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nDetermines whether the specified exif value is equal to the current exif value.\n"
+  example: []
+  syntax:
+    content: public bool Equals(ExifValue other)
+    content.vb: Public Function Equals(other As ExifValue) As Boolean
+    parameters:
+    - id: other
+      type: ImageSharp.ExifValue
+      description: The exif value to compare this exif value with.
+    return:
+      type: System.Boolean
+  implements:
+  - System.IEquatable{ImageSharp.ExifValue}.Equals(ImageSharp.ExifValue)
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.ExifValue.GetHashCode
+  commentId: M:ImageSharp.ExifValue.GetHashCode
+  id: GetHashCode
+  parent: ImageSharp.ExifValue
+  langs:
+  - csharp
+  - vb
+  name: GetHashCode()
+  nameWithType: ExifValue.GetHashCode()
+  fullName: ImageSharp.ExifValue.GetHashCode()
+  type: Method
+  source:
+    id: GetHashCode
+    path: ''
+    startLine: 25434
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  example: []
+  syntax:
+    content: public override int GetHashCode()
+    content.vb: Public Overrides Function GetHashCode As Integer
+    return:
+      type: System.Int32
+  overridden: System.Object.GetHashCode
+  modifiers.csharp:
+  - public
+  - override
+  modifiers.vb:
+  - Public
+  - Overrides
+- uid: ImageSharp.ExifValue.ToString
+  commentId: M:ImageSharp.ExifValue.ToString
+  id: ToString
+  parent: ImageSharp.ExifValue
+  langs:
+  - csharp
+  - vb
+  name: ToString()
+  nameWithType: ExifValue.ToString()
+  fullName: ImageSharp.ExifValue.ToString()
+  type: Method
+  source:
+    id: ToString
+    path: ''
+    startLine: 25440
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  example: []
+  syntax:
+    content: public override string ToString()
+    content.vb: Public Overrides Function ToString As String
+    return:
+      type: System.String
+  overridden: System.Object.ToString
+  modifiers.csharp:
+  - public
+  - override
+  modifiers.vb:
+  - Public
+  - Overrides
+references:
+- uid: ImageSharp
+  commentId: N:ImageSharp
+  isExternal: false
+  name: ImageSharp
+  nameWithType: ImageSharp
+  fullName: ImageSharp
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  name: Object
+  nameWithType: Object
+  fullName: System.Object
+- uid: System.IEquatable{ImageSharp.ExifValue}
+  commentId: T:System.IEquatable{ImageSharp.ExifValue}
+  parent: System
+  definition: System.IEquatable`1
+  name: IEquatable<ExifValue>
+  nameWithType: IEquatable<ExifValue>
+  fullName: System.IEquatable<ImageSharp.ExifValue>
+  nameWithType.vb: IEquatable(Of ExifValue)
+  fullname.vb: System.IEquatable(Of ImageSharp.ExifValue)
+  name.vb: IEquatable(Of ExifValue)
+  spec.csharp:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    nameWithType: IEquatable
+    fullName: System.IEquatable
+    isExternal: true
+  - name: <
+    nameWithType: <
+    fullName: <
+  - uid: ImageSharp.ExifValue
+    name: ExifValue
+    nameWithType: ExifValue
+    fullName: ImageSharp.ExifValue
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    nameWithType: IEquatable
+    fullName: System.IEquatable
+    isExternal: true
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - uid: ImageSharp.ExifValue
+    name: ExifValue
+    nameWithType: ExifValue
+    fullName: ImageSharp.ExifValue
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  name: Equals(Object, Object)
+  nameWithType: Object.Equals(Object, Object)
+  fullName: System.Object.Equals(System.Object, System.Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  name: ReferenceEquals(Object, Object)
+  nameWithType: Object.ReferenceEquals(Object, Object)
+  fullName: System.Object.ReferenceEquals(System.Object, System.Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    nameWithType: Object.ReferenceEquals
+    fullName: System.Object.ReferenceEquals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    nameWithType: Object.ReferenceEquals
+    fullName: System.Object.ReferenceEquals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  name: GetType()
+  nameWithType: Object.GetType()
+  fullName: System.Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    nameWithType: Object.GetType
+    fullName: System.Object.GetType
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    nameWithType: Object.GetType
+    fullName: System.Object.GetType
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.MemberwiseClone
+  commentId: M:System.Object.MemberwiseClone
+  parent: System.Object
+  isExternal: true
+  name: MemberwiseClone()
+  nameWithType: Object.MemberwiseClone()
+  fullName: System.Object.MemberwiseClone()
+  spec.csharp:
+  - uid: System.Object.MemberwiseClone
+    name: MemberwiseClone
+    nameWithType: Object.MemberwiseClone
+    fullName: System.Object.MemberwiseClone
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.MemberwiseClone
+    name: MemberwiseClone
+    nameWithType: Object.MemberwiseClone
+    fullName: System.Object.MemberwiseClone
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System
+  commentId: N:System
+  isExternal: false
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: System.IEquatable`1
+  commentId: T:System.IEquatable`1
+  isExternal: true
+  name: IEquatable<T>
+  nameWithType: IEquatable<T>
+  fullName: System.IEquatable<T>
+  nameWithType.vb: IEquatable(Of T)
+  fullname.vb: System.IEquatable(Of T)
+  name.vb: IEquatable(Of T)
+  spec.csharp:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    nameWithType: IEquatable
+    fullName: System.IEquatable
+    isExternal: true
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: T
+    nameWithType: T
+    fullName: T
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    nameWithType: IEquatable
+    fullName: System.IEquatable
+    isExternal: true
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: T
+    nameWithType: T
+    fullName: T
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.ExifValue
+  commentId: T:ImageSharp.ExifValue
+  parent: ImageSharp
+  isExternal: false
+  name: ExifValue
+  nameWithType: ExifValue
+  fullName: ImageSharp.ExifValue
+- uid: System.ArgumentNullException
+  commentId: T:System.ArgumentNullException
+- uid: ImageSharp.ExifDataType
+  commentId: T:ImageSharp.ExifDataType
+  parent: ImageSharp
+  isExternal: false
+  name: ExifDataType
+  nameWithType: ExifDataType
+  fullName: ImageSharp.ExifDataType
+- uid: System.Boolean
+  commentId: T:System.Boolean
+  parent: System
+  isExternal: true
+  name: Boolean
+  nameWithType: Boolean
+  fullName: System.Boolean
+- uid: ImageSharp.ExifTag
+  commentId: T:ImageSharp.ExifTag
+  parent: ImageSharp
+  isExternal: false
+  name: ExifTag
+  nameWithType: ExifTag
+  fullName: ImageSharp.ExifTag
+- uid: System.Object.Equals(System.Object)
+  commentId: M:System.Object.Equals(System.Object)
+  parent: System.Object
+  isExternal: true
+  name: Equals(Object)
+  nameWithType: Object.Equals(Object)
+  fullName: System.Object.Equals(System.Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.IEquatable{ImageSharp.ExifValue}.Equals(ImageSharp.ExifValue)
+  commentId: M:System.IEquatable{ImageSharp.ExifValue}.Equals(ImageSharp.ExifValue)
+  parent: System.IEquatable{ImageSharp.ExifValue}
+  definition: System.IEquatable`1.Equals(`0)
+  name: Equals(ExifValue)
+  nameWithType: IEquatable<ExifValue>.Equals(ExifValue)
+  fullName: System.IEquatable<ImageSharp.ExifValue>.Equals(ImageSharp.ExifValue)
+  nameWithType.vb: IEquatable(Of ExifValue).Equals(ExifValue)
+  fullname.vb: System.IEquatable(Of ImageSharp.ExifValue).Equals(ImageSharp.ExifValue)
+  spec.csharp:
+  - uid: System.IEquatable`1.Equals(`0)
+    name: Equals
+    nameWithType: IEquatable<ExifValue>.Equals
+    fullName: System.IEquatable<ImageSharp.ExifValue>.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.ExifValue
+    name: ExifValue
+    nameWithType: ExifValue
+    fullName: ImageSharp.ExifValue
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.IEquatable`1.Equals(`0)
+    name: Equals
+    nameWithType: IEquatable(Of ExifValue).Equals
+    fullName: System.IEquatable(Of ImageSharp.ExifValue).Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.ExifValue
+    name: ExifValue
+    nameWithType: ExifValue
+    fullName: ImageSharp.ExifValue
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.IEquatable`1.Equals(`0)
+  commentId: M:System.IEquatable`1.Equals(`0)
+  isExternal: true
+  name: Equals(T)
+  nameWithType: IEquatable<T>.Equals(T)
+  fullName: System.IEquatable<T>.Equals(T)
+  nameWithType.vb: IEquatable(Of T).Equals(T)
+  fullname.vb: System.IEquatable(Of T).Equals(T)
+  spec.csharp:
+  - uid: System.IEquatable`1.Equals(`0)
+    name: Equals
+    nameWithType: IEquatable<T>.Equals
+    fullName: System.IEquatable<T>.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: T
+    nameWithType: T
+    fullName: T
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.IEquatable`1.Equals(`0)
+    name: Equals
+    nameWithType: IEquatable(Of T).Equals
+    fullName: System.IEquatable(Of T).Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: T
+    nameWithType: T
+    fullName: T
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.GetHashCode
+  commentId: M:System.Object.GetHashCode
+  parent: System.Object
+  isExternal: true
+  name: GetHashCode()
+  nameWithType: Object.GetHashCode()
+  fullName: System.Object.GetHashCode()
+  spec.csharp:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    nameWithType: Object.GetHashCode
+    fullName: System.Object.GetHashCode
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    nameWithType: Object.GetHashCode
+    fullName: System.Object.GetHashCode
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Int32
+  commentId: T:System.Int32
+  parent: System
+  isExternal: true
+  name: Int32
+  nameWithType: Int32
+  fullName: System.Int32
+- uid: System.Object.ToString
+  commentId: M:System.Object.ToString
+  parent: System.Object
+  isExternal: true
+  name: ToString()
+  nameWithType: Object.ToString()
+  fullName: System.Object.ToString()
+  spec.csharp:
+  - uid: System.Object.ToString
+    name: ToString
+    nameWithType: Object.ToString
+    fullName: System.Object.ToString
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.ToString
+    name: ToString
+    nameWithType: Object.ToString
+    fullName: System.Object.ToString
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.String
+  commentId: T:System.String
+  parent: System
+  isExternal: true
+  name: String
+  nameWithType: String
+  fullName: System.String

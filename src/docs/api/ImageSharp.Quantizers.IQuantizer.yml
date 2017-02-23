@@ -1,0 +1,39 @@
+### YamlMime:ManagedReference
+items:
+- uid: ImageSharp.Quantizers.IQuantizer
+  commentId: T:ImageSharp.Quantizers.IQuantizer
+  id: IQuantizer
+  parent: ImageSharp.Quantizers
+  children: []
+  langs:
+  - csharp
+  - vb
+  name: IQuantizer
+  nameWithType: IQuantizer
+  fullName: ImageSharp.Quantizers.IQuantizer
+  type: Interface
+  source:
+    id: IQuantizer
+    path: ''
+    startLine: 26399
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Quantizers
+  summary: "\nProvides methods for allowing quantization of images pixels.\n"
+  example: []
+  syntax:
+    content: public interface IQuantizer
+    content.vb: Public Interface IQuantizer
+  modifiers.csharp:
+  - public
+  - interface
+  modifiers.vb:
+  - Public
+  - Interface
+references:
+- uid: ImageSharp.Quantizers
+  commentId: N:ImageSharp.Quantizers
+  isExternal: false
+  name: ImageSharp.Quantizers
+  nameWithType: ImageSharp.Quantizers
+  fullName: ImageSharp.Quantizers

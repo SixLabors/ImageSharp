@@ -1,0 +1,952 @@
+### YamlMime:ManagedReference
+items:
+- uid: ImageSharp
+  commentId: N:ImageSharp
+  id: ImageSharp
+  children:
+  - ImageSharp.AnchorPosition
+  - ImageSharp.Bgra32
+  - ImageSharp.BicubicResampler
+  - ImageSharp.Bootstrapper
+  - ImageSharp.BoxResampler
+  - ImageSharp.CatmullRomResampler
+  - ImageSharp.CieLab
+  - ImageSharp.CieXyz
+  - ImageSharp.Cmyk
+  - ImageSharp.Color
+  - ImageSharp.ColorBlindness
+  - ImageSharp.ColorConstants
+  - ImageSharp.ComponentOrder
+  - ImageSharp.EdgeDetection
+  - ImageSharp.Ellipse
+  - ImageSharp.EnumerableExtensions
+  - ImageSharp.ExifDataType
+  - ImageSharp.ExifParts
+  - ImageSharp.ExifProfile
+  - ImageSharp.ExifTag
+  - ImageSharp.ExifValue
+  - ImageSharp.FlipType
+  - ImageSharp.GrayscaleMode
+  - ImageSharp.Hsl
+  - ImageSharp.Hsv
+  - ImageSharp.IAlmostEquatable`2
+  - ImageSharp.IImageBase
+  - ImageSharp.IImageBase`2
+  - ImageSharp.IImageFrame`2
+  - ImageSharp.Image
+  - ImageSharp.Image`2
+  - ImageSharp.ImageBase`2
+  - ImageSharp.ImageExtensions
+  - ImageSharp.ImageFormatException
+  - ImageSharp.ImageFrame`2
+  - ImageSharp.ImageProcessingException
+  - ImageSharp.ImageProperty
+  - ImageSharp.IPackedBytes
+  - ImageSharp.IPackedPixel`1
+  - ImageSharp.IPackedVector
+  - ImageSharp.IPackedVector`1
+  - ImageSharp.IResampler
+  - ImageSharp.Lanczos2Resampler
+  - ImageSharp.Lanczos3Resampler
+  - ImageSharp.Lanczos5Resampler
+  - ImageSharp.Lanczos8Resampler
+  - ImageSharp.MitchellNetravaliResampler
+  - ImageSharp.NearestNeighborResampler
+  - ImageSharp.PixelAccessor
+  - ImageSharp.PixelAccessor`2
+  - ImageSharp.PixelRow`2
+  - ImageSharp.Point
+  - ImageSharp.ProgressEventArgs
+  - ImageSharp.Quantization
+  - ImageSharp.Rational
+  - ImageSharp.Rectangle
+  - ImageSharp.ResizeMode
+  - ImageSharp.ResizeOptions
+  - ImageSharp.RgbaComponent
+  - ImageSharp.RobidouxResampler
+  - ImageSharp.RobidouxSharpResampler
+  - ImageSharp.RotateType
+  - ImageSharp.SignedRational
+  - ImageSharp.Size
+  - ImageSharp.SplineResampler
+  - ImageSharp.TriangleResampler
+  - ImageSharp.Vector4Extensions
+  - ImageSharp.WelchResampler
+  - ImageSharp.YCbCr
+  langs:
+  - csharp
+  - vb
+  name: ImageSharp
+  nameWithType: ImageSharp
+  fullName: ImageSharp
+  type: Namespace
+  assemblies:
+  - cs.temp.dll
+references:
+- uid: ImageSharp.Bootstrapper
+  commentId: T:ImageSharp.Bootstrapper
+  parent: ImageSharp
+  isExternal: false
+  name: Bootstrapper
+  nameWithType: Bootstrapper
+  fullName: ImageSharp.Bootstrapper
+- uid: ImageSharp.Image
+  commentId: T:ImageSharp.Image
+  parent: ImageSharp
+  isExternal: false
+  name: Image
+  nameWithType: Image
+  fullName: ImageSharp.Image
+- uid: ImageSharp.PixelAccessor
+  commentId: T:ImageSharp.PixelAccessor
+  isExternal: false
+  name: PixelAccessor
+  nameWithType: PixelAccessor
+  fullName: ImageSharp.PixelAccessor
+- uid: ImageSharp.ProgressEventArgs
+  commentId: T:ImageSharp.ProgressEventArgs
+  isExternal: false
+  name: ProgressEventArgs
+  nameWithType: ProgressEventArgs
+  fullName: ImageSharp.ProgressEventArgs
+- uid: ImageSharp.Color
+  commentId: T:ImageSharp.Color
+  parent: ImageSharp
+  isExternal: false
+  name: Color
+  nameWithType: Color
+  fullName: ImageSharp.Color
+- uid: ImageSharp.ColorConstants
+  commentId: T:ImageSharp.ColorConstants
+  isExternal: false
+  name: ColorConstants
+  nameWithType: ColorConstants
+  fullName: ImageSharp.ColorConstants
+- uid: ImageSharp.ComponentOrder
+  commentId: T:ImageSharp.ComponentOrder
+  parent: ImageSharp
+  isExternal: false
+  name: ComponentOrder
+  nameWithType: ComponentOrder
+  fullName: ImageSharp.ComponentOrder
+- uid: ImageSharp.RgbaComponent
+  commentId: T:ImageSharp.RgbaComponent
+  parent: ImageSharp
+  isExternal: false
+  name: RgbaComponent
+  nameWithType: RgbaComponent
+  fullName: ImageSharp.RgbaComponent
+- uid: ImageSharp.Bgra32
+  commentId: T:ImageSharp.Bgra32
+  parent: ImageSharp
+  isExternal: false
+  name: Bgra32
+  nameWithType: Bgra32
+  fullName: ImageSharp.Bgra32
+- uid: ImageSharp.CieLab
+  commentId: T:ImageSharp.CieLab
+  parent: ImageSharp
+  isExternal: false
+  name: CieLab
+  nameWithType: CieLab
+  fullName: ImageSharp.CieLab
+- uid: ImageSharp.CieXyz
+  commentId: T:ImageSharp.CieXyz
+  parent: ImageSharp
+  isExternal: false
+  name: CieXyz
+  nameWithType: CieXyz
+  fullName: ImageSharp.CieXyz
+- uid: ImageSharp.Cmyk
+  commentId: T:ImageSharp.Cmyk
+  parent: ImageSharp
+  isExternal: false
+  name: Cmyk
+  nameWithType: Cmyk
+  fullName: ImageSharp.Cmyk
+- uid: ImageSharp.Hsl
+  commentId: T:ImageSharp.Hsl
+  parent: ImageSharp
+  isExternal: false
+  name: Hsl
+  nameWithType: Hsl
+  fullName: ImageSharp.Hsl
+- uid: ImageSharp.Hsv
+  commentId: T:ImageSharp.Hsv
+  parent: ImageSharp
+  isExternal: false
+  name: Hsv
+  nameWithType: Hsv
+  fullName: ImageSharp.Hsv
+- uid: ImageSharp.IAlmostEquatable`2
+  commentId: T:ImageSharp.IAlmostEquatable`2
+  isExternal: false
+  name: IAlmostEquatable<TColor, TPrecision>
+  nameWithType: IAlmostEquatable<TColor, TPrecision>
+  fullName: ImageSharp.IAlmostEquatable<TColor, TPrecision>
+  nameWithType.vb: IAlmostEquatable(Of TColor, TPrecision)
+  fullname.vb: ImageSharp.IAlmostEquatable(Of TColor, TPrecision)
+  name.vb: IAlmostEquatable(Of TColor, TPrecision)
+  spec.csharp:
+  - uid: ImageSharp.IAlmostEquatable`2
+    name: IAlmostEquatable
+    nameWithType: IAlmostEquatable
+    fullName: ImageSharp.IAlmostEquatable
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPrecision
+    nameWithType: TPrecision
+    fullName: TPrecision
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.IAlmostEquatable`2
+    name: IAlmostEquatable
+    nameWithType: IAlmostEquatable
+    fullName: ImageSharp.IAlmostEquatable
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPrecision
+    nameWithType: TPrecision
+    fullName: TPrecision
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.YCbCr
+  commentId: T:ImageSharp.YCbCr
+  parent: ImageSharp
+  isExternal: false
+  name: YCbCr
+  nameWithType: YCbCr
+  fullName: ImageSharp.YCbCr
+- uid: ImageSharp.IPackedBytes
+  commentId: T:ImageSharp.IPackedBytes
+  parent: ImageSharp
+  isExternal: false
+  name: IPackedBytes
+  nameWithType: IPackedBytes
+  fullName: ImageSharp.IPackedBytes
+- uid: ImageSharp.IPackedPixel`1
+  commentId: T:ImageSharp.IPackedPixel`1
+  isExternal: false
+  name: IPackedPixel<TPacked>
+  nameWithType: IPackedPixel<TPacked>
+  fullName: ImageSharp.IPackedPixel<TPacked>
+  nameWithType.vb: IPackedPixel(Of TPacked)
+  fullname.vb: ImageSharp.IPackedPixel(Of TPacked)
+  name.vb: IPackedPixel(Of TPacked)
+  spec.csharp:
+  - uid: ImageSharp.IPackedPixel`1
+    name: IPackedPixel
+    nameWithType: IPackedPixel
+    fullName: ImageSharp.IPackedPixel
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.IPackedPixel`1
+    name: IPackedPixel
+    nameWithType: IPackedPixel
+    fullName: ImageSharp.IPackedPixel
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.IPackedVector`1
+  commentId: T:ImageSharp.IPackedVector`1
+  isExternal: false
+  name: IPackedVector<TPacked>
+  nameWithType: IPackedVector<TPacked>
+  fullName: ImageSharp.IPackedVector<TPacked>
+  nameWithType.vb: IPackedVector(Of TPacked)
+  fullname.vb: ImageSharp.IPackedVector(Of TPacked)
+  name.vb: IPackedVector(Of TPacked)
+  spec.csharp:
+  - uid: ImageSharp.IPackedVector`1
+    name: IPackedVector
+    nameWithType: IPackedVector
+    fullName: ImageSharp.IPackedVector
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.IPackedVector`1
+    name: IPackedVector
+    nameWithType: IPackedVector
+    fullName: ImageSharp.IPackedVector
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.IPackedVector
+  commentId: T:ImageSharp.IPackedVector
+  parent: ImageSharp
+  isExternal: false
+  name: IPackedVector
+  nameWithType: IPackedVector
+  fullName: ImageSharp.IPackedVector
+- uid: ImageSharp.ImageFormatException
+  commentId: T:ImageSharp.ImageFormatException
+  isExternal: false
+  name: ImageFormatException
+  nameWithType: ImageFormatException
+  fullName: ImageSharp.ImageFormatException
+- uid: ImageSharp.ImageProcessingException
+  commentId: T:ImageSharp.ImageProcessingException
+  isExternal: false
+  name: ImageProcessingException
+  nameWithType: ImageProcessingException
+  fullName: ImageSharp.ImageProcessingException
+- uid: ImageSharp.EnumerableExtensions
+  commentId: T:ImageSharp.EnumerableExtensions
+  isExternal: false
+  name: EnumerableExtensions
+  nameWithType: EnumerableExtensions
+  fullName: ImageSharp.EnumerableExtensions
+- uid: ImageSharp.Vector4Extensions
+  commentId: T:ImageSharp.Vector4Extensions
+  isExternal: false
+  name: Vector4Extensions
+  nameWithType: Vector4Extensions
+  fullName: ImageSharp.Vector4Extensions
+- uid: ImageSharp.ImageExtensions
+  commentId: T:ImageSharp.ImageExtensions
+  isExternal: false
+  name: ImageExtensions
+  nameWithType: ImageExtensions
+  fullName: ImageSharp.ImageExtensions
+- uid: ImageSharp.ColorBlindness
+  commentId: T:ImageSharp.ColorBlindness
+  parent: ImageSharp
+  isExternal: false
+  name: ColorBlindness
+  nameWithType: ColorBlindness
+  fullName: ImageSharp.ColorBlindness
+- uid: ImageSharp.EdgeDetection
+  commentId: T:ImageSharp.EdgeDetection
+  parent: ImageSharp
+  isExternal: false
+  name: EdgeDetection
+  nameWithType: EdgeDetection
+  fullName: ImageSharp.EdgeDetection
+- uid: ImageSharp.GrayscaleMode
+  commentId: T:ImageSharp.GrayscaleMode
+  parent: ImageSharp
+  isExternal: false
+  name: GrayscaleMode
+  nameWithType: GrayscaleMode
+  fullName: ImageSharp.GrayscaleMode
+- uid: ImageSharp.IImageBase`2
+  commentId: T:ImageSharp.IImageBase`2
+  isExternal: false
+  name: IImageBase<TColor, TPacked>
+  nameWithType: IImageBase<TColor, TPacked>
+  fullName: ImageSharp.IImageBase<TColor, TPacked>
+  nameWithType.vb: IImageBase(Of TColor, TPacked)
+  fullname.vb: ImageSharp.IImageBase(Of TColor, TPacked)
+  name.vb: IImageBase(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.IImageBase`2
+    name: IImageBase
+    nameWithType: IImageBase
+    fullName: ImageSharp.IImageBase
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.IImageBase`2
+    name: IImageBase
+    nameWithType: IImageBase
+    fullName: ImageSharp.IImageBase
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.IImageBase
+  commentId: T:ImageSharp.IImageBase
+  parent: ImageSharp
+  isExternal: false
+  name: IImageBase
+  nameWithType: IImageBase
+  fullName: ImageSharp.IImageBase
+- uid: ImageSharp.IImageFrame`2
+  commentId: T:ImageSharp.IImageFrame`2
+  isExternal: false
+  name: IImageFrame<TColor, TPacked>
+  nameWithType: IImageFrame<TColor, TPacked>
+  fullName: ImageSharp.IImageFrame<TColor, TPacked>
+  nameWithType.vb: IImageFrame(Of TColor, TPacked)
+  fullname.vb: ImageSharp.IImageFrame(Of TColor, TPacked)
+  name.vb: IImageFrame(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.IImageFrame`2
+    name: IImageFrame
+    nameWithType: IImageFrame
+    fullName: ImageSharp.IImageFrame
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.IImageFrame`2
+    name: IImageFrame
+    nameWithType: IImageFrame
+    fullName: ImageSharp.IImageFrame
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Image`2
+  commentId: T:ImageSharp.Image`2
+  parent: ImageSharp
+  isExternal: false
+  name: Image<TColor, TPacked>
+  nameWithType: Image<TColor, TPacked>
+  fullName: ImageSharp.Image<TColor, TPacked>
+  nameWithType.vb: Image(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Image(Of TColor, TPacked)
+  name.vb: Image(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Image`2
+    name: Image
+    nameWithType: Image
+    fullName: ImageSharp.Image
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Image`2
+    name: Image
+    nameWithType: Image
+    fullName: ImageSharp.Image
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.ImageBase`2
+  commentId: T:ImageSharp.ImageBase`2
+  parent: ImageSharp
+  isExternal: false
+  name: ImageBase<TColor, TPacked>
+  nameWithType: ImageBase<TColor, TPacked>
+  fullName: ImageSharp.ImageBase<TColor, TPacked>
+  nameWithType.vb: ImageBase(Of TColor, TPacked)
+  fullname.vb: ImageSharp.ImageBase(Of TColor, TPacked)
+  name.vb: ImageBase(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.ImageFrame`2
+  commentId: T:ImageSharp.ImageFrame`2
+  parent: ImageSharp
+  isExternal: false
+  name: ImageFrame<TColor, TPacked>
+  nameWithType: ImageFrame<TColor, TPacked>
+  fullName: ImageSharp.ImageFrame<TColor, TPacked>
+  nameWithType.vb: ImageFrame(Of TColor, TPacked)
+  fullname.vb: ImageSharp.ImageFrame(Of TColor, TPacked)
+  name.vb: ImageFrame(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.ImageFrame`2
+    name: ImageFrame
+    nameWithType: ImageFrame
+    fullName: ImageSharp.ImageFrame
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.ImageFrame`2
+    name: ImageFrame
+    nameWithType: ImageFrame
+    fullName: ImageSharp.ImageFrame
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.ImageProperty
+  commentId: T:ImageSharp.ImageProperty
+  parent: ImageSharp
+  isExternal: false
+  name: ImageProperty
+  nameWithType: ImageProperty
+  fullName: ImageSharp.ImageProperty
+- uid: ImageSharp.PixelAccessor`2
+  commentId: T:ImageSharp.PixelAccessor`2
+  parent: ImageSharp
+  isExternal: false
+  name: PixelAccessor<TColor, TPacked>
+  nameWithType: PixelAccessor<TColor, TPacked>
+  fullName: ImageSharp.PixelAccessor<TColor, TPacked>
+  nameWithType.vb: PixelAccessor(Of TColor, TPacked)
+  fullname.vb: ImageSharp.PixelAccessor(Of TColor, TPacked)
+  name.vb: PixelAccessor(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.PixelAccessor`2
+    name: PixelAccessor
+    nameWithType: PixelAccessor
+    fullName: ImageSharp.PixelAccessor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.PixelAccessor`2
+    name: PixelAccessor
+    nameWithType: PixelAccessor
+    fullName: ImageSharp.PixelAccessor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.PixelRow`2
+  commentId: T:ImageSharp.PixelRow`2
+  isExternal: false
+  name: PixelRow<TColor, TPacked>
+  nameWithType: PixelRow<TColor, TPacked>
+  fullName: ImageSharp.PixelRow<TColor, TPacked>
+  nameWithType.vb: PixelRow(Of TColor, TPacked)
+  fullname.vb: ImageSharp.PixelRow(Of TColor, TPacked)
+  name.vb: PixelRow(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.PixelRow`2
+    name: PixelRow
+    nameWithType: PixelRow
+    fullName: ImageSharp.PixelRow
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.PixelRow`2
+    name: PixelRow
+    nameWithType: PixelRow
+    fullName: ImageSharp.PixelRow
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Ellipse
+  commentId: T:ImageSharp.Ellipse
+  parent: ImageSharp
+  isExternal: false
+  name: Ellipse
+  nameWithType: Ellipse
+  fullName: ImageSharp.Ellipse
+- uid: ImageSharp.Point
+  commentId: T:ImageSharp.Point
+  parent: ImageSharp
+  isExternal: false
+  name: Point
+  nameWithType: Point
+  fullName: ImageSharp.Point
+- uid: ImageSharp.Rational
+  commentId: T:ImageSharp.Rational
+  parent: ImageSharp
+  isExternal: false
+  name: Rational
+  nameWithType: Rational
+  fullName: ImageSharp.Rational
+- uid: ImageSharp.Rectangle
+  commentId: T:ImageSharp.Rectangle
+  parent: ImageSharp
+  isExternal: false
+  name: Rectangle
+  nameWithType: Rectangle
+  fullName: ImageSharp.Rectangle
+- uid: ImageSharp.SignedRational
+  commentId: T:ImageSharp.SignedRational
+  parent: ImageSharp
+  isExternal: false
+  name: SignedRational
+  nameWithType: SignedRational
+  fullName: ImageSharp.SignedRational
+- uid: ImageSharp.Size
+  commentId: T:ImageSharp.Size
+  parent: ImageSharp
+  isExternal: false
+  name: Size
+  nameWithType: Size
+  fullName: ImageSharp.Size
+- uid: ImageSharp.ExifDataType
+  commentId: T:ImageSharp.ExifDataType
+  parent: ImageSharp
+  isExternal: false
+  name: ExifDataType
+  nameWithType: ExifDataType
+  fullName: ImageSharp.ExifDataType
+- uid: ImageSharp.ExifParts
+  commentId: T:ImageSharp.ExifParts
+  parent: ImageSharp
+  isExternal: false
+  name: ExifParts
+  nameWithType: ExifParts
+  fullName: ImageSharp.ExifParts
+- uid: ImageSharp.ExifProfile
+  commentId: T:ImageSharp.ExifProfile
+  parent: ImageSharp
+  isExternal: false
+  name: ExifProfile
+  nameWithType: ExifProfile
+  fullName: ImageSharp.ExifProfile
+- uid: ImageSharp.ExifTag
+  commentId: T:ImageSharp.ExifTag
+  parent: ImageSharp
+  isExternal: false
+  name: ExifTag
+  nameWithType: ExifTag
+  fullName: ImageSharp.ExifTag
+- uid: ImageSharp.ExifValue
+  commentId: T:ImageSharp.ExifValue
+  parent: ImageSharp
+  isExternal: false
+  name: ExifValue
+  nameWithType: ExifValue
+  fullName: ImageSharp.ExifValue
+- uid: ImageSharp.Quantization
+  commentId: T:ImageSharp.Quantization
+  parent: ImageSharp
+  isExternal: false
+  name: Quantization
+  nameWithType: Quantization
+  fullName: ImageSharp.Quantization
+- uid: ImageSharp.AnchorPosition
+  commentId: T:ImageSharp.AnchorPosition
+  parent: ImageSharp
+  isExternal: false
+  name: AnchorPosition
+  nameWithType: AnchorPosition
+  fullName: ImageSharp.AnchorPosition
+- uid: ImageSharp.FlipType
+  commentId: T:ImageSharp.FlipType
+  parent: ImageSharp
+  isExternal: false
+  name: FlipType
+  nameWithType: FlipType
+  fullName: ImageSharp.FlipType
+- uid: ImageSharp.ResizeMode
+  commentId: T:ImageSharp.ResizeMode
+  parent: ImageSharp
+  isExternal: false
+  name: ResizeMode
+  nameWithType: ResizeMode
+  fullName: ImageSharp.ResizeMode
+- uid: ImageSharp.ResizeOptions
+  commentId: T:ImageSharp.ResizeOptions
+  parent: ImageSharp
+  isExternal: false
+  name: ResizeOptions
+  nameWithType: ResizeOptions
+  fullName: ImageSharp.ResizeOptions
+- uid: ImageSharp.RotateType
+  commentId: T:ImageSharp.RotateType
+  parent: ImageSharp
+  isExternal: false
+  name: RotateType
+  nameWithType: RotateType
+  fullName: ImageSharp.RotateType
+- uid: ImageSharp.BicubicResampler
+  commentId: T:ImageSharp.BicubicResampler
+  isExternal: false
+  name: BicubicResampler
+  nameWithType: BicubicResampler
+  fullName: ImageSharp.BicubicResampler
+- uid: ImageSharp.BoxResampler
+  commentId: T:ImageSharp.BoxResampler
+  isExternal: false
+  name: BoxResampler
+  nameWithType: BoxResampler
+  fullName: ImageSharp.BoxResampler
+- uid: ImageSharp.CatmullRomResampler
+  commentId: T:ImageSharp.CatmullRomResampler
+  isExternal: false
+  name: CatmullRomResampler
+  nameWithType: CatmullRomResampler
+  fullName: ImageSharp.CatmullRomResampler
+- uid: ImageSharp.IResampler
+  commentId: T:ImageSharp.IResampler
+  parent: ImageSharp
+  isExternal: false
+  name: IResampler
+  nameWithType: IResampler
+  fullName: ImageSharp.IResampler
+- uid: ImageSharp.Lanczos2Resampler
+  commentId: T:ImageSharp.Lanczos2Resampler
+  isExternal: false
+  name: Lanczos2Resampler
+  nameWithType: Lanczos2Resampler
+  fullName: ImageSharp.Lanczos2Resampler
+- uid: ImageSharp.Lanczos3Resampler
+  commentId: T:ImageSharp.Lanczos3Resampler
+  isExternal: false
+  name: Lanczos3Resampler
+  nameWithType: Lanczos3Resampler
+  fullName: ImageSharp.Lanczos3Resampler
+- uid: ImageSharp.Lanczos5Resampler
+  commentId: T:ImageSharp.Lanczos5Resampler
+  isExternal: false
+  name: Lanczos5Resampler
+  nameWithType: Lanczos5Resampler
+  fullName: ImageSharp.Lanczos5Resampler
+- uid: ImageSharp.Lanczos8Resampler
+  commentId: T:ImageSharp.Lanczos8Resampler
+  isExternal: false
+  name: Lanczos8Resampler
+  nameWithType: Lanczos8Resampler
+  fullName: ImageSharp.Lanczos8Resampler
+- uid: ImageSharp.MitchellNetravaliResampler
+  commentId: T:ImageSharp.MitchellNetravaliResampler
+  isExternal: false
+  name: MitchellNetravaliResampler
+  nameWithType: MitchellNetravaliResampler
+  fullName: ImageSharp.MitchellNetravaliResampler
+- uid: ImageSharp.NearestNeighborResampler
+  commentId: T:ImageSharp.NearestNeighborResampler
+  isExternal: false
+  name: NearestNeighborResampler
+  nameWithType: NearestNeighborResampler
+  fullName: ImageSharp.NearestNeighborResampler
+- uid: ImageSharp.RobidouxResampler
+  commentId: T:ImageSharp.RobidouxResampler
+  isExternal: false
+  name: RobidouxResampler
+  nameWithType: RobidouxResampler
+  fullName: ImageSharp.RobidouxResampler
+- uid: ImageSharp.RobidouxSharpResampler
+  commentId: T:ImageSharp.RobidouxSharpResampler
+  isExternal: false
+  name: RobidouxSharpResampler
+  nameWithType: RobidouxSharpResampler
+  fullName: ImageSharp.RobidouxSharpResampler
+- uid: ImageSharp.SplineResampler
+  commentId: T:ImageSharp.SplineResampler
+  isExternal: false
+  name: SplineResampler
+  nameWithType: SplineResampler
+  fullName: ImageSharp.SplineResampler
+- uid: ImageSharp.TriangleResampler
+  commentId: T:ImageSharp.TriangleResampler
+  isExternal: false
+  name: TriangleResampler
+  nameWithType: TriangleResampler
+  fullName: ImageSharp.TriangleResampler
+- uid: ImageSharp.WelchResampler
+  commentId: T:ImageSharp.WelchResampler
+  isExternal: false
+  name: WelchResampler
+  nameWithType: WelchResampler
+  fullName: ImageSharp.WelchResampler
+- uid: ImageSharp
+  commentId: N:ImageSharp
+  isExternal: false
+  name: ImageSharp
+  nameWithType: ImageSharp
+  fullName: ImageSharp

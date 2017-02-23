@@ -1,0 +1,449 @@
+### YamlMime:ManagedReference
+items:
+- uid: ImageSharp.ExifDataType
+  commentId: T:ImageSharp.ExifDataType
+  id: ExifDataType
+  parent: ImageSharp
+  children:
+  - ImageSharp.ExifDataType.Ascii
+  - ImageSharp.ExifDataType.Byte
+  - ImageSharp.ExifDataType.DoubleFloat
+  - ImageSharp.ExifDataType.Long
+  - ImageSharp.ExifDataType.Rational
+  - ImageSharp.ExifDataType.Short
+  - ImageSharp.ExifDataType.SignedByte
+  - ImageSharp.ExifDataType.SignedLong
+  - ImageSharp.ExifDataType.SignedRational
+  - ImageSharp.ExifDataType.SignedShort
+  - ImageSharp.ExifDataType.SingleFloat
+  - ImageSharp.ExifDataType.Undefined
+  - ImageSharp.ExifDataType.Unknown
+  langs:
+  - csharp
+  - vb
+  name: ExifDataType
+  nameWithType: ExifDataType
+  fullName: ImageSharp.ExifDataType
+  type: Enum
+  source:
+    id: ExifDataType
+    path: ''
+    startLine: 23219
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nSpecifies exif data types.\n"
+  example: []
+  syntax:
+    content: public enum ExifDataType
+    content.vb: Public Enum ExifDataType
+  modifiers.csharp:
+  - public
+  - enum
+  modifiers.vb:
+  - Public
+  - Enum
+- uid: ImageSharp.ExifDataType.Unknown
+  commentId: F:ImageSharp.ExifDataType.Unknown
+  id: Unknown
+  parent: ImageSharp.ExifDataType
+  langs:
+  - csharp
+  - vb
+  name: Unknown
+  nameWithType: ExifDataType.Unknown
+  fullName: ImageSharp.ExifDataType.Unknown
+  type: Field
+  source:
+    id: Unknown
+    path: ''
+    startLine: 23224
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nUnknown\n"
+  example: []
+  syntax:
+    content: Unknown = 0
+    return:
+      type: ImageSharp.ExifDataType
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifDataType.Byte
+  commentId: F:ImageSharp.ExifDataType.Byte
+  id: Byte
+  parent: ImageSharp.ExifDataType
+  langs:
+  - csharp
+  - vb
+  name: Byte
+  nameWithType: ExifDataType.Byte
+  fullName: ImageSharp.ExifDataType.Byte
+  type: Field
+  source:
+    id: Byte
+    path: ''
+    startLine: 23229
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nByte\n"
+  example: []
+  syntax:
+    content: Byte = 1
+    return:
+      type: ImageSharp.ExifDataType
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifDataType.Ascii
+  commentId: F:ImageSharp.ExifDataType.Ascii
+  id: Ascii
+  parent: ImageSharp.ExifDataType
+  langs:
+  - csharp
+  - vb
+  name: Ascii
+  nameWithType: ExifDataType.Ascii
+  fullName: ImageSharp.ExifDataType.Ascii
+  type: Field
+  source:
+    id: Ascii
+    path: ''
+    startLine: 23234
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nAscii\n"
+  example: []
+  syntax:
+    content: Ascii = 2
+    return:
+      type: ImageSharp.ExifDataType
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifDataType.Short
+  commentId: F:ImageSharp.ExifDataType.Short
+  id: Short
+  parent: ImageSharp.ExifDataType
+  langs:
+  - csharp
+  - vb
+  name: Short
+  nameWithType: ExifDataType.Short
+  fullName: ImageSharp.ExifDataType.Short
+  type: Field
+  source:
+    id: Short
+    path: ''
+    startLine: 23239
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nShort\n"
+  example: []
+  syntax:
+    content: Short = 3
+    return:
+      type: ImageSharp.ExifDataType
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifDataType.Long
+  commentId: F:ImageSharp.ExifDataType.Long
+  id: Long
+  parent: ImageSharp.ExifDataType
+  langs:
+  - csharp
+  - vb
+  name: Long
+  nameWithType: ExifDataType.Long
+  fullName: ImageSharp.ExifDataType.Long
+  type: Field
+  source:
+    id: Long
+    path: ''
+    startLine: 23244
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nLong\n"
+  example: []
+  syntax:
+    content: Long = 4
+    return:
+      type: ImageSharp.ExifDataType
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifDataType.Rational
+  commentId: F:ImageSharp.ExifDataType.Rational
+  id: Rational
+  parent: ImageSharp.ExifDataType
+  langs:
+  - csharp
+  - vb
+  name: Rational
+  nameWithType: ExifDataType.Rational
+  fullName: ImageSharp.ExifDataType.Rational
+  type: Field
+  source:
+    id: Rational
+    path: ''
+    startLine: 23249
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRational\n"
+  example: []
+  syntax:
+    content: Rational = 5
+    return:
+      type: ImageSharp.ExifDataType
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifDataType.SignedByte
+  commentId: F:ImageSharp.ExifDataType.SignedByte
+  id: SignedByte
+  parent: ImageSharp.ExifDataType
+  langs:
+  - csharp
+  - vb
+  name: SignedByte
+  nameWithType: ExifDataType.SignedByte
+  fullName: ImageSharp.ExifDataType.SignedByte
+  type: Field
+  source:
+    id: SignedByte
+    path: ''
+    startLine: 23254
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nSignedByte\n"
+  example: []
+  syntax:
+    content: SignedByte = 6
+    return:
+      type: ImageSharp.ExifDataType
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifDataType.Undefined
+  commentId: F:ImageSharp.ExifDataType.Undefined
+  id: Undefined
+  parent: ImageSharp.ExifDataType
+  langs:
+  - csharp
+  - vb
+  name: Undefined
+  nameWithType: ExifDataType.Undefined
+  fullName: ImageSharp.ExifDataType.Undefined
+  type: Field
+  source:
+    id: Undefined
+    path: ''
+    startLine: 23259
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nUndefined\n"
+  example: []
+  syntax:
+    content: Undefined = 7
+    return:
+      type: ImageSharp.ExifDataType
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifDataType.SignedShort
+  commentId: F:ImageSharp.ExifDataType.SignedShort
+  id: SignedShort
+  parent: ImageSharp.ExifDataType
+  langs:
+  - csharp
+  - vb
+  name: SignedShort
+  nameWithType: ExifDataType.SignedShort
+  fullName: ImageSharp.ExifDataType.SignedShort
+  type: Field
+  source:
+    id: SignedShort
+    path: ''
+    startLine: 23264
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nSignedShort\n"
+  example: []
+  syntax:
+    content: SignedShort = 8
+    return:
+      type: ImageSharp.ExifDataType
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifDataType.SignedLong
+  commentId: F:ImageSharp.ExifDataType.SignedLong
+  id: SignedLong
+  parent: ImageSharp.ExifDataType
+  langs:
+  - csharp
+  - vb
+  name: SignedLong
+  nameWithType: ExifDataType.SignedLong
+  fullName: ImageSharp.ExifDataType.SignedLong
+  type: Field
+  source:
+    id: SignedLong
+    path: ''
+    startLine: 23269
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nSignedLong\n"
+  example: []
+  syntax:
+    content: SignedLong = 9
+    return:
+      type: ImageSharp.ExifDataType
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifDataType.SignedRational
+  commentId: F:ImageSharp.ExifDataType.SignedRational
+  id: SignedRational
+  parent: ImageSharp.ExifDataType
+  langs:
+  - csharp
+  - vb
+  name: SignedRational
+  nameWithType: ExifDataType.SignedRational
+  fullName: ImageSharp.ExifDataType.SignedRational
+  type: Field
+  source:
+    id: SignedRational
+    path: ''
+    startLine: 23274
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nSignedRational\n"
+  example: []
+  syntax:
+    content: SignedRational = 10
+    return:
+      type: ImageSharp.ExifDataType
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifDataType.SingleFloat
+  commentId: F:ImageSharp.ExifDataType.SingleFloat
+  id: SingleFloat
+  parent: ImageSharp.ExifDataType
+  langs:
+  - csharp
+  - vb
+  name: SingleFloat
+  nameWithType: ExifDataType.SingleFloat
+  fullName: ImageSharp.ExifDataType.SingleFloat
+  type: Field
+  source:
+    id: SingleFloat
+    path: ''
+    startLine: 23279
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nSingleFloat\n"
+  example: []
+  syntax:
+    content: SingleFloat = 11
+    return:
+      type: ImageSharp.ExifDataType
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifDataType.DoubleFloat
+  commentId: F:ImageSharp.ExifDataType.DoubleFloat
+  id: DoubleFloat
+  parent: ImageSharp.ExifDataType
+  langs:
+  - csharp
+  - vb
+  name: DoubleFloat
+  nameWithType: ExifDataType.DoubleFloat
+  fullName: ImageSharp.ExifDataType.DoubleFloat
+  type: Field
+  source:
+    id: DoubleFloat
+    path: ''
+    startLine: 23284
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nDoubleFloat\n"
+  example: []
+  syntax:
+    content: DoubleFloat = 12
+    return:
+      type: ImageSharp.ExifDataType
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+references:
+- uid: ImageSharp
+  commentId: N:ImageSharp
+  isExternal: false
+  name: ImageSharp
+  nameWithType: ImageSharp
+  fullName: ImageSharp
+- uid: ImageSharp.ExifDataType
+  commentId: T:ImageSharp.ExifDataType
+  parent: ImageSharp
+  isExternal: false
+  name: ExifDataType
+  nameWithType: ExifDataType
+  fullName: ImageSharp.ExifDataType

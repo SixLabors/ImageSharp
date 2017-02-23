@@ -1,0 +1,108 @@
+### YamlMime:ManagedReference
+items:
+- uid: ImageSharp.Formats.JpegSubsample
+  commentId: T:ImageSharp.Formats.JpegSubsample
+  id: JpegSubsample
+  parent: ImageSharp.Formats
+  children:
+  - ImageSharp.Formats.JpegSubsample.Ratio420
+  - ImageSharp.Formats.JpegSubsample.Ratio444
+  langs:
+  - csharp
+  - vb
+  name: JpegSubsample
+  nameWithType: JpegSubsample
+  fullName: ImageSharp.Formats.JpegSubsample
+  type: Enum
+  source:
+    id: JpegSubsample
+    path: ''
+    startLine: 14070
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Formats
+  summary: "\nEnumerates the chroma subsampling method applied to the image.\n"
+  example: []
+  syntax:
+    content: public enum JpegSubsample
+    content.vb: Public Enum JpegSubsample
+  modifiers.csharp:
+  - public
+  - enum
+  modifiers.vb:
+  - Public
+  - Enum
+- uid: ImageSharp.Formats.JpegSubsample.Ratio444
+  commentId: F:ImageSharp.Formats.JpegSubsample.Ratio444
+  id: Ratio444
+  parent: ImageSharp.Formats.JpegSubsample
+  langs:
+  - csharp
+  - vb
+  name: Ratio444
+  nameWithType: JpegSubsample.Ratio444
+  fullName: ImageSharp.Formats.JpegSubsample.Ratio444
+  type: Field
+  source:
+    id: Ratio444
+    path: ''
+    startLine: 14076
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Formats
+  summary: "\nHigh Quality - Each of the three Y'CbCr components have the same sample rate,\nthus there is no chroma subsampling.\n"
+  example: []
+  syntax:
+    content: Ratio444 = 0
+    return:
+      type: ImageSharp.Formats.JpegSubsample
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.Formats.JpegSubsample.Ratio420
+  commentId: F:ImageSharp.Formats.JpegSubsample.Ratio420
+  id: Ratio420
+  parent: ImageSharp.Formats.JpegSubsample
+  langs:
+  - csharp
+  - vb
+  name: Ratio420
+  nameWithType: JpegSubsample.Ratio420
+  fullName: ImageSharp.Formats.JpegSubsample.Ratio420
+  type: Field
+  source:
+    id: Ratio420
+    path: ''
+    startLine: 14082
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Formats
+  summary: "\nMedium Quality - The horizontal sampling is halved and the Cb and Cr channels are only\nsampled on each alternate line.\n"
+  example: []
+  syntax:
+    content: Ratio420 = 1
+    return:
+      type: ImageSharp.Formats.JpegSubsample
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+references:
+- uid: ImageSharp.Formats
+  commentId: N:ImageSharp.Formats
+  isExternal: false
+  name: ImageSharp.Formats
+  nameWithType: ImageSharp.Formats
+  fullName: ImageSharp.Formats
+- uid: ImageSharp.Formats.JpegSubsample
+  commentId: T:ImageSharp.Formats.JpegSubsample
+  parent: ImageSharp.Formats
+  isExternal: false
+  name: JpegSubsample
+  nameWithType: JpegSubsample
+  fullName: ImageSharp.Formats.JpegSubsample

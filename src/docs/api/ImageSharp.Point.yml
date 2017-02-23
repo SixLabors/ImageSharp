@@ -1,0 +1,1364 @@
+### YamlMime:ManagedReference
+items:
+- uid: ImageSharp.Point
+  commentId: T:ImageSharp.Point
+  id: Point
+  parent: ImageSharp
+  children:
+  - ImageSharp.Point.#ctor(System.Int32,System.Int32)
+  - ImageSharp.Point.#ctor(Vector2)
+  - ImageSharp.Point.CreateRotation(ImageSharp.Point,System.Single)
+  - ImageSharp.Point.CreateSkew(ImageSharp.Point,System.Single,System.Single)
+  - ImageSharp.Point.Empty
+  - ImageSharp.Point.Equals(ImageSharp.Point)
+  - ImageSharp.Point.Equals(System.Object)
+  - ImageSharp.Point.GetHashCode
+  - ImageSharp.Point.IsEmpty
+  - ImageSharp.Point.Offset(ImageSharp.Point)
+  - ImageSharp.Point.Offset(System.Int32,System.Int32)
+  - ImageSharp.Point.op_Addition(ImageSharp.Point,ImageSharp.Point)
+  - ImageSharp.Point.op_Equality(ImageSharp.Point,ImageSharp.Point)
+  - ImageSharp.Point.op_Inequality(ImageSharp.Point,ImageSharp.Point)
+  - ImageSharp.Point.op_Subtraction(ImageSharp.Point,ImageSharp.Point)
+  - ImageSharp.Point.Rotate(ImageSharp.Point,ImageSharp.Point,System.Single)
+  - ImageSharp.Point.Rotate(ImageSharp.Point,Matrix3x2)
+  - ImageSharp.Point.Skew(ImageSharp.Point,ImageSharp.Point,System.Single,System.Single)
+  - ImageSharp.Point.Skew(ImageSharp.Point,Matrix3x2)
+  - ImageSharp.Point.ToString
+  - ImageSharp.Point.ToVector2
+  - ImageSharp.Point.X
+  - ImageSharp.Point.Y
+  langs:
+  - csharp
+  - vb
+  name: Point
+  nameWithType: Point
+  fullName: ImageSharp.Point
+  type: Struct
+  source:
+    id: Point
+    path: ''
+    startLine: 22110
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents an ordered pair of integer x- and y-coordinates that defines a point in\na two-dimensional plane.\n"
+  remarks: "\nThis struct is fully mutable. This is done (against the guidelines) for the sake of performance,\nas it avoids the need to create new values for modification operations.\n"
+  example: []
+  syntax:
+    content: 'public struct Point : IEquatable<Point>'
+    content.vb: >-
+      Public Structure Point
+          Implements IEquatable(Of Point)
+  implements:
+  - System.IEquatable{ImageSharp.Point}
+  inheritedMembers:
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+  - System.Object.GetType
+  modifiers.csharp:
+  - public
+  - struct
+  modifiers.vb:
+  - Public
+  - Structure
+- uid: ImageSharp.Point.Empty
+  commentId: F:ImageSharp.Point.Empty
+  id: Empty
+  parent: ImageSharp.Point
+  langs:
+  - csharp
+  - vb
+  name: Empty
+  nameWithType: Point.Empty
+  fullName: ImageSharp.Point.Empty
+  type: Field
+  source:
+    id: Empty
+    path: ''
+    startLine: 22115
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Point\" data-throw-if-not-resolved=\"false\"></xref> that has X and Y values set to zero.\n"
+  example: []
+  syntax:
+    content: public static readonly Point Empty
+    content.vb: Public Shared ReadOnly Empty As Point
+    return:
+      type: ImageSharp.Point
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Point.#ctor(System.Int32,System.Int32)
+  commentId: M:ImageSharp.Point.#ctor(System.Int32,System.Int32)
+  id: '#ctor(System.Int32,System.Int32)'
+  parent: ImageSharp.Point
+  langs:
+  - csharp
+  - vb
+  name: Point(Int32, Int32)
+  nameWithType: Point.Point(Int32, Int32)
+  fullName: ImageSharp.Point.Point(System.Int32, System.Int32)
+  type: Constructor
+  source:
+    id: .ctor
+    path: ''
+    startLine: 22122
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nInitializes a new instance of the <xref href=\"ImageSharp.Point\" data-throw-if-not-resolved=\"false\"></xref> struct.\n"
+  example: []
+  syntax:
+    content: public Point(int x, int y)
+    content.vb: Public Sub New(x As Integer, y As Integer)
+    parameters:
+    - id: x
+      type: System.Int32
+      description: The horizontal position of the point.
+    - id: y
+      type: System.Int32
+      description: The vertical position of the point.
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.Point.#ctor(Vector2)
+  commentId: M:ImageSharp.Point.#ctor(Vector2)
+  id: '#ctor(Vector2)'
+  parent: ImageSharp.Point
+  langs:
+  - csharp
+  - vb
+  name: Point(Vector2)
+  nameWithType: Point.Point(Vector2)
+  fullName: ImageSharp.Point.Point(Vector2)
+  type: Constructor
+  source:
+    id: .ctor
+    path: ''
+    startLine: 22135
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nInitializes a new instance of the <xref href=\"ImageSharp.Point\" data-throw-if-not-resolved=\"false\"></xref> struct.\n"
+  example: []
+  syntax:
+    content: public Point(Vector2 vector)
+    content.vb: Public Sub New(vector As Vector2)
+    parameters:
+    - id: vector
+      type: Vector2
+      description: "\nThe vector representing the width and height.\n"
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.Point.X
+  commentId: P:ImageSharp.Point.X
+  id: X
+  parent: ImageSharp.Point
+  langs:
+  - csharp
+  - vb
+  name: X
+  nameWithType: Point.X
+  fullName: ImageSharp.Point.X
+  type: Property
+  source:
+    id: X
+    path: ''
+    startLine: 22144
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets or sets the x-coordinate of this <xref href=\"ImageSharp.Point\" data-throw-if-not-resolved=\"false\"></xref>.\n"
+  example: []
+  syntax:
+    content: public int X { get; set; }
+    content.vb: Public Property X As Integer
+    parameters: []
+    return:
+      type: System.Int32
+  modifiers.csharp:
+  - public
+  - get
+  - set
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.Point.Y
+  commentId: P:ImageSharp.Point.Y
+  id: Y
+  parent: ImageSharp.Point
+  langs:
+  - csharp
+  - vb
+  name: Y
+  nameWithType: Point.Y
+  fullName: ImageSharp.Point.Y
+  type: Property
+  source:
+    id: Y
+    path: ''
+    startLine: 22149
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets or sets the y-coordinate of this <xref href=\"ImageSharp.Point\" data-throw-if-not-resolved=\"false\"></xref>.\n"
+  example: []
+  syntax:
+    content: public int Y { get; set; }
+    content.vb: Public Property Y As Integer
+    parameters: []
+    return:
+      type: System.Int32
+  modifiers.csharp:
+  - public
+  - get
+  - set
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.Point.IsEmpty
+  commentId: P:ImageSharp.Point.IsEmpty
+  id: IsEmpty
+  parent: ImageSharp.Point
+  langs:
+  - csharp
+  - vb
+  name: IsEmpty
+  nameWithType: Point.IsEmpty
+  fullName: ImageSharp.Point.IsEmpty
+  type: Property
+  source:
+    id: IsEmpty
+    path: ''
+    startLine: 22154
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets a value indicating whether this <xref href=\"ImageSharp.Point\" data-throw-if-not-resolved=\"false\"></xref> is empty.\n"
+  example: []
+  syntax:
+    content: public bool IsEmpty { get; }
+    content.vb: Public ReadOnly Property IsEmpty As Boolean
+    parameters: []
+    return:
+      type: System.Boolean
+  modifiers.csharp:
+  - public
+  - get
+  modifiers.vb:
+  - Public
+  - ReadOnly
+- uid: ImageSharp.Point.op_Addition(ImageSharp.Point,ImageSharp.Point)
+  commentId: M:ImageSharp.Point.op_Addition(ImageSharp.Point,ImageSharp.Point)
+  id: op_Addition(ImageSharp.Point,ImageSharp.Point)
+  parent: ImageSharp.Point
+  langs:
+  - csharp
+  - vb
+  name: Addition(Point, Point)
+  nameWithType: Point.Addition(Point, Point)
+  fullName: ImageSharp.Point.Addition(ImageSharp.Point, ImageSharp.Point)
+  type: Operator
+  source:
+    id: op_Addition
+    path: ''
+    startLine: 22165
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nComputes the sum of adding two points.\n"
+  example: []
+  syntax:
+    content: public static Point operator +(Point left, Point right)
+    content.vb: Public Shared Operator +(left As Point, right As Point) As Point
+    parameters:
+    - id: left
+      type: ImageSharp.Point
+      description: The point on the left hand of the operand.
+    - id: right
+      type: ImageSharp.Point
+      description: The point on the right hand of the operand.
+    return:
+      type: ImageSharp.Point
+      description: "\nThe <xref href=\"ImageSharp.Point\" data-throw-if-not-resolved=\"false\"></xref>\n"
+  modifiers.csharp:
+  - public
+  - static
+  modifiers.vb:
+  - Public
+  - Shared
+- uid: ImageSharp.Point.op_Subtraction(ImageSharp.Point,ImageSharp.Point)
+  commentId: M:ImageSharp.Point.op_Subtraction(ImageSharp.Point,ImageSharp.Point)
+  id: op_Subtraction(ImageSharp.Point,ImageSharp.Point)
+  parent: ImageSharp.Point
+  langs:
+  - csharp
+  - vb
+  name: Subtraction(Point, Point)
+  nameWithType: Point.Subtraction(Point, Point)
+  fullName: ImageSharp.Point.Subtraction(ImageSharp.Point, ImageSharp.Point)
+  type: Operator
+  source:
+    id: op_Subtraction
+    path: ''
+    startLine: 22179
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nComputes the difference left by subtracting one point from another.\n"
+  example: []
+  syntax:
+    content: public static Point operator -(Point left, Point right)
+    content.vb: Public Shared Operator -(left As Point, right As Point) As Point
+    parameters:
+    - id: left
+      type: ImageSharp.Point
+      description: The point on the left hand of the operand.
+    - id: right
+      type: ImageSharp.Point
+      description: The point on the right hand of the operand.
+    return:
+      type: ImageSharp.Point
+      description: "\nThe <xref href=\"ImageSharp.Point\" data-throw-if-not-resolved=\"false\"></xref>\n"
+  modifiers.csharp:
+  - public
+  - static
+  modifiers.vb:
+  - Public
+  - Shared
+- uid: ImageSharp.Point.op_Equality(ImageSharp.Point,ImageSharp.Point)
+  commentId: M:ImageSharp.Point.op_Equality(ImageSharp.Point,ImageSharp.Point)
+  id: op_Equality(ImageSharp.Point,ImageSharp.Point)
+  parent: ImageSharp.Point
+  langs:
+  - csharp
+  - vb
+  name: Equality(Point, Point)
+  nameWithType: Point.Equality(Point, Point)
+  fullName: ImageSharp.Point.Equality(ImageSharp.Point, ImageSharp.Point)
+  type: Operator
+  source:
+    id: op_Equality
+    path: ''
+    startLine: 22197
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nCompares two <xref href=\"ImageSharp.Point\" data-throw-if-not-resolved=\"false\"></xref> objects for equality.\n"
+  example: []
+  syntax:
+    content: public static bool operator ==(Point left, Point right)
+    content.vb: Public Shared Operator =(left As Point, right As Point) As Boolean
+    parameters:
+    - id: left
+      type: ImageSharp.Point
+      description: "\nThe <xref href=\"ImageSharp.Point\" data-throw-if-not-resolved=\"false\"></xref> on the left side of the operand.\n"
+    - id: right
+      type: ImageSharp.Point
+      description: "\nThe <xref href=\"ImageSharp.Point\" data-throw-if-not-resolved=\"false\"></xref> on the right side of the operand.\n"
+    return:
+      type: System.Boolean
+      description: "\nTrue if the current left is equal to the <em>right</em> parameter; otherwise, false.\n"
+  modifiers.csharp:
+  - public
+  - static
+  modifiers.vb:
+  - Public
+  - Shared
+- uid: ImageSharp.Point.op_Inequality(ImageSharp.Point,ImageSharp.Point)
+  commentId: M:ImageSharp.Point.op_Inequality(ImageSharp.Point,ImageSharp.Point)
+  id: op_Inequality(ImageSharp.Point,ImageSharp.Point)
+  parent: ImageSharp.Point
+  langs:
+  - csharp
+  - vb
+  name: Inequality(Point, Point)
+  nameWithType: Point.Inequality(Point, Point)
+  fullName: ImageSharp.Point.Inequality(ImageSharp.Point, ImageSharp.Point)
+  type: Operator
+  source:
+    id: op_Inequality
+    path: ''
+    startLine: 22215
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nCompares two <xref href=\"ImageSharp.Point\" data-throw-if-not-resolved=\"false\"></xref> objects for inequality.\n"
+  example: []
+  syntax:
+    content: public static bool operator !=(Point left, Point right)
+    content.vb: Public Shared Operator <>(left As Point, right As Point) As Boolean
+    parameters:
+    - id: left
+      type: ImageSharp.Point
+      description: "\nThe <xref href=\"ImageSharp.Point\" data-throw-if-not-resolved=\"false\"></xref> on the left side of the operand.\n"
+    - id: right
+      type: ImageSharp.Point
+      description: "\nThe <xref href=\"ImageSharp.Point\" data-throw-if-not-resolved=\"false\"></xref> on the right side of the operand.\n"
+    return:
+      type: System.Boolean
+      description: "\nTrue if the current left is unequal to the <em>right</em> parameter; otherwise, false.\n"
+  modifiers.csharp:
+  - public
+  - static
+  modifiers.vb:
+  - Public
+  - Shared
+- uid: ImageSharp.Point.CreateRotation(ImageSharp.Point,System.Single)
+  commentId: M:ImageSharp.Point.CreateRotation(ImageSharp.Point,System.Single)
+  id: CreateRotation(ImageSharp.Point,System.Single)
+  parent: ImageSharp.Point
+  langs:
+  - csharp
+  - vb
+  name: CreateRotation(Point, Single)
+  nameWithType: Point.CreateRotation(Point, Single)
+  fullName: ImageSharp.Point.CreateRotation(ImageSharp.Point, System.Single)
+  type: Method
+  source:
+    id: CreateRotation
+    path: ''
+    startLine: 22227
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nCreates a rotation matrix for the given point and angle.\n"
+  example: []
+  syntax:
+    content: public static Matrix3x2 CreateRotation(Point origin, float degrees)
+    content.vb: Public Shared Function CreateRotation(origin As Point, degrees As Single) As Matrix3x2
+    parameters:
+    - id: origin
+      type: ImageSharp.Point
+      description: The origin point to rotate around
+    - id: degrees
+      type: System.Single
+      description: Rotation in degrees
+    return:
+      type: Matrix3x2
+      description: The rotation <see cref="!:Matrix3x2"></see>
+  modifiers.csharp:
+  - public
+  - static
+  modifiers.vb:
+  - Public
+  - Shared
+- uid: ImageSharp.Point.Rotate(ImageSharp.Point,Matrix3x2)
+  commentId: M:ImageSharp.Point.Rotate(ImageSharp.Point,Matrix3x2)
+  id: Rotate(ImageSharp.Point,Matrix3x2)
+  parent: ImageSharp.Point
+  langs:
+  - csharp
+  - vb
+  name: Rotate(Point, Matrix3x2)
+  nameWithType: Point.Rotate(Point, Matrix3x2)
+  fullName: ImageSharp.Point.Rotate(ImageSharp.Point, Matrix3x2)
+  type: Method
+  source:
+    id: Rotate
+    path: ''
+    startLine: 22239
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRotates a point around a given a rotation matrix.\n"
+  example: []
+  syntax:
+    content: public static Point Rotate(Point point, Matrix3x2 rotation)
+    content.vb: Public Shared Function Rotate(point As Point, rotation As Matrix3x2) As Point
+    parameters:
+    - id: point
+      type: ImageSharp.Point
+      description: The point to rotate
+    - id: rotation
+      type: Matrix3x2
+      description: Rotation matrix used
+    return:
+      type: ImageSharp.Point
+      description: The rotated <xref href="ImageSharp.Point" data-throw-if-not-resolved="false"></xref>
+  modifiers.csharp:
+  - public
+  - static
+  modifiers.vb:
+  - Public
+  - Shared
+- uid: ImageSharp.Point.Rotate(ImageSharp.Point,ImageSharp.Point,System.Single)
+  commentId: M:ImageSharp.Point.Rotate(ImageSharp.Point,ImageSharp.Point,System.Single)
+  id: Rotate(ImageSharp.Point,ImageSharp.Point,System.Single)
+  parent: ImageSharp.Point
+  langs:
+  - csharp
+  - vb
+  name: Rotate(Point, Point, Single)
+  nameWithType: Point.Rotate(Point, Point, Single)
+  fullName: ImageSharp.Point.Rotate(ImageSharp.Point, ImageSharp.Point, System.Single)
+  type: Method
+  source:
+    id: Rotate
+    path: ''
+    startLine: 22251
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRotates a point around a given origin by the specified angle in degrees.\n"
+  example: []
+  syntax:
+    content: public static Point Rotate(Point point, Point origin, float degrees)
+    content.vb: Public Shared Function Rotate(point As Point, origin As Point, degrees As Single) As Point
+    parameters:
+    - id: point
+      type: ImageSharp.Point
+      description: The point to rotate
+    - id: origin
+      type: ImageSharp.Point
+      description: The center point to rotate around.
+    - id: degrees
+      type: System.Single
+      description: The angle in degrees.
+    return:
+      type: ImageSharp.Point
+      description: The rotated <xref href="ImageSharp.Point" data-throw-if-not-resolved="false"></xref>
+  modifiers.csharp:
+  - public
+  - static
+  modifiers.vb:
+  - Public
+  - Shared
+- uid: ImageSharp.Point.CreateSkew(ImageSharp.Point,System.Single,System.Single)
+  commentId: M:ImageSharp.Point.CreateSkew(ImageSharp.Point,System.Single,System.Single)
+  id: CreateSkew(ImageSharp.Point,System.Single,System.Single)
+  parent: ImageSharp.Point
+  langs:
+  - csharp
+  - vb
+  name: CreateSkew(Point, Single, Single)
+  nameWithType: Point.CreateSkew(Point, Single, Single)
+  fullName: ImageSharp.Point.CreateSkew(ImageSharp.Point, System.Single, System.Single)
+  type: Method
+  source:
+    id: CreateSkew
+    path: ''
+    startLine: 22263
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nCreates a skew matrix for the given point and angle.\n"
+  example: []
+  syntax:
+    content: public static Matrix3x2 CreateSkew(Point origin, float degreesX, float degreesY)
+    content.vb: Public Shared Function CreateSkew(origin As Point, degreesX As Single, degreesY As Single) As Matrix3x2
+    parameters:
+    - id: origin
+      type: ImageSharp.Point
+      description: The origin point to rotate around
+    - id: degreesX
+      type: System.Single
+      description: The x-angle in degrees.
+    - id: degreesY
+      type: System.Single
+      description: The y-angle in degrees.
+    return:
+      type: Matrix3x2
+      description: The rotation <see cref="!:Matrix3x2"></see>
+  modifiers.csharp:
+  - public
+  - static
+  modifiers.vb:
+  - Public
+  - Shared
+- uid: ImageSharp.Point.Skew(ImageSharp.Point,Matrix3x2)
+  commentId: M:ImageSharp.Point.Skew(ImageSharp.Point,Matrix3x2)
+  id: Skew(ImageSharp.Point,Matrix3x2)
+  parent: ImageSharp.Point
+  langs:
+  - csharp
+  - vb
+  name: Skew(Point, Matrix3x2)
+  nameWithType: Point.Skew(Point, Matrix3x2)
+  fullName: ImageSharp.Point.Skew(ImageSharp.Point, Matrix3x2)
+  type: Method
+  source:
+    id: Skew
+    path: ''
+    startLine: 22276
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nSkews a point using a given a skew matrix.\n"
+  example: []
+  syntax:
+    content: public static Point Skew(Point point, Matrix3x2 skew)
+    content.vb: Public Shared Function Skew(point As Point, skew As Matrix3x2) As Point
+    parameters:
+    - id: point
+      type: ImageSharp.Point
+      description: The point to rotate
+    - id: skew
+      type: Matrix3x2
+      description: Rotation matrix used
+    return:
+      type: ImageSharp.Point
+      description: The rotated <xref href="ImageSharp.Point" data-throw-if-not-resolved="false"></xref>
+  modifiers.csharp:
+  - public
+  - static
+  modifiers.vb:
+  - Public
+  - Shared
+- uid: ImageSharp.Point.Skew(ImageSharp.Point,ImageSharp.Point,System.Single,System.Single)
+  commentId: M:ImageSharp.Point.Skew(ImageSharp.Point,ImageSharp.Point,System.Single,System.Single)
+  id: Skew(ImageSharp.Point,ImageSharp.Point,System.Single,System.Single)
+  parent: ImageSharp.Point
+  langs:
+  - csharp
+  - vb
+  name: Skew(Point, Point, Single, Single)
+  nameWithType: Point.Skew(Point, Point, Single, Single)
+  fullName: ImageSharp.Point.Skew(ImageSharp.Point, ImageSharp.Point, System.Single, System.Single)
+  type: Method
+  source:
+    id: Skew
+    path: ''
+    startLine: 22289
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nSkews a point around a given origin by the specified angles in degrees.\n"
+  example: []
+  syntax:
+    content: public static Point Skew(Point point, Point origin, float degreesX, float degreesY)
+    content.vb: Public Shared Function Skew(point As Point, origin As Point, degreesX As Single, degreesY As Single) As Point
+    parameters:
+    - id: point
+      type: ImageSharp.Point
+      description: The point to skew.
+    - id: origin
+      type: ImageSharp.Point
+      description: The center point to rotate around.
+    - id: degreesX
+      type: System.Single
+      description: The x-angle in degrees.
+    - id: degreesY
+      type: System.Single
+      description: The y-angle in degrees.
+    return:
+      type: ImageSharp.Point
+      description: The skewed <xref href="ImageSharp.Point" data-throw-if-not-resolved="false"></xref>
+  modifiers.csharp:
+  - public
+  - static
+  modifiers.vb:
+  - Public
+  - Shared
+- uid: ImageSharp.Point.ToVector2
+  commentId: M:ImageSharp.Point.ToVector2
+  id: ToVector2
+  parent: ImageSharp.Point
+  langs:
+  - csharp
+  - vb
+  name: ToVector2()
+  nameWithType: Point.ToVector2()
+  fullName: ImageSharp.Point.ToVector2()
+  type: Method
+  source:
+    id: ToVector2
+    path: ''
+    startLine: 22298
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets a <see cref=\"!:Vector2\"></see> representation for this <xref href=\"ImageSharp.Point\" data-throw-if-not-resolved=\"false\"></xref>.\n"
+  example: []
+  syntax:
+    content: public Vector2 ToVector2()
+    content.vb: Public Function ToVector2 As Vector2
+    return:
+      type: Vector2
+      description: A <see cref="!:Vector2"></see> representation for this object.
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.Point.Offset(System.Int32,System.Int32)
+  commentId: M:ImageSharp.Point.Offset(System.Int32,System.Int32)
+  id: Offset(System.Int32,System.Int32)
+  parent: ImageSharp.Point
+  langs:
+  - csharp
+  - vb
+  name: Offset(Int32, Int32)
+  nameWithType: Point.Offset(Int32, Int32)
+  fullName: ImageSharp.Point.Offset(System.Int32, System.Int32)
+  type: Method
+  source:
+    id: Offset
+    path: ''
+    startLine: 22308
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nTranslates this <xref href=\"ImageSharp.Point\" data-throw-if-not-resolved=\"false\"></xref> by the specified amount.\n"
+  example: []
+  syntax:
+    content: public void Offset(int dx, int dy)
+    content.vb: Public Sub Offset(dx As Integer, dy As Integer)
+    parameters:
+    - id: dx
+      type: System.Int32
+      description: The amount to offset the x-coordinate.
+    - id: dy
+      type: System.Int32
+      description: The amount to offset the y-coordinate.
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.Point.Offset(ImageSharp.Point)
+  commentId: M:ImageSharp.Point.Offset(ImageSharp.Point)
+  id: Offset(ImageSharp.Point)
+  parent: ImageSharp.Point
+  langs:
+  - csharp
+  - vb
+  name: Offset(Point)
+  nameWithType: Point.Offset(Point)
+  fullName: ImageSharp.Point.Offset(ImageSharp.Point)
+  type: Method
+  source:
+    id: Offset
+    path: ''
+    startLine: 22318
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nTranslates this <xref href=\"ImageSharp.Point\" data-throw-if-not-resolved=\"false\"></xref> by the specified amount.\n"
+  example: []
+  syntax:
+    content: public void Offset(Point p)
+    content.vb: Public Sub Offset(p As Point)
+    parameters:
+    - id: p
+      type: ImageSharp.Point
+      description: The <xref href="ImageSharp.Point" data-throw-if-not-resolved="false"></xref> used offset this <xref href="ImageSharp.Point" data-throw-if-not-resolved="false"></xref>.
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.Point.GetHashCode
+  commentId: M:ImageSharp.Point.GetHashCode
+  id: GetHashCode
+  parent: ImageSharp.Point
+  langs:
+  - csharp
+  - vb
+  name: GetHashCode()
+  nameWithType: Point.GetHashCode()
+  fullName: ImageSharp.Point.GetHashCode()
+  type: Method
+  source:
+    id: GetHashCode
+    path: ''
+    startLine: 22324
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  example: []
+  syntax:
+    content: public override int GetHashCode()
+    content.vb: Public Overrides Function GetHashCode As Integer
+    return:
+      type: System.Int32
+  overridden: System.ValueType.GetHashCode
+  modifiers.csharp:
+  - public
+  - override
+  modifiers.vb:
+  - Public
+  - Overrides
+- uid: ImageSharp.Point.ToString
+  commentId: M:ImageSharp.Point.ToString
+  id: ToString
+  parent: ImageSharp.Point
+  langs:
+  - csharp
+  - vb
+  name: ToString()
+  nameWithType: Point.ToString()
+  fullName: ImageSharp.Point.ToString()
+  type: Method
+  source:
+    id: ToString
+    path: ''
+    startLine: 22330
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  example: []
+  syntax:
+    content: public override string ToString()
+    content.vb: Public Overrides Function ToString As String
+    return:
+      type: System.String
+  overridden: System.ValueType.ToString
+  modifiers.csharp:
+  - public
+  - override
+  modifiers.vb:
+  - Public
+  - Overrides
+- uid: ImageSharp.Point.Equals(System.Object)
+  commentId: M:ImageSharp.Point.Equals(System.Object)
+  id: Equals(System.Object)
+  parent: ImageSharp.Point
+  langs:
+  - csharp
+  - vb
+  name: Equals(Object)
+  nameWithType: Point.Equals(Object)
+  fullName: ImageSharp.Point.Equals(System.Object)
+  type: Method
+  source:
+    id: Equals
+    path: ''
+    startLine: 22341
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  example: []
+  syntax:
+    content: public override bool Equals(object obj)
+    content.vb: Public Overrides Function Equals(obj As Object) As Boolean
+    parameters:
+    - id: obj
+      type: System.Object
+    return:
+      type: System.Boolean
+  overridden: System.ValueType.Equals(System.Object)
+  modifiers.csharp:
+  - public
+  - override
+  modifiers.vb:
+  - Public
+  - Overrides
+- uid: ImageSharp.Point.Equals(ImageSharp.Point)
+  commentId: M:ImageSharp.Point.Equals(ImageSharp.Point)
+  id: Equals(ImageSharp.Point)
+  parent: ImageSharp.Point
+  langs:
+  - csharp
+  - vb
+  name: Equals(Point)
+  nameWithType: Point.Equals(Point)
+  fullName: ImageSharp.Point.Equals(ImageSharp.Point)
+  type: Method
+  source:
+    id: Equals
+    path: ''
+    startLine: 22352
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  example: []
+  syntax:
+    content: public bool Equals(Point other)
+    content.vb: Public Function Equals(other As Point) As Boolean
+    parameters:
+    - id: other
+      type: ImageSharp.Point
+    return:
+      type: System.Boolean
+  implements:
+  - System.IEquatable{ImageSharp.Point}.Equals(ImageSharp.Point)
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+references:
+- uid: ImageSharp
+  commentId: N:ImageSharp
+  isExternal: false
+  name: ImageSharp
+  nameWithType: ImageSharp
+  fullName: ImageSharp
+- uid: System.IEquatable{ImageSharp.Point}
+  commentId: T:System.IEquatable{ImageSharp.Point}
+  parent: System
+  definition: System.IEquatable`1
+  name: IEquatable<Point>
+  nameWithType: IEquatable<Point>
+  fullName: System.IEquatable<ImageSharp.Point>
+  nameWithType.vb: IEquatable(Of Point)
+  fullname.vb: System.IEquatable(Of ImageSharp.Point)
+  name.vb: IEquatable(Of Point)
+  spec.csharp:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    nameWithType: IEquatable
+    fullName: System.IEquatable
+    isExternal: true
+  - name: <
+    nameWithType: <
+    fullName: <
+  - uid: ImageSharp.Point
+    name: Point
+    nameWithType: Point
+    fullName: ImageSharp.Point
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    nameWithType: IEquatable
+    fullName: System.IEquatable
+    isExternal: true
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - uid: ImageSharp.Point
+    name: Point
+    nameWithType: Point
+    fullName: ImageSharp.Point
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  name: Equals(Object, Object)
+  nameWithType: Object.Equals(Object, Object)
+  fullName: System.Object.Equals(System.Object, System.Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  name: ReferenceEquals(Object, Object)
+  nameWithType: Object.ReferenceEquals(Object, Object)
+  fullName: System.Object.ReferenceEquals(System.Object, System.Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    nameWithType: Object.ReferenceEquals
+    fullName: System.Object.ReferenceEquals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    nameWithType: Object.ReferenceEquals
+    fullName: System.Object.ReferenceEquals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  name: GetType()
+  nameWithType: Object.GetType()
+  fullName: System.Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    nameWithType: Object.GetType
+    fullName: System.Object.GetType
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    nameWithType: Object.GetType
+    fullName: System.Object.GetType
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.IEquatable`1
+  commentId: T:System.IEquatable`1
+  isExternal: true
+  name: IEquatable<T>
+  nameWithType: IEquatable<T>
+  fullName: System.IEquatable<T>
+  nameWithType.vb: IEquatable(Of T)
+  fullname.vb: System.IEquatable(Of T)
+  name.vb: IEquatable(Of T)
+  spec.csharp:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    nameWithType: IEquatable
+    fullName: System.IEquatable
+    isExternal: true
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: T
+    nameWithType: T
+    fullName: T
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    nameWithType: IEquatable
+    fullName: System.IEquatable
+    isExternal: true
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: T
+    nameWithType: T
+    fullName: T
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System
+  commentId: N:System
+  isExternal: false
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  name: Object
+  nameWithType: Object
+  fullName: System.Object
+- uid: ImageSharp.Point
+  commentId: T:ImageSharp.Point
+  parent: ImageSharp
+  isExternal: false
+  name: Point
+  nameWithType: Point
+  fullName: ImageSharp.Point
+- uid: System.Int32
+  commentId: T:System.Int32
+  parent: System
+  isExternal: true
+  name: Int32
+  nameWithType: Int32
+  fullName: System.Int32
+- uid: Vector2
+  isExternal: true
+  name: Vector2
+  nameWithType: Vector2
+  fullName: Vector2
+- uid: System.Boolean
+  commentId: T:System.Boolean
+  parent: System
+  isExternal: true
+  name: Boolean
+  nameWithType: Boolean
+  fullName: System.Boolean
+- uid: System.Single
+  commentId: T:System.Single
+  parent: System
+  isExternal: true
+  name: Single
+  nameWithType: Single
+  fullName: System.Single
+- uid: Matrix3x2
+  isExternal: true
+  name: Matrix3x2
+  nameWithType: Matrix3x2
+  fullName: Matrix3x2
+- uid: System.ValueType.GetHashCode
+  commentId: M:System.ValueType.GetHashCode
+  parent: System.ValueType
+  isExternal: true
+  name: GetHashCode()
+  nameWithType: ValueType.GetHashCode()
+  fullName: System.ValueType.GetHashCode()
+  spec.csharp:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    nameWithType: ValueType.GetHashCode
+    fullName: System.ValueType.GetHashCode
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    nameWithType: ValueType.GetHashCode
+    fullName: System.ValueType.GetHashCode
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.ValueType
+  commentId: T:System.ValueType
+  parent: System
+  isExternal: true
+  name: ValueType
+  nameWithType: ValueType
+  fullName: System.ValueType
+- uid: System.ValueType.ToString
+  commentId: M:System.ValueType.ToString
+  parent: System.ValueType
+  isExternal: true
+  name: ToString()
+  nameWithType: ValueType.ToString()
+  fullName: System.ValueType.ToString()
+  spec.csharp:
+  - uid: System.ValueType.ToString
+    name: ToString
+    nameWithType: ValueType.ToString
+    fullName: System.ValueType.ToString
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.ValueType.ToString
+    name: ToString
+    nameWithType: ValueType.ToString
+    fullName: System.ValueType.ToString
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.String
+  commentId: T:System.String
+  parent: System
+  isExternal: true
+  name: String
+  nameWithType: String
+  fullName: System.String
+- uid: System.ValueType.Equals(System.Object)
+  commentId: M:System.ValueType.Equals(System.Object)
+  parent: System.ValueType
+  isExternal: true
+  name: Equals(Object)
+  nameWithType: ValueType.Equals(Object)
+  fullName: System.ValueType.Equals(System.Object)
+  spec.csharp:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    nameWithType: ValueType.Equals
+    fullName: System.ValueType.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    nameWithType: ValueType.Equals
+    fullName: System.ValueType.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.IEquatable{ImageSharp.Point}.Equals(ImageSharp.Point)
+  commentId: M:System.IEquatable{ImageSharp.Point}.Equals(ImageSharp.Point)
+  parent: System.IEquatable{ImageSharp.Point}
+  definition: System.IEquatable`1.Equals(`0)
+  name: Equals(Point)
+  nameWithType: IEquatable<Point>.Equals(Point)
+  fullName: System.IEquatable<ImageSharp.Point>.Equals(ImageSharp.Point)
+  nameWithType.vb: IEquatable(Of Point).Equals(Point)
+  fullname.vb: System.IEquatable(Of ImageSharp.Point).Equals(ImageSharp.Point)
+  spec.csharp:
+  - uid: System.IEquatable`1.Equals(`0)
+    name: Equals
+    nameWithType: IEquatable<Point>.Equals
+    fullName: System.IEquatable<ImageSharp.Point>.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.Point
+    name: Point
+    nameWithType: Point
+    fullName: ImageSharp.Point
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.IEquatable`1.Equals(`0)
+    name: Equals
+    nameWithType: IEquatable(Of Point).Equals
+    fullName: System.IEquatable(Of ImageSharp.Point).Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.Point
+    name: Point
+    nameWithType: Point
+    fullName: ImageSharp.Point
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.IEquatable`1.Equals(`0)
+  commentId: M:System.IEquatable`1.Equals(`0)
+  isExternal: true
+  name: Equals(T)
+  nameWithType: IEquatable<T>.Equals(T)
+  fullName: System.IEquatable<T>.Equals(T)
+  nameWithType.vb: IEquatable(Of T).Equals(T)
+  fullname.vb: System.IEquatable(Of T).Equals(T)
+  spec.csharp:
+  - uid: System.IEquatable`1.Equals(`0)
+    name: Equals
+    nameWithType: IEquatable<T>.Equals
+    fullName: System.IEquatable<T>.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: T
+    nameWithType: T
+    fullName: T
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.IEquatable`1.Equals(`0)
+    name: Equals
+    nameWithType: IEquatable(Of T).Equals
+    fullName: System.IEquatable(Of T).Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: T
+    nameWithType: T
+    fullName: T
+  - name: )
+    nameWithType: )
+    fullName: )

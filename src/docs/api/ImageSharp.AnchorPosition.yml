@@ -1,0 +1,325 @@
+### YamlMime:ManagedReference
+items:
+- uid: ImageSharp.AnchorPosition
+  commentId: T:ImageSharp.AnchorPosition
+  id: AnchorPosition
+  parent: ImageSharp
+  children:
+  - ImageSharp.AnchorPosition.Bottom
+  - ImageSharp.AnchorPosition.BottomLeft
+  - ImageSharp.AnchorPosition.BottomRight
+  - ImageSharp.AnchorPosition.Center
+  - ImageSharp.AnchorPosition.Left
+  - ImageSharp.AnchorPosition.Right
+  - ImageSharp.AnchorPosition.Top
+  - ImageSharp.AnchorPosition.TopLeft
+  - ImageSharp.AnchorPosition.TopRight
+  langs:
+  - csharp
+  - vb
+  name: AnchorPosition
+  nameWithType: AnchorPosition
+  fullName: ImageSharp.AnchorPosition
+  type: Enum
+  source:
+    id: AnchorPosition
+    path: ''
+    startLine: 29215
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nEnumerated anchor positions to apply to resized images.\n"
+  example: []
+  syntax:
+    content: public enum AnchorPosition
+    content.vb: Public Enum AnchorPosition
+  modifiers.csharp:
+  - public
+  - enum
+  modifiers.vb:
+  - Public
+  - Enum
+- uid: ImageSharp.AnchorPosition.Center
+  commentId: F:ImageSharp.AnchorPosition.Center
+  id: Center
+  parent: ImageSharp.AnchorPosition
+  langs:
+  - csharp
+  - vb
+  name: Center
+  nameWithType: AnchorPosition.Center
+  fullName: ImageSharp.AnchorPosition.Center
+  type: Field
+  source:
+    id: Center
+    path: ''
+    startLine: 29220
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nAnchors the position of the image to the center of it's bounding container.\n"
+  example: []
+  syntax:
+    content: Center = 0
+    return:
+      type: ImageSharp.AnchorPosition
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.AnchorPosition.Top
+  commentId: F:ImageSharp.AnchorPosition.Top
+  id: Top
+  parent: ImageSharp.AnchorPosition
+  langs:
+  - csharp
+  - vb
+  name: Top
+  nameWithType: AnchorPosition.Top
+  fullName: ImageSharp.AnchorPosition.Top
+  type: Field
+  source:
+    id: Top
+    path: ''
+    startLine: 29225
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nAnchors the position of the image to the top of it's bounding container.\n"
+  example: []
+  syntax:
+    content: Top = 1
+    return:
+      type: ImageSharp.AnchorPosition
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.AnchorPosition.Bottom
+  commentId: F:ImageSharp.AnchorPosition.Bottom
+  id: Bottom
+  parent: ImageSharp.AnchorPosition
+  langs:
+  - csharp
+  - vb
+  name: Bottom
+  nameWithType: AnchorPosition.Bottom
+  fullName: ImageSharp.AnchorPosition.Bottom
+  type: Field
+  source:
+    id: Bottom
+    path: ''
+    startLine: 29230
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nAnchors the position of the image to the bottom of it's bounding container.\n"
+  example: []
+  syntax:
+    content: Bottom = 2
+    return:
+      type: ImageSharp.AnchorPosition
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.AnchorPosition.Left
+  commentId: F:ImageSharp.AnchorPosition.Left
+  id: Left
+  parent: ImageSharp.AnchorPosition
+  langs:
+  - csharp
+  - vb
+  name: Left
+  nameWithType: AnchorPosition.Left
+  fullName: ImageSharp.AnchorPosition.Left
+  type: Field
+  source:
+    id: Left
+    path: ''
+    startLine: 29235
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nAnchors the position of the image to the left of it's bounding container.\n"
+  example: []
+  syntax:
+    content: Left = 3
+    return:
+      type: ImageSharp.AnchorPosition
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.AnchorPosition.Right
+  commentId: F:ImageSharp.AnchorPosition.Right
+  id: Right
+  parent: ImageSharp.AnchorPosition
+  langs:
+  - csharp
+  - vb
+  name: Right
+  nameWithType: AnchorPosition.Right
+  fullName: ImageSharp.AnchorPosition.Right
+  type: Field
+  source:
+    id: Right
+    path: ''
+    startLine: 29240
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nAnchors the position of the image to the right of it's bounding container.\n"
+  example: []
+  syntax:
+    content: Right = 4
+    return:
+      type: ImageSharp.AnchorPosition
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.AnchorPosition.TopLeft
+  commentId: F:ImageSharp.AnchorPosition.TopLeft
+  id: TopLeft
+  parent: ImageSharp.AnchorPosition
+  langs:
+  - csharp
+  - vb
+  name: TopLeft
+  nameWithType: AnchorPosition.TopLeft
+  fullName: ImageSharp.AnchorPosition.TopLeft
+  type: Field
+  source:
+    id: TopLeft
+    path: ''
+    startLine: 29245
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nAnchors the position of the image to the top left side of it's bounding container.\n"
+  example: []
+  syntax:
+    content: TopLeft = 5
+    return:
+      type: ImageSharp.AnchorPosition
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.AnchorPosition.TopRight
+  commentId: F:ImageSharp.AnchorPosition.TopRight
+  id: TopRight
+  parent: ImageSharp.AnchorPosition
+  langs:
+  - csharp
+  - vb
+  name: TopRight
+  nameWithType: AnchorPosition.TopRight
+  fullName: ImageSharp.AnchorPosition.TopRight
+  type: Field
+  source:
+    id: TopRight
+    path: ''
+    startLine: 29250
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nAnchors the position of the image to the top right side of it's bounding container.\n"
+  example: []
+  syntax:
+    content: TopRight = 6
+    return:
+      type: ImageSharp.AnchorPosition
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.AnchorPosition.BottomRight
+  commentId: F:ImageSharp.AnchorPosition.BottomRight
+  id: BottomRight
+  parent: ImageSharp.AnchorPosition
+  langs:
+  - csharp
+  - vb
+  name: BottomRight
+  nameWithType: AnchorPosition.BottomRight
+  fullName: ImageSharp.AnchorPosition.BottomRight
+  type: Field
+  source:
+    id: BottomRight
+    path: ''
+    startLine: 29255
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nAnchors the position of the image to the bottom right side of it's bounding container.\n"
+  example: []
+  syntax:
+    content: BottomRight = 7
+    return:
+      type: ImageSharp.AnchorPosition
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.AnchorPosition.BottomLeft
+  commentId: F:ImageSharp.AnchorPosition.BottomLeft
+  id: BottomLeft
+  parent: ImageSharp.AnchorPosition
+  langs:
+  - csharp
+  - vb
+  name: BottomLeft
+  nameWithType: AnchorPosition.BottomLeft
+  fullName: ImageSharp.AnchorPosition.BottomLeft
+  type: Field
+  source:
+    id: BottomLeft
+    path: ''
+    startLine: 29260
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nAnchors the position of the image to the bottom left side of it's bounding container.\n"
+  example: []
+  syntax:
+    content: BottomLeft = 8
+    return:
+      type: ImageSharp.AnchorPosition
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+references:
+- uid: ImageSharp
+  commentId: N:ImageSharp
+  isExternal: false
+  name: ImageSharp
+  nameWithType: ImageSharp
+  fullName: ImageSharp
+- uid: ImageSharp.AnchorPosition
+  commentId: T:ImageSharp.AnchorPosition
+  parent: ImageSharp
+  isExternal: false
+  name: AnchorPosition
+  nameWithType: AnchorPosition
+  fullName: ImageSharp.AnchorPosition

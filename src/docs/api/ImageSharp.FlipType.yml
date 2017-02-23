@@ -1,0 +1,139 @@
+### YamlMime:ManagedReference
+items:
+- uid: ImageSharp.FlipType
+  commentId: T:ImageSharp.FlipType
+  id: FlipType
+  parent: ImageSharp
+  children:
+  - ImageSharp.FlipType.Horizontal
+  - ImageSharp.FlipType.None
+  - ImageSharp.FlipType.Vertical
+  langs:
+  - csharp
+  - vb
+  name: FlipType
+  nameWithType: FlipType
+  fullName: ImageSharp.FlipType
+  type: Enum
+  source:
+    id: FlipType
+    path: ''
+    startLine: 29274
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nProvides enumeration over how a image should be flipped.\n"
+  example: []
+  syntax:
+    content: public enum FlipType
+    content.vb: Public Enum FlipType
+  modifiers.csharp:
+  - public
+  - enum
+  modifiers.vb:
+  - Public
+  - Enum
+- uid: ImageSharp.FlipType.None
+  commentId: F:ImageSharp.FlipType.None
+  id: None
+  parent: ImageSharp.FlipType
+  langs:
+  - csharp
+  - vb
+  name: None
+  nameWithType: FlipType.None
+  fullName: ImageSharp.FlipType.None
+  type: Field
+  source:
+    id: None
+    path: ''
+    startLine: 29279
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nDon't flip the image.\n"
+  example: []
+  syntax:
+    content: None = 0
+    return:
+      type: ImageSharp.FlipType
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.FlipType.Horizontal
+  commentId: F:ImageSharp.FlipType.Horizontal
+  id: Horizontal
+  parent: ImageSharp.FlipType
+  langs:
+  - csharp
+  - vb
+  name: Horizontal
+  nameWithType: FlipType.Horizontal
+  fullName: ImageSharp.FlipType.Horizontal
+  type: Field
+  source:
+    id: Horizontal
+    path: ''
+    startLine: 29284
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nFlip the image horizontally.\n"
+  example: []
+  syntax:
+    content: Horizontal = 1
+    return:
+      type: ImageSharp.FlipType
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.FlipType.Vertical
+  commentId: F:ImageSharp.FlipType.Vertical
+  id: Vertical
+  parent: ImageSharp.FlipType
+  langs:
+  - csharp
+  - vb
+  name: Vertical
+  nameWithType: FlipType.Vertical
+  fullName: ImageSharp.FlipType.Vertical
+  type: Field
+  source:
+    id: Vertical
+    path: ''
+    startLine: 29289
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nFlip the image vertically.\n"
+  example: []
+  syntax:
+    content: Vertical = 2
+    return:
+      type: ImageSharp.FlipType
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+references:
+- uid: ImageSharp
+  commentId: N:ImageSharp
+  isExternal: false
+  name: ImageSharp
+  nameWithType: ImageSharp
+  fullName: ImageSharp
+- uid: ImageSharp.FlipType
+  commentId: T:ImageSharp.FlipType
+  parent: ImageSharp
+  isExternal: false
+  name: FlipType
+  nameWithType: FlipType
+  fullName: ImageSharp.FlipType

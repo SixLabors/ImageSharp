@@ -1,0 +1,378 @@
+### YamlMime:ManagedReference
+items:
+- uid: ImageSharp.Processors.IColorMatrixFilter`2
+  commentId: T:ImageSharp.Processors.IColorMatrixFilter`2
+  id: IColorMatrixFilter`2
+  parent: ImageSharp.Processors
+  children:
+  - ImageSharp.Processors.IColorMatrixFilter`2.Matrix
+  langs:
+  - csharp
+  - vb
+  name: IColorMatrixFilter<TColor, TPacked>
+  nameWithType: IColorMatrixFilter<TColor, TPacked>
+  fullName: ImageSharp.Processors.IColorMatrixFilter<TColor, TPacked>
+  type: Interface
+  source:
+    id: IColorMatrixFilter
+    path: ''
+    startLine: 6888
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Processors
+  summary: "\nEncapsulates properties and methods for creating processors that utilize a matrix to\nalter the image pixels.\n"
+  example: []
+  syntax:
+    content: 'public interface IColorMatrixFilter<TColor, TPacked> : IImageFilter<TColor, TPacked>, IImageProcessor where TColor : struct, IPackedPixel<TPacked> where TPacked : struct'
+    content.vb: >-
+      Public Interface IColorMatrixFilter(Of TColor As {Structure, IPackedPixel(Of TPacked)}, TPacked As Structure)
+          Inherits IImageFilter(Of TColor, TPacked)
+    typeParameters:
+    - id: TColor
+      description: The pixel format.
+    - id: TPacked
+      description: The packed format. <example>uint, long, float.</example>
+  inheritedMembers:
+  - ImageSharp.Processors.IImageFilter{{TColor},{TPacked}}.Apply(ImageSharp.ImageBase{{TColor},{TPacked}},ImageSharp.Rectangle)
+  - ImageSharp.Processors.IImageProcessor.ParallelOptions
+  - ImageSharp.Processors.IImageProcessor.Compand
+  nameWithType.vb: IColorMatrixFilter(Of TColor, TPacked)
+  modifiers.csharp:
+  - public
+  - interface
+  modifiers.vb:
+  - Public
+  - Interface
+  fullName.vb: ImageSharp.Processors.IColorMatrixFilter(Of TColor, TPacked)
+  name.vb: IColorMatrixFilter(Of TColor, TPacked)
+- uid: ImageSharp.Processors.IColorMatrixFilter`2.Matrix
+  commentId: P:ImageSharp.Processors.IColorMatrixFilter`2.Matrix
+  id: Matrix
+  parent: ImageSharp.Processors.IColorMatrixFilter`2
+  langs:
+  - csharp
+  - vb
+  name: Matrix
+  nameWithType: IColorMatrixFilter<TColor, TPacked>.Matrix
+  fullName: ImageSharp.Processors.IColorMatrixFilter<TColor, TPacked>.Matrix
+  type: Property
+  source:
+    id: Matrix
+    path: ''
+    startLine: 6895
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Processors
+  summary: "\nGets the <see cref=\"!:Matrix4x4\"></see> used to alter the image.\n"
+  example: []
+  syntax:
+    content: Matrix4x4 Matrix { get; }
+    content.vb: ReadOnly Property Matrix As Matrix4x4
+    parameters: []
+    return:
+      type: Matrix4x4
+  nameWithType.vb: IColorMatrixFilter(Of TColor, TPacked).Matrix
+  modifiers.csharp:
+  - get
+  modifiers.vb:
+  - ReadOnly
+  fullName.vb: ImageSharp.Processors.IColorMatrixFilter(Of TColor, TPacked).Matrix
+references:
+- uid: ImageSharp.Processors
+  commentId: N:ImageSharp.Processors
+  isExternal: false
+  name: ImageSharp.Processors
+  nameWithType: ImageSharp.Processors
+  fullName: ImageSharp.Processors
+- uid: ImageSharp.Processors.IImageFilter{{TColor},{TPacked}}.Apply(ImageSharp.ImageBase{{TColor},{TPacked}},ImageSharp.Rectangle)
+  commentId: M:ImageSharp.Processors.IImageFilter{`0,`1}.Apply(ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle)
+  parent: ImageSharp.Processors.IImageFilter{{TColor},{TPacked}}
+  definition: ImageSharp.Processors.IImageFilter`2.Apply(ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle)
+  name: Apply(ImageBase<TColor, TPacked>, Rectangle)
+  nameWithType: IImageFilter<TColor, TPacked>.Apply(ImageBase<TColor, TPacked>, Rectangle)
+  fullName: ImageSharp.Processors.IImageFilter<TColor, TPacked>.Apply(ImageSharp.ImageBase<TColor, TPacked>, ImageSharp.Rectangle)
+  nameWithType.vb: IImageFilter(Of TColor, TPacked).Apply(ImageBase(Of TColor, TPacked), Rectangle)
+  fullname.vb: ImageSharp.Processors.IImageFilter(Of TColor, TPacked).Apply(ImageSharp.ImageBase(Of TColor, TPacked), ImageSharp.Rectangle)
+  name.vb: Apply(ImageBase(Of TColor, TPacked), Rectangle)
+  spec.csharp:
+  - uid: ImageSharp.Processors.IImageFilter`2.Apply(ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle)
+    name: Apply
+    nameWithType: IImageFilter<TColor, TPacked>.Apply
+    fullName: ImageSharp.Processors.IImageFilter<TColor, TPacked>.Apply
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.Rectangle
+    name: Rectangle
+    nameWithType: Rectangle
+    fullName: ImageSharp.Rectangle
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: ImageSharp.Processors.IImageFilter`2.Apply(ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle)
+    name: Apply
+    nameWithType: IImageFilter(Of TColor, TPacked).Apply
+    fullName: ImageSharp.Processors.IImageFilter(Of TColor, TPacked).Apply
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.Rectangle
+    name: Rectangle
+    nameWithType: Rectangle
+    fullName: ImageSharp.Rectangle
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.IImageProcessor.ParallelOptions
+  commentId: P:ImageSharp.Processors.IImageProcessor.ParallelOptions
+  parent: ImageSharp.Processors.IImageProcessor
+  isExternal: false
+  name: ParallelOptions
+  nameWithType: IImageProcessor.ParallelOptions
+  fullName: ImageSharp.Processors.IImageProcessor.ParallelOptions
+- uid: ImageSharp.Processors.IImageProcessor.Compand
+  commentId: P:ImageSharp.Processors.IImageProcessor.Compand
+  parent: ImageSharp.Processors.IImageProcessor
+  isExternal: false
+  name: Compand
+  nameWithType: IImageProcessor.Compand
+  fullName: ImageSharp.Processors.IImageProcessor.Compand
+- uid: ImageSharp.Processors.IImageFilter`2.Apply(ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle)
+  commentId: M:ImageSharp.Processors.IImageFilter`2.Apply(ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle)
+  isExternal: false
+  name: Apply(ImageBase<TColor, TPacked>, Rectangle)
+  nameWithType: IImageFilter<TColor, TPacked>.Apply(ImageBase<TColor, TPacked>, Rectangle)
+  fullName: ImageSharp.Processors.IImageFilter<TColor, TPacked>.Apply(ImageSharp.ImageBase<TColor, TPacked>, ImageSharp.Rectangle)
+  nameWithType.vb: IImageFilter(Of TColor, TPacked).Apply(ImageBase(Of TColor, TPacked), Rectangle)
+  fullname.vb: ImageSharp.Processors.IImageFilter(Of TColor, TPacked).Apply(ImageSharp.ImageBase(Of TColor, TPacked), ImageSharp.Rectangle)
+  name.vb: Apply(ImageBase(Of TColor, TPacked), Rectangle)
+  spec.csharp:
+  - uid: ImageSharp.Processors.IImageFilter`2.Apply(ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle)
+    name: Apply
+    nameWithType: IImageFilter<TColor, TPacked>.Apply
+    fullName: ImageSharp.Processors.IImageFilter<TColor, TPacked>.Apply
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.Rectangle
+    name: Rectangle
+    nameWithType: Rectangle
+    fullName: ImageSharp.Rectangle
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: ImageSharp.Processors.IImageFilter`2.Apply(ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle)
+    name: Apply
+    nameWithType: IImageFilter(Of TColor, TPacked).Apply
+    fullName: ImageSharp.Processors.IImageFilter(Of TColor, TPacked).Apply
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.Rectangle
+    name: Rectangle
+    nameWithType: Rectangle
+    fullName: ImageSharp.Rectangle
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.IImageFilter{{TColor},{TPacked}}
+  commentId: T:ImageSharp.Processors.IImageFilter{`0,`1}
+  parent: ImageSharp.Processors
+  definition: ImageSharp.Processors.IImageFilter`2
+  name: IImageFilter<TColor, TPacked>
+  nameWithType: IImageFilter<TColor, TPacked>
+  fullName: ImageSharp.Processors.IImageFilter<TColor, TPacked>
+  nameWithType.vb: IImageFilter(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.IImageFilter(Of TColor, TPacked)
+  name.vb: IImageFilter(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.IImageFilter`2
+    name: IImageFilter
+    nameWithType: IImageFilter
+    fullName: ImageSharp.Processors.IImageFilter
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.IImageFilter`2
+    name: IImageFilter
+    nameWithType: IImageFilter
+    fullName: ImageSharp.Processors.IImageFilter
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Processors.IImageProcessor
+  commentId: T:ImageSharp.Processors.IImageProcessor
+  parent: ImageSharp.Processors
+  isExternal: false
+  name: IImageProcessor
+  nameWithType: IImageProcessor
+  fullName: ImageSharp.Processors.IImageProcessor
+- uid: ImageSharp.Processors.IImageFilter`2
+  commentId: T:ImageSharp.Processors.IImageFilter`2
+  isExternal: false
+  name: IImageFilter<TColor, TPacked>
+  nameWithType: IImageFilter<TColor, TPacked>
+  fullName: ImageSharp.Processors.IImageFilter<TColor, TPacked>
+  nameWithType.vb: IImageFilter(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Processors.IImageFilter(Of TColor, TPacked)
+  name.vb: IImageFilter(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Processors.IImageFilter`2
+    name: IImageFilter
+    nameWithType: IImageFilter
+    fullName: ImageSharp.Processors.IImageFilter
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.IImageFilter`2
+    name: IImageFilter
+    nameWithType: IImageFilter
+    fullName: ImageSharp.Processors.IImageFilter
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: Matrix4x4
+  isExternal: true
+  name: Matrix4x4
+  nameWithType: Matrix4x4
+  fullName: Matrix4x4

@@ -1,0 +1,235 @@
+### YamlMime:ManagedReference
+items:
+- uid: ImageSharp.Formats.IChecksum
+  commentId: T:ImageSharp.Formats.IChecksum
+  id: IChecksum
+  parent: ImageSharp.Formats
+  children:
+  - ImageSharp.Formats.IChecksum.Reset
+  - ImageSharp.Formats.IChecksum.Update(System.Byte[])
+  - ImageSharp.Formats.IChecksum.Update(System.Byte[],System.Int32,System.Int32)
+  - ImageSharp.Formats.IChecksum.Update(System.Int32)
+  - ImageSharp.Formats.IChecksum.Value
+  langs:
+  - csharp
+  - vb
+  name: IChecksum
+  nameWithType: IChecksum
+  fullName: ImageSharp.Formats.IChecksum
+  type: Interface
+  source:
+    id: IChecksum
+    path: ''
+    startLine: 17486
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Formats
+  summary: "\nInterface to compute a data checksum used by checked input/output streams.\nA data checksum can be updated by one byte or with a byte array. After each\nupdate the value of the current checksum can be returned by calling\n<pre><code>Value</code></pre>. The complete checksum object can also be reset\nso it can be used again with new data.\n"
+  example: []
+  syntax:
+    content: public interface IChecksum
+    content.vb: Public Interface IChecksum
+  modifiers.csharp:
+  - public
+  - interface
+  modifiers.vb:
+  - Public
+  - Interface
+- uid: ImageSharp.Formats.IChecksum.Value
+  commentId: P:ImageSharp.Formats.IChecksum.Value
+  id: Value
+  parent: ImageSharp.Formats.IChecksum
+  langs:
+  - csharp
+  - vb
+  name: Value
+  nameWithType: IChecksum.Value
+  fullName: ImageSharp.Formats.IChecksum.Value
+  type: Property
+  source:
+    id: Value
+    path: ''
+    startLine: 17491
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Formats
+  summary: "\nGets the data checksum computed so far.\n"
+  example: []
+  syntax:
+    content: long Value { get; }
+    content.vb: ReadOnly Property Value As Long
+    parameters: []
+    return:
+      type: System.Int64
+  modifiers.csharp:
+  - get
+  modifiers.vb:
+  - ReadOnly
+- uid: ImageSharp.Formats.IChecksum.Reset
+  commentId: M:ImageSharp.Formats.IChecksum.Reset
+  id: Reset
+  parent: ImageSharp.Formats.IChecksum
+  langs:
+  - csharp
+  - vb
+  name: Reset()
+  nameWithType: IChecksum.Reset()
+  fullName: ImageSharp.Formats.IChecksum.Reset()
+  type: Method
+  source:
+    id: Reset
+    path: ''
+    startLine: 17499
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Formats
+  summary: "\nResets the data checksum as if no update was ever called.\n"
+  example: []
+  syntax:
+    content: void Reset()
+    content.vb: Sub Reset
+- uid: ImageSharp.Formats.IChecksum.Update(System.Int32)
+  commentId: M:ImageSharp.Formats.IChecksum.Update(System.Int32)
+  id: Update(System.Int32)
+  parent: ImageSharp.Formats.IChecksum
+  langs:
+  - csharp
+  - vb
+  name: Update(Int32)
+  nameWithType: IChecksum.Update(Int32)
+  fullName: ImageSharp.Formats.IChecksum.Update(System.Int32)
+  type: Method
+  source:
+    id: Update
+    path: ''
+    startLine: 17507
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Formats
+  summary: "\nAdds one byte to the data checksum.\n"
+  example: []
+  syntax:
+    content: void Update(int value)
+    content.vb: Sub Update(value As Integer)
+    parameters:
+    - id: value
+      type: System.Int32
+      description: "\nThe data value to add. The high byte of the integer is ignored.\n"
+- uid: ImageSharp.Formats.IChecksum.Update(System.Byte[])
+  commentId: M:ImageSharp.Formats.IChecksum.Update(System.Byte[])
+  id: Update(System.Byte[])
+  parent: ImageSharp.Formats.IChecksum
+  langs:
+  - csharp
+  - vb
+  name: Update(Byte[])
+  nameWithType: IChecksum.Update(Byte[])
+  fullName: ImageSharp.Formats.IChecksum.Update(System.Byte[])
+  type: Method
+  source:
+    id: Update
+    path: ''
+    startLine: 17515
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Formats
+  summary: "\nUpdates the data checksum with the bytes taken from the array.\n"
+  example: []
+  syntax:
+    content: void Update(byte[] buffer)
+    content.vb: Sub Update(buffer As Byte())
+    parameters:
+    - id: buffer
+      type: System.Byte[]
+      description: "\nbuffer an array of bytes\n"
+  nameWithType.vb: IChecksum.Update(Byte())
+  fullName.vb: ImageSharp.Formats.IChecksum.Update(System.Byte())
+  name.vb: Update(Byte())
+- uid: ImageSharp.Formats.IChecksum.Update(System.Byte[],System.Int32,System.Int32)
+  commentId: M:ImageSharp.Formats.IChecksum.Update(System.Byte[],System.Int32,System.Int32)
+  id: Update(System.Byte[],System.Int32,System.Int32)
+  parent: ImageSharp.Formats.IChecksum
+  langs:
+  - csharp
+  - vb
+  name: Update(Byte[], Int32, Int32)
+  nameWithType: IChecksum.Update(Byte[], Int32, Int32)
+  fullName: ImageSharp.Formats.IChecksum.Update(System.Byte[], System.Int32, System.Int32)
+  type: Method
+  source:
+    id: Update
+    path: ''
+    startLine: 17529
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Formats
+  summary: "\nAdds the byte array to the data checksum.\n"
+  example: []
+  syntax:
+    content: void Update(byte[] buffer, int offset, int count)
+    content.vb: Sub Update(buffer As Byte(), offset As Integer, count As Integer)
+    parameters:
+    - id: buffer
+      type: System.Byte[]
+      description: "\nThe buffer which contains the data\n"
+    - id: offset
+      type: System.Int32
+      description: "\nThe offset in the buffer where the data starts\n"
+    - id: count
+      type: System.Int32
+      description: "\nthe number of data bytes to add.\n"
+  nameWithType.vb: IChecksum.Update(Byte(), Int32, Int32)
+  fullName.vb: ImageSharp.Formats.IChecksum.Update(System.Byte(), System.Int32, System.Int32)
+  name.vb: Update(Byte(), Int32, Int32)
+references:
+- uid: ImageSharp.Formats
+  commentId: N:ImageSharp.Formats
+  isExternal: false
+  name: ImageSharp.Formats
+  nameWithType: ImageSharp.Formats
+  fullName: ImageSharp.Formats
+- uid: System.Int64
+  commentId: T:System.Int64
+  parent: System
+  isExternal: true
+  name: Int64
+  nameWithType: Int64
+  fullName: System.Int64
+- uid: System
+  commentId: N:System
+  isExternal: false
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: System.Int32
+  commentId: T:System.Int32
+  parent: System
+  isExternal: true
+  name: Int32
+  nameWithType: Int32
+  fullName: System.Int32
+- uid: System.Byte[]
+  name: Byte[]
+  nameWithType: Byte[]
+  fullName: System.Byte[]
+  nameWithType.vb: Byte()
+  fullname.vb: System.Byte()
+  name.vb: Byte()
+  spec.csharp:
+  - uid: System.Byte
+    name: Byte
+    nameWithType: Byte
+    fullName: System.Byte
+    isExternal: true
+  - name: '[]'
+    nameWithType: '[]'
+    fullName: '[]'
+  spec.vb:
+  - uid: System.Byte
+    name: Byte
+    nameWithType: Byte
+    fullName: System.Byte
+    isExternal: true
+  - name: ()
+    nameWithType: ()
+    fullName: ()

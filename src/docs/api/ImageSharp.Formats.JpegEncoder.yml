@@ -1,0 +1,945 @@
+### YamlMime:ManagedReference
+items:
+- uid: ImageSharp.Formats.JpegEncoder
+  commentId: T:ImageSharp.Formats.JpegEncoder
+  id: JpegEncoder
+  parent: ImageSharp.Formats
+  children:
+  - ImageSharp.Formats.JpegEncoder.Encode``2(ImageSharp.Image{``0,``1},System.IO.Stream)
+  - ImageSharp.Formats.JpegEncoder.Extension
+  - ImageSharp.Formats.JpegEncoder.IsSupportedFileExtension(System.String)
+  - ImageSharp.Formats.JpegEncoder.MimeType
+  - ImageSharp.Formats.JpegEncoder.Quality
+  - ImageSharp.Formats.JpegEncoder.Subsample
+  langs:
+  - csharp
+  - vb
+  name: JpegEncoder
+  nameWithType: JpegEncoder
+  fullName: ImageSharp.Formats.JpegEncoder
+  type: Class
+  source:
+    id: JpegEncoder
+    path: ''
+    startLine: 13040
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Formats
+  summary: "\nEncoder for writing the data image to a stream in jpeg format.\n"
+  example: []
+  syntax:
+    content: 'public class JpegEncoder : IImageEncoder'
+    content.vb: >-
+      Public Class JpegEncoder
+          Implements IImageEncoder
+  inheritance:
+  - System.Object
+  implements:
+  - ImageSharp.Formats.IImageEncoder
+  inheritedMembers:
+  - System.Object.ToString
+  - System.Object.Equals(System.Object)
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+  - System.Object.GetHashCode
+  - System.Object.GetType
+  - System.Object.MemberwiseClone
+  modifiers.csharp:
+  - public
+  - class
+  modifiers.vb:
+  - Public
+  - Class
+- uid: ImageSharp.Formats.JpegEncoder.Quality
+  commentId: P:ImageSharp.Formats.JpegEncoder.Quality
+  id: Quality
+  parent: ImageSharp.Formats.JpegEncoder
+  langs:
+  - csharp
+  - vb
+  name: Quality
+  nameWithType: JpegEncoder.Quality
+  fullName: ImageSharp.Formats.JpegEncoder.Quality
+  type: Property
+  source:
+    id: Quality
+    path: ''
+    startLine: 13065
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Formats
+  summary: "\nGets or sets the quality, that will be used to encode the image. Quality\nindex must be between 0 and 100 (compression from max to min).\n"
+  remarks: "\nIf the quality is less than or equal to 80, the subsampling ratio will switch to <xref href=\"ImageSharp.Formats.JpegSubsample.Ratio420\" data-throw-if-not-resolved=\"false\"></xref>\n"
+  example: []
+  syntax:
+    content: public int Quality { get; set; }
+    content.vb: Public Property Quality As Integer
+    parameters: []
+    return:
+      type: System.Int32
+      description: The quality of the jpg image from 0 to 100.
+  implements:
+  - ImageSharp.Formats.IImageEncoder.Quality
+  modifiers.csharp:
+  - public
+  - get
+  - set
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.Formats.JpegEncoder.Subsample
+  commentId: P:ImageSharp.Formats.JpegEncoder.Subsample
+  id: Subsample
+  parent: ImageSharp.Formats.JpegEncoder
+  langs:
+  - csharp
+  - vb
+  name: Subsample
+  nameWithType: JpegEncoder.Subsample
+  fullName: ImageSharp.Formats.JpegEncoder.Subsample
+  type: Property
+  source:
+    id: Subsample
+    path: ''
+    startLine: 13075
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Formats
+  summary: "\nGets or sets the subsample ration, that will be used to encode the image.\n"
+  example: []
+  syntax:
+    content: public JpegSubsample Subsample { get; set; }
+    content.vb: Public Property Subsample As JpegSubsample
+    parameters: []
+    return:
+      type: ImageSharp.Formats.JpegSubsample
+      description: The subsample ratio of the jpg image.
+  modifiers.csharp:
+  - public
+  - get
+  - set
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.Formats.JpegEncoder.MimeType
+  commentId: P:ImageSharp.Formats.JpegEncoder.MimeType
+  id: MimeType
+  parent: ImageSharp.Formats.JpegEncoder
+  langs:
+  - csharp
+  - vb
+  name: MimeType
+  nameWithType: JpegEncoder.MimeType
+  fullName: ImageSharp.Formats.JpegEncoder.MimeType
+  type: Property
+  source:
+    id: MimeType
+    path: ''
+    startLine: 13086
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Formats
+  example: []
+  syntax:
+    content: public string MimeType { get; }
+    content.vb: Public ReadOnly Property MimeType As String
+    parameters: []
+    return:
+      type: System.String
+  implements:
+  - ImageSharp.Formats.IImageEncoder.MimeType
+  modifiers.csharp:
+  - public
+  - get
+  modifiers.vb:
+  - Public
+  - ReadOnly
+- uid: ImageSharp.Formats.JpegEncoder.Extension
+  commentId: P:ImageSharp.Formats.JpegEncoder.Extension
+  id: Extension
+  parent: ImageSharp.Formats.JpegEncoder
+  langs:
+  - csharp
+  - vb
+  name: Extension
+  nameWithType: JpegEncoder.Extension
+  fullName: ImageSharp.Formats.JpegEncoder.Extension
+  type: Property
+  source:
+    id: Extension
+    path: ''
+    startLine: 13089
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Formats
+  example: []
+  syntax:
+    content: public string Extension { get; }
+    content.vb: Public ReadOnly Property Extension As String
+    parameters: []
+    return:
+      type: System.String
+  implements:
+  - ImageSharp.Formats.IImageEncoder.Extension
+  modifiers.csharp:
+  - public
+  - get
+  modifiers.vb:
+  - Public
+  - ReadOnly
+- uid: ImageSharp.Formats.JpegEncoder.IsSupportedFileExtension(System.String)
+  commentId: M:ImageSharp.Formats.JpegEncoder.IsSupportedFileExtension(System.String)
+  id: IsSupportedFileExtension(System.String)
+  parent: ImageSharp.Formats.JpegEncoder
+  langs:
+  - csharp
+  - vb
+  name: IsSupportedFileExtension(String)
+  nameWithType: JpegEncoder.IsSupportedFileExtension(String)
+  fullName: ImageSharp.Formats.JpegEncoder.IsSupportedFileExtension(System.String)
+  type: Method
+  source:
+    id: IsSupportedFileExtension
+    path: ''
+    startLine: 13092
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Formats
+  example: []
+  syntax:
+    content: public bool IsSupportedFileExtension(string extension)
+    content.vb: Public Function IsSupportedFileExtension(extension As String) As Boolean
+    parameters:
+    - id: extension
+      type: System.String
+    return:
+      type: System.Boolean
+  implements:
+  - ImageSharp.Formats.IImageEncoder.IsSupportedFileExtension(System.String)
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.Formats.JpegEncoder.Encode``2(ImageSharp.Image{``0,``1},System.IO.Stream)
+  commentId: M:ImageSharp.Formats.JpegEncoder.Encode``2(ImageSharp.Image{``0,``1},System.IO.Stream)
+  id: Encode``2(ImageSharp.Image{``0,``1},System.IO.Stream)
+  parent: ImageSharp.Formats.JpegEncoder
+  langs:
+  - csharp
+  - vb
+  name: Encode<TColor, TPacked>(Image<TColor, TPacked>, Stream)
+  nameWithType: JpegEncoder.Encode<TColor, TPacked>(Image<TColor, TPacked>, Stream)
+  fullName: ImageSharp.Formats.JpegEncoder.Encode<TColor, TPacked>(ImageSharp.Image<TColor, TPacked>, System.IO.Stream)
+  type: Method
+  source:
+    id: Encode
+    path: ''
+    startLine: 13107
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Formats
+  example: []
+  syntax:
+    content: 'public void Encode<TColor, TPacked>(Image<TColor, TPacked> image, Stream stream)where TColor : struct, IPackedPixel<TPacked> where TPacked : struct'
+    content.vb: Public Sub Encode(Of TColor As {Structure, IPackedPixel(Of TPacked)}, TPacked As Structure)(image As Image(Of TColor, TPacked), stream As Stream)
+    parameters:
+    - id: image
+      type: ImageSharp.Image{{TColor},{TPacked}}
+    - id: stream
+      type: System.IO.Stream
+    typeParameters:
+    - id: TColor
+    - id: TPacked
+  implements:
+  - ImageSharp.Formats.IImageEncoder.Encode``2(ImageSharp.Image{{TColor},{TPacked}},System.IO.Stream)
+  nameWithType.vb: JpegEncoder.Encode(Of TColor, TPacked)(Image(Of TColor, TPacked), Stream)
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+  fullName.vb: ImageSharp.Formats.JpegEncoder.Encode(Of TColor, TPacked)(ImageSharp.Image(Of TColor, TPacked), System.IO.Stream)
+  name.vb: Encode(Of TColor, TPacked)(Image(Of TColor, TPacked), Stream)
+references:
+- uid: ImageSharp.Formats
+  commentId: N:ImageSharp.Formats
+  isExternal: false
+  name: ImageSharp.Formats
+  nameWithType: ImageSharp.Formats
+  fullName: ImageSharp.Formats
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  name: Object
+  nameWithType: Object
+  fullName: System.Object
+- uid: ImageSharp.Formats.IImageEncoder
+  commentId: T:ImageSharp.Formats.IImageEncoder
+  parent: ImageSharp.Formats
+  isExternal: false
+  name: IImageEncoder
+  nameWithType: IImageEncoder
+  fullName: ImageSharp.Formats.IImageEncoder
+- uid: System.Object.ToString
+  commentId: M:System.Object.ToString
+  parent: System.Object
+  isExternal: true
+  name: ToString()
+  nameWithType: Object.ToString()
+  fullName: System.Object.ToString()
+  spec.csharp:
+  - uid: System.Object.ToString
+    name: ToString
+    nameWithType: Object.ToString
+    fullName: System.Object.ToString
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.ToString
+    name: ToString
+    nameWithType: Object.ToString
+    fullName: System.Object.ToString
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.Equals(System.Object)
+  commentId: M:System.Object.Equals(System.Object)
+  parent: System.Object
+  isExternal: true
+  name: Equals(Object)
+  nameWithType: Object.Equals(Object)
+  fullName: System.Object.Equals(System.Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  name: Equals(Object, Object)
+  nameWithType: Object.Equals(Object, Object)
+  fullName: System.Object.Equals(System.Object, System.Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  name: ReferenceEquals(Object, Object)
+  nameWithType: Object.ReferenceEquals(Object, Object)
+  fullName: System.Object.ReferenceEquals(System.Object, System.Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    nameWithType: Object.ReferenceEquals
+    fullName: System.Object.ReferenceEquals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    nameWithType: Object.ReferenceEquals
+    fullName: System.Object.ReferenceEquals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.GetHashCode
+  commentId: M:System.Object.GetHashCode
+  parent: System.Object
+  isExternal: true
+  name: GetHashCode()
+  nameWithType: Object.GetHashCode()
+  fullName: System.Object.GetHashCode()
+  spec.csharp:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    nameWithType: Object.GetHashCode
+    fullName: System.Object.GetHashCode
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    nameWithType: Object.GetHashCode
+    fullName: System.Object.GetHashCode
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  name: GetType()
+  nameWithType: Object.GetType()
+  fullName: System.Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    nameWithType: Object.GetType
+    fullName: System.Object.GetType
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    nameWithType: Object.GetType
+    fullName: System.Object.GetType
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.MemberwiseClone
+  commentId: M:System.Object.MemberwiseClone
+  parent: System.Object
+  isExternal: true
+  name: MemberwiseClone()
+  nameWithType: Object.MemberwiseClone()
+  fullName: System.Object.MemberwiseClone()
+  spec.csharp:
+  - uid: System.Object.MemberwiseClone
+    name: MemberwiseClone
+    nameWithType: Object.MemberwiseClone
+    fullName: System.Object.MemberwiseClone
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.MemberwiseClone
+    name: MemberwiseClone
+    nameWithType: Object.MemberwiseClone
+    fullName: System.Object.MemberwiseClone
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System
+  commentId: N:System
+  isExternal: false
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: ImageSharp.Formats.JpegSubsample.Ratio420
+  commentId: F:ImageSharp.Formats.JpegSubsample.Ratio420
+- uid: ImageSharp.Formats.IImageEncoder.Quality
+  commentId: P:ImageSharp.Formats.IImageEncoder.Quality
+  parent: ImageSharp.Formats.IImageEncoder
+  isExternal: false
+  name: Quality
+  nameWithType: IImageEncoder.Quality
+  fullName: ImageSharp.Formats.IImageEncoder.Quality
+- uid: System.Int32
+  commentId: T:System.Int32
+  parent: System
+  isExternal: true
+  name: Int32
+  nameWithType: Int32
+  fullName: System.Int32
+- uid: ImageSharp.Formats.JpegSubsample
+  commentId: T:ImageSharp.Formats.JpegSubsample
+  parent: ImageSharp.Formats
+  isExternal: false
+  name: JpegSubsample
+  nameWithType: JpegSubsample
+  fullName: ImageSharp.Formats.JpegSubsample
+- uid: ImageSharp.Formats.IImageEncoder.MimeType
+  commentId: P:ImageSharp.Formats.IImageEncoder.MimeType
+  parent: ImageSharp.Formats.IImageEncoder
+  isExternal: false
+  name: MimeType
+  nameWithType: IImageEncoder.MimeType
+  fullName: ImageSharp.Formats.IImageEncoder.MimeType
+- uid: System.String
+  commentId: T:System.String
+  parent: System
+  isExternal: true
+  name: String
+  nameWithType: String
+  fullName: System.String
+- uid: ImageSharp.Formats.IImageEncoder.Extension
+  commentId: P:ImageSharp.Formats.IImageEncoder.Extension
+  parent: ImageSharp.Formats.IImageEncoder
+  isExternal: false
+  name: Extension
+  nameWithType: IImageEncoder.Extension
+  fullName: ImageSharp.Formats.IImageEncoder.Extension
+- uid: ImageSharp.Formats.IImageEncoder.IsSupportedFileExtension(System.String)
+  commentId: M:ImageSharp.Formats.IImageEncoder.IsSupportedFileExtension(System.String)
+  parent: ImageSharp.Formats.IImageEncoder
+  isExternal: true
+  name: IsSupportedFileExtension(String)
+  nameWithType: IImageEncoder.IsSupportedFileExtension(String)
+  fullName: ImageSharp.Formats.IImageEncoder.IsSupportedFileExtension(System.String)
+  spec.csharp:
+  - uid: ImageSharp.Formats.IImageEncoder.IsSupportedFileExtension(System.String)
+    name: IsSupportedFileExtension
+    nameWithType: IImageEncoder.IsSupportedFileExtension
+    fullName: ImageSharp.Formats.IImageEncoder.IsSupportedFileExtension
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.String
+    name: String
+    nameWithType: String
+    fullName: System.String
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: ImageSharp.Formats.IImageEncoder.IsSupportedFileExtension(System.String)
+    name: IsSupportedFileExtension
+    nameWithType: IImageEncoder.IsSupportedFileExtension
+    fullName: ImageSharp.Formats.IImageEncoder.IsSupportedFileExtension
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.String
+    name: String
+    nameWithType: String
+    fullName: System.String
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Boolean
+  commentId: T:System.Boolean
+  parent: System
+  isExternal: true
+  name: Boolean
+  nameWithType: Boolean
+  fullName: System.Boolean
+- uid: ImageSharp.Formats.IImageEncoder.Encode``2(ImageSharp.Image{{TColor},{TPacked}},System.IO.Stream)
+  commentId: M:ImageSharp.Formats.IImageEncoder.Encode``2(ImageSharp.Image{``0,``1},System.IO.Stream)
+  parent: ImageSharp.Formats.IImageEncoder
+  definition: ImageSharp.Formats.IImageEncoder.Encode``2(ImageSharp.Image{``0,``1},System.IO.Stream)
+  name: Encode<TColor, TPacked>(Image<TColor, TPacked>, Stream)
+  nameWithType: IImageEncoder.Encode<TColor, TPacked>(Image<TColor, TPacked>, Stream)
+  fullName: ImageSharp.Formats.IImageEncoder.Encode<TColor, TPacked>(ImageSharp.Image<TColor, TPacked>, System.IO.Stream)
+  nameWithType.vb: IImageEncoder.Encode(Of TColor, TPacked)(Image(Of TColor, TPacked), Stream)
+  fullname.vb: ImageSharp.Formats.IImageEncoder.Encode(Of TColor, TPacked)(ImageSharp.Image(Of TColor, TPacked), System.IO.Stream)
+  name.vb: Encode(Of TColor, TPacked)(Image(Of TColor, TPacked), Stream)
+  spec.csharp:
+  - uid: ImageSharp.Formats.IImageEncoder.Encode``2(ImageSharp.Image{``0,``1},System.IO.Stream)
+    name: Encode<TColor, TPacked>
+    nameWithType: IImageEncoder.Encode<TColor, TPacked>
+    fullName: ImageSharp.Formats.IImageEncoder.Encode<TColor, TPacked>
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.Image`2
+    name: Image
+    nameWithType: Image
+    fullName: ImageSharp.Image
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.IO.Stream
+    name: Stream
+    nameWithType: Stream
+    fullName: System.IO.Stream
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: ImageSharp.Formats.IImageEncoder.Encode``2(ImageSharp.Image{``0,``1},System.IO.Stream)
+    name: Encode(Of TColor, TPacked)
+    nameWithType: IImageEncoder.Encode(Of TColor, TPacked)
+    fullName: ImageSharp.Formats.IImageEncoder.Encode(Of TColor, TPacked)
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.Image`2
+    name: Image
+    nameWithType: Image
+    fullName: ImageSharp.Image
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.IO.Stream
+    name: Stream
+    nameWithType: Stream
+    fullName: System.IO.Stream
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Image{{TColor},{TPacked}}
+  commentId: T:ImageSharp.Image{``0,``1}
+  parent: ImageSharp
+  definition: ImageSharp.Image`2
+  name: Image<TColor, TPacked>
+  nameWithType: Image<TColor, TPacked>
+  fullName: ImageSharp.Image<TColor, TPacked>
+  nameWithType.vb: Image(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Image(Of TColor, TPacked)
+  name.vb: Image(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Image`2
+    name: Image
+    nameWithType: Image
+    fullName: ImageSharp.Image
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Image`2
+    name: Image
+    nameWithType: Image
+    fullName: ImageSharp.Image
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.IO.Stream
+  commentId: T:System.IO.Stream
+  parent: System.IO
+  isExternal: true
+  name: Stream
+  nameWithType: Stream
+  fullName: System.IO.Stream
+- uid: ImageSharp.Formats.IImageEncoder.Encode``2(ImageSharp.Image{``0,``1},System.IO.Stream)
+  commentId: M:ImageSharp.Formats.IImageEncoder.Encode``2(ImageSharp.Image{``0,``1},System.IO.Stream)
+  isExternal: true
+  name: Encode<TColor, TPacked>(Image<TColor, TPacked>, Stream)
+  nameWithType: IImageEncoder.Encode<TColor, TPacked>(Image<TColor, TPacked>, Stream)
+  fullName: ImageSharp.Formats.IImageEncoder.Encode<TColor, TPacked>(ImageSharp.Image<TColor, TPacked>, System.IO.Stream)
+  nameWithType.vb: IImageEncoder.Encode(Of TColor, TPacked)(Image(Of TColor, TPacked), Stream)
+  fullname.vb: ImageSharp.Formats.IImageEncoder.Encode(Of TColor, TPacked)(ImageSharp.Image(Of TColor, TPacked), System.IO.Stream)
+  name.vb: Encode(Of TColor, TPacked)(Image(Of TColor, TPacked), Stream)
+  spec.csharp:
+  - uid: ImageSharp.Formats.IImageEncoder.Encode``2(ImageSharp.Image{``0,``1},System.IO.Stream)
+    name: Encode<TColor, TPacked>
+    nameWithType: IImageEncoder.Encode<TColor, TPacked>
+    fullName: ImageSharp.Formats.IImageEncoder.Encode<TColor, TPacked>
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.Image`2
+    name: Image
+    nameWithType: Image
+    fullName: ImageSharp.Image
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.IO.Stream
+    name: Stream
+    nameWithType: Stream
+    fullName: System.IO.Stream
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: ImageSharp.Formats.IImageEncoder.Encode``2(ImageSharp.Image{``0,``1},System.IO.Stream)
+    name: Encode(Of TColor, TPacked)
+    nameWithType: IImageEncoder.Encode(Of TColor, TPacked)
+    fullName: ImageSharp.Formats.IImageEncoder.Encode(Of TColor, TPacked)
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.Image`2
+    name: Image
+    nameWithType: Image
+    fullName: ImageSharp.Image
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.IO.Stream
+    name: Stream
+    nameWithType: Stream
+    fullName: System.IO.Stream
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Image`2
+  commentId: T:ImageSharp.Image`2
+  parent: ImageSharp
+  isExternal: false
+  name: Image<TColor, TPacked>
+  nameWithType: Image<TColor, TPacked>
+  fullName: ImageSharp.Image<TColor, TPacked>
+  nameWithType.vb: Image(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Image(Of TColor, TPacked)
+  name.vb: Image(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Image`2
+    name: Image
+    nameWithType: Image
+    fullName: ImageSharp.Image
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Image`2
+    name: Image
+    nameWithType: Image
+    fullName: ImageSharp.Image
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp
+  commentId: N:ImageSharp
+  isExternal: false
+  name: ImageSharp
+  nameWithType: ImageSharp
+  fullName: ImageSharp
+- uid: System.IO
+  commentId: N:System.IO
+  isExternal: false
+  name: System.IO
+  nameWithType: System.IO
+  fullName: System.IO

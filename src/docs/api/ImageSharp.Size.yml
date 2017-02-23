@@ -1,0 +1,965 @@
+### YamlMime:ManagedReference
+items:
+- uid: ImageSharp.Size
+  commentId: T:ImageSharp.Size
+  id: Size
+  parent: ImageSharp
+  children:
+  - ImageSharp.Size.#ctor(System.Int32,System.Int32)
+  - ImageSharp.Size.Empty
+  - ImageSharp.Size.Equals(ImageSharp.Size)
+  - ImageSharp.Size.Equals(System.Object)
+  - ImageSharp.Size.GetHashCode
+  - ImageSharp.Size.Height
+  - ImageSharp.Size.IsEmpty
+  - ImageSharp.Size.op_Addition(ImageSharp.Size,ImageSharp.Size)
+  - ImageSharp.Size.op_Equality(ImageSharp.Size,ImageSharp.Size)
+  - ImageSharp.Size.op_Inequality(ImageSharp.Size,ImageSharp.Size)
+  - ImageSharp.Size.op_Subtraction(ImageSharp.Size,ImageSharp.Size)
+  - ImageSharp.Size.ToString
+  - ImageSharp.Size.Width
+  langs:
+  - csharp
+  - vb
+  name: Size
+  nameWithType: Size
+  fullName: ImageSharp.Size
+  type: Struct
+  source:
+    id: Size
+    path: ''
+    startLine: 23060
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nStores an ordered pair of integers, which specify a height and width.\n"
+  remarks: "\nThis struct is fully mutable. This is done (against the guidelines) for the sake of performance,\nas it avoids the need to create new values for modification operations.\n"
+  example: []
+  syntax:
+    content: 'public struct Size : IEquatable<Size>'
+    content.vb: >-
+      Public Structure Size
+          Implements IEquatable(Of Size)
+  implements:
+  - System.IEquatable{ImageSharp.Size}
+  inheritedMembers:
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+  - System.Object.GetType
+  modifiers.csharp:
+  - public
+  - struct
+  modifiers.vb:
+  - Public
+  - Structure
+- uid: ImageSharp.Size.Empty
+  commentId: F:ImageSharp.Size.Empty
+  id: Empty
+  parent: ImageSharp.Size
+  langs:
+  - csharp
+  - vb
+  name: Empty
+  nameWithType: Size.Empty
+  fullName: ImageSharp.Size.Empty
+  type: Field
+  source:
+    id: Empty
+    path: ''
+    startLine: 23065
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Size\" data-throw-if-not-resolved=\"false\"></xref> that has Width and Height values set to zero.\n"
+  example: []
+  syntax:
+    content: public static readonly Size Empty
+    content.vb: Public Shared ReadOnly Empty As Size
+    return:
+      type: ImageSharp.Size
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Size.#ctor(System.Int32,System.Int32)
+  commentId: M:ImageSharp.Size.#ctor(System.Int32,System.Int32)
+  id: '#ctor(System.Int32,System.Int32)'
+  parent: ImageSharp.Size
+  langs:
+  - csharp
+  - vb
+  name: Size(Int32, Int32)
+  nameWithType: Size.Size(Int32, Int32)
+  fullName: ImageSharp.Size.Size(System.Int32, System.Int32)
+  type: Constructor
+  source:
+    id: .ctor
+    path: ''
+    startLine: 23072
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nInitializes a new instance of the <xref href=\"ImageSharp.Size\" data-throw-if-not-resolved=\"false\"></xref> struct.\n"
+  example: []
+  syntax:
+    content: public Size(int width, int height)
+    content.vb: Public Sub New(width As Integer, height As Integer)
+    parameters:
+    - id: width
+      type: System.Int32
+      description: The width of the size.
+    - id: height
+      type: System.Int32
+      description: The height of the size.
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.Size.Width
+  commentId: P:ImageSharp.Size.Width
+  id: Width
+  parent: ImageSharp.Size
+  langs:
+  - csharp
+  - vb
+  name: Width
+  nameWithType: Size.Width
+  fullName: ImageSharp.Size.Width
+  type: Property
+  source:
+    id: Width
+    path: ''
+    startLine: 23081
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets or sets the width of this <xref href=\"ImageSharp.Size\" data-throw-if-not-resolved=\"false\"></xref>.\n"
+  example: []
+  syntax:
+    content: public int Width { get; set; }
+    content.vb: Public Property Width As Integer
+    parameters: []
+    return:
+      type: System.Int32
+  modifiers.csharp:
+  - public
+  - get
+  - set
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.Size.Height
+  commentId: P:ImageSharp.Size.Height
+  id: Height
+  parent: ImageSharp.Size
+  langs:
+  - csharp
+  - vb
+  name: Height
+  nameWithType: Size.Height
+  fullName: ImageSharp.Size.Height
+  type: Property
+  source:
+    id: Height
+    path: ''
+    startLine: 23086
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets or sets the height of this <xref href=\"ImageSharp.Size\" data-throw-if-not-resolved=\"false\"></xref>.\n"
+  example: []
+  syntax:
+    content: public int Height { get; set; }
+    content.vb: Public Property Height As Integer
+    parameters: []
+    return:
+      type: System.Int32
+  modifiers.csharp:
+  - public
+  - get
+  - set
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.Size.IsEmpty
+  commentId: P:ImageSharp.Size.IsEmpty
+  id: IsEmpty
+  parent: ImageSharp.Size
+  langs:
+  - csharp
+  - vb
+  name: IsEmpty
+  nameWithType: Size.IsEmpty
+  fullName: ImageSharp.Size.IsEmpty
+  type: Property
+  source:
+    id: IsEmpty
+    path: ''
+    startLine: 23091
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets a value indicating whether this <xref href=\"ImageSharp.Size\" data-throw-if-not-resolved=\"false\"></xref> is empty.\n"
+  example: []
+  syntax:
+    content: public bool IsEmpty { get; }
+    content.vb: Public ReadOnly Property IsEmpty As Boolean
+    parameters: []
+    return:
+      type: System.Boolean
+  modifiers.csharp:
+  - public
+  - get
+  modifiers.vb:
+  - Public
+  - ReadOnly
+- uid: ImageSharp.Size.op_Addition(ImageSharp.Size,ImageSharp.Size)
+  commentId: M:ImageSharp.Size.op_Addition(ImageSharp.Size,ImageSharp.Size)
+  id: op_Addition(ImageSharp.Size,ImageSharp.Size)
+  parent: ImageSharp.Size
+  langs:
+  - csharp
+  - vb
+  name: Addition(Size, Size)
+  nameWithType: Size.Addition(Size, Size)
+  fullName: ImageSharp.Size.Addition(ImageSharp.Size, ImageSharp.Size)
+  type: Operator
+  source:
+    id: op_Addition
+    path: ''
+    startLine: 23102
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nComputes the sum of adding two sizes.\n"
+  example: []
+  syntax:
+    content: public static Size operator +(Size left, Size right)
+    content.vb: Public Shared Operator +(left As Size, right As Size) As Size
+    parameters:
+    - id: left
+      type: ImageSharp.Size
+      description: The size on the left hand of the operand.
+    - id: right
+      type: ImageSharp.Size
+      description: The size on the right hand of the operand.
+    return:
+      type: ImageSharp.Size
+      description: "\nThe <xref href=\"ImageSharp.Size\" data-throw-if-not-resolved=\"false\"></xref>\n"
+  modifiers.csharp:
+  - public
+  - static
+  modifiers.vb:
+  - Public
+  - Shared
+- uid: ImageSharp.Size.op_Subtraction(ImageSharp.Size,ImageSharp.Size)
+  commentId: M:ImageSharp.Size.op_Subtraction(ImageSharp.Size,ImageSharp.Size)
+  id: op_Subtraction(ImageSharp.Size,ImageSharp.Size)
+  parent: ImageSharp.Size
+  langs:
+  - csharp
+  - vb
+  name: Subtraction(Size, Size)
+  nameWithType: Size.Subtraction(Size, Size)
+  fullName: ImageSharp.Size.Subtraction(ImageSharp.Size, ImageSharp.Size)
+  type: Operator
+  source:
+    id: op_Subtraction
+    path: ''
+    startLine: 23116
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nComputes the difference left by subtracting one size from another.\n"
+  example: []
+  syntax:
+    content: public static Size operator -(Size left, Size right)
+    content.vb: Public Shared Operator -(left As Size, right As Size) As Size
+    parameters:
+    - id: left
+      type: ImageSharp.Size
+      description: The size on the left hand of the operand.
+    - id: right
+      type: ImageSharp.Size
+      description: The size on the right hand of the operand.
+    return:
+      type: ImageSharp.Size
+      description: "\nThe <xref href=\"ImageSharp.Size\" data-throw-if-not-resolved=\"false\"></xref>\n"
+  modifiers.csharp:
+  - public
+  - static
+  modifiers.vb:
+  - Public
+  - Shared
+- uid: ImageSharp.Size.op_Equality(ImageSharp.Size,ImageSharp.Size)
+  commentId: M:ImageSharp.Size.op_Equality(ImageSharp.Size,ImageSharp.Size)
+  id: op_Equality(ImageSharp.Size,ImageSharp.Size)
+  parent: ImageSharp.Size
+  langs:
+  - csharp
+  - vb
+  name: Equality(Size, Size)
+  nameWithType: Size.Equality(Size, Size)
+  fullName: ImageSharp.Size.Equality(ImageSharp.Size, ImageSharp.Size)
+  type: Operator
+  source:
+    id: op_Equality
+    path: ''
+    startLine: 23134
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nCompares two <xref href=\"ImageSharp.Size\" data-throw-if-not-resolved=\"false\"></xref> objects for equality.\n"
+  example: []
+  syntax:
+    content: public static bool operator ==(Size left, Size right)
+    content.vb: Public Shared Operator =(left As Size, right As Size) As Boolean
+    parameters:
+    - id: left
+      type: ImageSharp.Size
+      description: "\nThe <xref href=\"ImageSharp.Size\" data-throw-if-not-resolved=\"false\"></xref> on the left side of the operand.\n"
+    - id: right
+      type: ImageSharp.Size
+      description: "\nThe <xref href=\"ImageSharp.Size\" data-throw-if-not-resolved=\"false\"></xref> on the right side of the operand.\n"
+    return:
+      type: System.Boolean
+      description: "\nTrue if the current left is equal to the <em>right</em> parameter; otherwise, false.\n"
+  modifiers.csharp:
+  - public
+  - static
+  modifiers.vb:
+  - Public
+  - Shared
+- uid: ImageSharp.Size.op_Inequality(ImageSharp.Size,ImageSharp.Size)
+  commentId: M:ImageSharp.Size.op_Inequality(ImageSharp.Size,ImageSharp.Size)
+  id: op_Inequality(ImageSharp.Size,ImageSharp.Size)
+  parent: ImageSharp.Size
+  langs:
+  - csharp
+  - vb
+  name: Inequality(Size, Size)
+  nameWithType: Size.Inequality(Size, Size)
+  fullName: ImageSharp.Size.Inequality(ImageSharp.Size, ImageSharp.Size)
+  type: Operator
+  source:
+    id: op_Inequality
+    path: ''
+    startLine: 23152
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nCompares two <xref href=\"ImageSharp.Size\" data-throw-if-not-resolved=\"false\"></xref> objects for inequality.\n"
+  example: []
+  syntax:
+    content: public static bool operator !=(Size left, Size right)
+    content.vb: Public Shared Operator <>(left As Size, right As Size) As Boolean
+    parameters:
+    - id: left
+      type: ImageSharp.Size
+      description: "\nThe <xref href=\"ImageSharp.Size\" data-throw-if-not-resolved=\"false\"></xref> on the left side of the operand.\n"
+    - id: right
+      type: ImageSharp.Size
+      description: "\nThe <xref href=\"ImageSharp.Size\" data-throw-if-not-resolved=\"false\"></xref> on the right side of the operand.\n"
+    return:
+      type: System.Boolean
+      description: "\nTrue if the current left is unequal to the <em>right</em> parameter; otherwise, false.\n"
+  modifiers.csharp:
+  - public
+  - static
+  modifiers.vb:
+  - Public
+  - Shared
+- uid: ImageSharp.Size.GetHashCode
+  commentId: M:ImageSharp.Size.GetHashCode
+  id: GetHashCode
+  parent: ImageSharp.Size
+  langs:
+  - csharp
+  - vb
+  name: GetHashCode()
+  nameWithType: Size.GetHashCode()
+  fullName: ImageSharp.Size.GetHashCode()
+  type: Method
+  source:
+    id: GetHashCode
+    path: ''
+    startLine: 23159
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  example: []
+  syntax:
+    content: public override int GetHashCode()
+    content.vb: Public Overrides Function GetHashCode As Integer
+    return:
+      type: System.Int32
+  overridden: System.ValueType.GetHashCode
+  modifiers.csharp:
+  - public
+  - override
+  modifiers.vb:
+  - Public
+  - Overrides
+- uid: ImageSharp.Size.ToString
+  commentId: M:ImageSharp.Size.ToString
+  id: ToString
+  parent: ImageSharp.Size
+  langs:
+  - csharp
+  - vb
+  name: ToString()
+  nameWithType: Size.ToString()
+  fullName: ImageSharp.Size.ToString()
+  type: Method
+  source:
+    id: ToString
+    path: ''
+    startLine: 23165
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  example: []
+  syntax:
+    content: public override string ToString()
+    content.vb: Public Overrides Function ToString As String
+    return:
+      type: System.String
+  overridden: System.ValueType.ToString
+  modifiers.csharp:
+  - public
+  - override
+  modifiers.vb:
+  - Public
+  - Overrides
+- uid: ImageSharp.Size.Equals(System.Object)
+  commentId: M:ImageSharp.Size.Equals(System.Object)
+  id: Equals(System.Object)
+  parent: ImageSharp.Size
+  langs:
+  - csharp
+  - vb
+  name: Equals(Object)
+  nameWithType: Size.Equals(Object)
+  fullName: ImageSharp.Size.Equals(System.Object)
+  type: Method
+  source:
+    id: Equals
+    path: ''
+    startLine: 23176
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  example: []
+  syntax:
+    content: public override bool Equals(object obj)
+    content.vb: Public Overrides Function Equals(obj As Object) As Boolean
+    parameters:
+    - id: obj
+      type: System.Object
+    return:
+      type: System.Boolean
+  overridden: System.ValueType.Equals(System.Object)
+  modifiers.csharp:
+  - public
+  - override
+  modifiers.vb:
+  - Public
+  - Overrides
+- uid: ImageSharp.Size.Equals(ImageSharp.Size)
+  commentId: M:ImageSharp.Size.Equals(ImageSharp.Size)
+  id: Equals(ImageSharp.Size)
+  parent: ImageSharp.Size
+  langs:
+  - csharp
+  - vb
+  name: Equals(Size)
+  nameWithType: Size.Equals(Size)
+  fullName: ImageSharp.Size.Equals(ImageSharp.Size)
+  type: Method
+  source:
+    id: Equals
+    path: ''
+    startLine: 23188
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  example: []
+  syntax:
+    content: public bool Equals(Size other)
+    content.vb: Public Function Equals(other As Size) As Boolean
+    parameters:
+    - id: other
+      type: ImageSharp.Size
+    return:
+      type: System.Boolean
+  implements:
+  - System.IEquatable{ImageSharp.Size}.Equals(ImageSharp.Size)
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+references:
+- uid: ImageSharp
+  commentId: N:ImageSharp
+  isExternal: false
+  name: ImageSharp
+  nameWithType: ImageSharp
+  fullName: ImageSharp
+- uid: System.IEquatable{ImageSharp.Size}
+  commentId: T:System.IEquatable{ImageSharp.Size}
+  parent: System
+  definition: System.IEquatable`1
+  name: IEquatable<Size>
+  nameWithType: IEquatable<Size>
+  fullName: System.IEquatable<ImageSharp.Size>
+  nameWithType.vb: IEquatable(Of Size)
+  fullname.vb: System.IEquatable(Of ImageSharp.Size)
+  name.vb: IEquatable(Of Size)
+  spec.csharp:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    nameWithType: IEquatable
+    fullName: System.IEquatable
+    isExternal: true
+  - name: <
+    nameWithType: <
+    fullName: <
+  - uid: ImageSharp.Size
+    name: Size
+    nameWithType: Size
+    fullName: ImageSharp.Size
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    nameWithType: IEquatable
+    fullName: System.IEquatable
+    isExternal: true
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - uid: ImageSharp.Size
+    name: Size
+    nameWithType: Size
+    fullName: ImageSharp.Size
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  name: Equals(Object, Object)
+  nameWithType: Object.Equals(Object, Object)
+  fullName: System.Object.Equals(System.Object, System.Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  name: ReferenceEquals(Object, Object)
+  nameWithType: Object.ReferenceEquals(Object, Object)
+  fullName: System.Object.ReferenceEquals(System.Object, System.Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    nameWithType: Object.ReferenceEquals
+    fullName: System.Object.ReferenceEquals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    nameWithType: Object.ReferenceEquals
+    fullName: System.Object.ReferenceEquals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  name: GetType()
+  nameWithType: Object.GetType()
+  fullName: System.Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    nameWithType: Object.GetType
+    fullName: System.Object.GetType
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    nameWithType: Object.GetType
+    fullName: System.Object.GetType
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.IEquatable`1
+  commentId: T:System.IEquatable`1
+  isExternal: true
+  name: IEquatable<T>
+  nameWithType: IEquatable<T>
+  fullName: System.IEquatable<T>
+  nameWithType.vb: IEquatable(Of T)
+  fullname.vb: System.IEquatable(Of T)
+  name.vb: IEquatable(Of T)
+  spec.csharp:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    nameWithType: IEquatable
+    fullName: System.IEquatable
+    isExternal: true
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: T
+    nameWithType: T
+    fullName: T
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    nameWithType: IEquatable
+    fullName: System.IEquatable
+    isExternal: true
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: T
+    nameWithType: T
+    fullName: T
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System
+  commentId: N:System
+  isExternal: false
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  name: Object
+  nameWithType: Object
+  fullName: System.Object
+- uid: ImageSharp.Size
+  commentId: T:ImageSharp.Size
+  parent: ImageSharp
+  isExternal: false
+  name: Size
+  nameWithType: Size
+  fullName: ImageSharp.Size
+- uid: System.Int32
+  commentId: T:System.Int32
+  parent: System
+  isExternal: true
+  name: Int32
+  nameWithType: Int32
+  fullName: System.Int32
+- uid: System.Boolean
+  commentId: T:System.Boolean
+  parent: System
+  isExternal: true
+  name: Boolean
+  nameWithType: Boolean
+  fullName: System.Boolean
+- uid: System.ValueType.GetHashCode
+  commentId: M:System.ValueType.GetHashCode
+  parent: System.ValueType
+  isExternal: true
+  name: GetHashCode()
+  nameWithType: ValueType.GetHashCode()
+  fullName: System.ValueType.GetHashCode()
+  spec.csharp:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    nameWithType: ValueType.GetHashCode
+    fullName: System.ValueType.GetHashCode
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    nameWithType: ValueType.GetHashCode
+    fullName: System.ValueType.GetHashCode
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.ValueType
+  commentId: T:System.ValueType
+  parent: System
+  isExternal: true
+  name: ValueType
+  nameWithType: ValueType
+  fullName: System.ValueType
+- uid: System.ValueType.ToString
+  commentId: M:System.ValueType.ToString
+  parent: System.ValueType
+  isExternal: true
+  name: ToString()
+  nameWithType: ValueType.ToString()
+  fullName: System.ValueType.ToString()
+  spec.csharp:
+  - uid: System.ValueType.ToString
+    name: ToString
+    nameWithType: ValueType.ToString
+    fullName: System.ValueType.ToString
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.ValueType.ToString
+    name: ToString
+    nameWithType: ValueType.ToString
+    fullName: System.ValueType.ToString
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.String
+  commentId: T:System.String
+  parent: System
+  isExternal: true
+  name: String
+  nameWithType: String
+  fullName: System.String
+- uid: System.ValueType.Equals(System.Object)
+  commentId: M:System.ValueType.Equals(System.Object)
+  parent: System.ValueType
+  isExternal: true
+  name: Equals(Object)
+  nameWithType: ValueType.Equals(Object)
+  fullName: System.ValueType.Equals(System.Object)
+  spec.csharp:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    nameWithType: ValueType.Equals
+    fullName: System.ValueType.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    nameWithType: ValueType.Equals
+    fullName: System.ValueType.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.IEquatable{ImageSharp.Size}.Equals(ImageSharp.Size)
+  commentId: M:System.IEquatable{ImageSharp.Size}.Equals(ImageSharp.Size)
+  parent: System.IEquatable{ImageSharp.Size}
+  definition: System.IEquatable`1.Equals(`0)
+  name: Equals(Size)
+  nameWithType: IEquatable<Size>.Equals(Size)
+  fullName: System.IEquatable<ImageSharp.Size>.Equals(ImageSharp.Size)
+  nameWithType.vb: IEquatable(Of Size).Equals(Size)
+  fullname.vb: System.IEquatable(Of ImageSharp.Size).Equals(ImageSharp.Size)
+  spec.csharp:
+  - uid: System.IEquatable`1.Equals(`0)
+    name: Equals
+    nameWithType: IEquatable<Size>.Equals
+    fullName: System.IEquatable<ImageSharp.Size>.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.Size
+    name: Size
+    nameWithType: Size
+    fullName: ImageSharp.Size
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.IEquatable`1.Equals(`0)
+    name: Equals
+    nameWithType: IEquatable(Of Size).Equals
+    fullName: System.IEquatable(Of ImageSharp.Size).Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.Size
+    name: Size
+    nameWithType: Size
+    fullName: ImageSharp.Size
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.IEquatable`1.Equals(`0)
+  commentId: M:System.IEquatable`1.Equals(`0)
+  isExternal: true
+  name: Equals(T)
+  nameWithType: IEquatable<T>.Equals(T)
+  fullName: System.IEquatable<T>.Equals(T)
+  nameWithType.vb: IEquatable(Of T).Equals(T)
+  fullname.vb: System.IEquatable(Of T).Equals(T)
+  spec.csharp:
+  - uid: System.IEquatable`1.Equals(`0)
+    name: Equals
+    nameWithType: IEquatable<T>.Equals
+    fullName: System.IEquatable<T>.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: T
+    nameWithType: T
+    fullName: T
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.IEquatable`1.Equals(`0)
+    name: Equals
+    nameWithType: IEquatable(Of T).Equals
+    fullName: System.IEquatable(Of T).Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: T
+    nameWithType: T
+    fullName: T
+  - name: )
+    nameWithType: )
+    fullName: )

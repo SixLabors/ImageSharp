@@ -1,0 +1,7001 @@
+### YamlMime:ManagedReference
+items:
+- uid: ImageSharp.Color
+  commentId: T:ImageSharp.Color
+  id: Color
+  parent: ImageSharp
+  children:
+  - ImageSharp.Color.#ctor(System.Byte,System.Byte,System.Byte,System.Byte)
+  - ImageSharp.Color.#ctor(System.Single,System.Single,System.Single,System.Single)
+  - ImageSharp.Color.#ctor(System.String)
+  - ImageSharp.Color.#ctor(Vector3)
+  - ImageSharp.Color.#ctor(Vector4)
+  - ImageSharp.Color.A
+  - ImageSharp.Color.AliceBlue
+  - ImageSharp.Color.AntiqueWhite
+  - ImageSharp.Color.Aqua
+  - ImageSharp.Color.Aquamarine
+  - ImageSharp.Color.Azure
+  - ImageSharp.Color.B
+  - ImageSharp.Color.Beige
+  - ImageSharp.Color.Bisque
+  - ImageSharp.Color.Black
+  - ImageSharp.Color.BlanchedAlmond
+  - ImageSharp.Color.Blue
+  - ImageSharp.Color.BlueViolet
+  - ImageSharp.Color.Brown
+  - ImageSharp.Color.BurlyWood
+  - ImageSharp.Color.CadetBlue
+  - ImageSharp.Color.Chartreuse
+  - ImageSharp.Color.Chocolate
+  - ImageSharp.Color.Coral
+  - ImageSharp.Color.CornflowerBlue
+  - ImageSharp.Color.Cornsilk
+  - ImageSharp.Color.Crimson
+  - ImageSharp.Color.Cyan
+  - ImageSharp.Color.DarkBlue
+  - ImageSharp.Color.DarkCyan
+  - ImageSharp.Color.DarkGoldenrod
+  - ImageSharp.Color.DarkGray
+  - ImageSharp.Color.DarkGreen
+  - ImageSharp.Color.DarkKhaki
+  - ImageSharp.Color.DarkMagenta
+  - ImageSharp.Color.DarkOliveGreen
+  - ImageSharp.Color.DarkOrange
+  - ImageSharp.Color.DarkOrchid
+  - ImageSharp.Color.DarkRed
+  - ImageSharp.Color.DarkSalmon
+  - ImageSharp.Color.DarkSeaGreen
+  - ImageSharp.Color.DarkSlateBlue
+  - ImageSharp.Color.DarkSlateGray
+  - ImageSharp.Color.DarkTurquoise
+  - ImageSharp.Color.DarkViolet
+  - ImageSharp.Color.DeepPink
+  - ImageSharp.Color.DeepSkyBlue
+  - ImageSharp.Color.DimGray
+  - ImageSharp.Color.DodgerBlue
+  - ImageSharp.Color.Equals(ImageSharp.Color)
+  - ImageSharp.Color.Equals(System.Object)
+  - ImageSharp.Color.Firebrick
+  - ImageSharp.Color.FloralWhite
+  - ImageSharp.Color.ForestGreen
+  - ImageSharp.Color.FromHex(System.String)
+  - ImageSharp.Color.Fuchsia
+  - ImageSharp.Color.G
+  - ImageSharp.Color.Gainsboro
+  - ImageSharp.Color.GetHashCode
+  - ImageSharp.Color.GhostWhite
+  - ImageSharp.Color.Gold
+  - ImageSharp.Color.Goldenrod
+  - ImageSharp.Color.Gray
+  - ImageSharp.Color.Green
+  - ImageSharp.Color.GreenYellow
+  - ImageSharp.Color.Honeydew
+  - ImageSharp.Color.HotPink
+  - ImageSharp.Color.IndianRed
+  - ImageSharp.Color.Indigo
+  - ImageSharp.Color.Ivory
+  - ImageSharp.Color.Khaki
+  - ImageSharp.Color.Lavender
+  - ImageSharp.Color.LavenderBlush
+  - ImageSharp.Color.LawnGreen
+  - ImageSharp.Color.LemonChiffon
+  - ImageSharp.Color.Lerp(ImageSharp.Color,ImageSharp.Color,System.Single)
+  - ImageSharp.Color.LightBlue
+  - ImageSharp.Color.LightCoral
+  - ImageSharp.Color.LightCyan
+  - ImageSharp.Color.LightGoldenrodYellow
+  - ImageSharp.Color.LightGray
+  - ImageSharp.Color.LightGreen
+  - ImageSharp.Color.LightPink
+  - ImageSharp.Color.LightSalmon
+  - ImageSharp.Color.LightSeaGreen
+  - ImageSharp.Color.LightSkyBlue
+  - ImageSharp.Color.LightSlateGray
+  - ImageSharp.Color.LightSteelBlue
+  - ImageSharp.Color.LightYellow
+  - ImageSharp.Color.Lime
+  - ImageSharp.Color.LimeGreen
+  - ImageSharp.Color.Linen
+  - ImageSharp.Color.Magenta
+  - ImageSharp.Color.Maroon
+  - ImageSharp.Color.MediumAquamarine
+  - ImageSharp.Color.MediumBlue
+  - ImageSharp.Color.MediumOrchid
+  - ImageSharp.Color.MediumPurple
+  - ImageSharp.Color.MediumSeaGreen
+  - ImageSharp.Color.MediumSlateBlue
+  - ImageSharp.Color.MediumSpringGreen
+  - ImageSharp.Color.MediumTurquoise
+  - ImageSharp.Color.MediumVioletRed
+  - ImageSharp.Color.MidnightBlue
+  - ImageSharp.Color.MintCream
+  - ImageSharp.Color.MistyRose
+  - ImageSharp.Color.Moccasin
+  - ImageSharp.Color.Multiply(ImageSharp.Color,ImageSharp.Color)
+  - ImageSharp.Color.NavajoWhite
+  - ImageSharp.Color.Navy
+  - ImageSharp.Color.OldLace
+  - ImageSharp.Color.Olive
+  - ImageSharp.Color.OliveDrab
+  - ImageSharp.Color.op_Equality(ImageSharp.Color,ImageSharp.Color)
+  - ImageSharp.Color.op_Implicit(ImageSharp.Bgra32)~ImageSharp.Color
+  - ImageSharp.Color.op_Implicit(ImageSharp.CieLab)~ImageSharp.Color
+  - ImageSharp.Color.op_Implicit(ImageSharp.CieXyz)~ImageSharp.Color
+  - ImageSharp.Color.op_Implicit(ImageSharp.Cmyk)~ImageSharp.Color
+  - ImageSharp.Color.op_Implicit(ImageSharp.Hsl)~ImageSharp.Color
+  - ImageSharp.Color.op_Implicit(ImageSharp.Hsv)~ImageSharp.Color
+  - ImageSharp.Color.op_Implicit(ImageSharp.YCbCr)~ImageSharp.Color
+  - ImageSharp.Color.op_Inequality(ImageSharp.Color,ImageSharp.Color)
+  - ImageSharp.Color.Orange
+  - ImageSharp.Color.OrangeRed
+  - ImageSharp.Color.Orchid
+  - ImageSharp.Color.PackedValue
+  - ImageSharp.Color.PackFromBytes(System.Byte,System.Byte,System.Byte,System.Byte)
+  - ImageSharp.Color.PackFromVector4(Vector4)
+  - ImageSharp.Color.PaleGoldenrod
+  - ImageSharp.Color.PaleGreen
+  - ImageSharp.Color.PaleTurquoise
+  - ImageSharp.Color.PaleVioletRed
+  - ImageSharp.Color.PapayaWhip
+  - ImageSharp.Color.PeachPuff
+  - ImageSharp.Color.Peru
+  - ImageSharp.Color.Pink
+  - ImageSharp.Color.Plum
+  - ImageSharp.Color.PowderBlue
+  - ImageSharp.Color.Purple
+  - ImageSharp.Color.R
+  - ImageSharp.Color.RebeccaPurple
+  - ImageSharp.Color.Red
+  - ImageSharp.Color.RosyBrown
+  - ImageSharp.Color.RoyalBlue
+  - ImageSharp.Color.SaddleBrown
+  - ImageSharp.Color.Salmon
+  - ImageSharp.Color.SandyBrown
+  - ImageSharp.Color.SeaGreen
+  - ImageSharp.Color.SeaShell
+  - ImageSharp.Color.Sienna
+  - ImageSharp.Color.Silver
+  - ImageSharp.Color.SkyBlue
+  - ImageSharp.Color.SlateBlue
+  - ImageSharp.Color.SlateGray
+  - ImageSharp.Color.Snow
+  - ImageSharp.Color.SpringGreen
+  - ImageSharp.Color.SteelBlue
+  - ImageSharp.Color.Tan
+  - ImageSharp.Color.Teal
+  - ImageSharp.Color.Thistle
+  - ImageSharp.Color.ToBytes(System.Byte[],System.Int32,ImageSharp.ComponentOrder)
+  - ImageSharp.Color.ToHex
+  - ImageSharp.Color.Tomato
+  - ImageSharp.Color.ToString
+  - ImageSharp.Color.ToVector4
+  - ImageSharp.Color.Transparent
+  - ImageSharp.Color.Turquoise
+  - ImageSharp.Color.Violet
+  - ImageSharp.Color.Wheat
+  - ImageSharp.Color.White
+  - ImageSharp.Color.WhiteSmoke
+  - ImageSharp.Color.Yellow
+  - ImageSharp.Color.YellowGreen
+  langs:
+  - csharp
+  - vb
+  name: Color
+  nameWithType: Color
+  fullName: ImageSharp.Color
+  type: Struct
+  source:
+    id: Color
+    path: ''
+    startLine: 1914
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nPacked vector type containing four 8-bit unsigned normalized values ranging from 0 to 255.\nThe color components are stored in red, green, blue, and alpha order.\n"
+  remarks: "\nThis struct is fully mutable. This is done (against the guidelines) for the sake of performance,\nas it avoids the need to create new values for modification operations.\n"
+  example: []
+  syntax:
+    content: 'public struct Color : IPackedPixel<uint>, IPackedVector<uint>, IPackedVector, IPackedBytes, IEquatable<Color>'
+    content.vb: >-
+      Public Structure Color
+          Implements IPackedPixel(Of UInteger), IPackedVector(Of UInteger), IPackedVector, IPackedBytes, IEquatable(Of Color)
+  implements:
+  - ImageSharp.IPackedPixel{System.UInt32}
+  - ImageSharp.IPackedVector{System.UInt32}
+  - ImageSharp.IPackedVector
+  - ImageSharp.IPackedBytes
+  - System.IEquatable{ImageSharp.Color}
+  inheritedMembers:
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+  - System.Object.GetType
+  modifiers.csharp:
+  - public
+  - struct
+  modifiers.vb:
+  - Public
+  - Structure
+- uid: ImageSharp.Color.#ctor(System.Byte,System.Byte,System.Byte,System.Byte)
+  commentId: M:ImageSharp.Color.#ctor(System.Byte,System.Byte,System.Byte,System.Byte)
+  id: '#ctor(System.Byte,System.Byte,System.Byte,System.Byte)'
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Color(Byte, Byte, Byte, Byte)
+  nameWithType: Color.Color(Byte, Byte, Byte, Byte)
+  fullName: ImageSharp.Color.Color(System.Byte, System.Byte, System.Byte, System.Byte)
+  type: Constructor
+  source:
+    id: .ctor
+    path: ''
+    startLine: 338
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nInitializes a new instance of the <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> struct.\n"
+  example: []
+  syntax:
+    content: public Color(byte r, byte g, byte b, byte a = 255)
+    content.vb: Public Sub New(r As Byte, g As Byte, b As Byte, a As Byte = 255)
+    parameters:
+    - id: r
+      type: System.Byte
+      description: The red component.
+    - id: g
+      type: System.Byte
+      description: The green component.
+    - id: b
+      type: System.Byte
+      description: The blue component.
+    - id: a
+      type: System.Byte
+      description: The alpha component.
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.Color.#ctor(System.String)
+  commentId: M:ImageSharp.Color.#ctor(System.String)
+  id: '#ctor(System.String)'
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Color(String)
+  nameWithType: Color.Color(String)
+  fullName: ImageSharp.Color.Color(System.String)
+  type: Constructor
+  source:
+    id: .ctor
+    path: ''
+    startLine: 350
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nInitializes a new instance of the <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> struct.\n"
+  example: []
+  syntax:
+    content: public Color(string hex)
+    content.vb: Public Sub New(hex As String)
+    parameters:
+    - id: hex
+      type: System.String
+      description: "\nThe hexadecimal representation of the combined color components arranged\nin rgb, rgba, rrggbb, or rrggbbaa format to match web syntax.\n"
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.Color.#ctor(System.Single,System.Single,System.Single,System.Single)
+  commentId: M:ImageSharp.Color.#ctor(System.Single,System.Single,System.Single,System.Single)
+  id: '#ctor(System.Single,System.Single,System.Single,System.Single)'
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Color(Single, Single, Single, Single)
+  nameWithType: Color.Color(Single, Single, Single, Single)
+  fullName: ImageSharp.Color.Color(System.Single, System.Single, System.Single, System.Single)
+  type: Constructor
+  source:
+    id: .ctor
+    path: ''
+    startLine: 369
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nInitializes a new instance of the <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> struct.\n"
+  example: []
+  syntax:
+    content: public Color(float r, float g, float b, float a = 1F)
+    content.vb: Public Sub New(r As Single, g As Single, b As Single, a As Single = 1F)
+    parameters:
+    - id: r
+      type: System.Single
+      description: The red component.
+    - id: g
+      type: System.Single
+      description: The green component.
+    - id: b
+      type: System.Single
+      description: The blue component.
+    - id: a
+      type: System.Single
+      description: The alpha component.
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.Color.#ctor(Vector3)
+  commentId: M:ImageSharp.Color.#ctor(Vector3)
+  id: '#ctor(Vector3)'
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Color(Vector3)
+  nameWithType: Color.Color(Vector3)
+  fullName: ImageSharp.Color.Color(Vector3)
+  type: Constructor
+  source:
+    id: .ctor
+    path: ''
+    startLine: 380
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nInitializes a new instance of the <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> struct.\n"
+  example: []
+  syntax:
+    content: public Color(Vector3 vector)
+    content.vb: Public Sub New(vector As Vector3)
+    parameters:
+    - id: vector
+      type: Vector3
+      description: "\nThe vector containing the components for the packed vector.\n"
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.Color.#ctor(Vector4)
+  commentId: M:ImageSharp.Color.#ctor(Vector4)
+  id: '#ctor(Vector4)'
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Color(Vector4)
+  nameWithType: Color.Color(Vector4)
+  fullName: ImageSharp.Color.Color(Vector4)
+  type: Constructor
+  source:
+    id: .ctor
+    path: ''
+    startLine: 391
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nInitializes a new instance of the <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> struct.\n"
+  example: []
+  syntax:
+    content: public Color(Vector4 vector)
+    content.vb: Public Sub New(vector As Vector4)
+    parameters:
+    - id: vector
+      type: Vector4
+      description: "\nThe vector containing the components for the packed vector.\n"
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.Color.R
+  commentId: P:ImageSharp.Color.R
+  id: R
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: R
+  nameWithType: Color.R
+  fullName: ImageSharp.Color.R
+  type: Property
+  source:
+    id: R
+    path: ''
+    startLine: 399
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets or sets the red component.\n"
+  example: []
+  syntax:
+    content: public byte R { get; set; }
+    content.vb: Public Property R As Byte
+    parameters: []
+    return:
+      type: System.Byte
+  modifiers.csharp:
+  - public
+  - get
+  - set
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.Color.G
+  commentId: P:ImageSharp.Color.G
+  id: G
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: G
+  nameWithType: Color.G
+  fullName: ImageSharp.Color.G
+  type: Property
+  source:
+    id: G
+    path: ''
+    startLine: 415
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets or sets the green component.\n"
+  example: []
+  syntax:
+    content: public byte G { get; set; }
+    content.vb: Public Property G As Byte
+    parameters: []
+    return:
+      type: System.Byte
+  modifiers.csharp:
+  - public
+  - get
+  - set
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.Color.B
+  commentId: P:ImageSharp.Color.B
+  id: B
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: B
+  nameWithType: Color.B
+  fullName: ImageSharp.Color.B
+  type: Property
+  source:
+    id: B
+    path: ''
+    startLine: 431
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets or sets the blue component.\n"
+  example: []
+  syntax:
+    content: public byte B { get; set; }
+    content.vb: Public Property B As Byte
+    parameters: []
+    return:
+      type: System.Byte
+  modifiers.csharp:
+  - public
+  - get
+  - set
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.Color.A
+  commentId: P:ImageSharp.Color.A
+  id: A
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: A
+  nameWithType: Color.A
+  fullName: ImageSharp.Color.A
+  type: Property
+  source:
+    id: A
+    path: ''
+    startLine: 447
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets or sets the alpha component.\n"
+  example: []
+  syntax:
+    content: public byte A { get; set; }
+    content.vb: Public Property A As Byte
+    parameters: []
+    return:
+      type: System.Byte
+  modifiers.csharp:
+  - public
+  - get
+  - set
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.Color.PackedValue
+  commentId: P:ImageSharp.Color.PackedValue
+  id: PackedValue
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: PackedValue
+  nameWithType: Color.PackedValue
+  fullName: ImageSharp.Color.PackedValue
+  type: Property
+  source:
+    id: PackedValue
+    path: ''
+    startLine: 461
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  example: []
+  syntax:
+    content: public uint PackedValue { get; set; }
+    content.vb: Public Property PackedValue As UInteger
+    parameters: []
+    return:
+      type: System.UInt32
+  implements:
+  - ImageSharp.IPackedVector{System.UInt32}.PackedValue
+  modifiers.csharp:
+  - public
+  - get
+  - set
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.Color.op_Equality(ImageSharp.Color,ImageSharp.Color)
+  commentId: M:ImageSharp.Color.op_Equality(ImageSharp.Color,ImageSharp.Color)
+  id: op_Equality(ImageSharp.Color,ImageSharp.Color)
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Equality(Color, Color)
+  nameWithType: Color.Equality(Color, Color)
+  fullName: ImageSharp.Color.Equality(ImageSharp.Color, ImageSharp.Color)
+  type: Operator
+  source:
+    id: op_Equality
+    path: ''
+    startLine: 486
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nCompares two <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> objects for equality.\n"
+  example: []
+  syntax:
+    content: public static bool operator ==(Color left, Color right)
+    content.vb: Public Shared Operator =(left As Color, right As Color) As Boolean
+    parameters:
+    - id: left
+      type: ImageSharp.Color
+      description: "\nThe <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> on the left side of the operand.\n"
+    - id: right
+      type: ImageSharp.Color
+      description: "\nThe <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> on the right side of the operand.\n"
+    return:
+      type: System.Boolean
+      description: "\nTrue if the <em>left</em> parameter is equal to the <em>right</em> parameter; otherwise, false.\n"
+  modifiers.csharp:
+  - public
+  - static
+  modifiers.vb:
+  - Public
+  - Shared
+- uid: ImageSharp.Color.op_Inequality(ImageSharp.Color,ImageSharp.Color)
+  commentId: M:ImageSharp.Color.op_Inequality(ImageSharp.Color,ImageSharp.Color)
+  id: op_Inequality(ImageSharp.Color,ImageSharp.Color)
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Inequality(Color, Color)
+  nameWithType: Color.Inequality(Color, Color)
+  fullName: ImageSharp.Color.Inequality(ImageSharp.Color, ImageSharp.Color)
+  type: Operator
+  source:
+    id: op_Inequality
+    path: ''
+    startLine: 499
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nCompares two <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> objects for equality.\n"
+  example: []
+  syntax:
+    content: public static bool operator !=(Color left, Color right)
+    content.vb: Public Shared Operator <>(left As Color, right As Color) As Boolean
+    parameters:
+    - id: left
+      type: ImageSharp.Color
+      description: The <xref href="ImageSharp.Color" data-throw-if-not-resolved="false"></xref> on the left side of the operand.
+    - id: right
+      type: ImageSharp.Color
+      description: The <xref href="ImageSharp.Color" data-throw-if-not-resolved="false"></xref> on the right side of the operand.
+    return:
+      type: System.Boolean
+      description: "\nTrue if the <em>left</em> parameter is equal to the <em>right</em> parameter; otherwise, false.\n"
+  modifiers.csharp:
+  - public
+  - static
+  modifiers.vb:
+  - Public
+  - Shared
+- uid: ImageSharp.Color.FromHex(System.String)
+  commentId: M:ImageSharp.Color.FromHex(System.String)
+  id: FromHex(System.String)
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: FromHex(String)
+  nameWithType: Color.FromHex(String)
+  fullName: ImageSharp.Color.FromHex(System.String)
+  type: Method
+  source:
+    id: FromHex
+    path: ''
+    startLine: 514
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nCreates a new instance of the <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> struct.\n"
+  example: []
+  syntax:
+    content: public static Color FromHex(string hex)
+    content.vb: Public Shared Function FromHex(hex As String) As Color
+    parameters:
+    - id: hex
+      type: System.String
+      description: "\nThe hexadecimal representation of the combined color components arranged\nin rgb, rgba, rrggbb, or rrggbbaa format to match web syntax.\n"
+    return:
+      type: ImageSharp.Color
+      description: "\nThe <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref>.\n"
+  modifiers.csharp:
+  - public
+  - static
+  modifiers.vb:
+  - Public
+  - Shared
+- uid: ImageSharp.Color.PackFromBytes(System.Byte,System.Byte,System.Byte,System.Byte)
+  commentId: M:ImageSharp.Color.PackFromBytes(System.Byte,System.Byte,System.Byte,System.Byte)
+  id: PackFromBytes(System.Byte,System.Byte,System.Byte,System.Byte)
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: PackFromBytes(Byte, Byte, Byte, Byte)
+  nameWithType: Color.PackFromBytes(Byte, Byte, Byte, Byte)
+  fullName: ImageSharp.Color.PackFromBytes(System.Byte, System.Byte, System.Byte, System.Byte)
+  type: Method
+  source:
+    id: PackFromBytes
+    path: ''
+    startLine: 520
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  example: []
+  syntax:
+    content: public void PackFromBytes(byte x, byte y, byte z, byte w)
+    content.vb: Public Sub PackFromBytes(x As Byte, y As Byte, z As Byte, w As Byte)
+    parameters:
+    - id: x
+      type: System.Byte
+    - id: y
+      type: System.Byte
+    - id: z
+      type: System.Byte
+    - id: w
+      type: System.Byte
+  implements:
+  - ImageSharp.IPackedBytes.PackFromBytes(System.Byte,System.Byte,System.Byte,System.Byte)
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.Color.ToHex
+  commentId: M:ImageSharp.Color.ToHex
+  id: ToHex
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: ToHex()
+  nameWithType: Color.ToHex()
+  fullName: ImageSharp.Color.ToHex()
+  type: Method
+  source:
+    id: ToHex
+    path: ''
+    startLine: 529
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nConverts the value of this instance to a hexadecimal string.\n"
+  example: []
+  syntax:
+    content: public string ToHex()
+    content.vb: Public Function ToHex As String
+    return:
+      type: System.String
+      description: A hexadecimal string representation of the value.
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.Color.ToBytes(System.Byte[],System.Int32,ImageSharp.ComponentOrder)
+  commentId: M:ImageSharp.Color.ToBytes(System.Byte[],System.Int32,ImageSharp.ComponentOrder)
+  id: ToBytes(System.Byte[],System.Int32,ImageSharp.ComponentOrder)
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: ToBytes(Byte[], Int32, ComponentOrder)
+  nameWithType: Color.ToBytes(Byte[], Int32, ComponentOrder)
+  fullName: ImageSharp.Color.ToBytes(System.Byte[], System.Int32, ImageSharp.ComponentOrder)
+  type: Method
+  source:
+    id: ToBytes
+    path: ''
+    startLine: 535
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  example: []
+  syntax:
+    content: public void ToBytes(byte[] bytes, int startIndex, ComponentOrder componentOrder)
+    content.vb: Public Sub ToBytes(bytes As Byte(), startIndex As Integer, componentOrder As ComponentOrder)
+    parameters:
+    - id: bytes
+      type: System.Byte[]
+    - id: startIndex
+      type: System.Int32
+    - id: componentOrder
+      type: ImageSharp.ComponentOrder
+  implements:
+  - ImageSharp.IPackedBytes.ToBytes(System.Byte[],System.Int32,ImageSharp.ComponentOrder)
+  nameWithType.vb: Color.ToBytes(Byte(), Int32, ComponentOrder)
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+  fullName.vb: ImageSharp.Color.ToBytes(System.Byte(), System.Int32, ImageSharp.ComponentOrder)
+  name.vb: ToBytes(Byte(), Int32, ComponentOrder)
+- uid: ImageSharp.Color.PackFromVector4(Vector4)
+  commentId: M:ImageSharp.Color.PackFromVector4(Vector4)
+  id: PackFromVector4(Vector4)
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: PackFromVector4(Vector4)
+  nameWithType: Color.PackFromVector4(Vector4)
+  fullName: ImageSharp.Color.PackFromVector4(Vector4)
+  type: Method
+  source:
+    id: PackFromVector4
+    path: ''
+    startLine: 567
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  example: []
+  syntax:
+    content: public void PackFromVector4(Vector4 vector)
+    content.vb: Public Sub PackFromVector4(vector As Vector4)
+    parameters:
+    - id: vector
+      type: Vector4
+  implements:
+  - ImageSharp.IPackedVector.PackFromVector4(Vector4)
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.Color.ToVector4
+  commentId: M:ImageSharp.Color.ToVector4
+  id: ToVector4
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: ToVector4()
+  nameWithType: Color.ToVector4()
+  fullName: ImageSharp.Color.ToVector4()
+  type: Method
+  source:
+    id: ToVector4
+    path: ''
+    startLine: 573
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  example: []
+  syntax:
+    content: public Vector4 ToVector4()
+    content.vb: Public Function ToVector4 As Vector4
+    return:
+      type: Vector4
+  implements:
+  - ImageSharp.IPackedVector.ToVector4
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.Color.Equals(System.Object)
+  commentId: M:ImageSharp.Color.Equals(System.Object)
+  id: Equals(System.Object)
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Equals(Object)
+  nameWithType: Color.Equals(Object)
+  fullName: ImageSharp.Color.Equals(System.Object)
+  type: Method
+  source:
+    id: Equals
+    path: ''
+    startLine: 579
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  example: []
+  syntax:
+    content: public override bool Equals(object obj)
+    content.vb: Public Overrides Function Equals(obj As Object) As Boolean
+    parameters:
+    - id: obj
+      type: System.Object
+    return:
+      type: System.Boolean
+  overridden: System.ValueType.Equals(System.Object)
+  modifiers.csharp:
+  - public
+  - override
+  modifiers.vb:
+  - Public
+  - Overrides
+- uid: ImageSharp.Color.Equals(ImageSharp.Color)
+  commentId: M:ImageSharp.Color.Equals(ImageSharp.Color)
+  id: Equals(ImageSharp.Color)
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Equals(Color)
+  nameWithType: Color.Equals(Color)
+  fullName: ImageSharp.Color.Equals(ImageSharp.Color)
+  type: Method
+  source:
+    id: Equals
+    path: ''
+    startLine: 585
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  example: []
+  syntax:
+    content: public bool Equals(Color other)
+    content.vb: Public Function Equals(other As Color) As Boolean
+    parameters:
+    - id: other
+      type: ImageSharp.Color
+    return:
+      type: System.Boolean
+  implements:
+  - System.IEquatable{ImageSharp.Color}.Equals(ImageSharp.Color)
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.Color.ToString
+  commentId: M:ImageSharp.Color.ToString
+  id: ToString
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: ToString()
+  nameWithType: Color.ToString()
+  fullName: ImageSharp.Color.ToString()
+  type: Method
+  source:
+    id: ToString
+    path: ''
+    startLine: 594
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets a string representation of the packed vector.\n"
+  example: []
+  syntax:
+    content: public override string ToString()
+    content.vb: Public Overrides Function ToString As String
+    return:
+      type: System.String
+      description: A string representation of the packed vector.
+  overridden: System.ValueType.ToString
+  modifiers.csharp:
+  - public
+  - override
+  modifiers.vb:
+  - Public
+  - Overrides
+- uid: ImageSharp.Color.GetHashCode
+  commentId: M:ImageSharp.Color.GetHashCode
+  id: GetHashCode
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: GetHashCode()
+  nameWithType: Color.GetHashCode()
+  fullName: ImageSharp.Color.GetHashCode()
+  type: Method
+  source:
+    id: GetHashCode
+    path: ''
+    startLine: 600
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  example: []
+  syntax:
+    content: public override int GetHashCode()
+    content.vb: Public Overrides Function GetHashCode As Integer
+    return:
+      type: System.Int32
+  overridden: System.ValueType.GetHashCode
+  modifiers.csharp:
+  - public
+  - override
+  modifiers.vb:
+  - Public
+  - Overrides
+- uid: ImageSharp.Color.AliceBlue
+  commentId: F:ImageSharp.Color.AliceBlue
+  id: AliceBlue
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: AliceBlue
+  nameWithType: Color.AliceBlue
+  fullName: ImageSharp.Color.AliceBlue
+  type: Field
+  source:
+    id: AliceBlue
+    path: ''
+    startLine: 895
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #F0F8FF.\n"
+  example: []
+  syntax:
+    content: public static readonly Color AliceBlue
+    content.vb: Public Shared ReadOnly AliceBlue As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.AntiqueWhite
+  commentId: F:ImageSharp.Color.AntiqueWhite
+  id: AntiqueWhite
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: AntiqueWhite
+  nameWithType: Color.AntiqueWhite
+  fullName: ImageSharp.Color.AntiqueWhite
+  type: Field
+  source:
+    id: AntiqueWhite
+    path: ''
+    startLine: 900
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #FAEBD7.\n"
+  example: []
+  syntax:
+    content: public static readonly Color AntiqueWhite
+    content.vb: Public Shared ReadOnly AntiqueWhite As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.Aqua
+  commentId: F:ImageSharp.Color.Aqua
+  id: Aqua
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Aqua
+  nameWithType: Color.Aqua
+  fullName: ImageSharp.Color.Aqua
+  type: Field
+  source:
+    id: Aqua
+    path: ''
+    startLine: 905
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #00FFFF.\n"
+  example: []
+  syntax:
+    content: public static readonly Color Aqua
+    content.vb: Public Shared ReadOnly Aqua As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.Aquamarine
+  commentId: F:ImageSharp.Color.Aquamarine
+  id: Aquamarine
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Aquamarine
+  nameWithType: Color.Aquamarine
+  fullName: ImageSharp.Color.Aquamarine
+  type: Field
+  source:
+    id: Aquamarine
+    path: ''
+    startLine: 910
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #7FFFD4.\n"
+  example: []
+  syntax:
+    content: public static readonly Color Aquamarine
+    content.vb: Public Shared ReadOnly Aquamarine As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.Azure
+  commentId: F:ImageSharp.Color.Azure
+  id: Azure
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Azure
+  nameWithType: Color.Azure
+  fullName: ImageSharp.Color.Azure
+  type: Field
+  source:
+    id: Azure
+    path: ''
+    startLine: 915
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #F0FFFF.\n"
+  example: []
+  syntax:
+    content: public static readonly Color Azure
+    content.vb: Public Shared ReadOnly Azure As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.Beige
+  commentId: F:ImageSharp.Color.Beige
+  id: Beige
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Beige
+  nameWithType: Color.Beige
+  fullName: ImageSharp.Color.Beige
+  type: Field
+  source:
+    id: Beige
+    path: ''
+    startLine: 920
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #F5F5DC.\n"
+  example: []
+  syntax:
+    content: public static readonly Color Beige
+    content.vb: Public Shared ReadOnly Beige As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.Bisque
+  commentId: F:ImageSharp.Color.Bisque
+  id: Bisque
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Bisque
+  nameWithType: Color.Bisque
+  fullName: ImageSharp.Color.Bisque
+  type: Field
+  source:
+    id: Bisque
+    path: ''
+    startLine: 925
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #FFE4C4.\n"
+  example: []
+  syntax:
+    content: public static readonly Color Bisque
+    content.vb: Public Shared ReadOnly Bisque As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.Black
+  commentId: F:ImageSharp.Color.Black
+  id: Black
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Black
+  nameWithType: Color.Black
+  fullName: ImageSharp.Color.Black
+  type: Field
+  source:
+    id: Black
+    path: ''
+    startLine: 930
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #000000.\n"
+  example: []
+  syntax:
+    content: public static readonly Color Black
+    content.vb: Public Shared ReadOnly Black As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.BlanchedAlmond
+  commentId: F:ImageSharp.Color.BlanchedAlmond
+  id: BlanchedAlmond
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: BlanchedAlmond
+  nameWithType: Color.BlanchedAlmond
+  fullName: ImageSharp.Color.BlanchedAlmond
+  type: Field
+  source:
+    id: BlanchedAlmond
+    path: ''
+    startLine: 935
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #FFEBCD.\n"
+  example: []
+  syntax:
+    content: public static readonly Color BlanchedAlmond
+    content.vb: Public Shared ReadOnly BlanchedAlmond As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.Blue
+  commentId: F:ImageSharp.Color.Blue
+  id: Blue
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Blue
+  nameWithType: Color.Blue
+  fullName: ImageSharp.Color.Blue
+  type: Field
+  source:
+    id: Blue
+    path: ''
+    startLine: 940
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #0000FF.\n"
+  example: []
+  syntax:
+    content: public static readonly Color Blue
+    content.vb: Public Shared ReadOnly Blue As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.BlueViolet
+  commentId: F:ImageSharp.Color.BlueViolet
+  id: BlueViolet
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: BlueViolet
+  nameWithType: Color.BlueViolet
+  fullName: ImageSharp.Color.BlueViolet
+  type: Field
+  source:
+    id: BlueViolet
+    path: ''
+    startLine: 945
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #8A2BE2.\n"
+  example: []
+  syntax:
+    content: public static readonly Color BlueViolet
+    content.vb: Public Shared ReadOnly BlueViolet As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.Brown
+  commentId: F:ImageSharp.Color.Brown
+  id: Brown
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Brown
+  nameWithType: Color.Brown
+  fullName: ImageSharp.Color.Brown
+  type: Field
+  source:
+    id: Brown
+    path: ''
+    startLine: 950
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #A52A2A.\n"
+  example: []
+  syntax:
+    content: public static readonly Color Brown
+    content.vb: Public Shared ReadOnly Brown As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.BurlyWood
+  commentId: F:ImageSharp.Color.BurlyWood
+  id: BurlyWood
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: BurlyWood
+  nameWithType: Color.BurlyWood
+  fullName: ImageSharp.Color.BurlyWood
+  type: Field
+  source:
+    id: BurlyWood
+    path: ''
+    startLine: 955
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #DEB887.\n"
+  example: []
+  syntax:
+    content: public static readonly Color BurlyWood
+    content.vb: Public Shared ReadOnly BurlyWood As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.CadetBlue
+  commentId: F:ImageSharp.Color.CadetBlue
+  id: CadetBlue
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: CadetBlue
+  nameWithType: Color.CadetBlue
+  fullName: ImageSharp.Color.CadetBlue
+  type: Field
+  source:
+    id: CadetBlue
+    path: ''
+    startLine: 960
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #5F9EA0.\n"
+  example: []
+  syntax:
+    content: public static readonly Color CadetBlue
+    content.vb: Public Shared ReadOnly CadetBlue As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.Chartreuse
+  commentId: F:ImageSharp.Color.Chartreuse
+  id: Chartreuse
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Chartreuse
+  nameWithType: Color.Chartreuse
+  fullName: ImageSharp.Color.Chartreuse
+  type: Field
+  source:
+    id: Chartreuse
+    path: ''
+    startLine: 965
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #7FFF00.\n"
+  example: []
+  syntax:
+    content: public static readonly Color Chartreuse
+    content.vb: Public Shared ReadOnly Chartreuse As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.Chocolate
+  commentId: F:ImageSharp.Color.Chocolate
+  id: Chocolate
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Chocolate
+  nameWithType: Color.Chocolate
+  fullName: ImageSharp.Color.Chocolate
+  type: Field
+  source:
+    id: Chocolate
+    path: ''
+    startLine: 970
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #D2691E.\n"
+  example: []
+  syntax:
+    content: public static readonly Color Chocolate
+    content.vb: Public Shared ReadOnly Chocolate As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.Coral
+  commentId: F:ImageSharp.Color.Coral
+  id: Coral
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Coral
+  nameWithType: Color.Coral
+  fullName: ImageSharp.Color.Coral
+  type: Field
+  source:
+    id: Coral
+    path: ''
+    startLine: 975
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #FF7F50.\n"
+  example: []
+  syntax:
+    content: public static readonly Color Coral
+    content.vb: Public Shared ReadOnly Coral As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.CornflowerBlue
+  commentId: F:ImageSharp.Color.CornflowerBlue
+  id: CornflowerBlue
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: CornflowerBlue
+  nameWithType: Color.CornflowerBlue
+  fullName: ImageSharp.Color.CornflowerBlue
+  type: Field
+  source:
+    id: CornflowerBlue
+    path: ''
+    startLine: 980
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #6495ED.\n"
+  example: []
+  syntax:
+    content: public static readonly Color CornflowerBlue
+    content.vb: Public Shared ReadOnly CornflowerBlue As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.Cornsilk
+  commentId: F:ImageSharp.Color.Cornsilk
+  id: Cornsilk
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Cornsilk
+  nameWithType: Color.Cornsilk
+  fullName: ImageSharp.Color.Cornsilk
+  type: Field
+  source:
+    id: Cornsilk
+    path: ''
+    startLine: 985
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #FFF8DC.\n"
+  example: []
+  syntax:
+    content: public static readonly Color Cornsilk
+    content.vb: Public Shared ReadOnly Cornsilk As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.Crimson
+  commentId: F:ImageSharp.Color.Crimson
+  id: Crimson
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Crimson
+  nameWithType: Color.Crimson
+  fullName: ImageSharp.Color.Crimson
+  type: Field
+  source:
+    id: Crimson
+    path: ''
+    startLine: 990
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #DC143C.\n"
+  example: []
+  syntax:
+    content: public static readonly Color Crimson
+    content.vb: Public Shared ReadOnly Crimson As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.Cyan
+  commentId: F:ImageSharp.Color.Cyan
+  id: Cyan
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Cyan
+  nameWithType: Color.Cyan
+  fullName: ImageSharp.Color.Cyan
+  type: Field
+  source:
+    id: Cyan
+    path: ''
+    startLine: 995
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #00FFFF.\n"
+  example: []
+  syntax:
+    content: public static readonly Color Cyan
+    content.vb: Public Shared ReadOnly Cyan As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.DarkBlue
+  commentId: F:ImageSharp.Color.DarkBlue
+  id: DarkBlue
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: DarkBlue
+  nameWithType: Color.DarkBlue
+  fullName: ImageSharp.Color.DarkBlue
+  type: Field
+  source:
+    id: DarkBlue
+    path: ''
+    startLine: 1000
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #00008B.\n"
+  example: []
+  syntax:
+    content: public static readonly Color DarkBlue
+    content.vb: Public Shared ReadOnly DarkBlue As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.DarkCyan
+  commentId: F:ImageSharp.Color.DarkCyan
+  id: DarkCyan
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: DarkCyan
+  nameWithType: Color.DarkCyan
+  fullName: ImageSharp.Color.DarkCyan
+  type: Field
+  source:
+    id: DarkCyan
+    path: ''
+    startLine: 1005
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #008B8B.\n"
+  example: []
+  syntax:
+    content: public static readonly Color DarkCyan
+    content.vb: Public Shared ReadOnly DarkCyan As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.DarkGoldenrod
+  commentId: F:ImageSharp.Color.DarkGoldenrod
+  id: DarkGoldenrod
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: DarkGoldenrod
+  nameWithType: Color.DarkGoldenrod
+  fullName: ImageSharp.Color.DarkGoldenrod
+  type: Field
+  source:
+    id: DarkGoldenrod
+    path: ''
+    startLine: 1010
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #B8860B.\n"
+  example: []
+  syntax:
+    content: public static readonly Color DarkGoldenrod
+    content.vb: Public Shared ReadOnly DarkGoldenrod As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.DarkGray
+  commentId: F:ImageSharp.Color.DarkGray
+  id: DarkGray
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: DarkGray
+  nameWithType: Color.DarkGray
+  fullName: ImageSharp.Color.DarkGray
+  type: Field
+  source:
+    id: DarkGray
+    path: ''
+    startLine: 1015
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #A9A9A9.\n"
+  example: []
+  syntax:
+    content: public static readonly Color DarkGray
+    content.vb: Public Shared ReadOnly DarkGray As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.DarkGreen
+  commentId: F:ImageSharp.Color.DarkGreen
+  id: DarkGreen
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: DarkGreen
+  nameWithType: Color.DarkGreen
+  fullName: ImageSharp.Color.DarkGreen
+  type: Field
+  source:
+    id: DarkGreen
+    path: ''
+    startLine: 1020
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #006400.\n"
+  example: []
+  syntax:
+    content: public static readonly Color DarkGreen
+    content.vb: Public Shared ReadOnly DarkGreen As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.DarkKhaki
+  commentId: F:ImageSharp.Color.DarkKhaki
+  id: DarkKhaki
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: DarkKhaki
+  nameWithType: Color.DarkKhaki
+  fullName: ImageSharp.Color.DarkKhaki
+  type: Field
+  source:
+    id: DarkKhaki
+    path: ''
+    startLine: 1025
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #BDB76B.\n"
+  example: []
+  syntax:
+    content: public static readonly Color DarkKhaki
+    content.vb: Public Shared ReadOnly DarkKhaki As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.DarkMagenta
+  commentId: F:ImageSharp.Color.DarkMagenta
+  id: DarkMagenta
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: DarkMagenta
+  nameWithType: Color.DarkMagenta
+  fullName: ImageSharp.Color.DarkMagenta
+  type: Field
+  source:
+    id: DarkMagenta
+    path: ''
+    startLine: 1030
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #8B008B.\n"
+  example: []
+  syntax:
+    content: public static readonly Color DarkMagenta
+    content.vb: Public Shared ReadOnly DarkMagenta As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.DarkOliveGreen
+  commentId: F:ImageSharp.Color.DarkOliveGreen
+  id: DarkOliveGreen
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: DarkOliveGreen
+  nameWithType: Color.DarkOliveGreen
+  fullName: ImageSharp.Color.DarkOliveGreen
+  type: Field
+  source:
+    id: DarkOliveGreen
+    path: ''
+    startLine: 1035
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #556B2F.\n"
+  example: []
+  syntax:
+    content: public static readonly Color DarkOliveGreen
+    content.vb: Public Shared ReadOnly DarkOliveGreen As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.DarkOrange
+  commentId: F:ImageSharp.Color.DarkOrange
+  id: DarkOrange
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: DarkOrange
+  nameWithType: Color.DarkOrange
+  fullName: ImageSharp.Color.DarkOrange
+  type: Field
+  source:
+    id: DarkOrange
+    path: ''
+    startLine: 1040
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #FF8C00.\n"
+  example: []
+  syntax:
+    content: public static readonly Color DarkOrange
+    content.vb: Public Shared ReadOnly DarkOrange As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.DarkOrchid
+  commentId: F:ImageSharp.Color.DarkOrchid
+  id: DarkOrchid
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: DarkOrchid
+  nameWithType: Color.DarkOrchid
+  fullName: ImageSharp.Color.DarkOrchid
+  type: Field
+  source:
+    id: DarkOrchid
+    path: ''
+    startLine: 1045
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #9932CC.\n"
+  example: []
+  syntax:
+    content: public static readonly Color DarkOrchid
+    content.vb: Public Shared ReadOnly DarkOrchid As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.DarkRed
+  commentId: F:ImageSharp.Color.DarkRed
+  id: DarkRed
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: DarkRed
+  nameWithType: Color.DarkRed
+  fullName: ImageSharp.Color.DarkRed
+  type: Field
+  source:
+    id: DarkRed
+    path: ''
+    startLine: 1050
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #8B0000.\n"
+  example: []
+  syntax:
+    content: public static readonly Color DarkRed
+    content.vb: Public Shared ReadOnly DarkRed As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.DarkSalmon
+  commentId: F:ImageSharp.Color.DarkSalmon
+  id: DarkSalmon
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: DarkSalmon
+  nameWithType: Color.DarkSalmon
+  fullName: ImageSharp.Color.DarkSalmon
+  type: Field
+  source:
+    id: DarkSalmon
+    path: ''
+    startLine: 1055
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #E9967A.\n"
+  example: []
+  syntax:
+    content: public static readonly Color DarkSalmon
+    content.vb: Public Shared ReadOnly DarkSalmon As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.DarkSeaGreen
+  commentId: F:ImageSharp.Color.DarkSeaGreen
+  id: DarkSeaGreen
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: DarkSeaGreen
+  nameWithType: Color.DarkSeaGreen
+  fullName: ImageSharp.Color.DarkSeaGreen
+  type: Field
+  source:
+    id: DarkSeaGreen
+    path: ''
+    startLine: 1060
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #8FBC8B.\n"
+  example: []
+  syntax:
+    content: public static readonly Color DarkSeaGreen
+    content.vb: Public Shared ReadOnly DarkSeaGreen As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.DarkSlateBlue
+  commentId: F:ImageSharp.Color.DarkSlateBlue
+  id: DarkSlateBlue
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: DarkSlateBlue
+  nameWithType: Color.DarkSlateBlue
+  fullName: ImageSharp.Color.DarkSlateBlue
+  type: Field
+  source:
+    id: DarkSlateBlue
+    path: ''
+    startLine: 1065
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #483D8B.\n"
+  example: []
+  syntax:
+    content: public static readonly Color DarkSlateBlue
+    content.vb: Public Shared ReadOnly DarkSlateBlue As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.DarkSlateGray
+  commentId: F:ImageSharp.Color.DarkSlateGray
+  id: DarkSlateGray
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: DarkSlateGray
+  nameWithType: Color.DarkSlateGray
+  fullName: ImageSharp.Color.DarkSlateGray
+  type: Field
+  source:
+    id: DarkSlateGray
+    path: ''
+    startLine: 1070
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #2F4F4F.\n"
+  example: []
+  syntax:
+    content: public static readonly Color DarkSlateGray
+    content.vb: Public Shared ReadOnly DarkSlateGray As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.DarkTurquoise
+  commentId: F:ImageSharp.Color.DarkTurquoise
+  id: DarkTurquoise
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: DarkTurquoise
+  nameWithType: Color.DarkTurquoise
+  fullName: ImageSharp.Color.DarkTurquoise
+  type: Field
+  source:
+    id: DarkTurquoise
+    path: ''
+    startLine: 1075
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #00CED1.\n"
+  example: []
+  syntax:
+    content: public static readonly Color DarkTurquoise
+    content.vb: Public Shared ReadOnly DarkTurquoise As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.DarkViolet
+  commentId: F:ImageSharp.Color.DarkViolet
+  id: DarkViolet
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: DarkViolet
+  nameWithType: Color.DarkViolet
+  fullName: ImageSharp.Color.DarkViolet
+  type: Field
+  source:
+    id: DarkViolet
+    path: ''
+    startLine: 1080
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #9400D3.\n"
+  example: []
+  syntax:
+    content: public static readonly Color DarkViolet
+    content.vb: Public Shared ReadOnly DarkViolet As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.DeepPink
+  commentId: F:ImageSharp.Color.DeepPink
+  id: DeepPink
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: DeepPink
+  nameWithType: Color.DeepPink
+  fullName: ImageSharp.Color.DeepPink
+  type: Field
+  source:
+    id: DeepPink
+    path: ''
+    startLine: 1085
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #FF1493.\n"
+  example: []
+  syntax:
+    content: public static readonly Color DeepPink
+    content.vb: Public Shared ReadOnly DeepPink As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.DeepSkyBlue
+  commentId: F:ImageSharp.Color.DeepSkyBlue
+  id: DeepSkyBlue
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: DeepSkyBlue
+  nameWithType: Color.DeepSkyBlue
+  fullName: ImageSharp.Color.DeepSkyBlue
+  type: Field
+  source:
+    id: DeepSkyBlue
+    path: ''
+    startLine: 1090
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #00BFFF.\n"
+  example: []
+  syntax:
+    content: public static readonly Color DeepSkyBlue
+    content.vb: Public Shared ReadOnly DeepSkyBlue As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.DimGray
+  commentId: F:ImageSharp.Color.DimGray
+  id: DimGray
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: DimGray
+  nameWithType: Color.DimGray
+  fullName: ImageSharp.Color.DimGray
+  type: Field
+  source:
+    id: DimGray
+    path: ''
+    startLine: 1095
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #696969.\n"
+  example: []
+  syntax:
+    content: public static readonly Color DimGray
+    content.vb: Public Shared ReadOnly DimGray As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.DodgerBlue
+  commentId: F:ImageSharp.Color.DodgerBlue
+  id: DodgerBlue
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: DodgerBlue
+  nameWithType: Color.DodgerBlue
+  fullName: ImageSharp.Color.DodgerBlue
+  type: Field
+  source:
+    id: DodgerBlue
+    path: ''
+    startLine: 1100
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #1E90FF.\n"
+  example: []
+  syntax:
+    content: public static readonly Color DodgerBlue
+    content.vb: Public Shared ReadOnly DodgerBlue As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.Firebrick
+  commentId: F:ImageSharp.Color.Firebrick
+  id: Firebrick
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Firebrick
+  nameWithType: Color.Firebrick
+  fullName: ImageSharp.Color.Firebrick
+  type: Field
+  source:
+    id: Firebrick
+    path: ''
+    startLine: 1105
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #B22222.\n"
+  example: []
+  syntax:
+    content: public static readonly Color Firebrick
+    content.vb: Public Shared ReadOnly Firebrick As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.FloralWhite
+  commentId: F:ImageSharp.Color.FloralWhite
+  id: FloralWhite
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: FloralWhite
+  nameWithType: Color.FloralWhite
+  fullName: ImageSharp.Color.FloralWhite
+  type: Field
+  source:
+    id: FloralWhite
+    path: ''
+    startLine: 1110
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #FFFAF0.\n"
+  example: []
+  syntax:
+    content: public static readonly Color FloralWhite
+    content.vb: Public Shared ReadOnly FloralWhite As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.ForestGreen
+  commentId: F:ImageSharp.Color.ForestGreen
+  id: ForestGreen
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: ForestGreen
+  nameWithType: Color.ForestGreen
+  fullName: ImageSharp.Color.ForestGreen
+  type: Field
+  source:
+    id: ForestGreen
+    path: ''
+    startLine: 1115
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #228B22.\n"
+  example: []
+  syntax:
+    content: public static readonly Color ForestGreen
+    content.vb: Public Shared ReadOnly ForestGreen As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.Fuchsia
+  commentId: F:ImageSharp.Color.Fuchsia
+  id: Fuchsia
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Fuchsia
+  nameWithType: Color.Fuchsia
+  fullName: ImageSharp.Color.Fuchsia
+  type: Field
+  source:
+    id: Fuchsia
+    path: ''
+    startLine: 1120
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #FF00FF.\n"
+  example: []
+  syntax:
+    content: public static readonly Color Fuchsia
+    content.vb: Public Shared ReadOnly Fuchsia As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.Gainsboro
+  commentId: F:ImageSharp.Color.Gainsboro
+  id: Gainsboro
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Gainsboro
+  nameWithType: Color.Gainsboro
+  fullName: ImageSharp.Color.Gainsboro
+  type: Field
+  source:
+    id: Gainsboro
+    path: ''
+    startLine: 1125
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #DCDCDC.\n"
+  example: []
+  syntax:
+    content: public static readonly Color Gainsboro
+    content.vb: Public Shared ReadOnly Gainsboro As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.GhostWhite
+  commentId: F:ImageSharp.Color.GhostWhite
+  id: GhostWhite
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: GhostWhite
+  nameWithType: Color.GhostWhite
+  fullName: ImageSharp.Color.GhostWhite
+  type: Field
+  source:
+    id: GhostWhite
+    path: ''
+    startLine: 1130
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #F8F8FF.\n"
+  example: []
+  syntax:
+    content: public static readonly Color GhostWhite
+    content.vb: Public Shared ReadOnly GhostWhite As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.Gold
+  commentId: F:ImageSharp.Color.Gold
+  id: Gold
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Gold
+  nameWithType: Color.Gold
+  fullName: ImageSharp.Color.Gold
+  type: Field
+  source:
+    id: Gold
+    path: ''
+    startLine: 1135
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #FFD700.\n"
+  example: []
+  syntax:
+    content: public static readonly Color Gold
+    content.vb: Public Shared ReadOnly Gold As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.Goldenrod
+  commentId: F:ImageSharp.Color.Goldenrod
+  id: Goldenrod
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Goldenrod
+  nameWithType: Color.Goldenrod
+  fullName: ImageSharp.Color.Goldenrod
+  type: Field
+  source:
+    id: Goldenrod
+    path: ''
+    startLine: 1140
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #DAA520.\n"
+  example: []
+  syntax:
+    content: public static readonly Color Goldenrod
+    content.vb: Public Shared ReadOnly Goldenrod As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.Gray
+  commentId: F:ImageSharp.Color.Gray
+  id: Gray
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Gray
+  nameWithType: Color.Gray
+  fullName: ImageSharp.Color.Gray
+  type: Field
+  source:
+    id: Gray
+    path: ''
+    startLine: 1145
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #808080.\n"
+  example: []
+  syntax:
+    content: public static readonly Color Gray
+    content.vb: Public Shared ReadOnly Gray As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.Green
+  commentId: F:ImageSharp.Color.Green
+  id: Green
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Green
+  nameWithType: Color.Green
+  fullName: ImageSharp.Color.Green
+  type: Field
+  source:
+    id: Green
+    path: ''
+    startLine: 1150
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #008000.\n"
+  example: []
+  syntax:
+    content: public static readonly Color Green
+    content.vb: Public Shared ReadOnly Green As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.GreenYellow
+  commentId: F:ImageSharp.Color.GreenYellow
+  id: GreenYellow
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: GreenYellow
+  nameWithType: Color.GreenYellow
+  fullName: ImageSharp.Color.GreenYellow
+  type: Field
+  source:
+    id: GreenYellow
+    path: ''
+    startLine: 1155
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #ADFF2F.\n"
+  example: []
+  syntax:
+    content: public static readonly Color GreenYellow
+    content.vb: Public Shared ReadOnly GreenYellow As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.Honeydew
+  commentId: F:ImageSharp.Color.Honeydew
+  id: Honeydew
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Honeydew
+  nameWithType: Color.Honeydew
+  fullName: ImageSharp.Color.Honeydew
+  type: Field
+  source:
+    id: Honeydew
+    path: ''
+    startLine: 1160
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #F0FFF0.\n"
+  example: []
+  syntax:
+    content: public static readonly Color Honeydew
+    content.vb: Public Shared ReadOnly Honeydew As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.HotPink
+  commentId: F:ImageSharp.Color.HotPink
+  id: HotPink
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: HotPink
+  nameWithType: Color.HotPink
+  fullName: ImageSharp.Color.HotPink
+  type: Field
+  source:
+    id: HotPink
+    path: ''
+    startLine: 1165
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #FF69B4.\n"
+  example: []
+  syntax:
+    content: public static readonly Color HotPink
+    content.vb: Public Shared ReadOnly HotPink As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.IndianRed
+  commentId: F:ImageSharp.Color.IndianRed
+  id: IndianRed
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: IndianRed
+  nameWithType: Color.IndianRed
+  fullName: ImageSharp.Color.IndianRed
+  type: Field
+  source:
+    id: IndianRed
+    path: ''
+    startLine: 1170
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #CD5C5C.\n"
+  example: []
+  syntax:
+    content: public static readonly Color IndianRed
+    content.vb: Public Shared ReadOnly IndianRed As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.Indigo
+  commentId: F:ImageSharp.Color.Indigo
+  id: Indigo
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Indigo
+  nameWithType: Color.Indigo
+  fullName: ImageSharp.Color.Indigo
+  type: Field
+  source:
+    id: Indigo
+    path: ''
+    startLine: 1175
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #4B0082.\n"
+  example: []
+  syntax:
+    content: public static readonly Color Indigo
+    content.vb: Public Shared ReadOnly Indigo As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.Ivory
+  commentId: F:ImageSharp.Color.Ivory
+  id: Ivory
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Ivory
+  nameWithType: Color.Ivory
+  fullName: ImageSharp.Color.Ivory
+  type: Field
+  source:
+    id: Ivory
+    path: ''
+    startLine: 1180
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #FFFFF0.\n"
+  example: []
+  syntax:
+    content: public static readonly Color Ivory
+    content.vb: Public Shared ReadOnly Ivory As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.Khaki
+  commentId: F:ImageSharp.Color.Khaki
+  id: Khaki
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Khaki
+  nameWithType: Color.Khaki
+  fullName: ImageSharp.Color.Khaki
+  type: Field
+  source:
+    id: Khaki
+    path: ''
+    startLine: 1185
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #F0E68C.\n"
+  example: []
+  syntax:
+    content: public static readonly Color Khaki
+    content.vb: Public Shared ReadOnly Khaki As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.Lavender
+  commentId: F:ImageSharp.Color.Lavender
+  id: Lavender
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Lavender
+  nameWithType: Color.Lavender
+  fullName: ImageSharp.Color.Lavender
+  type: Field
+  source:
+    id: Lavender
+    path: ''
+    startLine: 1190
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #E6E6FA.\n"
+  example: []
+  syntax:
+    content: public static readonly Color Lavender
+    content.vb: Public Shared ReadOnly Lavender As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.LavenderBlush
+  commentId: F:ImageSharp.Color.LavenderBlush
+  id: LavenderBlush
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: LavenderBlush
+  nameWithType: Color.LavenderBlush
+  fullName: ImageSharp.Color.LavenderBlush
+  type: Field
+  source:
+    id: LavenderBlush
+    path: ''
+    startLine: 1195
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #FFF0F5.\n"
+  example: []
+  syntax:
+    content: public static readonly Color LavenderBlush
+    content.vb: Public Shared ReadOnly LavenderBlush As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.LawnGreen
+  commentId: F:ImageSharp.Color.LawnGreen
+  id: LawnGreen
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: LawnGreen
+  nameWithType: Color.LawnGreen
+  fullName: ImageSharp.Color.LawnGreen
+  type: Field
+  source:
+    id: LawnGreen
+    path: ''
+    startLine: 1200
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #7CFC00.\n"
+  example: []
+  syntax:
+    content: public static readonly Color LawnGreen
+    content.vb: Public Shared ReadOnly LawnGreen As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.LemonChiffon
+  commentId: F:ImageSharp.Color.LemonChiffon
+  id: LemonChiffon
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: LemonChiffon
+  nameWithType: Color.LemonChiffon
+  fullName: ImageSharp.Color.LemonChiffon
+  type: Field
+  source:
+    id: LemonChiffon
+    path: ''
+    startLine: 1205
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #FFFACD.\n"
+  example: []
+  syntax:
+    content: public static readonly Color LemonChiffon
+    content.vb: Public Shared ReadOnly LemonChiffon As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.LightBlue
+  commentId: F:ImageSharp.Color.LightBlue
+  id: LightBlue
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: LightBlue
+  nameWithType: Color.LightBlue
+  fullName: ImageSharp.Color.LightBlue
+  type: Field
+  source:
+    id: LightBlue
+    path: ''
+    startLine: 1210
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #ADD8E6.\n"
+  example: []
+  syntax:
+    content: public static readonly Color LightBlue
+    content.vb: Public Shared ReadOnly LightBlue As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.LightCoral
+  commentId: F:ImageSharp.Color.LightCoral
+  id: LightCoral
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: LightCoral
+  nameWithType: Color.LightCoral
+  fullName: ImageSharp.Color.LightCoral
+  type: Field
+  source:
+    id: LightCoral
+    path: ''
+    startLine: 1215
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #F08080.\n"
+  example: []
+  syntax:
+    content: public static readonly Color LightCoral
+    content.vb: Public Shared ReadOnly LightCoral As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.LightCyan
+  commentId: F:ImageSharp.Color.LightCyan
+  id: LightCyan
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: LightCyan
+  nameWithType: Color.LightCyan
+  fullName: ImageSharp.Color.LightCyan
+  type: Field
+  source:
+    id: LightCyan
+    path: ''
+    startLine: 1220
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #E0FFFF.\n"
+  example: []
+  syntax:
+    content: public static readonly Color LightCyan
+    content.vb: Public Shared ReadOnly LightCyan As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.LightGoldenrodYellow
+  commentId: F:ImageSharp.Color.LightGoldenrodYellow
+  id: LightGoldenrodYellow
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: LightGoldenrodYellow
+  nameWithType: Color.LightGoldenrodYellow
+  fullName: ImageSharp.Color.LightGoldenrodYellow
+  type: Field
+  source:
+    id: LightGoldenrodYellow
+    path: ''
+    startLine: 1225
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #FAFAD2.\n"
+  example: []
+  syntax:
+    content: public static readonly Color LightGoldenrodYellow
+    content.vb: Public Shared ReadOnly LightGoldenrodYellow As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.LightGray
+  commentId: F:ImageSharp.Color.LightGray
+  id: LightGray
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: LightGray
+  nameWithType: Color.LightGray
+  fullName: ImageSharp.Color.LightGray
+  type: Field
+  source:
+    id: LightGray
+    path: ''
+    startLine: 1230
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #D3D3D3.\n"
+  example: []
+  syntax:
+    content: public static readonly Color LightGray
+    content.vb: Public Shared ReadOnly LightGray As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.LightGreen
+  commentId: F:ImageSharp.Color.LightGreen
+  id: LightGreen
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: LightGreen
+  nameWithType: Color.LightGreen
+  fullName: ImageSharp.Color.LightGreen
+  type: Field
+  source:
+    id: LightGreen
+    path: ''
+    startLine: 1235
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #90EE90.\n"
+  example: []
+  syntax:
+    content: public static readonly Color LightGreen
+    content.vb: Public Shared ReadOnly LightGreen As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.LightPink
+  commentId: F:ImageSharp.Color.LightPink
+  id: LightPink
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: LightPink
+  nameWithType: Color.LightPink
+  fullName: ImageSharp.Color.LightPink
+  type: Field
+  source:
+    id: LightPink
+    path: ''
+    startLine: 1240
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #FFB6C1.\n"
+  example: []
+  syntax:
+    content: public static readonly Color LightPink
+    content.vb: Public Shared ReadOnly LightPink As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.LightSalmon
+  commentId: F:ImageSharp.Color.LightSalmon
+  id: LightSalmon
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: LightSalmon
+  nameWithType: Color.LightSalmon
+  fullName: ImageSharp.Color.LightSalmon
+  type: Field
+  source:
+    id: LightSalmon
+    path: ''
+    startLine: 1245
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #FFA07A.\n"
+  example: []
+  syntax:
+    content: public static readonly Color LightSalmon
+    content.vb: Public Shared ReadOnly LightSalmon As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.LightSeaGreen
+  commentId: F:ImageSharp.Color.LightSeaGreen
+  id: LightSeaGreen
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: LightSeaGreen
+  nameWithType: Color.LightSeaGreen
+  fullName: ImageSharp.Color.LightSeaGreen
+  type: Field
+  source:
+    id: LightSeaGreen
+    path: ''
+    startLine: 1250
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #20B2AA.\n"
+  example: []
+  syntax:
+    content: public static readonly Color LightSeaGreen
+    content.vb: Public Shared ReadOnly LightSeaGreen As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.LightSkyBlue
+  commentId: F:ImageSharp.Color.LightSkyBlue
+  id: LightSkyBlue
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: LightSkyBlue
+  nameWithType: Color.LightSkyBlue
+  fullName: ImageSharp.Color.LightSkyBlue
+  type: Field
+  source:
+    id: LightSkyBlue
+    path: ''
+    startLine: 1255
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #87CEFA.\n"
+  example: []
+  syntax:
+    content: public static readonly Color LightSkyBlue
+    content.vb: Public Shared ReadOnly LightSkyBlue As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.LightSlateGray
+  commentId: F:ImageSharp.Color.LightSlateGray
+  id: LightSlateGray
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: LightSlateGray
+  nameWithType: Color.LightSlateGray
+  fullName: ImageSharp.Color.LightSlateGray
+  type: Field
+  source:
+    id: LightSlateGray
+    path: ''
+    startLine: 1260
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #778899.\n"
+  example: []
+  syntax:
+    content: public static readonly Color LightSlateGray
+    content.vb: Public Shared ReadOnly LightSlateGray As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.LightSteelBlue
+  commentId: F:ImageSharp.Color.LightSteelBlue
+  id: LightSteelBlue
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: LightSteelBlue
+  nameWithType: Color.LightSteelBlue
+  fullName: ImageSharp.Color.LightSteelBlue
+  type: Field
+  source:
+    id: LightSteelBlue
+    path: ''
+    startLine: 1265
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #B0C4DE.\n"
+  example: []
+  syntax:
+    content: public static readonly Color LightSteelBlue
+    content.vb: Public Shared ReadOnly LightSteelBlue As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.LightYellow
+  commentId: F:ImageSharp.Color.LightYellow
+  id: LightYellow
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: LightYellow
+  nameWithType: Color.LightYellow
+  fullName: ImageSharp.Color.LightYellow
+  type: Field
+  source:
+    id: LightYellow
+    path: ''
+    startLine: 1270
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #FFFFE0.\n"
+  example: []
+  syntax:
+    content: public static readonly Color LightYellow
+    content.vb: Public Shared ReadOnly LightYellow As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.Lime
+  commentId: F:ImageSharp.Color.Lime
+  id: Lime
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Lime
+  nameWithType: Color.Lime
+  fullName: ImageSharp.Color.Lime
+  type: Field
+  source:
+    id: Lime
+    path: ''
+    startLine: 1275
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #00FF00.\n"
+  example: []
+  syntax:
+    content: public static readonly Color Lime
+    content.vb: Public Shared ReadOnly Lime As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.LimeGreen
+  commentId: F:ImageSharp.Color.LimeGreen
+  id: LimeGreen
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: LimeGreen
+  nameWithType: Color.LimeGreen
+  fullName: ImageSharp.Color.LimeGreen
+  type: Field
+  source:
+    id: LimeGreen
+    path: ''
+    startLine: 1280
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #32CD32.\n"
+  example: []
+  syntax:
+    content: public static readonly Color LimeGreen
+    content.vb: Public Shared ReadOnly LimeGreen As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.Linen
+  commentId: F:ImageSharp.Color.Linen
+  id: Linen
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Linen
+  nameWithType: Color.Linen
+  fullName: ImageSharp.Color.Linen
+  type: Field
+  source:
+    id: Linen
+    path: ''
+    startLine: 1285
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #FAF0E6.\n"
+  example: []
+  syntax:
+    content: public static readonly Color Linen
+    content.vb: Public Shared ReadOnly Linen As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.Magenta
+  commentId: F:ImageSharp.Color.Magenta
+  id: Magenta
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Magenta
+  nameWithType: Color.Magenta
+  fullName: ImageSharp.Color.Magenta
+  type: Field
+  source:
+    id: Magenta
+    path: ''
+    startLine: 1290
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #FF00FF.\n"
+  example: []
+  syntax:
+    content: public static readonly Color Magenta
+    content.vb: Public Shared ReadOnly Magenta As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.Maroon
+  commentId: F:ImageSharp.Color.Maroon
+  id: Maroon
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Maroon
+  nameWithType: Color.Maroon
+  fullName: ImageSharp.Color.Maroon
+  type: Field
+  source:
+    id: Maroon
+    path: ''
+    startLine: 1295
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #800000.\n"
+  example: []
+  syntax:
+    content: public static readonly Color Maroon
+    content.vb: Public Shared ReadOnly Maroon As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.MediumAquamarine
+  commentId: F:ImageSharp.Color.MediumAquamarine
+  id: MediumAquamarine
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: MediumAquamarine
+  nameWithType: Color.MediumAquamarine
+  fullName: ImageSharp.Color.MediumAquamarine
+  type: Field
+  source:
+    id: MediumAquamarine
+    path: ''
+    startLine: 1300
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #66CDAA.\n"
+  example: []
+  syntax:
+    content: public static readonly Color MediumAquamarine
+    content.vb: Public Shared ReadOnly MediumAquamarine As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.MediumBlue
+  commentId: F:ImageSharp.Color.MediumBlue
+  id: MediumBlue
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: MediumBlue
+  nameWithType: Color.MediumBlue
+  fullName: ImageSharp.Color.MediumBlue
+  type: Field
+  source:
+    id: MediumBlue
+    path: ''
+    startLine: 1305
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #0000CD.\n"
+  example: []
+  syntax:
+    content: public static readonly Color MediumBlue
+    content.vb: Public Shared ReadOnly MediumBlue As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.MediumOrchid
+  commentId: F:ImageSharp.Color.MediumOrchid
+  id: MediumOrchid
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: MediumOrchid
+  nameWithType: Color.MediumOrchid
+  fullName: ImageSharp.Color.MediumOrchid
+  type: Field
+  source:
+    id: MediumOrchid
+    path: ''
+    startLine: 1310
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #BA55D3.\n"
+  example: []
+  syntax:
+    content: public static readonly Color MediumOrchid
+    content.vb: Public Shared ReadOnly MediumOrchid As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.MediumPurple
+  commentId: F:ImageSharp.Color.MediumPurple
+  id: MediumPurple
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: MediumPurple
+  nameWithType: Color.MediumPurple
+  fullName: ImageSharp.Color.MediumPurple
+  type: Field
+  source:
+    id: MediumPurple
+    path: ''
+    startLine: 1315
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #9370DB.\n"
+  example: []
+  syntax:
+    content: public static readonly Color MediumPurple
+    content.vb: Public Shared ReadOnly MediumPurple As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.MediumSeaGreen
+  commentId: F:ImageSharp.Color.MediumSeaGreen
+  id: MediumSeaGreen
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: MediumSeaGreen
+  nameWithType: Color.MediumSeaGreen
+  fullName: ImageSharp.Color.MediumSeaGreen
+  type: Field
+  source:
+    id: MediumSeaGreen
+    path: ''
+    startLine: 1320
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #3CB371.\n"
+  example: []
+  syntax:
+    content: public static readonly Color MediumSeaGreen
+    content.vb: Public Shared ReadOnly MediumSeaGreen As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.MediumSlateBlue
+  commentId: F:ImageSharp.Color.MediumSlateBlue
+  id: MediumSlateBlue
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: MediumSlateBlue
+  nameWithType: Color.MediumSlateBlue
+  fullName: ImageSharp.Color.MediumSlateBlue
+  type: Field
+  source:
+    id: MediumSlateBlue
+    path: ''
+    startLine: 1325
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #7B68EE.\n"
+  example: []
+  syntax:
+    content: public static readonly Color MediumSlateBlue
+    content.vb: Public Shared ReadOnly MediumSlateBlue As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.MediumSpringGreen
+  commentId: F:ImageSharp.Color.MediumSpringGreen
+  id: MediumSpringGreen
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: MediumSpringGreen
+  nameWithType: Color.MediumSpringGreen
+  fullName: ImageSharp.Color.MediumSpringGreen
+  type: Field
+  source:
+    id: MediumSpringGreen
+    path: ''
+    startLine: 1330
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #00FA9A.\n"
+  example: []
+  syntax:
+    content: public static readonly Color MediumSpringGreen
+    content.vb: Public Shared ReadOnly MediumSpringGreen As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.MediumTurquoise
+  commentId: F:ImageSharp.Color.MediumTurquoise
+  id: MediumTurquoise
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: MediumTurquoise
+  nameWithType: Color.MediumTurquoise
+  fullName: ImageSharp.Color.MediumTurquoise
+  type: Field
+  source:
+    id: MediumTurquoise
+    path: ''
+    startLine: 1335
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #48D1CC.\n"
+  example: []
+  syntax:
+    content: public static readonly Color MediumTurquoise
+    content.vb: Public Shared ReadOnly MediumTurquoise As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.MediumVioletRed
+  commentId: F:ImageSharp.Color.MediumVioletRed
+  id: MediumVioletRed
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: MediumVioletRed
+  nameWithType: Color.MediumVioletRed
+  fullName: ImageSharp.Color.MediumVioletRed
+  type: Field
+  source:
+    id: MediumVioletRed
+    path: ''
+    startLine: 1340
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #C71585.\n"
+  example: []
+  syntax:
+    content: public static readonly Color MediumVioletRed
+    content.vb: Public Shared ReadOnly MediumVioletRed As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.MidnightBlue
+  commentId: F:ImageSharp.Color.MidnightBlue
+  id: MidnightBlue
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: MidnightBlue
+  nameWithType: Color.MidnightBlue
+  fullName: ImageSharp.Color.MidnightBlue
+  type: Field
+  source:
+    id: MidnightBlue
+    path: ''
+    startLine: 1345
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #191970.\n"
+  example: []
+  syntax:
+    content: public static readonly Color MidnightBlue
+    content.vb: Public Shared ReadOnly MidnightBlue As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.MintCream
+  commentId: F:ImageSharp.Color.MintCream
+  id: MintCream
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: MintCream
+  nameWithType: Color.MintCream
+  fullName: ImageSharp.Color.MintCream
+  type: Field
+  source:
+    id: MintCream
+    path: ''
+    startLine: 1350
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #F5FFFA.\n"
+  example: []
+  syntax:
+    content: public static readonly Color MintCream
+    content.vb: Public Shared ReadOnly MintCream As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.MistyRose
+  commentId: F:ImageSharp.Color.MistyRose
+  id: MistyRose
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: MistyRose
+  nameWithType: Color.MistyRose
+  fullName: ImageSharp.Color.MistyRose
+  type: Field
+  source:
+    id: MistyRose
+    path: ''
+    startLine: 1355
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #FFE4E1.\n"
+  example: []
+  syntax:
+    content: public static readonly Color MistyRose
+    content.vb: Public Shared ReadOnly MistyRose As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.Moccasin
+  commentId: F:ImageSharp.Color.Moccasin
+  id: Moccasin
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Moccasin
+  nameWithType: Color.Moccasin
+  fullName: ImageSharp.Color.Moccasin
+  type: Field
+  source:
+    id: Moccasin
+    path: ''
+    startLine: 1360
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #FFE4B5.\n"
+  example: []
+  syntax:
+    content: public static readonly Color Moccasin
+    content.vb: Public Shared ReadOnly Moccasin As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.NavajoWhite
+  commentId: F:ImageSharp.Color.NavajoWhite
+  id: NavajoWhite
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: NavajoWhite
+  nameWithType: Color.NavajoWhite
+  fullName: ImageSharp.Color.NavajoWhite
+  type: Field
+  source:
+    id: NavajoWhite
+    path: ''
+    startLine: 1365
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #FFDEAD.\n"
+  example: []
+  syntax:
+    content: public static readonly Color NavajoWhite
+    content.vb: Public Shared ReadOnly NavajoWhite As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.Navy
+  commentId: F:ImageSharp.Color.Navy
+  id: Navy
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Navy
+  nameWithType: Color.Navy
+  fullName: ImageSharp.Color.Navy
+  type: Field
+  source:
+    id: Navy
+    path: ''
+    startLine: 1370
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #000080.\n"
+  example: []
+  syntax:
+    content: public static readonly Color Navy
+    content.vb: Public Shared ReadOnly Navy As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.OldLace
+  commentId: F:ImageSharp.Color.OldLace
+  id: OldLace
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: OldLace
+  nameWithType: Color.OldLace
+  fullName: ImageSharp.Color.OldLace
+  type: Field
+  source:
+    id: OldLace
+    path: ''
+    startLine: 1375
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #FDF5E6.\n"
+  example: []
+  syntax:
+    content: public static readonly Color OldLace
+    content.vb: Public Shared ReadOnly OldLace As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.Olive
+  commentId: F:ImageSharp.Color.Olive
+  id: Olive
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Olive
+  nameWithType: Color.Olive
+  fullName: ImageSharp.Color.Olive
+  type: Field
+  source:
+    id: Olive
+    path: ''
+    startLine: 1380
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #808000.\n"
+  example: []
+  syntax:
+    content: public static readonly Color Olive
+    content.vb: Public Shared ReadOnly Olive As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.OliveDrab
+  commentId: F:ImageSharp.Color.OliveDrab
+  id: OliveDrab
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: OliveDrab
+  nameWithType: Color.OliveDrab
+  fullName: ImageSharp.Color.OliveDrab
+  type: Field
+  source:
+    id: OliveDrab
+    path: ''
+    startLine: 1385
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #6B8E23.\n"
+  example: []
+  syntax:
+    content: public static readonly Color OliveDrab
+    content.vb: Public Shared ReadOnly OliveDrab As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.Orange
+  commentId: F:ImageSharp.Color.Orange
+  id: Orange
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Orange
+  nameWithType: Color.Orange
+  fullName: ImageSharp.Color.Orange
+  type: Field
+  source:
+    id: Orange
+    path: ''
+    startLine: 1390
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #FFA500.\n"
+  example: []
+  syntax:
+    content: public static readonly Color Orange
+    content.vb: Public Shared ReadOnly Orange As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.OrangeRed
+  commentId: F:ImageSharp.Color.OrangeRed
+  id: OrangeRed
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: OrangeRed
+  nameWithType: Color.OrangeRed
+  fullName: ImageSharp.Color.OrangeRed
+  type: Field
+  source:
+    id: OrangeRed
+    path: ''
+    startLine: 1395
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #FF4500.\n"
+  example: []
+  syntax:
+    content: public static readonly Color OrangeRed
+    content.vb: Public Shared ReadOnly OrangeRed As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.Orchid
+  commentId: F:ImageSharp.Color.Orchid
+  id: Orchid
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Orchid
+  nameWithType: Color.Orchid
+  fullName: ImageSharp.Color.Orchid
+  type: Field
+  source:
+    id: Orchid
+    path: ''
+    startLine: 1400
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #DA70D6.\n"
+  example: []
+  syntax:
+    content: public static readonly Color Orchid
+    content.vb: Public Shared ReadOnly Orchid As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.PaleGoldenrod
+  commentId: F:ImageSharp.Color.PaleGoldenrod
+  id: PaleGoldenrod
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: PaleGoldenrod
+  nameWithType: Color.PaleGoldenrod
+  fullName: ImageSharp.Color.PaleGoldenrod
+  type: Field
+  source:
+    id: PaleGoldenrod
+    path: ''
+    startLine: 1405
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #EEE8AA.\n"
+  example: []
+  syntax:
+    content: public static readonly Color PaleGoldenrod
+    content.vb: Public Shared ReadOnly PaleGoldenrod As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.PaleGreen
+  commentId: F:ImageSharp.Color.PaleGreen
+  id: PaleGreen
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: PaleGreen
+  nameWithType: Color.PaleGreen
+  fullName: ImageSharp.Color.PaleGreen
+  type: Field
+  source:
+    id: PaleGreen
+    path: ''
+    startLine: 1410
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #98FB98.\n"
+  example: []
+  syntax:
+    content: public static readonly Color PaleGreen
+    content.vb: Public Shared ReadOnly PaleGreen As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.PaleTurquoise
+  commentId: F:ImageSharp.Color.PaleTurquoise
+  id: PaleTurquoise
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: PaleTurquoise
+  nameWithType: Color.PaleTurquoise
+  fullName: ImageSharp.Color.PaleTurquoise
+  type: Field
+  source:
+    id: PaleTurquoise
+    path: ''
+    startLine: 1415
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #AFEEEE.\n"
+  example: []
+  syntax:
+    content: public static readonly Color PaleTurquoise
+    content.vb: Public Shared ReadOnly PaleTurquoise As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.PaleVioletRed
+  commentId: F:ImageSharp.Color.PaleVioletRed
+  id: PaleVioletRed
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: PaleVioletRed
+  nameWithType: Color.PaleVioletRed
+  fullName: ImageSharp.Color.PaleVioletRed
+  type: Field
+  source:
+    id: PaleVioletRed
+    path: ''
+    startLine: 1420
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #DB7093.\n"
+  example: []
+  syntax:
+    content: public static readonly Color PaleVioletRed
+    content.vb: Public Shared ReadOnly PaleVioletRed As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.PapayaWhip
+  commentId: F:ImageSharp.Color.PapayaWhip
+  id: PapayaWhip
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: PapayaWhip
+  nameWithType: Color.PapayaWhip
+  fullName: ImageSharp.Color.PapayaWhip
+  type: Field
+  source:
+    id: PapayaWhip
+    path: ''
+    startLine: 1425
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #FFEFD5.\n"
+  example: []
+  syntax:
+    content: public static readonly Color PapayaWhip
+    content.vb: Public Shared ReadOnly PapayaWhip As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.PeachPuff
+  commentId: F:ImageSharp.Color.PeachPuff
+  id: PeachPuff
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: PeachPuff
+  nameWithType: Color.PeachPuff
+  fullName: ImageSharp.Color.PeachPuff
+  type: Field
+  source:
+    id: PeachPuff
+    path: ''
+    startLine: 1430
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #FFDAB9.\n"
+  example: []
+  syntax:
+    content: public static readonly Color PeachPuff
+    content.vb: Public Shared ReadOnly PeachPuff As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.Peru
+  commentId: F:ImageSharp.Color.Peru
+  id: Peru
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Peru
+  nameWithType: Color.Peru
+  fullName: ImageSharp.Color.Peru
+  type: Field
+  source:
+    id: Peru
+    path: ''
+    startLine: 1435
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #CD853F.\n"
+  example: []
+  syntax:
+    content: public static readonly Color Peru
+    content.vb: Public Shared ReadOnly Peru As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.Pink
+  commentId: F:ImageSharp.Color.Pink
+  id: Pink
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Pink
+  nameWithType: Color.Pink
+  fullName: ImageSharp.Color.Pink
+  type: Field
+  source:
+    id: Pink
+    path: ''
+    startLine: 1440
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #FFC0CB.\n"
+  example: []
+  syntax:
+    content: public static readonly Color Pink
+    content.vb: Public Shared ReadOnly Pink As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.Plum
+  commentId: F:ImageSharp.Color.Plum
+  id: Plum
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Plum
+  nameWithType: Color.Plum
+  fullName: ImageSharp.Color.Plum
+  type: Field
+  source:
+    id: Plum
+    path: ''
+    startLine: 1445
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #DDA0DD.\n"
+  example: []
+  syntax:
+    content: public static readonly Color Plum
+    content.vb: Public Shared ReadOnly Plum As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.PowderBlue
+  commentId: F:ImageSharp.Color.PowderBlue
+  id: PowderBlue
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: PowderBlue
+  nameWithType: Color.PowderBlue
+  fullName: ImageSharp.Color.PowderBlue
+  type: Field
+  source:
+    id: PowderBlue
+    path: ''
+    startLine: 1450
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #B0E0E6.\n"
+  example: []
+  syntax:
+    content: public static readonly Color PowderBlue
+    content.vb: Public Shared ReadOnly PowderBlue As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.Purple
+  commentId: F:ImageSharp.Color.Purple
+  id: Purple
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Purple
+  nameWithType: Color.Purple
+  fullName: ImageSharp.Color.Purple
+  type: Field
+  source:
+    id: Purple
+    path: ''
+    startLine: 1455
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #800080.\n"
+  example: []
+  syntax:
+    content: public static readonly Color Purple
+    content.vb: Public Shared ReadOnly Purple As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.RebeccaPurple
+  commentId: F:ImageSharp.Color.RebeccaPurple
+  id: RebeccaPurple
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: RebeccaPurple
+  nameWithType: Color.RebeccaPurple
+  fullName: ImageSharp.Color.RebeccaPurple
+  type: Field
+  source:
+    id: RebeccaPurple
+    path: ''
+    startLine: 1460
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #0.\n"
+  example: []
+  syntax:
+    content: public static readonly Color RebeccaPurple
+    content.vb: Public Shared ReadOnly RebeccaPurple As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.Red
+  commentId: F:ImageSharp.Color.Red
+  id: Red
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Red
+  nameWithType: Color.Red
+  fullName: ImageSharp.Color.Red
+  type: Field
+  source:
+    id: Red
+    path: ''
+    startLine: 1465
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #FF0000.\n"
+  example: []
+  syntax:
+    content: public static readonly Color Red
+    content.vb: Public Shared ReadOnly Red As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.RosyBrown
+  commentId: F:ImageSharp.Color.RosyBrown
+  id: RosyBrown
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: RosyBrown
+  nameWithType: Color.RosyBrown
+  fullName: ImageSharp.Color.RosyBrown
+  type: Field
+  source:
+    id: RosyBrown
+    path: ''
+    startLine: 1470
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #BC8F8F.\n"
+  example: []
+  syntax:
+    content: public static readonly Color RosyBrown
+    content.vb: Public Shared ReadOnly RosyBrown As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.RoyalBlue
+  commentId: F:ImageSharp.Color.RoyalBlue
+  id: RoyalBlue
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: RoyalBlue
+  nameWithType: Color.RoyalBlue
+  fullName: ImageSharp.Color.RoyalBlue
+  type: Field
+  source:
+    id: RoyalBlue
+    path: ''
+    startLine: 1475
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #4169E1.\n"
+  example: []
+  syntax:
+    content: public static readonly Color RoyalBlue
+    content.vb: Public Shared ReadOnly RoyalBlue As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.SaddleBrown
+  commentId: F:ImageSharp.Color.SaddleBrown
+  id: SaddleBrown
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: SaddleBrown
+  nameWithType: Color.SaddleBrown
+  fullName: ImageSharp.Color.SaddleBrown
+  type: Field
+  source:
+    id: SaddleBrown
+    path: ''
+    startLine: 1480
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #8B4513.\n"
+  example: []
+  syntax:
+    content: public static readonly Color SaddleBrown
+    content.vb: Public Shared ReadOnly SaddleBrown As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.Salmon
+  commentId: F:ImageSharp.Color.Salmon
+  id: Salmon
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Salmon
+  nameWithType: Color.Salmon
+  fullName: ImageSharp.Color.Salmon
+  type: Field
+  source:
+    id: Salmon
+    path: ''
+    startLine: 1485
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #FA8072.\n"
+  example: []
+  syntax:
+    content: public static readonly Color Salmon
+    content.vb: Public Shared ReadOnly Salmon As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.SandyBrown
+  commentId: F:ImageSharp.Color.SandyBrown
+  id: SandyBrown
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: SandyBrown
+  nameWithType: Color.SandyBrown
+  fullName: ImageSharp.Color.SandyBrown
+  type: Field
+  source:
+    id: SandyBrown
+    path: ''
+    startLine: 1490
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #F4A460.\n"
+  example: []
+  syntax:
+    content: public static readonly Color SandyBrown
+    content.vb: Public Shared ReadOnly SandyBrown As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.SeaGreen
+  commentId: F:ImageSharp.Color.SeaGreen
+  id: SeaGreen
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: SeaGreen
+  nameWithType: Color.SeaGreen
+  fullName: ImageSharp.Color.SeaGreen
+  type: Field
+  source:
+    id: SeaGreen
+    path: ''
+    startLine: 1495
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #2E8B57.\n"
+  example: []
+  syntax:
+    content: public static readonly Color SeaGreen
+    content.vb: Public Shared ReadOnly SeaGreen As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.SeaShell
+  commentId: F:ImageSharp.Color.SeaShell
+  id: SeaShell
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: SeaShell
+  nameWithType: Color.SeaShell
+  fullName: ImageSharp.Color.SeaShell
+  type: Field
+  source:
+    id: SeaShell
+    path: ''
+    startLine: 1500
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #FFF5EE.\n"
+  example: []
+  syntax:
+    content: public static readonly Color SeaShell
+    content.vb: Public Shared ReadOnly SeaShell As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.Sienna
+  commentId: F:ImageSharp.Color.Sienna
+  id: Sienna
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Sienna
+  nameWithType: Color.Sienna
+  fullName: ImageSharp.Color.Sienna
+  type: Field
+  source:
+    id: Sienna
+    path: ''
+    startLine: 1505
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #A0522D.\n"
+  example: []
+  syntax:
+    content: public static readonly Color Sienna
+    content.vb: Public Shared ReadOnly Sienna As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.Silver
+  commentId: F:ImageSharp.Color.Silver
+  id: Silver
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Silver
+  nameWithType: Color.Silver
+  fullName: ImageSharp.Color.Silver
+  type: Field
+  source:
+    id: Silver
+    path: ''
+    startLine: 1510
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #C0C0C0.\n"
+  example: []
+  syntax:
+    content: public static readonly Color Silver
+    content.vb: Public Shared ReadOnly Silver As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.SkyBlue
+  commentId: F:ImageSharp.Color.SkyBlue
+  id: SkyBlue
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: SkyBlue
+  nameWithType: Color.SkyBlue
+  fullName: ImageSharp.Color.SkyBlue
+  type: Field
+  source:
+    id: SkyBlue
+    path: ''
+    startLine: 1515
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #87CEEB.\n"
+  example: []
+  syntax:
+    content: public static readonly Color SkyBlue
+    content.vb: Public Shared ReadOnly SkyBlue As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.SlateBlue
+  commentId: F:ImageSharp.Color.SlateBlue
+  id: SlateBlue
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: SlateBlue
+  nameWithType: Color.SlateBlue
+  fullName: ImageSharp.Color.SlateBlue
+  type: Field
+  source:
+    id: SlateBlue
+    path: ''
+    startLine: 1520
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #6A5ACD.\n"
+  example: []
+  syntax:
+    content: public static readonly Color SlateBlue
+    content.vb: Public Shared ReadOnly SlateBlue As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.SlateGray
+  commentId: F:ImageSharp.Color.SlateGray
+  id: SlateGray
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: SlateGray
+  nameWithType: Color.SlateGray
+  fullName: ImageSharp.Color.SlateGray
+  type: Field
+  source:
+    id: SlateGray
+    path: ''
+    startLine: 1525
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #708090.\n"
+  example: []
+  syntax:
+    content: public static readonly Color SlateGray
+    content.vb: Public Shared ReadOnly SlateGray As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.Snow
+  commentId: F:ImageSharp.Color.Snow
+  id: Snow
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Snow
+  nameWithType: Color.Snow
+  fullName: ImageSharp.Color.Snow
+  type: Field
+  source:
+    id: Snow
+    path: ''
+    startLine: 1530
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #FFFAFA.\n"
+  example: []
+  syntax:
+    content: public static readonly Color Snow
+    content.vb: Public Shared ReadOnly Snow As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.SpringGreen
+  commentId: F:ImageSharp.Color.SpringGreen
+  id: SpringGreen
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: SpringGreen
+  nameWithType: Color.SpringGreen
+  fullName: ImageSharp.Color.SpringGreen
+  type: Field
+  source:
+    id: SpringGreen
+    path: ''
+    startLine: 1535
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #00FF7F.\n"
+  example: []
+  syntax:
+    content: public static readonly Color SpringGreen
+    content.vb: Public Shared ReadOnly SpringGreen As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.SteelBlue
+  commentId: F:ImageSharp.Color.SteelBlue
+  id: SteelBlue
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: SteelBlue
+  nameWithType: Color.SteelBlue
+  fullName: ImageSharp.Color.SteelBlue
+  type: Field
+  source:
+    id: SteelBlue
+    path: ''
+    startLine: 1540
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #4682B4.\n"
+  example: []
+  syntax:
+    content: public static readonly Color SteelBlue
+    content.vb: Public Shared ReadOnly SteelBlue As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.Tan
+  commentId: F:ImageSharp.Color.Tan
+  id: Tan
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Tan
+  nameWithType: Color.Tan
+  fullName: ImageSharp.Color.Tan
+  type: Field
+  source:
+    id: Tan
+    path: ''
+    startLine: 1545
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #D2B48C.\n"
+  example: []
+  syntax:
+    content: public static readonly Color Tan
+    content.vb: Public Shared ReadOnly Tan As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.Teal
+  commentId: F:ImageSharp.Color.Teal
+  id: Teal
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Teal
+  nameWithType: Color.Teal
+  fullName: ImageSharp.Color.Teal
+  type: Field
+  source:
+    id: Teal
+    path: ''
+    startLine: 1550
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #008080.\n"
+  example: []
+  syntax:
+    content: public static readonly Color Teal
+    content.vb: Public Shared ReadOnly Teal As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.Thistle
+  commentId: F:ImageSharp.Color.Thistle
+  id: Thistle
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Thistle
+  nameWithType: Color.Thistle
+  fullName: ImageSharp.Color.Thistle
+  type: Field
+  source:
+    id: Thistle
+    path: ''
+    startLine: 1555
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #D8BFD8.\n"
+  example: []
+  syntax:
+    content: public static readonly Color Thistle
+    content.vb: Public Shared ReadOnly Thistle As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.Tomato
+  commentId: F:ImageSharp.Color.Tomato
+  id: Tomato
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Tomato
+  nameWithType: Color.Tomato
+  fullName: ImageSharp.Color.Tomato
+  type: Field
+  source:
+    id: Tomato
+    path: ''
+    startLine: 1560
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #FF6347.\n"
+  example: []
+  syntax:
+    content: public static readonly Color Tomato
+    content.vb: Public Shared ReadOnly Tomato As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.Transparent
+  commentId: F:ImageSharp.Color.Transparent
+  id: Transparent
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Transparent
+  nameWithType: Color.Transparent
+  fullName: ImageSharp.Color.Transparent
+  type: Field
+  source:
+    id: Transparent
+    path: ''
+    startLine: 1565
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #FFFFFF.\n"
+  example: []
+  syntax:
+    content: public static readonly Color Transparent
+    content.vb: Public Shared ReadOnly Transparent As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.Turquoise
+  commentId: F:ImageSharp.Color.Turquoise
+  id: Turquoise
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Turquoise
+  nameWithType: Color.Turquoise
+  fullName: ImageSharp.Color.Turquoise
+  type: Field
+  source:
+    id: Turquoise
+    path: ''
+    startLine: 1570
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #40E0D0.\n"
+  example: []
+  syntax:
+    content: public static readonly Color Turquoise
+    content.vb: Public Shared ReadOnly Turquoise As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.Violet
+  commentId: F:ImageSharp.Color.Violet
+  id: Violet
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Violet
+  nameWithType: Color.Violet
+  fullName: ImageSharp.Color.Violet
+  type: Field
+  source:
+    id: Violet
+    path: ''
+    startLine: 1575
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #EE82EE.\n"
+  example: []
+  syntax:
+    content: public static readonly Color Violet
+    content.vb: Public Shared ReadOnly Violet As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.Wheat
+  commentId: F:ImageSharp.Color.Wheat
+  id: Wheat
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Wheat
+  nameWithType: Color.Wheat
+  fullName: ImageSharp.Color.Wheat
+  type: Field
+  source:
+    id: Wheat
+    path: ''
+    startLine: 1580
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #F5DEB3.\n"
+  example: []
+  syntax:
+    content: public static readonly Color Wheat
+    content.vb: Public Shared ReadOnly Wheat As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.White
+  commentId: F:ImageSharp.Color.White
+  id: White
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: White
+  nameWithType: Color.White
+  fullName: ImageSharp.Color.White
+  type: Field
+  source:
+    id: White
+    path: ''
+    startLine: 1585
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #FFFFFF.\n"
+  example: []
+  syntax:
+    content: public static readonly Color White
+    content.vb: Public Shared ReadOnly White As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.WhiteSmoke
+  commentId: F:ImageSharp.Color.WhiteSmoke
+  id: WhiteSmoke
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: WhiteSmoke
+  nameWithType: Color.WhiteSmoke
+  fullName: ImageSharp.Color.WhiteSmoke
+  type: Field
+  source:
+    id: WhiteSmoke
+    path: ''
+    startLine: 1590
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #F5F5F5.\n"
+  example: []
+  syntax:
+    content: public static readonly Color WhiteSmoke
+    content.vb: Public Shared ReadOnly WhiteSmoke As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.Yellow
+  commentId: F:ImageSharp.Color.Yellow
+  id: Yellow
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Yellow
+  nameWithType: Color.Yellow
+  fullName: ImageSharp.Color.Yellow
+  type: Field
+  source:
+    id: Yellow
+    path: ''
+    startLine: 1595
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #FFFF00.\n"
+  example: []
+  syntax:
+    content: public static readonly Color Yellow
+    content.vb: Public Shared ReadOnly Yellow As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.YellowGreen
+  commentId: F:ImageSharp.Color.YellowGreen
+  id: YellowGreen
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: YellowGreen
+  nameWithType: Color.YellowGreen
+  fullName: ImageSharp.Color.YellowGreen
+  type: Field
+  source:
+    id: YellowGreen
+    path: ''
+    startLine: 1600
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> matching the W3C definition that has an hex value of #9ACD32.\n"
+  example: []
+  syntax:
+    content: public static readonly Color YellowGreen
+    content.vb: Public Shared ReadOnly YellowGreen As Color
+    return:
+      type: ImageSharp.Color
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Color.op_Implicit(ImageSharp.Bgra32)~ImageSharp.Color
+  commentId: M:ImageSharp.Color.op_Implicit(ImageSharp.Bgra32)~ImageSharp.Color
+  id: op_Implicit(ImageSharp.Bgra32)~ImageSharp.Color
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Implicit(Bgra32 to Color)
+  nameWithType: Color.Implicit(Bgra32 to Color)
+  fullName: ImageSharp.Color.Implicit(ImageSharp.Bgra32 to ImageSharp.Color)
+  type: Operator
+  source:
+    id: op_Implicit
+    path: ''
+    startLine: 1636
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nAllows the implicit conversion of an instance of <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> to a\n<xref href=\"ImageSharp.Bgra32\" data-throw-if-not-resolved=\"false\"></xref>.\n"
+  example: []
+  syntax:
+    content: public static implicit operator Color(Bgra32 color)
+    content.vb: Public Shared Widening Operator CType(color As Bgra32) As Color
+    parameters:
+    - id: color
+      type: ImageSharp.Bgra32
+      description: The instance of <xref href="ImageSharp.Color" data-throw-if-not-resolved="false"></xref> to convert.
+    return:
+      type: ImageSharp.Color
+      description: "\nAn instance of <xref href=\"ImageSharp.Bgra32\" data-throw-if-not-resolved=\"false\"></xref>.\n"
+  nameWithType.vb: Color.Widening(Bgra32 to Color)
+  modifiers.csharp:
+  - public
+  - static
+  modifiers.vb:
+  - Public
+  - Shared
+  fullName.vb: ImageSharp.Color.Widening(ImageSharp.Bgra32 to ImageSharp.Color)
+  name.vb: Widening(Bgra32 to Color)
+- uid: ImageSharp.Color.op_Implicit(ImageSharp.Cmyk)~ImageSharp.Color
+  commentId: M:ImageSharp.Color.op_Implicit(ImageSharp.Cmyk)~ImageSharp.Color
+  id: op_Implicit(ImageSharp.Cmyk)~ImageSharp.Color
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Implicit(Cmyk to Color)
+  nameWithType: Color.Implicit(Cmyk to Color)
+  fullName: ImageSharp.Color.Implicit(ImageSharp.Cmyk to ImageSharp.Color)
+  type: Operator
+  source:
+    id: op_Implicit
+    path: ''
+    startLine: 1649
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nAllows the implicit conversion of an instance of <xref href=\"ImageSharp.Cmyk\" data-throw-if-not-resolved=\"false\"></xref> to a\n<xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref>.\n"
+  example: []
+  syntax:
+    content: public static implicit operator Color(Cmyk cmykColor)
+    content.vb: Public Shared Widening Operator CType(cmykColor As Cmyk) As Color
+    parameters:
+    - id: cmykColor
+      type: ImageSharp.Cmyk
+      description: The instance of <xref href="ImageSharp.Cmyk" data-throw-if-not-resolved="false"></xref> to convert.
+    return:
+      type: ImageSharp.Color
+      description: "\nAn instance of <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref>.\n"
+  nameWithType.vb: Color.Widening(Cmyk to Color)
+  modifiers.csharp:
+  - public
+  - static
+  modifiers.vb:
+  - Public
+  - Shared
+  fullName.vb: ImageSharp.Color.Widening(ImageSharp.Cmyk to ImageSharp.Color)
+  name.vb: Widening(Cmyk to Color)
+- uid: ImageSharp.Color.op_Implicit(ImageSharp.YCbCr)~ImageSharp.Color
+  commentId: M:ImageSharp.Color.op_Implicit(ImageSharp.YCbCr)~ImageSharp.Color
+  id: op_Implicit(ImageSharp.YCbCr)~ImageSharp.Color
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Implicit(YCbCr to Color)
+  nameWithType: Color.Implicit(YCbCr to Color)
+  fullName: ImageSharp.Color.Implicit(ImageSharp.YCbCr to ImageSharp.Color)
+  type: Operator
+  source:
+    id: op_Implicit
+    path: ''
+    startLine: 1665
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nAllows the implicit conversion of an instance of <xref href=\"ImageSharp.YCbCr\" data-throw-if-not-resolved=\"false\"></xref> to a\n<xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref>.\n"
+  example: []
+  syntax:
+    content: public static implicit operator Color(YCbCr color)
+    content.vb: Public Shared Widening Operator CType(color As YCbCr) As Color
+    parameters:
+    - id: color
+      type: ImageSharp.YCbCr
+      description: The instance of <xref href="ImageSharp.YCbCr" data-throw-if-not-resolved="false"></xref> to convert.
+    return:
+      type: ImageSharp.Color
+      description: "\nAn instance of <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref>.\n"
+  nameWithType.vb: Color.Widening(YCbCr to Color)
+  modifiers.csharp:
+  - public
+  - static
+  modifiers.vb:
+  - Public
+  - Shared
+  fullName.vb: ImageSharp.Color.Widening(ImageSharp.YCbCr to ImageSharp.Color)
+  name.vb: Widening(YCbCr to Color)
+- uid: ImageSharp.Color.op_Implicit(ImageSharp.CieXyz)~ImageSharp.Color
+  commentId: M:ImageSharp.Color.op_Implicit(ImageSharp.CieXyz)~ImageSharp.Color
+  id: op_Implicit(ImageSharp.CieXyz)~ImageSharp.Color
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Implicit(CieXyz to Color)
+  nameWithType: Color.Implicit(CieXyz to Color)
+  fullName: ImageSharp.Color.Implicit(ImageSharp.CieXyz to ImageSharp.Color)
+  type: Operator
+  source:
+    id: op_Implicit
+    path: ''
+    startLine: 1686
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nAllows the implicit conversion of an instance of <xref href=\"ImageSharp.CieXyz\" data-throw-if-not-resolved=\"false\"></xref> to a\n<xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref>.\n"
+  example: []
+  syntax:
+    content: public static implicit operator Color(CieXyz color)
+    content.vb: Public Shared Widening Operator CType(color As CieXyz) As Color
+    parameters:
+    - id: color
+      type: ImageSharp.CieXyz
+      description: The instance of <xref href="ImageSharp.CieXyz" data-throw-if-not-resolved="false"></xref> to convert.
+    return:
+      type: ImageSharp.Color
+      description: "\nAn instance of <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref>.\n"
+  nameWithType.vb: Color.Widening(CieXyz to Color)
+  modifiers.csharp:
+  - public
+  - static
+  modifiers.vb:
+  - Public
+  - Shared
+  fullName.vb: ImageSharp.Color.Widening(ImageSharp.CieXyz to ImageSharp.Color)
+  name.vb: Widening(CieXyz to Color)
+- uid: ImageSharp.Color.op_Implicit(ImageSharp.Hsv)~ImageSharp.Color
+  commentId: M:ImageSharp.Color.op_Implicit(ImageSharp.Hsv)~ImageSharp.Color
+  id: op_Implicit(ImageSharp.Hsv)~ImageSharp.Color
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Implicit(Hsv to Color)
+  nameWithType: Color.Implicit(Hsv to Color)
+  fullName: ImageSharp.Color.Implicit(ImageSharp.Hsv to ImageSharp.Color)
+  type: Operator
+  source:
+    id: op_Implicit
+    path: ''
+    startLine: 1709
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nAllows the implicit conversion of an instance of <xref href=\"ImageSharp.Hsv\" data-throw-if-not-resolved=\"false\"></xref> to a\n<xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref>.\n"
+  example: []
+  syntax:
+    content: public static implicit operator Color(Hsv color)
+    content.vb: Public Shared Widening Operator CType(color As Hsv) As Color
+    parameters:
+    - id: color
+      type: ImageSharp.Hsv
+      description: The instance of <xref href="ImageSharp.Hsv" data-throw-if-not-resolved="false"></xref> to convert.
+    return:
+      type: ImageSharp.Color
+      description: "\nAn instance of <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref>.\n"
+  nameWithType.vb: Color.Widening(Hsv to Color)
+  modifiers.csharp:
+  - public
+  - static
+  modifiers.vb:
+  - Public
+  - Shared
+  fullName.vb: ImageSharp.Color.Widening(ImageSharp.Hsv to ImageSharp.Color)
+  name.vb: Widening(Hsv to Color)
+- uid: ImageSharp.Color.op_Implicit(ImageSharp.Hsl)~ImageSharp.Color
+  commentId: M:ImageSharp.Color.op_Implicit(ImageSharp.Hsl)~ImageSharp.Color
+  id: op_Implicit(ImageSharp.Hsl)~ImageSharp.Color
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Implicit(Hsl to Color)
+  nameWithType: Color.Implicit(Hsl to Color)
+  fullName: ImageSharp.Color.Implicit(ImageSharp.Hsl to ImageSharp.Color)
+  type: Operator
+  source:
+    id: op_Implicit
+    path: ''
+    startLine: 1778
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nAllows the implicit conversion of an instance of <xref href=\"ImageSharp.Hsl\" data-throw-if-not-resolved=\"false\"></xref> to a\n<xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref>.\n"
+  example: []
+  syntax:
+    content: public static implicit operator Color(Hsl color)
+    content.vb: Public Shared Widening Operator CType(color As Hsl) As Color
+    parameters:
+    - id: color
+      type: ImageSharp.Hsl
+      description: The instance of <xref href="ImageSharp.Hsl" data-throw-if-not-resolved="false"></xref> to convert.
+    return:
+      type: ImageSharp.Color
+      description: "\nAn instance of <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref>.\n"
+  nameWithType.vb: Color.Widening(Hsl to Color)
+  modifiers.csharp:
+  - public
+  - static
+  modifiers.vb:
+  - Public
+  - Shared
+  fullName.vb: ImageSharp.Color.Widening(ImageSharp.Hsl to ImageSharp.Color)
+  name.vb: Widening(Hsl to Color)
+- uid: ImageSharp.Color.op_Implicit(ImageSharp.CieLab)~ImageSharp.Color
+  commentId: M:ImageSharp.Color.op_Implicit(ImageSharp.CieLab)~ImageSharp.Color
+  id: op_Implicit(ImageSharp.CieLab)~ImageSharp.Color
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Implicit(CieLab to Color)
+  nameWithType: Color.Implicit(CieLab to Color)
+  fullName: ImageSharp.Color.Implicit(ImageSharp.CieLab to ImageSharp.Color)
+  type: Operator
+  source:
+    id: op_Implicit
+    path: ''
+    startLine: 1815
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nAllows the implicit conversion of an instance of <xref href=\"ImageSharp.CieLab\" data-throw-if-not-resolved=\"false\"></xref> to a\n<xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref>.\n"
+  example: []
+  syntax:
+    content: public static implicit operator Color(CieLab cieLabColor)
+    content.vb: Public Shared Widening Operator CType(cieLabColor As CieLab) As Color
+    parameters:
+    - id: cieLabColor
+      type: ImageSharp.CieLab
+      description: The instance of <xref href="ImageSharp.CieLab" data-throw-if-not-resolved="false"></xref> to convert.
+    return:
+      type: ImageSharp.Color
+      description: "\nAn instance of <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref>.\n"
+  nameWithType.vb: Color.Widening(CieLab to Color)
+  modifiers.csharp:
+  - public
+  - static
+  modifiers.vb:
+  - Public
+  - Shared
+  fullName.vb: ImageSharp.Color.Widening(ImageSharp.CieLab to ImageSharp.Color)
+  name.vb: Widening(CieLab to Color)
+- uid: ImageSharp.Color.Multiply(ImageSharp.Color,ImageSharp.Color)
+  commentId: M:ImageSharp.Color.Multiply(ImageSharp.Color,ImageSharp.Color)
+  id: Multiply(ImageSharp.Color,ImageSharp.Color)
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Multiply(Color, Color)
+  nameWithType: Color.Multiply(Color, Color)
+  fullName: ImageSharp.Color.Multiply(ImageSharp.Color, ImageSharp.Color)
+  type: Method
+  source:
+    id: Multiply
+    path: ''
+    startLine: 1930
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nBlends two colors by multiplication.\n<remarks>\nThe source color is multiplied by the destination color and replaces the destination.\nThe resultant color is always at least as dark as either the source or destination color.\nMultiplying any color with black results in black. Multiplying any color with white preserves the\noriginal color.\n</remarks>\n"
+  example: []
+  syntax:
+    content: public static Color Multiply(Color source, Color destination)
+    content.vb: Public Shared Function Multiply(source As Color, destination As Color) As Color
+    parameters:
+    - id: source
+      type: ImageSharp.Color
+      description: The source color.
+    - id: destination
+      type: ImageSharp.Color
+      description: The destination color.
+    return:
+      type: ImageSharp.Color
+      description: "\nThe <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref>.\n"
+  modifiers.csharp:
+  - public
+  - static
+  modifiers.vb:
+  - Public
+  - Shared
+- uid: ImageSharp.Color.Lerp(ImageSharp.Color,ImageSharp.Color,System.Single)
+  commentId: M:ImageSharp.Color.Lerp(ImageSharp.Color,ImageSharp.Color,System.Single)
+  id: Lerp(ImageSharp.Color,ImageSharp.Color,System.Single)
+  parent: ImageSharp.Color
+  langs:
+  - csharp
+  - vb
+  name: Lerp(Color, Color, Single)
+  nameWithType: Color.Lerp(Color, Color, Single)
+  fullName: ImageSharp.Color.Lerp(ImageSharp.Color, ImageSharp.Color, System.Single)
+  type: Method
+  source:
+    id: Lerp
+    path: ''
+    startLine: 1964
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nLinearly interpolates from one color to another based on the given weighting.\n"
+  example: []
+  syntax:
+    content: public static Color Lerp(Color from, Color to, float amount)
+    content.vb: Public Shared Function Lerp(from As Color, to As Color, amount As Single) As Color
+    parameters:
+    - id: from
+      type: ImageSharp.Color
+      description: The first color value.
+    - id: to
+      type: ImageSharp.Color
+      description: The second color value.
+    - id: amount
+      type: System.Single
+      description: "\nA value between 0 and 1 indicating the weight of the second source vector.\nAt amount = 0, \"from\" is returned, at amount = 1, \"to\" is returned.\n"
+    return:
+      type: ImageSharp.Color
+      description: "\nThe <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref>\n"
+  modifiers.csharp:
+  - public
+  - static
+  modifiers.vb:
+  - Public
+  - Shared
+references:
+- uid: ImageSharp
+  commentId: N:ImageSharp
+  isExternal: false
+  name: ImageSharp
+  nameWithType: ImageSharp
+  fullName: ImageSharp
+- uid: ImageSharp.IPackedPixel{System.UInt32}
+  commentId: T:ImageSharp.IPackedPixel{System.UInt32}
+  parent: ImageSharp
+  definition: ImageSharp.IPackedPixel`1
+  name: IPackedPixel<UInt32>
+  nameWithType: IPackedPixel<UInt32>
+  fullName: ImageSharp.IPackedPixel<System.UInt32>
+  nameWithType.vb: IPackedPixel(Of UInt32)
+  fullname.vb: ImageSharp.IPackedPixel(Of System.UInt32)
+  name.vb: IPackedPixel(Of UInt32)
+  spec.csharp:
+  - uid: ImageSharp.IPackedPixel`1
+    name: IPackedPixel
+    nameWithType: IPackedPixel
+    fullName: ImageSharp.IPackedPixel
+  - name: <
+    nameWithType: <
+    fullName: <
+  - uid: System.UInt32
+    name: UInt32
+    nameWithType: UInt32
+    fullName: System.UInt32
+    isExternal: true
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.IPackedPixel`1
+    name: IPackedPixel
+    nameWithType: IPackedPixel
+    fullName: ImageSharp.IPackedPixel
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - uid: System.UInt32
+    name: UInt32
+    nameWithType: UInt32
+    fullName: System.UInt32
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.IPackedVector{System.UInt32}
+  commentId: T:ImageSharp.IPackedVector{System.UInt32}
+  parent: ImageSharp
+  definition: ImageSharp.IPackedVector`1
+  name: IPackedVector<UInt32>
+  nameWithType: IPackedVector<UInt32>
+  fullName: ImageSharp.IPackedVector<System.UInt32>
+  nameWithType.vb: IPackedVector(Of UInt32)
+  fullname.vb: ImageSharp.IPackedVector(Of System.UInt32)
+  name.vb: IPackedVector(Of UInt32)
+  spec.csharp:
+  - uid: ImageSharp.IPackedVector`1
+    name: IPackedVector
+    nameWithType: IPackedVector
+    fullName: ImageSharp.IPackedVector
+  - name: <
+    nameWithType: <
+    fullName: <
+  - uid: System.UInt32
+    name: UInt32
+    nameWithType: UInt32
+    fullName: System.UInt32
+    isExternal: true
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.IPackedVector`1
+    name: IPackedVector
+    nameWithType: IPackedVector
+    fullName: ImageSharp.IPackedVector
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - uid: System.UInt32
+    name: UInt32
+    nameWithType: UInt32
+    fullName: System.UInt32
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.IPackedVector
+  commentId: T:ImageSharp.IPackedVector
+  parent: ImageSharp
+  isExternal: false
+  name: IPackedVector
+  nameWithType: IPackedVector
+  fullName: ImageSharp.IPackedVector
+- uid: ImageSharp.IPackedBytes
+  commentId: T:ImageSharp.IPackedBytes
+  parent: ImageSharp
+  isExternal: false
+  name: IPackedBytes
+  nameWithType: IPackedBytes
+  fullName: ImageSharp.IPackedBytes
+- uid: System.IEquatable{ImageSharp.Color}
+  commentId: T:System.IEquatable{ImageSharp.Color}
+  parent: System
+  definition: System.IEquatable`1
+  name: IEquatable<Color>
+  nameWithType: IEquatable<Color>
+  fullName: System.IEquatable<ImageSharp.Color>
+  nameWithType.vb: IEquatable(Of Color)
+  fullname.vb: System.IEquatable(Of ImageSharp.Color)
+  name.vb: IEquatable(Of Color)
+  spec.csharp:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    nameWithType: IEquatable
+    fullName: System.IEquatable
+    isExternal: true
+  - name: <
+    nameWithType: <
+    fullName: <
+  - uid: ImageSharp.Color
+    name: Color
+    nameWithType: Color
+    fullName: ImageSharp.Color
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    nameWithType: IEquatable
+    fullName: System.IEquatable
+    isExternal: true
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - uid: ImageSharp.Color
+    name: Color
+    nameWithType: Color
+    fullName: ImageSharp.Color
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  name: Equals(Object, Object)
+  nameWithType: Object.Equals(Object, Object)
+  fullName: System.Object.Equals(System.Object, System.Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  name: ReferenceEquals(Object, Object)
+  nameWithType: Object.ReferenceEquals(Object, Object)
+  fullName: System.Object.ReferenceEquals(System.Object, System.Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    nameWithType: Object.ReferenceEquals
+    fullName: System.Object.ReferenceEquals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    nameWithType: Object.ReferenceEquals
+    fullName: System.Object.ReferenceEquals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  name: GetType()
+  nameWithType: Object.GetType()
+  fullName: System.Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    nameWithType: Object.GetType
+    fullName: System.Object.GetType
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    nameWithType: Object.GetType
+    fullName: System.Object.GetType
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.IPackedPixel`1
+  commentId: T:ImageSharp.IPackedPixel`1
+  isExternal: false
+  name: IPackedPixel<TPacked>
+  nameWithType: IPackedPixel<TPacked>
+  fullName: ImageSharp.IPackedPixel<TPacked>
+  nameWithType.vb: IPackedPixel(Of TPacked)
+  fullname.vb: ImageSharp.IPackedPixel(Of TPacked)
+  name.vb: IPackedPixel(Of TPacked)
+  spec.csharp:
+  - uid: ImageSharp.IPackedPixel`1
+    name: IPackedPixel
+    nameWithType: IPackedPixel
+    fullName: ImageSharp.IPackedPixel
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.IPackedPixel`1
+    name: IPackedPixel
+    nameWithType: IPackedPixel
+    fullName: ImageSharp.IPackedPixel
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.IPackedVector`1
+  commentId: T:ImageSharp.IPackedVector`1
+  isExternal: false
+  name: IPackedVector<TPacked>
+  nameWithType: IPackedVector<TPacked>
+  fullName: ImageSharp.IPackedVector<TPacked>
+  nameWithType.vb: IPackedVector(Of TPacked)
+  fullname.vb: ImageSharp.IPackedVector(Of TPacked)
+  name.vb: IPackedVector(Of TPacked)
+  spec.csharp:
+  - uid: ImageSharp.IPackedVector`1
+    name: IPackedVector
+    nameWithType: IPackedVector
+    fullName: ImageSharp.IPackedVector
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.IPackedVector`1
+    name: IPackedVector
+    nameWithType: IPackedVector
+    fullName: ImageSharp.IPackedVector
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.IEquatable`1
+  commentId: T:System.IEquatable`1
+  isExternal: true
+  name: IEquatable<T>
+  nameWithType: IEquatable<T>
+  fullName: System.IEquatable<T>
+  nameWithType.vb: IEquatable(Of T)
+  fullname.vb: System.IEquatable(Of T)
+  name.vb: IEquatable(Of T)
+  spec.csharp:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    nameWithType: IEquatable
+    fullName: System.IEquatable
+    isExternal: true
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: T
+    nameWithType: T
+    fullName: T
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    nameWithType: IEquatable
+    fullName: System.IEquatable
+    isExternal: true
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: T
+    nameWithType: T
+    fullName: T
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System
+  commentId: N:System
+  isExternal: false
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  name: Object
+  nameWithType: Object
+  fullName: System.Object
+- uid: ImageSharp.Color
+  commentId: T:ImageSharp.Color
+  parent: ImageSharp
+  isExternal: false
+  name: Color
+  nameWithType: Color
+  fullName: ImageSharp.Color
+- uid: System.Byte
+  commentId: T:System.Byte
+  parent: System
+  isExternal: true
+  name: Byte
+  nameWithType: Byte
+  fullName: System.Byte
+- uid: System.String
+  commentId: T:System.String
+  parent: System
+  isExternal: true
+  name: String
+  nameWithType: String
+  fullName: System.String
+- uid: System.Single
+  commentId: T:System.Single
+  parent: System
+  isExternal: true
+  name: Single
+  nameWithType: Single
+  fullName: System.Single
+- uid: Vector3
+  commentId: '!:Vector3'
+  isExternal: true
+  name: Vector3
+  nameWithType: Vector3
+  fullName: Vector3
+- uid: Vector4
+  isExternal: true
+  name: Vector4
+  nameWithType: Vector4
+  fullName: Vector4
+- uid: ImageSharp.IPackedVector{System.UInt32}.PackedValue
+  commentId: P:ImageSharp.IPackedVector{System.UInt32}.PackedValue
+  parent: ImageSharp.IPackedVector{System.UInt32}
+  definition: ImageSharp.IPackedVector`1.PackedValue
+  name: PackedValue
+  nameWithType: IPackedVector<UInt32>.PackedValue
+  fullName: ImageSharp.IPackedVector<System.UInt32>.PackedValue
+  nameWithType.vb: IPackedVector(Of UInt32).PackedValue
+  fullname.vb: ImageSharp.IPackedVector(Of System.UInt32).PackedValue
+- uid: System.UInt32
+  commentId: T:System.UInt32
+  parent: System
+  isExternal: true
+  name: UInt32
+  nameWithType: UInt32
+  fullName: System.UInt32
+- uid: ImageSharp.IPackedVector`1.PackedValue
+  commentId: P:ImageSharp.IPackedVector`1.PackedValue
+  isExternal: false
+  name: PackedValue
+  nameWithType: IPackedVector<TPacked>.PackedValue
+  fullName: ImageSharp.IPackedVector<TPacked>.PackedValue
+  nameWithType.vb: IPackedVector(Of TPacked).PackedValue
+  fullname.vb: ImageSharp.IPackedVector(Of TPacked).PackedValue
+- uid: System.Boolean
+  commentId: T:System.Boolean
+  parent: System
+  isExternal: true
+  name: Boolean
+  nameWithType: Boolean
+  fullName: System.Boolean
+- uid: ImageSharp.IPackedBytes.PackFromBytes(System.Byte,System.Byte,System.Byte,System.Byte)
+  commentId: M:ImageSharp.IPackedBytes.PackFromBytes(System.Byte,System.Byte,System.Byte,System.Byte)
+  parent: ImageSharp.IPackedBytes
+  isExternal: true
+  name: PackFromBytes(Byte, Byte, Byte, Byte)
+  nameWithType: IPackedBytes.PackFromBytes(Byte, Byte, Byte, Byte)
+  fullName: ImageSharp.IPackedBytes.PackFromBytes(System.Byte, System.Byte, System.Byte, System.Byte)
+  spec.csharp:
+  - uid: ImageSharp.IPackedBytes.PackFromBytes(System.Byte,System.Byte,System.Byte,System.Byte)
+    name: PackFromBytes
+    nameWithType: IPackedBytes.PackFromBytes
+    fullName: ImageSharp.IPackedBytes.PackFromBytes
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Byte
+    name: Byte
+    nameWithType: Byte
+    fullName: System.Byte
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Byte
+    name: Byte
+    nameWithType: Byte
+    fullName: System.Byte
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Byte
+    name: Byte
+    nameWithType: Byte
+    fullName: System.Byte
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Byte
+    name: Byte
+    nameWithType: Byte
+    fullName: System.Byte
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: ImageSharp.IPackedBytes.PackFromBytes(System.Byte,System.Byte,System.Byte,System.Byte)
+    name: PackFromBytes
+    nameWithType: IPackedBytes.PackFromBytes
+    fullName: ImageSharp.IPackedBytes.PackFromBytes
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Byte
+    name: Byte
+    nameWithType: Byte
+    fullName: System.Byte
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Byte
+    name: Byte
+    nameWithType: Byte
+    fullName: System.Byte
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Byte
+    name: Byte
+    nameWithType: Byte
+    fullName: System.Byte
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Byte
+    name: Byte
+    nameWithType: Byte
+    fullName: System.Byte
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.IPackedBytes.ToBytes(System.Byte[],System.Int32,ImageSharp.ComponentOrder)
+  commentId: M:ImageSharp.IPackedBytes.ToBytes(System.Byte[],System.Int32,ImageSharp.ComponentOrder)
+  parent: ImageSharp.IPackedBytes
+  isExternal: true
+  name: ToBytes(Byte[], Int32, ComponentOrder)
+  nameWithType: IPackedBytes.ToBytes(Byte[], Int32, ComponentOrder)
+  fullName: ImageSharp.IPackedBytes.ToBytes(System.Byte[], System.Int32, ImageSharp.ComponentOrder)
+  nameWithType.vb: IPackedBytes.ToBytes(Byte(), Int32, ComponentOrder)
+  fullname.vb: ImageSharp.IPackedBytes.ToBytes(System.Byte(), System.Int32, ImageSharp.ComponentOrder)
+  name.vb: ToBytes(Byte(), Int32, ComponentOrder)
+  spec.csharp:
+  - uid: ImageSharp.IPackedBytes.ToBytes(System.Byte[],System.Int32,ImageSharp.ComponentOrder)
+    name: ToBytes
+    nameWithType: IPackedBytes.ToBytes
+    fullName: ImageSharp.IPackedBytes.ToBytes
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Byte
+    name: Byte
+    nameWithType: Byte
+    fullName: System.Byte
+    isExternal: true
+  - name: '[]'
+    nameWithType: '[]'
+    fullName: '[]'
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.ComponentOrder
+    name: ComponentOrder
+    nameWithType: ComponentOrder
+    fullName: ImageSharp.ComponentOrder
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: ImageSharp.IPackedBytes.ToBytes(System.Byte[],System.Int32,ImageSharp.ComponentOrder)
+    name: ToBytes
+    nameWithType: IPackedBytes.ToBytes
+    fullName: ImageSharp.IPackedBytes.ToBytes
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Byte
+    name: Byte
+    nameWithType: Byte
+    fullName: System.Byte
+    isExternal: true
+  - name: ()
+    nameWithType: ()
+    fullName: ()
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.ComponentOrder
+    name: ComponentOrder
+    nameWithType: ComponentOrder
+    fullName: ImageSharp.ComponentOrder
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Byte[]
+  name: Byte[]
+  nameWithType: Byte[]
+  fullName: System.Byte[]
+  nameWithType.vb: Byte()
+  fullname.vb: System.Byte()
+  name.vb: Byte()
+  spec.csharp:
+  - uid: System.Byte
+    name: Byte
+    nameWithType: Byte
+    fullName: System.Byte
+    isExternal: true
+  - name: '[]'
+    nameWithType: '[]'
+    fullName: '[]'
+  spec.vb:
+  - uid: System.Byte
+    name: Byte
+    nameWithType: Byte
+    fullName: System.Byte
+    isExternal: true
+  - name: ()
+    nameWithType: ()
+    fullName: ()
+- uid: System.Int32
+  commentId: T:System.Int32
+  parent: System
+  isExternal: true
+  name: Int32
+  nameWithType: Int32
+  fullName: System.Int32
+- uid: ImageSharp.ComponentOrder
+  commentId: T:ImageSharp.ComponentOrder
+  parent: ImageSharp
+  isExternal: false
+  name: ComponentOrder
+  nameWithType: ComponentOrder
+  fullName: ImageSharp.ComponentOrder
+- uid: ImageSharp.IPackedVector.PackFromVector4(Vector4)
+  commentId: M:ImageSharp.IPackedVector.PackFromVector4(Vector4)
+  parent: ImageSharp.IPackedVector
+  isExternal: true
+  name: PackFromVector4(Vector4)
+  nameWithType: IPackedVector.PackFromVector4(Vector4)
+  fullName: ImageSharp.IPackedVector.PackFromVector4(Vector4)
+  spec.csharp:
+  - uid: ImageSharp.IPackedVector.PackFromVector4(Vector4)
+    name: PackFromVector4
+    nameWithType: IPackedVector.PackFromVector4
+    fullName: ImageSharp.IPackedVector.PackFromVector4
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: Vector4
+    name: Vector4
+    nameWithType: Vector4
+    fullName: Vector4
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: ImageSharp.IPackedVector.PackFromVector4(Vector4)
+    name: PackFromVector4
+    nameWithType: IPackedVector.PackFromVector4
+    fullName: ImageSharp.IPackedVector.PackFromVector4
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: Vector4
+    name: Vector4
+    nameWithType: Vector4
+    fullName: Vector4
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.IPackedVector.ToVector4
+  commentId: M:ImageSharp.IPackedVector.ToVector4
+  parent: ImageSharp.IPackedVector
+  isExternal: false
+  name: ToVector4()
+  nameWithType: IPackedVector.ToVector4()
+  fullName: ImageSharp.IPackedVector.ToVector4()
+  spec.csharp:
+  - uid: ImageSharp.IPackedVector.ToVector4
+    name: ToVector4
+    nameWithType: IPackedVector.ToVector4
+    fullName: ImageSharp.IPackedVector.ToVector4
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: ImageSharp.IPackedVector.ToVector4
+    name: ToVector4
+    nameWithType: IPackedVector.ToVector4
+    fullName: ImageSharp.IPackedVector.ToVector4
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.ValueType.Equals(System.Object)
+  commentId: M:System.ValueType.Equals(System.Object)
+  parent: System.ValueType
+  isExternal: true
+  name: Equals(Object)
+  nameWithType: ValueType.Equals(Object)
+  fullName: System.ValueType.Equals(System.Object)
+  spec.csharp:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    nameWithType: ValueType.Equals
+    fullName: System.ValueType.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    nameWithType: ValueType.Equals
+    fullName: System.ValueType.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.ValueType
+  commentId: T:System.ValueType
+  parent: System
+  isExternal: true
+  name: ValueType
+  nameWithType: ValueType
+  fullName: System.ValueType
+- uid: System.IEquatable{ImageSharp.Color}.Equals(ImageSharp.Color)
+  commentId: M:System.IEquatable{ImageSharp.Color}.Equals(ImageSharp.Color)
+  parent: System.IEquatable{ImageSharp.Color}
+  definition: System.IEquatable`1.Equals(`0)
+  name: Equals(Color)
+  nameWithType: IEquatable<Color>.Equals(Color)
+  fullName: System.IEquatable<ImageSharp.Color>.Equals(ImageSharp.Color)
+  nameWithType.vb: IEquatable(Of Color).Equals(Color)
+  fullname.vb: System.IEquatable(Of ImageSharp.Color).Equals(ImageSharp.Color)
+  spec.csharp:
+  - uid: System.IEquatable`1.Equals(`0)
+    name: Equals
+    nameWithType: IEquatable<Color>.Equals
+    fullName: System.IEquatable<ImageSharp.Color>.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.Color
+    name: Color
+    nameWithType: Color
+    fullName: ImageSharp.Color
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.IEquatable`1.Equals(`0)
+    name: Equals
+    nameWithType: IEquatable(Of Color).Equals
+    fullName: System.IEquatable(Of ImageSharp.Color).Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.Color
+    name: Color
+    nameWithType: Color
+    fullName: ImageSharp.Color
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.IEquatable`1.Equals(`0)
+  commentId: M:System.IEquatable`1.Equals(`0)
+  isExternal: true
+  name: Equals(T)
+  nameWithType: IEquatable<T>.Equals(T)
+  fullName: System.IEquatable<T>.Equals(T)
+  nameWithType.vb: IEquatable(Of T).Equals(T)
+  fullname.vb: System.IEquatable(Of T).Equals(T)
+  spec.csharp:
+  - uid: System.IEquatable`1.Equals(`0)
+    name: Equals
+    nameWithType: IEquatable<T>.Equals
+    fullName: System.IEquatable<T>.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: T
+    nameWithType: T
+    fullName: T
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.IEquatable`1.Equals(`0)
+    name: Equals
+    nameWithType: IEquatable(Of T).Equals
+    fullName: System.IEquatable(Of T).Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: T
+    nameWithType: T
+    fullName: T
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.ValueType.ToString
+  commentId: M:System.ValueType.ToString
+  parent: System.ValueType
+  isExternal: true
+  name: ToString()
+  nameWithType: ValueType.ToString()
+  fullName: System.ValueType.ToString()
+  spec.csharp:
+  - uid: System.ValueType.ToString
+    name: ToString
+    nameWithType: ValueType.ToString
+    fullName: System.ValueType.ToString
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.ValueType.ToString
+    name: ToString
+    nameWithType: ValueType.ToString
+    fullName: System.ValueType.ToString
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.ValueType.GetHashCode
+  commentId: M:System.ValueType.GetHashCode
+  parent: System.ValueType
+  isExternal: true
+  name: GetHashCode()
+  nameWithType: ValueType.GetHashCode()
+  fullName: System.ValueType.GetHashCode()
+  spec.csharp:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    nameWithType: ValueType.GetHashCode
+    fullName: System.ValueType.GetHashCode
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    nameWithType: ValueType.GetHashCode
+    fullName: System.ValueType.GetHashCode
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Bgra32
+  commentId: T:ImageSharp.Bgra32
+  parent: ImageSharp
+  isExternal: false
+  name: Bgra32
+  nameWithType: Bgra32
+  fullName: ImageSharp.Bgra32
+- uid: ImageSharp.Cmyk
+  commentId: T:ImageSharp.Cmyk
+  parent: ImageSharp
+  isExternal: false
+  name: Cmyk
+  nameWithType: Cmyk
+  fullName: ImageSharp.Cmyk
+- uid: ImageSharp.YCbCr
+  commentId: T:ImageSharp.YCbCr
+  parent: ImageSharp
+  isExternal: false
+  name: YCbCr
+  nameWithType: YCbCr
+  fullName: ImageSharp.YCbCr
+- uid: ImageSharp.CieXyz
+  commentId: T:ImageSharp.CieXyz
+  parent: ImageSharp
+  isExternal: false
+  name: CieXyz
+  nameWithType: CieXyz
+  fullName: ImageSharp.CieXyz
+- uid: ImageSharp.Hsv
+  commentId: T:ImageSharp.Hsv
+  parent: ImageSharp
+  isExternal: false
+  name: Hsv
+  nameWithType: Hsv
+  fullName: ImageSharp.Hsv
+- uid: ImageSharp.Hsl
+  commentId: T:ImageSharp.Hsl
+  parent: ImageSharp
+  isExternal: false
+  name: Hsl
+  nameWithType: Hsl
+  fullName: ImageSharp.Hsl
+- uid: ImageSharp.CieLab
+  commentId: T:ImageSharp.CieLab
+  parent: ImageSharp
+  isExternal: false
+  name: CieLab
+  nameWithType: CieLab
+  fullName: ImageSharp.CieLab

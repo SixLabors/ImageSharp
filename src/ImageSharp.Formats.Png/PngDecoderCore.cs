@@ -10,6 +10,7 @@ namespace ImageSharp.Formats
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
+    using System.Runtime.CompilerServices;
 
     using static ComparableExtensions;
 
@@ -945,12 +946,7 @@ namespace ImageSharp.Formats
         private void ReadChunkLength(PngChunk chunk)
         {
             int numBytes = this.currentStream.Read(this.chunkLengthBuffer, 0, 4);
-            if (numBytes > 1 && numBytes <= 3)
-            {
-                throw new ImageFormatException("Image stream is not valid!");
-            }
-
-            if (numBytes <= 1)
+            if (numBytes < 4)
             {
                 chunk.Length = -1;
                 return;
@@ -966,6 +962,7 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <param name="pass">Th current pass index</param>
         /// <returns>The <see cref="int"/></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private int ComputeColumnsAdam7(int pass)
         {
             int width = this.header.Width;

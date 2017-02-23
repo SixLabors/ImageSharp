@@ -1,4 +1,5 @@
 
+# <img src="build/icons/imagesharp-logo-heading.png" alt="ImageSharp" height="96"/>
 
 **ImageSharp** is a new cross-platform 2D graphics API designed to allow the processing of images without the use of `System.Drawing`. 
 

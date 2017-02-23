@@ -30,7 +30,8 @@ namespace ImageSharp.Tests
                TestFile.Create(TestImages.Bmp.Car),
             // TestFile.Create(TestImages.Bmp.Neg_height), // Perf: Enable for local testing only
                TestFile.Create(TestImages.Png.Splash),
-            // TestFile.Create(TestImages.Png.ChunkLength), // Perf: Enable for local testing only
+            // TestFile.Create(TestImages.Png.ChunkLength1), // Perf: Enable for local testing only
+            // TestFile.Create(TestImages.Png.ChunkLength2), // Perf: Enable for local testing only
             // TestFile.Create(TestImages.Png.Powerpoint), // Perf: Enable for local testing only
             // TestFile.Create(TestImages.Png.Blur), // Perf: Enable for local testing only
             // TestFile.Create(TestImages.Png.Indexed), // Perf: Enable for local testing only

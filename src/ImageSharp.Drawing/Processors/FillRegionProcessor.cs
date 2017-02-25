@@ -202,7 +202,6 @@ namespace ImageSharp.Drawing.Processors
                                 Vector4 sourceVector = applicator[x, y].ToVector4();
 
                                 Vector4 finalColor = Vector4BlendTransforms.PremultipliedLerp(backgroundVector, sourceVector, opacity);
-                                finalColor.W = backgroundVector.W;
 
                                 TColor packed = default(TColor);
                                 packed.PackFromVector4(finalColor);

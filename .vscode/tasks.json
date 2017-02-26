@@ -8,7 +8,7 @@
   "tasks": [
     {
       "taskName": "build",
-      "args": [ "src/*/project.json", "-f", "netstandard1.1" ],
+      "args": [ "src/*/project.json", "-f", "netstandard1.6" ],
       "isBuildCommand": true,
       "showOutput": "always",
       "problemMatcher": "$msCompile"

@@ -60,7 +60,8 @@
         "BenchmarkDotNet": "0.10.2",
         "CoreCompat.System.Drawing": "1.0.0-beta006",
         "runtime.linux-x64.CoreCompat.System.Drawing": "1.0.0-beta009",
-        "System.Reflection": "4.3.0"
+        "System.Reflection": "4.3.0",
+        "BenchmarkDotNet.Core": "0.10.2"
       }
     }
   }

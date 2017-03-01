@@ -10,7 +10,7 @@ namespace ImageSharp.Formats
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
-    using System.Text;
+    using System.Runtime.CompilerServices;
 
     using static ComparableExtensions;
 
@@ -63,6 +63,11 @@ namespace ImageSharp.Formats
         /// Reusable buffer for reading char arrays.
         /// </summary>
         private readonly char[] chars = new char[4];
+
+        /// <summary>
+        /// The decoder options.
+        /// </summary>
+        private readonly IPngDecoderOptions options;
 
         /// <summary>
         /// Reusable crc for validating chunks.
@@ -118,6 +123,15 @@ namespace ImageSharp.Formats
             ColorTypes.Add((int)PngColorType.GrayscaleWithAlpha, new byte[] { 8 });
 
             ColorTypes.Add((int)PngColorType.RgbWithAlpha, new byte[] { 8 });
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PngDecoderCore"/> class.
+        /// </summary>
+        /// <param name="options">The decoder options.</param>
+        public PngDecoderCore(IPngDecoderOptions options)
+        {
+            this.options = options ?? new PngDecoderOptions();
         }
 
         /// <summary>
@@ -763,6 +777,11 @@ namespace ImageSharp.Formats
         private void ReadTextChunk<TColor>(Image<TColor> image, byte[] data, int length)
             where TColor : struct, IPixel<TColor>
         {
+            if (this.options.IgnoreMetadata)
+            {
+                return;
+            }
+
             int zeroIndex = 0;
 
             for (int i = 0; i < length; i++)
@@ -774,8 +793,8 @@ namespace ImageSharp.Formats
                 }
             }
 
-            string name = Encoding.Unicode.GetString(data, 0, zeroIndex);
-            string value = Encoding.Unicode.GetString(data, zeroIndex + 1, length - zeroIndex - 1);
+            string name = this.options.TextEncoding.GetString(data, 0, zeroIndex);
+            string value = this.options.TextEncoding.GetString(data, zeroIndex + 1, length - zeroIndex - 1);
 
             image.MetaData.Properties.Add(new ImageProperty(name, value));
         }
@@ -927,12 +946,7 @@ namespace ImageSharp.Formats
         private void ReadChunkLength(PngChunk chunk)
         {
             int numBytes = this.currentStream.Read(this.chunkLengthBuffer, 0, 4);
-            if (numBytes > 1 && numBytes <= 3)
-            {
-                throw new ImageFormatException("Image stream is not valid!");
-            }
-
-            if (numBytes <= 1)
+            if (numBytes < 4)
             {
                 chunk.Length = -1;
                 return;
@@ -948,6 +962,7 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <param name="pass">Th current pass index</param>
         /// <returns>The <see cref="int"/></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private int ComputeColumnsAdam7(int pass)
         {
             int width = this.header.Width;

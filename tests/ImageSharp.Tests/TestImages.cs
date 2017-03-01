@@ -25,18 +25,19 @@ namespace ImageSharp.Tests
             public const string SplashInterlaced = "Png/splash-interlaced.png";
             public const string Interlaced = "Png/interlaced.png";
 
-            // filtered test images from http://www.schaik.com/pngsuite/pngsuite_fil_png.html
+            // Filtered test images from http://www.schaik.com/pngsuite/pngsuite_fil_png.html
             public const string Filter0 = "Png/filter0.png";
             public const string Filter1 = "Png/filter1.png";
             public const string Filter2 = "Png/filter2.png";
             public const string Filter3 = "Png/filter3.png";
             public const string Filter4 = "Png/filter4.png";
 
-            // filter changing per scanline
+            // Filter changing per scanline
             public const string FilterVar = "Png/filterVar.png";
 
-            // Chunk length of 1 by end marker
-            public const string ChunkLength = "Png/chunklength1.png";
+            // Odd chunk lengths
+            public const string ChunkLength1 = "Png/chunklength1.png";
+            public const string ChunkLength2 = "Png/chunklength2.png";
         }
 
         public static class Jpeg

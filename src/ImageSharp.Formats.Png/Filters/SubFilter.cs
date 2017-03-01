@@ -5,6 +5,8 @@
 
 namespace ImageSharp.Formats
 {
+    using System.Runtime.CompilerServices;
+
     /// <summary>
     /// The Sub filter transmits the difference between each byte and the value of the corresponding byte
     /// of the prior pixel.
@@ -18,6 +20,7 @@ namespace ImageSharp.Formats
         /// <param name="scanline">The scanline to decode</param>
         /// <param name="bytesPerScanline">The number of bytes per scanline</param>
         /// <param name="bytesPerPixel">The bytes per pixel.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Decode(byte[] scanline, int bytesPerScanline, int bytesPerPixel)
         {
             // Sub(x) + Raw(x-bpp)
@@ -37,6 +40,7 @@ namespace ImageSharp.Formats
         /// <param name="scanline">The scanline to encode</param>
         /// <param name="result">The filtered scanline result.</param>
         /// <param name="bytesPerPixel">The bytes per pixel.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Encode(byte[] scanline, byte[] result, int bytesPerPixel)
         {
             // Sub(x) = Raw(x) - Raw(x-bpp)

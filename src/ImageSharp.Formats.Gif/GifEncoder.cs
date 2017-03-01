@@ -8,40 +8,31 @@ namespace ImageSharp.Formats
     using System;
     using System.IO;
 
-    using ImageSharp.Quantizers;
-
     /// <summary>
     /// Image encoder for writing image data to a stream in gif format.
     /// </summary>
     public class GifEncoder : IImageEncoder
     {
-        /// <summary>
-        /// Gets or sets the quality of output for images.
-        /// </summary>
-        /// <remarks>For gifs the value ranges from 1 to 256.</remarks>
-        public int Quality { get; set; }
-
-        /// <summary>
-        /// Gets or sets the transparency threshold.
-        /// </summary>
-        public byte Threshold { get; set; } = 128;
-
-        /// <summary>
-        /// Gets or sets the quantizer for reducing the color count.
-        /// </summary>
-        public IQuantizer Quantizer { get; set; }
-
         /// <inheritdoc/>
-        public void Encode<TColor>(Image<TColor> image, Stream stream)
+        public void Encode<TColor>(Image<TColor> image, Stream stream, IEncoderOptions options)
             where TColor : struct, IPixel<TColor>
         {
-            GifEncoderCore encoder = new GifEncoderCore
-            {
-                Quality = this.Quality,
-                Quantizer = this.Quantizer,
-                Threshold = this.Threshold
-            };
+            IGifEncoderOptions gifOptions = GifEncoderOptions.Create(options);
 
+            this.Encode(image, stream, gifOptions);
+        }
+
+        /// <summary>
+        /// Encodes the image to the specified stream from the <see cref="Image{TColor}"/>.
+        /// </summary>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <param name="image">The <see cref="Image{TColor}"/> to encode from.</param>
+        /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
+        /// <param name="options">The options for the encoder.</param>
+        public void Encode<TColor>(Image<TColor> image, Stream stream, IGifEncoderOptions options)
+            where TColor : struct, IPixel<TColor>
+        {
+            GifEncoderCore encoder = new GifEncoderCore(options);
             encoder.Encode(image, stream);
         }
     }

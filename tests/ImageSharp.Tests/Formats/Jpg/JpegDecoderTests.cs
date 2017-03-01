@@ -61,12 +61,13 @@ namespace ImageSharp.Tests
             byte[] data;
             using (Image<TColor> image = provider.GetImage())
             {
-                JpegEncoder encoder = new JpegEncoder() { Subsample = subsample, Quality = quality };
+                JpegEncoder encoder = new JpegEncoder();
+                JpegEncoderOptions options = new JpegEncoderOptions { Subsample = subsample, Quality = quality };
 
                 data = new byte[65536];
                 using (MemoryStream ms = new MemoryStream(data))
                 {
-                    image.Save(ms, encoder);
+                    image.Save(ms, encoder, options);
                 }
             }
 
@@ -90,7 +91,7 @@ namespace ImageSharp.Tests
                     ms.Seek(0, SeekOrigin.Begin);
 
                     Image<TColor> mirror = provider.Factory.CreateImage(1, 1);
-                    using (JpegDecoderCore decoder = new JpegDecoderCore())
+                    using (JpegDecoderCore decoder = new JpegDecoderCore(null))
                     {
                         decoder.Decode(mirror, ms, true);
 
@@ -118,6 +119,38 @@ namespace ImageSharp.Tests
             {
                 Assert.Equal(72, image.MetaData.HorizontalResolution);
                 Assert.Equal(72, image.MetaData.VerticalResolution);
+            }
+        }
+
+        [Fact]
+        public void Decode_IgnoreMetadataIsFalse_ExifProfileIsRead()
+        {
+            var options = new DecoderOptions()
+            {
+                IgnoreMetadata = false
+            };
+
+            TestFile testFile = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan);
+
+            using (Image image = testFile.CreateImage(options))
+            {
+                Assert.NotNull(image.MetaData.ExifProfile);
+            }
+        }
+
+        [Fact]
+        public void Decode_IgnoreMetadataIsTrue_ExifProfileIgnored()
+        {
+            var options = new DecoderOptions()
+            {
+                IgnoreMetadata = true
+            };
+
+            TestFile testFile = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan);
+
+            using (Image image = testFile.CreateImage(options))
+            {
+                Assert.Null(image.MetaData.ExifProfile);
             }
         }
     }

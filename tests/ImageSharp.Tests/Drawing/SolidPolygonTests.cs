@@ -32,7 +32,6 @@ namespace ImageSharp.Tests.Drawing
                 using (FileStream output = File.OpenWrite($"{path}/Simple.png"))
                 {
                     image
-                        .BackgroundColor(Color.Blue)
                         .FillPolygon(Color.HotPink, simplePath, new GraphicsOptions(true))
                         .Save(output);
                 }
@@ -45,7 +44,7 @@ namespace ImageSharp.Tests.Drawing
 
                     Assert.Equal(Color.HotPink, sourcePixels[50, 50]);
 
-                    Assert.Equal(Color.Blue, sourcePixels[2, 2]);
+                    Assert.NotEqual(Color.HotPink, sourcePixels[2, 2]);
                 }
             }
         }

@@ -1,5 +1,5 @@
 
-# <img src="build/icons/imagesharp-logo-64.png" width="52" height="52"/> ImageSharp
+# <img src="build/icons/imagesharp-logo-heading.png" alt="ImageSharp"/>
 
 **ImageSharp** is a new cross-platform 2D graphics API designed to allow the processing of images without the use of `System.Drawing`. 
 
@@ -55,6 +55,11 @@ If you prefer, you can compile ImageSharp yourself (please do and help!), you'll
 
 - [Visual Studio 2015 with Update 3 (or above)](https://www.visualstudio.com/news/releasenotes/vs2015-update3-vs)
 - The [.NET Core 1.0 SDK Installer](https://www.microsoft.com/net/core#windows) - Non VSCode link.
+
+Alternatively on Linux you can use:
+
+- [Visual Studio Code](https://code.visualstudio.com/) with [C# Extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode.csharp)
+- [.Net Core 1.1](https://www.microsoft.com/net/core#linuxubuntu)
 
 To clone it locally click the "Clone in Windows" button above or run the following git commands.
 

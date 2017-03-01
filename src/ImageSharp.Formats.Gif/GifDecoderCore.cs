@@ -8,6 +8,7 @@ namespace ImageSharp.Formats
     using System;
     using System.Buffers;
     using System.IO;
+    using System.Text;
 
     /// <summary>
     /// Performs the gif decoding operation.
@@ -20,6 +21,11 @@ namespace ImageSharp.Formats
         /// The temp buffer used to reduce allocations.
         /// </summary>
         private readonly byte[] buffer = new byte[16];
+
+        /// <summary>
+        /// The decoder options.
+        /// </summary>
+        private readonly IGifDecoderOptions options;
 
         /// <summary>
         /// The image to decode the information to.
@@ -60,6 +66,15 @@ namespace ImageSharp.Formats
         /// The graphics control extension.
         /// </summary>
         private GifGraphicsControlExtension graphicsControlExtension;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="GifDecoderCore{TColor}"/> class.
+        /// </summary>
+        /// <param name="options">The decoder options.</param>
+        public GifDecoderCore(IGifDecoderOptions options)
+        {
+            this.options = options ?? new GifDecoderOptions();
+        }
 
         /// <summary>
         /// Decodes the stream to the image.
@@ -225,25 +240,32 @@ namespace ImageSharp.Formats
         /// </summary>
         private void ReadComments()
         {
-            int flag;
+            int length;
 
-            while ((flag = this.currentStream.ReadByte()) != 0)
+            while ((length = this.currentStream.ReadByte()) != 0)
             {
-                if (flag > GifConstants.MaxCommentLength)
+                if (length > GifConstants.MaxCommentLength)
                 {
-                    throw new ImageFormatException($"Gif comment length '{flag}' exceeds max '{GifConstants.MaxCommentLength}'");
+                    throw new ImageFormatException($"Gif comment length '{length}' exceeds max '{GifConstants.MaxCommentLength}'");
                 }
 
-                byte[] flagBuffer = ArrayPool<byte>.Shared.Rent(flag);
+                if (this.options.IgnoreMetadata)
+                {
+                    this.currentStream.Seek(length, SeekOrigin.Current);
+                    continue;
+                }
+
+                byte[] commentsBuffer = ArrayPool<byte>.Shared.Rent(length);
 
                 try
                 {
-                    this.currentStream.Read(flagBuffer, 0, flag);
-                    this.decodedImage.MetaData.Properties.Add(new ImageProperty("Comments", BitConverter.ToString(flagBuffer, 0, flag)));
+                    this.currentStream.Read(commentsBuffer, 0, length);
+                    string comments = this.options.TextEncoding.GetString(commentsBuffer, 0, length);
+                    this.decodedImage.MetaData.Properties.Add(new ImageProperty(GifConstants.Comments, comments));
                 }
                 finally
                 {
-                    ArrayPool<byte>.Shared.Return(flagBuffer);
+                    ArrayPool<byte>.Shared.Return(commentsBuffer);
                 }
             }
         }

@@ -14,6 +14,13 @@
       "problemMatcher": "$msCompile"
     },
     {
+      "taskName": "build benchmark",
+      "suppressTaskName": true,
+      "args": [ "build", "tests/ImageSharp.Benchmarks/project.json", "-f", "netcoreapp1.1", "-c", "Release" ],
+      "showOutput": "always",
+      "problemMatcher": "$msCompile"
+    },
+    {
       "taskName": "test",
       "args": ["tests/ImageSharp.Tests/project.json", "-f", "netcoreapp1.1"],
       "isTestCommand": true,

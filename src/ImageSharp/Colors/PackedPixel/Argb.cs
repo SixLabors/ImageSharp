@@ -109,6 +109,9 @@ namespace ImageSharp
         /// <inheritdoc/>
         public uint PackedValue { get; set; }
 
+        /// <inheritdoc />
+        public BulkPixelOperations<Argb> BulkOperations => new BulkPixelOperations<Argb>();
+
         /// <summary>
         /// Gets or sets the red component.
         /// </summary>

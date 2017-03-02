@@ -51,6 +51,9 @@ namespace ImageSharp
         /// <inheritdoc/>
         public ushort PackedValue { get; set; }
 
+        /// <inheritdoc />
+        public BulkPixelOperations<NormalizedByte2> BulkOperations => new BulkPixelOperations<NormalizedByte2>();
+
         /// <summary>
         /// Compares two <see cref="NormalizedByte2"/> objects for equality.
         /// </summary>

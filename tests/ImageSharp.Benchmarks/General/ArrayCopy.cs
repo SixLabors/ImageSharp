@@ -2,22 +2,23 @@
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
-
 namespace ImageSharp.Benchmarks.General
 {
     using System;
     using System.Runtime.CompilerServices;
+    using System.Runtime.InteropServices;
 
     using BenchmarkDotNet.Attributes;
 
+    [Config(typeof(Config.Short))]
     public class ArrayCopy
     {
-        [Params(100, 1000, 10000)]
+        [Params(10, 100, 1000, 10000)]
         public int Count { get; set; }
 
-        private byte[] source;
+        byte[] source;
 
-        private byte[] destination;
+        byte[] destination;
 
         [Setup]
         public void SetUp()
@@ -42,6 +43,12 @@ namespace ImageSharp.Benchmarks.General
             }
         }
 
+        [Benchmark(Description = "Copy using Buffer.BlockCopy()")]
+        public void CopyUsingBufferBlockCopy()
+        {
+            Buffer.BlockCopy(this.source, 0, this.destination, 0, this.Count);
+        }
+
         [Benchmark(Description = "Copy using Buffer.MemoryCopy<T>")]
         public unsafe void CopyUsingBufferMemoryCopy()
         {
@@ -49,6 +56,16 @@ namespace ImageSharp.Benchmarks.General
             fixed (byte* pinnedSource = this.source)
             {
                 Buffer.MemoryCopy(pinnedSource, pinnedDestination, this.Count, this.Count);
+            }
+        }
+
+
+        [Benchmark(Description = "Copy using Marshal.Copy<T>")]
+        public unsafe void CopyUsingMarshalCopy()
+        {
+            fixed (byte* pinnedDestination = this.destination)
+            {
+                Marshal.Copy(this.source, 0, (IntPtr)pinnedDestination, this.Count);
             }
         }
     }

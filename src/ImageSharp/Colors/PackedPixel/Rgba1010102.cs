@@ -39,6 +39,9 @@ namespace ImageSharp
         /// <inheritdoc/>
         public uint PackedValue { get; set; }
 
+        /// <inheritdoc />
+        public BulkPixelOperations<Rgba1010102> BulkOperations => new BulkPixelOperations<Rgba1010102>();
+
         /// <summary>
         /// Compares two <see cref="Rgba1010102"/> objects for equality.
         /// </summary>

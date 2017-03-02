@@ -40,6 +40,9 @@ namespace ImageSharp
         /// <inheritdoc/>
         public ushort PackedValue { get; set; }
 
+        /// <inheritdoc />
+        public BulkPixelOperations<Bgra5551> BulkOperations => new BulkPixelOperations<Bgra5551>();
+
         /// <summary>
         /// Compares two <see cref="Bgra5551"/> objects for equality.
         /// </summary>

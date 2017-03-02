@@ -112,6 +112,9 @@ namespace ImageSharp
             this.packedValue = packed;
         }
 
+        /// <inheritdoc />
+        public BulkPixelOperations<Color> BulkOperations => new BulkPixelOperations<Color>();
+
         /// <summary>
         /// Gets or sets the red component.
         /// </summary>

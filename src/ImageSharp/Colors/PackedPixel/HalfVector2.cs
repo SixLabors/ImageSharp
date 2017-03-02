@@ -45,6 +45,9 @@ namespace ImageSharp
 
         /// <inheritdoc/>
         public uint PackedValue { get; set; }
+        
+        /// <inheritdoc />
+        public BulkPixelOperations<HalfVector2> BulkOperations => new BulkPixelOperations<HalfVector2>();
 
         /// <summary>
         /// Compares two <see cref="HalfVector2"/> objects for equality.

@@ -25,7 +25,7 @@ namespace ImageSharp.Formats
         public IImageDecoder Decoder => new TiffDecoder();
 
         /// <inheritdoc/>
-        public IImageEncoder Encoder => throw new System.NotImplementedException();
+        public IImageEncoder Encoder => new TiffEncoder();
 
         /// <inheritdoc/>
         public int HeaderSize => 4;

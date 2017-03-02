@@ -26,6 +26,9 @@ namespace ImageSharp
         /// <inheritdoc />
         public byte PackedValue { get; set; }
 
+        /// <inheritdoc />
+        public BulkPixelOperations<Alpha8> BulkOperations => new BulkPixelOperations<Alpha8>();
+
         /// <summary>
         /// Compares two <see cref="Alpha8"/> objects for equality.
         /// </summary>

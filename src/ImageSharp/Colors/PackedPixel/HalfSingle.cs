@@ -36,6 +36,9 @@ namespace ImageSharp
         /// <inheritdoc/>
         public ushort PackedValue { get; set; }
 
+        /// <inheritdoc />
+        public BulkPixelOperations<HalfSingle> BulkOperations => new BulkPixelOperations<HalfSingle>();
+
         /// <summary>
         /// Compares two <see cref="HalfSingle"/> objects for equality.
         /// </summary>

@@ -49,6 +49,9 @@ namespace ImageSharp
         /// <inheritdoc/>
         public ulong PackedValue { get; set; }
 
+        /// <inheritdoc />
+        public BulkPixelOperations<HalfVector4> BulkOperations => new BulkPixelOperations<HalfVector4>();
+
         /// <summary>
         /// Compares two <see cref="HalfVector2"/> objects for equality.
         /// </summary>

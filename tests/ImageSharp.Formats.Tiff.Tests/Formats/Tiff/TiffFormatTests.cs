@@ -106,5 +106,16 @@ namespace ImageSharp.Tests
             Assert.NotNull(decoder);
             Assert.IsType<TiffDecoder>(decoder);
         }
+
+        [Fact]
+        public void Encoder_ReturnsTiffEncoder()
+        {
+            TiffFormat tiffFormat = new TiffFormat();
+
+            var encoder = tiffFormat.Encoder;
+
+            Assert.NotNull(encoder);
+            Assert.IsType<TiffEncoder>(encoder);
+        }
     }
 }

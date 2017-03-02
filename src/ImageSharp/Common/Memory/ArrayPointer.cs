@@ -8,6 +8,13 @@ namespace ImageSharp
     internal static class ArrayPointer
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static unsafe ArrayPointer<T> GetArrayPointer<T>(this PinnedBuffer<T> buffer)
+            where T : struct
+        {
+            return new ArrayPointer<T>(buffer.Array, (void*)buffer.Pointer);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static unsafe void Copy<T>(ArrayPointer<T> source, ArrayPointer<T> destination, int count)
             where T : struct
         {

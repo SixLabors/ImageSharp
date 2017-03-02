@@ -15,6 +15,17 @@ namespace ImageSharp.Tests
         public static object[][] IsLittleEndianValues = new[] { new object[] { false },
                                                                 new object[] { true } };
 
+        [Fact]
+        public void FormatProperties_AreAsExpected()
+        {
+            TiffFormat tiffFormat = new TiffFormat();
+
+            Assert.Equal("image/tiff", tiffFormat.MimeType);
+            Assert.Equal("tif", tiffFormat.Extension);
+            Assert.Contains("tif", tiffFormat.SupportedExtensions);
+            Assert.Contains("tiff", tiffFormat.SupportedExtensions);
+        }
+
         [Theory]
         [MemberData(nameof(IsLittleEndianValues))]
         public void IsSupportedFileFormat_ReturnsTrue_ForValidFile(bool isLittleEndian)
@@ -83,6 +94,17 @@ namespace ImageSharp.Tests
             bool isSupported = tiffFormat.IsSupportedFileFormat(headerBytes);
 
             Assert.False(isSupported);
+        }
+
+        [Fact]
+        public void Decoder_ReturnsTiffDecoder()
+        {
+            TiffFormat tiffFormat = new TiffFormat();
+
+            var decoder = tiffFormat.Decoder;
+
+            Assert.NotNull(decoder);
+            Assert.IsType<TiffDecoder>(decoder);
         }
     }
 }

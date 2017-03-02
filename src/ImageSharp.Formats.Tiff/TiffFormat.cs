@@ -10,7 +10,7 @@ namespace ImageSharp.Formats
     /// <summary>
     /// Encapsulates the means to encode and decode Tiff images.
     /// </summary>
-    public class TiffFormat //: IImageFormat
+    public class TiffFormat : IImageFormat
     {
         /// <inheritdoc/>
         public string MimeType => "image/tiff";
@@ -22,10 +22,10 @@ namespace ImageSharp.Formats
         public IEnumerable<string> SupportedExtensions => new string[] { "tif", "tiff" };
 
         /// <inheritdoc/>
-        //public IImageDecoder Decoder => new TiffDecoder();
+        public IImageDecoder Decoder => new TiffDecoder();
 
         /// <inheritdoc/>
-        //public IImageEncoder Encoder => throw new System.NotImplementedException();
+        public IImageEncoder Encoder => throw new System.NotImplementedException();
 
         /// <inheritdoc/>
         public int HeaderSize => 4;

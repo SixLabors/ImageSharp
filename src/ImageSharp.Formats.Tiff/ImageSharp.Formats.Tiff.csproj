@@ -2,6 +2,18 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard1.1</TargetFramework>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Buffers" Version="4.0.0" />
+    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.0.0" />
+    <PackageReference Include="System.Numerics.Vectors" Version="4.1.1" />
+    <PackageReference Include="System.Threading.Tasks.Parallel" Version="4.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\ImageSharp\**\*.cs" Exclude="..\ImageSharp\obj\**\*.cs" />
+  </ItemGroup>
 
 </Project>

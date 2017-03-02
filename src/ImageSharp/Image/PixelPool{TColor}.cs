@@ -8,6 +8,7 @@ namespace ImageSharp
     using System;
     using System.Buffers;
 
+    // TODO: Consider refactoring this into a more general ClearPool<T>, so we can use it in PinnedBuffer<T>!
     /// <summary>
     /// Provides a resource pool that enables reusing instances of type <see cref="T:TColor[]"/>.
     /// </summary>

@@ -14,7 +14,6 @@
     "allowUnsafe": true
   },
   "dependencies": {
-    "BenchmarkDotNet.Diagnostics.Windows": "0.10.1",
     "ImageSharp": {
       "target": "project"
     },
@@ -46,9 +45,22 @@
   "frameworks": {
     "net46": {
       "dependencies": {
+        "BenchmarkDotNet.Diagnostics.Windows": "0.10.1"
       },
       "frameworkAssemblies": {
         "System.Drawing": ""
+      }
+    },
+    "netcoreapp1.1": {
+      "dependencies": {
+        "Microsoft.NETCore.App": {
+          "type": "platform",
+          "version": "1.1.0-*"
+        },
+        "BenchmarkDotNet": "0.10.2",
+        "CoreCompat.System.Drawing": "1.0.0-beta006",
+        "runtime.linux-x64.CoreCompat.System.Drawing": "1.0.0-beta009",
+        "System.Reflection": "4.3.0"
       }
     }
   }

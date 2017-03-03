@@ -73,6 +73,7 @@ namespace ImageSharp
         /// </summary>
         /// <param name="offset">The offset in number of elements</param>
         /// <returns>The offseted (sliced) ArrayPointer</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ArrayPointer<T> Slice(int offset)
         {
             ArrayPointer<T> result = default(ArrayPointer<T>);
@@ -80,6 +81,26 @@ namespace ImageSharp
             result.Offset = this.Offset + offset;
             result.PointerAtOffset = this.PointerAtOffset + (Unsafe.SizeOf<T>() * offset);
             return result;
+        }
+
+        /// <summary>
+        /// Convertes <see cref="ArrayPointer{T}"/> instance to a raw 'void*' pointer
+        /// </summary>
+        /// <param name="arrayPointer">The <see cref="ArrayPointer{T}"/> to convert</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static explicit operator void*(ArrayPointer<T> arrayPointer)
+        {
+            return (void*)arrayPointer.PointerAtOffset;
+        }
+
+        /// <summary>
+        /// Convertes <see cref="ArrayPointer{T}"/> instance to a raw 'byte*' pointer
+        /// </summary>
+        /// <param name="arrayPointer">The <see cref="ArrayPointer{T}"/> to convert</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static explicit operator byte* (ArrayPointer<T> arrayPointer)
+        {
+            return (byte*)arrayPointer.PointerAtOffset;
         }
     }
 }

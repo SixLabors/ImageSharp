@@ -7,12 +7,14 @@
 
     public abstract class BulkPixelOperationsTests
     {
-        public class ColorPixels : BulkPixelOperationsTests<Color>
+        public class Color : BulkPixelOperationsTests<ImageSharp.Color>
         {
+            public static TheoryData<int> ArraySizesData = new TheoryData<int> { 7, 16, 1111 };
         }
 
-        public class ArgbPixels : BulkPixelOperationsTests<Argb>
+        public class Argb : BulkPixelOperationsTests<ImageSharp.Argb>
         {
+            public static TheoryData<int> ArraySizesData = new TheoryData<int> { 7, 16, 1111 };
         }
     }
 

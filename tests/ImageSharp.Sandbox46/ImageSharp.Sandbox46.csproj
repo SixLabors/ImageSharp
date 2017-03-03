@@ -209,6 +209,9 @@
     <Compile Include="..\ImageSharp.Benchmarks\Color\Bulk\PixelAccessorVirtualCopy.cs">
       <Link>Benchmarks\PixelAccessorVirtualCopy.cs</Link>
     </Compile>
+    <Compile Include="..\ImageSharp.Tests\Colors\BulkPixelOperationsTests.cs">
+      <Link>Tests\Colors\BulkPixelOperationsTests.cs</Link>
+    </Compile>
     <Compile Include="..\ImageSharp.Tests\Drawing\PolygonTests.cs">
       <Link>Tests\Drawing\PolygonTests.cs</Link>
     </Compile>

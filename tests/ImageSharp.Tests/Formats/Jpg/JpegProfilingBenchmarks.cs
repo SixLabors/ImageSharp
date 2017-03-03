@@ -38,10 +38,10 @@ namespace ImageSharp.Tests
         {
             const int ExecutionCount = 30;
 
-            //if (!Vector.IsHardwareAccelerated)
-            //{
-            //    throw new Exception("Vector.IsHardwareAccelerated == false! ('prefer32 bit' enabled?)");
-            //}
+            if (!Vector.IsHardwareAccelerated)
+            {
+                throw new Exception("Vector.IsHardwareAccelerated == false! ('prefer32 bit' enabled?)");
+            }
 
             string path = TestFile.GetPath(fileName);
             byte[] bytes = File.ReadAllBytes(path);

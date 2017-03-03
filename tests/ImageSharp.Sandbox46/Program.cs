@@ -49,9 +49,6 @@ namespace ImageSharp.Sandbox46
             benchmark.Setup();
 
             benchmark.CopyRawUnsafeInlined();
-            benchmark.CopyArrayPointerUnsafe();
-            benchmark.CopyArrayPointerVirtualUnsafe();
-            benchmark.CopyArrayPointerVirtualMarshal();
             
             benchmark.Cleanup();
         }

@@ -78,6 +78,7 @@
             {
                 TColor c = Unsafe.Read<TColor>(sp);
                 c.ToXyzBytes(dest, i);
+                sp += ColorSize;
             }
         }
         

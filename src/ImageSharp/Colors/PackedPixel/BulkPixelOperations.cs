@@ -71,7 +71,6 @@
             ArrayPointer<byte> destBytes, int count)
         {
             byte* sp = (byte*)sourceColors;
-
             byte[] dest = destBytes.Array;
 
             for (int i = destBytes.Offset; i < destBytes.Offset + count*3; i+=3)
@@ -81,29 +80,89 @@
                 sp += ColorSize;
             }
         }
-        
-        internal virtual void PackToXyzwBytes(ArrayPointer<TColor> sourceColors, ArrayPointer<byte> destBytes, int count)
-        {
-        }
 
         internal virtual void PackFromXyzwBytes(ArrayPointer<byte> sourceBytes, ArrayPointer<TColor> destColors, int count)
         {
+            byte* sp = (byte*)sourceBytes;
+            byte* dp = (byte*)destColors.PointerAtOffset;
+
+            for (int i = 0; i < count; i++)
+            {
+                TColor c = default(TColor);
+                c.PackFromBytes(sp[0], sp[1], sp[2], sp[3]);
+                Unsafe.Write(dp, c);
+                sp += 4;
+                dp += ColorSize;
+            }
         }
-        
-        internal virtual void PackToZyxBytes(ArrayPointer<TColor> sourceColors, ArrayPointer<byte> destBytes, int count)
+
+        internal virtual void PackToXyzwBytes(ArrayPointer<TColor> sourceColors, ArrayPointer<byte> destBytes, int count)
         {
+            byte* sp = (byte*)sourceColors;
+            byte[] dest = destBytes.Array;
+
+            for (int i = destBytes.Offset; i < destBytes.Offset + count * 4; i += 4)
+            {
+                TColor c = Unsafe.Read<TColor>(sp);
+                c.ToXyzwBytes(dest, i);
+                sp += ColorSize;
+            }
         }
 
         internal virtual void PackFromZyxBytes(ArrayPointer<byte> sourceBytes, ArrayPointer<TColor> destColors, int count)
         {
+            byte* sp = (byte*)sourceBytes;
+            byte* dp = (byte*)destColors.PointerAtOffset;
+
+            for (int i = 0; i < count; i++)
+            {
+                TColor c = default(TColor);
+                c.PackFromBytes(sp[2], sp[1], sp[0], 255);
+                Unsafe.Write(dp, c);
+                sp += 3;
+                dp += ColorSize;
+            }
         }
 
-        internal virtual void PackToZyxwBytes(ArrayPointer<TColor> sourceColors, ArrayPointer<byte> destBytes, int count)
+        internal virtual void PackToZyxBytes(ArrayPointer<TColor> sourceColors, ArrayPointer<byte> destBytes, int count)
         {
+            byte* sp = (byte*)sourceColors;
+            byte[] dest = destBytes.Array;
+
+            for (int i = destBytes.Offset; i < destBytes.Offset + count * 3; i += 3)
+            {
+                TColor c = Unsafe.Read<TColor>(sp);
+                c.ToZyxBytes(dest, i);
+                sp += ColorSize;
+            }
         }
 
         internal virtual void PackFromZyxwBytes(ArrayPointer<byte> sourceBytes, ArrayPointer<TColor> destColors, int count)
         {
+            byte* sp = (byte*)sourceBytes;
+            byte* dp = (byte*)destColors.PointerAtOffset;
+
+            for (int i = 0; i < count; i++)
+            {
+                TColor c = default(TColor);
+                c.PackFromBytes(sp[2], sp[1], sp[0], sp[3]);
+                Unsafe.Write(dp, c);
+                sp += 4;
+                dp += ColorSize;
+            }
+        }
+
+        internal virtual void PackToZyxwBytes(ArrayPointer<TColor> sourceColors, ArrayPointer<byte> destBytes, int count)
+        {
+            byte* sp = (byte*)sourceColors;
+            byte[] dest = destBytes.Array;
+
+            for (int i = destBytes.Offset; i < destBytes.Offset + count * 4; i += 4)
+            {
+                TColor c = Unsafe.Read<TColor>(sp);
+                c.ToZyxwBytes(dest, i);
+                sp += ColorSize;
+            }
         }
     }
 }

@@ -68,6 +68,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageSharp.Sandbox46", "tes
 EndProject
 Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "ImageSharp.Drawing.Paths", "src\ImageSharp.Drawing.Paths\ImageSharp.Drawing.Paths.xproj", "{E5BD4F96-28A8-410C-8B63-1C5731948549}"
 EndProject
+Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "ImageSharp.Drawing.Text", "src\ImageSharp.Drawing.Text\ImageSharp.Drawing.Text.xproj", "{329D7698-65BC-48AD-A16F-428682964493}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -122,6 +124,10 @@ Global
 		{E5BD4F96-28A8-410C-8B63-1C5731948549}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E5BD4F96-28A8-410C-8B63-1C5731948549}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E5BD4F96-28A8-410C-8B63-1C5731948549}.Release|Any CPU.Build.0 = Release|Any CPU
+		{329D7698-65BC-48AD-A16F-428682964493}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{329D7698-65BC-48AD-A16F-428682964493}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{329D7698-65BC-48AD-A16F-428682964493}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{329D7698-65BC-48AD-A16F-428682964493}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -140,5 +146,6 @@ Global
 		{9E574A07-F879-4811-9C41-5CBDC6BAFDB7} = {815C0625-CD3D-440F-9F80-2D83856AB7AE}
 		{96188137-5FA6-4924-AB6E-4EFF79C6E0BB} = {56801022-D71A-4FBE-BC5B-CBA08E2284EC}
 		{E5BD4F96-28A8-410C-8B63-1C5731948549} = {815C0625-CD3D-440F-9F80-2D83856AB7AE}
+		{329D7698-65BC-48AD-A16F-428682964493} = {815C0625-CD3D-440F-9F80-2D83856AB7AE}
 	EndGlobalSection
 EndGlobal

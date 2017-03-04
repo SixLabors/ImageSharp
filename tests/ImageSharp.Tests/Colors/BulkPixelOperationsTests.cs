@@ -21,7 +21,7 @@
     public abstract class BulkPixelOperationsTests<TColor>
         where TColor : struct, IPixel<TColor>
     {
-        public static TheoryData<int> ArraySizesData = new TheoryData<int> { 7, 16, 1111 };
+        protected static TheoryData<int> ArraySizesData = new TheoryData<int> { 7, 16, 1111 };
         
         [Theory]
         [MemberData(nameof(ArraySizesData))]
@@ -103,48 +103,129 @@
                 );
         }
 
+        [Theory]
+        [MemberData(nameof(ArraySizesData))]
+        public void PackFromXyzwBytes(int count)
+        {
+            byte[] source = CreateByteTestData(count * 4);
+            TColor[] expected = new TColor[count];
+
+            for (int i = 0; i < count; i++)
+            {
+                int i4 = i * 4;
+
+                expected[i].PackFromBytes(source[i4 + 0], source[i4 + 1], source[i4 + 2], source[i4 + 3]);
+            }
+
+            TestOperation(
+                source,
+                expected,
+                (ops, s, d) => ops.PackFromXyzwBytes(s, d, count)
+                );
+        }
 
         [Theory]
         [MemberData(nameof(ArraySizesData))]
         public void PackToXyzwBytes(int count)
         {
-            throw new NotImplementedException();
-        }
+            TColor[] source = CreatePixelTestData(count);
+            byte[] expected = new byte[count * 4];
 
-        [Theory]
-        [MemberData(nameof(ArraySizesData))]
-        public void PackFromXyzwBytes(int count)
-        {
-            throw new NotImplementedException();
-        }
+            for (int i = 0; i < count; i++)
+            {
+                int i4 = i * 4;
+                source[i].ToXyzwBytes(expected, i4);
+            }
 
-        [Theory]
-        [MemberData(nameof(ArraySizesData))]
-        public void PackToZyxBytes(int count)
-        {
-            throw new NotImplementedException();
+            TestOperation(
+                source,
+                expected,
+                (ops, s, d) => ops.PackToXyzwBytes(s, d, count)
+                );
         }
 
         [Theory]
         [MemberData(nameof(ArraySizesData))]
         public void PackFromZyxBytes(int count)
         {
-            throw new NotImplementedException();
+            byte[] source = CreateByteTestData(count * 3);
+            TColor[] expected = new TColor[count];
+
+            for (int i = 0; i < count; i++)
+            {
+                int i3 = i * 3;
+
+                expected[i].PackFromBytes(source[i3 + 2], source[i3 + 1], source[i3 + 0], 255);
+            }
+
+            TestOperation(
+                source,
+                expected,
+                (ops, s, d) => ops.PackFromZyxBytes(s, d, count)
+                );
         }
 
         [Theory]
         [MemberData(nameof(ArraySizesData))]
-        public void PackToZyxwBytes(int count)
+        public void PackToZyxBytes(int count)
         {
-            throw new NotImplementedException();
+            TColor[] source = CreatePixelTestData(count);
+            byte[] expected = new byte[count * 3];
+
+            for (int i = 0; i < count; i++)
+            {
+                int i3 = i * 3;
+                source[i].ToZyxBytes(expected, i3);
+            }
+
+            TestOperation(
+                source,
+                expected,
+                (ops, s, d) => ops.PackToZyxBytes(s, d, count)
+                );
         }
 
         [Theory]
         [MemberData(nameof(ArraySizesData))]
         public void PackFromZyxwBytes(int count)
         {
-            throw new NotImplementedException();
+            byte[] source = CreateByteTestData(count * 4);
+            TColor[] expected = new TColor[count];
+
+            for (int i = 0; i < count; i++)
+            {
+                int i4 = i * 4;
+
+                expected[i].PackFromBytes(source[i4 + 2], source[i4 + 1], source[i4 + 0], source[i4 + 3]);
+            }
+
+            TestOperation(
+                source,
+                expected,
+                (ops, s, d) => ops.PackFromZyxwBytes(s, d, count)
+                );
         }
+
+        [Theory]
+        [MemberData(nameof(ArraySizesData))]
+        public void PackToZyxwBytes(int count)
+        {
+            TColor[] source = CreatePixelTestData(count);
+            byte[] expected = new byte[count * 4];
+
+            for (int i = 0; i < count; i++)
+            {
+                int i4 = i * 4;
+                source[i].ToZyxwBytes(expected, i4);
+            }
+
+            TestOperation(
+                source,
+                expected,
+                (ops, s, d) => ops.PackToZyxwBytes(s, d, count)
+                );
+        }
+
         
         private class TestBuffers<TSource, TDest> : IDisposable
             where TSource : struct

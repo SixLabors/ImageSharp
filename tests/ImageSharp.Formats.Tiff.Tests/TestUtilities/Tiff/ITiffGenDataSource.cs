@@ -11,7 +11,7 @@ namespace ImageSharp.Tests
     /// <summary>
     /// An interface for any class within the Tiff generator that produces data to be included in the file.
     /// </summary>
-    public interface ITiffGenDataSource
+    internal interface ITiffGenDataSource
     {
         IEnumerable<TiffGenDataBlock> GetData(bool isLittleEndian);
     }

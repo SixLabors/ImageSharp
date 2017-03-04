@@ -8,7 +8,7 @@ namespace ImageSharp.Formats
     /// <summary>
     /// Enumeration representing the data types understood by the Tiff file-format.
     /// </summary>
-    public enum TiffType
+    internal enum TiffType
     {
         Byte = 1,
         Ascii = 2,

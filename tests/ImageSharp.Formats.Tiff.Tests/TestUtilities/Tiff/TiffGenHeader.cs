@@ -12,7 +12,7 @@ namespace ImageSharp.Tests
     /// <summary>
     /// A utility data structure to represent a Tiff file-header.
     /// </summary>
-    public class TiffGenHeader : ITiffGenDataSource
+    internal class TiffGenHeader : ITiffGenDataSource
     {
         public TiffGenHeader()
         {

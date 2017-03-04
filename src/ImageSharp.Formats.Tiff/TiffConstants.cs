@@ -10,17 +10,17 @@ namespace ImageSharp.Formats
     /// <summary>
     /// Defines constants defined in the TIFF specification.
     /// </summary>
-    internal static class GifConstants
+    internal static class TiffConstants
     {
         /// <summary>
         /// Byte order markers for indicating little endian encoding.
         /// </summary>
-        public const ushort ByteOrderLittleEndian = 0x4949;
+        public const byte ByteOrderLittleEndian = 0x49;
 
         /// <summary>
         /// Byte order markers for indicating big endian encoding.
         /// </summary>
-        public const ushort ByteOrderBigEndian = 0x4D4D;
+        public const byte ByteOrderBigEndian = 0x4D;
 
         /// <summary>
         /// Magic number used within the image file header to identify a TIFF format file.

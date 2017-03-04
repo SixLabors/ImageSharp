@@ -32,11 +32,17 @@ namespace ImageSharp.Tests
             bytes.AddUInt32(0);
 
             var headerData = new TiffGenDataBlock(bytes.ToArray());
-            var firstIfdData = FirstIfd.GetData(isLittleEndian);
 
-            firstIfdData.First().AddReference(headerData.Bytes, 4);
-
-            return new [] { headerData }.Concat(firstIfdData);
+            if (FirstIfd != null)
+            {
+                var firstIfdData = FirstIfd.GetData(isLittleEndian);
+                firstIfdData.First().AddReference(headerData.Bytes, 4);
+                return new [] { headerData }.Concat(firstIfdData);
+            }
+            else
+            {
+                return new [] { headerData };
+            }
         }
     }
 }

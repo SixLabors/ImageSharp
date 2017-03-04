@@ -12,7 +12,7 @@ namespace ImageSharp.Tests
     /// A utility data structure to represent an independent block of data in a Tiff file.
     /// These may be located in any order within a Tiff file.
     /// </summary>
-    public class TiffGenDataBlock
+    internal class TiffGenDataBlock
     {
         public TiffGenDataBlock(byte[] bytes)
         {

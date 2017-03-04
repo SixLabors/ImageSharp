@@ -8,7 +8,7 @@ namespace ImageSharp.Formats
     /// <summary>
     /// Constants representing tag IDs in the Tiff file-format.
     /// </summary>
-    public class TiffTags
+    internal class TiffTags
     {
         // Section 8: Baseline Fields
 

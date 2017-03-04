@@ -12,7 +12,7 @@ namespace ImageSharp.Tests
     /// <summary>
     /// A utility data structure to represent Tiff IFDs in unit tests.
     /// </summary>
-    public class TiffGenIfd : ITiffGenDataSource
+    internal class TiffGenIfd : ITiffGenDataSource
     {
         public TiffGenIfd()
         {

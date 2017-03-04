@@ -12,7 +12,7 @@ namespace ImageSharp.Tests
     /// <summary>
     /// A utility class for generating in-memory Tiff files for use in unit tests.
     /// </summary>
-    public static class TiffGenExtensions
+    internal static class TiffGenExtensions
     {
         public static byte[] ToBytes(this ITiffGenDataSource dataSource, bool isLittleEndian)
         {

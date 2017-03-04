@@ -14,7 +14,7 @@ namespace ImageSharp.Tests
     /// <summary>
     /// A utility data structure to represent Tiff IFD entries in unit tests.
     /// </summary>
-    public abstract class TiffGenEntry : ITiffGenDataSource
+    internal abstract class TiffGenEntry : ITiffGenDataSource
     {
         private TiffGenEntry(ushort tag, TiffType type)
         {

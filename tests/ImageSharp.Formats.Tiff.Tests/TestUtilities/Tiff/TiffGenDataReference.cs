@@ -11,7 +11,7 @@ namespace ImageSharp.Tests
     /// <summary>
     /// A utility data structure to represent a reference from one block of data to another in a Tiff file.
     /// </summary>
-    public class TiffGenDataReference
+    internal class TiffGenDataReference
     {
         public TiffGenDataReference(byte[] bytes, int offset)
         {

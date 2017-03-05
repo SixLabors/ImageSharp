@@ -41,7 +41,7 @@
     "ImageSharp": {
       "target": "project"
     },
-    "SixLabors.Fonts": "0.1.0-ci0041",
+    "SixLabors.Fonts": "0.1.0-alpha0001",
     "ImageSharp.Drawing.Paths": {
       "target": "project"
     },

@@ -12,7 +12,6 @@ namespace ImageSharp
     using Drawing.Pens;
 
     using SixLabors.Fonts;
-    using System.Linq;
 
     /// <summary>
     /// Extension methods for the <see cref="Image{TColor}"/> type.

@@ -38,9 +38,6 @@ namespace ImageSharp
         /// <inheritdoc/>
         public ulong PackedValue { get; set; }
 
-        /// <inheritdoc />
-        public BulkPixelOperations<Rgba64> BulkOperations => new BulkPixelOperations<Rgba64>();
-
         /// <summary>
         /// Compares two <see cref="Rgba64"/> objects for equality.
         /// </summary>
@@ -76,6 +73,9 @@ namespace ImageSharp
         {
             return left.PackedValue != right.PackedValue;
         }
+
+        /// <inheritdoc />
+        public BulkPixelOperations<Rgba64> CreateBulkOperations() => new BulkPixelOperations<Rgba64>();
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

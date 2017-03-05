@@ -51,9 +51,6 @@ namespace ImageSharp
         /// <inheritdoc/>
         public uint PackedValue { get; set; }
 
-        /// <inheritdoc />
-        public BulkPixelOperations<Short2> BulkOperations => new BulkPixelOperations<Short2>();
-
         /// <summary>
         /// Compares two <see cref="Short2"/> objects for equality.
         /// </summary>
@@ -89,6 +86,9 @@ namespace ImageSharp
         {
             return left.PackedValue != right.PackedValue;
         }
+
+        /// <inheritdoc />
+        public BulkPixelOperations<Short2> CreateBulkOperations() => new BulkPixelOperations<Short2>();
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

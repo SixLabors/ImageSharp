@@ -24,7 +24,7 @@ namespace ImageSharp
         /// <summary>
         /// Gets the global <see cref="BulkPixelOperations{TColor}"/> instance for the pixel type <typeparamref name="TColor"/>
         /// </summary>
-        public static BulkPixelOperations<TColor> Instance { get; } = default(TColor).BulkOperations;
+        public static BulkPixelOperations<TColor> Instance { get; } = default(TColor).CreateBulkOperations();
 
         /// <summary>
         /// Bulk version of <see cref="IPixel.PackFromVector4(Vector4)"/>

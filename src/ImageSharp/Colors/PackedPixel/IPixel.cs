@@ -16,9 +16,11 @@ namespace ImageSharp
         where TSelf : struct, IPixel<TSelf>
     {
         /// <summary>
-        /// Gets the <see cref="BulkPixelOperations{TColor}"/> instance for this pixel type.
+        /// Creates a <see cref="BulkPixelOperations{TColor}"/> instance for this pixel type.
+        /// This method is not intended to be consumed directly. Use <see cref="BulkPixelOperations{TColor}.Instance"/> instead.
         /// </summary>
-        BulkPixelOperations<TSelf> BulkOperations { get; }
+        /// <returns>The <see cref="BulkPixelOperations{TColor}"/> instance.</returns>
+        BulkPixelOperations<TSelf> CreateBulkOperations();
     }
 
     /// <summary>

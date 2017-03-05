@@ -109,9 +109,6 @@ namespace ImageSharp
         /// <inheritdoc/>
         public uint PackedValue { get; set; }
 
-        /// <inheritdoc />
-        public BulkPixelOperations<Argb> BulkOperations => new BulkPixelOperations<Argb>();
-
         /// <summary>
         /// Gets or sets the red component.
         /// </summary>
@@ -222,6 +219,9 @@ namespace ImageSharp
         {
             this.PackedValue = Pack(ref vector);
         }
+
+        /// <inheritdoc />
+        public BulkPixelOperations<Argb> CreateBulkOperations() => new BulkPixelOperations<Argb>();
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

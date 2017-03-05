@@ -46,7 +46,8 @@ namespace ImageSharp
         /// <returns>The maxArrayLength value</returns>
         internal static int CalculateMaxArrayLength()
         {
-            if (typeof(IPixel).IsAssignableFrom(typeof(T)))
+            // ReSharper disable once SuspiciousTypeConversion.Global
+            if (default(T) is IPixel)
             {
                 const int MaximumExpectedImageSize = 16384;
                 return MaximumExpectedImageSize * MaximumExpectedImageSize;

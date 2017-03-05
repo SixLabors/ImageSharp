@@ -212,6 +212,9 @@
     <Compile Include="..\ImageSharp.Tests\Colors\BulkPixelOperationsTests.cs">
       <Link>Tests\Colors\BulkPixelOperationsTests.cs</Link>
     </Compile>
+    <Compile Include="..\ImageSharp.Tests\Common\PinnedBufferTests.cs">
+      <Link>Tests\Common\PinnedBufferTests.cs</Link>
+    </Compile>
     <Compile Include="..\ImageSharp.Tests\Drawing\PolygonTests.cs">
       <Link>Tests\Drawing\PolygonTests.cs</Link>
     </Compile>
@@ -247,6 +250,9 @@
     </Compile>
     <Compile Include="..\ImageSharp.Tests\Formats\Jpg\YCbCrImageTests.cs">
       <Link>Tests\Formats\Jpg\YCbCrImageTests.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\Image\PixelPoolTests.cs">
+      <Link>Tests\Image\PixelPoolTests.cs</Link>
     </Compile>
     <Compile Include="..\ImageSharp.Tests\MetaData\ImagePropertyTests.cs">
       <Link>Tests\MetaData\ImagePropertyTests.cs</Link>

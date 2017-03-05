@@ -5,7 +5,7 @@
 
     using Xunit;
 
-    public abstract class BulkPixelOperationsTests
+    public class BulkPixelOperationsTests
     {
         public class Color : BulkPixelOperationsTests<ImageSharp.Color>
         {
@@ -17,6 +17,14 @@
         {
             // For 4.6 test runner MemberData does not work without redeclaring the public field in the derived test class:
             public static new TheoryData<int> ArraySizesData => new TheoryData<int> { 7, 16, 1111 };
+        }
+
+        [Theory]
+        [WithBlankImages(1, 1, PixelTypes.All)]
+        public void GetGlobalInstance<TColor>(TestImageProvider<TColor> dummy)
+            where TColor:struct, IPixel<TColor>
+        {
+            Assert.NotNull(BulkPixelOperations<TColor>.Instance);
         }
     }
 

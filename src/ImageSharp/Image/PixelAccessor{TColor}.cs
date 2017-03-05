@@ -22,7 +22,7 @@ namespace ImageSharp
         /// The position of the first pixel in the image.
         /// </summary>
         private byte* pixelsBase;
-        
+
         /// <summary>
         /// A value indicating whether this instance of the given entity has been disposed.
         /// </summary>
@@ -86,11 +86,6 @@ namespace ImageSharp
             Guard.MustBeGreaterThan(width, 0, nameof(width));
             Guard.MustBeGreaterThan(height, 0, nameof(height));
 
-            //if (!(pixels.Length >= width * height))
-            //{
-            //    throw new ArgumentException($"Pixel array must have the length of at least {width * height}.");
-            //}
-
             this.SetPixelBufferUnsafe(width, height, pixels);
 
             this.ParallelOptions = Configuration.Default.ParallelOptions;
@@ -103,7 +98,7 @@ namespace ImageSharp
         {
             this.Dispose();
         }
-        
+
         /// <summary>
         /// Gets the pixel buffer array.
         /// </summary>
@@ -230,7 +225,7 @@ namespace ImageSharp
             {
                 return;
             }
-            
+
             // Note disposing is done.
             this.isDisposed = true;
 
@@ -512,36 +507,6 @@ namespace ImageSharp
             this.PixelSize = Unsafe.SizeOf<TColor>();
             this.RowStride = this.Width * this.PixelSize;
         }
-
-        ///// <summary>
-        ///// Pins the pixels data.
-        ///// </summary>
-        //private void PinPixels()
-        //{
-        //    // unpin any old pixels just incase
-        //    this.UnPinPixels();
-
-        //    this.pixelsHandle = GCHandle.Alloc(this.pixelBuffer, GCHandleType.Pinned);
-        //    this.dataPointer = this.pixelsHandle.AddrOfPinnedObject();
-        //    this.pixelsBase = (byte*)this.dataPointer.ToPointer();
-        //}
-
-        ///// <summary>
-        ///// Unpins pixels data.
-        ///// </summary>
-        //private void UnPinPixels()
-        //{
-        //    if (this.pixelsBase != null)
-        //    {
-        //        if (this.pixelsHandle.IsAllocated)
-        //        {
-        //            this.pixelsHandle.Free();
-        //        }
-
-        //        this.dataPointer = IntPtr.Zero;
-        //        this.pixelsBase = null;
-        //    }
-        //}
 
         /// <summary>
         /// Copy an area of pixels to the image.

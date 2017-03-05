@@ -78,9 +78,9 @@ namespace ImageSharp
         /// <summary>
         /// Bulk version of <see cref="IPixel.PackFromBytes(byte, byte, byte, byte)"/> that converts data in <see cref="ComponentOrder.Xyz"/>.
         /// </summary>
-        /// <param name="sourceBytes"></param>
-        /// <param name="destColors"></param>
-        /// <param name="count"></param>
+        /// <param name="sourceBytes">The <see cref="ArrayPointer{Byte}"/> to the source bytes.</param>
+        /// <param name="destColors">The <see cref="ArrayPointer{TColor}"/> to the destination colors.</param>
+        /// <param name="count">The number of pixels to convert.</param>
         internal virtual void PackFromXyzBytes(
             ArrayPointer<byte> sourceBytes,
             ArrayPointer<TColor> destColors,
@@ -102,15 +102,15 @@ namespace ImageSharp
         /// <summary>
         /// Bulk version of <see cref="IPixel.ToXyzBytes(byte[], int)"/>.
         /// </summary>
-        /// <param name="sourceColors"></param>
-        /// <param name="destBytes"></param>
-        /// <param name="count"></param>
+        /// <param name="sourceColors">The <see cref="ArrayPointer{TColor}"/> to the source colors.</param>
+        /// <param name="destBytes">The <see cref="ArrayPointer{Byte}"/> to the destination bytes.</param>
+        /// <param name="count">The number of pixels to convert.</param>
         internal virtual void PackToXyzBytes(ArrayPointer<TColor> sourceColors, ArrayPointer<byte> destBytes, int count)
         {
             byte* sp = (byte*)sourceColors;
             byte[] dest = destBytes.Array;
 
-            for (int i = destBytes.Offset; i < destBytes.Offset + count * 3; i += 3)
+            for (int i = destBytes.Offset; i < destBytes.Offset + (count * 3); i += 3)
             {
                 TColor c = Unsafe.Read<TColor>(sp);
                 c.ToXyzBytes(dest, i);
@@ -121,9 +121,9 @@ namespace ImageSharp
         /// <summary>
         /// Bulk version of <see cref="IPixel.PackFromBytes(byte, byte, byte, byte)"/> that converts data in <see cref="ComponentOrder.Xyzw"/>.
         /// </summary>
-        /// <param name="sourceBytes"></param>
-        /// <param name="destColors"></param>
-        /// <param name="count"></param>
+        /// <param name="sourceBytes">The <see cref="ArrayPointer{Byte}"/> to the source bytes.</param>
+        /// <param name="destColors">The <see cref="ArrayPointer{TColor}"/> to the destination colors.</param>
+        /// <param name="count">The number of pixels to convert.</param>
         internal virtual void PackFromXyzwBytes(
             ArrayPointer<byte> sourceBytes,
             ArrayPointer<TColor> destColors,
@@ -145,9 +145,9 @@ namespace ImageSharp
         /// <summary>
         /// Bulk version of <see cref="IPixel.ToXyzwBytes(byte[], int)"/>.
         /// </summary>
-        /// <param name="sourceColors"></param>
-        /// <param name="destBytes"></param>
-        /// <param name="count"></param>
+        /// <param name="sourceColors">The <see cref="ArrayPointer{TColor}"/> to the source colors.</param>
+        /// <param name="destBytes">The <see cref="ArrayPointer{Byte}"/> to the destination bytes.</param>
+        /// <param name="count">The number of pixels to convert.</param>
         internal virtual void PackToXyzwBytes(
             ArrayPointer<TColor> sourceColors,
             ArrayPointer<byte> destBytes,
@@ -156,7 +156,7 @@ namespace ImageSharp
             byte* sp = (byte*)sourceColors;
             byte[] dest = destBytes.Array;
 
-            for (int i = destBytes.Offset; i < destBytes.Offset + count * 4; i += 4)
+            for (int i = destBytes.Offset; i < destBytes.Offset + (count * 4); i += 4)
             {
                 TColor c = Unsafe.Read<TColor>(sp);
                 c.ToXyzwBytes(dest, i);
@@ -167,9 +167,9 @@ namespace ImageSharp
         /// <summary>
         /// Bulk version of <see cref="IPixel.PackFromBytes(byte, byte, byte, byte)"/> that converts data in <see cref="ComponentOrder.Zyx"/>.
         /// </summary>
-        /// <param name="sourceBytes"></param>
-        /// <param name="destColors"></param>
-        /// <param name="count"></param>
+        /// <param name="sourceBytes">The <see cref="ArrayPointer{Byte}"/> to the source bytes.</param>
+        /// <param name="destColors">The <see cref="ArrayPointer{TColor}"/> to the destination colors.</param>
+        /// <param name="count">The number of pixels to convert.</param>
         internal virtual void PackFromZyxBytes(
             ArrayPointer<byte> sourceBytes,
             ArrayPointer<TColor> destColors,
@@ -191,15 +191,15 @@ namespace ImageSharp
         /// <summary>
         /// Bulk version of <see cref="IPixel.ToZyxBytes(byte[], int)"/>.
         /// </summary>
-        /// <param name="sourceColors"></param>
-        /// <param name="destBytes"></param>
-        /// <param name="count"></param>
+        /// <param name="sourceColors">The <see cref="ArrayPointer{TColor}"/> to the source colors.</param>
+        /// <param name="destBytes">The <see cref="ArrayPointer{Byte}"/> to the destination bytes.</param>
+        /// <param name="count">The number of pixels to convert.</param>
         internal virtual void PackToZyxBytes(ArrayPointer<TColor> sourceColors, ArrayPointer<byte> destBytes, int count)
         {
             byte* sp = (byte*)sourceColors;
             byte[] dest = destBytes.Array;
 
-            for (int i = destBytes.Offset; i < destBytes.Offset + count * 3; i += 3)
+            for (int i = destBytes.Offset; i < destBytes.Offset + (count * 3); i += 3)
             {
                 TColor c = Unsafe.Read<TColor>(sp);
                 c.ToZyxBytes(dest, i);
@@ -210,9 +210,9 @@ namespace ImageSharp
         /// <summary>
         /// Bulk version of <see cref="IPixel.PackFromBytes(byte, byte, byte, byte)"/> that converts data in <see cref="ComponentOrder.Zyxw"/>.
         /// </summary>
-        /// <param name="sourceBytes"></param>
-        /// <param name="destColors"></param>
-        /// <param name="count"></param>
+        /// <param name="sourceBytes">The <see cref="ArrayPointer{Byte}"/> to the source bytes.</param>
+        /// <param name="destColors">The <see cref="ArrayPointer{TColor}"/> to the destination colors.</param>
+        /// <param name="count">The number of pixels to convert.</param>
         internal virtual void PackFromZyxwBytes(
             ArrayPointer<byte> sourceBytes,
             ArrayPointer<TColor> destColors,
@@ -234,9 +234,9 @@ namespace ImageSharp
         /// <summary>
         /// Bulk version of <see cref="IPixel.ToZyxwBytes(byte[], int)"/>.
         /// </summary>
-        /// <param name="sourceColors"></param>
-        /// <param name="destBytes"></param>
-        /// <param name="count"></param>
+        /// <param name="sourceColors">The <see cref="ArrayPointer{TColor}"/> to the source colors.</param>
+        /// <param name="destBytes">The <see cref="ArrayPointer{Byte}"/> to the destination bytes.</param>
+        /// <param name="count">The number of pixels to convert.</param>
         internal virtual void PackToZyxwBytes(
             ArrayPointer<TColor> sourceColors,
             ArrayPointer<byte> destBytes,
@@ -245,7 +245,7 @@ namespace ImageSharp
             byte* sp = (byte*)sourceColors;
             byte[] dest = destBytes.Array;
 
-            for (int i = destBytes.Offset; i < destBytes.Offset + count * 4; i += 4)
+            for (int i = destBytes.Offset; i < destBytes.Offset + (count * 4); i += 4)
             {
                 TColor c = Unsafe.Read<TColor>(sp);
                 c.ToZyxwBytes(dest, i);

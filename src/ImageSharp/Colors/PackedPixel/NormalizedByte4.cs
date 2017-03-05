@@ -52,7 +52,7 @@ namespace ImageSharp
 
         /// <inheritdoc/>
         public uint PackedValue { get; set; }
-        
+
         /// <inheritdoc />
         public BulkPixelOperations<NormalizedByte4> BulkOperations => new BulkPixelOperations<NormalizedByte4>();
 

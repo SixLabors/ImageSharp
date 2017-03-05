@@ -73,7 +73,7 @@ namespace ImageSharp
         /// </summary>
         /// <param name="arrayPointer">The <see cref="ArrayPointer{T}"/> to convert</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static explicit operator void* (ArrayPointer<T> arrayPointer)
+        public static explicit operator void*(ArrayPointer<T> arrayPointer)
         {
             return (void*)arrayPointer.PointerAtOffset;
         }
@@ -83,7 +83,7 @@ namespace ImageSharp
         /// </summary>
         /// <param name="arrayPointer">The <see cref="ArrayPointer{T}"/> to convert</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static explicit operator byte* (ArrayPointer<T> arrayPointer)
+        public static explicit operator byte*(ArrayPointer<T> arrayPointer)
         {
             return (byte*)arrayPointer.PointerAtOffset;
         }

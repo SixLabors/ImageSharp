@@ -69,7 +69,6 @@ namespace ImageSharp
             this.Length = bytes.Length; // TODO: Is this the right value for Length?
 
             this.byteBuffer = new PinnedBuffer<byte>(bytes);
-            
             this.PixelBase = (byte*)this.byteBuffer.Pointer;
         }
 
@@ -123,7 +122,7 @@ namespace ImageSharp
             this.byteBuffer = new PinnedBuffer<byte>(this.Length);
             this.PixelBase = (byte*)this.byteBuffer.Pointer;
         }
-        
+
         /// <summary>
         /// Gets the data in bytes.
         /// </summary>
@@ -163,7 +162,7 @@ namespace ImageSharp
         /// Gets the width.
         /// </summary>
         public int Width { get; }
-        
+
         /// <summary>
         /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
         /// </summary>
@@ -249,6 +248,6 @@ namespace ImageSharp
                           nameof(bytes),
                           $"Invalid byte array length. Length {bytes.Length}; Should be {requiredLength}.");
             }
-        }    
+        }
     }
 }

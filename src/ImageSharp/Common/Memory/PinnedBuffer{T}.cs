@@ -1,3 +1,8 @@
+// <copyright file="PinnedBuffer{T}.cs" company="James Jackson-South">
+// Copyright (c) James Jackson-South and contributors.
+// Licensed under the Apache License, Version 2.0.
+// </copyright>
+
 namespace ImageSharp
 {
     using System;
@@ -21,7 +26,7 @@ namespace ImageSharp
         /// A value indicating wether this <see cref="PinnedBuffer{T}"/> instance should return the array to the pool.
         /// </summary>
         private bool isPoolingOwner;
-        
+
         /// <summary>
         /// Initializes a new instance of the <see cref="PinnedBuffer{T}"/> class.
         /// </summary>
@@ -56,11 +61,15 @@ namespace ImageSharp
             {
                 throw new ArgumentException("Can't initialize a PinnedBuffer with array.Length < count", nameof(array));
             }
+
             this.Count = count;
             this.Array = array;
             this.Pin();
         }
 
+        /// <summary>
+        /// Finalizes an instance of the <see cref="PinnedBuffer{T}"/> class.
+        /// </summary>
         ~PinnedBuffer()
         {
             this.UnPin();
@@ -71,14 +80,13 @@ namespace ImageSharp
         /// </summary>
         public bool IsDisposedOrLostArrayOwnership { get; private set; }
 
-
         /// <summary>
         /// Gets the count of "relevant" elements. Usually be smaller than 'Array.Length' when <see cref="Array"/> is pooled.
         /// </summary>
         public int Count { get; private set; }
 
         /// <summary>
-        /// The (pinned) array of elements.
+        /// Gets the backing pinned array.
         /// </summary>
         public T[] Array { get; private set; }
 
@@ -96,6 +104,7 @@ namespace ImageSharp
             {
                 return;
             }
+
             this.IsDisposedOrLostArrayOwnership = true;
             this.UnPin();
 
@@ -147,6 +156,7 @@ namespace ImageSharp
             {
                 return;
             }
+
             this.handle.Free();
             this.Pointer = IntPtr.Zero;
         }

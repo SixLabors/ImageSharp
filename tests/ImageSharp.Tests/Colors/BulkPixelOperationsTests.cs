@@ -9,22 +9,21 @@
     {
         public class Color : BulkPixelOperationsTests<ImageSharp.Color>
         {
-            // MemberData does not work without redeclaring the public field in the derived test class:
-            public static TheoryData<int> ArraySizesData = new TheoryData<int> { 7, 16, 1111 };
+            // For 4.6 test runner MemberData does not work without redeclaring the public field in the derived test class:
+            public static new TheoryData<int> ArraySizesData => new TheoryData<int> { 7, 16, 1111 };
         }
 
         public class Argb : BulkPixelOperationsTests<ImageSharp.Argb>
         {
-            // MemberData does not work without redeclaring the public field in the derived test class:
-            public static TheoryData<int> ArraySizesData = new TheoryData<int> { 7, 16, 1111 };
+            // For 4.6 test runner MemberData does not work without redeclaring the public field in the derived test class:
+            public static new TheoryData<int> ArraySizesData => new TheoryData<int> { 7, 16, 1111 };
         }
     }
 
     public abstract class BulkPixelOperationsTests<TColor>
         where TColor : struct, IPixel<TColor>
     {
-        // The field is private so it can be safely redeclared in inherited non-abstract test classes.
-        private static TheoryData<int> ArraySizesData = new TheoryData<int> { 7, 16, 1111 };
+        public static TheoryData<int> ArraySizesData => new TheoryData<int> { 7, 16, 1111 };
         
         [Theory]
         [MemberData(nameof(ArraySizesData))]

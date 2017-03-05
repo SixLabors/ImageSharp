@@ -36,9 +36,6 @@ namespace ImageSharp
         /// <inheritdoc/>
         public uint PackedValue { get; set; }
 
-        /// <inheritdoc />
-        public BulkPixelOperations<Rg32> BulkOperations => new BulkPixelOperations<Rg32>();
-
         /// <summary>
         /// Compares two <see cref="Rg32"/> objects for equality.
         /// </summary>
@@ -74,6 +71,9 @@ namespace ImageSharp
         {
             return left.PackedValue != right.PackedValue;
         }
+
+        /// <inheritdoc />
+        public BulkPixelOperations<Rg32> CreateBulkOperations() => new BulkPixelOperations<Rg32>();
 
         /// <summary>
         /// Expands the packed representation into a <see cref="Vector2"/>.

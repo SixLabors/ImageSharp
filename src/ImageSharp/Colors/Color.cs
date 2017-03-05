@@ -112,9 +112,6 @@ namespace ImageSharp
             this.packedValue = packed;
         }
 
-        /// <inheritdoc />
-        public BulkPixelOperations<Color> BulkOperations => new BulkPixelOperations<Color>();
-
         /// <summary>
         /// Gets or sets the red component.
         /// </summary>
@@ -247,6 +244,9 @@ namespace ImageSharp
         {
             return ColorBuilder<Color>.FromHex(hex);
         }
+
+        /// <inheritdoc />
+        public BulkPixelOperations<Color> CreateBulkOperations() => new BulkPixelOperations<Color>();
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

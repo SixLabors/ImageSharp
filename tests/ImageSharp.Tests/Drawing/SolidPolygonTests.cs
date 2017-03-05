@@ -242,5 +242,32 @@ namespace ImageSharp.Tests.Drawing
                 }
             }
         }
+
+        [Fact]
+        public void ImageShouldBeOverlayedBySquareWithCornerClipped()
+        {
+            string path = this.CreateOutputDirectory("Drawing", "FilledPolygons");
+
+            var config = Configuration.CreateDefaultInstance();
+            config.ParallelOptions.MaxDegreeOfParallelism = 1;
+            using (Image image = new Image(200, 200, config))
+            {
+                using (FileStream output = File.OpenWrite($"{path}/clipped-corner.png"))
+                {
+                    image
+                        .Fill(Color.Blue)
+                        .FillPolygon(Color.HotPink, new[]
+                        {
+                            new Vector2( 8, 8 ),
+                            new Vector2( 64, 8 ),
+                            new Vector2( 64, 64 ),
+                            new Vector2( 120, 64 ),
+                            new Vector2( 120, 120 ),
+                            new Vector2( 8, 120 )
+                        } )
+                         .Save(output);
+                }
+            }
+        }
     }
 }

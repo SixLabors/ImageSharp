@@ -22,6 +22,7 @@
         {
             using (PinnedBuffer<Foo> buffer = new PinnedBuffer<Foo>(count))
             {
+                Assert.False(buffer.IsDisposedOrLostArrayOwnership);
                 Assert.NotNull(buffer.Array);
                 Assert.Equal(count, buffer.Count);
                 Assert.True(buffer.Array.Length >= count);
@@ -38,11 +39,21 @@
             Foo[] array = new Foo[count];
             using (PinnedBuffer<Foo> buffer = new PinnedBuffer<Foo>(array))
             {
+                Assert.False(buffer.IsDisposedOrLostArrayOwnership);
                 Assert.Equal(array, buffer.Array);
                 Assert.Equal(count, buffer.Count);
 
                 VerifyPointer(buffer);
             }
+        }
+
+        [Fact]
+        public void Dispose()
+        {
+            PinnedBuffer<Foo> buffer = new PinnedBuffer<Foo>(42);
+            buffer.Dispose();
+
+            Assert.True(buffer.IsDisposedOrLostArrayOwnership);
         }
 
         [Fact]
@@ -58,6 +69,20 @@
                 Assert.Equal(0, arrayPtr.Offset);
                 Assert.Equal(buffer.Pointer, arrayPtr.PointerAtOffset);
             }
+        }
+
+        [Fact]
+        public void UnPinAndTakeArrayOwnership()
+        {
+            Foo[] data = null;
+            using (PinnedBuffer<Foo> buffer = new PinnedBuffer<Foo>(42))
+            {
+                data = buffer.UnPinAndTakeArrayOwnership();
+                Assert.True(buffer.IsDisposedOrLostArrayOwnership);
+            }
+
+            Assert.NotNull(data);
+            Assert.True(data.Length >= 42);
         }
 
         private static void VerifyPointer(PinnedBuffer<Foo> buffer)

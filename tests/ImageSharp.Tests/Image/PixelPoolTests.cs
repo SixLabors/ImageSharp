@@ -1,4 +1,4 @@
-﻿// <copyright file="PixelPoolTests.cs" company="James Jackson-South">
+﻿// <copyright file="PixelDataPoolTests.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -10,54 +10,54 @@ namespace ImageSharp.Tests
     using Xunit;
 
     /// <summary>
-    /// Tests the <see cref="PixelAccessor"/> class.
+    /// Tests the <see cref="PixelDataPool{T}"/> class.
     /// </summary>
-    public class PixelPoolTests
+    public class PixelDataPoolTests
     {
         [Fact]
-        public void PixelPoolRentsMinimumSize()
+        public void PixelDataPoolRentsMinimumSize()
         {
-            Color[] pixels = PixelPool<Color>.RentPixels(1024);
+            Color[] pixels = PixelDataPool<Color>.Rent(1024);
 
             Assert.True(pixels.Length >= 1024);
         }
 
         [Fact]
-        public void PixelPoolRentsEmptyArray()
+        public void PixelDataPoolRentsEmptyArray()
         {
             for (int i = 16; i < 1024; i += 16)
             {
-                Color[] pixels = PixelPool<Color>.RentPixels(i);
+                Color[] pixels = PixelDataPool<Color>.Rent(i);
 
                 Assert.True(pixels.All(p => p == default(Color)));
 
-                PixelPool<Color>.ReturnPixels(pixels);
+                PixelDataPool<Color>.Return(pixels);
             }
 
             for (int i = 16; i < 1024; i += 16)
             {
-                Color[] pixels = PixelPool<Color>.RentPixels(i);
+                Color[] pixels = PixelDataPool<Color>.Rent(i);
 
                 Assert.True(pixels.All(p => p == default(Color)));
 
-                PixelPool<Color>.ReturnPixels(pixels);
+                PixelDataPool<Color>.Return(pixels);
             }
         }
 
         [Fact]
-        public void PixelPoolDoesNotThrowWhenReturningNonPooled()
+        public void PixelDataPoolDoesNotThrowWhenReturningNonPooled()
         {
             Color[] pixels = new Color[1024];
 
-            PixelPool<Color>.ReturnPixels(pixels);
+            PixelDataPool<Color>.Return(pixels);
 
             Assert.True(pixels.Length >= 1024);
         }
 
         [Fact]
-        public void PixelPoolCleansRentedArray()
+        public void PixelDataPoolCleansRentedArray()
         {
-            Color[] pixels = PixelPool<Color>.RentPixels(256);
+            Color[] pixels = PixelDataPool<Color>.Rent(256);
 
             for (int i = 0; i < pixels.Length; i++)
             {
@@ -66,9 +66,28 @@ namespace ImageSharp.Tests
 
             Assert.True(pixels.All(p => p == Color.Azure));
 
-            PixelPool<Color>.ReturnPixels(pixels);
+            PixelDataPool<Color>.Return(pixels);
 
             Assert.True(pixels.All(p => p == default(Color)));
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void CalculateMaxArrayLength(bool isRawData)
+        {
+            int max = isRawData ? PixelDataPool<int>.CalculateMaxArrayLength()
+                          : PixelDataPool<Color>.CalculateMaxArrayLength();
+
+            Assert.Equal(max < int.MaxValue, !isRawData);
+        }
+
+        [Fact]
+        public void RentNonIPixelData()
+        {
+            byte[] data = PixelDataPool<byte>.Rent(16384);
+
+            Assert.True(data.Length >= 16384);
         }
     }
 }

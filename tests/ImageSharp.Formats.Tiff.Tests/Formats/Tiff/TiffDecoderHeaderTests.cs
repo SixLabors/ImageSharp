@@ -51,15 +51,21 @@ namespace ImageSharp.Tests
         }
 
         [Theory]
-        [MemberData(nameof(IsLittleEndianValues))]
-        public void Decode_ThrowsException_WithInvalidByteOrderMarkers(bool isLittleEndian)
+        [InlineData(0x1234)]
+        [InlineData(0x4912)]
+        [InlineData(0x1249)]
+        [InlineData(0x4D12)]
+        [InlineData(0x124D)]
+        [InlineData(0x494D)]
+        [InlineData(0x4D49)]
+        public void Decode_ThrowsException_WithInvalidByteOrderMarkers(ushort byteOrderMarker)
         {
             Stream stream = new TiffGenHeader()
                             {
                                 FirstIfd = new TiffGenIfd(),
-                                ByteOrderMarker = 0x1234
+                                ByteOrderMarker = byteOrderMarker
                             }
-                            .ToStream(isLittleEndian);
+                            .ToStream(true);
 
             TiffDecoder decoder = new TiffDecoder();
             

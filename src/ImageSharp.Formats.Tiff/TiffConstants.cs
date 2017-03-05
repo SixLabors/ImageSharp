@@ -26,5 +26,15 @@ namespace ImageSharp.Formats
         /// Magic number used within the image file header to identify a TIFF format file.
         /// </summary>
         public const ushort HeaderMagicNumber = 42;
+
+        /// <summary>
+        /// Size (in bytes) of the TIFF file header.
+        /// </summary>
+        public const int SizeOfTiffHeader = 8;
+
+        /// <summary>
+        /// Size (in bytes) of each individual TIFF IFD entry
+        /// </summary>
+        public const int SizeOfIfdEntry = 12;
     }
 }

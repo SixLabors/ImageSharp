@@ -18,6 +18,40 @@ namespace ImageSharp.Tests
 
         [Theory]
         [MemberData(nameof(IsLittleEndianValues))]
+        public void ReadHeader_ReadsEndianness(bool isLittleEndian)
+        {
+            Stream stream = new TiffGenHeader()
+                            {
+                                FirstIfd = new TiffGenIfd()
+                            }
+                            .ToStream(isLittleEndian);
+
+            TiffDecoderCore decoder = new TiffDecoderCore(stream, false, null);
+
+            decoder.ReadHeader();
+
+            Assert.Equal(isLittleEndian, decoder.IsLittleEndian);
+        }
+
+        [Theory]
+        [MemberData(nameof(IsLittleEndianValues))]
+        public void ReadHeader_ReadsFirstIfdOffset(bool isLittleEndian)
+        {
+            Stream stream = new TiffGenHeader()
+                            {
+                                FirstIfd = new TiffGenIfd()
+                            }
+                            .ToStream(isLittleEndian);
+
+            TiffDecoderCore decoder = new TiffDecoderCore(stream, false, null);
+
+            uint firstIfdOffset = decoder.ReadHeader();
+
+            Assert.Equal(8u, firstIfdOffset);
+        }
+
+        [Theory]
+        [MemberData(nameof(IsLittleEndianValues))]
         public void Decode_ThrowsException_WithInvalidByteOrderMarkers(bool isLittleEndian)
         {
             Stream stream = new TiffGenHeader()

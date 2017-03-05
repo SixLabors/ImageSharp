@@ -21,11 +21,6 @@ namespace ImageSharp.Formats
         private readonly IDecoderOptions options;
 
         /// <summary>
-        /// A flag indicating if the file is encoded in little-endian or big-endian format.
-        /// </summary>
-        private bool isLittleEndian;
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="TiffDecoderCore" /> class.
         /// </summary>
         /// <param name="options">The decoder options.</param>
@@ -34,10 +29,21 @@ namespace ImageSharp.Formats
             this.options = options ?? new DecoderOptions();
         }
 
+        public TiffDecoderCore(Stream stream, bool isLittleEndian, IDecoderOptions options) : this(options)
+        {
+            this.InputStream = stream;
+            this.IsLittleEndian = isLittleEndian;
+        }
+
         /// <summary>
         /// Gets the input stream.
         /// </summary>
         public Stream InputStream { get; private set; }
+
+        /// <summary>
+        /// A flag indicating if the file is encoded in little-endian or big-endian format.
+        /// </summary>
+        public bool IsLittleEndian;
 
         /// <summary>
         /// Decodes the image from the specified <see cref="Stream"/>  and sets
@@ -62,13 +68,13 @@ namespace ImageSharp.Formats
         {
         }
 
-        private uint ReadHeader()
+        public uint ReadHeader()
         {
             byte[] headerBytes = new byte[8];
             ReadBytes(headerBytes, 8);
 
             if (headerBytes[0] == TiffConstants.ByteOrderLittleEndian && headerBytes[1] == TiffConstants.ByteOrderLittleEndian)
-                isLittleEndian = true;
+                IsLittleEndian = true;
             else if (headerBytes[0] != TiffConstants.ByteOrderBigEndian && headerBytes[1] != TiffConstants.ByteOrderBigEndian)
                 throw new ImageFormatException("Invalid TIFF file header.");
 
@@ -102,7 +108,7 @@ namespace ImageSharp.Formats
 
         private Int16 ToInt16(byte[] bytes, int offset)
         {
-            if (isLittleEndian)
+            if (IsLittleEndian)
                 return (short)(bytes[offset + 0] | (bytes[offset + 1] << 8));
             else
                 return (short)((bytes[offset + 0] << 8) | bytes[offset + 1]);
@@ -110,7 +116,7 @@ namespace ImageSharp.Formats
 
         private Int32 ToInt32(byte[] bytes, int offset)
         {
-            if (isLittleEndian)
+            if (IsLittleEndian)
                 return bytes[offset + 0] | (bytes[offset + 1] << 8) | (bytes[offset + 2] << 16) | (bytes[offset + 3] << 24);
             else
                 return (bytes[offset + 0] << 24) | (bytes[offset + 1] << 16) | (bytes[offset + 2] << 8) | bytes[offset + 3];

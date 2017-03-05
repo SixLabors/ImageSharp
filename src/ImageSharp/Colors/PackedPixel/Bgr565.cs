@@ -39,9 +39,6 @@ namespace ImageSharp
         /// <inheritdoc/>
         public ushort PackedValue { get; set; }
 
-        /// <inheritdoc />
-        public BulkPixelOperations<Bgr565> BulkOperations => new BulkPixelOperations<Bgr565>();
-
         /// <summary>
         /// Compares two <see cref="Bgr565"/> objects for equality.
         /// </summary>
@@ -69,6 +66,9 @@ namespace ImageSharp
         {
             return left.PackedValue != right.PackedValue;
         }
+
+        /// <inheritdoc />
+        public BulkPixelOperations<Bgr565> CreateBulkOperations() => new BulkPixelOperations<Bgr565>();
 
         /// <summary>
         /// Expands the packed representation into a <see cref="Vector3"/>.

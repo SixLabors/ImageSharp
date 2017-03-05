@@ -59,6 +59,7 @@ namespace ImageSharp.Formats
             this.InputStream = stream;
 
             uint firstIfdOffset = ReadHeader();
+            TiffIfd firstIfd = ReadIfd(firstIfdOffset);
         }
 
         /// <summary>
@@ -70,8 +71,8 @@ namespace ImageSharp.Formats
 
         public uint ReadHeader()
         {
-            byte[] headerBytes = new byte[8];
-            ReadBytes(headerBytes, 8);
+            byte[] headerBytes = new byte[TiffConstants.SizeOfTiffHeader];
+            ReadBytes(headerBytes, TiffConstants.SizeOfTiffHeader);
 
             if (headerBytes[0] == TiffConstants.ByteOrderLittleEndian && headerBytes[1] == TiffConstants.ByteOrderLittleEndian)
                 IsLittleEndian = true;
@@ -88,7 +89,35 @@ namespace ImageSharp.Formats
             return firstIfdOffset;
         }
 
-        private byte[] ReadBytes(byte[] buffer, int count)
+        public TiffIfd ReadIfd(uint offset)
+        {
+            InputStream.Seek(offset, SeekOrigin.Begin);
+            
+            byte[] buffer = new byte[TiffConstants.SizeOfIfdEntry];
+
+            ReadBytes(buffer, 2);
+            ushort entryCount = ToUInt16(buffer, 0);
+
+            TiffIfdEntry[] entries = new TiffIfdEntry[entryCount];
+            for (int i = 0 ; i<entryCount; i++)
+            {
+                ReadBytes(buffer, TiffConstants.SizeOfIfdEntry);
+
+                ushort tag = ToUInt16(buffer, 0);
+                TiffType type = (TiffType)ToUInt16(buffer, 2);
+                uint count = ToUInt32(buffer, 4);
+                byte[] value = new byte[] { buffer[8], buffer[9], buffer[10], buffer[11] };
+
+                entries[i] = new TiffIfdEntry(tag, type, count, value);
+            }
+
+            ReadBytes(buffer, 4);
+            uint nextIfdOffset = ToUInt32(buffer, 0);
+
+            return new TiffIfd(entries, nextIfdOffset);
+        }
+
+        private void ReadBytes(byte[] buffer, int count)
         {
             int offset = 0;
 
@@ -102,8 +131,6 @@ namespace ImageSharp.Formats
                 offset += bytesRead;
                 count -= bytesRead;
             }
-
-            return buffer;
         }
 
         private Int16 ToInt16(byte[] bytes, int offset)

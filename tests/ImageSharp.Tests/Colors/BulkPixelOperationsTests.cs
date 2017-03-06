@@ -67,7 +67,7 @@
             TestOperation(
                 source,
                 expected,
-                (ops, s, d) => ops.PackToVector4(s, d, count)
+                (ops, s, d) => ops.ToVector4(s, d, count)
                 );
         }
 
@@ -109,7 +109,7 @@
             TestOperation(
                 source,
                 expected,
-                (ops, s, d) => ops.PackToXyzBytes(s, d, count)
+                (ops, s, d) => ops.ToXyzBytes(s, d, count)
                 );
         }
 
@@ -150,7 +150,7 @@
             TestOperation(
                 source,
                 expected,
-                (ops, s, d) => ops.PackToXyzwBytes(s, d, count)
+                (ops, s, d) => ops.ToXyzwBytes(s, d, count)
                 );
         }
 
@@ -191,7 +191,7 @@
             TestOperation(
                 source,
                 expected,
-                (ops, s, d) => ops.PackToZyxBytes(s, d, count)
+                (ops, s, d) => ops.ToZyxBytes(s, d, count)
                 );
         }
 
@@ -232,7 +232,7 @@
             TestOperation(
                 source,
                 expected,
-                (ops, s, d) => ops.PackToZyxwBytes(s, d, count)
+                (ops, s, d) => ops.ToZyxwBytes(s, d, count)
                 );
         }
 

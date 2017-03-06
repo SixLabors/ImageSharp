@@ -58,7 +58,7 @@ namespace ImageSharp
         /// <param name="sourceColors">The <see cref="ArrayPointer{TColor}"/> to the source colors.</param>
         /// <param name="destVectors">The <see cref="ArrayPointer{Vector4}"/> to the destination vectors.</param>
         /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void PackToVector4(
+        internal virtual void ToVector4(
             ArrayPointer<TColor> sourceColors,
             ArrayPointer<Vector4> destVectors,
             int count)
@@ -105,7 +105,7 @@ namespace ImageSharp
         /// <param name="sourceColors">The <see cref="ArrayPointer{TColor}"/> to the source colors.</param>
         /// <param name="destBytes">The <see cref="ArrayPointer{Byte}"/> to the destination bytes.</param>
         /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void PackToXyzBytes(ArrayPointer<TColor> sourceColors, ArrayPointer<byte> destBytes, int count)
+        internal virtual void ToXyzBytes(ArrayPointer<TColor> sourceColors, ArrayPointer<byte> destBytes, int count)
         {
             byte* sp = (byte*)sourceColors;
             byte[] dest = destBytes.Array;
@@ -148,7 +148,7 @@ namespace ImageSharp
         /// <param name="sourceColors">The <see cref="ArrayPointer{TColor}"/> to the source colors.</param>
         /// <param name="destBytes">The <see cref="ArrayPointer{Byte}"/> to the destination bytes.</param>
         /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void PackToXyzwBytes(
+        internal virtual void ToXyzwBytes(
             ArrayPointer<TColor> sourceColors,
             ArrayPointer<byte> destBytes,
             int count)
@@ -194,7 +194,7 @@ namespace ImageSharp
         /// <param name="sourceColors">The <see cref="ArrayPointer{TColor}"/> to the source colors.</param>
         /// <param name="destBytes">The <see cref="ArrayPointer{Byte}"/> to the destination bytes.</param>
         /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void PackToZyxBytes(ArrayPointer<TColor> sourceColors, ArrayPointer<byte> destBytes, int count)
+        internal virtual void ToZyxBytes(ArrayPointer<TColor> sourceColors, ArrayPointer<byte> destBytes, int count)
         {
             byte* sp = (byte*)sourceColors;
             byte[] dest = destBytes.Array;
@@ -237,7 +237,7 @@ namespace ImageSharp
         /// <param name="sourceColors">The <see cref="ArrayPointer{TColor}"/> to the source colors.</param>
         /// <param name="destBytes">The <see cref="ArrayPointer{Byte}"/> to the destination bytes.</param>
         /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void PackToZyxwBytes(
+        internal virtual void ToZyxwBytes(
             ArrayPointer<TColor> sourceColors,
             ArrayPointer<byte> destBytes,
             int count)

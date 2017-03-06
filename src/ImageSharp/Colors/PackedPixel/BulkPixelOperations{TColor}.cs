@@ -29,12 +29,12 @@ namespace ImageSharp
         /// <summary>
         /// Bulk version of <see cref="IPixel.PackFromVector4(Vector4)"/>
         /// </summary>
-        /// <param name="sourceVectors">The <see cref="ArrayPointer{Vector4}"/> to the source vectors.</param>
-        /// <param name="destColors">The <see cref="ArrayPointer{TColor}"/> to the destination colors.</param>
+        /// <param name="sourceVectors">The <see cref="BufferPointer{T}"/> to the source vectors.</param>
+        /// <param name="destColors">The <see cref="BufferPointer{T}"/> to the destination colors.</param>
         /// <param name="count">The number of pixels to convert.</param>
         internal virtual void PackFromVector4(
-            ArrayPointer<Vector4> sourceVectors,
-            ArrayPointer<TColor> destColors,
+            BufferPointer<Vector4> sourceVectors,
+            BufferPointer<TColor> destColors,
             int count)
         {
             Vector4* sp = (Vector4*)sourceVectors.PointerAtOffset;
@@ -55,12 +55,12 @@ namespace ImageSharp
         /// <summary>
         /// Bulk version of <see cref="IPixel.ToVector4()"/>.
         /// </summary>
-        /// <param name="sourceColors">The <see cref="ArrayPointer{TColor}"/> to the source colors.</param>
-        /// <param name="destVectors">The <see cref="ArrayPointer{Vector4}"/> to the destination vectors.</param>
+        /// <param name="sourceColors">The <see cref="BufferPointer{T}"/> to the source colors.</param>
+        /// <param name="destVectors">The <see cref="BufferPointer{T}"/> to the destination vectors.</param>
         /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void PackToVector4(
-            ArrayPointer<TColor> sourceColors,
-            ArrayPointer<Vector4> destVectors,
+        internal virtual void ToVector4(
+            BufferPointer<TColor> sourceColors,
+            BufferPointer<Vector4> destVectors,
             int count)
         {
             byte* sp = (byte*)sourceColors;
@@ -78,12 +78,12 @@ namespace ImageSharp
         /// <summary>
         /// Bulk version of <see cref="IPixel.PackFromBytes(byte, byte, byte, byte)"/> that converts data in <see cref="ComponentOrder.Xyz"/>.
         /// </summary>
-        /// <param name="sourceBytes">The <see cref="ArrayPointer{Byte}"/> to the source bytes.</param>
-        /// <param name="destColors">The <see cref="ArrayPointer{TColor}"/> to the destination colors.</param>
+        /// <param name="sourceBytes">The <see cref="BufferPointer{T}"/> to the source bytes.</param>
+        /// <param name="destColors">The <see cref="BufferPointer{T}"/> to the destination colors.</param>
         /// <param name="count">The number of pixels to convert.</param>
         internal virtual void PackFromXyzBytes(
-            ArrayPointer<byte> sourceBytes,
-            ArrayPointer<TColor> destColors,
+            BufferPointer<byte> sourceBytes,
+            BufferPointer<TColor> destColors,
             int count)
         {
             byte* sp = (byte*)sourceBytes;
@@ -102,10 +102,10 @@ namespace ImageSharp
         /// <summary>
         /// Bulk version of <see cref="IPixel.ToXyzBytes(byte[], int)"/>.
         /// </summary>
-        /// <param name="sourceColors">The <see cref="ArrayPointer{TColor}"/> to the source colors.</param>
-        /// <param name="destBytes">The <see cref="ArrayPointer{Byte}"/> to the destination bytes.</param>
+        /// <param name="sourceColors">The <see cref="BufferPointer{T}"/> to the source colors.</param>
+        /// <param name="destBytes">The <see cref="BufferPointer{T}"/> to the destination bytes.</param>
         /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void PackToXyzBytes(ArrayPointer<TColor> sourceColors, ArrayPointer<byte> destBytes, int count)
+        internal virtual void ToXyzBytes(BufferPointer<TColor> sourceColors, BufferPointer<byte> destBytes, int count)
         {
             byte* sp = (byte*)sourceColors;
             byte[] dest = destBytes.Array;
@@ -121,12 +121,12 @@ namespace ImageSharp
         /// <summary>
         /// Bulk version of <see cref="IPixel.PackFromBytes(byte, byte, byte, byte)"/> that converts data in <see cref="ComponentOrder.Xyzw"/>.
         /// </summary>
-        /// <param name="sourceBytes">The <see cref="ArrayPointer{Byte}"/> to the source bytes.</param>
-        /// <param name="destColors">The <see cref="ArrayPointer{TColor}"/> to the destination colors.</param>
+        /// <param name="sourceBytes">The <see cref="BufferPointer{T}"/> to the source bytes.</param>
+        /// <param name="destColors">The <see cref="BufferPointer{T}"/> to the destination colors.</param>
         /// <param name="count">The number of pixels to convert.</param>
         internal virtual void PackFromXyzwBytes(
-            ArrayPointer<byte> sourceBytes,
-            ArrayPointer<TColor> destColors,
+            BufferPointer<byte> sourceBytes,
+            BufferPointer<TColor> destColors,
             int count)
         {
             byte* sp = (byte*)sourceBytes;
@@ -145,12 +145,12 @@ namespace ImageSharp
         /// <summary>
         /// Bulk version of <see cref="IPixel.ToXyzwBytes(byte[], int)"/>.
         /// </summary>
-        /// <param name="sourceColors">The <see cref="ArrayPointer{TColor}"/> to the source colors.</param>
-        /// <param name="destBytes">The <see cref="ArrayPointer{Byte}"/> to the destination bytes.</param>
+        /// <param name="sourceColors">The <see cref="BufferPointer{T}"/> to the source colors.</param>
+        /// <param name="destBytes">The <see cref="BufferPointer{T}"/> to the destination bytes.</param>
         /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void PackToXyzwBytes(
-            ArrayPointer<TColor> sourceColors,
-            ArrayPointer<byte> destBytes,
+        internal virtual void ToXyzwBytes(
+            BufferPointer<TColor> sourceColors,
+            BufferPointer<byte> destBytes,
             int count)
         {
             byte* sp = (byte*)sourceColors;
@@ -167,12 +167,12 @@ namespace ImageSharp
         /// <summary>
         /// Bulk version of <see cref="IPixel.PackFromBytes(byte, byte, byte, byte)"/> that converts data in <see cref="ComponentOrder.Zyx"/>.
         /// </summary>
-        /// <param name="sourceBytes">The <see cref="ArrayPointer{Byte}"/> to the source bytes.</param>
-        /// <param name="destColors">The <see cref="ArrayPointer{TColor}"/> to the destination colors.</param>
+        /// <param name="sourceBytes">The <see cref="BufferPointer{T}"/> to the source bytes.</param>
+        /// <param name="destColors">The <see cref="BufferPointer{T}"/> to the destination colors.</param>
         /// <param name="count">The number of pixels to convert.</param>
         internal virtual void PackFromZyxBytes(
-            ArrayPointer<byte> sourceBytes,
-            ArrayPointer<TColor> destColors,
+            BufferPointer<byte> sourceBytes,
+            BufferPointer<TColor> destColors,
             int count)
         {
             byte* sp = (byte*)sourceBytes;
@@ -191,10 +191,10 @@ namespace ImageSharp
         /// <summary>
         /// Bulk version of <see cref="IPixel.ToZyxBytes(byte[], int)"/>.
         /// </summary>
-        /// <param name="sourceColors">The <see cref="ArrayPointer{TColor}"/> to the source colors.</param>
-        /// <param name="destBytes">The <see cref="ArrayPointer{Byte}"/> to the destination bytes.</param>
+        /// <param name="sourceColors">The <see cref="BufferPointer{T}"/> to the source colors.</param>
+        /// <param name="destBytes">The <see cref="BufferPointer{T}"/> to the destination bytes.</param>
         /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void PackToZyxBytes(ArrayPointer<TColor> sourceColors, ArrayPointer<byte> destBytes, int count)
+        internal virtual void ToZyxBytes(BufferPointer<TColor> sourceColors, BufferPointer<byte> destBytes, int count)
         {
             byte* sp = (byte*)sourceColors;
             byte[] dest = destBytes.Array;
@@ -210,12 +210,12 @@ namespace ImageSharp
         /// <summary>
         /// Bulk version of <see cref="IPixel.PackFromBytes(byte, byte, byte, byte)"/> that converts data in <see cref="ComponentOrder.Zyxw"/>.
         /// </summary>
-        /// <param name="sourceBytes">The <see cref="ArrayPointer{Byte}"/> to the source bytes.</param>
-        /// <param name="destColors">The <see cref="ArrayPointer{TColor}"/> to the destination colors.</param>
+        /// <param name="sourceBytes">The <see cref="BufferPointer{T}"/> to the source bytes.</param>
+        /// <param name="destColors">The <see cref="BufferPointer{T}"/> to the destination colors.</param>
         /// <param name="count">The number of pixels to convert.</param>
         internal virtual void PackFromZyxwBytes(
-            ArrayPointer<byte> sourceBytes,
-            ArrayPointer<TColor> destColors,
+            BufferPointer<byte> sourceBytes,
+            BufferPointer<TColor> destColors,
             int count)
         {
             byte* sp = (byte*)sourceBytes;
@@ -234,12 +234,12 @@ namespace ImageSharp
         /// <summary>
         /// Bulk version of <see cref="IPixel.ToZyxwBytes(byte[], int)"/>.
         /// </summary>
-        /// <param name="sourceColors">The <see cref="ArrayPointer{TColor}"/> to the source colors.</param>
-        /// <param name="destBytes">The <see cref="ArrayPointer{Byte}"/> to the destination bytes.</param>
+        /// <param name="sourceColors">The <see cref="BufferPointer{T}"/> to the source colors.</param>
+        /// <param name="destBytes">The <see cref="BufferPointer{T}"/> to the destination bytes.</param>
         /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void PackToZyxwBytes(
-            ArrayPointer<TColor> sourceColors,
-            ArrayPointer<byte> destBytes,
+        internal virtual void ToZyxwBytes(
+            BufferPointer<TColor> sourceColors,
+            BufferPointer<byte> destBytes,
             int count)
         {
             byte* sp = (byte*)sourceColors;

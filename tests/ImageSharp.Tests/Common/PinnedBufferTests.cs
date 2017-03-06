@@ -57,13 +57,13 @@
         }
 
         [Fact]
-        public void GetArrayPointer()
+        public void Slice()
         {
             Foo[] a = { new Foo() { A = 1, B = 2 }, new Foo() { A = 3, B = 4 } };
             
             using (PinnedBuffer<Foo> buffer = new PinnedBuffer<Foo>(a))
             {
-                var arrayPtr = buffer.GetArrayPointer();
+                var arrayPtr = buffer.Slice();
 
                 Assert.Equal(a, arrayPtr.Array);
                 Assert.Equal(0, arrayPtr.Offset);

@@ -16,12 +16,14 @@ namespace ImageSharp.Tests
     /// </summary>
     internal abstract class TiffGenEntry : ITiffGenDataSource
     {
-        private TiffGenEntry(ushort tag, TiffType type)
+        private TiffGenEntry(ushort tag, TiffType type, uint count)
         {
             this.Tag = tag;
             this.Type = type;
+            this.Count = count;
         }
 
+        public uint Count { get; }
         public ushort Tag { get; }
         public TiffType Type { get; }
 
@@ -30,6 +32,11 @@ namespace ImageSharp.Tests
         public static TiffGenEntry Ascii(ushort tag, string value)
         {
             return new TiffGenEntryAscii(tag, value);
+        }
+
+        public static TiffGenEntry Bytes(ushort tag, TiffType type, uint count, byte[] value)
+        {
+            return new TiffGenEntryBytes(tag, type, count, value);
         }
 
         public static TiffGenEntry Integer(ushort tag, TiffType type, int value)
@@ -48,7 +55,7 @@ namespace ImageSharp.Tests
 
         private class TiffGenEntryAscii : TiffGenEntry
         {
-            public TiffGenEntryAscii(ushort tag, string value) : base(tag, TiffType.Ascii)
+            public TiffGenEntryAscii(ushort tag, string value) : base(tag, TiffType.Ascii, (uint)GetBytes(value).Length)
             {
                 this.Value = value;
             }
@@ -57,14 +64,34 @@ namespace ImageSharp.Tests
 
             public override IEnumerable<TiffGenDataBlock> GetData(bool isLittleEndian)
             {
-                byte[] bytes = Encoding.ASCII.GetBytes($"{Value}\0");
+                byte[] bytes = GetBytes(Value);
                 return new[] { new TiffGenDataBlock(bytes) };
+            }
+
+            private static byte[] GetBytes(string value)
+            {
+                return Encoding.ASCII.GetBytes($"{value}\0");
+            }
+        }
+
+        private class TiffGenEntryBytes : TiffGenEntry
+        {
+            public TiffGenEntryBytes(ushort tag, TiffType type, uint count, byte[] value) : base(tag, type, count)
+            {
+                this.Value = value;
+            }
+
+            public byte[] Value { get; }
+
+            public override IEnumerable<TiffGenDataBlock> GetData(bool isLittleEndian)
+            {
+                return new[] { new TiffGenDataBlock(Value) };
             }
         }
 
         private class TiffGenEntryInteger : TiffGenEntry
         {
-            public TiffGenEntryInteger(ushort tag, TiffType type, int[] value) : base(tag, type)
+            public TiffGenEntryInteger(ushort tag, TiffType type, int[] value) : base(tag, type, (uint)value.Length)
             {
                 this.Value = value;
             }

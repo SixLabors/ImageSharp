@@ -40,18 +40,17 @@ namespace ImageSharp.Tests
             {
                 var entryData = entry.GetData(isLittleEndian);
                 var entryBytes = entryData.First().Bytes;
-                var entryCount = entryBytes.Length;
 
                 bytes.AddUInt16(entry.Tag);
                 bytes.AddUInt16((ushort)entry.Type);
-                bytes.AddUInt32((uint)entryCount);
+                bytes.AddUInt32(entry.Count);
 
-                if (entryCount <=4)
+                if (entryBytes.Length <=4)
                 {
-                    bytes.AddByte(entryCount > 0 ? entryBytes[0] : (byte)0);
-                    bytes.AddByte(entryCount > 1 ? entryBytes[1] : (byte)0);
-                    bytes.AddByte(entryCount > 2 ? entryBytes[2] : (byte)0);
-                    bytes.AddByte(entryCount > 3 ? entryBytes[3] : (byte)0);
+                    bytes.AddByte(entryBytes.Length > 0 ? entryBytes[0] : (byte)0);
+                    bytes.AddByte(entryBytes.Length > 1 ? entryBytes[1] : (byte)0);
+                    bytes.AddByte(entryBytes.Length > 2 ? entryBytes[2] : (byte)0);
+                    bytes.AddByte(entryBytes.Length > 3 ? entryBytes[3] : (byte)0);
 
                     dataBlocks.AddRange(entryData.Skip(1));
                 }

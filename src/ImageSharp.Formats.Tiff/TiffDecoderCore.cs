@@ -133,6 +133,23 @@ namespace ImageSharp.Formats
             }
         }
 
+        public byte[] ReadBytes(ref TiffIfdEntry entry)
+        {
+            uint byteLength = GetSizeOfData(entry);
+
+            if (entry.Value.Length < byteLength)
+            {
+                uint offset = ToUInt32(entry.Value, 0);
+                InputStream.Seek(offset, SeekOrigin.Begin);
+
+                byte[] data = new byte[byteLength];
+                ReadBytes(data, (int)byteLength);
+                entry.Value = data;
+            }
+
+            return entry.Value;
+        }
+
         private Int16 ToInt16(byte[] bytes, int offset)
         {
             if (IsLittleEndian)
@@ -157,6 +174,34 @@ namespace ImageSharp.Formats
         private UInt16 ToUInt16(byte[] bytes, int offset)
         {
             return (ushort)ToInt16(bytes, offset);
+        }
+
+        public static uint GetSizeOfData(TiffIfdEntry entry) => SizeOfDataType(entry.Type) * entry.Count;
+
+        private static uint SizeOfDataType(TiffType type)
+        {
+            switch (type)
+            {
+                case TiffType.Byte:
+                case TiffType.Ascii:
+                case TiffType.SByte:
+                case TiffType.Undefined:
+                    return 1u;
+                case TiffType.Short:
+                case TiffType.SShort:
+                    return 2u;
+                case TiffType.Long:
+                case TiffType.SLong:
+                case TiffType.Float:
+                case TiffType.Ifd:
+                    return 4u;
+                case TiffType.Rational:
+                case TiffType.SRational:
+                case TiffType.Double:
+                    return 8u;
+                default:
+                    return 0u;
+            }
         }
     }
 }

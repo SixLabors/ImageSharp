@@ -80,7 +80,7 @@ namespace ImageSharp.Tests
             Assert.Equal(5, ifd.Entries.Length);
         }
 
-         [Theory]
+        [Theory]
         [MemberData(nameof(IsLittleEndianValues))]
         public void ReadIfd_ReadsRawTiffEntryData(bool isLittleEndian)
         {
@@ -104,7 +104,7 @@ namespace ImageSharp.Tests
             Assert.NotNull(entry);
             Assert.Equal(TiffTags.ImageLength, entry.Tag);
             Assert.Equal(TiffType.Long, entry.Type);
-            Assert.Equal(4u, entry.Count);
+            Assert.Equal(1u, entry.Count);
             Assert.Equal(expectedData, entry.Value);
         }
     }

@@ -67,7 +67,7 @@
             TestOperation(
                 source,
                 expected,
-                (ops, s, d) => ops.PackToVector4(s, d, count)
+                (ops, s, d) => ops.ToVector4(s, d, count)
                 );
         }
 
@@ -109,7 +109,7 @@
             TestOperation(
                 source,
                 expected,
-                (ops, s, d) => ops.PackToXyzBytes(s, d, count)
+                (ops, s, d) => ops.ToXyzBytes(s, d, count)
                 );
         }
 
@@ -150,7 +150,7 @@
             TestOperation(
                 source,
                 expected,
-                (ops, s, d) => ops.PackToXyzwBytes(s, d, count)
+                (ops, s, d) => ops.ToXyzwBytes(s, d, count)
                 );
         }
 
@@ -191,7 +191,7 @@
             TestOperation(
                 source,
                 expected,
-                (ops, s, d) => ops.PackToZyxBytes(s, d, count)
+                (ops, s, d) => ops.ToZyxBytes(s, d, count)
                 );
         }
 
@@ -232,7 +232,7 @@
             TestOperation(
                 source,
                 expected,
-                (ops, s, d) => ops.PackToZyxwBytes(s, d, count)
+                (ops, s, d) => ops.ToZyxwBytes(s, d, count)
                 );
         }
 
@@ -245,8 +245,8 @@
             public PinnedBuffer<TDest> ActualDestBuffer { get; }
             public PinnedBuffer<TDest> ExpectedDestBuffer { get; }
 
-            public ArrayPointer<TSource> Source => this.SourceBuffer.GetArrayPointer();
-            public ArrayPointer<TDest> ActualDest => this.ActualDestBuffer.GetArrayPointer();
+            public BufferPointer<TSource> Source => this.SourceBuffer.Slice();
+            public BufferPointer<TDest> ActualDest => this.ActualDestBuffer.Slice();
             
             public TestBuffers(TSource[] source, TDest[] expectedDest)
             {
@@ -277,7 +277,7 @@
         private static void TestOperation<TSource, TDest>(
             TSource[] source,
             TDest[] expected,
-            Action<BulkPixelOperations<TColor>, ArrayPointer<TSource>, ArrayPointer<TDest>> action)
+            Action<BulkPixelOperations<TColor>, BufferPointer<TSource>, BufferPointer<TDest>> action)
             where TSource : struct
             where TDest : struct
         {

@@ -7,7 +7,7 @@ namespace ImageSharp.Tests.Common
 
     using Xunit;
 
-    public unsafe class ArrayPointerTests
+    public unsafe class BufferPointerTests
     {
         public struct Foo
         {
@@ -33,7 +33,7 @@ namespace ImageSharp.Tests.Common
             fixed (Foo* p = array)
             {
                 // Act:
-                ArrayPointer<Foo> ap = new ArrayPointer<Foo>(array, p);
+                BufferPointer<Foo> ap = new BufferPointer<Foo>(array, p);
 
                 // Assert:
                 Assert.Equal(array, ap.Array);
@@ -49,7 +49,7 @@ namespace ImageSharp.Tests.Common
             fixed (Foo* p = array)
             {
                 // Act:
-                ArrayPointer<Foo> ap = new ArrayPointer<Foo>(array, p, offset);
+                BufferPointer<Foo> ap = new BufferPointer<Foo>(array, p, offset);
 
                 // Assert:
                 Assert.Equal(array, ap.Array);
@@ -67,7 +67,7 @@ namespace ImageSharp.Tests.Common
             int totalOffset = offset0 + offset1;
             fixed (Foo* p = array)
             {
-                ArrayPointer<Foo> ap = new ArrayPointer<Foo>(array, p, offset0);
+                BufferPointer<Foo> ap = new BufferPointer<Foo>(array, p, offset0);
 
                 // Act:
                 ap = ap.Slice(offset1);
@@ -92,10 +92,10 @@ namespace ImageSharp.Tests.Common
                 fixed (Foo* pSource = source)
                 fixed (Foo* pDest = dest)
                 {
-                    ArrayPointer<Foo> apSource = new ArrayPointer<Foo>(source, pSource);
-                    ArrayPointer<Foo> apDest = new ArrayPointer<Foo>(dest, pDest);
+                    BufferPointer<Foo> apSource = new BufferPointer<Foo>(source, pSource);
+                    BufferPointer<Foo> apDest = new BufferPointer<Foo>(dest, pDest);
 
-                    ArrayPointer.Copy(apSource, apDest, count);
+                    BufferPointer.Copy(apSource, apDest, count);
                 }
 
                 Assert.Equal(source[0], dest[0]);
@@ -115,10 +115,10 @@ namespace ImageSharp.Tests.Common
                 fixed (Foo* pSource = source)
                 fixed (byte* pDest = dest)
                 {
-                    ArrayPointer<Foo> apSource = new ArrayPointer<Foo>(source, pSource);
-                    ArrayPointer<byte> apDest = new ArrayPointer<byte>(dest, pDest);
+                    BufferPointer<Foo> apSource = new BufferPointer<Foo>(source, pSource);
+                    BufferPointer<byte> apDest = new BufferPointer<byte>(dest, pDest);
 
-                    ArrayPointer.Copy(apSource, apDest, count);
+                    BufferPointer.Copy(apSource, apDest, count);
                 }
 
                 Assert.True(ElementsAreEqual(source, dest, 0));
@@ -138,10 +138,10 @@ namespace ImageSharp.Tests.Common
                 fixed(byte* pSource = source)
                 fixed (Foo* pDest = dest)
                 {
-                    ArrayPointer<byte> apSource = new ArrayPointer<byte>(source, pSource);
-                    ArrayPointer<Foo> apDest = new ArrayPointer<Foo>(dest, pDest);
+                    BufferPointer<byte> apSource = new BufferPointer<byte>(source, pSource);
+                    BufferPointer<Foo> apDest = new BufferPointer<Foo>(dest, pDest);
 
-                    ArrayPointer.Copy(apSource, apDest, count);
+                    BufferPointer.Copy(apSource, apDest, count);
                 }
 
                 Assert.True(ElementsAreEqual(dest, source, 0));

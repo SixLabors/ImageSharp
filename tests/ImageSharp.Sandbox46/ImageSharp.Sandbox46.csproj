@@ -272,6 +272,9 @@
     <Compile Include="..\ImageSharp.Tests\TestImages.cs">
       <Link>Tests\TestImages.cs</Link>
     </Compile>
+    <Compile Include="..\ImageSharp.Tests\TestUtilities\ApproximateFloatComparer.cs">
+      <Link>Tests\TestUtilities\ApproximateFloatComparer.cs</Link>
+    </Compile>
     <Compile Include="..\ImageSharp.Tests\TestUtilities\Attributes\ImageDataAttributeBase.cs">
       <Link>Tests\TestUtilities\Attributes\ImageDataAttributeBase.cs</Link>
     </Compile>

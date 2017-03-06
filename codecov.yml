@@ -1,0 +1,4 @@
+ignore:
+  "src/ImageSharp/Common/Helpers/DebugGuard.cs"
+
+  

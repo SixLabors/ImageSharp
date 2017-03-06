@@ -163,9 +163,6 @@ namespace ImageSharp
         {
             Guard.NotNull(pixelSource, nameof(pixelSource));
 
-            // TODO: Was this check really useful? If yes, we can define a bool PixelAccessor<TColor>.IsBoundToImage to re-introduce it:
-
-            // Guard.IsTrue(pixelSource.PooledMemory, nameof(pixelSource.PooledMemory), "pixelSource must be using pooled memory");
             int newWidth = pixelSource.Width;
             int newHeight = pixelSource.Height;
 

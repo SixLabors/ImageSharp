@@ -23,7 +23,7 @@ namespace ImageSharp
         private GCHandle handle;
 
         /// <summary>
-        /// A value indicating wether this <see cref="PinnedBuffer{T}"/> instance should return the array to the pool.
+        /// A value indicating whether this <see cref="PinnedBuffer{T}"/> instance should return the array to the pool.
         /// </summary>
         private bool isPoolingOwner;
 

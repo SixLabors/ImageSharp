@@ -1,4 +1,4 @@
-// <copyright file="ArrayPointer.cs" company="James Jackson-South">
+// <copyright file="BufferPointer.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -8,32 +8,32 @@ namespace ImageSharp
     using System.Runtime.CompilerServices;
 
     /// <summary>
-    /// Utility methods to <see cref="ArrayPointer{T}"/>
+    /// Utility methods for <see cref="BufferPointer{T}"/>
     /// </summary>
-    internal static class ArrayPointer
+    internal static class BufferPointer
     {
         /// <summary>
-        /// Gets an <see cref="ArrayPointer{T}"/> to the beginning of the raw data in 'buffer'.
+        /// Gets a <see cref="BufferPointer{T}"/> to the beginning of the raw data in 'buffer'.
         /// </summary>
         /// <typeparam name="T">The element type</typeparam>
         /// <param name="buffer">The input <see cref="PinnedBuffer{T}"/></param>
-        /// <returns>The <see cref="ArrayPointer{T}"/></returns>
+        /// <returns>The <see cref="BufferPointer{T}"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe ArrayPointer<T> GetArrayPointer<T>(this PinnedBuffer<T> buffer)
+        public static unsafe BufferPointer<T> Slice<T>(this PinnedBuffer<T> buffer)
             where T : struct
         {
-            return new ArrayPointer<T>(buffer.Array, (void*)buffer.Pointer);
+            return new BufferPointer<T>(buffer.Array, (void*)buffer.Pointer);
         }
 
         /// <summary>
         /// Copy 'count' number of elements of the same type from 'source' to 'dest'
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
-        /// <param name="source">The input <see cref="ArrayPointer{T}"/></param>
-        /// <param name="destination">The destination <see cref="ArrayPointer{T}"/>.</param>
+        /// <param name="source">The input <see cref="BufferPointer{T}"/></param>
+        /// <param name="destination">The destination <see cref="BufferPointer{T}"/>.</param>
         /// <param name="count">The number of elements to copy</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe void Copy<T>(ArrayPointer<T> source, ArrayPointer<T> destination, int count)
+        public static unsafe void Copy<T>(BufferPointer<T> source, BufferPointer<T> destination, int count)
             where T : struct
         {
             Unsafe.CopyBlock((void*)source.PointerAtOffset, (void*)destination.PointerAtOffset, USizeOf<T>(count));
@@ -47,7 +47,7 @@ namespace ImageSharp
         /// <param name="destination">The destination buffer.</param>
         /// <param name="countInSource">The number of elements to copy from 'source'</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe void Copy<T>(ArrayPointer<T> source, ArrayPointer<byte> destination, int countInSource)
+        public static unsafe void Copy<T>(BufferPointer<T> source, BufferPointer<byte> destination, int countInSource)
             where T : struct
         {
             Unsafe.CopyBlock((void*)source.PointerAtOffset, (void*)destination.PointerAtOffset, USizeOf<T>(countInSource));
@@ -61,7 +61,7 @@ namespace ImageSharp
         /// <param name="destination">The destination buffer"/></param>
         /// <param name="countInDest">The number of <typeparamref name="T"/> elements to copy.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe void Copy<T>(ArrayPointer<byte> source, ArrayPointer<T> destination, int countInDest)
+        public static unsafe void Copy<T>(BufferPointer<byte> source, BufferPointer<T> destination, int countInDest)
             where T : struct
         {
             Unsafe.CopyBlock((void*)source.PointerAtOffset, (void*)destination.PointerAtOffset, USizeOf<T>(countInDest));

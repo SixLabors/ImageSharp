@@ -58,17 +58,6 @@ namespace ImageSharp
         /// </summary>
         /// <param name="width">The width of the image represented by the pixel buffer.</param>
         /// <param name="height">The height of the image represented by the pixel buffer.</param>
-        /// <param name="pixels">The pixel buffer.</param>
-        public PixelAccessor(int width, int height, TColor[] pixels)
-            : this(width, height, new PinnedBuffer<TColor>(width * height, pixels))
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="PixelAccessor{TColor}"/> class.
-        /// </summary>
-        /// <param name="width">The width of the image represented by the pixel buffer.</param>
-        /// <param name="height">The height of the image represented by the pixel buffer.</param>
         public PixelAccessor(int width, int height)
             : this(width, height, new PinnedBuffer<TColor>(width * height))
         {

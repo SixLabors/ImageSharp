@@ -72,6 +72,9 @@ namespace ImageSharp
             return left.PackedValue != right.PackedValue;
         }
 
+        /// <inheritdoc />
+        public BulkPixelOperations<HalfSingle> CreateBulkOperations() => new BulkPixelOperations<HalfSingle>();
+
         /// <summary>
         /// Expands the packed representation into a <see cref="float"/>.
         /// </summary>

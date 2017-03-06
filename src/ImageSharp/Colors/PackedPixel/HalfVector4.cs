@@ -86,6 +86,9 @@ namespace ImageSharp
         }
 
         /// <inheritdoc />
+        public BulkPixelOperations<HalfVector4> CreateBulkOperations() => new BulkPixelOperations<HalfVector4>();
+
+        /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void PackFromVector4(Vector4 vector)
         {

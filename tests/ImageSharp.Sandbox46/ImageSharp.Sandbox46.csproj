@@ -251,9 +251,6 @@
     <Compile Include="..\ImageSharp.Tests\Formats\Jpg\YCbCrImageTests.cs">
       <Link>Tests\Formats\Jpg\YCbCrImageTests.cs</Link>
     </Compile>
-    <Compile Include="..\ImageSharp.Tests\Image\PixelPoolTests.cs">
-      <Link>Tests\Image\PixelPoolTests.cs</Link>
-    </Compile>
     <Compile Include="..\ImageSharp.Tests\MetaData\ImagePropertyTests.cs">
       <Link>Tests\MetaData\ImagePropertyTests.cs</Link>
     </Compile>

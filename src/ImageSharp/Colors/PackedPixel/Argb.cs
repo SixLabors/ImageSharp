@@ -220,6 +220,9 @@ namespace ImageSharp
             this.PackedValue = Pack(ref vector);
         }
 
+        /// <inheritdoc />
+        public BulkPixelOperations<Argb> CreateBulkOperations() => new BulkPixelOperations<Argb>();
+
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vector4 ToVector4()

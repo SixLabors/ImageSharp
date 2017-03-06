@@ -1,4 +1,4 @@
-// <copyright file="ArrayPointer{T}.cs" company="James Jackson-South">
+// <copyright file="BufferPointer{T}.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -15,21 +15,21 @@ namespace ImageSharp
     /// - It's not possible to use it with stack objects or pointers to unmanaged memory, only with managed arrays
     /// - It's possible to retrieve a reference to the array (<see cref="Array"/>) so we can pass it to API-s like <see cref="Marshal.Copy(byte[], int, IntPtr, int)"/>
     /// - There is no bounds checking for performance reasons. Therefore we don't need to store length. (However this could be added as DEBUG-only feature.)
-    ///   This makes <see cref="ArrayPointer{T}"/> an unsafe type!
-    /// - Currently the arrays provided to ArrayPointer need to be pinned. This behaviour could be changed using C#7 features.
+    ///   This makes <see cref="BufferPointer{T}"/> an unsafe type!
+    /// - Currently the arrays provided to BufferPointer need to be pinned. This behaviour could be changed using C#7 features.
     /// </summary>
     /// <typeparam name="T">The type of elements of the array</typeparam>
-    internal unsafe struct ArrayPointer<T>
+    internal unsafe struct BufferPointer<T>
         where T : struct
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="ArrayPointer{T}"/> struct from a pinned array and an offset.
+        /// Initializes a new instance of the <see cref="BufferPointer{T}"/> struct from a pinned array and an offset.
         /// </summary>
         /// <param name="array">The pinned array</param>
         /// <param name="pointerToArray">Pointer to the beginning of array</param>
         /// <param name="offset">The offset inside the array</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ArrayPointer(T[] array, void* pointerToArray, int offset)
+        public BufferPointer(T[] array, void* pointerToArray, int offset)
         {
             DebugGuard.NotNull(array, nameof(array));
 
@@ -39,12 +39,12 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ArrayPointer{T}"/> struct from a pinned array.
+        /// Initializes a new instance of the <see cref="BufferPointer{T}"/> struct from a pinned array.
         /// </summary>
         /// <param name="array">The pinned array</param>
         /// <param name="pointerToArray">Pointer to the start of 'array'</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ArrayPointer(T[] array, void* pointerToArray)
+        public BufferPointer(T[] array, void* pointerToArray)
         {
             DebugGuard.NotNull(array, nameof(array));
 
@@ -69,34 +69,34 @@ namespace ImageSharp
         public IntPtr PointerAtOffset { get; private set; }
 
         /// <summary>
-        /// Convertes <see cref="ArrayPointer{T}"/> instance to a raw 'void*' pointer
+        /// Convertes <see cref="BufferPointer{T}"/> instance to a raw 'void*' pointer
         /// </summary>
-        /// <param name="arrayPointer">The <see cref="ArrayPointer{T}"/> to convert</param>
+        /// <param name="bufferPointer">The <see cref="BufferPointer{T}"/> to convert</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static explicit operator void*(ArrayPointer<T> arrayPointer)
+        public static explicit operator void*(BufferPointer<T> bufferPointer)
         {
-            return (void*)arrayPointer.PointerAtOffset;
+            return (void*)bufferPointer.PointerAtOffset;
         }
 
         /// <summary>
-        /// Convertes <see cref="ArrayPointer{T}"/> instance to a raw 'byte*' pointer
+        /// Convertes <see cref="BufferPointer{T}"/> instance to a raw 'byte*' pointer
         /// </summary>
-        /// <param name="arrayPointer">The <see cref="ArrayPointer{T}"/> to convert</param>
+        /// <param name="bufferPointer">The <see cref="BufferPointer{T}"/> to convert</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static explicit operator byte*(ArrayPointer<T> arrayPointer)
+        public static explicit operator byte*(BufferPointer<T> bufferPointer)
         {
-            return (byte*)arrayPointer.PointerAtOffset;
+            return (byte*)bufferPointer.PointerAtOffset;
         }
 
         /// <summary>
-        /// Forms a slice out of the given ArrayPointer, beginning at 'offset'.
+        /// Forms a slice out of the given BufferPointer, beginning at 'offset'.
         /// </summary>
         /// <param name="offset">The offset in number of elements</param>
-        /// <returns>The offseted (sliced) ArrayPointer</returns>
+        /// <returns>The offseted (sliced) BufferPointer</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ArrayPointer<T> Slice(int offset)
+        public BufferPointer<T> Slice(int offset)
         {
-            ArrayPointer<T> result = default(ArrayPointer<T>);
+            BufferPointer<T> result = default(BufferPointer<T>);
             result.Array = this.Array;
             result.Offset = this.Offset + offset;
             result.PointerAtOffset = this.PointerAtOffset + (Unsafe.SizeOf<T>() * offset);

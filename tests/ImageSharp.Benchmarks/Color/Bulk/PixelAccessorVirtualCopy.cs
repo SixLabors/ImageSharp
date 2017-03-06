@@ -19,13 +19,13 @@ namespace ImageSharp.Benchmarks.Color.Bulk
     {
         abstract class CopyExecutor
         {
-            internal abstract void VirtualCopy(ArrayPointer<Color> destination, ArrayPointer<byte> source, int count);
+            internal abstract void VirtualCopy(BufferPointer<Color> destination, BufferPointer<byte> source, int count);
         }
 
         class UnsafeCopyExecutor : CopyExecutor
         {
             [MethodImpl(MethodImplOptions.NoInlining)]
-            internal override unsafe void VirtualCopy(ArrayPointer<Color> destination, ArrayPointer<byte> source, int count)
+            internal override unsafe void VirtualCopy(BufferPointer<Color> destination, BufferPointer<byte> source, int count)
             {
                 Unsafe.CopyBlock((void*)destination.PointerAtOffset, (void*)source.PointerAtOffset, (uint)count*4);
             }
@@ -76,7 +76,7 @@ namespace ImageSharp.Benchmarks.Color.Bulk
         }
         
         [Benchmark]
-        public void CopyArrayPointerUnsafeInlined()
+        public void CopyBufferPointerUnsafeInlined()
         {
             uint byteCount = (uint)this.area.Width * 4;
 
@@ -85,22 +85,22 @@ namespace ImageSharp.Benchmarks.Color.Bulk
 
             for (int y = 0; y < this.Height; y++)
             {
-                ArrayPointer<byte> source = this.GetAreaRow(y);
-                ArrayPointer<Color> destination = this.GetPixelAccessorRow(targetX, targetY + y);
+                BufferPointer<byte> source = this.GetAreaRow(y);
+                BufferPointer<Color> destination = this.GetPixelAccessorRow(targetX, targetY + y);
                 Unsafe.CopyBlock((void*)destination.PointerAtOffset, (void*)source.PointerAtOffset, byteCount);
             }
         }
         
         [Benchmark]
-        public void CopyArrayPointerUnsafeVirtual()
+        public void CopyBufferPointerUnsafeVirtual()
         {
             int targetX = this.Width / 4;
             int targetY = 0;
 
             for (int y = 0; y < this.Height; y++)
             {
-                ArrayPointer<byte> source = this.GetAreaRow(y);
-                ArrayPointer<Color> destination = this.GetPixelAccessorRow(targetX, targetY + y);
+                BufferPointer<byte> source = this.GetAreaRow(y);
+                BufferPointer<Color> destination = this.GetPixelAccessorRow(targetX, targetY + y);
                 this.executor.VirtualCopy(destination, source, this.area.Width);
             }
         }
@@ -111,9 +111,9 @@ namespace ImageSharp.Benchmarks.Color.Bulk
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private ArrayPointer<Color> GetPixelAccessorRow(int x, int y)
+        private BufferPointer<Color> GetPixelAccessorRow(int x, int y)
         {
-            return new ArrayPointer<ImageSharp.Color>(
+            return new BufferPointer<ImageSharp.Color>(
                 this.pixelAccessor.PixelBuffer,
                 (void*)this.pixelAccessor.DataPointer,
                 (y * this.pixelAccessor.Width) + x
@@ -121,9 +121,9 @@ namespace ImageSharp.Benchmarks.Color.Bulk
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private ArrayPointer<byte> GetAreaRow(int y)
+        private BufferPointer<byte> GetAreaRow(int y)
         {
-            return new ArrayPointer<byte>(this.area.Bytes, this.area.PixelBase, y * this.area.RowStride);
+            return new BufferPointer<byte>(this.area.Bytes, this.area.PixelBase, y * this.area.RowStride);
         }
     }
 }

@@ -4,14 +4,13 @@
 // </copyright>
 
 using System.Text;
-using ImageSharp.Formats;
+
 using Xunit.Abstractions;
 // ReSharper disable InconsistentNaming
 
 namespace ImageSharp.Tests
 {
     using System;
-    using System.Collections.Generic;
     using System.Diagnostics;
 
     using ImageSharp.Formats.Jpg;
@@ -97,28 +96,6 @@ namespace ImageSharp.Tests
                 bld.Append($"{data[i],3} ");
             }
             this.Output.WriteLine(bld.ToString());
-        }
-
-        internal struct ApproximateFloatComparer : IEqualityComparer<float>
-        {
-            private readonly float Eps;
-
-            public ApproximateFloatComparer(float eps = 1f)
-            {
-                this.Eps = eps;
-            }
-
-            public bool Equals(float x, float y)
-            {
-                float d = x - y;
-
-                return d > -this.Eps && d < this.Eps;
-            }
-
-            public int GetHashCode(float obj)
-            {
-                throw new InvalidOperationException();
-            }
         }
 
         protected void Print(string msg)

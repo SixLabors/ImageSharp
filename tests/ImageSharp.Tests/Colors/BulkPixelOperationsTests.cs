@@ -245,8 +245,8 @@
             public PinnedBuffer<TDest> ActualDestBuffer { get; }
             public PinnedBuffer<TDest> ExpectedDestBuffer { get; }
 
-            public ArrayPointer<TSource> Source => this.SourceBuffer.GetArrayPointer();
-            public ArrayPointer<TDest> ActualDest => this.ActualDestBuffer.GetArrayPointer();
+            public BufferPointer<TSource> Source => this.SourceBuffer.Slice();
+            public BufferPointer<TDest> ActualDest => this.ActualDestBuffer.Slice();
             
             public TestBuffers(TSource[] source, TDest[] expectedDest)
             {
@@ -277,7 +277,7 @@
         private static void TestOperation<TSource, TDest>(
             TSource[] source,
             TDest[] expected,
-            Action<BulkPixelOperations<TColor>, ArrayPointer<TSource>, ArrayPointer<TDest>> action)
+            Action<BulkPixelOperations<TColor>, BufferPointer<TSource>, BufferPointer<TDest>> action)
             where TSource : struct
             where TDest : struct
         {

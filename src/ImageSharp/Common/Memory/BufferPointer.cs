@@ -5,6 +5,7 @@
 
 namespace ImageSharp
 {
+    using System.Numerics;
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
 
@@ -29,19 +30,17 @@ namespace ImageSharp
         public static unsafe void Copy<T>(BufferPointer<T> source, BufferPointer<T> destination, int count)
             where T : struct
         {
-            int elementSize = Unsafe.SizeOf<T>();
-            uint byteCount = (uint) (count * elementSize);
+            uint byteCount = USizeOf<T>(count);
 
-            if (byteCount > ByteCountThreshold && elementSize == sizeof(int))
+            if (byteCount > ByteCountThreshold)
             {
-                // TODO: Add the optimized path for non int-compatible types
-                int[] srcArray = Unsafe.As<int[]>(source.Array);
-                Marshal.Copy(srcArray, source.Offset, destination.PointerAtOffset, count);
+                if (TryMarshalCopy(source, destination, count))
+                {
+                    return;
+                }
             }
-            else
-            {
-                Unsafe.CopyBlock((void*)destination.PointerAtOffset, (void*)source.PointerAtOffset, byteCount);
-            }
+
+            Unsafe.CopyBlock((void*)destination.PointerAtOffset, (void*)source.PointerAtOffset, byteCount);
         }
 
         /// <summary>
@@ -55,19 +54,17 @@ namespace ImageSharp
         public static unsafe void Copy<T>(BufferPointer<T> source, BufferPointer<byte> destination, int countInSource)
             where T : struct
         {
-            int elementSize = Unsafe.SizeOf<T>();
-            uint byteCount = (uint)(countInSource * elementSize);
+            uint byteCount = USizeOf<T>(countInSource);
 
-            if (byteCount > ByteCountThreshold && elementSize == sizeof(int))
+            if (byteCount > ByteCountThreshold)
             {
-                // TODO: Add the optimized path for non int-compatible types
-                int[] srcArray = Unsafe.As<int[]>(source.Array);
-                Marshal.Copy(srcArray, source.Offset, destination.PointerAtOffset, countInSource);
+                if (TryMarshalCopy(source, destination, countInSource))
+                {
+                    return;
+                }
             }
-            else
-            {
-                Unsafe.CopyBlock((void*)destination.PointerAtOffset, (void*)source.PointerAtOffset, byteCount);
-            }
+            
+            Unsafe.CopyBlock((void*)destination.PointerAtOffset, (void*)source.PointerAtOffset, byteCount);
         }
 
         /// <summary>
@@ -113,5 +110,63 @@ namespace ImageSharp
         public static uint USizeOf<T>(int count)
             where T : struct
             => (uint)SizeOf<T>(count);
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool TryMarshalCopy<TSource, TDest>(BufferPointer<TSource> source, BufferPointer<TDest> destination, int count)
+            where TSource : struct 
+            where TDest : struct
+        {
+            // Pattern Based On: 
+            // https://github.com/dotnet/corefx/blob/master/src/System.Numerics.Vectors/src/System/Numerics/Vector.cs#L12
+            //
+            // Note: The following patterns are used throughout the code here and are described here
+            //
+            // PATTERN:
+            //    if (typeof(T) == typeof(Int32)) { ... }
+            //    else if (typeof(T) == typeof(Single)) { ... }
+            // EXPLANATION:
+            //    At runtime, each instantiation of BufferPointer<T> will be type-specific, and each of these typeof blocks will be eliminated,
+            //    as typeof(T) is a (JIT) compile-time constant for each instantiation. This design was chosen to eliminate any overhead from
+            //    delegates and other patterns.
+
+            if (typeof(TSource) == typeof(long))
+            {
+                long[] srcArray = Unsafe.As<long[]>(source.Array);
+                Marshal.Copy(srcArray, source.Offset, destination.PointerAtOffset, count);
+                return true;
+            }
+            else if (typeof(TSource) == typeof(int))
+            {
+                int[] srcArray = Unsafe.As<int[]>(source.Array);
+                Marshal.Copy(srcArray, source.Offset, destination.PointerAtOffset, count);
+                return true;
+            }
+            else if (typeof(TSource) == typeof(uint))
+            {
+                int[] srcArray = Unsafe.As<int[]>(source.Array);
+                Marshal.Copy(srcArray, source.Offset, destination.PointerAtOffset, count);
+                return true;
+            }
+            else if (typeof(TSource) == typeof(short))
+            {
+                short[] srcArray = Unsafe.As<short[]>(source.Array);
+                Marshal.Copy(srcArray, source.Offset, destination.PointerAtOffset, count);
+                return true;
+            }
+            else if (typeof(TSource) == typeof(ushort))
+            {
+                short[] srcArray = Unsafe.As<short[]>(source.Array);
+                Marshal.Copy(srcArray, source.Offset, destination.PointerAtOffset, count);
+                return true;
+            }
+            else if (typeof(TSource) == typeof(byte))
+            {
+                byte[] srcArray = Unsafe.As<byte[]>(source.Array);
+                Marshal.Copy(srcArray, source.Offset, destination.PointerAtOffset, count);
+                return true;
+            }
+
+            return false;
+        }
     }
 }

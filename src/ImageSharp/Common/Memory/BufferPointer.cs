@@ -12,18 +12,7 @@ namespace ImageSharp
     /// </summary>
     internal static class BufferPointer
     {
-        /// <summary>
-        /// Gets a <see cref="BufferPointer{T}"/> to the beginning of the raw data in 'buffer'.
-        /// </summary>
-        /// <typeparam name="T">The element type</typeparam>
-        /// <param name="buffer">The input <see cref="PinnedBuffer{T}"/></param>
-        /// <returns>The <see cref="BufferPointer{T}"/></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe BufferPointer<T> Slice<T>(this PinnedBuffer<T> buffer)
-            where T : struct
-        {
-            return new BufferPointer<T>(buffer.Array, (void*)buffer.Pointer);
-        }
+        
 
         /// <summary>
         /// Copy 'count' number of elements of the same type from 'source' to 'dest'
@@ -36,7 +25,7 @@ namespace ImageSharp
         public static unsafe void Copy<T>(BufferPointer<T> source, BufferPointer<T> destination, int count)
             where T : struct
         {
-            Unsafe.CopyBlock((void*)source.PointerAtOffset, (void*)destination.PointerAtOffset, USizeOf<T>(count));
+            Unsafe.CopyBlock((void*)destination.PointerAtOffset, (void*)source.PointerAtOffset, USizeOf<T>(count));
         }
 
         /// <summary>
@@ -50,7 +39,7 @@ namespace ImageSharp
         public static unsafe void Copy<T>(BufferPointer<T> source, BufferPointer<byte> destination, int countInSource)
             where T : struct
         {
-            Unsafe.CopyBlock((void*)source.PointerAtOffset, (void*)destination.PointerAtOffset, USizeOf<T>(countInSource));
+            Unsafe.CopyBlock((void*)destination.PointerAtOffset, (void*)source.PointerAtOffset, USizeOf<T>(countInSource));
         }
 
         /// <summary>
@@ -64,7 +53,7 @@ namespace ImageSharp
         public static unsafe void Copy<T>(BufferPointer<byte> source, BufferPointer<T> destination, int countInDest)
             where T : struct
         {
-            Unsafe.CopyBlock((void*)source.PointerAtOffset, (void*)destination.PointerAtOffset, USizeOf<T>(countInDest));
+            Unsafe.CopyBlock((void*)destination.PointerAtOffset, (void*)source.PointerAtOffset, USizeOf<T>(countInDest));
         }
 
         /// <summary>

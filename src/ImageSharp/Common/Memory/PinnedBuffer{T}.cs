@@ -7,6 +7,7 @@ namespace ImageSharp
 {
     using System;
     using System.Buffers;
+    using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
 
     /// <summary>
@@ -94,6 +95,27 @@ namespace ImageSharp
         /// Gets a pointer to the pinned <see cref="Array"/>.
         /// </summary>
         public IntPtr Pointer { get; private set; }
+        
+        /// <summary>
+        /// Converts <see cref="PinnedBuffer{T}"/> to an <see cref="BufferPointer{T}"/>.
+        /// </summary>
+        /// <param name="buffer">The <see cref="PinnedBuffer{T}"/> to convert.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static implicit operator BufferPointer<T>(PinnedBuffer<T> buffer)
+        {
+            return buffer.Slice();
+        }
+
+        /// <summary>
+        /// Gets a <see cref="BufferPointer{T}"/> to the beginning of the raw data in 'buffer'.
+        /// </summary>
+        /// <typeparam name="T">The element type</typeparam>
+        /// <returns>The <see cref="BufferPointer{T}"/></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe BufferPointer<T> Slice()
+        {
+            return new BufferPointer<T>(this.Array, (void*)this.Pointer);
+        }
 
         /// <summary>
         /// Disposes the <see cref="PinnedBuffer{T}"/> instance by unpinning the array, and returning the pooled buffer when necessary.

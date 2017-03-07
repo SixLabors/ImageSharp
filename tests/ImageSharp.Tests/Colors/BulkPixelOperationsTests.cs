@@ -17,7 +17,7 @@
             {
                 Assert.IsType<ImageSharp.Color.BulkOperations>(BulkPixelOperations<ImageSharp.Color>.Instance);
             }
-
+            
             [Fact]
             public void ToVector4SimdAligned()
             {

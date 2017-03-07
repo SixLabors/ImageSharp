@@ -6,13 +6,17 @@
 namespace ImageSharp
 {
     using System.Runtime.CompilerServices;
+    using System.Runtime.InteropServices;
 
     /// <summary>
     /// Utility methods for <see cref="BufferPointer{T}"/>
     /// </summary>
     internal static class BufferPointer
     {
-        
+        /// <summary>
+        /// It's worth to use Marshal.Copy() over this size.
+        /// </summary>
+        private const uint ByteCountThreshold = 1024u;
 
         /// <summary>
         /// Copy 'count' number of elements of the same type from 'source' to 'dest'
@@ -25,7 +29,19 @@ namespace ImageSharp
         public static unsafe void Copy<T>(BufferPointer<T> source, BufferPointer<T> destination, int count)
             where T : struct
         {
-            Unsafe.CopyBlock((void*)destination.PointerAtOffset, (void*)source.PointerAtOffset, USizeOf<T>(count));
+            int elementSize = Unsafe.SizeOf<T>();
+            uint byteCount = (uint) (count * elementSize);
+
+            if (byteCount > ByteCountThreshold && elementSize == sizeof(int))
+            {
+                // TODO: Add the optimized path for non int-compatible types
+                int[] srcArray = Unsafe.As<int[]>(source.Array);
+                Marshal.Copy(srcArray, source.Offset, destination.PointerAtOffset, count);
+            }
+            else
+            {
+                Unsafe.CopyBlock((void*)destination.PointerAtOffset, (void*)source.PointerAtOffset, byteCount);
+            }
         }
 
         /// <summary>
@@ -39,7 +55,19 @@ namespace ImageSharp
         public static unsafe void Copy<T>(BufferPointer<T> source, BufferPointer<byte> destination, int countInSource)
             where T : struct
         {
-            Unsafe.CopyBlock((void*)destination.PointerAtOffset, (void*)source.PointerAtOffset, USizeOf<T>(countInSource));
+            int elementSize = Unsafe.SizeOf<T>();
+            uint byteCount = (uint)(countInSource * elementSize);
+
+            if (byteCount > ByteCountThreshold && elementSize == sizeof(int))
+            {
+                // TODO: Add the optimized path for non int-compatible types
+                int[] srcArray = Unsafe.As<int[]>(source.Array);
+                Marshal.Copy(srcArray, source.Offset, destination.PointerAtOffset, countInSource);
+            }
+            else
+            {
+                Unsafe.CopyBlock((void*)destination.PointerAtOffset, (void*)source.PointerAtOffset, byteCount);
+            }
         }
 
         /// <summary>
@@ -53,7 +81,16 @@ namespace ImageSharp
         public static unsafe void Copy<T>(BufferPointer<byte> source, BufferPointer<T> destination, int countInDest)
             where T : struct
         {
-            Unsafe.CopyBlock((void*)destination.PointerAtOffset, (void*)source.PointerAtOffset, USizeOf<T>(countInDest));
+            int byteCount = SizeOf<T>(countInDest);
+
+            if (byteCount > (int)ByteCountThreshold)
+            {
+                Marshal.Copy(source.Array, source.Offset, destination.PointerAtOffset, byteCount);
+            }
+            else
+            {
+                Unsafe.CopyBlock((void*)destination.PointerAtOffset, (void*)source.PointerAtOffset, (uint)byteCount);
+            }
         }
 
         /// <summary>

@@ -26,9 +26,24 @@ namespace ImageSharp.Tests.Common
                 Foo[] result = new Foo[size];
                 for (int i = 0; i < size; i++)
                 {
-                    result[i] = new Foo(i, i);
+                    result[i] = new Foo(i+1, i+1);
                 }
                 return result;
+            }
+        }
+
+        [Fact]
+        public void AsBytes()
+        {
+            Foo[] fooz = { new Foo(1, 2), new Foo(3, 4), new Foo(5, 6) };
+
+            using (PinnedBuffer<Foo> colorBuf = new PinnedBuffer<Foo>(fooz))
+            {
+                BufferPointer<Foo> orig = colorBuf.Slice(1);
+                BufferPointer<byte> asBytes = (BufferPointer < byte > )orig;
+
+                Assert.Equal(asBytes.Offset, sizeof(Foo));
+                Assert.Equal(orig.PointerAtOffset, asBytes.PointerAtOffset);
             }
         }
         
@@ -93,6 +108,27 @@ namespace ImageSharp.Tests.Common
                 Assert.NotEqual(default(T), data[idx]);
             }
 
+
+            private static byte[] CreateTestBytes(int count)
+            {
+                byte[] result = new byte[count];
+                for (int i = 0; i < result.Length; i++)
+                {
+                    result[i] = (byte)((i % 200) + 1);
+                }
+                return result;
+            }
+
+            private static int[] CreateTestInts(int count)
+            {
+                int[] result = new int[count];
+                for (int i = 0; i < result.Length; i++)
+                {
+                    result[i] = i + 1;
+                }
+                return result;
+            }
+
             [Theory]
             [InlineData(4)]
             [InlineData(1500)]
@@ -104,34 +140,89 @@ namespace ImageSharp.Tests.Common
                 fixed (Foo* pSource = source)
                 fixed (Foo* pDest = dest)
                 {
-                    BufferPointer<Foo> apSource = new BufferPointer<Foo>(source, pSource);
-                    BufferPointer<Foo> apDest = new BufferPointer<Foo>(dest, pDest);
+                    BufferPointer<Foo> apSource = new BufferPointer<Foo>(source, pSource, 1);
+                    BufferPointer<Foo> apDest = new BufferPointer<Foo>(dest, pDest, 1);
 
-                    BufferPointer.Copy(apSource, apDest, count);
+                    BufferPointer.Copy(apSource, apDest, count-1);
                 }
 
                 AssertNotDefault(source, 1);
                 AssertNotDefault(dest, 1);
 
-                Assert.Equal(source[0], dest[0]);
+                Assert.NotEqual(source[0], dest[0]);
                 Assert.Equal(source[1], dest[1]);
+                Assert.Equal(source[2], dest[2]);
                 Assert.Equal(source[count-1], dest[count-1]);
                 Assert.NotEqual(source[count], dest[count]);
             }
-            
+
+            [Theory]
+            [InlineData(4)]
+            [InlineData(1500)]
+            public void IntToInt(int count)
+            {
+                int[] source = CreateTestInts(count+2);
+                int[] dest = new int[count + 5];
+
+                fixed (int* pSource = source)
+                fixed (int* pDest = dest)
+                {
+                    BufferPointer<int> apSource = new BufferPointer<int>(source, pSource, 1);
+                    BufferPointer<int> apDest = new BufferPointer<int>(dest, pDest, 1);
+
+                    BufferPointer.Copy(apSource, apDest, count -1);
+                }
+
+                AssertNotDefault(source, 1);
+                AssertNotDefault(dest, 1);
+
+                Assert.NotEqual(source[0], dest[0]);
+                Assert.Equal(source[1], dest[1]);
+                Assert.Equal(source[2], dest[2]);
+                Assert.Equal(source[count - 1], dest[count - 1]);
+                Assert.NotEqual(source[count], dest[count]);
+            }
+
             [Theory]
             [InlineData(4)]
             [InlineData(1500)]
             public void GenericToBytes(int count)
             {
                 int destCount = count * sizeof(Foo);
-                Foo[] source = Foo.CreateArray(count + 2);
-                byte[] dest = new byte[destCount + sizeof(Foo) + 1];
+                Foo[] source = Foo.CreateArray(count+2);
+                byte[] dest = new byte[destCount + sizeof(Foo)*2];
 
                 fixed (Foo* pSource = source)
                 fixed (byte* pDest = dest)
                 {
-                    BufferPointer<Foo> apSource = new BufferPointer<Foo>(source, pSource);
+                    BufferPointer<Foo> apSource = new BufferPointer<Foo>(source, pSource, 1);
+                    BufferPointer<byte> apDest = new BufferPointer<byte>(dest, pDest, sizeof(Foo));
+
+                    BufferPointer.Copy(apSource, apDest, count - 1);
+                }
+
+                AssertNotDefault(source, 1);
+
+                Assert.False(ElementsAreEqual(source, dest, 0));
+                Assert.True(ElementsAreEqual(source, dest, 1));
+                Assert.True(ElementsAreEqual(source, dest, 2));
+                Assert.True(ElementsAreEqual(source, dest, count - 1));
+                Assert.False(ElementsAreEqual(source, dest, count));
+            }
+            
+            [Theory]
+            [InlineData(4)]
+            [InlineData(1500)]
+            public void IntToBytes(int count)
+            {
+                int destCount = count * sizeof(int);
+                int[] source = CreateTestInts(count+2);
+                byte[] dest = new byte[destCount + sizeof(int) + 1];
+
+                fixed (int* pSource = source)
+                fixed (byte* pDest = dest)
+                {
+                    BufferPointer<int> apSource = new BufferPointer<int>(source, pSource);
                     BufferPointer<byte> apDest = new BufferPointer<byte>(dest, pDest);
 
                     BufferPointer.Copy(apSource, apDest, count);
@@ -144,15 +235,6 @@ namespace ImageSharp.Tests.Common
                 Assert.False(ElementsAreEqual(source, dest, count));
             }
 
-            private static byte[] CreateTestBytes(int count)
-            {
-                byte[] result = new byte[count];
-                for (int i = 0; i < result.Length; i++)
-                {
-                    result[i] = (byte)(i % 255);
-                }
-                return result;
-            }
 
             [Theory]
             [InlineData(4)]
@@ -199,8 +281,8 @@ namespace ImageSharp.Tests.Common
                     }
                 }
             }
-            
-            private static bool ElementsAreEqual(Foo[] array, byte[] rawArray, int index)
+
+            internal static bool ElementsAreEqual(Foo[] array, byte[] rawArray, int index)
             {
                 fixed (Foo* pArray = array)
                 fixed (byte* pRaw = rawArray)
@@ -209,6 +291,20 @@ namespace ImageSharp.Tests.Common
 
                     Foo val1 = pArray[index];
                     Foo val2 = pCasted[index];
+
+                    return val1.Equals(val2);
+                }
+            }
+
+            internal static bool ElementsAreEqual(int[] array, byte[] rawArray, int index)
+            {
+                fixed (int* pArray = array)
+                fixed (byte* pRaw = rawArray)
+                {
+                    int* pCasted = (int*)pRaw;
+
+                    int val1 = pArray[index];
+                    int val2 = pCasted[index];
 
                     return val1.Equals(val2);
                 }

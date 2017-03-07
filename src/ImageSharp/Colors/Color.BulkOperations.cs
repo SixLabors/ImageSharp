@@ -59,8 +59,8 @@ namespace ImageSharp
                     );
 
                 Vector<float> bVec = new Vector<float>(256.0f / 255.0f);
-                Vector<uint> magicInt = new Vector<uint>(1191182336);
                 Vector<float> magicFloat = new Vector<float>(32768.0f);
+                Vector<uint> magicInt = new Vector<uint>(1191182336); // reinterpreded value of 32768.0f
                 Vector<uint> mask = new Vector<uint>(255);
 
                 int rawInputSize = count * 4;
@@ -92,17 +92,7 @@ namespace ImageSharp
                         vf.CopyTo(fTemp, i);
                     }
 
-                    // TODO: Replace this with an optimized ArrayPointer.Copy() implementation:
-                    uint byteCount = (uint)rawInputSize * sizeof(float);
-                    
-                    if (byteCount > 1024u)
-                    {
-                        Marshal.Copy(fTemp, 0, destVectors.PointerAtOffset, rawInputSize);
-                    }
-                    else
-                    {
-                        Unsafe.CopyBlock((void*)destVectors, tPtr, byteCount);
-                    }
+                    BufferPointer.Copy<uint>(tempBuf, (BufferPointer<byte>) destVectors, rawInputSize);
                 }
             }
 

@@ -212,6 +212,9 @@
     <Compile Include="..\ImageSharp.Tests\Colors\BulkPixelOperationsTests.cs">
       <Link>Tests\Colors\BulkPixelOperationsTests.cs</Link>
     </Compile>
+    <Compile Include="..\ImageSharp.Tests\Common\BufferPointerTests.cs">
+      <Link>Tests\Common\BufferPointerTests.cs</Link>
+    </Compile>
     <Compile Include="..\ImageSharp.Tests\Common\PinnedBufferTests.cs">
       <Link>Tests\Common\PinnedBufferTests.cs</Link>
     </Compile>

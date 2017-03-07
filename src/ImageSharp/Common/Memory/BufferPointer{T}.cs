@@ -87,7 +87,22 @@ namespace ImageSharp
         {
             return (byte*)bufferPointer.PointerAtOffset;
         }
-        
+
+        /// <summary>
+        /// Converts <see cref="BufferPointer{T}"/> instance to <see cref="BufferPointer{Byte}"/> 
+        /// setting it's <see cref="Offset"/> and <see cref="PointerAtOffset"/> to correct values.
+        /// </summary>
+        /// <param name="source">The <see cref="BufferPointer{T}"/> to convert</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static explicit operator BufferPointer<byte>(BufferPointer<T> source)
+        {
+            BufferPointer<byte> result = default(BufferPointer<byte>);
+            result.Array = Unsafe.As<byte[]>(source.Array);
+            result.Offset = source.Offset * Unsafe.SizeOf<T>();
+            result.PointerAtOffset = source.PointerAtOffset;
+            return result;
+        }
+
         /// <summary>
         /// Forms a slice out of the given BufferPointer, beginning at 'offset'.
         /// </summary>

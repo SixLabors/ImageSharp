@@ -118,6 +118,18 @@ namespace ImageSharp
         }
 
         /// <summary>
+        /// Gets a <see cref="BufferPointer{T}"/> to the beginning of the raw data in 'buffer'.
+        /// </summary>
+        /// <typeparam name="T">The element type</typeparam>
+        /// <returns>The <see cref="BufferPointer{T}"/></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe BufferPointer<T> Slice(int offset)
+        {
+            return new BufferPointer<T>(this.Array, (void*)this.Pointer, offset);
+        }
+
+
+        /// <summary>
         /// Disposes the <see cref="PinnedBuffer{T}"/> instance by unpinning the array, and returning the pooled buffer when necessary.
         /// </summary>
         public void Dispose()

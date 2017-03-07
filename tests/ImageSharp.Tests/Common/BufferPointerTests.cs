@@ -15,12 +15,18 @@ namespace ImageSharp.Tests.Common
 
             public double B;
 
+            public Foo(int a, double b)
+            {
+                this.A = a;
+                this.B = b;
+            }
+
             internal static Foo[] CreateArray(int size)
             {
                 Foo[] result = new Foo[size];
                 for (int i = 0; i < size; i++)
                 {
-                    result[i] = new Foo() { A = i, B = i };
+                    result[i] = new Foo(i, i);
                 }
                 return result;
             }
@@ -81,6 +87,12 @@ namespace ImageSharp.Tests.Common
 
         public class Copy
         {
+            private static void AssertNotDefault<T>(T[] data, int idx)
+                where T : struct
+            {
+                Assert.NotEqual(default(T), data[idx]);
+            }
+
             [Theory]
             [InlineData(4)]
             [InlineData(1500)]
@@ -98,7 +110,11 @@ namespace ImageSharp.Tests.Common
                     BufferPointer.Copy(apSource, apDest, count);
                 }
 
+                AssertNotDefault(source, 1);
+                AssertNotDefault(dest, 1);
+
                 Assert.Equal(source[0], dest[0]);
+                Assert.Equal(source[1], dest[1]);
                 Assert.Equal(source[count-1], dest[count-1]);
                 Assert.NotEqual(source[count], dest[count]);
             }
@@ -121,9 +137,21 @@ namespace ImageSharp.Tests.Common
                     BufferPointer.Copy(apSource, apDest, count);
                 }
 
+                AssertNotDefault(source, 1);
+
                 Assert.True(ElementsAreEqual(source, dest, 0));
                 Assert.True(ElementsAreEqual(source, dest, count - 1));
                 Assert.False(ElementsAreEqual(source, dest, count));
+            }
+
+            private static byte[] CreateTestBytes(int count)
+            {
+                byte[] result = new byte[count];
+                for (int i = 0; i < result.Length; i++)
+                {
+                    result[i] = (byte)(i % 255);
+                }
+                return result;
             }
 
             [Theory]
@@ -131,9 +159,9 @@ namespace ImageSharp.Tests.Common
             [InlineData(1500)]
             public void BytesToGeneric(int count)
             {
-                int destCount = count * sizeof(Foo);
-                byte[] source = new byte[destCount + sizeof(Foo) + 1];
-                Foo[] dest = Foo.CreateArray(count + 2);
+                int srcCount = count * sizeof(Foo);
+                byte[] source = CreateTestBytes(srcCount);
+                Foo[] dest = new Foo[count + 2];
                 
                 fixed(byte* pSource = source)
                 fixed (Foo* pDest = dest)
@@ -144,9 +172,32 @@ namespace ImageSharp.Tests.Common
                     BufferPointer.Copy(apSource, apDest, count);
                 }
 
+                AssertNotDefault(source, sizeof(Foo) + 1);
+                AssertNotDefault(dest, 1);
+
                 Assert.True(ElementsAreEqual(dest, source, 0));
+                Assert.True(ElementsAreEqual(dest, source, 1));
                 Assert.True(ElementsAreEqual(dest, source, count - 1));
                 Assert.False(ElementsAreEqual(dest, source, count));
+            }
+
+            [Fact]
+            public void ColorToBytes()
+            {
+                Color[] colors = { new Color(0, 1, 2, 3), new Color(4, 5, 6, 7), new Color(8, 9, 10, 11), };
+
+                using (PinnedBuffer<Color> colorBuf = new PinnedBuffer<Color>(colors))
+                using (PinnedBuffer<byte> byteBuf = new PinnedBuffer<byte>(colors.Length*4))
+                {
+                    BufferPointer.Copy<Color>(colorBuf, byteBuf, colorBuf.Count);
+
+                    byte[] a = byteBuf.Array;
+
+                    for (int i = 0; i < byteBuf.Count; i++)
+                    {
+                        Assert.Equal((byte)i, a[i]);
+                    }
+                }
             }
             
             private static bool ElementsAreEqual(Foo[] array, byte[] rawArray, int index)

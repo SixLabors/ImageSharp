@@ -79,7 +79,7 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Convertes <see cref="BufferPointer{T}"/> instance to a raw 'byte*' pointer
+        /// Converts <see cref="BufferPointer{T}"/> instance to a raw 'byte*' pointer
         /// </summary>
         /// <param name="bufferPointer">The <see cref="BufferPointer{T}"/> to convert</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -87,7 +87,7 @@ namespace ImageSharp
         {
             return (byte*)bufferPointer.PointerAtOffset;
         }
-
+        
         /// <summary>
         /// Forms a slice out of the given BufferPointer, beginning at 'offset'.
         /// </summary>

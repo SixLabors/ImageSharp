@@ -15,7 +15,7 @@ namespace ImageSharp
             /// <summary>
             /// Value type to store <see cref="Color"/>-s unpacked into multiple <see cref="uint"/>-s.
             /// </summary>
-            private struct RGBAUint
+            private struct UnpackedRGBA
             {
                 private uint r;
                 private uint g;
@@ -63,24 +63,24 @@ namespace ImageSharp
                 Vector<uint> magicInt = new Vector<uint>(1191182336); // reinterpreded value of 32768.0f
                 Vector<uint> mask = new Vector<uint>(255);
 
-                int rawInputSize = count * 4;
+                int unpackedRawCount = count * 4;
                 
                 uint* src = (uint*)sourceColors.PointerAtOffset;
                 uint* srcEnd = src + count;
 
-                using (PinnedBuffer<uint> tempBuf = new PinnedBuffer<uint>(rawInputSize + Vector<uint>.Count))
+                using (PinnedBuffer<uint> tempBuf = new PinnedBuffer<uint>(unpackedRawCount + Vector<uint>.Count))
                 {
                     uint* tPtr = (uint*)tempBuf.Pointer;
                     uint[] temp = tempBuf.Array;
                     float[] fTemp = Unsafe.As<float[]>(temp);
-                    RGBAUint* dst = (RGBAUint*)tPtr;
+                    UnpackedRGBA* dst = (UnpackedRGBA*)tPtr;
 
                     for (; src < srcEnd; src++, dst++)
                     {
                         dst->Load(*src);
                     }
 
-                    for (int i = 0; i < rawInputSize; i += vecSize)
+                    for (int i = 0; i < unpackedRawCount; i += vecSize)
                     {
                         Vector<uint> vi = new Vector<uint>(temp, i);
 
@@ -92,7 +92,7 @@ namespace ImageSharp
                         vf.CopyTo(fTemp, i);
                     }
 
-                    BufferPointer.Copy<uint>(tempBuf, (BufferPointer<byte>) destVectors, rawInputSize);
+                    BufferPointer.Copy<uint>(tempBuf, (BufferPointer<byte>) destVectors, unpackedRawCount);
                 }
             }
 

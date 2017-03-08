@@ -24,30 +24,21 @@ namespace ImageSharp
         private GCHandle handle;
 
         /// <summary>
-        /// The <see cref="PixelDataPool{T}"/> if the <see cref="Array"/> is pooled.
+        /// A value indicating wheter <see cref="Array"/> should be returned to <see cref="PixelDataPool{T}"/>
+        /// when disposing this <see cref="PinnedBuffer{T}"/> instance.
         /// </summary>
-        private PixelDataPool<T> pool;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="PinnedBuffer{T}"/> class.
-        /// </summary>
-        /// <param name="count">The desired count of elements. (Minimum size for <see cref="Array"/>)</param>
-        /// <param name="pool">The <see cref="PixelDataPool{T}"/> to be used to rent the data.</param>
-        public PinnedBuffer(int count, PixelDataPool<T> pool)
-        {
-            this.Count = count;
-            this.pool = pool;
-            this.Array = this.pool.Rent(count);
-            this.Pin();
-        }
+        private bool isPoolingOwner;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PinnedBuffer{T}"/> class.
         /// </summary>
         /// <param name="count">The desired count of elements. (Minimum size for <see cref="Array"/>)</param>
         public PinnedBuffer(int count)
-            : this(count, PixelDataPool<T>.Clean)
         {
+            this.Count = count;
+            this.Array = PixelDataPool<T>.Rent(count);
+            this.isPoolingOwner = true;
+            this.Pin();
         }
 
         /// <summary>
@@ -58,7 +49,7 @@ namespace ImageSharp
         {
             this.Count = array.Length;
             this.Array = array;
-            this.pool = null;
+            this.isPoolingOwner = false;
             this.Pin();
         }
 
@@ -76,7 +67,7 @@ namespace ImageSharp
 
             this.Count = count;
             this.Array = array;
-            this.pool = null;
+            this.isPoolingOwner = false;
             this.Pin();
         }
 
@@ -153,8 +144,12 @@ namespace ImageSharp
             this.IsDisposedOrLostArrayOwnership = true;
             this.UnPin();
 
-            this.pool?.Return(this.Array);
-            this.pool = null;
+            if (this.isPoolingOwner)
+            {
+                PixelDataPool<T>.Return(this.Array);
+            }
+
+            this.isPoolingOwner = false;
             this.Array = null;
             this.Count = 0;
 
@@ -178,7 +173,17 @@ namespace ImageSharp
             this.UnPin();
             T[] array = this.Array;
             this.Array = null;
+            this.isPoolingOwner = false;
             return array;
+        }
+
+        /// <summary>
+        /// Clears the buffer, filling elements between 0 and <see cref="Count"/>-1 with default(T)
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Clear()
+        {
+            this.Slice().Clear(this.Count);
         }
 
         /// <summary>

@@ -130,7 +130,14 @@ namespace ImageSharp
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Clear(int count)
         {
-            
+            if (count < 256)
+            {
+                Unsafe.InitBlock((void*)this.PointerAtOffset, 0, BufferPointer.USizeOf<T>(count));
+            }
+            else
+            {
+                System.Array.Clear(this.Array, this.Offset, count);
+            }
         }
     }
 }

@@ -146,6 +146,11 @@ namespace ImageSharp.Tests.Common
 
                 // Act:
                 ap.Clear(count);
+
+                Assert.NotEqual(default(Foo), array[offset-1]);
+                Assert.Equal(default(Foo), array[offset]);
+                Assert.Equal(default(Foo), array[offset + count-1]);
+                Assert.NotEqual(default(Foo), array[offset + count]);
             }
         }
 

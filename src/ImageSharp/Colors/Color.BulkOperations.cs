@@ -66,7 +66,7 @@ namespace ImageSharp
 
                     for (; src < srcEnd; src++, dst++)
                     {
-                        // TODO: We can benefit a lot of future Vector<T> API-s here (https://github.com/dotnet/corefx/issues/15957)
+                        // TODO: This is the bottleneck now. We can improve it with future Vector<T> API-s (https://github.com/dotnet/corefx/issues/15957)
                         dst->Load(*src);
                     }
 

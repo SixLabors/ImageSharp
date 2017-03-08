@@ -16,7 +16,7 @@ namespace ImageSharp
     internal static class BufferPointer
     {
         /// <summary>
-        /// It's worth to use Marshal.Copy() over this size.
+        /// It's worth to use Marshal.Copy() or Buffer.BlockCopy() over this size.
         /// </summary>
         private const int ByteCountThreshold = 1024;
 

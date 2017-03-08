@@ -131,6 +131,25 @@ namespace ImageSharp.Tests.Common
             }
         }
 
+
+        [Theory]
+        [InlineData(4)]
+        [InlineData(1500)]
+        public void Clear(int count)
+        {
+            Foo[] array = Foo.CreateArray(count + 42);
+
+            int offset = 2;
+            fixed (Foo* p = array)
+            {
+                BufferPointer<Foo> ap = new BufferPointer<Foo>(array, p, offset);
+
+                // Act:
+                ap.Clear(count);
+            }
+        }
+
+
         public class Copy
         {
             private static void AssertNotDefault<T>(T[] data, int idx)
@@ -318,7 +337,6 @@ namespace ImageSharp.Tests.Common
                 Assert.True(ElementsAreEqual(source, dest, count - 1));
                 Assert.False(ElementsAreEqual(source, dest, count));
             }
-
 
             [Theory]
             [InlineData(4)]

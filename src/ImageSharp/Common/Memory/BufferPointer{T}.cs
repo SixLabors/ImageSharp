@@ -122,5 +122,15 @@ namespace ImageSharp
             result.PointerAtOffset = this.PointerAtOffset + (Unsafe.SizeOf<T>() * offset);
             return result;
         }
+
+        /// <summary>
+        /// Clears `count` elements beginning from the pointed position.
+        /// </summary>
+        /// <param name="count">The number of elements to clear</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Clear(int count)
+        {
+            
+        }
     }
 }

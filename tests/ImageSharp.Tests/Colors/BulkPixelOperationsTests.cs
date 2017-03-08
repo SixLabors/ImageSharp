@@ -1,4 +1,5 @@
-﻿namespace ImageSharp.Tests.Colors
+﻿// ReSharper disable InconsistentNaming
+namespace ImageSharp.Tests.Colors
 {
     using System;
     using System.Numerics;
@@ -29,6 +30,22 @@
                     expected,
                     (s, d) => ImageSharp.Color.BulkOperations.ToVector4SimdAligned(s, d, 64)
                     );
+            }
+
+            [Fact]
+            public void Benchmark_ToVector4()
+            {
+                int times = 150000;
+                int count = 1024;
+
+                using (PinnedBuffer<ImageSharp.Color> source = new PinnedBuffer<ImageSharp.Color>(count))
+                using (PinnedBuffer<Vector4> dest = new PinnedBuffer<Vector4>(count))
+                {
+                    for (int i = 0; i < times; i++)
+                    {
+                        BulkPixelOperations<ImageSharp.Color>.Instance.ToVector4(source, dest, count);
+                    }
+                }
             }
         }
 

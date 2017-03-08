@@ -3,6 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
+// ReSharper disable InconsistentNaming
 namespace ImageSharp.Tests
 {
     using System.Linq;
@@ -14,50 +15,59 @@ namespace ImageSharp.Tests
     /// </summary>
     public class PixelDataPoolTests
     {
-        [Fact]
-        public void PixelDataPoolRentsMinimumSize()
+        private static PixelDataPool<Color> GetPool(bool clean)
         {
-            Color[] pixels = PixelDataPool<Color>.Rent(1024);
+            return clean ? PixelDataPool<Color>.Clean : PixelDataPool<Color>.Dirty;
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void PixelDataPoolRentsMinimumSize(bool clean)
+        {
+            Color[] pixels = GetPool(clean).Rent(1024);
 
             Assert.True(pixels.Length >= 1024);
         }
 
         [Fact]
-        public void PixelDataPoolRentsEmptyArray()
+        public void PixelDataPool_Clean_RentsCleanArray()
         {
             for (int i = 16; i < 1024; i += 16)
             {
-                Color[] pixels = PixelDataPool<Color>.Rent(i);
+                Color[] pixels = PixelDataPool<Color>.Clean.Rent(i);
 
                 Assert.True(pixels.All(p => p == default(Color)));
 
-                PixelDataPool<Color>.Return(pixels);
+                PixelDataPool<Color>.Clean.Return(pixels);
             }
 
             for (int i = 16; i < 1024; i += 16)
             {
-                Color[] pixels = PixelDataPool<Color>.Rent(i);
+                Color[] pixels = PixelDataPool<Color>.Clean.Rent(i);
 
                 Assert.True(pixels.All(p => p == default(Color)));
 
-                PixelDataPool<Color>.Return(pixels);
+                PixelDataPool<Color>.Clean.Return(pixels);
             }
         }
 
-        [Fact]
-        public void PixelDataPoolDoesNotThrowWhenReturningNonPooled()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void PixelDataPoolDoesNotThrowWhenReturningNonPooled(bool clean)
         {
             Color[] pixels = new Color[1024];
 
-            PixelDataPool<Color>.Return(pixels);
+            GetPool(clean).Return(pixels);
 
             Assert.True(pixels.Length >= 1024);
         }
 
         [Fact]
-        public void PixelDataPoolCleansRentedArray()
+        public void PixelDataPool_Clean_CleansRentedArray()
         {
-            Color[] pixels = PixelDataPool<Color>.Rent(256);
+            Color[] pixels = PixelDataPool<Color>.Clean.Rent(256);
 
             for (int i = 0; i < pixels.Length; i++)
             {
@@ -66,7 +76,7 @@ namespace ImageSharp.Tests
 
             Assert.True(pixels.All(p => p == Color.Azure));
 
-            PixelDataPool<Color>.Return(pixels);
+            PixelDataPool<Color>.Clean.Return(pixels);
 
             Assert.True(pixels.All(p => p == default(Color)));
         }
@@ -85,7 +95,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void RentNonIPixelData()
         {
-            byte[] data = PixelDataPool<byte>.Rent(16384);
+            byte[] data = PixelDataPool<byte>.Clean.Rent(16384);
 
             Assert.True(data.Length >= 16384);
         }

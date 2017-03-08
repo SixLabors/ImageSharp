@@ -23,10 +23,10 @@ namespace ImageSharp.Benchmarks.Image
         private Image bmpDrawing;
         private CoreImage bmpCore;
 
-        [Params(false, true)]
+        [Params(false)]
         public bool LargeImage { get; set; }
 
-        [Params(false, true)]
+        [Params(false)]
         public bool UseOctreeQuantizer { get; set; }
 
         [Setup]

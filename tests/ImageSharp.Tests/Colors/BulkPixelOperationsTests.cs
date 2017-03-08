@@ -10,7 +10,7 @@
         public class Color : BulkPixelOperationsTests<ImageSharp.Color>
         {
             // For 4.6 test runner MemberData does not work without redeclaring the public field in the derived test class:
-            public static TheoryData<int> ArraySizesData => new TheoryData<int> { 7, 16, 1111 };
+            public static new TheoryData<int> ArraySizesData => new TheoryData<int> { 7, 16, 1111 };
 
             [Fact]
             public void IsSpecialImplementation()
@@ -35,7 +35,7 @@
         public class Argb : BulkPixelOperationsTests<ImageSharp.Argb>
         {
             // For 4.6 test runner MemberData does not work without redeclaring the public field in the derived test class:
-            public static TheoryData<int> ArraySizesData => new TheoryData<int> { 7, 16, 1111 };
+            public static new TheoryData<int> ArraySizesData => new TheoryData<int> { 7, 16, 1111 };
         }
 
         [Theory]

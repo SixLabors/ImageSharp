@@ -7,9 +7,9 @@ namespace ImageSharp.Sandbox46
 {
     using System;
     using System.Runtime.DesignerServices;
-
-    using ImageSharp.Benchmarks.Color.Bulk;
+    
     using ImageSharp.Tests;
+    using ImageSharp.Tests.Colors;
 
     using Xunit.Abstractions;
 
@@ -38,21 +38,18 @@ namespace ImageSharp.Sandbox46
         public static void Main(string[] args)
         {
             // RunDecodeJpegProfilingTests();
-            TestPixelAccessorCopyFromXyzw();
+
+            RunToVector4ProfilingTest();
+
             Console.ReadLine();
         }
 
-        private static void TestPixelAccessorCopyFromXyzw()
+        private static void RunToVector4ProfilingTest()
         {
-            PixelAccessorVirtualCopy benchmark = new PixelAccessorVirtualCopy();
-            benchmark.Width = 64;
-            benchmark.Setup();
-
-            benchmark.CopyRawUnsafeInlined();
-            
-            benchmark.Cleanup();
+            BulkPixelOperationsTests.Color tests = new BulkPixelOperationsTests.Color();
+            tests.Benchmark_ToVector4();
         }
-
+        
         private static void RunDecodeJpegProfilingTests()
         {
             Console.WriteLine("RunDecodeJpegProfilingTests...");

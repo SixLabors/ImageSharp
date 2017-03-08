@@ -32,6 +32,37 @@ namespace ImageSharp.Tests.Common
             }
         }
 
+        /// <summary>
+        /// sizeof(AlignedFoo) == sizeof(long)
+        /// </summary>
+        public struct AlignedFoo
+        {
+            public int A;
+
+            public int B;
+
+            static AlignedFoo()
+            {
+                Assert.Equal(sizeof(AlignedFoo), sizeof(long));
+            }
+
+            public AlignedFoo(int a, int b)
+            {
+                this.A = a;
+                this.B = b;
+            }
+
+            internal static AlignedFoo[] CreateArray(int size)
+            {
+                AlignedFoo[] result = new AlignedFoo[size];
+                for (int i = 0; i < size; i++)
+                {
+                    result[i] = new AlignedFoo(i + 1, i + 1);
+                }
+                return result;
+            }
+        }
+
         [Fact]
         public void AsBytes()
         {
@@ -108,7 +139,6 @@ namespace ImageSharp.Tests.Common
                 Assert.NotEqual(default(T), data[idx]);
             }
 
-
             private static byte[] CreateTestBytes(int count)
             {
                 byte[] result = new byte[count];
@@ -153,6 +183,33 @@ namespace ImageSharp.Tests.Common
                 Assert.Equal(source[1], dest[1]);
                 Assert.Equal(source[2], dest[2]);
                 Assert.Equal(source[count-1], dest[count-1]);
+                Assert.NotEqual(source[count], dest[count]);
+            }
+
+            [Theory]
+            [InlineData(4)]
+            [InlineData(1500)]
+            public void GenericToOwnType_Aligned(int count)
+            {
+                AlignedFoo[] source = AlignedFoo.CreateArray(count + 2);
+                AlignedFoo[] dest = new AlignedFoo[count + 5];
+
+                fixed (AlignedFoo* pSource = source)
+                fixed (AlignedFoo* pDest = dest)
+                {
+                    BufferPointer<AlignedFoo> apSource = new BufferPointer<AlignedFoo>(source, pSource, 1);
+                    BufferPointer<AlignedFoo> apDest = new BufferPointer<AlignedFoo>(dest, pDest, 1);
+
+                    BufferPointer.Copy(apSource, apDest, count - 1);
+                }
+
+                AssertNotDefault(source, 1);
+                AssertNotDefault(dest, 1);
+
+                Assert.NotEqual(source[0], dest[0]);
+                Assert.Equal(source[1], dest[1]);
+                Assert.Equal(source[2], dest[2]);
+                Assert.Equal(source[count - 1], dest[count - 1]);
                 Assert.NotEqual(source[count], dest[count]);
             }
 
@@ -209,7 +266,34 @@ namespace ImageSharp.Tests.Common
                 Assert.True(ElementsAreEqual(source, dest, count - 1));
                 Assert.False(ElementsAreEqual(source, dest, count));
             }
-            
+
+            [Theory]
+            [InlineData(4)]
+            [InlineData(1500)]
+            public void GenericToBytes_Aligned(int count)
+            {
+                int destCount = count * sizeof(Foo);
+                AlignedFoo[] source = AlignedFoo.CreateArray(count + 2);
+                byte[] dest = new byte[destCount + sizeof(AlignedFoo) * 2];
+
+                fixed (AlignedFoo* pSource = source)
+                fixed (byte* pDest = dest)
+                {
+                    BufferPointer<AlignedFoo> apSource = new BufferPointer<AlignedFoo>(source, pSource, 1);
+                    BufferPointer<byte> apDest = new BufferPointer<byte>(dest, pDest, sizeof(AlignedFoo));
+
+                    BufferPointer.Copy(apSource, apDest, count - 1);
+                }
+
+                AssertNotDefault(source, 1);
+
+                Assert.False(ElementsAreEqual(source, dest, 0));
+                Assert.True(ElementsAreEqual(source, dest, 1));
+                Assert.True(ElementsAreEqual(source, dest, 2));
+                Assert.True(ElementsAreEqual(source, dest, count - 1));
+                Assert.False(ElementsAreEqual(source, dest, count));
+            }
+
             [Theory]
             [InlineData(4)]
             [InlineData(1500)]
@@ -291,6 +375,20 @@ namespace ImageSharp.Tests.Common
 
                     Foo val1 = pArray[index];
                     Foo val2 = pCasted[index];
+
+                    return val1.Equals(val2);
+                }
+            }
+
+            internal static bool ElementsAreEqual(AlignedFoo[] array, byte[] rawArray, int index)
+            {
+                fixed (AlignedFoo* pArray = array)
+                fixed (byte* pRaw = rawArray)
+                {
+                    AlignedFoo* pCasted = (AlignedFoo*)pRaw;
+
+                    AlignedFoo val1 = pArray[index];
+                    AlignedFoo val2 = pCasted[index];
 
                     return val1.Equals(val2);
                 }

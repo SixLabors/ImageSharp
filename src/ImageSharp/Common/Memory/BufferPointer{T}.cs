@@ -64,6 +64,11 @@ namespace ImageSharp
         public int Offset { get; private set; }
 
         /// <summary>
+        /// Gets the offset inside <see cref="Array"/> in bytes.
+        /// </summary>
+        public int ByteOffset => this.Offset * Unsafe.SizeOf<T>();
+
+        /// <summary>
         /// Gets the pointer to the offseted array position
         /// </summary>
         public IntPtr PointerAtOffset { get; private set; }

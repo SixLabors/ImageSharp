@@ -12,7 +12,7 @@ namespace ImageSharp.Benchmarks.Color.Bulk
 
         private PinnedBuffer<Vector4> destination;
 
-        [Params(16, 128, 1024)]
+        [Params(64, 300, 1024)]
         public int Count { get; set; }
 
         [Setup]

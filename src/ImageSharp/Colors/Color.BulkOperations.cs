@@ -88,6 +88,13 @@ namespace ImageSharp
             /// <inheritdoc />
             internal override void ToVector4(BufferPointer<Color> sourceColors, BufferPointer<Vector4> destVectors, int count)
             {
+                if (count < 256)
+                {
+                    // Doesn't worth to bother with SIMD:
+                    base.ToVector4(sourceColors, destVectors, count);
+                    return;
+                }
+
                 int remainder = count % Vector<uint>.Count;
 
                 int alignedCount = count - remainder;

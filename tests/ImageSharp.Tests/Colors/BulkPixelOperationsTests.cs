@@ -1,15 +1,22 @@
 ﻿// ReSharper disable InconsistentNaming
+// ReSharper disable AccessToDisposedClosure
 namespace ImageSharp.Tests.Colors
 {
     using System;
     using System.Numerics;
 
     using Xunit;
+    using Xunit.Abstractions;
 
     public class BulkPixelOperationsTests
     {
         public class Color : BulkPixelOperationsTests<ImageSharp.Color>
         {
+            public Color(ITestOutputHelper output)
+                : base(output)
+            {
+            }
+
             // For 4.6 test runner MemberData does not work without redeclaring the public field in the derived test class:
             public static new TheoryData<int> ArraySizesData => new TheoryData<int> { 7, 16, 1111 };
 
@@ -32,19 +39,21 @@ namespace ImageSharp.Tests.Colors
                     );
             }
 
-            [Fact]
+            // [Fact] // Profiling benchmark - enable manually!
             public void Benchmark_ToVector4()
             {
-                int times = 150000;
+                int times = 200000;
                 int count = 1024;
 
                 using (PinnedBuffer<ImageSharp.Color> source = new PinnedBuffer<ImageSharp.Color>(count))
                 using (PinnedBuffer<Vector4> dest = new PinnedBuffer<Vector4>(count))
                 {
-                    for (int i = 0; i < times; i++)
-                    {
-                        BulkPixelOperations<ImageSharp.Color>.Instance.ToVector4(source, dest, count);
-                    }
+                    this.Measure(
+                        times,
+                        () =>
+                            {
+                                BulkPixelOperations<ImageSharp.Color>.Instance.ToVector4(source, dest, count);
+                            });
                 }
             }
         }
@@ -52,6 +61,11 @@ namespace ImageSharp.Tests.Colors
         public class Argb : BulkPixelOperationsTests<ImageSharp.Argb>
         {
             // For 4.6 test runner MemberData does not work without redeclaring the public field in the derived test class:
+            public Argb(ITestOutputHelper output)
+                : base(output)
+            {
+            }
+
             public static new TheoryData<int> ArraySizesData => new TheoryData<int> { 7, 16, 1111 };
         }
 
@@ -64,9 +78,14 @@ namespace ImageSharp.Tests.Colors
         }
     }
 
-    public abstract class BulkPixelOperationsTests<TColor>
+    public abstract class BulkPixelOperationsTests<TColor> : MeasureFixture
         where TColor : struct, IPixel<TColor>
     {
+        protected BulkPixelOperationsTests(ITestOutputHelper output)
+            : base(output)
+        {
+        }
+
         public static TheoryData<int> ArraySizesData => new TheoryData<int> { 7, 16, 1111 };
 
         private static BulkPixelOperations<TColor> Operations => BulkPixelOperations<TColor>.Instance;

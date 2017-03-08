@@ -142,6 +142,7 @@ namespace ImageSharp
         /// <summary>
         /// Disposes the <see cref="PinnedBuffer{T}"/> instance by unpinning the array, and returning the pooled buffer when necessary.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Dispose()
         {
             if (this.IsDisposedOrLostArrayOwnership)
@@ -165,6 +166,7 @@ namespace ImageSharp
         /// If <see cref="Array"/> is rented, it's the callers responsibility to return it to it's pool. (Most likely <see cref="PixelDataPool{T}"/>)
         /// </summary>
         /// <returns>The unpinned <see cref="Array"/></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public T[] UnPinAndTakeArrayOwnership()
         {
             if (this.IsDisposedOrLostArrayOwnership)
@@ -182,6 +184,7 @@ namespace ImageSharp
         /// <summary>
         /// Pins <see cref="Array"/>.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void Pin()
         {
             this.handle = GCHandle.Alloc(this.Array, GCHandleType.Pinned);
@@ -191,6 +194,7 @@ namespace ImageSharp
         /// <summary>
         /// Unpins <see cref="Array"/>.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void UnPin()
         {
             if (this.Pointer == IntPtr.Zero || !this.handle.IsAllocated)

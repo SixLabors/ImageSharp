@@ -32,6 +32,10 @@ namespace ImageSharp
             /// <see>
             ///     <cref>http://stackoverflow.com/a/5362789</cref>
             /// </see>
+            /// TODO: We can replace this implementation in the future using new Vector API-s:
+            /// <see>
+            ///     <cref>https://github.com/dotnet/corefx/issues/15957</cref>
+            /// </see>
             /// </remarks>
             internal static unsafe void ToVector4SimdAligned(
                 BufferPointer<Color> sourceColors,
@@ -56,8 +60,7 @@ namespace ImageSharp
                 uint* srcEnd = src + count;
 
                 using (PinnedBuffer<uint> tempBuf = new PinnedBuffer<uint>(
-                        unpackedRawCount + Vector<uint>.Count,
-                        PixelDataPool<uint>.Dirty))
+                        unpackedRawCount + Vector<uint>.Count))
                 {
                     uint* tPtr = (uint*)tempBuf.Pointer;
                     uint[] temp = tempBuf.Array;
@@ -66,7 +69,7 @@ namespace ImageSharp
 
                     for (; src < srcEnd; src++, dst++)
                     {
-                        // TODO: This is the bottleneck now. We can improve it with future Vector<T> API-s (https://github.com/dotnet/corefx/issues/15957)
+                        // This call is the bottleneck now:
                         dst->Load(*src);
                     }
 

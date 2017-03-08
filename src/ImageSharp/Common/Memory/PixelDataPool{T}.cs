@@ -16,62 +16,31 @@ namespace ImageSharp
         where T : struct
     {
         /// <summary>
-        /// The <see cref="ArrayPool{T}"/> which will be always cleared.
-        /// </summary>
-        private static readonly ArrayPool<T> CleanPool = ArrayPool<T>.Create(CalculateMaxArrayLength(), 50);
-
-        /// <summary>
         /// The <see cref="ArrayPool{T}"/> which is not kept clean.
         /// </summary>
-        private static readonly ArrayPool<T> DirtyPool = ArrayPool<T>.Create(CalculateMaxArrayLength(), 50);
-
-        /// <summary>
-        /// The backing <see cref="ArrayPool{T}"/>
-        /// </summary>
-        private ArrayPool<T> arrayPool;
-
-        /// <summary>
-        /// A value indicating whether clearArray is requested on <see cref="ArrayPool{T}.Return(T[], bool)"/>.
-        /// </summary>
-        private bool clearArray;
-
-        private PixelDataPool(ArrayPool<T> arrayPool, bool clearArray)
-        {
-            this.clearArray = clearArray;
-            this.arrayPool = arrayPool;
-        }
-
-        /// <summary>
-        /// Gets the <see cref="PixelDataPool{T}"/> which will always return arrays initialized to default(T)
-        /// </summary>
-        public static PixelDataPool<T> Clean { get; } = new PixelDataPool<T>(CleanPool, true);
-
-        /// <summary>
-        /// Gets the <see cref="PixelDataPool{T}"/> which does not keep the arrays clean on Rent/Return.
-        /// </summary>
-        public static PixelDataPool<T> Dirty { get; } = new PixelDataPool<T>(DirtyPool, false);
+        private static readonly ArrayPool<T> ArrayPool = ArrayPool<T>.Create(CalculateMaxArrayLength(), 50);
 
         /// <summary>
         /// Rents the pixel array from the pool.
         /// </summary>
         /// <param name="minimumLength">The minimum length of the array to return.</param>
         /// <returns>The <see cref="T:TColor[]"/></returns>
-        public T[] Rent(int minimumLength)
+        public static T[] Rent(int minimumLength)
         {
-            return CleanPool.Rent(minimumLength);
+            return ArrayPool.Rent(minimumLength);
         }
 
         /// <summary>
         /// Returns the rented pixel array back to the pool.
         /// </summary>
         /// <param name="array">The array to return to the buffer pool.</param>
-        public void Return(T[] array)
+        public static void Return(T[] array)
         {
-            CleanPool.Return(array, this.clearArray);
+            ArrayPool.Return(array);
         }
 
         /// <summary>
-        /// Heuristically calculates a reasonable maxArrayLength value for the backing <see cref="CleanPool"/>.
+        /// Heuristically calculates a reasonable maxArrayLength value for the backing <see cref="ArrayPool{T}"/>.
         /// </summary>
         /// <returns>The maxArrayLength value</returns>
         internal static int CalculateMaxArrayLength()

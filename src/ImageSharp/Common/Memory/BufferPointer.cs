@@ -63,7 +63,7 @@ namespace ImageSharp
                     return;
                 }
             }
-            
+
             Unsafe.CopyBlock((void*)destination.PointerAtOffset, (void*)source.PointerAtOffset, byteCount);
         }
 
@@ -110,13 +110,13 @@ namespace ImageSharp
         public static uint USizeOf<T>(int count)
             where T : struct
             => (uint)SizeOf<T>(count);
-        
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static bool TryMarshalCopy<TSource, TDest>(BufferPointer<TSource> source, BufferPointer<TDest> destination, int count)
-            where TSource : struct 
+            where TSource : struct
             where TDest : struct
         {
-            // Pattern Based On: 
+            // Pattern Based On:
             // https://github.com/dotnet/corefx/blob/master/src/System.Numerics.Vectors/src/System/Numerics/Vector.cs#L12
             //
             // Note: The following patterns are used throughout the code here and are described here
@@ -128,7 +128,6 @@ namespace ImageSharp
             //    At runtime, each instantiation of BufferPointer<T> will be type-specific, and each of these typeof blocks will be eliminated,
             //    as typeof(T) is a (JIT) compile-time constant for each instantiation. This design was chosen to eliminate any overhead from
             //    delegates and other patterns.
-
             if (typeof(TSource) == typeof(long))
             {
                 long[] srcArray = Unsafe.As<long[]>(source.Array);

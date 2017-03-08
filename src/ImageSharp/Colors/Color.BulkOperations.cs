@@ -1,3 +1,8 @@
+// <copyright file="Color.BulkOperations.cs" company="James Jackson-South">
+// Copyright (c) James Jackson-South and contributors.
+// Licensed under the Apache License, Version 2.0.
+// </copyright>
+
 namespace ImageSharp
 {
     using System;
@@ -5,6 +10,9 @@ namespace ImageSharp
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
 
+    /// <content>
+    /// Conains the definition of <see cref="BulkOperations"/>
+    /// </content>
     public partial struct Color
     {
         /// <summary>
@@ -13,27 +21,7 @@ namespace ImageSharp
         internal class BulkOperations : BulkPixelOperations<Color>
         {
             /// <summary>
-            /// Value type to store <see cref="Color"/>-s unpacked into multiple <see cref="uint"/>-s.
-            /// </summary>
-            private struct UnpackedRGBA
-            {
-                private uint r;
-                private uint g;
-                private uint b;
-                private uint a;
-
-                [MethodImpl(MethodImplOptions.AggressiveInlining)]
-                public void Load(uint p)
-                {
-                    this.r = p;
-                    this.g = p >> Color.GreenShift;
-                    this.b = p >> Color.BlueShift;
-                    this.a = p >> Color.AlphaShift;
-                }
-            }
-
-            /// <summary>
-            /// SIMD optimized bulk implementation of <see cref="IPixel.PackFromVector4(Vector4)"/> 
+            /// SIMD optimized bulk implementation of <see cref="IPixel.PackFromVector4(Vector4)"/>
             /// that works only with `count` divisible by <see cref="Vector{UInt32}.Count"/>.
             /// </summary>
             /// <param name="sourceColors">The <see cref="BufferPointer{T}"/> to the source colors.</param>
@@ -55,8 +43,7 @@ namespace ImageSharp
                 DebugGuard.IsTrue(
                     count % vecSize == 0,
                     nameof(count),
-                    "Argument 'count' should divisible by Vector<uint>.Count!"
-                    );
+                    "Argument 'count' should divisible by Vector<uint>.Count!");
 
                 Vector<float> bVec = new Vector<float>(256.0f / 255.0f);
                 Vector<float> magicFloat = new Vector<float>(32768.0f);
@@ -64,7 +51,7 @@ namespace ImageSharp
                 Vector<uint> mask = new Vector<uint>(255);
 
                 int unpackedRawCount = count * 4;
-                
+
                 uint* src = (uint*)sourceColors.PointerAtOffset;
                 uint* srcEnd = src + count;
 
@@ -92,7 +79,7 @@ namespace ImageSharp
                         vf.CopyTo(fTemp, i);
                     }
 
-                    BufferPointer.Copy<uint>(tempBuf, (BufferPointer<byte>) destVectors, unpackedRawCount);
+                    BufferPointer.Copy<uint>(tempBuf, (BufferPointer<byte>)destVectors, unpackedRawCount);
                 }
             }
 
@@ -120,7 +107,7 @@ namespace ImageSharp
             internal override unsafe void PackFromXyzBytes(BufferPointer<byte> sourceBytes, BufferPointer<Color> destColors, int count)
             {
                 byte* source = (byte*)sourceBytes;
-                byte* destination =  (byte*)destColors;
+                byte* destination = (byte*)destColors;
 
                 for (int x = 0; x < count; x++)
                 {
@@ -222,6 +209,26 @@ namespace ImageSharp
 
                     source += 4;
                     destination += 4;
+                }
+            }
+
+            /// <summary>
+            /// Value type to store <see cref="Color"/>-s unpacked into multiple <see cref="uint"/>-s.
+            /// </summary>
+            private struct UnpackedRGBA
+            {
+                private uint r;
+                private uint g;
+                private uint b;
+                private uint a;
+
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                public void Load(uint p)
+                {
+                    this.r = p;
+                    this.g = p >> Color.GreenShift;
+                    this.b = p >> Color.BlueShift;
+                    this.a = p >> Color.AlphaShift;
                 }
             }
         }

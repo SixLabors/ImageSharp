@@ -95,7 +95,7 @@ namespace ImageSharp
         /// Gets a pointer to the pinned <see cref="Array"/>.
         /// </summary>
         public IntPtr Pointer { get; private set; }
-        
+
         /// <summary>
         /// Converts <see cref="PinnedBuffer{T}"/> to an <see cref="BufferPointer{T}"/>.
         /// </summary>
@@ -107,9 +107,8 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Gets a <see cref="BufferPointer{T}"/> to the beginning of the raw data in 'buffer'.
+        /// Gets a <see cref="BufferPointer{T}"/> to the beginning of the raw data of the buffer.
         /// </summary>
-        /// <typeparam name="T">The element type</typeparam>
         /// <returns>The <see cref="BufferPointer{T}"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe BufferPointer<T> Slice()
@@ -118,16 +117,15 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Gets a <see cref="BufferPointer{T}"/> to the beginning of the raw data in 'buffer'.
+        /// Gets a <see cref="BufferPointer{T}"/> to an offseted position inside the buffer.
         /// </summary>
-        /// <typeparam name="T">The element type</typeparam>
+        /// <param name="offset">The offset</param>
         /// <returns>The <see cref="BufferPointer{T}"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe BufferPointer<T> Slice(int offset)
         {
             return new BufferPointer<T>(this.Array, (void*)this.Pointer, offset);
         }
-
 
         /// <summary>
         /// Disposes the <see cref="PinnedBuffer{T}"/> instance by unpinning the array, and returning the pooled buffer when necessary.

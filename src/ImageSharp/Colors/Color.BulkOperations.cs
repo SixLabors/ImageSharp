@@ -55,7 +55,9 @@ namespace ImageSharp
                 uint* src = (uint*)sourceColors.PointerAtOffset;
                 uint* srcEnd = src + count;
 
-                using (PinnedBuffer<uint> tempBuf = new PinnedBuffer<uint>(unpackedRawCount + Vector<uint>.Count))
+                using (PinnedBuffer<uint> tempBuf = new PinnedBuffer<uint>(
+                        unpackedRawCount + Vector<uint>.Count,
+                        PixelDataPool<uint>.Dirty))
                 {
                     uint* tPtr = (uint*)tempBuf.Pointer;
                     uint[] temp = tempBuf.Array;

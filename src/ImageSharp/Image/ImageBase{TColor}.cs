@@ -221,7 +221,7 @@ namespace ImageSharp
         /// </summary>
         private void RentPixels()
         {
-            this.pixelBuffer = PixelDataPool<TColor>.Rent(this.Width * this.Height);
+            this.pixelBuffer = PixelDataPool<TColor>.Clean.Rent(this.Width * this.Height);
         }
 
         /// <summary>
@@ -229,7 +229,7 @@ namespace ImageSharp
         /// </summary>
         private void ReturnPixels()
         {
-            PixelDataPool<TColor>.Return(this.pixelBuffer);
+            PixelDataPool<TColor>.Clean.Return(this.pixelBuffer);
             this.pixelBuffer = null;
         }
     }

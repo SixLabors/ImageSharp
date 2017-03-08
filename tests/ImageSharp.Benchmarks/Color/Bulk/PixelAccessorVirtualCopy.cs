@@ -114,7 +114,7 @@ namespace ImageSharp.Benchmarks.Color.Bulk
         private BufferPointer<Color> GetPixelAccessorRow(int x, int y)
         {
             return new BufferPointer<ImageSharp.Color>(
-                this.pixelAccessor.PixelBuffer,
+                this.pixelAccessor.PixelArray,
                 (void*)this.pixelAccessor.DataPointer,
                 (y * this.pixelAccessor.Width) + x
                 );

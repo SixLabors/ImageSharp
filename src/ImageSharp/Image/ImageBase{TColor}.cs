@@ -150,7 +150,7 @@ namespace ImageSharp
         }
 
         /// <inheritdoc/>
-        public virtual PixelAccessor<TColor> Lock()
+        public PixelAccessor<TColor> Lock()
         {
             return new PixelAccessor<TColor>(this);
         }

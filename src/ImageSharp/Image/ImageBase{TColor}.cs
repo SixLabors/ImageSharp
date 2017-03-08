@@ -234,6 +234,9 @@ namespace ImageSharp
             this.pixelBuffer = null;
         }
 
+        /// <summary>
+        /// Clears the pixel array.
+        /// </summary>
         private void ClearPixels()
         {
             Array.Clear(this.pixelBuffer, 0, this.Width * this.Height);

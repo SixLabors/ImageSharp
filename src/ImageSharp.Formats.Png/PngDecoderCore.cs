@@ -110,6 +110,11 @@ namespace ImageSharp.Formats
         private byte[] paletteAlpha;
 
         /// <summary>
+        /// A value indicating whether the end chunk has been reached.
+        /// </summary>
+        private bool isEndChunkReached;
+
+        /// <summary>
         /// Initializes static members of the <see cref="PngDecoderCore"/> class.
         /// </summary>
         static PngDecoderCore()
@@ -158,18 +163,11 @@ namespace ImageSharp.Formats
             this.currentStream = stream;
             this.currentStream.Skip(8);
 
-            bool isEndChunkReached = false;
-
             using (MemoryStream dataStream = new MemoryStream())
             {
                 PngChunk currentChunk;
-                while ((currentChunk = this.ReadChunk()) != null)
+                while (!this.isEndChunkReached && (currentChunk = this.ReadChunk()) != null)
                 {
-                    if (isEndChunkReached)
-                    {
-                        throw new ImageFormatException("Image does not end with end chunk.");
-                    }
-
                     try
                     {
                         switch (currentChunk.Type)
@@ -199,7 +197,7 @@ namespace ImageSharp.Formats
                                 this.ReadTextChunk(currentImage, currentChunk.Data, currentChunk.Length);
                                 break;
                             case PngChunkTypes.End:
-                                isEndChunkReached = true;
+                                this.isEndChunkReached = true;
                                 break;
                         }
                     }

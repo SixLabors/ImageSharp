@@ -30,7 +30,6 @@ namespace ImageSharp
             }
         }
 
-
         /// <summary>
         /// Verifies that the specified value is less than a maximum value
         /// and throws an exception if it is not.
@@ -116,7 +115,6 @@ namespace ImageSharp
                 throw new ArgumentOutOfRangeException(parameterName, $"Value must be greater than or equal to {min}.");
             }
         }
-
 
         /// <summary>
         /// Verifies, that the method parameter with specified target value is true

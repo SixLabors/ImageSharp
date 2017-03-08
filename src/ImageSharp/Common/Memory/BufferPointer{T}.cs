@@ -89,7 +89,7 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Converts <see cref="BufferPointer{T}"/> instance to <see cref="BufferPointer{Byte}"/> 
+        /// Converts <see cref="BufferPointer{T}"/> instance to <see cref="BufferPointer{Byte}"/>
         /// setting it's <see cref="Offset"/> and <see cref="PointerAtOffset"/> to correct values.
         /// </summary>
         /// <param name="source">The <see cref="BufferPointer{T}"/> to convert</param>

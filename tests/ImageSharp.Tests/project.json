@@ -31,6 +31,9 @@
     "ImageSharp.Drawing.Paths": {
       "target": "project"
     },
+    "ImageSharp.Drawing.Text": {
+      "target": "project"
+    },
     "ImageSharp.Formats.Png": {
       "target": "project"
     },

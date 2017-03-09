@@ -52,6 +52,27 @@ namespace ImageSharp.Tests
 
         [Theory]
         [MemberData(nameof(ReSamplers))]
+        public void ImageShouldResizeFromSourceRectangle(string name, IResampler sampler)
+        {
+            name = $"{name}-SourceRect";
+
+            string path = this.CreateOutputDirectory("Resize");
+
+            foreach (TestFile file in Files)
+            {
+                string filename = file.GetFileName(name);
+                using (Image image = file.CreateImage())
+                using (FileStream output = File.OpenWrite($"{path}/{filename}"))
+                {
+                    var sourceRectangle = new Rectangle(image.Width / 8, image.Height / 8, image.Width / 4, image.Height / 4);
+                    var destRectangle = new Rectangle(image.Width / 4, image.Height / 4, image.Width / 2, image.Height / 2);
+                    image.Resize(image.Width, image.Height, sampler, sourceRectangle, destRectangle, false).Save(output);
+                }
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(ReSamplers))]
         public void ImageShouldResizeWidthAndKeepAspect(string name, IResampler sampler)
         {
             name = $"{name}-FixedWidth";

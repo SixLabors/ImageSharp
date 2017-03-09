@@ -5,6 +5,8 @@
 
 namespace ImageSharp.Formats
 {
+    using System.Runtime.CompilerServices;
+
     /// <summary>
     /// The Average filter uses the average of the two neighboring pixels (left and above) to predict
     /// the value of a pixel.
@@ -19,6 +21,7 @@ namespace ImageSharp.Formats
         /// <param name="previousScanline">The previous scanline.</param>
         /// <param name="bytesPerScanline">The number of bytes per scanline</param>
         /// <param name="bytesPerPixel">The bytes per pixel.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Decode(byte[] scanline, byte[] previousScanline, int bytesPerScanline, int bytesPerPixel)
         {
             // Average(x) + floor((Raw(x-bpp)+Prior(x))/2)
@@ -42,6 +45,7 @@ namespace ImageSharp.Formats
         /// <param name="previousScanline">The previous scanline.</param>
         /// <param name="result">The filtered scanline result.</param>
         /// <param name="bytesPerPixel">The bytes per pixel.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Encode(byte[] scanline, byte[] previousScanline, byte[] result, int bytesPerPixel)
         {
             // Average(x) = Raw(x) - floor((Raw(x-bpp)+Prior(x))/2)
@@ -67,6 +71,7 @@ namespace ImageSharp.Formats
         /// <param name="left">The left byte</param>
         /// <param name="above">The above byte</param>
         /// <returns>The <see cref="int"/></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int Average(byte left, byte above)
         {
             return (left + above) >> 1;

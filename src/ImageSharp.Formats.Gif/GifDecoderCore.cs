@@ -8,18 +8,24 @@ namespace ImageSharp.Formats
     using System;
     using System.Buffers;
     using System.IO;
+    using System.Text;
 
     /// <summary>
     /// Performs the gif decoding operation.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     internal class GifDecoderCore<TColor>
-        where TColor : struct, IPackedPixel, IEquatable<TColor>
+        where TColor : struct, IPixel<TColor>
     {
         /// <summary>
         /// The temp buffer used to reduce allocations.
         /// </summary>
         private readonly byte[] buffer = new byte[16];
+
+        /// <summary>
+        /// The decoder options.
+        /// </summary>
+        private readonly IGifDecoderOptions options;
 
         /// <summary>
         /// The image to decode the information to.
@@ -60,6 +66,15 @@ namespace ImageSharp.Formats
         /// The graphics control extension.
         /// </summary>
         private GifGraphicsControlExtension graphicsControlExtension;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="GifDecoderCore{TColor}"/> class.
+        /// </summary>
+        /// <param name="options">The decoder options.</param>
+        public GifDecoderCore(IGifDecoderOptions options)
+        {
+            this.options = options ?? new GifDecoderOptions();
+        }
 
         /// <summary>
         /// Decodes the stream to the image.
@@ -225,25 +240,32 @@ namespace ImageSharp.Formats
         /// </summary>
         private void ReadComments()
         {
-            int flag;
+            int length;
 
-            while ((flag = this.currentStream.ReadByte()) != 0)
+            while ((length = this.currentStream.ReadByte()) != 0)
             {
-                if (flag > GifConstants.MaxCommentLength)
+                if (length > GifConstants.MaxCommentLength)
                 {
-                    throw new ImageFormatException($"Gif comment length '{flag}' exceeds max '{GifConstants.MaxCommentLength}'");
+                    throw new ImageFormatException($"Gif comment length '{length}' exceeds max '{GifConstants.MaxCommentLength}'");
                 }
 
-                byte[] flagBuffer = ArrayPool<byte>.Shared.Rent(flag);
+                if (this.options.IgnoreMetadata)
+                {
+                    this.currentStream.Seek(length, SeekOrigin.Current);
+                    continue;
+                }
+
+                byte[] commentsBuffer = ArrayPool<byte>.Shared.Rent(length);
 
                 try
                 {
-                    this.currentStream.Read(flagBuffer, 0, flag);
-                    this.decodedImage.Properties.Add(new ImageProperty("Comments", BitConverter.ToString(flagBuffer, 0, flag)));
+                    this.currentStream.Read(commentsBuffer, 0, length);
+                    string comments = this.options.TextEncoding.GetString(commentsBuffer, 0, length);
+                    this.decodedImage.MetaData.Properties.Add(new ImageProperty(GifConstants.Comments, comments));
                 }
                 finally
                 {
-                    ArrayPool<byte>.Shared.Return(flagBuffer);
+                    ArrayPool<byte>.Shared.Return(commentsBuffer);
                 }
             }
         }
@@ -321,12 +343,14 @@ namespace ImageSharp.Formats
 
             if (this.previousFrame == null)
             {
-                image = this.decodedImage;
-
-                image.Quality = colorTableLength / 3;
+                this.decodedImage.MetaData.Quality = colorTableLength / 3;
 
                 // This initializes the image to become fully transparent because the alpha channel is zero.
-                image.InitPixels(imageWidth, imageHeight);
+                this.decodedImage.InitPixels(imageWidth, imageHeight);
+
+                this.SetFrameDelay(this.decodedImage.MetaData);
+
+                image = this.decodedImage;
             }
             else
             {
@@ -338,16 +362,13 @@ namespace ImageSharp.Formats
 
                 currentFrame = this.previousFrame.Clone();
 
+                this.SetFrameDelay(currentFrame.MetaData);
+
                 image = currentFrame;
 
                 this.RestoreToBackground(image);
 
                 this.decodedImage.Frames.Add(currentFrame);
-            }
-
-            if (this.graphicsControlExtension != null && this.graphicsControlExtension.DelayTime > 0)
-            {
-                image.FrameDelay = this.graphicsControlExtension.DelayTime;
             }
 
             int i = 0;
@@ -464,6 +485,18 @@ namespace ImageSharp.Formats
             }
 
             this.restoreArea = null;
+        }
+
+        /// <summary>
+        /// Sets the frame delay in the metadata.
+        /// </summary>
+        /// <param name="metaData">The meta data.</param>
+        private void SetFrameDelay(IMetaData metaData)
+        {
+            if (this.graphicsControlExtension != null && this.graphicsControlExtension.DelayTime > 0)
+            {
+                metaData.FrameDelay = this.graphicsControlExtension.DelayTime;
+            }
         }
     }
 }

@@ -13,7 +13,7 @@ namespace ImageSharp.Processing
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     public interface IImageProcessor<TColor>
-        where TColor : struct, IPackedPixel, IEquatable<TColor>
+        where TColor : struct, IPixel<TColor>
     {
         /// <summary>
         /// Gets or sets the parallel options for processing tasks in parallel.

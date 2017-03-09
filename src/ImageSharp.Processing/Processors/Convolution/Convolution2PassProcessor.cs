@@ -14,14 +14,14 @@ namespace ImageSharp.Processing.Processors
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     public class Convolution2PassProcessor<TColor> : ImageProcessor<TColor>
-    where TColor : struct, IPackedPixel, IEquatable<TColor>
+        where TColor : struct, IPixel<TColor>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="Convolution2PassProcessor{TColor}"/> class.
         /// </summary>
         /// <param name="kernelX">The horizontal gradient operator.</param>
         /// <param name="kernelY">The vertical gradient operator.</param>
-        public Convolution2PassProcessor(float[][] kernelX, float[][] kernelY)
+        public Convolution2PassProcessor(Fast2DArray<float> kernelX, Fast2DArray<float> kernelY)
         {
             this.KernelX = kernelX;
             this.KernelY = kernelY;
@@ -30,46 +30,46 @@ namespace ImageSharp.Processing.Processors
         /// <summary>
         /// Gets the horizontal gradient operator.
         /// </summary>
-        public float[][] KernelX { get; }
+        public Fast2DArray<float> KernelX { get; }
 
         /// <summary>
         /// Gets the vertical gradient operator.
         /// </summary>
-        public float[][] KernelY { get; }
+        public Fast2DArray<float> KernelY { get; }
 
         /// <inheritdoc/>
         protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
         {
-            float[][] kernelX = this.KernelX;
-            float[][] kernelY = this.KernelY;
             int width = source.Width;
             int height = source.Height;
 
-            TColor[] target = new TColor[width * height];
-            TColor[] firstPass = new TColor[width * height];
+            using (PixelAccessor<TColor> targetPixels = new PixelAccessor<TColor>(width, height))
+            {
+                using (PixelAccessor<TColor> firstPassPixels = new PixelAccessor<TColor>(width, height))
+                using (PixelAccessor<TColor> sourcePixels = source.Lock())
+                {
+                    this.ApplyConvolution(firstPassPixels, sourcePixels, sourceRectangle, this.KernelX);
+                    this.ApplyConvolution(targetPixels, firstPassPixels, sourceRectangle, this.KernelY);
+                }
 
-            this.ApplyConvolution(width, height, firstPass, source.Pixels, sourceRectangle, kernelX);
-            this.ApplyConvolution(width, height, target, firstPass, sourceRectangle, kernelY);
-
-            source.SetPixels(width, height, target);
+                source.SwapPixelsBuffers(targetPixels);
+            }
         }
 
         /// <summary>
         /// Applies the process to the specified portion of the specified <see cref="ImageBase{TColor}"/> at the specified location
         /// and with the specified size.
         /// </summary>
-        /// <param name="width">The image width.</param>
-        /// <param name="height">The image height.</param>
-        /// <param name="target">The target pixels to apply the process to.</param>
-        /// <param name="source">The source pixels. Cannot be null.</param>
+        /// <param name="targetPixels">The target pixels to apply the process to.</param>
+        /// <param name="sourcePixels">The source pixels. Cannot be null.</param>
         /// <param name="sourceRectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
         /// </param>
         /// <param name="kernel">The kernel operator.</param>
-        private void ApplyConvolution(int width, int height, TColor[] target, TColor[] source, Rectangle sourceRectangle, float[][] kernel)
+        private void ApplyConvolution(PixelAccessor<TColor> targetPixels, PixelAccessor<TColor> sourcePixels, Rectangle sourceRectangle, Fast2DArray<float> kernel)
         {
-            int kernelHeight = kernel.Length;
-            int kernelWidth = kernel[0].Length;
+            int kernelHeight = kernel.Height;
+            int kernelWidth = kernel.Width;
             int radiusY = kernelHeight >> 1;
             int radiusX = kernelWidth >> 1;
 
@@ -80,10 +80,7 @@ namespace ImageSharp.Processing.Processors
             int maxY = endY - 1;
             int maxX = endX - 1;
 
-            using (PixelAccessor<TColor> sourcePixels = source.Lock<TColor>(width, height))
-            using (PixelAccessor<TColor> targetPixels = target.Lock<TColor>(width, height))
-            {
-                Parallel.For(
+            Parallel.For(
                 startY,
                 endY,
                 this.ParallelOptions,
@@ -109,7 +106,7 @@ namespace ImageSharp.Processing.Processors
                                 offsetX = offsetX.Clamp(0, maxX);
 
                                 Vector4 currentColor = sourcePixels[offsetX, offsetY].ToVector4();
-                                destination += kernel[fy][fx] * currentColor;
+                                destination += kernel[fy, fx] * currentColor;
                             }
                         }
 
@@ -118,7 +115,6 @@ namespace ImageSharp.Processing.Processors
                         targetPixels[x, y] = packed;
                     }
                 });
-            }
         }
     }
 }

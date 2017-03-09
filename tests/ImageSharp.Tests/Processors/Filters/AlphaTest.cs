@@ -19,39 +19,35 @@ namespace ImageSharp.Tests
         };
 
         [Theory]
-        [MemberData("AlphaValues")]
+        [MemberData(nameof(AlphaValues))]
         public void ImageShouldApplyAlphaFilter(int value)
         {
-            string path = CreateOutputDirectory("Alpha");
+            string path = this.CreateOutputDirectory("Alpha");
 
             foreach (TestFile file in Files)
             {
                 string filename = file.GetFileName(value);
-                Image image = file.CreateImage();
-
+                using (Image image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
-                    image.Alpha(value)
-                          .Save(output);
+                    image.Alpha(value).Save(output);
                 }
             }
         }
 
         [Theory]
-        [MemberData("AlphaValues")]
+        [MemberData(nameof(AlphaValues))]
         public void ImageShouldApplyAlphaFilterInBox(int value)
         {
-            string path = CreateOutputDirectory("Alpha");
+            string path = this.CreateOutputDirectory("Alpha");
 
             foreach (TestFile file in Files)
             {
                 string filename = file.GetFileName(value);
-                Image image = file.CreateImage();
-
+                using (Image image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
-                    image.Alpha(value, new Rectangle(10, 10, image.Width / 2, image.Height / 2))
-                          .Save(output);
+                    image.Alpha(value, new Rectangle(10, 10, image.Width / 2, image.Height / 2)).Save(output);
                 }
             }
         }

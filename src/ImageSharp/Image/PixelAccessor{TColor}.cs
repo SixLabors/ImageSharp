@@ -16,22 +16,12 @@ namespace ImageSharp
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     public unsafe class PixelAccessor<TColor> : IDisposable
-        where TColor : struct, IPackedPixel, IEquatable<TColor>
+        where TColor : struct, IPixel<TColor>
     {
-        /// <summary>
-        /// The pointer to the pixel buffer.
-        /// </summary>
-        private IntPtr dataPointer;
-
         /// <summary>
         /// The position of the first pixel in the image.
         /// </summary>
         private byte* pixelsBase;
-
-        /// <summary>
-        /// Provides a way to access the pixels from unmanaged memory.
-        /// </summary>
-        private GCHandle pixelsHandle;
 
         /// <summary>
         /// A value indicating whether this instance of the given entity has been disposed.
@@ -45,6 +35,11 @@ namespace ImageSharp
         private bool isDisposed;
 
         /// <summary>
+        /// The <see cref="PinnedBuffer{T}"/> containing the pixel data.
+        /// </summary>
+        private PinnedBuffer<TColor> pixelBuffer;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="PixelAccessor{TColor}"/> class.
         /// </summary>
         /// <param name="image">The image to provide pixel access for.</param>
@@ -54,40 +49,34 @@ namespace ImageSharp
             Guard.MustBeGreaterThan(image.Width, 0, "image width");
             Guard.MustBeGreaterThan(image.Height, 0, "image height");
 
-            this.Width = image.Width;
-            this.Height = image.Height;
-            this.pixelsHandle = GCHandle.Alloc(image.Pixels, GCHandleType.Pinned);
-            this.dataPointer = this.pixelsHandle.AddrOfPinnedObject();
-            this.pixelsBase = (byte*)this.dataPointer.ToPointer();
-            this.PixelSize = Unsafe.SizeOf<TColor>();
-            this.RowStride = this.Width * this.PixelSize;
+            this.SetPixelBufferUnsafe(image.Width, image.Height, image.Pixels);
             this.ParallelOptions = image.Configuration.ParallelOptions;
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PixelAccessor{TColor}"/> class.
         /// </summary>
-        /// <param name="width">Gets the width of the image represented by the pixel buffer.</param>
+        /// <param name="width">The width of the image represented by the pixel buffer.</param>
+        /// <param name="height">The height of the image represented by the pixel buffer.</param>
+        public PixelAccessor(int width, int height)
+            : this(width, height, new PinnedBuffer<TColor>(width * height))
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PixelAccessor{TColor}" /> class.
+        /// </summary>
+        /// <param name="width">The width of the image represented by the pixel buffer.</param>
         /// <param name="height">The height of the image represented by the pixel buffer.</param>
         /// <param name="pixels">The pixel buffer.</param>
-        public PixelAccessor(int width, int height, TColor[] pixels)
+        private PixelAccessor(int width, int height, PinnedBuffer<TColor> pixels)
         {
             Guard.NotNull(pixels, nameof(pixels));
             Guard.MustBeGreaterThan(width, 0, nameof(width));
             Guard.MustBeGreaterThan(height, 0, nameof(height));
 
-            if (pixels.Length != width * height)
-            {
-                throw new ArgumentException("Pixel array must have the length of Width * Height.");
-            }
+            this.SetPixelBufferUnsafe(width, height, pixels);
 
-            this.Width = width;
-            this.Height = height;
-            this.pixelsHandle = GCHandle.Alloc(pixels, GCHandleType.Pinned);
-            this.dataPointer = this.pixelsHandle.AddrOfPinnedObject();
-            this.pixelsBase = (byte*)this.dataPointer.ToPointer();
-            this.PixelSize = Unsafe.SizeOf<TColor>();
-            this.RowStride = this.Width * this.PixelSize;
             this.ParallelOptions = Configuration.Default.ParallelOptions;
         }
 
@@ -100,29 +89,34 @@ namespace ImageSharp
         }
 
         /// <summary>
+        /// Gets the pixel buffer array.
+        /// </summary>
+        public TColor[] PixelBuffer => this.pixelBuffer.Array;
+
+        /// <summary>
         /// Gets the pointer to the pixel buffer.
         /// </summary>
-        public IntPtr DataPointer => this.dataPointer;
+        public IntPtr DataPointer => this.pixelBuffer.Pointer;
 
         /// <summary>
         /// Gets the size of a single pixel in the number of bytes.
         /// </summary>
-        public int PixelSize { get; }
+        public int PixelSize { get; private set; }
 
         /// <summary>
         /// Gets the width of one row in the number of bytes.
         /// </summary>
-        public int RowStride { get; }
+        public int RowStride { get; private set; }
 
         /// <summary>
         /// Gets the width of the image.
         /// </summary>
-        public int Width { get; }
+        public int Width { get; private set; }
 
         /// <summary>
         /// Gets the height of the image.
         /// </summary>
-        public int Height { get; }
+        public int Height { get; private set; }
 
         /// <summary>
         /// Gets the global parallel options for processing tasks in parallel.
@@ -132,8 +126,8 @@ namespace ImageSharp
         /// <summary>
         /// Gets or sets the pixel at the specified position.
         /// </summary>
-        /// <param name="x">The x-coordinate of the pixel. Must be greater than zero and smaller than the width of the pixel.</param>
-        /// <param name="y">The y-coordinate of the pixel. Must be greater than zero and smaller than the width of the pixel.</param>
+        /// <param name="x">The x-coordinate of the pixel. Must be greater than or equal to zero and less than the width of the image.</param>
+        /// <param name="y">The y-coordinate of the pixel. Must be greater than or equal to zero and less than the height of the image.</param>
         /// <returns>The <see typeparam="TColor"/> at the specified position.</returns>
         public TColor this[int x, int y]
         {
@@ -221,16 +215,10 @@ namespace ImageSharp
                 return;
             }
 
-            if (this.pixelsHandle.IsAllocated)
-            {
-                this.pixelsHandle.Free();
-            }
-
-            this.dataPointer = IntPtr.Zero;
-            this.pixelsBase = null;
-
             // Note disposing is done.
             this.isDisposed = true;
+
+            this.pixelBuffer.Dispose();
 
             // This object will be cleaned up by the Dispose method.
             // Therefore, you should call GC.SuppressFinalize to
@@ -246,6 +234,21 @@ namespace ImageSharp
         public void Reset()
         {
             Unsafe.InitBlock(this.pixelsBase, 0, (uint)(this.RowStride * this.Height));
+        }
+
+        /// <summary>
+        /// Sets the pixel buffer in an unsafe manner. This should not be used unless you know what its doing!!!
+        /// </summary>
+        /// <param name="width">The width.</param>
+        /// <param name="height">The height.</param>
+        /// <param name="pixels">The pixels.</param>
+        /// <returns>Returns the old pixel data thats has gust been replaced.</returns>
+        /// <remarks>If <see cref="M:PixelAccessor.PooledMemory"/> is true then caller is responsible for ensuring <see cref="M:PixelDataPool.Return()"/> is called.</remarks>
+        internal TColor[] ReturnCurrentPixelsAndReplaceThemInternally(int width, int height, TColor[] pixels)
+        {
+            TColor[] oldPixels = this.pixelBuffer.UnPinAndTakeArrayOwnership();
+            this.SetPixelBufferUnsafe(width, height, pixels);
+            return oldPixels;
         }
 
         /// <summary>
@@ -472,6 +475,28 @@ namespace ImageSharp
             return this.pixelsBase + (((y * this.Width) + x) * Unsafe.SizeOf<TColor>());
         }
 
+        private void SetPixelBufferUnsafe(int width, int height, TColor[] pixels)
+        {
+            this.SetPixelBufferUnsafe(width, height, new PinnedBuffer<TColor>(width * height, pixels));
+        }
+
+        /// <summary>
+        /// Sets the pixel buffer in an unsafe manor this should not be used unless you know what its doing!!!
+        /// </summary>
+        /// <param name="width">The width.</param>
+        /// <param name="height">The height.</param>
+        /// <param name="pixels">The pixel buffer</param>
+        private void SetPixelBufferUnsafe(int width, int height, PinnedBuffer<TColor> pixels)
+        {
+            this.pixelBuffer = pixels;
+            this.pixelsBase = (byte*)pixels.Pointer;
+
+            this.Width = width;
+            this.Height = height;
+            this.PixelSize = Unsafe.SizeOf<TColor>();
+            this.RowStride = this.Width * this.PixelSize;
+        }
+
         /// <summary>
         /// Copy an area of pixels to the image.
         /// </summary>
@@ -540,8 +565,8 @@ namespace ImageSharp
         /// Checks that the given area and offset are within the bounds of the image.
         /// </summary>
         /// <param name="area">The area.</param>
-        /// <param name="x">The x-coordinate of the pixel. Must be greater than zero and smaller than the width of the pixel.</param>
-        /// <param name="y">The y-coordinate of the pixel. Must be greater than zero and smaller than the width of the pixel.</param>
+        /// <param name="x">The x-coordinate of the pixel. Must be greater than zero and less than the width of the image.</param>
+        /// <param name="y">The y-coordinate of the pixel. Must be greater than zero and less than the height of the image.</param>
         /// <exception cref="ArgumentOutOfRangeException">
         /// Thrown if the dimensions are not within the bounds of the image.
         /// </exception>
@@ -551,21 +576,21 @@ namespace ImageSharp
             int width = Math.Min(area.Width, this.Width - x);
             if (width < 1)
             {
-                throw new ArgumentOutOfRangeException(nameof(width), width, $"Invalid area size specified.");
+                throw new ArgumentOutOfRangeException(nameof(width), width, "Invalid area size specified.");
             }
 
             int height = Math.Min(area.Height, this.Height - y);
             if (height < 1)
             {
-                throw new ArgumentOutOfRangeException(nameof(height), height, $"Invalid area size specified.");
+                throw new ArgumentOutOfRangeException(nameof(height), height, "Invalid area size specified.");
             }
         }
 
         /// <summary>
         /// Checks the coordinates to ensure they are within bounds.
         /// </summary>
-        /// <param name="x">The x-coordinate of the pixel. Must be greater than zero and smaller than the width of the pixel.</param>
-        /// <param name="y">The y-coordinate of the pixel. Must be greater than zero and smaller than the width of the pixel.</param>
+        /// <param name="x">The x-coordinate of the pixel. Must be greater than zero and less than the width of the image.</param>
+        /// <param name="y">The y-coordinate of the pixel. Must be greater than zero and less than the height of the image.</param>
         /// <exception cref="ArgumentOutOfRangeException">
         /// Thrown if the coordinates are not within the bounds of the image.
         /// </exception>

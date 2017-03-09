@@ -13,7 +13,7 @@ namespace ImageSharp.Processing.Processors
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     public abstract class Matrix3x2Processor<TColor> : ImageProcessor<TColor>
-        where TColor : struct, IPackedPixel, IEquatable<TColor>
+        where TColor : struct, IPixel<TColor>
     {
         /// <summary>
         /// Gets the rectangle designating the target canvas.

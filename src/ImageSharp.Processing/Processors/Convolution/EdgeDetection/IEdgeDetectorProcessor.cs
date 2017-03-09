@@ -12,7 +12,7 @@ namespace ImageSharp.Processing.Processors
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     public interface IEdgeDetectorProcessor<TColor> : IImageProcessor<TColor>, IEdgeDetectorProcessor
-        where TColor : struct, IPackedPixel, IEquatable<TColor>
+        where TColor : struct, IPixel<TColor>
     {
     }
 

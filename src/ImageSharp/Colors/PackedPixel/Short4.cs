@@ -7,11 +7,12 @@ namespace ImageSharp
 {
     using System;
     using System.Numerics;
+    using System.Runtime.CompilerServices;
 
     /// <summary>
     /// Packed pixel type containing four 16-bit signed integer values.
     /// </summary>
-    public struct Short4 : IPackedPixel<ulong>, IEquatable<Short4>
+    public struct Short4 : IPixel<Short4>, IPackedVector<ulong>
     {
         /// <summary>
         /// The maximum byte value.
@@ -49,7 +50,7 @@ namespace ImageSharp
             this.PackedValue = Pack(x, y, z, w);
         }
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         public ulong PackedValue { get; set; }
 
         /// <summary>
@@ -64,6 +65,7 @@ namespace ImageSharp
         /// <returns>
         /// True if the <paramref name="left"/> parameter is not equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator ==(Short4 left, Short4 right)
         {
             return left.PackedValue == right.PackedValue;
@@ -81,18 +83,24 @@ namespace ImageSharp
         /// <returns>
         /// True if the <paramref name="left"/> parameter is not equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator !=(Short4 left, Short4 right)
         {
             return left.PackedValue != right.PackedValue;
         }
 
         /// <inheritdoc />
+        public BulkPixelOperations<Short4> CreateBulkOperations() => new BulkPixelOperations<Short4>();
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void PackFromVector4(Vector4 vector)
         {
             this.PackedValue = Pack(vector.X, vector.Y, vector.Z, vector.W);
         }
 
         /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vector4 ToVector4()
         {
             return new Vector4(
@@ -103,6 +111,7 @@ namespace ImageSharp
         }
 
         /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void PackFromBytes(byte x, byte y, byte z, byte w)
         {
             Vector4 vector = new Vector4(x, y, z, w) / 255;
@@ -112,6 +121,7 @@ namespace ImageSharp
         }
 
         /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ToXyzBytes(byte[] bytes, int startIndex)
         {
             Vector4 vector = this.ToVector4();
@@ -127,6 +137,7 @@ namespace ImageSharp
         }
 
         /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ToXyzwBytes(byte[] bytes, int startIndex)
         {
             Vector4 vector = this.ToVector4();
@@ -143,6 +154,7 @@ namespace ImageSharp
         }
 
         /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ToZyxBytes(byte[] bytes, int startIndex)
         {
             Vector4 vector = this.ToVector4();
@@ -158,6 +170,7 @@ namespace ImageSharp
         }
 
         /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ToZyxwBytes(byte[] bytes, int startIndex)
         {
             Vector4 vector = this.ToVector4();
@@ -180,6 +193,7 @@ namespace ImageSharp
         }
 
         /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Equals(Short4 other)
         {
             return this == other;
@@ -189,6 +203,7 @@ namespace ImageSharp
         /// Gets the hash code for the current instance.
         /// </summary>
         /// <returns>Hash code for the instance.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override int GetHashCode()
         {
             return this.PackedValue.GetHashCode();
@@ -211,6 +226,7 @@ namespace ImageSharp
         /// <param name="z">The z-component</param>
         /// <param name="w">The w-component</param>
         /// <returns>The <see cref="ulong"/> containing the packed values.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static ulong Pack(float x, float y, float z, float w)
         {
             // Largest two byte positive number 0xFFFF >> 1;

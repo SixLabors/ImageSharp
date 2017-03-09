@@ -14,15 +14,14 @@ namespace ImageSharp.Processing.Processors
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     public class VignetteProcessor<TColor> : ImageProcessor<TColor>
-        where TColor : struct, IPackedPixel, IEquatable<TColor>
+        where TColor : struct, IPixel<TColor>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="VignetteProcessor{TColor}"/> class.
+        /// Initializes a new instance of the <see cref="VignetteProcessor{TColor}" /> class.
         /// </summary>
-        public VignetteProcessor()
+        /// <param name="color">The color of the vignette.</param>
+        public VignetteProcessor(TColor color)
         {
-            TColor color = default(TColor);
-            color.PackFromVector4(Color.Black.ToVector4());
             this.VignetteColor = color;
         }
 

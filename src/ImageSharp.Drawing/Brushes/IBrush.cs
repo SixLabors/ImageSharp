@@ -18,7 +18,7 @@ namespace ImageSharp.Drawing
     /// logic for converting a pixel location to a <typeparamref name="TColor"/>.
     /// </remarks>
     public interface IBrush<TColor>
-        where TColor : struct, IPackedPixel, IEquatable<TColor>
+        where TColor : struct, IPixel<TColor>
     {
         /// <summary>
         /// Creates the applicator for this brush.

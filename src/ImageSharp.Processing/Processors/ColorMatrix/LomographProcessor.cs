@@ -13,8 +13,10 @@ namespace ImageSharp.Processing.Processors
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     public class LomographProcessor<TColor> : ColorMatrixFilter<TColor>
-        where TColor : struct, IPackedPixel, IEquatable<TColor>
+        where TColor : struct, IPixel<TColor>
     {
+        private static readonly TColor VeryDarkGreen = ColorBuilder<TColor>.FromRGBA(0, 10, 0, 255);
+
         /// <inheritdoc/>
         public override Matrix4x4 Matrix => new Matrix4x4()
         {
@@ -30,9 +32,7 @@ namespace ImageSharp.Processing.Processors
         /// <inheritdoc/>
         protected override void AfterApply(ImageBase<TColor> source, Rectangle sourceRectangle)
         {
-            TColor packed = default(TColor);
-            packed.PackFromVector4(new Color(0, 10, 0).ToVector4()); // Very dark (mostly black) lime green.
-            new VignetteProcessor<TColor> { VignetteColor = packed }.Apply(source, sourceRectangle);
+            new VignetteProcessor<TColor>(VeryDarkGreen).Apply(source, sourceRectangle);
         }
     }
 }

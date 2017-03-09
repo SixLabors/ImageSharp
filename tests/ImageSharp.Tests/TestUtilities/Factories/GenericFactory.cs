@@ -12,7 +12,7 @@ namespace ImageSharp.Tests
     /// Used as parameter for <see cref="WithMemberFactoryAttribute"/> -based factory methods
     /// </summary>
     public class GenericFactory<TColor>
-        where TColor : struct, IPackedPixel, IEquatable<TColor>
+        where TColor : struct, IPixel<TColor>
     {
         public virtual Image<TColor> CreateImage(int width, int height)
         {

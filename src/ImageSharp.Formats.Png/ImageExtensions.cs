@@ -5,7 +5,6 @@
 
 namespace ImageSharp
 {
-    using System;
     using System.IO;
 
     using Formats;
@@ -21,15 +20,34 @@ namespace ImageSharp
         /// <typeparam name="TColor">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="stream">The stream to save the image to.</param>
-        /// <param name="quality">The quality to save the image to representing the number of colors.
-        /// Anything equal to 256 and below will cause the encoder to save the image in an indexed format.
-        /// </param>
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
         /// <returns>
         /// The <see cref="Image{TColor}"/>.
         /// </returns>
-        public static Image<TColor> SaveAsPng<TColor>(this Image<TColor> source, Stream stream, int quality = int.MaxValue)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
-                        => source.Save(stream, new PngEncoder { Quality = quality });
+        public static Image<TColor> SaveAsPng<TColor>(this Image<TColor> source, Stream stream)
+            where TColor : struct, IPixel<TColor>
+        {
+            return SaveAsPng(source, stream, null);
+        }
+
+        /// <summary>
+        /// Saves the image to the given stream with the png format.
+        /// </summary>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="stream">The stream to save the image to.</param>
+        /// <param name="options">The options for the encoder.</param>
+        /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
+        /// <returns>
+        /// The <see cref="Image{TColor}"/>.
+        /// </returns>
+        public static Image<TColor> SaveAsPng<TColor>(this Image<TColor> source, Stream stream, IPngEncoderOptions options)
+            where TColor : struct, IPixel<TColor>
+        {
+            PngEncoder encoder = new PngEncoder();
+            encoder.Encode(source, stream, options);
+
+            return source;
+        }
     }
 }

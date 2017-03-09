@@ -14,16 +14,14 @@ namespace ImageSharp.Tests
         [Fact]
         public void ImageShouldApplyLomographFilter()
         {
-            string path = CreateOutputDirectory("Lomograph");
+            string path = this.CreateOutputDirectory("Lomograph");
 
             foreach (TestFile file in Files)
             {
-                Image image = file.CreateImage();
-
+                using (Image image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{file.FileName}"))
                 {
-                    image.Lomograph()
-                          .Save(output);
+                    image.Lomograph().Save(output);
                 }
             }
         }
@@ -31,17 +29,16 @@ namespace ImageSharp.Tests
         [Fact]
         public void ImageShouldApplyLomographFilterInBox()
         {
-            string path = CreateOutputDirectory("Lomograph");
+            string path = this.CreateOutputDirectory("Lomograph");
 
             foreach (TestFile file in Files)
             {
                 string filename = file.GetFileName("InBox");
-                Image image = file.CreateImage();
-
+                using (Image image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
                     image.Lomograph(new Rectangle(image.Width / 4, image.Width / 4, image.Width / 2, image.Height / 2))
-                          .Save(output);
+                         .Save(output);
                 }
             }
         }

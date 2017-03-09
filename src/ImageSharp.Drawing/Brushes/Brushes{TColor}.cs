@@ -13,7 +13,7 @@ namespace ImageSharp.Drawing.Brushes
     /// <typeparam name="TColor">The pixel format.</typeparam>
     /// <returns>A Brush</returns>
     public class Brushes<TColor>
-        where TColor : struct, IPackedPixel, IEquatable<TColor>
+        where TColor : struct, IPixel<TColor>
     {
         /// <summary>
         /// Percent10 Hatch Pattern

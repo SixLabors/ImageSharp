@@ -21,21 +21,6 @@ namespace ImageSharp.Formats.Jpg
             public Block8x8F* Block;
 
             /// <summary>
-            /// Pointer to <see cref="ComputationData.Temp1"/>
-            /// </summary>
-            public Block8x8F* Temp1;
-
-            /// <summary>
-            /// Pointer to <see cref="ComputationData.Temp2"/>
-            /// </summary>
-            public Block8x8F* Temp2;
-
-            /// <summary>
-            /// Pointer to <see cref="ComputationData.QuantiazationTable"/>
-            /// </summary>
-            public Block8x8F* QuantiazationTable;
-
-            /// <summary>
             /// Pointer to <see cref="ComputationData.Unzig"/> as int*
             /// </summary>
             public int* Unzig;
@@ -57,9 +42,6 @@ namespace ImageSharp.Formats.Jpg
             public DataPointers(ComputationData* basePtr)
             {
                 this.Block = &basePtr->Block;
-                this.Temp1 = &basePtr->Temp1;
-                this.Temp2 = &basePtr->Temp2;
-                this.QuantiazationTable = &basePtr->QuantiazationTable;
                 this.Unzig = basePtr->Unzig.Data;
                 this.ComponentScan = (ComponentScan*)basePtr->ScanData;
                 this.Dc = basePtr->Dc;

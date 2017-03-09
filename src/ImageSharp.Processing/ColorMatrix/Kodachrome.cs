@@ -22,7 +22,7 @@ namespace ImageSharp
         /// <param name="source">The image this method extends.</param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Kodachrome<TColor>(this Image<TColor> source)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             return Kodachrome(source, source.Bounds);
         }
@@ -37,9 +37,10 @@ namespace ImageSharp
         /// </param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Kodachrome<TColor>(this Image<TColor> source, Rectangle rectangle)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
-            return source.Apply(rectangle, new KodachromeProcessor<TColor>());
+            source.ApplyProcessor(new KodachromeProcessor<TColor>(), rectangle);
+            return source;
         }
     }
 }

@@ -19,20 +19,18 @@ namespace ImageSharp.Tests
         };
 
         [Theory]
-        [MemberData("GaussianBlurValues")]
+        [MemberData(nameof(GaussianBlurValues))]
         public void ImageShouldApplyGaussianBlurFilter(int value)
         {
-            string path = CreateOutputDirectory("GaussianBlur");
+            string path = this.CreateOutputDirectory("GaussianBlur");
 
             foreach (TestFile file in Files)
             {
                 string filename = file.GetFileName(value);
-                Image image = file.CreateImage();
-
+                using (Image image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
-                    image.GaussianBlur(value)
-                          .Save(output);
+                    image.GaussianBlur(value).Save(output);
                 }
             }
         }

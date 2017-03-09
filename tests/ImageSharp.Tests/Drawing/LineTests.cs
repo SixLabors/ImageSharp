@@ -5,11 +5,9 @@
 
 namespace ImageSharp.Tests.Drawing
 {
-    using Drawing;
     using ImageSharp.Drawing;
     using ImageSharp.Drawing.Pens;
-    using System;
-    using System.Diagnostics.CodeAnalysis;
+
     using System.IO;
     using System.Numerics;
     using Xunit;
@@ -19,123 +17,132 @@ namespace ImageSharp.Tests.Drawing
         [Fact]
         public void ImageShouldBeOverlayedByPath()
         {
-            string path = CreateOutputDirectory("Drawing", "Lines");
-            var image = new Image(500, 500);
-
-            using (FileStream output = File.OpenWrite($"{path}/Simple.png"))
+            string path = this.CreateOutputDirectory("Drawing", "Lines");
+            using (Image image = new Image(500, 500))
             {
-                image
-                    .BackgroundColor(Color.Blue)
-                    .DrawLines(Color.HotPink, 5, new[] {
+                using (FileStream output = File.OpenWrite($"{path}/Simple.png"))
+                {
+                    image
+                        .BackgroundColor(Color.Blue)
+                        .DrawLines(Color.HotPink, 5,
+                        new[] {
                             new Vector2(10, 10),
                             new Vector2(200, 150),
                             new Vector2(50, 300)
-                    })
-                    .Save(output);
-            }
+                        })
+                        .Save(output);
+                }
 
-            using (var sourcePixels = image.Lock())
-            {
-                Assert.Equal(Color.HotPink, sourcePixels[9, 9]);
+                using (PixelAccessor<Color> sourcePixels = image.Lock())
+                {
+                    Assert.Equal(Color.HotPink, sourcePixels[9, 9]);
 
-                Assert.Equal(Color.HotPink, sourcePixels[199, 149]);
+                    Assert.Equal(Color.HotPink, sourcePixels[199, 149]);
 
-                Assert.Equal(Color.Blue, sourcePixels[50, 50]);
+                    Assert.Equal(Color.Blue, sourcePixels[50, 50]);
+                }
             }
         }
 
         [Fact]
         public void ImageShouldBeOverlayedByPath_NoAntialias()
         {
-            string path = CreateOutputDirectory("Drawing", "Lines");
-            var image = new Image(500, 500);
-
-            using (FileStream output = File.OpenWrite($"{path}/Simple_noantialias.png"))
+            string path = this.CreateOutputDirectory("Drawing", "Lines");
+            using (Image image = new Image(500, 500))
             {
-                image
-                    .BackgroundColor(Color.Blue)
-                    .DrawLines(Color.HotPink, 5, new[] {
+                using (FileStream output = File.OpenWrite($"{path}/Simple_noantialias.png"))
+                {
+                    image
+                        .BackgroundColor(Color.Blue)
+                        .DrawLines(Color.HotPink, 5,
+                        new[] {
                             new Vector2(10, 10),
                             new Vector2(200, 150),
                             new Vector2(50, 300)
-                    }, new GraphicsOptions(false))
-                    .Save(output);
-            }
+                        },
+                        new GraphicsOptions(false))
+                        .Save(output);
+                }
 
-            using (var sourcePixels = image.Lock())
-            {
-                Assert.Equal(Color.HotPink, sourcePixels[9, 9]);
+                using (PixelAccessor<Color> sourcePixels = image.Lock())
+                {
+                    Assert.Equal(Color.HotPink, sourcePixels[9, 9]);
 
-                Assert.Equal(Color.HotPink, sourcePixels[199, 149]);
+                    Assert.Equal(Color.HotPink, sourcePixels[199, 149]);
 
-                Assert.Equal(Color.Blue, sourcePixels[50, 50]);
+                    Assert.Equal(Color.Blue, sourcePixels[50, 50]);
+                }
             }
         }
 
         [Fact]
         public void ImageShouldBeOverlayedByPathDashed()
         {
-            string path = CreateOutputDirectory("Drawing", "Lines");
-            var image = new Image(500, 500);
-
-            using (FileStream output = File.OpenWrite($"{path}/Dashed.png"))
+            string path = this.CreateOutputDirectory("Drawing", "Lines");
+            using (Image image = new Image(500, 500))
             {
-                image
-                    .BackgroundColor(Color.Blue)
-                    .DrawLines(Pens.Dash(Color.HotPink, 5), new[] {
+                using (FileStream output = File.OpenWrite($"{path}/Dashed.png"))
+                {
+                    image
+                        .BackgroundColor(Color.Blue)
+                        .DrawLines(Pens.Dash(Color.HotPink, 5),
+                        new[] {
                             new Vector2(10, 10),
                             new Vector2(200, 150),
                             new Vector2(50, 300)
-                    })
-                    .Save(output);
+                        })
+                        .Save(output);
+                }
             }
-
         }
 
         [Fact]
         public void ImageShouldBeOverlayedByPathDotted()
         {
-            string path = CreateOutputDirectory("Drawing", "Lines");
-            var image = new Image(500, 500);
-
-            using (FileStream output = File.OpenWrite($"{path}/Dot.png"))
+            string path = this.CreateOutputDirectory("Drawing", "Lines");
+            using (Image image = new Image(500, 500))
             {
-                image
-                    .BackgroundColor(Color.Blue)
-                    .DrawLines(Pens.Dot(Color.HotPink, 5), new[] {
+                using (FileStream output = File.OpenWrite($"{path}/Dot.png"))
+                {
+                    image
+                        .BackgroundColor(Color.Blue)
+                        .DrawLines(Pens.Dot(Color.HotPink, 5),
+                        new[] {
                             new Vector2(10, 10),
                             new Vector2(200, 150),
                             new Vector2(50, 300)
-                    })
-                    .Save(output);
+                        })
+                        .Save(output);
+                }
             }
         }
 
         [Fact]
         public void ImageShouldBeOverlayedByPathDashDot()
         {
-            string path = CreateOutputDirectory("Drawing", "Lines");
-            var image = new Image(500, 500);
-
-            using (FileStream output = File.OpenWrite($"{path}/DashDot.png"))
+            string path = this.CreateOutputDirectory("Drawing", "Lines");
+            using (Image image = new Image(500, 500))
             {
-                image
-                    .BackgroundColor(Color.Blue)
-                    .DrawLines(Pens.DashDot(Color.HotPink, 5), new[] {
+                using (FileStream output = File.OpenWrite($"{path}/DashDot.png"))
+                {
+                    image
+                        .BackgroundColor(Color.Blue)
+                        .DrawLines(Pens.DashDot(Color.HotPink, 5),
+                        new[] {
                             new Vector2(10, 10),
                             new Vector2(200, 150),
                             new Vector2(50, 300)
-                    })
-                    .Save(output);
+                        })
+                        .Save(output);
+                }
             }
-
         }
 
         [Fact]
         public void ImageShouldBeOverlayedByPathDashDotDot()
         {
-            string path = CreateOutputDirectory("Drawing", "Lines");
-            var image = new Image(500, 500);
+            string path = this.CreateOutputDirectory("Drawing", "Lines");
+            Image image = new Image(500, 500);
 
             using (FileStream output = File.OpenWrite($"{path}/DashDotDot.png"))
             {
@@ -153,12 +160,12 @@ namespace ImageSharp.Tests.Drawing
         [Fact]
         public void ImageShouldBeOverlayedPathWithOpacity()
         {
-            string path = CreateOutputDirectory("Drawing", "Lines");
+            string path = this.CreateOutputDirectory("Drawing", "Lines");
 
-            var color = new Color(Color.HotPink.R, Color.HotPink.G, Color.HotPink.B, 150);
+            Color color = new Color(Color.HotPink.R, Color.HotPink.G, Color.HotPink.B, 150);
 
-            var image = new Image(500, 500);
-            
+            Image image = new Image(500, 500);
+
 
             using (FileStream output = File.OpenWrite($"{path}/Opacity.png"))
             {
@@ -173,9 +180,9 @@ namespace ImageSharp.Tests.Drawing
             }
 
             //shift background color towards forground color by the opacity amount
-            var mergedColor = new Color(Vector4.Lerp(Color.Blue.ToVector4(), Color.HotPink.ToVector4(), 150f/255f));
+            Color mergedColor = new Color(Vector4.Lerp(Color.Blue.ToVector4(), Color.HotPink.ToVector4(), 150f/255f));
 
-            using (var sourcePixels = image.Lock())
+            using (PixelAccessor<Color> sourcePixels = image.Lock())
             {
                 Assert.Equal(mergedColor, sourcePixels[9, 9]);
 
@@ -188,9 +195,9 @@ namespace ImageSharp.Tests.Drawing
         [Fact]
         public void ImageShouldBeOverlayedByPathOutline()
         {
-            string path = CreateOutputDirectory("Drawing", "Lines");
+            string path = this.CreateOutputDirectory("Drawing", "Lines");
 
-            var image = new Image(500, 500);
+            Image image = new Image(500, 500);
 
             using (FileStream output = File.OpenWrite($"{path}/Rectangle.png"))
             {
@@ -205,7 +212,7 @@ namespace ImageSharp.Tests.Drawing
                     .Save(output);
             }
 
-            using (var sourcePixels = image.Lock())
+            using (PixelAccessor<Color> sourcePixels = image.Lock())
             {
                 Assert.Equal(Color.HotPink, sourcePixels[8, 8]);
 
@@ -216,6 +223,6 @@ namespace ImageSharp.Tests.Drawing
                 Assert.Equal(Color.Blue, sourcePixels[50, 50]);
             }
         }
-        
+
     }
 }

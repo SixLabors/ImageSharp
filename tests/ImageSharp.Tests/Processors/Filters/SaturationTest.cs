@@ -19,7 +19,7 @@ namespace ImageSharp.Tests
         };
 
         [Theory]
-        [MemberData("SaturationValues")]
+        [MemberData(nameof(SaturationValues))]
         public void ImageShouldApplySaturationFilter(int value)
         {
             string path = CreateOutputDirectory("Saturation");
@@ -27,12 +27,10 @@ namespace ImageSharp.Tests
             foreach (TestFile file in Files)
             {
                 string filename = file.GetFileName(value);
-                Image image = file.CreateImage();
-
+                using (Image image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
-                    image.Saturation(value)
-                          .Save(output);
+                    image.Saturation(value).Save(output);
                 }
             }
         }

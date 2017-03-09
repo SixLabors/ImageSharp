@@ -14,55 +14,64 @@ namespace ImageSharp.Processing.Processors
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     public abstract class EdgeDetectorCompassProcessor<TColor> : ImageProcessor<TColor>, IEdgeDetectorProcessor<TColor>
-        where TColor : struct, IPackedPixel, IEquatable<TColor>
+        where TColor : struct, IPixel<TColor>
     {
         /// <summary>
         /// Gets the North gradient operator
         /// </summary>
-        public abstract float[][] North { get; }
+        public abstract Fast2DArray<float> North { get; }
 
         /// <summary>
         /// Gets the NorthWest gradient operator
         /// </summary>
-        public abstract float[][] NorthWest { get; }
+        public abstract Fast2DArray<float> NorthWest { get; }
 
         /// <summary>
         /// Gets the West gradient operator
         /// </summary>
-        public abstract float[][] West { get; }
+        public abstract Fast2DArray<float> West { get; }
 
         /// <summary>
         /// Gets the SouthWest gradient operator
         /// </summary>
-        public abstract float[][] SouthWest { get; }
+        public abstract Fast2DArray<float> SouthWest { get; }
 
         /// <summary>
         /// Gets the South gradient operator
         /// </summary>
-        public abstract float[][] South { get; }
+        public abstract Fast2DArray<float> South { get; }
 
         /// <summary>
         /// Gets the SouthEast gradient operator
         /// </summary>
-        public abstract float[][] SouthEast { get; }
+        public abstract Fast2DArray<float> SouthEast { get; }
 
         /// <summary>
         /// Gets the East gradient operator
         /// </summary>
-        public abstract float[][] East { get; }
+        public abstract Fast2DArray<float> East { get; }
 
         /// <summary>
         /// Gets the NorthEast gradient operator
         /// </summary>
-        public abstract float[][] NorthEast { get; }
+        public abstract Fast2DArray<float> NorthEast { get; }
 
         /// <inheritdoc/>
         public bool Grayscale { get; set; }
 
+        /// <inheritdoc/>
+        protected override void BeforeApply(ImageBase<TColor> source, Rectangle sourceRectangle)
+        {
+            if (this.Grayscale)
+            {
+                new GrayscaleBt709Processor<TColor>().Apply(source, sourceRectangle);
+            }
+        }
+
         /// <inheritdoc />
         protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
         {
-            float[][][] kernels = { this.North, this.NorthWest, this.West, this.SouthWest, this.South, this.SouthEast, this.East, this.NorthEast };
+            Fast2DArray<float>[] kernels = { this.North, this.NorthWest, this.West, this.SouthWest, this.South, this.SouthEast, this.East, this.NorthEast };
 
             int startY = sourceRectangle.Y;
             int endY = sourceRectangle.Bottom;
@@ -75,72 +84,61 @@ namespace ImageSharp.Processing.Processors
             int minY = Math.Max(0, startY);
             int maxY = Math.Min(source.Height, endY);
 
-            // First run.
-            ImageBase<TColor> target = new Image<TColor>(source.Width, source.Height);
-            target.ClonePixels(source.Width, source.Height, source.Pixels);
-            new ConvolutionProcessor<TColor>(kernels[0]).Apply(target, sourceRectangle);
-
-            if (kernels.Length == 1)
+            // we need a clean copy for each pass to start from
+            using (ImageBase<TColor> cleanCopy = new Image<TColor>(source))
             {
-                return;
-            }
+                new ConvolutionProcessor<TColor>(kernels[0]).Apply(source, sourceRectangle);
 
-            int shiftY = startY;
-            int shiftX = startX;
-
-            // Reset offset if necessary.
-            if (minX > 0)
-            {
-                shiftX = 0;
-            }
-
-            if (minY > 0)
-            {
-                shiftY = 0;
-            }
-
-            // Additional runs.
-            // ReSharper disable once ForCanBeConvertedToForeach
-            for (int i = 1; i < kernels.Length; i++)
-            {
-                // Create a clone for each pass and copy the offset pixels across.
-                ImageBase<TColor> pass = new Image<TColor>(source.Width, source.Height);
-                pass.ClonePixels(source.Width, source.Height, source.Pixels);
-
-                new ConvolutionProcessor<TColor>(kernels[i]).Apply(pass, sourceRectangle);
-
-                using (PixelAccessor<TColor> passPixels = pass.Lock())
-                using (PixelAccessor<TColor> targetPixels = target.Lock())
+                if (kernels.Length == 1)
                 {
-                    Parallel.For(
-                        minY,
-                        maxY,
-                        this.ParallelOptions,
-                        y =>
-                        {
-                            int offsetY = y - shiftY;
-                            for (int x = minX; x < maxX; x++)
-                            {
-                                int offsetX = x - shiftX;
-
-                                // Grab the max components of the two pixels
-                                TColor packed = default(TColor);
-                                packed.PackFromVector4(Vector4.Max(passPixels[offsetX, offsetY].ToVector4(), targetPixels[offsetX, offsetY].ToVector4()));
-                                targetPixels[offsetX, offsetY] = packed;
-                            }
-                        });
+                    return;
                 }
-            }
 
-            source.SetPixels(source.Width, source.Height, target.Pixels);
-        }
+                int shiftY = startY;
+                int shiftX = startX;
 
-        /// <inheritdoc/>
-        protected override void BeforeApply(ImageBase<TColor> source, Rectangle sourceRectangle)
-        {
-            if (this.Grayscale)
-            {
-                new GrayscaleBt709Processor<TColor>().Apply(source, sourceRectangle);
+                // Reset offset if necessary.
+                if (minX > 0)
+                {
+                    shiftX = 0;
+                }
+
+                if (minY > 0)
+                {
+                    shiftY = 0;
+                }
+
+                // Additional runs.
+                // ReSharper disable once ForCanBeConvertedToForeach
+                for (int i = 1; i < kernels.Length; i++)
+                {
+                    using (ImageBase<TColor> pass = new Image<TColor>(cleanCopy))
+                    {
+                        new ConvolutionProcessor<TColor>(kernels[i]).Apply(pass, sourceRectangle);
+
+                        using (PixelAccessor<TColor> passPixels = pass.Lock())
+                        using (PixelAccessor<TColor> targetPixels = source.Lock())
+                        {
+                            Parallel.For(
+                                minY,
+                                maxY,
+                                this.ParallelOptions,
+                                y =>
+                                {
+                                    int offsetY = y - shiftY;
+                                    for (int x = minX; x < maxX; x++)
+                                    {
+                                        int offsetX = x - shiftX;
+
+                                        // Grab the max components of the two pixels
+                                        TColor packed = default(TColor);
+                                        packed.PackFromVector4(Vector4.Max(passPixels[offsetX, offsetY].ToVector4(), targetPixels[offsetX, offsetY].ToVector4()));
+                                        targetPixels[offsetX, offsetY] = packed;
+                                    }
+                                });
+                        }
+                    }
+                }
             }
         }
     }

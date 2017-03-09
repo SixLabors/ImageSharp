@@ -2,13 +2,12 @@
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
+
 namespace ImageSharp.Formats
 {
     using System;
-    using System.Buffers;
     using System.IO;
     using System.Runtime.CompilerServices;
-    using System.Runtime.InteropServices;
     using System.Threading.Tasks;
 
     using ImageSharp.Formats.Jpg;
@@ -37,6 +36,11 @@ namespace ImageSharp.Formats
         /// </summary>
         public InputProcessor InputProcessor;
 #pragma warning restore SA401
+
+        /// <summary>
+        /// The decoder options.
+        /// </summary>
+        private readonly IDecoderOptions options;
 
         /// <summary>
         /// The App14 marker color-space
@@ -69,6 +73,11 @@ namespace ImageSharp.Formats
         private bool isJfif;
 
         /// <summary>
+        /// Whether the image has a EXIF header
+        /// </summary>
+        private bool isExif;
+
+        /// <summary>
         /// The vertical resolution. Calculated if the image has a JFIF header.
         /// </summary>
         private short verticalResolution;
@@ -81,13 +90,15 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Initializes a new instance of the <see cref="JpegDecoderCore" /> class.
         /// </summary>
-        public JpegDecoderCore()
+        /// <param name="options">The decoder options.</param>
+        public JpegDecoderCore(IDecoderOptions options)
         {
+            this.options = options ?? new DecoderOptions();
             this.HuffmanTrees = HuffmanTree.CreateHuffmanTrees();
             this.QuantizationTables = new Block8x8F[MaxTq + 1];
             this.Temp = new byte[2 * Block8x8F.ScalarCount];
             this.ComponentArray = new Component[MaxComponents];
-            this.DecodedBlocks = new DecodedBlockMemento.Array[MaxComponents];
+            this.DecodedBlocks = new DecodedBlockArray[MaxComponents];
         }
 
         /// <summary>
@@ -101,10 +112,12 @@ namespace ImageSharp.Formats
         public HuffmanTree[] HuffmanTrees { get; }
 
         /// <summary>
-        /// Gets the saved state between progressive-mode scans.
-        /// TODO: Also save non-progressive data here. (Helps splitting and parallelizing JpegScanDecoder-s loop)
+        /// Gets the array of <see cref="DecodedBlockArray"/>-s storing the "raw" frequency-domain decoded blocks.
+        /// We need to apply IDCT, dequantiazition and unzigging to transform them into color-space blocks.
+        /// This is done by <see cref="ProcessBlocksIntoJpegImageChannels{TColor}"/>.
+        /// When <see cref="IsProgressive"/>==true, we are touching these blocks multiple times - each time we process a Scan.
         /// </summary>
-        public DecodedBlockMemento.Array[] DecodedBlocks { get; }
+        public DecodedBlockArray[] DecodedBlocks { get; }
 
         /// <summary>
         /// Gets the quantization tables, in zigzag order.
@@ -171,7 +184,7 @@ namespace ImageSharp.Formats
         /// <param name="stream">The stream, where the image should be.</param>
         /// <param name="metadataOnly">Whether to decode metadata only.</param>
         public void Decode<TColor>(Image<TColor> image, Stream stream, bool metadataOnly)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             this.ProcessStream(image, stream, metadataOnly);
             if (!metadataOnly)
@@ -191,7 +204,7 @@ namespace ImageSharp.Formats
                 this.HuffmanTrees[i].Dispose();
             }
 
-            foreach (DecodedBlockMemento.Array blockArray in this.DecodedBlocks)
+            foreach (DecodedBlockArray blockArray in this.DecodedBlocks)
             {
                 blockArray.Dispose();
             }
@@ -242,7 +255,7 @@ namespace ImageSharp.Formats
         /// <param name="cr">The cr chroma component.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void PackYcbCr<TColor>(ref TColor packed, byte y, byte cb, byte cr)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             int ccb = cb - 128;
             int ccr = cr - 128;
@@ -268,7 +281,7 @@ namespace ImageSharp.Formats
         /// <param name="stream">The stream</param>
         /// <param name="metadataOnly">Whether to decode metadata only.</param>
         private void ProcessStream<TColor>(Image<TColor> image, Stream stream, bool metadataOnly)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             this.InputStream = stream;
             this.InputProcessor = new InputProcessor(stream, this.Temp);
@@ -461,28 +474,21 @@ namespace ImageSharp.Formats
 
         /// <summary>
         /// Process the blocks in <see cref="DecodedBlocks"/> into Jpeg image channels (<see cref="YCbCrImage"/> and <see cref="JpegPixelArea"/>)
-        /// The blocks are expected in a "raw" frequency-domain decoded format. We need to apply IDCT and unzigging to transform them into color-space blocks.
+        /// <see cref="DecodedBlocks"/> are in a "raw" frequency-domain form. We need to apply IDCT, dequantization and unzigging to transform them into color-space blocks.
         /// We can copy these blocks into <see cref="JpegPixelArea"/>-s afterwards.
         /// </summary>
         /// <typeparam name="TColor">The pixel type</typeparam>
         private void ProcessBlocksIntoJpegImageChannels<TColor>()
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             Parallel.For(
                 0,
                 this.ComponentCount,
                 componentIndex =>
                     {
-                        JpegScanDecoder scanDecoder = default(JpegScanDecoder);
-                        JpegScanDecoder.Init(&scanDecoder);
-
-                        scanDecoder.ComponentIndex = componentIndex;
-                        DecodedBlockMemento.Array blockArray = this.DecodedBlocks[componentIndex];
-                        for (int i = 0; i < blockArray.Count; i++)
-                        {
-                            scanDecoder.LoadMemento(ref blockArray.Buffer[i]);
-                            scanDecoder.ProcessBlockColors(this);
-                        }
+                        JpegBlockProcessor processor = default(JpegBlockProcessor);
+                        JpegBlockProcessor.Init(&processor, componentIndex);
+                        processor.ProcessAllBlocks(this);
                     });
         }
 
@@ -492,7 +498,7 @@ namespace ImageSharp.Formats
         /// <typeparam name="TColor">The pixel type</typeparam>
         /// <param name="image">The destination image</param>
         private void ConvertJpegPixelsToImagePixels<TColor>(Image<TColor> image)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             if (this.grayImage.IsInitialized)
             {
@@ -550,12 +556,25 @@ namespace ImageSharp.Formats
         /// <typeparam name="TColor">The pixel format.</typeparam>
         /// <param name="image">The image to assign the resolution to.</param>
         private void AssignResolution<TColor>(Image<TColor> image)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             if (this.isJfif && this.horizontalResolution > 0 && this.verticalResolution > 0)
             {
-                image.HorizontalResolution = this.horizontalResolution;
-                image.VerticalResolution = this.verticalResolution;
+                image.MetaData.HorizontalResolution = this.horizontalResolution;
+                image.MetaData.VerticalResolution = this.verticalResolution;
+            }
+            else if (this.isExif)
+            {
+                ExifValue horizontal = image.MetaData.ExifProfile.GetValue(ExifTag.XResolution);
+                ExifValue vertical = image.MetaData.ExifProfile.GetValue(ExifTag.YResolution);
+                double horizontalValue = horizontal != null ? ((Rational)horizontal.Value).ToDouble() : 0;
+                double verticalValue = vertical != null ? ((Rational)vertical.Value).ToDouble() : 0;
+
+                if (horizontalValue > 0 && verticalValue > 0)
+                {
+                    image.MetaData.HorizontalResolution = horizontalValue;
+                    image.MetaData.VerticalResolution = verticalValue;
+                }
             }
         }
 
@@ -567,7 +586,7 @@ namespace ImageSharp.Formats
         /// <param name="height">The image height.</param>
         /// <param name="image">The image.</param>
         private void ConvertFromCmyk<TColor>(int width, int height, Image<TColor> image)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             int scale = this.ComponentArray[0].HorizontalFactor / this.ComponentArray[1].HorizontalFactor;
 
@@ -591,7 +610,7 @@ namespace ImageSharp.Formats
                             byte yellow = this.ycbcrImage.CrChannel.Pixels[co + (x / scale)];
 
                             TColor packed = default(TColor);
-                            this.PackCmyk<TColor>(ref packed, cyan, magenta, yellow, x, y);
+                            this.PackCmyk(ref packed, cyan, magenta, yellow, x, y);
                             pixels[x, y] = packed;
                         }
                     });
@@ -608,7 +627,7 @@ namespace ImageSharp.Formats
         /// <param name="height">The image height.</param>
         /// <param name="image">The image.</param>
         private void ConvertFromGrayScale<TColor>(int width, int height, Image<TColor> image)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             image.InitPixels(width, height);
 
@@ -643,7 +662,7 @@ namespace ImageSharp.Formats
         /// <param name="height">The height.</param>
         /// <param name="image">The image.</param>
         private void ConvertFromRGB<TColor>(int width, int height, Image<TColor> image)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             int scale = this.ComponentArray[0].HorizontalFactor / this.ComponentArray[1].HorizontalFactor;
             image.InitPixels(width, height);
@@ -684,7 +703,7 @@ namespace ImageSharp.Formats
         /// <param name="height">The image height.</param>
         /// <param name="image">The image.</param>
         private void ConvertFromYCbCr<TColor>(int width, int height, Image<TColor> image)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             int scale = this.ComponentArray[0].HorizontalFactor / this.ComponentArray[1].HorizontalFactor;
             image.InitPixels(width, height);
@@ -725,7 +744,7 @@ namespace ImageSharp.Formats
         /// <param name="height">The image height.</param>
         /// <param name="image">The image.</param>
         private void ConvertFromYcck<TColor>(int width, int height, Image<TColor> image)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             int scale = this.ComponentArray[0].HorizontalFactor / this.ComponentArray[1].HorizontalFactor;
 
@@ -749,7 +768,7 @@ namespace ImageSharp.Formats
                             byte cr = this.ycbcrImage.CrChannel.Pixels[co + (x / scale)];
 
                             TColor packed = default(TColor);
-                            this.PackYcck<TColor>(ref packed, yy, cb, cr, x, y);
+                            this.PackYcck(ref packed, yy, cb, cr, x, y);
                             pixels[x, y] = packed;
                         }
                     });
@@ -850,7 +869,7 @@ namespace ImageSharp.Formats
         /// <param name="xx">The x-position within the image.</param>
         /// <param name="yy">The y-position within the image.</param>
         private void PackCmyk<TColor>(ref TColor packed, byte c, byte m, byte y, int xx, int yy)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             // Get keyline
             float keyline = (255 - this.blackImage[xx, yy]) / 255F;
@@ -875,7 +894,7 @@ namespace ImageSharp.Formats
         /// <param name="xx">The x-position within the image.</param>
         /// <param name="yy">The y-position within the image.</param>
         private void PackYcck<TColor>(ref TColor packed, byte y, byte cb, byte cr, int xx, int yy)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             // Convert the YCbCr part of the YCbCrK to RGB, invert the RGB to get
             // CMY, and patch in the original K. The RGB to CMY inversion cancels
@@ -944,9 +963,9 @@ namespace ImageSharp.Formats
         /// <param name="remaining">The remaining bytes in the segment block.</param>
         /// <param name="image">The image.</param>
         private void ProcessApp1Marker<TColor>(int remaining, Image<TColor> image)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
-            if (remaining < 6)
+            if (remaining < 6 || this.options.IgnoreMetadata)
             {
                 this.InputProcessor.Skip(remaining);
                 return;
@@ -958,7 +977,8 @@ namespace ImageSharp.Formats
             if (profile[0] == 'E' && profile[1] == 'x' && profile[2] == 'i' && profile[3] == 'f' && profile[4] == '\0'
                 && profile[5] == '\0')
             {
-                image.ExifProfile = new ExifProfile(profile);
+                this.isExif = true;
+                image.MetaData.ExifProfile = new ExifProfile(profile);
             }
         }
 
@@ -983,8 +1003,8 @@ namespace ImageSharp.Formats
 
             if (this.isJfif)
             {
-                this.horizontalResolution = (short)(this.Temp[9] + (this.Temp[10] << 8));
-                this.verticalResolution = (short)(this.Temp[11] + (this.Temp[12] << 8));
+                this.horizontalResolution = (short)(this.Temp[9] + (this.Temp[8] << 8));
+                this.verticalResolution = (short)(this.Temp[11] + (this.Temp[10] << 8));
             }
 
             if (remaining > 0)
@@ -1042,7 +1062,7 @@ namespace ImageSharp.Formats
             }
 
             this.InputProcessor.ReadFull(this.Temp, 0, remaining);
-            this.RestartInterval = ((int)this.Temp[0] << 8) + (int)this.Temp[1];
+            this.RestartInterval = (this.Temp[0] << 8) + this.Temp[1];
         }
 
         /// <summary>
@@ -1316,7 +1336,7 @@ namespace ImageSharp.Formats
             {
                 int count = this.TotalMCUCount * this.ComponentArray[i].HorizontalFactor
                            * this.ComponentArray[i].VerticalFactor;
-                this.DecodedBlocks[i] = new DecodedBlockMemento.Array(count);
+                this.DecodedBlocks[i] = new DecodedBlockArray(count);
             }
         }
     }

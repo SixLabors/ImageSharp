@@ -25,7 +25,7 @@ namespace ImageSharp.Benchmarks
                 using (Graphics graphics = Graphics.FromImage(destination))
                 {
                     graphics.SmoothingMode = SmoothingMode.AntiAlias;
-                    var brush = new HatchBrush(HatchStyle.BackwardDiagonal, Color.HotPink);
+                    var brush = new HatchBrush(HatchStyle.BackwardDiagonal, System.Drawing.Color.HotPink);
                     graphics.FillRectangle(brush, new Rectangle(0,0, 800,800)); // can't find a way to flood fill with a brush
                 }
                 using (MemoryStream ms = new MemoryStream())
@@ -38,12 +38,14 @@ namespace ImageSharp.Benchmarks
         [Benchmark(Description = "ImageSharp Fill with Pattern")]
         public void DrawPatternPolygon3Core()
         {
-            CoreImage image = new CoreImage(800, 800);
-            image.Fill(CoreBrushes.BackwardDiagonal(CoreColor.HotPink));
-
-            using (MemoryStream ms = new MemoryStream())
+            using (CoreImage image = new CoreImage(800, 800))
             {
-                image.SaveAsBmp(ms);
+                image.Fill(CoreBrushes.BackwardDiagonal(CoreColor.HotPink));
+
+                using (MemoryStream ms = new MemoryStream())
+                {
+                    image.SaveAsBmp(ms);
+                }
             }
         }
     }

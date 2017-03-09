@@ -56,6 +56,8 @@ namespace ImageSharp.Processing.Processors
 
             int width = this.Width;
             int height = this.Height;
+            int sourceX = sourceRectangle.X;
+            int sourceY = sourceRectangle.Y;
             int startY = this.ResizeRectangle.Y;
             int endY = this.ResizeRectangle.Bottom;
             int startX = this.ResizeRectangle.X;
@@ -83,12 +85,12 @@ namespace ImageSharp.Processing.Processors
                             y =>
                             {
                                 // Y coordinates of source points
-                                int originY = (int)((y - startY) * heightFactor);
+                                int originY = (int)(((y - startY) * heightFactor) + sourceY);
 
                                 for (int x = minX; x < maxX; x++)
                                 {
                                     // X coordinates of source points
-                                    targetPixels[x, y] = sourcePixels[(int)((x - startX) * widthFactor), originY];
+                                    targetPixels[x, y] = sourcePixels[(int)(((x - startX) * widthFactor) + sourceX), originY];
                                 }
                             });
                     }
@@ -110,7 +112,7 @@ namespace ImageSharp.Processing.Processors
                 {
                     Parallel.For(
                         0,
-                        sourceRectangle.Height,
+                        sourceRectangle.Bottom,
                         this.ParallelOptions,
                         y =>
                         {
@@ -125,7 +127,7 @@ namespace ImageSharp.Processing.Processors
                                 for (int i = 0; i < horizontalValues.Length; i++)
                                 {
                                     Weight xw = horizontalValues[i];
-                                    destination += sourcePixels[xw.Index, y].ToVector4().Expand() * xw.Value;
+                                    destination += sourcePixels[xw.Index + sourceX, y].ToVector4().Expand() * xw.Value;
                                 }
 
                                 TColor d = default(TColor);
@@ -152,7 +154,7 @@ namespace ImageSharp.Processing.Processors
                                 for (int i = 0; i < verticalValues.Length; i++)
                                 {
                                     Weight yw = verticalValues[i];
-                                    destination += firstPassPixels[x, yw.Index].ToVector4().Expand() * yw.Value;
+                                    destination += firstPassPixels[x, yw.Index + sourceY].ToVector4().Expand() * yw.Value;
                                 }
 
                                 TColor d = default(TColor);

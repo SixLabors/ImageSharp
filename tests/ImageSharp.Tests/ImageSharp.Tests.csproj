@@ -1,7 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>netcoreapp1.0</TargetFrameworks>
+    <TargetFrameworks>netcoreapp1.1</TargetFrameworks>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <DebugType Condition="$(codecov) != ''">full</DebugType>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.0.0" />

@@ -4,7 +4,7 @@
     <AssemblyTitle>ImageSharp.Drawing</AssemblyTitle>
     <VersionPrefix>1.0.0-alpha2</VersionPrefix>
     <Authors>James Jackson-South and contributors</Authors>
-    <TargetFrameworks>netstandard1.1;net45;net461</TargetFrameworks>
+    <TargetFramework>netstandard1.1</TargetFramework>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <AssemblyName>ImageSharp.Drawing</AssemblyName>
@@ -30,21 +30,14 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ImageSharp\ImageSharp.csproj" />
-    <ProjectReference Include="..\ImageSharp.Processing\ImageSharp.Processing.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="SixLabors.Fonts" Version="0.1.0-alpha0001" />
+    <PackageReference Include="SixLabors.Shapes" Version="0.1.0-alpha0007" />
     <PackageReference Include="System.Buffers" Version="4.3.0" />
     <PackageReference Include="System.Threading.Tasks.Parallel" Version="4.3.0" />
     <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.3.0" />
-  </ItemGroup>
-  <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard1.1' ">
     <PackageReference Include="System.Numerics.Vectors" Version="4.3.0" />
-  </ItemGroup>
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net45' ">
-    <PackageReference Include="System.Numerics.Vectors" Version="4.3.0" />
-    <Reference Include="System.Runtime" />
-    <Reference Include="System" />
-    <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
   <PropertyGroup>
     <CodeAnalysisRuleSet>..\..\ImageSharp.ruleset</CodeAnalysisRuleSet>
@@ -52,11 +45,4 @@
   <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net461' ">
-    <Reference Include="System.Runtime" />
-    <Reference Include="System.Numerics" />
-    <Reference Include="System.Numerics.Vectors" />
-    <Reference Include="System" />
-    <Reference Include="Microsoft.CSharp" />
-  </ItemGroup>
 </Project>

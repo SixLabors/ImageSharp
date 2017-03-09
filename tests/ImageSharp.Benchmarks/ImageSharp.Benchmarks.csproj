@@ -12,11 +12,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\ImageSharp.Drawing\ImageSharp.Drawing.csproj" />
-    <ProjectReference Include="..\..\src\ImageSharp.Formats.Bmp\ImageSharp.Formats.Bmp.csproj" />
-    <ProjectReference Include="..\..\src\ImageSharp.Formats.Gif\ImageSharp.Formats.Gif.csproj" />
-    <ProjectReference Include="..\..\src\ImageSharp.Formats.Jpeg\ImageSharp.Formats.Jpeg.csproj" />
-    <ProjectReference Include="..\..\src\ImageSharp.Formats.Png\ImageSharp.Formats.Png.csproj" />
-    <ProjectReference Include="..\..\src\ImageSharp.Processing\ImageSharp.Processing.csproj" />
     <ProjectReference Include="..\..\src\ImageSharp\ImageSharp.csproj" />
   </ItemGroup>
 </Project>

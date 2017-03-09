@@ -6,8 +6,3 @@ using System.Runtime.CompilerServices;
 
 // Ensure the other projects can see the internal helpers
 [assembly: InternalsVisibleTo("ImageSharp.Drawing")]
-[assembly: InternalsVisibleTo("ImageSharp.Formats.Bmp")]
-[assembly: InternalsVisibleTo("ImageSharp.Formats.Gif")]
-[assembly: InternalsVisibleTo("ImageSharp.Formats.Jpeg")]
-[assembly: InternalsVisibleTo("ImageSharp.Formats.Png")]
-[assembly: InternalsVisibleTo("ImageSharp.Processing")]

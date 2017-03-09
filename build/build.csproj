@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>netcoreapp1.0</TargetFrameworks>
+    <TargetFramework>netcoreapp1.1</TargetFramework>
     <DebugType>portable</DebugType>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <AssemblyName>build</AssemblyName>
@@ -9,6 +9,7 @@
     <CodeAnalysisRuleSet>..\ImageSharp.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Microsoft.DotNet.ProjectModel" Version="1.0.0-rc4-003206" />
     <PackageReference Include="Microsoft.Build" Version="15.1.548" />
     <PackageReference Include="LibGit2Sharp.Portable" Version="0.24.10" />
   </ItemGroup>

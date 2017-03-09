@@ -1,5 +1,5 @@
 
-# <img src="build/icons/imagesharp-logo-64.png" width="52" height="52"/> ImageSharp
+# <img src="build/icons/imagesharp-logo-heading.png" alt="ImageSharp"/>
 
 **ImageSharp** is a new cross-platform 2D graphics API designed to allow the processing of images without the use of `System.Drawing`. 
 
@@ -45,7 +45,9 @@ Packages include:
   Contains methods like Resize, Crop, Skew, Rotate - Anything that alters the dimensions of the image.
   Contains methods like Gaussian Blur, Pixelate, Edge Detection - Anything that maintains the original image dimensions.
 - **ImageSharp.Drawing**
-  Brushes and various drawing algorithms.
+  Brushes and various drawing algorithms, including drawing Images
+  - **ImageSharp.Drawing.Paths**
+  Various vector drawing methods for drawing paths, polygons etc.
 
 ### Manual build
 
@@ -53,6 +55,11 @@ If you prefer, you can compile ImageSharp yourself (please do and help!), you'll
 
 - [Visual Studio 2015 with Update 3 (or above)](https://www.visualstudio.com/news/releasenotes/vs2015-update3-vs)
 - The [.NET Core 1.0 SDK Installer](https://www.microsoft.com/net/core#windows) - Non VSCode link.
+
+Alternatively on Linux you can use:
+
+- [Visual Studio Code](https://code.visualstudio.com/) with [C# Extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode.csharp)
+- [.Net Core 1.1](https://www.microsoft.com/net/core#linuxubuntu)
 
 To clone it locally click the "Clone in Windows" button above or run the following git commands.
 
@@ -72,11 +79,21 @@ Many `Image` methods are also fluent.
 
 Here's an example of the code required to resize an image using the default Bicubic resampler then turn the colors into their grayscale equivalent using the BT709 standard matrix.
 
+On platforms supporting netstandard 1.3+
+```csharp
+using (Image image = new Image("foo.jpg"))
+{
+    image.Resize(image.Width / 2, image.Height / 2)
+         .Grayscale()
+         .Save("bar.jpg"); // automatic encoder selected based on extension.
+}
+```
+on netstandard 1.1 - 1.2
 ```csharp
 using (FileStream stream = File.OpenRead("foo.jpg"))
 using (FileStream output = File.OpenWrite("bar.jpg"))
+using (Image image = new Image(stream))
 {
-    Image image = new Image(stream);
     image.Resize(image.Width / 2, image.Height / 2)
          .Grayscale()
          .Save(output);
@@ -92,7 +109,7 @@ new BrightnessProcessor(50).Apply(sourceImage, sourceImage.Bounds);
 Setting individual pixel values is perfomed as follows:
 
 ```csharp
-Image image = new Image(400, 400);
+using (image = new Image(400, 400)
 using (var pixels = image.Lock())
 {
     pixels[200, 200] = Color.White;

@@ -15,32 +15,36 @@ namespace ImageSharp.Processing.Processors
     /// <typeparam name="TColor">The pixel format.</typeparam>
     [SuppressMessage("ReSharper", "StaticMemberInGenericType", Justification = "We want to use only one instance of each array field for each generic type.")]
     public class ScharrProcessor<TColor> : EdgeDetector2DProcessor<TColor>
-        where TColor : struct, IPackedPixel, IEquatable<TColor>
+        where TColor : struct, IPixel<TColor>
     {
         /// <summary>
         /// The horizontal gradient operator.
         /// </summary>
-        private static readonly float[][] ScharrX = new float[3][]
-        {
-            new float[] { -3, 0, 3 },
-            new float[] { -10, 0, 10 },
-            new float[] { -3, 0, 3 }
-        };
+        private static readonly Fast2DArray<float> ScharrX =
+            new float[,]
+            {
+                { -3, 0, 3 },
+                { -10, 0, 10 },
+                { -3, 0, 3 }
+            };
 
         /// <summary>
         /// The vertical gradient operator.
         /// </summary>
-        private static readonly float[][] ScharrY = new float[3][]
+        private static readonly Fast2DArray<float> ScharrY =
+            new float[,]
+            {
+                { 3, 10, 3 },
+                { 0, 0, 0 },
+                { -3, -10, -3 }
+            };
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ScharrProcessor{TColor}"/> class.
+        /// </summary>
+        public ScharrProcessor()
+            : base(ScharrX, ScharrY)
         {
-            new float[] { 3, 10, 3 },
-            new float[] { 0, 0, 0 },
-            new float[] { -3, -10, -3 }
-        };
-
-        /// <inheritdoc/>
-        public override float[][] KernelX => ScharrX;
-
-        /// <inheritdoc/>
-        public override float[][] KernelY => ScharrY;
+        }
     }
 }

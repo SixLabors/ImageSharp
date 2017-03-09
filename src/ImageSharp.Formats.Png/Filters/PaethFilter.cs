@@ -6,6 +6,7 @@
 namespace ImageSharp.Formats
 {
     using System;
+    using System.Runtime.CompilerServices;
 
     /// <summary>
     /// The Paeth filter computes a simple linear function of the three neighboring pixels (left, above, upper left),
@@ -22,6 +23,7 @@ namespace ImageSharp.Formats
         /// <param name="previousScanline">The previous scanline.</param>
         /// <param name="bytesPerScanline">The number of bytes per scanline</param>
         /// <param name="bytesPerPixel">The bytes per pixel.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Decode(byte[] scanline, byte[] previousScanline, int bytesPerScanline, int bytesPerPixel)
         {
             // Paeth(x) + PaethPredictor(Raw(x-bpp), Prior(x), Prior(x-bpp))
@@ -46,6 +48,7 @@ namespace ImageSharp.Formats
         /// <param name="previousScanline">The previous scanline.</param>
         /// <param name="result">The filtered scanline result.</param>
         /// <param name="bytesPerPixel">The bytes per pixel.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Encode(byte[] scanline, byte[] previousScanline, byte[] result, int bytesPerPixel)
         {
             // Paeth(x) = Raw(x) - PaethPredictor(Raw(x-bpp), Prior(x), Prior(x - bpp))
@@ -76,6 +79,7 @@ namespace ImageSharp.Formats
         /// <returns>
         /// The <see cref="byte"/>.
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static byte PaethPredicator(byte left, byte above, byte upperLeft)
         {
             int p = left + above - upperLeft;

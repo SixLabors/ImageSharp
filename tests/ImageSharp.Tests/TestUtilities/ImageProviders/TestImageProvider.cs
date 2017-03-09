@@ -13,7 +13,7 @@ namespace ImageSharp.Tests
     /// </summary>
     /// <typeparam name="TColor">The pixel format of the image</typeparam>
     public abstract partial class TestImageProvider<TColor>
-        where TColor : struct, IPackedPixel, IEquatable<TColor>
+        where TColor : struct, IPixel<TColor>
     {
         public PixelTypes PixelType { get; private set; } = typeof(TColor).GetPixelType();
 

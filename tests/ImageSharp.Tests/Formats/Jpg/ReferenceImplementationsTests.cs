@@ -6,8 +6,6 @@
 // ReSharper disable InconsistentNaming
 namespace ImageSharp.Tests.Formats.Jpg
 {
-    using System.Numerics;
-    using ImageSharp.Formats;
     using ImageSharp.Formats.Jpg;
 
     using Xunit;
@@ -97,7 +95,7 @@ namespace ImageSharp.Tests.Formats.Jpg
                 Assert.Equal(expected, actual, new ApproximateFloatComparer(2f));
             }
         }
-        
+
         [Theory]
         [InlineData(42)]
         [InlineData(1)]

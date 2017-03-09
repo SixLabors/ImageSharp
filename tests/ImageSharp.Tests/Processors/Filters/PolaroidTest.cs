@@ -14,16 +14,14 @@ namespace ImageSharp.Tests
         [Fact]
         public void ImageShouldApplyPolaroidFilter()
         {
-            string path = CreateOutputDirectory("Polaroid");
+            string path = this.CreateOutputDirectory("Polaroid");
 
             foreach (TestFile file in Files)
             {
-                Image image = file.CreateImage();
-
+                using (Image image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{file.FileName}"))
                 {
-                    image.Polaroid()
-                          .Save(output);
+                    image.Polaroid().Save(output);
                 }
             }
         }

@@ -5,6 +5,8 @@
 
 namespace ImageSharp.Formats
 {
+    using System.Runtime.CompilerServices;
+
     /// <summary>
     /// The Up filter is just like the Sub filter except that the pixel immediately above the current pixel,
     /// rather than just to its left, is used as the predictor.
@@ -18,6 +20,7 @@ namespace ImageSharp.Formats
         /// <param name="scanline">The scanline to decode</param>
         /// <param name="previousScanline">The previous scanline.</param>
         /// <param name="bytesPerScanline">The number of bytes per scanline</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Decode(byte[] scanline, byte[] previousScanline, int bytesPerScanline)
         {
             // Up(x) + Prior(x)
@@ -39,6 +42,7 @@ namespace ImageSharp.Formats
         /// <param name="scanline">The scanline to encode</param>
         /// <param name="previousScanline">The previous scanline.</param>
         /// <param name="result">The filtered scanline result.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Encode(byte[] scanline, byte[] previousScanline, byte[] result)
         {
             // Up(x) = Raw(x) - Prior(x)

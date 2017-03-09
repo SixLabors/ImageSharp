@@ -20,20 +20,18 @@ namespace ImageSharp.Tests
         };
 
         [Theory]
-        [MemberData("GrayscaleValues")]
+        [MemberData(nameof(GrayscaleValues))]
         public void ImageShouldApplyGrayscaleFilter(GrayscaleMode value)
         {
-            string path = CreateOutputDirectory("Grayscale");
+            string path = this.CreateOutputDirectory("Grayscale");
 
             foreach (TestFile file in Files)
             {
                 string filename = file.GetFileName(value);
-                Image image = file.CreateImage();
-
+                using (Image image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
-                    image.Grayscale(value)
-                          .Save(output);
+                    image.Grayscale(value).Save(output);
                 }
             }
         }

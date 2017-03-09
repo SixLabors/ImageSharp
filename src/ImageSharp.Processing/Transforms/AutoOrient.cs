@@ -21,7 +21,7 @@ namespace ImageSharp
         /// <param name="source">The image to auto rotate.</param>
         /// <returns>The <see cref="Image"/></returns>
         public static Image<TColor> AutoOrient<TColor>(this Image<TColor> source)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             Orientation orientation = GetExifOrientation(source);
 
@@ -64,14 +64,14 @@ namespace ImageSharp
         /// <param name="source">The image to auto rotate.</param>
         /// <returns>The <see cref="Orientation"/></returns>
         private static Orientation GetExifOrientation<TColor>(Image<TColor> source)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
-            if (source.ExifProfile == null)
+            if (source.MetaData.ExifProfile == null)
             {
                 return Orientation.Unknown;
             }
 
-            ExifValue value = source.ExifProfile.GetValue(ExifTag.Orientation);
+            ExifValue value = source.MetaData.ExifProfile.GetValue(ExifTag.Orientation);
             if (value == null)
             {
                 return Orientation.Unknown;
@@ -79,7 +79,7 @@ namespace ImageSharp
 
             Orientation orientation = (Orientation)value.Value;
 
-            source.ExifProfile.SetValue(ExifTag.Orientation, (ushort)Orientation.TopLeft);
+            source.MetaData.ExifProfile.SetValue(ExifTag.Orientation, (ushort)Orientation.TopLeft);
 
             return orientation;
         }

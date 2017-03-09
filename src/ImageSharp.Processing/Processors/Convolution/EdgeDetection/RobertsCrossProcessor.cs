@@ -15,30 +15,34 @@ namespace ImageSharp.Processing.Processors
     /// <typeparam name="TColor">The pixel format.</typeparam>
     [SuppressMessage("ReSharper", "StaticMemberInGenericType", Justification = "We want to use only one instance of each array field for each generic type.")]
     public class RobertsCrossProcessor<TColor> : EdgeDetector2DProcessor<TColor>
-        where TColor : struct, IPackedPixel, IEquatable<TColor>
+        where TColor : struct, IPixel<TColor>
     {
         /// <summary>
         /// The horizontal gradient operator.
         /// </summary>
-        private static readonly float[][] RobertsCrossX =
-        {
-            new float[] { 1, 0 },
-            new float[] { 0, -1 }
-        };
+        private static readonly Fast2DArray<float> RobertsCrossX =
+            new float[,]
+            {
+                { 1, 0 },
+                { 0, -1 }
+            };
 
         /// <summary>
         /// The vertical gradient operator.
         /// </summary>
-        private static readonly float[][] RobertsCrossY =
+        private static readonly Fast2DArray<float> RobertsCrossY =
+            new float[,]
+            {
+                { 0, 1 },
+                { -1, 0 }
+            };
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="RobertsCrossProcessor{TColor}"/> class.
+        /// </summary>
+        public RobertsCrossProcessor()
+            : base(RobertsCrossX, RobertsCrossY)
         {
-            new float[] { 0, 1 },
-            new float[] { -1, 0 }
-        };
-
-        /// <inheritdoc/>
-        public override float[][] KernelX => RobertsCrossX;
-
-        /// <inheritdoc/>
-        public override float[][] KernelY => RobertsCrossY;
+        }
     }
 }

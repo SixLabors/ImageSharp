@@ -24,7 +24,7 @@ namespace ImageSharp
         /// <param name="height">The new height.</param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Pad<TColor>(this Image<TColor> source, int width, int height)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             ResizeOptions options = new ResizeOptions
             {

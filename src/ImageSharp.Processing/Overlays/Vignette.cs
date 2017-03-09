@@ -21,9 +21,9 @@ namespace ImageSharp
         /// <param name="source">The image this method extends.</param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Vignette<TColor>(this Image<TColor> source)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
-            return Vignette(source, default(TColor), source.Bounds.Width * .5F, source.Bounds.Height * .5F, source.Bounds);
+            return Vignette(source, NamedColors<TColor>.Black, source.Bounds.Width * .5F, source.Bounds.Height * .5F, source.Bounds);
         }
 
         /// <summary>
@@ -34,7 +34,7 @@ namespace ImageSharp
         /// <param name="color">The color to set as the vignette.</param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Vignette<TColor>(this Image<TColor> source, TColor color)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             return Vignette(source, color, source.Bounds.Width * .5F, source.Bounds.Height * .5F, source.Bounds);
         }
@@ -48,9 +48,9 @@ namespace ImageSharp
         /// <param name="radiusY">The the y-radius.</param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Vignette<TColor>(this Image<TColor> source, float radiusX, float radiusY)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
-            return Vignette(source, default(TColor), radiusX, radiusY, source.Bounds);
+            return Vignette(source, NamedColors<TColor>.Black, radiusX, radiusY, source.Bounds);
         }
 
         /// <summary>
@@ -63,9 +63,9 @@ namespace ImageSharp
         /// </param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Vignette<TColor>(this Image<TColor> source, Rectangle rectangle)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
-            return Vignette(source, default(TColor), 0, 0, rectangle);
+            return Vignette(source, NamedColors<TColor>.Black, 0, 0, rectangle);
         }
 
         /// <summary>
@@ -81,16 +81,11 @@ namespace ImageSharp
         /// </param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Vignette<TColor>(this Image<TColor> source, TColor color, float radiusX, float radiusY, Rectangle rectangle)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
-            VignetteProcessor<TColor> processor = new VignetteProcessor<TColor> { RadiusX = radiusX, RadiusY = radiusY };
-
-            if (!color.Equals(default(TColor)))
-            {
-                processor.VignetteColor = color;
-            }
-
-            return source.Apply(rectangle, processor);
+            VignetteProcessor<TColor> processor = new VignetteProcessor<TColor>(color) { RadiusX = radiusX, RadiusY = radiusY };
+            source.ApplyProcessor(processor, rectangle);
+            return source;
         }
     }
 }

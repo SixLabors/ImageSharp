@@ -44,17 +44,20 @@ namespace ImageSharp.Benchmarks
         [Benchmark(Description = "ImageSharp Fill Polygon")]
         public void DrawSolidPolygonCore()
         {
-            CoreImage image = new CoreImage(800, 800);
-            image.FillPolygon(CoreColor.HotPink,
-                 new[] {
-                     new Vector2(10, 10),
-                     new Vector2(550, 50),
-                     new Vector2(200, 400)
-                 });
-
-            using (MemoryStream ms = new MemoryStream())
+            using (CoreImage image = new CoreImage(800, 800))
             {
-                image.SaveAsBmp(ms);
+                image.FillPolygon(
+                    CoreColor.HotPink,
+                    new[] {
+                        new Vector2(10, 10),
+                        new Vector2(550, 50),
+                        new Vector2(200, 400)
+                    });
+
+                using (MemoryStream ms = new MemoryStream())
+                {
+                    image.SaveAsBmp(ms);
+                }
             }
         }
     }

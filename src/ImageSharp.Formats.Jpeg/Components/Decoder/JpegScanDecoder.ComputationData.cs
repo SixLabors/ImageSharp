@@ -24,21 +24,6 @@ namespace ImageSharp.Formats.Jpg
             public Block8x8F Block;
 
             /// <summary>
-            /// Temporal block 1 to store intermediate and/or final computation results
-            /// </summary>
-            public Block8x8F Temp1;
-
-            /// <summary>
-            /// Temporal block 2 to store intermediate and/or final computation results
-            /// </summary>
-            public Block8x8F Temp2;
-
-            /// <summary>
-            /// The quantization table as <see cref="Block8x8F"/>
-            /// </summary>
-            public Block8x8F QuantiazationTable;
-
-            /// <summary>
             /// The jpeg unzig data
             /// </summary>
             public UnzigData Unzig;

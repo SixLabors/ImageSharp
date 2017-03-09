@@ -9,7 +9,7 @@ namespace ImageSharp.Tests
     using System.Collections.Concurrent;
 
     public abstract partial class TestImageProvider<TColor>
-        where TColor : struct, IPackedPixel, IEquatable<TColor>
+        where TColor : struct, IPixel<TColor>
     {
         private class FileProvider : TestImageProvider<TColor>
         {

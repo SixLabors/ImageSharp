@@ -28,7 +28,7 @@ namespace ImageSharp.Benchmarks
                 {
                     graphics.InterpolationMode = InterpolationMode.Default;
                     graphics.SmoothingMode = SmoothingMode.AntiAlias;
-                    var pen = new Pen(Color.HotPink, 10);
+                    var pen = new Pen(System.Drawing.Color.HotPink, 10);
                     graphics.DrawLines(pen, new[] {
                         new PointF(10, 10),
                         new PointF(550, 50),
@@ -46,17 +46,21 @@ namespace ImageSharp.Benchmarks
         [Benchmark(Description = "ImageSharp Draw Lines")]
         public void DrawLinesCore()
         {
-            CoreImage image = new CoreImage(800, 800);
-
-            image.DrawLines(CoreColor.HotPink, 10, new[] {
-                     new Vector2(10, 10),
-                     new Vector2(550, 50),
-                     new Vector2(200, 400)
-            });
-
-            using (MemoryStream ms = new MemoryStream())
+            using (CoreImage image = new CoreImage(800, 800))
             {
-                image.SaveAsBmp(ms);
+                image.DrawLines(
+                    CoreColor.HotPink,
+                    10,
+                    new[] {
+                        new Vector2(10, 10),
+                        new Vector2(550, 50),
+                        new Vector2(200, 400)
+                    });
+
+                using (MemoryStream ms = new MemoryStream())
+                {
+                    image.SaveAsBmp(ms);
+                }
             }
         }
     }

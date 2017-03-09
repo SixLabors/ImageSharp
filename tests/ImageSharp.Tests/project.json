@@ -1,0 +1,71 @@
+{
+  "version": "1.0.0-*",
+  "description": "ImageSharp.Tests Class Library",
+  "authors": [ "James Jackson-South and contributors" ],
+  "packOptions": {
+    "projectUrl": "https://github.com/JimBobSquarePants/ImageSharp",
+    "licenseUrl": "http://www.apache.org/licenses/LICENSE-2.0",
+    "tags": [
+      "Image Resize Crop Gif Jpg Jpeg Bitmap Png Core"
+    ]
+  },
+  "buildOptions": {
+    "allowUnsafe": true
+  },
+  "configurations": {
+    "Release": {
+      "buildOptions": {
+        "warningsAsErrors": true
+      }
+    }
+  },
+  "dependencies": {
+    "ImageSharp": {
+      "target": "project"
+    },
+    "xunit": "2.2.0-*",
+    "dotnet-test-xunit": "2.2.0-*",
+    "ImageSharp.Drawing": {
+      "target": "project"
+    },
+    "ImageSharp.Drawing.Paths": {
+      "target": "project"
+    },
+    "ImageSharp.Drawing.Text": {
+      "target": "project"
+    },
+    "ImageSharp.Formats.Png": {
+      "target": "project"
+    },
+    "ImageSharp.Formats.Jpeg": {
+      "target": "project"
+    },
+    "ImageSharp.Formats.Bmp": {
+      "target": "project"
+    },
+    "ImageSharp.Formats.Gif": {
+      "target": "project"
+    },
+    "ImageSharp.Processing": {
+      "target": "project"
+    },
+    //alpha supports netstandard
+    "Moq": "4.6.38-alpha"
+  },
+  "frameworks": {
+    "netcoreapp1.1": {
+      "dependencies": {
+        "Microsoft.NETCore.App": {
+          "type": "platform",
+          "version": "1.0.0-*"
+        },
+        "Microsoft.CodeCoverage": "1.0.2"
+      }
+    },
+    "net451": {
+      "dependencies": {
+      }
+    }
+  },
+  "testRunner": "xunit"
+}

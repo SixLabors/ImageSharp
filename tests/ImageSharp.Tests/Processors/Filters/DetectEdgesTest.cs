@@ -31,32 +31,29 @@ namespace ImageSharp.Tests
         [MemberData(nameof(DetectEdgesFilters))]
         public void ImageShouldApplyDetectEdgesFilter(EdgeDetection detector)
         {
-            string path = CreateOutputDirectory("DetectEdges");
+            string path = this.CreateOutputDirectory("DetectEdges");
 
             foreach (TestFile file in Files)
             {
                 string filename = file.GetFileName(detector);
-                Image image = file.CreateImage();
-
+                using (Image image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
-                    image.DetectEdges(detector)
-                         .Save(output);
+                    image.DetectEdges(detector).Save(output);
                 }
             }
         }
 
         [Theory]
-        [MemberData("DetectEdgesFilters")]
+        [MemberData(nameof(DetectEdgesFilters))]
         public void ImageShouldApplyDetectEdgesFilterInBox(EdgeDetection detector)
         {
-            string path = CreateOutputDirectory("DetectEdges");
+            string path = this.CreateOutputDirectory("DetectEdges");
 
             foreach (TestFile file in Files)
             {
                 string filename = file.GetFileName(detector + "-InBox");
-                Image image = file.CreateImage();
-
+                using (Image image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
                     image.DetectEdges(detector, new Rectangle(image.Width / 4, image.Height / 4, image.Width / 2, image.Height / 2))

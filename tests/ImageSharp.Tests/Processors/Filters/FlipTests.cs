@@ -20,20 +20,18 @@ namespace ImageSharp.Tests
         };
 
         [Theory]
-        [MemberData("FlipValues")]
+        [MemberData(nameof(FlipValues))]
         public void ImageShouldFlip(FlipType flipType)
         {
-            string path = CreateOutputDirectory("Flip");
+            string path = this.CreateOutputDirectory("Flip");
 
             foreach (TestFile file in Files)
             {
                 string filename = file.GetFileName(flipType);
-                Image image = file.CreateImage();
-
+                using (Image image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
-                    image.Flip(flipType)
-                          .Save(output);
+                    image.Flip(flipType).Save(output);
                 }
             }
         }

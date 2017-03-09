@@ -16,23 +16,8 @@ namespace ImageSharp
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     public sealed unsafe class PixelArea<TColor> : IDisposable
-        where TColor : struct, IPackedPixel, IEquatable<TColor>
+        where TColor : struct, IPixel<TColor>
     {
-        /// <summary>
-        /// True if <see cref="Bytes"/> was rented from <see cref="BytesPool"/> by the constructor
-        /// </summary>
-        private readonly bool isBufferRented;
-
-        /// <summary>
-        /// Provides a way to access the pixels from unmanaged memory.
-        /// </summary>
-        private readonly GCHandle pixelsHandle;
-
-        /// <summary>
-        /// The pointer to the pixel buffer.
-        /// </summary>
-        private IntPtr dataPointer;
-
         /// <summary>
         /// A value indicating whether this instance of the given entity has been disposed.
         /// </summary>
@@ -43,6 +28,11 @@ namespace ImageSharp
         /// life in the Garbage Collector.
         /// </remarks>
         private bool isDisposed;
+
+        /// <summary>
+        /// The underlying buffer containing the raw pixel data.
+        /// </summary>
+        private PinnedBuffer<byte> byteBuffer;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PixelArea{TColor}"/> class.
@@ -76,14 +66,10 @@ namespace ImageSharp
             this.Height = height;
             this.ComponentOrder = componentOrder;
             this.RowStride = width * GetComponentCount(componentOrder);
-            this.Bytes = bytes;
-            this.Length = bytes.Length;
-            this.isBufferRented = false;
-            this.pixelsHandle = GCHandle.Alloc(this.Bytes, GCHandleType.Pinned);
+            this.Length = bytes.Length; // TODO: Is this the right value for Length?
 
-            // TODO: Why is Resharper warning us about an impure method call?
-            this.dataPointer = this.pixelsHandle.AddrOfPinnedObject();
-            this.PixelBase = (byte*)this.dataPointer.ToPointer();
+            this.byteBuffer = new PinnedBuffer<byte>(bytes);
+            this.PixelBase = (byte*)this.byteBuffer.Pointer;
         }
 
         /// <summary>
@@ -132,27 +118,15 @@ namespace ImageSharp
             this.ComponentOrder = componentOrder;
             this.RowStride = (width * GetComponentCount(componentOrder)) + padding;
             this.Length = this.RowStride * height;
-            this.Bytes = BytesPool.Rent(this.Length);
-            this.isBufferRented = true;
-            this.pixelsHandle = GCHandle.Alloc(this.Bytes, GCHandleType.Pinned);
 
-            // TODO: Why is Resharper warning us about an impure method call?
-            this.dataPointer = this.pixelsHandle.AddrOfPinnedObject();
-            this.PixelBase = (byte*)this.dataPointer.ToPointer();
-        }
-
-        /// <summary>
-        /// Finalizes an instance of the <see cref="PixelArea{TColor}"/> class.
-        /// </summary>
-        ~PixelArea()
-        {
-            this.Dispose(false);
+            this.byteBuffer = new PinnedBuffer<byte>(this.Length);
+            this.PixelBase = (byte*)this.byteBuffer.Pointer;
         }
 
         /// <summary>
         /// Gets the data in bytes.
         /// </summary>
-        public byte[] Bytes { get; }
+        public byte[] Bytes => this.byteBuffer.Array;
 
         /// <summary>
         /// Gets the length of the buffer.
@@ -167,7 +141,7 @@ namespace ImageSharp
         /// <summary>
         /// Gets the pointer to the pixel buffer.
         /// </summary>
-        public IntPtr DataPointer => this.dataPointer;
+        public IntPtr DataPointer => this.byteBuffer.Pointer;
 
         /// <summary>
         /// Gets the height.
@@ -190,24 +164,17 @@ namespace ImageSharp
         public int Width { get; }
 
         /// <summary>
-        /// Gets the pool used to rent bytes, when it's not coming from an external source.
-        /// </summary>
-        // TODO: Use own pool?
-        private static ArrayPool<byte> BytesPool => ArrayPool<byte>.Shared;
-
-        /// <summary>
         /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
         /// </summary>
         public void Dispose()
         {
-            this.Dispose(true);
+            if (this.isDisposed)
+            {
+                return;
+            }
 
-            // This object will be cleaned up by the Dispose method.
-            // Therefore, you should call GC.SuppressFinalize to
-            // take this object off the finalization queue
-            // and prevent finalization code for this object
-            // from executing a second time.
-            GC.SuppressFinalize(this);
+            this.byteBuffer.Dispose();
+            this.isDisposed = true;
         }
 
         /// <summary>
@@ -281,38 +248,6 @@ namespace ImageSharp
                           nameof(bytes),
                           $"Invalid byte array length. Length {bytes.Length}; Should be {requiredLength}.");
             }
-        }
-
-        /// <summary>
-        /// Disposes the object and frees resources for the Garbage Collector.
-        /// </summary>
-        /// <param name="disposing">If true, the object gets disposed.</param>
-        private void Dispose(bool disposing)
-        {
-            if (this.isDisposed)
-            {
-                return;
-            }
-
-            if (this.PixelBase == null)
-            {
-                return;
-            }
-
-            if (this.pixelsHandle.IsAllocated)
-            {
-                this.pixelsHandle.Free();
-            }
-
-            if (disposing && this.isBufferRented)
-            {
-                BytesPool.Return(this.Bytes);
-            }
-
-            this.dataPointer = IntPtr.Zero;
-            this.PixelBase = null;
-
-            this.isDisposed = true;
         }
     }
 }

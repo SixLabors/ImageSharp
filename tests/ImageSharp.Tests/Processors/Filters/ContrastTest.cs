@@ -19,19 +19,17 @@ namespace ImageSharp.Tests
         };
 
         [Theory]
-        [MemberData("ContrastValues")]
+        [MemberData(nameof(ContrastValues))]
         public void ImageShouldApplyContrastFilter(int value)
         {
-            string path = CreateOutputDirectory("Contrast");
+            string path = this.CreateOutputDirectory("Contrast");
 
             foreach (TestFile file in Files)
             {
-                Image image = file.CreateImage();
-
+                using (Image image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{file.FileName}"))
                 {
-                    image.Contrast(value)
-                          .Save(output);
+                    image.Contrast(value).Save(output);
                 }
             }
         }

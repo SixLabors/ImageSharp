@@ -1,0 +1,67 @@
+{
+  "version": "1.0.0-*",
+  "description": "ImageSharp.Benchmarks Console Application",
+  "authors": [ "James.South" ],
+  "packOptions": {
+    "projectUrl": "https://github.com/JimBobSquarePants/ImageSharp",
+    "licenseUrl": "http://www.apache.org/licenses/LICENSE-2.0",
+    "tags": [
+      "Image Resize Crop Gif Jpg Jpeg Bitmap Png Core"
+    ]
+  },
+  "buildOptions": {
+    "emitEntryPoint": true,
+    "allowUnsafe": true
+  },
+  "dependencies": {
+    "ImageSharp": {
+      "target": "project"
+    },
+    "ImageSharp.Drawing": {
+      "target": "project"
+    },
+    "ImageSharp.Drawing.Paths": {
+      "target": "project"
+    },
+    "ImageSharp.Formats.Jpeg": {
+      "target": "project"
+    },
+    "ImageSharp.Formats.Png": {
+      "target": "project"
+    },
+    "ImageSharp.Formats.Bmp": {
+      "target": "project"
+    },
+    "ImageSharp.Formats.Gif": {
+      "target": "project"
+    },
+    "ImageSharp.Processing": {
+      "target": "project"
+    }
+  },
+  "commands": {
+    "ImageSharp.Benchmarks": "ImageSharp.Benchmarks"
+  },
+  "frameworks": {
+    "net46": {
+      "dependencies": {
+        "BenchmarkDotNet.Diagnostics.Windows": "0.10.1"
+      },
+      "frameworkAssemblies": {
+        "System.Drawing": ""
+      }
+    },
+    "netcoreapp1.1": {
+      "dependencies": {
+        "Microsoft.NETCore.App": {
+          "type": "platform",
+          "version": "1.1.0-*"
+        },
+        "BenchmarkDotNet": "0.10.2",
+        "CoreCompat.System.Drawing": "1.0.0-beta006",
+        "runtime.linux-x64.CoreCompat.System.Drawing": "1.0.0-beta009",
+        "System.Reflection": "4.3.0"
+      }
+    }
+  }
+}

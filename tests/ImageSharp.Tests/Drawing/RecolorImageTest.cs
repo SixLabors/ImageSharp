@@ -16,18 +16,19 @@ namespace ImageSharp.Tests
         [Fact]
         public void ImageShouldRecolorYellowToHotPink()
         {
-            string path = CreateOutputDirectory("Drawing", "RecolorImage");
+            string path = this.CreateOutputDirectory("Drawing", "RecolorImage");
 
-            var brush = new RecolorBrush(Color.Yellow, Color.HotPink, 0.2f);
+            RecolorBrush brush = new RecolorBrush(Color.Yellow, Color.HotPink, 0.2f);
 
             foreach (TestFile file in Files)
             {
-                Image image = file.CreateImage();
-
-                using (FileStream output = File.OpenWrite($"{path}/{file.FileName}"))
+                using (Image image = file.CreateImage())
                 {
-                    image.Fill(brush)
-                         .Save(output);
+                    using (FileStream output = File.OpenWrite($"{path}/{file.FileName}"))
+                    {
+                        image.Fill(brush)
+                            .Save(output);
+                    }
                 }
             }
         }
@@ -35,19 +36,20 @@ namespace ImageSharp.Tests
         [Fact]
         public void ImageShouldRecolorYellowToHotPinkInARectangle()
         {
-            string path = CreateOutputDirectory("Drawing", "RecolorImage");
+            string path = this.CreateOutputDirectory("Drawing", "RecolorImage");
 
-            var brush = new RecolorBrush(Color.Yellow, Color.HotPink, 0.2f);
+            RecolorBrush brush = new RecolorBrush(Color.Yellow, Color.HotPink, 0.2f);
 
             foreach (TestFile file in Files)
             {
-                Image image = file.CreateImage();
-
-                using (FileStream output = File.OpenWrite($"{path}/Shaped_{file.FileName}"))
+                using (Image image = file.CreateImage())
                 {
-                    var imageHeight = image.Height;
-                    image.Fill(brush, new Rectangle(0, imageHeight/2 - imageHeight/4, image.Width, imageHeight/2))
-                         .Save(output);
+                    using (FileStream output = File.OpenWrite($"{path}/Shaped_{file.FileName}"))
+                    {
+                        int imageHeight = image.Height;
+                        image.Fill(brush, new Rectangle(0, imageHeight/2 - imageHeight/4, image.Width, imageHeight/2))
+                            .Save(output);
+                    }
                 }
             }
         }

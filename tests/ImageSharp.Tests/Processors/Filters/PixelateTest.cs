@@ -41,17 +41,15 @@ namespace ImageSharp.Tests
         [MemberData(nameof(PixelateValues))]
         public void ImageShouldApplyPixelateFilterInBox(int value)
         {
-            string path = CreateOutputDirectory("Pixelate");
+            string path = this.CreateOutputDirectory("Pixelate");
 
             foreach (TestFile file in Files)
             {
                 string filename = file.GetFileName(value + "-InBox");
-                Image image = file.CreateImage();
-
+                using (Image image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
-                    image.Pixelate(value, new Rectangle(10, 10, image.Width / 2, image.Height / 2))
-                         .Save(output);
+                    image.Pixelate(value, new Rectangle(10, 10, image.Width / 2, image.Height / 2)).Save(output);
                 }
             }
         }

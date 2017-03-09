@@ -19,7 +19,8 @@ namespace ImageSharp.Formats
         /// <typeparam name="TColor">The pixel format.</typeparam>
         /// <param name="image">The <see cref="Image{TColor}"/> to encode from.</param>
         /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
-        void Encode<TColor>(Image<TColor> image, Stream stream)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>;
+        /// <param name="options">The options for the encoder.</param>
+        void Encode<TColor>(Image<TColor> image, Stream stream, IEncoderOptions options)
+            where TColor : struct, IPixel<TColor>;
     }
 }

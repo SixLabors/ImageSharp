@@ -22,10 +22,12 @@ namespace ImageSharp
         /// <param name="threshold">The threshold for entropic density.</param>
         /// <returns>The <see cref="Image"/></returns>
         public static Image<TColor> EntropyCrop<TColor>(this Image<TColor> source, float threshold = .5f)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             EntropyCropProcessor<TColor> processor = new EntropyCropProcessor<TColor>(threshold);
-            return source.Apply(source.Bounds, processor);
+
+            source.ApplyProcessor(processor, source.Bounds);
+            return source;
         }
     }
 }

@@ -57,6 +57,11 @@ namespace ImageSharp.Tests
         /// <summary>
         /// The file name.
         /// </summary>
+        public string FilePath => this.file;
+
+        /// <summary>
+        /// The file name.
+        /// </summary>
         public string FileName => Path.GetFileName(this.file);
 
         /// <summary>
@@ -123,6 +128,18 @@ namespace ImageSharp.Tests
         public Image CreateImage()
         {
             return new Image(this.image);
+        }
+
+        /// <summary>
+        /// Creates a new image.
+        /// </summary>
+        /// <param name="options">The options for the decoder.</param>
+        /// <returns>
+        /// The <see cref="Image"/>.
+        /// </returns>
+        public Image CreateImage(IDecoderOptions options)
+        {
+            return new Image(this.Bytes, options);
         }
 
         /// <summary>

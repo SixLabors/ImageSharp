@@ -15,32 +15,36 @@ namespace ImageSharp.Processing.Processors
     /// <typeparam name="TColor">The pixel format.</typeparam>
     [SuppressMessage("ReSharper", "StaticMemberInGenericType", Justification = "We want to use only one instance of each array field for each generic type.")]
     public class KayyaliProcessor<TColor> : EdgeDetector2DProcessor<TColor>
-        where TColor : struct, IPackedPixel, IEquatable<TColor>
+        where TColor : struct, IPixel<TColor>
     {
         /// <summary>
         /// The horizontal gradient operator.
         /// </summary>
-        private static readonly float[][] KayyaliX =
-        {
-            new float[] { 6, 0, -6 },
-            new float[] { 0, 0, 0 },
-            new float[] { -6, 0, 6 }
-        };
+        private static readonly Fast2DArray<float> KayyaliX =
+            new float[,]
+            {
+                { 6, 0, -6 },
+                { 0, 0, 0 },
+                { -6, 0, 6 }
+            };
 
         /// <summary>
         /// The vertical gradient operator.
         /// </summary>
-        private static readonly float[][] KayyaliY =
+        private static readonly Fast2DArray<float> KayyaliY =
+            new float[,]
+            {
+                { -6, 0, 6 },
+                { 0, 0, 0 },
+                { 6, 0, -6 }
+            };
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="KayyaliProcessor{TColor}"/> class.
+        /// </summary>
+        public KayyaliProcessor()
+            : base(KayyaliX, KayyaliY)
         {
-            new float[] { -6, 0, 6 },
-            new float[] { 0, 0, 0 },
-            new float[] { 6, 0, -6 }
-        };
-
-        /// <inheritdoc/>
-        public override float[][] KernelX => KayyaliX;
-
-        /// <inheritdoc/>
-        public override float[][] KernelY => KayyaliY;
+        }
     }
 }

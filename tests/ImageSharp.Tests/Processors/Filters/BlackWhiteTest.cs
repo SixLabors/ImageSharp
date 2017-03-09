@@ -14,16 +14,14 @@ namespace ImageSharp.Tests
         [Fact]
         public void ImageShouldApplyBlackWhiteFilter()
         {
-            string path = CreateOutputDirectory("BlackWhite");
+            string path = this.CreateOutputDirectory("BlackWhite");
 
             foreach (TestFile file in Files)
             {
-                Image image = file.CreateImage();
-
+                using (Image image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{file.FileName}"))
                 {
-                    image.BlackWhite()
-                          .Save(output);
+                    image.BlackWhite().Save(output);
                 }
             }
         }

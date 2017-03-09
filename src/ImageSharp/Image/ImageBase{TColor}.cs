@@ -7,6 +7,7 @@ namespace ImageSharp
 {
     using System;
     using System.Diagnostics;
+    using Processing;
 
     /// <summary>
     /// The base class of all images. Encapsulates the basic properties and methods required to manipulate
@@ -15,12 +16,23 @@ namespace ImageSharp
     /// <typeparam name="TColor">The pixel format.</typeparam>
     [DebuggerDisplay("Image: {Width}x{Height}")]
     public abstract class ImageBase<TColor> : IImageBase<TColor>
-        where TColor : struct, IPackedPixel, IEquatable<TColor>
+        where TColor : struct, IPixel<TColor>
     {
         /// <summary>
         /// The image pixels
         /// </summary>
         private TColor[] pixelBuffer;
+
+        /// <summary>
+        /// A value indicating whether this instance of the given entity has been disposed.
+        /// </summary>
+        /// <value><see langword="true"/> if this instance has been disposed; otherwise, <see langword="false"/>.</value>
+        /// <remarks>
+        /// If the entity is disposed, it must not be disposed a second time. The isDisposed field is set the first time the entity
+        /// is disposed. If the isDisposed field is true, then the Dispose() method will not dispose again. This help not to prolong the entity's
+        /// life in the Garbage Collector.
+        /// </remarks>
+        private bool isDisposed;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageBase{TColor}"/> class.
@@ -41,7 +53,7 @@ namespace ImageSharp
         /// <param name="configuration">
         /// The configuration providing initialization code which allows extending the library.
         /// </param>
-        /// <exception cref="System.ArgumentOutOfRangeException">
+        /// <exception cref="ArgumentOutOfRangeException">
         /// Thrown if either <paramref name="width"/> or <paramref name="height"/> are less than or equal to 0.
         /// </exception>
         protected ImageBase(int width, int height, Configuration configuration = null)
@@ -67,11 +79,12 @@ namespace ImageSharp
             this.Height = other.Height;
             this.CopyProperties(other);
 
-            // Copy the pixels. Unsafe.CopyBlock gives us a nice speed boost here.
-            this.pixelBuffer = new TColor[this.Width * this.Height];
+            // Rent then copy the pixels. Unsafe.CopyBlock gives us a nice speed boost here.
+            this.RentPixels();
             using (PixelAccessor<TColor> sourcePixels = other.Lock())
             using (PixelAccessor<TColor> target = this.Lock())
             {
+                // Check we can do this without crashing
                 sourcePixels.CopyTo(target);
             }
         }
@@ -97,16 +110,33 @@ namespace ImageSharp
         /// <inheritdoc/>
         public Rectangle Bounds => new Rectangle(0, 0, this.Width, this.Height);
 
-        /// <inheritdoc/>
-        public int Quality { get; set; }
-
-        /// <inheritdoc/>
-        public int FrameDelay { get; set; }
-
         /// <summary>
         /// Gets the configuration providing initialization code which allows extending the library.
         /// </summary>
         public Configuration Configuration { get; private set; }
+
+        /// <summary>
+        /// Applies the processor.
+        /// </summary>
+        /// <param name="processor">The processor.</param>
+        /// <param name="rectangle">The rectangle.</param>
+        public virtual void ApplyProcessor(IImageProcessor<TColor> processor, Rectangle rectangle)
+        {
+            processor.Apply(this, rectangle);
+        }
+
+        /// <inheritdoc />
+        public void Dispose()
+        {
+            this.Dispose(true);
+
+            // This object will be cleaned up by the Dispose method.
+            // Therefore, you should call GC.SuppressFinalize to
+            // take this object off the finalization queue
+            // and prevent finalization code for this object
+            // from executing a second time.
+            GC.SuppressFinalize(this);
+        }
 
         /// <inheritdoc/>
         public void InitPixels(int width, int height)
@@ -116,44 +146,7 @@ namespace ImageSharp
 
             this.Width = width;
             this.Height = height;
-            this.pixelBuffer = new TColor[width * height];
-        }
-
-        /// <inheritdoc/>
-        public void SetPixels(int width, int height, TColor[] pixels)
-        {
-            Guard.MustBeGreaterThan(width, 0, nameof(width));
-            Guard.MustBeGreaterThan(height, 0, nameof(height));
-            Guard.NotNull(pixels, nameof(pixels));
-
-            if (pixels.Length != width * height)
-            {
-                throw new ArgumentException("Pixel array must have the length of Width * Height.");
-            }
-
-            this.Width = width;
-            this.Height = height;
-            this.pixelBuffer = pixels;
-        }
-
-        /// <inheritdoc/>
-        public void ClonePixels(int width, int height, TColor[] pixels)
-        {
-            Guard.MustBeGreaterThan(width, 0, nameof(width));
-            Guard.MustBeGreaterThan(height, 0, nameof(height));
-            Guard.NotNull(pixels, nameof(pixels));
-
-            if (pixels.Length != width * height)
-            {
-                throw new ArgumentException("Pixel array must have the length of Width * Height.");
-            }
-
-            this.Width = width;
-            this.Height = height;
-
-            // Copy the pixels. TODO: use Unsafe.Copy.
-            this.pixelBuffer = new TColor[pixels.Length];
-            Array.Copy(pixels, this.pixelBuffer, pixels.Length);
+            this.RentPixels();
         }
 
         /// <inheritdoc/>
@@ -163,16 +156,81 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Copies the properties from the other <see cref="ImageBase{TColor}"/>.
+        /// Switches the buffers used by the image and the PixelAccessor meaning that the Image will "own" the buffer from the PixelAccessor and the PixelAccessor will now own the Images buffer.
+        /// </summary>
+        /// <param name="pixelSource">The pixel source.</param>
+        internal void SwapPixelsBuffers(PixelAccessor<TColor> pixelSource)
+        {
+            Guard.NotNull(pixelSource, nameof(pixelSource));
+
+            int newWidth = pixelSource.Width;
+            int newHeight = pixelSource.Height;
+
+            // Push my memory into the accessor (which in turn unpins the old puffer ready for the images use)
+            TColor[] newPixels = pixelSource.ReturnCurrentPixelsAndReplaceThemInternally(this.Width, this.Height, this.pixelBuffer);
+            this.Width = newWidth;
+            this.Height = newHeight;
+            this.pixelBuffer = newPixels;
+        }
+
+        /// <summary>
+        /// Copies the properties from the other <see cref="IImageBase"/>.
         /// </summary>
         /// <param name="other">
-        /// The other <see cref="ImageBase{TColor}"/> to copy the properties from.
+        /// The other <see cref="IImageBase"/> to copy the properties from.
         /// </param>
-        protected void CopyProperties(ImageBase<TColor> other)
+        protected void CopyProperties(IImageBase other)
         {
+            DebugGuard.NotNull(other, nameof(other));
+
             this.Configuration = other.Configuration;
-            this.Quality = other.Quality;
-            this.FrameDelay = other.FrameDelay;
+        }
+
+        /// <summary>
+        /// Releases any unmanaged resources from the inheriting class.
+        /// </summary>
+        protected virtual void ReleaseUnmanagedResources()
+        {
+            // TODO release unmanaged resources here
+        }
+
+        /// <summary>
+        /// Disposes the object and frees resources for the Garbage Collector.
+        /// </summary>
+        /// <param name="disposing">If true, the object gets disposed.</param>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (this.isDisposed)
+            {
+                return;
+            }
+
+            this.ReleaseUnmanagedResources();
+
+            if (disposing)
+            {
+                this.ReturnPixels();
+            }
+
+            // Note disposing is done.
+            this.isDisposed = true;
+        }
+
+        /// <summary>
+        /// Rents the pixel array from the pool.
+        /// </summary>
+        private void RentPixels()
+        {
+            this.pixelBuffer = PixelDataPool<TColor>.Rent(this.Width * this.Height);
+        }
+
+        /// <summary>
+        /// Returns the rented pixel array back to the pool.
+        /// </summary>
+        private void ReturnPixels()
+        {
+            PixelDataPool<TColor>.Return(this.pixelBuffer);
+            this.pixelBuffer = null;
         }
     }
 }

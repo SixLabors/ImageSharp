@@ -17,8 +17,8 @@ if (Get-Command "dotnet.exe" -ErrorAction SilentlyContinue) {
     Write-Host "dotnet SDK already installed"
 
 	$version = dotnet --version 2>&1
-    if($version -ne "1.0.0-rc3-004530"){
-        Write-Host "$version installed but require 1.0.0-rc3-004530"
+    if($version -ne "1.0.1"){
+        Write-Host "$version installed but require 1.0.1"
         $installRequired = $TRUE
     }else{
         Write-Host "$version already installed"
@@ -34,7 +34,7 @@ if($installRequired -eq $TRUE)
     
 	Write-Host $installScript
 
-     Invoke-WebRequest "https://raw.githubusercontent.com/dotnet/cli/rel/1.0.0-rc3/scripts/obtain/dotnet-install.ps1" `
+     Invoke-WebRequest "https://raw.githubusercontent.com/dotnet/cli/rel/1.0.1/scripts/obtain/dotnet-install.ps1" `
        -OutFile $installScript
         
      & $installScript

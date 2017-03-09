@@ -24,7 +24,7 @@ namespace ImageSharp
         /// <param name="maxColors">The maximum number of colors to return. Defaults to 256.</param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Quantize<TColor>(this Image<TColor> source, Quantization mode = Quantization.Octree, int maxColors = 256)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             IQuantizer<TColor> quantizer;
             switch (mode)
@@ -54,26 +54,30 @@ namespace ImageSharp
         /// <param name="maxColors">The maximum number of colors to return.</param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> Quantize<TColor>(this Image<TColor> source, IQuantizer<TColor> quantizer, int maxColors)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             QuantizedImage<TColor> quantized = quantizer.Quantize(source, maxColors);
-
-            int pixelCount = quantized.Pixels.Length;
             int palleteCount = quantized.Palette.Length - 1;
-            TColor[] pixels = new TColor[pixelCount];
 
-            Parallel.For(
-                0,
-                pixelCount,
-                source.Configuration.ParallelOptions,
-                i =>
-                {
-                    TColor color = quantized.Palette[Math.Min(palleteCount, quantized.Pixels[i])];
-                    pixels[i] = color;
-                });
+            using (PixelAccessor<TColor> pixels = new PixelAccessor<TColor>(quantized.Width, quantized.Height))
+            {
+                Parallel.For(
+                    0,
+                    pixels.Height,
+                    source.Configuration.ParallelOptions,
+                    y =>
+                    {
+                        for (int x = 0; x < pixels.Width; x++)
+                        {
+                            int i = x + (y * pixels.Width);
+                            TColor color = quantized.Palette[Math.Min(palleteCount, quantized.Pixels[i])];
+                            pixels[x, y] = color;
+                        }
+                    });
 
-            source.SetPixels(source.Width, source.Height, pixels);
-            return source;
+                source.SwapPixelsBuffers(pixels);
+                return source;
+            }
         }
     }
 }

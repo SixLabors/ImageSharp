@@ -8,6 +8,7 @@ namespace ImageSharp
     using System;
     using System.Globalization;
     using System.Numerics;
+    using System.Runtime.CompilerServices;
 
     /// <summary>
     /// Packed pixel type containing four 8-bit unsigned normalized values ranging from 0 to 255.
@@ -17,7 +18,7 @@ namespace ImageSharp
     /// This struct is fully mutable. This is done (against the guidelines) for the sake of performance,
     /// as it avoids the need to create new values for modification operations.
     /// </remarks>
-    public partial struct Color : IPackedPixel<uint>, IEquatable<Color>
+    public partial struct Color : IPixel<Color>, IPackedVector<uint>
     {
         /// <summary>
         /// The shift count for the red component
@@ -64,28 +65,6 @@ namespace ImageSharp
         public Color(byte r, byte g, byte b, byte a = 255)
         {
             this.packedValue = Pack(r, g, b, a);
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Color"/> struct.
-        /// </summary>
-        /// <param name="hex">
-        /// The hexadecimal representation of the combined color components arranged
-        /// in rgb, rgba, rrggbb, or rrggbbaa format to match web syntax.
-        /// </param>
-        public Color(string hex)
-        {
-            Guard.NotNullOrEmpty(hex, nameof(hex));
-
-            hex = ToRgbaHex(hex);
-
-            if (hex == null || !uint.TryParse(hex, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out this.packedValue))
-            {
-                throw new ArgumentException("Hexadecimal string is not in the correct format.", nameof(hex));
-            }
-
-            // Order parsed from hex string will be backwards, so reverse it.
-            this.packedValue = Pack(this.A, this.B, this.G, this.R);
         }
 
         /// <summary>
@@ -138,11 +117,13 @@ namespace ImageSharp
         /// </summary>
         public byte R
         {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
                 return (byte)(this.packedValue >> RedShift);
             }
 
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set
             {
                 this.packedValue = this.packedValue & 0xFFFFFF00 | (uint)value << RedShift;
@@ -154,11 +135,13 @@ namespace ImageSharp
         /// </summary>
         public byte G
         {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
                 return (byte)(this.packedValue >> GreenShift);
             }
 
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set
             {
                 this.packedValue = this.packedValue & 0xFFFF00FF | (uint)value << GreenShift;
@@ -170,11 +153,13 @@ namespace ImageSharp
         /// </summary>
         public byte B
         {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
                 return (byte)(this.packedValue >> BlueShift);
             }
 
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set
             {
                 this.packedValue = this.packedValue & 0xFF00FFFF | (uint)value << BlueShift;
@@ -186,11 +171,13 @@ namespace ImageSharp
         /// </summary>
         public byte A
         {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
                 return (byte)(this.packedValue >> AlphaShift);
             }
 
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set
             {
                 this.packedValue = this.packedValue & 0x00FFFFFF | (uint)value << AlphaShift;
@@ -223,6 +210,7 @@ namespace ImageSharp
         /// <returns>
         /// True if the <paramref name="left"/> parameter is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator ==(Color left, Color right)
         {
             return left.packedValue == right.packedValue;
@@ -236,6 +224,7 @@ namespace ImageSharp
         /// <returns>
         /// True if the <paramref name="left"/> parameter is not equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator !=(Color left, Color right)
         {
             return left.packedValue != right.packedValue;
@@ -253,10 +242,14 @@ namespace ImageSharp
         /// </returns>
         public static Color FromHex(string hex)
         {
-            return new Color(hex);
+            return ColorBuilder<Color>.FromHex(hex);
         }
 
+        /// <inheritdoc />
+        public BulkPixelOperations<Color> CreateBulkOperations() => new BulkPixelOperations<Color>();
+
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void PackFromBytes(byte x, byte y, byte z, byte w)
         {
             this.packedValue = Pack(x, y, z, w);
@@ -273,6 +266,7 @@ namespace ImageSharp
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ToXyzBytes(byte[] bytes, int startIndex)
         {
             bytes[startIndex] = this.R;
@@ -281,6 +275,7 @@ namespace ImageSharp
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ToXyzwBytes(byte[] bytes, int startIndex)
         {
             bytes[startIndex] = this.R;
@@ -290,6 +285,7 @@ namespace ImageSharp
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ToZyxBytes(byte[] bytes, int startIndex)
         {
             bytes[startIndex] = this.B;
@@ -298,6 +294,7 @@ namespace ImageSharp
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ToZyxwBytes(byte[] bytes, int startIndex)
         {
             bytes[startIndex] = this.B;
@@ -307,12 +304,14 @@ namespace ImageSharp
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void PackFromVector4(Vector4 vector)
         {
             this.packedValue = Pack(ref vector);
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vector4 ToVector4()
         {
             return new Vector4(this.R, this.G, this.B, this.A) / MaxBytes;
@@ -325,6 +324,7 @@ namespace ImageSharp
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Equals(Color other)
         {
             return this.packedValue == other.packedValue;
@@ -350,11 +350,12 @@ namespace ImageSharp
         /// </summary>
         /// <param name="vector">The vector containing the values to pack.</param>
         /// <returns>The <see cref="uint"/> containing the packed values.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static uint Pack(ref Vector4 vector)
         {
-            vector = Vector4.Clamp(vector, Vector4.Zero, Vector4.One);
             vector *= MaxBytes;
             vector += Half;
+            vector = Vector4.Clamp(vector, Vector4.Zero, MaxBytes);
             return (uint)(((byte)vector.X << RedShift)
                         | ((byte)vector.Y << GreenShift)
                         | ((byte)vector.Z << BlueShift)
@@ -366,6 +367,7 @@ namespace ImageSharp
         /// </summary>
         /// <param name="vector">The vector containing the values to pack.</param>
         /// <returns>The <see cref="uint"/> containing the packed values.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static uint Pack(ref Vector3 vector)
         {
             Vector4 value = new Vector4(vector, 1);
@@ -380,6 +382,7 @@ namespace ImageSharp
         /// <param name="z">The z-component</param>
         /// <param name="w">The w-component</param>
         /// <returns>The <see cref="uint"/></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static uint Pack(float x, float y, float z, float w)
         {
             Vector4 value = new Vector4(x, y, z, w);
@@ -394,43 +397,10 @@ namespace ImageSharp
         /// <param name="z">The z-component</param>
         /// <param name="w">The w-component</param>
         /// <returns>The <see cref="uint"/></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static uint Pack(byte x, byte y, byte z, byte w)
         {
             return (uint)(x << RedShift | y << GreenShift | z << BlueShift | w << AlphaShift);
-        }
-
-        /// <summary>
-        /// Converts the specified hex value to an rrggbbaa hex value.
-        /// </summary>
-        /// <param name="hex">The hex value to convert.</param>
-        /// <returns>
-        /// A rrggbbaa hex value.
-        /// </returns>
-        private static string ToRgbaHex(string hex)
-        {
-            hex = hex.StartsWith("#") ? hex.Substring(1) : hex;
-
-            if (hex.Length == 8)
-            {
-                return hex;
-            }
-
-            if (hex.Length == 6)
-            {
-                return hex + "FF";
-            }
-
-            if (hex.Length < 3 || hex.Length > 4)
-            {
-                return null;
-            }
-
-            string red = char.ToString(hex[0]);
-            string green = char.ToString(hex[1]);
-            string blue = char.ToString(hex[2]);
-            string alpha = hex.Length == 3 ? "F" : char.ToString(hex[3]);
-
-            return red + red + green + green + blue + blue + alpha + alpha;
         }
     }
 }

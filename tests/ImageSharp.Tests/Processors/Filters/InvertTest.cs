@@ -14,15 +14,13 @@ namespace ImageSharp.Tests
         [Fact]
         public void ImageShouldApplyInvertFilter()
         {
-            string path = CreateOutputDirectory("Invert");
+            string path = this.CreateOutputDirectory("Invert");
             foreach (TestFile file in Files)
             {
-                Image image = file.CreateImage();
-
+                using (Image image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{file.FileName}"))
                 {
-                    image.Invert()
-                          .Save(output);
+                    image.Invert().Save(output);
                 }
             }
         }
@@ -30,17 +28,15 @@ namespace ImageSharp.Tests
         [Fact]
         public void ImageShouldApplyInvertFilterInBox()
         {
-            string path = CreateOutputDirectory("Invert");
+            string path = this.CreateOutputDirectory("Invert");
 
             foreach (TestFile file in Files)
             {
                 string filename = file.GetFileName("InBox");
-                Image image = file.CreateImage();
-
+                using (Image image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
-                    image.Invert(new Rectangle(10, 10, image.Width / 2, image.Height / 2))
-                          .Save(output);
+                    image.Invert(new Rectangle(10, 10, image.Width / 2, image.Height / 2)).Save(output);
                 }
             }
         }

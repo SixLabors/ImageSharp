@@ -6,7 +6,6 @@
 namespace ImageSharp.Tests
 {
     using System.IO;
-    using System.Linq;
 
     using Xunit;
 
@@ -15,18 +14,20 @@ namespace ImageSharp.Tests
         [Fact]
         public void ImageShouldApplyDrawImageFilter()
         {
-            string path = CreateOutputDirectory("Drawing", "DrawImage");
+            string path = this.CreateOutputDirectory("Drawing", "DrawImage");
 
-            Image blend = TestFile.Create(TestImages.Bmp.Car).CreateImage();
-
-            foreach (TestFile file in Files)
+            using (Image blend = TestFile.Create(TestImages.Bmp.Car).CreateImage())
             {
-                Image image = file.CreateImage();
-
-                using (FileStream output = File.OpenWrite($"{path}/{file.FileName}"))
+                foreach (TestFile file in Files)
                 {
-                    image.DrawImage(blend, 75, new Size(image.Width / 2, image.Height / 2), new Point(image.Width / 4, image.Height / 4))
-                         .Save(output);
+                    using (Image image = file.CreateImage())
+                    {
+                        using (FileStream output = File.OpenWrite($"{path}/{file.FileName}"))
+                        {
+                            image.DrawImage(blend, 75, new Size(image.Width / 2, image.Height / 2), new Point(image.Width / 4, image.Height / 4))
+                                 .Save(output);
+                        }
+                    }
                 }
             }
         }

@@ -17,24 +17,26 @@ namespace ImageSharp.Benchmarks.Image
         [Benchmark(Description = "Copy by Pixel")]
         public CoreColor CopyByPixel()
         {
-            CoreImage source = new CoreImage(1024, 768);
-            CoreImage target = new CoreImage(1024, 768);
-            using (PixelAccessor<CoreColor> sourcePixels = source.Lock())
-            using (PixelAccessor<CoreColor> targetPixels = target.Lock())
+            using (CoreImage source = new CoreImage(1024, 768))
+            using (CoreImage target = new CoreImage(1024, 768))
             {
-                Parallel.For(
-                    0,
-                    source.Height,
-                    Configuration.Default.ParallelOptions,
-                    y =>
-                    {
-                        for (int x = 0; x < source.Width; x++)
-                        {
-                            targetPixels[x, y] = sourcePixels[x, y];
-                        }
-                    });
+                using (PixelAccessor<CoreColor> sourcePixels = source.Lock())
+                using (PixelAccessor<CoreColor> targetPixels = target.Lock())
+                {
+                    Parallel.For(
+                        0,
+                        source.Height,
+                        Configuration.Default.ParallelOptions,
+                        y =>
+                            {
+                                for (int x = 0; x < source.Width; x++)
+                                {
+                                    targetPixels[x, y] = sourcePixels[x, y];
+                                }
+                            });
 
-                return targetPixels[0, 0];
+                    return targetPixels[0, 0];
+                }
             }
         }
     }

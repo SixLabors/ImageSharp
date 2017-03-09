@@ -15,21 +15,27 @@ namespace ImageSharp.Processing.Processors
     /// <typeparam name="TColor">The pixel format.</typeparam>
     [SuppressMessage("ReSharper", "StaticMemberInGenericType", Justification = "We want to use only one instance of each array field for each generic type.")]
     public class LaplacianOfGaussianProcessor<TColor> : EdgeDetectorProcessor<TColor>
-        where TColor : struct, IPackedPixel, IEquatable<TColor>
+        where TColor : struct, IPixel<TColor>
     {
         /// <summary>
         /// The 2d gradient operator.
         /// </summary>
-        private static readonly float[][] LaplacianOfGaussianXY =
-        {
-           new float[] { 0, 0, -1,  0,  0 },
-           new float[] { 0, -1, -2, -1,  0 },
-           new float[] { -1, -2, 16, -2, -1 },
-           new float[] { 0, -1, -2, -1,  0 },
-           new float[] { 0, 0, -1,  0,  0 }
-        };
+        private static readonly Fast2DArray<float> LaplacianOfGaussianXY =
+            new float[,]
+            {
+                { 0, 0, -1,  0,  0 },
+                { 0, -1, -2, -1,  0 },
+                { -1, -2, 16, -2, -1 },
+                { 0, -1, -2, -1,  0 },
+                { 0, 0, -1,  0,  0 }
+            };
 
-        /// <inheritdoc/>
-        public override float[][] KernelXY => LaplacianOfGaussianXY;
+        /// <summary>
+        /// Initializes a new instance of the <see cref="LaplacianOfGaussianProcessor{TColor}"/> class.
+        /// </summary>
+        public LaplacianOfGaussianProcessor()
+            : base(LaplacianOfGaussianXY)
+        {
+        }
     }
 }

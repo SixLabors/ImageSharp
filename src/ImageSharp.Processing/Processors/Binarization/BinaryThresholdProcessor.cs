@@ -14,34 +14,27 @@ namespace ImageSharp.Processing.Processors
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     public class BinaryThresholdProcessor<TColor> : ImageProcessor<TColor>
-        where TColor : struct, IPackedPixel, IEquatable<TColor>
+        where TColor : struct, IPixel<TColor>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="BinaryThresholdProcessor{TColor}"/> class.
         /// </summary>
         /// <param name="threshold">The threshold to split the image. Must be between 0 and 1.</param>
-        /// <exception cref="System.ArgumentException">
-        /// <paramref name="threshold"/> is less than 0 or is greater than 1.
-        /// </exception>
         public BinaryThresholdProcessor(float threshold)
         {
-            // TODO: Check limit.
+            // TODO: Check thresholding limit. Colors should probably have Max/Min/Middle properties.
             Guard.MustBeBetweenOrEqualTo(threshold, 0, 1, nameof(threshold));
-            this.Value = threshold;
+            this.Threshold = threshold;
 
-            TColor upper = default(TColor);
-            upper.PackFromVector4(Color.White.ToVector4());
-            this.UpperColor = upper;
-
-            TColor lower = default(TColor);
-            lower.PackFromVector4(Color.Black.ToVector4());
-            this.LowerColor = lower;
+            // Default to white/black for upper/lower.
+            this.UpperColor = NamedColors<TColor>.White;
+            this.LowerColor = NamedColors<TColor>.Black;
         }
 
         /// <summary>
         /// Gets the threshold value.
         /// </summary>
-        public float Value { get; }
+        public float Threshold { get; }
 
         /// <summary>
         /// Gets or sets the color to use for pixels that are above the threshold.
@@ -62,7 +55,7 @@ namespace ImageSharp.Processing.Processors
         /// <inheritdoc/>
         protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
         {
-            float threshold = this.Value;
+            float threshold = this.Threshold;
             TColor upper = this.UpperColor;
             TColor lower = this.LowerColor;
 

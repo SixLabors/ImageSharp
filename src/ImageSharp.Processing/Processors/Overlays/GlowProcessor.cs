@@ -14,15 +14,14 @@ namespace ImageSharp.Processing.Processors
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     public class GlowProcessor<TColor> : ImageProcessor<TColor>
-        where TColor : struct, IPackedPixel, IEquatable<TColor>
+        where TColor : struct, IPixel<TColor>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="GlowProcessor{TColor}"/> class.
+        /// Initializes a new instance of the <see cref="GlowProcessor{TColor}" /> class.
         /// </summary>
-        public GlowProcessor()
+        /// <param name="color">The color or the glow.</param>
+        public GlowProcessor(TColor color)
         {
-            TColor color = default(TColor);
-            color.PackFromVector4(Color.Black.ToVector4());
             this.GlowColor = color;
         }
 

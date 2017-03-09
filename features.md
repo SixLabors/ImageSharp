@@ -10,13 +10,23 @@ We've achieved a lot so far and hope to do a lot more in the future. We're alway
  - [x] Bmp (Read: 32bit, 24bit, 16 bit. Write: 32bit, 24bit just now)
  - [x] Png (Read: Rgb, Rgba, Grayscale, Grayscale + alpha, Palette. Write: Rgb, Rgba, Grayscale, Grayscale + alpha, Palette) Supports interlaced decoding 
  - [x] Gif (Includes animated)
- - [ ] Tiff
+ - [ ] Tiff (Help needed)
 - **Metadata**
  - [x] EXIF Read/Write (Jpeg just now)
-- **Quantizers (IQuantizer with alpha channel support + thresholding)**
+- **Quantizers (IQuantizer with alpha channel support, dithering, and thresholding)**
  - [x] Octree
  - [x] Xiaolin Wu
  - [x] Palette
+- **DIthering (Error diffusion and Ordered)**
+ - [x] Atkinson
+ - [x] Burks
+ - [x] FloydSteinburg
+ - [x] JarvisJudiceNinke
+ - [x] Sieera2
+ - [x] Sierra3
+ - [x] SerraLite
+ - [x] Bayer
+ - [x] Ordered
 - **Basic color structs with implicit operators.**
  - [x] Color - 32bit color in RGBA order (IPackedPixel\<TPacked\>).
  - [x] Bgra32
@@ -133,5 +143,5 @@ We've achieved a lot so far and hope to do a lot more in the future. We're alway
  - [x] DrawImage
  - [ ] Gradient brush (Need help)
 - **DrawingText**
- - [x] DrawString (Single variant support just now, no italic,bold)
+ - [ ] DrawString (In-progress. Single variant support just now, no italic,bold)
 - Other stuff I haven't thought of.

@@ -19,20 +19,18 @@ namespace ImageSharp.Tests
         };
 
         [Theory]
-        [MemberData("BinaryThresholdValues")]
+        [MemberData(nameof(BinaryThresholdValues))]
         public void ImageShouldApplyBinaryThresholdFilter(float value)
         {
-            string path = CreateOutputDirectory("BinaryThreshold");
+            string path = this.CreateOutputDirectory("BinaryThreshold");
 
             foreach (TestFile file in Files)
             {
                 string filename = file.GetFileName(value);
-                Image image = file.CreateImage();
-
+                using (Image image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
-                    image.BinaryThreshold(value)
-                          .Save(output);
+                    image.BinaryThreshold(value).Save(output);
                 }
             }
         }

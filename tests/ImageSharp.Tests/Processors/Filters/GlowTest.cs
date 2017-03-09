@@ -14,16 +14,14 @@ namespace ImageSharp.Tests
         [Fact]
         public void ImageShouldApplyGlowFilter()
         {
-            string path = CreateOutputDirectory("Glow");
+            string path = this.CreateOutputDirectory("Glow");
 
             foreach (TestFile file in Files)
             {
-                Image image = file.CreateImage();
-
+                using (Image image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{file.FileName}"))
                 {
-                    image.Glow()
-                          .Save(output);
+                    image.Glow().Save(output);
                 }
             }
         }
@@ -31,17 +29,15 @@ namespace ImageSharp.Tests
         [Fact]
         public void ImageShouldApplyGlowFilterColor()
         {
-            string path = CreateOutputDirectory("Glow");
+            string path = this.CreateOutputDirectory("Glow");
 
             foreach (TestFile file in Files)
             {
                 string filename = file.GetFileName("Color");
-                Image image = file.CreateImage();
-
+                using (Image image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
-                    image.Glow(Color.HotPink)
-                          .Save(output);
+                    image.Glow(Color.HotPink).Save(output);
                 }
             }
         }
@@ -49,17 +45,15 @@ namespace ImageSharp.Tests
         [Fact]
         public void ImageShouldApplyGlowFilterRadius()
         {
-            string path = CreateOutputDirectory("Glow");
+            string path = this.CreateOutputDirectory("Glow");
 
             foreach (TestFile file in Files)
             {
                 string filename = file.GetFileName("Radius");
-                Image image = file.CreateImage();
-
+                using (Image image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
-                    image.Glow(image.Width / 4)
-                          .Save(output);
+                    image.Glow(image.Width / 4F).Save(output);
                 }
             }
         }
@@ -67,17 +61,16 @@ namespace ImageSharp.Tests
         [Fact]
         public void ImageShouldApplyGlowFilterInBox()
         {
-            string path = CreateOutputDirectory("Glow");
+            string path = this.CreateOutputDirectory("Glow");
 
             foreach (TestFile file in Files)
             {
                 string filename = file.GetFileName("InBox");
-                Image image = file.CreateImage();
-
+                using (Image image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
                     image.Glow(new Rectangle(image.Width / 4, image.Height / 4, image.Width / 2, image.Height / 2))
-                          .Save(output);
+                        .Save(output);
                 }
             }
         }

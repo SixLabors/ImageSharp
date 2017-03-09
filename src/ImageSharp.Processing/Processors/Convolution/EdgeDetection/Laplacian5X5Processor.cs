@@ -15,21 +15,27 @@ namespace ImageSharp.Processing.Processors
     /// <typeparam name="TColor">The pixel format.</typeparam>
     [SuppressMessage("ReSharper", "StaticMemberInGenericType", Justification = "We want to use only one instance of each array field for each generic type.")]
     public class Laplacian5X5Processor<TColor> : EdgeDetectorProcessor<TColor>
-        where TColor : struct, IPackedPixel, IEquatable<TColor>
+        where TColor : struct, IPixel<TColor>
     {
         /// <summary>
         /// The 2d gradient operator.
         /// </summary>
-        private static readonly float[][] Laplacian5X5XY =
-        {
-            new float[] { -1, -1, -1, -1, -1 },
-            new float[] { -1, -1, -1, -1, -1 },
-            new float[] { -1, -1, 24, -1, -1 },
-            new float[] { -1, -1, -1, -1, -1 },
-            new float[] { -1, -1, -1, -1, -1 }
-        };
+        private static readonly Fast2DArray<float> Laplacian5X5XY =
+            new float[,]
+            {
+                { -1, -1, -1, -1, -1 },
+                { -1, -1, -1, -1, -1 },
+                { -1, -1, 24, -1, -1 },
+                { -1, -1, -1, -1, -1 },
+                { -1, -1, -1, -1, -1 }
+            };
 
-        /// <inheritdoc/>
-        public override float[][] KernelXY => Laplacian5X5XY;
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Laplacian5X5Processor{TColor}"/> class.
+        /// </summary>
+        public Laplacian5X5Processor()
+            : base(Laplacian5X5XY)
+        {
+        }
     }
 }

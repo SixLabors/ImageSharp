@@ -27,21 +27,23 @@ namespace ImageSharp.Tests
         [Theory]
         [WithFileCollection(nameof(BaselineTestJpegs), PixelTypes.Color | PixelTypes.StandardImageClass | PixelTypes.Argb)]
         public void OpenBaselineJpeg_SaveBmp<TColor>(TestImageProvider<TColor> provider)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
-            Image<TColor> image = provider.GetImage();
-
-            provider.Utility.SaveTestOutputFile(image, "bmp");
+            using (Image<TColor> image = provider.GetImage())
+            {
+                provider.Utility.SaveTestOutputFile(image, "bmp");
+            }
         }
-        
+
         [Theory]
         [WithFileCollection(nameof(ProgressiveTestJpegs), PixelTypes.Color | PixelTypes.StandardImageClass | PixelTypes.Argb)]
         public void OpenProgressiveJpeg_SaveBmp<TColor>(TestImageProvider<TColor> provider)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
-            Image<TColor> image = provider.GetImage();
-
-            provider.Utility.SaveTestOutputFile(image, "bmp");
+            using (Image<TColor> image = provider.GetImage())
+            {
+                provider.Utility.SaveTestOutputFile(image, "bmp");
+            }
         }
 
         [Theory]
@@ -53,17 +55,20 @@ namespace ImageSharp.Tests
         public void DecodeGenerated_SaveBmp<TColor>(
             TestImageProvider<TColor> provider,
             JpegSubsample subsample,
-            int quality) 
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            int quality)
+            where TColor : struct, IPixel<TColor>
         {
-            Image<TColor> image = provider.GetImage();
-
-            JpegEncoder encoder = new JpegEncoder() { Subsample = subsample, Quality = quality };
-
-            byte[] data = new byte[65536];
-            using (MemoryStream ms = new MemoryStream(data))
+            byte[] data;
+            using (Image<TColor> image = provider.GetImage())
             {
-                image.Save(ms, encoder);
+                JpegEncoder encoder = new JpegEncoder();
+                JpegEncoderOptions options = new JpegEncoderOptions { Subsample = subsample, Quality = quality };
+
+                data = new byte[65536];
+                using (MemoryStream ms = new MemoryStream(data))
+                {
+                    image.Save(ms, encoder, options);
+                }
             }
 
             // TODO: Automatic image comparers could help here a lot :P
@@ -75,24 +80,77 @@ namespace ImageSharp.Tests
         [Theory]
         [WithSolidFilledImages(42, 88, 255, 0, 0, PixelTypes.StandardImageClass)]
         public void DecodeGenerated_MetadataOnly<TColor>(
-            TestImageProvider<TColor> provider) 
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            TestImageProvider<TColor> provider)
+            where TColor : struct, IPixel<TColor>
         {
-            Image<TColor> image = provider.GetImage();
-            
-            using (MemoryStream ms = new MemoryStream())
+            using (Image<TColor> image = provider.GetImage())
             {
-                image.Save(ms, new JpegEncoder());
-                ms.Seek(0, SeekOrigin.Begin);
-
-                Image<TColor> mirror = provider.Factory.CreateImage(1, 1);
-                using (JpegDecoderCore decoder = new JpegDecoderCore())
+                using (MemoryStream ms = new MemoryStream())
                 {
-                    decoder.Decode(mirror, ms, true);
-                    
-                    Assert.Equal(decoder.ImageWidth, image.Width);
-                    Assert.Equal(decoder.ImageHeight, image.Height);
+                    image.Save(ms, new JpegEncoder());
+                    ms.Seek(0, SeekOrigin.Begin);
+
+                    Image<TColor> mirror = provider.Factory.CreateImage(1, 1);
+                    using (JpegDecoderCore decoder = new JpegDecoderCore(null))
+                    {
+                        decoder.Decode(mirror, ms, true);
+
+                        Assert.Equal(decoder.ImageWidth, image.Width);
+                        Assert.Equal(decoder.ImageHeight, image.Height);
+                    }
                 }
+            }
+        }
+
+        [Fact]
+        public void Decoder_Reads_Correct_Resolution_From_Jfif()
+        {
+            using (Image image = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan).CreateImage())
+            {
+                Assert.Equal(300, image.MetaData.HorizontalResolution);
+                Assert.Equal(300, image.MetaData.VerticalResolution);
+            }
+        }
+
+        [Fact]
+        public void Decoder_Reads_Correct_Resolution_From_Exif()
+        {
+            using (Image image = TestFile.Create(TestImages.Jpeg.Baseline.Jpeg420).CreateImage())
+            {
+                Assert.Equal(72, image.MetaData.HorizontalResolution);
+                Assert.Equal(72, image.MetaData.VerticalResolution);
+            }
+        }
+
+        [Fact]
+        public void Decode_IgnoreMetadataIsFalse_ExifProfileIsRead()
+        {
+            var options = new DecoderOptions()
+            {
+                IgnoreMetadata = false
+            };
+
+            TestFile testFile = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan);
+
+            using (Image image = testFile.CreateImage(options))
+            {
+                Assert.NotNull(image.MetaData.ExifProfile);
+            }
+        }
+
+        [Fact]
+        public void Decode_IgnoreMetadataIsTrue_ExifProfileIgnored()
+        {
+            var options = new DecoderOptions()
+            {
+                IgnoreMetadata = true
+            };
+
+            TestFile testFile = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan);
+
+            using (Image image = testFile.CreateImage(options))
+            {
+                Assert.Null(image.MetaData.ExifProfile);
             }
         }
     }

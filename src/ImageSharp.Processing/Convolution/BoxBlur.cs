@@ -7,7 +7,6 @@ namespace ImageSharp
 {
     using System;
 
-    using Processing;
     using Processing.Processors;
 
     /// <summary>
@@ -23,7 +22,7 @@ namespace ImageSharp
         /// <param name="radius">The 'radius' value representing the size of the area to sample.</param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> BoxBlur<TColor>(this Image<TColor> source, int radius = 7)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             return BoxBlur(source, radius, source.Bounds);
         }
@@ -39,9 +38,10 @@ namespace ImageSharp
         /// </param>
         /// <returns>The <see cref="Image{TColor}"/>.</returns>
         public static Image<TColor> BoxBlur<TColor>(this Image<TColor> source, int radius, Rectangle rectangle)
-            where TColor : struct, IPackedPixel, IEquatable<TColor>
+            where TColor : struct, IPixel<TColor>
         {
-            return source.Apply(rectangle, new BoxBlurProcessor<TColor>(radius));
+            source.ApplyProcessor(new BoxBlurProcessor<TColor>(radius), rectangle);
+            return source;
         }
     }
 }

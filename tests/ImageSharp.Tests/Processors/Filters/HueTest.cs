@@ -19,20 +19,18 @@ namespace ImageSharp.Tests
         };
 
         [Theory]
-        [MemberData("HueValues")]
+        [MemberData(nameof(HueValues))]
         public void ImageShouldApplyHueFilter(int value)
         {
-            string path = CreateOutputDirectory("Hue");
+            string path = this.CreateOutputDirectory("Hue");
 
             foreach (TestFile file in Files)
             {
                 string filename = file.GetFileName(value);
-                Image image = file.CreateImage();
-
+                using (Image image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
-                    image.Hue(value)
-                          .Save(output);
+                    image.Hue(value).Save(output);
                 }
             }
         }

@@ -31,7 +31,7 @@ namespace ImageSharp.Quantizers
     /// </remarks>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     public sealed class WuQuantizer<TColor> : IQuantizer<TColor>
-        where TColor : struct, IPackedPixel, IEquatable<TColor>
+        where TColor : struct, IPixel<TColor>
     {
         /// <summary>
         /// The index bits.

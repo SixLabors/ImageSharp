@@ -14,7 +14,7 @@ namespace ImageSharp.Quantizers
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     public sealed class OctreeQuantizer<TColor> : Quantizer<TColor>
-        where TColor : struct, IPackedPixel, IEquatable<TColor>
+        where TColor : struct, IPixel<TColor>
     {
         /// <summary>
         /// The pixel buffer, used to reduce allocations.
@@ -437,7 +437,7 @@ namespace ImageSharp.Quantizers
                 {
                     if (this.leaf)
                     {
-                        // TODO: Test Vector4 here
+                        // This seems faster than using Vector4
                         byte r = (this.red / this.pixelCount).ToByte();
                         byte g = (this.green / this.pixelCount).ToByte();
                         byte b = (this.blue / this.pixelCount).ToByte();

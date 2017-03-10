@@ -5,7 +5,7 @@
     <Rule Id="SA1405" Action="None" />
     <Rule Id="SA1413" Action="None" />
     <!-- temp remove the header requiremnet as stylecop is currently failing to read the stylecop.json file from 'dotnet build' -->
-    <Rule Id="SA1636" Action="None" />
-    <Rule Id="SA1633" Action="None" />
+    <!--<Rule Id="SA1636" Action="None" />
+    <Rule Id="SA1633" Action="None" />-->
   </Rules>
 </RuleSet>

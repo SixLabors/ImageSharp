@@ -47,6 +47,21 @@
             }
         }
 
+        [Theory]
+        [InlineData(42)]
+        [InlineData(1111)]
+        public void Clear(int count)
+        {
+            Foo[] a = { new Foo() { A = 1, B = 2 }, new Foo() { A = 3, B = 4 } };
+            using (PinnedBuffer<Foo> buffer = new PinnedBuffer<Foo>(a))
+            {
+                buffer.Clear();
+
+                Assert.Equal(default(Foo), a[0]);
+                Assert.Equal(default(Foo), a[1]);
+            }
+        }
+
         [Fact]
         public void Dispose()
         {

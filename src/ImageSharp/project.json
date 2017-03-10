@@ -98,6 +98,7 @@
     },
     "net461": {
       "dependencies": {
+        "System.Numerics.Vectors": "4.1.1",
         "System.Threading.Tasks.Parallel": "4.0.0"
       },
       "frameworkAssemblies": {

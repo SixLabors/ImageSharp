@@ -206,11 +206,11 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="..\ImageSharp.Benchmarks\Color\Bulk\PixelAccessorVirtualCopy.cs">
-      <Link>Benchmarks\PixelAccessorVirtualCopy.cs</Link>
-    </Compile>
     <Compile Include="..\ImageSharp.Tests\Colors\BulkPixelOperationsTests.cs">
       <Link>Tests\Colors\BulkPixelOperationsTests.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\Common\BufferPointerTests.cs">
+      <Link>Tests\Common\BufferPointerTests.cs</Link>
     </Compile>
     <Compile Include="..\ImageSharp.Tests\Common\PinnedBufferTests.cs">
       <Link>Tests\Common\PinnedBufferTests.cs</Link>
@@ -271,6 +271,9 @@
     </Compile>
     <Compile Include="..\ImageSharp.Tests\TestImages.cs">
       <Link>Tests\TestImages.cs</Link>
+    </Compile>
+    <Compile Include="..\ImageSharp.Tests\TestUtilities\ApproximateFloatComparer.cs">
+      <Link>Tests\TestUtilities\ApproximateFloatComparer.cs</Link>
     </Compile>
     <Compile Include="..\ImageSharp.Tests\TestUtilities\Attributes\ImageDataAttributeBase.cs">
       <Link>Tests\TestUtilities\Attributes\ImageDataAttributeBase.cs</Link>
@@ -340,7 +343,9 @@
   <ItemGroup>
     <Service Include="{82A7F48D-3B50-4B1E-B82E-3ADA8210C358}" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Folder Include="Benchmarks\" />
+  </ItemGroup>
   <ItemGroup>
     <Analyzer Include="..\..\packages\Microsoft.CodeAnalysis.Analyzers.1.1.0\analyzers\dotnet\cs\Microsoft.CodeAnalysis.Analyzers.dll" />
     <Analyzer Include="..\..\packages\Microsoft.CodeAnalysis.Analyzers.1.1.0\analyzers\dotnet\cs\Microsoft.CodeAnalysis.CSharp.Analyzers.dll" />

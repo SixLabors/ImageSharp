@@ -60,6 +60,7 @@ namespace ImageSharp
         {
             this.Configuration = configuration ?? Configuration.Default;
             this.InitPixels(width, height);
+            this.ClearPixels();
         }
 
         /// <summary>
@@ -150,7 +151,7 @@ namespace ImageSharp
         }
 
         /// <inheritdoc/>
-        public virtual PixelAccessor<TColor> Lock()
+        public PixelAccessor<TColor> Lock()
         {
             return new PixelAccessor<TColor>(this);
         }
@@ -231,6 +232,14 @@ namespace ImageSharp
         {
             PixelDataPool<TColor>.Return(this.pixelBuffer);
             this.pixelBuffer = null;
+        }
+
+        /// <summary>
+        /// Clears the pixel array.
+        /// </summary>
+        private void ClearPixels()
+        {
+            Array.Clear(this.pixelBuffer, 0, this.Width * this.Height);
         }
     }
 }

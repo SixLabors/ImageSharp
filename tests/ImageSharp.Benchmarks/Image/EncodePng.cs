@@ -10,6 +10,10 @@ namespace ImageSharp.Benchmarks.Image
     using System.IO;
 
     using BenchmarkDotNet.Attributes;
+
+    using ImageSharp.Formats;
+    using ImageSharp.Quantizers;
+
     using CoreImage = ImageSharp.Image;
 
     public class EncodePng : BenchmarkBase
@@ -19,12 +23,21 @@ namespace ImageSharp.Benchmarks.Image
         private Image bmpDrawing;
         private CoreImage bmpCore;
 
+        [Params(false)]
+        public bool LargeImage { get; set; }
+
+        [Params(false)]
+        public bool UseOctreeQuantizer { get; set; }
+
         [Setup]
         public void ReadImages()
         {
             if (this.bmpStream == null)
             {
-                this.bmpStream = File.OpenRead("../ImageSharp.Tests/TestImages/Formats/Bmp/Car.bmp");
+                string path = this.LargeImage
+                                  ? "../ImageSharp.Tests/TestImages/Formats/Jpg/baseline/jpeg420exif.jpg"
+                                  : "../ImageSharp.Tests/TestImages/Formats/Bmp/Car.bmp";
+                this.bmpStream = File.OpenRead(path);
                 this.bmpCore = new CoreImage(this.bmpStream);
                 this.bmpStream.Position = 0;
                 this.bmpDrawing = Image.FromStream(this.bmpStream);
@@ -53,7 +66,13 @@ namespace ImageSharp.Benchmarks.Image
         {
             using (MemoryStream memoryStream = new MemoryStream())
             {
-                this.bmpCore.SaveAsPng(memoryStream);
+                Quantizer<ImageSharp.Color> quantizer = this.UseOctreeQuantizer
+                                                            ? (Quantizer<ImageSharp.Color>)
+                                                            new OctreeQuantizer<ImageSharp.Color>()
+                                                            : new PaletteQuantizer<ImageSharp.Color>();
+
+                PngEncoderOptions options = new PngEncoderOptions() { Quantizer = quantizer };
+                this.bmpCore.SaveAsPng(memoryStream, options);
             }
         }
     }

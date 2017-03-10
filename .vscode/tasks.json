@@ -22,7 +22,7 @@
     },
     {
       "taskName": "test",
-      "args": ["tests/ImageSharp.Tests/ImageSharp.Tests.csproj", "-f", "netcoreapp1.1"],
+      "args": ["tests/ImageSharp.Tests/ImageSharp.Tests.csproj", "-c", "release", "-f", "netcoreapp1.1"],
       "isTestCommand": true,
       "showOutput": "always",
       "problemMatcher": "$msCompile"

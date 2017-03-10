@@ -35,7 +35,7 @@
   <ItemGroup>
   </ItemGroup>
   <ItemGroup>
-    <None Include="stylecop.json" />
+    <None Include="..\Shared\stylecop.json" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="StyleCop.Analyzers" Version="1.1.0-beta001">

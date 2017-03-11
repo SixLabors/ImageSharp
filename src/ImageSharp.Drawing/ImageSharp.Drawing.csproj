@@ -41,10 +41,6 @@
     </PackageReference>
     <PackageReference Include="SixLabors.Fonts" Version="0.1.0-alpha0001" />
     <PackageReference Include="SixLabors.Shapes" Version="0.1.0-alpha0007" />
-    <PackageReference Include="System.Buffers" Version="4.3.0" />
-    <PackageReference Include="System.Threading.Tasks.Parallel" Version="4.3.0" />
-    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.3.0" />
-    <PackageReference Include="System.Numerics.Vectors" Version="4.3.0" />
   </ItemGroup>
   <PropertyGroup>
     <CodeAnalysisRuleSet>..\..\ImageSharp.ruleset</CodeAnalysisRuleSet>

@@ -30,8 +30,6 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="..\Shared\*.cs" Exclude="bin\**;obj\**;**\*.xproj;packages\**" />
-  </ItemGroup>
-  <ItemGroup>
     <AdditionalFiles Include="..\Shared\stylecop.json" />
   </ItemGroup>
   <ItemGroup>

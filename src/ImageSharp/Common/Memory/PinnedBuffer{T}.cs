@@ -7,6 +7,7 @@ namespace ImageSharp
 {
     using System;
     using System.Buffers;
+    using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
 
     /// <summary>
@@ -23,7 +24,8 @@ namespace ImageSharp
         private GCHandle handle;
 
         /// <summary>
-        /// A value indicating whether this <see cref="PinnedBuffer{T}"/> instance should return the array to the pool.
+        /// A value indicating wheter <see cref="Array"/> should be returned to <see cref="PixelDataPool{T}"/>
+        /// when disposing this <see cref="PinnedBuffer{T}"/> instance.
         /// </summary>
         private bool isPoolingOwner;
 
@@ -47,6 +49,7 @@ namespace ImageSharp
         {
             this.Count = array.Length;
             this.Array = array;
+            this.isPoolingOwner = false;
             this.Pin();
         }
 
@@ -64,6 +67,7 @@ namespace ImageSharp
 
             this.Count = count;
             this.Array = array;
+            this.isPoolingOwner = false;
             this.Pin();
         }
 
@@ -96,8 +100,40 @@ namespace ImageSharp
         public IntPtr Pointer { get; private set; }
 
         /// <summary>
+        /// Converts <see cref="PinnedBuffer{T}"/> to an <see cref="BufferPointer{T}"/>.
+        /// </summary>
+        /// <param name="buffer">The <see cref="PinnedBuffer{T}"/> to convert.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static implicit operator BufferPointer<T>(PinnedBuffer<T> buffer)
+        {
+            return buffer.Slice();
+        }
+
+        /// <summary>
+        /// Gets a <see cref="BufferPointer{T}"/> to the beginning of the raw data of the buffer.
+        /// </summary>
+        /// <returns>The <see cref="BufferPointer{T}"/></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe BufferPointer<T> Slice()
+        {
+            return new BufferPointer<T>(this.Array, (void*)this.Pointer);
+        }
+
+        /// <summary>
+        /// Gets a <see cref="BufferPointer{T}"/> to an offseted position inside the buffer.
+        /// </summary>
+        /// <param name="offset">The offset</param>
+        /// <returns>The <see cref="BufferPointer{T}"/></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe BufferPointer<T> Slice(int offset)
+        {
+            return new BufferPointer<T>(this.Array, (void*)this.Pointer, offset);
+        }
+
+        /// <summary>
         /// Disposes the <see cref="PinnedBuffer{T}"/> instance by unpinning the array, and returning the pooled buffer when necessary.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Dispose()
         {
             if (this.IsDisposedOrLostArrayOwnership)
@@ -113,6 +149,7 @@ namespace ImageSharp
                 PixelDataPool<T>.Return(this.Array);
             }
 
+            this.isPoolingOwner = false;
             this.Array = null;
             this.Count = 0;
 
@@ -124,6 +161,7 @@ namespace ImageSharp
         /// If <see cref="Array"/> is rented, it's the callers responsibility to return it to it's pool. (Most likely <see cref="PixelDataPool{T}"/>)
         /// </summary>
         /// <returns>The unpinned <see cref="Array"/></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public T[] UnPinAndTakeArrayOwnership()
         {
             if (this.IsDisposedOrLostArrayOwnership)
@@ -135,12 +173,23 @@ namespace ImageSharp
             this.UnPin();
             T[] array = this.Array;
             this.Array = null;
+            this.isPoolingOwner = false;
             return array;
+        }
+
+        /// <summary>
+        /// Clears the buffer, filling elements between 0 and <see cref="Count"/>-1 with default(T)
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Clear()
+        {
+            this.Slice().Clear(this.Count);
         }
 
         /// <summary>
         /// Pins <see cref="Array"/>.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void Pin()
         {
             this.handle = GCHandle.Alloc(this.Array, GCHandleType.Pinned);
@@ -150,6 +199,7 @@ namespace ImageSharp
         /// <summary>
         /// Unpins <see cref="Array"/>.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void UnPin()
         {
             if (this.Pointer == IntPtr.Zero || !this.handle.IsAllocated)

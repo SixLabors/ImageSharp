@@ -3,6 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
+// ReSharper disable InconsistentNaming
 namespace ImageSharp.Tests
 {
     using System.Linq;
@@ -23,28 +24,6 @@ namespace ImageSharp.Tests
         }
 
         [Fact]
-        public void PixelDataPoolRentsEmptyArray()
-        {
-            for (int i = 16; i < 1024; i += 16)
-            {
-                Color[] pixels = PixelDataPool<Color>.Rent(i);
-
-                Assert.True(pixels.All(p => p == default(Color)));
-
-                PixelDataPool<Color>.Return(pixels);
-            }
-
-            for (int i = 16; i < 1024; i += 16)
-            {
-                Color[] pixels = PixelDataPool<Color>.Rent(i);
-
-                Assert.True(pixels.All(p => p == default(Color)));
-
-                PixelDataPool<Color>.Return(pixels);
-            }
-        }
-
-        [Fact]
         public void PixelDataPoolDoesNotThrowWhenReturningNonPooled()
         {
             Color[] pixels = new Color[1024];
@@ -52,23 +31,6 @@ namespace ImageSharp.Tests
             PixelDataPool<Color>.Return(pixels);
 
             Assert.True(pixels.Length >= 1024);
-        }
-
-        [Fact]
-        public void PixelDataPoolCleansRentedArray()
-        {
-            Color[] pixels = PixelDataPool<Color>.Rent(256);
-
-            for (int i = 0; i < pixels.Length; i++)
-            {
-                pixels[i] = Color.Azure;
-            }
-
-            Assert.True(pixels.All(p => p == Color.Azure));
-
-            PixelDataPool<Color>.Return(pixels);
-
-            Assert.True(pixels.All(p => p == default(Color)));
         }
 
         [Theory]

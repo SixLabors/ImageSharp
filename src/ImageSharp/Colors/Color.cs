@@ -246,7 +246,7 @@ namespace ImageSharp
         }
 
         /// <inheritdoc />
-        public BulkPixelOperations<Color> CreateBulkOperations() => new BulkPixelOperations<Color>();
+        public BulkPixelOperations<Color> CreateBulkOperations() => new Color.BulkOperations();
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

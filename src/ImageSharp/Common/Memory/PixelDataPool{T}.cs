@@ -9,15 +9,14 @@ namespace ImageSharp
     using System.Buffers;
 
     /// <summary>
-    /// Provides a resource pool that enables reusing instances of value type arrays <see cref="T:T[]"/>.
-    /// <see cref="Rent(int)"/> will always return arrays initialized with 'default(T)'
+    /// Provides a resource pool that enables reusing instances of value type arrays for image data <see cref="T:T[]"/>.
     /// </summary>
     /// <typeparam name="T">The value type.</typeparam>
-    public static class PixelDataPool<T>
+    public class PixelDataPool<T>
         where T : struct
     {
         /// <summary>
-        /// The <see cref="ArrayPool{T}"/> used to pool data.
+        /// The <see cref="ArrayPool{T}"/> which is not kept clean.
         /// </summary>
         private static readonly ArrayPool<T> ArrayPool = ArrayPool<T>.Create(CalculateMaxArrayLength(), 50);
 
@@ -37,11 +36,11 @@ namespace ImageSharp
         /// <param name="array">The array to return to the buffer pool.</param>
         public static void Return(T[] array)
         {
-            ArrayPool.Return(array, true);
+            ArrayPool.Return(array);
         }
 
         /// <summary>
-        /// Heuristically calculates a reasonable maxArrayLength value for the backing <see cref="ArrayPool"/>.
+        /// Heuristically calculates a reasonable maxArrayLength value for the backing <see cref="ArrayPool{T}"/>.
         /// </summary>
         /// <returns>The maxArrayLength value</returns>
         internal static int CalculateMaxArrayLength()

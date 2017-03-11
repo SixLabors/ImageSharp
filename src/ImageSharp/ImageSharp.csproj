@@ -31,11 +31,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="..\Shared\*.cs" Exclude="bin\**;obj\**;**\*.xproj;packages\**" />
-  </ItemGroup>
-  <ItemGroup>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="..\Shared\stylecop.json" />
+    <AdditionalFiles Include="..\Shared\stylecop.json" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="StyleCop.Analyzers" Version="1.1.0-beta001">

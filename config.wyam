@@ -1,0 +1,4 @@
+#recipe Docs
+Settings[Keys.Host] = "imagesharp.org";
+Settings[Keys.Title] = "Image Sharp";
+FileSystem.OutputPath = "./docs";

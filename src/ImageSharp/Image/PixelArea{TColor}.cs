@@ -204,6 +204,16 @@ namespace ImageSharp
         }
 
         /// <summary>
+        /// Gets a <see cref="BufferPointer{Byte}"/> to the row y.
+        /// </summary>
+        /// <param name="y">The y coordinate</param>
+        /// <returns>The <see cref="BufferPointer{Byte}"/></returns>
+        internal BufferPointer<byte> GetRowPointer(int y)
+        {
+            return this.byteBuffer.Slice(y * this.RowStride);
+        }
+
+        /// <summary>
         /// Gets component count for the given order.
         /// </summary>
         /// <param name="componentOrder">The component order.</param>

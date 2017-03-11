@@ -64,6 +64,11 @@ namespace ImageSharp
         public int Offset { get; private set; }
 
         /// <summary>
+        /// Gets the offset inside <see cref="Array"/> in bytes.
+        /// </summary>
+        public int ByteOffset => this.Offset * Unsafe.SizeOf<T>();
+
+        /// <summary>
         /// Gets the pointer to the offseted array position
         /// </summary>
         public IntPtr PointerAtOffset { get; private set; }
@@ -79,13 +84,28 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Convertes <see cref="BufferPointer{T}"/> instance to a raw 'byte*' pointer
+        /// Converts <see cref="BufferPointer{T}"/> instance to a raw 'byte*' pointer
         /// </summary>
         /// <param name="bufferPointer">The <see cref="BufferPointer{T}"/> to convert</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static explicit operator byte*(BufferPointer<T> bufferPointer)
         {
             return (byte*)bufferPointer.PointerAtOffset;
+        }
+
+        /// <summary>
+        /// Converts <see cref="BufferPointer{T}"/> instance to <see cref="BufferPointer{Byte}"/>
+        /// setting it's <see cref="Offset"/> and <see cref="PointerAtOffset"/> to correct values.
+        /// </summary>
+        /// <param name="source">The <see cref="BufferPointer{T}"/> to convert</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static explicit operator BufferPointer<byte>(BufferPointer<T> source)
+        {
+            BufferPointer<byte> result = default(BufferPointer<byte>);
+            result.Array = Unsafe.As<byte[]>(source.Array);
+            result.Offset = source.Offset * Unsafe.SizeOf<T>();
+            result.PointerAtOffset = source.PointerAtOffset;
+            return result;
         }
 
         /// <summary>
@@ -101,6 +121,23 @@ namespace ImageSharp
             result.Offset = this.Offset + offset;
             result.PointerAtOffset = this.PointerAtOffset + (Unsafe.SizeOf<T>() * offset);
             return result;
+        }
+
+        /// <summary>
+        /// Clears `count` elements beginning from the pointed position.
+        /// </summary>
+        /// <param name="count">The number of elements to clear</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Clear(int count)
+        {
+            if (count < 256)
+            {
+                Unsafe.InitBlock((void*)this.PointerAtOffset, 0, BufferPointer.USizeOf<T>(count));
+            }
+            else
+            {
+                System.Array.Clear(this.Array, this.Offset, count);
+            }
         }
     }
 }

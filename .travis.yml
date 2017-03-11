@@ -20,8 +20,7 @@ branches:
 
 script:
   - dotnet restore
-  - dotnet build -c Release ImageSharp.sln
-  - dotnet test tests/ImageSharp.Tests/ImageSharp.Tests.csproj --no-build -c Release -f "netcoreapp1.1"
+  - dotnet test tests/ImageSharp.Tests/ImageSharp.Tests.csproj -c Release -f "netcoreapp1.1"
 
 env:
   global:

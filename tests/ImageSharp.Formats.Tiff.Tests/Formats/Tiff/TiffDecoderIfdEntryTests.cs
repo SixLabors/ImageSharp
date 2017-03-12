@@ -364,6 +364,65 @@ namespace ImageSharp.Tests
             Assert.Equal($"A value of type '{(TiffType)type}' cannot be converted to a signed integer.", e.Message);
         }
 
+        [Theory]
+        [InlineDataAttribute(true, new byte[] { 0 }, "")]
+        [InlineDataAttribute(true, new byte[] { (byte)'A', (byte)'B', (byte)'C', 0 }, "ABC")]
+        [InlineDataAttribute(true, new byte[] { (byte)'A', (byte)'B', (byte)'C', (byte)'D', (byte)'E', (byte)'F', 0 }, "ABCDEF")]
+        [InlineDataAttribute(true, new byte[] { (byte)'A', (byte)'B', (byte)'C', (byte)'D', 0, (byte)'E', (byte)'F', (byte)'G', (byte)'H', 0 }, "ABCD\0EFGH")]
+        [InlineDataAttribute(false, new byte[] { 0 }, "")]
+        [InlineDataAttribute(false, new byte[] { (byte)'A', (byte)'B', (byte)'C', 0 }, "ABC")]
+        [InlineDataAttribute(false, new byte[] { (byte)'A', (byte)'B', (byte)'C', (byte)'D', (byte)'E', (byte)'F', 0 }, "ABCDEF")]
+        [InlineDataAttribute(false, new byte[] { (byte)'A', (byte)'B', (byte)'C', (byte)'D', 0, (byte)'E', (byte)'F', (byte)'G', (byte)'H', 0 }, "ABCD\0EFGH")]
+        public void ReadString_ReturnsValue(bool isLittleEndian, byte[] bytes, string expectedValue)
+        {
+            (TiffDecoderCore decoder, TiffIfdEntry entry) = GenerateTestIfdEntry(TiffGenEntry.Bytes(TiffTags.ImageWidth, TiffType.Ascii, (uint)bytes.Length, bytes), isLittleEndian);
+
+            string result = decoder.ReadString(ref entry);
+            
+            Assert.Equal(expectedValue, result);
+        }
+
+        [Theory]
+        [InlineDataAttribute(TiffType.Byte)]
+        [InlineDataAttribute(TiffType.Short)]
+        [InlineDataAttribute(TiffType.Long)]
+        [InlineDataAttribute(TiffType.Rational)]
+        [InlineDataAttribute(TiffType.SByte)]
+        [InlineDataAttribute(TiffType.Undefined)]
+        [InlineDataAttribute(TiffType.SShort)]
+        [InlineDataAttribute(TiffType.SLong)]
+        [InlineDataAttribute(TiffType.SRational)]
+        [InlineDataAttribute(TiffType.Float)]
+        [InlineDataAttribute(TiffType.Double)]
+        [InlineDataAttribute(TiffType.Ifd)]
+        [InlineDataAttribute((TiffType)99)]
+        public void ReadString_ThrowsExceptionIfInvalidType(ushort type)
+        {
+            (TiffDecoderCore decoder, TiffIfdEntry entry) = GenerateTestIfdEntry(TiffGenEntry.Bytes(TiffTags.ImageWidth, (TiffType)type, 1, new byte[4]), true);
+
+            var e = Assert.Throws<ImageFormatException>(() => decoder.ReadString(ref entry));
+
+            Assert.Equal($"A value of type '{(TiffType)type}' cannot be converted to a string.", e.Message);
+        }
+
+        [Theory]
+        [InlineDataAttribute(true, new byte[] { (byte)'A' })]
+        [InlineDataAttribute(true, new byte[] { (byte)'A', (byte)'B', (byte)'C' })]
+        [InlineDataAttribute(true, new byte[] { (byte)'A', (byte)'B', (byte)'C', (byte)'D', (byte)'E', (byte)'F' })]
+        [InlineDataAttribute(true, new byte[] { (byte)'A', (byte)'B', (byte)'C', (byte)'D', 0, (byte)'E', (byte)'F', (byte)'G', (byte)'H' })]
+        [InlineDataAttribute(false, new byte[] { (byte)'A' })]
+        [InlineDataAttribute(false, new byte[] { (byte)'A', (byte)'B', (byte)'C' })]
+        [InlineDataAttribute(false, new byte[] { (byte)'A', (byte)'B', (byte)'C', (byte)'D', (byte)'E', (byte)'F' })]
+        [InlineDataAttribute(false, new byte[] { (byte)'A', (byte)'B', (byte)'C', (byte)'D', 0, (byte)'E', (byte)'F', (byte)'G', (byte)'H' })]
+        public void ReadString_ThrowsExceptionIfStringIsNotNullTerminated(bool isLittleEndian, byte[] bytes)
+        {
+            (TiffDecoderCore decoder, TiffIfdEntry entry) = GenerateTestIfdEntry(TiffGenEntry.Bytes(TiffTags.ImageWidth, TiffType.Ascii, (uint)bytes.Length, bytes), isLittleEndian);
+
+            var e = Assert.Throws<ImageFormatException>(() => decoder.ReadString(ref entry));
+
+            Assert.Equal($"The retrieved string is not null terminated.", e.Message);
+        }
+
         private (TiffDecoderCore, TiffIfdEntry) GenerateTestIfdEntry(TiffGenEntry entry, bool isLittleEndian)
         {
             Stream stream = new TiffGenIfd()

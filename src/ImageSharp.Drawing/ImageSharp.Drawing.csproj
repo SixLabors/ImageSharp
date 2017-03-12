@@ -39,8 +39,8 @@
     <PackageReference Include="StyleCop.Analyzers" Version="1.1.0-beta001">
       <PrivateAssets>All</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="SixLabors.Fonts" Version="0.1.0-alpha0001" />
-    <PackageReference Include="SixLabors.Shapes" Version="0.1.0-alpha0007" />
+    <PackageReference Include="SixLabors.Fonts" Version="0.1.0-alpha0002" />
+    <PackageReference Include="SixLabors.Shapes" Version="0.1.0-alpha0008" />
   </ItemGroup>
   <PropertyGroup>
     <CodeAnalysisRuleSet>..\..\ImageSharp.ruleset</CodeAnalysisRuleSet>

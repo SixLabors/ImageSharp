@@ -150,6 +150,111 @@ namespace ImageSharp.Formats
             return entry.Value;
         }
 
+        public uint ReadUnsignedInteger(ref TiffIfdEntry entry)
+        {
+            if (entry.Count != 1)
+                throw new ImageFormatException($"Cannot read a single value from an array of multiple items.");
+
+            switch (entry.Type)
+            {
+                case TiffType.Byte:
+                    return (uint)ToByte(entry.Value, 0);
+                case TiffType.Short:
+                    return (uint)ToUInt16(entry.Value, 0);
+                case TiffType.Long:
+                    return ToUInt32(entry.Value, 0);
+                default:
+                    throw new ImageFormatException($"A value of type '{entry.Type}' cannot be converted to an unsigned integer.");
+            }
+        }
+
+        public int ReadSignedInteger(ref TiffIfdEntry entry)
+        {
+            if (entry.Count != 1)
+                throw new ImageFormatException($"Cannot read a single value from an array of multiple items.");
+
+            switch (entry.Type)
+            {
+                case TiffType.SByte:
+                    return (int)ToSByte(entry.Value, 0);
+                case TiffType.SShort:
+                    return (int)ToInt16(entry.Value, 0);
+                case TiffType.SLong:
+                    return ToInt32(entry.Value, 0);
+                default:
+                    throw new ImageFormatException($"A value of type '{entry.Type}' cannot be converted to a signed integer.");
+            }
+        }
+
+        public uint[] ReadUnsignedIntegerArray(ref TiffIfdEntry entry)
+        {
+            byte[] bytes = ReadBytes(ref entry);
+            uint[] result = new uint[entry.Count];
+
+            switch (entry.Type)
+            {
+                case TiffType.Byte:
+                {
+                    for (int i = 0 ; i < result.Length ; i++)
+                        result[i] = (uint)ToByte(bytes, i);
+                    break;
+                }
+                case TiffType.Short:
+                {
+                    for (int i = 0 ; i < result.Length ; i++)
+                        result[i] = (uint)ToUInt16(bytes, i * 2);
+                    break;
+                }
+                case TiffType.Long:
+                {
+                    for (int i = 0 ; i < result.Length ; i++)
+                        result[i] = ToUInt32(bytes, i * 4);
+                    break;
+                }
+                default:
+                    throw new ImageFormatException($"A value of type '{entry.Type}' cannot be converted to an unsigned integer.");
+            }
+
+            return result;
+        }
+
+        public int[] ReadSignedIntegerArray(ref TiffIfdEntry entry)
+        {
+            byte[] bytes = ReadBytes(ref entry);
+            int[] result = new int[entry.Count];
+
+            switch (entry.Type)
+            {
+                case TiffType.SByte:
+                {
+                    for (int i = 0 ; i < result.Length ; i++)
+                        result[i] = (int)ToSByte(bytes, i);
+                    break;
+                }
+                case TiffType.SShort:
+                {
+                    for (int i = 0 ; i < result.Length ; i++)
+                        result[i] = (int)ToInt16(bytes, i * 2);
+                    break;
+                }
+                case TiffType.SLong:
+                {
+                    for (int i = 0 ; i < result.Length ; i++)
+                        result[i] = ToInt32(bytes, i * 4);
+                    break;
+                }
+                default:
+                    throw new ImageFormatException($"A value of type '{entry.Type}' cannot be converted to a signed integer.");
+            }
+
+            return result;
+        }
+
+        private SByte ToSByte(byte[] bytes, int offset)
+        {
+            return (sbyte)bytes[offset];
+        }
+
         private Int16 ToInt16(byte[] bytes, int offset)
         {
             if (IsLittleEndian)
@@ -164,6 +269,11 @@ namespace ImageSharp.Formats
                 return bytes[offset + 0] | (bytes[offset + 1] << 8) | (bytes[offset + 2] << 16) | (bytes[offset + 3] << 24);
             else
                 return (bytes[offset + 0] << 24) | (bytes[offset + 1] << 16) | (bytes[offset + 2] << 8) | bytes[offset + 3];
+        }
+
+        private Byte ToByte(byte[] bytes, int offset)
+        {
+            return bytes[offset];
         }
 
         private UInt32 ToUInt32(byte[] bytes, int offset)

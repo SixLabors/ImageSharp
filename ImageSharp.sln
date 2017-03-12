@@ -43,6 +43,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ImageSharp.Tests", "tests\I
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ImageSharp.Benchmarks", "tests\ImageSharp.Benchmarks\ImageSharp.Benchmarks.csproj", "{2BF743D8-2A06-412D-96D7-F448F00C5EA5}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageSharp.Sandbox46", "tests\ImageSharp.Sandbox46\ImageSharp.Sandbox46.csproj", "{96188137-5FA6-4924-AB6E-4EFF79C6E0BB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -113,6 +115,18 @@ Global
 		{2BF743D8-2A06-412D-96D7-F448F00C5EA5}.Release|x64.Build.0 = Release|Any CPU
 		{2BF743D8-2A06-412D-96D7-F448F00C5EA5}.Release|x86.ActiveCfg = Release|Any CPU
 		{2BF743D8-2A06-412D-96D7-F448F00C5EA5}.Release|x86.Build.0 = Release|Any CPU
+		{96188137-5FA6-4924-AB6E-4EFF79C6E0BB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{96188137-5FA6-4924-AB6E-4EFF79C6E0BB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{96188137-5FA6-4924-AB6E-4EFF79C6E0BB}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{96188137-5FA6-4924-AB6E-4EFF79C6E0BB}.Debug|x64.Build.0 = Debug|Any CPU
+		{96188137-5FA6-4924-AB6E-4EFF79C6E0BB}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{96188137-5FA6-4924-AB6E-4EFF79C6E0BB}.Debug|x86.Build.0 = Debug|Any CPU
+		{96188137-5FA6-4924-AB6E-4EFF79C6E0BB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{96188137-5FA6-4924-AB6E-4EFF79C6E0BB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{96188137-5FA6-4924-AB6E-4EFF79C6E0BB}.Release|x64.ActiveCfg = Release|Any CPU
+		{96188137-5FA6-4924-AB6E-4EFF79C6E0BB}.Release|x64.Build.0 = Release|Any CPU
+		{96188137-5FA6-4924-AB6E-4EFF79C6E0BB}.Release|x86.ActiveCfg = Release|Any CPU
+		{96188137-5FA6-4924-AB6E-4EFF79C6E0BB}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -124,5 +138,6 @@ Global
 		{575A5002-DD9F-4335-AA47-1DD87FA13645} = {E919DF0B-2607-4462-8FC0-5C98FE50F8C9}
 		{EA3000E9-2A91-4EC4-8A68-E566DEBDC4F6} = {56801022-D71A-4FBE-BC5B-CBA08E2284EC}
 		{2BF743D8-2A06-412D-96D7-F448F00C5EA5} = {56801022-D71A-4FBE-BC5B-CBA08E2284EC}
+		{96188137-5FA6-4924-AB6E-4EFF79C6E0BB} = {56801022-D71A-4FBE-BC5B-CBA08E2284EC}
 	EndGlobalSection
 EndGlobal

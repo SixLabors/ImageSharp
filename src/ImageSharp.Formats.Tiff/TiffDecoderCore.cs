@@ -8,6 +8,7 @@ namespace ImageSharp.Formats
     using System;
     using System.IO;
     using System.Runtime.CompilerServices;
+    using System.Text;
     using System.Threading.Tasks;
 
     /// <summary>
@@ -248,6 +249,19 @@ namespace ImageSharp.Formats
             }
 
             return result;
+        }
+
+        public string ReadString(ref TiffIfdEntry entry)
+        {
+            if (entry.Type != TiffType.Ascii)
+                throw new ImageFormatException($"A value of type '{entry.Type}' cannot be converted to a string.");
+
+            byte[] bytes = ReadBytes(ref entry);
+            
+            if (bytes[entry.Count - 1] != 0)
+                throw new ImageFormatException("The retrieved string is not null terminated.");
+
+            return Encoding.UTF8.GetString(bytes, 0, (int)entry.Count - 1);
         }
 
         private SByte ToSByte(byte[] bytes, int offset)

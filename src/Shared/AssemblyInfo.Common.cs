@@ -33,7 +33,8 @@ using System.Runtime.CompilerServices;
 [assembly: AssemblyFileVersion("1.0.0.0")]
 [assembly: AssemblyInformationalVersion("1.0.0.0")]
 
-// Ensure the internals can be tested.
+// Ensure the internals can be built and tested.
+[assembly: InternalsVisibleTo("ImageSharp.Drawing")]
 [assembly: InternalsVisibleTo("ImageSharp.Benchmarks")]
 [assembly: InternalsVisibleTo("ImageSharp.Tests")]
 [assembly: InternalsVisibleTo("ImageSharp.Sandbox46")]

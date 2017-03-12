@@ -53,6 +53,20 @@ namespace ImageSharp.Tests
             return new TiffGenEntryInteger(tag, type, value);
         }
 
+        public static TiffGenEntry Integer(ushort tag, TiffType type, uint value)
+        {
+            return TiffGenEntry.Integer(tag, type, new uint[] {value});
+        }
+
+        public static TiffGenEntry Integer(ushort tag, TiffType type, uint[] value)
+        {
+            if (type != TiffType.Byte && type != TiffType.Short && type != TiffType.Long &&
+                type != TiffType.SByte && type != TiffType.SShort && type != TiffType.SLong)
+                throw new ArgumentException(nameof(type), "The specified type is not an integer type.");
+
+            return new TiffGenEntryUnsignedInteger(tag, type, value);
+        }
+
         private class TiffGenEntryAscii : TiffGenEntry
         {
             public TiffGenEntryAscii(ushort tag, string value) : base(tag, TiffType.Ascii, (uint)GetBytes(value).Length)
@@ -97,6 +111,43 @@ namespace ImageSharp.Tests
             }
 
             public int[] Value { get; }
+
+            public override IEnumerable<TiffGenDataBlock> GetData(bool isLittleEndian)
+            {
+                byte[] bytes = GetBytes().SelectMany(b => b.WithByteOrder(isLittleEndian)).ToArray();
+                return new[] { new TiffGenDataBlock(bytes) };
+            }
+
+            private IEnumerable<byte[]> GetBytes()
+            {
+                switch (Type)
+                {
+                    case TiffType.Byte:
+                        return Value.Select(i => new byte[] { (byte)i });
+                    case TiffType.Short:
+                        return Value.Select(i => BitConverter.GetBytes((ushort)i));
+                    case TiffType.Long:
+                        return Value.Select(i => BitConverter.GetBytes((uint)i));
+                    case TiffType.SByte:
+                        return Value.Select(i => BitConverter.GetBytes((sbyte)i));
+                    case TiffType.SShort:
+                        return Value.Select(i => BitConverter.GetBytes((short)i));
+                    case TiffType.SLong:
+                        return Value.Select(i => BitConverter.GetBytes((int)i));
+                    default:
+                        throw new InvalidOperationException();
+                }
+            }
+        }
+
+        private class TiffGenEntryUnsignedInteger : TiffGenEntry
+        {
+            public TiffGenEntryUnsignedInteger(ushort tag, TiffType type, uint[] value) : base(tag, type, (uint)value.Length)
+            {
+                this.Value = value;
+            }
+
+            public uint[] Value { get; }
 
             public override IEnumerable<TiffGenDataBlock> GetData(bool isLittleEndian)
             {

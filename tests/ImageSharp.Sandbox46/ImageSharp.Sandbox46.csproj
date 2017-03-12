@@ -5,6 +5,11 @@
     <RuntimeIdentifier>win7-x64</RuntimeIdentifier>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <Prefer32Bit>false</Prefer32Bit>
+    <AssemblyName>ImageSharp.Sandbox46</AssemblyName>
+    <Description>A cross-platform library for processing of image files written in C#</Description>
+    <Copyright>Copyright © James Jackson-South and contributors.</Copyright>
+    <Authors>James Jackson-South and contributors</Authors>
+    <Company>James Jackson-South</Company>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\ImageSharp.Drawing\ImageSharp.Drawing.csproj" />
@@ -20,5 +25,8 @@
     <Compile Include="..\ImageSharp.Tests\**\*.cs" Exclude="bin\**;obj\**" Link="Tests\%(RecursiveDir)%(Filename)%(Extension)" />
     <Compile Remove="..\ImageSharp.Tests\obj\**\*.cs" />
     <Compile Remove="..\ImageSharp.Tests\bin\**\*.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
 </Project>

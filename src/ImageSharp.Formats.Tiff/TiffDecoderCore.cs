@@ -316,6 +316,53 @@ namespace ImageSharp.Formats
             return result;
         }
 
+        public float ReadFloat(ref TiffIfdEntry entry)
+        {
+            if (entry.Count != 1)
+                throw new ImageFormatException($"Cannot read a single value from an array of multiple items.");
+
+            if (entry.Type != TiffType.Float)
+                throw new ImageFormatException($"A value of type '{entry.Type}' cannot be converted to a float.");
+
+            return ToSingle(entry.Value, 0);
+        }
+
+        public double ReadDouble(ref TiffIfdEntry entry)
+        {
+            if (entry.Count != 1)
+                throw new ImageFormatException($"Cannot read a single value from an array of multiple items.");
+
+            return ReadDoubleArray(ref entry)[0];
+        }
+
+        public float[] ReadFloatArray(ref TiffIfdEntry entry)
+        {
+            if (entry.Type != TiffType.Float)
+                throw new ImageFormatException($"A value of type '{entry.Type}' cannot be converted to a float.");
+
+            byte[] bytes = ReadBytes(ref entry);
+            float[] result = new float[entry.Count];
+
+            for (int i = 0 ; i < result.Length ; i++)
+                result[i] = ToSingle(bytes, i * TiffConstants.SizeOfFloat);
+
+            return result;
+        }
+
+        public double[] ReadDoubleArray(ref TiffIfdEntry entry)
+        {
+            if (entry.Type != TiffType.Double)
+                throw new ImageFormatException($"A value of type '{entry.Type}' cannot be converted to a double.");
+
+            byte[] bytes = ReadBytes(ref entry);
+            double[] result = new double[entry.Count];
+
+            for (int i = 0 ; i < result.Length ; i++)
+                result[i] = ToDouble(bytes, i * TiffConstants.SizeOfDouble);
+
+            return result;
+        }
+
         private SByte ToSByte(byte[] bytes, int offset)
         {
             return (sbyte)bytes[offset];
@@ -350,6 +397,28 @@ namespace ImageSharp.Formats
         private UInt16 ToUInt16(byte[] bytes, int offset)
         {
             return (ushort)ToInt16(bytes, offset);
+        }
+
+        private Single ToSingle(byte[] bytes, int offset)
+        {
+            byte[] buffer = new byte[4];
+            Array.Copy(bytes, offset, buffer, 0, 4);
+
+            if (BitConverter.IsLittleEndian != IsLittleEndian)
+                Array.Reverse(buffer);
+
+            return BitConverter.ToSingle(buffer, 0);
+        }
+
+        private Double ToDouble(byte[] bytes, int offset)
+        {
+            byte[] buffer = new byte[8];
+            Array.Copy(bytes, offset, buffer, 0, 8);
+
+            if (BitConverter.IsLittleEndian != IsLittleEndian)
+                Array.Reverse(buffer);
+
+            return BitConverter.ToDouble(buffer, 0);
         }
 
         public static uint GetSizeOfData(TiffIfdEntry entry) => SizeOfDataType(entry.Type) * entry.Count;

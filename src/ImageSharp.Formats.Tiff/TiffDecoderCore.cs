@@ -203,13 +203,13 @@ namespace ImageSharp.Formats
                 case TiffType.Short:
                 {
                     for (int i = 0 ; i < result.Length ; i++)
-                        result[i] = (uint)ToUInt16(bytes, i * 2);
+                        result[i] = (uint)ToUInt16(bytes, i * TiffConstants.SizeOfShort);
                     break;
                 }
                 case TiffType.Long:
                 {
                     for (int i = 0 ; i < result.Length ; i++)
-                        result[i] = ToUInt32(bytes, i * 4);
+                        result[i] = ToUInt32(bytes, i * TiffConstants.SizeOfLong);
                     break;
                 }
                 default:
@@ -235,13 +235,13 @@ namespace ImageSharp.Formats
                 case TiffType.SShort:
                 {
                     for (int i = 0 ; i < result.Length ; i++)
-                        result[i] = (int)ToInt16(bytes, i * 2);
+                        result[i] = (int)ToInt16(bytes, i * TiffConstants.SizeOfShort);
                     break;
                 }
                 case TiffType.SLong:
                 {
                     for (int i = 0 ; i < result.Length ; i++)
-                        result[i] = ToInt32(bytes, i * 4);
+                        result[i] = ToInt32(bytes, i * TiffConstants.SizeOfLong);
                     break;
                 }
                 default:
@@ -290,8 +290,8 @@ namespace ImageSharp.Formats
 
             for (int i = 0 ; i < result.Length ; i++)
             {
-                uint numerator = ToUInt32(bytes, i * 8);
-                uint denominator = ToUInt32(bytes, i * 8 + 4);
+                uint numerator = ToUInt32(bytes, i * TiffConstants.SizeOfRational);
+                uint denominator = ToUInt32(bytes, i * TiffConstants.SizeOfRational + TiffConstants.SizeOfLong);
                 result[i] = new Rational(numerator, denominator);
             }
 
@@ -308,8 +308,8 @@ namespace ImageSharp.Formats
 
             for (int i = 0 ; i < result.Length ; i++)
             {
-                int numerator = ToInt32(bytes, i * 8);
-                int denominator = ToInt32(bytes, i * 8 + 4);
+                int numerator = ToInt32(bytes, i * TiffConstants.SizeOfRational);
+                int denominator = ToInt32(bytes, i * TiffConstants.SizeOfRational + TiffConstants.SizeOfLong);
                 result[i] = new SignedRational(numerator, denominator);
             }
 

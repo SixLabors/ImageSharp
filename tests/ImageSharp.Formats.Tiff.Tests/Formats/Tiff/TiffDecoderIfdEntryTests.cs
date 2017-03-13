@@ -607,6 +607,223 @@ namespace ImageSharp.Tests
             Assert.Equal($"Cannot read a single value from an array of multiple items.", e.Message);
         }
 
+        [Theory]
+        [InlineDataAttribute(false, new byte[] { 0x00, 0x00, 0x00, 0x00 }, 0.0F)]
+        [InlineDataAttribute(false, new byte[] { 0x3F, 0x80, 0x00, 0x00 }, 1.0F)]
+        [InlineDataAttribute(false, new byte[] { 0xC0, 0x00, 0x00, 0x00 }, -2.0F)]
+        [InlineDataAttribute(false, new byte[] { 0x7F, 0x7F, 0xFF, 0xFF }, float.MaxValue)]
+        [InlineDataAttribute(false, new byte[] { 0x7F, 0x80, 0x00, 0x00 }, float.PositiveInfinity)]
+        [InlineDataAttribute(false, new byte[] { 0xFF, 0x80, 0x00, 0x00 }, float.NegativeInfinity)]
+        [InlineDataAttribute(true, new byte[] { 0x00, 0x00, 0x00, 0x00 }, 0.0F)]
+        [InlineDataAttribute(true, new byte[] { 0x00, 0x00, 0x80, 0x3F }, 1.0F)]
+        [InlineDataAttribute(true, new byte[] { 0x00, 0x00, 0x00, 0xC0 }, -2.0F)]
+        [InlineDataAttribute(true, new byte[] { 0xFF, 0xFF, 0x7F, 0x7F }, float.MaxValue)]
+        [InlineDataAttribute(true, new byte[] { 0x00, 0x00, 0x80, 0x7F }, float.PositiveInfinity)]
+        [InlineDataAttribute(true, new byte[] { 0x00, 0x00, 0x80, 0xFF }, float.NegativeInfinity)]
+        public void ReadFloat_ReturnsValue(bool isLittleEndian, byte[] bytes, float expectedValue)
+        {
+            (TiffDecoderCore decoder, TiffIfdEntry entry) = GenerateTestIfdEntry(TiffGenEntry.Bytes(TiffTags.ImageWidth, TiffType.Float, 1, bytes), isLittleEndian);
+
+            float result = decoder.ReadFloat(ref entry);
+
+            Assert.Equal(expectedValue, result);
+        }
+
+        [Theory]
+        [InlineDataAttribute(TiffType.Byte)]
+        [InlineDataAttribute(TiffType.Ascii)]
+        [InlineDataAttribute(TiffType.Short)]
+        [InlineDataAttribute(TiffType.Long)]
+        [InlineDataAttribute(TiffType.Rational)]
+        [InlineDataAttribute(TiffType.SByte)]
+        [InlineDataAttribute(TiffType.Undefined)]
+        [InlineDataAttribute(TiffType.SShort)]
+        [InlineDataAttribute(TiffType.SLong)]
+        [InlineDataAttribute(TiffType.SRational)]
+        [InlineDataAttribute(TiffType.Double)]
+        [InlineDataAttribute(TiffType.Ifd)]
+        [InlineDataAttribute((TiffType)99)]
+        public void ReadFloat_ThrowsExceptionIfInvalidType(ushort type)
+        {
+            (TiffDecoderCore decoder, TiffIfdEntry entry) = GenerateTestIfdEntry(TiffGenEntry.Bytes(TiffTags.ImageWidth, (TiffType)type, 1, new byte[4]), true);
+
+            var e = Assert.Throws<ImageFormatException>(() => decoder.ReadFloat(ref entry));
+
+            Assert.Equal($"A value of type '{(TiffType)type}' cannot be converted to a float.", e.Message);
+        }
+
+        [Theory]
+        [InlineDataAttribute(false)]
+        [InlineDataAttribute(true)]
+        public void ReadFloat_ThrowsExceptionIfCountIsNotOne(bool isLittleEndian)
+        {
+            (TiffDecoderCore decoder, TiffIfdEntry entry) = GenerateTestIfdEntry(TiffGenEntry.Bytes(TiffTags.ImageWidth, TiffType.Float, 2, new byte[4]), isLittleEndian);
+
+            var e = Assert.Throws<ImageFormatException>(() => decoder.ReadFloat(ref entry));
+
+            Assert.Equal($"Cannot read a single value from an array of multiple items.", e.Message);
+        }
+
+        [Theory]
+        [InlineDataAttribute(false, new byte[] { 0x00, 0x00, 0x00, 0x00 }, new float[] { 0.0F })]
+        [InlineDataAttribute(false, new byte[] { 0x3F, 0x80, 0x00, 0x00 }, new float[] { 1.0F })]
+        [InlineDataAttribute(false, new byte[] { 0xC0, 0x00, 0x00, 0x00 }, new float[] { -2.0F })]
+        [InlineDataAttribute(false, new byte[] { 0x7F, 0x7F, 0xFF, 0xFF }, new float[] { float.MaxValue })]
+        [InlineDataAttribute(false, new byte[] { 0x7F, 0x80, 0x00, 0x00 }, new float[] { float.PositiveInfinity })]
+        [InlineDataAttribute(false, new byte[] { 0xFF, 0x80, 0x00, 0x00 }, new float[] { float.NegativeInfinity })]
+        [InlineDataAttribute(false, new byte[] { 0x00, 0x00, 0x00, 0x00, 0x3F, 0x80, 0x00, 0x00, 0xC0, 0x00, 0x00, 0x00 }, new float[] { 0.0F, 1.0F, -2.0F })]
+        [InlineDataAttribute(true, new byte[] { 0x00, 0x00, 0x00, 0x00 }, new float[] { 0.0F })]
+        [InlineDataAttribute(true, new byte[] { 0x00, 0x00, 0x80, 0x3F }, new float[] { 1.0F })]
+        [InlineDataAttribute(true, new byte[] { 0x00, 0x00, 0x00, 0xC0 }, new float[] { -2.0F })]
+        [InlineDataAttribute(true, new byte[] { 0xFF, 0xFF, 0x7F, 0x7F }, new float[] { float.MaxValue })]
+        [InlineDataAttribute(true, new byte[] { 0x00, 0x00, 0x80, 0x7F }, new float[] { float.PositiveInfinity })]
+        [InlineDataAttribute(true, new byte[] { 0x00, 0x00, 0x80, 0xFF }, new float[] { float.NegativeInfinity })]
+        [InlineDataAttribute(true, new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x3F, 0x00, 0x00, 0x00, 0xC0 }, new float[] { 0.0F, 1.0F, -2.0F })]
+
+        public void ReadFloatArray_ReturnsValue(bool isLittleEndian, byte[] bytes, float[] expectedValue)
+        {
+            (TiffDecoderCore decoder, TiffIfdEntry entry) = GenerateTestIfdEntry(TiffGenEntry.Bytes(TiffTags.ImageWidth, TiffType.Float, (uint)expectedValue.Length, bytes), isLittleEndian);
+
+            float[] result = decoder.ReadFloatArray(ref entry);
+
+            Assert.Equal(expectedValue, result);
+        }
+
+        [Theory]
+        [InlineDataAttribute(TiffType.Byte)]
+        [InlineDataAttribute(TiffType.Ascii)]
+        [InlineDataAttribute(TiffType.Short)]
+        [InlineDataAttribute(TiffType.Long)]
+        [InlineDataAttribute(TiffType.Rational)]
+        [InlineDataAttribute(TiffType.SByte)]
+        [InlineDataAttribute(TiffType.Undefined)]
+        [InlineDataAttribute(TiffType.SShort)]
+        [InlineDataAttribute(TiffType.SLong)]
+        [InlineDataAttribute(TiffType.SRational)]
+        [InlineDataAttribute(TiffType.Double)]
+        [InlineDataAttribute(TiffType.Ifd)]
+        [InlineDataAttribute((TiffType)99)]
+        public void ReadFloatArray_ThrowsExceptionIfInvalidType(ushort type)
+        {
+            (TiffDecoderCore decoder, TiffIfdEntry entry) = GenerateTestIfdEntry(TiffGenEntry.Bytes(TiffTags.ImageWidth, (TiffType)type, 1, new byte[4]), true);
+
+            var e = Assert.Throws<ImageFormatException>(() => decoder.ReadFloatArray(ref entry));
+
+            Assert.Equal($"A value of type '{(TiffType)type}' cannot be converted to a float.", e.Message);
+        }
+
+        [Theory]
+        [InlineDataAttribute(false, new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }, 0.0)]
+        [InlineDataAttribute(false, new byte[] { 0x3F, 0xF0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }, 1.0)]
+        [InlineDataAttribute(false, new byte[] { 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }, 2.0)]
+        [InlineDataAttribute(false, new byte[] { 0xC0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }, -2.0)]
+        [InlineDataAttribute(false, new byte[] { 0x7F, 0xEF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF }, double.MaxValue)]
+        [InlineDataAttribute(false, new byte[] { 0x7F, 0xF0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }, double.PositiveInfinity)]
+        [InlineDataAttribute(false, new byte[] { 0xFF, 0xF0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }, double.NegativeInfinity)]
+        [InlineDataAttribute(false, new byte[] { 0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF }, double.NaN)]
+        [InlineDataAttribute(true, new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }, 0.0)]
+        [InlineDataAttribute(true, new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xF0, 0x3F }, 1.0)]
+        [InlineDataAttribute(true, new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40 }, 2.0)]
+        [InlineDataAttribute(true, new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xC0 }, -2.0)]
+        [InlineDataAttribute(true, new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xEF, 0x7F }, double.MaxValue)]
+        [InlineDataAttribute(true, new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xF0, 0x7F }, double.PositiveInfinity)]
+        [InlineDataAttribute(true, new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xF0, 0xFF }, double.NegativeInfinity)]
+        [InlineDataAttribute(true, new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x7F }, double.NaN)]
+        public void ReadDouble_ReturnsValue(bool isLittleEndian, byte[] bytes, double expectedValue)
+        {
+            (TiffDecoderCore decoder, TiffIfdEntry entry) = GenerateTestIfdEntry(TiffGenEntry.Bytes(TiffTags.ImageWidth, TiffType.Double, 1, bytes), isLittleEndian);
+
+            double result = decoder.ReadDouble(ref entry);
+
+            Assert.Equal(expectedValue, result);
+        }
+
+        [Theory]
+        [InlineDataAttribute(TiffType.Byte)]
+        [InlineDataAttribute(TiffType.Ascii)]
+        [InlineDataAttribute(TiffType.Short)]
+        [InlineDataAttribute(TiffType.Long)]
+        [InlineDataAttribute(TiffType.Rational)]
+        [InlineDataAttribute(TiffType.SByte)]
+        [InlineDataAttribute(TiffType.Undefined)]
+        [InlineDataAttribute(TiffType.SShort)]
+        [InlineDataAttribute(TiffType.SLong)]
+        [InlineDataAttribute(TiffType.SRational)]
+        [InlineDataAttribute(TiffType.Float)]
+        [InlineDataAttribute(TiffType.Ifd)]
+        [InlineDataAttribute((TiffType)99)]
+        public void ReadDouble_ThrowsExceptionIfInvalidType(ushort type)
+        {
+            (TiffDecoderCore decoder, TiffIfdEntry entry) = GenerateTestIfdEntry(TiffGenEntry.Bytes(TiffTags.ImageWidth, (TiffType)type, 1, new byte[4]), true);
+
+            var e = Assert.Throws<ImageFormatException>(() => decoder.ReadDouble(ref entry));
+
+            Assert.Equal($"A value of type '{(TiffType)type}' cannot be converted to a double.", e.Message);
+        }
+
+        [Theory]
+        [InlineDataAttribute(false)]
+        [InlineDataAttribute(true)]
+        public void ReadDouble_ThrowsExceptionIfCountIsNotOne(bool isLittleEndian)
+        {
+            (TiffDecoderCore decoder, TiffIfdEntry entry) = GenerateTestIfdEntry(TiffGenEntry.Bytes(TiffTags.ImageWidth, TiffType.Double, 2, new byte[4]), isLittleEndian);
+
+            var e = Assert.Throws<ImageFormatException>(() => decoder.ReadDouble(ref entry));
+
+            Assert.Equal($"Cannot read a single value from an array of multiple items.", e.Message);
+        }
+
+        [Theory]
+        [InlineDataAttribute(false, new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }, new double[] { 0.0 })]
+        [InlineDataAttribute(false, new byte[] { 0x3F, 0xF0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }, new double[] { 1.0 })]
+        [InlineDataAttribute(false, new byte[] { 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }, new double[] { 2.0 })]
+        [InlineDataAttribute(false, new byte[] { 0xC0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }, new double[] { -2.0 })]
+        [InlineDataAttribute(false, new byte[] { 0x7F, 0xEF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF }, new double[] { double.MaxValue })]
+        [InlineDataAttribute(false, new byte[] { 0x7F, 0xF0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }, new double[] { double.PositiveInfinity })]
+        [InlineDataAttribute(false, new byte[] { 0xFF, 0xF0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }, new double[] { double.NegativeInfinity })]
+        [InlineDataAttribute(false, new byte[] { 0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF }, new double[] { double.NaN })]
+        [InlineDataAttribute(false, new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x3F, 0xF0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xC0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }, new double[] { 0.0, 1.0, -2.0 })]
+        [InlineDataAttribute(true, new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }, new double[] { 0.0 })]
+        [InlineDataAttribute(true, new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xF0, 0x3F }, new double[] { 1.0 })]
+        [InlineDataAttribute(true, new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40 }, new double[] { 2.0 })]
+        [InlineDataAttribute(true, new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xC0 }, new double[] { -2.0 })]
+        [InlineDataAttribute(true, new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xEF, 0x7F }, new double[] { double.MaxValue })]
+        [InlineDataAttribute(true, new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xF0, 0x7F }, new double[] { double.PositiveInfinity })]
+        [InlineDataAttribute(true, new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xF0, 0xFF }, new double[] { double.NegativeInfinity })]
+        [InlineDataAttribute(true, new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x7F }, new double[] { double.NaN })]
+        [InlineDataAttribute(true, new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xF0, 0x3F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xC0 }, new double[] { 0.0, 1.0, -2.0 })]
+        public void ReadDoubleArray_ReturnsValue(bool isLittleEndian, byte[] bytes, double[] expectedValue)
+        {
+            (TiffDecoderCore decoder, TiffIfdEntry entry) = GenerateTestIfdEntry(TiffGenEntry.Bytes(TiffTags.ImageWidth, TiffType.Double, (uint)expectedValue.Length, bytes), isLittleEndian);
+
+            double[] result = decoder.ReadDoubleArray(ref entry);
+
+            Assert.Equal(expectedValue, result);
+        }
+
+        [Theory]
+        [InlineDataAttribute(TiffType.Byte)]
+        [InlineDataAttribute(TiffType.Ascii)]
+        [InlineDataAttribute(TiffType.Short)]
+        [InlineDataAttribute(TiffType.Long)]
+        [InlineDataAttribute(TiffType.Rational)]
+        [InlineDataAttribute(TiffType.SByte)]
+        [InlineDataAttribute(TiffType.Undefined)]
+        [InlineDataAttribute(TiffType.SShort)]
+        [InlineDataAttribute(TiffType.SLong)]
+        [InlineDataAttribute(TiffType.SRational)]
+        [InlineDataAttribute(TiffType.Float)]
+        [InlineDataAttribute(TiffType.Ifd)]
+        [InlineDataAttribute((TiffType)99)]
+        public void ReadDoubleArray_ThrowsExceptionIfInvalidType(ushort type)
+        {
+            (TiffDecoderCore decoder, TiffIfdEntry entry) = GenerateTestIfdEntry(TiffGenEntry.Bytes(TiffTags.ImageWidth, (TiffType)type, 1, new byte[4]), true);
+
+            var e = Assert.Throws<ImageFormatException>(() => decoder.ReadDoubleArray(ref entry));
+
+            Assert.Equal($"A value of type '{(TiffType)type}' cannot be converted to a double.", e.Message);
+        }
+
         private (TiffDecoderCore, TiffIfdEntry) GenerateTestIfdEntry(TiffGenEntry entry, bool isLittleEndian)
         {
             Stream stream = new TiffGenIfd()

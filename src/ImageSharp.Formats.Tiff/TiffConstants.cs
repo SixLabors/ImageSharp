@@ -51,5 +51,15 @@ namespace ImageSharp.Formats
         /// Size (in bytes) of the Rational and SRational data types
         /// </summary>
         public const int SizeOfRational = 8;
+
+        /// <summary>
+        /// Size (in bytes) of the Float data type
+        /// </summary>
+        public const int SizeOfFloat = 4;
+
+        /// <summary>
+        /// Size (in bytes) of the Double data type
+        /// </summary>
+        public const int SizeOfDouble = 8;
     }
 }

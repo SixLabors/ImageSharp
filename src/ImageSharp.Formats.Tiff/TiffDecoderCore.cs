@@ -264,6 +264,58 @@ namespace ImageSharp.Formats
             return Encoding.UTF8.GetString(bytes, 0, (int)entry.Count - 1);
         }
 
+        public Rational ReadUnsignedRational(ref TiffIfdEntry entry)
+        {
+            if (entry.Count != 1)
+                throw new ImageFormatException($"Cannot read a single value from an array of multiple items.");
+
+            return ReadUnsignedRationalArray(ref entry)[0];
+        }
+
+        public SignedRational ReadSignedRational(ref TiffIfdEntry entry)
+        {
+            if (entry.Count != 1)
+                throw new ImageFormatException($"Cannot read a single value from an array of multiple items.");
+
+            return ReadSignedRationalArray(ref entry)[0];
+        }
+
+        public Rational[] ReadUnsignedRationalArray(ref TiffIfdEntry entry)
+        {
+            if (entry.Type != TiffType.Rational)
+                throw new ImageFormatException($"A value of type '{entry.Type}' cannot be converted to a Rational.");
+
+            byte[] bytes = ReadBytes(ref entry);
+            Rational[] result = new Rational[entry.Count];
+
+            for (int i = 0 ; i < result.Length ; i++)
+            {
+                uint numerator = ToUInt32(bytes, i * 8);
+                uint denominator = ToUInt32(bytes, i * 8 + 4);
+                result[i] = new Rational(numerator, denominator);
+            }
+
+            return result;
+        }
+
+        public SignedRational[] ReadSignedRationalArray(ref TiffIfdEntry entry)
+        {
+            if (entry.Type != TiffType.SRational)
+                throw new ImageFormatException($"A value of type '{entry.Type}' cannot be converted to a SignedRational.");
+
+            byte[] bytes = ReadBytes(ref entry);
+            SignedRational[] result = new SignedRational[entry.Count];
+
+            for (int i = 0 ; i < result.Length ; i++)
+            {
+                int numerator = ToInt32(bytes, i * 8);
+                int denominator = ToInt32(bytes, i * 8 + 4);
+                result[i] = new SignedRational(numerator, denominator);
+            }
+
+            return result;
+        }
+
         private SByte ToSByte(byte[] bytes, int offset)
         {
             return (sbyte)bytes[offset];

@@ -423,6 +423,190 @@ namespace ImageSharp.Tests
             Assert.Equal($"The retrieved string is not null terminated.", e.Message);
         }
 
+        [Theory]
+        [InlineDataAttribute(true, new byte[] { 0, 0, 0, 0, 2, 0, 0, 0 }, 0, 2)]
+        [InlineDataAttribute(true, new byte[] { 1, 0, 0, 0, 2, 0, 0, 0 }, 1, 2)]
+        [InlineDataAttribute(false, new byte[] { 0, 0, 0, 0, 0, 0, 0, 2 }, 0, 2)]
+        [InlineDataAttribute(false, new byte[] { 0, 0, 0, 1, 0, 0, 0, 2 }, 1, 2)]
+        public void ReadUnsignedRational_ReturnsValue(bool isLittleEndian, byte[] bytes, uint expectedNumerator, uint expectedDenominator)
+        {
+            (TiffDecoderCore decoder, TiffIfdEntry entry) = GenerateTestIfdEntry(TiffGenEntry.Bytes(TiffTags.ImageWidth, TiffType.Rational, 1, bytes), isLittleEndian);
+
+            Rational result = decoder.ReadUnsignedRational(ref entry);
+            Rational expectedValue = new Rational(expectedNumerator, expectedDenominator);
+
+            Assert.Equal(expectedValue, result);
+        }
+
+        [Theory]
+        [InlineDataAttribute(true, new byte[] { 0, 0, 0, 0, 2, 0, 0, 0 }, 0, 2)]
+        [InlineDataAttribute(true, new byte[] { 1, 0, 0, 0, 2, 0, 0, 0 }, 1, 2)]
+        [InlineDataAttribute(true, new byte[] { 255, 255, 255, 255, 2, 0, 0, 0 }, -1, 2)]
+        [InlineDataAttribute(false, new byte[] { 0, 0, 0, 0, 0, 0, 0, 2 }, 0, 2)]
+        [InlineDataAttribute(false, new byte[] { 0, 0, 0, 1, 0, 0, 0, 2 }, 1, 2)]
+        [InlineDataAttribute(false, new byte[] { 255, 255, 255, 255, 0, 0, 0, 2 }, -1, 2)]
+        public void ReadSignedRational_ReturnsValue(bool isLittleEndian, byte[] bytes, int expectedNumerator, int expectedDenominator)
+        {
+            (TiffDecoderCore decoder, TiffIfdEntry entry) = GenerateTestIfdEntry(TiffGenEntry.Bytes(TiffTags.ImageWidth, TiffType.SRational, 1, bytes), isLittleEndian);
+
+            SignedRational result = decoder.ReadSignedRational(ref entry);
+            SignedRational expectedValue = new SignedRational(expectedNumerator, expectedDenominator);
+
+            Assert.Equal(expectedValue, result);
+        }
+
+        [Theory]
+        [InlineDataAttribute(true, new byte[] { 0, 0, 0, 0, 2, 0, 0, 0 }, new uint[] { 0 }, new uint[] { 2 })]
+        [InlineDataAttribute(true, new byte[] { 1, 0, 0, 0, 2, 0, 0, 0 }, new uint[] { 1 }, new uint[] { 2 })]
+        [InlineDataAttribute(true, new byte[] { 1, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 3, 0, 0, 0 }, new uint[] { 1, 2 }, new uint[] { 2, 3 })]
+        [InlineDataAttribute(false, new byte[] { 0, 0, 0, 0, 0, 0, 0, 2 }, new uint[] { 0 }, new uint[] { 2 })]
+        [InlineDataAttribute(false, new byte[] { 0, 0, 0, 1, 0, 0, 0, 2 }, new uint[] { 1 }, new uint[] { 2 })]
+        [InlineDataAttribute(false, new byte[] { 0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 3 }, new uint[] { 1, 2 }, new uint[] { 2, 3 })]
+        public void ReadUnsignedRationalArray_ReturnsValue(bool isLittleEndian, byte[] bytes, uint[] expectedNumerators, uint[] expectedDenominators)
+        {
+            (TiffDecoderCore decoder, TiffIfdEntry entry) = GenerateTestIfdEntry(TiffGenEntry.Bytes(TiffTags.ImageWidth, TiffType.Rational, (uint)expectedNumerators.Length, bytes), isLittleEndian);
+
+            Rational[] result = decoder.ReadUnsignedRationalArray(ref entry);
+            Rational[] expectedValue = Enumerable.Range(0, expectedNumerators.Length).Select(i => new Rational(expectedNumerators[i], expectedDenominators[i])).ToArray();
+
+            Assert.Equal(expectedValue, result);
+        }
+
+        [Theory]
+        [InlineDataAttribute(true, new byte[] { 0, 0, 0, 0, 2, 0, 0, 0 }, new int[] { 0 }, new int[] { 2 })]
+        [InlineDataAttribute(true, new byte[] { 1, 0, 0, 0, 2, 0, 0, 0 }, new int[] { 1 }, new int[] { 2 })]
+        [InlineDataAttribute(true, new byte[] { 255, 255, 255, 255, 2, 0, 0, 0 }, new int[] { -1 }, new int[] { 2 })]
+        [InlineDataAttribute(true, new byte[] { 255, 255, 255, 255, 2, 0, 0, 0, 2, 0, 0, 0, 3, 0, 0, 0 }, new int[] { -1, 2 }, new int[] { 2, 3 })]
+        [InlineDataAttribute(false, new byte[] { 0, 0, 0, 0, 0, 0, 0, 2 }, new int[] { 0 }, new int[] { 2 })]
+        [InlineDataAttribute(false, new byte[] { 0, 0, 0, 1, 0, 0, 0, 2 }, new int[] { 1 }, new int[] { 2 })]
+        [InlineDataAttribute(false, new byte[] { 255, 255, 255, 255, 0, 0, 0, 2 }, new int[] { -1 }, new int[] { 2 })]
+        [InlineDataAttribute(false, new byte[] { 255, 255, 255, 255, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 3 }, new int[] { -1, 2 }, new int[] { 2, 3 })]
+        public void ReadSignedRationalArray_ReturnsValue(bool isLittleEndian, byte[] bytes, int[] expectedNumerators, int[] expectedDenominators)
+        {
+            (TiffDecoderCore decoder, TiffIfdEntry entry) = GenerateTestIfdEntry(TiffGenEntry.Bytes(TiffTags.ImageWidth, TiffType.SRational, (uint)expectedNumerators.Length, bytes), isLittleEndian);
+
+            SignedRational[] result = decoder.ReadSignedRationalArray(ref entry);
+            SignedRational[] expectedValue = Enumerable.Range(0, expectedNumerators.Length).Select(i => new SignedRational(expectedNumerators[i], expectedDenominators[i])).ToArray();
+
+            Assert.Equal(expectedValue, result);
+        }
+
+        [Theory]
+        [InlineDataAttribute(TiffType.Byte)]
+        [InlineDataAttribute(TiffType.Ascii)]
+        [InlineDataAttribute(TiffType.Short)]
+        [InlineDataAttribute(TiffType.Long)]
+        [InlineDataAttribute(TiffType.SByte)]
+        [InlineDataAttribute(TiffType.Undefined)]
+        [InlineDataAttribute(TiffType.SShort)]
+        [InlineDataAttribute(TiffType.SLong)]
+        [InlineDataAttribute(TiffType.SRational)]
+        [InlineDataAttribute(TiffType.Float)]
+        [InlineDataAttribute(TiffType.Double)]
+        [InlineDataAttribute(TiffType.Ifd)]
+        [InlineDataAttribute((TiffType)99)]
+        public void ReadUnsignedRational_ThrowsExceptionIfInvalidType(ushort type)
+        {
+            (TiffDecoderCore decoder, TiffIfdEntry entry) = GenerateTestIfdEntry(TiffGenEntry.Bytes(TiffTags.ImageWidth, (TiffType)type, 1, new byte[4]), true);
+
+            var e = Assert.Throws<ImageFormatException>(() => decoder.ReadUnsignedRational(ref entry));
+
+            Assert.Equal($"A value of type '{(TiffType)type}' cannot be converted to a Rational.", e.Message);
+        }
+
+        [Theory]
+        [InlineDataAttribute(TiffType.Byte)]
+        [InlineDataAttribute(TiffType.Ascii)]
+        [InlineDataAttribute(TiffType.Short)]
+        [InlineDataAttribute(TiffType.Long)]
+        [InlineDataAttribute(TiffType.SByte)]
+        [InlineDataAttribute(TiffType.Rational)]
+        [InlineDataAttribute(TiffType.Undefined)]
+        [InlineDataAttribute(TiffType.SShort)]
+        [InlineDataAttribute(TiffType.SLong)]
+        [InlineDataAttribute(TiffType.Float)]
+        [InlineDataAttribute(TiffType.Double)]
+        [InlineDataAttribute(TiffType.Ifd)]
+        [InlineDataAttribute((TiffType)99)]
+        public void ReadSignedRational_ThrowsExceptionIfInvalidType(ushort type)
+        {
+            (TiffDecoderCore decoder, TiffIfdEntry entry) = GenerateTestIfdEntry(TiffGenEntry.Bytes(TiffTags.ImageWidth, (TiffType)type, 1, new byte[4]), true);
+
+            var e = Assert.Throws<ImageFormatException>(() => decoder.ReadSignedRational(ref entry));
+
+            Assert.Equal($"A value of type '{(TiffType)type}' cannot be converted to a SignedRational.", e.Message);
+        }
+
+        [Theory]
+        [InlineDataAttribute(TiffType.Byte)]
+        [InlineDataAttribute(TiffType.Ascii)]
+        [InlineDataAttribute(TiffType.Short)]
+        [InlineDataAttribute(TiffType.Long)]
+        [InlineDataAttribute(TiffType.SByte)]
+        [InlineDataAttribute(TiffType.Undefined)]
+        [InlineDataAttribute(TiffType.SShort)]
+        [InlineDataAttribute(TiffType.SLong)]
+        [InlineDataAttribute(TiffType.SRational)]
+        [InlineDataAttribute(TiffType.Float)]
+        [InlineDataAttribute(TiffType.Double)]
+        [InlineDataAttribute(TiffType.Ifd)]
+        [InlineDataAttribute((TiffType)99)]
+        public void ReadUnsignedRationalArray_ThrowsExceptionIfInvalidType(ushort type)
+        {
+            (TiffDecoderCore decoder, TiffIfdEntry entry) = GenerateTestIfdEntry(TiffGenEntry.Bytes(TiffTags.ImageWidth, (TiffType)type, 1, new byte[4]), true);
+
+            var e = Assert.Throws<ImageFormatException>(() => decoder.ReadUnsignedRationalArray(ref entry));
+
+            Assert.Equal($"A value of type '{(TiffType)type}' cannot be converted to a Rational.", e.Message);
+        }
+
+        [Theory]
+        [InlineDataAttribute(TiffType.Byte)]
+        [InlineDataAttribute(TiffType.Ascii)]
+        [InlineDataAttribute(TiffType.Short)]
+        [InlineDataAttribute(TiffType.Long)]
+        [InlineDataAttribute(TiffType.Rational)]
+        [InlineDataAttribute(TiffType.SByte)]
+        [InlineDataAttribute(TiffType.Undefined)]
+        [InlineDataAttribute(TiffType.SShort)]
+        [InlineDataAttribute(TiffType.SLong)]
+        [InlineDataAttribute(TiffType.Float)]
+        [InlineDataAttribute(TiffType.Double)]
+        [InlineDataAttribute(TiffType.Ifd)]
+        [InlineDataAttribute((TiffType)99)]
+        public void ReadSignedRationalArray_ThrowsExceptionIfInvalidType(ushort type)
+        {
+            (TiffDecoderCore decoder, TiffIfdEntry entry) = GenerateTestIfdEntry(TiffGenEntry.Bytes(TiffTags.ImageWidth, (TiffType)type, 1, new byte[4]), true);
+
+            var e = Assert.Throws<ImageFormatException>(() => decoder.ReadSignedRationalArray(ref entry));
+
+            Assert.Equal($"A value of type '{(TiffType)type}' cannot be converted to a SignedRational.", e.Message);
+        }
+
+        [Theory]
+        [InlineDataAttribute(false)]
+        [InlineDataAttribute(true)]
+        public void ReadUnsignedRational_ThrowsExceptionIfCountIsNotOne(bool isLittleEndian)
+        {
+            (TiffDecoderCore decoder, TiffIfdEntry entry) = GenerateTestIfdEntry(TiffGenEntry.Bytes(TiffTags.ImageWidth, TiffType.Rational, 2, new byte[4]), isLittleEndian);
+
+            var e = Assert.Throws<ImageFormatException>(() => decoder.ReadUnsignedRational(ref entry));
+
+            Assert.Equal($"Cannot read a single value from an array of multiple items.", e.Message);
+        }
+
+        [Theory]
+        [InlineDataAttribute(false)]
+        [InlineDataAttribute(true)]
+        public void ReadSignedRational_ThrowsExceptionIfCountIsNotOne(bool isLittleEndian)
+        {
+            (TiffDecoderCore decoder, TiffIfdEntry entry) = GenerateTestIfdEntry(TiffGenEntry.Bytes(TiffTags.ImageWidth, TiffType.SRational, 2, new byte[4]), isLittleEndian);
+
+            var e = Assert.Throws<ImageFormatException>(() => decoder.ReadSignedRational(ref entry));
+
+            Assert.Equal($"Cannot read a single value from an array of multiple items.", e.Message);
+        }
+
         private (TiffDecoderCore, TiffIfdEntry) GenerateTestIfdEntry(TiffGenEntry entry, bool isLittleEndian)
         {
             Stream stream = new TiffGenIfd()

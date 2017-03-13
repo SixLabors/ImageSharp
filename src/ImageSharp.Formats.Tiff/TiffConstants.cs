@@ -36,5 +36,20 @@ namespace ImageSharp.Formats
         /// Size (in bytes) of each individual TIFF IFD entry
         /// </summary>
         public const int SizeOfIfdEntry = 12;
+
+        /// <summary>
+        /// Size (in bytes) of the Short and SShort data types
+        /// </summary>
+        public const int SizeOfShort = 2;
+        
+        /// <summary>
+        /// Size (in bytes) of the Long and SLong data types
+        /// </summary>
+        public const int SizeOfLong = 4;
+
+        /// <summary>
+        /// Size (in bytes) of the Rational and SRational data types
+        /// </summary>
+        public const int SizeOfRational = 8;
     }
 }

@@ -5,7 +5,6 @@
 
 namespace ImageSharp.Tests
 {
-    using System;
     using System.Collections.Generic;
     using System.Linq;
 
@@ -37,11 +36,11 @@ namespace ImageSharp.Tests
             {
                 var firstIfdData = FirstIfd.GetData(isLittleEndian);
                 firstIfdData.First().AddReference(headerData.Bytes, 4);
-                return new [] { headerData }.Concat(firstIfdData);
+                return new[] { headerData }.Concat(firstIfdData);
             }
             else
             {
-                return new [] { headerData };
+                return new[] { headerData };
             }
         }
     }

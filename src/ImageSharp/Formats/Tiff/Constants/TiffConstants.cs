@@ -5,8 +5,6 @@
 
 namespace ImageSharp.Formats
 {
-    using System.Text;
-
     /// <summary>
     /// Defines constants defined in the TIFF specification.
     /// </summary>

@@ -5,9 +5,6 @@
 
 namespace ImageSharp.Tests
 {
-    using System;
-    using System.Collections.Generic;
-
     /// <summary>
     /// A utility data structure to represent a reference from one block of data to another in a Tiff file.
     /// </summary>

@@ -15,7 +15,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void Decode_IgnoreMetadataIsFalse_TextChunckIsRead()
         {
-            var options = new PngDecoderOptions()
+            PngDecoderOptions options = new PngDecoderOptions()
             {
                 IgnoreMetadata = false
             };
@@ -33,7 +33,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void Decode_IgnoreMetadataIsTrue_TextChunksAreIgnored()
         {
-            var options = new PngDecoderOptions()
+            PngDecoderOptions options = new PngDecoderOptions()
             {
                 IgnoreMetadata = true
             };
@@ -49,7 +49,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void Decode_TextEncodingSetToUnicode_TextIsReadWithCorrectEncoding()
         {
-            var options = new PngDecoderOptions()
+            PngDecoderOptions options = new PngDecoderOptions()
             {
                 TextEncoding = Encoding.Unicode
             };

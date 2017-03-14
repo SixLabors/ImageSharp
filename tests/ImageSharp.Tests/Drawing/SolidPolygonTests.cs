@@ -209,7 +209,7 @@ namespace ImageSharp.Tests.Drawing
         {
             string path = this.CreateOutputDirectory("Drawing", "FilledPolygons");
 
-            var config = Configuration.CreateDefaultInstance();
+            Configuration config = Configuration.CreateDefaultInstance();
             config.ParallelOptions.MaxDegreeOfParallelism = 1;
             using (Image image = new Image(100, 100, config))
             {
@@ -228,7 +228,7 @@ namespace ImageSharp.Tests.Drawing
         {
             string path = this.CreateOutputDirectory("Drawing", "FilledPolygons");
 
-            var config = Configuration.CreateDefaultInstance();
+            Configuration config = Configuration.CreateDefaultInstance();
             config.ParallelOptions.MaxDegreeOfParallelism = 1;
             using (Image image = new Image(100, 100, config))
             {
@@ -248,7 +248,7 @@ namespace ImageSharp.Tests.Drawing
         {
             string path = this.CreateOutputDirectory("Drawing", "FilledPolygons");
 
-            var config = Configuration.CreateDefaultInstance();
+            Configuration config = Configuration.CreateDefaultInstance();
             config.ParallelOptions.MaxDegreeOfParallelism = 1;
             using (Image image = new Image(200, 200, config))
             {

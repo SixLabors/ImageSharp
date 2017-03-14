@@ -78,7 +78,7 @@ namespace ImageSharp.Formats.Jpg
         public static JpegPixelArea CreatePooled(int width, int height)
         {
             int size = width * height;
-            var pixels = BytePool.Rent(size);
+            byte[] pixels = BytePool.Rent(size);
             return new JpegPixelArea(pixels, width, 0);
         }
 

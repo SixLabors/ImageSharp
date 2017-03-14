@@ -368,7 +368,7 @@ namespace ImageSharp.Tests.Colors
             where TSource : struct
             where TDest : struct
         {
-            using (var buffers = new TestBuffers<TSource, TDest>(source, expected))
+            using (TestBuffers<TSource, TDest> buffers = new TestBuffers<TSource, TDest>(source, expected))
             {
                 action(buffers.Source, buffers.ActualDest);
                 buffers.Verify();

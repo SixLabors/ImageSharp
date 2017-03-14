@@ -307,7 +307,7 @@ namespace ImageSharp
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static uint Pack(float x, float y, float z, float w)
         {
-            var value = new Vector4(x, y, z, w);
+            Vector4 value = new Vector4(x, y, z, w);
             return Pack(ref value);
         }
 
@@ -333,7 +333,7 @@ namespace ImageSharp
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static uint Pack(ref Vector3 vector)
         {
-            var value = new Vector4(vector, 1);
+            Vector4 value = new Vector4(vector, 1);
             return Pack(ref value);
         }
 

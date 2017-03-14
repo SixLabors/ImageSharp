@@ -72,6 +72,9 @@ namespace ImageSharp
             return left.PackedValue != right.PackedValue;
         }
 
+        /// <inheritdoc />
+        public BulkPixelOperations<Rg32> CreateBulkOperations() => new BulkPixelOperations<Rg32>();
+
         /// <summary>
         /// Expands the packed representation into a <see cref="Vector2"/>.
         /// The vector components are typically expanded in least to greatest significance order.

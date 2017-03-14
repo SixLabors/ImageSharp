@@ -223,17 +223,5 @@ namespace ImageSharp
             : base(other)
         {
         }
-
-        /// <inheritdoc />
-        public override PixelAccessor<Color> Lock()
-        {
-            return new PixelAccessor(this);
-        }
-
-        /// <inheritdoc />
-        internal override ImageFrame<Color> ToFrame()
-        {
-            return new ImageFrame(this);
-        }
     }
 }

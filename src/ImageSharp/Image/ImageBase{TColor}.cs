@@ -60,6 +60,7 @@ namespace ImageSharp
         {
             this.Configuration = configuration ?? Configuration.Default;
             this.InitPixels(width, height);
+            this.ClearPixels();
         }
 
         /// <summary>
@@ -150,7 +151,7 @@ namespace ImageSharp
         }
 
         /// <inheritdoc/>
-        public virtual PixelAccessor<TColor> Lock()
+        public PixelAccessor<TColor> Lock()
         {
             return new PixelAccessor<TColor>(this);
         }
@@ -162,13 +163,12 @@ namespace ImageSharp
         internal void SwapPixelsBuffers(PixelAccessor<TColor> pixelSource)
         {
             Guard.NotNull(pixelSource, nameof(pixelSource));
-            Guard.IsTrue(pixelSource.PooledMemory, nameof(pixelSource.PooledMemory), "pixelSource must be using pooled memory");
 
             int newWidth = pixelSource.Width;
             int newHeight = pixelSource.Height;
 
             // Push my memory into the accessor (which in turn unpins the old puffer ready for the images use)
-            TColor[] newPixels = pixelSource.ReturnCurrentPixelsAndReplaceThemInternally(this.Width, this.Height, this.pixelBuffer, true);
+            TColor[] newPixels = pixelSource.ReturnCurrentPixelsAndReplaceThemInternally(this.Width, this.Height, this.pixelBuffer);
             this.Width = newWidth;
             this.Height = newHeight;
             this.pixelBuffer = newPixels;
@@ -222,7 +222,7 @@ namespace ImageSharp
         /// </summary>
         private void RentPixels()
         {
-            this.pixelBuffer = PixelPool<TColor>.RentPixels(this.Width * this.Height);
+            this.pixelBuffer = PixelDataPool<TColor>.Rent(this.Width * this.Height);
         }
 
         /// <summary>
@@ -230,8 +230,16 @@ namespace ImageSharp
         /// </summary>
         private void ReturnPixels()
         {
-            PixelPool<TColor>.ReturnPixels(this.pixelBuffer);
+            PixelDataPool<TColor>.Return(this.pixelBuffer);
             this.pixelBuffer = null;
+        }
+
+        /// <summary>
+        /// Clears the pixel array.
+        /// </summary>
+        private void ClearPixels()
+        {
+            Array.Clear(this.pixelBuffer, 0, this.Width * this.Height);
         }
     }
 }

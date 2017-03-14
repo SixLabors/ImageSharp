@@ -154,7 +154,7 @@ namespace ImageSharp.Tests
                                                                                  TestImageProvider<Color>.Blank(10, 20),
                                                                                  TestImageProvider<HalfVector4>.Blank(
                                                                                      10,
-                                                                                     20)
+                                                                                     20),
                                                                              };
 
         [Theory]

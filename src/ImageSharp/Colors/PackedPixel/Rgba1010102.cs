@@ -76,6 +76,9 @@ namespace ImageSharp
         }
 
         /// <inheritdoc />
+        public BulkPixelOperations<Rgba1010102> CreateBulkOperations() => new BulkPixelOperations<Rgba1010102>();
+
+        /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vector4 ToVector4()
         {

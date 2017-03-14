@@ -32,7 +32,6 @@ namespace ImageSharp.Tests.Drawing
                 using (FileStream output = File.OpenWrite($"{path}/Simple.png"))
                 {
                     image
-                        .BackgroundColor(Color.Blue)
                         .FillPolygon(Color.HotPink, simplePath, new GraphicsOptions(true))
                         .Save(output);
                 }
@@ -45,7 +44,7 @@ namespace ImageSharp.Tests.Drawing
 
                     Assert.Equal(Color.HotPink, sourcePixels[50, 50]);
 
-                    Assert.Equal(Color.Blue, sourcePixels[2, 2]);
+                    Assert.NotEqual(Color.HotPink, sourcePixels[2, 2]);
                 }
             }
         }
@@ -239,6 +238,33 @@ namespace ImageSharp.Tests.Drawing
                         .BackgroundColor(Color.Blue)
                         .Fill(Color.HotPink, new Ellipse(50, 50, 30, 50)
                                                 .Rotate((float)(Math.PI / 3)))
+                         .Save(output);
+                }
+            }
+        }
+
+        [Fact]
+        public void ImageShouldBeOverlayedBySquareWithCornerClipped()
+        {
+            string path = this.CreateOutputDirectory("Drawing", "FilledPolygons");
+
+            var config = Configuration.CreateDefaultInstance();
+            config.ParallelOptions.MaxDegreeOfParallelism = 1;
+            using (Image image = new Image(200, 200, config))
+            {
+                using (FileStream output = File.OpenWrite($"{path}/clipped-corner.png"))
+                {
+                    image
+                        .Fill(Color.Blue)
+                        .FillPolygon(Color.HotPink, new[]
+                        {
+                            new Vector2( 8, 8 ),
+                            new Vector2( 64, 8 ),
+                            new Vector2( 64, 64 ),
+                            new Vector2( 120, 64 ),
+                            new Vector2( 120, 120 ),
+                            new Vector2( 8, 120 )
+                        } )
                          .Save(output);
                 }
             }

@@ -78,10 +78,10 @@ namespace ImageSharp
             Configuration config = new Configuration();
 
             // lets try auto loading the known image formats
-            config.TryAddImageFormat("ImageSharp.Formats.PngFormat, ImageSharp.Formats.Png");
-            config.TryAddImageFormat("ImageSharp.Formats.JpegFormat, ImageSharp.Formats.Jpeg");
-            config.TryAddImageFormat("ImageSharp.Formats.GifFormat, ImageSharp.Formats.Gif");
-            config.TryAddImageFormat("ImageSharp.Formats.BmpFormat, ImageSharp.Formats.Bmp");
+            config.AddImageFormat(new Formats.PngFormat());
+            config.AddImageFormat(new Formats.JpegFormat());
+            config.AddImageFormat(new Formats.GifFormat());
+            config.AddImageFormat(new Formats.BmpFormat());
             return config;
         }
 

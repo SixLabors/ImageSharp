@@ -130,16 +130,7 @@ namespace ImageSharp.Tests
                 CopyFromZYX(image);
             }
         }
-
-        [Fact]
-        public void CopyFromZYXOptimized()
-        {
-            using (Image image = new Image(1, 1))
-            {
-                CopyFromZYX(image);
-            }
-        }
-
+        
         [Fact]
         public void CopyFromZYXW()
         {
@@ -148,16 +139,7 @@ namespace ImageSharp.Tests
                 CopyFromZYXW(image);
             }
         }
-
-        [Fact]
-        public void CopyFromZYXWOptimized()
-        {
-            using (Image image = new Image(1, 1))
-            {
-                CopyFromZYXW(image);
-            }
-        }
-
+        
         [Fact]
         public void CopyToZYX()
         {
@@ -166,16 +148,7 @@ namespace ImageSharp.Tests
                 CopyToZYX(image);
             }
         }
-
-        [Fact]
-        public void CopyToZYXOptimized()
-        {
-            using (Image image = new Image(1, 1))
-            {
-                CopyToZYX(image);
-            }
-        }
-
+        
         [Fact]
         public void CopyToZYXW()
         {
@@ -184,16 +157,7 @@ namespace ImageSharp.Tests
                 CopyToZYXW(image);
             }
         }
-
-        [Fact]
-        public void CopyToZYXWOptimized()
-        {
-            using (Image image = new Image(1, 1))
-            {
-                CopyToZYXW(image);
-            }
-        }
-
+        
         private static void CopyFromZYX<TColor>(Image<TColor> image)
             where TColor : struct, IPixel<TColor>
         {

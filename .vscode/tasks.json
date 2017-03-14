@@ -8,7 +8,7 @@
   "tasks": [
     {
       "taskName": "build",
-      "args": [ "src/*/project.json", "-f", "netstandard1.1" ],
+      "args": [ "ImageSharp.sln" ],
       "isBuildCommand": true,
       "showOutput": "always",
       "problemMatcher": "$msCompile"
@@ -22,7 +22,7 @@
     },
     {
       "taskName": "test",
-      "args": ["tests/ImageSharp.Tests/project.json", "-f", "netcoreapp1.1"],
+      "args": ["tests/ImageSharp.Tests/ImageSharp.Tests.csproj", "-c", "release", "-f", "netcoreapp1.1"],
       "isTestCommand": true,
       "showOutput": "always",
       "problemMatcher": "$msCompile"

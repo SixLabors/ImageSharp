@@ -37,4 +37,5 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("ImageSharp.Drawing")]
 [assembly: InternalsVisibleTo("ImageSharp.Benchmarks")]
 [assembly: InternalsVisibleTo("ImageSharp.Tests")]
+[assembly: InternalsVisibleTo("ImageSharp.Formats.Tiff.Tests")]
 [assembly: InternalsVisibleTo("ImageSharp.Sandbox46")]

@@ -125,7 +125,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void Decode_IgnoreMetadataIsFalse_ExifProfileIsRead()
         {
-            var options = new DecoderOptions()
+            DecoderOptions options = new DecoderOptions()
             {
                 IgnoreMetadata = false
             };
@@ -141,7 +141,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void Decode_IgnoreMetadataIsTrue_ExifProfileIgnored()
         {
-            var options = new DecoderOptions()
+            DecoderOptions options = new DecoderOptions()
             {
                 IgnoreMetadata = true
             };

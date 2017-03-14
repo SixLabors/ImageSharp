@@ -55,7 +55,7 @@ namespace ImageSharp.Tests
 
             this.Output.WriteLine($"RATIO: {ratio}");
 
-            var img = new YCbCrImage(400, 400, ratio);
+            YCbCrImage img = new YCbCrImage(400, 400, ratio);
 
             //this.PrintChannel("Y", img.YChannel);
             //this.PrintChannel("Cb", img.CbChannel);

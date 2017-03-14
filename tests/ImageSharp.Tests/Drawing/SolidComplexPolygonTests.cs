@@ -28,7 +28,7 @@ namespace ImageSharp.Tests.Drawing
                             new Vector2(37, 85),
                             new Vector2(93, 85),
                             new Vector2(65, 137)));
-            var clipped = simplePath.Clip(hole1);
+            IPath clipped = simplePath.Clip(hole1);
            // var clipped = new Rectangle(10, 10, 100, 100).Clip(new Rectangle(20, 0, 20, 20));
             using (Image image = new Image(500, 500))
             {

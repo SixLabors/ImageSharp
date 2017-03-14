@@ -15,7 +15,7 @@ namespace ImageSharp.Tests.Colors
         {
             get
             {
-                var vector4Values = new Vector4[]
+                Vector4[] vector4Values = new Vector4[]
                     {
                         Vector4.Zero,
                         Vector4.One,
@@ -25,10 +25,10 @@ namespace ImageSharp.Tests.Colors
                         Vector4.UnitW,
                     };
 
-                foreach (var vector4 in vector4Values)
+                foreach (Vector4 vector4 in vector4Values)
                 {
                     // using float array to work around a bug in xunit corruptint the state of any Vector4 passed as MemberData
-                    var vector4Components = new float[] { vector4.X, vector4.Y, vector4.Z, vector4.W };
+                    float[] vector4Components = new float[] { vector4.X, vector4.Y, vector4.Z, vector4.W };
 
                     yield return new object[] { new Argb(vector4), vector4Components };
                     yield return new object[] { new Bgra4444(vector4), vector4Components };
@@ -48,7 +48,7 @@ namespace ImageSharp.Tests.Colors
         {
             get
             {
-                var vector3Values = new Dictionary<Vector3, Vector4>()
+                Dictionary<Vector3, Vector4> vector3Values = new Dictionary<Vector3, Vector4>()
                     {
                         { Vector3.One, Vector4.One },
                         { Vector3.Zero, new Vector4(0, 0, 0, 1) },
@@ -57,11 +57,11 @@ namespace ImageSharp.Tests.Colors
                         { Vector3.UnitZ, new Vector4(0, 0, 1, 1) },
                     };
 
-                foreach (var vector3 in vector3Values.Keys)
+                foreach (Vector3 vector3 in vector3Values.Keys)
                 {
-                    var vector4 = vector3Values[vector3];
+                    Vector4 vector4 = vector3Values[vector3];
                     // using float array to work around a bug in xunit corruptint the state of any Vector4 passed as MemberData
-                    var vector4Components = new float[] { vector4.X, vector4.Y, vector4.Z, vector4.W };
+                    float[] vector4Components = new float[] { vector4.X, vector4.Y, vector4.Z, vector4.W };
 
                     yield return new object[] { new Argb(vector3), vector4Components };
                     yield return new object[] { new Bgr565(vector3), vector4Components };
@@ -73,7 +73,7 @@ namespace ImageSharp.Tests.Colors
         {
             get
             {
-                var vector4Values = new Vector4[]
+                Vector4[] vector4Values = new Vector4[]
                     {
                         Vector4.Zero,
                         Vector4.One,
@@ -83,10 +83,10 @@ namespace ImageSharp.Tests.Colors
                         Vector4.UnitW,
                     };
 
-                foreach (var vector4 in vector4Values)
+                foreach (Vector4 vector4 in vector4Values)
                 {
                     // using float array to work around a bug in xunit corruptint the state of any Vector4 passed as MemberData
-                    var vector4Components = new float[] { vector4.X, vector4.Y, vector4.Z, vector4.W };
+                    float[] vector4Components = new float[] { vector4.X, vector4.Y, vector4.Z, vector4.W };
 
                     yield return new object[] { new Argb(vector4.X, vector4.Y, vector4.Z, vector4.W), vector4Components };
                     yield return new object[] { new Bgra4444(vector4.X, vector4.Y, vector4.Z, vector4.W), vector4Components };
@@ -106,7 +106,7 @@ namespace ImageSharp.Tests.Colors
         {
             get
             {
-                var vector3Values = new Dictionary<Vector3, Vector4>()
+                Dictionary<Vector3, Vector4> vector3Values = new Dictionary<Vector3, Vector4>()
                     {
                         { Vector3.One, Vector4.One },
                         { Vector3.Zero, new Vector4(0, 0, 0, 1) },
@@ -115,11 +115,11 @@ namespace ImageSharp.Tests.Colors
                         { Vector3.UnitZ, new Vector4(0, 0, 1, 1) },
                     };
 
-                foreach (var vector3 in vector3Values.Keys)
+                foreach (Vector3 vector3 in vector3Values.Keys)
                 {
-                    var vector4 = vector3Values[vector3];
+                    Vector4 vector4 = vector3Values[vector3];
                     // using float array to work around a bug in xunit corruptint the state of any Vector4 passed as MemberData
-                    var vector4Components = new float[] { vector4.X, vector4.Y, vector4.Z, vector4.W };
+                    float[] vector4Components = new float[] { vector4.X, vector4.Y, vector4.Z, vector4.W };
 
                     yield return new object[] { new Argb(vector3.X, vector3.Y, vector3.Z), vector4Components };
                     yield return new object[] { new Bgr565(vector3.X, vector3.Y, vector3.Z), vector4Components };
@@ -135,12 +135,12 @@ namespace ImageSharp.Tests.Colors
         public void ConstructorToVector4(IPixel packedVector, float[] expectedVector4Components)
         {
             // Arrange
-            var precision = 2;
+            int precision = 2;
             // using float array to work around a bug in xunit corruptint the state of any Vector4 passed as MemberData
-            var expectedVector4 = new Vector4(expectedVector4Components[0], expectedVector4Components[1], expectedVector4Components[2], expectedVector4Components[3]);
+            Vector4 expectedVector4 = new Vector4(expectedVector4Components[0], expectedVector4Components[1], expectedVector4Components[2], expectedVector4Components[3]);
 
             // Act
-            var vector4 = packedVector.ToVector4();
+            Vector4 vector4 = packedVector.ToVector4();
 
             // Assert
             Assert.Equal(expectedVector4.X, vector4.X, precision);

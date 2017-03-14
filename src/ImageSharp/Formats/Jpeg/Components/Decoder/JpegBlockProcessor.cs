@@ -71,8 +71,8 @@ namespace ImageSharp.Formats.Jpg
 
             DCT.TransformIDCT(ref *b, ref *this.pointers.Temp1, ref *this.pointers.Temp2);
 
-            var destChannel = decoder.GetDestinationChannel(this.componentIndex);
-            var destArea = destChannel.GetOffsetedSubAreaForBlock(decodedBlock.Bx, decodedBlock.By);
+            JpegPixelArea destChannel = decoder.GetDestinationChannel(this.componentIndex);
+            JpegPixelArea destArea = destChannel.GetOffsetedSubAreaForBlock(decodedBlock.Bx, decodedBlock.By);
             destArea.LoadColorsFrom(this.pointers.Temp1, this.pointers.Temp2);
         }
 

@@ -38,7 +38,7 @@ namespace ImageSharp.Tests
 
             public override Image<TColor> GetImage()
             {
-                var image = base.GetImage();
+                Image<TColor> image = base.GetImage();
                 TColor color = default(TColor);
                 color.PackFromBytes(this.r, this.g, this.b, this.a);
 

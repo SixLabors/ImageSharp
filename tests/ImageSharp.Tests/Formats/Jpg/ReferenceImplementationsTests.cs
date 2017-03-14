@@ -52,7 +52,7 @@ namespace ImageSharp.Tests.Formats.Jpg
         {
             MutableSpan<int> original = Create8x8RandomIntData(-200, 200, seed);
 
-            var block = original.AddScalarToAllValues(128);
+            MutableSpan<int> block = original.AddScalarToAllValues(128);
 
             ReferenceImplementations.IntegerReferenceDCT.TransformFDCTInplace(block);
 
@@ -79,7 +79,7 @@ namespace ImageSharp.Tests.Formats.Jpg
         [InlineData(2, 0)]
         public void FloatingPointDCT_ReferenceImplementation_ForwardThenInverse(int seed, int startAt)
         {
-            var data = Create8x8RandomIntData(-200, 200, seed);
+            int[] data = Create8x8RandomIntData(-200, 200, seed);
             MutableSpan<float> src = new MutableSpan<int>(data).ConvertToFloat32MutableSpan();
             MutableSpan<float> dest = new MutableSpan<float>(64);
             MutableSpan<float> temp = new MutableSpan<float>(64);

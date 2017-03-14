@@ -124,7 +124,7 @@ namespace ImageSharp.Drawing.Brushes
                     float distance = Vector4.DistanceSquared(background, this.sourceColor);
                     if (distance <= this.threshold)
                     {
-                        var lerpAmount = (this.threshold - distance) / this.threshold;
+                        float lerpAmount = (this.threshold - distance) / this.threshold;
                         Vector4 blended = Vector4BlendTransforms.PremultipliedLerp(
                             background,
                             this.targetColor,

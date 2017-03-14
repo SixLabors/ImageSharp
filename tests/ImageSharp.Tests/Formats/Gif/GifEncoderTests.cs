@@ -15,7 +15,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void Encode_IgnoreMetadataIsFalse_CommentsAreWritten()
         {
-            var options = new EncoderOptions()
+            EncoderOptions options = new EncoderOptions()
             {
                 IgnoreMetadata = false
             };
@@ -42,7 +42,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void Encode_IgnoreMetadataIsTrue_CommentsAreNotWritten()
         {
-            var options = new GifEncoderOptions()
+            GifEncoderOptions options = new GifEncoderOptions()
             {
                 IgnoreMetadata = true
             };

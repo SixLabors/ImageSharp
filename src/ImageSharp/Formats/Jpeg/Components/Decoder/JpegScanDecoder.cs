@@ -305,7 +305,7 @@ namespace ImageSharp.Formats.Jpg
         /// <param name="scanIndex">The index of the scan</param>
         private void DecodeBlock(JpegDecoderCore decoder, int scanIndex)
         {
-            var b = this.pointers.Block;
+            Block8x8F* b = this.pointers.Block;
             int huffmannIdx = (HuffmanTree.AcTableIndex * HuffmanTree.ThRowSize) + this.pointers.ComponentScan[scanIndex].AcTableSelector;
             if (this.ah != 0)
             {
@@ -630,7 +630,7 @@ namespace ImageSharp.Formats.Jpg
         /// <returns>The <see cref="int" /></returns>
         private int RefineNonZeroes(ref InputProcessor bp, int zig, int nz, int delta)
         {
-            var b = this.pointers.Block;
+            Block8x8F* b = this.pointers.Block;
             for (; zig <= this.zigEnd; zig++)
             {
                 int u = this.pointers.Unzig[zig];

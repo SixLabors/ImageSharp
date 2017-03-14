@@ -165,7 +165,7 @@ namespace ImageSharp.Tests
 
             AddFormatsDirectoryFromTestAssebmlyPath(directories);
 
-            var directory = directories.FirstOrDefault(x => Directory.Exists(x));
+            string directory = directories.FirstOrDefault(x => Directory.Exists(x));
 
             if(directory  != null)
             {

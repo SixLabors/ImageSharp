@@ -74,7 +74,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void Encode_IgnoreMetadataIsFalse_ExifProfileIsWritten()
         {
-            var options = new EncoderOptions()
+            EncoderOptions options = new EncoderOptions()
             {
                 IgnoreMetadata = false
             };
@@ -99,7 +99,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void Encode_IgnoreMetadataIsTrue_ExifProfileIgnored()
         {
-            var options = new JpegEncoderOptions()
+            JpegEncoderOptions options = new JpegEncoderOptions()
             {
                 IgnoreMetadata = true
             };

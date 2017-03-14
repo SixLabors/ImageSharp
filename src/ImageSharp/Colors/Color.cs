@@ -245,6 +245,9 @@ namespace ImageSharp
             return ColorBuilder<Color>.FromHex(hex);
         }
 
+        /// <inheritdoc />
+        public BulkPixelOperations<Color> CreateBulkOperations() => new Color.BulkOperations();
+
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void PackFromBytes(byte x, byte y, byte z, byte w)

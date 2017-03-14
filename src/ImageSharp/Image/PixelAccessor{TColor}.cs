@@ -15,23 +15,13 @@ namespace ImageSharp
     /// Provides per-pixel access to generic <see cref="Image{TColor}"/> pixels.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    public unsafe class PixelAccessor<TColor> : IDisposable
+    public sealed unsafe class PixelAccessor<TColor> : IDisposable
         where TColor : struct, IPixel<TColor>
     {
-        /// <summary>
-        /// The pointer to the pixel buffer.
-        /// </summary>
-        private IntPtr dataPointer;
-
         /// <summary>
         /// The position of the first pixel in the image.
         /// </summary>
         private byte* pixelsBase;
-
-        /// <summary>
-        /// Provides a way to access the pixels from unmanaged memory.
-        /// </summary>
-        private GCHandle pixelsHandle;
 
         /// <summary>
         /// A value indicating whether this instance of the given entity has been disposed.
@@ -45,9 +35,9 @@ namespace ImageSharp
         private bool isDisposed;
 
         /// <summary>
-        /// The pixel buffer
+        /// The <see cref="PinnedBuffer{T}"/> containing the pixel data.
         /// </summary>
-        private TColor[] pixelBuffer;
+        private PinnedBuffer<TColor> pixelBuffer;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PixelAccessor{TColor}"/> class.
@@ -59,7 +49,7 @@ namespace ImageSharp
             Guard.MustBeGreaterThan(image.Width, 0, "image width");
             Guard.MustBeGreaterThan(image.Height, 0, "image height");
 
-            this.SetPixelBufferUnsafe(image.Width, image.Height, image.Pixels, false);
+            this.SetPixelBufferUnsafe(image.Width, image.Height, image.Pixels);
             this.ParallelOptions = image.Configuration.ParallelOptions;
         }
 
@@ -68,19 +58,8 @@ namespace ImageSharp
         /// </summary>
         /// <param name="width">The width of the image represented by the pixel buffer.</param>
         /// <param name="height">The height of the image represented by the pixel buffer.</param>
-        /// <param name="pixels">The pixel buffer.</param>
-        public PixelAccessor(int width, int height, TColor[] pixels)
-            : this(width, height, pixels, false)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="PixelAccessor{TColor}"/> class.
-        /// </summary>
-        /// <param name="width">The width of the image represented by the pixel buffer.</param>
-        /// <param name="height">The height of the image represented by the pixel buffer.</param>
         public PixelAccessor(int width, int height)
-            : this(width, height, PixelPool<TColor>.RentPixels(width * height), true)
+            : this(width, height, new PinnedBuffer<TColor>(width * height))
         {
         }
 
@@ -90,19 +69,13 @@ namespace ImageSharp
         /// <param name="width">The width of the image represented by the pixel buffer.</param>
         /// <param name="height">The height of the image represented by the pixel buffer.</param>
         /// <param name="pixels">The pixel buffer.</param>
-        /// <param name="pooledMemory">if set to <c>true</c> then the <see cref="T:TColor[]"/> is from the <see cref="PixelPool{TColor}"/> thus should be returned once disposed.</param>
-        private PixelAccessor(int width, int height, TColor[] pixels, bool pooledMemory)
+        private PixelAccessor(int width, int height, PinnedBuffer<TColor> pixels)
         {
             Guard.NotNull(pixels, nameof(pixels));
             Guard.MustBeGreaterThan(width, 0, nameof(width));
             Guard.MustBeGreaterThan(height, 0, nameof(height));
 
-            if (!(pixels.Length >= width * height))
-            {
-                throw new ArgumentException($"Pixel array must have the length of at least {width * height}.");
-            }
-
-            this.SetPixelBufferUnsafe(width, height, pixels, pooledMemory);
+            this.SetPixelBufferUnsafe(width, height, pixels);
 
             this.ParallelOptions = Configuration.Default.ParallelOptions;
         }
@@ -116,14 +89,14 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Gets a value indicating whether the current pixel buffer is from a pooled source.
+        /// Gets the pixel buffer array.
         /// </summary>
-        public bool PooledMemory { get; private set; }
+        public TColor[] PixelArray => this.pixelBuffer.Array;
 
         /// <summary>
         /// Gets the pointer to the pixel buffer.
         /// </summary>
-        public IntPtr DataPointer => this.dataPointer;
+        public IntPtr DataPointer => this.pixelBuffer.Pointer;
 
         /// <summary>
         /// Gets the size of a single pixel in the number of bytes.
@@ -149,6 +122,8 @@ namespace ImageSharp
         /// Gets the global parallel options for processing tasks in parallel.
         /// </summary>
         public ParallelOptions ParallelOptions { get; }
+
+        private static BulkPixelOperations<TColor> Operations => BulkPixelOperations<TColor>.Instance;
 
         /// <summary>
         /// Gets or sets the pixel at the specified position.
@@ -242,10 +217,10 @@ namespace ImageSharp
                 return;
             }
 
-            this.UnPinPixels();
-
             // Note disposing is done.
             this.isDisposed = true;
+
+            this.pixelBuffer.Dispose();
 
             // This object will be cleaned up by the Dispose method.
             // Therefore, you should call GC.SuppressFinalize to
@@ -253,12 +228,6 @@ namespace ImageSharp
             // and prevent finalization code for this object
             // from executing a second time.
             GC.SuppressFinalize(this);
-
-            if (this.PooledMemory)
-            {
-                PixelPool<TColor>.ReturnPixels(this.pixelBuffer);
-                this.pixelBuffer = null;
-            }
         }
 
         /// <summary>
@@ -270,18 +239,28 @@ namespace ImageSharp
         }
 
         /// <summary>
+        /// Gets a <see cref="BufferPointer{TColor}"/> to the row 'y' beginning from the pixel at 'x'.
+        /// </summary>
+        /// <param name="x">The x coordinate</param>
+        /// <param name="y">The y coordinate</param>
+        /// <returns>The <see cref="BufferPointer{TColor}"/></returns>
+        internal BufferPointer<TColor> GetRowPointer(int x, int y)
+        {
+            return this.pixelBuffer.Slice((y * this.Width) + x);
+        }
+
+        /// <summary>
         /// Sets the pixel buffer in an unsafe manner. This should not be used unless you know what its doing!!!
         /// </summary>
         /// <param name="width">The width.</param>
         /// <param name="height">The height.</param>
         /// <param name="pixels">The pixels.</param>
-        /// <param name="pooledMemory">If set to <c>true</c> this indicates that the pixel buffer is from a pooled source.</param>
         /// <returns>Returns the old pixel data thats has gust been replaced.</returns>
-        /// <remarks>If <see cref="M:PixelAccessor.PooledMemory"/> is true then caller is responsible for ensuring <see cref="M:PixelPool.ReturnPixels()"/> is called.</remarks>
-        internal TColor[] ReturnCurrentPixelsAndReplaceThemInternally(int width, int height, TColor[] pixels, bool pooledMemory)
+        /// <remarks>If <see cref="M:PixelAccessor.PooledMemory"/> is true then caller is responsible for ensuring <see cref="M:PixelDataPool.Return()"/> is called.</remarks>
+        internal TColor[] ReturnCurrentPixelsAndReplaceThemInternally(int width, int height, TColor[] pixels)
         {
-            TColor[] oldPixels = this.pixelBuffer;
-            this.SetPixelBufferUnsafe(width, height, pixels, pooledMemory);
+            TColor[] oldPixels = this.pixelBuffer.UnPinAndTakeArrayOwnership();
+            this.SetPixelBufferUnsafe(width, height, pixels);
             return oldPixels;
         }
 
@@ -304,24 +283,15 @@ namespace ImageSharp
         /// <param name="targetY">The target row index.</param>
         /// <param name="width">The width.</param>
         /// <param name="height">The height.</param>
-        protected virtual void CopyFromZyx(PixelArea<TColor> area, int targetX, int targetY, int width, int height)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void CopyFromZyx(PixelArea<TColor> area, int targetX, int targetY, int width, int height)
         {
-            TColor packed = default(TColor);
-            int size = Unsafe.SizeOf<TColor>();
-
             for (int y = 0; y < height; y++)
             {
-                byte* source = area.PixelBase + (y * area.RowStride);
-                byte* destination = this.GetRowPointer(targetX, targetY + y);
+                BufferPointer<byte> source = area.GetRowPointer(y);
+                BufferPointer<TColor> destination = this.GetRowPointer(targetX, targetY + y);
 
-                for (int x = 0; x < width; x++)
-                {
-                    packed.PackFromBytes(*(source + 2), *(source + 1), *source, 255);
-                    Unsafe.Write(destination, packed);
-
-                    source += 3;
-                    destination += size;
-                }
+                Operations.PackFromZyxBytes(source, destination, width);
             }
         }
 
@@ -333,24 +303,15 @@ namespace ImageSharp
         /// <param name="targetY">The target row index.</param>
         /// <param name="width">The width.</param>
         /// <param name="height">The height.</param>
-        protected virtual void CopyFromZyxw(PixelArea<TColor> area, int targetX, int targetY, int width, int height)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void CopyFromZyxw(PixelArea<TColor> area, int targetX, int targetY, int width, int height)
         {
-            TColor packed = default(TColor);
-            int size = Unsafe.SizeOf<TColor>();
-
             for (int y = 0; y < height; y++)
             {
-                byte* source = area.PixelBase + (y * area.RowStride);
-                byte* destination = this.GetRowPointer(targetX, targetY + y);
+                BufferPointer<byte> source = area.GetRowPointer(y);
+                BufferPointer<TColor> destination = this.GetRowPointer(targetX, targetY + y);
 
-                for (int x = 0; x < width; x++)
-                {
-                    packed.PackFromBytes(*(source + 2), *(source + 1), *source, *(source + 3));
-                    Unsafe.Write(destination, packed);
-
-                    source += 4;
-                    destination += size;
-                }
+                Operations.PackFromZyxwBytes(source, destination, width);
             }
         }
 
@@ -362,24 +323,15 @@ namespace ImageSharp
         /// <param name="targetY">The target row index.</param>
         /// <param name="width">The width.</param>
         /// <param name="height">The height.</param>
-        protected virtual void CopyFromXyz(PixelArea<TColor> area, int targetX, int targetY, int width, int height)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void CopyFromXyz(PixelArea<TColor> area, int targetX, int targetY, int width, int height)
         {
-            TColor packed = default(TColor);
-            int size = Unsafe.SizeOf<TColor>();
-
             for (int y = 0; y < height; y++)
             {
-                byte* source = area.PixelBase + (y * area.RowStride);
-                byte* destination = this.GetRowPointer(targetX, targetY + y);
+                BufferPointer<byte> source = area.GetRowPointer(y);
+                BufferPointer<TColor> destination = this.GetRowPointer(targetX, targetY + y);
 
-                for (int x = 0; x < width; x++)
-                {
-                    packed.PackFromBytes(*source, *(source + 1), *(source + 2), 255);
-                    Unsafe.Write(destination, packed);
-
-                    source += 3;
-                    destination += size;
-                }
+                Operations.PackFromXyzBytes(source, destination, width);
             }
         }
 
@@ -391,24 +343,14 @@ namespace ImageSharp
         /// <param name="targetY">The target row index.</param>
         /// <param name="width">The width.</param>
         /// <param name="height">The height.</param>
-        protected virtual void CopyFromXyzw(PixelArea<TColor> area, int targetX, int targetY, int width, int height)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void CopyFromXyzw(PixelArea<TColor> area, int targetX, int targetY, int width, int height)
         {
-            TColor packed = default(TColor);
-            int size = Unsafe.SizeOf<TColor>();
-
             for (int y = 0; y < height; y++)
             {
-                byte* source = area.PixelBase + (y * area.RowStride);
-                byte* destination = this.GetRowPointer(targetX, targetY + y);
-
-                for (int x = 0; x < width; x++)
-                {
-                    packed.PackFromBytes(*source, *(source + 1), *(source + 2), *(source + 3));
-                    Unsafe.Write(destination, packed);
-
-                    source += 4;
-                    destination += size;
-                }
+                BufferPointer<byte> source = area.GetRowPointer(y);
+                BufferPointer<TColor> destination = this.GetRowPointer(targetX, targetY + y);
+                Operations.PackFromXyzwBytes(source, destination, width);
             }
         }
 
@@ -420,16 +362,14 @@ namespace ImageSharp
         /// <param name="sourceY">The source row index.</param>
         /// <param name="width">The width.</param>
         /// <param name="height">The height.</param>
-        protected virtual void CopyToZyx(PixelArea<TColor> area, int sourceX, int sourceY, int width, int height)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void CopyToZyx(PixelArea<TColor> area, int sourceX, int sourceY, int width, int height)
         {
             for (int y = 0; y < height; y++)
             {
-                int offset = y * area.RowStride;
-                for (int x = 0; x < width; x++)
-                {
-                    this[sourceX + x, sourceY + y].ToZyxBytes(area.Bytes, offset);
-                    offset += 3;
-                }
+                BufferPointer<TColor> source = this.GetRowPointer(sourceX, sourceY + y);
+                BufferPointer<byte> destination = area.GetRowPointer(y);
+                Operations.ToZyxBytes(source, destination, width);
             }
         }
 
@@ -441,16 +381,14 @@ namespace ImageSharp
         /// <param name="sourceY">The source row index.</param>
         /// <param name="width">The width.</param>
         /// <param name="height">The height.</param>
-        protected virtual void CopyToZyxw(PixelArea<TColor> area, int sourceX, int sourceY, int width, int height)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void CopyToZyxw(PixelArea<TColor> area, int sourceX, int sourceY, int width, int height)
         {
             for (int y = 0; y < height; y++)
             {
-                int offset = y * area.RowStride;
-                for (int x = 0; x < width; x++)
-                {
-                    this[sourceX + x, sourceY + y].ToZyxwBytes(area.Bytes, offset);
-                    offset += 4;
-                }
+                BufferPointer<TColor> source = this.GetRowPointer(sourceX, sourceY + y);
+                BufferPointer<byte> destination = area.GetRowPointer(y);
+                Operations.ToZyxwBytes(source, destination, width);
             }
         }
 
@@ -462,16 +400,14 @@ namespace ImageSharp
         /// <param name="sourceY">The source row index.</param>
         /// <param name="width">The width.</param>
         /// <param name="height">The height.</param>
-        protected virtual void CopyToXyz(PixelArea<TColor> area, int sourceX, int sourceY, int width, int height)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void CopyToXyz(PixelArea<TColor> area, int sourceX, int sourceY, int width, int height)
         {
             for (int y = 0; y < height; y++)
             {
-                int offset = y * area.RowStride;
-                for (int x = 0; x < width; x++)
-                {
-                    this[sourceX + x, sourceY + y].ToXyzBytes(area.Bytes, offset);
-                    offset += 3;
-                }
+                BufferPointer<TColor> source = this.GetRowPointer(sourceX, sourceY + y);
+                BufferPointer<byte> destination = area.GetRowPointer(y);
+                Operations.ToXyzBytes(source, destination, width);
             }
         }
 
@@ -483,30 +419,20 @@ namespace ImageSharp
         /// <param name="sourceY">The source row index.</param>
         /// <param name="width">The width.</param>
         /// <param name="height">The height.</param>
-        protected virtual void CopyToXyzw(PixelArea<TColor> area, int sourceX, int sourceY, int width, int height)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void CopyToXyzw(PixelArea<TColor> area, int sourceX, int sourceY, int width, int height)
         {
             for (int y = 0; y < height; y++)
             {
-                int offset = y * area.RowStride;
-                for (int x = 0; x < width; x++)
-                {
-                    this[sourceX + x, sourceY + y].ToXyzwBytes(area.Bytes, offset);
-                    offset += 4;
-                }
+                BufferPointer<TColor> source = this.GetRowPointer(sourceX, sourceY + y);
+                BufferPointer<byte> destination = area.GetRowPointer(y);
+                Operations.ToXyzwBytes(source, destination, width);
             }
         }
 
-        /// <summary>
-        /// Gets the pointer at the specified row.
-        /// </summary>
-        /// <param name="x">The column index.</param>
-        /// <param name="y">The row index.</param>
-        /// <returns>
-        /// The <see cref="T:byte*"/>.
-        /// </returns>
-        protected byte* GetRowPointer(int x, int y)
+        private void SetPixelBufferUnsafe(int width, int height, TColor[] pixels)
         {
-            return this.pixelsBase + (((y * this.Width) + x) * Unsafe.SizeOf<TColor>());
+            this.SetPixelBufferUnsafe(width, height, new PinnedBuffer<TColor>(width * height, pixels));
         }
 
         /// <summary>
@@ -514,47 +440,16 @@ namespace ImageSharp
         /// </summary>
         /// <param name="width">The width.</param>
         /// <param name="height">The height.</param>
-        /// <param name="pixels">The pixels.</param>
-        /// <param name="pooledMemory">If set to <c>true</c> this indicates that the pixel buffer is from a pooled source.</param>
-        private void SetPixelBufferUnsafe(int width, int height, TColor[] pixels, bool pooledMemory)
+        /// <param name="pixels">The pixel buffer</param>
+        private void SetPixelBufferUnsafe(int width, int height, PinnedBuffer<TColor> pixels)
         {
             this.pixelBuffer = pixels;
-            this.PooledMemory = pooledMemory;
+            this.pixelsBase = (byte*)pixels.Pointer;
+
             this.Width = width;
             this.Height = height;
-            this.PinPixels();
             this.PixelSize = Unsafe.SizeOf<TColor>();
             this.RowStride = this.Width * this.PixelSize;
-        }
-
-        /// <summary>
-        /// Pins the pixels data.
-        /// </summary>
-        private void PinPixels()
-        {
-            // unpin any old pixels just incase
-            this.UnPinPixels();
-
-            this.pixelsHandle = GCHandle.Alloc(this.pixelBuffer, GCHandleType.Pinned);
-            this.dataPointer = this.pixelsHandle.AddrOfPinnedObject();
-            this.pixelsBase = (byte*)this.dataPointer.ToPointer();
-        }
-
-        /// <summary>
-        /// Unpins pixels data.
-        /// </summary>
-        private void UnPinPixels()
-        {
-            if (this.pixelsBase != null)
-            {
-                if (this.pixelsHandle.IsAllocated)
-                {
-                    this.pixelsHandle.Free();
-                }
-
-                this.dataPointer = IntPtr.Zero;
-                this.pixelsBase = null;
-            }
         }
 
         /// <summary>

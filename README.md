@@ -28,32 +28,25 @@ We already have a [MyGet package repository](https://www.myget.org/gallery/image
 
 ### Packages
 
-The **ImageSharp** library is made up of multiple packages, to make **ImageSharp** do anything useful you will want to make sure you include at least one format as a dependency otherwise you will not be able to save/load any images.
+The **ImageSharp** library is made up of multiple packages.
 
 Packages include:
 - **ImageSharp**
-  Contains the Image classes, Colors, Primitives, Bootstrapper, IImageFormat interface, and other core functionality.
-- **ImageSharp.Formats.Jpeg**
-  The jpeg decoder/encoder (Auto registered)
-- **ImageSharp.Formats.Png**
-  The png decoder/encoder (Auto registered)
-- **ImageSharp.Formats.Gif**
-  The gif decoder/encoder (Auto registered)
-- **ImageSharp.Formats.Bmp**
-  The bmp decoder/encoder (Auto registered)
-- **ImageSharp.Processing**
-  Contains methods like Resize, Crop, Skew, Rotate - Anything that alters the dimensions of the image.
-  Contains methods like Gaussian Blur, Pixelate, Edge Detection - Anything that maintains the original image dimensions.
+  - Contains the Image classes, Colors, Primitives, Configuration, and other core functionality.
+  - The IImageFormat interface, Jpeg, Png, Bmp, and Gif formats.
+  - Transform methods like Resize, Crop, Skew, Rotate - Anything that alters the dimensions of the image.
+  - Non-transform methods like Gaussian Blur, Pixelate, Edge Detection - Anything that maintains the original image dimensions.
+
 - **ImageSharp.Drawing**
-  Brushes and various drawing algorithms, including drawing Images
-  - **ImageSharp.Drawing.Paths**
-  Various vector drawing methods for drawing paths, polygons etc.
+  - Brushes and various drawing algorithms, including drawing images.
+  - Various vector drawing methods for drawing paths, polygons etc.
+  - Text drawing.
 
 ### Manual build
 
 If you prefer, you can compile ImageSharp yourself (please do and help!), you'll need:
 
-- [Visual Studio 2015 with Update 3 (or above)](https://www.visualstudio.com/news/releasenotes/vs2015-update3-vs)
+- [Visual Studio 2017 (or above)](https://www.visualstudio.com/en-us/news/releasenotes/vs2017-relnotes)
 - The [.NET Core 1.0 SDK Installer](https://www.microsoft.com/net/core#windows) - Non VSCode link.
 
 Alternatively on Linux you can use:

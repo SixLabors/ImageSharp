@@ -6,7 +6,6 @@
 namespace ImageSharp.Tests
 {
     using System.IO;
-    using System.Linq;
     using Xunit;
 
     using ImageSharp.Formats;

@@ -47,12 +47,12 @@ Packages include:
 If you prefer, you can compile ImageSharp yourself (please do and help!), you'll need:
 
 - [Visual Studio 2017 (or above)](https://www.visualstudio.com/en-us/news/releasenotes/vs2017-relnotes)
-- The [.NET Core 1.0 SDK Installer](https://www.microsoft.com/net/core#windows) - Non VSCode link.
+- The [.NET Core SDK Installer](https://www.microsoft.com/net/core#windows) - Non VSCode link.
 
 Alternatively on Linux you can use:
 
 - [Visual Studio Code](https://code.visualstudio.com/) with [C# Extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode.csharp)
-- [.Net Core 1.1](https://www.microsoft.com/net/core#linuxubuntu)
+- [.Net Core](https://www.microsoft.com/net/core#linuxubuntu)
 
 To clone it locally click the "Clone in Windows" button above or run the following git commands.
 

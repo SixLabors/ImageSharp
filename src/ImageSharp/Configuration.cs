@@ -12,6 +12,7 @@ namespace ImageSharp
     using System.Threading.Tasks;
 
     using Formats;
+    using ImageSharp.IO;
 
     /// <summary>
     /// Provides initialization code which allows extending the library.
@@ -52,6 +53,13 @@ namespace ImageSharp
         /// Gets the maximum header size of all formats.
         /// </summary>
         internal int MaxHeaderSize { get; private set; }
+
+#if !NETSTANDARD1_1
+        /// <summary>
+        /// Helper for accessing the local file system.
+        /// </summary>
+        internal IFileSystem FileSystem { get; set; } = new LocalFileSystem();
+#endif
 
         /// <summary>
         /// Adds a new <see cref="IImageFormat"/> to the collection of supported image formats.

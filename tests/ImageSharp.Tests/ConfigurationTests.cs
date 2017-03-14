@@ -10,7 +10,7 @@ namespace ImageSharp.Tests
     using System.Linq;
 
     using ImageSharp.Formats;
-
+    using ImageSharp.IO;
     using Xunit;
 
     /// <summary>
@@ -18,6 +18,16 @@ namespace ImageSharp.Tests
     /// </summary>
     public class ConfigurationTests
     {
+        [Fact]
+        public void DefaultsToLocalFileSystem()
+        {
+            var configuration = Configuration.CreateDefaultInstance();
+
+            ImageSharp.IO.IFileSystem fs = configuration.FileSystem;
+
+            Assert.IsType<LocalFileSystem>(fs);
+        }
+
         [Fact]
         public void IfAutoloadWellknwonFormatesIsTrueAllFormateAreLoaded()
         {

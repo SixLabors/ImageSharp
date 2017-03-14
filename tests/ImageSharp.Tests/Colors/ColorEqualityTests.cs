@@ -238,7 +238,7 @@ namespace ImageSharp.Tests.Colors
         public void Equality(object first, object second, Type type)
         {
             // Act
-            var equal = first.Equals(second);
+            bool equal = first.Equals(second);
 
             // Assert
             Assert.True(equal);
@@ -254,7 +254,7 @@ namespace ImageSharp.Tests.Colors
         public void NotEquality(object first, object second, Type type)
         {
             // Act
-            var equal = first.Equals(second);
+            bool equal = first.Equals(second);
 
             // Assert
             Assert.False(equal);
@@ -266,7 +266,7 @@ namespace ImageSharp.Tests.Colors
         public void HashCodeEqual(object first, object second, Type type)
         {
             // Act
-            var equal = first.GetHashCode() == second.GetHashCode();
+            bool equal = first.GetHashCode() == second.GetHashCode();
 
             // Assert
             Assert.True(equal);
@@ -278,7 +278,7 @@ namespace ImageSharp.Tests.Colors
         public void HashCodeNotEqual(object first, object second, Type type)
         {
             // Act
-            var equal = first.GetHashCode() == second.GetHashCode();
+            bool equal = first.GetHashCode() == second.GetHashCode();
 
             // Assert
             Assert.False(equal);
@@ -297,7 +297,7 @@ namespace ImageSharp.Tests.Colors
             dynamic secondObject = Convert.ChangeType(second, type);
 
             // Act
-            var equal = firstObject.Equals(secondObject);
+            dynamic equal = firstObject.Equals(secondObject);
 
             // Assert
             Assert.True(equal);
@@ -316,7 +316,7 @@ namespace ImageSharp.Tests.Colors
             dynamic secondObject = Convert.ChangeType(second, type);
 
             // Act
-            var equal = firstObject.Equals(secondObject);
+            dynamic equal = firstObject.Equals(secondObject);
 
             // Assert
             Assert.False(equal);
@@ -335,7 +335,7 @@ namespace ImageSharp.Tests.Colors
             dynamic secondObject = Convert.ChangeType(second, type);
 
             // Act
-            var equal = firstObject == secondObject;
+            dynamic equal = firstObject == secondObject;
 
             // Assert
             Assert.True(equal);
@@ -354,7 +354,7 @@ namespace ImageSharp.Tests.Colors
             dynamic secondObject = Convert.ChangeType(second, type);
 
             // Act
-            var notEqual = firstObject != secondObject;
+            dynamic notEqual = firstObject != secondObject;
 
             // Assert
             Assert.True(notEqual);
@@ -372,7 +372,7 @@ namespace ImageSharp.Tests.Colors
             dynamic secondObject = Convert.ChangeType(second, type);
 
             // Act
-            var almostEqual = firstObject.AlmostEquals(secondObject, precision);
+            dynamic almostEqual = firstObject.AlmostEquals(secondObject, precision);
 
             // Assert
             Assert.True(almostEqual);
@@ -390,7 +390,7 @@ namespace ImageSharp.Tests.Colors
             dynamic secondObject = Convert.ChangeType(second, type);
 
             // Act
-            var almostEqual = firstObject.AlmostEquals(secondObject, precision);
+            dynamic almostEqual = firstObject.AlmostEquals(secondObject, precision);
 
             // Assert
             Assert.False(almostEqual);

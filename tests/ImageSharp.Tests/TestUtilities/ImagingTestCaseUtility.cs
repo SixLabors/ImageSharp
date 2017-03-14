@@ -81,11 +81,11 @@ namespace ImageSharp.Tests
         {
             string path = this.GetTestOutputFileName(extension);
 
-            var format = GetImageFormatByExtension(extension);
+            IImageFormat format = GetImageFormatByExtension(extension);
 
             encoder = encoder ?? format.Encoder;
 
-            using (var stream = File.OpenWrite(path))
+            using (FileStream stream = File.OpenWrite(path))
             {
                 image.Save(stream, encoder, options);
             }

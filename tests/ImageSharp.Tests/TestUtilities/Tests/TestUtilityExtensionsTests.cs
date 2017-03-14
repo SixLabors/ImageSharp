@@ -28,7 +28,7 @@ namespace ImageSharp.Tests
         {
             Image<TColor> image = factory.CreateImage(10, 10);
 
-            using (var pixels = image.Lock())
+            using (PixelAccessor<TColor> pixels = image.Lock())
             {
                 for (int i = 0; i < 10; i++)
                 {
@@ -51,10 +51,10 @@ namespace ImageSharp.Tests
         [Fact]
         public void Baz()
         {
-            var type = typeof(Color).GetTypeInfo().Assembly.GetType("ImageSharp.Color");
+            Type type = typeof(Color).GetTypeInfo().Assembly.GetType("ImageSharp.Color");
             this.Output.WriteLine(type.ToString());
 
-            var fake = typeof(Color).GetTypeInfo().Assembly.GetType("ImageSharp.dsaada_DASqewrr");
+            Type fake = typeof(Color).GetTypeInfo().Assembly.GetType("ImageSharp.dsaada_DASqewrr");
             Assert.Null(fake);
         }
         
@@ -64,8 +64,8 @@ namespace ImageSharp.Tests
         public void IsEquivalentTo_WhenFalse<TColor>(TestImageProvider<TColor> provider, bool compareAlpha)
             where TColor : struct, IPixel<TColor>
         {
-            var a = provider.GetImage();
-            var b = provider.GetImage();
+            Image<TColor> a = provider.GetImage();
+            Image<TColor> b = provider.GetImage();
             b = b.OilPaint(3, 2);
 
             Assert.False(a.IsEquivalentTo(b, compareAlpha));
@@ -77,8 +77,8 @@ namespace ImageSharp.Tests
         public void IsEquivalentTo_WhenTrue<TColor>(TestImageProvider<TColor> provider, bool compareAlpha)
             where TColor : struct, IPixel<TColor>
         {
-            var a = provider.GetImage();
-            var b = provider.GetImage();
+            Image<TColor> a = provider.GetImage();
+            Image<TColor> b = provider.GetImage();
 
             Assert.True(a.IsEquivalentTo(b, compareAlpha));
         }
@@ -114,7 +114,7 @@ namespace ImageSharp.Tests
         {
             PixelTypes pixelTypes = PixelTypes.Alpha8 | PixelTypes.Bgr565 | PixelTypes.Color | PixelTypes.HalfVector2 | PixelTypes.StandardImageClass;
 
-            var expanded = pixelTypes.ExpandAllTypes();
+            IEnumerable<KeyValuePair<PixelTypes, Type>> expanded = pixelTypes.ExpandAllTypes();
 
             Assert.Equal(expanded.Count(), 5);
 
@@ -128,7 +128,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void ToTypes_All()
         {
-            var expanded = PixelTypes.All.ExpandAllTypes().ToArray();
+            KeyValuePair<PixelTypes, Type>[] expanded = PixelTypes.All.ExpandAllTypes().ToArray();
 
             Assert.True(expanded.Length >= TestUtilityExtensions.GetAllPixelTypes().Length - 2);
             AssertContainsPixelType<Color>(PixelTypes.Color, expanded);

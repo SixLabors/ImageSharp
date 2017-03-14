@@ -168,7 +168,7 @@ namespace ImageSharp
             : base(configuration)
         {
             Guard.NotNull(filePath, nameof(filePath));
-            using (var fs = File.OpenRead(filePath))
+            using (FileStream fs = File.OpenRead(filePath))
             {
                 this.Load(fs, options);
             }

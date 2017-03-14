@@ -91,7 +91,7 @@ namespace ImageSharp.Drawing.Brushes
             {
                 get
                 {
-                    var point = new Vector2(x, y);
+                    Vector2 point = new Vector2(x, y);
 
                     // Offset the requested pixel by the value in the rectangle (the shapes position)
                     point = point - this.offset;

@@ -24,7 +24,7 @@ namespace ImageSharp.Tests
         public void Use_WithEmptyImageAttribute<TColor>(TestImageProvider<TColor> provider, string message)
             where TColor : struct, IPixel<TColor>
         {
-            var img = provider.GetImage();
+            Image<TColor> img = provider.GetImage();
 
             Assert.Equal(42, img.Width);
             Assert.Equal(666, img.Height);
@@ -38,7 +38,7 @@ namespace ImageSharp.Tests
             string message)
             where TColor : struct, IPixel<TColor>
         {
-            var img = provider.GetImage();
+            Image<TColor> img = provider.GetImage();
 
             Assert.Equal(42, img.Width);
             Assert.Equal(666, img.Height);
@@ -62,7 +62,7 @@ namespace ImageSharp.Tests
             TestImageProvider<TColor> provider)
             where TColor : struct, IPixel<TColor>
         {
-            var img = provider.GetImage();
+            Image<TColor> img = provider.GetImage();
 
             Assert.IsType<Image>(img);
         }
@@ -74,7 +74,7 @@ namespace ImageSharp.Tests
             where TColor : struct, IPixel<TColor>
         {
             Assert.NotNull(provider.Utility.SourceFileOrDescription);
-            var img = provider.GetImage();
+            Image<TColor> img = provider.GetImage();
             Assert.True(img.Width * img.Height > 0);
 
             Assert.Equal(88, yo);
@@ -91,7 +91,7 @@ namespace ImageSharp.Tests
             where TColor : struct, IPixel<TColor>
         {
             Assert.NotNull(provider.Utility.SourceFileOrDescription);
-            var image = provider.GetImage();
+            Image<TColor> image = provider.GetImage();
             provider.Utility.SaveTestOutputFile(image, "png");
         }
 
@@ -100,13 +100,13 @@ namespace ImageSharp.Tests
         public void Use_WithSolidFilledImagesAttribute<TColor>(TestImageProvider<TColor> provider)
             where TColor : struct, IPixel<TColor>
         {
-            var img = provider.GetImage();
+            Image<TColor> img = provider.GetImage();
             Assert.Equal(img.Width, 10);
             Assert.Equal(img.Height, 20);
 
             byte[] colors = new byte[4];
 
-            using (var pixels = img.Lock())
+            using (PixelAccessor<TColor> pixels = img.Lock())
             {
                 for (int y = 0; y < pixels.Height; y++)
                 {
@@ -140,7 +140,7 @@ namespace ImageSharp.Tests
         public void Use_WithMemberFactoryAttribute<TColor>(TestImageProvider<TColor> provider)
             where TColor : struct, IPixel<TColor>
         {
-            var img = provider.GetImage();
+            Image<TColor> img = provider.GetImage();
             Assert.Equal(img.Width, 3);
             if (provider.PixelType == PixelTypes.StandardImageClass)
             {
@@ -162,7 +162,7 @@ namespace ImageSharp.Tests
         public void Blank_MemberData<TColor>(TestImageProvider<TColor> provider)
             where TColor : struct, IPixel<TColor>
         {
-            var img = provider.GetImage();
+            Image<TColor> img = provider.GetImage();
 
             Assert.True(img.Width * img.Height > 0);
         }
@@ -183,7 +183,7 @@ namespace ImageSharp.Tests
             this.Output.WriteLine("SRC: " + provider.Utility.SourceFileOrDescription);
             this.Output.WriteLine("OUT: " + provider.Utility.GetTestOutputFileName());
 
-            var img = provider.GetImage();
+            Image<TColor> img = provider.GetImage();
 
             Assert.True(img.Width * img.Height > 0);
         }

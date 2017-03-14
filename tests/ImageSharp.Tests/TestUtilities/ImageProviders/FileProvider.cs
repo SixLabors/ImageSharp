@@ -37,13 +37,13 @@ namespace ImageSharp.Tests
 
             public override Image<TColor> GetImage()
             {
-                var key = new Key(this.PixelType, this.filePath);
+                Key key = new Key(this.PixelType, this.filePath);
 
-                var cachedImage = cache.GetOrAdd(
+                Image<TColor> cachedImage = cache.GetOrAdd(
                     key,
                     fn =>
                         {
-                            var testFile = TestFile.Create(this.filePath);
+                            TestFile testFile = TestFile.Create(this.filePath);
                             return this.Factory.CreateImage(testFile.Bytes);
                         });
 

@@ -63,21 +63,21 @@ namespace ConsoleApplication
         /// <param name="args">The arguments.</param>
         public static void Main(string[] args)
         {
-            var resetmode = args.Contains("reset");
+            bool resetmode = args.Contains("reset");
 
             // Find the project root
-            var root = Path.GetFullPath(Path.Combine(LibGit2Sharp.Repository.Discover("."), ".."));
+            string root = Path.GetFullPath(Path.Combine(LibGit2Sharp.Repository.Discover("."), ".."));
 
             // Lets find the repo
-            var repo = new LibGit2Sharp.Repository(root);
+            Repository repo = new LibGit2Sharp.Repository(root);
 
             // Lets find all the project.json files in the src folder (don't care about versioning `tests`)
-            var projectFiles = Directory.EnumerateFiles(Path.Combine(root, "src"), "*.csproj", SearchOption.AllDirectories);
+            IEnumerable<string> projectFiles = Directory.EnumerateFiles(Path.Combine(root, "src"), "*.csproj", SearchOption.AllDirectories);
 
             ResetProject(projectFiles);
 
             // Open them and convert them to source projects
-            var projects = projectFiles.Select(x => ProjectRootElement.Open(x, ProjectCollection.GlobalProjectCollection, true))
+            List<SourceProject> projects = projectFiles.Select(x => ProjectRootElement.Open(x, ProjectCollection.GlobalProjectCollection, true))
                             .Select(x => new SourceProject(x, repo.Info.WorkingDirectory))
                             .ToList();
 
@@ -89,7 +89,7 @@ namespace ConsoleApplication
 
                 CreateBuildScript(projects, root);
 
-                foreach (var p in projects)
+                foreach (SourceProject p in projects)
                 {
                     Console.WriteLine($"{p.Name} {p.FinalVersionNumber}");
                 }
@@ -98,10 +98,10 @@ namespace ConsoleApplication
 
         private static void CreateBuildScript(IEnumerable<SourceProject> projects, string root)
         {
-            var outputDir = Path.GetFullPath(Path.Combine(root, @"artifacts\bin\ImageSharp"));
+            string outputDir = Path.GetFullPath(Path.Combine(root, @"artifacts\bin\ImageSharp"));
 
-            var sb = new StringBuilder();
-            foreach (var p in projects)
+            StringBuilder sb = new StringBuilder();
+            foreach (SourceProject p in projects)
             {
                 sb.AppendLine($@"dotnet pack --configuration Release --output ""{outputDir}"" ""{p.ProjectFilePath}""");
             }
@@ -111,17 +111,17 @@ namespace ConsoleApplication
 
         private static void UpdateVersionNumbers(IEnumerable<SourceProject> projects)
         {
-            foreach (var p in projects)
+            foreach (SourceProject p in projects)
             {
                 // create a backup file so we can rollback later without breaking formatting
                 File.Copy(p.FullProjectFilePath, $"{p.FullProjectFilePath}.bak", true);
             }
 
-            foreach (var p in projects)
+            foreach (SourceProject p in projects)
             {
                 // TODO force update of all dependent projects to point to the newest build.
                 // we skip the build number and standard CI prefix on first commits
-                var newVersion = p.FinalVersionNumber;
+                string newVersion = p.FinalVersionNumber;
 
                 p.UpdateVersion(newVersion);
             }
@@ -133,13 +133,13 @@ namespace ConsoleApplication
             string branch = repo.Head.FriendlyName;
 
             // lets see if we are running in appveyor and if we are use the environment variables instead of the head
-            var appveryorBranch = Environment.GetEnvironmentVariable("APPVEYOR_REPO_BRANCH");
+            string appveryorBranch = Environment.GetEnvironmentVariable("APPVEYOR_REPO_BRANCH");
             if (!string.IsNullOrWhiteSpace(appveryorBranch))
             {
                 branch = appveryorBranch;
             }
 
-            var prNumber = Environment.GetEnvironmentVariable("APPVEYOR_PULL_REQUEST_NUMBER");
+            string prNumber = Environment.GetEnvironmentVariable("APPVEYOR_PULL_REQUEST_NUMBER");
             if (!string.IsNullOrWhiteSpace(prNumber))
             {
                 branch = $"PR{int.Parse(prNumber):000}";
@@ -159,7 +159,7 @@ namespace ConsoleApplication
 
         private static void CaclulateProjectVersionNumber(List<SourceProject> projects, Repository repo)
         {
-            var branch = CurrentBranch(repo);
+            string branch = CurrentBranch(repo);
 
             // populate the dependency chains
             projects.ForEach(x => x.PopulateDependencies(projects));
@@ -176,7 +176,7 @@ namespace ConsoleApplication
             }
 
             // revert the project.json change be reverting it but skipp all the git stuff as its not needed
-            foreach (var p in projectPaths)
+            foreach (string p in projectPaths)
             {
                 if (File.Exists($"{p}.bak"))
                 {
@@ -303,7 +303,7 @@ namespace ConsoleApplication
             /// <param name="branch">The branch.</param>
             internal void CalculateVersion(Repository repo, string branch)
             {
-                foreach (var c in repo.Commits)
+                foreach (Commit c in repo.Commits)
                 {
                     if (!this.ApplyCommit(c, repo))
                     {
@@ -335,7 +335,7 @@ namespace ConsoleApplication
                 this.CommitCountSinceVersionChange++;
 
                 // return false if this is a version number root
-                var projectFileChange = changes.Where(x => x.Path?.Equals(this.ProjectFilePath, StringComparison.OrdinalIgnoreCase) == true).FirstOrDefault();
+                TreeEntryChanges projectFileChange = changes.Where(x => x.Path?.Equals(this.ProjectFilePath, StringComparison.OrdinalIgnoreCase) == true).FirstOrDefault();
                 if (projectFileChange != null)
                 {
                     if (projectFileChange.Status == ChangeKind.Added)
@@ -345,13 +345,13 @@ namespace ConsoleApplication
                     }
                     else
                     {
-                        var blob = repo.Lookup<Blob>(projectFileChange.Oid);
-                        using (var s = blob.GetContentStream())
+                        Blob blob = repo.Lookup<Blob>(projectFileChange.Oid);
+                        using (Stream s = blob.GetContentStream())
                         {
-                            using (var reader = XmlReader.Create(s))
+                            using (XmlReader reader = XmlReader.Create(s))
                             {
-                                var proj = ProjectRootElement.Create(reader);
-                                var version = new NuGetVersion(proj.Properties.FirstOrDefault(x => x.Name == "VersionPrefix").Value);
+                                ProjectRootElement proj = ProjectRootElement.Create(reader);
+                                NuGetVersion version = new NuGetVersion(proj.Properties.FirstOrDefault(x => x.Name == "VersionPrefix").Value);
                                 if (version != this.Version)
                                 {
                                     // version changed
@@ -370,9 +370,9 @@ namespace ConsoleApplication
 
             private bool ApplyCommit(Commit commit, Repository repo)
             {
-                foreach (var parent in commit.Parents)
+                foreach (Commit parent in commit.Parents)
                 {
-                    var changes = repo.Diff.Compare<TreeChanges>(parent.Tree, commit.Tree);
+                    TreeChanges changes = repo.Diff.Compare<TreeChanges>(parent.Tree, commit.Tree);
 
                     foreach (TreeEntryChanges change in changes)
                     {
@@ -399,7 +399,7 @@ namespace ConsoleApplication
 
             private string CalculateVersionNumber(string branch)
             {
-                var version = this.Version.ToFullString();
+                string version = this.Version.ToFullString();
 
                 // master only
                 if (this.CommitCountSinceVersionChange == 1 && branch == "master")
@@ -414,12 +414,12 @@ namespace ConsoleApplication
                     return version;
                 }
 
-                var rootSpecialVersion = string.Empty;
+                string rootSpecialVersion = string.Empty;
 
                 if (this.Version.IsPrerelease)
                 {
                     // probably a much easy way for doing this but it work sell enough for a build script
-                    var parts = version.Split(new[] { '-' }, 2);
+                    string[] parts = version.Split(new[] { '-' }, 2);
                     version = parts[0];
                     rootSpecialVersion = parts[1];
                 }
@@ -447,7 +447,7 @@ namespace ConsoleApplication
                     branch = "-" + branch;
                 }
 
-                var maxLength = 20; // dotnet will fail to populate the package if the tag is > 20
+                int maxLength = 20; // dotnet will fail to populate the package if the tag is > 20
                 maxLength -= rootSpecialVersion.Length; // this is a required tag
                 maxLength -= 7; // for the counter and dashes
 

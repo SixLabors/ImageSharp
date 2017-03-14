@@ -278,7 +278,7 @@ namespace ImageSharp.Tests
         [InlineData(3)]
         public void TransformIDCT(int seed)
         {
-            var sourceArray = Create8x8RandomFloatData(-200, 200, seed);
+            MutableSpan<float> sourceArray = Create8x8RandomFloatData(-200, 200, seed);
             float[] expectedDestArray = new float[64];
             float[] tempArray = new float[64];
 
@@ -306,7 +306,7 @@ namespace ImageSharp.Tests
         [Fact]
         public unsafe void CopyColorsTo()
         {
-            var data = Create8x8FloatData();
+            float[] data = Create8x8FloatData();
             Block8x8F block = new Block8x8F();
             block.LoadFrom(data);
             block.MultiplyAllInplace(new Vector4(5, 5, 5, 5));
@@ -348,7 +348,7 @@ namespace ImageSharp.Tests
         public void TransformByteConvetibleColorValuesInto()
         {
             Block8x8F block = new Block8x8F();
-            var input = Create8x8ColorCropTestData();
+            float[] input = Create8x8ColorCropTestData();
             block.LoadFrom(input);
             this.Output.WriteLine("Input:");
             this.PrintLinearData(input);
@@ -371,18 +371,18 @@ namespace ImageSharp.Tests
         [InlineData(2)]
         public void FDCT8x4_LeftPart(int seed)
         {
-            var src = Create8x8RandomFloatData(-200, 200, seed);
-            var srcBlock = new Block8x8F();
+            MutableSpan<float> src = Create8x8RandomFloatData(-200, 200, seed);
+            Block8x8F srcBlock = new Block8x8F();
             srcBlock.LoadFrom(src);
 
-            var destBlock = new Block8x8F();
+            Block8x8F destBlock = new Block8x8F();
 
-            var expectedDest = new MutableSpan<float>(64);
+            MutableSpan<float> expectedDest = new MutableSpan<float>(64);
 
             ReferenceImplementations.fDCT2D8x4_32f(src, expectedDest);
             DCT.FDCT8x4_LeftPart(ref srcBlock, ref destBlock);
 
-            var actualDest = new MutableSpan<float>(64);
+            MutableSpan<float> actualDest = new MutableSpan<float>(64);
             destBlock.CopyTo(actualDest);
 
             Assert.Equal(actualDest.Data, expectedDest.Data, new ApproximateFloatComparer(1f));
@@ -393,18 +393,18 @@ namespace ImageSharp.Tests
         [InlineData(2)]
         public void FDCT8x4_RightPart(int seed)
         {
-            var src = Create8x8RandomFloatData(-200, 200, seed);
-            var srcBlock = new Block8x8F();
+            MutableSpan<float> src = Create8x8RandomFloatData(-200, 200, seed);
+            Block8x8F srcBlock = new Block8x8F();
             srcBlock.LoadFrom(src);
 
-            var destBlock = new Block8x8F();
+            Block8x8F destBlock = new Block8x8F();
 
-            var expectedDest = new MutableSpan<float>(64);
+            MutableSpan<float> expectedDest = new MutableSpan<float>(64);
 
             ReferenceImplementations.fDCT2D8x4_32f(src.Slice(4), expectedDest.Slice(4));
             DCT.FDCT8x4_RightPart(ref srcBlock, ref destBlock);
 
-            var actualDest = new MutableSpan<float>(64);
+            MutableSpan<float> actualDest = new MutableSpan<float>(64);
             destBlock.CopyTo(actualDest);
 
             Assert.Equal(actualDest.Data, expectedDest.Data, new ApproximateFloatComparer(1f));
@@ -415,20 +415,20 @@ namespace ImageSharp.Tests
         [InlineData(2)]
         public void TransformFDCT(int seed)
         {
-            var src = Create8x8RandomFloatData(-200, 200, seed);
-            var srcBlock = new Block8x8F();
+            MutableSpan<float> src = Create8x8RandomFloatData(-200, 200, seed);
+            Block8x8F srcBlock = new Block8x8F();
             srcBlock.LoadFrom(src);
 
-            var destBlock = new Block8x8F();
+            Block8x8F destBlock = new Block8x8F();
 
-            var expectedDest = new MutableSpan<float>(64);
-            var temp1 = new MutableSpan<float>(64);
-            var temp2 = new Block8x8F();
+            MutableSpan<float> expectedDest = new MutableSpan<float>(64);
+            MutableSpan<float> temp1 = new MutableSpan<float>(64);
+            Block8x8F temp2 = new Block8x8F();
 
             ReferenceImplementations.fDCT2D_llm(src, expectedDest, temp1, downscaleBy8: true);
             DCT.TransformFDCT(ref srcBlock, ref destBlock, ref temp2, false);
 
-            var actualDest = new MutableSpan<float>(64);
+            MutableSpan<float> actualDest = new MutableSpan<float>(64);
             destBlock.CopyTo(actualDest);
 
             Assert.Equal(actualDest.Data, expectedDest.Data, new ApproximateFloatComparer(1f));

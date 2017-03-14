@@ -52,7 +52,7 @@ namespace ImageSharp.IO
         /// </param>
         public EndianBinaryWriter(Endianness endianness, Stream stream, Encoding encoding)
         {
-            var bitConverter = EndianBitConverter.GetConverter(endianness);
+            EndianBitConverter bitConverter = EndianBitConverter.GetConverter(endianness);
 
             // TODO: Use Guard
             if (bitConverter == null)

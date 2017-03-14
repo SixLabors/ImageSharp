@@ -104,13 +104,13 @@ namespace ImageSharp.Benchmarks.Image
                     continue;
                 }
 
-                var allFiles =
+                string[] allFiles =
                     this.SearchPatterns.SelectMany(
                         f =>
                             Directory.EnumerateFiles(path, f, SearchOption.AllDirectories)
                                 .Where(fn => !this.ExcludeSubstringsInFileNames.Any(w => fn.ToLower().Contains(w)))).ToArray();
 
-                foreach (var fn in allFiles)
+                foreach (string fn in allFiles)
                 {
                     this.FileNamesToBytes[fn] = File.ReadAllBytes(fn);
                 }
@@ -123,13 +123,13 @@ namespace ImageSharp.Benchmarks.Image
         /// <param name="operation">The operation to execute. If the returned object is &lt;see cref="IDisposable"/&gt; it will be disposed </param>
         protected void ForEachStream(Func<MemoryStream, object> operation)
         {
-            foreach (var kv in this.FileNames2Bytes)
+            foreach (KeyValuePair<string, byte[]> kv in this.FileNames2Bytes)
             {
                 using (MemoryStream memoryStream = new MemoryStream(kv.Value))
                 {
                     try
                     {
-                        var obj = operation(memoryStream);
+                        object obj = operation(memoryStream);
                         (obj as IDisposable)?.Dispose();
 
                     }
@@ -147,12 +147,12 @@ namespace ImageSharp.Benchmarks.Image
             {
                 base.ReadFilesImpl();
 
-                foreach (var kv in this.FileNamesToBytes)
+                foreach (KeyValuePair<string, byte[]> kv in this.FileNamesToBytes)
                 {
                     byte[] bytes = kv.Value;
                     string fn = kv.Key;
 
-                    using (var ms1 = new MemoryStream(bytes))
+                    using (MemoryStream ms1 = new MemoryStream(bytes))
                     {
                         this.FileNamesToImageSharpImages[fn] = new Image(ms1);
 
@@ -178,11 +178,11 @@ namespace ImageSharp.Benchmarks.Image
 
             protected void ForEachImageSharpImage(Func<Image, object> operation)
             {
-                foreach (var kv in this.FileNames2ImageSharpImages)
+                foreach (KeyValuePair<string, Image> kv in this.FileNames2ImageSharpImages)
                 {
                     try
                     {
-                        var obj = operation(kv.Value);
+                        object obj = operation(kv.Value);
                         (obj as IDisposable)?.Dispose();
 
                     }
@@ -213,11 +213,11 @@ namespace ImageSharp.Benchmarks.Image
 
             protected void ForEachSystemDrawingImage(Func<System.Drawing.Bitmap, object> operation)
             {
-                foreach (var kv in this.FileNames2SystemDrawingImages)
+                foreach (KeyValuePair<string, Bitmap> kv in this.FileNames2SystemDrawingImages)
                 {
                     try
                     {
-                        var obj = operation(kv.Value);
+                        object obj = operation(kv.Value);
                         (obj as IDisposable)?.Dispose();
                     }
                     catch (Exception ex)

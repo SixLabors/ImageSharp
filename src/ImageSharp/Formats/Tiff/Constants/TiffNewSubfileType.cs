@@ -25,7 +25,7 @@ namespace ImageSharp.Formats
         AlternativePreview = 0x10000,
 
         // TIFF-F/FX Specification subfile types
-        
+
         MixedRasterContent = 0x0008
     }
 }

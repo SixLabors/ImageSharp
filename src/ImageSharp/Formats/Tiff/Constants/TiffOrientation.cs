@@ -10,7 +10,7 @@ namespace ImageSharp.Formats
     /// </summary>
     internal enum TiffOrientation
     {
-        /// TIFF baseline Orientation values
+        // TIFF baseline Orientation values
 
         TopLeft = 1,
         TopRight = 2,

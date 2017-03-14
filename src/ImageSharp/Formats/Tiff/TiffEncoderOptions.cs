@@ -6,7 +6,7 @@
 namespace ImageSharp.Formats
 {
     /// <summary>
-    /// Encapsulates the options for the <see cref="JTiffEncoder"/>.
+    /// Encapsulates the options for the <see cref="TiffEncoder"/>.
     /// </summary>
     public sealed class TiffEncoderOptions : EncoderOptions, ITiffEncoderOptions
     {

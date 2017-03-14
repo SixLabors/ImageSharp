@@ -5,7 +5,6 @@
 
 namespace ImageSharp.Formats
 {
-    using System;
     using System.IO;
 
     /// <summary>

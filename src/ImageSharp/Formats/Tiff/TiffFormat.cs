@@ -34,8 +34,8 @@ namespace ImageSharp.Formats
         public bool IsSupportedFileFormat(byte[] header)
         {
             return header.Length >= this.HeaderSize &&
-                   ((header[0] == 0x49 && header[1] == 0x49 && header[2] == 0x2A && header[3] == 0x00) ||  // Little-endian
-                    (header[0] == 0x4D && header[1] == 0x4D && header[2] == 0x00 && header[3] == 0x2A));   // Big-endian
+                   ((header[0] == 0x49 && header[1] == 0x49 && header[2] == 0x2A && header[3] == 0x00) || // Little-endian
+                    (header[0] == 0x4D && header[1] == 0x4D && header[2] == 0x00 && header[3] == 0x2A)); // Big-endian
         }
     }
 }

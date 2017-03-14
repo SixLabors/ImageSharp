@@ -168,7 +168,7 @@ namespace ImageSharp
             : base(configuration)
         {
             Guard.NotNull(filePath, nameof(filePath));
-            using (FileStream fs = File.OpenRead(filePath))
+            using (Stream fs = File.OpenRead(filePath))
             {
                 this.Load(fs, options);
             }
@@ -349,7 +349,7 @@ namespace ImageSharp
         public Image<TColor> Save(Stream stream, IEncoderOptions options)
         {
             Guard.NotNull(stream, nameof(stream));
-            this.CurrentImageFormat.Encoder.Encode(this, stream, options);
+            this.SaveInternal(stream, this.CurrentImageFormat?.Encoder, options);
             return this;
         }
 
@@ -373,9 +373,10 @@ namespace ImageSharp
         /// <returns>The <see cref="Image{TColor}"/></returns>
         public Image<TColor> Save(Stream stream, IImageFormat format, IEncoderOptions options)
         {
-            Guard.NotNull(stream, nameof(stream));
             Guard.NotNull(format, nameof(format));
-            format.Encoder.Encode(this, stream, options);
+
+            this.SaveInternal(stream, format.Encoder, options);
+
             return this;
         }
 
@@ -405,15 +406,7 @@ namespace ImageSharp
         /// </returns>
         public Image<TColor> Save(Stream stream, IImageEncoder encoder, IEncoderOptions options)
         {
-            Guard.NotNull(stream, nameof(stream));
-            Guard.NotNull(encoder, nameof(encoder));
-            encoder.Encode(this, stream, options);
-
-            // Reset to the start of the stream.
-            if (stream.CanSeek)
-            {
-                stream.Position = 0;
-            }
+            this.SaveInternal(stream, encoder, options);
 
             return this;
         }
@@ -567,6 +560,29 @@ namespace ImageSharp
             }
 
             return target;
+        }
+
+        /// <summary>
+        /// Internally saves the image to the given stream using the given image encoder and options.
+        /// Can be used by overridden by tests to verify save opperations.
+        /// </summary>
+        /// <param name="stream">The stream to save the image to.</param>
+        /// <param name="encoder">The encoder to save the image with.</param>
+        /// <param name="options">The options for the encoder.</param>
+        /// <exception cref="System.ArgumentNullException">Thrown if the stream or encoder is null.</exception>
+        internal virtual void SaveInternal(Stream stream, IImageEncoder encoder, IEncoderOptions options)
+        {
+            Guard.NotNull(stream, nameof(stream));
+            Guard.NotNull(encoder, nameof(encoder));
+
+            long startOfStream = stream.Position;
+            encoder.Encode(this, stream, options);
+
+            // Reset to the start of the stream.
+            if (stream.CanSeek)
+            {
+                stream.Position = startOfStream;
+            }
         }
 
         /// <summary>

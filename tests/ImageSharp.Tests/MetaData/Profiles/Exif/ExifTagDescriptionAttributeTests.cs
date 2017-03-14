@@ -12,7 +12,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void TestExifTag()
         {
-            var exifProfile = new ExifProfile();
+            ExifProfile exifProfile = new ExifProfile();
 
             exifProfile.SetValue(ExifTag.ResolutionUnit, (ushort)1);
             ExifValue value = exifProfile.GetValue(ExifTag.ResolutionUnit);

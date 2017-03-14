@@ -33,19 +33,19 @@ namespace ImageSharp.Tests
 
         protected override object[] GetFactoryMethodArgs(MethodInfo testMethod, Type factoryType)
         {
-            var m = testMethod.DeclaringType.GetMethod(this.memberMethodName);
+            MethodInfo m = testMethod.DeclaringType.GetMethod(this.memberMethodName);
 
-            var args = factoryType.GetGenericArguments();
-            var colorType = args.Single();
+            Type[] args = factoryType.GetGenericArguments();
+            Type colorType = args.Single();
 
-            var imgType = typeof(Image<>).MakeGenericType(colorType);
-            var genericFactoryType = (typeof(GenericFactory<>)).MakeGenericType(colorType);
+            Type imgType = typeof(Image<>).MakeGenericType(colorType);
+            Type genericFactoryType = (typeof(GenericFactory<>)).MakeGenericType(colorType);
 
-            var funcType = typeof(Func<,>).MakeGenericType(genericFactoryType, imgType);
+            Type funcType = typeof(Func<,>).MakeGenericType(genericFactoryType, imgType);
 
-            var genericMethod = m.MakeGenericMethod(args);
+            MethodInfo genericMethod = m.MakeGenericMethod(args);
 
-            var d = genericMethod.CreateDelegate(funcType);
+            Delegate d = genericMethod.CreateDelegate(funcType);
             return new object[] { d };
         }
 

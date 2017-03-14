@@ -146,7 +146,7 @@ namespace ImageSharp.Drawing.Pens
 
             public override ColoredPointInfo<TColor> GetColor(int x, int y, PointInfo info)
             {
-                var result = default(ColoredPointInfo<TColor>);
+                ColoredPointInfo<TColor> result = default(ColoredPointInfo<TColor>);
                 result.Color = this.brush[x, y];
 
                 if (info.DistanceFromPath < this.halfWidth)
@@ -178,7 +178,7 @@ namespace ImageSharp.Drawing.Pens
 
                 this.pattern = new float[pattern.Length + 1];
                 this.pattern[0] = 0;
-                for (var i = 0; i < pattern.Length; i++)
+                for (int i = 0; i < pattern.Length; i++)
                 {
                     this.totalLength += pattern[i] * width;
                     this.pattern[i + 1] = this.totalLength;
@@ -199,10 +199,10 @@ namespace ImageSharp.Drawing.Pens
 
             public override ColoredPointInfo<TColor> GetColor(int x, int y, PointInfo info)
             {
-                var infoResult = default(ColoredPointInfo<TColor>);
+                ColoredPointInfo<TColor> infoResult = default(ColoredPointInfo<TColor>);
                 infoResult.DistanceFromElement = float.MaxValue; // is really outside the element
 
-                var length = info.DistanceAlongPath % this.totalLength;
+                float length = info.DistanceAlongPath % this.totalLength;
 
                 // we can treat the DistanceAlongPath and DistanceFromPath as x,y coords for the pattern
                 // we need to calcualte the distance from the outside edge of the pattern
@@ -221,10 +221,10 @@ namespace ImageSharp.Drawing.Pens
                     distanceWAway = info.DistanceFromPath - this.halfWidth;
                 }
 
-                for (var i = 0; i < this.pattern.Length - 1; i++)
+                for (int i = 0; i < this.pattern.Length - 1; i++)
                 {
-                    var start = this.pattern[i];
-                    var end = this.pattern[i + 1];
+                    float start = this.pattern[i];
+                    float end = this.pattern[i + 1];
 
                     if (length >= start && length < end)
                     {
@@ -238,12 +238,12 @@ namespace ImageSharp.Drawing.Pens
                         else
                         {
                             // this is a none solid part
-                            var distanceFromStart = length - start;
-                            var distanceFromEnd = end - length;
+                            float distanceFromStart = length - start;
+                            float distanceFromEnd = end - length;
 
-                            var closestEdge = Math.Min(distanceFromStart, distanceFromEnd);
+                            float closestEdge = Math.Min(distanceFromStart, distanceFromEnd);
 
-                            var distanceAcross = closestEdge;
+                            float distanceAcross = closestEdge;
 
                             if (distanceWAway > 0)
                             {

@@ -78,7 +78,7 @@
             
             using (PinnedBuffer<Foo> buffer = new PinnedBuffer<Foo>(a))
             {
-                var arrayPtr = buffer.Slice();
+                BufferPointer<Foo> arrayPtr = buffer.Slice();
 
                 Assert.Equal(a, arrayPtr.Array);
                 Assert.Equal(0, arrayPtr.Offset);

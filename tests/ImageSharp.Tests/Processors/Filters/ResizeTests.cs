@@ -64,8 +64,8 @@ namespace ImageSharp.Tests
                 using (Image image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
-                    var sourceRectangle = new Rectangle(image.Width / 8, image.Height / 8, image.Width / 4, image.Height / 4);
-                    var destRectangle = new Rectangle(image.Width / 4, image.Height / 4, image.Width / 2, image.Height / 2);
+                    Rectangle sourceRectangle = new Rectangle(image.Width / 8, image.Height / 8, image.Width / 4, image.Height / 4);
+                    Rectangle destRectangle = new Rectangle(image.Width / 4, image.Height / 4, image.Width / 2, image.Height / 2);
                     image.Resize(image.Width, image.Height, sampler, sourceRectangle, destRectangle, false).Save(output);
                 }
             }

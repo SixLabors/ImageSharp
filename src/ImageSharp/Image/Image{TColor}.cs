@@ -168,7 +168,8 @@ namespace ImageSharp
             : base(configuration)
         {
             Guard.NotNull(filePath, nameof(filePath));
-            using (Stream fs = File.OpenRead(filePath))
+            configuration = configuration ?? Configuration.Default;
+            using (Stream fs = configuration.FileSystem.OpenRead(filePath))
             {
                 this.Load(fs, options);
             }
@@ -439,7 +440,7 @@ namespace ImageSharp
                 throw new InvalidOperationException($"No image formats have been registered for the file extension '{ext}'.");
             }
 
-            return this.Save(filePath, format);
+            return this.Save(filePath, format, options);
         }
 
         /// <summary>
@@ -465,10 +466,7 @@ namespace ImageSharp
         public Image<TColor> Save(string filePath, IImageFormat format, IEncoderOptions options)
         {
             Guard.NotNull(format, nameof(format));
-            using (FileStream fs = File.Create(filePath))
-            {
-                return this.Save(fs, format);
-            }
+            return this.Save(filePath, format.Encoder, options);
         }
 
         /// <summary>
@@ -494,9 +492,9 @@ namespace ImageSharp
         public Image<TColor> Save(string filePath, IImageEncoder encoder, IEncoderOptions options)
         {
             Guard.NotNull(encoder, nameof(encoder));
-            using (FileStream fs = File.Create(filePath))
+            using (Stream fs = this.Configuration.FileSystem.Create(filePath))
             {
-                return this.Save(fs, encoder);
+                return this.Save(fs, encoder, options);
             }
         }
 #endif

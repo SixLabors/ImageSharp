@@ -56,7 +56,7 @@ namespace ImageSharp
 
 #if !NETSTANDARD1_1
         /// <summary>
-        /// Helper for accessing the local file system.
+        /// Gets or sets the fielsystem helper for accessing the local file system.
         /// </summary>
         internal IFileSystem FileSystem { get; set; } = new LocalFileSystem();
 #endif

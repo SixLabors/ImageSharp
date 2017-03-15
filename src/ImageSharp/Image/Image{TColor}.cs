@@ -573,14 +573,7 @@ namespace ImageSharp
             Guard.NotNull(stream, nameof(stream));
             Guard.NotNull(encoder, nameof(encoder));
 
-            long startOfStream = stream.Position;
             encoder.Encode(this, stream, options);
-
-            // Reset to the start of the stream.
-            if (stream.CanSeek)
-            {
-                stream.Position = startOfStream;
-            }
         }
 
         /// <summary>

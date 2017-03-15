@@ -168,8 +168,8 @@ namespace ImageSharp
             : base(configuration)
         {
             Guard.NotNull(filePath, nameof(filePath));
-            configuration = configuration ?? Configuration.Default;
-            using (Stream fs = configuration.FileSystem.OpenRead(filePath))
+
+            using (Stream fs = this.Configuration.FileSystem.OpenRead(filePath))
             {
                 this.Load(fs, options);
             }

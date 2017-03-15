@@ -16,7 +16,7 @@ namespace ImageSharp.Tests
     public class SaveWatchingImage : Image<Color>
     {
         public List<OperationDetails> Saves { get; } = new List<OperationDetails>();
-        
+
         public SaveWatchingImage(int width, int height, IFileSystem fs = null)
            : base(width, height, Configuration.CreateDefaultInstance())
         {
@@ -26,7 +26,12 @@ namespace ImageSharp.Tests
 
         internal override void SaveInternal(Stream stream, IImageEncoder encoder, IEncoderOptions options)
         {
-
+            this.Saves.Add(new OperationDetails
+            {
+                encoder = encoder,
+                options = options,
+                stream = stream
+            });
         }
 
         public struct OperationDetails

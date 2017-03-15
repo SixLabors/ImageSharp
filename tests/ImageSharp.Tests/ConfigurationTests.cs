@@ -21,7 +21,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void DefaultsToLocalFileSystem()
         {
-            var configuration = Configuration.CreateDefaultInstance();
+            Configuration configuration = Configuration.CreateDefaultInstance();
 
             ImageSharp.IO.IFileSystem fs = configuration.FileSystem;
 

@@ -1,13 +1,13 @@
-﻿// <copyright file="Endianness.cs" company="James Jackson-South">
+﻿// <copyright file="IFileSystem.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-using System.IO;
-
 namespace ImageSharp.IO
 {
-#if !NETSTANDARD1_1
+    using System.IO;
+
+ #if !NETSTANDARD1_1
     /// <summary>
     /// A simple interface representing the filesystem.
     /// </summary>
@@ -25,7 +25,7 @@ namespace ImageSharp.IO
         /// </summary>
         /// <param name="path">Path to the file to open.</param>
         /// <returns>A stream representing the file to open.</returns>
-        Stream OpenWrite(string path);
+        Stream Create(string path);
     }
 #endif
 }

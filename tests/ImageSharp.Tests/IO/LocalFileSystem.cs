@@ -22,7 +22,7 @@ namespace ImageSharp.Tests.IO
 
             LocalFileSystem fs = new LocalFileSystem();
 
-            using (var r = new StreamReader(fs.OpenRead(path)))
+            using (StreamReader r = new StreamReader(fs.OpenRead(path)))
             {
                 string data = r.ReadToEnd();
 
@@ -33,13 +33,13 @@ namespace ImageSharp.Tests.IO
         }
 
         [Fact]
-        public void OpenWrite()
+        public void Create()
         {
             string path = Path.GetTempFileName();
             string testData = Guid.NewGuid().ToString();
             LocalFileSystem fs = new LocalFileSystem();
 
-            using (var r = new StreamWriter(fs.OpenWrite(path)))
+            using (StreamWriter r = new StreamWriter(fs.Create(path)))
             {
                 r.Write(testData);
             }

@@ -3,6 +3,7 @@
     using System;
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
+    using System.Threading.Tasks;
 
     using Xunit;
 
@@ -60,6 +61,23 @@
                 Assert.Equal(default(Foo), a[0]);
                 Assert.Equal(default(Foo), a[1]);
             }
+        }
+
+        [Fact]
+        public void CreateClean()
+        {
+            Parallel.For(0, 100,
+                i =>
+                    {
+                        using (PinnedBuffer<int> buffer = PinnedBuffer<int>.CreateClean(42))
+                        {
+                            for (int j = 0; j < buffer.Count; j++)
+                            {
+                                Assert.Equal(0, buffer.Array[j]);
+                                buffer.Array[j] = 666;
+                            }
+                        }
+                    });
         }
 
         [Fact]

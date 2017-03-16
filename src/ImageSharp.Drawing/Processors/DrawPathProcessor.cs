@@ -17,7 +17,7 @@ namespace ImageSharp.Drawing.Processors
     /// </summary>
     /// <typeparam name="TColor">The type of the color.</typeparam>
     /// <seealso cref="ImageSharp.Processing.ImageProcessor{TColor}" />
-    public class DrawPathProcessor<TColor> : ImageProcessor<TColor>
+    internal class DrawPathProcessor<TColor> : ImageProcessor<TColor>
         where TColor : struct, IPixel<TColor>
     {
         private const float AntialiasFactor = 1f;

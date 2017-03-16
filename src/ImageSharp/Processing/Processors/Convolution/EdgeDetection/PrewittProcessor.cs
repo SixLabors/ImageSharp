@@ -14,7 +14,7 @@ namespace ImageSharp.Processing.Processors
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     [SuppressMessage("ReSharper", "StaticMemberInGenericType", Justification = "We want to use only one instance of each array field for each generic type.")]
-    public class PrewittProcessor<TColor> : EdgeDetector2DProcessor<TColor>
+    internal class PrewittProcessor<TColor> : EdgeDetector2DProcessor<TColor>
         where TColor : struct, IPixel<TColor>
     {
         /// <summary>

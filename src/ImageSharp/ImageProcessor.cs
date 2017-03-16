@@ -12,7 +12,7 @@ namespace ImageSharp.Processing
     /// Allows the application of processors to images.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    public abstract class ImageProcessor<TColor> : IImageProcessor<TColor>
+    internal abstract class ImageProcessor<TColor> : IImageProcessor<TColor>
         where TColor : struct, IPixel<TColor>
     {
         /// <inheritdoc/>

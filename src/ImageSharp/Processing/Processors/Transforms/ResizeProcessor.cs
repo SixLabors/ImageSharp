@@ -16,7 +16,7 @@ namespace ImageSharp.Processing.Processors
     /// This version and the <see cref="CompandingResizeProcessor{TColor}"/> have been separated out to improve performance.
     /// </remarks>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    public class ResizeProcessor<TColor> : ResamplingWeightedProcessor<TColor>
+    internal class ResizeProcessor<TColor> : ResamplingWeightedProcessor<TColor>
         where TColor : struct, IPixel<TColor>
     {
         /// <summary>

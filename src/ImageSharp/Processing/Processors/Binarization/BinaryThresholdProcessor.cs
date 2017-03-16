@@ -13,7 +13,7 @@ namespace ImageSharp.Processing.Processors
     /// <see cref="Image"/>. The image will be converted to grayscale before thresholding occurs.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    public class BinaryThresholdProcessor<TColor> : ImageProcessor<TColor>
+    internal class BinaryThresholdProcessor<TColor> : ImageProcessor<TColor>
         where TColor : struct, IPixel<TColor>
     {
         /// <summary>

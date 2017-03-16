@@ -13,7 +13,7 @@ namespace ImageSharp.Tests
     /// Watches but does not actually run the processors against the image.
     /// </summary>
     /// <seealso cref="ImageSharp.Image{ImageSharp.Color}" />
-    public class SaveWatchingImage : Image<Color>
+    public class SaveWatchingImage : Image<Color>, IImageCallbacks
     {
         public List<OperationDetails> Saves { get; } = new List<OperationDetails>();
 
@@ -22,9 +22,11 @@ namespace ImageSharp.Tests
         {
             //switch out the file system for tests
             this.Configuration.FileSystem = fs ?? this.Configuration.FileSystem;
+
+            this.Callbacks = this;
         }
 
-        internal override void SaveInternal(Stream stream, IImageEncoder encoder, IEncoderOptions options)
+        public bool OnSaving<TColor>(ImageBase<TColor> image, Stream stream, IImageEncoder encoder, IEncoderOptions options) where TColor : struct, IPixel<TColor>
         {
             this.Saves.Add(new OperationDetails
             {
@@ -32,6 +34,13 @@ namespace ImageSharp.Tests
                 options = options,
                 stream = stream
             });
+
+            return false;
+        }
+
+        public bool OnProcessing<TColor>(ImageBase<TColor> image, IImageProcessor<TColor> processor, Rectangle rectangle) where TColor : struct, IPixel<TColor>
+        {
+            return false;
         }
 
         public struct OperationDetails

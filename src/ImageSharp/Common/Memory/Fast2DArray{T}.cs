@@ -13,7 +13,7 @@ namespace ImageSharp
     /// Provides fast access to 2D arrays.
     /// </summary>
     /// <typeparam name="T">The type of elements in the array.</typeparam>
-    public struct Fast2DArray<T>
+    internal struct Fast2DArray<T>
     {
         /// <summary>
         /// The 1D representation of the 2D array.

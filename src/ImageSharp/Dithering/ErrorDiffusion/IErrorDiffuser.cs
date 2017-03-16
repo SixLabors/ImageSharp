@@ -13,11 +13,6 @@ namespace ImageSharp.Dithering
     public interface IErrorDiffuser
     {
         /// <summary>
-        /// Gets the dithering matrix
-        /// </summary>
-        Fast2DArray<float> Matrix { get; }
-
-        /// <summary>
         /// Transforms the image applying the dither matrix. This method alters the input pixels array
         /// </summary>
         /// <param name="pixels">The pixel accessor </param>

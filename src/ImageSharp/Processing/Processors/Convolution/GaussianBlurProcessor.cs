@@ -11,7 +11,7 @@ namespace ImageSharp.Processing.Processors
     /// Applies a Gaussian blur sampler to the image.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    public class GaussianBlurProcessor<TColor> : ImageProcessor<TColor>
+    internal class GaussianBlurProcessor<TColor> : ImageProcessor<TColor>
         where TColor : struct, IPixel<TColor>
     {
         /// <summary>

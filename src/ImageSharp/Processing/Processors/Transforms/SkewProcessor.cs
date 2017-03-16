@@ -13,7 +13,7 @@ namespace ImageSharp.Processing.Processors
     /// Provides methods that allow the skewing of images.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    public class SkewProcessor<TColor> : Matrix3x2Processor<TColor>
+    internal class SkewProcessor<TColor> : Matrix3x2Processor<TColor>
         where TColor : struct, IPixel<TColor>
     {
         /// <summary>

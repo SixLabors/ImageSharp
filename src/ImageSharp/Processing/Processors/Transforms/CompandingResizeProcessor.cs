@@ -14,7 +14,7 @@ namespace ImageSharp.Processing.Processors
     /// This version will expand and compress the image to and from a linear color space during processing.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    public class CompandingResizeProcessor<TColor> : ResamplingWeightedProcessor<TColor>
+    internal class CompandingResizeProcessor<TColor> : ResamplingWeightedProcessor<TColor>
         where TColor : struct, IPixel<TColor>
     {
         /// <summary>

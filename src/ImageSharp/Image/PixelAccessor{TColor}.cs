@@ -59,7 +59,7 @@ namespace ImageSharp
         /// <param name="width">The width of the image represented by the pixel buffer.</param>
         /// <param name="height">The height of the image represented by the pixel buffer.</param>
         public PixelAccessor(int width, int height)
-            : this(width, height, new PinnedBuffer<TColor>(width * height))
+            : this(width, height, PinnedBuffer<TColor>.CreateClean(width * height))
         {
         }
 

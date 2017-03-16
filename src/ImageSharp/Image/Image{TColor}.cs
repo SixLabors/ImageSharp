@@ -561,22 +561,6 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Internally saves the image to the given stream using the given image encoder and options.
-        /// Can be used by overridden by tests to verify save opperations.
-        /// </summary>
-        /// <param name="stream">The stream to save the image to.</param>
-        /// <param name="encoder">The encoder to save the image with.</param>
-        /// <param name="options">The options for the encoder.</param>
-        /// <exception cref="System.ArgumentNullException">Thrown if the stream or encoder is null.</exception>
-        internal virtual void SaveInternal(Stream stream, IImageEncoder encoder, IEncoderOptions options)
-        {
-            Guard.NotNull(stream, nameof(stream));
-            Guard.NotNull(encoder, nameof(encoder));
-
-            encoder.Encode(this, stream, options);
-        }
-
-        /// <summary>
         /// Creates a new <see cref="ImageFrame{TColor}"/> from this instance
         /// </summary>
         /// <returns>The <see cref="ImageFrame{TColor}"/></returns>
@@ -595,6 +579,25 @@ namespace ImageSharp
             }
 
             base.Dispose(disposing);
+        }
+
+        /// <summary>
+        /// Internally saves the image to the given stream using the given image encoder and options.
+        /// Can be used by overridden by tests to verify save opperations.
+        /// </summary>
+        /// <param name="stream">The stream to save the image to.</param>
+        /// <param name="encoder">The encoder to save the image with.</param>
+        /// <param name="options">The options for the encoder.</param>
+        /// <exception cref="System.ArgumentNullException">Thrown if the stream or encoder is null.</exception>
+        private void SaveInternal(Stream stream, IImageEncoder encoder, IEncoderOptions options)
+        {
+            Guard.NotNull(stream, nameof(stream));
+            Guard.NotNull(encoder, nameof(encoder));
+
+            if (this.Callbacks?.OnSaving(this, stream, encoder, options) != false)
+            {
+                encoder.Encode(this, stream, options);
+            }
         }
 
         /// <summary>

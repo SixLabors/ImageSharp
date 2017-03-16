@@ -153,7 +153,7 @@ namespace ImageSharp.Tests
             List<string> directories = new List< string > {
                  "TestImages/Formats/", // Here for code coverage tests.
                   "tests/ImageSharp.Tests/TestImages/Formats/", // from travis/build script
-                  "../../../ImageSharp.Tests/TestImages/Formats/", // from Sandbox46
+                  "../../../../../ImageSharp.Tests/TestImages/Formats/", // from Sandbox46
                   "../../../../TestImages/Formats/",
                   "../../../TestImages/Formats/"
             };

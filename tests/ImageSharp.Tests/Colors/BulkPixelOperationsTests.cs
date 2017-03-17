@@ -314,8 +314,8 @@ namespace ImageSharp.Tests.Colors
             public PinnedBuffer<TDest> ActualDestBuffer { get; }
             public PinnedBuffer<TDest> ExpectedDestBuffer { get; }
 
-            public BufferPointer<TSource> Source => this.SourceBuffer.Slice();
-            public BufferPointer<TDest> ActualDest => this.ActualDestBuffer.Slice();
+            public BufferSpan<TSource> Source => this.SourceBuffer.Slice();
+            public BufferSpan<TDest> ActualDest => this.ActualDestBuffer.Slice();
             
             public TestBuffers(TSource[] source, TDest[] expectedDest)
             {
@@ -335,7 +335,7 @@ namespace ImageSharp.Tests.Colors
 
             public void Verify()
             {
-                int count = this.ExpectedDestBuffer.Count;
+                int count = this.ExpectedDestBuffer.Length;
 
                 if (typeof(TDest) == typeof(Vector4))
                 {
@@ -364,7 +364,7 @@ namespace ImageSharp.Tests.Colors
         internal static void TestOperation<TSource, TDest>(
             TSource[] source,
             TDest[] expected,
-            Action<BufferPointer<TSource>, BufferPointer<TDest>> action)
+            Action<BufferSpan<TSource>, BufferSpan<TDest>> action)
             where TSource : struct
             where TDest : struct
         {

@@ -24,8 +24,8 @@ namespace ImageSharp
             /// SIMD optimized bulk implementation of <see cref="IPixel.PackFromVector4(Vector4)"/>
             /// that works only with `count` divisible by <see cref="Vector{UInt32}.Count"/>.
             /// </summary>
-            /// <param name="sourceColors">The <see cref="BufferPointer{T}"/> to the source colors.</param>
-            /// <param name="destVectors">The <see cref="BufferPointer{T}"/> to the dstination vectors.</param>
+            /// <param name="sourceColors">The <see cref="BufferSpan{T}"/> to the source colors.</param>
+            /// <param name="destVectors">The <see cref="BufferSpan{T}"/> to the dstination vectors.</param>
             /// <param name="count">The number of pixels to convert.</param>
             /// <remarks>
             /// Implementation adapted from:
@@ -38,8 +38,8 @@ namespace ImageSharp
             /// </see>
             /// </remarks>
             internal static unsafe void ToVector4SimdAligned(
-                BufferPointer<Color> sourceColors,
-                BufferPointer<Vector4> destVectors,
+                BufferSpan<Color> sourceColors,
+                BufferSpan<Vector4> destVectors,
                 int count)
             {
                 int vecSize = Vector<uint>.Count;
@@ -85,12 +85,12 @@ namespace ImageSharp
                         vf.CopyTo(fTemp, i);
                     }
 
-                    BufferPointer.Copy<uint>(tempBuf, (BufferPointer<byte>)destVectors, unpackedRawCount);
+                    BufferSpan.Copy<uint>(tempBuf, (BufferSpan<byte>)destVectors, unpackedRawCount);
                 }
             }
 
             /// <inheritdoc />
-            internal override void ToVector4(BufferPointer<Color> sourceColors, BufferPointer<Vector4> destVectors, int count)
+            internal override void ToVector4(BufferSpan<Color> sourceColors, BufferSpan<Vector4> destVectors, int count)
             {
                 if (count < 256)
                 {
@@ -117,7 +117,7 @@ namespace ImageSharp
             }
 
             /// <inheritdoc />
-            internal override unsafe void PackFromXyzBytes(BufferPointer<byte> sourceBytes, BufferPointer<Color> destColors, int count)
+            internal override unsafe void PackFromXyzBytes(BufferSpan<byte> sourceBytes, BufferSpan<Color> destColors, int count)
             {
                 byte* source = (byte*)sourceBytes;
                 byte* destination = (byte*)destColors;
@@ -132,7 +132,7 @@ namespace ImageSharp
             }
 
             /// <inheritdoc />
-            internal override unsafe void ToXyzBytes(BufferPointer<Color> sourceColors, BufferPointer<byte> destBytes, int count)
+            internal override unsafe void ToXyzBytes(BufferSpan<Color> sourceColors, BufferSpan<byte> destBytes, int count)
             {
                 byte* source = (byte*)sourceColors;
                 byte* destination = (byte*)destBytes;
@@ -149,19 +149,19 @@ namespace ImageSharp
             }
 
             /// <inheritdoc />
-            internal override void PackFromXyzwBytes(BufferPointer<byte> sourceBytes, BufferPointer<Color> destColors, int count)
+            internal override void PackFromXyzwBytes(BufferSpan<byte> sourceBytes, BufferSpan<Color> destColors, int count)
             {
-                BufferPointer.Copy(sourceBytes, destColors, count);
+                BufferSpan.Copy(sourceBytes, destColors, count);
             }
 
             /// <inheritdoc />
-            internal override void ToXyzwBytes(BufferPointer<Color> sourceColors, BufferPointer<byte> destBytes, int count)
+            internal override void ToXyzwBytes(BufferSpan<Color> sourceColors, BufferSpan<byte> destBytes, int count)
             {
-                BufferPointer.Copy(sourceColors, destBytes, count);
+                BufferSpan.Copy(sourceColors, destBytes, count);
             }
 
             /// <inheritdoc />
-            internal override unsafe void PackFromZyxBytes(BufferPointer<byte> sourceBytes, BufferPointer<Color> destColors, int count)
+            internal override unsafe void PackFromZyxBytes(BufferSpan<byte> sourceBytes, BufferSpan<Color> destColors, int count)
             {
                 byte* source = (byte*)sourceBytes;
                 byte* destination = (byte*)destColors;
@@ -176,7 +176,7 @@ namespace ImageSharp
             }
 
             /// <inheritdoc />
-            internal override unsafe void ToZyxBytes(BufferPointer<Color> sourceColors, BufferPointer<byte> destBytes, int count)
+            internal override unsafe void ToZyxBytes(BufferSpan<Color> sourceColors, BufferSpan<byte> destBytes, int count)
             {
                 byte* source = (byte*)sourceColors;
                 byte* destination = (byte*)destBytes;
@@ -193,7 +193,7 @@ namespace ImageSharp
             }
 
             /// <inheritdoc />
-            internal override unsafe void PackFromZyxwBytes(BufferPointer<byte> sourceBytes, BufferPointer<Color> destColors, int count)
+            internal override unsafe void PackFromZyxwBytes(BufferSpan<byte> sourceBytes, BufferSpan<Color> destColors, int count)
             {
                 byte* source = (byte*)sourceBytes;
                 byte* destination = (byte*)destColors;
@@ -208,7 +208,7 @@ namespace ImageSharp
             }
 
             /// <inheritdoc />
-            internal override unsafe void ToZyxwBytes(BufferPointer<Color> sourceColors, BufferPointer<byte> destBytes, int count)
+            internal override unsafe void ToZyxwBytes(BufferSpan<Color> sourceColors, BufferSpan<byte> destBytes, int count)
             {
                 byte* source = (byte*)sourceColors;
                 byte* destination = (byte*)destBytes;

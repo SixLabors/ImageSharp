@@ -25,7 +25,7 @@
             {
                 Assert.False(buffer.IsDisposedOrLostArrayOwnership);
                 Assert.NotNull(buffer.Array);
-                Assert.Equal(count, buffer.Count);
+                Assert.Equal(count, buffer.Length);
                 Assert.True(buffer.Array.Length >= count);
 
                 VerifyPointer(buffer);
@@ -42,7 +42,7 @@
             {
                 Assert.False(buffer.IsDisposedOrLostArrayOwnership);
                 Assert.Equal(array, buffer.Array);
-                Assert.Equal(count, buffer.Count);
+                Assert.Equal(count, buffer.Length);
 
                 VerifyPointer(buffer);
             }
@@ -71,7 +71,7 @@
                     {
                         using (PinnedBuffer<int> buffer = PinnedBuffer<int>.CreateClean(42))
                         {
-                            for (int j = 0; j < buffer.Count; j++)
+                            for (int j = 0; j < buffer.Length; j++)
                             {
                                 Assert.Equal(0, buffer.Array[j]);
                                 buffer.Array[j] = 666;
@@ -96,10 +96,10 @@
             
             using (PinnedBuffer<Foo> buffer = new PinnedBuffer<Foo>(a))
             {
-                BufferPointer<Foo> arrayPtr = buffer.Slice();
+                BufferSpan<Foo> arrayPtr = buffer.Slice();
 
                 Assert.Equal(a, arrayPtr.Array);
-                Assert.Equal(0, arrayPtr.Offset);
+                Assert.Equal(0, arrayPtr.Start);
                 Assert.Equal(buffer.Pointer, arrayPtr.PointerAtOffset);
             }
         }

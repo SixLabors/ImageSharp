@@ -5,13 +5,11 @@
 
 namespace ImageSharp.Dithering.Ordered
 {
-    using System;
-
     /// <summary>
     /// Applies error diffusion based dithering using the 4x4 ordered dithering matrix.
     /// <see href="https://en.wikipedia.org/wiki/Ordered_dithering"/>
     /// </summary>
-    public class Ordered : IOrderedDither
+    public sealed class Ordered : OrderedDither4x4
     {
         /// <summary>
         /// The threshold matrix.
@@ -26,15 +24,12 @@ namespace ImageSharp.Dithering.Ordered
                { 240, 112, 208, 80 }
             };
 
-        /// <inheritdoc />
-        public Fast2DArray<byte> Matrix { get; } = ThresholdMatrix;
-
-        /// <inheritdoc />
-        public void Dither<TColor>(PixelAccessor<TColor> pixels, TColor source, TColor upper, TColor lower, byte[] bytes, int index, int x, int y, int width, int height)
-            where TColor : struct, IPixel<TColor>
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Ordered"/> class.
+        /// </summary>
+        public Ordered()
+            : base(ThresholdMatrix)
         {
-            source.ToXyzwBytes(bytes, 0);
-            pixels[x, y] = ThresholdMatrix[y % 3, x % 3] >= bytes[index] ? lower : upper;
         }
     }
 }

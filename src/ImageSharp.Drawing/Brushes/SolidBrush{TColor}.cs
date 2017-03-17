@@ -42,7 +42,7 @@ namespace ImageSharp.Drawing.Brushes
         /// <inheritdoc />
         public BrushApplicator<TColor> CreateApplicator(PixelAccessor<TColor> sourcePixels, RectangleF region)
         {
-            return new SolidBrushApplicator(this.color);
+            return new SolidBrushApplicator(sourcePixels, this.color);
         }
 
         /// <summary>
@@ -54,14 +54,18 @@ namespace ImageSharp.Drawing.Brushes
             /// The solid color.
             /// </summary>
             private readonly TColor color;
+            private readonly Vector4 colorVector;
 
             /// <summary>
             /// Initializes a new instance of the <see cref="SolidBrushApplicator"/> class.
             /// </summary>
             /// <param name="color">The color.</param>
-            public SolidBrushApplicator(TColor color)
+            /// <param name="sourcePixels">The sourcePixels.</param>
+            public SolidBrushApplicator(PixelAccessor<TColor> sourcePixels, TColor color)
+                : base(sourcePixels)
             {
                 this.color = color;
+                this.colorVector = color.ToVector4();
             }
 
             /// <summary>
@@ -72,12 +76,39 @@ namespace ImageSharp.Drawing.Brushes
             /// <returns>
             /// The color
             /// </returns>
-            public override TColor this[int x, int y] => this.color;
+            internal override TColor this[int x, int y] => this.color;
 
             /// <inheritdoc />
             public override void Dispose()
             {
                 // noop
+            }
+
+            internal override void Apply(float[] scanline, int scanlineWidth, int offset, int x, int y)
+            {
+                using (PinnedBuffer<float> buffer = new PinnedBuffer<float>(scanline))
+                {
+                    var slice = buffer.Slice(offset);
+
+                    for (var xPos = 0; xPos < scanlineWidth; xPos++)
+                    {
+                        int targetX = xPos + x;
+                        int targetY = y;
+
+                        float opacity = slice[xPos];
+                        if (opacity > Constants.Epsilon)
+                        {
+                            Vector4 backgroundVector = this.Target[targetX, targetY].ToVector4();
+                            Vector4 sourceVector = this.colorVector;
+
+                            Vector4 finalColor = Vector4BlendTransforms.PremultipliedLerp(backgroundVector, sourceVector, opacity);
+
+                            TColor packed = default(TColor);
+                            packed.PackFromVector4(finalColor);
+                            this.Target[targetX, targetY] = packed;
+                        }
+                    }
+                }
             }
         }
     }

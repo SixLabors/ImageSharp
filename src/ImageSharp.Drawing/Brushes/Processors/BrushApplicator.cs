@@ -54,9 +54,9 @@ namespace ImageSharp.Drawing.Processors
         {
             using (PinnedBuffer<float> buffer = new PinnedBuffer<float>(scanline))
             {
-                var slice = buffer.Slice(offset);
+                BufferPointer<float> slice = buffer.Slice(offset);
 
-                for (var xPos = 0; xPos < scanlineWidth; xPos++)
+                for (int xPos = 0; xPos < scanlineWidth; xPos++)
                 {
                     int targetX = xPos + x;
                     int targetY = y;

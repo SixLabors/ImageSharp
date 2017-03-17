@@ -27,7 +27,7 @@ namespace ImageSharp.Drawing.Processors
         }
 
         /// <summary>
-        /// The destinaion
+        /// Gets the destinaion
         /// </summary>
         protected PixelAccessor<TColor> Target { get; }
 

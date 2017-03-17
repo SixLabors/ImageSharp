@@ -18,10 +18,9 @@ namespace ImageSharp.Drawing.Brushes
         /// <summary>
         /// Percent10 Hatch Pattern
         /// </summary>
-        /// note 2d arrays when configured using initalizer look inverted
-        /// ---> Y axis
+        /// ---> x axis
         /// ^
-        /// | X - axis
+        /// | y - axis
         /// |
         /// see PatternBrush for details about how to make new patterns work
         private static readonly bool[,] Percent10Pattern =
@@ -37,32 +36,16 @@ namespace ImageSharp.Drawing.Brushes
         /// </summary>
         private static readonly bool[,] Percent20Pattern =
         {
-            { true, false, true, false },
-            { false, false, false, false },
-            { false, true, false, true },
-            { false, false, false, false }
+            { true,  false, false, false },
+            { false, false, true,  false },
+            { true,  false, false, false },
+            { false, false, true,  false }
         };
 
         /// <summary>
         /// Horizontal Hatch Pattern
         /// </summary>
         private static readonly bool[,] HorizontalPattern =
-        {
-            { false, true, false, false },
-        };
-
-        /// <summary>
-        /// Min Pattern
-        /// </summary>
-        private static readonly bool[,] MinPattern =
-        {
-            { false, false, false, true },
-        };
-
-        /// <summary>
-        /// Vertical Pattern
-        /// </summary>
-        private static readonly bool[,] VerticalPattern =
         {
             { false },
             { true },
@@ -71,14 +54,33 @@ namespace ImageSharp.Drawing.Brushes
         };
 
         /// <summary>
+        /// Min Pattern
+        /// </summary>
+        private static readonly bool[,] MinPattern =
+        {
+            { false },
+            { false },
+            { false },
+            { true }
+        };
+
+        /// <summary>
+        /// Vertical Pattern
+        /// </summary>
+        private static readonly bool[,] VerticalPattern =
+        {
+            { false, true, false, false },
+        };
+
+        /// <summary>
         /// Forward Diagonal Pattern
         /// </summary>
         private static readonly bool[,] ForwardDiagonalPattern =
         {
-            { true, false, false, false },
-            { false, true, false, false },
+            { false, false, false, true },
             { false, false, true, false },
-            { false, false, false, true }
+            { false, true, false, false },
+            { true,  false, false, false }
         };
 
         /// <summary>
@@ -86,10 +88,10 @@ namespace ImageSharp.Drawing.Brushes
         /// </summary>
         private static readonly bool[,] BackwardDiagonalPattern =
         {
-            { false, false, false, true },
-            { false, false, true, false },
+            { true, false, false, false },
             { false, true, false, false },
-            { true,  false, false, false }
+            { false, false, true, false },
+            { false, false, false, true }
         };
 
         /// <summary>

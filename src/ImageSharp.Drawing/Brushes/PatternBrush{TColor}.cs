@@ -30,15 +30,6 @@ namespace ImageSharp.Drawing.Brushes
     ///  0
     ///  0
     /// </para>
-    /// Warning when use array initializer across multiple lines the bools look inverted i.e.
-    /// new bool[,]{
-    ///     {true, false, false},
-    ///     {false,true, false}
-    /// }
-    /// would be
-    /// 10
-    /// 01
-    /// 00
     /// </remarks>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     public class PatternBrush<TColor> : IBrush<TColor>
@@ -56,7 +47,18 @@ namespace ImageSharp.Drawing.Brushes
         /// <param name="foreColor">Color of the fore.</param>
         /// <param name="backColor">Color of the back.</param>
         /// <param name="pattern">The pattern.</param>
-        public PatternBrush(TColor foreColor, TColor backColor, Fast2DArray<bool> pattern)
+        public PatternBrush(TColor foreColor, TColor backColor, bool[,] pattern)
+            : this(foreColor, backColor, new Fast2DArray<bool>(pattern))
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PatternBrush{TColor}"/> class.
+        /// </summary>
+        /// <param name="foreColor">Color of the fore.</param>
+        /// <param name="backColor">Color of the back.</param>
+        /// <param name="pattern">The pattern.</param>
+        internal PatternBrush(TColor foreColor, TColor backColor, Fast2DArray<bool> pattern)
         {
             Vector4 foreColorVector = foreColor.ToVector4();
             Vector4 backColorVector = backColor.ToVector4();
@@ -131,7 +133,8 @@ namespace ImageSharp.Drawing.Brushes
                     x = x % this.pattern.Width;
                     y = y % this.pattern.Height;
 
-                    return this.pattern[x, y];
+                    // 2d array index at row/column
+                    return this.pattern[y, x];
                 }
             }
 
@@ -156,7 +159,9 @@ namespace ImageSharp.Drawing.Brushes
                         if (opacity > Constants.Epsilon)
                         {
                             Vector4 backgroundVector = this.Target[targetX, targetY].ToVector4();
-                            Vector4 sourceVector = this.patternVector[targetX % this.pattern.Height, targetX % this.pattern.Width];
+
+                            // 2d array index at row/column
+                            Vector4 sourceVector = this.patternVector[targetY % this.pattern.Height, targetX % this.pattern.Width];
 
                             Vector4 finalColor = Vector4BlendTransforms.PremultipliedLerp(backgroundVector, sourceVector, opacity);
 

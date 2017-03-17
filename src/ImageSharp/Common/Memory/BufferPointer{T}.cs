@@ -73,6 +73,20 @@ namespace ImageSharp
         /// </summary>
         public IntPtr PointerAtOffset { get; private set; }
 
+          /// <summary>
+        /// Gets or sets the pixel at the specified position.
+        /// </summary>
+        /// <param name="x">The x-coordinate of the pixel. Must be greater than or equal to zero and less than the width of the image.</param>
+        /// <returns>The <see typeparam="TColor"/> at the specified position.</returns>
+        public T this[int x]
+        {
+            get
+            {
+                void* ptr = ((byte*)this.PointerAtOffset) + (x * Unsafe.SizeOf<T>());
+                return Unsafe.Read<T>(ptr);
+            }
+        }
+
         /// <summary>
         /// Convertes <see cref="BufferPointer{T}"/> instance to a raw 'void*' pointer
         /// </summary>

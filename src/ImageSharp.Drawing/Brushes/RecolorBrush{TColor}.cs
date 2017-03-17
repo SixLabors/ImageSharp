@@ -66,11 +66,6 @@ namespace ImageSharp.Drawing.Brushes
         private class RecolorBrushApplicator : BrushApplicator<TColor>
         {
             /// <summary>
-            /// The source pixel accessor.
-            /// </summary>
-            private readonly PixelAccessor<TColor> source;
-
-            /// <summary>
             /// The source color.
             /// </summary>
             private readonly Vector4 sourceColor;
@@ -93,8 +88,8 @@ namespace ImageSharp.Drawing.Brushes
             /// <param name="targetColor">Color of the target.</param>
             /// <param name="threshold">The threshold .</param>
             public RecolorBrushApplicator(PixelAccessor<TColor> sourcePixels, TColor sourceColor, TColor targetColor, float threshold)
+                : base(sourcePixels)
             {
-                this.source = sourcePixels;
                 this.sourceColor = sourceColor.ToVector4();
                 this.targetColor = targetColor.ToVector4();
 
@@ -114,12 +109,12 @@ namespace ImageSharp.Drawing.Brushes
             /// <returns>
             /// The color
             /// </returns>
-            public override TColor this[int x, int y]
+            internal override TColor this[int x, int y]
             {
                 get
                 {
                     // Offset the requested pixel by the value in the rectangle (the shapes position)
-                    TColor result = this.source[x, y];
+                    TColor result = this.Target[x, y];
                     Vector4 background = result.ToVector4();
                     float distance = Vector4.DistanceSquared(background, this.sourceColor);
                     if (distance <= this.threshold)
@@ -139,6 +134,43 @@ namespace ImageSharp.Drawing.Brushes
             /// <inheritdoc />
             public override void Dispose()
             {
+            }
+
+            internal override void Apply(float[] scanline, int scanlineWidth, int offset, int x, int y)
+            {
+                using (PinnedBuffer<float> buffer = new PinnedBuffer<float>(scanline))
+                {
+                    var slice = buffer.Slice(offset);
+
+                    for (var xPos = 0; xPos < scanlineWidth; xPos++)
+                    {
+                        int targetX = xPos + x;
+                        int targetY = y;
+
+                        float opacity = slice[xPos];
+                        if (opacity > Constants.Epsilon)
+                        {
+                            Vector4 backgroundVector = this.Target[targetX, targetY].ToVector4();
+
+                            Vector4 sourceVector = backgroundVector;
+                            float distance = Vector4.DistanceSquared(sourceVector, this.sourceColor);
+                            if (distance <= this.threshold)
+                            {
+                                float lerpAmount = (this.threshold - distance) / this.threshold;
+                                sourceVector = Vector4BlendTransforms.PremultipliedLerp(
+                                    sourceVector,
+                                    this.targetColor,
+                                    lerpAmount);
+
+                                Vector4 finalColor = Vector4BlendTransforms.PremultipliedLerp(backgroundVector, sourceVector, opacity);
+
+                                TColor packed = default(TColor);
+                                packed.PackFromVector4(finalColor);
+                                this.Target[targetX, targetY] = packed;
+                            }
+                        }
+                    }
+                }
             }
         }
     }

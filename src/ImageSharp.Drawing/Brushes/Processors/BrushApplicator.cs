@@ -7,6 +7,7 @@ namespace ImageSharp.Drawing.Processors
 {
     using System;
     using System.Numerics;
+    using System.Runtime.CompilerServices;
 
     /// <summary>
     /// primitive that converts a point in to a color for discovering the fill color based on an implementation
@@ -17,14 +18,64 @@ namespace ImageSharp.Drawing.Processors
         where TColor : struct, IPixel<TColor>
     {
         /// <summary>
+        /// Initializes a new instance of the <see cref="BrushApplicator{TColor}"/> class.
+        /// </summary>
+        /// <param name="target">The target.</param>
+        internal BrushApplicator(PixelAccessor<TColor> target)
+        {
+            this.Target = target;
+        }
+
+        /// <summary>
+        /// The destinaion
+        /// </summary>
+        protected PixelAccessor<TColor> Target { get; }
+
+        /// <summary>
         /// Gets the color for a single pixel.
         /// </summary>
         /// <param name="x">The x cordinate.</param>
         /// <param name="y">The y cordinate.</param>
         /// <returns>The a <typeparamref name="TColor"/> that should be applied to the pixel.</returns>
-        public abstract TColor this[int x, int y] { get; }
+        internal abstract TColor this[int x, int y] { get; }
 
         /// <inheritdoc/>
         public abstract void Dispose();
+
+        /// <summary>
+        /// Applies the opactiy weighting for each pixel in a scanline to the target based on the pattern contained in the brush.
+        /// </summary>
+        /// <param name="scanline">The a collection of opacity values between 0 and 1 to be merged with the burshed color value before being applied to the target.</param>
+        /// <param name="scanlineWidth">The number of pixels effected by this scanline.</param>
+        /// <param name="offset">The offset fromthe begining of <paramref name="scanline" /> the opacity data starts.</param>
+        /// <param name="x">The x position in the target pixel space that the start of the scanline data corresponds to.</param>
+        /// <param name="y">The y position in  the target pixel space that whole scanline corresponds to.</param>
+        internal virtual void Apply(float[] scanline, int scanlineWidth, int offset, int x, int y)
+        {
+            using (PinnedBuffer<float> buffer = new PinnedBuffer<float>(scanline))
+            {
+                var slice = buffer.Slice(offset);
+
+                for (var xPos = 0; xPos < scanlineWidth; xPos++)
+                {
+                    int targetX = xPos + x;
+                    int targetY = y;
+
+                    float opacity = slice[xPos];
+                    if (opacity > Constants.Epsilon)
+                    {
+                        Vector4 backgroundVector = this.Target[targetX, targetY].ToVector4();
+
+                        Vector4 sourceVector = this[targetX, targetY].ToVector4();
+
+                        Vector4 finalColor = Vector4BlendTransforms.PremultipliedLerp(backgroundVector, sourceVector, opacity);
+
+                        TColor packed = default(TColor);
+                        packed.PackFromVector4(finalColor);
+                        this.Target[targetX, targetY] = packed;
+                    }
+                }
+            }
+        }
     }
 }

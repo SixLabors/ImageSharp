@@ -128,8 +128,8 @@ namespace ImageSharp.Drawing.Brushes
             {
                 get
                 {
-                    x = x % this.pattern.Height;
-                    y = y % this.pattern.Width;
+                    x = x % this.pattern.Width;
+                    y = y % this.pattern.Height;
 
                     return this.pattern[x, y];
                 }

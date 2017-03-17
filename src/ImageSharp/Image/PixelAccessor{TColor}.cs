@@ -239,12 +239,12 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Gets a <see cref="BufferPointer{TColor}"/> to the row 'y' beginning from the pixel at 'x'.
+        /// Gets a <see cref="BufferSpan{T}"/> to the row 'y' beginning from the pixel at 'x'.
         /// </summary>
         /// <param name="x">The x coordinate</param>
         /// <param name="y">The y coordinate</param>
-        /// <returns>The <see cref="BufferPointer{TColor}"/></returns>
-        internal BufferPointer<TColor> GetRowPointer(int x, int y)
+        /// <returns>The <see cref="BufferSpan{T}"/></returns>
+        internal BufferSpan<TColor> GetRowPointer(int x, int y)
         {
             return this.pixelBuffer.Slice((y * this.Width) + x);
         }
@@ -288,8 +288,8 @@ namespace ImageSharp
         {
             for (int y = 0; y < height; y++)
             {
-                BufferPointer<byte> source = area.GetRowPointer(y);
-                BufferPointer<TColor> destination = this.GetRowPointer(targetX, targetY + y);
+                BufferSpan<byte> source = area.GetRowPointer(y);
+                BufferSpan<TColor> destination = this.GetRowPointer(targetX, targetY + y);
 
                 Operations.PackFromZyxBytes(source, destination, width);
             }
@@ -308,8 +308,8 @@ namespace ImageSharp
         {
             for (int y = 0; y < height; y++)
             {
-                BufferPointer<byte> source = area.GetRowPointer(y);
-                BufferPointer<TColor> destination = this.GetRowPointer(targetX, targetY + y);
+                BufferSpan<byte> source = area.GetRowPointer(y);
+                BufferSpan<TColor> destination = this.GetRowPointer(targetX, targetY + y);
 
                 Operations.PackFromZyxwBytes(source, destination, width);
             }
@@ -328,8 +328,8 @@ namespace ImageSharp
         {
             for (int y = 0; y < height; y++)
             {
-                BufferPointer<byte> source = area.GetRowPointer(y);
-                BufferPointer<TColor> destination = this.GetRowPointer(targetX, targetY + y);
+                BufferSpan<byte> source = area.GetRowPointer(y);
+                BufferSpan<TColor> destination = this.GetRowPointer(targetX, targetY + y);
 
                 Operations.PackFromXyzBytes(source, destination, width);
             }
@@ -348,8 +348,8 @@ namespace ImageSharp
         {
             for (int y = 0; y < height; y++)
             {
-                BufferPointer<byte> source = area.GetRowPointer(y);
-                BufferPointer<TColor> destination = this.GetRowPointer(targetX, targetY + y);
+                BufferSpan<byte> source = area.GetRowPointer(y);
+                BufferSpan<TColor> destination = this.GetRowPointer(targetX, targetY + y);
                 Operations.PackFromXyzwBytes(source, destination, width);
             }
         }
@@ -367,8 +367,8 @@ namespace ImageSharp
         {
             for (int y = 0; y < height; y++)
             {
-                BufferPointer<TColor> source = this.GetRowPointer(sourceX, sourceY + y);
-                BufferPointer<byte> destination = area.GetRowPointer(y);
+                BufferSpan<TColor> source = this.GetRowPointer(sourceX, sourceY + y);
+                BufferSpan<byte> destination = area.GetRowPointer(y);
                 Operations.ToZyxBytes(source, destination, width);
             }
         }
@@ -386,8 +386,8 @@ namespace ImageSharp
         {
             for (int y = 0; y < height; y++)
             {
-                BufferPointer<TColor> source = this.GetRowPointer(sourceX, sourceY + y);
-                BufferPointer<byte> destination = area.GetRowPointer(y);
+                BufferSpan<TColor> source = this.GetRowPointer(sourceX, sourceY + y);
+                BufferSpan<byte> destination = area.GetRowPointer(y);
                 Operations.ToZyxwBytes(source, destination, width);
             }
         }
@@ -405,8 +405,8 @@ namespace ImageSharp
         {
             for (int y = 0; y < height; y++)
             {
-                BufferPointer<TColor> source = this.GetRowPointer(sourceX, sourceY + y);
-                BufferPointer<byte> destination = area.GetRowPointer(y);
+                BufferSpan<TColor> source = this.GetRowPointer(sourceX, sourceY + y);
+                BufferSpan<byte> destination = area.GetRowPointer(y);
                 Operations.ToXyzBytes(source, destination, width);
             }
         }
@@ -424,8 +424,8 @@ namespace ImageSharp
         {
             for (int y = 0; y < height; y++)
             {
-                BufferPointer<TColor> source = this.GetRowPointer(sourceX, sourceY + y);
-                BufferPointer<byte> destination = area.GetRowPointer(y);
+                BufferSpan<TColor> source = this.GetRowPointer(sourceX, sourceY + y);
+                BufferSpan<byte> destination = area.GetRowPointer(y);
                 Operations.ToXyzwBytes(source, destination, width);
             }
         }

@@ -32,11 +32,11 @@ namespace ImageSharp
         /// <summary>
         /// Initializes a new instance of the <see cref="PinnedBuffer{T}"/> class.
         /// </summary>
-        /// <param name="count">The desired count of elements. (Minimum size for <see cref="Array"/>)</param>
-        public PinnedBuffer(int count)
+        /// <param name="length">The desired count of elements. (Minimum size for <see cref="Array"/>)</param>
+        public PinnedBuffer(int length)
         {
-            this.Count = count;
-            this.Array = PixelDataPool<T>.Rent(count);
+            this.Length = length;
+            this.Array = PixelDataPool<T>.Rent(length);
             this.isPoolingOwner = true;
             this.Pin();
         }
@@ -47,7 +47,7 @@ namespace ImageSharp
         /// <param name="array">The array to pin.</param>
         public PinnedBuffer(T[] array)
         {
-            this.Count = array.Length;
+            this.Length = array.Length;
             this.Array = array;
             this.isPoolingOwner = false;
             this.Pin();
@@ -56,16 +56,16 @@ namespace ImageSharp
         /// <summary>
         /// Initializes a new instance of the <see cref="PinnedBuffer{T}"/> class.
         /// </summary>
-        /// <param name="count">The count of "relevant" elements in 'array'.</param>
+        /// <param name="length">The count of "relevant" elements in 'array'.</param>
         /// <param name="array">The array to pin.</param>
-        public PinnedBuffer(int count, T[] array)
+        public PinnedBuffer(int length, T[] array)
         {
-            if (array.Length < count)
+            if (array.Length < length)
             {
                 throw new ArgumentException("Can't initialize a PinnedBuffer with array.Length < count", nameof(array));
             }
 
-            this.Count = count;
+            this.Length = length;
             this.Array = array;
             this.isPoolingOwner = false;
             this.Pin();
@@ -85,9 +85,9 @@ namespace ImageSharp
         public bool IsDisposedOrLostArrayOwnership { get; private set; }
 
         /// <summary>
-        /// Gets the count of "relevant" elements. Usually be smaller than 'Array.Length' when <see cref="Array"/> is pooled.
+        /// Gets the count of "relevant" elements. It's usually smaller than 'Array.Length' when <see cref="Array"/> is pooled.
         /// </summary>
-        public int Count { get; private set; }
+        public int Length { get; private set; }
 
         /// <summary>
         /// Gets the backing pinned array.
@@ -100,11 +100,11 @@ namespace ImageSharp
         public IntPtr Pointer { get; private set; }
 
         /// <summary>
-        /// Converts <see cref="PinnedBuffer{T}"/> to an <see cref="BufferPointer{T}"/>.
+        /// Converts <see cref="PinnedBuffer{T}"/> to an <see cref="BufferSpan{T}"/>.
         /// </summary>
         /// <param name="buffer">The <see cref="PinnedBuffer{T}"/> to convert.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static implicit operator BufferPointer<T>(PinnedBuffer<T> buffer)
+        public static implicit operator BufferSpan<T>(PinnedBuffer<T> buffer)
         {
             return buffer.Slice();
         }
@@ -122,24 +122,24 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Gets a <see cref="BufferPointer{T}"/> to the beginning of the raw data of the buffer.
+        /// Gets a <see cref="BufferSpan{T}"/> to the beginning of the raw data of the buffer.
         /// </summary>
-        /// <returns>The <see cref="BufferPointer{T}"/></returns>
+        /// <returns>The <see cref="BufferSpan{T}"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe BufferPointer<T> Slice()
+        public unsafe BufferSpan<T> Slice()
         {
-            return new BufferPointer<T>(this.Array, (void*)this.Pointer);
+            return new BufferSpan<T>(this.Array, (void*)this.Pointer);
         }
 
         /// <summary>
-        /// Gets a <see cref="BufferPointer{T}"/> to an offseted position inside the buffer.
+        /// Gets a <see cref="BufferSpan{T}"/> to an offseted position inside the buffer.
         /// </summary>
         /// <param name="offset">The offset</param>
-        /// <returns>The <see cref="BufferPointer{T}"/></returns>
+        /// <returns>The <see cref="BufferSpan{T}"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe BufferPointer<T> Slice(int offset)
+        public unsafe BufferSpan<T> Slice(int offset)
         {
-            return new BufferPointer<T>(this.Array, (void*)this.Pointer, offset);
+            return new BufferSpan<T>(this.Array, (void*)this.Pointer, offset);
         }
 
         /// <summary>
@@ -163,7 +163,7 @@ namespace ImageSharp
 
             this.isPoolingOwner = false;
             this.Array = null;
-            this.Count = 0;
+            this.Length = 0;
 
             GC.SuppressFinalize(this);
         }
@@ -190,12 +190,12 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Clears the buffer, filling elements between 0 and <see cref="Count"/>-1 with default(T)
+        /// Clears the buffer, filling elements between 0 and <see cref="Length"/>-1 with default(T)
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Clear()
         {
-            this.Slice().Clear(this.Count);
+            this.Slice().Clear(this.Length);
         }
 
         /// <summary>

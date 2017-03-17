@@ -13,7 +13,7 @@ namespace ImageSharp.Processing.Processors
     /// An <see cref="IImageProcessor{TColor}"/> that dithers an image using error diffusion.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    public class ErrorDiffusionDitherProcessor<TColor> : ImageProcessor<TColor>
+    internal class ErrorDiffusionDitherProcessor<TColor> : ImageProcessor<TColor>
         where TColor : struct, IPixel<TColor>
     {
         /// <summary>

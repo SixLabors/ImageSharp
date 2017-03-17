@@ -13,7 +13,7 @@ namespace ImageSharp.Processing.Processors
     /// An <see cref="IImageProcessor{TColor}"/> to pixelate the colors of an <see cref="Image{TColor}"/>.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    public class PixelateProcessor<TColor> : ImageProcessor<TColor>
+    internal class PixelateProcessor<TColor> : ImageProcessor<TColor>
         where TColor : struct, IPixel<TColor>
     {
         /// <summary>

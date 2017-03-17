@@ -149,65 +149,6 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Copy an area of pixels to the image.
-        /// </summary>
-        /// <param name="area">The area.</param>
-        /// <param name="targetY">The target row index.</param>
-        /// <param name="targetX">The target column index.</param>
-        /// <exception cref="NotSupportedException">
-        /// Thrown when an unsupported component order value is passed.
-        /// </exception>
-        public void CopyFrom(PixelArea<TColor> area, int targetY, int targetX = 0)
-        {
-            this.CheckCoordinates(area, targetX, targetY);
-
-            this.CopyFrom(area, targetX, targetY, area.Width, area.Height);
-        }
-
-        /// <summary>
-        /// Copy pixels from the image to an area of pixels.
-        /// </summary>
-        /// <param name="area">The area.</param>
-        /// <param name="sourceY">The source row index.</param>
-        /// <param name="sourceX">The source column index.</param>
-        /// <exception cref="NotSupportedException">
-        /// Thrown when an unsupported component order value is passed.
-        /// </exception>
-        public void CopyTo(PixelArea<TColor> area, int sourceY, int sourceX = 0)
-        {
-            this.CheckCoordinates(area, sourceX, sourceY);
-
-            this.CopyTo(area, sourceX, sourceY, area.Width, area.Height);
-        }
-
-        /// <summary>
-        /// Copy pixels from the image to an area of pixels. This method will make sure that the pixels
-        /// that are copied are within the bounds of the image.
-        /// </summary>
-        /// <param name="area">The area.</param>
-        /// <param name="sourceY">The source row index.</param>
-        /// <param name="sourceX">The source column index.</param>
-        /// <exception cref="NotSupportedException">
-        /// Thrown when an unsupported component order value is passed.
-        /// </exception>
-        public void SafeCopyTo(PixelArea<TColor> area, int sourceY, int sourceX = 0)
-        {
-            int width = Math.Min(area.Width, this.Width - sourceX);
-            if (width < 1)
-            {
-                return;
-            }
-
-            int height = Math.Min(area.Height, this.Height - sourceY);
-            if (height < 1)
-            {
-                return;
-            }
-
-            this.CopyTo(area, sourceX, sourceY, width, height);
-        }
-
-        /// <summary>
         /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
         /// </summary>
         public void Dispose()
@@ -236,6 +177,65 @@ namespace ImageSharp
         public void Reset()
         {
             Unsafe.InitBlock(this.pixelsBase, 0, (uint)(this.RowStride * this.Height));
+        }
+
+        /// <summary>
+        /// Copy an area of pixels to the image.
+        /// </summary>
+        /// <param name="area">The area.</param>
+        /// <param name="targetY">The target row index.</param>
+        /// <param name="targetX">The target column index.</param>
+        /// <exception cref="NotSupportedException">
+        /// Thrown when an unsupported component order value is passed.
+        /// </exception>
+        internal void CopyFrom(PixelArea<TColor> area, int targetY, int targetX = 0)
+        {
+            this.CheckCoordinates(area, targetX, targetY);
+
+            this.CopyFrom(area, targetX, targetY, area.Width, area.Height);
+        }
+
+        /// <summary>
+        /// Copy pixels from the image to an area of pixels.
+        /// </summary>
+        /// <param name="area">The area.</param>
+        /// <param name="sourceY">The source row index.</param>
+        /// <param name="sourceX">The source column index.</param>
+        /// <exception cref="NotSupportedException">
+        /// Thrown when an unsupported component order value is passed.
+        /// </exception>
+        internal void CopyTo(PixelArea<TColor> area, int sourceY, int sourceX = 0)
+        {
+            this.CheckCoordinates(area, sourceX, sourceY);
+
+            this.CopyTo(area, sourceX, sourceY, area.Width, area.Height);
+        }
+
+        /// <summary>
+        /// Copy pixels from the image to an area of pixels. This method will make sure that the pixels
+        /// that are copied are within the bounds of the image.
+        /// </summary>
+        /// <param name="area">The area.</param>
+        /// <param name="sourceY">The source row index.</param>
+        /// <param name="sourceX">The source column index.</param>
+        /// <exception cref="NotSupportedException">
+        /// Thrown when an unsupported component order value is passed.
+        /// </exception>
+        internal void SafeCopyTo(PixelArea<TColor> area, int sourceY, int sourceX = 0)
+        {
+            int width = Math.Min(area.Width, this.Width - sourceX);
+            if (width < 1)
+            {
+                return;
+            }
+
+            int height = Math.Min(area.Height, this.Height - sourceY);
+            if (height < 1)
+            {
+                return;
+            }
+
+            this.CopyTo(area, sourceX, sourceY, width, height);
         }
 
         /// <summary>

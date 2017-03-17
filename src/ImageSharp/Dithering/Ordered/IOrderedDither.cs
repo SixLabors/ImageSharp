@@ -5,18 +5,11 @@
 
 namespace ImageSharp.Dithering
 {
-    using System;
-
     /// <summary>
     /// Encapsulates properties and methods required to perfom ordered dithering on an image.
     /// </summary>
     public interface IOrderedDither
     {
-        /// <summary>
-        /// Gets the dithering matrix
-        /// </summary>
-        Fast2DArray<byte> Matrix { get; }
-
         /// <summary>
         /// Transforms the image applying the dither matrix. This method alters the input pixels array
         /// </summary>

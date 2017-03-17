@@ -12,7 +12,7 @@ namespace ImageSharp.Processing.Processors
     /// entropy.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    public class EntropyCropProcessor<TColor> : ImageProcessor<TColor>
+    internal class EntropyCropProcessor<TColor> : ImageProcessor<TColor>
         where TColor : struct, IPixel<TColor>
     {
         /// <summary>

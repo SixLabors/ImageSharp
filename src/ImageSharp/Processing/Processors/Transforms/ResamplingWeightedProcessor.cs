@@ -12,7 +12,7 @@ namespace ImageSharp.Processing.Processors
     /// Adapted from <see href="http://www.realtimerendering.com/resources/GraphicsGems/gemsiii/filter_rcg.c"/>
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    public abstract class ResamplingWeightedProcessor<TColor> : ImageProcessor<TColor>
+    internal abstract class ResamplingWeightedProcessor<TColor> : ImageProcessor<TColor>
         where TColor : struct, IPixel<TColor>
     {
         /// <summary>

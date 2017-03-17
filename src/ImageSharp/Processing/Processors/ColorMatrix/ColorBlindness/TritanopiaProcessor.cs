@@ -12,7 +12,7 @@ namespace ImageSharp.Processing.Processors
     /// Converts the colors of the image recreating Tritanopia (Blue-Blind) color blindness.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    public class TritanopiaProcessor<TColor> : ColorMatrixFilter<TColor>
+    internal class TritanopiaProcessor<TColor> : ColorMatrixProcessor<TColor>
         where TColor : struct, IPixel<TColor>
     {
         /// <inheritdoc/>

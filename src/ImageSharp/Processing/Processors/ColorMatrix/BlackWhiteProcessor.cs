@@ -12,7 +12,7 @@ namespace ImageSharp.Processing.Processors
     /// Converts the colors of the image to their black and white equivalent.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    public class BlackWhiteProcessor<TColor> : ColorMatrixFilter<TColor>
+    internal class BlackWhiteProcessor<TColor> : ColorMatrixProcessor<TColor>
         where TColor : struct, IPixel<TColor>
     {
         /// <inheritdoc/>

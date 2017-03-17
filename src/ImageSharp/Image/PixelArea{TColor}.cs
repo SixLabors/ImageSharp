@@ -5,17 +5,15 @@
 namespace ImageSharp
 {
     using System;
-    using System.Buffers;
     using System.Diagnostics;
     using System.IO;
     using System.Runtime.CompilerServices;
-    using System.Runtime.InteropServices;
 
     /// <summary>
     /// Represents an area of generic <see cref="Image{TColor}"/> pixels.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    public sealed unsafe class PixelArea<TColor> : IDisposable
+    internal sealed unsafe class PixelArea<TColor> : IDisposable
         where TColor : struct, IPixel<TColor>
     {
         /// <summary>

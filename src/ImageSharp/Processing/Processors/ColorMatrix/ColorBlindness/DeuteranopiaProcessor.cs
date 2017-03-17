@@ -12,7 +12,7 @@ namespace ImageSharp.Processing.Processors
     /// Converts the colors of the image recreating Deuteranopia (Green-Blind) color blindness.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    public class DeuteranopiaProcessor<TColor> : ColorMatrixFilter<TColor>
+    internal class DeuteranopiaProcessor<TColor> : ColorMatrixProcessor<TColor>
         where TColor : struct, IPixel<TColor>
     {
         /// <inheritdoc/>

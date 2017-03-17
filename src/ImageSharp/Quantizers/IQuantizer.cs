@@ -5,8 +5,6 @@
 
 namespace ImageSharp.Quantizers
 {
-    using System;
-
     using ImageSharp.Dithering;
 
     /// <summary>

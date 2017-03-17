@@ -13,7 +13,7 @@ namespace ImageSharp.Processing.Processors
     /// The formula used matches the svg specification. <see href="http://www.w3.org/TR/filter-effects/#sepiaEquivalent"/>
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    public class SepiaProcessor<TColor> : ColorMatrixFilter<TColor>
+    internal class SepiaProcessor<TColor> : ColorMatrixProcessor<TColor>
         where TColor : struct, IPixel<TColor>
     {
         /// <inheritdoc/>

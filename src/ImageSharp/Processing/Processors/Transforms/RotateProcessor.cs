@@ -13,7 +13,7 @@ namespace ImageSharp.Processing.Processors
     /// Provides methods that allow the rotating of images.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    public class RotateProcessor<TColor> : Matrix3x2Processor<TColor>
+    internal class RotateProcessor<TColor> : Matrix3x2Processor<TColor>
         where TColor : struct, IPixel<TColor>
     {
         /// <summary>

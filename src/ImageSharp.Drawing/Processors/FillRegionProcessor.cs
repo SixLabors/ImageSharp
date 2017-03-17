@@ -88,7 +88,7 @@ namespace ImageSharp.Drawing.Processors
                 try
                 {
                     bool scanlineDirty = true;
-                    for (var y = minY; y < maxY; y++)
+                    for (int y = minY; y < maxY; y++)
                     {
                         if (scanlineDirty)
                         {
@@ -105,7 +105,7 @@ namespace ImageSharp.Drawing.Processors
                         float subpixelFractionPoint = subpixelFraction / subpixelCount;
                         for (float subPixel = (float)y; subPixel < y + 1; subPixel += subpixelFraction)
                         {
-                            int pointsFound = region.ScanY(subPixel, buffer, maxIntersections, 0);
+                            int pointsFound = region.Scan(subPixel, buffer, maxIntersections, 0);
                             if (pointsFound == 0)
                             {
                                 // nothing on this line skip

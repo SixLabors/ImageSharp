@@ -33,7 +33,7 @@ namespace ImageSharp.Tests.Drawing
                 {
                     // lets pick random spots to start checking
                     Random r = new Random();
-                    var expectedPatternFast = new Fast2DArray<Color>(expectedPattern);
+                    Fast2DArray<Color> expectedPatternFast = new Fast2DArray<Color>(expectedPattern);
                     int xStride = expectedPatternFast.Width;
                     int yStride = expectedPatternFast.Height;
                     int offsetX = r.Next(image.Width / xStride) * xStride;

@@ -21,7 +21,7 @@ namespace ImageSharp.Tests
 
         [Theory]
         [InlineData(100, 100)]
-        [InlineData(1000, 1000)]
+        [InlineData(2000, 2000)]
         public void ResizeBicubic(int width, int height)
         {
             this.Measure(this.ExecutionCount,

@@ -45,14 +45,17 @@ namespace ImageSharp.Drawing.Processors
         /// <summary>
         /// Applies the opactiy weighting for each pixel in a scanline to the target based on the pattern contained in the brush.
         /// </summary>
-        /// <param name="scanline">The a collection of opacity values between 0 and 1 to be merged with the burshed color value before being applied to the target.</param>
+        /// <param name="scanlineBuffer">The a collection of opacity values between 0 and 1 to be merged with the brushed color value before being applied to the target.</param>
         /// <param name="scanlineWidth">The number of pixels effected by this scanline.</param>
         /// <param name="offset">The offset fromthe begining of <paramref name="scanline" /> the opacity data starts.</param>
         /// <param name="x">The x position in the target pixel space that the start of the scanline data corresponds to.</param>
         /// <param name="y">The y position in  the target pixel space that whole scanline corresponds to.</param>
-        internal virtual void Apply(float[] scanline, int scanlineWidth, int offset, int x, int y)
+        /// <remarks>scanlineBuffer will be > scanlineWidth but provide and offset in case we want to share a larger buffer across runs.</remarks>
+        internal virtual void Apply(float[] scanlineBuffer, int scanlineWidth, int offset, int x, int y)
         {
-            using (PinnedBuffer<float> buffer = new PinnedBuffer<float>(scanline))
+            DebugGuard.MustBeGreaterThanOrEqualTo(scanlineBuffer.Length, offset + scanlineWidth, nameof(scanlineWidth));
+
+            using (PinnedBuffer<float> buffer = new PinnedBuffer<float>(scanlineBuffer))
             {
                 BufferPointer<float> slice = buffer.Slice(offset);
 

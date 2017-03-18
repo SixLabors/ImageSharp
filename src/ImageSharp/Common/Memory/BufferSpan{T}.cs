@@ -107,6 +107,23 @@ namespace ImageSharp
         public IntPtr PointerAtOffset { get; private set; }
 
         /// <summary>
+        /// Returns a reference to specified element of the span.
+        /// </summary>
+        /// <param name="index">The index</param>
+        /// <returns>The reference to the specified element</returns>
+        public ref T this[int index]
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                DebugGuard.MustBeLessThan(index, this.Length, nameof(index));
+
+                byte* ptr = (byte*)this.PointerAtOffset + BufferSpan.SizeOf<T>(index);
+                return ref Unsafe.AsRef<T>(ptr);
+            }
+        }
+
+        /// <summary>
         /// Convertes <see cref="BufferSpan{T}"/> instance to a raw 'void*' pointer
         /// </summary>
         /// <param name="bufferSpan">The <see cref="BufferSpan{T}"/> to convert</param>

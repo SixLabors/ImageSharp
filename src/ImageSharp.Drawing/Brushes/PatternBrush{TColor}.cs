@@ -86,6 +86,7 @@ namespace ImageSharp.Drawing.Brushes
         internal PatternBrush(PatternBrush<TColor> brush)
         {
             this.pattern = brush.pattern;
+            this.patternVector = brush.patternVector;
         }
 
         /// <inheritdoc />
@@ -112,7 +113,7 @@ namespace ImageSharp.Drawing.Brushes
             /// <param name="pattern">The pattern.</param>
             /// <param name="patternVector">The patternVector.</param>
             public PatternBrushApplicator(PixelAccessor<TColor> sourcePixels, Fast2DArray<TColor> pattern, Fast2DArray<Vector4> patternVector)
-            : base(sourcePixels)
+                : base(sourcePixels)
             {
                 this.pattern = pattern;
                 this.patternVector = patternVector;
@@ -147,7 +148,7 @@ namespace ImageSharp.Drawing.Brushes
             /// <inheritdoc />
             internal override void Apply(float[] scanlineBuffer, int scanlineWidth, int offset, int x, int y)
             {
-                DebugGuard.MustBeGreaterThanOrEqualTo(scanlineBuffer.Length, offset + scanlineWidth, nameof(scanlineWidth));
+                Guard.MustBeGreaterThanOrEqualTo(scanlineBuffer.Length, offset + scanlineWidth, nameof(scanlineWidth));
 
                 using (PinnedBuffer<float> buffer = new PinnedBuffer<float>(scanlineBuffer))
                 {
@@ -164,7 +165,7 @@ namespace ImageSharp.Drawing.Brushes
                             Vector4 backgroundVector = this.Target[targetX, targetY].ToVector4();
 
                             // 2d array index at row/column
-                            Vector4 sourceVector = this.patternVector[targetY % this.pattern.Height, targetX % this.pattern.Width];
+                            Vector4 sourceVector = this.patternVector[targetY % this.patternVector.Height, targetX % this.patternVector.Width];
 
                             Vector4 finalColor = Vector4BlendTransforms.PremultipliedLerp(backgroundVector, sourceVector, opacity);
 

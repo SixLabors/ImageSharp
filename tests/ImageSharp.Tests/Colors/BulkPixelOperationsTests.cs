@@ -314,8 +314,8 @@ namespace ImageSharp.Tests.Colors
             public PinnedBuffer<TDest> ActualDestBuffer { get; }
             public PinnedBuffer<TDest> ExpectedDestBuffer { get; }
 
-            public BufferSpan<TSource> Source => this.SourceBuffer.Slice();
-            public BufferSpan<TDest> ActualDest => this.ActualDestBuffer.Slice();
+            public BufferSpan<TSource> Source => this.SourceBuffer;
+            public BufferSpan<TDest> ActualDest => this.ActualDestBuffer;
             
             public TestBuffers(TSource[] source, TDest[] expectedDest)
             {

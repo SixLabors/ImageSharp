@@ -11,7 +11,7 @@ namespace ImageSharp
     using System.Runtime.InteropServices;
 
     /// <summary>
-    /// Manages a pinned buffer of value type data 'T' as a Disposable resource.
+    /// Manages a pinned buffer of value type objects as a Disposable resource.
     /// The backing array is either pooled or comes from the outside.
     /// </summary>
     /// <typeparam name="T">The value type.</typeparam>
@@ -56,9 +56,9 @@ namespace ImageSharp
         /// <summary>
         /// Initializes a new instance of the <see cref="PinnedBuffer{T}"/> class.
         /// </summary>
-        /// <param name="length">The count of "relevant" elements in 'array'.</param>
         /// <param name="array">The array to pin.</param>
-        public PinnedBuffer(int length, T[] array)
+        /// <param name="length">The count of "relevant" elements in 'array'.</param>
+        public PinnedBuffer(T[] array, int length)
         {
             if (array.Length < length)
             {
@@ -100,13 +100,18 @@ namespace ImageSharp
         public IntPtr Pointer { get; private set; }
 
         /// <summary>
+        /// Gets a <see cref="BufferSpan{T}"/> to the backing buffer.
+        /// </summary>
+        public BufferSpan<T> Span => this;
+
+        /// <summary>
         /// Converts <see cref="PinnedBuffer{T}"/> to an <see cref="BufferSpan{T}"/>.
         /// </summary>
         /// <param name="buffer">The <see cref="PinnedBuffer{T}"/> to convert.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static implicit operator BufferSpan<T>(PinnedBuffer<T> buffer)
+        public static unsafe implicit operator BufferSpan<T>(PinnedBuffer<T> buffer)
         {
-            return buffer.Slice();
+            return new BufferSpan<T>(buffer.Array, (void*)buffer.Pointer, 0, buffer.Length);
         }
 
         /// <summary>
@@ -114,6 +119,7 @@ namespace ImageSharp
         /// </summary>
         /// <param name="count">The desired count of elements. (Minimum size for <see cref="Array"/>)</param>
         /// <returns>The <see cref="PinnedBuffer{T}"/> instance</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static PinnedBuffer<T> CreateClean(int count)
         {
             PinnedBuffer<T> buffer = new PinnedBuffer<T>(count);
@@ -122,24 +128,26 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Gets a <see cref="BufferSpan{T}"/> to the beginning of the raw data of the buffer.
+        /// Gets a <see cref="BufferSpan{T}"/> to an offseted position inside the buffer.
         /// </summary>
+        /// <param name="start">The start</param>
         /// <returns>The <see cref="BufferSpan{T}"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe BufferSpan<T> Slice()
+        public unsafe BufferSpan<T> Slice(int start)
         {
-            return new BufferSpan<T>(this.Array, (void*)this.Pointer);
+            return new BufferSpan<T>(this.Array, (void*)this.Pointer, start, this.Length - start);
         }
 
         /// <summary>
         /// Gets a <see cref="BufferSpan{T}"/> to an offseted position inside the buffer.
         /// </summary>
-        /// <param name="offset">The offset</param>
+        /// <param name="start">The start</param>
+        /// <param name="length">The length of the slice</param>
         /// <returns>The <see cref="BufferSpan{T}"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe BufferSpan<T> Slice(int offset)
+        public unsafe BufferSpan<T> Slice(int start, int length)
         {
-            return new BufferSpan<T>(this.Array, (void*)this.Pointer, offset);
+            return new BufferSpan<T>(this.Array, (void*)this.Pointer, start, length);
         }
 
         /// <summary>
@@ -195,7 +203,7 @@ namespace ImageSharp
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Clear()
         {
-            this.Slice().Clear(this.Length);
+            ((BufferSpan<T>)this).Clear();
         }
 
         /// <summary>

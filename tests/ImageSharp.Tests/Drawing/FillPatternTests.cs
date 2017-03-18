@@ -33,8 +33,9 @@ namespace ImageSharp.Tests.Drawing
                 {
                     // lets pick random spots to start checking
                     Random r = new Random();
-                    int xStride = expectedPattern.GetLength(1);
-                    int yStride = expectedPattern.GetLength(0);
+                    Fast2DArray<Color> expectedPatternFast = new Fast2DArray<Color>(expectedPattern);
+                    int xStride = expectedPatternFast.Width;
+                    int yStride = expectedPatternFast.Height;
                     int offsetX = r.Next(image.Width / xStride) * xStride;
                     int offsetY = r.Next(image.Height / yStride) * yStride;
                     for (int x = 0; x < xStride; x++)
@@ -43,7 +44,7 @@ namespace ImageSharp.Tests.Drawing
                         {
                             int actualX = x + offsetX;
                             int actualY = y + offsetY;
-                            Color expected = expectedPattern[y, x]; // inverted pattern
+                            Color expected = expectedPatternFast[y, x]; // inverted pattern
                             Color actual = sourcePixels[actualX, actualY];
                             if (expected != actual)
                             {
@@ -187,30 +188,6 @@ namespace ImageSharp.Tests.Drawing
         {
             Test("ForwardDiagonal", Color.Blue, Brushes.ForwardDiagonal(Color.HotPink, Color.LimeGreen),
            new Color[,] {
-                { Color.HotPink, Color.LimeGreen, Color.LimeGreen, Color.LimeGreen},
-                { Color.LimeGreen, Color.HotPink, Color.LimeGreen, Color.LimeGreen},
-                { Color.LimeGreen, Color.LimeGreen, Color.HotPink, Color.LimeGreen},
-                { Color.LimeGreen, Color.LimeGreen, Color.LimeGreen, Color.HotPink}
-           });
-        }
-
-        [Fact]
-        public void ImageShouldBeFloodFilledWithForwardDiagonal_transparent()
-        {
-            Test("ForwardDiagonal_Transparent", Color.Blue, Brushes.ForwardDiagonal(Color.HotPink),
-           new Color[,] {
-                { Color.HotPink, Color.Blue,    Color.Blue,    Color.Blue},
-                { Color.Blue,    Color.HotPink, Color.Blue,    Color.Blue},
-                { Color.Blue,    Color.Blue,    Color.HotPink, Color.Blue},
-                { Color.Blue,    Color.Blue,    Color.Blue,    Color.HotPink}
-           });
-        }
-
-        [Fact]
-        public void ImageShouldBeFloodFilledWithBackwardDiagonal()
-        {
-            Test("BackwardDiagonal", Color.Blue, Brushes.BackwardDiagonal(Color.HotPink, Color.LimeGreen),
-           new Color[,] {
                 { Color.LimeGreen, Color.LimeGreen, Color.LimeGreen, Color.HotPink},
                 { Color.LimeGreen, Color.LimeGreen, Color.HotPink, Color.LimeGreen},
                 { Color.LimeGreen, Color.HotPink, Color.LimeGreen, Color.LimeGreen},
@@ -219,17 +196,39 @@ namespace ImageSharp.Tests.Drawing
         }
 
         [Fact]
+        public void ImageShouldBeFloodFilledWithForwardDiagonal_transparent()
+        {
+            Test("ForwardDiagonal_Transparent", Color.Blue, Brushes.ForwardDiagonal(Color.HotPink),
+           new Color[,] {
+                { Color.Blue,    Color.Blue,    Color.Blue,    Color.HotPink},
+                { Color.Blue,    Color.Blue,    Color.HotPink, Color.Blue},
+                { Color.Blue,    Color.HotPink, Color.Blue,    Color.Blue},
+                { Color.HotPink, Color.Blue,    Color.Blue,    Color.Blue}
+           });
+        }
+
+        [Fact]
+        public void ImageShouldBeFloodFilledWithBackwardDiagonal()
+        {
+            Test("BackwardDiagonal", Color.Blue, Brushes.BackwardDiagonal(Color.HotPink, Color.LimeGreen),
+           new Color[,] {
+                { Color.HotPink,   Color.LimeGreen, Color.LimeGreen, Color.LimeGreen},
+                { Color.LimeGreen, Color.HotPink,   Color.LimeGreen, Color.LimeGreen},
+                { Color.LimeGreen, Color.LimeGreen, Color.HotPink,   Color.LimeGreen},
+                { Color.LimeGreen, Color.LimeGreen, Color.LimeGreen, Color.HotPink}
+           });
+        }
+
+        [Fact]
         public void ImageShouldBeFloodFilledWithBackwardDiagonal_transparent()
         {
             Test("BackwardDiagonal_Transparent", Color.Blue, Brushes.BackwardDiagonal(Color.HotPink),
            new Color[,] {
-                { Color.Blue, Color.Blue,    Color.Blue,    Color.HotPink},
-                { Color.Blue,    Color.Blue, Color.HotPink,    Color.Blue},
-                { Color.Blue,    Color.HotPink,    Color.Blue, Color.Blue},
-                { Color.HotPink,    Color.Blue,    Color.Blue,    Color.Blue}
+                { Color.HotPink, Color.Blue,    Color.Blue,    Color.Blue},
+                { Color.Blue,    Color.HotPink, Color.Blue,    Color.Blue},
+                { Color.Blue,    Color.Blue,    Color.HotPink, Color.Blue},
+                { Color.Blue,    Color.Blue,    Color.Blue,    Color.HotPink}
            });
         }
-
-
     }
 }

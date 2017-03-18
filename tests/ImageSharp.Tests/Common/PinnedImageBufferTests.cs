@@ -5,6 +5,8 @@ namespace ImageSharp.Tests.Common
 
     using Xunit;
 
+    using static TestStructs;
+
     public unsafe class PinnedImageBufferTests
     {
         [Theory]
@@ -12,7 +14,7 @@ namespace ImageSharp.Tests.Common
         [InlineData(1025, 17)]
         public void Construct(int width, int height)
         {
-            using (PinnedImageBuffer<int> buffer = new PinnedImageBuffer<int>(width, height))
+            using (PinnedImageBuffer<Foo> buffer = new PinnedImageBuffer<Foo>(width, height))
             {
                 Assert.Equal(width, buffer.Width);
                 Assert.Equal(height, buffer.Height);
@@ -25,8 +27,8 @@ namespace ImageSharp.Tests.Common
         [InlineData(1025, 17)]
         public void Construct_FromExternalArray(int width, int height)
         {
-            int[] array = new int[width * height + 10];
-            using (PinnedImageBuffer<int> buffer = new PinnedImageBuffer<int>(array, width, height))
+            Foo[] array = new Foo[width * height + 10];
+            using (PinnedImageBuffer<Foo> buffer = new PinnedImageBuffer<Foo>(array, width, height))
             {
                 Assert.Equal(width, buffer.Width);
                 Assert.Equal(height, buffer.Height);
@@ -57,9 +59,9 @@ namespace ImageSharp.Tests.Common
         [InlineData(17, 42, 41)]
         public void GetRowSpanY(int width, int height, int y)
         {
-            using (PinnedImageBuffer<int> buffer = new PinnedImageBuffer<int>(width, height))
+            using (PinnedImageBuffer<Foo> buffer = new PinnedImageBuffer<Foo>(width, height))
             {
-                BufferSpan<int> span = buffer.GetRowSpan(y);
+                BufferSpan<Foo> span = buffer.GetRowSpan(y);
 
                 Assert.Equal(width * y, span.Start);
                 Assert.Equal(width, span.Length);
@@ -73,13 +75,31 @@ namespace ImageSharp.Tests.Common
         [InlineData(17, 42, 0, 41)]
         public void GetRowSpanXY(int width, int height, int x, int y)
         {
-            using (PinnedImageBuffer<int> buffer = new PinnedImageBuffer<int>(width, height))
+            using (PinnedImageBuffer<Foo> buffer = new PinnedImageBuffer<Foo>(width, height))
             {
-                BufferSpan<int> span = buffer.GetRowSpan(x, y);
+                BufferSpan<Foo> span = buffer.GetRowSpan(x, y);
 
                 Assert.Equal(width * y + x, span.Start);
                 Assert.Equal(width - x, span.Length);
                 Assert.Equal(buffer.Pointer + sizeof(int) * (width * y + x), span.PointerAtOffset);
+            }
+        }
+
+        [Theory]
+        [InlineData(42, 8, 0, 0)]
+        [InlineData(400, 1000, 20, 10)]
+        [InlineData(99, 88, 98, 87)]
+        public void Indexer(int width, int height, int x, int y)
+        {
+            using (PinnedImageBuffer<Foo> buffer = new PinnedImageBuffer<Foo>(width, height))
+            {
+                Foo[] array = buffer.Array;
+
+                ref Foo actual = ref buffer[x, y];
+
+                ref Foo expected = ref array[y * width + x];
+
+                Assert.True(Unsafe.AreSame(ref expected, ref actual));
             }
         }
     }

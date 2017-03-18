@@ -7,15 +7,10 @@
 
     using Xunit;
 
+    using static TestStructs;
+
     public unsafe class PinnedBufferTests
     {
-        public struct Foo
-        {
-            public int A;
-
-            public double B;
-        }
-
         [Theory]
         [InlineData(42)]
         [InlineData(1111)]
@@ -75,6 +70,45 @@
                         Assert.Equal(0, buffer.Array[j]);
                         buffer.Array[j] = 666;
                     }
+                }
+            }
+        }
+
+        public class Indexer
+        {
+            public static readonly TheoryData<int, int> IndexerData =
+                new TheoryData<int,int>()
+                    {
+                        { 10, 0 },
+                        { 16, 3 },
+                        { 10, 9 }
+                    };
+
+            [Theory]
+            [MemberData(nameof(IndexerData))]
+            public void Read(int length, int index)
+            {
+                Foo[] a = Foo.CreateArray(length);
+                
+                using (PinnedBuffer<Foo> buffer = new PinnedBuffer<Foo>(a))
+                {
+                    Foo element = buffer[index];
+
+                    Assert.Equal(a[index], element);
+                }
+            }
+
+            [Theory]
+            [MemberData(nameof(IndexerData))]
+            public void Write(int length, int index)
+            {
+                Foo[] a = Foo.CreateArray(length);
+
+                using (PinnedBuffer<Foo> buffer = new PinnedBuffer<Foo>(a))
+                {
+                    buffer[index] = new Foo(666, 666);
+
+                    Assert.Equal(new Foo(666, 666), a[index]);
                 }
             }
         }

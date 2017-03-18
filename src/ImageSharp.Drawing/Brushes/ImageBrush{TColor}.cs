@@ -112,9 +112,12 @@ namespace ImageSharp.Drawing.Brushes
                 this.source.Dispose();
             }
 
-            internal override void Apply(float[] scanline, int scanlineWidth, int offset, int x, int y)
+            /// <inheritdoc />
+            internal override void Apply(float[] scanlineBuffer, int scanlineWidth, int offset, int x, int y)
             {
-                using (PinnedBuffer<float> buffer = new PinnedBuffer<float>(scanline))
+                DebugGuard.MustBeGreaterThanOrEqualTo(scanlineBuffer.Length, offset + scanlineWidth, nameof(scanlineWidth));
+
+                using (PinnedBuffer<float> buffer = new PinnedBuffer<float>(scanlineBuffer))
                 {
                     BufferPointer<float> slice = buffer.Slice(offset);
 

@@ -46,7 +46,7 @@ namespace ImageSharp.Processing.Processors
         public override bool Compand { get; set; } = true;
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
+        protected override unsafe void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
         {
             // Jump out, we'll deal with that later.
             if (source.Width == this.Width && source.Height == this.Height && sourceRectangle == this.ResizeRectangle)
@@ -119,15 +119,18 @@ namespace ImageSharp.Processing.Processors
                             for (int x = minX; x < maxX; x++)
                             {
                                 // Ensure offsets are normalised for cropping and padding.
-                                Weight[] horizontalValues = this.HorizontalWeights[x - startX].Values;
+                                Weights ws = this.HorizontalWeights.Weights[x - startX];
+                                float* horizontalValues = ws.Ptr;
+                                int left = ws.Left;
 
                                 // Destination color components
                                 Vector4 destination = Vector4.Zero;
 
-                                for (int i = 0; i < horizontalValues.Length; i++)
+                                for (int i = 0; i < ws.Length; i++)
                                 {
-                                    Weight xw = horizontalValues[i];
-                                    destination += sourcePixels[xw.Index + sourceX, y].ToVector4().Expand() * xw.Value;
+                                    float xw = horizontalValues[i];
+                                    int index = left + i;
+                                    destination += sourcePixels[index, y].ToVector4().Expand() * xw;
                                 }
 
                                 TColor d = default(TColor);
@@ -144,17 +147,20 @@ namespace ImageSharp.Processing.Processors
                         y =>
                         {
                             // Ensure offsets are normalised for cropping and padding.
-                            Weight[] verticalValues = this.VerticalWeights[y - startY].Values;
+                            Weights ws = this.VerticalWeights.Weights[y - startY];
+                            float* verticalValues = ws.Ptr;
+                            int left = ws.Left;
 
                             for (int x = 0; x < width; x++)
                             {
                                 // Destination color components
                                 Vector4 destination = Vector4.Zero;
 
-                                for (int i = 0; i < verticalValues.Length; i++)
+                                for (int i = 0; i < ws.Length; i++)
                                 {
-                                    Weight yw = verticalValues[i];
-                                    destination += firstPassPixels[x, yw.Index + sourceY].ToVector4().Expand() * yw.Value;
+                                    float yw = verticalValues[i];
+                                    int index = left + i;
+                                    destination += firstPassPixels[x, index].ToVector4().Expand() * yw;
                                 }
 
                                 TColor d = default(TColor);

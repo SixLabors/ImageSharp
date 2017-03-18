@@ -10,10 +10,19 @@ namespace ImageSharp.Formats
     /// </summary>
     internal enum TiffResolutionUnit
     {
-        // TIFF baseline ResolutionUnit values
-
+        /// <summary>
+        /// No absolute unit of measurement.
+        /// </summary>
         None = 1,
+
+        /// <summary>
+        /// Inch.
+        /// </summary>
         Inch = 2,
+
+        /// <summary>
+        /// Centimeter.
+        /// </summary>
         Centimeter = 2
     }
 }

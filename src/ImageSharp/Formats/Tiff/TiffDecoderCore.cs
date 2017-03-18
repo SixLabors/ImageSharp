@@ -28,6 +28,12 @@ namespace ImageSharp.Formats
             this.options = options ?? new DecoderOptions();
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TiffDecoderCore" /> class.
+        /// </summary>
+        /// <param name="stream">The input stream.</param>
+        /// <param name="isLittleEndian">A flag indicating if the file is encoded in little-endian or big-endian format.</param>
+        /// <param name="options">The decoder options.</param>
         public TiffDecoderCore(Stream stream, bool isLittleEndian, IDecoderOptions options)
             : this(options)
         {
@@ -44,6 +50,13 @@ namespace ImageSharp.Formats
         /// A flag indicating if the file is encoded in little-endian or big-endian format.
         /// </summary>
         public bool IsLittleEndian { get; private set; }
+
+        /// <summary>
+        /// Calculates the size (in bytes) of the data contained within an IFD entry.
+        /// </summary>
+        /// <param name="entry">The IFD entry to calculate the size for.</param>
+        /// <returns>The size of the data (in bytes).</returns>
+        public static uint GetSizeOfData(TiffIfdEntry entry) => SizeOfDataType(entry.Type) * entry.Count;
 
         /// <summary>
         /// Decodes the image from the specified <see cref="Stream"/>  and sets
@@ -69,6 +82,13 @@ namespace ImageSharp.Formats
         {
         }
 
+        /// <summary>
+        /// Reads the TIFF header from the input stream.
+        /// </summary>
+        /// <returns>The byte offset to the first IFD in the file.</returns>
+        /// <exception cref="ImageFormatException">
+        /// Thrown if the TIFF file header is invalid.
+        /// </exception>
         public uint ReadHeader()
         {
             byte[] headerBytes = new byte[TiffConstants.SizeOfTiffHeader];
@@ -97,6 +117,11 @@ namespace ImageSharp.Formats
             return firstIfdOffset;
         }
 
+        /// <summary>
+        /// Reads a <see cref="TiffIfd"/> from the input stream.
+        /// </summary>
+        /// <param name="offset">The byte offset within the file to find the IFD.</param>
+        /// <returns>A <see cref="TiffIfd"/> containing the retrieved data.</returns>
         public TiffIfd ReadIfd(uint offset)
         {
             this.InputStream.Seek(offset, SeekOrigin.Begin);
@@ -125,24 +150,11 @@ namespace ImageSharp.Formats
             return new TiffIfd(entries, nextIfdOffset);
         }
 
-        private void ReadBytes(byte[] buffer, int count)
-        {
-            int offset = 0;
-
-            while (count > 0)
-            {
-                int bytesRead = this.InputStream.Read(buffer, offset, count);
-
-                if (bytesRead == 0)
-                {
-                    break;
-                }
-
-                offset += bytesRead;
-                count -= bytesRead;
-            }
-        }
-
+        /// <summary>
+        /// Reads the data from a <see cref="TiffIfdEntry"/> as an array of bytes.
+        /// </summary>
+        /// <param name="entry">The <see cref="TiffIfdEntry"/> to read.</param>
+        /// <returns>The data.</returns>
         public byte[] ReadBytes(ref TiffIfdEntry entry)
         {
             uint byteLength = GetSizeOfData(entry);
@@ -160,6 +172,15 @@ namespace ImageSharp.Formats
             return entry.Value;
         }
 
+        /// <summary>
+        /// Reads the data from a <see cref="TiffIfdEntry"/> as an unsigned integer value.
+        /// </summary>
+        /// <param name="entry">The <see cref="TiffIfdEntry"/> to read.</param>
+        /// <returns>The data.</returns>
+        /// <exception cref="ImageFormatException">
+        /// Thrown if the data-type specified by the file cannot be converted to a <see cref="uint"/>, or if
+        /// there is an array of items.
+        /// </exception>
         public uint ReadUnsignedInteger(ref TiffIfdEntry entry)
         {
             if (entry.Count != 1)
@@ -180,6 +201,15 @@ namespace ImageSharp.Formats
             }
         }
 
+        /// <summary>
+        /// Reads the data from a <see cref="TiffIfdEntry"/> as a signed integer value.
+        /// </summary>
+        /// <param name="entry">The <see cref="TiffIfdEntry"/> to read.</param>
+        /// <returns>The data.</returns>
+        /// <exception cref="ImageFormatException">
+        /// Thrown if the data-type specified by the file cannot be converted to an <see cref="int"/>, or if
+        /// there is an array of items.
+        /// </exception>
         public int ReadSignedInteger(ref TiffIfdEntry entry)
         {
             if (entry.Count != 1)
@@ -200,6 +230,14 @@ namespace ImageSharp.Formats
             }
         }
 
+        /// <summary>
+        /// Reads the data from a <see cref="TiffIfdEntry"/> as an array of unsigned integer values.
+        /// </summary>
+        /// <param name="entry">The <see cref="TiffIfdEntry"/> to read.</param>
+        /// <returns>The data.</returns>
+        /// <exception cref="ImageFormatException">
+        /// Thrown if the data-type specified by the file cannot be converted to a <see cref="uint"/>.
+        /// </exception>
         public uint[] ReadUnsignedIntegerArray(ref TiffIfdEntry entry)
         {
             byte[] bytes = this.ReadBytes(ref entry);
@@ -244,6 +282,14 @@ namespace ImageSharp.Formats
             return result;
         }
 
+        /// <summary>
+        /// Reads the data from a <see cref="TiffIfdEntry"/> as an array of signed integer values.
+        /// </summary>
+        /// <param name="entry">The <see cref="TiffIfdEntry"/> to read.</param>
+        /// <returns>The data.</returns>
+        /// <exception cref="ImageFormatException">
+        /// Thrown if the data-type specified by the file cannot be converted to an <see cref="int"/>.
+        /// </exception>
         public int[] ReadSignedIntegerArray(ref TiffIfdEntry entry)
         {
             byte[] bytes = this.ReadBytes(ref entry);
@@ -288,6 +334,14 @@ namespace ImageSharp.Formats
             return result;
         }
 
+        /// <summary>
+        /// Reads the data from a <see cref="TiffIfdEntry"/> as a <see cref="string"/> value.
+        /// </summary>
+        /// <param name="entry">The <see cref="TiffIfdEntry"/> to read.</param>
+        /// <returns>The data.</returns>
+        /// <exception cref="ImageFormatException">
+        /// Thrown if the data-type specified by the file cannot be converted to a <see cref="string"/>.
+        /// </exception>
         public string ReadString(ref TiffIfdEntry entry)
         {
             if (entry.Type != TiffType.Ascii)
@@ -305,6 +359,15 @@ namespace ImageSharp.Formats
             return Encoding.UTF8.GetString(bytes, 0, (int)entry.Count - 1);
         }
 
+        /// <summary>
+        /// Reads the data from a <see cref="TiffIfdEntry"/> as a <see cref="Rational"/> value.
+        /// </summary>
+        /// <param name="entry">The <see cref="TiffIfdEntry"/> to read.</param>
+        /// <returns>The data.</returns>
+        /// <exception cref="ImageFormatException">
+        /// Thrown if the data-type specified by the file cannot be converted to a <see cref="Rational"/>, or if
+        /// there is an array of items.
+        /// </exception>
         public Rational ReadUnsignedRational(ref TiffIfdEntry entry)
         {
             if (entry.Count != 1)
@@ -315,6 +378,15 @@ namespace ImageSharp.Formats
             return this.ReadUnsignedRationalArray(ref entry)[0];
         }
 
+        /// <summary>
+        /// Reads the data from a <see cref="TiffIfdEntry"/> as a <see cref="SignedRational"/> value.
+        /// </summary>
+        /// <param name="entry">The <see cref="TiffIfdEntry"/> to read.</param>
+        /// <returns>The data.</returns>
+        /// <exception cref="ImageFormatException">
+        /// Thrown if the data-type specified by the file cannot be converted to a <see cref="SignedRational"/>, or if
+        /// there is an array of items.
+        /// </exception>
         public SignedRational ReadSignedRational(ref TiffIfdEntry entry)
         {
             if (entry.Count != 1)
@@ -325,6 +397,14 @@ namespace ImageSharp.Formats
             return this.ReadSignedRationalArray(ref entry)[0];
         }
 
+        /// <summary>
+        /// Reads the data from a <see cref="TiffIfdEntry"/> as an array of <see cref="Rational"/> values.
+        /// </summary>
+        /// <param name="entry">The <see cref="TiffIfdEntry"/> to read.</param>
+        /// <returns>The data.</returns>
+        /// <exception cref="ImageFormatException">
+        /// Thrown if the data-type specified by the file cannot be converted to a <see cref="Rational"/>.
+        /// </exception>
         public Rational[] ReadUnsignedRationalArray(ref TiffIfdEntry entry)
         {
             if (entry.Type != TiffType.Rational)
@@ -338,13 +418,21 @@ namespace ImageSharp.Formats
             for (int i = 0; i < result.Length; i++)
             {
                 uint numerator = this.ToUInt32(bytes, i * TiffConstants.SizeOfRational);
-                uint denominator = this.ToUInt32(bytes, i * TiffConstants.SizeOfRational + TiffConstants.SizeOfLong);
+                uint denominator = this.ToUInt32(bytes, (i * TiffConstants.SizeOfRational) + TiffConstants.SizeOfLong);
                 result[i] = new Rational(numerator, denominator);
             }
 
             return result;
         }
 
+        /// <summary>
+        /// Reads the data from a <see cref="TiffIfdEntry"/> as an array of <see cref="SignedRational"/> values.
+        /// </summary>
+        /// <param name="entry">The <see cref="TiffIfdEntry"/> to read.</param>
+        /// <returns>The data.</returns>
+        /// <exception cref="ImageFormatException">
+        /// Thrown if the data-type specified by the file cannot be converted to a <see cref="SignedRational"/>.
+        /// </exception>
         public SignedRational[] ReadSignedRationalArray(ref TiffIfdEntry entry)
         {
             if (entry.Type != TiffType.SRational)
@@ -358,13 +446,22 @@ namespace ImageSharp.Formats
             for (int i = 0; i < result.Length; i++)
             {
                 int numerator = this.ToInt32(bytes, i * TiffConstants.SizeOfRational);
-                int denominator = this.ToInt32(bytes, i * TiffConstants.SizeOfRational + TiffConstants.SizeOfLong);
+                int denominator = this.ToInt32(bytes, (i * TiffConstants.SizeOfRational) + TiffConstants.SizeOfLong);
                 result[i] = new SignedRational(numerator, denominator);
             }
 
             return result;
         }
 
+        /// <summary>
+        /// Reads the data from a <see cref="TiffIfdEntry"/> as a <see cref="float"/> value.
+        /// </summary>
+        /// <param name="entry">The <see cref="TiffIfdEntry"/> to read.</param>
+        /// <returns>The data.</returns>
+        /// <exception cref="ImageFormatException">
+        /// Thrown if the data-type specified by the file cannot be converted to a <see cref="float"/>, or if
+        /// there is an array of items.
+        /// </exception>
         public float ReadFloat(ref TiffIfdEntry entry)
         {
             if (entry.Count != 1)
@@ -380,6 +477,15 @@ namespace ImageSharp.Formats
             return this.ToSingle(entry.Value, 0);
         }
 
+        /// <summary>
+        /// Reads the data from a <see cref="TiffIfdEntry"/> as a <see cref="double"/> value.
+        /// </summary>
+        /// <param name="entry">The <see cref="TiffIfdEntry"/> to read.</param>
+        /// <returns>The data.</returns>
+        /// <exception cref="ImageFormatException">
+        /// Thrown if the data-type specified by the file cannot be converted to a <see cref="double"/>, or if
+        /// there is an array of items.
+        /// </exception>
         public double ReadDouble(ref TiffIfdEntry entry)
         {
             if (entry.Count != 1)
@@ -390,6 +496,14 @@ namespace ImageSharp.Formats
             return this.ReadDoubleArray(ref entry)[0];
         }
 
+        /// <summary>
+        /// Reads the data from a <see cref="TiffIfdEntry"/> as an array of <see cref="float"/> values.
+        /// </summary>
+        /// <param name="entry">The <see cref="TiffIfdEntry"/> to read.</param>
+        /// <returns>The data.</returns>
+        /// <exception cref="ImageFormatException">
+        /// Thrown if the data-type specified by the file cannot be converted to a <see cref="float"/>.
+        /// </exception>
         public float[] ReadFloatArray(ref TiffIfdEntry entry)
         {
             if (entry.Type != TiffType.Float)
@@ -408,6 +522,14 @@ namespace ImageSharp.Formats
             return result;
         }
 
+        /// <summary>
+        /// Reads the data from a <see cref="TiffIfdEntry"/> as an array of <see cref="double"/> values.
+        /// </summary>
+        /// <param name="entry">The <see cref="TiffIfdEntry"/> to read.</param>
+        /// <returns>The data.</returns>
+        /// <exception cref="ImageFormatException">
+        /// Thrown if the data-type specified by the file cannot be converted to a <see cref="double"/>.
+        /// </exception>
         public double[] ReadDoubleArray(ref TiffIfdEntry entry)
         {
             if (entry.Type != TiffType.Double)
@@ -426,78 +548,11 @@ namespace ImageSharp.Formats
             return result;
         }
 
-        private sbyte ToSByte(byte[] bytes, int offset)
-        {
-            return (sbyte)bytes[offset];
-        }
-
-        private short ToInt16(byte[] bytes, int offset)
-        {
-            if (this.IsLittleEndian)
-            {
-                return (short)(bytes[offset + 0] | (bytes[offset + 1] << 8));
-            }
-            else
-            {
-                return (short)((bytes[offset + 0] << 8) | bytes[offset + 1]);
-            }
-        }
-
-        private int ToInt32(byte[] bytes, int offset)
-        {
-            if (this.IsLittleEndian)
-            {
-                return bytes[offset + 0] | (bytes[offset + 1] << 8) | (bytes[offset + 2] << 16) | (bytes[offset + 3] << 24);
-            }
-            else
-            {
-                return (bytes[offset + 0] << 24) | (bytes[offset + 1] << 16) | (bytes[offset + 2] << 8) | bytes[offset + 3];
-            }
-        }
-
-        private byte ToByte(byte[] bytes, int offset)
-        {
-            return bytes[offset];
-        }
-
-        private uint ToUInt32(byte[] bytes, int offset)
-        {
-            return (uint)this.ToInt32(bytes, offset);
-        }
-
-        private ushort ToUInt16(byte[] bytes, int offset)
-        {
-            return (ushort)this.ToInt16(bytes, offset);
-        }
-
-        private float ToSingle(byte[] bytes, int offset)
-        {
-            byte[] buffer = new byte[4];
-            Array.Copy(bytes, offset, buffer, 0, 4);
-
-            if (this.IsLittleEndian != BitConverter.IsLittleEndian)
-            {
-                Array.Reverse(buffer);
-            }
-
-            return BitConverter.ToSingle(buffer, 0);
-        }
-
-        private double ToDouble(byte[] bytes, int offset)
-        {
-            byte[] buffer = new byte[8];
-            Array.Copy(bytes, offset, buffer, 0, 8);
-
-            if (this.IsLittleEndian != BitConverter.IsLittleEndian)
-            {
-                Array.Reverse(buffer);
-            }
-
-            return BitConverter.ToDouble(buffer, 0);
-        }
-
-        public static uint GetSizeOfData(TiffIfdEntry entry) => SizeOfDataType(entry.Type) * entry.Count;
-
+        /// <summary>
+        /// Calculates the size (in bytes) for the specified TIFF data-type.
+        /// </summary>
+        /// <param name="type">The data-type to calculate the size for.</param>
+        /// <returns>The size of the data-type (in bytes).</returns>
         private static uint SizeOfDataType(TiffType type)
         {
             switch (type)
@@ -522,6 +577,147 @@ namespace ImageSharp.Formats
                 default:
                     return 0u;
             }
+        }
+
+        /// <summary>
+        /// Reads a sequence of bytes from the input stream into a buffer.
+        /// </summary>
+        /// <param name="buffer">A buffer to store the retrieved data.</param>
+        /// <param name="count">The number of bytes to read.</param>
+        private void ReadBytes(byte[] buffer, int count)
+        {
+            int offset = 0;
+
+            while (count > 0)
+            {
+                int bytesRead = this.InputStream.Read(buffer, offset, count);
+
+                if (bytesRead == 0)
+                {
+                    break;
+                }
+
+                offset += bytesRead;
+                count -= bytesRead;
+            }
+        }
+
+        /// <summary>
+        /// Converts buffer data into an <see cref="sbyte"/> using the correct endianness.
+        /// </summary>
+        /// <param name="bytes">The buffer.</param>
+        /// <param name="offset">The byte offset within the buffer.</param>
+        /// <returns>The converted value.</returns>
+        private sbyte ToSByte(byte[] bytes, int offset)
+        {
+            return (sbyte)bytes[offset];
+        }
+
+        /// <summary>
+        /// Converts buffer data into an <see cref="short"/> using the correct endianness.
+        /// </summary>
+        /// <param name="bytes">The buffer.</param>
+        /// <param name="offset">The byte offset within the buffer.</param>
+        /// <returns>The converted value.</returns>
+        private short ToInt16(byte[] bytes, int offset)
+        {
+            if (this.IsLittleEndian)
+            {
+                return (short)(bytes[offset + 0] | (bytes[offset + 1] << 8));
+            }
+            else
+            {
+                return (short)((bytes[offset + 0] << 8) | bytes[offset + 1]);
+            }
+        }
+
+        /// <summary>
+        /// Converts buffer data into an <see cref="int"/> using the correct endianness.
+        /// </summary>
+        /// <param name="bytes">The buffer.</param>
+        /// <param name="offset">The byte offset within the buffer.</param>
+        /// <returns>The converted value.</returns>
+        private int ToInt32(byte[] bytes, int offset)
+        {
+            if (this.IsLittleEndian)
+            {
+                return bytes[offset + 0] | (bytes[offset + 1] << 8) | (bytes[offset + 2] << 16) | (bytes[offset + 3] << 24);
+            }
+            else
+            {
+                return (bytes[offset + 0] << 24) | (bytes[offset + 1] << 16) | (bytes[offset + 2] << 8) | bytes[offset + 3];
+            }
+        }
+
+        /// <summary>
+        /// Converts buffer data into a <see cref="byte"/> using the correct endianness.
+        /// </summary>
+        /// <param name="bytes">The buffer.</param>
+        /// <param name="offset">The byte offset within the buffer.</param>
+        /// <returns>The converted value.</returns>
+        private byte ToByte(byte[] bytes, int offset)
+        {
+            return bytes[offset];
+        }
+
+        /// <summary>
+        /// Converts buffer data into a <see cref="uint"/> using the correct endianness.
+        /// </summary>
+        /// <param name="bytes">The buffer.</param>
+        /// <param name="offset">The byte offset within the buffer.</param>
+        /// <returns>The converted value.</returns>
+        private uint ToUInt32(byte[] bytes, int offset)
+        {
+            return (uint)this.ToInt32(bytes, offset);
+        }
+
+        /// <summary>
+        /// Converts buffer data into a <see cref="ushort"/> using the correct endianness.
+        /// </summary>
+        /// <param name="bytes">The buffer.</param>
+        /// <param name="offset">The byte offset within the buffer.</param>
+        /// <returns>The converted value.</returns>
+        private ushort ToUInt16(byte[] bytes, int offset)
+        {
+            return (ushort)this.ToInt16(bytes, offset);
+        }
+
+        /// <summary>
+        /// Converts buffer data into a <see cref="float"/> using the correct endianness.
+        /// </summary>
+        /// <param name="bytes">The buffer.</param>
+        /// <param name="offset">The byte offset within the buffer.</param>
+        /// <returns>The converted value.</returns>
+        private float ToSingle(byte[] bytes, int offset)
+        {
+            byte[] buffer = new byte[4];
+            Array.Copy(bytes, offset, buffer, 0, 4);
+
+            if (this.IsLittleEndian != BitConverter.IsLittleEndian)
+            {
+                Array.Reverse(buffer);
+            }
+
+            return BitConverter.ToSingle(buffer, 0);
+        }
+
+        /// <summary>
+        /// Converts buffer data into a <see cref="double"/> using the correct endianness.
+        /// </summary>
+        /// <param name="bytes">The buffer.</param>
+        /// <param name="offset">The byte offset within the buffer.</param>
+        /// <returns>The converted value.</returns>
+        private double ToDouble(byte[] bytes, int offset)
+        {
+            byte[] buffer = new byte[8];
+            Array.Copy(bytes, offset, buffer, 0, 8);
+
+            if (this.IsLittleEndian != BitConverter.IsLittleEndian)
+            {
+                Array.Reverse(buffer);
+            }
+
+            return BitConverter.ToDouble(buffer, 0);
         }
     }
 }

@@ -156,6 +156,5 @@ namespace ImageSharp.Processing.Processors
 
             return result;
         }
-
     }
 }

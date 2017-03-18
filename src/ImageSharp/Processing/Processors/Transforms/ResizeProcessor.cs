@@ -12,9 +12,6 @@ namespace ImageSharp.Processing.Processors
     /// <summary>
     /// Provides methods that allow the resizing of images using various algorithms.
     /// </summary>
-    /// <remarks>
-    /// This version and the <see cref="CompandingResizeProcessor{TColor}"/> have been separated out to improve performance.
-    /// </remarks>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     internal class ResizeProcessor<TColor> : ResamplingWeightedProcessor<TColor>
         where TColor : struct, IPixel<TColor>
@@ -123,15 +120,27 @@ namespace ImageSharp.Processing.Processors
                                 using (PinnedBuffer<Vector4> tempRowBuffer = new PinnedBuffer<Vector4>(sourcePixels.Width))
                                 {
                                     BufferSpan<TColor> sourceRow = sourcePixels.GetRowSpan(y);
+
                                     BulkPixelOperations<TColor>.Instance.ToVector4(
                                         sourceRow,
                                         tempRowBuffer,
                                         sourceRow.Length);
 
-                                    for (int x = minX; x < maxX; x++)
+                                    if (this.Compand)
                                     {
-                                        WeightsWindow window = this.HorizontalWeights.Weights[x - startX];
-                                        firstPassPixels[x, y] = window.ComputeWeightedRowSum(tempRowBuffer);
+                                        for (int x = minX; x < maxX; x++)
+                                        {
+                                            WeightsWindow window = this.HorizontalWeights.Weights[x - startX];
+                                            firstPassPixels[x, y] = window.ComputeExpandedWeightedRowSum(tempRowBuffer);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        for (int x = minX; x < maxX; x++)
+                                        {
+                                            WeightsWindow window = this.HorizontalWeights.Weights[x - startX];
+                                            firstPassPixels[x, y] = window.ComputeWeightedRowSum(tempRowBuffer);
+                                        }
                                     }
                                 }
                             });
@@ -146,14 +155,29 @@ namespace ImageSharp.Processing.Processors
                             // Ensure offsets are normalised for cropping and padding.
                             WeightsWindow window = this.VerticalWeights.Weights[y - startY];
 
-                            for (int x = 0; x < width; x++)
+                            if (this.Compand)
                             {
-                                // Destination color components
-                                Vector4 destination = window.ComputeWeightedColumnSum(firstPassPixels, x);
+                                for (int x = 0; x < width; x++)
+                                {
+                                    // Destination color components
+                                    Vector4 destination = window.ComputeWeightedColumnSum(firstPassPixels, x);
+                                    destination = destination.Compress();
+                                    TColor d = default(TColor);
+                                    d.PackFromVector4(destination);
+                                    targetPixels[x, y] = d;
+                                }
+                            }
+                            else
+                            {
+                                for (int x = 0; x < width; x++)
+                                {
+                                    // Destination color components
+                                    Vector4 destination = window.ComputeWeightedColumnSum(firstPassPixels, x);
 
-                                TColor d = default(TColor);
-                                d.PackFromVector4(destination);
-                                targetPixels[x, y] = d;
+                                    TColor d = default(TColor);
+                                    d.PackFromVector4(destination);
+                                    targetPixels[x, y] = d;
+                                }
                             }
                         });
                 }

@@ -70,6 +70,30 @@ namespace ImageSharp.Processing.Processors
             }
 
             /// <summary>
+            /// Computes the sum of vectors in 'rowSpan' weighted by weight values, pointed by this <see cref="WeightsWindow"/> instance.
+            /// Applies <see cref="Vector4Extensions.Expand(float)"/> to all input vectors.
+            /// </summary>
+            /// <param name="rowSpan">The input span of vectors</param>
+            /// <returns>The weighted sum</returns>
+            public Vector4 ComputeExpandedWeightedRowSum(BufferSpan<Vector4> rowSpan)
+            {
+                float* horizontalValues = this.Ptr;
+                int left = this.Left;
+
+                // Destination color components
+                Vector4 result = Vector4.Zero;
+
+                for (int i = 0; i < this.Length; i++)
+                {
+                    float xw = horizontalValues[i];
+                    int index = left + i;
+                    result += rowSpan[index].Expand() * xw;
+                }
+
+                return result;
+            }
+
+            /// <summary>
             /// Computes the sum of vectors in 'firstPassPixels' at a column pointed by 'x',
             /// weighted by weight values, pointed by this <see cref="WeightsWindow"/> instance.
             /// </summary>

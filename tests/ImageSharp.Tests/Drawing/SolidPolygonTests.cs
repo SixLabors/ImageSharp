@@ -38,13 +38,33 @@ namespace ImageSharp.Tests.Drawing
 
                 using (PixelAccessor<Color> sourcePixels = image.Lock())
                 {
-                    Assert.Equal(Color.HotPink, sourcePixels[11, 11]);
+                    Assert.Equal(Color.HotPink, sourcePixels[81, 145]);
+                }
+            }
+        }
 
-                    Assert.Equal(Color.HotPink, sourcePixels[200, 150]);
+        [Fact]
+        public void ImageShouldBeOverlayedByFilledPolygonWithPattern()
+        {
+            string path = this.CreateOutputDirectory("Drawing", "FilledPolygons");
+            Vector2[] simplePath = new[] {
+                            new Vector2(10, 10),
+                            new Vector2(200, 150),
+                            new Vector2(50, 300)
+            };
 
-                    Assert.Equal(Color.HotPink, sourcePixels[50, 50]);
+            using (Image image = new Image(500, 500))
+            {
+                using (FileStream output = File.OpenWrite($"{path}/Pattern.png"))
+                {
+                    image
+                        .FillPolygon(Brushes.Horizontal(Color.HotPink), simplePath, new GraphicsOptions(true))
+                        .Save(output);
+                }
 
-                    Assert.NotEqual(Color.HotPink, sourcePixels[2, 2]);
+                using (PixelAccessor<Color> sourcePixels = image.Lock())
+                {
+                    Assert.Equal(Color.HotPink, sourcePixels[81, 145]);
                 }
             }
         }
@@ -129,12 +149,6 @@ namespace ImageSharp.Tests.Drawing
 
                 using (PixelAccessor<Color> sourcePixels = image.Lock())
                 {
-                    Assert.Equal(mergedColor, sourcePixels[11, 11]);
-
-                    Assert.Equal(mergedColor, sourcePixels[200, 150]);
-
-                    Assert.Equal(mergedColor, sourcePixels[50, 50]);
-
                     Assert.Equal(Color.Blue, sourcePixels[2, 2]);
                 }
             }
@@ -187,19 +201,9 @@ namespace ImageSharp.Tests.Drawing
 
                 using (PixelAccessor<Color> sourcePixels = image.Lock())
                 {
-                    Assert.Equal(Color.HotPink, sourcePixels[25, 35]);
-
-                    Assert.Equal(Color.HotPink, sourcePixels[50, 79]);
-
-                    Assert.Equal(Color.HotPink, sourcePixels[75, 35]);
+                    Assert.Equal(Color.Blue, sourcePixels[30, 65]);
 
                     Assert.Equal(Color.HotPink, sourcePixels[50, 50]);
-
-                    Assert.Equal(Color.Blue, sourcePixels[2, 2]);
-
-                    Assert.Equal(Color.Blue, sourcePixels[28, 60]);
-
-                    Assert.Equal(Color.Blue, sourcePixels[67, 67]);
                 }
             }
         }

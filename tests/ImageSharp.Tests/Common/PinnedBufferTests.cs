@@ -66,18 +66,17 @@
         [Fact]
         public void CreateClean()
         {
-            Parallel.For(0, 100,
-                i =>
+            for (int i = 0; i < 100; i++)
+            {
+                using (PinnedBuffer<int> buffer = PinnedBuffer<int>.CreateClean(42))
+                {
+                    for (int j = 0; j < buffer.Length; j++)
                     {
-                        using (PinnedBuffer<int> buffer = PinnedBuffer<int>.CreateClean(42))
-                        {
-                            for (int j = 0; j < buffer.Length; j++)
-                            {
-                                Assert.Equal(0, buffer.Array[j]);
-                                buffer.Array[j] = 666;
-                            }
-                        }
-                    });
+                        Assert.Equal(0, buffer.Array[j]);
+                        buffer.Array[j] = 666;
+                    }
+                }
+            }
         }
 
         [Fact]
@@ -89,21 +88,72 @@
             Assert.True(buffer.IsDisposedOrLostArrayOwnership);
         }
 
-        [Fact]
-        public void Slice()
+        [Theory]
+        [InlineData(7)]
+        [InlineData(123)]
+        public void CastToSpan(int bufferLength)
         {
-            Foo[] a = { new Foo() { A = 1, B = 2 }, new Foo() { A = 3, B = 4 } };
-            
-            using (PinnedBuffer<Foo> buffer = new PinnedBuffer<Foo>(a))
+            using (PinnedBuffer<Foo> buffer = new PinnedBuffer<Foo>(bufferLength))
             {
-                BufferSpan<Foo> arrayPtr = buffer.Slice();
+                BufferSpan<Foo> span = buffer;
 
-                Assert.Equal(a, arrayPtr.Array);
-                Assert.Equal(0, arrayPtr.Start);
-                Assert.Equal(buffer.Pointer, arrayPtr.PointerAtOffset);
+                Assert.Equal(buffer.Array, span.Array);
+                Assert.Equal(0, span.Start);
+                Assert.Equal(buffer.Pointer, span.PointerAtOffset);
+                Assert.Equal(span.Length, bufferLength);
             }
         }
 
+        [Fact]
+        public void Span()
+        {
+            using (PinnedBuffer<Foo> buffer = new PinnedBuffer<Foo>(42))
+            {
+                BufferSpan<Foo> span = buffer.Span;
+
+                Assert.Equal(buffer.Array, span.Array);
+                Assert.Equal(0, span.Start);
+                Assert.Equal(buffer.Pointer, span.PointerAtOffset);
+                Assert.Equal(span.Length, 42);
+            }
+        }
+
+        public class Slice
+        {
+
+            [Theory]
+            [InlineData(7, 2)]
+            [InlineData(123, 17)]
+            public void WithStartOnly(int bufferLength, int start)
+            {
+                using (PinnedBuffer<Foo> buffer = new PinnedBuffer<Foo>(bufferLength))
+                {
+                    BufferSpan<Foo> span = buffer.Slice(start);
+
+                    Assert.Equal(buffer.Array, span.Array);
+                    Assert.Equal(start, span.Start);
+                    Assert.Equal(buffer.Pointer + start * Unsafe.SizeOf<Foo>(), span.PointerAtOffset);
+                    Assert.Equal(span.Length, bufferLength - start);
+                }
+            }
+
+            [Theory]
+            [InlineData(7, 2, 5)]
+            [InlineData(123, 17, 42)]
+            public void WithStartAndLength(int bufferLength, int start, int spanLength)
+            {
+                using (PinnedBuffer<Foo> buffer = new PinnedBuffer<Foo>(bufferLength))
+                {
+                    BufferSpan<Foo> span = buffer.Slice(start, spanLength);
+
+                    Assert.Equal(buffer.Array, span.Array);
+                    Assert.Equal(start, span.Start);
+                    Assert.Equal(buffer.Pointer + start * Unsafe.SizeOf<Foo>(), span.PointerAtOffset);
+                    Assert.Equal(span.Length, spanLength);
+                }
+            }
+        }
+        
         [Fact]
         public void UnPinAndTakeArrayOwnership()
         {

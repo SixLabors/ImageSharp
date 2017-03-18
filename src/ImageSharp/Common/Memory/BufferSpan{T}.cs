@@ -180,12 +180,14 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Clears `count` elements beginning from the pointed position.
+        /// Clears `count` elements from the beginning of the span.
         /// </summary>
         /// <param name="count">The number of elements to clear</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Clear(int count)
         {
+            DebugGuard.MustBeLessThanOrEqualTo(count, this.Length, nameof(count));
+
             if (count < 256)
             {
                 Unsafe.InitBlock((void*)this.PointerAtOffset, 0, BufferSpan.USizeOf<T>(count));
@@ -194,6 +196,15 @@ namespace ImageSharp
             {
                 System.Array.Clear(this.Array, this.Start, count);
             }
+        }
+
+        /// <summary>
+        /// Clears the the span
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Clear()
+        {
+            this.Clear(this.Length);
         }
 
         [Conditional("DEBUG")]

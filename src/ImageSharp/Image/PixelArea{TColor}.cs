@@ -206,7 +206,7 @@ namespace ImageSharp
         /// </summary>
         /// <param name="y">The y coordinate</param>
         /// <returns>The <see cref="BufferSpan{T}"/></returns>
-        internal BufferSpan<byte> GetRowPointer(int y)
+        internal BufferSpan<byte> GetRowSpan(int y)
         {
             return this.byteBuffer.Slice(y * this.RowStride);
         }

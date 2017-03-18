@@ -18,15 +18,38 @@ namespace ImageSharp.Tests
     /// </summary>
     public class ImageSaveTests : IDisposable
     {
-        private readonly SaveWatchingImage Image;
+        private readonly Image Image;
         private readonly Mock<IFileSystem> fileSystem;
+        private readonly Mock<IImageFormat> format;
+        private readonly Mock<IImageFormat> formatNotRegistered;
+        private readonly Mock<IImageEncoder> encoder;
+        private readonly Mock<IImageEncoder> encoderNotInFormat;
         private readonly IEncoderOptions encoderOptions;
 
         public ImageSaveTests()
         {
+            this.encoder = new Mock<IImageEncoder>();
+            this.format = new Mock<IImageFormat>();
+            this.format.Setup(x => x.Encoder).Returns(this.encoder.Object);
+            this.format.Setup(x => x.Decoder).Returns(new Mock<IImageDecoder>().Object);
+            this.format.Setup(x => x.MimeType).Returns("img/test");
+            this.format.Setup(x => x.Extension).Returns("png");
+            this.format.Setup(x => x.SupportedExtensions).Returns(new string[] { "png", "jpg" });
+
+
+            this.encoderNotInFormat = new Mock<IImageEncoder>();
+            this.formatNotRegistered = new Mock<IImageFormat>();
+            this.formatNotRegistered.Setup(x => x.Encoder).Returns(this.encoderNotInFormat.Object);
+            this.formatNotRegistered.Setup(x => x.Decoder).Returns(new Mock<IImageDecoder>().Object);
+            this.formatNotRegistered.Setup(x => x.MimeType).Returns("img/test");
+            this.formatNotRegistered.Setup(x => x.Extension).Returns("png");
+            this.formatNotRegistered.Setup(x => x.SupportedExtensions).Returns(new string[] { "png", "jpg" });
+
             this.fileSystem = new Mock<IFileSystem>();
             this.encoderOptions = new Mock<IEncoderOptions>().Object;
-            this.Image = new SaveWatchingImage(1, 1, this.fileSystem.Object);
+            this.Image = new Image(1, 1, new Configuration(this.format.Object) {
+                FileSystem = this.fileSystem.Object
+            });
         }
 
         [Fact]
@@ -36,10 +59,7 @@ namespace ImageSharp.Tests
             this.fileSystem.Setup(x => x.Create("path.png")).Returns(stream);
             this.Image.Save("path.png");
 
-            SaveWatchingImage.OperationDetails operation = this.Image.Saves.Single();
-            Assert.Equal(stream, operation.stream);
-            Assert.IsType<PngEncoder>(operation.encoder);
-            Assert.Null(operation.options);
+            this.encoder.Verify(x => x.Encode<Color>(this.Image, stream, null));
         }
 
         [Fact]
@@ -49,11 +69,8 @@ namespace ImageSharp.Tests
             this.fileSystem.Setup(x => x.Create("path.jpg")).Returns(stream);
 
             this.Image.Save("path.jpg", this.encoderOptions);
-
-            SaveWatchingImage.OperationDetails operation = this.Image.Saves.Single();
-            Assert.Equal(stream, operation.stream);
-            Assert.IsType<JpegEncoder>(operation.encoder);
-            Assert.Equal(this.encoderOptions, operation.options);
+            
+            this.encoder.Verify(x => x.Encode<Color>(this.Image, stream, this.encoderOptions));
         }
 
         [Fact]
@@ -62,12 +79,9 @@ namespace ImageSharp.Tests
             Stream stream = new MemoryStream();
             this.fileSystem.Setup(x => x.Create("path.jpg")).Returns(stream);
 
-            this.Image.Save("path.jpg", new BmpEncoder());
+            this.Image.Save("path.jpg", this.encoderNotInFormat.Object);
 
-            SaveWatchingImage.OperationDetails operation = this.Image.Saves.Single();
-            Assert.Equal(stream, operation.stream);
-            Assert.IsType<BmpEncoder>(operation.encoder);
-            Assert.Null(operation.options);
+            this.encoderNotInFormat.Verify(x => x.Encode<Color>(this.Image, stream, null));
         }
 
         [Fact]
@@ -76,12 +90,9 @@ namespace ImageSharp.Tests
             Stream stream = new MemoryStream();
             this.fileSystem.Setup(x => x.Create("path.jpg")).Returns(stream);
 
-            this.Image.Save("path.jpg", new BmpEncoder(), this.encoderOptions);
+            this.Image.Save("path.jpg", this.encoderNotInFormat.Object, this.encoderOptions);
 
-            SaveWatchingImage.OperationDetails operation = this.Image.Saves.Single();
-            Assert.Equal(stream, operation.stream);
-            Assert.IsType<BmpEncoder>(operation.encoder);
-            Assert.Equal(this.encoderOptions, operation.options);
+            this.encoderNotInFormat.Verify(x => x.Encode<Color>(this.Image, stream, this.encoderOptions));
         }
 
 
@@ -92,12 +103,9 @@ namespace ImageSharp.Tests
             Stream stream = new MemoryStream();
             this.fileSystem.Setup(x => x.Create("path.jpg")).Returns(stream);
 
-            this.Image.Save("path.jpg", new GifFormat());
+            this.Image.Save("path.jpg", this.encoderNotInFormat.Object);
 
-            SaveWatchingImage.OperationDetails operation = this.Image.Saves.Single();
-            Assert.Equal(stream, operation.stream);
-            Assert.IsType<GifEncoder>(operation.encoder);
-            Assert.Null(operation.options);
+            this.encoderNotInFormat.Verify(x => x.Encode<Color>(this.Image, stream, null));
         }
 
         [Fact]
@@ -106,29 +114,18 @@ namespace ImageSharp.Tests
             Stream stream = new MemoryStream();
             this.fileSystem.Setup(x => x.Create("path.jpg")).Returns(stream);
 
-            this.Image.Save("path.jpg", new BmpFormat(), this.encoderOptions);
+            this.Image.Save("path.jpg", this.encoderNotInFormat.Object, this.encoderOptions);
 
-            SaveWatchingImage.OperationDetails operation = this.Image.Saves.Single();
-            Assert.Equal(stream, operation.stream);
-            Assert.IsType<BmpEncoder>(operation.encoder);
-            Assert.Equal(this.encoderOptions, operation.options);
+            this.encoderNotInFormat.Verify(x => x.Encode<Color>(this.Image, stream, this.encoderOptions));
         }
-
-        /// <summary>
-        /// /////////////////////////////////////////////////////////////
-        /// </summary>
-        /// 
 
         [Fact]
         public void SaveStream()
         {
             Stream stream = new MemoryStream();
             this.Image.Save(stream);
-
-            SaveWatchingImage.OperationDetails operation = this.Image.Saves.Single();
-            Assert.Equal(stream, operation.stream);
-            Assert.IsType(this.Image.CurrentImageFormat.Encoder.GetType(), operation.encoder);
-            Assert.Null(operation.options);
+            
+            this.encoder.Verify(x => x.Encode<Color>(this.Image, stream, null));
         }
 
         [Fact]
@@ -138,11 +135,7 @@ namespace ImageSharp.Tests
 
             this.Image.Save(stream, this.encoderOptions);
 
-            SaveWatchingImage.OperationDetails operation = this.Image.Saves.Single();
-            Assert.Equal(stream, operation.stream);
-            Assert.IsType(this.Image.CurrentImageFormat.Encoder.GetType(), operation.encoder);
-
-            Assert.Equal(this.encoderOptions, operation.options);
+            this.encoder.Verify(x => x.Encode<Color>(this.Image, stream, this.encoderOptions));
         }
 
         [Fact]
@@ -150,12 +143,9 @@ namespace ImageSharp.Tests
         {
             Stream stream = new MemoryStream();
 
-            this.Image.Save(stream, new BmpEncoder());
+            this.Image.Save(stream, this.encoderNotInFormat.Object);
 
-            SaveWatchingImage.OperationDetails operation = this.Image.Saves.Single();
-            Assert.Equal(stream, operation.stream);
-            Assert.IsType<BmpEncoder>(operation.encoder);
-            Assert.Null(operation.options);
+            this.encoderNotInFormat.Verify(x => x.Encode<Color>(this.Image, stream, null));
         }
 
         [Fact]
@@ -163,12 +153,9 @@ namespace ImageSharp.Tests
         {
             Stream stream = new MemoryStream();
 
-            this.Image.Save(stream, new BmpEncoder(), this.encoderOptions);
+            this.Image.Save(stream, this.encoderNotInFormat.Object, this.encoderOptions);
 
-            SaveWatchingImage.OperationDetails operation = this.Image.Saves.Single();
-            Assert.Equal(stream, operation.stream);
-            Assert.IsType<BmpEncoder>(operation.encoder);
-            Assert.Equal(this.encoderOptions, operation.options);
+            this.encoderNotInFormat.Verify(x => x.Encode<Color>(this.Image, stream, this.encoderOptions));
         }
 
         [Fact]
@@ -176,12 +163,9 @@ namespace ImageSharp.Tests
         {
             Stream stream = new MemoryStream();
 
-            this.Image.Save(stream, new GifFormat());
+            this.Image.Save(stream, this.formatNotRegistered.Object);
 
-            SaveWatchingImage.OperationDetails operation = this.Image.Saves.Single();
-            Assert.Equal(stream, operation.stream);
-            Assert.IsType<GifEncoder>(operation.encoder);
-            Assert.Null(operation.options);
+            this.encoderNotInFormat.Verify(x => x.Encode<Color>(this.Image, stream, null));
         }
 
         [Fact]
@@ -189,12 +173,9 @@ namespace ImageSharp.Tests
         {
             Stream stream = new MemoryStream();
 
-            this.Image.Save(stream, new BmpFormat(), this.encoderOptions);
+            this.Image.Save(stream, this.formatNotRegistered.Object, this.encoderOptions);
 
-            SaveWatchingImage.OperationDetails operation = this.Image.Saves.Single();
-            Assert.Equal(stream, operation.stream);
-            Assert.IsType<BmpEncoder>(operation.encoder);
-            Assert.Equal(this.encoderOptions, operation.options);
+            this.encoderNotInFormat.Verify(x => x.Encode<Color>(this.Image, stream, this.encoderOptions));
         }
 
         public void Dispose()

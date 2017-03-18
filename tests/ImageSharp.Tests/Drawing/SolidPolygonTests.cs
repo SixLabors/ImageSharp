@@ -44,6 +44,32 @@ namespace ImageSharp.Tests.Drawing
         }
 
         [Fact]
+        public void ImageShouldBeOverlayedByFilledPolygonWithPattern()
+        {
+            string path = this.CreateOutputDirectory("Drawing", "FilledPolygons");
+            Vector2[] simplePath = new[] {
+                            new Vector2(10, 10),
+                            new Vector2(200, 150),
+                            new Vector2(50, 300)
+            };
+
+            using (Image image = new Image(500, 500))
+            {
+                using (FileStream output = File.OpenWrite($"{path}/Pattern.png"))
+                {
+                    image
+                        .FillPolygon(Brushes.Horizontal(Color.HotPink), simplePath, new GraphicsOptions(true))
+                        .Save(output);
+                }
+
+                using (PixelAccessor<Color> sourcePixels = image.Lock())
+                {
+                    Assert.Equal(Color.HotPink, sourcePixels[81, 145]);
+                }
+            }
+        }
+
+        [Fact]
         public void ImageShouldBeOverlayedByFilledPolygonNoAntialias()
         {
             string path = this.CreateOutputDirectory("Drawing", "FilledPolygons");

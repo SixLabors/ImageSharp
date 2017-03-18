@@ -7,7 +7,6 @@ namespace ImageSharp.Processing.Processors
 {
     using System;
     using System.Buffers;
-    using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
 
     /// <summary>
@@ -15,7 +14,7 @@ namespace ImageSharp.Processing.Processors
     /// Adapted from <see href="http://www.realtimerendering.com/resources/GraphicsGems/gemsiii/filter_rcg.c"/>
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    internal abstract class ResamplingWeightedProcessor<TColor> : ImageProcessor<TColor>
+    internal abstract partial class ResamplingWeightedProcessor<TColor> : ImageProcessor<TColor>
         where TColor : struct, IPixel<TColor>
     {
         /// <summary>
@@ -62,12 +61,12 @@ namespace ImageSharp.Processing.Processors
         /// <summary>
         /// Gets or sets the horizontal weights.
         /// </summary>
-        protected Weights.Buffer HorizontalWeights { get; set; }
+        protected WeightsBuffer HorizontalWeights { get; set; }
 
         /// <summary>
         /// Gets or sets the vertical weights.
         /// </summary>
-        protected Weights.Buffer VerticalWeights { get; set; }
+        protected WeightsBuffer VerticalWeights { get; set; }
 
         /// <inheritdoc/>
         protected override void BeforeApply(ImageBase<TColor> source, Rectangle sourceRectangle)
@@ -84,6 +83,7 @@ namespace ImageSharp.Processing.Processors
             }
         }
 
+        /// <inheritdoc />
         protected override void AfterApply(ImageBase<TColor> source, Rectangle sourceRectangle)
         {
             base.AfterApply(source, sourceRectangle);
@@ -96,7 +96,10 @@ namespace ImageSharp.Processing.Processors
         /// <summary>
         /// Computes the weights to apply at each pixel when resizing.
         /// </summary>
-        protected unsafe Weights.Buffer PrecomputeWeights(int destinationSize, int sourceSize)
+        /// <param name="destinationSize">The destination size</param>
+        /// <param name="sourceSize">The source size</param>
+        /// <returns>The <see cref="WeightsBuffer"/></returns>
+        protected unsafe WeightsBuffer PrecomputeWeights(int destinationSize, int sourceSize)
         {
             float ratio = (float)sourceSize / destinationSize;
             float scale = ratio;
@@ -108,8 +111,8 @@ namespace ImageSharp.Processing.Processors
 
             IResampler sampler = this.Sampler;
             float radius = (float)Math.Ceiling(scale * sampler.Radius);
-            Weights.Buffer result = new Weights.Buffer(sourceSize, destinationSize);
-            
+            WeightsBuffer result = new WeightsBuffer(sourceSize, destinationSize);
+
             for (int i = 0; i < destinationSize; i++)
             {
                 float center = ((i + .5F) * ratio) - .5F;
@@ -129,8 +132,8 @@ namespace ImageSharp.Processing.Processors
 
                 float sum = 0;
 
-                result.Weights[i] = result.Slice(i, left, right);
-                Weights ws = result.Weights[i];
+                WeightsWindow ws = result.GetWeightsWindow(i, left, right);
+                result.Weights[i] = ws;
 
                 float* weights = ws.Ptr;
 
@@ -154,56 +157,5 @@ namespace ImageSharp.Processing.Processors
             return result;
         }
 
-        /// <summary>
-        /// Represents a collection of weights and their sum.
-        /// </summary>
-        protected unsafe struct Weights
-        {
-            /// <summary>
-            /// The local left index position
-            /// </summary>
-            public int Left;
-
-            public BufferSpan<float> Span;
-
-            public float* Ptr => (float*)Span.PointerAtOffset;
-
-            public int Length => Span.Length;
-
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            private Weights(int left, BufferSpan<float> span)
-            {
-                this.Left = left;
-                this.Span = span;
-            }
-
-            internal unsafe class Buffer : IDisposable
-            {
-                private PinnedImageBuffer<float> dataBuffer;
-
-                public Weights[] Weights { get; }
-
-                public float* DataPtr { get; }
-
-                internal Weights Slice(int i, int leftIdx, int rightIdx)
-                {
-                    var span = dataBuffer.GetRowSpan(i).Slice(leftIdx, rightIdx - leftIdx);
-                    return new Weights(leftIdx, span);
-                }
-
-                public Buffer(int sourceSize, int destinationSize)
-                {
-                    this.dataBuffer = new PinnedImageBuffer<float>(sourceSize, destinationSize);
-                    this.dataBuffer.Clear();
-                    this.DataPtr = (float*)this.dataBuffer.Pointer;
-                    this.Weights = new Weights[destinationSize];
-                }
-
-                public void Dispose()
-                {
-                    this.dataBuffer.Dispose();
-                }
-            }
-        }
     }
 }

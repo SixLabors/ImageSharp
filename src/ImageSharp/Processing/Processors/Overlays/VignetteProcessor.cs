@@ -13,7 +13,7 @@ namespace ImageSharp.Processing.Processors
     /// An <see cref="IImageProcessor{TColor}"/> that applies a radial vignette effect to an <see cref="Image{TColor}"/>.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    public class VignetteProcessor<TColor> : ImageProcessor<TColor>
+    internal class VignetteProcessor<TColor> : ImageProcessor<TColor>
         where TColor : struct, IPixel<TColor>
     {
         /// <summary>

@@ -209,6 +209,51 @@ namespace ImageSharp.Tests.Common
         }
 
 
+        public class Indexer
+        {
+            public static readonly TheoryData<int, int, int> IndexerData =
+                new TheoryData<int, int, int>()
+                    {
+                        { 10, 0, 0 },
+                        { 10, 2, 0 },
+                        { 16, 0, 3 },
+                        { 16, 2, 3 },
+                        { 10, 0, 9 },
+                        { 10, 1, 8 }
+                    };
+
+            [Theory]
+            [MemberData(nameof(IndexerData))]
+            public void Read(int length, int start, int index)
+            {
+                Foo[] a = Foo.CreateArray(length);
+                fixed (Foo* p = a)
+                {
+                    BufferSpan<Foo> span = new BufferSpan<Foo>(a, p, start);
+
+                    Foo element = span[index];
+
+                    Assert.Equal(a[start + index], element);
+                }
+            }
+
+            [Theory]
+            [MemberData(nameof(IndexerData))]
+            public void Write(int length, int start, int index)
+            {
+                Foo[] a = Foo.CreateArray(length);
+                fixed (Foo* p = a)
+                {
+                    BufferSpan<Foo> span = new BufferSpan<Foo>(a, p, start);
+
+                    span[index] = new Foo(666, 666);
+
+                    Assert.Equal(new Foo(666, 666), a[start + index]);
+                }
+            }
+        }
+
+
         public class Copy
         {
             private static void AssertNotDefault<T>(T[] data, int idx)
@@ -442,6 +487,7 @@ namespace ImageSharp.Tests.Common
                     }
                 }
             }
+
 
             internal static bool ElementsAreEqual(Foo[] array, byte[] rawArray, int index)
             {

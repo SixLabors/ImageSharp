@@ -47,7 +47,7 @@ namespace ImageSharp.Drawing.Processors
         /// </summary>
         /// <param name="scanlineBuffer">The a collection of opacity values between 0 and 1 to be merged with the brushed color value before being applied to the target.</param>
         /// <param name="scanlineWidth">The number of pixels effected by this scanline.</param>
-        /// <param name="offset">The offset fromthe begining of <paramref name="scanline" /> the opacity data starts.</param>
+        /// <param name="offset">The offset fromthe begining of <paramref name="scanlineBuffer" /> the opacity data starts.</param>
         /// <param name="x">The x position in the target pixel space that the start of the scanline data corresponds to.</param>
         /// <param name="y">The y position in  the target pixel space that whole scanline corresponds to.</param>
         /// <remarks>scanlineBuffer will be > scanlineWidth but provide and offset in case we want to share a larger buffer across runs.</remarks>

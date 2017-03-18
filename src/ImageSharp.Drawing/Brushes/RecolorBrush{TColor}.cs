@@ -139,7 +139,7 @@ namespace ImageSharp.Drawing.Brushes
             /// <inheritdoc />
             internal override void Apply(float[] scanlineBuffer, int scanlineWidth, int offset, int x, int y)
             {
-                DebugGuard.MustBeGreaterThanOrEqualTo(scanlineBuffer.Length, offset + scanlineWidth, nameof(scanlineWidth));
+                Guard.MustBeGreaterThanOrEqualTo(scanlineBuffer.Length, offset + scanlineWidth, nameof(scanlineWidth));
 
                 using (PinnedBuffer<float> buffer = new PinnedBuffer<float>(scanlineBuffer))
                 {

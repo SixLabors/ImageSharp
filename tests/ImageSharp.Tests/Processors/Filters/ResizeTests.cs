@@ -8,6 +8,32 @@ namespace ImageSharp.Tests
     using System.IO;
     using Processing;
     using Xunit;
+    using Xunit.Abstractions;
+
+    public class ResizeProfilingBenchmarks : MeasureFixture
+    {
+        public ResizeProfilingBenchmarks(ITestOutputHelper output)
+            : base(output)
+        {
+        }
+
+        public int ExecutionCount { get; set; } = 50;
+
+        [Theory]
+        [InlineData(100, 100)]
+        [InlineData(1000, 1000)]
+        public void ResizeBicubic(int width, int height)
+        {
+            this.Measure(this.ExecutionCount,
+                () =>
+                    {
+                        using (Image image = new Image(width, height))
+                        {
+                            image.Resize(width / 4, height / 4);
+                        }
+                    });
+        }
+    }
 
     public class ResizeTests : FileTestBase
     {

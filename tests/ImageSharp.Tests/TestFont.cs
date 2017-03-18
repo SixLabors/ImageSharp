@@ -47,7 +47,7 @@ namespace ImageSharp.Tests
             List<string> directories = new List< string > {
                  "TestFonts/", // Here for code coverage tests.
                   "tests/ImageSharp.Tests/TestFonts/", // from travis/build script
-                  "../../../ImageSharp.Tests/TestFonts/", // from Sandbox46
+                  "../../../../../ImageSharp.Tests/TestFonts/", // from Sandbox46
                   "../../../../TestFonts/"
             };
 

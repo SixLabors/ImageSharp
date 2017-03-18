@@ -11,7 +11,7 @@ namespace ImageSharp.Processing.Processors
     /// Defines a sampler that detects edges within an image using two one-dimensional matrices.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    public abstract class EdgeDetector2DProcessor<TColor> : ImageProcessor<TColor>, IEdgeDetectorProcessor<TColor>
+    internal abstract class EdgeDetector2DProcessor<TColor> : ImageProcessor<TColor>, IEdgeDetectorProcessor<TColor>
         where TColor : struct, IPixel<TColor>
     {
         /// <summary>

@@ -15,7 +15,7 @@ namespace ImageSharp.Drawing.Processors
     /// Combines two images together by blending the pixels.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    public class DrawImageProcessor<TColor> : ImageProcessor<TColor>
+    internal class DrawImageProcessor<TColor> : ImageProcessor<TColor>
         where TColor : struct, IPixel<TColor>
     {
         /// <summary>

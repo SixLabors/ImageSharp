@@ -13,7 +13,7 @@ namespace ImageSharp.Processing.Processors
     /// alter the image pixels.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    public interface IColorMatrixFilter<TColor> : IImageProcessor<TColor>
+    internal interface IColorMatrixFilter<TColor> : IImageProcessor<TColor>
         where TColor : struct, IPixel<TColor>
     {
         /// <summary>

@@ -110,6 +110,18 @@ namespace ImageSharp
         }
 
         /// <summary>
+        /// Creates a clean instance of <see cref="PinnedBuffer{T}"/> initializing it's elements with 'default(T)'.
+        /// </summary>
+        /// <param name="count">The desired count of elements. (Minimum size for <see cref="Array"/>)</param>
+        /// <returns>The <see cref="PinnedBuffer{T}"/> instance</returns>
+        public static PinnedBuffer<T> CreateClean(int count)
+        {
+            PinnedBuffer<T> buffer = new PinnedBuffer<T>(count);
+            buffer.Clear();
+            return buffer;
+        }
+
+        /// <summary>
         /// Gets a <see cref="BufferPointer{T}"/> to the beginning of the raw data of the buffer.
         /// </summary>
         /// <returns>The <see cref="BufferPointer{T}"/></returns>

@@ -51,19 +51,22 @@ namespace ImageSharp.Processing.Processors
             /// </summary>
             /// <param name="rowSpan">The input span of vectors</param>
             /// <returns>The weighted sum</returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public Vector4 ComputeWeightedRowSum(BufferSpan<Vector4> rowSpan)
             {
                 float* horizontalValues = this.Ptr;
                 int left = this.Left;
+                Vector4* vecPtr = (Vector4*)rowSpan.PointerAtOffset;
+                vecPtr += left;
 
                 // Destination color components
                 Vector4 result = Vector4.Zero;
 
                 for (int i = 0; i < this.Length; i++)
                 {
-                    float xw = horizontalValues[i];
-                    int index = left + i;
-                    result += rowSpan[index] * xw;
+                    float weight = horizontalValues[i];
+                    result += (*vecPtr) * weight;
+                    vecPtr++;
                 }
 
                 return result;
@@ -75,19 +78,22 @@ namespace ImageSharp.Processing.Processors
             /// </summary>
             /// <param name="rowSpan">The input span of vectors</param>
             /// <returns>The weighted sum</returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public Vector4 ComputeExpandedWeightedRowSum(BufferSpan<Vector4> rowSpan)
             {
                 float* horizontalValues = this.Ptr;
                 int left = this.Left;
+                Vector4* vecPtr = (Vector4*)rowSpan.PointerAtOffset;
+                vecPtr += left;
 
                 // Destination color components
                 Vector4 result = Vector4.Zero;
 
                 for (int i = 0; i < this.Length; i++)
                 {
-                    float xw = horizontalValues[i];
-                    int index = left + i;
-                    result += rowSpan[index].Expand() * xw;
+                    float weight = horizontalValues[i];
+                    result += (*vecPtr).Expand() * weight;
+                    vecPtr++;
                 }
 
                 return result;
@@ -100,6 +106,7 @@ namespace ImageSharp.Processing.Processors
             /// <param name="firstPassPixels">The buffer of input vectors in row first order</param>
             /// <param name="x">The column position</param>
             /// <returns>The weighted sum</returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public Vector4 ComputeWeightedColumnSum(PinnedImageBuffer<Vector4> firstPassPixels, int x)
             {
                 float* verticalValues = this.Ptr;

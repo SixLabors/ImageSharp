@@ -110,76 +110,64 @@ namespace ImageSharp.Processing.Processors
                 {
                     firstPassPixels.Clear();
 
-                    Parallel.For(
-                        0,
-                        sourceRectangle.Bottom,
-                        this.ParallelOptions,
-                        y =>
-                            {
-                                // TODO: Without Parallel.For() this buffer object could be reused:
-                                using (PinnedBuffer<Vector4> tempRowBuffer = new PinnedBuffer<Vector4>(sourcePixels.Width))
-                                {
-                                    BufferSpan<TColor> sourceRow = sourcePixels.GetRowSpan(y);
-
-                                    BulkPixelOperations<TColor>.Instance.ToVector4(
-                                        sourceRow,
-                                        tempRowBuffer,
-                                        sourceRow.Length);
-
-                                    if (this.Compand)
-                                    {
-                                        for (int x = minX; x < maxX; x++)
-                                        {
-                                            WeightsWindow window = this.HorizontalWeights.Weights[x - startX];
-                                            firstPassPixels[x, y] = window.ComputeExpandedWeightedRowSum(tempRowBuffer);
-                                        }
-                                    }
-                                    else
-                                    {
-                                        for (int x = minX; x < maxX; x++)
-                                        {
-                                            WeightsWindow window = this.HorizontalWeights.Weights[x - startX];
-                                            firstPassPixels[x, y] = window.ComputeWeightedRowSum(tempRowBuffer);
-                                        }
-                                    }
-                                }
-                            });
-
-                    // Now process the rows.
-                    Parallel.For(
-                        minY,
-                        maxY,
-                        this.ParallelOptions,
-                        y =>
+                    using (PinnedBuffer<Vector4> tempRowBuffer = new PinnedBuffer<Vector4>(sourcePixels.Width))
+                    {
+                        for (int y = 0; y < sourceRectangle.Bottom; y++)
                         {
-                            // Ensure offsets are normalised for cropping and padding.
-                            WeightsWindow window = this.VerticalWeights.Weights[y - startY];
+                            BufferSpan<TColor> sourceRow = sourcePixels.GetRowSpan(y);
+
+                            BulkPixelOperations<TColor>.Instance.ToVector4(sourceRow, tempRowBuffer, sourceRow.Length);
 
                             if (this.Compand)
                             {
-                                for (int x = 0; x < width; x++)
+                                for (int x = minX; x < maxX; x++)
                                 {
-                                    // Destination color components
-                                    Vector4 destination = window.ComputeWeightedColumnSum(firstPassPixels, x);
-                                    destination = destination.Compress();
-                                    TColor d = default(TColor);
-                                    d.PackFromVector4(destination);
-                                    targetPixels[x, y] = d;
+                                    WeightsWindow window = this.HorizontalWeights.Weights[x - startX];
+                                    firstPassPixels[x, y] = window.ComputeExpandedWeightedRowSum(tempRowBuffer);
                                 }
                             }
                             else
                             {
-                                for (int x = 0; x < width; x++)
+                                for (int x = minX; x < maxX; x++)
                                 {
-                                    // Destination color components
-                                    Vector4 destination = window.ComputeWeightedColumnSum(firstPassPixels, x);
-
-                                    TColor d = default(TColor);
-                                    d.PackFromVector4(destination);
-                                    targetPixels[x, y] = d;
+                                    WeightsWindow window = this.HorizontalWeights.Weights[x - startX];
+                                    firstPassPixels[x, y] = window.ComputeWeightedRowSum(tempRowBuffer);
                                 }
                             }
-                        });
+                        }
+                    }
+
+                    // Now process the rows.
+                    for (int y = minY; y < maxY; y++)
+                    {
+                        // Ensure offsets are normalised for cropping and padding.
+                        WeightsWindow window = this.VerticalWeights.Weights[y - startY];
+
+                        if (this.Compand)
+                        {
+                            for (int x = 0; x < width; x++)
+                            {
+                                // Destination color components
+                                Vector4 destination = window.ComputeWeightedColumnSum(firstPassPixels, x);
+                                destination = destination.Compress();
+                                TColor d = default(TColor);
+                                d.PackFromVector4(destination);
+                                targetPixels[x, y] = d;
+                            }
+                        }
+                        else
+                        {
+                            for (int x = 0; x < width; x++)
+                            {
+                                // Destination color components
+                                Vector4 destination = window.ComputeWeightedColumnSum(firstPassPixels, x);
+
+                                TColor d = default(TColor);
+                                d.PackFromVector4(destination);
+                                targetPixels[x, y] = d;
+                            }
+                        }
+                    }
                 }
 
                 source.SwapPixelsBuffers(targetPixels);

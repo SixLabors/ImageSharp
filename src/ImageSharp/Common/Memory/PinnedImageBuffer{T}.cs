@@ -53,7 +53,14 @@ namespace ImageSharp
         /// <param name="x">The x coordinate (row)</param>
         /// <param name="y">The y coordinate (position at row)</param>
         /// <returns>A reference to the element.</returns>
-        public ref T this[int x, int y] => ref this.Array[(this.Width * y) + x];
+        public ref T this[int x, int y]
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref this.Array[(this.Width * y) + x];
+            }
+        }
 
         /// <summary>
         /// Creates a clean instance of <see cref="PinnedImageBuffer{T}"/> initializing it's elements with 'default(T)'.

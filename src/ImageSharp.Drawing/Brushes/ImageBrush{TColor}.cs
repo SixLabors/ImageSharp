@@ -34,7 +34,7 @@ namespace ImageSharp.Drawing.Brushes
         /// <inheritdoc />
         public BrushApplicator<TColor> CreateApplicator(PixelAccessor<TColor> sourcePixels, RectangleF region)
         {
-            return new ImageBrushApplicator(this.image, region);
+            return new ImageBrushApplicator(sourcePixels, this.image, region);
         }
 
         /// <summary>
@@ -71,7 +71,11 @@ namespace ImageSharp.Drawing.Brushes
             /// <param name="region">
             /// The region.
             /// </param>
-            public ImageBrushApplicator(IImageBase<TColor> image, RectangleF region)
+            /// <param name="sourcePixels">
+            /// The sourcePixels.
+            /// </param>
+            public ImageBrushApplicator(PixelAccessor<TColor> sourcePixels, IImageBase<TColor> image, RectangleF region)
+                : base(sourcePixels)
             {
                 this.source = image.Lock();
                 this.xLength = image.Width;
@@ -87,7 +91,7 @@ namespace ImageSharp.Drawing.Brushes
             /// <returns>
             /// The color
             /// </returns>
-            public override TColor this[int x, int y]
+            internal override TColor this[int x, int y]
             {
                 get
                 {
@@ -95,10 +99,10 @@ namespace ImageSharp.Drawing.Brushes
 
                     // Offset the requested pixel by the value in the rectangle (the shapes position)
                     point = point - this.offset;
-                    x = (int)point.X % this.xLength;
-                    y = (int)point.Y % this.yLength;
+                    int srcX = (int)point.X % this.xLength;
+                    int srcY = (int)point.Y % this.yLength;
 
-                    return this.source[x, y];
+                    return this.source[srcX, srcY];
                 }
             }
 
@@ -106,6 +110,37 @@ namespace ImageSharp.Drawing.Brushes
             public override void Dispose()
             {
                 this.source.Dispose();
+            }
+
+            /// <inheritdoc />
+            internal override void Apply(float[] scanlineBuffer, int scanlineWidth, int offset, int x, int y)
+            {
+                Guard.MustBeGreaterThanOrEqualTo(scanlineBuffer.Length, offset + scanlineWidth, nameof(scanlineWidth));
+
+                using (PinnedBuffer<float> buffer = new PinnedBuffer<float>(scanlineBuffer))
+                {
+                    BufferPointer<float> slice = buffer.Slice(offset);
+
+                    for (int xPos = 0; xPos < scanlineWidth; xPos++)
+                    {
+                        int targetX = xPos + x;
+                        int targetY = y;
+
+                        float opacity = slice[xPos];
+                        if (opacity > Constants.Epsilon)
+                        {
+                            Vector4 backgroundVector = this.Target[targetX, targetY].ToVector4();
+
+                            Vector4 sourceVector = this[targetX, targetY].ToVector4();
+
+                            Vector4 finalColor = Vector4BlendTransforms.PremultipliedLerp(backgroundVector, sourceVector, opacity);
+
+                            TColor packed = default(TColor);
+                            packed.PackFromVector4(finalColor);
+                            this.Target[targetX, targetY] = packed;
+                        }
+                    }
+                }
             }
         }
     }

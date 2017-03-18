@@ -74,6 +74,20 @@ namespace ImageSharp
         public IntPtr PointerAtOffset { get; private set; }
 
         /// <summary>
+        /// Gets the element at the specified position.
+        /// </summary>
+        /// <param name="index">The index from the start of this Pointer to the required element.</param>
+        /// <returns>The <see typeparam="T"/> at the specified position.</returns>
+        public T this[int index]
+        {
+            get
+            {
+                byte* ptr = ((byte*)this.PointerAtOffset) + BufferPointer.SizeOf<T>(index);
+                return Unsafe.Read<T>(ptr);
+            }
+        }
+
+        /// <summary>
         /// Convertes <see cref="BufferPointer{T}"/> instance to a raw 'void*' pointer
         /// </summary>
         /// <param name="bufferPointer">The <see cref="BufferPointer{T}"/> to convert</param>

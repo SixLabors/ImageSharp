@@ -105,6 +105,23 @@ namespace ImageSharp
         public BufferSpan<T> Span => this;
 
         /// <summary>
+        /// Returns a reference to specified element of the buffer.
+        /// </summary>
+        /// <param name="index">The index</param>
+        /// <returns>The reference to the specified element</returns>
+        public unsafe ref T this[int index]
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                DebugGuard.MustBeLessThan(index, this.Length, nameof(index));
+
+                byte* ptr = (byte*)this.Pointer + BufferSpan.SizeOf<T>(index);
+                return ref Unsafe.AsRef<T>(ptr);
+            }
+        }
+
+        /// <summary>
         /// Converts <see cref="PinnedBuffer{T}"/> to an <see cref="BufferSpan{T}"/>.
         /// </summary>
         /// <param name="buffer">The <see cref="PinnedBuffer{T}"/> to convert.</param>

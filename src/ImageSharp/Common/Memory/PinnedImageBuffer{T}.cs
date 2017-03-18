@@ -6,6 +6,7 @@
 namespace ImageSharp
 {
     using System;
+    using System.Runtime.CompilerServices;
 
     /// <summary>
     /// Represents a pinned buffer of value type objects
@@ -45,6 +46,14 @@ namespace ImageSharp
 
         /// <inheritdoc />
         public int Height { get; }
+
+        /// <summary>
+        /// Gets a reference to the element at the specified position.
+        /// </summary>
+        /// <param name="x">The x coordinate (row)</param>
+        /// <param name="y">The y coordinate (position at row)</param>
+        /// <returns>A reference to the element.</returns>
+        public ref T this[int x, int y] => ref this.Array[(this.Width * y) + x];
 
         /// <summary>
         /// Creates a clean instance of <see cref="PinnedImageBuffer{T}"/> initializing it's elements with 'default(T)'.

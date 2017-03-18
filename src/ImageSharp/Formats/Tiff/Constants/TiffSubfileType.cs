@@ -10,10 +10,19 @@ namespace ImageSharp.Formats
     /// </summary>
     internal enum TiffSubfileType
     {
-        // TIFF baseline subfile types
-
+        /// <summary>
+        /// Full-resolution image data.
+        /// </summary>
         FullImage = 1,
+
+        /// <summary>
+        /// Reduced-resolution image data.
+        /// </summary>
         Preview = 2,
+
+        /// <summary>
+        /// A single page of a multi-page image.
+        /// </summary>
         SinglePage = 3
     }
 }

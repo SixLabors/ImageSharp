@@ -33,8 +33,6 @@ namespace ImageSharp.Formats
             where TColor : struct, IPixel<TColor>
         {
             throw new NotImplementedException();
-            // TiffEncoderCore encode = new TiffEncoderCore(options);
-            // encode.Encode(image, stream);
         }
     }
 }

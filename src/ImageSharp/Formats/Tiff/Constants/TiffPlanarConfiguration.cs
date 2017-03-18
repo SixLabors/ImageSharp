@@ -6,13 +6,18 @@
 namespace ImageSharp.Formats
 {
     /// <summary>
-    /// Enumeration representing the planar configuration types defined by the Tiff file-format.
+    /// Enumeration representing how the components of each pixel are stored the Tiff file-format.
     /// </summary>
     internal enum TiffPlanarConfiguration
     {
-        // TIFF baseline PlanarConfiguration values
-
+        /// <summary>
+        /// Chunky format.
+        /// </summary>
         Chunky = 1,
+
+        /// <summary>
+        /// Planar format.
+        /// </summary>
         Planar = 2
     }
 }

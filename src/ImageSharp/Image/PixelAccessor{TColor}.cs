@@ -241,17 +241,6 @@ namespace ImageSharp
             this.CopyTo(area, sourceX, sourceY, width, height);
         }
 
-        ///// <summary>
-        ///// Gets a <see cref="BufferSpan{T}"/> to the row 'y' beginning from the pixel at 'x'.
-        ///// </summary>
-        ///// <param name="x">The x coordinate</param>
-        ///// <param name="y">The y coordinate</param>
-        ///// <returns>The <see cref="BufferSpan{T}"/></returns>
-        //internal BufferSpan<TColor> GetRowSpan(int x, int y)
-        //{
-        //    return this.pixelBuffer.Slice((y * this.Width) + x, this.Width - x);
-        //}
-
         /// <summary>
         /// Sets the pixel buffer in an unsafe manner. This should not be used unless you know what its doing!!!
         /// </summary>

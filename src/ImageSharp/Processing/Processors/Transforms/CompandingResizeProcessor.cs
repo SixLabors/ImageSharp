@@ -119,7 +119,7 @@ namespace ImageSharp.Processing.Processors
                             for (int x = minX; x < maxX; x++)
                             {
                                 // Ensure offsets are normalised for cropping and padding.
-                                Weights ws = this.HorizontalWeights.Weights[x - startX];
+                                WeightsWindow ws = this.HorizontalWeights.Weights[x - startX];
                                 float* horizontalValues = ws.Ptr;
                                 int left = ws.Left;
 
@@ -147,7 +147,7 @@ namespace ImageSharp.Processing.Processors
                         y =>
                         {
                             // Ensure offsets are normalised for cropping and padding.
-                            Weights ws = this.VerticalWeights.Weights[y - startY];
+                            WeightsWindow ws = this.VerticalWeights.Weights[y - startY];
                             float* verticalValues = ws.Ptr;
                             int left = ws.Left;
 

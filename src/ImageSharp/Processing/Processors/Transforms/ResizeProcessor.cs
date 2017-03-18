@@ -104,6 +104,8 @@ namespace ImageSharp.Processing.Processors
             // A 2-pass 1D algorithm appears to be faster than splitting a 1-pass 2D algorithm
             // First process the columns. Since we are not using multiple threads startY and endY
             // are the upper and lower bounds of the source rectangle.
+
+            // TODO: Using a transposed variant of 'firstPassPixels' could eliminate the need for the WeightsWindow.ComputeWeightedColumnSum() method, and improve speed!
             using (PixelAccessor<TColor> targetPixels = new PixelAccessor<TColor>(width, height))
             {
                 using (PixelAccessor<TColor> sourcePixels = source.Lock())
@@ -128,23 +130,8 @@ namespace ImageSharp.Processing.Processors
 
                                     for (int x = minX; x < maxX; x++)
                                     {
-                                        // Ensure offsets are normalised for cropping and padding.
-
-                                        Weights ws = this.HorizontalWeights.Weights[x - startX];
-                                        float* horizontalValues = ws.Ptr;
-                                        int left = ws.Left;
-
-                                        // Destination color components
-                                        Vector4 destination = Vector4.Zero;
-
-                                        for (int i = 0; i < ws.Length; i++)
-                                        {
-                                            float xw = horizontalValues[i];
-                                            int index = left + i;
-                                            destination += tempRowBuffer[index] * xw;
-                                        }
-
-                                        firstPassPixels[x, y] = destination;
+                                        WeightsWindow window = this.HorizontalWeights.Weights[x - startX];
+                                        firstPassPixels[x, y] = window.ComputeWeightedRowSum(tempRowBuffer);
                                     }
                                 }
                             });
@@ -157,21 +144,12 @@ namespace ImageSharp.Processing.Processors
                         y =>
                         {
                             // Ensure offsets are normalised for cropping and padding.
-                            Weights ws = this.VerticalWeights.Weights[y - startY];
-                            float* verticalValues = ws.Ptr;
-                            int left = ws.Left;
+                            WeightsWindow window = this.VerticalWeights.Weights[y - startY];
 
                             for (int x = 0; x < width; x++)
                             {
                                 // Destination color components
-                                Vector4 destination = Vector4.Zero;
-
-                                for (int i = 0; i < ws.Length; i++)
-                                {
-                                    float yw = verticalValues[i];
-                                    int index = left + i;
-                                    destination += firstPassPixels[x, index] * yw;
-                                }
+                                Vector4 destination = window.ComputeWeightedColumnSum(firstPassPixels, x);
 
                                 TColor d = default(TColor);
                                 d.PackFromVector4(destination);

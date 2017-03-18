@@ -21,6 +21,11 @@ namespace ImageSharp.Drawing
         public bool Antialias;
 
         /// <summary>
+        /// The number of subpixels to use while rendering with antialiasing enabled.
+        /// </summary>
+        public int AntialiasSubpixelDepth;
+
+        /// <summary>
         /// Whether the text should be drawing with kerning enabled.
         /// </summary>
         public bool ApplyKerning;
@@ -39,6 +44,7 @@ namespace ImageSharp.Drawing
             this.Antialias = enableAntialiasing;
             this.ApplyKerning = true;
             this.TabWidth = 4;
+            this.AntialiasSubpixelDepth = 16;
         }
 
         /// <summary>
@@ -50,7 +56,10 @@ namespace ImageSharp.Drawing
         /// </returns>
         public static implicit operator TextGraphicsOptions(GraphicsOptions options)
         {
-            return new TextGraphicsOptions(options.Antialias);
+            return new TextGraphicsOptions(options.Antialias)
+            {
+                AntialiasSubpixelDepth = options.AntialiasSubpixelDepth
+            };
         }
 
         /// <summary>
@@ -62,7 +71,10 @@ namespace ImageSharp.Drawing
         /// </returns>
         public static explicit operator GraphicsOptions(TextGraphicsOptions options)
         {
-            return new GraphicsOptions(options.Antialias);
+            return new GraphicsOptions(options.Antialias)
+            {
+                AntialiasSubpixelDepth = options.AntialiasSubpixelDepth
+            };
         }
     }
 }

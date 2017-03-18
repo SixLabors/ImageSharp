@@ -30,15 +30,6 @@ namespace ImageSharp.Drawing.Brushes
     ///  0
     ///  0
     /// </para>
-    /// Warning when use array initializer across multiple lines the bools look inverted i.e.
-    /// new bool[,]{
-    ///     {true, false, false},
-    ///     {false,true, false}
-    /// }
-    /// would be
-    /// 10
-    /// 01
-    /// 00
     /// </remarks>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     public class PatternBrush<TColor> : IBrush<TColor>
@@ -47,12 +38,8 @@ namespace ImageSharp.Drawing.Brushes
         /// <summary>
         /// The pattern.
         /// </summary>
-        private readonly TColor[][] pattern;
-
-        /// <summary>
-        /// The stride width.
-        /// </summary>
-        private readonly int stride;
+        private readonly Fast2DArray<TColor> pattern;
+        private readonly Fast2DArray<Vector4> patternVector;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PatternBrush{TColor}"/> class.
@@ -61,25 +48,33 @@ namespace ImageSharp.Drawing.Brushes
         /// <param name="backColor">Color of the back.</param>
         /// <param name="pattern">The pattern.</param>
         public PatternBrush(TColor foreColor, TColor backColor, bool[,] pattern)
+            : this(foreColor, backColor, new Fast2DArray<bool>(pattern))
         {
-            this.stride = pattern.GetLength(1);
+        }
 
-            // Convert the multidimension array into a jagged one.
-            int height = pattern.GetLength(0);
-            this.pattern = new TColor[height][];
-            for (int x = 0; x < height; x++)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PatternBrush{TColor}"/> class.
+        /// </summary>
+        /// <param name="foreColor">Color of the fore.</param>
+        /// <param name="backColor">Color of the back.</param>
+        /// <param name="pattern">The pattern.</param>
+        internal PatternBrush(TColor foreColor, TColor backColor, Fast2DArray<bool> pattern)
+        {
+            Vector4 foreColorVector = foreColor.ToVector4();
+            Vector4 backColorVector = backColor.ToVector4();
+            this.pattern = new Fast2DArray<TColor>(pattern.Width, pattern.Height);
+            this.patternVector = new Fast2DArray<Vector4>(pattern.Width, pattern.Height);
+            for (int i = 0; i < pattern.Data.Length; i++)
             {
-                this.pattern[x] = new TColor[this.stride];
-                for (int y = 0; y < this.stride; y++)
+                if (pattern.Data[i])
                 {
-                    if (pattern[x, y])
-                    {
-                        this.pattern[x][y] = foreColor;
-                    }
-                    else
-                    {
-                        this.pattern[x][y] = backColor;
-                    }
+                    this.pattern.Data[i] = foreColor;
+                    this.patternVector.Data[i] = foreColorVector;
+                }
+                else
+                {
+                    this.pattern.Data[i] = backColor;
+                    this.patternVector.Data[i] = backColorVector;
                 }
             }
         }
@@ -91,13 +86,13 @@ namespace ImageSharp.Drawing.Brushes
         internal PatternBrush(PatternBrush<TColor> brush)
         {
             this.pattern = brush.pattern;
-            this.stride = brush.stride;
+            this.patternVector = brush.patternVector;
         }
 
         /// <inheritdoc />
         public BrushApplicator<TColor> CreateApplicator(PixelAccessor<TColor> sourcePixels, RectangleF region)
         {
-            return new PatternBrushApplicator(this.pattern, this.stride);
+            return new PatternBrushApplicator(sourcePixels, this.pattern, this.patternVector);
         }
 
         /// <summary>
@@ -106,30 +101,22 @@ namespace ImageSharp.Drawing.Brushes
         private class PatternBrushApplicator : BrushApplicator<TColor>
         {
             /// <summary>
-            /// The patter x-length.
-            /// </summary>
-            private readonly int xLength;
-
-            /// <summary>
-            /// The stride width.
-            /// </summary>
-            private readonly int stride;
-
-            /// <summary>
             /// The pattern.
             /// </summary>
-            private readonly TColor[][] pattern;
+            private readonly Fast2DArray<TColor> pattern;
+            private readonly Fast2DArray<Vector4> patternVector;
 
             /// <summary>
             /// Initializes a new instance of the <see cref="PatternBrushApplicator" /> class.
             /// </summary>
+            /// <param name="sourcePixels">The sourcePixels.</param>
             /// <param name="pattern">The pattern.</param>
-            /// <param name="stride">The stride.</param>
-            public PatternBrushApplicator(TColor[][] pattern, int stride)
+            /// <param name="patternVector">The patternVector.</param>
+            public PatternBrushApplicator(PixelAccessor<TColor> sourcePixels, Fast2DArray<TColor> pattern, Fast2DArray<Vector4> patternVector)
+                : base(sourcePixels)
             {
                 this.pattern = pattern;
-                this.xLength = pattern.Length;
-                this.stride = stride;
+                this.patternVector = patternVector;
             }
 
             /// <summary>
@@ -140,14 +127,15 @@ namespace ImageSharp.Drawing.Brushes
             /// <returns>
             /// The Color.
             /// </returns>
-            public override TColor this[int x, int y]
+            internal override TColor this[int x, int y]
             {
                 get
                 {
-                    x = x % this.xLength;
-                    y = y % this.stride;
+                    x = x % this.pattern.Width;
+                    y = y % this.pattern.Height;
 
-                    return this.pattern[x][y];
+                    // 2d array index at row/column
+                    return this.pattern[y, x];
                 }
             }
 
@@ -155,6 +143,38 @@ namespace ImageSharp.Drawing.Brushes
             public override void Dispose()
             {
                 // noop
+            }
+
+            /// <inheritdoc />
+            internal override void Apply(float[] scanlineBuffer, int scanlineWidth, int offset, int x, int y)
+            {
+                Guard.MustBeGreaterThanOrEqualTo(scanlineBuffer.Length, offset + scanlineWidth, nameof(scanlineWidth));
+
+                using (PinnedBuffer<float> buffer = new PinnedBuffer<float>(scanlineBuffer))
+                {
+                    BufferPointer<float> slice = buffer.Slice(offset);
+
+                    for (int xPos = 0; xPos < scanlineWidth; xPos++)
+                    {
+                        int targetX = xPos + x;
+                        int targetY = y;
+
+                        float opacity = slice[xPos];
+                        if (opacity > Constants.Epsilon)
+                        {
+                            Vector4 backgroundVector = this.Target[targetX, targetY].ToVector4();
+
+                            // 2d array index at row/column
+                            Vector4 sourceVector = this.patternVector[targetY % this.patternVector.Height, targetX % this.patternVector.Width];
+
+                            Vector4 finalColor = Vector4BlendTransforms.PremultipliedLerp(backgroundVector, sourceVector, opacity);
+
+                            TColor packed = default(TColor);
+                            packed.PackFromVector4(finalColor);
+                            this.Target[targetX, targetY] = packed;
+                        }
+                    }
+                }
             }
         }
     }

@@ -13,7 +13,7 @@ namespace ImageSharp.Processing.Processors
     /// An <see cref="IImageProcessor{TColor}"/> that applies a radial glow effect an <see cref="Image{TColor}"/>.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    public class GlowProcessor<TColor> : ImageProcessor<TColor>
+    internal class GlowProcessor<TColor> : ImageProcessor<TColor>
         where TColor : struct, IPixel<TColor>
     {
         /// <summary>

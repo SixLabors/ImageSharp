@@ -12,7 +12,7 @@ namespace ImageSharp.Processing.Processors
     /// An <see cref="ImageProcessor{TColor}"/> to change the hue of an <see cref="Image{TColor}"/>.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    public class HueProcessor<TColor> : ColorMatrixFilter<TColor>
+    internal class HueProcessor<TColor> : ColorMatrixProcessor<TColor>
         where TColor : struct, IPixel<TColor>
     {
         /// <summary>

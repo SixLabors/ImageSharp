@@ -5,13 +5,11 @@
 
 namespace ImageSharp.Dithering.Ordered
 {
-    using System;
-
     /// <summary>
     /// Applies error diffusion based dithering using the 4x4 Bayer dithering matrix.
     /// <see href="http://www.efg2.com/Lab/Library/ImageProcessing/DHALF.TXT"/>
     /// </summary>
-    public class Bayer : IOrderedDither
+    public sealed class Bayer : OrderedDither4x4
     {
         /// <summary>
         /// The threshold matrix.
@@ -26,15 +24,12 @@ namespace ImageSharp.Dithering.Ordered
                 { 255, 127, 223, 95 }
             };
 
-        /// <inheritdoc />
-        public Fast2DArray<byte> Matrix { get; } = ThresholdMatrix;
-
-        /// <inheritdoc />
-        public void Dither<TColor>(PixelAccessor<TColor> pixels, TColor source, TColor upper, TColor lower, byte[] bytes, int index, int x, int y, int width, int height)
-            where TColor : struct, IPixel<TColor>
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Bayer"/> class.
+        /// </summary>
+        public Bayer()
+            : base(ThresholdMatrix)
         {
-            source.ToXyzwBytes(bytes, 0);
-            pixels[x, y] = ThresholdMatrix[y % 3, x % 3] >= bytes[index] ? lower : upper;
         }
     }
 }

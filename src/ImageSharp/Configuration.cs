@@ -35,6 +35,25 @@ namespace ImageSharp
         private readonly List<IImageFormat> imageFormatsList = new List<IImageFormat>();
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="Configuration" /> class.
+        /// </summary>
+        public Configuration()
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Configuration" /> class.
+        /// </summary>
+        /// <param name="providers">The inital set of image formats.</param>
+        public Configuration(params IImageFormat[] providers)
+        {
+            foreach (IImageFormat p in providers)
+            {
+                this.AddImageFormat(p);
+            }
+        }
+
+        /// <summary>
         /// Gets the default <see cref="Configuration"/> instance.
         /// </summary>
         public static Configuration Default { get; } = Lazy.Value;

@@ -12,29 +12,22 @@ namespace ImageSharp.Tests.Drawing.Paths
     /// Watches but does not actually run the processors against the image.
     /// </summary>
     /// <seealso cref="ImageSharp.Image{ImageSharp.Color}" />
-    public class ProcessorWatchingImage : Image<Color>, IImageCallbacks
+    public class ProcessorWatchingImage : Image<Color>
     {
         public List<ProcessorDetails> ProcessorApplications { get; } = new List<ProcessorDetails>();
         
         public ProcessorWatchingImage(int width, int height)
            : base(width, height, Configuration.CreateDefaultInstance())
         {
-            this.Callbacks = this;
         }
 
-        public bool OnSaving<TColor>(ImageBase<TColor> image, Stream stream, IImageEncoder encoder, IEncoderOptions options) where TColor : struct, IPixel<TColor>
-        {
-            return true;
-        }
-
-        public bool OnProcessing<TColor>(ImageBase<TColor> image, IImageProcessor<TColor> processor, Rectangle rectangle) where TColor : struct, IPixel<TColor>
+        public override void ApplyProcessor(IImageProcessor<Color> processor, Rectangle rectangle)
         {
             this.ProcessorApplications.Add(new ProcessorDetails
             {
-                processor = (IImageProcessor<Color>)processor,
+                processor = processor,
                 rectangle = rectangle
             });
-            return false;// do not really apply the processor to speed up testing
         }
 
         public struct ProcessorDetails

@@ -594,10 +594,7 @@ namespace ImageSharp
             Guard.NotNull(stream, nameof(stream));
             Guard.NotNull(encoder, nameof(encoder));
 
-            if (this.Callbacks?.OnSaving(this, stream, encoder, options) != false)
-            {
-                encoder.Encode(this, stream, options);
-            }
+            encoder.Encode(this, stream, options);
         }
 
         /// <summary>

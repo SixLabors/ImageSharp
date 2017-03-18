@@ -117,23 +117,13 @@ namespace ImageSharp
         public Configuration Configuration { get; private set; }
 
         /// <summary>
-        /// Gets or sets the callbacks item which will be called during the lifetime of the image being processed.
-        /// </summary>
-        internal IImageCallbacks Callbacks { get; set; }
-
-        /// <summary>
         /// Applies the processor.
         /// </summary>
         /// <param name="processor">The processor.</param>
         /// <param name="rectangle">The rectangle.</param>
         public virtual void ApplyProcessor(IImageProcessor<TColor> processor, Rectangle rectangle)
         {
-            // this will be null true or false, if its null or true then apply the processor
-            // thus is not false then apply the processors (allows for tests to save time and not actually run the prcessor is required)
-            if (this.Callbacks?.OnProcessing(this, processor, rectangle) != false)
-            {
-                processor.Apply(this, rectangle);
-            }
+            processor.Apply(this, rectangle);
         }
 
         /// <inheritdoc />

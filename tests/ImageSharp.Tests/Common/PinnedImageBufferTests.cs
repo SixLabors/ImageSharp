@@ -65,7 +65,7 @@ namespace ImageSharp.Tests.Common
 
                 Assert.Equal(width * y, span.Start);
                 Assert.Equal(width, span.Length);
-                Assert.Equal(buffer.Pointer + sizeof(int) * width * y, span.PointerAtOffset);
+                Assert.Equal(buffer.Pointer + sizeof(Foo) * width * y, span.PointerAtOffset);
             }
         }
 
@@ -81,7 +81,7 @@ namespace ImageSharp.Tests.Common
 
                 Assert.Equal(width * y + x, span.Start);
                 Assert.Equal(width - x, span.Length);
-                Assert.Equal(buffer.Pointer + sizeof(int) * (width * y + x), span.PointerAtOffset);
+                Assert.Equal(buffer.Pointer + sizeof(Foo) * (width * y + x), span.PointerAtOffset);
             }
         }
 

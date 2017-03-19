@@ -12,6 +12,7 @@ namespace ImageSharp
     using System.Threading.Tasks;
 
     using Formats;
+    using ImageSharp.IO;
 
     /// <summary>
     /// Provides initialization code which allows extending the library.
@@ -34,6 +35,25 @@ namespace ImageSharp
         private readonly List<IImageFormat> imageFormatsList = new List<IImageFormat>();
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="Configuration" /> class.
+        /// </summary>
+        public Configuration()
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Configuration" /> class.
+        /// </summary>
+        /// <param name="providers">The inital set of image formats.</param>
+        public Configuration(params IImageFormat[] providers)
+        {
+            foreach (IImageFormat p in providers)
+            {
+                this.AddImageFormat(p);
+            }
+        }
+
+        /// <summary>
         /// Gets the default <see cref="Configuration"/> instance.
         /// </summary>
         public static Configuration Default { get; } = Lazy.Value;
@@ -52,6 +72,13 @@ namespace ImageSharp
         /// Gets the maximum header size of all formats.
         /// </summary>
         internal int MaxHeaderSize { get; private set; }
+
+#if !NETSTANDARD1_1
+        /// <summary>
+        /// Gets or sets the fielsystem helper for accessing the local file system.
+        /// </summary>
+        internal IFileSystem FileSystem { get; set; } = new LocalFileSystem();
+#endif
 
         /// <summary>
         /// Adds a new <see cref="IImageFormat"/> to the collection of supported image formats.

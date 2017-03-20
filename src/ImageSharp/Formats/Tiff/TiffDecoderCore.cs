@@ -73,6 +73,7 @@ namespace ImageSharp.Formats
 
             uint firstIfdOffset = this.ReadHeader();
             TiffIfd firstIfd = this.ReadIfd(firstIfdOffset);
+            this.DecodeImage(firstIfd, image);
         }
 
         /// <summary>
@@ -148,6 +149,27 @@ namespace ImageSharp.Formats
             uint nextIfdOffset = this.ToUInt32(buffer, 0);
 
             return new TiffIfd(entries, nextIfdOffset);
+        }
+
+        /// <summary>
+        /// Decodes the image data from a specified IFD.
+        /// </summary>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <param name="ifd">The IFD to read the image from.</param>
+        /// <param name="image">The image, where the data should be set to.</param>
+        public void DecodeImage<TColor>(TiffIfd ifd, Image<TColor> image)
+            where TColor : struct, IPixel<TColor>
+        {
+            if (!ifd.TryGetIfdEntry(TiffTags.ImageLength, out TiffIfdEntry imageLengthEntry)
+                || !ifd.TryGetIfdEntry(TiffTags.ImageWidth, out TiffIfdEntry imageWidthEntry))
+            {
+                throw new ImageFormatException("The TIFF IFD does not specify the image dimensions.");
+            }
+
+            int width = (int)this.ReadUnsignedInteger(ref imageWidthEntry);
+            int height = (int)this.ReadUnsignedInteger(ref imageLengthEntry);
+
+            image.InitPixels(width, height);
         }
 
         /// <summary>

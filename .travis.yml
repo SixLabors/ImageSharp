@@ -21,7 +21,6 @@ branches:
 script:
   - dotnet restore
   - dotnet test tests/ImageSharp.Tests/ImageSharp.Tests.csproj -c Release -f "netcoreapp1.1"
-  - dotnet test tests/ImageSharp.Formats.Tiff.Tests/ImageSharp.Formats.Tiff.Tests.csproj -c Release -f "netcoreapp1.1"
 
 env:
   global:

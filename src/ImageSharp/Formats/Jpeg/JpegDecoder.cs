@@ -14,15 +14,14 @@ namespace ImageSharp.Formats
     public class JpegDecoder : IImageDecoder
     {
         /// <inheritdoc/>
-        public void Decode<TColor>(Image<TColor> image, Stream stream, IDecoderOptions options)
+        public Image<TColor> Decode<TColor>(Stream stream, IDecoderOptions options)
             where TColor : struct, IPixel<TColor>
         {
-            Guard.NotNull(image, "image");
             Guard.NotNull(stream, "stream");
 
             using (JpegDecoderCore decoder = new JpegDecoderCore(options))
             {
-                decoder.Decode(image, stream, false);
+                return decoder.Decode<TColor>(stream);
             }
         }
     }

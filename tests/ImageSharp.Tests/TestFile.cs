@@ -46,7 +46,7 @@ namespace ImageSharp.Tests
             this.file = file;
 
             this.Bytes = File.ReadAllBytes(file);
-            this.image = new Image(this.Bytes);
+            this.image = Image.Load(this.Bytes);
         }
 
         /// <summary>
@@ -139,7 +139,7 @@ namespace ImageSharp.Tests
         /// </returns>
         public Image CreateImage(IDecoderOptions options)
         {
-            return new Image(this.Bytes, options);
+            return Image.Load(this.Bytes, options);
         }
 
         /// <summary>

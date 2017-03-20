@@ -48,16 +48,13 @@ namespace ImageSharp.Formats
         /// the data to image.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <param name="image">The image, where the data should be set to.
-        /// Cannot be null (Nothing in Visual Basic).</param>
         /// <param name="stream">The stream, where the image should be
         /// decoded from. Cannot be null (Nothing in Visual Basic).</param>
         /// <exception cref="System.ArgumentNullException">
-        ///    <para><paramref name="image"/> is null.</para>
-        ///    <para>- or -</para>
         ///    <para><paramref name="stream"/> is null.</para>
         /// </exception>
-        public void Decode<TColor>(Image<TColor> image, Stream stream)
+        /// <returns>The decoded image.</returns>
+        public Image<TColor> Decode<TColor>(Stream stream)
             where TColor : struct, IPixel<TColor>
         {
             this.currentStream = stream;
@@ -110,14 +107,14 @@ namespace ImageSharp.Formats
                     this.currentStream.Read(palette, 0, colorMapSize);
                 }
 
-                if (this.infoHeader.Width > image.MaxWidth || this.infoHeader.Height > image.MaxHeight)
+                if (this.infoHeader.Width > Image<TColor>.MaxWidth || this.infoHeader.Height > Image<TColor>.MaxHeight)
                 {
                     throw new ArgumentOutOfRangeException(
                         $"The input bitmap '{this.infoHeader.Width}x{this.infoHeader.Height}' is "
-                        + $"bigger then the max allowed size '{image.MaxWidth}x{image.MaxHeight}'");
+                        + $"bigger then the max allowed size '{Image<TColor>.MaxWidth}x{Image<TColor>.MaxHeight}'");
                 }
 
-                image.InitPixels(this.infoHeader.Width, this.infoHeader.Height);
+                Image<TColor> image = new Image<TColor>(this.infoHeader.Width, this.infoHeader.Height);
 
                 using (PixelAccessor<TColor> pixels = image.Lock())
                 {
@@ -151,6 +148,8 @@ namespace ImageSharp.Formats
                             throw new NotSupportedException("Does not support this kind of bitmap files.");
                     }
                 }
+
+                return image;
             }
             catch (IndexOutOfRangeException e)
             {

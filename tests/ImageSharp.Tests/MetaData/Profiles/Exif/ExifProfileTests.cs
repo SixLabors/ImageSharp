@@ -73,7 +73,7 @@ namespace ImageSharp.Tests
                 image.SaveAsJpeg(memStream);
 
                 memStream.Position = 0;
-                image = new Image(memStream);
+                image = Image.Load(memStream);
 
                 profile = image.MetaData.ExifProfile;
                 Assert.NotNull(profile);
@@ -91,7 +91,7 @@ namespace ImageSharp.Tests
                 image.SaveAsJpeg(memStream);
 
                 memStream.Position = 0;
-                image = new Image(memStream);
+                image = Image.Load(memStream);
 
                 profile = image.MetaData.ExifProfile;
                 Assert.NotNull(profile);
@@ -286,7 +286,7 @@ namespace ImageSharp.Tests
                 image.Dispose();
 
                 memStream.Position = 0;
-                return new Image(memStream);
+                return Image.Load(memStream);
             }
         }
 

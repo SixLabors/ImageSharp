@@ -180,18 +180,30 @@ namespace ImageSharp.Formats
         /// the data to image.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <param name="image">The image, where the data should be set to.</param>
         /// <param name="stream">The stream, where the image should be.</param>
-        /// <param name="metadataOnly">Whether to decode metadata only.</param>
-        public void Decode<TColor>(Image<TColor> image, Stream stream, bool metadataOnly)
+        /// <returns>The decoded image.</returns>
+        public Image<TColor> Decode<TColor>(Stream stream)
             where TColor : struct, IPixel<TColor>
         {
-            this.ProcessStream(image, stream, metadataOnly);
-            if (!metadataOnly)
-            {
-                this.ProcessBlocksIntoJpegImageChannels<TColor>();
-                this.ConvertJpegPixelsToImagePixels(image);
-            }
+            ImageMetaData metadata = new ImageMetaData();
+            this.ProcessStream(metadata, stream, false);
+            this.ProcessBlocksIntoJpegImageChannels<TColor>();
+            Image<TColor> image = this.ConvertJpegPixelsToImagePixels<TColor>(metadata);
+
+            return image;
+        }
+
+        /// <summary>
+        /// Decodes the image from the specified <see cref="Stream"/>  and sets
+        /// the data to image.
+        /// </summary>
+        /// <param name="stream">The stream, where the image should be.</param>
+        /// <returns>The image metadata.</returns>
+        public ImageMetaData DecodeMetaData(Stream stream)
+        {
+            ImageMetaData metadata = new ImageMetaData();
+            this.ProcessStream(metadata, stream, true);
+            return metadata;
         }
 
         /// <summary>
@@ -276,12 +288,10 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Read metadata from stream and read the blocks in the scans into <see cref="DecodedBlocks"/>.
         /// </summary>
-        /// <typeparam name="TColor">The pixel type</typeparam>
-        /// <param name="image">The <see cref="Image{TColor}"/></param>
+        /// <param name="metadata">The metadata</param>
         /// <param name="stream">The stream</param>
         /// <param name="metadataOnly">Whether to decode metadata only.</param>
-        private void ProcessStream<TColor>(Image<TColor> image, Stream stream, bool metadataOnly)
-            where TColor : struct, IPixel<TColor>
+        private void ProcessStream(ImageMetaData metadata, Stream stream, bool metadataOnly)
         {
             this.InputStream = stream;
             this.InputProcessor = new InputProcessor(stream, this.Temp);
@@ -429,7 +439,7 @@ namespace ImageSharp.Formats
                         this.ProcessApplicationHeader(remaining);
                         break;
                     case JpegConstants.Markers.APP1:
-                        this.ProcessApp1Marker(remaining, image);
+                        this.ProcessApp1Marker(remaining, metadata);
                         break;
                     case JpegConstants.Markers.APP14:
                         this.ProcessApp14Marker(remaining);
@@ -496,13 +506,18 @@ namespace ImageSharp.Formats
         /// Convert the pixel data in <see cref="YCbCrImage"/> and/or <see cref="JpegPixelArea"/> into pixels of <see cref="Image{TColor}"/>
         /// </summary>
         /// <typeparam name="TColor">The pixel type</typeparam>
-        /// <param name="image">The destination image</param>
-        private void ConvertJpegPixelsToImagePixels<TColor>(Image<TColor> image)
+        /// <param name="metadata">The metadata for the image.</param>
+        /// <returns>The decoded image.</returns>
+        private Image<TColor> ConvertJpegPixelsToImagePixels<TColor>(ImageMetaData metadata)
             where TColor : struct, IPixel<TColor>
         {
+            Image<TColor> image = new Image<TColor>(this.ImageWidth, this.ImageHeight);
+            image.MetaData.LoadFrom(metadata);
+
             if (this.grayImage.IsInitialized)
             {
-                this.ConvertFromGrayScale(this.ImageWidth, this.ImageHeight, image);
+                this.ConvertFromGrayScale(image);
+                return image;
             }
             else if (this.ycbcrImage != null)
             {
@@ -519,27 +534,27 @@ namespace ImageSharp.Formats
                     // TODO: YCbCrA?
                     if (this.adobeTransform == JpegConstants.Adobe.ColorTransformYcck)
                     {
-                        this.ConvertFromYcck(this.ImageWidth, this.ImageHeight, image);
+                        this.ConvertFromYcck(image);
                     }
                     else if (this.adobeTransform == JpegConstants.Adobe.ColorTransformUnknown)
                     {
                         // Assume CMYK
-                        this.ConvertFromCmyk(this.ImageWidth, this.ImageHeight, image);
+                        this.ConvertFromCmyk(image);
                     }
 
-                    return;
+                    return image;
                 }
 
                 if (this.ComponentCount == 3)
                 {
                     if (this.IsRGB())
                     {
-                        this.ConvertFromRGB(this.ImageWidth, this.ImageHeight, image);
-                        return;
+                        this.ConvertFromRGB(image);
+                        return image;
                     }
 
-                    this.ConvertFromYCbCr(this.ImageWidth, this.ImageHeight, image);
-                    return;
+                    this.ConvertFromYCbCr(image);
+                    return image;
                 }
 
                 throw new ImageFormatException("JpegDecoder only supports RGB, CMYK and Grayscale color spaces.");
@@ -582,28 +597,24 @@ namespace ImageSharp.Formats
         /// Converts the image from the original CMYK image pixels.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <param name="width">The image width.</param>
-        /// <param name="height">The image height.</param>
         /// <param name="image">The image.</param>
-        private void ConvertFromCmyk<TColor>(int width, int height, Image<TColor> image)
+        private void ConvertFromCmyk<TColor>(Image<TColor> image)
             where TColor : struct, IPixel<TColor>
         {
             int scale = this.ComponentArray[0].HorizontalFactor / this.ComponentArray[1].HorizontalFactor;
-
-            image.InitPixels(width, height);
 
             using (PixelAccessor<TColor> pixels = image.Lock())
             {
                 Parallel.For(
                     0,
-                    height,
+                    image.Height,
                     y =>
                     {
                         // TODO: Simplify + optimize + share duplicate code across converter methods
                         int yo = this.ycbcrImage.GetRowYOffset(y);
                         int co = this.ycbcrImage.GetRowCOffset(y);
 
-                        for (int x = 0; x < width; x++)
+                        for (int x = 0; x < image.Width; x++)
                         {
                             byte cyan = this.ycbcrImage.YChannel.Pixels[yo + x];
                             byte magenta = this.ycbcrImage.CbChannel.Pixels[co + (x / scale)];
@@ -623,24 +634,20 @@ namespace ImageSharp.Formats
         /// Converts the image from the original grayscale image pixels.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <param name="width">The image width.</param>
-        /// <param name="height">The image height.</param>
         /// <param name="image">The image.</param>
-        private void ConvertFromGrayScale<TColor>(int width, int height, Image<TColor> image)
+        private void ConvertFromGrayScale<TColor>(Image<TColor> image)
             where TColor : struct, IPixel<TColor>
         {
-            image.InitPixels(width, height);
-
             using (PixelAccessor<TColor> pixels = image.Lock())
             {
                 Parallel.For(
                     0,
-                    height,
+                    image.Height,
                     image.Configuration.ParallelOptions,
                     y =>
                     {
                         int yoff = this.grayImage.GetRowOffset(y);
-                        for (int x = 0; x < width; x++)
+                        for (int x = 0; x < image.Width; x++)
                         {
                             byte rgb = this.grayImage.Pixels[yoff + x];
 
@@ -658,20 +665,17 @@ namespace ImageSharp.Formats
         /// Converts the image from the original RBG image pixels.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <param name="width">The image width.</param>
-        /// <param name="height">The height.</param>
         /// <param name="image">The image.</param>
-        private void ConvertFromRGB<TColor>(int width, int height, Image<TColor> image)
+        private void ConvertFromRGB<TColor>(Image<TColor> image)
             where TColor : struct, IPixel<TColor>
         {
             int scale = this.ComponentArray[0].HorizontalFactor / this.ComponentArray[1].HorizontalFactor;
-            image.InitPixels(width, height);
 
             using (PixelAccessor<TColor> pixels = image.Lock())
             {
                 Parallel.For(
                     0,
-                    height,
+                    image.Height,
                     image.Configuration.ParallelOptions,
                     y =>
                     {
@@ -679,7 +683,7 @@ namespace ImageSharp.Formats
                         int yo = this.ycbcrImage.GetRowYOffset(y);
                         int co = this.ycbcrImage.GetRowCOffset(y);
 
-                        for (int x = 0; x < width; x++)
+                        for (int x = 0; x < image.Width; x++)
                         {
                             byte red = this.ycbcrImage.YChannel.Pixels[yo + x];
                             byte green = this.ycbcrImage.CbChannel.Pixels[co + (x / scale)];
@@ -699,20 +703,16 @@ namespace ImageSharp.Formats
         /// Converts the image from the original YCbCr image pixels.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <param name="width">The image width.</param>
-        /// <param name="height">The image height.</param>
         /// <param name="image">The image.</param>
-        private void ConvertFromYCbCr<TColor>(int width, int height, Image<TColor> image)
+        private void ConvertFromYCbCr<TColor>(Image<TColor> image)
             where TColor : struct, IPixel<TColor>
         {
             int scale = this.ComponentArray[0].HorizontalFactor / this.ComponentArray[1].HorizontalFactor;
-            image.InitPixels(width, height);
-
             using (PixelAccessor<TColor> pixels = image.Lock())
             {
                 Parallel.For(
                     0,
-                    height,
+                    image.Height,
                     image.Configuration.ParallelOptions,
                     y =>
                     {
@@ -720,7 +720,7 @@ namespace ImageSharp.Formats
                         int yo = this.ycbcrImage.GetRowYOffset(y);
                         int co = this.ycbcrImage.GetRowCOffset(y);
 
-                        for (int x = 0; x < width; x++)
+                        for (int x = 0; x < image.Width; x++)
                         {
                             byte yy = this.ycbcrImage.YChannel.Pixels[yo + x];
                             byte cb = this.ycbcrImage.CbChannel.Pixels[co + (x / scale)];
@@ -740,28 +740,24 @@ namespace ImageSharp.Formats
         /// Converts the image from the original YCCK image pixels.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <param name="width">The image width.</param>
-        /// <param name="height">The image height.</param>
         /// <param name="image">The image.</param>
-        private void ConvertFromYcck<TColor>(int width, int height, Image<TColor> image)
+        private void ConvertFromYcck<TColor>(Image<TColor> image)
             where TColor : struct, IPixel<TColor>
         {
             int scale = this.ComponentArray[0].HorizontalFactor / this.ComponentArray[1].HorizontalFactor;
-
-            image.InitPixels(width, height);
 
             using (PixelAccessor<TColor> pixels = image.Lock())
             {
                 Parallel.For(
                     0,
-                    height,
+                    image.Height,
                     y =>
                     {
                         // TODO: Simplify + optimize + share duplicate code across converter methods
                         int yo = this.ycbcrImage.GetRowYOffset(y);
                         int co = this.ycbcrImage.GetRowCOffset(y);
 
-                        for (int x = 0; x < width; x++)
+                        for (int x = 0; x < image.Width; x++)
                         {
                             byte yy = this.ycbcrImage.YChannel.Pixels[yo + x];
                             byte cb = this.ycbcrImage.CbChannel.Pixels[co + (x / scale)];
@@ -959,11 +955,9 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Processes the App1 marker retrieving any stored metadata
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
         /// <param name="remaining">The remaining bytes in the segment block.</param>
-        /// <param name="image">The image.</param>
-        private void ProcessApp1Marker<TColor>(int remaining, Image<TColor> image)
-            where TColor : struct, IPixel<TColor>
+        /// <param name="metadata">The image.</param>
+        private void ProcessApp1Marker(int remaining, ImageMetaData metadata)
         {
             if (remaining < 6 || this.options.IgnoreMetadata)
             {
@@ -978,7 +972,7 @@ namespace ImageSharp.Formats
                 && profile[5] == '\0')
             {
                 this.isExif = true;
-                image.MetaData.ExifProfile = new ExifProfile(profile);
+                metadata.ExifProfile = new ExifProfile(profile);
             }
         }
 

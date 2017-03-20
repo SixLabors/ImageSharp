@@ -25,7 +25,7 @@ namespace ImageSharp.Benchmarks.Image
         public void DecodeJpegImageSharp()
         {
             this.ForEachStream(
-                ms => new ImageSharp.Image(ms)
+                ms => ImageSharp.Image.Load(ms)
                 );  
         }
 

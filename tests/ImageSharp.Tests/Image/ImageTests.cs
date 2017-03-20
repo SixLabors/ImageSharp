@@ -21,11 +21,11 @@ namespace ImageSharp.Tests
         {
             Assert.Throws<ArgumentNullException>(() =>
             {
-                new Image((byte[])null);
+                Image.Load((byte[])null);
             });
 
             TestFile file = TestFile.Create(TestImages.Bmp.Car);
-            using (Image image = new Image(file.Bytes))
+            using (Image image = Image.Load(file.Bytes))
             {
                 Assert.Equal(600, image.Width);
                 Assert.Equal(450, image.Height);
@@ -36,7 +36,7 @@ namespace ImageSharp.Tests
         public void ConstructorFileSystem()
         {
             TestFile file = TestFile.Create(TestImages.Bmp.Car);
-            using (Image image = new Image(file.FilePath))
+            using (Image image = Image.Load(file.FilePath))
             {
                 Assert.Equal(600, image.Width);
                 Assert.Equal(450, image.Height);
@@ -49,7 +49,7 @@ namespace ImageSharp.Tests
             System.IO.FileNotFoundException ex = Assert.Throws<System.IO.FileNotFoundException>(
                 () =>
                 {
-                    new Image(Guid.NewGuid().ToString());
+                    Image.Load(Guid.NewGuid().ToString());
                 });
         }
 
@@ -59,7 +59,7 @@ namespace ImageSharp.Tests
             ArgumentNullException ex = Assert.Throws<ArgumentNullException>(
                 () =>
                 {
-                    new Image((string) null);
+                    Image.Load((string) null);
                 });
         }
 

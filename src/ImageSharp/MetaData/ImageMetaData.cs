@@ -5,6 +5,7 @@
 
 namespace ImageSharp
 {
+    using System;
     using System.Collections.Generic;
 
     /// <summary>
@@ -47,21 +48,7 @@ namespace ImageSharp
         {
             DebugGuard.NotNull(other, nameof(other));
 
-            this.HorizontalResolution = other.HorizontalResolution;
-            this.VerticalResolution = other.VerticalResolution;
-            this.Quality = other.Quality;
-            this.FrameDelay = other.FrameDelay;
-            this.RepeatCount = other.RepeatCount;
-
-            foreach (ImageProperty property in other.Properties)
-            {
-              this.Properties.Add(new ImageProperty(property));
-            }
-
-            if (other.ExifProfile != null)
-            {
-              this.ExifProfile = new ExifProfile(other.ExifProfile);
-            }
+            this.LoadFrom(other);
         }
 
         /// <summary>
@@ -142,6 +129,33 @@ namespace ImageSharp
         internal void SyncProfiles()
         {
             this.ExifProfile?.Sync(this);
+        }
+
+        /// <summary>
+        /// Sets the current metadata values based on a previous metadata object.
+        /// </summary>
+        /// <param name="other">Meta data object to copy values from.</param>
+        internal void LoadFrom(ImageMetaData other)
+        {
+            this.HorizontalResolution = other.HorizontalResolution;
+            this.VerticalResolution = other.VerticalResolution;
+            this.Quality = other.Quality;
+            this.FrameDelay = other.FrameDelay;
+            this.RepeatCount = other.RepeatCount;
+
+            foreach (ImageProperty property in other.Properties)
+            {
+                this.Properties.Add(new ImageProperty(property));
+            }
+
+            if (other.ExifProfile != null)
+            {
+                this.ExifProfile = new ExifProfile(other.ExifProfile);
+            }
+            else
+            {
+                this.ExifProfile = null;
+            }
         }
     }
 }

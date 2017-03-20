@@ -26,13 +26,12 @@ namespace ImageSharp.Formats
     public class BmpDecoder : IImageDecoder
     {
         /// <inheritdoc/>
-        public void Decode<TColor>(Image<TColor> image, Stream stream, IDecoderOptions options)
+        public Image<TColor> Decode<TColor>(Stream stream, IDecoderOptions options)
             where TColor : struct, IPixel<TColor>
         {
-            Guard.NotNull(image, "image");
             Guard.NotNull(stream, "stream");
 
-            new BmpDecoderCore().Decode(image, stream);
+            return new BmpDecoderCore().Decode<TColor>(stream);
         }
     }
 }

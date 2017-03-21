@@ -143,7 +143,7 @@ namespace ImageSharp.Drawing.Brushes
 
                 using (PinnedBuffer<float> buffer = new PinnedBuffer<float>(scanlineBuffer))
                 {
-                    BufferPointer<float> slice = buffer.Slice(offset);
+                    BufferSpan<float> slice = buffer.Slice(offset);
 
                     for (int xPos = 0; xPos < scanlineWidth; xPos++)
                     {

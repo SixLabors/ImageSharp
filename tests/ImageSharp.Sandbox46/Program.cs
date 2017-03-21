@@ -38,10 +38,17 @@ namespace ImageSharp.Sandbox46
         public static void Main(string[] args)
         {
             // RunDecodeJpegProfilingTests();
+            // RunToVector4ProfilingTest();
 
-            RunToVector4ProfilingTest();
+            RunResizeProfilingTest();
 
             Console.ReadLine();
+        }
+
+        private static void RunResizeProfilingTest()
+        {
+            ResizeProfilingBenchmarks test = new ResizeProfilingBenchmarks(new ConsoleOutput());
+            test.ResizeBicubic(2000, 2000);
         }
 
         private static void RunToVector4ProfilingTest()

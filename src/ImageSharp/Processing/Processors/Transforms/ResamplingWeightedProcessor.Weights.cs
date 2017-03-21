@@ -12,7 +12,7 @@ namespace ImageSharp.Processing.Processors
         /// <summary>
         /// Points to a collection of of weights allocated in <see cref="WeightsBuffer"/>.
         /// </summary>
-        protected unsafe struct WeightsWindow
+        internal unsafe struct WeightsWindow
         {
             /// <summary>
             /// The local left index position
@@ -22,6 +22,8 @@ namespace ImageSharp.Processing.Processors
             /// <summary>
             /// The span of weights pointing to <see cref="WeightsBuffer"/>.
             /// </summary>
+            // TODO: In the case of switching to official System.Memory and System.Buffers.Primitives this should be System.Buffers.Buffer<T> (formerly Memory<T>), because Span<T> is stack-only!
+            // see: https://github.com/dotnet/corefxlab/blob/873d35ebed7264e2f9adb556f3b61bebc12395d6/docs/specs/memory.md
             public BufferSpan<float> Span;
 
             /// <summary>
@@ -129,7 +131,7 @@ namespace ImageSharp.Processing.Processors
         /// <summary>
         /// Holds the <see cref="WeightsWindow"/> values in an optimized contigous memory region.
         /// </summary>
-        protected class WeightsBuffer : IDisposable
+        internal class WeightsBuffer : IDisposable
         {
             private PinnedImageBuffer<float> dataBuffer;
 
@@ -140,8 +142,7 @@ namespace ImageSharp.Processing.Processors
             /// <param name="destinationSize">The size of the destination window</param>
             public WeightsBuffer(int sourceSize, int destinationSize)
             {
-                this.dataBuffer = new PinnedImageBuffer<float>(sourceSize, destinationSize);
-                this.dataBuffer.Clear();
+                this.dataBuffer = PinnedImageBuffer<float>.CreateClean(sourceSize, destinationSize);
                 this.Weights = new WeightsWindow[destinationSize];
             }
 

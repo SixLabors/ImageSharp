@@ -20,126 +20,126 @@ namespace ImageSharp
     public sealed partial class Image
     {
         /// <summary>
-        /// Loads the image from the given stream.
+        /// Loads the image from the given byte array.
         /// </summary>
-        /// <param name="stream">The stream containing image information.</param>
+        /// <param name="data">The byte array containing image data.</param>
         /// <exception cref="NotSupportedException">
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
         /// <returns>The image</returns>
-        public static Image Load(byte[] stream)
+        public static Image Load(byte[] data)
         {
-            return Load(stream, null, null);
+            return Load(data, null, null);
         }
 
         /// <summary>
-        /// Loads the image from the given stream.
+        /// Loads the image from the given byte array.
         /// </summary>
-        /// <param name="stream">The stream containing image information.</param>
+        /// <param name="data">The byte array containing image data.</param>
         /// <param name="options">The options for the decoder.</param>
         /// <exception cref="NotSupportedException">
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
         /// <returns>The image</returns>
-        public static Image Load(byte[] stream, IDecoderOptions options)
+        public static Image Load(byte[] data, IDecoderOptions options)
         {
-            return Load(stream, options, null);
+            return Load(data, options, null);
         }
 
         /// <summary>
-        /// Loads the image from the given stream.
+        /// Loads the image from the given byte array.
         /// </summary>
-        /// <param name="stream">The stream containing image information.</param>
+        /// <param name="data">The byte array containing image data.</param>
         /// <param name="config">The config for the decoder.</param>
         /// <exception cref="NotSupportedException">
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
         /// <returns>The image</returns>
-        public static Image Load(byte[] stream, Configuration config)
+        public static Image Load(byte[] data, Configuration config)
         {
-            return Load(stream, null, config);
+            return Load(data, null, config);
         }
 
         /// <summary>
-        /// Loads the image from the given stream.
+        /// Loads the image from the given byte array.
         /// </summary>
-        /// <param name="stream">The stream containing image information.</param>
+        /// <param name="data">The byte array containing image data.</param>
         /// <param name="options">The options for the decoder.</param>
         /// <param name="config">The configuration options.</param>
         /// <exception cref="NotSupportedException">
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
         /// <returns>The image</returns>
-        public static Image Load(byte[] stream, IDecoderOptions options, Configuration config)
+        public static Image Load(byte[] data, IDecoderOptions options, Configuration config)
         {
-            using (MemoryStream ms = new MemoryStream(stream))
+            using (MemoryStream ms = new MemoryStream(data))
             {
                 return Load(ms, options, config);
             }
         }
 
         /// <summary>
-        /// Loads the image from the given stream.
+        /// Loads the image from the given byte array.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <param name="stream">The stream containing image information.</param>
+        /// <param name="data">The byte array containing image data.</param>
         /// <exception cref="NotSupportedException">
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
         /// <returns>The image</returns>
-        public static Image<TColor> Load<TColor>(byte[] stream)
+        public static Image<TColor> Load<TColor>(byte[] data)
             where TColor : struct, IPixel<TColor>
         {
-            return Load<TColor>(stream, null, null);
+            return Load<TColor>(data, null, null);
         }
 
         /// <summary>
-        /// Loads the image from the given stream.
+        /// Loads the image from the given byte array.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <param name="stream">The stream containing image information.</param>
+        /// <param name="data">The byte array containing image data.</param>
         /// <param name="options">The options for the decoder.</param>
         /// <exception cref="NotSupportedException">
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
         /// <returns>The image</returns>
-        public static Image<TColor> Load<TColor>(byte[] stream, IDecoderOptions options)
+        public static Image<TColor> Load<TColor>(byte[] data, IDecoderOptions options)
             where TColor : struct, IPixel<TColor>
         {
-            return Load<TColor>(stream, options, null);
+            return Load<TColor>(data, options, null);
         }
 
         /// <summary>
-        /// Loads the image from the given stream.
+        /// Loads the image from the given byte array.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <param name="stream">The stream containing image information.</param>
+        /// <param name="data">The byte array containing image data.</param>
         /// <param name="config">The config for the decoder.</param>
         /// <exception cref="NotSupportedException">
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
         /// <returns>The image</returns>
-        public static Image<TColor> Load<TColor>(byte[] stream, Configuration config)
+        public static Image<TColor> Load<TColor>(byte[] data, Configuration config)
             where TColor : struct, IPixel<TColor>
         {
-            return Load<TColor>(stream, null, config);
+            return Load<TColor>(data, null, config);
         }
 
         /// <summary>
-        /// Loads the image from the given stream.
+        /// Loads the image from the given byte array.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <param name="stream">The stream containing image information.</param>
+        /// <param name="data">The byte array containing image data.</param>
         /// <param name="options">The options for the decoder.</param>
         /// <param name="config">The configuration options.</param>
         /// <exception cref="NotSupportedException">
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
         /// <returns>The image</returns>
-        public static Image<TColor> Load<TColor>(byte[] stream, IDecoderOptions options, Configuration config)
+        public static Image<TColor> Load<TColor>(byte[] data, IDecoderOptions options, Configuration config)
             where TColor : struct, IPixel<TColor>
         {
-            using (MemoryStream ms = new MemoryStream(stream))
+            using (MemoryStream ms = new MemoryStream(data))
             {
                 return Load<TColor>(ms, options, config);
             }

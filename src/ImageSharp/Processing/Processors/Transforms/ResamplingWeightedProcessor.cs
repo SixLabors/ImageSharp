@@ -68,38 +68,14 @@ namespace ImageSharp.Processing.Processors
         /// </summary>
         protected WeightsBuffer VerticalWeights { get; set; }
 
-        /// <inheritdoc/>
-        protected override void BeforeApply(ImageBase<TColor> source, Rectangle sourceRectangle)
-        {
-            if (!(this.Sampler is NearestNeighborResampler))
-            {
-                this.HorizontalWeights = this.PrecomputeWeights(
-                    this.ResizeRectangle.Width,
-                    sourceRectangle.Width);
-
-                this.VerticalWeights = this.PrecomputeWeights(
-                    this.ResizeRectangle.Height,
-                    sourceRectangle.Height);
-            }
-        }
-
-        /// <inheritdoc />
-        protected override void AfterApply(ImageBase<TColor> source, Rectangle sourceRectangle)
-        {
-            base.AfterApply(source, sourceRectangle);
-            this.HorizontalWeights?.Dispose();
-            this.HorizontalWeights = null;
-            this.VerticalWeights?.Dispose();
-            this.VerticalWeights = null;
-        }
-
         /// <summary>
         /// Computes the weights to apply at each pixel when resizing.
         /// </summary>
         /// <param name="destinationSize">The destination size</param>
         /// <param name="sourceSize">The source size</param>
         /// <returns>The <see cref="WeightsBuffer"/></returns>
-        protected unsafe WeightsBuffer PrecomputeWeights(int destinationSize, int sourceSize)
+        // TODO: Made internal to simplify experimenting with weights data. Make it protected again when finished figuring out how to optimize all the stuff!
+        internal unsafe WeightsBuffer PrecomputeWeights(int destinationSize, int sourceSize)
         {
             float ratio = (float)sourceSize / destinationSize;
             float scale = ratio;
@@ -155,6 +131,31 @@ namespace ImageSharp.Processing.Processors
             }
 
             return result;
+        }
+
+        /// <inheritdoc/>
+        protected override void BeforeApply(ImageBase<TColor> source, Rectangle sourceRectangle)
+        {
+            if (!(this.Sampler is NearestNeighborResampler))
+            {
+                this.HorizontalWeights = this.PrecomputeWeights(
+                    this.ResizeRectangle.Width,
+                    sourceRectangle.Width);
+
+                this.VerticalWeights = this.PrecomputeWeights(
+                    this.ResizeRectangle.Height,
+                    sourceRectangle.Height);
+            }
+        }
+
+        /// <inheritdoc />
+        protected override void AfterApply(ImageBase<TColor> source, Rectangle sourceRectangle)
+        {
+            base.AfterApply(source, sourceRectangle);
+            this.HorizontalWeights?.Dispose();
+            this.HorizontalWeights = null;
+            this.VerticalWeights?.Dispose();
+            this.VerticalWeights = null;
         }
     }
 }

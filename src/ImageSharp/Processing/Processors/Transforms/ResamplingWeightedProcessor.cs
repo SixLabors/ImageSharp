@@ -6,13 +6,15 @@
 namespace ImageSharp.Processing.Processors
 {
     using System;
+    using System.Buffers;
+    using System.Runtime.InteropServices;
 
     /// <summary>
     /// Provides methods that allow the resizing of images using various algorithms.
     /// Adapted from <see href="http://www.realtimerendering.com/resources/GraphicsGems/gemsiii/filter_rcg.c"/>
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    internal abstract class ResamplingWeightedProcessor<TColor> : ImageProcessor<TColor>
+    internal abstract partial class ResamplingWeightedProcessor<TColor> : ImageProcessor<TColor>
         where TColor : struct, IPixel<TColor>
     {
         /// <summary>
@@ -59,32 +61,21 @@ namespace ImageSharp.Processing.Processors
         /// <summary>
         /// Gets or sets the horizontal weights.
         /// </summary>
-        protected Weights[] HorizontalWeights { get; set; }
+        protected WeightsBuffer HorizontalWeights { get; set; }
 
         /// <summary>
         /// Gets or sets the vertical weights.
         /// </summary>
-        protected Weights[] VerticalWeights { get; set; }
-
-        /// <inheritdoc/>
-        protected override void BeforeApply(ImageBase<TColor> source, Rectangle sourceRectangle)
-        {
-            if (!(this.Sampler is NearestNeighborResampler))
-            {
-                this.HorizontalWeights = this.PrecomputeWeights(this.ResizeRectangle.Width, sourceRectangle.Width);
-                this.VerticalWeights = this.PrecomputeWeights(this.ResizeRectangle.Height, sourceRectangle.Height);
-            }
-        }
+        protected WeightsBuffer VerticalWeights { get; set; }
 
         /// <summary>
         /// Computes the weights to apply at each pixel when resizing.
         /// </summary>
-        /// <param name="destinationSize">The destination section size.</param>
-        /// <param name="sourceSize">The source section size.</param>
-        /// <returns>
-        /// The <see cref="T:Weights[]"/>.
-        /// </returns>
-        protected Weights[] PrecomputeWeights(int destinationSize, int sourceSize)
+        /// <param name="destinationSize">The destination size</param>
+        /// <param name="sourceSize">The source size</param>
+        /// <returns>The <see cref="WeightsBuffer"/></returns>
+        // TODO: Made internal to simplify experimenting with weights data. Make it protected again when finished figuring out how to optimize all the stuff!
+        internal unsafe WeightsBuffer PrecomputeWeights(int destinationSize, int sourceSize)
         {
             float ratio = (float)sourceSize / destinationSize;
             float scale = ratio;
@@ -96,7 +87,7 @@ namespace ImageSharp.Processing.Processors
 
             IResampler sampler = this.Sampler;
             float radius = (float)Math.Ceiling(scale * sampler.Radius);
-            Weights[] result = new Weights[destinationSize];
+            WeightsBuffer result = new WeightsBuffer(sourceSize, destinationSize);
 
             for (int i = 0; i < destinationSize; i++)
             {
@@ -116,67 +107,55 @@ namespace ImageSharp.Processing.Processors
                 }
 
                 float sum = 0;
-                result[i] = new Weights();
-                Weight[] weights = new Weight[right - left + 1];
+
+                WeightsWindow ws = result.GetWeightsWindow(i, left, right);
+                result.Weights[i] = ws;
+
+                float* weights = ws.Ptr;
 
                 for (int j = left; j <= right; j++)
                 {
                     float weight = sampler.GetValue((j - center) / scale);
                     sum += weight;
-                    weights[j - left] = new Weight(j, weight);
+                    weights[j - left] = weight;
                 }
 
                 // Normalise, best to do it here rather than in the pixel loop later on.
                 if (sum > 0)
                 {
-                    for (int w = 0; w < weights.Length; w++)
+                    for (int w = 0; w < ws.Length; w++)
                     {
-                        weights[w].Value = weights[w].Value / sum;
+                        weights[w] = weights[w] / sum;
                     }
                 }
-
-                result[i].Values = weights;
             }
 
             return result;
         }
 
-        /// <summary>
-        /// Represents the weight to be added to a scaled pixel.
-        /// </summary>
-        protected struct Weight
+        /// <inheritdoc/>
+        protected override void BeforeApply(ImageBase<TColor> source, Rectangle sourceRectangle)
         {
-            /// <summary>
-            /// Initializes a new instance of the <see cref="Weight"/> struct.
-            /// </summary>
-            /// <param name="index">The index.</param>
-            /// <param name="value">The value.</param>
-            public Weight(int index, float value)
+            if (!(this.Sampler is NearestNeighborResampler))
             {
-                this.Index = index;
-                this.Value = value;
+                this.HorizontalWeights = this.PrecomputeWeights(
+                    this.ResizeRectangle.Width,
+                    sourceRectangle.Width);
+
+                this.VerticalWeights = this.PrecomputeWeights(
+                    this.ResizeRectangle.Height,
+                    sourceRectangle.Height);
             }
-
-            /// <summary>
-            /// Gets the pixel index.
-            /// </summary>
-            public int Index { get; }
-
-            /// <summary>
-            /// Gets or sets the result of the interpolation algorithm.
-            /// </summary>
-            public float Value { get; set; }
         }
 
-        /// <summary>
-        /// Represents a collection of weights and their sum.
-        /// </summary>
-        protected class Weights
+        /// <inheritdoc />
+        protected override void AfterApply(ImageBase<TColor> source, Rectangle sourceRectangle)
         {
-            /// <summary>
-            /// Gets or sets the values.
-            /// </summary>
-            public Weight[] Values { get; set; }
+            base.AfterApply(source, sourceRectangle);
+            this.HorizontalWeights?.Dispose();
+            this.HorizontalWeights = null;
+            this.VerticalWeights?.Dispose();
+            this.VerticalWeights = null;
         }
     }
 }

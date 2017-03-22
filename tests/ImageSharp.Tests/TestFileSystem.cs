@@ -36,29 +36,28 @@ namespace ImageSharp.Tests
 
         public Stream Create(string path)
         {
-            MemoryStream stream = new MemoryStream();
+            // if we have injected a fake file use it instead
             lock (fileSystem)
             {
                 if (fileSystem.ContainsKey(path))
                 {
-                    fileSystem[path] = stream;
-                }
-                else
-                {
-                    fileSystem.Add(path, stream);
+                    Stream stream = fileSystem[path];
+                    stream.Position = 0;
+                    return stream;
                 }
             }
-            return stream;
+
+            return File.Create(path);
         }
 
 
         public Stream OpenRead(string path)
         {
+            // if we have injected a fake file use it instead
             lock (fileSystem)
             {
                 if (fileSystem.ContainsKey(path))
                 {
-
                     Stream stream =  fileSystem[path];
                     stream.Position = 0;
                     return stream;

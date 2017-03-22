@@ -19,8 +19,9 @@ namespace ImageSharp.Formats
         /// <typeparam name="TColor">The pixel format.</typeparam>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
         /// <param name="options">The options for the decoder.</param>
+        /// <param name="configuration">The configuration for the image.</param>
         /// <returns>The decoded image</returns>
-        Image<TColor> Decode<TColor>(Stream stream, IDecoderOptions options)
+        Image<TColor> Decode<TColor>(Stream stream, IDecoderOptions options, Configuration configuration)
             where TColor : struct, IPixel<TColor>;
     }
 }

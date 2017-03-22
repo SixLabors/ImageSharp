@@ -43,6 +43,11 @@ namespace ImageSharp.Formats
         private readonly IDecoderOptions options;
 
         /// <summary>
+        /// The global configuration
+        /// </summary>
+        private readonly Configuration configuration;
+
+        /// <summary>
         /// The App14 marker color-space
         /// </summary>
         private byte adobeTransform;
@@ -91,8 +96,10 @@ namespace ImageSharp.Formats
         /// Initializes a new instance of the <see cref="JpegDecoderCore" /> class.
         /// </summary>
         /// <param name="options">The decoder options.</param>
-        public JpegDecoderCore(IDecoderOptions options)
+        /// <param name="configuration">The configuration.</param>
+        public JpegDecoderCore(IDecoderOptions options, Configuration configuration)
         {
+            this.configuration = configuration ?? Configuration.Default;
             this.options = options ?? new DecoderOptions();
             this.HuffmanTrees = HuffmanTree.CreateHuffmanTrees();
             this.QuantizationTables = new Block8x8F[MaxTq + 1];
@@ -498,7 +505,8 @@ namespace ImageSharp.Formats
         private Image<TColor> ConvertJpegPixelsToImagePixels<TColor>(ImageMetaData metadata)
             where TColor : struct, IPixel<TColor>
         {
-            Image<TColor> image = new Image<TColor>(this.ImageWidth, this.ImageHeight);
+            Image<TColor> image = Image.Create<TColor>(this.ImageWidth, this.ImageHeight, this.configuration);
+
             image.MetaData.LoadFrom(metadata);
 
             if (this.grayImage.IsInitialized)

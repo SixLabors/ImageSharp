@@ -156,16 +156,8 @@ namespace ImageSharp
             Guard.MustBeGreaterThan(width, 0, nameof(width));
             Guard.MustBeGreaterThan(height, 0, nameof(height));
 
-            ResamplingWeightedProcessor<TColor> processor;
-
-            if (compand)
-            {
-                processor = new CompandingResizeProcessor<TColor>(sampler, width, height, targetRectangle);
-            }
-            else
-            {
-                processor = new ResizeProcessor<TColor>(sampler, width, height, targetRectangle);
-            }
+            ResizeProcessor<TColor> processor =
+                new ResizeProcessor<TColor>(sampler, width, height, targetRectangle) { Compand = compand };
 
             source.ApplyProcessor(processor, sourceRectangle);
             return source;

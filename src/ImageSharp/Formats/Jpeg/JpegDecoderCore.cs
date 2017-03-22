@@ -194,19 +194,6 @@ namespace ImageSharp.Formats
         }
 
         /// <summary>
-        /// Decodes the image from the specified <see cref="Stream"/>  and sets
-        /// the data to image.
-        /// </summary>
-        /// <param name="stream">The stream, where the image should be.</param>
-        /// <returns>The image metadata.</returns>
-        public ImageMetaData DecodeMetaData(Stream stream)
-        {
-            ImageMetaData metadata = new ImageMetaData();
-            this.ProcessStream(metadata, stream, true);
-            return metadata;
-        }
-
-        /// <summary>
         /// Dispose
         /// </summary>
         public void Dispose()

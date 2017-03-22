@@ -28,6 +28,11 @@ namespace ImageSharp.Formats
         private readonly IGifDecoderOptions options;
 
         /// <summary>
+        /// The global configuration.
+        /// </summary>
+        private readonly Configuration configuration;
+
+        /// <summary>
         /// The currently loaded stream.
         /// </summary>
         private Stream currentStream;
@@ -76,9 +81,11 @@ namespace ImageSharp.Formats
         /// Initializes a new instance of the <see cref="GifDecoderCore{TColor}"/> class.
         /// </summary>
         /// <param name="options">The decoder options.</param>
-        public GifDecoderCore(IGifDecoderOptions options)
+        /// <param name="configuration">The configuration.</param>
+        public GifDecoderCore(IGifDecoderOptions options, Configuration configuration)
         {
             this.options = options ?? new GifDecoderOptions();
+            this.configuration = configuration ?? Configuration.Default;
         }
 
         /// <summary>
@@ -355,7 +362,7 @@ namespace ImageSharp.Formats
                 this.metaData.Quality = colorTableLength / 3;
 
                 // This initializes the image to become fully transparent because the alpha channel is zero.
-                this.image = new Image<TColor>(imageWidth, imageHeight);
+                this.image = Image.Create<TColor>(imageWidth, imageHeight, this.configuration);
                 this.image.MetaData.LoadFrom(this.metaData);
 
                 this.SetFrameDelay(this.metaData);

@@ -55,9 +55,11 @@ namespace ImageSharp.Tests
 
         Dictionary<Type, object> _sampleImages = new Dictionary<Type, object>();
 
-        public void VerifyDecodeCall(byte[] marker, IDecoderOptions options)
+
+        public void VerifyDecodeCall(byte[] marker, IDecoderOptions options, Configuration config)
         {
-            DecodeOperation[] discovered = this.DecodeCalls.Where(x => x.IsMatch(marker, options)).ToArray();
+            DecodeOperation[] discovered = this.DecodeCalls.Where(x => x.IsMatch(marker, options, config)).ToArray();
+
 
             Assert.True(discovered.Any(), "No calls to decode on this formate with the proveded options happend");
 
@@ -107,10 +109,16 @@ namespace ImageSharp.Tests
         {
             public byte[] marker;
             public IDecoderOptions options;
+            internal Configuration config;
 
-            public bool IsMatch(byte[] testMarker, IDecoderOptions testOptions)
+             public bool IsMatch(byte[] testMarker, IDecoderOptions testOptions, Configuration config)
             {
-                if(this.options != testOptions)
+                if (this.options != testOptions)
+                {
+                    return false;
+                }
+
+                if (this.config != config)
                 {
                     return false;
                 }
@@ -140,7 +148,9 @@ namespace ImageSharp.Tests
                 this.testFormat = testFormat;
             }
 
-            public Image<TColor> Decode<TColor>(Stream stream, IDecoderOptions options) where TColor : struct, IPixel<TColor>
+
+            public Image<TColor> Decode<TColor>(Stream stream, IDecoderOptions options, Configuration config) where TColor : struct, IPixel<TColor>
+
             {
                 var ms = new MemoryStream();
                 stream.CopyTo(ms);
@@ -148,7 +158,8 @@ namespace ImageSharp.Tests
                 this.testFormat.DecodeCalls.Add(new DecodeOperation
                 {
                     marker = marker,
-                    options = options
+                    options = options,
+                    config = config
                 });
 
                 // TODO record this happend so we an verify it.

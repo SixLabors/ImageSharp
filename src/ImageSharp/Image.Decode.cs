@@ -19,7 +19,7 @@ namespace ImageSharp
     /// </summary>
     public sealed partial class Image
     {
-        private static IImageFormat DiscoverFormat(Stream stream, IDecoderOptions options, Configuration config)
+        private static IImageFormat DiscoverFormat(Stream stream, Configuration config)
         {
             int maxHeaderSize = config.MaxHeaderSize;
             if (maxHeaderSize <= 0)
@@ -57,13 +57,13 @@ namespace ImageSharp
         private static Image<TColor> Decode<TColor>(Stream stream, IDecoderOptions options, Configuration config)
         where TColor : struct, IPixel<TColor>
         {
-            IImageFormat format = DiscoverFormat(stream, options, config);
+            IImageFormat format = DiscoverFormat(stream, config);
             if (format == null)
             {
                 return null;
             }
 
-            Image<TColor> img = format.Decoder.Decode<TColor>(stream, options);
+            Image<TColor> img = format.Decoder.Decode<TColor>(stream, options, config);
             img.CurrentImageFormat = format;
             return img;
         }

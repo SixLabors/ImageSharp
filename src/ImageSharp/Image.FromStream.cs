@@ -29,7 +29,7 @@ namespace ImageSharp
         /// <returns>The image</returns>
         public static Image Load(Stream stream)
         {
-            return Load(stream, null, null);
+            return Load(stream, null, (Configuration)null);
         }
 
         /// <summary>
@@ -64,6 +64,20 @@ namespace ImageSharp
         /// Loads the image from the given stream.
         /// </summary>
         /// <param name="stream">The stream containing image information.</param>
+        /// <param name="decoder">The decoder.</param>
+        /// <exception cref="NotSupportedException">
+        /// Thrown if the stream is not readable nor seekable.
+        /// </exception>
+        /// <returns>The image</returns>
+        public static Image Load(Stream stream, IImageDecoder decoder)
+        {
+            return Load(stream, decoder, null);
+        }
+
+        /// <summary>
+        /// Loads the image from the given stream.
+        /// </summary>
+        /// <param name="stream">The stream containing image information.</param>
         /// <param name="options">The options for the decoder.</param>
         /// <param name="config">The configuration options.</param>
         /// <exception cref="NotSupportedException">
@@ -78,6 +92,21 @@ namespace ImageSharp
         /// <summary>
         /// Loads the image from the given stream.
         /// </summary>
+        /// <param name="stream">The stream containing image information.</param>
+        /// <param name="decoder">The decoder.</param>
+        /// <param name="options">The options for the decoder.</param>
+        /// <exception cref="NotSupportedException">
+        /// Thrown if the stream is not readable nor seekable.
+        /// </exception>
+        /// <returns>The image</returns>
+        public static Image Load(Stream stream, IImageDecoder decoder, IDecoderOptions options)
+        {
+            return new Image(Load<Color>(stream, decoder, options));
+        }
+
+        /// <summary>
+        /// Loads the image from the given stream.
+        /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
         /// <param name="stream">The stream containing image information.</param>
         /// <exception cref="NotSupportedException">
@@ -87,7 +116,7 @@ namespace ImageSharp
         public static Image<TColor> Load<TColor>(Stream stream)
             where TColor : struct, IPixel<TColor>
         {
-            return Load<TColor>(stream, null, null);
+            return Load<TColor>(stream, null, (Configuration)null);
         }
 
         /// <summary>
@@ -127,6 +156,39 @@ namespace ImageSharp
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
         /// <param name="stream">The stream containing image information.</param>
+        /// <param name="decoder">The decoder.</param>
+        /// <exception cref="NotSupportedException">
+        /// Thrown if the stream is not readable nor seekable.
+        /// </exception>
+        /// <returns>The image</returns>
+        public static Image<TColor> Load<TColor>(Stream stream, IImageDecoder decoder)
+            where TColor : struct, IPixel<TColor>
+        {
+            return Load<TColor>(stream, decoder, null);
+        }
+
+        /// <summary>
+        /// Loads the image from the given stream.
+        /// </summary>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <param name="stream">The stream containing image information.</param>
+        /// <param name="decoder">The decoder.</param>
+        /// <param name="options">The options for the decoder.</param>
+        /// <exception cref="NotSupportedException">
+        /// Thrown if the stream is not readable nor seekable.
+        /// </exception>
+        /// <returns>The image</returns>
+        public static Image<TColor> Load<TColor>(Stream stream, IImageDecoder decoder, IDecoderOptions options)
+            where TColor : struct, IPixel<TColor>
+        {
+            return WithSeekableStream(stream, s => decoder.Decode<TColor>(s, options));
+        }
+
+        /// <summary>
+        /// Loads the image from the given stream.
+        /// </summary>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <param name="stream">The stream containing image information.</param>
         /// <param name="options">The options for the decoder.</param>
         /// <param name="config">The configuration options.</param>
         /// <exception cref="NotSupportedException">
@@ -138,36 +200,14 @@ namespace ImageSharp
         {
             config = config ?? Configuration.Default;
 
-            if (!config.ImageFormats.Any())
+            Image<TColor> img = WithSeekableStream(stream, s =>
             {
-                throw new InvalidOperationException("No image formats have been configured.");
-            }
+                return Decode<TColor>(stream, options, config);
+            });
 
-            if (!stream.CanRead)
+            if (img != null)
             {
-                throw new NotSupportedException("Cannot read from the stream.");
-            }
-
-            if (stream.CanSeek)
-            {
-                if (Decode(stream, options, config, out Image<TColor> img))
-                {
-                    return img;
-                }
-            }
-            else
-            {
-                // We want to be able to load images from things like HttpContext.Request.Body
-                using (MemoryStream ms = new MemoryStream())
-                {
-                    stream.CopyTo(ms);
-                    ms.Position = 0;
-
-                    if (Decode(ms, options, config, out Image<TColor> img))
-                    {
-                        return img;
-                    }
-                }
+                return img;
             }
 
             StringBuilder stringBuilder = new StringBuilder();
@@ -179,6 +219,30 @@ namespace ImageSharp
             }
 
             throw new NotSupportedException(stringBuilder.ToString());
+        }
+
+        private static T WithSeekableStream<T>(Stream stream, Func<Stream, T> action)
+        {
+            if (!stream.CanRead)
+            {
+                throw new NotSupportedException("Cannot read from the stream.");
+            }
+
+            if (stream.CanSeek)
+            {
+                return action(stream);
+            }
+            else
+            {
+                // We want to be able to load images from things like HttpContext.Request.Body
+                using (MemoryStream ms = new MemoryStream())
+                {
+                    stream.CopyTo(ms);
+                    ms.Position = 0;
+
+                    return action(stream);
+                }
+            }
         }
     }
 }

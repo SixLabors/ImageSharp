@@ -66,6 +66,9 @@ namespace ImageSharp.Tests
 
             this.FilePath = Guid.NewGuid().ToString();
             this.fileSystem.Setup(x => x.OpenRead(this.FilePath)).Returns(this.DataStream);
+
+            TestFileSystem.RegisterGloablTestFormat();
+            TestFileSystem.Global.AddFile(this.FilePath, this.DataStream);
         }
 
         [Fact]
@@ -154,6 +157,50 @@ namespace ImageSharp.Tests
             Assert.NotNull(img);
             Assert.Equal(this.returnImage, img);
             Assert.Equal(this.localFormat.Object, img.CurrentImageFormat);
+            this.localDecoder.Verify(x => x.Decode<Color>(stream, this.decoderOptions));
+        }
+
+
+
+        [Fact]
+        public void LoadFromStreamWithDecoder()
+        {
+            Stream stream = new MemoryStream();
+            Image img = Image.Load(stream, this.localDecoder.Object);
+
+            Assert.NotNull(img);
+            this.localDecoder.Verify(x => x.Decode<Color>(stream, null));
+        }
+
+        [Fact]
+        public void LoadFromStreamWithTypeAndDecoder()
+        {
+            Stream stream = new MemoryStream();
+            Image<Color> img = Image.Load<Color>(stream, this.localDecoder.Object);
+
+            Assert.NotNull(img);
+            Assert.Equal(this.returnImage, img);
+            this.localDecoder.Verify(x => x.Decode<Color>(stream, null));
+        }
+
+        [Fact]
+        public void LoadFromStreamWithDecoderAndOptions()
+        {
+            Stream stream = new MemoryStream();
+            Image img = Image.Load(stream, this.localDecoder.Object, this.decoderOptions);
+
+            Assert.NotNull(img);
+            this.localDecoder.Verify(x => x.Decode<Color>(stream, this.decoderOptions));
+        }
+
+        [Fact]
+        public void LoadFromStreamWithTypeAndDecoderAndOptions()
+        {
+            Stream stream = new MemoryStream();
+            Image<Color> img = Image.Load<Color>(stream, this.localDecoder.Object, this.decoderOptions);
+
+            Assert.NotNull(img);
+            Assert.Equal(this.returnImage, img);
             this.localDecoder.Verify(x => x.Decode<Color>(stream, this.decoderOptions));
         }
 
@@ -246,7 +293,50 @@ namespace ImageSharp.Tests
             this.localDecoder.Verify(x => x.Decode<Color>(It.IsAny<Stream>(), this.decoderOptions));
             Assert.Equal(this.DataStream.ToArray(), this.DecodedData);
         }
-        
+
+
+        [Fact]
+        public void LoadFromBytesWithDecoder()
+        {
+            Image img = Image.Load(this.DataStream.ToArray(), this.localDecoder.Object);
+
+            Assert.NotNull(img);
+            this.localDecoder.Verify(x => x.Decode<Color>(It.IsAny<Stream>(), null));
+            Assert.Equal(this.DataStream.ToArray(), this.DecodedData);
+        }
+
+        [Fact]
+        public void LoadFromBytesWithTypeAndDecoder()
+        {
+            Image<Color> img = Image.Load<Color>(this.DataStream.ToArray(), this.localDecoder.Object);
+
+            Assert.NotNull(img);
+            Assert.Equal(this.returnImage, img);
+            this.localDecoder.Verify(x => x.Decode<Color>(It.IsAny<Stream>(), null));
+            Assert.Equal(this.DataStream.ToArray(), this.DecodedData);
+        }
+
+        [Fact]
+        public void LoadFromBytesWithDecoderAndOptions()
+        {
+            Image img = Image.Load(this.DataStream.ToArray(), this.localDecoder.Object, this.decoderOptions);
+
+            Assert.NotNull(img);
+            this.localDecoder.Verify(x => x.Decode<Color>(It.IsAny<Stream>(), this.decoderOptions));
+            Assert.Equal(this.DataStream.ToArray(), this.DecodedData);
+        }
+
+        [Fact]
+        public void LoadFromBytesWithTypeAndDecoderAndOptions()
+        {
+            Image<Color> img = Image.Load<Color>(this.DataStream.ToArray(), this.localDecoder.Object, this.decoderOptions);
+
+            Assert.NotNull(img);
+            Assert.Equal(this.returnImage, img);
+            this.localDecoder.Verify(x => x.Decode<Color>(It.IsAny<Stream>(), this.decoderOptions));
+            Assert.Equal(this.DataStream.ToArray(), this.DecodedData);
+        }
+
         [Fact]
         public void LoadFromFile()
         {
@@ -324,11 +414,50 @@ namespace ImageSharp.Tests
         [Fact]
         public void LoadFromFileWithTypeAndConfigAndOptions()
         {
-            Image<Color> img = Image.Load<Color>(FilePath, this.decoderOptions, this.LocalConfiguration);
+            Image<Color> img = Image.Load<Color>(this.FilePath, this.decoderOptions, this.LocalConfiguration);
 
             Assert.NotNull(img);
             Assert.Equal(this.returnImage, img);
             Assert.Equal(this.localFormat.Object, img.CurrentImageFormat);
+            this.localDecoder.Verify(x => x.Decode<Color>(this.DataStream, this.decoderOptions));
+        }
+
+
+        [Fact]
+        public void LoadFromFileWithDecoder()
+        {
+            Image img = Image.Load(this.FilePath, this.localDecoder.Object);
+
+            Assert.NotNull(img);
+            this.localDecoder.Verify(x => x.Decode<Color>(this.DataStream, null));
+        }
+
+        [Fact]
+        public void LoadFromFileWithTypeAndDecoder()
+        {
+            Image<Color> img = Image.Load<Color>(this.FilePath, this.localDecoder.Object);
+
+            Assert.NotNull(img);
+            Assert.Equal(this.returnImage, img);
+            this.localDecoder.Verify(x => x.Decode<Color>(this.DataStream, null));
+        }
+
+        [Fact]
+        public void LoadFromFileWithDecoderAndOptions()
+        {
+            Image img = Image.Load(this.FilePath, this.localDecoder.Object, this.decoderOptions);
+
+            Assert.NotNull(img);
+            this.localDecoder.Verify(x => x.Decode<Color>(this.DataStream, this.decoderOptions));
+        }
+
+        [Fact]
+        public void LoadFromFileWithTypeAndDecoderAndOptions()
+        {
+            Image<Color> img = Image.Load<Color>(this.FilePath, this.localDecoder.Object, this.decoderOptions);
+
+            Assert.NotNull(img);
+            Assert.Equal(this.returnImage, img);
             this.localDecoder.Verify(x => x.Decode<Color>(this.DataStream, this.decoderOptions));
         }
 

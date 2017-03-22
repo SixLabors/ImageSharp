@@ -43,6 +43,17 @@ namespace ImageSharp.Formats
         /// </summary>
         private BmpInfoHeader infoHeader;
 
+        private Configuration configuration;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="BmpDecoderCore"/> class.
+        /// </summary>
+        /// <param name="configuration">The configuration.</param>
+        public BmpDecoderCore(Configuration configuration)
+        {
+            this.configuration = configuration;
+        }
+
         /// <summary>
         /// Decodes the image from the specified this._stream and sets
         /// the data to image.
@@ -114,8 +125,7 @@ namespace ImageSharp.Formats
                         + $"bigger then the max allowed size '{Image<TColor>.MaxWidth}x{Image<TColor>.MaxHeight}'");
                 }
 
-                Image<TColor> image = new Image<TColor>(this.infoHeader.Width, this.infoHeader.Height);
-
+                Image<TColor> image = Image.Create<TColor>(this.infoHeader.Width, this.infoHeader.Height, this.configuration);
                 using (PixelAccessor<TColor> pixels = image.Lock())
                 {
                     switch (this.infoHeader.Compression)

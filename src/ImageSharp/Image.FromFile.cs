@@ -102,7 +102,11 @@ namespace ImageSharp
         /// <returns>The image</returns>
         public static Image Load(string path, IDecoderOptions options, Configuration config)
         {
-            return new Image(Load<Color>(path, options, config));
+            config = config ?? Configuration.Default;
+            using (Stream s = config.FileSystem.OpenRead(path))
+            {
+                return Load(s, options, config);
+            }
         }
 
         /// <summary>

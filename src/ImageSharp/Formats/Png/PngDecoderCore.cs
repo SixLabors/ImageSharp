@@ -75,6 +75,11 @@ namespace ImageSharp.Formats
         private readonly Crc32 crc = new Crc32();
 
         /// <summary>
+        /// The global configuration.
+        /// </summary>
+        private readonly Configuration configuration;
+
+        /// <summary>
         /// The stream to decode from.
         /// </summary>
         private Stream currentStream;
@@ -134,8 +139,10 @@ namespace ImageSharp.Formats
         /// Initializes a new instance of the <see cref="PngDecoderCore"/> class.
         /// </summary>
         /// <param name="options">The decoder options.</param>
-        public PngDecoderCore(IPngDecoderOptions options)
+        /// <param name="configuration">The configuration.</param>
+        public PngDecoderCore(IPngDecoderOptions options, Configuration configuration)
         {
+            this.configuration = configuration ?? Configuration.Default;
             this.options = options ?? new PngDecoderOptions();
         }
 
@@ -213,7 +220,7 @@ namespace ImageSharp.Formats
                     throw new ArgumentOutOfRangeException($"The input png '{this.header.Width}x{this.header.Height}' is bigger than the max allowed size '{Image<TColor>.MaxWidth}x{Image<TColor>.MaxHeight}'");
                 }
 
-                Image<TColor> image = new Image<TColor>(this.header.Width, this.header.Height);
+                Image<TColor> image = Image.Create<TColor>(this.header.Width, this.header.Height, this.configuration);
                 image.MetaData.LoadFrom(metadata);
 
                 using (PixelAccessor<TColor> pixels = image.Lock())

@@ -19,25 +19,12 @@ namespace ImageSharp
     /// </summary>
     public sealed partial class Image
     {
-        /// <summary>
-        /// Decodes the image stream to the current image.
-        /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <param name="stream">The stream.</param>
-        /// <param name="options">The options for the decoder.</param>
-        /// <param name="config">the configuration.</param>
-        /// <param name="img">The decoded image</param>
-        /// <returns>
-        ///  [true] if can successfull decode the image otherwise [false].
-        /// </returns>
-        private static bool Decode<TColor>(Stream stream, IDecoderOptions options, Configuration config, out Image<TColor> img)
-            where TColor : struct, IPixel<TColor>
+        private static IImageFormat DiscoverFormat(Stream stream, IDecoderOptions options, Configuration config)
         {
-            img = null;
             int maxHeaderSize = config.MaxHeaderSize;
             if (maxHeaderSize <= 0)
             {
-                return false;
+                return null;
             }
 
             IImageFormat format;
@@ -54,14 +41,31 @@ namespace ImageSharp
                 ArrayPool<byte>.Shared.Return(header);
             }
 
+            return format;
+        }
+
+        /// <summary>
+        /// Decodes the image stream to the current image.
+        /// </summary>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <param name="stream">The stream.</param>
+        /// <param name="options">The options for the decoder.</param>
+        /// <param name="config">the configuration.</param>
+        /// <returns>
+        ///  The decoded image
+        /// </returns>
+        private static Image<TColor> Decode<TColor>(Stream stream, IDecoderOptions options, Configuration config)
+        where TColor : struct, IPixel<TColor>
+        {
+            IImageFormat format = DiscoverFormat(stream, options, config);
             if (format == null)
             {
-                return false;
+                return null;
             }
 
-            img = format.Decoder.Decode<TColor>(stream, options);
+            Image<TColor> img = format.Decoder.Decode<TColor>(stream, options);
             img.CurrentImageFormat = format;
-            return true;
+            return img;
         }
     }
 }

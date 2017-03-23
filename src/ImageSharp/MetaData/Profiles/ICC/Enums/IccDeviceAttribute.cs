@@ -9,6 +9,8 @@ namespace ImageSharp
 
     /// <summary>
     /// Device attributes. Can be combined with a logical OR
+    /// The least-significant 32 bits are defined by the ICC,
+    /// the rest can be used for vendor specific values
     /// </summary>
     [Flags]
     internal enum IccDeviceAttribute : long

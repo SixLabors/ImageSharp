@@ -274,9 +274,9 @@ namespace ImageSharp
         /// <returns>the version number</returns>
         public Version ReadVersionNumber()
         {
-            int version = this.ReadDirect32();
+            int version = this.ReadInt32();
 
-            int major = version >> 24;
+            int major = (version >> 24) & 0xFF;
             int minor = (version >> 20) & 0x0F;
             int bugfix = (version >> 16) & 0x0F;
 

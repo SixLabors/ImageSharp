@@ -120,7 +120,7 @@ namespace ImageSharp
         {
             if (base.Equals(other) && other is IccLut16TagDataEntry entry)
             {
-                return this.ClutValues == entry.ClutValues
+                return this.ClutValues.Equals(entry.ClutValues)
                     && this.Matrix == entry.Matrix
                     && this.InputValues.SequenceEqual(entry.InputValues)
                     && this.OutputValues.SequenceEqual(entry.OutputValues);

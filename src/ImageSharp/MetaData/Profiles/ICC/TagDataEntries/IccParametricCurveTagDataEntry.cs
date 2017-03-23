@@ -41,7 +41,7 @@ namespace ImageSharp
         {
             if (base.Equals(other) && other is IccParametricCurveTagDataEntry entry)
             {
-                return this.Curve == entry.Curve;
+                return this.Curve.Equals(entry.Curve);
             }
 
             return false;

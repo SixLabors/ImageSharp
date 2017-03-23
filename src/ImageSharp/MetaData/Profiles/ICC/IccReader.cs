@@ -59,13 +59,13 @@ namespace ImageSharp
             return new IccProfileHeader
             {
                 Size = reader.ReadUInt32(),
-                CmmType = reader.ReadASCIIString(4),
+                CmmType = reader.ReadAsciiString(4),
                 Version = reader.ReadVersionNumber(),
                 Class = (IccProfileClass)reader.ReadUInt32(),
                 DataColorSpace = (IccColorSpaceType)reader.ReadUInt32(),
                 ProfileConnectionSpace = (IccColorSpaceType)reader.ReadUInt32(),
                 CreationDate = reader.ReadDateTime(),
-                FileSignature = reader.ReadASCIIString(4),
+                FileSignature = reader.ReadAsciiString(4),
                 PrimaryPlatformSignature = (IccPrimaryPlatformType)reader.ReadUInt32(),
                 Flags = (IccProfileFlag)reader.ReadDirect32(),
                 DeviceManufacturer = reader.ReadUInt32(),
@@ -73,7 +73,7 @@ namespace ImageSharp
                 DeviceAttributes = (IccDeviceAttribute)reader.ReadDirect64(),
                 RenderingIntent = (IccRenderingIntent)reader.ReadUInt32(),
                 PcsIlluminant = reader.ReadXyzNumber(),
-                CreatorSignature = reader.ReadASCIIString(4),
+                CreatorSignature = reader.ReadAsciiString(4),
                 Id = reader.ReadProfileId(),
             };
         }

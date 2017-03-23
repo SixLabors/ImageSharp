@@ -150,7 +150,7 @@ namespace ImageSharp.Drawing.Processors
                                 }
 
                                 int nextX = startX + 1;
-                                if (nextX >= 0 && nextX < scanline.Length && endX >= 0 && endX < scanline.Length)
+                                if (nextX >= 0 && endX < scanline.Length)
                                 {
                                     for (int x = nextX; x < endX; x++)
                                     {

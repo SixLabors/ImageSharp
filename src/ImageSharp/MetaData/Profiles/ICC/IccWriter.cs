@@ -20,6 +20,8 @@ namespace ImageSharp
         /// <returns>The ICC profile as a byte array</returns>
         public byte[] Write(IccProfile profile)
         {
+            Guard.NotNull(profile, nameof(profile));
+
             IccDataWriter writer = new IccDataWriter();
             IccTagTableEntry[] tagTable = this.WriteTagData(writer, profile.Entries);
             this.WriteTagTable(writer, tagTable);

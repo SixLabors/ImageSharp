@@ -7,62 +7,10 @@ namespace ImageSharp.Tests.Common
 
     using Xunit;
 
-    public unsafe class BufferPointerTests
+    using static TestStructs;
+
+    public unsafe class BufferSpanTests
     {
-        public struct Foo
-        {
-            public int A;
-
-            public double B;
-
-            public Foo(int a, double b)
-            {
-                this.A = a;
-                this.B = b;
-            }
-
-            internal static Foo[] CreateArray(int size)
-            {
-                Foo[] result = new Foo[size];
-                for (int i = 0; i < size; i++)
-                {
-                    result[i] = new Foo(i+1, i+1);
-                }
-                return result;
-            }
-        }
-
-        /// <summary>
-        /// sizeof(AlignedFoo) == sizeof(long)
-        /// </summary>
-        public struct AlignedFoo
-        {
-            public int A;
-
-            public int B;
-
-            static AlignedFoo()
-            {
-                Assert.Equal(sizeof(AlignedFoo), sizeof(long));
-            }
-
-            public AlignedFoo(int a, int b)
-            {
-                this.A = a;
-                this.B = b;
-            }
-
-            internal static AlignedFoo[] CreateArray(int size)
-            {
-                AlignedFoo[] result = new AlignedFoo[size];
-                for (int i = 0; i < size; i++)
-                {
-                    result[i] = new AlignedFoo(i + 1, i + 1);
-                }
-                return result;
-            }
-        }
-
         [Fact]
         public void AsBytes()
         {
@@ -70,66 +18,120 @@ namespace ImageSharp.Tests.Common
 
             using (PinnedBuffer<Foo> colorBuf = new PinnedBuffer<Foo>(fooz))
             {
-                BufferPointer<Foo> orig = colorBuf.Slice(1);
-                BufferPointer<byte> asBytes = (BufferPointer < byte > )orig;
+                BufferSpan<Foo> orig = colorBuf.Slice(1);
+                BufferSpan<byte> asBytes = (BufferSpan < byte > )orig;
 
-                Assert.Equal(asBytes.Offset, sizeof(Foo));
+                Assert.Equal(asBytes.Start, sizeof(Foo));
                 Assert.Equal(orig.PointerAtOffset, asBytes.PointerAtOffset);
             }
         }
-        
-        [Fact]
-        public void ConstructWithoutOffset()
-        {
-            Foo[] array = Foo.CreateArray(3);
-            fixed (Foo* p = array)
-            {
-                // Act:
-                BufferPointer<Foo> ap = new BufferPointer<Foo>(array, p);
 
-                // Assert:
-                Assert.Equal(array, ap.Array);
-                Assert.Equal((IntPtr)p, ap.PointerAtOffset);
+        public class Construct
+        {
+            [Fact]
+            public void Basic()
+            {
+                Foo[] array = Foo.CreateArray(3);
+                fixed (Foo* p = array)
+                {
+                    // Act:
+                    BufferSpan<Foo> span = new BufferSpan<Foo>(array, p);
+
+                    // Assert:
+                    Assert.Equal(array, span.Array);
+                    Assert.Equal((IntPtr)p, span.PointerAtOffset);
+                    Assert.Equal(3, span.Length);
+                }
+            }
+
+            [Fact]
+            public void WithStart()
+            {
+                Foo[] array = Foo.CreateArray(4);
+                int start = 2;
+                fixed (Foo* p = array)
+                {
+                    // Act:
+                    BufferSpan<Foo> span = new BufferSpan<Foo>(array, p, start);
+
+                    // Assert:
+                    Assert.Equal(array, span.Array);
+                    Assert.Equal(start, span.Start);
+                    Assert.Equal((IntPtr)(p + start), span.PointerAtOffset);
+                    Assert.Equal(array.Length - start, span.Length);
+                }
+            }
+
+            [Fact]
+            public void WithStartAndLength()
+            {
+                Foo[] array = Foo.CreateArray(10);
+                int start = 2;
+                int length = 3;
+                fixed (Foo* p = array)
+                {
+                    // Act:
+                    BufferSpan<Foo> span = new BufferSpan<Foo>(array, p, start, length);
+
+                    // Assert:
+                    Assert.Equal(array, span.Array);
+                    Assert.Equal(start, span.Start);
+                    Assert.Equal((IntPtr)(p + start), span.PointerAtOffset);
+                    Assert.Equal(length, span.Length);
+                }
             }
         }
 
-        [Fact]
-        public void ConstructWithOffset()
+        public class Slice
         {
-            Foo[] array = Foo.CreateArray(3);
-            int offset = 2;
-            fixed (Foo* p = array)
+            [Fact]
+            public void StartOnly()
             {
-                // Act:
-                BufferPointer<Foo> ap = new BufferPointer<Foo>(array, p, offset);
+                Foo[] array = Foo.CreateArray(5);
+                int start0 = 2;
+                int start1 = 2;
+                int totalOffset = start0 + start1;
 
-                // Assert:
-                Assert.Equal(array, ap.Array);
-                Assert.Equal(offset, ap.Offset);
-                Assert.Equal((IntPtr)(p+offset), ap.PointerAtOffset);
+                fixed (Foo* p = array)
+                {
+                    BufferSpan<Foo> span = new BufferSpan<Foo>(array, p, start0);
+
+                    // Act:
+                    span = span.Slice(start1);
+
+                    // Assert:
+                    Assert.Equal(array, span.Array);
+                    Assert.Equal(totalOffset, span.Start);
+                    Assert.Equal((IntPtr)(p + totalOffset), span.PointerAtOffset);
+                    Assert.Equal(array.Length - totalOffset, span.Length);
+                }
+            }
+
+            [Fact]
+            public void StartAndLength()
+            {
+                Foo[] array = Foo.CreateArray(10);
+                int start0 = 2;
+                int start1 = 2;
+                int totalOffset = start0 + start1;
+                int sliceLength = 3;
+
+                fixed (Foo* p = array)
+                {
+                    BufferSpan<Foo> span = new BufferSpan<Foo>(array, p, start0);
+
+                    // Act:
+                    span = span.Slice(start1, sliceLength);
+
+                    // Assert:
+                    Assert.Equal(array, span.Array);
+                    Assert.Equal(totalOffset, span.Start);
+                    Assert.Equal((IntPtr)(p + totalOffset), span.PointerAtOffset);
+                    Assert.Equal(sliceLength, span.Length);
+                }
             }
         }
 
-        [Fact]
-        public void Slice()
-        {
-            Foo[] array = Foo.CreateArray(5);
-            int offset0 = 2;
-            int offset1 = 2;
-            int totalOffset = offset0 + offset1;
-            fixed (Foo* p = array)
-            {
-                BufferPointer<Foo> ap = new BufferPointer<Foo>(array, p, offset0);
-
-                // Act:
-                ap = ap.Slice(offset1);
-
-                // Assert:
-                Assert.Equal(array, ap.Array);
-                Assert.Equal(totalOffset, ap.Offset);
-                Assert.Equal((IntPtr)(p + totalOffset), ap.PointerAtOffset);
-            }
-        }
 
 
         [Theory]
@@ -142,7 +144,7 @@ namespace ImageSharp.Tests.Common
             int offset = 2;
             fixed (Foo* p = array)
             {
-                BufferPointer<Foo> ap = new BufferPointer<Foo>(array, p, offset);
+                BufferSpan<Foo> ap = new BufferSpan<Foo>(array, p, offset);
 
                 // Act:
                 ap.Clear(count);
@@ -151,6 +153,51 @@ namespace ImageSharp.Tests.Common
                 Assert.Equal(default(Foo), array[offset]);
                 Assert.Equal(default(Foo), array[offset + count-1]);
                 Assert.NotEqual(default(Foo), array[offset + count]);
+            }
+        }
+
+
+        public class Indexer
+        {
+            public static readonly TheoryData<int, int, int> IndexerData =
+                new TheoryData<int, int, int>()
+                    {
+                        { 10, 0, 0 },
+                        { 10, 2, 0 },
+                        { 16, 0, 3 },
+                        { 16, 2, 3 },
+                        { 10, 0, 9 },
+                        { 10, 1, 8 }
+                    };
+
+            [Theory]
+            [MemberData(nameof(IndexerData))]
+            public void Read(int length, int start, int index)
+            {
+                Foo[] a = Foo.CreateArray(length);
+                fixed (Foo* p = a)
+                {
+                    BufferSpan<Foo> span = new BufferSpan<Foo>(a, p, start);
+
+                    Foo element = span[index];
+
+                    Assert.Equal(a[start + index], element);
+                }
+            }
+
+            [Theory]
+            [MemberData(nameof(IndexerData))]
+            public void Write(int length, int start, int index)
+            {
+                Foo[] a = Foo.CreateArray(length);
+                fixed (Foo* p = a)
+                {
+                    BufferSpan<Foo> span = new BufferSpan<Foo>(a, p, start);
+
+                    span[index] = new Foo(666, 666);
+
+                    Assert.Equal(new Foo(666, 666), a[start + index]);
+                }
             }
         }
 
@@ -194,10 +241,10 @@ namespace ImageSharp.Tests.Common
                 fixed (Foo* pSource = source)
                 fixed (Foo* pDest = dest)
                 {
-                    BufferPointer<Foo> apSource = new BufferPointer<Foo>(source, pSource, 1);
-                    BufferPointer<Foo> apDest = new BufferPointer<Foo>(dest, pDest, 1);
+                    BufferSpan<Foo> apSource = new BufferSpan<Foo>(source, pSource, 1);
+                    BufferSpan<Foo> apDest = new BufferSpan<Foo>(dest, pDest, 1);
 
-                    BufferPointer.Copy(apSource, apDest, count-1);
+                    BufferSpan.Copy(apSource, apDest, count-1);
                 }
 
                 AssertNotDefault(source, 1);
@@ -221,10 +268,10 @@ namespace ImageSharp.Tests.Common
                 fixed (AlignedFoo* pSource = source)
                 fixed (AlignedFoo* pDest = dest)
                 {
-                    BufferPointer<AlignedFoo> apSource = new BufferPointer<AlignedFoo>(source, pSource, 1);
-                    BufferPointer<AlignedFoo> apDest = new BufferPointer<AlignedFoo>(dest, pDest, 1);
+                    BufferSpan<AlignedFoo> apSource = new BufferSpan<AlignedFoo>(source, pSource, 1);
+                    BufferSpan<AlignedFoo> apDest = new BufferSpan<AlignedFoo>(dest, pDest, 1);
 
-                    BufferPointer.Copy(apSource, apDest, count - 1);
+                    BufferSpan.Copy(apSource, apDest, count - 1);
                 }
 
                 AssertNotDefault(source, 1);
@@ -248,10 +295,10 @@ namespace ImageSharp.Tests.Common
                 fixed (int* pSource = source)
                 fixed (int* pDest = dest)
                 {
-                    BufferPointer<int> apSource = new BufferPointer<int>(source, pSource, 1);
-                    BufferPointer<int> apDest = new BufferPointer<int>(dest, pDest, 1);
+                    BufferSpan<int> apSource = new BufferSpan<int>(source, pSource, 1);
+                    BufferSpan<int> apDest = new BufferSpan<int>(dest, pDest, 1);
 
-                    BufferPointer.Copy(apSource, apDest, count -1);
+                    BufferSpan.Copy(apSource, apDest, count -1);
                 }
 
                 AssertNotDefault(source, 1);
@@ -276,10 +323,10 @@ namespace ImageSharp.Tests.Common
                 fixed (Foo* pSource = source)
                 fixed (byte* pDest = dest)
                 {
-                    BufferPointer<Foo> apSource = new BufferPointer<Foo>(source, pSource, 1);
-                    BufferPointer<byte> apDest = new BufferPointer<byte>(dest, pDest, sizeof(Foo));
+                    BufferSpan<Foo> apSource = new BufferSpan<Foo>(source, pSource, 1);
+                    BufferSpan<byte> apDest = new BufferSpan<byte>(dest, pDest, sizeof(Foo));
 
-                    BufferPointer.Copy(apSource, apDest, count - 1);
+                    BufferSpan.Copy(apSource, apDest, count - 1);
                 }
 
                 AssertNotDefault(source, 1);
@@ -303,10 +350,10 @@ namespace ImageSharp.Tests.Common
                 fixed (AlignedFoo* pSource = source)
                 fixed (byte* pDest = dest)
                 {
-                    BufferPointer<AlignedFoo> apSource = new BufferPointer<AlignedFoo>(source, pSource, 1);
-                    BufferPointer<byte> apDest = new BufferPointer<byte>(dest, pDest, sizeof(AlignedFoo));
+                    BufferSpan<AlignedFoo> apSource = new BufferSpan<AlignedFoo>(source, pSource, 1);
+                    BufferSpan<byte> apDest = new BufferSpan<byte>(dest, pDest, sizeof(AlignedFoo));
 
-                    BufferPointer.Copy(apSource, apDest, count - 1);
+                    BufferSpan.Copy(apSource, apDest, count - 1);
                 }
 
                 AssertNotDefault(source, 1);
@@ -330,10 +377,10 @@ namespace ImageSharp.Tests.Common
                 fixed (int* pSource = source)
                 fixed (byte* pDest = dest)
                 {
-                    BufferPointer<int> apSource = new BufferPointer<int>(source, pSource);
-                    BufferPointer<byte> apDest = new BufferPointer<byte>(dest, pDest);
+                    BufferSpan<int> apSource = new BufferSpan<int>(source, pSource);
+                    BufferSpan<byte> apDest = new BufferSpan<byte>(dest, pDest);
 
-                    BufferPointer.Copy(apSource, apDest, count);
+                    BufferSpan.Copy(apSource, apDest, count);
                 }
 
                 AssertNotDefault(source, 1);
@@ -355,10 +402,10 @@ namespace ImageSharp.Tests.Common
                 fixed(byte* pSource = source)
                 fixed (Foo* pDest = dest)
                 {
-                    BufferPointer<byte> apSource = new BufferPointer<byte>(source, pSource);
-                    BufferPointer<Foo> apDest = new BufferPointer<Foo>(dest, pDest);
+                    BufferSpan<byte> apSource = new BufferSpan<byte>(source, pSource);
+                    BufferSpan<Foo> apDest = new BufferSpan<Foo>(dest, pDest);
 
-                    BufferPointer.Copy(apSource, apDest, count);
+                    BufferSpan.Copy(apSource, apDest, count);
                 }
 
                 AssertNotDefault(source, sizeof(Foo) + 1);
@@ -378,16 +425,17 @@ namespace ImageSharp.Tests.Common
                 using (PinnedBuffer<Color> colorBuf = new PinnedBuffer<Color>(colors))
                 using (PinnedBuffer<byte> byteBuf = new PinnedBuffer<byte>(colors.Length*4))
                 {
-                    BufferPointer.Copy<Color>(colorBuf, byteBuf, colorBuf.Count);
+                    BufferSpan.Copy<Color>(colorBuf, byteBuf, colorBuf.Length);
 
                     byte[] a = byteBuf.Array;
 
-                    for (int i = 0; i < byteBuf.Count; i++)
+                    for (int i = 0; i < byteBuf.Length; i++)
                     {
                         Assert.Equal((byte)i, a[i]);
                     }
                 }
             }
+
 
             internal static bool ElementsAreEqual(Foo[] array, byte[] rawArray, int index)
             {

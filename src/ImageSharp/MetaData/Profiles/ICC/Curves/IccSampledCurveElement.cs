@@ -15,7 +15,7 @@
             : base(IccCurveSegmentSignature.SampledCurve)
         {
             Guard.NotNull(curveEntries, nameof(curveEntries));
-            Guard.IsTrue(curveEntries.Length < 1, nameof(curveEntries), "There must be at least one value");
+            Guard.IsTrue(curveEntries.Length > 0, nameof(curveEntries), "There must be at least one value");
 
             this.CurveEntries = curveEntries;
         }

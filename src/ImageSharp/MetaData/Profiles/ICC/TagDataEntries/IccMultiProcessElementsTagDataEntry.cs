@@ -31,14 +31,14 @@ namespace ImageSharp
             : base(IccTypeSignature.MultiProcessElements, tagSignature)
         {
             Guard.NotNull(data, nameof(data));
-            Guard.IsTrue(data.Length < 1, nameof(data), $"{nameof(data)} must have at least one element");
+            Guard.IsTrue(data.Length > 0, nameof(data), $"{nameof(data)} must have at least one element");
 
             this.InputChannelCount = data[0].InputChannelCount;
             this.OutputChannelCount = data[0].OutputChannelCount;
             this.Data = data;
 
             bool channelsNotSame = data.Any(t => t.InputChannelCount != this.InputChannelCount || t.OutputChannelCount != this.OutputChannelCount);
-            Guard.IsTrue(channelsNotSame, nameof(data), "The number of input and output channels are not the same for all elements");
+            Guard.IsFalse(channelsNotSame, nameof(data), "The number of input and output channels are not the same for all elements");
         }
 
         /// <summary>

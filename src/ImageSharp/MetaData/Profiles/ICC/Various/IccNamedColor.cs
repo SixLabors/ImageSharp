@@ -23,7 +23,7 @@ namespace ImageSharp
         {
             Guard.NotNull(name, nameof(name));
             Guard.NotNull(pcsCoordinates, nameof(pcsCoordinates));
-            Guard.IsTrue(pcsCoordinates.Length != 3, nameof(pcsCoordinates), "Must have a length of 3");
+            Guard.IsTrue(pcsCoordinates.Length == 3, nameof(pcsCoordinates), "Must have a length of 3");
 
             this.Name = name;
             this.PcsCoordinates = pcsCoordinates;

@@ -66,12 +66,12 @@ namespace ImageSharp
 
             if (matrix != null)
             {
-                bool isNot3By3 = matrix.GetLength(0) != 3 || matrix.GetLength(1) != 3;
-                Guard.IsTrue(isNot3By3, nameof(matrix), "Matrix must have a size of three by three");
+                bool is3By3 = matrix.GetLength(0) == 3 && matrix.GetLength(1) == 3;
+                Guard.IsTrue(is3By3, nameof(matrix), "Matrix must have a size of three by three");
             }
 
-            Guard.IsTrue(this.InputChannelCount != clutValues.InputChannelCount, nameof(clutValues), "Input channel count does not match the CLUT size");
-            Guard.IsTrue(this.OutputChannelCount != clutValues.OutputChannelCount, nameof(clutValues), "Output channel count does not match the CLUT size");
+            Guard.IsTrue(this.InputChannelCount == clutValues.InputChannelCount, nameof(clutValues), "Input channel count does not match the CLUT size");
+            Guard.IsTrue(this.OutputChannelCount == clutValues.OutputChannelCount, nameof(clutValues), "Output channel count does not match the CLUT size");
 
             this.Matrix = this.CreateMatrix(matrix);
             this.InputValues = inputValues;

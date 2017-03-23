@@ -12,8 +12,13 @@ namespace ImageSharp
     /// Each tag value represent the size of the tag in the profile.
     /// </remarks>
     /// </summary>
-    public enum IccProfileTag
+    internal enum IccProfileTag : uint
     {
+        /// <summary>
+        /// Unknown tag
+        /// </summary>
+        Unknown,
+
         /// <summary>
         /// A2B0 - This tag defines a colour transform from Device, Colour Encoding or PCS, to PCS, or a colour transform
         /// from Device 1 to Device 2, using lookup table tag element structures
@@ -162,32 +167,32 @@ namespace ImageSharp
         DeviceSettings = 0x64657673,
 
         /// <summary>
-        /// D2B0 - This tag defines a colour transform from Device to PCS. It supports float32Number-encoded 
+        /// D2B0 - This tag defines a colour transform from Device to PCS. It supports float32Number-encoded
         /// input range, output range and transform, and provides a means to override the AToB0 tag
         /// </summary>
         DToB0 = 0x44324230,
 
         /// <summary>
-        /// D2B1 - This tag defines a colour transform from Device to PCS. It supports float32Number-encoded 
+        /// D2B1 - This tag defines a colour transform from Device to PCS. It supports float32Number-encoded
         /// input range, output range and transform, and provides a means to override the AToB1 tag
         /// </summary>
         DToB1 = 0x44324230,
 
         /// <summary>
-        /// D2B2 - This tag defines a colour transform from Device to PCS. It supports float32Number-encoded 
+        /// D2B2 - This tag defines a colour transform from Device to PCS. It supports float32Number-encoded
         /// input range, output range and transform, and provides a means to override the AToB1 tag
         /// </summary>
         DToB2 = 0x44324230,
 
         /// <summary>
-        /// D2B3 - This tag defines a colour transform from Device to PCS. It supports float32Number-encoded 
+        /// D2B3 - This tag defines a colour transform from Device to PCS. It supports float32Number-encoded
         /// input range, output range and transform, and provides a means to override the AToB1 tag
         /// </summary>
         DToB3 = 0x44324230,
 
         /// <summary>
-        /// gamt - This tag provides a table in which PCS values are the input and a single 
-        /// output value for each input value is the output. If the output value is 0, the PCS colour is in-gamut. 
+        /// gamt - This tag provides a table in which PCS values are the input and a single
+        /// output value for each input value is the output. If the output value is 0, the PCS colour is in-gamut.
         /// If the output is non-zero, the PCS colour is out-of-gamut
         /// </summary>
         Gamut = 0x67616D74,
@@ -204,18 +209,18 @@ namespace ImageSharp
         GreenMatrixColumn = 0x6758595A,
 
         /// <summary>
-        /// gTRC - This tag contains the green channel tone reproduction curve. The first element represents no 
-        /// colorant (white) or phosphor (black) and the last element represents 100 % colorant (green) or 100 % phosphor (green). 
+        /// gTRC - This tag contains the green channel tone reproduction curve. The first element represents no
+        /// colorant (white) or phosphor (black) and the last element represents 100 % colorant (green) or 100 % phosphor (green).
         /// </summary>
         GreenTRC = 0x67545243,
 
         /// <summary>
-        /// lumi - This tag contains the absolute luminance of emissive devices in candelas per square metre as described by the Y channel. 
+        /// lumi - This tag contains the absolute luminance of emissive devices in candelas per square metre as described by the Y channel.
         /// </summary>
         Luminance = 0x6C756d69,
 
         /// <summary>
-        /// meas - This tag describes the alternative measurement specification, such as a D65 illuminant instead of the default D50. 
+        /// meas - This tag describes the alternative measurement specification, such as a D65 illuminant instead of the default D50.
         /// </summary>
         Measurement = 0x6D656173,
 
@@ -237,19 +242,19 @@ namespace ImageSharp
 
         /// <summary>
         /// ncl2 - This tag contains the named colour information providing a PCS and optional device representation
-        /// for a list of named colours. 
+        /// for a list of named colours.
         /// </summary>
         NamedColor2 = 0x6E636C32,
 
         /// <summary>
-        /// resp - This tag describes the structure containing a description of the device response for which the profile is intended. 
+        /// resp - This tag describes the structure containing a description of the device response for which the profile is intended.
         /// </summary>
         OutputResponse = 0x72657370,
 
         /// <summary>
         /// rig0 - There is only one standard reference medium gamut, as defined in ISO 12640-3
         /// </summary>
-        PerceptualRenderingIntentGamut = 0x72696730,  /* 'rig0' */
+        PerceptualRenderingIntentGamut = 0x72696730,
 
         /// <summary>
         /// pre0 - This tag contains the preview transformation from PCS to device space and back to the PCS.
@@ -309,7 +314,7 @@ namespace ImageSharp
         Ps2RenderingIntent = 0x70733269,
 
         /// <summary>
-        /// rXYZ - This tag contains the first column in the matrix, which is used in matrix/TRC transforms. 
+        /// rXYZ - This tag contains the first column in the matrix, which is used in matrix/TRC transforms.
         /// </summary>
         RedMatrixColumn = 0x7258595A,
 
@@ -345,8 +350,8 @@ namespace ImageSharp
         UcrBg = 0x62666420,
 
         /// <summary>
-        /// vued - This tag describes the structure containing invariant and localizable 
-        /// versions of the viewing conditions. 
+        /// vued - This tag describes the structure containing invariant and localizable
+        /// versions of the viewing conditions.
         /// </summary>
         ViewingCondDesc = 0x76756564,
 

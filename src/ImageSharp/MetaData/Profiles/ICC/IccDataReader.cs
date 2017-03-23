@@ -37,6 +37,7 @@ namespace ImageSharp
         /// <param name="data">The data to read</param>
         public IccDataReader(byte[] data)
         {
+            Guard.NotNull(data, nameof(data));
             this.data = data;
         }
 

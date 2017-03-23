@@ -18,6 +18,8 @@ namespace ImageSharp
     /// </summary>
     public static partial class ImageExtensions
     {
+        private static readonly Vector2 DefaultTextDpi = new Vector2(72);
+
         /// <summary>
         /// Draws the text onto the the image filled via the brush.
         /// </summary>
@@ -169,7 +171,12 @@ namespace ImageSharp
 
             TextRenderer renderer = new TextRenderer(glyphBuilder);
 
-            Vector2 dpi = new Vector2((float)source.MetaData.HorizontalResolution, (float)source.MetaData.VerticalResolution);
+            Vector2 dpi = DefaultTextDpi;
+            if (options.UseImageResolution)
+            {
+                dpi = new Vector2((float)source.MetaData.HorizontalResolution, (float)source.MetaData.VerticalResolution);
+            }
+
             FontSpan style = new FontSpan(font)
             {
                 ApplyKerning = options.ApplyKerning,

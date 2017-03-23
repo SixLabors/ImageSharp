@@ -18,17 +18,17 @@ namespace ImageSharp
         /// <summary>
         /// ITU-R BT.709-2 colorant encoding
         /// </summary>
-        ITU_R_BT_709_2 = 0x0001,
+        ItuRBt709_2 = 0x0001,
 
         /// <summary>
         /// SMPTE RP145 colorant encoding
         /// </summary>
-        SMPTE_RP145 = 0x0002,
+        SmpteRp145 = 0x0002,
 
         /// <summary>
         /// EBU Tech.3213-E colorant encoding
         /// </summary>
-        EBU_Tech_3213_E = 0x0003,
+        EbuTech3213E = 0x0003,
 
         /// <summary>
         /// P22 colorant encoding

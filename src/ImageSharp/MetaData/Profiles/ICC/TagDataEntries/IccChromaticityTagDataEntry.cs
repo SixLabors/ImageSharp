@@ -100,14 +100,14 @@ namespace ImageSharp
         {
             switch (colorantType)
             {
-                case IccColorantEncoding.EBU_Tech_3213_E:
+                case IccColorantEncoding.EbuTech3213E:
                     return new double[][]
                     {
                         new double[] { 0.640, 0.330 },
                         new double[] { 0.290, 0.600 },
                         new double[] { 0.150, 0.060 },
                     };
-                case IccColorantEncoding.ITU_R_BT_709_2:
+                case IccColorantEncoding.ItuRBt709_2:
                     return new double[][]
                     {
                         new double[] { 0.640, 0.330 },
@@ -121,7 +121,7 @@ namespace ImageSharp
                         new double[] { 0.280, 0.605 },
                         new double[] { 0.155, 0.070 },
                     };
-                case IccColorantEncoding.SMPTE_RP145:
+                case IccColorantEncoding.SmpteRp145:
                     return new double[][]
                     {
                         new double[] { 0.630, 0.340 },

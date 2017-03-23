@@ -8,7 +8,9 @@ namespace ImageSharp
     using System;
 
     /// <summary>
-    /// Profile flags. Can be combined with a logical OR
+    /// Profile flags. Can be combined with a logical OR.
+    /// The least-significant 16 bits are reserved for the ICC,
+    /// the rest can be used for vendor specific values
     /// </summary>
     [Flags]
     internal enum IccProfileFlag : int

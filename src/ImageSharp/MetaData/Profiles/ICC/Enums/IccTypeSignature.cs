@@ -15,52 +15,164 @@ namespace ImageSharp
         /// </summary>
         Unknown,
 
+        /// <summary>
+        /// The chromaticity tag type provides basic chromaticity data and type of
+        /// phosphors or colorants of a monitor to applications and utilities
+        /// </summary>
         Chromaticity = 0x6368726D,
 
+        /// <summary>
+        /// This is an optional tag which specifies the laydown order in which colorants
+        /// will be printed on an n-colorant device. The laydown order may be the same
+        /// as the channel generation order listed in the colorantTableTag or the channel
+        /// order of a colour encoding type such as CMYK, in which case this tag is not
+        /// needed. When this is not the case (for example, ink-towers sometimes use
+        /// the order KCMY), this tag may be used to specify the laydown order of the
+        /// colorants
+        /// </summary>
         ColorantOrder = 0x636c726f,
 
+        /// <summary>
+        /// The purpose of this tag is to identify the colorants used in the profile
+        /// by a unique name and set of PCSXYZ or PCSLAB values to give the colorant
+        /// an unambiguous value. The first colorant listed is the colorant of the
+        /// first device channel of a LUT tag. The second colorant listed is the
+        /// colorant of the second device channel of a LUT tag, and so on
+        /// </summary>
         ColorantTable = 0x636c7274,
 
+        /// <summary>
+        /// The curveType embodies a one-dimensional function which maps an input
+        /// value in the domain of the function to an output value in the range
+        /// of the function
+        /// </summary>
         Curve = 0x63757276,
 
+        /// <summary>
+        /// The dataType is a simple data structure that contains either 7-bit ASCII
+        /// or binary data
+        /// </summary>
         Data = 0x64617461,
 
         /// <summary>
-        /// Date and time defined by 6 unsigned 16bit integers (year, month, day, hour, minute, second)
+        /// Date and time defined by 6 unsigned 16bit integers
+        /// (year, month, day, hour, minute, second)
         /// </summary>
         DateTime = 0x6474696D,
 
         /// <summary>
-        /// Lookup table with 16bit unsigned integers (ushort)
+        /// This structure represents a colour transform using tables with 16-bit
+        /// precision. This type contains four processing elements: a 3 × 3 matrix
+        /// (which shall be the identity matrix unless the input colour space is
+        /// PCSXYZ), a set of one-dimensional input tables, a multi-dimensional
+        /// lookup table, and a set of one-dimensional output tables
         /// </summary>
         Lut16 = 0x6D667432,
 
         /// <summary>
-        /// Lookup table with 8bit unsigned integers (byte)
+        /// This structure represents a colour transform using tables of 8-bit
+        /// precision. This type contains four processing elements: a 3 × 3 matrix
+        /// (which shall be the identity matrix unless the input colour space is
+        /// PCSXYZ), a set of one-dimensional input tables, a multi-dimensional
+        /// lookup table, and a set of one-dimensional output tables.
         /// </summary>
         Lut8 = 0x6D667431,
 
+        /// <summary>
+        /// This structure represents a colour transform. The type contains up
+        /// to five processing elements which are stored in the AToBTag tag
+        /// in the following order: a set of one-dimensional curves, a 3 × 3
+        /// matrix with offset terms, a set of one-dimensional curves, a
+        /// multi-dimensional lookup table, and a set of one-dimensional
+        /// output curves
+        /// </summary>
         LutAToB = 0x6D414220,
 
+        /// <summary>
+        /// This structure represents a colour transform. The type contains
+        /// up to five processing elements which are stored in the BToATag
+        /// in the following order: a set of one-dimensional curves, a 3 × 3
+        /// matrix with offset terms, a set of one-dimensional curves, a
+        /// multi-dimensional lookup table, and a set of one-dimensional curves.
+        /// </summary>
         LutBToA = 0x6D424120,
 
+        /// <summary>
+        /// This information refers only to the internal
+        /// profile data and is meant to provide profile makers an alternative
+        /// to the default measurement specifications
+        /// </summary>
         Measurement = 0x6D656173,
 
         /// <summary>
-        /// Unicode text in one or more languages
+        /// This tag structure contains a set of records each referencing a
+        /// multilingual Unicode string associated with a profile. Each string
+        /// is referenced in a separate record with the information about what
+        /// language and region the string is for.
         /// </summary>
         MultiLocalizedUnicode = 0x6D6C7563,
 
+        /// <summary>
+        /// This structure represents a colour transform, containing a sequence
+        /// of processing elements. The processing elements contained in the
+        /// structure are defined in the structure itself, allowing for a flexible
+        /// structure. Currently supported processing elements are: a set of one
+        /// dimensional curves, a matrix with offset terms, and a multidimensional
+        /// lookup table (CLUT). Other processing element types may be added in
+        /// the future. Each type of processing element may be contained any
+        /// number of times in the structure.
+        /// </summary>
         MultiProcessElements = 0x6D706574,
 
+        /// <summary>
+        /// This type is a count value and array of structures that provide colour
+        /// coordinates for colour names. For each named colour, a PCS and optional
+        /// device representation of the colour are given. Both representations are
+        /// 16-bit values and PCS values shall be relative colorimetric. The device
+        /// representation corresponds to the header’s "data colour space" field.
+        /// This representation should be consistent with the "number of device
+        /// coordinates" field in the namedColor2Type. If this field is 0, device
+        /// coordinates are not provided. The PCS representation corresponds to the
+        /// header's PCS field. The PCS representation is always provided. Colour
+        /// names are fixed-length, 32-byte fields including null termination. In
+        /// order to maintain maximum portability, it is strongly recommended that
+        /// special characters of the 7-bit ASCII set not be used.
+        /// </summary>
         NamedColor2 = 0x6E636C32,
 
+        /// <summary>
+        /// This type describes a one-dimensional curve by specifying one of a
+        /// predefined set of functions using the parameters.
+        /// </summary>
         ParametricCurve = 0x70617261,
 
+        /// <summary>
+        /// This type is an array of structures, each of which contains information
+        /// from the header fields and tags from the original profiles which were
+        /// combined to create the final profile. The order of the structures is
+        /// the order in which the profiles were combined and includes a structure
+        /// for the final profile. This provides a description of the profile
+        /// sequence from source to destination, typically used with the DeviceLink
+        /// profile.
+        /// </summary>
         ProfileSequenceDesc = 0x70736571,
 
+        /// <summary>
+        /// This type is an array of structures, each of which contains information
+        /// for identification of a profile used in a sequence.
+        /// </summary>
         ProfileSequenceIdentifier = 0x70736964,
 
+        /// <summary>
+        /// The purpose of this tag type is to provide a mechanism to relate physical
+        /// colorant amounts with the normalized device codes produced by lut8Type,
+        /// lut16Type, lutAToBType, lutBToAType or multiProcessElementsType tags
+        /// so that corrections can be made for variation in the device without
+        /// having to produce a new profile. The mechanism can be used by applications
+        /// to allow users with relatively inexpensive and readily available
+        /// instrumentation to apply corrections to individual output colour
+        /// channels in order to achieve consistent results.
+        /// </summary>
         ResponseCurveSet16 = 0x72637332,
 
         /// <summary>
@@ -68,6 +180,12 @@ namespace ImageSharp
         /// </summary>
         S15Fixed16Array = 0x73663332,
 
+        /// <summary>
+        /// The signatureType contains a 4-byte sequence. Sequences of less than four
+        /// characters are padded at the end with spaces. Typically this type is used
+        /// for registered tags that can be displayed on many development systems as
+        /// a sequence of four characters.
+        /// </summary>
         Signature = 0x73696720,
 
         /// <summary>
@@ -100,6 +218,9 @@ namespace ImageSharp
         /// </summary>
         UInt8Array = 0x75693038,
 
+        /// <summary>
+        /// This type represents a set of viewing condition parameters.
+        /// </summary>
         ViewingConditions = 0x76696577,
 
         /// <summary>
@@ -107,6 +228,15 @@ namespace ImageSharp
         /// </summary>
         Xyz = 0x58595A20,
 
+        /// <summary>
+        /// The textDescriptionType is a complex structure that contains three types of
+        /// text description structures: 7-bit ASCII, Unicode and ScriptCode. Since no
+        /// single standard method for specifying localizable character sets exists across
+        /// the major platform vendors, including all three provides access for the major
+        /// operating systems. The 7-bit ASCII description is to be an invariant,
+        /// nonlocalizable name for consistent reference. It is preferred that both the
+        /// Unicode and ScriptCode structures be properly localized.
+        /// </summary>
         TextDescription = 0x64657363,
     }
 }

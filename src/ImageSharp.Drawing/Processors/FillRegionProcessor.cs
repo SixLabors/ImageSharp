@@ -65,6 +65,15 @@ namespace ImageSharp.Drawing.Processors
             int maxX = Math.Min(source.Width, rect.Right);
             int minY = Math.Max(0, rect.Top);
             int maxY = Math.Min(source.Height, rect.Bottom);
+            if (minX >= maxX)
+            {
+                return; // no effect inside image;
+            }
+
+            if (minY >= maxY)
+            {
+                return; // no effect inside image;
+            }
 
             ArrayPool<float> arrayPool = ArrayPool<float>.Shared;
 
@@ -122,22 +131,32 @@ namespace ImageSharp.Drawing.Processors
                                 int startX = (int)Math.Floor(scanStart);
                                 int endX = (int)Math.Floor(scanEnd);
 
-                                for (float x = scanStart; x < startX + 1; x += subpixelFraction)
+                                if (startX >= 0 && startX < scanline.Length)
                                 {
-                                    scanline[startX] += subpixelFractionPoint;
-                                    scanlineDirty = true;
+                                    for (float x = scanStart; x < startX + 1; x += subpixelFraction)
+                                    {
+                                        scanline[startX] += subpixelFractionPoint;
+                                        scanlineDirty = true;
+                                    }
                                 }
 
-                                for (float x = endX; x < scanEnd; x += subpixelFraction)
+                                if (endX >= 0 && endX < scanline.Length)
                                 {
-                                    scanline[endX] += subpixelFractionPoint;
-                                    scanlineDirty = true;
+                                    for (float x = endX; x < scanEnd; x += subpixelFraction)
+                                    {
+                                        scanline[endX] += subpixelFractionPoint;
+                                        scanlineDirty = true;
+                                    }
                                 }
 
-                                for (int x = startX + 1; x < endX; x++)
+                                int nextX = startX + 1;
+                                if (nextX >= 0 && nextX < scanline.Length && endX >= 0 && endX < scanline.Length)
                                 {
-                                    scanline[x] += subpixelFraction;
-                                    scanlineDirty = true;
+                                    for (int x = nextX; x < endX; x++)
+                                    {
+                                        scanline[x] += subpixelFraction;
+                                        scanlineDirty = true;
+                                    }
                                 }
                             }
                         }

@@ -75,7 +75,7 @@ namespace ImageSharp
         /// <summary>
         /// A set of three fixed signed 4-byte (32-bit) quantities used to encode CIEXYZ, nCIEXYZ, and PCSXYZ tristimulus values
         /// </summary>
-        XYZ,
+        Xyz,
 
         /// <summary>
         /// Alpha-numeric values, and other input and output codes, shall conform to the American Standard Code for

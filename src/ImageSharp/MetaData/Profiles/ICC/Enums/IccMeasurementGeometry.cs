@@ -18,11 +18,11 @@ namespace ImageSharp
         /// <summary>
         /// Geometry of 0°:45° or 45°:0°
         /// </summary>
-        MG_0_45_45_0 = 1,
+        Degree0To45Or45To0 = 1,
 
         /// <summary>
         /// Geometry of 0°:d or d:0°
         /// </summary>
-        MG_0d_d0 = 2,
+        Degree0ToDOrDTo0 = 2,
     }
 }

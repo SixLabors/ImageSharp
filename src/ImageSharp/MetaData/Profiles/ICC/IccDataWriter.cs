@@ -1711,31 +1711,32 @@ namespace ImageSharp
         /// <returns>The number of bytes written</returns>
         public int WriteParametricCurve(IccParametricCurve value)
         {
-            int count = this.WriteUInt16(value.Type);
+            ushort typeValue = (ushort)value.Type;
+            int count = this.WriteUInt16(typeValue);
             count += this.WriteEmpty(2);
 
-            if (value.Type >= 0 && value.Type <= 4)
+            if (typeValue >= 0 && typeValue <= 4)
             {
                 count += this.WriteFix16(value.G);
             }
 
-            if (value.Type > 0 && value.Type <= 4)
+            if (typeValue > 0 && typeValue <= 4)
             {
                 count += this.WriteFix16(value.A);
                 count += this.WriteFix16(value.B);
             }
 
-            if (value.Type > 1 && value.Type <= 4)
+            if (typeValue > 1 && typeValue <= 4)
             {
                 count += this.WriteFix16(value.C);
             }
 
-            if (value.Type > 2 && value.Type <= 4)
+            if (typeValue > 2 && typeValue <= 4)
             {
                 count += this.WriteFix16(value.D);
             }
 
-            if (value.Type == 4)
+            if (typeValue == 4)
             {
                 count += this.WriteFix16(value.E);
                 count += this.WriteFix16(value.F);

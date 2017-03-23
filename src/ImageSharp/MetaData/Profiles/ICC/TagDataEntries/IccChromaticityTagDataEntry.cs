@@ -63,7 +63,7 @@ namespace ImageSharp
 
             int channelLength = channelValues[0].Length;
             bool channelsNotSame = channelValues.Any(t => t == null || t.Length != channelLength);
-            Guard.IsTrue(channelsNotSame, nameof(channelValues), "The number of values per channel is not the same for all channels");
+            Guard.IsFalse(channelsNotSame, nameof(channelValues), "The number of values per channel is not the same for all channels");
         }
 
         /// <summary>

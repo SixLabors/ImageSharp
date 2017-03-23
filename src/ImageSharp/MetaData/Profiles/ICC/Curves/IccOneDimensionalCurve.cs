@@ -18,8 +18,8 @@
             Guard.NotNull(breakPoints, nameof(breakPoints));
             Guard.NotNull(segments, nameof(segments));
 
-            bool isWrongSize = breakPoints.Length != segments.Length - 1;
-            Guard.IsTrue(isWrongSize, $"{nameof(breakPoints)},{nameof(segments)}", "Number of BreakPoints must be one less than number of Segments");
+            bool isSizeCorrect = breakPoints.Length == segments.Length - 1;
+            Guard.IsTrue(isSizeCorrect, $"{nameof(breakPoints)},{nameof(segments)}", "Number of BreakPoints must be one less than number of Segments");
 
             this.BreakPoints = breakPoints;
             this.Segments = segments;

@@ -84,7 +84,7 @@ namespace ImageSharp
             if (colors.Length > 0)
             {
                 coordinateCount = colors[0].DeviceCoordinates?.Length ?? 0;
-                Guard.IsTrue(colors.Any(t => (t.DeviceCoordinates?.Length ?? 0) != coordinateCount), nameof(colors), "Device coordinate count must be the same for all colors");
+                Guard.IsFalse(colors.Any(t => (t.DeviceCoordinates?.Length ?? 0) != coordinateCount), nameof(colors), "Device coordinate count must be the same for all colors");
             }
 
             this.VendorFlags = vendorFlags;

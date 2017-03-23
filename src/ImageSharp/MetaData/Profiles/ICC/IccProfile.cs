@@ -81,7 +81,7 @@ namespace ImageSharp
         public static IccProfileId CalculateHash(byte[] data)
         {
             Guard.NotNull(data, nameof(data));
-            Guard.IsTrue(data.Length < 128, nameof(data), "Data length must be at least 128 to be a valid profile header");
+            Guard.IsTrue(data.Length >= 128, nameof(data), "Data length must be at least 128 to be a valid profile header");
 
             byte[] header = new byte[128];
             Buffer.BlockCopy(data, 0, header, 0, 128);

@@ -68,20 +68,20 @@ namespace ImageSharp
 
             if (this.IsBMatrixMClutA())
             {
-                Guard.IsTrue(this.CurveB.Length != 3, nameof(this.CurveB), $"{nameof(this.CurveB)} must have a length of three");
-                Guard.IsTrue(this.CurveM.Length != 3, nameof(this.CurveM), $"{nameof(this.CurveM)} must have a length of three");
+                Guard.IsTrue(this.CurveB.Length == 3, nameof(this.CurveB), $"{nameof(this.CurveB)} must have a length of three");
+                Guard.IsTrue(this.CurveM.Length == 3, nameof(this.CurveM), $"{nameof(this.CurveM)} must have a length of three");
                 Guard.MustBeBetweenOrEqualTo(this.CurveA.Length, 1, 15, nameof(this.CurveA));
 
                 this.InputChannelCount = 3;
                 this.OutputChannelCount = curveA.Length;
 
-                Guard.IsTrue(this.InputChannelCount != clutValues.InputChannelCount, nameof(clutValues), "Input channel count does not match the CLUT size");
-                Guard.IsTrue(this.OutputChannelCount != clutValues.OutputChannelCount, nameof(clutValues), "Output channel count does not match the CLUT size");
+                Guard.IsTrue(this.InputChannelCount == clutValues.InputChannelCount, nameof(clutValues), "Input channel count does not match the CLUT size");
+                Guard.IsTrue(this.OutputChannelCount == clutValues.OutputChannelCount, nameof(clutValues), "Output channel count does not match the CLUT size");
             }
             else if (this.IsBMatrixM())
             {
-                Guard.IsTrue(this.CurveB.Length != 3, nameof(this.CurveB), $"{nameof(this.CurveB)} must have a length of three");
-                Guard.IsTrue(this.CurveM.Length != 3, nameof(this.CurveM), $"{nameof(this.CurveM)} must have a length of three");
+                Guard.IsTrue(this.CurveB.Length == 3, nameof(this.CurveB), $"{nameof(this.CurveB)} must have a length of three");
+                Guard.IsTrue(this.CurveM.Length == 3, nameof(this.CurveM), $"{nameof(this.CurveM)} must have a length of three");
 
                 this.InputChannelCount = this.OutputChannelCount = 3;
             }
@@ -93,8 +93,8 @@ namespace ImageSharp
                 this.InputChannelCount = curveB.Length;
                 this.OutputChannelCount = curveA.Length;
 
-                Guard.IsTrue(this.InputChannelCount != clutValues.InputChannelCount, nameof(clutValues), "Input channel count does not match the CLUT size");
-                Guard.IsTrue(this.OutputChannelCount != clutValues.OutputChannelCount, nameof(clutValues), "Output channel count does not match the CLUT size");
+                Guard.IsTrue(this.InputChannelCount == clutValues.InputChannelCount, nameof(clutValues), "Input channel count does not match the CLUT size");
+                Guard.IsTrue(this.OutputChannelCount == clutValues.OutputChannelCount, nameof(clutValues), "Output channel count does not match the CLUT size");
             }
             else if (this.IsB())
             {
@@ -217,7 +217,7 @@ namespace ImageSharp
             if (curves != null)
             {
                 bool isNotCurve = curves.Any(t => !(t is IccParametricCurveTagDataEntry) && !(t is IccCurveTagDataEntry));
-                Guard.IsTrue(isNotCurve, nameof(name), $"{nameof(name)} must be of type {nameof(IccParametricCurveTagDataEntry)} or {nameof(IccCurveTagDataEntry)}");
+                Guard.IsFalse(isNotCurve, nameof(name), $"{nameof(name)} must be of type {nameof(IccParametricCurveTagDataEntry)} or {nameof(IccCurveTagDataEntry)}");
             }
         }
 
@@ -225,13 +225,13 @@ namespace ImageSharp
         {
             if (matrix3x1 != null)
             {
-                Guard.IsTrue(matrix3x1.Length != 3, nameof(matrix3x1), "Matrix must have a size of three");
+                Guard.IsTrue(matrix3x1.Length == 3, nameof(matrix3x1), "Matrix must have a size of three");
             }
 
             if (matrix3x3 != null)
             {
-                bool isNot3By3 = matrix3x3.GetLength(0) != 3 || matrix3x3.GetLength(1) != 3;
-                Guard.IsTrue(isNot3By3, nameof(matrix3x3), "Matrix must have a size of three by three");
+                bool is3By3 = matrix3x3.GetLength(0) == 3 && matrix3x3.GetLength(1) == 3;
+                Guard.IsTrue(is3By3, nameof(matrix3x3), "Matrix must have a size of three by three");
             }
         }
 

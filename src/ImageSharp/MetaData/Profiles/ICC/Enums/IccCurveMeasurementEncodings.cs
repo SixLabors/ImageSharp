@@ -47,7 +47,7 @@ namespace ImageSharp
         /// <summary>
         /// DIN 16536-2 densitometer response, with polarizing filter
         /// </summary>
-        DinE_pol = 0x434E2050,  // DNP
+        DinEPol = 0x434E2050,  // DNP
 
         /// <summary>
         /// DIN 16536-2 narrow band densitometer response, with no polarizing filter
@@ -57,6 +57,6 @@ namespace ImageSharp
         /// <summary>
         /// DIN 16536-2 narrow band densitometer response, with polarizing filter
         /// </summary>
-        DinI_pol = 0x434E4E50,  // DNNP
+        DinIPol = 0x434E4E50,  // DNNP
     }
 }

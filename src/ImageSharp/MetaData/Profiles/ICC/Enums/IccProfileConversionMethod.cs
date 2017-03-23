@@ -18,7 +18,7 @@ namespace ImageSharp
         A0,
         A1,
         A2,
-        ColorTRC,
-        GrayTRC,
+        ColorTrc,
+        GrayTrc,
     }
 }

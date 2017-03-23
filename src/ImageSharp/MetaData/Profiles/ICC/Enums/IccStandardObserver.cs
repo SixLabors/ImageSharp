@@ -18,11 +18,11 @@ namespace ImageSharp
         /// <summary>
         /// CIE 1931 observer
         /// </summary>
-        CIE1931Observer = 1,
+        Cie1931Observer = 1,
 
         /// <summary>
         /// CIE 1964 observer
         /// </summary>
-        CIE1964Observer = 2,
+        Cie1964Observer = 2,
     }
 }

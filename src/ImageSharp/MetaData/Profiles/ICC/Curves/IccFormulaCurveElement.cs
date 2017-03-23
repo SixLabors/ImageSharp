@@ -8,18 +8,16 @@
         /// <summary>
         /// Initializes a new instance of the <see cref="IccFormulaCurveElement"/> class.
         /// </summary>
-        /// <param name="type">The type of this segment (0-2)</param>
+        /// <param name="type">The type of this segment</param>
         /// <param name="gamma">Gamma segment parameter</param>
         /// <param name="a">A segment parameter</param>
         /// <param name="b">B segment parameter</param>
         /// <param name="c">C segment parameter</param>
         /// <param name="d">D segment parameter</param>
         /// <param name="e">E segment parameter</param>
-        public IccFormulaCurveElement(ushort type, double gamma, double a, double b, double c, double d, double e)
+        public IccFormulaCurveElement(IccFormulaCurveType type, double gamma, double a, double b, double c, double d, double e)
             : base(IccCurveSegmentSignature.FormulaCurve)
         {
-            Guard.MustBeBetweenOrEqualTo(type, 0, 2, nameof(type));
-
             this.Type = type;
             this.Gamma = gamma;
             this.A = a;
@@ -32,7 +30,7 @@
         /// <summary>
         /// Gets the type of this curve
         /// </summary>
-        public ushort Type { get; }
+        public IccFormulaCurveType Type { get; }
 
         /// <summary>
         /// Gets the gamma curve parameter

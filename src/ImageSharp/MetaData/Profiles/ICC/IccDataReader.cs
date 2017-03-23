@@ -128,7 +128,7 @@ namespace ImageSharp
         /// </summary>
         /// <param name="length">number of bytes to read</param>
         /// <returns>The value as a string</returns>
-        public string ReadASCIIString(int length)
+        public string ReadAsciiString(int length)
         {
             string value = AsciiEncoding.GetString(this.data, this.AddIndex(length), length);
 
@@ -323,7 +323,7 @@ namespace ImageSharp
         /// <returns>the named color</returns>
         public IccNamedColor ReadNamedColor(uint deviceCoordCount)
         {
-            string name = this.ReadASCIIString(32);
+            string name = this.ReadAsciiString(32);
             ushort[] pcsCoord = new ushort[3] { this.ReadUInt16(), this.ReadUInt16(), this.ReadUInt16() };
             ushort[] deviceCoord = new ushort[deviceCoordCount];
 
@@ -366,7 +366,7 @@ namespace ImageSharp
         public IccColorantTableEntry ReadColorantTableEntry()
         {
             return new IccColorantTableEntry(
-                name: this.ReadASCIIString(32),
+                name: this.ReadAsciiString(32),
                 pcs1: this.ReadUInt16(),
                 pcs2: this.ReadUInt16(),
                 pcs3: this.ReadUInt16());
@@ -826,7 +826,7 @@ namespace ImageSharp
 
             for (int i = 0; i < recordCount; i++)
             {
-                culture[i] = $"{this.ReadASCIIString(2)}-{this.ReadASCIIString(2)}";
+                culture[i] = $"{this.ReadAsciiString(2)}-{this.ReadAsciiString(2)}";
                 length[i] = this.ReadUInt32();
                 offset[i] = this.ReadUInt32();
             }
@@ -877,8 +877,8 @@ namespace ImageSharp
             int vendorFlag = this.ReadDirect32();
             uint colorCount = this.ReadUInt32();
             uint coordCount = this.ReadUInt32();
-            string prefix = this.ReadASCIIString(32);
-            string suffix = this.ReadASCIIString(32);
+            string prefix = this.ReadAsciiString(32);
+            string suffix = this.ReadAsciiString(32);
 
             IccNamedColor[] colors = new IccNamedColor[colorCount];
             for (int i = 0; i < colorCount; i++)
@@ -990,7 +990,7 @@ namespace ImageSharp
         /// <returns>The read entry</returns>
         public IccSignatureTagDataEntry ReadSignatureTagDataEntry()
         {
-            return new IccSignatureTagDataEntry(this.ReadASCIIString(4));
+            return new IccSignatureTagDataEntry(this.ReadAsciiString(4));
         }
 
         /// <summary>
@@ -1000,7 +1000,7 @@ namespace ImageSharp
         /// <returns>The read entry</returns>
         public IccTextTagDataEntry ReadTextTagDataEntry(uint size)
         {
-            return new IccTextTagDataEntry(this.ReadASCIIString((int)size - 8)); // 8 is the tag header size
+            return new IccTextTagDataEntry(this.ReadAsciiString((int)size - 8)); // 8 is the tag header size
         }
 
         /// <summary>
@@ -1126,7 +1126,7 @@ namespace ImageSharp
             int asciiCount = (int)this.ReadUInt32();
             if (asciiCount > 0)
             {
-                asciiValue = this.ReadASCIIString(asciiCount - 1);
+                asciiValue = this.ReadAsciiString(asciiCount - 1);
                 this.AddIndex(1);  // Null terminator
             }
 
@@ -1142,7 +1142,7 @@ namespace ImageSharp
             int scriptcodeCount = Math.Min(this.data[this.AddIndex(1)], (byte)67);
             if (scriptcodeCount > 0)
             {
-                scriptcodeValue = this.ReadASCIIString(scriptcodeCount - 1);
+                scriptcodeValue = this.ReadAsciiString(scriptcodeCount - 1);
                 this.AddIndex(1);  // Null terminator
             }
 

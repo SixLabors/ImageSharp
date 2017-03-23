@@ -12,7 +12,7 @@
         /// </summary>
         /// <param name="g">G curve parameter</param>
         public IccParametricCurve(double g)
-            : this(0, g, 0, 0, 0, 0, 0, 0)
+            : this(IccParametricCurveType.Type1, g, 0, 0, 0, 0, 0, 0)
         {
         }
 
@@ -23,7 +23,7 @@
         /// <param name="a">A curve parameter</param>
         /// <param name="b">B curve parameter</param>
         public IccParametricCurve(double g, double a, double b)
-            : this(1, g, a, b, 0, 0, 0, 0)
+            : this(IccParametricCurveType.Cie122_1996, g, a, b, 0, 0, 0, 0)
         {
         }
 
@@ -35,7 +35,7 @@
         /// <param name="b">B curve parameter</param>
         /// <param name="c">C curve parameter</param>
         public IccParametricCurve(double g, double a, double b, double c)
-            : this(2, g, a, b, c, 0, 0, 0)
+            : this(IccParametricCurveType.Iec61966_3, g, a, b, c, 0, 0, 0)
         {
         }
 
@@ -48,7 +48,7 @@
         /// <param name="c">C curve parameter</param>
         /// <param name="d">D curve parameter</param>
         public IccParametricCurve(double g, double a, double b, double c, double d)
-            : this(3, g, a, b, c, d, 0, 0)
+            : this(IccParametricCurveType.SRgb, g, a, b, c, d, 0, 0)
         {
         }
 
@@ -63,14 +63,12 @@
         /// <param name="e">E curve parameter</param>
         /// <param name="f">F curve parameter</param>
         public IccParametricCurve(double g, double a, double b, double c, double d, double e, double f)
-            : this(4, g, a, b, c, d, e, f)
+            : this(IccParametricCurveType.Type5, g, a, b, c, d, e, f)
         {
         }
 
-        private IccParametricCurve(ushort type, double g, double a, double b, double c, double d, double e, double f)
+        private IccParametricCurve(IccParametricCurveType type, double g, double a, double b, double c, double d, double e, double f)
         {
-            Guard.MustBeBetweenOrEqualTo(type, 0, 4, nameof(type));
-
             this.Type = type;
             this.G = g;
             this.A = a;
@@ -84,7 +82,7 @@
         /// <summary>
         /// Gets the type of this curve
         /// </summary>
-        public ushort Type { get; }
+        public IccParametricCurveType Type { get; }
 
         /// <summary>
         /// Gets the G curve parameter

@@ -1588,29 +1588,26 @@ namespace ImageSharp
         /// <returns>The read segment</returns>
         public IccFormulaCurveElement ReadFormulaCurveElement()
         {
-            ushort type = this.ReadUInt16();
+            IccFormulaCurveType type = (IccFormulaCurveType)this.ReadUInt16();
             this.AddIndex(2);   // 2 bytes reserved
             double gamma, a, b, c, d, e;
             gamma = a = b = c = d = e = 0;
 
-            if (type == 0 || type == 1)
+            if (type == IccFormulaCurveType.Type1 || type == IccFormulaCurveType.Type2)
             {
                 gamma = this.ReadSingle();
             }
 
-            if (type >= 0 && type <= 2)
-            {
-                a = this.ReadSingle();
-                b = this.ReadSingle();
-                c = this.ReadSingle();
-            }
+            a = this.ReadSingle();
+            b = this.ReadSingle();
+            c = this.ReadSingle();
 
-            if (type == 1 || type == 2)
+            if (type == IccFormulaCurveType.Type2 || type == IccFormulaCurveType.Type3)
             {
                 d = this.ReadSingle();
             }
 
-            if (type == 2)
+            if (type == IccFormulaCurveType.Type3)
             {
                 e = this.ReadSingle();
             }

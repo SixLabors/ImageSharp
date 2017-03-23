@@ -150,7 +150,8 @@ namespace ImageSharp.Drawing.Processors
                                 }
 
                                 int nextX = startX + 1;
-                                if (nextX >= 0 && endX < scanline.Length)
+                                endX = Math.Min(endX, scanline.Length); // reduce to end to the right edge
+                                if (nextX >= 0)
                                 {
                                     for (int x = nextX; x < endX; x++)
                                     {

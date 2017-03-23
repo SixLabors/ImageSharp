@@ -203,33 +203,6 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Reads a 16bit value ignoring endianness
-        /// </summary>
-        /// <returns>the value</returns>
-        public short ReadDirect16()
-        {
-            return BitConverter.ToInt16(this.data, this.AddIndex(2));
-        }
-
-        /// <summary>
-        /// Reads a 32bit value ignoring endianness
-        /// </summary>
-        /// <returns>the value</returns>
-        public int ReadDirect32()
-        {
-            return BitConverter.ToInt32(this.data, this.AddIndex(4));
-        }
-
-        /// <summary>
-        /// Reads a 64bit value ignoring endianness
-        /// </summary>
-        /// <returns>the value</returns>
-        public long ReadDirect64()
-        {
-            return BitConverter.ToInt64(this.data, this.AddIndex(8));
-        }
-
-        /// <summary>
         /// Reads a number of bytes and advances the index
         /// </summary>
         /// <param name="count">The number of bytes to read</param>
@@ -357,7 +330,7 @@ namespace ImageSharp
         {
             uint manufacturer = this.ReadUInt32();
             uint model = this.ReadUInt32();
-            IccDeviceAttribute attributes = (IccDeviceAttribute)this.ReadDirect64();
+            IccDeviceAttribute attributes = (IccDeviceAttribute)this.ReadInt64();
             IccProfileTag technologyInfo = (IccProfileTag)this.ReadUInt32();
             this.ReadCheckTagDataEntryHeader(IccTypeSignature.MultiLocalizedUnicode);
             IccMultiLocalizedUnicodeTagDataEntry manufacturerInfo = this.ReadMultiLocalizedUnicodeTagDataEntry();
@@ -888,7 +861,7 @@ namespace ImageSharp
         /// <returns>The read entry</returns>
         public IccNamedColor2TagDataEntry ReadNamedColor2TagDataEntry()
         {
-            int vendorFlag = this.ReadDirect32();
+            int vendorFlag = this.ReadInt32();
             uint colorCount = this.ReadUInt32();
             uint coordCount = this.ReadUInt32();
             string prefix = this.ReadAsciiString(32);

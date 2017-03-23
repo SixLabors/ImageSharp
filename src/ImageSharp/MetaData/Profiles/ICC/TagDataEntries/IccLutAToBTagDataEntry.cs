@@ -155,7 +155,7 @@ namespace ImageSharp
                     && this.OutputChannelCount == entry.OutputChannelCount
                     && this.Matrix3x1 == entry.Matrix3x1
                     && this.Matrix3x3 == entry.Matrix3x3
-                    && this.ClutValues == entry.ClutValues
+                    && this.ClutValues.Equals(entry.ClutValues)
                     && this.EqualsCurve(this.CurveA, entry.CurveA)
                     && this.EqualsCurve(this.CurveB, entry.CurveB)
                     && this.EqualsCurve(this.CurveM, entry.CurveM);

@@ -24,21 +24,19 @@ namespace ImageSharp
         /// <summary>
         /// The backing file for the <see cref="Entries"/> property
         /// </summary>
-        private readonly List<IccTagDataEntry> entries;
+        private List<IccTagDataEntry> entries;
 
         /// <summary>
         /// ICC profile header
         /// </summary>
-        private readonly IccProfileHeader header;
+        private IccProfileHeader header;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="IccProfile"/> class.
         /// </summary>
         public IccProfile()
+            : this(null)
         {
-            this.data = null;
-            this.entries = new List<IccTagDataEntry>();
-            this.header = new IccProfileHeader();
         }
 
         /// <summary>
@@ -47,12 +45,7 @@ namespace ImageSharp
         /// <param name="data">The raw ICC profile data</param>
         public IccProfile(byte[] data)
         {
-            Guard.NotNull(data, nameof(data));
-
             this.data = data;
-            IccReader reader = new IccReader();
-            this.header = reader.ReadHeader(data);
-            this.entries = new List<IccTagDataEntry>(reader.ReadTagData(data));
         }
 
         /// <summary>
@@ -60,7 +53,11 @@ namespace ImageSharp
         /// </summary>
         public IccProfileHeader Header
         {
-            get { return this.header; }
+            get
+            {
+                this.InitializeHeader();
+                return this.header;
+            }
         }
 
         /// <summary>
@@ -68,7 +65,11 @@ namespace ImageSharp
         /// </summary>
         public List<IccTagDataEntry> Entries
         {
-            get { return this.entries; }
+            get
+            {
+                this.InitializeEntries();
+                return this.entries;
+            }
         }
 
 #if !NETSTANDARD1_1
@@ -103,5 +104,39 @@ namespace ImageSharp
         }
 
 #endif
+
+        private void InitializeHeader()
+        {
+            if (this.header != null)
+            {
+                return;
+            }
+
+            if (this.data == null)
+            {
+                this.header = new IccProfileHeader();
+                return;
+            }
+
+            IccReader reader = new IccReader();
+            this.header = reader.ReadHeader(this.data);
+        }
+
+        private void InitializeEntries()
+        {
+            if (this.entries != null)
+            {
+                return;
+            }
+
+            if (this.data == null)
+            {
+                this.entries = new List<IccTagDataEntry>();
+                return;
+            }
+
+            IccReader reader = new IccReader();
+            this.entries = new List<IccTagDataEntry>(reader.ReadTagData(this.data));
+        }
     }
 }

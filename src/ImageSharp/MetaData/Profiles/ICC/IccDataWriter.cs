@@ -16,6 +16,7 @@ namespace ImageSharp
     internal sealed class IccDataWriter
     {
         private static readonly bool IsLittleEndian = BitConverter.IsLittleEndian;
+        private static readonly Encoding AsciiEncoding = Encoding.GetEncoding("ASCII");
 
         private static readonly double[,] IdentityMatrix = { { 1, 0, 0 }, { 0, 1, 0 }, { 0, 0, 1 } };
 
@@ -222,8 +223,7 @@ namespace ImageSharp
         /// <returns>the number of bytes written</returns>
         public int WriteASCIIString(string value)
         {
-            // Encoding.ASCII is missing in netstandard1.1, use UTF8 instead because it's compatible with ASCII
-            byte[] data = Encoding.UTF8.GetBytes(value);
+            byte[] data = AsciiEncoding.GetBytes(value);
             this.dataStream.Write(data, 0, data.Length);
             return data.Length;
         }
@@ -239,8 +239,7 @@ namespace ImageSharp
         {
             value = value.Substring(0, Math.Min(length - 1, value.Length));
 
-            // Encoding.ASCII is missing in netstandard1.1, use UTF8 instead because it's compatible with ASCII
-            byte[] textData = Encoding.UTF8.GetBytes(value);
+            byte[] textData = AsciiEncoding.GetBytes(value);
             int actualLength = Math.Min(length - 1, textData.Length);
             this.dataStream.Write(textData, 0, actualLength);
             for (int i = 0; i < length - actualLength; i++)

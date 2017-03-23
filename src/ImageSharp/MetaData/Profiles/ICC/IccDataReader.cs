@@ -17,6 +17,7 @@ namespace ImageSharp
     internal sealed class IccDataReader
     {
         private static readonly bool IsLittleEndian = BitConverter.IsLittleEndian;
+        private static readonly Encoding AsciiEncoding = Encoding.GetEncoding("ASCII");
 
         /// <summary>
         /// The data that is read
@@ -129,8 +130,7 @@ namespace ImageSharp
         /// <returns>The value as a string</returns>
         public string ReadASCIIString(int length)
         {
-            // Encoding.ASCII is missing in netstandard1.1, use UTF8 instead because it's compatible with ASCII
-            string value = Encoding.UTF8.GetString(this.data, this.AddIndex(length), length);
+            string value = AsciiEncoding.GetString(this.data, this.AddIndex(length), length);
 
             // remove data after (potential) null terminator
             int pos = value.IndexOf('\0');

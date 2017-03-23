@@ -14,6 +14,8 @@ namespace ImageSharp
     /// </summary>
     internal sealed class IccDataTagDataEntry : IccTagDataEntry
     {
+        private static readonly Encoding AsciiEncoding = Encoding.GetEncoding("ASCII");
+
         /// <summary>
         /// Initializes a new instance of the <see cref="IccDataTagDataEntry"/> class.
         /// </summary>
@@ -67,8 +69,7 @@ namespace ImageSharp
             {
                 if (this.IsAscii)
                 {
-                    // Encoding.ASCII is missing in netstandard1.1, use UTF8 instead because it's compatible with ASCII
-                    return Encoding.UTF8.GetString(this.Data, 0, this.Data.Length);
+                    return AsciiEncoding.GetString(this.Data, 0, this.Data.Length);
                 }
                 else
                 {

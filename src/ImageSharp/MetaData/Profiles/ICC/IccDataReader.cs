@@ -131,6 +131,12 @@ namespace ImageSharp
         /// <returns>The value as a string</returns>
         public string ReadAsciiString(int length)
         {
+            if (length == 0)
+            {
+                return string.Empty;
+            }
+
+            Guard.MustBeGreaterThan(length, 0, nameof(length));
             string value = AsciiEncoding.GetString(this.data, this.AddIndex(length), length);
 
             // remove data after (potential) null terminator
@@ -150,6 +156,13 @@ namespace ImageSharp
         /// <returns>The value as a string</returns>
         public string ReadUnicodeString(int length)
         {
+            if (length == 0)
+            {
+                return string.Empty;
+            }
+
+            Guard.MustBeGreaterThan(length, 0, nameof(length));
+
             return Encoding.BigEndianUnicode.GetString(this.data, this.AddIndex(length), length);
         }
 

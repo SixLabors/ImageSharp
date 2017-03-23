@@ -261,37 +261,7 @@ namespace ImageSharp
             this.dataStream.Write(data, 0, data.Length);
             return data.Length;
         }
-
-        /// <summary>
-        /// Writes a short ignoring endianness
-        /// </summary>
-        /// <param name="value">The value to write</param>
-        /// <returns>the number of bytes written</returns>
-        public unsafe int WriteDirect16(short value)
-        {
-            return this.WriteBytesDirect((byte*)&value, 2);
-        }
-
-        /// <summary>
-        /// Writes an int ignoring endianness
-        /// </summary>
-        /// <param name="value">The value to write</param>
-        /// <returns>the number of bytes written</returns>
-        public unsafe int WriteDirect32(int value)
-        {
-            return this.WriteBytesDirect((byte*)&value, 4);
-        }
-
-        /// <summary>
-        /// Writes a long ignoring endianness
-        /// </summary>
-        /// <param name="value">The value to write</param>
-        /// <returns>the number of bytes written</returns>
-        public unsafe int WriteDirect64(long value)
-        {
-            return this.WriteBytesDirect((byte*)&value, 8);
-        }
-
+        
         #endregion
 
         #region Write Non-Primitives
@@ -395,7 +365,7 @@ namespace ImageSharp
         {
             return this.WriteUInt32(value.DeviceManufacturer)
                  + this.WriteUInt32(value.DeviceModel)
-                 + this.WriteDirect64((long)value.DeviceAttributes)
+                 + this.WriteInt64((long)value.DeviceAttributes)
                  + this.WriteUInt32((uint)value.TechnologyInformation)
                  + this.WriteTagDataEntryHeader(IccTypeSignature.MultiLocalizedUnicode)
                  + this.WriteMultiLocalizedUnicodeTagDataEntry(new IccMultiLocalizedUnicodeTagDataEntry(value.DeviceManufacturerInfo))
@@ -1018,7 +988,7 @@ namespace ImageSharp
         /// <returns>The number of bytes written</returns>
         public int WriteNamedColor2TagDataEntry(IccNamedColor2TagDataEntry value)
         {
-            int count = this.WriteDirect32(value.VendorFlags)
+            int count = this.WriteInt32(value.VendorFlags)
                       + this.WriteUInt32((uint)value.Colors.Length)
                       + this.WriteUInt32((uint)value.CoordinateCount)
                       + this.WriteASCIIString(value.Prefix, 32, '\0')

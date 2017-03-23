@@ -42,10 +42,10 @@ namespace ImageSharp
             writer.WriteDateTime(header.CreationDate);
             writer.WriteASCIIString("acsp");
             writer.WriteUInt32((uint)header.PrimaryPlatformSignature);
-            writer.WriteDirect32((int)header.Flags);
+            writer.WriteInt32((int)header.Flags);
             writer.WriteUInt32(header.DeviceManufacturer);
             writer.WriteUInt32(header.DeviceModel);
-            writer.WriteDirect64((long)header.DeviceAttributes);
+            writer.WriteInt64((long)header.DeviceAttributes);
             writer.WriteUInt32((uint)header.RenderingIntent);
             writer.WriteXYZNumber(header.PcsIlluminant);
             writer.WriteASCIIString(header.CreatorSignature, 4, ' ');

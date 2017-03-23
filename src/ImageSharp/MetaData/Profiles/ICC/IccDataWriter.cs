@@ -1772,27 +1772,24 @@ namespace ImageSharp
         /// <returns>The number of bytes written</returns>
         public int WriteFormulaCurveElement(IccFormulaCurveElement value)
         {
-            int count = this.WriteUInt16(value.Type);
+            int count = this.WriteUInt16((ushort)value.Type);
             count += this.WriteEmpty(2);
 
-            if (value.Type == 0 || value.Type == 1)
+            if (value.Type == IccFormulaCurveType.Type1 || value.Type == IccFormulaCurveType.Type2)
             {
                 count += this.WriteSingle((float)value.Gamma);
             }
 
-            if (value.Type >= 0 && value.Type <= 2)
-            {
-                count += this.WriteSingle((float)value.A);
-                count += this.WriteSingle((float)value.B);
-                count += this.WriteSingle((float)value.C);
-            }
+            count += this.WriteSingle((float)value.A);
+            count += this.WriteSingle((float)value.B);
+            count += this.WriteSingle((float)value.C);
 
-            if (value.Type == 1 || value.Type == 2)
+            if (value.Type == IccFormulaCurveType.Type2 || value.Type == IccFormulaCurveType.Type3)
             {
                 count += this.WriteSingle((float)value.D);
             }
 
-            if (value.Type == 2)
+            if (value.Type == IccFormulaCurveType.Type3)
             {
                 count += this.WriteSingle((float)value.E);
             }

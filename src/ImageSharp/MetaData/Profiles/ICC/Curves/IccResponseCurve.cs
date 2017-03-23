@@ -20,7 +20,7 @@
             Guard.NotNull(xyzValues, nameof(xyzValues));
             Guard.NotNull(responseArrays, nameof(responseArrays));
 
-            Guard.IsTrue(xyzValues.Length != responseArrays.Length, $"{nameof(xyzValues)},{nameof(responseArrays)}", "Arrays must have same length");
+            Guard.IsTrue(xyzValues.Length == responseArrays.Length, $"{nameof(xyzValues)},{nameof(responseArrays)}", "Arrays must have same length");
             Guard.MustBeBetweenOrEqualTo(xyzValues.Length, 1, 15, nameof(xyzValues));
 
             this.CurveType = curveType;

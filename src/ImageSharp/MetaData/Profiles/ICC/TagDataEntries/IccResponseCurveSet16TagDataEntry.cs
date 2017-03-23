@@ -33,12 +33,12 @@ namespace ImageSharp
             : base(IccTypeSignature.ResponseCurveSet16, tagSignature)
         {
             Guard.NotNull(curves, nameof(curves));
-            Guard.IsTrue(curves.Length < 1, nameof(curves), $"{nameof(curves)} needs at least one element");
+            Guard.IsTrue(curves.Length > 0, nameof(curves), $"{nameof(curves)} needs at least one element");
 
             this.Curves = curves;
             this.ChannelCount = (ushort)curves[0].ResponseArrays.Length;
 
-            Guard.IsTrue(curves.Any(t => t.ResponseArrays.Length != this.ChannelCount), nameof(curves), "All curves need to have the same number of channels");
+            Guard.IsFalse(curves.Any(t => t.ResponseArrays.Length != this.ChannelCount), nameof(curves), "All curves need to have the same number of channels");
         }
 
         /// <summary>

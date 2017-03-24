@@ -25,13 +25,20 @@ namespace ImageSharp.Tests
         public ImagingTestCaseUtility Utility { get; private set; }
 
         public GenericFactory<TColor> Factory { get; private set; } = new GenericFactory<TColor>();
-
-        public static TestImageProvider<TColor> Blank(
+        
+        public static TestImageProvider<TColor> TestPattern(
                 int width,
                 int height,
                 MethodInfo testMethod = null,
                 PixelTypes pixelTypeOverride = PixelTypes.Undefined)
-            => new BlankProvider(width, height).Init(testMethod, pixelTypeOverride);
+            => new TestPatternProvider(width, height).Init(testMethod, pixelTypeOverride);
+
+        public static TestImageProvider<TColor> Blank(
+                        int width,
+                        int height,
+                        MethodInfo testMethod = null,
+                        PixelTypes pixelTypeOverride = PixelTypes.Undefined)
+                    => new BlankProvider(width, height).Init(testMethod, pixelTypeOverride);
 
         public static TestImageProvider<TColor> File(
             string filePath,

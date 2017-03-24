@@ -175,6 +175,11 @@ namespace ImageSharp
         /// <returns>the number of bytes written</returns>
         public int WriteAsciiString(string value)
         {
+            if (string.IsNullOrEmpty(value))
+            {
+                return 0;
+            }
+
             byte[] data = AsciiEncoding.GetBytes(value);
             this.dataStream.Write(data, 0, data.Length);
             return data.Length;
@@ -189,6 +194,18 @@ namespace ImageSharp
         /// <returns>the number of bytes written</returns>
         public int WriteAsciiString(string value, int length, char paddingChar)
         {
+            if (length == 0)
+            {
+                return 0;
+            }
+
+            Guard.MustBeGreaterThan(length, 0, nameof(length));
+
+            if (value == null)
+            {
+                value = string.Empty;
+            }
+
             value = value.Substring(0, Math.Min(length - 1, value.Length));
 
             byte[] textData = AsciiEncoding.GetBytes(value);
@@ -209,6 +226,11 @@ namespace ImageSharp
         /// <returns>the number of bytes written</returns>
         public int WriteUnicodeString(string value)
         {
+            if (string.IsNullOrEmpty(value))
+            {
+                return 0;
+            }
+
             byte[] data = Encoding.BigEndianUnicode.GetBytes(value);
             this.dataStream.Write(data, 0, data.Length);
             return data.Length;

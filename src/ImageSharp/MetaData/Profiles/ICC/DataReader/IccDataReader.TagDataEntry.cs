@@ -263,18 +263,18 @@ namespace ImageSharp
             byte[] gridPointCount = new byte[inChCount];
             for (int i = 0; i < inChCount; i++)
             {
-                inValues[i] = this.ReadLUT16(inTableCount);
+                inValues[i] = this.ReadLut16(inTableCount);
                 gridPointCount[i] = clutPointCount;
             }
 
             // CLUT
-            IccClut clut = this.ReadCLUT16(inChCount, outChCount, gridPointCount);
+            IccClut clut = this.ReadClut16(inChCount, outChCount, gridPointCount);
 
             // Output LUT
             IccLut[] outValues = new IccLut[outChCount];
             for (int i = 0; i < outChCount; i++)
             {
-                outValues[i] = this.ReadLUT16(outTableCount);
+                outValues[i] = this.ReadLut16(outTableCount);
             }
 
             return new IccLut16TagDataEntry(matrix, inValues, clut, outValues);
@@ -298,18 +298,18 @@ namespace ImageSharp
             byte[] gridPointCount = new byte[inChCount];
             for (int i = 0; i < inChCount; i++)
             {
-                inValues[i] = this.ReadLUT8();
+                inValues[i] = this.ReadLut8();
                 gridPointCount[i] = clutPointCount;
             }
 
             // CLUT
-            IccClut clut = this.ReadCLUT8(inChCount, outChCount, gridPointCount);
+            IccClut clut = this.ReadClut8(inChCount, outChCount, gridPointCount);
 
             // Output LUT
             IccLut[] outValues = new IccLut[outChCount];
             for (int i = 0; i < outChCount; i++)
             {
-                outValues[i] = this.ReadLUT8();
+                outValues[i] = this.ReadLut8();
             }
 
             return new IccLut8TagDataEntry(matrix, inValues, clut, outValues);

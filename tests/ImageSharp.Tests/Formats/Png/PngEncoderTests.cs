@@ -8,6 +8,7 @@ using ImageSharp.Formats;
 namespace ImageSharp.Tests
 {
     using System.IO;
+    using System.Linq;
     using System.Threading.Tasks;
     using ImageSharp.IO;
     using Xunit;
@@ -57,10 +58,11 @@ namespace ImageSharp.Tests
             where TColor : struct, IPixel<TColor>
         {
             using (Image<TColor> image = provider.GetImage())
-            using (EndianBinaryReader reader = Encode(image, null))
+            using (MemoryStream ms = new MemoryStream())
             {
-
-                byte[] data = reader.ReadBytes(8);
+                image.Save(ms, new PngEncoder());
+                
+                byte[] data = ms.ToArray().Take(8).ToArray(); 
                 byte[] expected = {
                     0x89, // Set the high bit.
                     0x50, // P
@@ -74,39 +76,6 @@ namespace ImageSharp.Tests
 
                 Assert.Equal(expected, data);
             }
-        }
-
-        [Theory]
-        [WithBlankImages(1, 1, PixelTypes.All)]
-        [WithBlankImages(10, 10, PixelTypes.StandardImageClass)]
-        public void WritesFileHeaderHasHeightAndWidth<TColor>(TestImageProvider<TColor> provider)
-            where TColor : struct, IPixel<TColor>
-        {
-            using (Image<TColor> image = provider.GetImage())
-            using (EndianBinaryReader reader = Encode(image, null))
-            {
-                reader.ReadBytes(8); // throw away the file header
-                uint width = reader.ReadUInt32();
-                uint height = reader.ReadUInt32();
-
-                byte bitDepth = reader.ReadByte();
-                byte colorType = reader.ReadByte();
-                byte compressionMethod = reader.ReadByte();
-                byte filterMethod = reader.ReadByte();
-                byte interlaceMethod = reader.ReadByte();
-
-                Assert.Equal(image.Width, (int)width);
-                Assert.Equal(image.Height, (int)height);
-            }
-        }
-
-        private static EndianBinaryReader Encode<TColor>(Image<TColor> img, IEncoderOptions options)
-            where TColor : struct, IPixel<TColor>
-        {
-            MemoryStream stream = new MemoryStream();
-            new PngEncoder().Encode(img, stream, null);
-            stream.Position = 0;
-            return new EndianBinaryReader(Endianness.BigEndian, stream);
         }
     }
 }

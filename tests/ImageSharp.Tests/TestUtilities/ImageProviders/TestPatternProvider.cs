@@ -34,7 +34,7 @@ namespace ImageSharp.Tests
                 {
                     if (!testImages.ContainsKey(this.SourceFileOrDescription))
                     {
-                        var image = new Image<TColor>(this.Width, this.Height);
+                        Image<TColor> image = new Image<TColor>(this.Width, this.Height);
                         DrawTestPattern(image);
                         testImages.Add(this.SourceFileOrDescription, image);
                     }
@@ -46,7 +46,7 @@ namespace ImageSharp.Tests
             private static void DrawTestPattern(Image<TColor> image)
             {
                 // first lets split the image into 4 quadrants
-                using (var pixels = image.Lock())
+                using (PixelAccessor<TColor> pixels = image.Lock())
                 {
                     BlackWhiteChecker(pixels); // top left
                     HorizontalLines(pixels); // top right
@@ -68,9 +68,9 @@ namespace ImageSharp.Tests
                         NamedColors<TColor>.Blue
                     };
                 int p = 0;
-                for (var y = top; y < bottom; y++)
+                for (int y = top; y < bottom; y++)
                 {
-                    for (var x = left; x < right; x++)
+                    for (int x = left; x < right; x++)
                     {
                         if (x % stride == 0)
                         {
@@ -96,15 +96,15 @@ namespace ImageSharp.Tests
                     };
 
                 int p = 0;
-                for (var y = top; y < bottom; y++)
+                for (int y = top; y < bottom; y++)
                 {
                     if (y % stride == 0)
                     {
                         p++;
                         p = p % c.Length;
                     }
-                    var pstart = p;
-                    for (var x = left; x < right; x++)
+                    int pstart = p;
+                    for (int x = left; x < right; x++)
                     {
                         if (x % stride == 0)
                         {
@@ -132,25 +132,25 @@ namespace ImageSharp.Tests
 
                 TColor c = default(TColor);
 
-                for (var x = left; x < right; x++)
+                for (int x = left; x < right; x++)
                 {
                     blue.W = red.W = green.W = (float)x / (float)right;
 
                     c.PackFromVector4(red);
-                    var topBand = top;
-                    for (var y = topBand; y < top + height; y++)
+                    int topBand = top;
+                    for (int y = topBand; y < top + height; y++)
                     {
                         pixels[x, y] = c;
                     }
                     topBand = topBand + height;
                     c.PackFromVector4(green);
-                    for (var y = topBand; y < topBand + height; y++)
+                    for (int y = topBand; y < topBand + height; y++)
                     {
                         pixels[x, y] = c;
                     }
                     topBand = topBand + height;
                     c.PackFromVector4(blue);
-                    for (var y = topBand; y < bottom; y++)
+                    for (int y = topBand; y < bottom; y++)
                     {
                         pixels[x, y] = c;
                     }
@@ -168,12 +168,12 @@ namespace ImageSharp.Tests
                 uint stepsPerPixel = (uint)(uint.MaxValue / pixelCount);
                 TColor c = default(TColor);
                 Color t = new Color(0);
-                uint inital = 0;
-                for (var x = left; x < right; x++)
-                    for (var y = top; y < bottom; y++)
+
+                for (int x = left; x < right; x++)
+                    for (int y = top; y < bottom; y++)
                     {
                         t.PackedValue += stepsPerPixel;
-                        var v = t.ToVector4();
+                        Vector4 v = t.ToVector4();
                         //v.W = (x - left) / (float)left;
                         c.PackFromVector4(v);
                         pixels[x, y] = c;

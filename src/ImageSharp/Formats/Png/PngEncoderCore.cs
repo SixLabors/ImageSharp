@@ -544,7 +544,7 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
-        /// <param name="imageBase">The image base.</param>
+        /// <param name="image">The image.</param>
         private void WritePhysicalChunk<TColor>(Stream stream, Image<TColor> image)
             where TColor : struct, IPixel<TColor>
         {

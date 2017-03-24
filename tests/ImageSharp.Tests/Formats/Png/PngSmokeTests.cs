@@ -18,20 +18,41 @@ namespace ImageSharp.Tests.Formats.Png
     {
         [Theory]
         [WithTestPatternImages(300, 300, PixelTypes.All)]
-        public void WritesFileMarker<TColor>(TestImageProvider<TColor> provider)
+        public void GeneralTest<TColor>(TestImageProvider<TColor> provider)
             where TColor : struct, IPixel<TColor>
         {
             // does saving a file then repoening mean both files are identical???
             using (Image<TColor> image = provider.GetImage())
             using (MemoryStream ms = new MemoryStream())
             {
-                image.Save(provider.Utility.GetTestOutputFileName("bmp"));
+                // image.Save(provider.Utility.GetTestOutputFileName("bmp"));
 
                 image.Save(ms, new PngEncoder());
                 ms.Position = 0;
                 using (Image img2 = new Image(ms, new Configuration(new PngFormat())))
                 {
-                    img2.Save(provider.Utility.GetTestOutputFileName("bmp", "_loaded"), new BmpEncoder());
+                    // img2.Save(provider.Utility.GetTestOutputFileName("bmp", "_loaded"), new BmpEncoder());
+                    ImageComparer.VisualComparer(image, img2);
+                }
+            }
+        }
+
+        [Theory]
+        [WithTestPatternImages(100, 100, PixelTypes.All)]
+        public void CanSaveIndexedPng<TColor>(TestImageProvider<TColor> provider)
+            where TColor : struct, IPixel<TColor>
+        {
+            // does saving a file then repoening mean both files are identical???
+            using (Image<TColor> image = provider.GetImage())
+            using (MemoryStream ms = new MemoryStream())
+            {
+                // image.Save(provider.Utility.GetTestOutputFileName("bmp"));
+                image.MetaData.Quality = 256;
+                image.Save(ms, new PngEncoder());
+                ms.Position = 0;
+                using (Image img2 = new Image(ms, new Configuration(new PngFormat())))
+                {
+                    // img2.Save(provider.Utility.GetTestOutputFileName("bmp", "_loaded"), new BmpEncoder());
                     ImageComparer.VisualComparer(image, img2);
                 }
             }

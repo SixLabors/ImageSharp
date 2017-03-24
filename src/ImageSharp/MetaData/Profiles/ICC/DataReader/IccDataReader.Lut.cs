@@ -45,7 +45,7 @@ namespace ImageSharp
         /// <param name="isFloat">If true, it's read as CLUTf32,
         /// else read as either CLUT8 or CLUT16 depending on embedded information</param>
         /// <returns>The read CLUT</returns>
-        public IccClut ReadCLUT(int inChannelCount, int outChannelCount, bool isFloat)
+        public IccClut ReadClut(int inChannelCount, int outChannelCount, bool isFloat)
         {
             // Grid-points are always 16 bytes long but only 0-inChCount are used
             byte[] gridPointCount = new byte[inChannelCount];

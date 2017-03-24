@@ -361,7 +361,7 @@ namespace ImageSharp
             if (clutOffset != 0)
             {
                 this.index = (int)clutOffset + start;
-                clut = this.ReadCLUT(inChCount, outChCount, false);
+                clut = this.ReadClut(inChCount, outChCount, false);
             }
 
             if (matrixOffset != 0)
@@ -420,7 +420,7 @@ namespace ImageSharp
             if (clutOffset != 0)
             {
                 this.index = (int)clutOffset + start;
-                clut = this.ReadCLUT(inChCount, outChCount, false);
+                clut = this.ReadClut(inChCount, outChCount, false);
             }
 
             if (matrixOffset != 0)

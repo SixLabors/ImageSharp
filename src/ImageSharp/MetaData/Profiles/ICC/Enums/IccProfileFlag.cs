@@ -16,13 +16,28 @@ namespace ImageSharp
     internal enum IccProfileFlag : int
     {
         /// <summary>
+        /// No flags (equivalent to NotEmbedded and Independent)
+        /// </summary>
+        None = 0,
+
+        /// <summary>
         /// Profile is embedded within another file
         /// </summary>
         Embedded = 1 << 0,
 
         /// <summary>
+        /// Profile is embedded within another file
+        /// </summary>
+        NotEmbedded = 0,
+
+        /// <summary>
         /// Profile cannot be used independently of the embedded colour data
         /// </summary>
-        Independent = 1 << 1,
+        NotIndependent = 1 << 1,
+
+        /// <summary>
+        /// Profile can be used independently of the embedded colour data
+        /// </summary>
+        Independent = 0,
     }
 }

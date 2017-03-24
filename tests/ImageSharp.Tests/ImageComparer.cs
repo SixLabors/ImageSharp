@@ -17,7 +17,7 @@
            where TColorA : struct, IPixel<TColorA>
            where TColorB : struct, IPixel<TColorB>
         {
-            var percentage = expected.PercentageDifference(actual, segmentThreshold, scalingFactor);
+            float percentage = expected.PercentageDifference(actual, segmentThreshold, scalingFactor);
 
             Assert.InRange(percentage, 0, imageTheshold);
         }

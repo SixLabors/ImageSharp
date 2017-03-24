@@ -122,7 +122,7 @@ namespace ImageSharp
         /// <inheritdoc />
         public override bool Equals(IccTagDataEntry other)
         {
-            if (base.Equals(other) && other is IccLut16TagDataEntry entry)
+            if (base.Equals(other) && other is IccLut8TagDataEntry entry)
             {
                 return this.ClutValues.Equals(entry.ClutValues)
                     && this.Matrix == entry.Matrix

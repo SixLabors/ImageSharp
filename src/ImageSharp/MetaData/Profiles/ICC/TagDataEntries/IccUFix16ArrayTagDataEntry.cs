@@ -5,12 +5,13 @@
 
 namespace ImageSharp
 {
+    using System;
     using System.Linq;
 
     /// <summary>
     /// This type represents an array of doubles (from 32bit values).
     /// </summary>
-    internal sealed class IccUFix16ArrayTagDataEntry : IccTagDataEntry
+    internal sealed class IccUFix16ArrayTagDataEntry : IccTagDataEntry, IEquatable<IccUFix16ArrayTagDataEntry>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="IccUFix16ArrayTagDataEntry"/> class.
@@ -47,6 +48,12 @@ namespace ImageSharp
             }
 
             return false;
+        }
+
+        /// <inheritdoc />
+        public bool Equals(IccUFix16ArrayTagDataEntry other)
+        {
+            return this.Equals((IccTagDataEntry)other);
         }
     }
 }

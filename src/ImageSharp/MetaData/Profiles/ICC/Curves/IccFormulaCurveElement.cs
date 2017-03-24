@@ -5,10 +5,12 @@
 
 namespace ImageSharp
 {
+    using System;
+
     /// <summary>
     /// A formula based curve segment
     /// </summary>
-    internal sealed class IccFormulaCurveElement : IccCurveSegment
+    internal sealed class IccFormulaCurveElement : IccCurveSegment, IEquatable<IccFormulaCurveElement>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="IccFormulaCurveElement"/> class.
@@ -82,6 +84,12 @@ namespace ImageSharp
             }
 
             return false;
+        }
+
+        /// <inheritdoc />
+        public bool Equals(IccFormulaCurveElement other)
+        {
+            return this.Equals((IccCurveSegment)other);
         }
     }
 }

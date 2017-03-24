@@ -5,12 +5,13 @@
 
 namespace ImageSharp
 {
+    using System;
     using System.Linq;
 
     /// <summary>
     /// This type represents an array of unsigned shorts.
     /// </summary>
-    internal sealed class IccUInt16ArrayTagDataEntry : IccTagDataEntry
+    internal sealed class IccUInt16ArrayTagDataEntry : IccTagDataEntry, IEquatable<IccUInt16ArrayTagDataEntry>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="IccUInt16ArrayTagDataEntry"/> class.
@@ -47,6 +48,12 @@ namespace ImageSharp
             }
 
             return false;
+        }
+
+        /// <inheritdoc />
+        public bool Equals(IccUInt16ArrayTagDataEntry other)
+        {
+            return this.Equals((IccTagDataEntry)other);
         }
     }
 }

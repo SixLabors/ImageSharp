@@ -5,11 +5,13 @@
 
 namespace ImageSharp
 {
+    using System;
+
     /// <summary>
     /// The parametricCurveType describes a one-dimensional curve by
     /// specifying one of a predefined set of functions using the parameters.
     /// </summary>
-    internal sealed class IccParametricCurveTagDataEntry : IccTagDataEntry
+    internal sealed class IccParametricCurveTagDataEntry : IccTagDataEntry, IEquatable<IccParametricCurveTagDataEntry>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="IccParametricCurveTagDataEntry"/> class.
@@ -45,6 +47,12 @@ namespace ImageSharp
             }
 
             return false;
+        }
+
+        /// <inheritdoc />
+        public bool Equals(IccParametricCurveTagDataEntry other)
+        {
+            return this.Equals((IccTagDataEntry)other);
         }
     }
 }

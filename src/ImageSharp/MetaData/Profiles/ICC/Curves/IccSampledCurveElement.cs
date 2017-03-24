@@ -5,12 +5,13 @@
 
 namespace ImageSharp
 {
+    using System;
     using System.Linq;
 
     /// <summary>
     /// A sampled curve segment
     /// </summary>
-    internal sealed class IccSampledCurveElement : IccCurveSegment
+    internal sealed class IccSampledCurveElement : IccCurveSegment, IEquatable<IccSampledCurveElement>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="IccSampledCurveElement"/> class.
@@ -39,6 +40,12 @@ namespace ImageSharp
             }
 
             return false;
+        }
+
+        /// <inheritdoc />
+        public bool Equals(IccSampledCurveElement other)
+        {
+            return this.Equals((IccCurveSegment)other);
         }
     }
 }

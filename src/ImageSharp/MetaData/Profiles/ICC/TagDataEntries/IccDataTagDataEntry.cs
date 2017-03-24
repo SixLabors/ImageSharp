@@ -5,6 +5,7 @@
 
 namespace ImageSharp
 {
+    using System;
     using System.Linq;
     using System.Text;
 
@@ -12,7 +13,7 @@ namespace ImageSharp
     /// The dataType is a simple data structure that contains
     /// either 7-bit ASCII or binary data, i.e. textType data or transparent bytes.
     /// </summary>
-    internal sealed class IccDataTagDataEntry : IccTagDataEntry
+    internal sealed class IccDataTagDataEntry : IccTagDataEntry, IEquatable<IccDataTagDataEntry>
     {
         private static readonly Encoding AsciiEncoding = Encoding.GetEncoding("ASCII");
 
@@ -88,6 +89,12 @@ namespace ImageSharp
             }
 
             return false;
+        }
+
+        /// <inheritdoc />
+        public bool Equals(IccDataTagDataEntry other)
+        {
+            return this.Equals((IccTagDataEntry)other);
         }
     }
 }

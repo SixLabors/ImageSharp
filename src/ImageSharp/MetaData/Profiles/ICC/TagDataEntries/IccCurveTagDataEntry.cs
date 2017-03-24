@@ -5,12 +5,13 @@
 
 namespace ImageSharp
 {
+    using System;
     using System.Linq;
 
     /// <summary>
     /// The type contains a one-dimensional table of double values.
     /// </summary>
-    internal sealed class IccCurveTagDataEntry : IccTagDataEntry
+    internal sealed class IccCurveTagDataEntry : IccTagDataEntry, IEquatable<IccCurveTagDataEntry>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="IccCurveTagDataEntry"/> class.
@@ -117,6 +118,12 @@ namespace ImageSharp
             }
 
             return false;
+        }
+
+        /// <inheritdoc />
+        public bool Equals(IccCurveTagDataEntry other)
+        {
+            return this.Equals((IccTagDataEntry)other);
         }
     }
 }

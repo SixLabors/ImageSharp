@@ -5,10 +5,12 @@
 
 namespace ImageSharp
 {
+    using System;
+
     /// <summary>
     /// This is a simple text structure that contains a text string.
     /// </summary>
-    internal sealed class IccTextTagDataEntry : IccTagDataEntry
+    internal sealed class IccTextTagDataEntry : IccTagDataEntry, IEquatable<IccTextTagDataEntry>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="IccTextTagDataEntry"/> class.
@@ -45,6 +47,12 @@ namespace ImageSharp
             }
 
             return false;
+        }
+
+        /// <inheritdoc />
+        public bool Equals(IccTextTagDataEntry other)
+        {
+            return this.Equals((IccTagDataEntry)other);
         }
     }
 }

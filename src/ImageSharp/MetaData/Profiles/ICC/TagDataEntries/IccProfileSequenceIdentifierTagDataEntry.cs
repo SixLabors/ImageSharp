@@ -5,13 +5,14 @@
 
 namespace ImageSharp
 {
+    using System;
     using System.Linq;
 
     /// <summary>
     /// This type is an array of structures, each of which contains information
     /// for identification of a profile used in a sequence.
     /// </summary>
-    internal sealed class IccProfileSequenceIdentifierTagDataEntry : IccTagDataEntry
+    internal sealed class IccProfileSequenceIdentifierTagDataEntry : IccTagDataEntry, IEquatable<IccProfileSequenceIdentifierTagDataEntry>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="IccProfileSequenceIdentifierTagDataEntry"/> class.
@@ -48,6 +49,12 @@ namespace ImageSharp
             }
 
             return false;
+        }
+
+        /// <inheritdoc />
+        public bool Equals(IccProfileSequenceIdentifierTagDataEntry other)
+        {
+            return this.Equals((IccTagDataEntry)other);
         }
     }
 }

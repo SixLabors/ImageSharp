@@ -5,12 +5,13 @@
 
 namespace ImageSharp
 {
+    using System;
     using System.Linq;
 
     /// <summary>
     /// This type represents an array of bytes.
     /// </summary>
-    internal sealed class IccUInt8ArrayTagDataEntry : IccTagDataEntry
+    internal sealed class IccUInt8ArrayTagDataEntry : IccTagDataEntry, IEquatable<IccUInt8ArrayTagDataEntry>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="IccUInt8ArrayTagDataEntry"/> class.
@@ -47,6 +48,12 @@ namespace ImageSharp
             }
 
             return false;
+        }
+
+        /// <inheritdoc />
+        public bool Equals(IccUInt8ArrayTagDataEntry other)
+        {
+            return this.Equals((IccTagDataEntry)other);
         }
     }
 }

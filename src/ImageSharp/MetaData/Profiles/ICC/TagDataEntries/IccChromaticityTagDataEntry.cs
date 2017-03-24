@@ -12,7 +12,7 @@ namespace ImageSharp
     /// The chromaticity tag type provides basic chromaticity data
     /// and type of phosphors or colorants of a monitor to applications and utilities.
     /// </summary>
-    internal sealed class IccChromaticityTagDataEntry : IccTagDataEntry
+    internal sealed class IccChromaticityTagDataEntry : IccTagDataEntry, IEquatable<IccChromaticityTagDataEntry>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="IccChromaticityTagDataEntry"/> class.
@@ -94,6 +94,12 @@ namespace ImageSharp
             }
 
             return false;
+        }
+
+        /// <inheritdoc />
+        public bool Equals(IccChromaticityTagDataEntry other)
+        {
+            return this.Equals((IccTagDataEntry)other);
         }
 
         private static double[][] GetColorantArray(IccColorantEncoding colorantType)

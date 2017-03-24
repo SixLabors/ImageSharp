@@ -120,14 +120,14 @@ namespace ImageSharp
             if (isSingle)
             {
                 count += this.WriteSingle(value.X);
-                count += this.WriteSingle(value.X);
-                count += this.WriteSingle(value.X);
+                count += this.WriteSingle(value.Y);
+                count += this.WriteSingle(value.Z);
             }
             else
             {
                 count += this.WriteFix16(value.X);
-                count += this.WriteFix16(value.X);
-                count += this.WriteFix16(value.X);
+                count += this.WriteFix16(value.Y);
+                count += this.WriteFix16(value.Z);
             }
 
             return count;

@@ -12,7 +12,7 @@ namespace ImageSharp
     /// <summary>
     /// This structure represents a color transform.
     /// </summary>
-    internal sealed class IccLutBToATagDataEntry : IccTagDataEntry
+    internal sealed class IccLutBToATagDataEntry : IccTagDataEntry, IEquatable<IccLutBToATagDataEntry>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="IccLutBToATagDataEntry"/> class.
@@ -162,6 +162,12 @@ namespace ImageSharp
             }
 
             return false;
+        }
+
+        /// <inheritdoc />
+        public bool Equals(IccLutBToATagDataEntry other)
+        {
+            return this.Equals((IccTagDataEntry)other);
         }
 
         private bool EqualsCurve(IccTagDataEntry[] thisCurves, IccTagDataEntry[] entryCurves)

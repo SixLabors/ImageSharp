@@ -5,13 +5,14 @@
 
 namespace ImageSharp
 {
+    using System;
     using System.Linq;
 
     /// <summary>
     /// This tag specifies the laydown order in which colorants
     /// will be printed on an n-colorant device.
     /// </summary>
-    internal sealed class IccColorantOrderTagDataEntry : IccTagDataEntry
+    internal sealed class IccColorantOrderTagDataEntry : IccTagDataEntry, IEquatable<IccColorantOrderTagDataEntry>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="IccColorantOrderTagDataEntry"/> class.
@@ -50,6 +51,12 @@ namespace ImageSharp
             }
 
             return false;
+        }
+
+        /// <inheritdoc />
+        public bool Equals(IccColorantOrderTagDataEntry other)
+        {
+            return this.Equals((IccTagDataEntry)other);
         }
     }
 }

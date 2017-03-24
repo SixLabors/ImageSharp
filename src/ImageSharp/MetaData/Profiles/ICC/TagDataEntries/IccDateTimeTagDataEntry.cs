@@ -10,7 +10,7 @@ namespace ImageSharp
     /// <summary>
     /// This type is a representation of the time and date.
     /// </summary>
-    internal sealed class IccDateTimeTagDataEntry : IccTagDataEntry
+    internal sealed class IccDateTimeTagDataEntry : IccTagDataEntry, IEquatable<IccDateTimeTagDataEntry>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="IccDateTimeTagDataEntry"/> class.
@@ -46,6 +46,12 @@ namespace ImageSharp
             }
 
             return false;
+        }
+
+        /// <inheritdoc />
+        public bool Equals(IccDateTimeTagDataEntry other)
+        {
+            return this.Equals((IccTagDataEntry)other);
         }
     }
 }

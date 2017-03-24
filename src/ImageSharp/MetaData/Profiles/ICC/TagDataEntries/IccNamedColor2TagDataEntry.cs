@@ -5,13 +5,14 @@
 
 namespace ImageSharp
 {
+    using System;
     using System.Linq;
 
     /// <summary>
     /// The namedColor2Type is a count value and array of structures
     /// that provide color coordinates for color names.
     /// </summary>
-    internal sealed class IccNamedColor2TagDataEntry : IccTagDataEntry
+    internal sealed class IccNamedColor2TagDataEntry : IccTagDataEntry, IEquatable<IccNamedColor2TagDataEntry>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="IccNamedColor2TagDataEntry"/> class.
@@ -132,6 +133,12 @@ namespace ImageSharp
             }
 
             return false;
+        }
+
+        /// <inheritdoc />
+        public bool Equals(IccNamedColor2TagDataEntry other)
+        {
+            return this.Equals((IccTagDataEntry)other);
         }
     }
 }

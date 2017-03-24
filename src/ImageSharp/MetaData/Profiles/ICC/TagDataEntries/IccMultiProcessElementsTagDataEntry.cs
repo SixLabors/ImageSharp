@@ -5,13 +5,14 @@
 
 namespace ImageSharp
 {
+    using System;
     using System.Linq;
 
     /// <summary>
     /// This structure represents a color transform, containing
     /// a sequence of processing elements.
     /// </summary>
-    internal sealed class IccMultiProcessElementsTagDataEntry : IccTagDataEntry
+    internal sealed class IccMultiProcessElementsTagDataEntry : IccTagDataEntry, IEquatable<IccMultiProcessElementsTagDataEntry>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="IccMultiProcessElementsTagDataEntry"/> class.
@@ -67,6 +68,12 @@ namespace ImageSharp
             }
 
             return false;
+        }
+
+        /// <inheritdoc />
+        public bool Equals(IccMultiProcessElementsTagDataEntry other)
+        {
+            return this.Equals((IccTagDataEntry)other);
         }
     }
 }

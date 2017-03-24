@@ -5,6 +5,7 @@
 
 namespace ImageSharp
 {
+    using System;
     using System.Linq;
 
     /// <summary>
@@ -13,7 +14,7 @@ namespace ImageSharp
     /// lutAToBType, lutBToAType or multiProcessElementsType tags so that corrections can
     /// be made for variation in the device without having to produce a new profile.
     /// </summary>
-    internal sealed class IccResponseCurveSet16TagDataEntry : IccTagDataEntry
+    internal sealed class IccResponseCurveSet16TagDataEntry : IccTagDataEntry, IEquatable<IccResponseCurveSet16TagDataEntry>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="IccResponseCurveSet16TagDataEntry"/> class.
@@ -61,6 +62,12 @@ namespace ImageSharp
             }
 
             return false;
+        }
+
+        /// <inheritdoc />
+        public bool Equals(IccResponseCurveSet16TagDataEntry other)
+        {
+            return this.Equals((IccTagDataEntry)other);
         }
     }
 }

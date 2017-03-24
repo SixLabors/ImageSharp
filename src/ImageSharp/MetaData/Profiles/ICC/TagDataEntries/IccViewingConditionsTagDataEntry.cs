@@ -5,12 +5,13 @@
 
 namespace ImageSharp
 {
+    using System;
     using System.Numerics;
 
     /// <summary>
     /// This type represents a set of viewing condition parameters.
     /// </summary>
-    internal sealed class IccViewingConditionsTagDataEntry : IccTagDataEntry
+    internal sealed class IccViewingConditionsTagDataEntry : IccTagDataEntry, IEquatable<IccViewingConditionsTagDataEntry>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="IccViewingConditionsTagDataEntry"/> class.
@@ -64,6 +65,12 @@ namespace ImageSharp
             }
 
             return false;
+        }
+
+        /// <inheritdoc />
+        public bool Equals(IccViewingConditionsTagDataEntry other)
+        {
+            return this.Equals((IccTagDataEntry)other);
         }
     }
 }

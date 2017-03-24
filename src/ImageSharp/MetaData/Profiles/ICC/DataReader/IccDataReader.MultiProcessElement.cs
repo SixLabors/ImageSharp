@@ -27,7 +27,7 @@ namespace ImageSharp
                 case IccMultiProcessElementSignature.Matrix:
                     return this.ReadMatrixProcessElement(inChannelCount, outChannelCount);
                 case IccMultiProcessElementSignature.Clut:
-                    return this.ReadCLUTProcessElement(inChannelCount, outChannelCount);
+                    return this.ReadClutProcessElement(inChannelCount, outChannelCount);
 
                 // Currently just placeholders for future ICC expansion
                 case IccMultiProcessElementSignature.BAcs:
@@ -76,12 +76,12 @@ namespace ImageSharp
         /// <summary>
         /// Reads a CLUT <see cref="IccMultiProcessElement"/>
         /// </summary>
-        /// <param name="inChCount">Number of input channels</param>
-        /// <param name="outChCount">Number of output channels</param>
+        /// <param name="inChannelCount">Number of input channels</param>
+        /// <param name="outChannelCount">Number of output channels</param>
         /// <returns>The read <see cref="IccClutProcessElement"/></returns>
-        public IccClutProcessElement ReadCLUTProcessElement(int inChCount, int outChCount)
+        public IccClutProcessElement ReadClutProcessElement(int inChannelCount, int outChannelCount)
         {
-            return new IccClutProcessElement(this.ReadCLUT(inChCount, outChCount, true));
+            return new IccClutProcessElement(this.ReadClut(inChannelCount, outChannelCount, true));
         }
     }
 }

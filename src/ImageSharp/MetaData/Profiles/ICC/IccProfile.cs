@@ -49,6 +49,20 @@ namespace ImageSharp
         }
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="IccProfile"/> class.
+        /// </summary>
+        /// <param name="header">The profile header</param>
+        /// <param name="entries">The actual profile data</param>
+        internal IccProfile(IccProfileHeader header, IEnumerable<IccTagDataEntry> entries)
+        {
+            Guard.NotNull(header, nameof(header));
+            Guard.NotNull(entries, nameof(entries));
+
+            this.header = header;
+            this.entries = new List<IccTagDataEntry>(entries);
+        }
+
+        /// <summary>
         /// Gets or sets the profile header
         /// </summary>
         public IccProfileHeader Header

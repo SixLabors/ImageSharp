@@ -1,4 +1,9 @@
-﻿namespace ImageSharp
+﻿// <copyright file="IccDataWriter.cs" company="James Jackson-South">
+// Copyright (c) James Jackson-South and contributors.
+// Licensed under the Apache License, Version 2.0.
+// </copyright>
+
+namespace ImageSharp
 {
     using System;
     using System.Linq;

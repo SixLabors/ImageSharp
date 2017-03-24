@@ -90,7 +90,7 @@ namespace ImageSharp
             if (base.Equals(other) && other is IccChromaticityTagDataEntry entry)
             {
                 return this.ColorantType == entry.ColorantType
-                    && this.ChannelValues.SequenceEqual(entry.ChannelValues);
+                    && this.EqualsChannelValues(entry);
             }
 
             return false;
@@ -137,6 +137,24 @@ namespace ImageSharp
                 default:
                     throw new ArgumentException("Unrecognized colorant encoding");
             }
+        }
+
+        private bool EqualsChannelValues(IccChromaticityTagDataEntry entry)
+        {
+            if (this.ChannelValues.Length != entry.ChannelValues.Length)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < this.ChannelValues.Length; i++)
+            {
+                if (!this.ChannelValues[i].SequenceEqual(entry.ChannelValues[i]))
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
     }
 }

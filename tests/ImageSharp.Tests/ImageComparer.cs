@@ -9,10 +9,29 @@
     /// </summary>
     public static class ImageComparer
     {
-        const int DefaultScalingFactor = 32;
-        const int DefaultSegmentThreshold = 3;
-        const float DefaultImageThreshold = 0.000f;
+        const int DefaultScalingFactor = 32; // this is means the images get scaled into a 32x32 image to sample pixels
+        const int DefaultSegmentThreshold = 3; // the greyscale difference between 2 segements my be > 3 before it influances the overall difference
+        const float DefaultImageThreshold = 0.000f; // after segment threasholds the images must have no differences
 
+        /// <summary>
+        /// Does a visual comparison between 2 images and then asserts the difference is less then a configurable threshold
+        /// </summary>
+        /// <typeparam name="TColorA">The color of the expected image</typeparam>
+        /// <typeparam name="TColorB">The color type fo the the actual image</typeparam>
+        /// <param name="expected">The expected image</param>
+        /// <param name="actual">The actual image</param>
+        /// <param name="imageTheshold">
+        /// The threshold for the percentage difference where the images are asumed to be the same.
+        /// The default/undefined value is <see cref="ImageComparer.DefaultImageThreshold"/>
+        /// </param>
+        /// <param name="segmentThreshold">
+        /// The threashold of the individual segments before it acumulates towards the overall difference.
+        /// The default undefined value is <see cref="ImageComparer.DefaultSegmentThreshold"/>
+        /// </param>
+        /// <param name="scalingFactor">
+        /// This is a sampling factor we sample a grid of average pixels <paramref name="scalingFactor"/> width by <paramref name="scalingFactor"/> high
+        /// The default undefined value is <see cref="ImageComparer.DefaultScalingFactor"/>
+        /// </param>
         public static void VisualComparer<TColorA, TColorB>(Image<TColorA> expected, Image<TColorB> actual, float imageTheshold = DefaultImageThreshold, byte segmentThreshold = DefaultSegmentThreshold, int scalingFactor = DefaultScalingFactor)
            where TColorA : struct, IPixel<TColorA>
            where TColorB : struct, IPixel<TColorB>
@@ -22,6 +41,22 @@
             Assert.InRange(percentage, 0, imageTheshold);
         }
 
+        /// <summary>
+        /// Does a visual comparison between 2 images and then and returns the percentage diffence between the 2
+        /// </summary>
+        /// <typeparam name="TColorA">The color of the source image</typeparam>
+        /// <typeparam name="TColorB">The color type for the target image</typeparam>
+        /// <param name="source">The source image</param>
+        /// <param name="target">The target image</param>
+        /// <param name="segmentThreshold">
+        /// The threashold of the individual segments before it acumulates towards the overall difference.
+        /// The default undefined value is <see cref="ImageComparer.DefaultSegmentThreshold"/>
+        /// </param>
+        /// <param name="scalingFactor">
+        /// This is a sampling factor we sample a grid of average pixels <paramref name="scalingFactor"/> width by <paramref name="scalingFactor"/> high
+        /// The default undefined value is <see cref="ImageComparer.DefaultScalingFactor"/>
+        /// </param>
+        /// <returns>Returns a number from 0 - 1 which represents the diference focter between the images.</returns>
         public static float PercentageDifference<TColorA, TColorB>(this Image<TColorA> source, Image<TColorB> target, byte segmentThreshold = DefaultSegmentThreshold, int scalingFactor = DefaultScalingFactor)
             where TColorA : struct, IPixel<TColorA>
             where TColorB : struct, IPixel<TColorB>

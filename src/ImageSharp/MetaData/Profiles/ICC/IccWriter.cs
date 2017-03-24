@@ -33,7 +33,7 @@ namespace ImageSharp
         {
             writer.SetIndex(0);
 
-            writer.WriteUInt32(writer.Length + 128);
+            writer.WriteUInt32(writer.Length);
             writer.WriteAsciiString(header.CmmType, 4, false);
             writer.WriteVersionNumber(header.Version);
             writer.WriteUInt32((uint)header.Class);

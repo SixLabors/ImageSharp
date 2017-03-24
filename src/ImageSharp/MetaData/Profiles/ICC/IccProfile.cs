@@ -49,7 +49,7 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Gets the profile header
+        /// Gets or sets the profile header
         /// </summary>
         public IccProfileHeader Header
         {
@@ -57,6 +57,11 @@ namespace ImageSharp
             {
                 this.InitializeHeader();
                 return this.header;
+            }
+
+            set
+            {
+                this.header = value;
             }
         }
 

@@ -173,7 +173,7 @@ namespace ImageSharp
         /// </summary>
         /// <param name="value">the string to write</param>
         /// <returns>the number of bytes written</returns>
-        public int WriteASCIIString(string value)
+        public int WriteAsciiString(string value)
         {
             byte[] data = AsciiEncoding.GetBytes(value);
             this.dataStream.Write(data, 0, data.Length);
@@ -187,7 +187,7 @@ namespace ImageSharp
         /// <param name="length">The desired length of the string including 1 padding character</param>
         /// <param name="paddingChar">The character to pad to the given length</param>
         /// <returns>the number of bytes written</returns>
-        public int WriteASCIIString(string value, int length, char paddingChar)
+        public int WriteAsciiString(string value, int length, char paddingChar)
         {
             value = value.Substring(0, Math.Min(length - 1, value.Length));
 

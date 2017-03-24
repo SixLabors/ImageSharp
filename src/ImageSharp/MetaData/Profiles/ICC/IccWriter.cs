@@ -34,21 +34,21 @@ namespace ImageSharp
             writer.SetIndex(0);
 
             writer.WriteUInt32(writer.Length + 128);
-            writer.WriteASCIIString(header.CmmType, 4, ' ');
+            writer.WriteAsciiString(header.CmmType, 4, ' ');
             writer.WriteVersionNumber(header.Version);
             writer.WriteUInt32((uint)header.Class);
             writer.WriteUInt32((uint)header.DataColorSpace);
             writer.WriteUInt32((uint)header.ProfileConnectionSpace);
             writer.WriteDateTime(header.CreationDate);
-            writer.WriteASCIIString("acsp");
+            writer.WriteAsciiString("acsp");
             writer.WriteUInt32((uint)header.PrimaryPlatformSignature);
             writer.WriteInt32((int)header.Flags);
             writer.WriteUInt32(header.DeviceManufacturer);
             writer.WriteUInt32(header.DeviceModel);
             writer.WriteInt64((long)header.DeviceAttributes);
             writer.WriteUInt32((uint)header.RenderingIntent);
-            writer.WriteXYZNumber(header.PcsIlluminant);
-            writer.WriteASCIIString(header.CreatorSignature, 4, ' ');
+            writer.WriteXyzNumber(header.PcsIlluminant);
+            writer.WriteAsciiString(header.CreatorSignature, 4, ' ');
 
 #if !NETSTANDARD1_1
             IccProfileId id = IccProfile.CalculateHash(writer.GetData());

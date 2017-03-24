@@ -196,7 +196,7 @@ namespace ImageSharp
             int count = this.WriteUInt32((uint)value.ColorantData.Length);
             foreach (IccColorantTableEntry colorant in value.ColorantData)
             {
-                count += this.WriteASCIIString(colorant.Name, 32, '\0');
+                count += this.WriteAsciiString(colorant.Name, 32, '\0');
                 count += this.WriteUInt16(colorant.Pcs1);
                 count += this.WriteUInt16(colorant.Pcs2);
                 count += this.WriteUInt16(colorant.Pcs3);
@@ -278,14 +278,14 @@ namespace ImageSharp
 
             foreach (IccLut lut in value.InputValues)
             {
-                count += this.WriteLUT16(lut);
+                count += this.WriteLut16(lut);
             }
 
-            count += this.WriteCLUT16(value.ClutValues);
+            count += this.WriteClut16(value.ClutValues);
 
             foreach (IccLut lut in value.OutputValues)
             {
-                count += this.WriteLUT16(lut);
+                count += this.WriteLut16(lut);
             }
 
             return count;
@@ -307,14 +307,14 @@ namespace ImageSharp
 
             foreach (IccLut lut in value.InputValues)
             {
-                count += this.WriteLUT8(lut);
+                count += this.WriteLut8(lut);
             }
 
-            count += this.WriteCLUT8(value.ClutValues);
+            count += this.WriteClut8(value.ClutValues);
 
             foreach (IccLut lut in value.OutputValues)
             {
-                count += this.WriteLUT8(lut);
+                count += this.WriteLut8(lut);
             }
 
             return count;
@@ -368,7 +368,7 @@ namespace ImageSharp
             if (value.ClutValues != null)
             {
                 clutOffset = this.dataStream.Position;
-                count += this.WriteCLUT(value.ClutValues);
+                count += this.WriteClut(value.ClutValues);
                 count += this.WritePadding();
             }
 
@@ -466,7 +466,7 @@ namespace ImageSharp
             if (value.ClutValues != null)
             {
                 clutOffset = this.dataStream.Position;
-                count += this.WriteCLUT(value.ClutValues);
+                count += this.WriteClut(value.ClutValues);
                 count += this.WritePadding();
             }
 
@@ -524,7 +524,7 @@ namespace ImageSharp
         public int WriteMeasurementTagDataEntry(IccMeasurementTagDataEntry value)
         {
             return this.WriteUInt32((uint)value.Observer)
-                 + this.WriteXYZNumber(value.XyzBacking)
+                 + this.WriteXyzNumber(value.XyzBacking)
                  + this.WriteUInt32((uint)value.Geometry)
                  + this.WriteUFix16(value.Flare)
                  + this.WriteUInt32((uint)value.Illuminant);
@@ -564,8 +564,8 @@ namespace ImageSharp
             {
                 string[] code = value.Texts[i].Culture.Name.Split('-');
 
-                count += this.WriteASCIIString(code[0].ToLower(), 2, ' ');
-                count += this.WriteASCIIString(code[1].ToUpper(), 2, ' ');
+                count += this.WriteAsciiString(code[0].ToLower(), 2, ' ');
+                count += this.WriteAsciiString(code[1].ToUpper(), 2, ' ');
 
                 count += this.WriteUInt32((uint)lengths[i]);
                 count += this.WriteUInt32(offset[i]);
@@ -624,8 +624,8 @@ namespace ImageSharp
             int count = this.WriteInt32(value.VendorFlags)
                       + this.WriteUInt32((uint)value.Colors.Length)
                       + this.WriteUInt32((uint)value.CoordinateCount)
-                      + this.WriteASCIIString(value.Prefix, 32, '\0')
-                      + this.WriteASCIIString(value.Suffix, 32, '\0');
+                      + this.WriteAsciiString(value.Prefix, 32, '\0')
+                      + this.WriteAsciiString(value.Suffix, 32, '\0');
 
             foreach (IccNamedColor color in value.Colors)
             {
@@ -757,7 +757,7 @@ namespace ImageSharp
         /// <returns>The number of bytes written</returns>
         public int WriteSignatureTagDataEntry(IccSignatureTagDataEntry value)
         {
-            return this.WriteASCIIString(value.SignatureData, 4, ' ');
+            return this.WriteAsciiString(value.SignatureData, 4, ' ');
         }
 
         /// <summary>
@@ -767,7 +767,7 @@ namespace ImageSharp
         /// <returns>The number of bytes written</returns>
         public int WriteTextTagDataEntry(IccTextTagDataEntry value)
         {
-            return this.WriteASCIIString(value.Text);
+            return this.WriteAsciiString(value.Text);
         }
 
         /// <summary>
@@ -833,8 +833,8 @@ namespace ImageSharp
         /// <returns>The number of bytes written</returns>
         public int WriteViewingConditionsTagDataEntry(IccViewingConditionsTagDataEntry value)
         {
-            return this.WriteXYZNumber(value.IlluminantXyz)
-                 + this.WriteXYZNumber(value.SurroundXyz)
+            return this.WriteXyzNumber(value.IlluminantXyz)
+                 + this.WriteXyzNumber(value.SurroundXyz)
                  + this.WriteUInt32((uint)value.Illuminant);
         }
 
@@ -848,7 +848,7 @@ namespace ImageSharp
             int count = 0;
             for (int i = 0; i < value.Data.Length; i++)
             {
-                count += this.WriteXYZNumber(value.Data[i]);
+                count += this.WriteXyzNumber(value.Data[i]);
             }
 
             return count;
@@ -870,7 +870,7 @@ namespace ImageSharp
             else
             {
                 this.dataStream.Position += 4;
-                count += size = this.WriteASCIIString(value.Ascii + '\0');
+                count += size = this.WriteAsciiString(value.Ascii + '\0');
                 this.dataStream.Position -= size + 4;
                 count += this.WriteUInt32((uint)size);
                 this.dataStream.Position += size;
@@ -900,7 +900,7 @@ namespace ImageSharp
             else
             {
                 this.dataStream.Position += 3;
-                count += size = this.WriteASCIIString(value.ScriptCode, 67, '\0');
+                count += size = this.WriteAsciiString(value.ScriptCode, 67, '\0');
                 this.dataStream.Position -= size + 3;
                 count += this.WriteUInt16(value.ScriptCodeCode);
                 count += this.WriteByte((byte)(value.ScriptCode.Length > 66 ? 67 : value.ScriptCode.Length));

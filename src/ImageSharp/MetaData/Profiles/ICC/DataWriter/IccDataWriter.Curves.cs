@@ -52,7 +52,7 @@ namespace ImageSharp
 
             foreach (Vector3 xyz in value.XyzValues)
             {
-                count += this.WriteXYZNumber(xyz);
+                count += this.WriteXyzNumber(xyz);
             }
 
             foreach (IccResponseNumber[] responseArray in value.ResponseArrays)

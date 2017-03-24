@@ -28,7 +28,7 @@ namespace ImageSharp
                 case IccMultiProcessElementSignature.Matrix:
                     return count + this.WriteMatrixProcessElement(value as IccMatrixProcessElement);
                 case IccMultiProcessElementSignature.Clut:
-                    return count + this.WriteCLUTProcessElement(value as IccClutProcessElement);
+                    return count + this.WriteClutProcessElement(value as IccClutProcessElement);
 
                 case IccMultiProcessElementSignature.BAcs:
                 case IccMultiProcessElementSignature.EAcs:
@@ -72,9 +72,9 @@ namespace ImageSharp
         /// </summary>
         /// <param name="value">The element to write</param>
         /// <returns>The number of bytes written</returns>
-        public int WriteCLUTProcessElement(IccClutProcessElement value)
+        public int WriteClutProcessElement(IccClutProcessElement value)
         {
-            return this.WriteCLUT(value.ClutValue);
+            return this.WriteClut(value.ClutValue);
         }
     }
 }

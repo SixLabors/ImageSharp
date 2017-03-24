@@ -18,11 +18,11 @@ namespace ImageSharp
         /// <summary>
         /// Profile is embedded within another file
         /// </summary>
-        Embedded = 1 << 31,
+        Embedded = 1 << 0,
 
         /// <summary>
         /// Profile cannot be used independently of the embedded colour data
         /// </summary>
-        Independent = 1 << 30,
+        Independent = 1 << 1,
     }
 }

@@ -49,7 +49,7 @@ namespace ImageSharp
         /// </summary>
         /// <param name="value">The value to write</param>
         /// <returns>the number of bytes written</returns>
-        public int WriteXYZNumber(Vector3 value)
+        public int WriteXyzNumber(Vector3 value)
         {
             return this.WriteFix16(value.X)
                  + this.WriteFix16(value.Y)
@@ -98,7 +98,7 @@ namespace ImageSharp
         /// <returns>the number of bytes written</returns>
         public int WriteNamedColor(IccNamedColor value)
         {
-            return this.WriteASCIIString(value.Name, 32, '\0')
+            return this.WriteAsciiString(value.Name, 32, '\0')
                  + this.WriteArray(value.PcsCoordinates)
                  + this.WriteArray(value.DeviceCoordinates);
         }

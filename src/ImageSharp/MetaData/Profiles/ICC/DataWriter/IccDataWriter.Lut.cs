@@ -15,7 +15,7 @@ namespace ImageSharp
         /// </summary>
         /// <param name="value">The LUT to write</param>
         /// <returns>The number of bytes written</returns>
-        public int WriteLUT8(IccLut value)
+        public int WriteLut8(IccLut value)
         {
             foreach (double item in value.Values)
             {
@@ -30,7 +30,7 @@ namespace ImageSharp
         /// </summary>
         /// <param name="value">The LUT to write</param>
         /// <returns>The number of bytes written</returns>
-        public int WriteLUT16(IccLut value)
+        public int WriteLut16(IccLut value)
         {
             foreach (double item in value.Values)
             {
@@ -45,7 +45,7 @@ namespace ImageSharp
         /// </summary>
         /// <param name="value">The CLUT to write</param>
         /// <returns>The number of bytes written</returns>
-        public int WriteCLUT(IccClut value)
+        public int WriteClut(IccClut value)
         {
             int count = this.WriteArray(value.GridPointCount);
             count += this.WriteEmpty(16 - value.GridPointCount.Length);
@@ -53,15 +53,15 @@ namespace ImageSharp
             switch (value.DataType)
             {
                 case IccClutDataType.Float:
-                    return count + this.WriteCLUTf32(value);
+                    return count + this.WriteClutF32(value);
                 case IccClutDataType.UInt8:
                     count += this.WriteByte(1);
                     count += this.WriteEmpty(3);
-                    return count + this.WriteCLUT8(value);
+                    return count + this.WriteClut8(value);
                 case IccClutDataType.UInt16:
                     count += this.WriteByte(2);
                     count += this.WriteEmpty(3);
-                    return count + this.WriteCLUT16(value);
+                    return count + this.WriteClut16(value);
 
                 default:
                     throw new InvalidIccProfileException($"Invalid CLUT data type of {value.DataType}");
@@ -73,7 +73,7 @@ namespace ImageSharp
         /// </summary>
         /// <param name="value">The CLUT to write</param>
         /// <returns>The number of bytes written</returns>
-        public int WriteCLUT8(IccClut value)
+        public int WriteClut8(IccClut value)
         {
             int count = 0;
             foreach (float[] inArray in value.Values)
@@ -92,7 +92,7 @@ namespace ImageSharp
         /// </summary>
         /// <param name="value">The CLUT to write</param>
         /// <returns>The number of bytes written</returns>
-        public int WriteCLUT16(IccClut value)
+        public int WriteClut16(IccClut value)
         {
             int count = 0;
             foreach (float[] inArray in value.Values)
@@ -111,7 +111,7 @@ namespace ImageSharp
         /// </summary>
         /// <param name="value">The CLUT to write</param>
         /// <returns>The number of bytes written</returns>
-        public int WriteCLUTf32(IccClut value)
+        public int WriteClutF32(IccClut value)
         {
             int count = 0;
             foreach (float[] inArray in value.Values)

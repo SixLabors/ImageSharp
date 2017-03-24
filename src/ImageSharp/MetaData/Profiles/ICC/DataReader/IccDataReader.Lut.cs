@@ -16,7 +16,7 @@ namespace ImageSharp
         /// Reads an 8bit lookup table
         /// </summary>
         /// <returns>The read LUT</returns>
-        public IccLut ReadLUT8()
+        public IccLut ReadLut8()
         {
             return new IccLut(this.ReadBytes(256));
         }
@@ -26,7 +26,7 @@ namespace ImageSharp
         /// </summary>
         /// <param name="count">The number of entries</param>
         /// <returns>The read LUT</returns>
-        public IccLut ReadLUT16(int count)
+        public IccLut ReadLut16(int count)
         {
             ushort[] values = new ushort[count];
             for (int i = 0; i < count; i++)
@@ -56,11 +56,11 @@ namespace ImageSharp
                 byte size = this.data[this.AddIndex(4)];   // First byte is info, last 3 bytes are reserved
                 if (size == 1)
                 {
-                    return this.ReadCLUT8(inChannelCount, outChannelCount, gridPointCount);
+                    return this.ReadClut8(inChannelCount, outChannelCount, gridPointCount);
                 }
                 else if (size == 2)
                 {
-                    return this.ReadCLUT16(inChannelCount, outChannelCount, gridPointCount);
+                    return this.ReadClut16(inChannelCount, outChannelCount, gridPointCount);
                 }
                 else
                 {
@@ -69,7 +69,7 @@ namespace ImageSharp
             }
             else
             {
-                return this.ReadCLUTf32(inChannelCount, outChannelCount, gridPointCount);
+                return this.ReadClutF32(inChannelCount, outChannelCount, gridPointCount);
             }
         }
 
@@ -80,7 +80,7 @@ namespace ImageSharp
         /// <param name="outChannelCount">Output channel count</param>
         /// <param name="gridPointCount">Grid point count for each CLUT channel</param>
         /// <returns>The read CLUT8</returns>
-        public IccClut ReadCLUT8(int inChannelCount, int outChannelCount, byte[] gridPointCount)
+        public IccClut ReadClut8(int inChannelCount, int outChannelCount, byte[] gridPointCount)
         {
             int start = this.index;
             int length = 0;
@@ -114,7 +114,7 @@ namespace ImageSharp
         /// <param name="outChannelCount">Output channel count</param>
         /// <param name="gridPointCount">Grid point count for each CLUT channel</param>
         /// <returns>The read CLUT16</returns>
-        public IccClut ReadCLUT16(int inChannelCount, int outChannelCount, byte[] gridPointCount)
+        public IccClut ReadClut16(int inChannelCount, int outChannelCount, byte[] gridPointCount)
         {
             int start = this.index;
             int length = 0;
@@ -148,7 +148,7 @@ namespace ImageSharp
         /// <param name="outChCount">Output channel count</param>
         /// <param name="gridPointCount">Grid point count for each CLUT channel</param>
         /// <returns>The read CLUTf32</returns>
-        public IccClut ReadCLUTf32(int inChCount, int outChCount, byte[] gridPointCount)
+        public IccClut ReadClutF32(int inChCount, int outChCount, byte[] gridPointCount)
         {
             int start = this.index;
             int length = 0;

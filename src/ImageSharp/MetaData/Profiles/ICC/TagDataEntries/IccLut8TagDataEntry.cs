@@ -5,6 +5,7 @@
 
 namespace ImageSharp
 {
+    using System;
     using System.Linq;
     using System.Numerics;
 
@@ -12,7 +13,7 @@ namespace ImageSharp
     /// This structure represents a color transform using tables
     /// with 8-bit precision.
     /// </summary>
-    internal sealed class IccLut8TagDataEntry : IccTagDataEntry
+    internal sealed class IccLut8TagDataEntry : IccTagDataEntry, IEquatable<IccLut8TagDataEntry>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="IccLut8TagDataEntry"/> class.
@@ -128,6 +129,12 @@ namespace ImageSharp
             }
 
             return false;
+        }
+
+        /// <inheritdoc />
+        public bool Equals(IccLut8TagDataEntry other)
+        {
+            return this.Equals((IccTagDataEntry)other);
         }
 
         private Matrix4x4 CreateMatrix(float[,] matrix)

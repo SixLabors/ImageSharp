@@ -5,6 +5,7 @@
 
 namespace ImageSharp
 {
+    using System;
     using System.Numerics;
 
     /// <summary>
@@ -12,7 +13,7 @@ namespace ImageSharp
     /// profile data and is meant to provide profile makers an alternative
     /// to the default measurement specifications.
     /// </summary>
-    internal sealed class IccMeasurementTagDataEntry : IccTagDataEntry
+    internal sealed class IccMeasurementTagDataEntry : IccTagDataEntry, IEquatable<IccMeasurementTagDataEntry>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="IccMeasurementTagDataEntry"/> class.
@@ -84,6 +85,12 @@ namespace ImageSharp
             }
 
             return false;
+        }
+
+        /// <inheritdoc />
+        public bool Equals(IccMeasurementTagDataEntry other)
+        {
+            return this.Equals((IccTagDataEntry)other);
         }
     }
 }

@@ -5,13 +5,14 @@
 
 namespace ImageSharp
 {
+    using System;
     using System.Linq;
     using System.Numerics;
 
     /// <summary>
     /// The XYZType contains an array of XYZ values.
     /// </summary>
-    internal sealed class IccXyzTagDataEntry : IccTagDataEntry
+    internal sealed class IccXyzTagDataEntry : IccTagDataEntry, IEquatable<IccXyzTagDataEntry>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="IccXyzTagDataEntry"/> class.
@@ -48,6 +49,12 @@ namespace ImageSharp
             }
 
             return false;
+        }
+
+        /// <inheritdoc />
+        public bool Equals(IccXyzTagDataEntry other)
+        {
+            return this.Equals((IccTagDataEntry)other);
         }
     }
 }

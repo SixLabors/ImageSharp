@@ -5,10 +5,12 @@
 
 namespace ImageSharp
 {
+    using System;
+
     /// <summary>
     /// The TextDescriptionType contains three types of text description.
     /// </summary>
-    internal sealed class IccTextDescriptionTagDataEntry : IccTagDataEntry
+    internal sealed class IccTextDescriptionTagDataEntry : IccTagDataEntry, IEquatable<IccTextDescriptionTagDataEntry>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="IccTextDescriptionTagDataEntry"/> class.
@@ -80,6 +82,12 @@ namespace ImageSharp
             }
 
             return false;
+        }
+
+        /// <inheritdoc />
+        public bool Equals(IccTextDescriptionTagDataEntry other)
+        {
+            return this.Equals((IccTagDataEntry)other);
         }
     }
 }

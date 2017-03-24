@@ -5,12 +5,13 @@
 
 namespace ImageSharp
 {
+    using System;
     using System.Linq;
 
     /// <summary>
     /// This type represents an array of unsigned 32bit integers.
     /// </summary>
-    internal sealed class IccUInt32ArrayTagDataEntry : IccTagDataEntry
+    internal sealed class IccUInt32ArrayTagDataEntry : IccTagDataEntry, IEquatable<IccUInt32ArrayTagDataEntry>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="IccUInt32ArrayTagDataEntry"/> class.
@@ -47,6 +48,12 @@ namespace ImageSharp
             }
 
             return false;
+        }
+
+        /// <inheritdoc />
+        public bool Equals(IccUInt32ArrayTagDataEntry other)
+        {
+            return this.Equals((IccTagDataEntry)other);
         }
     }
 }

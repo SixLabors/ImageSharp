@@ -5,6 +5,7 @@
 
 namespace ImageSharp
 {
+    using System;
     using System.Linq;
 
     /// <summary>
@@ -12,7 +13,7 @@ namespace ImageSharp
     /// the profile by a unique name and set of PCSXYZ or PCSLAB values
     /// to give the colorant an unambiguous value.
     /// </summary>
-    internal sealed class IccColorantTableTagDataEntry : IccTagDataEntry
+    internal sealed class IccColorantTableTagDataEntry : IccTagDataEntry, IEquatable<IccColorantTableTagDataEntry>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="IccColorantTableTagDataEntry"/> class.
@@ -51,6 +52,12 @@ namespace ImageSharp
             }
 
             return false;
+        }
+
+        /// <inheritdoc />
+        public bool Equals(IccColorantTableTagDataEntry other)
+        {
+            return this.Equals((IccTagDataEntry)other);
         }
     }
 }

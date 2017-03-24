@@ -5,11 +5,13 @@
 
 namespace ImageSharp
 {
+    using System;
+
     /// <summary>
     /// Typically this type is used for registered tags that can
     /// be displayed on many development systems as a sequence of four characters.
     /// </summary>
-    internal sealed class IccSignatureTagDataEntry : IccTagDataEntry
+    internal sealed class IccSignatureTagDataEntry : IccTagDataEntry, IEquatable<IccSignatureTagDataEntry>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="IccSignatureTagDataEntry"/> class.
@@ -46,6 +48,12 @@ namespace ImageSharp
             }
 
             return false;
+        }
+
+        /// <inheritdoc />
+        public bool Equals(IccSignatureTagDataEntry other)
+        {
+            return this.Equals((IccTagDataEntry)other);
         }
     }
 }

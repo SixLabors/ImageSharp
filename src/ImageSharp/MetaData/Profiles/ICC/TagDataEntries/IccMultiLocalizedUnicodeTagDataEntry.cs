@@ -5,13 +5,14 @@
 
 namespace ImageSharp
 {
+    using System;
     using System.Linq;
 
     /// <summary>
     /// This tag structure contains a set of records each referencing
     /// a multilingual string associated with a profile.
     /// </summary>
-    internal sealed class IccMultiLocalizedUnicodeTagDataEntry : IccTagDataEntry
+    internal sealed class IccMultiLocalizedUnicodeTagDataEntry : IccTagDataEntry, IEquatable<IccMultiLocalizedUnicodeTagDataEntry>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="IccMultiLocalizedUnicodeTagDataEntry"/> class.
@@ -48,6 +49,12 @@ namespace ImageSharp
             }
 
             return false;
+        }
+
+        /// <inheritdoc />
+        public bool Equals(IccMultiLocalizedUnicodeTagDataEntry other)
+        {
+            return this.Equals((IccTagDataEntry)other);
         }
     }
 }

@@ -5,10 +5,12 @@
 
 namespace ImageSharp
 {
+    using System;
+
     /// <summary>
     /// A placeholder <see cref="IccMultiProcessElement"/> (might be used for future ICC versions)
     /// </summary>
-    internal sealed class IccEAcsProcessElement : IccMultiProcessElement
+    internal sealed class IccEAcsProcessElement : IccMultiProcessElement, IEquatable<IccEAcsProcessElement>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="IccEAcsProcessElement"/> class.
@@ -18,6 +20,12 @@ namespace ImageSharp
         public IccEAcsProcessElement(int inChannelCount, int outChannelCount)
             : base(IccMultiProcessElementSignature.EAcs, inChannelCount, outChannelCount)
         {
+        }
+
+        /// <inheritdoc />
+        public bool Equals(IccEAcsProcessElement other)
+        {
+            return base.Equals(other);
         }
     }
 }

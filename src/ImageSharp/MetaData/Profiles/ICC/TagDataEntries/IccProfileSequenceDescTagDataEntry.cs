@@ -5,6 +5,7 @@
 
 namespace ImageSharp
 {
+    using System;
     using System.Linq;
 
     /// <summary>
@@ -12,7 +13,7 @@ namespace ImageSharp
     /// from the header fields and tags from the original profiles which were
     /// combined to create the final profile.
     /// </summary>
-    internal sealed class IccProfileSequenceDescTagDataEntry : IccTagDataEntry
+    internal sealed class IccProfileSequenceDescTagDataEntry : IccTagDataEntry, IEquatable<IccProfileSequenceDescTagDataEntry>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="IccProfileSequenceDescTagDataEntry"/> class.
@@ -49,6 +50,12 @@ namespace ImageSharp
             }
 
             return false;
+        }
+
+        /// <inheritdoc />
+        public bool Equals(IccProfileSequenceDescTagDataEntry other)
+        {
+            return this.Equals((IccTagDataEntry)other);
         }
     }
 }

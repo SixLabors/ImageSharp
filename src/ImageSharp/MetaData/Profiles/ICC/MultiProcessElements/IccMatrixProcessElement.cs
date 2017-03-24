@@ -5,12 +5,13 @@
 
 namespace ImageSharp
 {
+    using System;
     using System.Linq;
 
     /// <summary>
     /// A matrix element to process data
     /// </summary>
-    internal sealed class IccMatrixProcessElement : IccMultiProcessElement
+    internal sealed class IccMatrixProcessElement : IccMultiProcessElement, IEquatable<IccMatrixProcessElement>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="IccMatrixProcessElement"/> class.
@@ -50,6 +51,12 @@ namespace ImageSharp
             }
 
             return false;
+        }
+
+        /// <inheritdoc />
+        public bool Equals(IccMatrixProcessElement other)
+        {
+            return this.Equals((IccMultiProcessElement)other);
         }
 
         private bool EqualsMatrix(IccMatrixProcessElement element)

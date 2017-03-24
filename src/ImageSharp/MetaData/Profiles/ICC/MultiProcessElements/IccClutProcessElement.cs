@@ -5,10 +5,12 @@
 
 namespace ImageSharp
 {
+    using System;
+
     /// <summary>
     /// A CLUT (color lookup table) element to process data
     /// </summary>
-    internal sealed class IccClutProcessElement : IccMultiProcessElement
+    internal sealed class IccClutProcessElement : IccMultiProcessElement, IEquatable<IccClutProcessElement>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="IccClutProcessElement"/> class.
@@ -35,6 +37,12 @@ namespace ImageSharp
             }
 
             return false;
+        }
+
+        /// <inheritdoc />
+        public bool Equals(IccClutProcessElement other)
+        {
+            return this.Equals((IccMultiProcessElement)other);
         }
     }
 }

@@ -5,12 +5,13 @@
 
 namespace ImageSharp
 {
+    using System;
     using System.Linq;
 
     /// <summary>
     /// A set of curves to process data
     /// </summary>
-    internal sealed class IccCurveSetProcessElement : IccMultiProcessElement
+    internal sealed class IccCurveSetProcessElement : IccMultiProcessElement, IEquatable<IccCurveSetProcessElement>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="IccCurveSetProcessElement"/> class.
@@ -37,6 +38,12 @@ namespace ImageSharp
             }
 
             return false;
+        }
+
+        /// <inheritdoc />
+        public bool Equals(IccCurveSetProcessElement other)
+        {
+            return this.Equals((IccMultiProcessElement)other);
         }
     }
 }

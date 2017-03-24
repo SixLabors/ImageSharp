@@ -196,7 +196,7 @@ namespace ImageSharp
             int count = this.WriteUInt32((uint)value.ColorantData.Length);
             foreach (IccColorantTableEntry colorant in value.ColorantData)
             {
-                count += this.WriteAsciiString(colorant.Name, 32, '\0');
+                count += this.WriteAsciiString(colorant.Name, 32, true);
                 count += this.WriteUInt16(colorant.Pcs1);
                 count += this.WriteUInt16(colorant.Pcs2);
                 count += this.WriteUInt16(colorant.Pcs3);
@@ -564,8 +564,8 @@ namespace ImageSharp
             {
                 string[] code = value.Texts[i].Culture.Name.Split('-');
 
-                count += this.WriteAsciiString(code[0].ToLower(), 2, ' ');
-                count += this.WriteAsciiString(code[1].ToUpper(), 2, ' ');
+                count += this.WriteAsciiString(code[0].ToLower(), 2, false);
+                count += this.WriteAsciiString(code[1].ToUpper(), 2, false);
 
                 count += this.WriteUInt32((uint)lengths[i]);
                 count += this.WriteUInt32(offset[i]);
@@ -624,8 +624,8 @@ namespace ImageSharp
             int count = this.WriteInt32(value.VendorFlags)
                       + this.WriteUInt32((uint)value.Colors.Length)
                       + this.WriteUInt32((uint)value.CoordinateCount)
-                      + this.WriteAsciiString(value.Prefix, 32, '\0')
-                      + this.WriteAsciiString(value.Suffix, 32, '\0');
+                      + this.WriteAsciiString(value.Prefix, 32, true)
+                      + this.WriteAsciiString(value.Suffix, 32, true);
 
             foreach (IccNamedColor color in value.Colors)
             {
@@ -757,7 +757,7 @@ namespace ImageSharp
         /// <returns>The number of bytes written</returns>
         public int WriteSignatureTagDataEntry(IccSignatureTagDataEntry value)
         {
-            return this.WriteAsciiString(value.SignatureData, 4, ' ');
+            return this.WriteAsciiString(value.SignatureData, 4, false);
         }
 
         /// <summary>
@@ -900,7 +900,7 @@ namespace ImageSharp
             else
             {
                 this.dataStream.Position += 3;
-                count += size = this.WriteAsciiString(value.ScriptCode, 67, '\0');
+                count += size = this.WriteAsciiString(value.ScriptCode, 67, true);
                 this.dataStream.Position -= size + 3;
                 count += this.WriteUInt16(value.ScriptCodeCode);
                 count += this.WriteByte((byte)(value.ScriptCode.Length > 66 ? 67 : value.ScriptCode.Length));

@@ -18,7 +18,7 @@ namespace ImageSharp
         /// <summary>
         /// Opacity transparent
         /// </summary>
-        OpacityTransparent = 1 << 31,
+        OpacityTransparent = 1 << 0,
 
         /// <summary>
         /// Opacity reflective
@@ -28,7 +28,7 @@ namespace ImageSharp
         /// <summary>
         /// Reflectivity matte
         /// </summary>
-        ReflectivityMatte = 1 << 30,
+        ReflectivityMatte = 1 << 1,
 
         /// <summary>
         /// Reflectivity glossy
@@ -38,7 +38,7 @@ namespace ImageSharp
         /// <summary>
         /// Polarity negative
         /// </summary>
-        PolarityNegative = 1 << 29,
+        PolarityNegative = 1 << 2,
 
         /// <summary>
         /// Polarity positive
@@ -48,7 +48,7 @@ namespace ImageSharp
         /// <summary>
         /// Chroma black and white
         /// </summary>
-        ChromaBlackWhite = 1 << 28,
+        ChromaBlackWhite = 1 << 3,
 
         /// <summary>
         /// Chroma color

@@ -25,7 +25,7 @@ namespace ImageSharp
             Guard.NotNull(gridPointCount, nameof(gridPointCount));
 
             this.Values = values;
-            this.DataType = IccClutDataType.Float;
+            this.DataType = type;
             this.InputChannelCount = gridPointCount.Length;
             this.OutputChannelCount = values[0].Length;
             this.GridPointCount = gridPointCount;

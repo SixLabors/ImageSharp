@@ -22,9 +22,9 @@ namespace ImageSharp
 
             IccDataReader reader = new IccDataReader(data);
             IccProfileHeader header = this.ReadHeader(reader);
-            IccTagDataEntry[] tagDate = this.ReadTagData(reader);
+            IccTagDataEntry[] tagData = this.ReadTagData(reader);
 
-            return new IccProfile();
+            return new IccProfile(header, tagData);
         }
 
         /// <summary>

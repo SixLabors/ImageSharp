@@ -58,8 +58,6 @@ namespace ImageSharp
             this.dataStream.Position = index;
         }
 
-        #region Write Primitives
-
         /// <summary>
         /// Writes a byte
         /// </summary>
@@ -293,10 +291,6 @@ namespace ImageSharp
             return this.WriteBytesDirect((byte*)&value, 8);
         }
 
-        #endregion
-
-        #region Write Non-Primitives
-
         /// <summary>
         /// Writes a DateTime
         /// </summary>
@@ -403,10 +397,6 @@ namespace ImageSharp
                  + this.WriteTagDataEntryHeader(IccTypeSignature.MultiLocalizedUnicode)
                  + this.WriteMultiLocalizedUnicodeTagDataEntry(new IccMultiLocalizedUnicodeTagDataEntry(value.DeviceModelInfo));
         }
-
-        #endregion
-
-        #region Write Tag Data Entries
 
         /// <summary>
         /// Writes a tag data entry
@@ -1308,10 +1298,6 @@ namespace ImageSharp
             return count;
         }
 
-        #endregion
-
-        #region Write Matrix
-
         /// <summary>
         /// Writes a two dimensional matrix
         /// </summary>
@@ -1457,10 +1443,6 @@ namespace ImageSharp
             return count;
         }
 
-        #endregion
-
-        #region Write (C)LUT
-
         /// <summary>
         /// Writes an 8bit lookup table
         /// </summary>
@@ -1576,10 +1558,6 @@ namespace ImageSharp
             return count;
         }
 
-        #endregion
-
-        #region Write MultiProcessElement
-
         /// <summary>
         /// Writes a <see cref="IccMultiProcessElement"/>
         /// </summary>
@@ -1646,10 +1624,6 @@ namespace ImageSharp
         {
             return this.WriteCLUT(value.ClutValue);
         }
-
-        #endregion
-
-        #region Write Curves
 
         /// <summary>
         /// Writes a <see cref="IccOneDimensionalCurve"/>
@@ -1817,10 +1791,6 @@ namespace ImageSharp
             return count;
         }
 
-        #endregion
-
-        #region Write Array
-
         /// <summary>
         /// Writes a byte array
         /// </summary>
@@ -1906,10 +1876,6 @@ namespace ImageSharp
 
             return data.Length * 8;
         }
-
-        #endregion
-
-        #region Write Misc
 
         /// <summary>
         /// Write a number of empty bytes
@@ -1997,7 +1963,5 @@ namespace ImageSharp
 
             return count;
         }
-
-        #endregion
     }
 }

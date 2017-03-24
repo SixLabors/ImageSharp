@@ -79,7 +79,7 @@ namespace ImageSharp
                 case IccTypeSignature.UInt8Array:
                     return this.ReadUInt8ArrayTagDataEntry(info.DataSize);
                 case IccTypeSignature.ViewingConditions:
-                    return this.ReadViewingConditionsTagDataEntry(info.DataSize);
+                    return this.ReadViewingConditionsTagDataEntry();
                 case IccTypeSignature.Xyz:
                     return this.ReadXyzTagDataEntry(info.DataSize);
 
@@ -725,9 +725,8 @@ namespace ImageSharp
         /// <summary>
         /// Reads a <see cref="IccViewingConditionsTagDataEntry"/>
         /// </summary>
-        /// <param name="size">The size of the entry in bytes</param>
         /// <returns>The read entry</returns>
-        public IccViewingConditionsTagDataEntry ReadViewingConditionsTagDataEntry(uint size)
+        public IccViewingConditionsTagDataEntry ReadViewingConditionsTagDataEntry()
         {
             return new IccViewingConditionsTagDataEntry(
                 illuminantXyz: this.ReadXyzNumber(),

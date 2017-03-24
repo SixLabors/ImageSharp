@@ -17,8 +17,6 @@ namespace ImageSharp
         private static readonly bool IsLittleEndian = BitConverter.IsLittleEndian;
         private static readonly Encoding AsciiEncoding = Encoding.GetEncoding("ASCII");
 
-        private static readonly double[,] IdentityMatrix = { { 1, 0, 0 }, { 0, 1, 0 }, { 0, 0, 1 } };
-
         /// <summary>
         /// The underlying stream where the data is written to
         /// </summary>

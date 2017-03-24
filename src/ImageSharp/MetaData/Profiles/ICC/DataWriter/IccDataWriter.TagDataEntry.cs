@@ -903,7 +903,7 @@ namespace ImageSharp
                 count += size = this.WriteAsciiString(value.ScriptCode, 67, true);
                 this.dataStream.Position -= size + 3;
                 count += this.WriteUInt16(value.ScriptCodeCode);
-                count += this.WriteByte((byte)(value.ScriptCode.Length > 66 ? 67 : value.ScriptCode.Length));
+                count += this.WriteByte((byte)(value.ScriptCode.Length > 66 ? 67 : value.ScriptCode.Length + 1));
                 this.dataStream.Position += size;
             }
 

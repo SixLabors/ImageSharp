@@ -15,6 +15,8 @@ namespace ImageSharp
     /// </summary>
     internal sealed class IccLut16TagDataEntry : IccTagDataEntry, IEquatable<IccLut16TagDataEntry>
     {
+        private static readonly float[,] IdentityMatrix = { { 1, 0, 0 }, { 0, 1, 0 }, { 0, 0, 1 } };
+
         /// <summary>
         /// Initializes a new instance of the <see cref="IccLut16TagDataEntry"/> class.
         /// </summary>
@@ -22,7 +24,7 @@ namespace ImageSharp
         /// <param name="clutValues">CLUT</param>
         /// <param name="outputValues">Output LUT</param>
         public IccLut16TagDataEntry(IccLut[] inputValues, IccClut clutValues, IccLut[] outputValues)
-            : this(null, inputValues, clutValues, outputValues, IccProfileTag.Unknown)
+            : this(IdentityMatrix, inputValues, clutValues, outputValues, IccProfileTag.Unknown)
         {
         }
 
@@ -34,7 +36,7 @@ namespace ImageSharp
         /// <param name="outputValues">Output LUT</param>
         /// <param name="tagSignature">Tag Signature</param>
         public IccLut16TagDataEntry(IccLut[] inputValues, IccClut clutValues, IccLut[] outputValues, IccProfileTag tagSignature)
-            : this(null, inputValues, clutValues, outputValues, tagSignature)
+            : this(IdentityMatrix, inputValues, clutValues, outputValues, tagSignature)
         {
         }
 
@@ -69,13 +71,13 @@ namespace ImageSharp
             bool is3By3 = matrix.GetLength(0) == 3 && matrix.GetLength(1) == 3;
             Guard.IsTrue(is3By3, nameof(matrix), "Matrix must have a size of three by three");
 
-            Guard.IsTrue(this.InputChannelCount == clutValues.InputChannelCount, nameof(clutValues), "Input channel count does not match the CLUT size");
-            Guard.IsTrue(this.OutputChannelCount == clutValues.OutputChannelCount, nameof(clutValues), "Output channel count does not match the CLUT size");
-
             this.Matrix = this.CreateMatrix(matrix);
             this.InputValues = inputValues;
             this.ClutValues = clutValues;
             this.OutputValues = outputValues;
+
+            Guard.IsTrue(this.InputChannelCount == clutValues.InputChannelCount, nameof(clutValues), "Input channel count does not match the CLUT size");
+            Guard.IsTrue(this.OutputChannelCount == clutValues.OutputChannelCount, nameof(clutValues), "Output channel count does not match the CLUT size");
         }
 
         /// <summary>

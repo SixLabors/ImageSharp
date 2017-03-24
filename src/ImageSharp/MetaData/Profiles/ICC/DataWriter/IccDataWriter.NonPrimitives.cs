@@ -98,7 +98,7 @@ namespace ImageSharp
         /// <returns>the number of bytes written</returns>
         public int WriteNamedColor(IccNamedColor value)
         {
-            return this.WriteAsciiString(value.Name, 32, '\0')
+            return this.WriteAsciiString(value.Name, 32, true)
                  + this.WriteArray(value.PcsCoordinates)
                  + this.WriteArray(value.DeviceCoordinates);
         }

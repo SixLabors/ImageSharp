@@ -189,10 +189,10 @@ namespace ImageSharp
         /// Writes an ASCII encoded string resizes it to the given length
         /// </summary>
         /// <param name="value">The string to write</param>
-        /// <param name="length">The desired length of the string including 1 padding character</param>
-        /// <param name="paddingChar">The character to pad to the given length</param>
+        /// <param name="length">The desired length of the string (including potential null terminator)</param>
+        /// <param name="ensureNullTerminator">If True, there will be a \0 added at the end</param>
         /// <returns>the number of bytes written</returns>
-        public int WriteAsciiString(string value, int length, char paddingChar)
+        public int WriteAsciiString(string value, int length, bool ensureNullTerminator)
         {
             if (length == 0)
             {
@@ -206,14 +206,23 @@ namespace ImageSharp
                 value = string.Empty;
             }
 
-            value = value.Substring(0, Math.Min(length - 1, value.Length));
+            byte paddingChar = (byte)' ';
+            int lengthAdjust = 0;
+
+            if (ensureNullTerminator)
+            {
+                paddingChar = 0;
+                lengthAdjust = 1;
+            }
+
+            value = value.Substring(0, Math.Min(length - lengthAdjust, value.Length));
 
             byte[] textData = AsciiEncoding.GetBytes(value);
-            int actualLength = Math.Min(length - 1, textData.Length);
+            int actualLength = Math.Min(length - lengthAdjust, textData.Length);
             this.dataStream.Write(textData, 0, actualLength);
             for (int i = 0; i < length - actualLength; i++)
             {
-                this.dataStream.WriteByte((byte)paddingChar);
+                this.dataStream.WriteByte(paddingChar);
             }
 
             return length;

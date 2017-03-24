@@ -34,7 +34,7 @@ namespace ImageSharp
             writer.SetIndex(0);
 
             writer.WriteUInt32(writer.Length + 128);
-            writer.WriteAsciiString(header.CmmType, 4, ' ');
+            writer.WriteAsciiString(header.CmmType, 4, false);
             writer.WriteVersionNumber(header.Version);
             writer.WriteUInt32((uint)header.Class);
             writer.WriteUInt32((uint)header.DataColorSpace);
@@ -48,7 +48,7 @@ namespace ImageSharp
             writer.WriteInt64((long)header.DeviceAttributes);
             writer.WriteUInt32((uint)header.RenderingIntent);
             writer.WriteXyzNumber(header.PcsIlluminant);
-            writer.WriteAsciiString(header.CreatorSignature, 4, ' ');
+            writer.WriteAsciiString(header.CreatorSignature, 4, false);
 
 #if !NETSTANDARD1_1
             IccProfileId id = IccProfile.CalculateHash(writer.GetData());

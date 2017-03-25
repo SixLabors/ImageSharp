@@ -1,4 +1,4 @@
-﻿// <copyright file="CieXyz.cs" company="James Jackson-South">
+﻿// <copyright file="Lms.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -10,15 +10,16 @@ namespace ImageSharp.Colors.Spaces
     using System.Numerics;
 
     /// <summary>
-    /// Represents an CIE 1931 color
-    /// <see href="https://en.wikipedia.org/wiki/CIE_1931_color_space"/>
+    /// LMS is a color space represented by the response of the three types of cones of the human eye,
+    /// named after their responsivity (sensitivity) at long, medium and short wavelengths.
+    /// <see href="https://en.wikipedia.org/wiki/LMS_color_space"/>
     /// </summary>
-    public struct CieXyz : IColorVector, IEquatable<CieXyz>, IAlmostEquatable<CieXyz, float>
+    public struct Lms : IColorVector, IEquatable<Lms>, IAlmostEquatable<Lms, float>
     {
         /// <summary>
-        /// Represents a <see cref="CieXyz"/> that has Y, Cb, and Cr values set to zero.
+        /// Represents a <see cref="Lms"/> that has Y, Cb, and Cr values set to zero.
         /// </summary>
-        public static readonly CieXyz Empty = default(CieXyz);
+        public static readonly Lms Empty = default(Lms);
 
         /// <summary>
         /// The backing vector for SIMD support.
@@ -26,21 +27,21 @@ namespace ImageSharp.Colors.Spaces
         private readonly Vector3 backingVector;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="CieXyz"/> struct.
+        /// Initializes a new instance of the <see cref="Lms"/> struct.
         /// </summary>
-        /// <param name="x">X is a mix (a linear combination) of cone response curves chosen to be nonnegative</param>
-        /// <param name="y">The y luminance component.</param>
-        /// <param name="z">Z is quasi-equal to blue stimulation, or the S cone of the human eye.</param>
-        public CieXyz(float x, float y, float z)
-            : this(new Vector3(x, y, z))
+        /// <param name="l">L represents the responsivity at long wavelengths.</param>
+        /// <param name="m">M represents the responsivity at medium wavelengths.</param>
+        /// <param name="s">S represents the responsivity at short wavelengths.</param>
+        public Lms(float l, float m, float s)
+            : this(new Vector3(l, m, s))
         {
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="CieXyz"/> struct.
+        /// Initializes a new instance of the <see cref="Lms"/> struct.
         /// </summary>
         /// <param name="vector">The vector representing the x, y, z components.</param>
-        public CieXyz(Vector3 vector)
+        public Lms(Vector3 vector)
             : this()
         {
             // Not clamping as documentation about this space seems to indicate "usual" ranges
@@ -48,25 +49,25 @@ namespace ImageSharp.Colors.Spaces
         }
 
         /// <summary>
-        /// Gets the Y luminance component.
-        /// <remarks>A value usually ranging between 0 and 1.</remarks>
+        /// Gets the L long component.
+        /// <remarks>A value usually ranging between -1 and 1.</remarks>
         /// </summary>
-        public float X => this.backingVector.X;
+        public float L => this.backingVector.X;
 
         /// <summary>
-        /// Gets the Cb chroma component.
-        /// <remarks>A value usually ranging between 0 and 1.</remarks>
+        /// Gets the M medium component.
+        /// <remarks>A value usually ranging between -1 and 1.</remarks>
         /// </summary>
-        public float Y => this.backingVector.Y;
+        public float M => this.backingVector.Y;
 
         /// <summary>
-        /// Gets the Cr chroma component.
-        /// <remarks>A value usually ranging between 0 and 1.</remarks>
+        /// Gets the S short component.
+        /// <remarks>A value usually ranging between -1 and 1.</remarks>
         /// </summary>
-        public float Z => this.backingVector.Z;
+        public float S => this.backingVector.Z;
 
         /// <summary>
-        /// Gets a value indicating whether this <see cref="CieXyz"/> is empty.
+        /// Gets a value indicating whether this <see cref="Lms"/> is empty.
         /// </summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public bool IsEmpty => this.Equals(Empty);
@@ -75,35 +76,35 @@ namespace ImageSharp.Colors.Spaces
         public Vector3 Vector => this.backingVector;
 
         /// <summary>
-        /// Compares two <see cref="CieXyz"/> objects for equality.
+        /// Compares two <see cref="Lms"/> objects for equality.
         /// </summary>
         /// <param name="left">
-        /// The <see cref="CieXyz"/> on the left side of the operand.
+        /// The <see cref="Lms"/> on the left side of the operand.
         /// </param>
         /// <param name="right">
-        /// The <see cref="CieXyz"/> on the right side of the operand.
+        /// The <see cref="Lms"/> on the right side of the operand.
         /// </param>
         /// <returns>
         /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        public static bool operator ==(CieXyz left, CieXyz right)
+        public static bool operator ==(Lms left, Lms right)
         {
             return left.Equals(right);
         }
 
         /// <summary>
-        /// Compares two <see cref="CieXyz"/> objects for inequality.
+        /// Compares two <see cref="Lms"/> objects for inequality.
         /// </summary>
         /// <param name="left">
-        /// The <see cref="CieXyz"/> on the left side of the operand.
+        /// The <see cref="Lms"/> on the left side of the operand.
         /// </param>
         /// <param name="right">
-        /// The <see cref="CieXyz"/> on the right side of the operand.
+        /// The <see cref="Lms"/> on the right side of the operand.
         /// </param>
         /// <returns>
         /// True if the current left is unequal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        public static bool operator !=(CieXyz left, CieXyz right)
+        public static bool operator !=(Lms left, Lms right)
         {
             return !left.Equals(right);
         }
@@ -119,31 +120,31 @@ namespace ImageSharp.Colors.Spaces
         {
             if (this.IsEmpty)
             {
-                return "CieXyz [ Empty ]";
+                return "Lms [ Empty ]";
             }
 
-            return $"CieXyz [ X={this.X:#0.##}, Y={this.Y:#0.##}, Z={this.Z:#0.##} ]";
+            return $"Lms [ L={this.L:#0.##}, M={this.M:#0.##}, S={this.S:#0.##} ]";
         }
 
         /// <inheritdoc/>
         public override bool Equals(object obj)
         {
-            if (obj is CieXyz)
+            if (obj is Lms)
             {
-                return this.Equals((CieXyz)obj);
+                return this.Equals((Lms)obj);
             }
 
             return false;
         }
 
         /// <inheritdoc/>
-        public bool Equals(CieXyz other)
+        public bool Equals(Lms other)
         {
             return this.backingVector.Equals(other.backingVector);
         }
 
         /// <inheritdoc/>
-        public bool AlmostEquals(CieXyz other, float precision)
+        public bool AlmostEquals(Lms other, float precision)
         {
             Vector3 result = Vector3.Abs(this.backingVector - other.backingVector);
 

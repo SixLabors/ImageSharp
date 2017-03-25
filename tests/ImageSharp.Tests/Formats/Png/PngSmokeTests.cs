@@ -32,7 +32,7 @@ namespace ImageSharp.Tests.Formats.Png
                 using (Image img2 = new Image(ms, new Configuration(new PngFormat())))
                 {
                     // img2.Save(provider.Utility.GetTestOutputFileName("bmp", "_loaded"), new BmpEncoder());
-                    ImageComparer.VisualComparer(image, img2);
+                    ImageComparer.CheckSimilarity(image, img2);
                 }
             }
         }
@@ -53,7 +53,7 @@ namespace ImageSharp.Tests.Formats.Png
                 using (Image img2 = new Image(ms, new Configuration(new PngFormat())))
                 {
                     // img2.Save(provider.Utility.GetTestOutputFileName("bmp", "_loaded"), new BmpEncoder());
-                    ImageComparer.VisualComparer(image, img2);
+                    ImageComparer.CheckSimilarity(image, img2);
                 }
             }
         }
@@ -75,7 +75,7 @@ namespace ImageSharp.Tests.Formats.Png
                 ms.Position = 0;
                 using (Image img2 = new Image(ms, new Configuration(new PngFormat())))
                 {
-                    ImageComparer.VisualComparer(image, img2);
+                    ImageComparer.CheckSimilarity(image, img2);
                 }
             }
         }

@@ -32,7 +32,7 @@
         /// This is a sampling factor we sample a grid of average pixels <paramref name="scalingFactor"/> width by <paramref name="scalingFactor"/> high
         /// The default undefined value is <see cref="ImageComparer.DefaultScalingFactor"/>
         /// </param>
-        public static void VisualComparer<TColorA, TColorB>(Image<TColorA> expected, Image<TColorB> actual, float imageTheshold = DefaultImageThreshold, byte segmentThreshold = DefaultSegmentThreshold, int scalingFactor = DefaultScalingFactor)
+        public static void CheckSimilarity<TColorA, TColorB>(Image<TColorA> expected, Image<TColorB> actual, float imageTheshold = DefaultImageThreshold, byte segmentThreshold = DefaultSegmentThreshold, int scalingFactor = DefaultScalingFactor)
            where TColorA : struct, IPixel<TColorA>
            where TColorB : struct, IPixel<TColorB>
         {

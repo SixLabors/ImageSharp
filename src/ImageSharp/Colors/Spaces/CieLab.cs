@@ -13,22 +13,18 @@ namespace ImageSharp.Colors.Spaces
     /// Represents an CIE LAB 1976 color.
     /// <see href="https://en.wikipedia.org/wiki/Lab_color_space"/>
     /// </summary>
-    public struct CieLab : IEquatable<CieLab>, IAlmostEquatable<CieLab, float>
+    public struct CieLab : IColorVector, IEquatable<CieLab>, IAlmostEquatable<CieLab, float>
     {
+        /// <summary>
+        /// D50 standard illuminant.
+        /// Used when reference white is not specified explicitly.
+        /// </summary>
+        public static readonly CieXyz DefaultWhitePoint = Illuminants.D50;
+
         /// <summary>
         /// Represents a <see cref="CieLab"/> that has L, A, B values set to zero.
         /// </summary>
         public static readonly CieLab Empty = default(CieLab);
-
-        /// <summary>
-        /// Min range used for clamping
-        /// </summary>
-        private static readonly Vector3 VectorMin = new Vector3(0, -100, -100);
-
-        /// <summary>
-        /// Max range used for clamping
-        /// </summary>
-        private static readonly Vector3 VectorMax = new Vector3(100);
 
         /// <summary>
         /// The backing vector for SIMD support.
@@ -41,11 +37,47 @@ namespace ImageSharp.Colors.Spaces
         /// <param name="l">The lightness dimension.</param>
         /// <param name="a">The a (green - magenta) component.</param>
         /// <param name="b">The b (blue - yellow) component.</param>
+        /// <remarks>Uses <see cref="DefaultWhitePoint"/> as white point.</remarks>
         public CieLab(float l, float a, float b)
+            : this(new Vector3(l, a, b), DefaultWhitePoint)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CieLab"/> struct.
+        /// </summary>
+        /// <param name="l">The lightness dimension.</param>
+        /// <param name="a">The a (green - magenta) component.</param>
+        /// <param name="b">The b (blue - yellow) component.</param>
+        /// <param name="whitePoint">The reference white point. <see cref="Illuminants"/></param>
+        public CieLab(float l, float a, float b, CieXyz whitePoint)
+            : this(new Vector3(l, a, b), whitePoint)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CieLab"/> struct.
+        /// </summary>
+        /// <param name="vector">The vector representing the l, a, b components.</param>
+        /// <remarks>Uses <see cref="DefaultWhitePoint"/> as white point.</remarks>
+        public CieLab(Vector3 vector)
+            : this(vector, DefaultWhitePoint)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CieLab"/> struct.
+        /// </summary>
+        /// <param name="vector">The vector representing the l a b components.</param>
+        /// <param name="whitePoint">The reference white point. <see cref="Illuminants"/></param>
+        public CieLab(Vector3 vector, CieXyz whitePoint)
             : this()
         {
-            this.backingVector = Vector3.Clamp(new Vector3(l, a, b), VectorMin, VectorMax);
+            this.backingVector = vector;
+            this.WhitePoint = whitePoint;
         }
+
+        public CieXyz WhitePoint { get; }
 
         /// <summary>
         /// Gets the lightness dimension.
@@ -55,13 +87,13 @@ namespace ImageSharp.Colors.Spaces
 
         /// <summary>
         /// Gets the a color component.
-        /// <remarks>Negative is green, positive magenta.</remarks>
+        /// <remarks>A value ranging from -100 to 100. Negative is green, positive magenta.</remarks>
         /// </summary>
         public float A => this.backingVector.Y;
 
         /// <summary>
         /// Gets the b color component.
-        /// <remarks>Negative is blue, positive is yellow</remarks>
+        /// <remarks>A value ranging from -100 to 100. Negative is blue, positive is yellow</remarks>
         /// </summary>
         public float B => this.backingVector.Z;
 
@@ -71,40 +103,8 @@ namespace ImageSharp.Colors.Spaces
         [EditorBrowsable(EditorBrowsableState.Never)]
         public bool IsEmpty => this.Equals(Empty);
 
-        /// <summary>
-        /// Allows the implicit conversion of an instance of <see cref="Color"/> to a
-        /// <see cref="CieLab"/>.
-        /// </summary>
-        /// <param name="color">
-        /// The instance of <see cref="Color"/> to convert.
-        /// </param>
-        /// <returns>
-        /// An instance of <see cref="CieLab"/>.
-        /// </returns>
-        public static implicit operator CieLab(Color color)
-        {
-            // First convert to CIE XYZ
-            Vector4 vector = color.ToVector4().Expand();
-            float x = (vector.X * 0.4124F) + (vector.Y * 0.3576F) + (vector.Z * 0.1805F);
-            float y = (vector.X * 0.2126F) + (vector.Y * 0.7152F) + (vector.Z * 0.0722F);
-            float z = (vector.X * 0.0193F) + (vector.Y * 0.1192F) + (vector.Z * 0.9505F);
-
-            // Now to LAB
-            x /= 0.95047F;
-
-            // y /= 1F;
-            z /= 1.08883F;
-
-            x = x > 0.008856F ? (float)Math.Pow(x, 0.3333333F) : ((903.3F * x) + 16F) / 116F;
-            y = y > 0.008856F ? (float)Math.Pow(y, 0.3333333F) : ((903.3F * y) + 16F) / 116F;
-            z = z > 0.008856F ? (float)Math.Pow(z, 0.3333333F) : ((903.3F * z) + 16F) / 116F;
-
-            float l = Math.Max(0, (116F * y) - 16F);
-            float a = 500F * (x - y);
-            float b = 200F * (y - z);
-
-            return new CieLab(l, a, b);
-        }
+        /// <inheritdoc />
+        public Vector3 Vector => this.backingVector;
 
         /// <summary>
         /// Compares two <see cref="CieLab"/> objects for equality.

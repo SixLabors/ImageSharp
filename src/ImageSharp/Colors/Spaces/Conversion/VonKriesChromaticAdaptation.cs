@@ -46,15 +46,6 @@ namespace ImageSharp.Colors.Conversion
         /// <summary>
         /// Initializes a new instance of the <see cref="VonKriesChromaticAdaptation"/> class.
         /// </summary>
-        /// <param name="converter"></param>
-        private VonKriesChromaticAdaptation(CieXyzAndLmsConverter converter)
-            : this(converter, converter)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="VonKriesChromaticAdaptation"/> class.
-        /// </summary>
         /// <param name="conversionToLms">The <see cref="Lms"/> color converter.</param>
         /// <param name="conversionToCieXyz">The <see cref="CieXyz"/> color converter.</param>
         public VonKriesChromaticAdaptation(IColorConversion<CieXyz, Lms> conversionToLms, IColorConversion<Lms, CieXyz> conversionToCieXyz)
@@ -64,6 +55,15 @@ namespace ImageSharp.Colors.Conversion
 
             this.conversionToLms = conversionToLms;
             this.conversionToXyz = conversionToCieXyz;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="VonKriesChromaticAdaptation"/> class.
+        /// </summary>
+        /// <param name="converter">The color converter</param>
+        private VonKriesChromaticAdaptation(CieXyzAndLmsConverter converter)
+            : this(converter, converter)
+        {
         }
 
         /// <inheritdoc/>

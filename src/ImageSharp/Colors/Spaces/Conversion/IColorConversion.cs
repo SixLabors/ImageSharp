@@ -13,10 +13,10 @@ namespace ImageSharp.Colors.Conversion
     public interface IColorConversion<in T, out TResult>
     {
         /// <summary>
-        /// Performs the conversion from the <see cref="T"/> input to an instance of the output <see cref="TResult"/> type.
+        /// Performs the conversion from the input to an instance of the output type.
         /// </summary>
         /// <param name="input">The input color instance.</param>
-        /// <returns>The <see cref="TResult"/></returns>
+        /// <returns>The converted result</returns>
         TResult Convert(T input);
     }
 }

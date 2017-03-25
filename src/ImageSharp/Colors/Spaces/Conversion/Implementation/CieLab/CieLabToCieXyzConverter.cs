@@ -21,15 +21,15 @@ namespace ImageSharp.Colors.Conversion.Implementation
             // Conversion algorithm described here: http://www.brucelindbloom.com/index.html?Eqn_Lab_to_XYZ.html
             float l = input.L, a = input.A, b = input.B;
             float fy = (l + 16) / 116F;
-            float fx = a / 500F + fy;
-            float fz = fy - b / 200F;
+            float fx = (a / 500F) + fy;
+            float fz = fy - (b / 200F);
 
             float fx3 = (float)Math.Pow(fx, 3D);
             float fz3 = (float)Math.Pow(fz, 3D);
 
-            float xr = fx3 > CieConstants.Epsilon ? fx3 : (116F * fx - 16F) / CieConstants.Kappa;
+            float xr = fx3 > CieConstants.Epsilon ? fx3 : ((116F * fx) - 16F) / CieConstants.Kappa;
             float yr = l > CieConstants.Kappa * CieConstants.Epsilon ? (float)Math.Pow((l + 16F) / 116F, 3D) : l / CieConstants.Kappa;
-            float zr = fz3 > CieConstants.Epsilon ? fz3 : (116F * fz - 16F) / CieConstants.Kappa;
+            float zr = fz3 > CieConstants.Epsilon ? fz3 : ((116F * fz) - 16F) / CieConstants.Kappa;
 
             float wx = input.WhitePoint.X, wy = input.WhitePoint.Y, wz = input.WhitePoint.Z;
 

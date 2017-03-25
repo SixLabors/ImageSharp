@@ -25,7 +25,6 @@ namespace ImageSharp.Colors.Conversion
             Guard.NotNull(color, nameof(color));
 
             // Conversion
-
             CieXyz unadapted = CieLabToCieXyzConverter.Convert(color);
 
             // Adaptation

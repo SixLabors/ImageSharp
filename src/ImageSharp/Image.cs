@@ -49,7 +49,7 @@ namespace ImageSharp
         /// </summary>
         /// <param name="other">The other image, where the clone should be made from.</param>
         /// <exception cref="System.ArgumentNullException"><paramref name="other"/> is null.</exception>
-        internal Image(Image<Color> other)
+        public Image(Image<Color> other)
             : base(other)
         {
         }

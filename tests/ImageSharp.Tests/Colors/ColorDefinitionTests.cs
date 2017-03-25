@@ -5,13 +5,10 @@
 
 namespace ImageSharp.Tests
 {
-    using System;
     using System.Collections.Generic;
-    using System.Diagnostics.CodeAnalysis;
     using System.Linq;
     using System.Reflection;
 
-    using ImageSharp.Colors.Spaces;
     using Xunit;
     public class ColorDefinitionTests
     {

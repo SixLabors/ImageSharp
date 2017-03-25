@@ -6,10 +6,7 @@
 namespace ImageSharp
 {
     using System;
-    using System.Buffers;
-    using System.Diagnostics;
     using System.IO;
-    using System.Linq;
     using System.Text;
     using Formats;
 
@@ -86,7 +83,9 @@ namespace ImageSharp
         /// <returns>The image</returns>
         public static Image Load(Stream stream, IDecoderOptions options, Configuration config)
         {
-            return new Image(Load<Color>(stream, options, config));
+            Image<Color> image = Load<Color>(stream, options, config);
+
+            return image as Image ?? new Image(image);
         }
 
         /// <summary>
@@ -101,7 +100,9 @@ namespace ImageSharp
         /// <returns>The image</returns>
         public static Image Load(Stream stream, IImageDecoder decoder, IDecoderOptions options)
         {
-            return new Image(Load<Color>(stream, decoder, options));
+            Image<Color> image = new Image(Load<Color>(stream, decoder, options));
+
+            return image as Image ?? new Image(image);
         }
 
         /// <summary>
@@ -200,10 +201,7 @@ namespace ImageSharp
         {
             config = config ?? Configuration.Default;
 
-            Image<TColor> img = WithSeekableStream(stream, s =>
-            {
-                return Decode<TColor>(stream, options, config);
-            });
+            Image<TColor> img = WithSeekableStream(stream, s => Decode<TColor>(stream, options, config));
 
             if (img != null)
             {

@@ -3,12 +3,14 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-using System.Numerics;
-
 namespace ImageSharp.Colors.Conversion.Implementation
 {
+    using System.Numerics;
     using Spaces;
 
+    /// <summary>
+    /// Color converter between CIE XYZ and LMS
+    /// </summary>
     public class CieXyzAndLmsConverter : IColorConversion<CieXyz, Lms>, IColorConversion<Lms, CieXyz>
     {
         /// <summary>
@@ -19,20 +21,6 @@ namespace ImageSharp.Colors.Conversion.Implementation
 
         private Matrix4x4 inverseTransformationMatrix;
         private Matrix4x4 transformationMatrix;
-
-        /// <summary>
-        /// Transformation matrix used for the conversion (definition of the cone response domain).
-        /// <see cref="LmsAdaptationMatrix"/>
-        /// </summary>
-        public Matrix4x4 TransformationMatrix
-        {
-            get { return this.transformationMatrix; }
-            internal set
-            {
-                this.transformationMatrix = value;
-                Matrix4x4.Invert(this.transformationMatrix, out this.inverseTransformationMatrix);
-            }
-        }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="CieXyzAndLmsConverter"/> class.
@@ -52,6 +40,24 @@ namespace ImageSharp.Colors.Conversion.Implementation
         public CieXyzAndLmsConverter(Matrix4x4 transformationMatrix)
         {
             this.TransformationMatrix = transformationMatrix;
+        }
+
+        /// <summary>
+        /// Gets transformation matrix used for the conversion (definition of the cone response domain).
+        /// <see cref="LmsAdaptationMatrix"/>
+        /// </summary>
+        public Matrix4x4 TransformationMatrix
+        {
+            get
+            {
+                return this.transformationMatrix;
+            }
+
+            internal set
+            {
+                this.transformationMatrix = value;
+                Matrix4x4.Invert(this.transformationMatrix, out this.inverseTransformationMatrix);
+            }
         }
 
         /// <inheritdoc/>

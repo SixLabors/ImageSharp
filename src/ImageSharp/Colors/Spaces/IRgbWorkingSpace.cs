@@ -15,13 +15,13 @@ namespace ImageSharp.Colors.Spaces
         /// </summary>
         CieXyz WhitePoint { get; }
 
-        /// <summary>
-        /// Chromaticity coordinates of the primaries
-        /// </summary>
+        // <summary>
+        // Gets Chromaticity coordinates of the primaries
+        // </summary>
         // RGBPrimariesChromaticityCoordinates ChromaticityCoordinates { get; }
 
         /// <summary>
-        /// The companding function associated with the RGB color system.
+        /// Gets the companding function associated with the RGB color system.
         /// Used for conversion to XYZ and backwards.
         /// See this for more information:
         /// http://www.brucelindbloom.com/index.html?Eqn_RGB_to_XYZ.html

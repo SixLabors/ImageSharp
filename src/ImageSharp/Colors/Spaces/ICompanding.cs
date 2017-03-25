@@ -19,6 +19,8 @@ namespace ImageSharp.Colors.Spaces
         /// For more info see:
         /// http://www.brucelindbloom.com/index.html?Eqn_RGB_to_XYZ.html
         /// </remarks>
+        /// <param name="channel">The channel value</param>
+        /// <returns>The linear channel value</returns>
         float InverseCompanding(float channel);
 
         /// <summary>
@@ -28,6 +30,8 @@ namespace ImageSharp.Colors.Spaces
         /// For more info see:
         /// http://www.brucelindbloom.com/index.html?Eqn_XYZ_to_RGB.html
         /// </remarks>
+        /// <param name="channel">The channel value</param>
+        /// <returns>The nonlinear channel value</returns>
         float Companding(float channel);
     }
 }

@@ -14,13 +14,13 @@ namespace ImageSharp.Colors.Conversion
     /// </summary>
     public partial class ColorConverter
     {
-        private Matrix4x4 transformationMatrix;
-        private CieXyzAndLmsConverter cachedCieXyzAndLmsConverter;
-
         /// <summary>
         /// The default whitepoint used for converting to CieLab
         /// </summary>
         public static readonly CieXyz DefaultWhitePoint = Illuminants.D65;
+
+        private Matrix4x4 transformationMatrix;
+        private CieXyzAndLmsConverter cachedCieXyzAndLmsConverter;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ColorConverter"/> class.
@@ -57,11 +57,14 @@ namespace ImageSharp.Colors.Conversion
         /// </summary>
         public Matrix4x4 LmsAdaptationMatrix
         {
-            get { return this.transformationMatrix; }
+            get
+            {
+                return this.transformationMatrix;
+            }
+
             set
             {
                 this.transformationMatrix = value;
-
                 if (this.cachedCieXyzAndLmsConverter == null)
                 {
                     this.cachedCieXyzAndLmsConverter = new CieXyzAndLmsConverter(value);

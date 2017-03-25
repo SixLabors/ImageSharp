@@ -1,7 +1,7 @@
 ﻿namespace ImageSharp.Colors.Spaces
 {
     /// <summary>
-    /// The well known standard illuminants. 
+    /// The well known standard illuminants.
     /// Standard illuminants provide a basis for comparing images or colors recorded under different lighting
     /// </summary>
     /// <remarks>

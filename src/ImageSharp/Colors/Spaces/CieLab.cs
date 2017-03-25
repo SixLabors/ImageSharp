@@ -77,6 +77,9 @@ namespace ImageSharp.Colors.Spaces
             this.WhitePoint = whitePoint;
         }
 
+        /// <summary>
+        /// Gets the reference white point of this color
+        /// </summary>
         public CieXyz WhitePoint { get; }
 
         /// <summary>

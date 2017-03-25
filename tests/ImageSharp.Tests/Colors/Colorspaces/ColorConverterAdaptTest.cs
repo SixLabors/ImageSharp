@@ -19,7 +19,7 @@ namespace ImageSharp.Tests
             // Arrange
             CieXyz input = new CieXyz(x1, y1, z1);
             CieXyz expectedOutput = new CieXyz(x2, y2, z2);
-            ColorConverter converter = new ColorConverter
+            ColorSpaceConverter converter = new ColorSpaceConverter
             {
                 ChromaticAdaptation = new VonKriesChromaticAdaptation(LmsAdaptationMatrix.XYZScaling),
                 WhitePoint = Illuminants.D50

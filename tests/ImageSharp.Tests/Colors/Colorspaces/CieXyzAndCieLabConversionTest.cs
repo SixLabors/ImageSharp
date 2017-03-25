@@ -33,7 +33,7 @@
         {
             // Arrange
             CieLab input = new CieLab(l, a, b, Illuminants.D65);
-            ColorConverter converter = new ColorConverter { WhitePoint = Illuminants.D65, TargetLabWhitePoint = Illuminants.D65 };
+            ColorSpaceConverter converter = new ColorSpaceConverter { WhitePoint = Illuminants.D65, TargetLabWhitePoint = Illuminants.D65 };
 
             // Act
             CieXyz output = converter.ToCieXyz(input);
@@ -58,7 +58,7 @@
         {
             // Arrange
             CieXyz input = new CieXyz(x, y, z);
-            ColorConverter converter = new ColorConverter { WhitePoint = Illuminants.D65, TargetLabWhitePoint = Illuminants.D65 };
+            ColorSpaceConverter converter = new ColorSpaceConverter { WhitePoint = Illuminants.D65, TargetLabWhitePoint = Illuminants.D65 };
 
             // Act
             CieLab output = converter.ToCieLab(input);

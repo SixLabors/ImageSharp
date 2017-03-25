@@ -29,7 +29,7 @@
         {
             // Arrange
             Lms input = new Lms(x, y, z);
-            ColorConverter converter = new ColorConverter();
+            ColorSpaceConverter converter = new ColorSpaceConverter();
 
             // Act
             CieXyz output = converter.ToCieXyz(input);
@@ -54,7 +54,7 @@
         {
             // Arrange
             CieXyz input = new CieXyz(x, y, z);
-            ColorConverter converter = new ColorConverter();
+            ColorSpaceConverter converter = new ColorSpaceConverter();
 
             // Act
             Lms output = converter.ToLms(input);

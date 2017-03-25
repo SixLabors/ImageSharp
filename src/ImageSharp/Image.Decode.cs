@@ -5,12 +5,9 @@
 
 namespace ImageSharp
 {
-    using System;
     using System.Buffers;
-    using System.Diagnostics;
     using System.IO;
     using System.Linq;
-    using System.Text;
     using Formats;
 
     /// <summary>
@@ -19,8 +16,15 @@ namespace ImageSharp
     /// </summary>
     public sealed partial class Image
     {
+        /// <summary>
+        /// By reading the header on the provided stream this calculates the images format.
+        /// </summary>
+        /// <param name="stream">The image stream to read the header from.</param>
+        /// <param name="config">The configuration.</param>
+        /// <returns>The image format or null if none found.</returns>
         private static IImageFormat DiscoverFormat(Stream stream, Configuration config)
         {
+            // This is probably a candidate for making into a public API in the future!
             int maxHeaderSize = config.MaxHeaderSize;
             if (maxHeaderSize <= 0)
             {

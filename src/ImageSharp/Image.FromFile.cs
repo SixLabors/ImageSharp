@@ -5,15 +5,11 @@
 
 namespace ImageSharp
 {
+#if !NETSTANDARD1_1
     using System;
-    using System.Buffers;
-    using System.Diagnostics;
     using System.IO;
-    using System.Linq;
-    using System.Text;
     using Formats;
 
-#if !NETSTANDARD1_1
     /// <summary>
     /// Represents an image. Each pixel is a made up four 8-bit components red, green, blue, and alpha
     /// packed into a single unsigned integer value.

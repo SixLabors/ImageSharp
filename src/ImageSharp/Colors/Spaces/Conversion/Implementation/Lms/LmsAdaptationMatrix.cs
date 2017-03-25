@@ -74,10 +74,10 @@ namespace ImageSharp.Colors.Conversion.Implementation
                  M44 = 1F
              };
 
-    /// <summary>
-    /// CMCCAT2000 (fitted from all available color data sets)
-    /// </summary>
-    public static readonly Matrix4x4 CMCCAT2000
+        /// <summary>
+        /// CMCCAT2000 (fitted from all available color data sets)
+        /// </summary>
+        public static readonly Matrix4x4 CMCCAT2000
             = new Matrix4x4
              {
                  M11 = 0.7982F,  M12 = 0.3389F, M13 = -0.1371F,

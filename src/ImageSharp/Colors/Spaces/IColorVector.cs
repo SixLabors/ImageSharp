@@ -13,7 +13,7 @@ namespace ImageSharp.Colors.Spaces
     public interface IColorVector
     {
         /// <summary>
-        /// The vector representation of the color
+        /// Gets the vector representation of the color
         /// </summary>
         Vector3 Vector { get; }
     }

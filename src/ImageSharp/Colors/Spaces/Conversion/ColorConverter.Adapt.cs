@@ -17,6 +17,9 @@ namespace ImageSharp.Colors.Conversion
         /// Performs chromatic adaptation of given XYZ color.
         /// Target white point is <see cref="WhitePoint"/>.
         /// </summary>
+        /// <param name="color">The color to adapt</param>
+        /// <param name="sourceWhitePoint">The white point to adapt for</param>
+        /// <returns>The adapted color</returns>
         public CieXyz Adapt(CieXyz color, CieXyz sourceWhitePoint)
         {
             Guard.NotNull(color, nameof(color));

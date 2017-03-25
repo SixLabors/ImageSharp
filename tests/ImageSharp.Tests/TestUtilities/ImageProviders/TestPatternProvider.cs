@@ -12,6 +12,11 @@ namespace ImageSharp.Tests
     public abstract partial class TestImageProvider<TColor>
         where TColor : struct, IPixel<TColor>
     {
+
+        /// <summary>
+        /// A test image provider that produces test patterns.
+        /// </summary>
+        /// <typeparam name="TColor"></typeparam>
         private class TestPatternProvider : TestImageProvider<TColor>
         {
             static Dictionary<string, Image<TColor>> testImages = new Dictionary<string, Image<TColor>>();
@@ -43,19 +48,26 @@ namespace ImageSharp.Tests
                 }
             }
 
+            /// <summary>
+            /// Draws the test pattern on an image by drawing 4 other patterns in the for quadrants of the image.
+            /// </summary>
+            /// <param name="image"></param>
             private static void DrawTestPattern(Image<TColor> image)
             {
                 // first lets split the image into 4 quadrants
                 using (PixelAccessor<TColor> pixels = image.Lock())
                 {
                     BlackWhiteChecker(pixels); // top left
-                    HorizontalLines(pixels); // top right
+                    VirticalBars(pixels); // top right
                     TransparentGradients(pixels); // bottom left
-                    Raninbow(pixels); // bottom right 
+                    Rainbow(pixels); // bottom right 
                 }
             }
-
-            private static void HorizontalLines(PixelAccessor<TColor> pixels)
+            /// <summary>
+            /// Fills the top right quadrant with alternating solid vertical bars.
+            /// </summary>
+            /// <param name="pixels"></param>
+            private static void VirticalBars(PixelAccessor<TColor> pixels)
             {
                 // topLeft 
                 int left = pixels.Width / 2;
@@ -82,6 +94,10 @@ namespace ImageSharp.Tests
                 }
             }
 
+            /// <summary>
+            /// fills the top left quadrant with a black and white checker board.
+            /// </summary>
+            /// <param name="pixels"></param>
             private static void BlackWhiteChecker(PixelAccessor<TColor> pixels)
             {
                 // topLeft 
@@ -116,7 +132,11 @@ namespace ImageSharp.Tests
                     p = pstart;
                 }
             }
-
+            
+            /// <summary>
+            /// Fills the bottom left quadrent with 3 horizental bars in Red, Green and Blue with a alpha gradient from left (transparent) to right (solid).
+            /// </summary>
+            /// <param name="pixels"></param>
             private static void TransparentGradients(PixelAccessor<TColor> pixels)
             {
                 // topLeft 
@@ -155,9 +175,14 @@ namespace ImageSharp.Tests
                         pixels[x, y] = c;
                     }
                 }
-
             }
-            private static void Raninbow(PixelAccessor<TColor> pixels)
+
+            /// <summary>
+            /// Fills the bottom right quadrant with all the colors producable by converting itterating over a uint and unpacking it.
+            /// A better algorithm could be used but it works
+            /// </summary>
+            /// <param name="pixels"></param>
+            private static void Rainbow(PixelAccessor<TColor> pixels)
             {
                 int left = pixels.Width / 2;
                 int right = pixels.Width;

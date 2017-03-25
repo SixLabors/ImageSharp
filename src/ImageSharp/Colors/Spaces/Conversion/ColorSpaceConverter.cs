@@ -1,4 +1,4 @@
-﻿// <copyright file="ColorConverter.cs" company="James Jackson-South">
+﻿// <copyright file="ColorSpaceConverter.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -12,7 +12,7 @@ namespace ImageSharp.Colors.Conversion
     /// <summary>
     /// Converts between color spaces ensuring that the color is adapted using chromatic adaptation.
     /// </summary>
-    public partial class ColorConverter
+    public partial class ColorSpaceConverter
     {
         /// <summary>
         /// The default whitepoint used for converting to CieLab
@@ -23,9 +23,9 @@ namespace ImageSharp.Colors.Conversion
         private CieXyzAndLmsConverter cachedCieXyzAndLmsConverter;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ColorConverter"/> class.
+        /// Initializes a new instance of the <see cref="ColorSpaceConverter"/> class.
         /// </summary>
-        public ColorConverter()
+        public ColorSpaceConverter()
         {
             // Note the order here this is important.
             this.WhitePoint = DefaultWhitePoint;

@@ -55,14 +55,14 @@ namespace ImageSharp.Tests
                 return this.Factory.CreateImage(cachedImage);
             }
 
-            public void Deserialize(IXunitSerializationInfo info)
+            public override void Deserialize(IXunitSerializationInfo info)
             {
                 this.filePath = info.GetValue<string>("path");
 
                 base.Deserialize(info); // must be called last
             }
 
-            public void Serialize(IXunitSerializationInfo info)
+            public override void Serialize(IXunitSerializationInfo info)
             {
                 base.Serialize(info);
                 info.AddValue("path", this.filePath);

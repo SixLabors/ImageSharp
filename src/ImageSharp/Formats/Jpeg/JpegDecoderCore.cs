@@ -505,9 +505,7 @@ namespace ImageSharp.Formats
         private Image<TColor> ConvertJpegPixelsToImagePixels<TColor>(ImageMetaData metadata)
             where TColor : struct, IPixel<TColor>
         {
-            Image<TColor> image = Image.Create<TColor>(this.ImageWidth, this.ImageHeight, this.configuration);
-
-            image.MetaData.LoadFrom(metadata);
+            Image<TColor> image = Image.Create<TColor>(this.ImageWidth, this.ImageHeight, metadata, this.configuration);
 
             if (this.grayImage.IsInitialized)
             {

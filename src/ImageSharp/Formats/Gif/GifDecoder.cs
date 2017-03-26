@@ -14,24 +14,24 @@ namespace ImageSharp.Formats
     public class GifDecoder : IImageDecoder
     {
         /// <inheritdoc/>
-        public Image<TColor> Decode<TColor>(Stream stream, IDecoderOptions options, Configuration configuration)
+        public Image<TColor> Decode<TColor>(Configuration configuration, Stream stream, IDecoderOptions options)
 
             where TColor : struct, IPixel<TColor>
         {
             IGifDecoderOptions gifOptions = GifDecoderOptions.Create(options);
 
-            return this.Decode<TColor>(stream, gifOptions, configuration);
+            return this.Decode<TColor>(configuration, stream, gifOptions);
         }
 
         /// <summary>
         /// Decodes the image from the specified stream to the <see cref="ImageBase{TColor}"/>.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <param name="configuration">The configuration.</param>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
         /// <param name="options">The options for the decoder.</param>
-        /// <param name="configuration">The configuration.</param>
         /// <returns>The image thats been decoded.</returns>
-        public Image<TColor> Decode<TColor>(Stream stream, IGifDecoderOptions options, Configuration configuration)
+        public Image<TColor> Decode<TColor>(Configuration configuration, Stream stream, IGifDecoderOptions options)
             where TColor : struct, IPixel<TColor>
         {
             return new GifDecoderCore<TColor>(options, configuration).Decode(stream);

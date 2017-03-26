@@ -182,7 +182,7 @@ namespace ImageSharp
         public static Image<TColor> Load<TColor>(Stream stream, IImageDecoder decoder, IDecoderOptions options)
             where TColor : struct, IPixel<TColor>
         {
-            return WithSeekableStream(stream, s => decoder.Decode<TColor>(s, options, Configuration.Default));
+            return WithSeekableStream(stream, s => decoder.Decode<TColor>(Configuration.Default, s, options));
         }
 
         /// <summary>

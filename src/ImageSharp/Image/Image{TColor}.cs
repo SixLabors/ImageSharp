@@ -36,15 +36,8 @@ namespace ImageSharp
         /// The configuration providing initialization code which allows extending the library.
         /// </param>
         public Image(int width, int height, Configuration configuration)
-            : base(width, height, configuration)
+            : this(width, height, new ImageMetaData(), configuration)
         {
-            if (!this.Configuration.ImageFormats.Any())
-            {
-                throw new InvalidOperationException("No image formats have been configured.");
-            }
-
-            this.MetaData = new ImageMetaData();
-            this.CurrentImageFormat = this.Configuration.ImageFormats.First();
         }
 
         /// <summary>
@@ -87,12 +80,35 @@ namespace ImageSharp
         public Image(ImageBase<TColor> other)
             : base(other)
         {
+            this.MetaData = new ImageMetaData();
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Image{TColor}"/> class
+        /// with the height and the width of the image.
+        /// </summary>
+        /// <param name="width">The width of the image in pixels.</param>
+        /// <param name="height">The height of the image in pixels.</param>
+        /// <param name="metadata">The images metadata.</param>
+        /// <param name="configuration">
+        /// The configuration providing initialization code which allows extending the library.
+        /// </param>
+        internal Image(int width, int height, ImageMetaData metadata, Configuration configuration)
+            : base(width, height, configuration)
+        {
+            if (!this.Configuration.ImageFormats.Any())
+            {
+                throw new InvalidOperationException("No image formats have been configured.");
+            }
+
+            this.MetaData = metadata ?? new ImageMetaData();
+            this.CurrentImageFormat = this.Configuration.ImageFormats.First();
         }
 
         /// <summary>
         /// Gets the meta data of the image.
         /// </summary>
-        public ImageMetaData MetaData { get; private set; } = new ImageMetaData();
+        public ImageMetaData MetaData { get; private set; }
 
         /// <summary>
         /// Gets the width of the image in inches. It is calculated as the width of the image

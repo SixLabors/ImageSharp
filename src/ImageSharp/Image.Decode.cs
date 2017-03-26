@@ -67,7 +67,7 @@ namespace ImageSharp
                 return null;
             }
 
-            Image<TColor> img = format.Decoder.Decode<TColor>(stream, options, config);
+            Image<TColor> img = format.Decoder.Decode<TColor>(config, stream, options);
             img.CurrentImageFormat = format;
             return img;
         }

@@ -149,7 +149,7 @@ namespace ImageSharp.Tests
             }
 
 
-            public Image<TColor> Decode<TColor>(Stream stream, IDecoderOptions options, Configuration config) where TColor : struct, IPixel<TColor>
+            public Image<TColor> Decode<TColor>(Configuration config, Stream stream, IDecoderOptions options) where TColor : struct, IPixel<TColor>
 
             {
                 var ms = new MemoryStream();

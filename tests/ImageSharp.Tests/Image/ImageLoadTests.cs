@@ -44,7 +44,7 @@ namespace ImageSharp.Tests
             this.localFormat.Setup(x => x.IsSupportedFileFormat(It.IsAny<byte[]>())).Returns(true);
             this.localFormat.Setup(x => x.SupportedExtensions).Returns(new string[] { "png", "jpg" });
 
-            this.localDecoder.Setup(x => x.Decode<Color>(It.IsAny<Stream>(), It.IsAny<IDecoderOptions>(), It.IsAny<Configuration>()))
+            this.localDecoder.Setup(x => x.Decode<Color>(It.IsAny<Configuration>(), It.IsAny<Stream>(), It.IsAny<IDecoderOptions>()))
 
                 .Callback<Stream, IDecoderOptions, Configuration>((s, o, c) => {
                     using (var ms = new MemoryStream())
@@ -133,7 +133,7 @@ namespace ImageSharp.Tests
             Assert.NotNull(img);
             Assert.Equal(this.localFormat.Object, img.CurrentImageFormat);
 
-            this.localDecoder.Verify(x => x.Decode<Color>(stream, null, this.LocalConfiguration));
+            this.localDecoder.Verify(x => x.Decode<Color>(this.LocalConfiguration, stream, null));
 
         }
 
@@ -147,7 +147,7 @@ namespace ImageSharp.Tests
             Assert.Equal(this.returnImage, img);
             Assert.Equal(this.localFormat.Object, img.CurrentImageFormat);
 
-            this.localDecoder.Verify(x => x.Decode<Color>(stream, null, this.LocalConfiguration));
+            this.localDecoder.Verify(x => x.Decode<Color>(this.LocalConfiguration, stream, null));
 
         }
 
@@ -160,7 +160,7 @@ namespace ImageSharp.Tests
             Assert.NotNull(img);
             Assert.Equal(this.localFormat.Object, img.CurrentImageFormat);
 
-            this.localDecoder.Verify(x => x.Decode<Color>(stream, this.decoderOptions, this.LocalConfiguration));
+            this.localDecoder.Verify(x => x.Decode<Color>(this.LocalConfiguration, stream, this.decoderOptions));
 
         }
 
@@ -174,7 +174,7 @@ namespace ImageSharp.Tests
             Assert.Equal(this.returnImage, img);
             Assert.Equal(this.localFormat.Object, img.CurrentImageFormat);
 
-            this.localDecoder.Verify(x => x.Decode<Color>(stream, this.decoderOptions, this.LocalConfiguration));
+            this.localDecoder.Verify(x => x.Decode<Color>(this.LocalConfiguration, stream, this.decoderOptions));
 
         }
 
@@ -187,7 +187,7 @@ namespace ImageSharp.Tests
             Image img = Image.Load(stream, this.localDecoder.Object);
 
             Assert.NotNull(img);
-            this.localDecoder.Verify(x => x.Decode<Color>(stream, null, Configuration.Default));
+            this.localDecoder.Verify(x => x.Decode<Color>(Configuration.Default, stream, null));
         }
 
         [Fact]
@@ -198,7 +198,7 @@ namespace ImageSharp.Tests
 
             Assert.NotNull(img);
             Assert.Equal(this.returnImage, img);
-            this.localDecoder.Verify(x => x.Decode<Color>(stream, null, Configuration.Default));
+            this.localDecoder.Verify(x => x.Decode<Color>(Configuration.Default, stream, null));
         }
 
         [Fact]
@@ -208,7 +208,7 @@ namespace ImageSharp.Tests
             Image img = Image.Load(stream, this.localDecoder.Object, this.decoderOptions);
 
             Assert.NotNull(img);
-            this.localDecoder.Verify(x => x.Decode<Color>(stream, this.decoderOptions, Configuration.Default));
+            this.localDecoder.Verify(x => x.Decode<Color>(Configuration.Default, stream, this.decoderOptions));
         }
 
         [Fact]
@@ -219,7 +219,7 @@ namespace ImageSharp.Tests
 
             Assert.NotNull(img);
             Assert.Equal(this.returnImage, img);
-            this.localDecoder.Verify(x => x.Decode<Color>(stream, this.decoderOptions, Configuration.Default));
+            this.localDecoder.Verify(x => x.Decode<Color>(Configuration.Default, stream, this.decoderOptions));
         }
 
         [Fact]
@@ -281,7 +281,7 @@ namespace ImageSharp.Tests
             Assert.NotNull(img);
             Assert.Equal(this.localFormat.Object, img.CurrentImageFormat);
 
-            this.localDecoder.Verify(x => x.Decode<Color>(It.IsAny<Stream>(), null, this.LocalConfiguration));
+            this.localDecoder.Verify(x => x.Decode<Color>(this.LocalConfiguration, It.IsAny<Stream>(), null));
 
             Assert.Equal(this.DataStream.ToArray(), this.DecodedData);
         }
@@ -296,7 +296,7 @@ namespace ImageSharp.Tests
             Assert.Equal(this.localFormat.Object, img.CurrentImageFormat);
 
 
-            this.localDecoder.Verify(x => x.Decode<Color>(It.IsAny<Stream>(), null, this.LocalConfiguration));
+            this.localDecoder.Verify(x => x.Decode<Color>(this.LocalConfiguration, It.IsAny<Stream>(), null));
 
             Assert.Equal(this.DataStream.ToArray(), this.DecodedData);
         }
@@ -309,7 +309,7 @@ namespace ImageSharp.Tests
             Assert.NotNull(img);
             Assert.Equal(this.localFormat.Object, img.CurrentImageFormat);
 
-            this.localDecoder.Verify(x => x.Decode<Color>(It.IsAny<Stream>(), this.decoderOptions, this.LocalConfiguration));
+            this.localDecoder.Verify(x => x.Decode<Color>(this.LocalConfiguration, It.IsAny<Stream>(), this.decoderOptions));
 
             Assert.Equal(this.DataStream.ToArray(), this.DecodedData);
         }
@@ -323,7 +323,7 @@ namespace ImageSharp.Tests
             Assert.Equal(this.returnImage, img);
             Assert.Equal(this.localFormat.Object, img.CurrentImageFormat);
 
-            this.localDecoder.Verify(x => x.Decode<Color>(It.IsAny<Stream>(), this.decoderOptions, this.LocalConfiguration));
+            this.localDecoder.Verify(x => x.Decode<Color>(this.LocalConfiguration, It.IsAny<Stream>(), this.decoderOptions));
 
             Assert.Equal(this.DataStream.ToArray(), this.DecodedData);
         }
@@ -335,7 +335,7 @@ namespace ImageSharp.Tests
             Image img = Image.Load(this.DataStream.ToArray(), this.localDecoder.Object);
 
             Assert.NotNull(img);
-            this.localDecoder.Verify(x => x.Decode<Color>(It.IsAny<Stream>(), null, Configuration.Default));
+            this.localDecoder.Verify(x => x.Decode<Color>(Configuration.Default, It.IsAny<Stream>(), null));
             Assert.Equal(this.DataStream.ToArray(), this.DecodedData);
         }
 
@@ -346,7 +346,7 @@ namespace ImageSharp.Tests
 
             Assert.NotNull(img);
             Assert.Equal(this.returnImage, img);
-            this.localDecoder.Verify(x => x.Decode<Color>(It.IsAny<Stream>(), null, Configuration.Default));
+            this.localDecoder.Verify(x => x.Decode<Color>(Configuration.Default, It.IsAny<Stream>(), null));
             Assert.Equal(this.DataStream.ToArray(), this.DecodedData);
         }
 
@@ -356,7 +356,7 @@ namespace ImageSharp.Tests
             Image img = Image.Load(this.DataStream.ToArray(), this.localDecoder.Object, this.decoderOptions);
 
             Assert.NotNull(img);
-            this.localDecoder.Verify(x => x.Decode<Color>(It.IsAny<Stream>(), this.decoderOptions, Configuration.Default));
+            this.localDecoder.Verify(x => x.Decode<Color>(Configuration.Default, It.IsAny<Stream>(), this.decoderOptions));
             Assert.Equal(this.DataStream.ToArray(), this.DecodedData);
         }
 
@@ -367,7 +367,7 @@ namespace ImageSharp.Tests
 
             Assert.NotNull(img);
             Assert.Equal(this.returnImage, img);
-            this.localDecoder.Verify(x => x.Decode<Color>(It.IsAny<Stream>(), this.decoderOptions, Configuration.Default));
+            this.localDecoder.Verify(x => x.Decode<Color>(Configuration.Default, It.IsAny<Stream>(), this.decoderOptions));
             Assert.Equal(this.DataStream.ToArray(), this.DecodedData);
         }
 
@@ -430,7 +430,7 @@ namespace ImageSharp.Tests
             Assert.NotNull(img);
             Assert.Equal(this.localFormat.Object, img.CurrentImageFormat);
 
-            this.localDecoder.Verify(x => x.Decode<Color>(this.DataStream, null, this.LocalConfiguration));
+            this.localDecoder.Verify(x => x.Decode<Color>(this.LocalConfiguration, this.DataStream, null));
 
         }
 
@@ -443,7 +443,7 @@ namespace ImageSharp.Tests
             Assert.Equal(this.returnImage, img);
             Assert.Equal(this.localFormat.Object, img.CurrentImageFormat);
 
-            this.localDecoder.Verify(x => x.Decode<Color>(this.DataStream, null, this.LocalConfiguration));
+            this.localDecoder.Verify(x => x.Decode<Color>(this.LocalConfiguration, this.DataStream, null));
 
         }
 
@@ -455,7 +455,7 @@ namespace ImageSharp.Tests
             Assert.NotNull(img);
             Assert.Equal(this.localFormat.Object, img.CurrentImageFormat);
 
-            this.localDecoder.Verify(x => x.Decode<Color>(this.DataStream, this.decoderOptions, this.LocalConfiguration));
+            this.localDecoder.Verify(x => x.Decode<Color>(this.LocalConfiguration, this.DataStream, this.decoderOptions));
 
         }
 
@@ -468,7 +468,7 @@ namespace ImageSharp.Tests
             Assert.Equal(this.returnImage, img);
             Assert.Equal(this.localFormat.Object, img.CurrentImageFormat);
 
-            this.localDecoder.Verify(x => x.Decode<Color>(this.DataStream, this.decoderOptions, this.LocalConfiguration));
+            this.localDecoder.Verify(x => x.Decode<Color>(this.LocalConfiguration, this.DataStream, this.decoderOptions));
 
         }
 
@@ -479,7 +479,7 @@ namespace ImageSharp.Tests
             Image img = Image.Load(this.FilePath, this.localDecoder.Object);
 
             Assert.NotNull(img);
-            this.localDecoder.Verify(x => x.Decode<Color>(this.DataStream, null, Configuration.Default));
+            this.localDecoder.Verify(x => x.Decode<Color>(Configuration.Default, this.DataStream, null));
         }
 
         [Fact]
@@ -489,7 +489,7 @@ namespace ImageSharp.Tests
 
             Assert.NotNull(img);
             Assert.Equal(this.returnImage, img);
-            this.localDecoder.Verify(x => x.Decode<Color>(this.DataStream, null, Configuration.Default));
+            this.localDecoder.Verify(x => x.Decode<Color>(Configuration.Default, this.DataStream, null));
         }
 
         [Fact]
@@ -498,7 +498,7 @@ namespace ImageSharp.Tests
             Image img = Image.Load(this.FilePath, this.localDecoder.Object, this.decoderOptions);
 
             Assert.NotNull(img);
-            this.localDecoder.Verify(x => x.Decode<Color>(this.DataStream, this.decoderOptions, Configuration.Default));
+            this.localDecoder.Verify(x => x.Decode<Color>(Configuration.Default, this.DataStream, this.decoderOptions));
         }
 
         [Fact]
@@ -508,7 +508,7 @@ namespace ImageSharp.Tests
 
             Assert.NotNull(img);
             Assert.Equal(this.returnImage, img);
-            this.localDecoder.Verify(x => x.Decode<Color>(this.DataStream, this.decoderOptions, Configuration.Default));
+            this.localDecoder.Verify(x => x.Decode<Color>(Configuration.Default, this.DataStream, this.decoderOptions));
         }
 
         public void Dispose()

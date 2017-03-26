@@ -11,7 +11,7 @@ namespace ImageSharp.Tests
     public abstract partial class TestImageProvider<TColor>
         where TColor : struct, IPixel<TColor>
     {
-        private class BlankProvider : TestImageProvider<TColor>
+        private class BlankProvider : TestImageProvider<TColor>, IXunitSerializable
         {
             public BlankProvider(int width, int height)
             {

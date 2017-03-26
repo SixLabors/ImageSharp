@@ -62,7 +62,7 @@ namespace ImageSharp.Tests
 
             if (string.IsNullOrWhiteSpace(extension))
             {
-                extension = ".bmp"; 
+                extension = ".bmp";
             }
 
             if (extension[0] != '.')
@@ -81,9 +81,9 @@ namespace ImageSharp.Tests
             tag = tag ?? string.Empty;
             if (tag != string.Empty)
             {
-                tag= '_' + tag;
+                tag = '_' + tag;
             }
-            
+
 
             return $"{this.GetTestOutputDir()}/{this.TestName}{pixName}{fn}{tag}{extension}";
         }
@@ -111,10 +111,15 @@ namespace ImageSharp.Tests
             }
         }
 
+        internal void Init(string typeName, string methodName)
+        {
+            this.TestGroupName = typeName;
+            this.TestName = methodName;
+        }
+
         internal void Init(MethodInfo method)
         {
-            this.TestGroupName = method.DeclaringType.Name;
-            this.TestName = method.Name;
+            this.Init(method.DeclaringType.Name, method.Name);
         }
 
         private static IImageFormat GetImageFormatByExtension(string extension)

@@ -7,11 +7,12 @@ namespace ImageSharp.Tests
 {
     using System;
     using System.Collections.Concurrent;
+    using Xunit.Abstractions;
 
     public abstract partial class TestImageProvider<TColor>
         where TColor : struct, IPixel<TColor>
     {
-        private class FileProvider : TestImageProvider<TColor>
+        private class FileProvider : TestImageProvider<TColor>, IXunitSerializable
         {
             // Need PixelTypes in the dictionary key, because result images of TestImageProvider<TColor>.FileProvider 
             // are shared between PixelTypes.Color & PixelTypes.StandardImageClass
@@ -33,6 +34,10 @@ namespace ImageSharp.Tests
                 this.filePath = filePath;
             }
 
+            public FileProvider()
+            {
+            }
+
             public override string SourceFileOrDescription => this.filePath;
 
             public override Image<TColor> GetImage()
@@ -48,6 +53,19 @@ namespace ImageSharp.Tests
                         });
 
                 return this.Factory.CreateImage(cachedImage);
+            }
+
+            public void Deserialize(IXunitSerializationInfo info)
+            {
+                this.filePath = info.GetValue<string>("path");
+
+                base.Deserialize(info); // must be called last
+            }
+
+            public void Serialize(IXunitSerializationInfo info)
+            {
+                base.Serialize(info);
+                info.AddValue("path", this.filePath);
             }
         }
     }

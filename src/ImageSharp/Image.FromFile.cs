@@ -26,7 +26,7 @@ namespace ImageSharp
         /// <returns>The image</returns>
         public static Image Load(string path)
         {
-            return Load(path, null, (Configuration)null);
+            return Load(null, path, null);
         }
 
         /// <summary>
@@ -40,21 +40,21 @@ namespace ImageSharp
         /// <returns>The image</returns>
         public static Image Load(string path, IDecoderOptions options)
         {
-            return Load(path, options, null);
+            return Load(null, path, options);
         }
 
         /// <summary>
         /// Loads the image from the given file.
         /// </summary>
-        /// <param name="path">The file path to the image.</param>
         /// <param name="config">The config for the decoder.</param>
+        /// <param name="path">The file path to the image.</param>
         /// <exception cref="NotSupportedException">
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
         /// <returns>The image</returns>
-        public static Image Load(string path, Configuration config)
+        public static Image Load(Configuration config, string path)
         {
-            return Load(path, null, config);
+            return Load(config, path, null);
         }
 
         /// <summary>
@@ -89,19 +89,19 @@ namespace ImageSharp
         /// <summary>
         /// Loads the image from the given file.
         /// </summary>
+        /// <param name="config">The configuration options.</param>
         /// <param name="path">The file path to the image.</param>
         /// <param name="options">The options for the decoder.</param>
-        /// <param name="config">The configuration options.</param>
         /// <exception cref="NotSupportedException">
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
         /// <returns>The image</returns>
-        public static Image Load(string path, IDecoderOptions options, Configuration config)
+        public static Image Load(Configuration config, string path, IDecoderOptions options)
         {
             config = config ?? Configuration.Default;
             using (Stream s = config.FileSystem.OpenRead(path))
             {
-                return Load(s, options, config);
+                return Load(config, s, options);
             }
         }
 
@@ -117,7 +117,7 @@ namespace ImageSharp
         public static Image<TColor> Load<TColor>(string path)
             where TColor : struct, IPixel<TColor>
         {
-            return Load<TColor>(path, null, (Configuration)null);
+            return Load<TColor>(null, path, null);
         }
 
         /// <summary>
@@ -133,23 +133,23 @@ namespace ImageSharp
         public static Image<TColor> Load<TColor>(string path, IDecoderOptions options)
             where TColor : struct, IPixel<TColor>
         {
-            return Load<TColor>(path, options, null);
+            return Load<TColor>(null, path, options);
         }
 
         /// <summary>
         /// Loads the image from the given file.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <param name="path">The file path to the image.</param>
         /// <param name="config">The config for the decoder.</param>
+        /// <param name="path">The file path to the image.</param>
         /// <exception cref="NotSupportedException">
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
         /// <returns>The image</returns>
-        public static Image<TColor> Load<TColor>(string path, Configuration config)
+        public static Image<TColor> Load<TColor>(Configuration config, string path)
             where TColor : struct, IPixel<TColor>
         {
-            return Load<TColor>(path, null, config);
+            return Load<TColor>(config, path, null);
         }
 
         /// <summary>
@@ -172,20 +172,20 @@ namespace ImageSharp
         /// Loads the image from the given file.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <param name="config">The configuration options.</param>
         /// <param name="path">The file path to the image.</param>
         /// <param name="options">The options for the decoder.</param>
-        /// <param name="config">The configuration options.</param>
         /// <exception cref="NotSupportedException">
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
         /// <returns>The image</returns>
-        public static Image<TColor> Load<TColor>(string path, IDecoderOptions options, Configuration config)
+        public static Image<TColor> Load<TColor>(Configuration config, string path, IDecoderOptions options)
             where TColor : struct, IPixel<TColor>
         {
             config = config ?? Configuration.Default;
             using (Stream s = config.FileSystem.OpenRead(path))
             {
-                return Load<TColor>(s, options, config);
+                return Load<TColor>(config, s, options);
             }
         }
 

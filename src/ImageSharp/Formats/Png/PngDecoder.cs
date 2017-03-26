@@ -31,24 +31,24 @@ namespace ImageSharp.Formats
     public class PngDecoder : IImageDecoder
     {
         /// <inheritdoc/>
-        public Image<TColor> Decode<TColor>(Stream stream, IDecoderOptions options, Configuration configuration)
+        public Image<TColor> Decode<TColor>(Configuration configuration, Stream stream, IDecoderOptions options)
 
             where TColor : struct, IPixel<TColor>
         {
             IPngDecoderOptions pngOptions = PngDecoderOptions.Create(options);
 
-            return this.Decode<TColor>(stream, pngOptions, configuration);
+            return this.Decode<TColor>(configuration, stream, pngOptions);
         }
 
         /// <summary>
         /// Decodes the image from the specified stream to the <see cref="ImageBase{TColor}"/>.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <param name="configuration">The configuration for the image.</param>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
         /// <param name="options">The options for the decoder.</param>
-        /// <param name="configuration">The configuration for the image.</param>
         /// <returns>The decoded image.</returns>
-        public Image<TColor> Decode<TColor>(Stream stream, IPngDecoderOptions options, Configuration configuration)
+        public Image<TColor> Decode<TColor>(Configuration configuration, Stream stream, IPngDecoderOptions options)
             where TColor : struct, IPixel<TColor>
         {
             return new PngDecoderCore(options, configuration).Decode<TColor>(stream);

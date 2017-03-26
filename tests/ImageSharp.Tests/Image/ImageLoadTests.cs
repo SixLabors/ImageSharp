@@ -128,7 +128,7 @@ namespace ImageSharp.Tests
         public void LoadFromStreamWithConfig()
         {
             Stream stream = new MemoryStream();
-            Image img = Image.Load(stream, this.LocalConfiguration);
+            Image img = Image.Load(this.LocalConfiguration, stream);
 
             Assert.NotNull(img);
             Assert.Equal(this.localFormat.Object, img.CurrentImageFormat);
@@ -141,7 +141,7 @@ namespace ImageSharp.Tests
         public void LoadFromStreamWithTypeAndConfig()
         {
             Stream stream = new MemoryStream();
-            Image<Color> img = Image.Load<Color>(stream, this.LocalConfiguration);
+            Image<Color> img = Image.Load<Color>(this.LocalConfiguration, stream);
 
             Assert.NotNull(img);
             Assert.Equal(this.returnImage, img);
@@ -155,7 +155,7 @@ namespace ImageSharp.Tests
         public void LoadFromStreamWithConfigAndOptions()
         {
             Stream stream = new MemoryStream();
-            Image img = Image.Load(stream, this.decoderOptions, this.LocalConfiguration);
+            Image img = Image.Load(this.LocalConfiguration, stream, this.decoderOptions);
 
             Assert.NotNull(img);
             Assert.Equal(this.localFormat.Object, img.CurrentImageFormat);
@@ -168,7 +168,7 @@ namespace ImageSharp.Tests
         public void LoadFromStreamWithTypeAndConfigAndOptions()
         {
             Stream stream = new MemoryStream();
-            Image<Color> img = Image.Load<Color>(stream, this.decoderOptions, this.LocalConfiguration);
+            Image<Color> img = Image.Load<Color>(this.LocalConfiguration, stream, this.decoderOptions);
 
             Assert.NotNull(img);
             Assert.Equal(this.returnImage, img);
@@ -276,7 +276,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void LoadFromBytesWithConfig()
         {
-            Image img = Image.Load(this.DataStream.ToArray(), this.LocalConfiguration);
+            Image img = Image.Load(this.LocalConfiguration, this.DataStream.ToArray());
 
             Assert.NotNull(img);
             Assert.Equal(this.localFormat.Object, img.CurrentImageFormat);
@@ -289,7 +289,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void LoadFromBytesWithTypeAndConfig()
         {
-            Image<Color> img = Image.Load<Color>(this.DataStream.ToArray(), this.LocalConfiguration);
+            Image<Color> img = Image.Load<Color>(this.LocalConfiguration, this.DataStream.ToArray());
 
             Assert.NotNull(img);
             Assert.Equal(this.returnImage, img);
@@ -304,7 +304,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void LoadFromBytesWithConfigAndOptions()
         {
-            Image img = Image.Load(this.DataStream.ToArray(), this.decoderOptions, this.LocalConfiguration);
+            Image img = Image.Load(this.LocalConfiguration, this.DataStream.ToArray(), this.decoderOptions);
 
             Assert.NotNull(img);
             Assert.Equal(this.localFormat.Object, img.CurrentImageFormat);
@@ -317,7 +317,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void LoadFromBytesWithTypeAndConfigAndOptions()
         {
-            Image<Color> img = Image.Load<Color>(this.DataStream.ToArray(), this.decoderOptions, this.LocalConfiguration);
+            Image<Color> img = Image.Load<Color>(this.LocalConfiguration, this.DataStream.ToArray(), this.decoderOptions);
 
             Assert.NotNull(img);
             Assert.Equal(this.returnImage, img);
@@ -425,7 +425,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void LoadFromFileWithConfig()
         {
-            Image img = Image.Load(this.FilePath, this.LocalConfiguration);
+            Image img = Image.Load(this.LocalConfiguration, this.FilePath);
 
             Assert.NotNull(img);
             Assert.Equal(this.localFormat.Object, img.CurrentImageFormat);
@@ -437,7 +437,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void LoadFromFileWithTypeAndConfig()
         {
-            Image<Color> img = Image.Load<Color>(this.FilePath, this.LocalConfiguration);
+            Image<Color> img = Image.Load<Color>(this.LocalConfiguration, this.FilePath);
 
             Assert.NotNull(img);
             Assert.Equal(this.returnImage, img);
@@ -450,7 +450,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void LoadFromFileWithConfigAndOptions()
         {
-            Image img = Image.Load(this.FilePath, this.decoderOptions, this.LocalConfiguration);
+            Image img = Image.Load(this.LocalConfiguration, this.FilePath, this.decoderOptions);
 
             Assert.NotNull(img);
             Assert.Equal(this.localFormat.Object, img.CurrentImageFormat);
@@ -462,7 +462,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void LoadFromFileWithTypeAndConfigAndOptions()
         {
-            Image<Color> img = Image.Load<Color>(this.FilePath, this.decoderOptions, this.LocalConfiguration);
+            Image<Color> img = Image.Load<Color>(this.LocalConfiguration, this.FilePath, this.decoderOptions);
 
             Assert.NotNull(img);
             Assert.Equal(this.returnImage, img);

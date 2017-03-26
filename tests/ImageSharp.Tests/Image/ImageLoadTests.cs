@@ -46,7 +46,7 @@ namespace ImageSharp.Tests
 
             this.localDecoder.Setup(x => x.Decode<Color>(It.IsAny<Configuration>(), It.IsAny<Stream>(), It.IsAny<IDecoderOptions>()))
 
-                .Callback<Stream, IDecoderOptions, Configuration>((s, o, c) => {
+                .Callback<Configuration, Stream, IDecoderOptions>((c, s, o) => {
                     using (var ms = new MemoryStream())
                     {
                         s.CopyTo(ms);

@@ -8,6 +8,7 @@ namespace ImageSharp.Tests
     using System;
     using System.Collections.Generic;
     using System.Numerics;
+    using Xunit.Abstractions;
 
     public abstract partial class TestImageProvider<TColor>
         where TColor : struct, IPixel<TColor>
@@ -17,21 +18,21 @@ namespace ImageSharp.Tests
         /// A test image provider that produces test patterns.
         /// </summary>
         /// <typeparam name="TColor"></typeparam>
-        private class TestPatternProvider : TestImageProvider<TColor>
+        private class TestPatternProvider : BlankProvider
         {
             static Dictionary<string, Image<TColor>> testImages = new Dictionary<string, Image<TColor>>();
 
             public TestPatternProvider(int width, int height)
+                : base(width, height)
             {
-                this.Width = width;
-                this.Height = height;
+            }
+
+            public TestPatternProvider()
+                : base()
+            {
             }
 
             public override string SourceFileOrDescription => $"TestPattern{this.Width}x{this.Height}";
-
-            protected int Height { get; }
-
-            protected int Width { get; }
 
             public override Image<TColor> GetImage()
             {
@@ -43,9 +44,9 @@ namespace ImageSharp.Tests
                         DrawTestPattern(image);
                         testImages.Add(this.SourceFileOrDescription, image);
                     }
-
-                    return new Image<TColor>(testImages[this.SourceFileOrDescription]);
                 }
+
+                return new Image<TColor>(testImages[this.SourceFileOrDescription]);
             }
 
             /// <summary>
@@ -132,7 +133,7 @@ namespace ImageSharp.Tests
                     p = pstart;
                 }
             }
-            
+
             /// <summary>
             /// Fills the bottom left quadrent with 3 horizental bars in Red, Green and Blue with a alpha gradient from left (transparent) to right (solid).
             /// </summary>

@@ -220,8 +220,7 @@ namespace ImageSharp.Formats
                     throw new ArgumentOutOfRangeException($"The input png '{this.header.Width}x{this.header.Height}' is bigger than the max allowed size '{Image<TColor>.MaxWidth}x{Image<TColor>.MaxHeight}'");
                 }
 
-                Image<TColor> image = Image.Create<TColor>(this.header.Width, this.header.Height, this.configuration);
-                image.MetaData.LoadFrom(metadata);
+                Image<TColor> image = Image.Create<TColor>(this.header.Width, this.header.Height, metadata, this.configuration);
 
                 using (PixelAccessor<TColor> pixels = image.Lock())
                 {

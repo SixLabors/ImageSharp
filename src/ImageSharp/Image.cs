@@ -53,5 +53,20 @@ namespace ImageSharp
             : base(other)
         {
         }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Image"/> class
+        /// with the height and the width of the image.
+        /// </summary>
+        /// <param name="width">The width of the image in pixels.</param>
+        /// <param name="height">The height of the image in pixels.</param>
+        /// <param name="metadata">The metadata.</param>
+        /// <param name="configuration">
+        /// The configuration providing initialization code which allows extending the library.
+        /// </param>
+        internal Image(int width, int height, ImageMetaData metadata, Configuration configuration)
+          : base(width, height, metadata, configuration)
+        {
+        }
     }
 }

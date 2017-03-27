@@ -137,7 +137,7 @@ namespace ImageSharp
 
             using (MemoryStream memStream = new MemoryStream(this.data, this.thumbnailOffset, this.thumbnailLength))
             {
-                return new Image<TColor>(memStream);
+                return Image.Load<TColor>(memStream);
             }
         }
 

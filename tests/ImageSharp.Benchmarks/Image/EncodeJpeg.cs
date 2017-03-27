@@ -25,7 +25,7 @@ namespace ImageSharp.Benchmarks.Image
             if (this.bmpStream == null)
             {
                 this.bmpStream = File.OpenRead("../ImageSharp.Tests/TestImages/Formats/Bmp/Car.bmp");
-                this.bmpCore = new CoreImage(this.bmpStream);
+                this.bmpCore = CoreImage.Load(this.bmpStream);
                 this.bmpStream.Position = 0;
                 this.bmpDrawing = Image.FromStream(this.bmpStream);
             }

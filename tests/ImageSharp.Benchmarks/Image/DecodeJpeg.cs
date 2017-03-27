@@ -43,7 +43,7 @@ namespace ImageSharp.Benchmarks.Image
         {
             using (MemoryStream memoryStream = new MemoryStream(this.jpegBytes))
             {
-                using (CoreImage image = new CoreImage(memoryStream))
+                using (CoreImage image = CoreImage.Load(memoryStream))
                 {
                     return new CoreSize(image.Width, image.Height);
                 }

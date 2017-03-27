@@ -16,16 +16,6 @@ namespace ImageSharp
         Rectangle Bounds { get; }
 
         /// <summary>
-        /// Gets or sets the maximum allowable width in pixels.
-        /// </summary>
-        int MaxWidth { get; set; }
-
-        /// <summary>
-        /// Gets or sets the maximum allowable height in pixels.
-        /// </summary>
-        int MaxHeight { get; set; }
-
-        /// <summary>
         /// Gets the width in pixels.
         /// </summary>
         int Width { get; }

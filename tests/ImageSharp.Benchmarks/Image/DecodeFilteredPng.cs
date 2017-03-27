@@ -31,7 +31,7 @@ namespace ImageSharp.Benchmarks.Image
 
         private Size LoadPng(MemoryStream stream)
         {
-            using (Image image = new Image(stream))
+            using (Image image = Image.Load(stream))
             {
                 return new Size(image.Width, image.Height);
             }

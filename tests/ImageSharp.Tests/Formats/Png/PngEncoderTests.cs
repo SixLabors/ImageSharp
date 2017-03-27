@@ -15,43 +15,6 @@ namespace ImageSharp.Tests
 
     public class PngEncoderTests : FileTestBase
     {
-        [Fact(Skip ="Slow intergration test")]
-        public void ImageCanSaveIndexedPng()
-        {
-            string path = CreateOutputDirectory("Png", "Indexed");
-
-            foreach (TestFile file in Files)
-            {
-                using (Image image = file.CreateImage())
-                {
-                    using (FileStream output = File.OpenWrite($"{path}/{file.FileNameWithoutExtension}.png"))
-                    {
-                        image.MetaData.Quality = 256;
-                        image.Save(output, new PngFormat());
-                    }
-                }
-            }
-        }
-
-        [Fact(Skip = "Slow intergration test")]
-        public void ImageCanSavePngInParallel()
-        {
-            string path = this.CreateOutputDirectory("Png");
-
-            Parallel.ForEach(
-                Files,
-                file =>
-                    {
-                        using (Image image = file.CreateImage())
-                        {
-                            using (FileStream output = File.OpenWrite($"{path}/{file.FileNameWithoutExtension}.png"))
-                            {
-                                image.SaveAsPng(output);
-                            }
-                        }
-                    });
-        }
-
         [Theory]
         [WithBlankImages(1, 1, PixelTypes.All)]
         public void WritesFileMarker<TColor>(TestImageProvider<TColor> provider)

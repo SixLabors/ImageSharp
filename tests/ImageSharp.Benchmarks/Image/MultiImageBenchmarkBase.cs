@@ -154,7 +154,7 @@ namespace ImageSharp.Benchmarks.Image
 
                     using (MemoryStream ms1 = new MemoryStream(bytes))
                     {
-                        this.FileNamesToImageSharpImages[fn] = new Image(ms1);
+                        this.FileNamesToImageSharpImages[fn] = Image.Load(ms1);
 
                     }
 

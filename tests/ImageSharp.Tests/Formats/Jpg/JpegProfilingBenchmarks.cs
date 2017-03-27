@@ -50,7 +50,7 @@ namespace ImageSharp.Tests
                 ExecutionCount,
                 () =>
                     {
-                        Image img = new Image(bytes);
+                        Image img = Image.Load(bytes);
                     },
                 // ReSharper disable once ExplicitCallerInfoArgument
                 $"Decode {fileName}");

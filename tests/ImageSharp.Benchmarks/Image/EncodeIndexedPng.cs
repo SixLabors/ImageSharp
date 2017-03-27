@@ -34,7 +34,7 @@ namespace ImageSharp.Benchmarks.Image
                                   ? "../ImageSharp.Tests/TestImages/Formats/Jpg/baseline/jpeg420exif.jpg"
                                   : "../ImageSharp.Tests/TestImages/Formats/Bmp/Car.bmp";
                 this.bmpStream = File.OpenRead(path);
-                this.bmpCore = new Image(this.bmpStream);
+                this.bmpCore = Image.Load(this.bmpStream);
                 this.bmpStream.Position = 0;
             }
         }

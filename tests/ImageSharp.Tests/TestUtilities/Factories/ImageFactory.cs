@@ -7,7 +7,7 @@ namespace ImageSharp.Tests
 {
     public class ImageFactory : GenericFactory<Color>
     {
-        public override Image<Color> CreateImage(byte[] bytes) => new Image(bytes);
+        public override Image<Color> CreateImage(byte[] bytes) => Image.Load(bytes);
 
         public override Image<Color> CreateImage(int width, int height) => new Image(width, height);
 

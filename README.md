@@ -74,7 +74,7 @@ Here's an example of the code required to resize an image using the default Bicu
 
 On platforms supporting netstandard 1.3+
 ```csharp
-using (Image image = new Image("foo.jpg"))
+using (Image image = Image.Load("foo.jpg"))
 {
     image.Resize(image.Width / 2, image.Height / 2)
          .Grayscale()
@@ -85,7 +85,7 @@ on netstandard 1.1 - 1.2
 ```csharp
 using (FileStream stream = File.OpenRead("foo.jpg"))
 using (FileStream output = File.OpenWrite("bar.jpg"))
-using (Image image = new Image(stream))
+using (Image image = Image.Load(stream))
 {
     image.Resize(image.Width / 2, image.Height / 2)
          .Grayscale()

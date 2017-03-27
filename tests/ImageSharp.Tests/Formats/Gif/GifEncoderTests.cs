@@ -29,7 +29,7 @@ namespace ImageSharp.Tests
                     input.Save(memStream, new GifFormat(), options);
 
                     memStream.Position = 0;
-                    using (Image output = new Image(memStream))
+                    using (Image output = Image.Load(memStream))
                     {
                         Assert.Equal(1, output.MetaData.Properties.Count);
                         Assert.Equal("Comments", output.MetaData.Properties[0].Name);
@@ -56,7 +56,7 @@ namespace ImageSharp.Tests
                     input.SaveAsGif(memStream, options);
 
                     memStream.Position = 0;
-                    using (Image output = new Image(memStream))
+                    using (Image output = Image.Load(memStream))
                     {
                         Assert.Equal(0, output.MetaData.Properties.Count);
                     }
@@ -77,7 +77,7 @@ namespace ImageSharp.Tests
                     input.Save(memStream, new GifFormat());
 
                     memStream.Position = 0;
-                    using (Image output = new Image(memStream))
+                    using (Image output = Image.Load(memStream))
                     {
                         Assert.Equal(1, output.MetaData.Properties.Count);
                         Assert.Equal("Comments", output.MetaData.Properties[0].Name);

@@ -23,7 +23,7 @@ namespace ImageSharp.Benchmarks
             {
                 using (FileStream stream = File.OpenRead("../ImageSharp.Tests/TestImages/Formats/Bmp/Car.bmp"))
                 {
-                    this.image = new CoreImage(stream);
+                    this.image = CoreImage.Load(stream);
                 }
             }
         }

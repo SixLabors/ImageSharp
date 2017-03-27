@@ -19,6 +19,16 @@ namespace ImageSharp
         where TColor : struct, IPixel<TColor>
     {
         /// <summary>
+        /// Gets or sets the maximum allowable width in pixels.
+        /// </summary>
+        public const int MaxWidth = int.MaxValue;
+
+        /// <summary>
+        /// Gets or sets the maximum allowable height in pixels.
+        /// </summary>
+        public const int MaxHeight = int.MaxValue;
+
+        /// <summary>
         /// The image pixels
         /// </summary>
         private TColor[] pixelBuffer;
@@ -40,7 +50,7 @@ namespace ImageSharp
         /// <param name="configuration">
         /// The configuration providing initialization code which allows extending the library.
         /// </param>
-        protected ImageBase(Configuration configuration = null)
+        protected ImageBase(Configuration configuration)
         {
             this.Configuration = configuration ?? Configuration.Default;
         }
@@ -56,10 +66,15 @@ namespace ImageSharp
         /// <exception cref="ArgumentOutOfRangeException">
         /// Thrown if either <paramref name="width"/> or <paramref name="height"/> are less than or equal to 0.
         /// </exception>
-        protected ImageBase(int width, int height, Configuration configuration = null)
+        protected ImageBase(int width, int height, Configuration configuration)
+            : this(configuration)
         {
-            this.Configuration = configuration ?? Configuration.Default;
-            this.InitPixels(width, height);
+            Guard.MustBeGreaterThan(width, 0, nameof(width));
+            Guard.MustBeGreaterThan(height, 0, nameof(height));
+
+            this.Width = width;
+            this.Height = height;
+            this.RentPixels();
             this.ClearPixels();
         }
 
@@ -73,6 +88,7 @@ namespace ImageSharp
         /// Thrown if the given <see cref="ImageBase{TColor}"/> is null.
         /// </exception>
         protected ImageBase(ImageBase<TColor> other)
+            : this(other.Configuration)
         {
             Guard.NotNull(other, nameof(other), "Other image cannot be null.");
 
@@ -89,12 +105,6 @@ namespace ImageSharp
                 sourcePixels.CopyTo(target);
             }
         }
-
-        /// <inheritdoc/>
-        public int MaxWidth { get; set; } = int.MaxValue;
-
-        /// <inheritdoc/>
-        public int MaxHeight { get; set; } = int.MaxValue;
 
         /// <inheritdoc/>
         public TColor[] Pixels => this.pixelBuffer;
@@ -137,17 +147,6 @@ namespace ImageSharp
             // and prevent finalization code for this object
             // from executing a second time.
             GC.SuppressFinalize(this);
-        }
-
-        /// <inheritdoc/>
-        public void InitPixels(int width, int height)
-        {
-            Guard.MustBeGreaterThan(width, 0, nameof(width));
-            Guard.MustBeGreaterThan(height, 0, nameof(height));
-
-            this.Width = width;
-            this.Height = height;
-            this.RentPixels();
         }
 
         /// <inheritdoc/>

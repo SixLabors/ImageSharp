@@ -88,7 +88,7 @@ namespace ImageSharp.Tests
                     input.Save(memStream, new JpegFormat(), options);
 
                     memStream.Position = 0;
-                    using (Image output = new Image(memStream))
+                    using (Image output = Image.Load(memStream))
                     {
                         Assert.NotNull(output.MetaData.ExifProfile);
                     }
@@ -113,7 +113,7 @@ namespace ImageSharp.Tests
                     input.SaveAsJpeg(memStream, options);
 
                     memStream.Position = 0;
-                    using (Image output = new Image(memStream))
+                    using (Image output = Image.Load(memStream))
                     {
                         Assert.Null(output.MetaData.ExifProfile);
                     }

@@ -219,5 +219,32 @@ namespace ImageSharp.Tests.Drawing.Text
             Assert.IsType<FillRegionProcessor<Color>>(this.img.ProcessorApplications[0].processor);
             Assert.IsType<DrawPathProcessor<Color>>(this.img.ProcessorApplications[1].processor);
         }
+
+        [Fact]
+        public void GlyphHeightChangesBasedOnuseImageResolutionFlag()
+        {
+            this.img.MetaData.VerticalResolution = 1;
+            this.img.MetaData.HorizontalResolution = 1;
+            this.img.DrawText("1", this.Font, Brushes.Solid(Color.Red), Vector2.Zero, new TextGraphicsOptions(true) {
+                UseImageResolution = false
+            });
+
+            this.img.DrawText("1", this.Font, Brushes.Solid(Color.Red), Vector2.Zero, new TextGraphicsOptions(true)
+            {
+                UseImageResolution = true
+            });
+
+            Assert.NotEmpty(this.img.ProcessorApplications);
+            Assert.Equal(2, this.img.ProcessorApplications.Count);
+            FillRegionProcessor<Color> ownResolution = Assert.IsType<FillRegionProcessor<Color>>(this.img.ProcessorApplications[0].processor);
+            FillRegionProcessor<Color> imgResolution = Assert.IsType<FillRegionProcessor<Color>>(this.img.ProcessorApplications[1].processor);
+
+            ShapeRegion ownRegion = Assert.IsType<ShapeRegion>(ownResolution.Region);
+            ShapeRegion imgRegion = Assert.IsType<ShapeRegion>(imgResolution.Region);
+
+            // magic numbers based on the font used at well known resolutions
+            Assert.Equal(7.44, ownRegion.Shape.Bounds.Height, 2);
+            Assert.Equal(0.1, imgRegion.Shape.Bounds.Height, 2);
+        }
     }
 }

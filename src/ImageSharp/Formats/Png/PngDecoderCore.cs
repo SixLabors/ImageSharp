@@ -75,6 +75,11 @@ namespace ImageSharp.Formats
         private readonly Crc32 crc = new Crc32();
 
         /// <summary>
+        /// The global configuration.
+        /// </summary>
+        private readonly Configuration configuration;
+
+        /// <summary>
         /// The stream to decode from.
         /// </summary>
         private Stream currentStream;
@@ -134,8 +139,10 @@ namespace ImageSharp.Formats
         /// Initializes a new instance of the <see cref="PngDecoderCore"/> class.
         /// </summary>
         /// <param name="options">The decoder options.</param>
-        public PngDecoderCore(IPngDecoderOptions options)
+        /// <param name="configuration">The configuration.</param>
+        public PngDecoderCore(IPngDecoderOptions options, Configuration configuration)
         {
+            this.configuration = configuration ?? Configuration.Default;
             this.options = options ?? new PngDecoderOptions();
         }
 
@@ -148,7 +155,6 @@ namespace ImageSharp.Formats
         /// Decodes the stream to the image.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <param name="image">The image to decode to.</param>
         /// <param name="stream">The stream containing image data. </param>
         /// <exception cref="ImageFormatException">
         /// Thrown if the stream does not contain and end chunk.
@@ -156,10 +162,11 @@ namespace ImageSharp.Formats
         /// <exception cref="System.ArgumentOutOfRangeException">
         /// Thrown if the image is larger than the maximum allowable size.
         /// </exception>
-        public void Decode<TColor>(Image<TColor> image, Stream stream)
+        /// <returns>The decoded image</returns>
+        public Image<TColor> Decode<TColor>(Stream stream)
             where TColor : struct, IPixel<TColor>
         {
-            Image<TColor> currentImage = image;
+            ImageMetaData metadata = new ImageMetaData();
             this.currentStream = stream;
             this.currentStream.Skip(8);
 
@@ -177,7 +184,7 @@ namespace ImageSharp.Formats
                                 this.ValidateHeader();
                                 break;
                             case PngChunkTypes.Physical:
-                                this.ReadPhysicalChunk(currentImage, currentChunk.Data);
+                                this.ReadPhysicalChunk(metadata, currentChunk.Data);
                                 break;
                             case PngChunkTypes.Data:
                                 dataStream.Write(currentChunk.Data, 0, currentChunk.Length);
@@ -186,7 +193,7 @@ namespace ImageSharp.Formats
                                 byte[] pal = new byte[currentChunk.Length];
                                 Buffer.BlockCopy(currentChunk.Data, 0, pal, 0, currentChunk.Length);
                                 this.palette = pal;
-                                image.MetaData.Quality = pal.Length / 3;
+                                metadata.Quality = pal.Length / 3;
                                 break;
                             case PngChunkTypes.PaletteAlpha:
                                 byte[] alpha = new byte[currentChunk.Length];
@@ -194,7 +201,7 @@ namespace ImageSharp.Formats
                                 this.paletteAlpha = alpha;
                                 break;
                             case PngChunkTypes.Text:
-                                this.ReadTextChunk(currentImage, currentChunk.Data, currentChunk.Length);
+                                this.ReadTextChunk(metadata, currentChunk.Data, currentChunk.Length);
                                 break;
                             case PngChunkTypes.End:
                                 this.isEndChunkReached = true;
@@ -208,17 +215,19 @@ namespace ImageSharp.Formats
                     }
                 }
 
-                if (this.header.Width > image.MaxWidth || this.header.Height > image.MaxHeight)
+                if (this.header.Width > Image<TColor>.MaxWidth || this.header.Height > Image<TColor>.MaxHeight)
                 {
-                    throw new ArgumentOutOfRangeException($"The input png '{this.header.Width}x{this.header.Height}' is bigger than the max allowed size '{image.MaxWidth}x{image.MaxHeight}'");
+                    throw new ArgumentOutOfRangeException($"The input png '{this.header.Width}x{this.header.Height}' is bigger than the max allowed size '{Image<TColor>.MaxWidth}x{Image<TColor>.MaxHeight}'");
                 }
 
-                image.InitPixels(this.header.Width, this.header.Height);
+                Image<TColor> image = Image.Create<TColor>(this.header.Width, this.header.Height, metadata, this.configuration);
 
                 using (PixelAccessor<TColor> pixels = image.Lock())
                 {
                     this.ReadScanlines(dataStream, pixels);
                 }
+
+                return image;
             }
         }
 
@@ -270,18 +279,16 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Reads the data chunk containing physical dimension data.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <param name="image">The image to read to.</param>
+        /// <param name="metadata">The metadata to read to.</param>
         /// <param name="data">The data containing physical data.</param>
-        private void ReadPhysicalChunk<TColor>(Image<TColor> image, byte[] data)
-            where TColor : struct, IPixel<TColor>
+        private void ReadPhysicalChunk(ImageMetaData metadata, byte[] data)
         {
             data.ReverseBytes(0, 4);
             data.ReverseBytes(4, 4);
 
             // 39.3700787 = inches in a meter.
-            image.MetaData.HorizontalResolution = BitConverter.ToInt32(data, 0) / 39.3700787d;
-            image.MetaData.VerticalResolution = BitConverter.ToInt32(data, 4) / 39.3700787d;
+            metadata.HorizontalResolution = BitConverter.ToInt32(data, 0) / 39.3700787d;
+            metadata.VerticalResolution = BitConverter.ToInt32(data, 4) / 39.3700787d;
         }
 
         /// <summary>
@@ -768,12 +775,10 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Reads a text chunk containing image properties from the data.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <param name="image">The image to decode to.</param>
+        /// <param name="metadata">The metadata to decode to.</param>
         /// <param name="data">The <see cref="T:byte[]"/> containing  data.</param>
         /// <param name="length">The maximum length to read.</param>
-        private void ReadTextChunk<TColor>(Image<TColor> image, byte[] data, int length)
-            where TColor : struct, IPixel<TColor>
+        private void ReadTextChunk(ImageMetaData metadata, byte[] data, int length)
         {
             if (this.options.IgnoreMetadata)
             {
@@ -794,7 +799,7 @@ namespace ImageSharp.Formats
             string name = this.options.TextEncoding.GetString(data, 0, zeroIndex);
             string value = this.options.TextEncoding.GetString(data, zeroIndex + 1, length - zeroIndex - 1);
 
-            image.MetaData.Properties.Add(new ImageProperty(name, value));
+            metadata.Properties.Add(new ImageProperty(name, value));
         }
 
         /// <summary>

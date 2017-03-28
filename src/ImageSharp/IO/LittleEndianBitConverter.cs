@@ -61,22 +61,22 @@ namespace ImageSharp.IO
         public unsafe override short ToInt16(byte[] value, int startIndex)
         {
             CheckByteArgument(value, startIndex, 2);
-            return (short)((value[1] << 8) | value[0]);
+            return (short)((value[startIndex + 1] << 8) | value[startIndex]);
         }
 
         /// <inheritdoc/>
         public unsafe override int ToInt32(byte[] value, int startIndex)
         {
             CheckByteArgument(value, startIndex, 4);
-            return (value[3] << 24) | (value[2] << 16) | (value[1] << 8) | value[0];
+            return (value[startIndex + 3] << 24) | (value[startIndex + 2] << 16) | (value[startIndex + 1] << 8) | value[startIndex];
         }
 
         /// <inheritdoc/>
         public unsafe override long ToInt64(byte[] value, int startIndex)
         {
             CheckByteArgument(value, startIndex, 8);
-            long p1 = (value[7] << 24) | (value[6] << 16) | (value[5] << 8) | value[4];
-            long p2 = (value[3] << 24) | (value[2] << 16) | (value[1] << 8) | value[0];
+            long p1 = (value[startIndex + 7] << 24) | (value[startIndex + 6] << 16) | (value[startIndex + 5] << 8) | value[startIndex + 4];
+            long p2 = (value[startIndex + 3] << 24) | (value[startIndex + 2] << 16) | (value[startIndex + 1] << 8) | value[startIndex];
             return p2 | (p1 << 32);
         }
     }

@@ -12,7 +12,7 @@ namespace ImageSharp.Colors.Spaces.Conversion.Implementation.Lms
     /// <summary>
     /// Color converter between CIE XYZ and LMS
     /// </summary>
-    public class CieXyzAndLmsConverter : IColorConversion<CieXyz, Lms>, IColorConversion<Lms, CieXyz>
+    internal class CieXyzAndLmsConverter : IColorConversion<CieXyz, Lms>, IColorConversion<Lms, CieXyz>
     {
         /// <summary>
         /// Default transformation matrix used, when no other is set. (Bradford)
@@ -44,7 +44,7 @@ namespace ImageSharp.Colors.Spaces.Conversion.Implementation.Lms
         }
 
         /// <summary>
-        /// Gets transformation matrix used for the conversion (definition of the cone response domain).
+        /// Gets or sets the transformation matrix used for the conversion (definition of the cone response domain).
         /// <see cref="LmsAdaptationMatrix"/>
         /// </summary>
         public Matrix4x4 TransformationMatrix
@@ -54,7 +54,7 @@ namespace ImageSharp.Colors.Spaces.Conversion.Implementation.Lms
                 return this.transformationMatrix;
             }
 
-            internal set
+            set
             {
                 this.transformationMatrix = value;
                 Matrix4x4.Invert(this.transformationMatrix, out this.inverseTransformationMatrix);
@@ -64,7 +64,7 @@ namespace ImageSharp.Colors.Spaces.Conversion.Implementation.Lms
         /// <inheritdoc/>
         public Lms Convert(CieXyz input)
         {
-            Guard.NotNull(input, nameof(input));
+            DebugGuard.NotNull(input, nameof(input));
 
             Vector3 vector = Vector3.Transform(input.Vector, this.transformationMatrix);
             return new Lms(vector);
@@ -73,6 +73,8 @@ namespace ImageSharp.Colors.Spaces.Conversion.Implementation.Lms
         /// <inheritdoc/>
         public CieXyz Convert(Lms input)
         {
+            DebugGuard.NotNull(input, nameof(input));
+
             Vector3 vector = Vector3.Transform(input.Vector, this.inverseTransformationMatrix);
             return new CieXyz(vector);
         }

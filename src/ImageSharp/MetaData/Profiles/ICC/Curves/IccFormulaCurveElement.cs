@@ -22,7 +22,7 @@ namespace ImageSharp
         /// <param name="c">C segment parameter</param>
         /// <param name="d">D segment parameter</param>
         /// <param name="e">E segment parameter</param>
-        public IccFormulaCurveElement(IccFormulaCurveType type, double gamma, double a, double b, double c, double d, double e)
+        public IccFormulaCurveElement(IccFormulaCurveType type, float gamma, float a, float b, float c, float d, float e)
             : base(IccCurveSegmentSignature.FormulaCurve)
         {
             this.Type = type;
@@ -42,32 +42,32 @@ namespace ImageSharp
         /// <summary>
         /// Gets the gamma curve parameter
         /// </summary>
-        public double Gamma { get; }
+        public float Gamma { get; }
 
         /// <summary>
         /// Gets the A curve parameter
         /// </summary>
-        public double A { get; }
+        public float A { get; }
 
         /// <summary>
         /// Gets the B curve parameter
         /// </summary>
-        public double B { get; }
+        public float B { get; }
 
         /// <summary>
         /// Gets the C curve parameter
         /// </summary>
-        public double C { get; }
+        public float C { get; }
 
         /// <summary>
         /// Gets the D curve parameter
         /// </summary>
-        public double D { get; }
+        public float D { get; }
 
         /// <summary>
         /// Gets the E curve parameter
         /// </summary>
-        public double E { get; }
+        public float E { get; }
 
         /// <inheritdoc />
         public override bool Equals(IccCurveSegment other)

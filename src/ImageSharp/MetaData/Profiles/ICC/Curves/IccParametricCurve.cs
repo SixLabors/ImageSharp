@@ -16,7 +16,7 @@ namespace ImageSharp
         /// Initializes a new instance of the <see cref="IccParametricCurve"/> class.
         /// </summary>
         /// <param name="g">G curve parameter</param>
-        public IccParametricCurve(double g)
+        public IccParametricCurve(float g)
             : this(IccParametricCurveType.Type1, g, 0, 0, 0, 0, 0, 0)
         {
         }
@@ -27,7 +27,7 @@ namespace ImageSharp
         /// <param name="g">G curve parameter</param>
         /// <param name="a">A curve parameter</param>
         /// <param name="b">B curve parameter</param>
-        public IccParametricCurve(double g, double a, double b)
+        public IccParametricCurve(float g, float a, float b)
             : this(IccParametricCurveType.Cie122_1996, g, a, b, 0, 0, 0, 0)
         {
         }
@@ -39,7 +39,7 @@ namespace ImageSharp
         /// <param name="a">A curve parameter</param>
         /// <param name="b">B curve parameter</param>
         /// <param name="c">C curve parameter</param>
-        public IccParametricCurve(double g, double a, double b, double c)
+        public IccParametricCurve(float g, float a, float b, float c)
             : this(IccParametricCurveType.Iec61966_3, g, a, b, c, 0, 0, 0)
         {
         }
@@ -52,7 +52,7 @@ namespace ImageSharp
         /// <param name="b">B curve parameter</param>
         /// <param name="c">C curve parameter</param>
         /// <param name="d">D curve parameter</param>
-        public IccParametricCurve(double g, double a, double b, double c, double d)
+        public IccParametricCurve(float g, float a, float b, float c, float d)
             : this(IccParametricCurveType.SRgb, g, a, b, c, d, 0, 0)
         {
         }
@@ -67,12 +67,12 @@ namespace ImageSharp
         /// <param name="d">D curve parameter</param>
         /// <param name="e">E curve parameter</param>
         /// <param name="f">F curve parameter</param>
-        public IccParametricCurve(double g, double a, double b, double c, double d, double e, double f)
+        public IccParametricCurve(float g, float a, float b, float c, float d, float e, float f)
             : this(IccParametricCurveType.Type5, g, a, b, c, d, e, f)
         {
         }
 
-        private IccParametricCurve(IccParametricCurveType type, double g, double a, double b, double c, double d, double e, double f)
+        private IccParametricCurve(IccParametricCurveType type, float g, float a, float b, float c, float d, float e, float f)
         {
             this.Type = type;
             this.G = g;
@@ -92,37 +92,37 @@ namespace ImageSharp
         /// <summary>
         /// Gets the G curve parameter
         /// </summary>
-        public double G { get; }
+        public float G { get; }
 
         /// <summary>
         /// Gets the A curve parameter
         /// </summary>
-        public double A { get; }
+        public float A { get; }
 
         /// <summary>
         /// Gets the B curve parameter
         /// </summary>
-        public double B { get; }
+        public float B { get; }
 
         /// <summary>
         /// Gets the C curve parameter
         /// </summary>
-        public double C { get; }
+        public float C { get; }
 
         /// <summary>
         /// Gets the D curve parameter
         /// </summary>
-        public double D { get; }
+        public float D { get; }
 
         /// <summary>
         /// Gets the E curve parameter
         /// </summary>
-        public double E { get; }
+        public float E { get; }
 
         /// <summary>
         /// Gets the F curve parameter
         /// </summary>
-        public double F { get; }
+        public float F { get; }
 
         /// <inheritdoc/>
         public bool Equals(IccParametricCurve other)

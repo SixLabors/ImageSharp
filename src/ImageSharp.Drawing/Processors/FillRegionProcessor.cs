@@ -128,8 +128,8 @@ namespace ImageSharp.Drawing.Processors
                                 // points will be paired up
                                 float scanStart = buffer[point] - minX;
                                 float scanEnd = buffer[point + 1] - minX;
-                                int startX = (int)Math.Floor(scanStart);
-                                int endX = (int)Math.Floor(scanEnd);
+                                int startX = (int)MathF.Floor(scanStart);
+                                int endX = (int)MathF.Floor(scanEnd);
 
                                 if (startX >= 0 && startX < scanline.Length)
                                 {

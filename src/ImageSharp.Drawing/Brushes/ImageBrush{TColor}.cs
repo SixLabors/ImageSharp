@@ -80,7 +80,7 @@ namespace ImageSharp.Drawing.Brushes
                 this.source = image.Lock();
                 this.xLength = image.Width;
                 this.yLength = image.Height;
-                this.offset = new Vector2((float)Math.Max(Math.Floor(region.Top), 0), (float)Math.Max(Math.Floor(region.Left), 0));
+                this.offset = new Vector2(MathF.Max(MathF.Floor(region.Top), 0), MathF.Max(MathF.Floor(region.Left), 0));
             }
 
             /// <summary>

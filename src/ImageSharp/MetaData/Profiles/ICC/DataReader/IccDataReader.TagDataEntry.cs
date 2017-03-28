@@ -83,10 +83,19 @@ namespace ImageSharp
                 case IccTypeSignature.Xyz:
                     return this.ReadXyzTagDataEntry(info.DataSize);
 
-                // V2 Type:
+                // V2 Types:
                 case IccTypeSignature.TextDescription:
                     return this.ReadTextDescriptionTagDataEntry();
+                case IccTypeSignature.CrdInfo:
+                    return this.ReadCrdInfoTagDataEntry();
+                case IccTypeSignature.Screening:
+                    return this.ReadScreeningTagDataEntry();
+                case IccTypeSignature.UcrBg:
+                    return this.ReadUcrBgTagDataEntry(info.DataSize);
 
+                // Unsupported or unknown
+                case IccTypeSignature.DeviceSettings:
+                case IccTypeSignature.NamedColor:
                 case IccTypeSignature.Unknown:
                 default:
                     return this.ReadUnknownTagDataEntry(info.DataSize);
@@ -789,6 +798,76 @@ namespace ImageSharp
                 scriptcodeValue,
                 unicodeLangCode,
                 scriptcodeCode);
+        }
+
+        /// <summary>
+        /// Reads a <see cref="IccTextDescriptionTagDataEntry"/>
+        /// </summary>
+        /// <returns>The read entry</returns>
+        public IccCrdInfoTagDataEntry ReadCrdInfoTagDataEntry()
+        {
+            uint productNameCount = this.ReadUInt32();
+            string productName = this.ReadAsciiString((int)productNameCount);
+
+            uint crd0Count = this.ReadUInt32();
+            string crd0Name = this.ReadAsciiString((int)crd0Count);
+
+            uint crd1Count = this.ReadUInt32();
+            string crd1Name = this.ReadAsciiString((int)crd1Count);
+
+            uint crd2Count = this.ReadUInt32();
+            string crd2Name = this.ReadAsciiString((int)crd2Count);
+
+            uint crd3Count = this.ReadUInt32();
+            string crd3Name = this.ReadAsciiString((int)crd3Count);
+
+            return new IccCrdInfoTagDataEntry(productName, crd0Name, crd1Name, crd2Name, crd3Name);
+        }
+
+        /// <summary>
+        /// Reads a <see cref="IccScreeningTagDataEntry"/>
+        /// </summary>
+        /// <returns>The read entry</returns>
+        public IccScreeningTagDataEntry ReadScreeningTagDataEntry()
+        {
+            IccScreeningFlag flags = (IccScreeningFlag)this.ReadInt32();
+            uint channelCount = this.ReadUInt32();
+            IccScreeningChannel[] channels = new IccScreeningChannel[channelCount];
+            for (int i = 0; i < channels.Length; i++)
+            {
+                channels[i] = this.ReadScreeningChannel();
+            }
+
+            return new IccScreeningTagDataEntry(flags, channels);
+        }
+
+        /// <summary>
+        /// Reads a <see cref="IccUcrBgTagDataEntry"/>
+        /// </summary>
+        /// <param name="size">The size of the entry in bytes</param>
+        /// <returns>The read entry</returns>
+        public IccUcrBgTagDataEntry ReadUcrBgTagDataEntry(uint size)
+        {
+            uint ucrCount = this.ReadUInt32();
+            ushort[] ucrCurve = new ushort[ucrCount];
+            for (int i = 0; i < ucrCurve.Length; i++)
+            {
+                ucrCurve[i] = this.ReadUInt16();
+            }
+
+            uint bgCount = this.ReadUInt32();
+            ushort[] bgCurve = new ushort[bgCount];
+            for (int i = 0; i < bgCurve.Length; i++)
+            {
+                bgCurve[i] = this.ReadUInt16();
+            }
+
+            // ((ucr length + bg length) * UInt16 size) + (ucrCount + bgCount)
+            uint dataSize = ((ucrCount + bgCount) * 2) + 8;
+            int descriptionLength = (int)(size - 8 - dataSize);   // 8 is the tag header size
+            string description = this.ReadAsciiString(descriptionLength);
+
+            return new IccUcrBgTagDataEntry(ucrCurve, bgCurve, description);
         }
     }
 }

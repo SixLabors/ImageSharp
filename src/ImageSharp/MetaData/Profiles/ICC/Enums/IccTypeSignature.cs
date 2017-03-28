@@ -229,8 +229,8 @@ namespace ImageSharp
         Xyz = 0x58595A20,
 
         /// <summary>
-        /// The textDescriptionType is a complex structure that contains three types of
-        /// text description structures: 7-bit ASCII, Unicode and ScriptCode. Since no
+        /// REMOVED IN V4 - The textDescriptionType is a complex structure that contains three
+        /// types of text description structures: 7-bit ASCII, Unicode and ScriptCode. Since no
         /// single standard method for specifying localizable character sets exists across
         /// the major platform vendors, including all three provides access for the major
         /// operating systems. The 7-bit ASCII description is to be an invariant,
@@ -238,5 +238,36 @@ namespace ImageSharp
         /// Unicode and ScriptCode structures be properly localized.
         /// </summary>
         TextDescription = 0x64657363,
+
+        /// <summary>
+        /// REMOVED IN V4 - This type contains the PostScript product name to which this
+        /// profile corresponds and the names of the companion CRDs
+        /// </summary>
+        CrdInfo = 0x63726469,
+
+        /// <summary>
+        /// REMOVED IN V4 - The screeningType describes various screening parameters including
+        /// screen frequency, screening angle, and spot shape
+        /// </summary>
+        Screening = 0x7363726E,
+
+        /// <summary>
+        /// REMOVED IN V4 - This type contains curves representing the under color removal and
+        /// black generation and a text string which is a general description of the method
+        /// used for the UCR and BG
+        /// </summary>
+        UcrBg = 0x62666420,
+
+        /// <summary>
+        /// REMOVED IN V4 - This type is an array of structures each of which contains
+        /// platform-specific information about the settings of the device for which
+        /// this profile is valid. This type is not supported.
+        /// </summary>
+        DeviceSettings = 0x64657673,        // not supported
+
+        /// <summary>
+        /// REMOVED IN V2 - use <see cref="NamedColor2"/> instead. This type is not supported.
+        /// </summary>
+        NamedColor = 0x6E636F6C,            // not supported
     }
 }

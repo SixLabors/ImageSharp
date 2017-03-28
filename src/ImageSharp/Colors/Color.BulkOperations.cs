@@ -42,6 +42,12 @@ namespace ImageSharp
                 BufferSpan<Vector4> destVectors,
                 int count)
             {
+                if (!Vector.IsHardwareAccelerated)
+                {
+                    throw new InvalidOperationException(
+                        "Color.BulkOperations.ToVector4SimdAligned() should not be called when Vector.IsHardwareAccelerated == false!");
+                }
+
                 int vecSize = Vector<uint>.Count;
 
                 DebugGuard.IsTrue(
@@ -92,7 +98,7 @@ namespace ImageSharp
             /// <inheritdoc />
             internal override void ToVector4(BufferSpan<Color> sourceColors, BufferSpan<Vector4> destVectors, int count)
             {
-                if (count < 256)
+                if (count < 256 || !Vector.IsHardwareAccelerated)
                 {
                     // Doesn't worth to bother with SIMD:
                     base.ToVector4(sourceColors, destVectors, count);

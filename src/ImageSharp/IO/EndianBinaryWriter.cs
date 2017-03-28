@@ -52,31 +52,12 @@ namespace ImageSharp.IO
         /// </param>
         public EndianBinaryWriter(Endianness endianness, Stream stream, Encoding encoding)
         {
-            EndianBitConverter bitConverter = EndianBitConverter.GetConverter(endianness);
-
-            // TODO: Use Guard
-            if (bitConverter == null)
-            {
-                throw new ArgumentNullException("bitConverter");
-            }
-
-            if (stream == null)
-            {
-                throw new ArgumentNullException("stream");
-            }
-
-            if (encoding == null)
-            {
-                throw new ArgumentNullException("encoding");
-            }
-
-            if (!stream.CanWrite)
-            {
-                throw new ArgumentException("Stream isn't writable", "stream");
-            }
+            Guard.NotNull(stream, nameof(stream));
+            Guard.NotNull(stream, nameof(encoding));
+            Guard.IsTrue(stream.CanWrite, nameof(stream), "Stream isn't writable");
 
             this.BaseStream = stream;
-            this.BitConverter = bitConverter;
+            this.BitConverter = EndianBitConverter.GetConverter(endianness);
             this.Encoding = encoding;
         }
 
@@ -256,13 +237,10 @@ namespace ImageSharp.IO
         /// Writes an array of bytes to the stream.
         /// </summary>
         /// <param name="value">The values to write</param>
+        /// <exception cref="ArgumentNullException">value is null</exception>
         public void Write(byte[] value)
         {
-            if (value == null)
-            {
-                throw new ArgumentNullException(nameof(value));
-            }
-
+            Guard.NotNull(value, nameof(value));
             this.WriteInternal(value, value.Length);
         }
 
@@ -272,6 +250,7 @@ namespace ImageSharp.IO
         /// <param name="value">An array containing the bytes to write</param>
         /// <param name="offset">The index of the first byte to write within the array</param>
         /// <param name="count">The number of bytes to write</param>
+        /// <exception cref="ArgumentNullException">value is null</exception>
         public void Write(byte[] value, int offset, int count)
         {
             this.CheckDisposed();
@@ -292,12 +271,10 @@ namespace ImageSharp.IO
         /// Writes an array of characters to the stream, using the encoding for this writer.
         /// </summary>
         /// <param name="value">An array containing the characters to write</param>
+        /// <exception cref="ArgumentNullException">value is null</exception>
         public void Write(char[] value)
         {
-            if (value == null)
-            {
-                throw new ArgumentNullException(nameof(value));
-            }
+            Guard.NotNull(value, nameof(value));
 
             this.CheckDisposed();
             byte[] data = this.Encoding.GetBytes(value, 0, value.Length);
@@ -305,16 +282,13 @@ namespace ImageSharp.IO
         }
 
         /// <summary>
-        /// Writes a string to the stream, using the encoding for this writer.
+        /// Writes a length-prefixed string to the stream, using the encoding for this writer.
         /// </summary>
         /// <param name="value">The value to write. Must not be null.</param>
-        /// <exception cref="System.ArgumentNullException">value is null</exception>
+        /// <exception cref="ArgumentNullException">value is null</exception>
         public void Write(string value)
         {
-            if (value == null)
-            {
-                throw new ArgumentNullException(nameof(value));
-            }
+            Guard.NotNull(value, nameof(value));
 
             this.CheckDisposed();
             byte[] data = this.Encoding.GetBytes(value);
@@ -368,7 +342,7 @@ namespace ImageSharp.IO
         {
             if (this.disposed)
             {
-                throw new ObjectDisposedException("EndianBinaryWriter");
+                throw new ObjectDisposedException(nameof(EndianBinaryWriter));
             }
         }
 

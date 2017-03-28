@@ -5,7 +5,6 @@
 
 namespace ImageSharp.Colors.Spaces.Conversion.Implementation.Rgb
 {
-    using System;
     using System.Runtime.CompilerServices;
 
     /// <summary>
@@ -22,14 +21,14 @@ namespace ImageSharp.Colors.Spaces.Conversion.Implementation.Rgb
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public float Expand(float channel)
         {
-            return channel <= 0.04045F ? channel / 12.92F : (float)Math.Pow((channel + 0.055) / 1.055, 2.4);
+            return channel <= 0.04045F ? channel / 12.92F : MathF.Pow((channel + 0.055F) / 1.055F, 2.4F);
         }
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public float Compress(float channel)
         {
-            return channel <= 0.0031308F ? 12.92F * channel : (1.055F * (float)Math.Pow(channel, 0.416666666666667D)) - 0.055F;
+            return channel <= 0.0031308F ? 12.92F * channel : (1.055F * MathF.Pow(channel, 0.416666666666667F)) - 0.055F;
         }
     }
 }

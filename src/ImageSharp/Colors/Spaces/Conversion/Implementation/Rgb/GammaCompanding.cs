@@ -35,14 +35,14 @@ namespace ImageSharp.Colors.Spaces.Conversion.Implementation.Rgb
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public float Expand(float channel)
         {
-            return (float)Math.Pow(channel, this.Gamma);
+            return MathF.Pow(channel, this.Gamma);
         }
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public float Compress(float channel)
         {
-            return (float)Math.Pow(channel, 1 / this.Gamma);
+            return MathF.Pow(channel, 1 / this.Gamma);
         }
     }
 }

@@ -171,7 +171,7 @@ namespace ImageSharp.Quantizers
                 leastDistance = distance;
 
                 // And if it's an exact match, exit the loop
-                if (Math.Abs(distance) < Constants.Epsilon)
+                if (MathF.Abs(distance) < Constants.Epsilon)
                 {
                     break;
                 }

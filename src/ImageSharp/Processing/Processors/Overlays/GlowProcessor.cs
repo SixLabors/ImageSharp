@@ -44,7 +44,7 @@ namespace ImageSharp.Processing.Processors
             int endX = sourceRectangle.Right;
             TColor glowColor = this.GlowColor;
             Vector2 centre = Rectangle.Center(sourceRectangle).ToVector2();
-            float maxDistance = this.Radius > 0 ? Math.Min(this.Radius, sourceRectangle.Width * .5F) : sourceRectangle.Width * .5F;
+            float maxDistance = this.Radius > 0 ? MathF.Min(this.Radius, sourceRectangle.Width * .5F) : sourceRectangle.Width * .5F;
 
             // Align start/end positions.
             int minX = Math.Max(0, startX);

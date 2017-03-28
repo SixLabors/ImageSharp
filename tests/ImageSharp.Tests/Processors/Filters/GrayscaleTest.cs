@@ -9,30 +9,32 @@ namespace ImageSharp.Tests
 
     using Xunit;
     using ImageSharp.Processing;
+    using ImageSharp.Tests;
+    using System.Numerics;
 
     public class GrayscaleTest : FileTestBase
     {
-        public static readonly TheoryData<GrayscaleMode> GrayscaleValues
-        = new TheoryData<GrayscaleMode>
-        {
-            GrayscaleMode.Bt709 ,
-            GrayscaleMode.Bt601 ,
-        };
-
+        /// <summary>
+        /// Use test patterns over loaded images to save decode time.
+        /// </summary>
         [Theory]
-        [MemberData(nameof(GrayscaleValues))]
-        public void ImageShouldApplyGrayscaleFilter(GrayscaleMode value)
+        [WithTestPatternImages(50, 50, PixelTypes.StandardImageClass, GrayscaleMode.Bt709)] 
+        [WithTestPatternImages(50, 50, PixelTypes.StandardImageClass, GrayscaleMode.Bt601)]
+        public void ImageShouldApplyGrayscaleFilterAll<TColor>(TestImageProvider<TColor> provider, GrayscaleMode value)
+            where TColor : struct, IPixel<TColor>
         {
-            string path = this.CreateOutputDirectory("Grayscale");
-
-            foreach (TestFile file in Files)
+            using (Image<TColor> image = provider.GetImage())
             {
-                string filename = file.GetFileName(value);
-                using (Image image = file.CreateImage())
-                using (FileStream output = File.OpenWrite($"{path}/{filename}"))
+                image.Grayscale(value);
+                byte[] data = new byte[3];
+                foreach (TColor p in image.Pixels)
                 {
-                    image.Grayscale(value).Save(output);
+                    p.ToXyzBytes(data, 0);
+                    Assert.Equal(data[0], data[1]);
+                    Assert.Equal(data[1], data[2]);
                 }
+
+                image.DebugSave(provider);
             }
         }
     }

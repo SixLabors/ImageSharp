@@ -3,7 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.Colors.Conversion
+namespace ImageSharp.Colors.Spaces.Conversion
 {
     /// <summary>
     /// Constants use for Cie conversion calculations

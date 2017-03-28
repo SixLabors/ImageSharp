@@ -1,8 +1,9 @@
 ﻿namespace ImageSharp.Tests
 {
-    using ImageSharp.Colors.Conversion;
     using System.Collections.Generic;
     using ImageSharp.Colors.Spaces;
+    using ImageSharp.Colors.Spaces.Conversion;
+
     using Xunit;
 
     /// <summary>

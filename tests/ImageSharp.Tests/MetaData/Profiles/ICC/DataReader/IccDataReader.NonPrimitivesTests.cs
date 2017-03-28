@@ -110,6 +110,17 @@ namespace ImageSharp.Tests.Icc
             Assert.Equal(expected, output);
         }
 
+        [Theory]
+        [MemberData(nameof(IccTestDataNonPrimitives.ScreeningChannelTestData), MemberType = typeof(IccTestDataNonPrimitives))]
+        internal void ReadScreeningChannel(byte[] data, IccScreeningChannel expected)
+        {
+            IccDataReader reader = CreateReader(data);
+
+            IccScreeningChannel output = reader.ReadScreeningChannel();
+
+            Assert.Equal(expected, output);
+        }
+
         private IccDataReader CreateReader(byte[] data)
         {
             return new IccDataReader(data);

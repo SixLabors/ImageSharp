@@ -369,6 +369,42 @@ namespace ImageSharp.Tests.Icc
             Assert.Equal(expected, output);
         }
 
+        [Theory]
+        [MemberData(nameof(IccTestDataTagDataEntry.CrdInfoTagDataEntryTestData), MemberType = typeof(IccTestDataTagDataEntry))]
+        internal void WriteCrdInfoTagDataEntry(byte[] expected, IccCrdInfoTagDataEntry data)
+        {
+            IccDataWriter writer = CreateWriter();
+
+            writer.WriteCrdInfoTagDataEntry(data);
+            byte[] output = writer.GetData();
+
+            Assert.Equal(expected, output);
+        }
+
+        [Theory]
+        [MemberData(nameof(IccTestDataTagDataEntry.ScreeningTagDataEntryTestData), MemberType = typeof(IccTestDataTagDataEntry))]
+        internal void WriteScreeningTagDataEntry(byte[] expected, IccScreeningTagDataEntry data)
+        {
+            IccDataWriter writer = CreateWriter();
+
+            writer.WriteScreeningTagDataEntry(data);
+            byte[] output = writer.GetData();
+
+            Assert.Equal(expected, output);
+        }
+
+        [Theory]
+        [MemberData(nameof(IccTestDataTagDataEntry.UcrBgTagDataEntryTestData), MemberType = typeof(IccTestDataTagDataEntry))]
+        internal void WriteUcrBgTagDataEntry(byte[] expected, IccUcrBgTagDataEntry data, uint size)
+        {
+            IccDataWriter writer = CreateWriter();
+
+            writer.WriteUcrBgTagDataEntry(data);
+            byte[] output = writer.GetData();
+
+            Assert.Equal(expected, output);
+        }
+
         private IccDataWriter CreateWriter()
         {
             return new IccDataWriter();

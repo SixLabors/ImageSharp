@@ -119,5 +119,17 @@ namespace ImageSharp
                  + this.WriteTagDataEntryHeader(IccTypeSignature.MultiLocalizedUnicode)
                  + this.WriteMultiLocalizedUnicodeTagDataEntry(new IccMultiLocalizedUnicodeTagDataEntry(value.DeviceModelInfo));
         }
+
+        /// <summary>
+        /// Writes a screening channel
+        /// </summary>
+        /// <param name="value">The value to write</param>
+        /// <returns>the number of bytes written</returns>
+        public int WriteScreeningChannel(IccScreeningChannel value)
+        {
+            return this.WriteFix16(value.Frequency)
+                 + this.WriteFix16(value.Angle)
+                 + this.WriteInt32((int)value.SpotShape);
+        }
     }
 }

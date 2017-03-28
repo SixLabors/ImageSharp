@@ -107,6 +107,18 @@ namespace ImageSharp.Tests.Icc
             Assert.Equal(expected, output);
         }
 
+        [Theory]
+        [MemberData(nameof(IccTestDataNonPrimitives.ScreeningChannelTestData), MemberType = typeof(IccTestDataNonPrimitives))]
+        internal void WriteScreeningChannel(byte[] expected, IccScreeningChannel data)
+        {
+            IccDataWriter writer = CreateWriter();
+
+            writer.WriteScreeningChannel(data);
+            byte[] output = writer.GetData();
+
+            Assert.Equal(expected, output);
+        }
+
         private IccDataWriter CreateWriter()
         {
             return new IccDataWriter();

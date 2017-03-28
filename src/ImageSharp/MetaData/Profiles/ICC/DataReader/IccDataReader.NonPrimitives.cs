@@ -153,5 +153,17 @@ namespace ImageSharp
                 pcs2: this.ReadUInt16(),
                 pcs3: this.ReadUInt16());
         }
+
+        /// <summary>
+        /// Reads a screening channel
+        /// </summary>
+        /// <returns>the screening channel</returns>
+        public IccScreeningChannel ReadScreeningChannel()
+        {
+            return new IccScreeningChannel(
+                frequency: this.ReadFix16(),
+                angle: this.ReadFix16(),
+                spotShape: (IccScreeningSpotType)this.ReadInt32());
+        }
     }
 }

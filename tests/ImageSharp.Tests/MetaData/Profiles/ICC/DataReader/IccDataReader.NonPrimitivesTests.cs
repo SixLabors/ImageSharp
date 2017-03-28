@@ -89,7 +89,7 @@ namespace ImageSharp.Tests.Icc
         }
 
         [Theory]
-        [MemberData(nameof(IccTestDataNonPrimitives.ProfileDescriptionTestData), MemberType = typeof(IccTestDataNonPrimitives))]
+        [MemberData(nameof(IccTestDataNonPrimitives.ProfileDescriptionReadTestData), MemberType = typeof(IccTestDataNonPrimitives))]
         internal void ReadProfileDescription(byte[] data, IccProfileDescription expected)
         {
             IccDataReader reader = CreateReader(data);

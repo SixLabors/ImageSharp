@@ -269,6 +269,27 @@
             IccTestDataPrimitives.Unicode_Rand3
         );
 
+        public static readonly IccTextDescriptionTagDataEntry TextDescription_Val1 = new IccTextDescriptionTagDataEntry
+        (
+            IccTestDataPrimitives.Ascii_ValRand, IccTestDataPrimitives.Unicode_ValRand1, ArrayHelper.Fill('A', 66),
+            1701729619, 2
+        );
+        public static readonly byte[] TextDescription_Arr1 = ArrayHelper.Concat
+        (
+            new byte[] { 0x00, 0x00, 0x00, 0x0B },  // 11
+            IccTestDataPrimitives.Ascii_Rand,
+            new byte[] { 0x00 },                    // Null terminator
+
+            new byte[] { (byte)'e', (byte)'n', (byte)'U', (byte)'S' },
+            new byte[] { 0x00, 0x00, 0x00, 0x07 },  // 7
+            IccTestDataPrimitives.Unicode_Rand2,
+            new byte[] { 0x00, 0x00 },              // Null terminator
+
+            new byte[] { 0x00, 0x02, 0x43 },        // 2, 67
+            ArrayHelper.Fill((byte)0x41, 66),
+            new byte[] { 0x00 }                     // Null terminator
+        );
+
         public static readonly IccProfileDescription ProfileDescription_ValRand1 = new IccProfileDescription
         (
             1, 2,
@@ -276,6 +297,15 @@
             IccProfileTag.ProfileDescription,
             MultiLocalizedUnicode_Val.Texts,
             MultiLocalizedUnicode_Val.Texts
+        );
+
+        public static readonly IccProfileDescription ProfileDescription_ValRand2 = new IccProfileDescription
+        (
+            1, 2,
+            IccDeviceAttribute.ChromaBlackWhite | IccDeviceAttribute.ReflectivityMatte,
+            IccProfileTag.ProfileDescription,
+            new IccLocalizedString[] { LocalizedString_Rand1 },
+            new IccLocalizedString[] { LocalizedString_Rand1 }
         );
 
         public static readonly byte[] ProfileDescription_Rand1 = ArrayHelper.Concat
@@ -293,7 +323,28 @@
             MultiLocalizedUnicode_Arr
         );
 
-        public static readonly object[][] ProfileDescriptionTestData =
+        public static readonly byte[] ProfileDescription_Rand2 = ArrayHelper.Concat
+        (
+            IccTestDataPrimitives.UInt32_1,
+            IccTestDataPrimitives.UInt32_2,
+            new byte[] { 0, 0, 0, 0, 0, 0, 0, 10 },
+            new byte[] { 0x64, 0x65, 0x73, 0x63 },
+
+            new byte[] { 0x64, 0x65, 0x73, 0x63 },
+            new byte[] { 0x00, 0x00, 0x00, 0x00 },
+            TextDescription_Arr1,
+            new byte[] { 0x64, 0x65, 0x73, 0x63 },
+            new byte[] { 0x00, 0x00, 0x00, 0x00 },
+            TextDescription_Arr1
+        );
+
+        public static readonly object[][] ProfileDescriptionReadTestData =
+        {
+            new object[] { ProfileDescription_Rand1, ProfileDescription_ValRand1 },
+            new object[] { ProfileDescription_Rand2, ProfileDescription_ValRand2 },
+        };
+
+        public static readonly object[][] ProfileDescriptionWriteTestData =
         {
             new object[] { ProfileDescription_Rand1, ProfileDescription_ValRand1 },
         };

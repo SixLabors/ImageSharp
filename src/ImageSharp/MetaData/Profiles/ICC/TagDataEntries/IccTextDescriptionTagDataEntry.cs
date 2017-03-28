@@ -6,6 +6,7 @@
 namespace ImageSharp
 {
     using System;
+    using System.Globalization;
 
     /// <summary>
     /// The TextDescriptionType contains three types of text description.
@@ -68,6 +69,75 @@ namespace ImageSharp
         /// Gets the ScriptCode Code
         /// </summary>
         public ushort ScriptCodeCode { get; }
+
+        /// <summary>
+        /// Performs an explicit conversion from <see cref="IccTextDescriptionTagDataEntry"/>
+        /// to <see cref="IccMultiLocalizedUnicodeTagDataEntry"/>.
+        /// </summary>
+        /// <param name="textEntry">The entry to convert</param>
+        /// <returns>The converted entry</returns>
+        public static explicit operator IccMultiLocalizedUnicodeTagDataEntry(IccTextDescriptionTagDataEntry textEntry)
+        {
+            if (textEntry == null)
+            {
+                return null;
+            }
+
+            IccLocalizedString localString;
+            if (!string.IsNullOrEmpty(textEntry.Unicode))
+            {
+                CultureInfo culture = GetCulture(textEntry.UnicodeLanguageCode);
+                if (culture != null)
+                {
+                    localString = new IccLocalizedString(culture, textEntry.Unicode);
+                }
+                else
+                {
+                    localString = new IccLocalizedString(textEntry.Unicode);
+                }
+            }
+            else if (!string.IsNullOrEmpty(textEntry.Ascii))
+            {
+                localString = new IccLocalizedString(textEntry.Ascii);
+            }
+            else if (!string.IsNullOrEmpty(textEntry.ScriptCode))
+            {
+                localString = new IccLocalizedString(textEntry.ScriptCode);
+            }
+            else
+            {
+                localString = new IccLocalizedString(string.Empty);
+            }
+
+            return new IccMultiLocalizedUnicodeTagDataEntry(new IccLocalizedString[] { localString }, textEntry.TagSignature);
+
+            CultureInfo GetCulture(uint value)
+            {
+                if (value == 0)
+                {
+                    return null;
+                }
+
+                byte p1 = (byte)(value >> 24);
+                byte p2 = (byte)(value >> 16);
+                byte p3 = (byte)(value >> 8);
+                byte p4 = (byte)value;
+
+                // Check if the values are [a-z]{2}[A-Z]{2}
+                if (p1 >= 0x61 && p1 <= 0x7A
+                    && p2 >= 0x61 && p2 <= 0x7A
+                    && p3 >= 0x41 && p3 <= 0x5A
+                    && p4 >= 0x41 && p4 <= 0x5A)
+                {
+                    string culture = new string(new char[] { (char)p1, (char)p2, '-', (char)p3, (char)p4 });
+                    return new CultureInfo(culture);
+                }
+                else
+                {
+                    return null;
+                }
+            }
+        }
 
         /// <inheritdoc />
         public override bool Equals(IccTagDataEntry other)

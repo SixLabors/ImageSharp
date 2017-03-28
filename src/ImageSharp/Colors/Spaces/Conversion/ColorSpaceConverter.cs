@@ -33,6 +33,7 @@ namespace ImageSharp.Colors.Spaces.Conversion
             this.LmsAdaptationMatrix = CieXyzAndLmsConverter.DefaultTransformationMatrix;
             this.ChromaticAdaptation = new VonKriesChromaticAdaptation(this.cachedCieXyzAndLmsConverter, this.cachedCieXyzAndLmsConverter);
             this.TargetLabWhitePoint = CieLab.DefaultWhitePoint;
+            this.TargetRgbWorkingSpace = Rgb.DefaultWorkingSpace;
         }
 
         /// <summary>
@@ -46,6 +47,12 @@ namespace ImageSharp.Colors.Spaces.Conversion
         /// Defaults to: <see cref="CieLab.DefaultWhitePoint"/>.
         /// </summary>
         public CieXyz TargetLabWhitePoint { get; set; }
+
+        /// <summary>
+        /// Gets or sets the target working space used *when creating* RGB colors. (RGB colors on the input already contain the working space information)
+        /// Defaults to: <see cref="Rgb.DefaultWorkingSpace"/>.
+        /// </summary>
+        public IRgbWorkingSpace TargetRgbWorkingSpace { get; set; }
 
         /// <summary>
         /// Gets or sets the chromatic adaptation method used. When null, no adaptation will be performed.

@@ -9,7 +9,7 @@
 
     using ColorSpaceConverter = ImageSharp.Colors.Spaces.Conversion.ColorSpaceConverter;
 
-    public class ColorspaceConvert
+    public class ColorspaceCieXyzToLmsConvert
     {
         private static readonly CieXyz CieXyz = new CieXyz(0.95047F, 1, 1.08883F);
 
@@ -21,13 +21,13 @@
 
 
         [Benchmark(Baseline = true, Description = "Colourful Convert")]
-        public LMSColor SystemDrawingColorEqual()
+        public LMSColor ColourfulConvert()
         {
             return ColourfulConverter.ToLMS(XYZColor);
         }
 
         [Benchmark(Description = "ImageSharp Convert")]
-        public Lms ColorEqual()
+        public Lms ColorSpaceConvert()
         {
             return ColorSpaceConverter.ToLms(CieXyz);
         }

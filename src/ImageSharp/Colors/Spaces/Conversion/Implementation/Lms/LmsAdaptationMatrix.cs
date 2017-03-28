@@ -25,7 +25,7 @@ namespace ImageSharp.Colors.Spaces.Conversion.Implementation.Lms
         /// Von Kries chromatic adaptation transform matrix (Hunt-Pointer-Estevez adjusted for D65)
         /// </summary>
         public static readonly Matrix4x4 VonKriesHPEAdjusted
-            = new Matrix4x4()
+            = new Matrix4x4
             {
                 M11 = 0.40024F, M12 = 0.7076F,  M13 = -0.08081F,
                 M21 = -0.2263F, M22 = 1.16532F, M23 = 0.0457F,

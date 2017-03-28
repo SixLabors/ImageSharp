@@ -10,12 +10,12 @@ namespace ImageSharp.Colors.Spaces.Conversion.Implementation.CieLab
     /// <summary>
     /// Converts from <see cref="CieLab"/> to <see cref="CieXyz"/>.
     /// </summary>
-    public class CieLabToCieXyzConverter : IColorConversion<CieLab, CieXyz>
+    internal class CieLabToCieXyzConverter : IColorConversion<CieLab, CieXyz>
     {
         /// <inheritdoc/>
         public CieXyz Convert(CieLab input)
         {
-            Guard.NotNull(input, nameof(input));
+            DebugGuard.NotNull(input, nameof(input));
 
             // Conversion algorithm described here: http://www.brucelindbloom.com/index.html?Eqn_Lab_to_XYZ.html
             float l = input.L, a = input.A, b = input.B;

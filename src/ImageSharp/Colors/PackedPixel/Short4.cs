@@ -131,9 +131,9 @@ namespace ImageSharp
             vector += Round;
             vector = Vector4.Clamp(vector, Vector4.Zero, MaxBytes);
 
-            bytes[startIndex] = (byte)(float)Math.Round(vector.X);
-            bytes[startIndex + 1] = (byte)(float)Math.Round(vector.Y);
-            bytes[startIndex + 2] = (byte)(float)Math.Round(vector.Z);
+            bytes[startIndex] = (byte)MathF.Round(vector.X);
+            bytes[startIndex + 1] = (byte)MathF.Round(vector.Y);
+            bytes[startIndex + 2] = (byte)MathF.Round(vector.Z);
         }
 
         /// <inheritdoc />
@@ -147,10 +147,10 @@ namespace ImageSharp
             vector += Round;
             vector = Vector4.Clamp(vector, Vector4.Zero, MaxBytes);
 
-            bytes[startIndex] = (byte)(float)Math.Round(vector.X);
-            bytes[startIndex + 1] = (byte)(float)Math.Round(vector.Y);
-            bytes[startIndex + 2] = (byte)(float)Math.Round(vector.Z);
-            bytes[startIndex + 3] = (byte)(float)Math.Round(vector.W);
+            bytes[startIndex] = (byte)MathF.Round(vector.X);
+            bytes[startIndex + 1] = (byte)MathF.Round(vector.Y);
+            bytes[startIndex + 2] = (byte)MathF.Round(vector.Z);
+            bytes[startIndex + 3] = (byte)MathF.Round(vector.W);
         }
 
         /// <inheritdoc />
@@ -164,9 +164,9 @@ namespace ImageSharp
             vector += Round;
             vector = Vector4.Clamp(vector, Vector4.Zero, MaxBytes);
 
-            bytes[startIndex] = (byte)(float)Math.Round(vector.Z);
-            bytes[startIndex + 1] = (byte)(float)Math.Round(vector.Y);
-            bytes[startIndex + 2] = (byte)(float)Math.Round(vector.X);
+            bytes[startIndex] = (byte)MathF.Round(vector.Z);
+            bytes[startIndex + 1] = (byte)MathF.Round(vector.Y);
+            bytes[startIndex + 2] = (byte)MathF.Round(vector.X);
         }
 
         /// <inheritdoc />
@@ -180,10 +180,10 @@ namespace ImageSharp
             vector += Round;
             vector = Vector4.Clamp(vector, Vector4.Zero, MaxBytes);
 
-            bytes[startIndex] = (byte)(float)Math.Round(vector.Z);
-            bytes[startIndex + 1] = (byte)(float)Math.Round(vector.Y);
-            bytes[startIndex + 2] = (byte)(float)Math.Round(vector.X);
-            bytes[startIndex + 3] = (byte)(float)Math.Round(vector.W);
+            bytes[startIndex] = (byte)MathF.Round(vector.Z);
+            bytes[startIndex + 1] = (byte)MathF.Round(vector.Y);
+            bytes[startIndex + 2] = (byte)MathF.Round(vector.X);
+            bytes[startIndex + 3] = (byte)MathF.Round(vector.W);
         }
 
         /// <inheritdoc />

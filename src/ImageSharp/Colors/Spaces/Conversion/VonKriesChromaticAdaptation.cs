@@ -3,12 +3,12 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.Colors.Conversion
+namespace ImageSharp.Colors.Spaces.Conversion
 {
     using System.Numerics;
 
-    using Implementation;
-    using Spaces;
+    using ImageSharp.Colors.Spaces;
+    using ImageSharp.Colors.Spaces.Conversion.Implementation.Lms;
 
     /// <summary>
     /// Basic implementation of the von Kries chromatic adaptation model

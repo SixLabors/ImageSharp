@@ -3,10 +3,11 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.Colors.Conversion
+namespace ImageSharp.Colors.Spaces.Conversion
 {
     using System;
-    using Spaces;
+
+    using ImageSharp.Colors.Spaces;
 
     /// <summary>
     /// Converts between color spaces ensuring that the color is adapted using chromatic adaptation.

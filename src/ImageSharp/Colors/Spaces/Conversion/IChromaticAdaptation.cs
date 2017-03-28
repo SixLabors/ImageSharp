@@ -3,9 +3,9 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.Colors.Conversion
+namespace ImageSharp.Colors.Spaces.Conversion
 {
-    using Spaces;
+    using ImageSharp.Colors.Spaces;
 
     /// <summary>
     /// Chromatic adaptation.

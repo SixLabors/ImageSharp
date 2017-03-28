@@ -1,10 +1,11 @@
-using ImageSharp.Colors.Conversion;
-using ImageSharp.Colors.Conversion.Implementation;
-using ImageSharp.Colors.Spaces;
-
 namespace ImageSharp.Tests
 {
     using System.Collections.Generic;
+
+    using ImageSharp.Colors.Spaces;
+    using ImageSharp.Colors.Spaces.Conversion;
+    using ImageSharp.Colors.Spaces.Conversion.Implementation.Lms;
+
     using Xunit;
 
     public class ColorConverterAdaptTest

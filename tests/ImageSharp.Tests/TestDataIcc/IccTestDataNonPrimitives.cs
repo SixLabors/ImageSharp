@@ -330,5 +330,32 @@
         };
 
         #endregion
+
+        #region ScreeningChannel
+
+        public static readonly IccScreeningChannel ScreeningChannel_ValRand1 = new IccScreeningChannel(4, 6, IccScreeningSpotType.Cross);
+        public static readonly IccScreeningChannel ScreeningChannel_ValRand2 = new IccScreeningChannel(8, 5, IccScreeningSpotType.Diamond);
+
+        public static readonly byte[] ScreeningChannel_Rand1 = ArrayHelper.Concat
+        (
+            IccTestDataPrimitives.Fix16_4,
+            IccTestDataPrimitives.Fix16_6,
+            IccTestDataPrimitives.Int32_7
+        );
+
+        public static readonly byte[] ScreeningChannel_Rand2 = ArrayHelper.Concat
+        (
+            IccTestDataPrimitives.Fix16_8,
+            IccTestDataPrimitives.Fix16_5,
+            IccTestDataPrimitives.Int32_3
+        );
+
+        public static readonly object[][] ScreeningChannelTestData =
+        {
+            new object[] { ScreeningChannel_Rand1, ScreeningChannel_ValRand1 },
+            new object[] { ScreeningChannel_Rand2, ScreeningChannel_ValRand2 },
+        };
+
+        #endregion
     }
 }

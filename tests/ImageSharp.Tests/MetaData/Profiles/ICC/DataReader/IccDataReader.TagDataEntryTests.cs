@@ -339,6 +339,39 @@ namespace ImageSharp.Tests.Icc
             Assert.Equal(expected, output);
         }
 
+        [Theory]
+        [MemberData(nameof(IccTestDataTagDataEntry.CrdInfoTagDataEntryTestData), MemberType = typeof(IccTestDataTagDataEntry))]
+        internal void ReadCrdInfoTagDataEntry(byte[] data, IccCrdInfoTagDataEntry expected)
+        {
+            IccDataReader reader = CreateReader(data);
+
+            IccCrdInfoTagDataEntry output = reader.ReadCrdInfoTagDataEntry();
+
+            Assert.Equal(expected, output);
+        }
+
+        [Theory]
+        [MemberData(nameof(IccTestDataTagDataEntry.ScreeningTagDataEntryTestData), MemberType = typeof(IccTestDataTagDataEntry))]
+        internal void ReadScreeningTagDataEntry(byte[] data, IccScreeningTagDataEntry expected)
+        {
+            IccDataReader reader = CreateReader(data);
+
+            IccScreeningTagDataEntry output = reader.ReadScreeningTagDataEntry();
+
+            Assert.Equal(expected, output);
+        }
+
+        [Theory]
+        [MemberData(nameof(IccTestDataTagDataEntry.UcrBgTagDataEntryTestData), MemberType = typeof(IccTestDataTagDataEntry))]
+        internal void ReadUcrBgTagDataEntry(byte[] data, IccUcrBgTagDataEntry expected, uint size)
+        {
+            IccDataReader reader = CreateReader(data);
+
+            IccUcrBgTagDataEntry output = reader.ReadUcrBgTagDataEntry(size);
+
+            Assert.Equal(expected, output);
+        }
+
         private IccDataReader CreateReader(byte[] data)
         {
             return new IccDataReader(data);

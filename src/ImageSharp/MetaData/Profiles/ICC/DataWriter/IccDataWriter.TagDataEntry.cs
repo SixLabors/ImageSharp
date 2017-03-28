@@ -121,11 +121,23 @@ namespace ImageSharp
                     count += this.WriteXyzTagDataEntry(entry as IccXyzTagDataEntry);
                     break;
 
-                // V2 Type:
+                // V2 Types:
                 case IccTypeSignature.TextDescription:
                     count += this.WriteTextDescriptionTagDataEntry(entry as IccTextDescriptionTagDataEntry);
                     break;
+                case IccTypeSignature.CrdInfo:
+                    count += this.WriteCrdInfoTagDataEntry(entry as IccCrdInfoTagDataEntry);
+                    break;
+                case IccTypeSignature.Screening:
+                    count += this.WriteScreeningTagDataEntry(entry as IccScreeningTagDataEntry);
+                    break;
+                case IccTypeSignature.UcrBg:
+                    count += this.WriteUcrBgTagDataEntry(entry as IccUcrBgTagDataEntry);
+                    break;
 
+                // Unsupported or unknown
+                case IccTypeSignature.DeviceSettings:
+                case IccTypeSignature.NamedColor:
                 case IccTypeSignature.Unknown:
                 default:
                     count += this.WriteUnknownTagDataEntry(entry as IccUnknownTagDataEntry);
@@ -906,6 +918,84 @@ namespace ImageSharp
                 count += this.WriteByte((byte)(value.ScriptCode.Length > 66 ? 67 : value.ScriptCode.Length + 1));
                 this.dataStream.Position += size;
             }
+
+            return count;
+        }
+
+        /// <summary>
+        /// Writes a <see cref="IccCrdInfoTagDataEntry"/>
+        /// </summary>
+        /// <param name="value">The entry to write</param>
+        /// <returns>The number of bytes written</returns>
+        public int WriteCrdInfoTagDataEntry(IccCrdInfoTagDataEntry value)
+        {
+            int count = 0;
+            WriteString(value.PostScriptProductName);
+            WriteString(value.RenderingIntent0Crd);
+            WriteString(value.RenderingIntent1Crd);
+            WriteString(value.RenderingIntent2Crd);
+            WriteString(value.RenderingIntent3Crd);
+
+            return count;
+
+            void WriteString(string text)
+            {
+                int textLength;
+                if (string.IsNullOrEmpty(text))
+                {
+                    textLength = 0;
+                }
+                else
+                {
+                    textLength = text.Length + 1;    // + 1 for null terminator
+                }
+
+                count += this.WriteUInt32((uint)textLength);
+                count += this.WriteAsciiString(text, textLength, true);
+            }
+        }
+
+        /// <summary>
+        /// Writes a <see cref="IccScreeningTagDataEntry"/>
+        /// </summary>
+        /// <param name="value">The entry to write</param>
+        /// <returns>The number of bytes written</returns>
+        public int WriteScreeningTagDataEntry(IccScreeningTagDataEntry value)
+        {
+            int count = 0;
+
+            count += this.WriteInt32((int)value.Flags);
+            count += this.WriteUInt32((uint)value.Channels.Length);
+            for (int i = 0; i < value.Channels.Length; i++)
+            {
+                count += this.WriteScreeningChannel(value.Channels[i]);
+            }
+
+            return count;
+        }
+
+        /// <summary>
+        /// Writes a <see cref="IccUcrBgTagDataEntry"/>
+        /// </summary>
+        /// <param name="value">The entry to write</param>
+        /// <returns>The number of bytes written</returns>
+        public int WriteUcrBgTagDataEntry(IccUcrBgTagDataEntry value)
+        {
+            int count = 0;
+
+            count += this.WriteUInt32((uint)value.UcrCurve.Length);
+            for (int i = 0; i < value.UcrCurve.Length; i++)
+            {
+                count += this.WriteUInt16(value.UcrCurve[i]);
+            }
+
+            count += this.WriteUInt32((uint)value.BgCurve.Length);
+            for (int i = 0; i < value.BgCurve.Length; i++)
+            {
+                count += this.WriteUInt16(value.BgCurve[i]);
+            }
+
+            count += this.WriteAsciiString(value.Description + '\0');
 
             return count;
         }

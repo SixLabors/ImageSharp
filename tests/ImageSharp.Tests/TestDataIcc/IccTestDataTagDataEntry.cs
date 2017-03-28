@@ -872,6 +872,97 @@ namespace ImageSharp.Tests
 
         #endregion
 
+        #region CrdInfoTagDataEntry
+
+        public static readonly IccCrdInfoTagDataEntry CrdInfo_Val = new IccCrdInfoTagDataEntry(
+            IccTestDataPrimitives.Ascii_ValRand4,
+            IccTestDataPrimitives.Ascii_ValRand1,
+            IccTestDataPrimitives.Ascii_ValRand2,
+            IccTestDataPrimitives.Ascii_ValRand3,
+            IccTestDataPrimitives.Ascii_ValRand4
+        );
+        public static readonly byte[] CrdInfo_Arr = ArrayHelper.Concat
+        (
+            IccTestDataPrimitives.UInt32_6,
+            IccTestDataPrimitives.Ascii_Rand4,
+            new byte[] { 0 },
+            IccTestDataPrimitives.UInt32_6,
+            IccTestDataPrimitives.Ascii_Rand1,
+            new byte[] { 0 },
+            IccTestDataPrimitives.UInt32_6,
+            IccTestDataPrimitives.Ascii_Rand2,
+            new byte[] { 0 },
+            IccTestDataPrimitives.UInt32_6,
+            IccTestDataPrimitives.Ascii_Rand3,
+            new byte[] { 0 },
+            IccTestDataPrimitives.UInt32_6,
+            IccTestDataPrimitives.Ascii_Rand4,
+            new byte[] { 0 }
+        );
+
+        public static readonly object[][] CrdInfoTagDataEntryTestData =
+        {
+            new object[] { CrdInfo_Arr, CrdInfo_Val },
+        };
+
+        #endregion
+
+        #region ScreeningTagDataEntry
+
+        public static readonly IccScreeningTagDataEntry Screening_Val = new IccScreeningTagDataEntry(
+            IccScreeningFlag.DefaultScreens | IccScreeningFlag.UnitLinesPerCm,
+            new IccScreeningChannel[]
+            {
+                IccTestDataNonPrimitives.ScreeningChannel_ValRand1,
+                IccTestDataNonPrimitives.ScreeningChannel_ValRand2,
+            }
+        );
+        public static readonly byte[] Screening_Arr = ArrayHelper.Concat
+        (
+            IccTestDataPrimitives.Int32_1,
+            IccTestDataPrimitives.UInt32_2,
+            IccTestDataNonPrimitives.ScreeningChannel_Rand1,
+            IccTestDataNonPrimitives.ScreeningChannel_Rand2
+        );
+
+        public static readonly object[][] ScreeningTagDataEntryTestData =
+        {
+            new object[] { Screening_Arr, Screening_Val },
+        };
+
+        #endregion
+
+        #region UcrBgTagDataEntry
+
+        public static readonly IccUcrBgTagDataEntry UcrBg_Val = new IccUcrBgTagDataEntry(
+            new ushort[] { 3, 4, 6 },
+            new ushort[] { 9, 7, 2, 5 },
+            IccTestDataPrimitives.Ascii_ValRand
+        );
+        public static readonly byte[] UcrBg_Arr = ArrayHelper.Concat
+        (
+            IccTestDataPrimitives.UInt32_3,
+            IccTestDataPrimitives.UInt16_3,
+            IccTestDataPrimitives.UInt16_4,
+            IccTestDataPrimitives.UInt16_6,
+
+            IccTestDataPrimitives.UInt32_4,
+            IccTestDataPrimitives.UInt16_9,
+            IccTestDataPrimitives.UInt16_7,
+            IccTestDataPrimitives.UInt16_2,
+            IccTestDataPrimitives.UInt16_5,
+            
+            IccTestDataPrimitives.Ascii_Rand,
+            new byte[] { 0 }
+        );
+
+        public static readonly object[][] UcrBgTagDataEntryTestData =
+        {
+            new object[] { UcrBg_Arr, UcrBg_Val, 41 },
+        };
+
+        #endregion
+
         #region TagDataEntry
 
         public static readonly IccTagDataEntry TagDataEntry_CurveVal = Curve_Val_2;

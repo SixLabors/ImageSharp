@@ -245,10 +245,18 @@ namespace ImageSharp.Tests
         #region ASCII String
 
         public const string Ascii_ValRand = "aBcdEf1234";
+        public const string Ascii_ValRand1 = "Ecf3a";
+        public const string Ascii_ValRand2 = "2Bd4c";
+        public const string Ascii_ValRand3 = "cad14";
+        public const string Ascii_ValRand4 = "fd4E1";
         public const string Ascii_ValRandLength4 = "aBcd";
         public const string Ascii_ValNullRand = "aBcd\0Ef\0123";
 
         public static readonly byte[] Ascii_Rand = { 97, 66, 99, 100, 69, 102, 49, 50, 51, 52 };
+        public static readonly byte[] Ascii_Rand1 = { 69, 99, 102, 51, 97 };
+        public static readonly byte[] Ascii_Rand2 = { 50, 66, 100, 52, 99 };
+        public static readonly byte[] Ascii_Rand3 = { 99, 97, 100, 49, 52 };
+        public static readonly byte[] Ascii_Rand4 = { 102, 100, 52, 69, 49 };
         public static readonly byte[] Ascii_RandLength4 = { 97, 66, 99, 100 };
         public static readonly byte[] Ascii_PaddedRand = { 97, 66, 99, 100, 69, 102, 49, 50, 51, 52, 0, 0, 0, 0 };
         public static readonly byte[] Ascii_NullRand = { 97, 66, 99, 100, 0, 69, 102, 0, 49, 50, 51 };

@@ -86,7 +86,7 @@ namespace ImageSharp.Processing.Processors
             }
 
             IResampler sampler = this.Sampler;
-            float radius = (float)Math.Ceiling(scale * sampler.Radius);
+            float radius = MathF.Ceiling(scale * sampler.Radius);
             WeightsBuffer result = new WeightsBuffer(sourceSize, destinationSize);
 
             for (int i = 0; i < destinationSize; i++)

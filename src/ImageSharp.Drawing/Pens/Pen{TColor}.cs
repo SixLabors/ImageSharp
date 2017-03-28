@@ -241,7 +241,7 @@ namespace ImageSharp.Drawing.Pens
                             float distanceFromStart = length - start;
                             float distanceFromEnd = end - length;
 
-                            float closestEdge = Math.Min(distanceFromStart, distanceFromEnd);
+                            float closestEdge = MathF.Min(distanceFromStart, distanceFromEnd);
 
                             float distanceAcross = closestEdge;
 

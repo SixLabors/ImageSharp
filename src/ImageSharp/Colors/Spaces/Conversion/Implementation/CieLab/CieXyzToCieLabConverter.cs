@@ -5,8 +5,6 @@
 
 namespace ImageSharp.Colors.Spaces.Conversion.Implementation.CieLab
 {
-    using System;
-
     using ImageSharp.Colors.Spaces;
 
     /// <summary>
@@ -46,9 +44,9 @@ namespace ImageSharp.Colors.Spaces.Conversion.Implementation.CieLab
 
             float xr = input.X / wx, yr = input.Y / wy, zr = input.Z / wz;
 
-            float fx = xr > CieConstants.Epsilon ? (float)Math.Pow(xr, 0.333333333333333D) : ((CieConstants.Kappa * xr) + 16F) / 116F;
-            float fy = yr > CieConstants.Epsilon ? (float)Math.Pow(yr, 0.333333333333333D) : ((CieConstants.Kappa * yr) + 16F) / 116F;
-            float fz = zr > CieConstants.Epsilon ? (float)Math.Pow(zr, 0.333333333333333D) : ((CieConstants.Kappa * zr) + 16F) / 116F;
+            float fx = xr > CieConstants.Epsilon ? MathF.Pow(xr, 0.3333333F) : ((CieConstants.Kappa * xr) + 16F) / 116F;
+            float fy = yr > CieConstants.Epsilon ? MathF.Pow(yr, 0.3333333F) : ((CieConstants.Kappa * yr) + 16F) / 116F;
+            float fz = zr > CieConstants.Epsilon ? MathF.Pow(zr, 0.3333333F) : ((CieConstants.Kappa * zr) + 16F) / 116F;
 
             float l = (116F * fy) - 16F;
             float a = 500F * (fx - fy);

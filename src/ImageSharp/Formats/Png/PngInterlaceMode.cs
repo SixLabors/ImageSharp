@@ -13,11 +13,11 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Non interlaced
         /// </summary>
-        None,
+        None = 0,
 
         /// <summary>
         /// Adam 7 interlacing.
         /// </summary>
-        Adam7
+        Adam7 = 1
     }
 }

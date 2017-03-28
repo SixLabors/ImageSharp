@@ -7,12 +7,13 @@ namespace ImageSharp.Tests
 {
     using System;
     using System.Reflection;
+    using Xunit.Abstractions;
 
     /// <summary>
     /// Provides <see cref="Image{TColor}" /> instances for parametric unit tests.
     /// </summary>
     /// <typeparam name="TColor">The pixel format of the image</typeparam>
-    public abstract partial class TestImageProvider<TColor>
+    public abstract partial class TestImageProvider<TColor> 
         where TColor : struct, IPixel<TColor>
     {
         public PixelTypes PixelType { get; private set; } = typeof(TColor).GetPixelType();
@@ -25,13 +26,22 @@ namespace ImageSharp.Tests
         public ImagingTestCaseUtility Utility { get; private set; }
 
         public GenericFactory<TColor> Factory { get; private set; } = new GenericFactory<TColor>();
+        public string TypeName { get; private set; }
+        public string MethodName { get; private set; }
 
-        public static TestImageProvider<TColor> Blank(
+        public static TestImageProvider<TColor> TestPattern(
                 int width,
                 int height,
                 MethodInfo testMethod = null,
                 PixelTypes pixelTypeOverride = PixelTypes.Undefined)
-            => new BlankProvider(width, height).Init(testMethod, pixelTypeOverride);
+            => new TestPatternProvider(width, height).Init(testMethod, pixelTypeOverride);
+
+        public static TestImageProvider<TColor> Blank(
+                        int width,
+                        int height,
+                        MethodInfo testMethod = null,
+                        PixelTypes pixelTypeOverride = PixelTypes.Undefined)
+                    => new BlankProvider(width, height).Init(testMethod, pixelTypeOverride);
 
         public static TestImageProvider<TColor> File(
             string filePath,
@@ -65,12 +75,30 @@ namespace ImageSharp.Tests
         /// </summary>
         public abstract Image<TColor> GetImage();
 
-        protected TestImageProvider<TColor> Init(MethodInfo testMethod, PixelTypes pixelTypeOverride)
+        public virtual void Deserialize(IXunitSerializationInfo info)
+        {
+            PixelTypes pixelType = info.GetValue<PixelTypes>("PixelType");
+            string typeName = info.GetValue<string>("TypeName");
+            string methodName = info.GetValue<string>("MethodName");
+
+            this.Init(typeName, methodName, pixelType);
+        }
+
+        public virtual void Serialize(IXunitSerializationInfo info)
+        {
+            info.AddValue("PixelType", this.PixelType);
+            info.AddValue("TypeName", this.TypeName);
+            info.AddValue("MethodName", this.MethodName);
+        }
+
+        protected TestImageProvider<TColor> Init(string typeName, string methodName, PixelTypes pixelTypeOverride)
         {
             if (pixelTypeOverride != PixelTypes.Undefined)
             {
                 this.PixelType = pixelTypeOverride;
             }
+            this.TypeName = typeName;
+            this.MethodName = methodName;
 
             if (pixelTypeOverride == PixelTypes.StandardImageClass)
             {
@@ -78,17 +106,22 @@ namespace ImageSharp.Tests
             }
 
             this.Utility = new ImagingTestCaseUtility()
-                               {
-                                   SourceFileOrDescription = this.SourceFileOrDescription,
-                                   PixelTypeName = this.PixelType.ToString()
-                               };
-
-            if (testMethod != null)
             {
-                this.Utility.Init(testMethod);
+                SourceFileOrDescription = this.SourceFileOrDescription,
+                PixelTypeName = this.PixelType.ToString()
+            };
+
+            if (methodName != null)
+            {
+                this.Utility.Init(typeName, methodName);
             }
 
             return this;
+        }
+
+        protected TestImageProvider<TColor> Init(MethodInfo testMethod, PixelTypes pixelTypeOverride)
+        {
+            return Init(testMethod?.DeclaringType.Name, testMethod?.Name, pixelTypeOverride);
         }
 
         public override string ToString()

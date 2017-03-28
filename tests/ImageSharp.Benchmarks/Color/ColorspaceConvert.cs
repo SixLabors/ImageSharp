@@ -5,8 +5,9 @@
     using Colourful;
     using Colourful.Conversion;
 
-    using ImageSharp.Colors.Conversion;
     using ImageSharp.Colors.Spaces;
+
+    using ColorSpaceConverter = ImageSharp.Colors.Spaces.Conversion.ColorSpaceConverter;
 
     public class ColorspaceConvert
     {

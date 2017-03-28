@@ -3,10 +3,11 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.Colors.Conversion.Implementation
+namespace ImageSharp.Colors.Spaces.Conversion.Implementation.CieLab
 {
     using System;
-    using Spaces;
+
+    using ImageSharp.Colors.Spaces;
 
     /// <summary>
     /// Converts from <see cref="CieLab"/> to <see cref="CieXyz"/>.

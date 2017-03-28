@@ -4,7 +4,7 @@
 // </copyright>
 
 // ReSharper disable InconsistentNaming
-namespace ImageSharp.Colors.Conversion.Implementation
+namespace ImageSharp.Colors.Spaces.Conversion.Implementation.Lms
 {
     using System.Numerics;
 
@@ -13,7 +13,7 @@ namespace ImageSharp.Colors.Conversion.Implementation
     /// Used in <see cref="IChromaticAdaptation"/>
     /// </summary>
     /// <remarks>
-    /// AdaptionMatrix3X3 data obtained from:
+    /// Matrix data obtained from:
     /// Two New von Kries Based Chromatic Adaptation Transforms Found by Numerical Optimization
     /// S. Bianco, R. Schettini
     /// DISCo, Department of Informatics, Systems and Communication, University of Milan-Bicocca, viale Sarca 336, 20126 Milan, Italy

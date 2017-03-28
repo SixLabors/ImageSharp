@@ -3,10 +3,11 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.Colors.Conversion.Implementation
+namespace ImageSharp.Colors.Spaces.Conversion.Implementation.Lms
 {
     using System.Numerics;
-    using Spaces;
+
+    using ImageSharp.Colors.Spaces;
 
     /// <summary>
     /// Color converter between CIE XYZ and LMS

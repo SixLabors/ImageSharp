@@ -13,25 +13,25 @@ namespace ImageSharp.Colors.Spaces
     public interface ICompanding
     {
         /// <summary>
-        /// Companded channel is made linear with respect to the energy.
+        /// Expands a companded channel to its linear equivalent with respect to the energy.
         /// </summary>
         /// <remarks>
         /// For more info see:
-        /// http://www.brucelindbloom.com/index.html?Eqn_RGB_to_XYZ.html
+        /// <see href="http://www.brucelindbloom.com/index.html?Eqn_RGB_to_XYZ.html"/>
         /// </remarks>
         /// <param name="channel">The channel value</param>
         /// <returns>The linear channel value</returns>
-        float InverseCompanding(float channel);
+        float Expand(float channel);
 
         /// <summary>
-        /// Uncompanded channel (linear) is made nonlinear (depends on the RGB color system).
+        /// Compresses an uncompanded channel (linear) to its nonlinear equivalent (depends on the RGB color system).
         /// </summary>
         /// <remarks>
         /// For more info see:
-        /// http://www.brucelindbloom.com/index.html?Eqn_XYZ_to_RGB.html
+        /// <see href="http://www.brucelindbloom.com/index.html?Eqn_XYZ_to_RGB.html"/>
         /// </remarks>
         /// <param name="channel">The channel value</param>
         /// <returns>The nonlinear channel value</returns>
-        float Companding(float channel);
+        float Compress(float channel);
     }
 }

@@ -5,27 +5,30 @@
 
 namespace ImageSharp.Colors.Spaces
 {
+    using System;
+
+    using ImageSharp.Colors.Spaces.Conversion.Implementation;
+    using ImageSharp.Colors.Spaces.Conversion.Implementation.Rgb;
+
     /// <summary>
     /// Encasulates the RGB working color space
     /// </summary>
-    public interface IRgbWorkingSpace
+    public interface IRgbWorkingSpace : IEquatable<IRgbWorkingSpace>
     {
         /// <summary>
         /// Gets the reference white of the color space
         /// </summary>
         CieXyz WhitePoint { get; }
 
-        // <summary>
-        // Gets Chromaticity coordinates of the primaries
-        // </summary>
-        // RGBPrimariesChromaticityCoordinates ChromaticityCoordinates { get; }
+        /// <summary>
+        /// Gets the chromaticity coordinates of the primaries
+        /// </summary>
+        RgbPrimariesChromaticityCoordinates ChromaticityCoordinates { get; }
 
         /// <summary>
-        /// Gets the companding function associated with the RGB color system.
-        /// Used for conversion to XYZ and backwards.
-        /// See this for more information:
-        /// http://www.brucelindbloom.com/index.html?Eqn_RGB_to_XYZ.html
-        /// http://www.brucelindbloom.com/index.html?Eqn_XYZ_to_RGB.html
+        /// Gets the companding function associated with the RGB color system. Used for conversion to XYZ and backwards.
+        /// <see href="http://www.brucelindbloom.com/index.html?Eqn_RGB_to_XYZ.html"/>
+        /// <see href="http://www.brucelindbloom.com/index.html?Eqn_XYZ_to_RGB.html"/>
         /// </summary>
         ICompanding Companding { get; }
     }

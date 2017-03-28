@@ -76,7 +76,7 @@ namespace ImageSharp
         {
             ushort type = this.ReadUInt16();
             this.AddIndex(2);   // 2 bytes reserved
-            double gamma, a, b, c, d, e, f;
+            float gamma, a, b, c, d, e, f;
             gamma = a = b = c = d = e = f = 0;
 
             if (type >= 0 && type <= 4)
@@ -145,7 +145,7 @@ namespace ImageSharp
         {
             IccFormulaCurveType type = (IccFormulaCurveType)this.ReadUInt16();
             this.AddIndex(2);   // 2 bytes reserved
-            double gamma, a, b, c, d, e;
+            float gamma, a, b, c, d, e;
             gamma = a = b = c = d = e = 0;
 
             if (type == IccFormulaCurveType.Type1 || type == IccFormulaCurveType.Type2)

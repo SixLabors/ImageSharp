@@ -105,12 +105,12 @@ namespace ImageSharp
             float s = color.S;
             float v = color.V;
 
-            if (Math.Abs(s) < Constants.Epsilon)
+            if (MathF.Abs(s) < Constants.Epsilon)
             {
                 return new Color(v, v, v, 1);
             }
 
-            float h = (Math.Abs(color.H - 360) < Constants.Epsilon) ? 0 : color.H / 60;
+            float h = (MathF.Abs(color.H - 360) < Constants.Epsilon) ? 0 : color.H / 60;
             int i = (int)Math.Truncate(h);
             float f = h - i;
 
@@ -178,9 +178,9 @@ namespace ImageSharp
             float s = color.S;
             float l = color.L;
 
-            if (Math.Abs(l) > Constants.Epsilon)
+            if (MathF.Abs(l) > Constants.Epsilon)
             {
-                if (Math.Abs(s) < Constants.Epsilon)
+                if (MathF.Abs(s) < Constants.Epsilon)
                 {
                     r = g = b = l;
                 }

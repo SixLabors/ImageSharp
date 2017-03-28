@@ -53,13 +53,13 @@ namespace ImageSharp
         public static float Gaussian(float x, float sigma)
         {
             const float Numerator = 1.0f;
-            float denominator = (float)(Math.Sqrt(2 * Math.PI) * sigma);
+            float denominator = MathF.Sqrt(2 * MathF.PI) * sigma;
 
             float exponentNumerator = -x * x;
             float exponentDenominator = (float)(2 * Math.Pow(sigma, 2));
 
             float left = Numerator / denominator;
-            float right = (float)Math.Exp(exponentNumerator / exponentDenominator);
+            float right = MathF.Exp(exponentNumerator / exponentDenominator);
 
             return left * right;
         }
@@ -110,10 +110,10 @@ namespace ImageSharp
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float SinC(float x)
         {
-            if (Math.Abs(x) > Constants.Epsilon)
+            if (MathF.Abs(x) > Constants.Epsilon)
             {
-                x *= (float)Math.PI;
-                return Clean((float)Math.Sin(x) / x);
+                x *= MathF.PI;
+                return Clean(MathF.Sin(x) / x);
             }
 
             return 1.0f;
@@ -129,7 +129,7 @@ namespace ImageSharp
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float DegreesToRadians(float degrees)
         {
-            return degrees * (float)(Math.PI / 180);
+            return degrees * (MathF.PI / 180);
         }
 
         /// <summary>
@@ -196,19 +196,19 @@ namespace ImageSharp
             switch (channel)
             {
                 case RgbaComponent.R:
-                    delegateFunc = (pixels, x, y, b) => Math.Abs(pixels[x, y].ToVector4().X - b) > Constants.Epsilon;
+                    delegateFunc = (pixels, x, y, b) => MathF.Abs(pixels[x, y].ToVector4().X - b) > Constants.Epsilon;
                     break;
 
                 case RgbaComponent.G:
-                    delegateFunc = (pixels, x, y, b) => Math.Abs(pixels[x, y].ToVector4().Y - b) > Constants.Epsilon;
+                    delegateFunc = (pixels, x, y, b) => MathF.Abs(pixels[x, y].ToVector4().Y - b) > Constants.Epsilon;
                     break;
 
                 case RgbaComponent.B:
-                    delegateFunc = (pixels, x, y, b) => Math.Abs(pixels[x, y].ToVector4().Z - b) > Constants.Epsilon;
+                    delegateFunc = (pixels, x, y, b) => MathF.Abs(pixels[x, y].ToVector4().Z - b) > Constants.Epsilon;
                     break;
 
                 default:
-                    delegateFunc = (pixels, x, y, b) => Math.Abs(pixels[x, y].ToVector4().W - b) > Constants.Epsilon;
+                    delegateFunc = (pixels, x, y, b) => MathF.Abs(pixels[x, y].ToVector4().W - b) > Constants.Epsilon;
                     break;
             }
 
@@ -297,7 +297,7 @@ namespace ImageSharp
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static float Clean(float x)
         {
-            if (Math.Abs(x) < Constants.Epsilon)
+            if (MathF.Abs(x) < Constants.Epsilon)
             {
                 return 0F;
             }

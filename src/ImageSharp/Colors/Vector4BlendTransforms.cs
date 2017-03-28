@@ -5,7 +5,6 @@
 
 namespace ImageSharp
 {
-    using System;
     using System.Numerics;
 
     /// <summary>
@@ -198,13 +197,13 @@ namespace ImageSharp
             amount = amount.Clamp(0, 1);
 
             // Santize on zero alpha
-            if (Math.Abs(backdrop.W) < Constants.Epsilon)
+            if (MathF.Abs(backdrop.W) < Constants.Epsilon)
             {
                 source.W *= amount;
                 return source;
             }
 
-            if (Math.Abs(source.W) < Constants.Epsilon)
+            if (MathF.Abs(source.W) < Constants.Epsilon)
             {
                 return backdrop;
             }
@@ -248,7 +247,7 @@ namespace ImageSharp
         /// </returns>
         private static float BlendSoftLight(float b, float s)
         {
-            return s <= .5F ? ((2F * b * s) + (b * b * (1F - (2F * s)))) : (float)((Math.Sqrt(b) * ((2F * s) - 1F)) + (2F * b * (1F - s)));
+            return s <= .5F ? ((2F * b * s) + (b * b * (1F - (2F * s)))) : (MathF.Sqrt(b) * ((2F * s) - 1F)) + (2F * b * (1F - s));
         }
 
         /// <summary>
@@ -261,7 +260,7 @@ namespace ImageSharp
         /// </returns>
         private static float BlendDodge(float b, float s)
         {
-            return Math.Abs(s - 1F) < Constants.Epsilon ? s : Math.Min(b / (1F - s), 1F);
+            return MathF.Abs(s - 1F) < Constants.Epsilon ? s : MathF.Min(b / (1F - s), 1F);
         }
 
         /// <summary>
@@ -274,7 +273,7 @@ namespace ImageSharp
         /// </returns>
         private static float BlendBurn(float b, float s)
         {
-            return Math.Abs(s) < Constants.Epsilon ? s : Math.Max(1F - ((1F - b) / s), 0F);
+            return MathF.Abs(s) < Constants.Epsilon ? s : MathF.Max(1F - ((1F - b) / s), 0F);
         }
 
         /// <summary>

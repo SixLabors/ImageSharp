@@ -108,9 +108,9 @@ namespace ImageSharp.Processing.Processors
                                 }
                             }
 
-                            float red = (float)Math.Sqrt((rX * rX) + (rY * rY));
-                            float green = (float)Math.Sqrt((gX * gX) + (gY * gY));
-                            float blue = (float)Math.Sqrt((bX * bX) + (bY * bY));
+                            float red = MathF.Sqrt((rX * rX) + (rY * rY));
+                            float green = MathF.Sqrt((gX * gX) + (gY * gY));
+                            float blue = MathF.Sqrt((bX * bX) + (bY * bY));
 
                             TColor packed = default(TColor);
                             packed.PackFromVector4(new Vector4(red, green, blue, sourcePixels[x, y].ToVector4().W));

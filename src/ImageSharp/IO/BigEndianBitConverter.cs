@@ -62,7 +62,7 @@ namespace ImageSharp.IO
         {
             CheckByteArgument(value, startIndex, 2);
 
-            return (short)((value[0] << 8) | value[1]);
+            return (short)((value[startIndex] << 8) | value[startIndex + 1]);
         }
 
         /// <inheritdoc/>
@@ -70,7 +70,7 @@ namespace ImageSharp.IO
         {
             CheckByteArgument(value, startIndex, 4);
 
-            return (value[0] << 24) | (value[1] << 16) | (value[2] << 8) | value[3];
+            return (value[startIndex] << 24) | (value[startIndex + 1] << 16) | (value[startIndex + 2] << 8) | value[startIndex + 3];
         }
 
         /// <inheritdoc/>
@@ -78,8 +78,8 @@ namespace ImageSharp.IO
         {
             CheckByteArgument(value, startIndex, 8);
 
-            long p1 = (value[0] << 24) | (value[1] << 16) | (value[2] << 8) | value[3];
-            long p2 = (value[4] << 24) | (value[5] << 16) | (value[6] << 8) | value[7];
+            long p1 = (value[startIndex] << 24) | (value[startIndex + 1] << 16) | (value[startIndex + 2] << 8) | value[startIndex + 3];
+            long p2 = (value[startIndex + 4] << 24) | (value[startIndex + 5] << 16) | (value[startIndex + 6] << 8) | value[startIndex + 7];
             return p2 | (p1 << 32);
         }
     }

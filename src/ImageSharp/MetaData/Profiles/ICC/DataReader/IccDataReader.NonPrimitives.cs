@@ -127,10 +127,9 @@ namespace ImageSharp
             uint model = this.ReadUInt32();
             IccDeviceAttribute attributes = (IccDeviceAttribute)this.ReadInt64();
             IccProfileTag technologyInfo = (IccProfileTag)this.ReadUInt32();
-            this.ReadCheckTagDataEntryHeader(IccTypeSignature.MultiLocalizedUnicode);
-            IccMultiLocalizedUnicodeTagDataEntry manufacturerInfo = this.ReadMultiLocalizedUnicodeTagDataEntry();
-            this.ReadCheckTagDataEntryHeader(IccTypeSignature.MultiLocalizedUnicode);
-            IccMultiLocalizedUnicodeTagDataEntry modelInfo = this.ReadMultiLocalizedUnicodeTagDataEntry();
+
+            IccMultiLocalizedUnicodeTagDataEntry manufacturerInfo = ReadText();
+            IccMultiLocalizedUnicodeTagDataEntry modelInfo = ReadText();
 
             return new IccProfileDescription(
                 manufacturer,
@@ -139,6 +138,21 @@ namespace ImageSharp
                 technologyInfo,
                 manufacturerInfo.Texts,
                 modelInfo.Texts);
+
+            IccMultiLocalizedUnicodeTagDataEntry ReadText()
+            {
+                IccTypeSignature type = this.ReadTagDataEntryHeader();
+                switch (type)
+                {
+                    case IccTypeSignature.MultiLocalizedUnicode:
+                        return this.ReadMultiLocalizedUnicodeTagDataEntry();
+                    case IccTypeSignature.TextDescription:
+                        return (IccMultiLocalizedUnicodeTagDataEntry)this.ReadTextDescriptionTagDataEntry();
+
+                    default:
+                        throw new InvalidIccProfileException("Profile description can only have multi-localized Unicode or text description entries");
+                }
+            }
         }
 
         /// <summary>

@@ -139,9 +139,9 @@ namespace ImageSharp.Processing.Processors
                                         }
                                     }
 
-                                    float red = Math.Abs(redBin[maxIndex] / maxIntensity);
-                                    float green = Math.Abs(greenBin[maxIndex] / maxIntensity);
-                                    float blue = Math.Abs(blueBin[maxIndex] / maxIntensity);
+                                    float red = MathF.Abs(redBin[maxIndex] / maxIntensity);
+                                    float green = MathF.Abs(greenBin[maxIndex] / maxIntensity);
+                                    float blue = MathF.Abs(blueBin[maxIndex] / maxIntensity);
 
                                     TColor packed = default(TColor);
                                     packed.PackFromVector4(new Vector4(red, green, blue, sourcePixels[x, y].ToVector4().W));

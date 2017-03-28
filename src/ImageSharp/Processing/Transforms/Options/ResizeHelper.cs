@@ -65,7 +65,7 @@ namespace ImageSharp.Processing
                 return new Rectangle(0, 0, source.Width, source.Height);
             }
 
-            double ratio;
+            float ratio;
             int sourceWidth = source.Width;
             int sourceHeight = source.Height;
 
@@ -75,8 +75,8 @@ namespace ImageSharp.Processing
             int destinationHeight = height;
 
             // Fractional variants for preserving aspect ratio.
-            double percentHeight = Math.Abs(height / (double)sourceHeight);
-            double percentWidth = Math.Abs(width / (double)sourceWidth);
+            float percentHeight = MathF.Abs(height / (float)sourceHeight);
+            float percentWidth = MathF.Abs(width / (float)sourceWidth);
 
             if (percentHeight < percentWidth)
             {
@@ -84,7 +84,7 @@ namespace ImageSharp.Processing
 
                 if (options.CenterCoordinates.Any())
                 {
-                    double center = -(ratio * sourceHeight) * options.CenterCoordinates.First();
+                    float center = -(ratio * sourceHeight) * options.CenterCoordinates.First();
                     destinationY = (int)center + (height / 2);
 
                     if (destinationY > 0)
@@ -117,7 +117,7 @@ namespace ImageSharp.Processing
                     }
                 }
 
-                destinationHeight = (int)Math.Ceiling(sourceHeight * percentWidth);
+                destinationHeight = (int)MathF.Ceiling(sourceHeight * percentWidth);
             }
             else
             {
@@ -125,7 +125,7 @@ namespace ImageSharp.Processing
 
                 if (options.CenterCoordinates.Any())
                 {
-                    double center = -(ratio * sourceWidth) * options.CenterCoordinates.ToArray()[1];
+                    float center = -(ratio * sourceWidth) * options.CenterCoordinates.ToArray()[1];
                     destinationX = (int)center + (width / 2);
 
                     if (destinationX > 0)
@@ -158,7 +158,7 @@ namespace ImageSharp.Processing
                     }
                 }
 
-                destinationWidth = (int)Math.Ceiling(sourceWidth * percentHeight);
+                destinationWidth = (int)MathF.Ceiling(sourceWidth * percentHeight);
             }
 
             return new Rectangle(destinationX, destinationY, destinationWidth, destinationHeight);
@@ -184,7 +184,7 @@ namespace ImageSharp.Processing
                 return new Rectangle(0, 0, source.Width, source.Height);
             }
 
-            double ratio;
+            float ratio;
             int sourceWidth = source.Width;
             int sourceHeight = source.Height;
 
@@ -194,8 +194,8 @@ namespace ImageSharp.Processing
             int destinationHeight = height;
 
             // Fractional variants for preserving aspect ratio.
-            double percentHeight = Math.Abs(height / (double)sourceHeight);
-            double percentWidth = Math.Abs(width / (double)sourceWidth);
+            float percentHeight = MathF.Abs(height / (float)sourceHeight);
+            float percentWidth = MathF.Abs(width / (float)sourceWidth);
 
             if (percentHeight < percentWidth)
             {
@@ -269,8 +269,8 @@ namespace ImageSharp.Processing
             int sourceHeight = source.Height;
 
             // Fractional variants for preserving aspect ratio.
-            double percentHeight = Math.Abs(height / (double)sourceHeight);
-            double percentWidth = Math.Abs(width / (double)sourceWidth);
+            float percentHeight = MathF.Abs(height / (float)sourceHeight);
+            float percentWidth = MathF.Abs(width / (float)sourceWidth);
 
             int boxPadHeight = height > 0 ? height : Convert.ToInt32(sourceHeight * percentWidth);
             int boxPadWidth = width > 0 ? width : Convert.ToInt32(sourceWidth * percentHeight);
@@ -350,12 +350,12 @@ namespace ImageSharp.Processing
             int destinationHeight = height;
 
             // Fractional variants for preserving aspect ratio.
-            double percentHeight = Math.Abs(height / (double)source.Height);
-            double percentWidth = Math.Abs(width / (double)source.Width);
+            float percentHeight = MathF.Abs(height / (float)source.Height);
+            float percentWidth = MathF.Abs(width / (float)source.Width);
 
-            // Integers must be cast to doubles to get needed precision
-            double ratio = (double)options.Size.Height / options.Size.Width;
-            double sourceRatio = (double)source.Height / source.Width;
+            // Integers must be cast to floats to get needed precision
+            float ratio = (float)options.Size.Height / options.Size.Width;
+            float sourceRatio = (float)source.Height / source.Width;
 
             if (sourceRatio < ratio)
             {
@@ -397,7 +397,7 @@ namespace ImageSharp.Processing
                 return new Rectangle(0, 0, source.Width, source.Height);
             }
 
-            double sourceRatio = (double)source.Height / source.Width;
+            float sourceRatio = (float)source.Height / source.Width;
 
             // Find the shortest distance to go.
             int widthDiff = source.Width - width;

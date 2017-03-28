@@ -68,7 +68,7 @@ namespace ImageSharp.IO
         {
             Guard.NotNull(stream, nameof(stream));
             Guard.NotNull(encoding, nameof(encoding));
-            Guard.IsTrue(stream.CanRead, nameof(stream), "Stream isn't readable.");
+            Guard.IsTrue(stream.CanRead, nameof(stream), "Stream isn't readable");
 
             this.BaseStream = stream;
             this.BitConverter = EndianBitConverter.GetConverter(endianness);
@@ -510,7 +510,7 @@ namespace ImageSharp.IO
         {
             if (this.disposed)
             {
-                throw new ObjectDisposedException("EndianBinaryReader");
+                throw new ObjectDisposedException(nameof(EndianBinaryReader));
             }
         }
 

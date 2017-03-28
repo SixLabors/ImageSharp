@@ -19,10 +19,10 @@ namespace ImageSharp.Drawing
         /// <returns>A <see cref="Rectangle"/> representation of this <see cref="SixLabors.Shapes.Rectangle"/></returns>
         public static Rectangle Convert(this SixLabors.Shapes.Rectangle source)
         {
-            int left = (int)Math.Floor(source.Left);
-            int right = (int)Math.Ceiling(source.Right);
-            int top = (int)Math.Floor(source.Top);
-            int bottom = (int)Math.Ceiling(source.Bottom);
+            int left = (int)MathF.Floor(source.Left);
+            int right = (int)MathF.Ceiling(source.Right);
+            int top = (int)MathF.Floor(source.Top);
+            int bottom = (int)MathF.Ceiling(source.Bottom);
             return new Rectangle(left, top, right - left, bottom - top);
         }
     }

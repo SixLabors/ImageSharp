@@ -49,9 +49,9 @@ namespace ImageSharp.Processing.Processors
             int endX = sourceRectangle.Right;
             TColor vignetteColor = this.VignetteColor;
             Vector2 centre = Rectangle.Center(sourceRectangle).ToVector2();
-            float rX = this.RadiusX > 0 ? Math.Min(this.RadiusX, sourceRectangle.Width * .5F) : sourceRectangle.Width * .5F;
-            float rY = this.RadiusY > 0 ? Math.Min(this.RadiusY, sourceRectangle.Height * .5F) : sourceRectangle.Height * .5F;
-            float maxDistance = (float)Math.Sqrt((rX * rX) + (rY * rY));
+            float rX = this.RadiusX > 0 ? MathF.Min(this.RadiusX, sourceRectangle.Width * .5F) : sourceRectangle.Width * .5F;
+            float rY = this.RadiusY > 0 ? MathF.Min(this.RadiusY, sourceRectangle.Height * .5F) : sourceRectangle.Height * .5F;
+            float maxDistance = MathF.Sqrt((rX * rX) + (rY * rY));
 
             // Align start/end positions.
             int minX = Math.Max(0, startX);

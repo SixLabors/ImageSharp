@@ -135,9 +135,9 @@ namespace ImageSharp
             vector += Round;
             vector = Vector4.Clamp(vector, Vector4.Zero, MaxBytes);
 
-            bytes[startIndex] = (byte)(float)Math.Round(vector.X);
-            bytes[startIndex + 1] = (byte)(float)Math.Round(vector.Y);
-            bytes[startIndex + 2] = (byte)(float)Math.Round(vector.Z);
+            bytes[startIndex] = (byte)MathF.Round(vector.X);
+            bytes[startIndex + 1] = (byte)MathF.Round(vector.Y);
+            bytes[startIndex + 2] = (byte)MathF.Round(vector.Z);
         }
 
         /// <inheritdoc />
@@ -151,10 +151,10 @@ namespace ImageSharp
             vector += Round;
             vector = Vector4.Clamp(vector, Vector4.Zero, MaxBytes);
 
-            bytes[startIndex] = (byte)(float)Math.Round(vector.X);
-            bytes[startIndex + 1] = (byte)(float)Math.Round(vector.Y);
-            bytes[startIndex + 2] = (byte)(float)Math.Round(vector.Z);
-            bytes[startIndex + 3] = (byte)(float)Math.Round(vector.W);
+            bytes[startIndex] = (byte)MathF.Round(vector.X);
+            bytes[startIndex + 1] = (byte)MathF.Round(vector.Y);
+            bytes[startIndex + 2] = (byte)MathF.Round(vector.Z);
+            bytes[startIndex + 3] = (byte)MathF.Round(vector.W);
         }
 
         /// <inheritdoc />
@@ -168,9 +168,9 @@ namespace ImageSharp
             vector += Round;
             vector = Vector4.Clamp(vector, Vector4.Zero, MaxBytes);
 
-            bytes[startIndex] = (byte)(float)Math.Round(vector.Z);
-            bytes[startIndex + 1] = (byte)(float)Math.Round(vector.Y);
-            bytes[startIndex + 2] = (byte)(float)Math.Round(vector.X);
+            bytes[startIndex] = (byte)MathF.Round(vector.Z);
+            bytes[startIndex + 1] = (byte)MathF.Round(vector.Y);
+            bytes[startIndex + 2] = (byte)MathF.Round(vector.X);
         }
 
         /// <inheritdoc />
@@ -184,10 +184,10 @@ namespace ImageSharp
             vector += Round;
             vector = Vector4.Clamp(vector, Vector4.Zero, MaxBytes);
 
-            bytes[startIndex] = (byte)(float)Math.Round(vector.Z);
-            bytes[startIndex + 1] = (byte)(float)Math.Round(vector.Y);
-            bytes[startIndex + 2] = (byte)(float)Math.Round(vector.X);
-            bytes[startIndex + 3] = (byte)(float)Math.Round(vector.W);
+            bytes[startIndex] = (byte)MathF.Round(vector.Z);
+            bytes[startIndex + 1] = (byte)MathF.Round(vector.Y);
+            bytes[startIndex + 2] = (byte)MathF.Round(vector.X);
+            bytes[startIndex + 3] = (byte)MathF.Round(vector.W);
         }
 
         /// <inheritdoc />
@@ -231,10 +231,10 @@ namespace ImageSharp
             const float MinNeg = -MaxPos;
 
             // Clamp the value between min and max values
-            ulong word4 = ((ulong)(float)Math.Round(x * MaxPos).Clamp(MinNeg, MaxPos) & 0xFFFF) << 0x00;
-            ulong word3 = ((ulong)(float)Math.Round(y * MaxPos).Clamp(MinNeg, MaxPos) & 0xFFFF) << 0x10;
-            ulong word2 = ((ulong)(float)Math.Round(z * MaxPos).Clamp(MinNeg, MaxPos) & 0xFFFF) << 0x20;
-            ulong word1 = ((ulong)(float)Math.Round(w * MaxPos).Clamp(MinNeg, MaxPos) & 0xFFFF) << 0x30;
+            ulong word4 = ((ulong)MathF.Round(x * MaxPos).Clamp(MinNeg, MaxPos) & 0xFFFF) << 0x00;
+            ulong word3 = ((ulong)MathF.Round(y * MaxPos).Clamp(MinNeg, MaxPos) & 0xFFFF) << 0x10;
+            ulong word2 = ((ulong)MathF.Round(z * MaxPos).Clamp(MinNeg, MaxPos) & 0xFFFF) << 0x20;
+            ulong word1 = ((ulong)MathF.Round(w * MaxPos).Clamp(MinNeg, MaxPos) & 0xFFFF) << 0x30;
 
             return word4 | word3 | word2 | word1;
         }

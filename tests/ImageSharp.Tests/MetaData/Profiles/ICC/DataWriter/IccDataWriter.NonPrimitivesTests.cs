@@ -96,7 +96,7 @@ namespace ImageSharp.Tests.Icc
         }
 
         [Theory]
-        [MemberData(nameof(IccTestDataNonPrimitives.ProfileDescriptionTestData), MemberType = typeof(IccTestDataNonPrimitives))]
+        [MemberData(nameof(IccTestDataNonPrimitives.ProfileDescriptionWriteTestData), MemberType = typeof(IccTestDataNonPrimitives))]
         internal void WriteProfileDescription(byte[] expected, IccProfileDescription data)
         {
             IccDataWriter writer = CreateWriter();

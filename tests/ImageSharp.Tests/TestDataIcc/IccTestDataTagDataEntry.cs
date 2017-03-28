@@ -832,7 +832,7 @@ namespace ImageSharp.Tests
         public static readonly IccTextDescriptionTagDataEntry TextDescription_Val1 = new IccTextDescriptionTagDataEntry
         (
             IccTestDataPrimitives.Ascii_ValRand, IccTestDataPrimitives.Unicode_ValRand1, ArrayHelper.Fill('A', 66),
-            9, 2
+            1701729619, 2
         );
         public static readonly byte[] TextDescription_Arr1 = ArrayHelper.Concat
         (
@@ -840,7 +840,7 @@ namespace ImageSharp.Tests
             IccTestDataPrimitives.Ascii_Rand,
             new byte[] { 0x00 },                    // Null terminator
 
-            IccTestDataPrimitives.UInt32_9,
+            new byte[] { 0x65, 0x6E, 0x55, 0x53 },  // enUS
             new byte[] { 0x00, 0x00, 0x00, 0x0E },  // 14
             IccTestDataPrimitives.Unicode_Rand1,
             new byte[] { 0x00, 0x00 },              // Null terminator

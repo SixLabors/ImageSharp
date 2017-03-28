@@ -45,7 +45,7 @@ namespace ImageSharp
         /// bTRC - This tag contains the blue channel tone reproduction curve. The first element represents no colorant (white) or
         /// phosphor (black) and the last element represents 100 % colorant (blue) or 100 % phosphor (blue).
         /// </summary>
-        BlueTRC = 0x62545243,
+        BlueTrc = 0x62545243,
 
         /// <summary>
         /// B2A0 - This tag defines a colour transform from PCS to Device or Colour Encoding using the lookup table tag element structures
@@ -154,13 +154,13 @@ namespace ImageSharp
         /// dmnd - This tag describes the structure containing invariant and localizable
         /// versions of the device manufacturer for display
         /// </summary>
-        DeviceMfgDesc = 0x646D6E64,
+        DeviceManufacturerDescription = 0x646D6E64,
 
         /// <summary>
         /// dmdd - This tag describes the structure containing invariant and localizable
         /// versions of the device model for display.
         /// </summary>
-        DeviceModelDesc = 0x646D6464,
+        DeviceModelDescription = 0x646D6464,
 
         /// <summary>
         /// devs - Removed in V4
@@ -202,7 +202,7 @@ namespace ImageSharp
         /// kTRC - This tag contains the grey tone reproduction curve. The tone reproduction curve provides the necessary
         /// information to convert between a single device channel and the PCSXYZ or PCSLAB encoding.
         /// </summary>
-        GrayTRC = 0x6b545243,
+        GrayTrc = 0x6b545243,
 
         /// <summary>
         /// gXYZ - This tag contains the second column in the matrix, which is used in matrix/TRC transforms.
@@ -213,7 +213,7 @@ namespace ImageSharp
         /// gTRC - This tag contains the green channel tone reproduction curve. The first element represents no
         /// colorant (white) or phosphor (black) and the last element represents 100 % colorant (green) or 100 % phosphor (green).
         /// </summary>
-        GreenTRC = 0x67545243,
+        GreenTrc = 0x67545243,
 
         /// <summary>
         /// lumi - This tag contains the absolute luminance of emissive devices in candelas per square metre as described by the Y channel.
@@ -237,7 +237,7 @@ namespace ImageSharp
         MediaWhitePoint = 0x77747074,
 
         /// <summary>
-        /// ncol - OBSOLETE, use ncl2
+        /// ncol - OBSOLETE, use <see cref="NamedColor2"/>
         /// </summary>
         NamedColor = 0x6E636f6C,
 
@@ -282,37 +282,37 @@ namespace ImageSharp
         /// pseq - This tag describes the structure containing a description of the profile sequence from source to
         /// destination, typically used with the DeviceLink profile.
         /// </summary>
-        ProfileSequenceDesc = 0x70736571,
+        ProfileSequenceDescription = 0x70736571,
 
         /// <summary>
         /// psd0 - Removed in V4
         /// </summary>
-        Ps2CRD0 = 0x70736430,
+        PostScript2Crd0 = 0x70736430,
 
         /// <summary>
         /// psd1 - Removed in V4
         /// </summary>
-        Ps2CRD1 = 0x70736431,
+        PostScript2Crd1 = 0x70736431,
 
         /// <summary>
         /// psd2 - Removed in V4
         /// </summary>
-        Ps2CRD2 = 0x70736432,
+        PostScript2Crd2 = 0x70736432,
 
         /// <summary>
         /// psd3 - Removed in V4
         /// </summary>
-        Ps2CRD3 = 0x70736433,
+        PostScript2Crd3 = 0x70736433,
 
         /// <summary>
         /// ps2s - Removed in V4
         /// </summary>
-        Ps2CSA = 0x70733273,
+        PostScript2Csa = 0x70733273,
 
         /// <summary>
         /// psd2i- Removed in V4
         /// </summary>
-        Ps2RenderingIntent = 0x70733269,
+        PostScript2RenderingIntent = 0x70733269,
 
         /// <summary>
         /// rXYZ - This tag contains the first column in the matrix, which is used in matrix/TRC transforms.
@@ -323,7 +323,7 @@ namespace ImageSharp
         /// This tag contains the red channel tone reproduction curve. The first element represents no colorant
         /// (white) or phosphor (black) and the last element represents 100 % colorant (red) or 100 % phosphor (red).
         /// </summary>
-        RedTRC = 0x72545243,
+        RedTrc = 0x72545243,
 
         /// <summary>
         /// rig2 - There is only one standard reference medium gamut, as defined in ISO 12640-3.
@@ -333,7 +333,7 @@ namespace ImageSharp
         /// <summary>
         /// scrd - Removed in V4
         /// </summary>
-        ScreeningDesc = 0x73637264,
+        ScreeningDescription = 0x73637264,
 
         /// <summary>
         /// scrn - Removed in V4
@@ -348,13 +348,13 @@ namespace ImageSharp
         /// <summary>
         /// bfd - Removed in V4
         /// </summary>
-        UcrBg = 0x62666420,
+        UcrBgSpecification = 0x62666420,
 
         /// <summary>
         /// vued - This tag describes the structure containing invariant and localizable
         /// versions of the viewing conditions.
         /// </summary>
-        ViewingCondDesc = 0x76756564,
+        ViewingCondDescription = 0x76756564,
 
         /// <summary>
         /// view - This tag defines the viewing conditions parameters

@@ -35,21 +35,31 @@ namespace ImageSharp.Formats
         /// Gets the child <see cref="TiffIfdEntry"/> with the specified tag ID.
         /// </summary>
         /// <param name="tag">The tag ID to search for.</param>
-        /// <param name="entry">The resulting <see cref="TiffIfdEntry"/>, if it exists.</param>
-        /// <returns>A flag indicating whether the requested entry exists</returns>
-        public bool TryGetIfdEntry(ushort tag, out TiffIfdEntry entry)
+        /// <returns>The resulting <see cref="TiffIfdEntry"/>, or null if it does not exists.</returns>
+        public TiffIfdEntry? GetIfdEntry(ushort tag)
         {
             for (int i = 0; i < this.Entries.Length; i++)
             {
                 if (this.Entries[i].Tag == tag)
                 {
-                    entry = this.Entries[i];
-                    return true;
+                    return this.Entries[i];
                 }
             }
 
-            entry = default(TiffIfdEntry);
-            return false;
+            return null;
+        }
+
+        /// <summary>
+        /// Gets the child <see cref="TiffIfdEntry"/> with the specified tag ID.
+        /// </summary>
+        /// <param name="tag">The tag ID to search for.</param>
+        /// <param name="entry">The resulting <see cref="TiffIfdEntry"/>, if it exists.</param>
+        /// <returns>A flag indicating whether the requested entry exists.</returns>
+        public bool TryGetIfdEntry(ushort tag, out TiffIfdEntry entry)
+        {
+            TiffIfdEntry? nullableEntry = this.GetIfdEntry(tag);
+            entry = nullableEntry ?? default(TiffIfdEntry);
+            return nullableEntry.HasValue;
         }
     }
 }

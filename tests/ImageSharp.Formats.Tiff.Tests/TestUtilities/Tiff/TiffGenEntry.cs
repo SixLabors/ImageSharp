@@ -41,7 +41,7 @@ namespace ImageSharp.Tests
 
         public static TiffGenEntry Integer(ushort tag, TiffType type, int value)
         {
-            return TiffGenEntry.Integer(tag, type, new int[] {value});
+            return TiffGenEntry.Integer(tag, type, new int[] { value });
         }
 
         public static TiffGenEntry Integer(ushort tag, TiffType type, int[] value)
@@ -55,7 +55,7 @@ namespace ImageSharp.Tests
 
         public static TiffGenEntry Integer(ushort tag, TiffType type, uint value)
         {
-            return TiffGenEntry.Integer(tag, type, new uint[] {value});
+            return TiffGenEntry.Integer(tag, type, new uint[] { value });
         }
 
         public static TiffGenEntry Integer(ushort tag, TiffType type, uint[] value)
@@ -65,6 +65,11 @@ namespace ImageSharp.Tests
                 throw new ArgumentException(nameof(type), "The specified type is not an integer type.");
 
             return new TiffGenEntryUnsignedInteger(tag, type, value);
+        }
+
+        public static TiffGenEntry Rational(ushort tag, uint numerator, uint denominator)
+        {
+            return new TiffGenEntryRational(tag, numerator, denominator);
         }
 
         private class TiffGenEntryAscii : TiffGenEntry
@@ -174,6 +179,27 @@ namespace ImageSharp.Tests
                     default:
                         throw new InvalidOperationException();
                 }
+            }
+        }
+
+        private class TiffGenEntryRational : TiffGenEntry
+        {
+            public TiffGenEntryRational(ushort tag, uint numerator, uint denominator) : base(tag, TiffType.Rational, 1u)
+            {
+                this.Numerator = numerator;
+                this.Denominator = denominator;
+            }
+
+            public uint Numerator { get; }
+
+            public uint Denominator { get; }
+
+            public override IEnumerable<TiffGenDataBlock> GetData(bool isLittleEndian)
+            {
+                byte[] numeratorBytes = BitConverter.GetBytes(Numerator).WithByteOrder(isLittleEndian);
+                byte[] denominatorBytes = BitConverter.GetBytes(Denominator).WithByteOrder(isLittleEndian);
+                byte[] bytes = Enumerable.Concat(numeratorBytes, denominatorBytes).ToArray();
+                return new[] { new TiffGenDataBlock(bytes) };
             }
         }
     }

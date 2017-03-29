@@ -49,6 +49,45 @@ namespace ImageSharp.Colors.Spaces.Conversion
         }
 
         /// <summary>
+        /// Converts a <see cref="HunterLab"/> into a <see cref="LinearRgb"/>
+        /// </summary>
+        /// <param name="color">The color to convert.</param>
+        /// <returns>The <see cref="LinearRgb"/></returns>
+        public LinearRgb ToLinearRGB(HunterLab color)
+        {
+            Guard.NotNull(color, nameof(color));
+
+            CieXyz xyzColor = this.ToCieXyz(color);
+            return this.ToLinearRgb(xyzColor);
+        }
+
+        /// <summary>
+        /// Converts a <see cref="CieLab"/> into a <see cref="LinearRgb"/>
+        /// </summary>
+        /// <param name="color">The color to convert.</param>
+        /// <returns>The <see cref="LinearRgb"/></returns>
+        public LinearRgb ToLinearRGB(CieLab color)
+        {
+            Guard.NotNull(color, nameof(color));
+
+            CieXyz xyzColor = this.ToCieXyz(color);
+            return this.ToLinearRgb(xyzColor);
+        }
+
+        /// <summary>
+        /// Converts a <see cref="Lms"/> into a <see cref="LinearRgb"/>
+        /// </summary>
+        /// <param name="color">The color to convert.</param>
+        /// <returns>The <see cref="LinearRgb"/></returns>
+        public LinearRgb ToLinearRGB(Lms color)
+        {
+            Guard.NotNull(color, nameof(color));
+
+            CieXyz xyzColor = this.ToCieXyz(color);
+            return this.ToLinearRgb(xyzColor);
+        }
+
+        /// <summary>
         /// Gets the correct converter for the given rgb working space.
         /// </summary>
         /// <param name="workingSpace">The target working space</param>

@@ -7,6 +7,7 @@ namespace ImageSharp.Colors.Spaces.Conversion
 {
     using ImageSharp.Colors.Spaces;
     using ImageSharp.Colors.Spaces.Conversion.Implementation.CieLab;
+    using ImageSharp.Colors.Spaces.Conversion.Implementation.HunterLab;
     using ImageSharp.Colors.Spaces.Conversion.Implementation.Rgb;
 
     /// <summary>
@@ -15,6 +16,8 @@ namespace ImageSharp.Colors.Spaces.Conversion
     public partial class ColorSpaceConverter
     {
         private static readonly CieLabToCieXyzConverter CieLabToCieXyzConverter = new CieLabToCieXyzConverter();
+
+        private static readonly HunterLabToCieXyzConverter HunterLabToCieXyzConverter = new HunterLabToCieXyzConverter();
 
         private LinearRgbToCieXyzConverter linearRgbToCieXyzConverter;
 
@@ -82,6 +85,26 @@ namespace ImageSharp.Colors.Spaces.Conversion
             return color.WorkingSpace.WhitePoint.Equals(this.WhitePoint) || !this.IsChromaticAdaptationPerformed
                 ? unadapted
                 : this.Adapt(unadapted, color.WorkingSpace.WhitePoint);
+        }
+
+        /// <summary>
+        /// Converts a <see cref="HunterLab"/> into a <see cref="CieXyz"/>
+        /// </summary>
+        /// <param name="color">The color to convert.</param>
+        /// <returns>The <see cref="CieXyz"/></returns>
+        public CieXyz ToCieXyz(HunterLab color)
+        {
+            Guard.NotNull(color, nameof(color));
+
+            // Conversion
+            CieXyz unadapted = HunterLabToCieXyzConverter.Convert(color);
+
+            // Adaptation
+            CieXyz adapted = color.WhitePoint.Equals(this.WhitePoint) || !this.IsChromaticAdaptationPerformed
+                ? unadapted
+                : this.Adapt(unadapted, color.WhitePoint);
+
+            return adapted;
         }
 
         /// <summary>

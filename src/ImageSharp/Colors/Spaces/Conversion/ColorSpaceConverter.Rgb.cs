@@ -42,5 +42,44 @@ namespace ImageSharp.Colors.Spaces.Conversion
             // Compand
             return this.ToRgb(linear);
         }
+
+        /// <summary>
+        /// Converts a <see cref="HunterLab"/> into a <see cref="Rgb"/>
+        /// </summary>
+        /// <param name="color">The color to convert.</param>
+        /// <returns>The <see cref="Rgb"/></returns>
+        public Rgb ToRgb(HunterLab color)
+        {
+            Guard.NotNull(color, nameof(color));
+
+            CieXyz xyzColor = this.ToCieXyz(color);
+            return this.ToRgb(xyzColor);
+        }
+
+        /// <summary>
+        /// Converts a <see cref="CieLab"/> into a <see cref="Rgb"/>
+        /// </summary>
+        /// <param name="color">The color to convert.</param>
+        /// <returns>The <see cref="Rgb"/></returns>
+        public Rgb ToRgb(CieLab color)
+        {
+            Guard.NotNull(color, nameof(color));
+
+            CieXyz xyzColor = this.ToCieXyz(color);
+            return this.ToRgb(xyzColor);
+        }
+
+        /// <summary>
+        /// Converts a <see cref="Lms"/> into a <see cref="Rgb"/>
+        /// </summary>
+        /// <param name="color">The color to convert.</param>
+        /// <returns>The <see cref="Rgb"/></returns>
+        public Rgb ToRgb(Lms color)
+        {
+            Guard.NotNull(color, nameof(color));
+
+            CieXyz xyzColor = this.ToCieXyz(color);
+            return this.ToRgb(xyzColor);
+        }
     }
 }

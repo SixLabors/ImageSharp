@@ -6,9 +6,10 @@
     using Colourful.Conversion;
 
     using ImageSharp.Colors.Spaces;
-    using ImageSharp.Colors.Spaces.Conversion;
 
-    public class ColorspaceCieXyzToLmsConvert
+    using ColorSpaceConverter = ImageSharp.Colors.Spaces.Conversion.ColorSpaceConverter;
+
+    public class ColorspaceCieXyzToHunterLabConvert
     {
         private static readonly CieXyz CieXyz = new CieXyz(0.95047F, 1, 1.08883F);
 
@@ -20,15 +21,15 @@
 
 
         [Benchmark(Baseline = true, Description = "Colourful Convert")]
-        public LMSColor ColourfulConvert()
+        public HunterLabColor ColourfulConvert()
         {
-            return ColourfulConverter.ToLMS(XYZColor);
+            return ColourfulConverter.ToHunterLab(XYZColor);
         }
 
         [Benchmark(Description = "ImageSharp Convert")]
-        public Lms ColorSpaceConvert()
+        public HunterLab ColorSpaceConvert()
         {
-            return ColorSpaceConverter.ToLms(CieXyz);
+            return ColorSpaceConverter.ToHunterLab(CieXyz);
         }
     }
 }

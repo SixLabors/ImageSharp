@@ -22,7 +22,7 @@ namespace ImageSharp.Colors.Spaces
         /// <summary>
         /// The default rgb working space
         /// </summary>
-        internal static readonly IRgbWorkingSpace DefaultWorkingSpace = RgbWorkingSpaces.SRgb;
+        public static readonly IRgbWorkingSpace DefaultWorkingSpace = RgbWorkingSpaces.SRgb;
 
         /// <summary>
         /// The backing vector for SIMD support.

@@ -5,8 +5,7 @@
 
 namespace ImageSharp.Colors.Spaces.Conversion
 {
-    using ImageSharp.Colors.Spaces;
-    using ImageSharp.Colors.Spaces.Conversion.Implementation.CieLab;
+    using ImageSharp.Colors.Spaces.Conversion.Implementation.HunterLab;
 
     /// <summary>
     /// Converts between color spaces ensuring that the color is adapted using chromatic adaptation.
@@ -14,74 +13,73 @@ namespace ImageSharp.Colors.Spaces.Conversion
     public partial class ColorSpaceConverter
     {
         /// <summary>
-        /// Converts a <see cref="CieXyz"/> into a <see cref="CieLab"/>
+        /// Converts a <see cref="CieXyz"/> into a <see cref="HunterLab"/>
         /// </summary>
         /// <param name="color">The color to convert.</param>
-        /// <returns>The <see cref="CieLab"/></returns>
-        public CieLab ToCieLab(CieXyz color)
+        /// <returns>The <see cref="HunterLab"/></returns>
+        public HunterLab ToHunterLab(CieXyz color)
         {
             Guard.NotNull(color, nameof(color));
 
             // Adaptation
-            CieXyz adapted = !this.WhitePoint.Equals(this.TargetLabWhitePoint) && this.IsChromaticAdaptationPerformed
-                ? this.ChromaticAdaptation.Transform(color, this.WhitePoint, this.TargetLabWhitePoint)
+            CieXyz adapted = !this.WhitePoint.Equals(this.TargetHunterLabWhitePoint) && this.IsChromaticAdaptationPerformed
+                ? this.ChromaticAdaptation.Transform(color, this.WhitePoint, this.TargetHunterLabWhitePoint)
                 : color;
 
             // Conversion
-            CieXyzToCieLabConverter converter = new CieXyzToCieLabConverter(this.TargetLabWhitePoint);
-            return converter.Convert(adapted);
+            return new CieXyzToHunterLabConverter(this.TargetHunterLabWhitePoint).Convert(adapted);
         }
 
         /// <summary>
-        /// Converts a <see cref="LinearRgb"/> into a <see cref="CieLab"/>
+        /// Converts a <see cref="Rgb"/> into a <see cref="HunterLab"/>
         /// </summary>
         /// <param name="color">The color to convert.</param>
-        /// <returns>The <see cref="CieLab"/></returns>
-        public CieLab ToCieLab(LinearRgb color)
+        /// <returns>The <see cref="HunterLab"/></returns>
+        public HunterLab ToHunterLab(Rgb color)
         {
             Guard.NotNull(color, nameof(color));
 
             CieXyz xyzColor = this.ToCieXyz(color);
-            return this.ToCieLab(xyzColor);
+            return this.ToHunterLab(xyzColor);
         }
 
         /// <summary>
-        /// Converts a <see cref="Rgb"/> into a <see cref="CieLab"/>
+        /// Converts a <see cref="LinearRgb"/> into a <see cref="HunterLab"/>
         /// </summary>
         /// <param name="color">The color to convert.</param>
-        /// <returns>The <see cref="CieLab"/></returns>
-        public CieLab ToCieLab(Rgb color)
+        /// <returns>The <see cref="HunterLab"/></returns>
+        public HunterLab ToHunterLab(LinearRgb color)
         {
             Guard.NotNull(color, nameof(color));
 
             CieXyz xyzColor = this.ToCieXyz(color);
-            return this.ToCieLab(xyzColor);
+            return this.ToHunterLab(xyzColor);
         }
 
         /// <summary>
-        /// Converts a <see cref="HunterLab"/> into a <see cref="CieLab"/>
+        /// Converts a <see cref="CieLab"/> into a <see cref="HunterLab"/>
         /// </summary>
         /// <param name="color">The color to convert.</param>
-        /// <returns>The <see cref="CieLab"/></returns>
-        public CieLab ToCieLab(HunterLab color)
+        /// <returns>The <see cref="HunterLab"/></returns>
+        public HunterLab ToHunterLab(CieLab color)
         {
             Guard.NotNull(color, nameof(color));
 
             CieXyz xyzColor = this.ToCieXyz(color);
-            return this.ToCieLab(xyzColor);
+            return this.ToHunterLab(xyzColor);
         }
 
         /// <summary>
-        /// Converts a <see cref="Lms"/> into a <see cref="CieLab"/>
+        /// Converts a <see cref="Lms"/> into a <see cref="HunterLab"/>
         /// </summary>
         /// <param name="color">The color to convert.</param>
-        /// <returns>The <see cref="CieLab"/></returns>
-        public CieLab ToCieLab(Lms color)
+        /// <returns>The <see cref="HunterLab"/></returns>
+        public HunterLab ToHunterLab(Lms color)
         {
             Guard.NotNull(color, nameof(color));
 
             CieXyz xyzColor = this.ToCieXyz(color);
-            return this.ToCieLab(xyzColor);
+            return this.ToHunterLab(xyzColor);
         }
     }
 }

@@ -23,6 +23,41 @@ namespace ImageSharp.Tests
         }
 
         [Fact]
+        public void GetIfdEntry_ReturnsIfdIfExists()
+        {
+            var entries = new[]
+                    {
+                        new TiffIfdEntry(10, TiffType.Short, 20, new byte[4]),
+                        new TiffIfdEntry(20, TiffType.Short, 20, new byte[4]),
+                        new TiffIfdEntry(30, TiffType.Short, 20, new byte[4]),
+                        new TiffIfdEntry(40, TiffType.Short, 20, new byte[4])
+                    };
+            var ifd = new TiffIfd(entries, 1234u);
+
+            TiffIfdEntry? entry = ifd.GetIfdEntry(30);
+
+            Assert.Equal(true, entry.HasValue);
+            Assert.Equal(30, entry.Value.Tag);
+        }
+
+        [Fact]
+        public void GetIfdEntry_ReturnsNullOtherwise()
+        {
+            var entries = new[]
+                    {
+                        new TiffIfdEntry(10, TiffType.Short, 20, new byte[4]),
+                        new TiffIfdEntry(20, TiffType.Short, 20, new byte[4]),
+                        new TiffIfdEntry(30, TiffType.Short, 20, new byte[4]),
+                        new TiffIfdEntry(40, TiffType.Short, 20, new byte[4])
+                    };
+            var ifd = new TiffIfd(entries, 1234u);
+
+            TiffIfdEntry? entry = ifd.GetIfdEntry(25);
+
+            Assert.Equal(false, entry.HasValue);
+        }
+
+        [Fact]
         public void TryGetIfdEntry_ReturnsIfdIfExists()
         {
             var entries = new[]

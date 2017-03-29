@@ -5,8 +5,6 @@
 
 namespace ImageSharp.Tests
 {
-    using System;
-    using System.IO;
     using System.Linq;
 
     /// <summary>
@@ -17,7 +15,18 @@ namespace ImageSharp.Tests
         public static TiffGenIfd WithoutEntry(this TiffGenIfd ifd, ushort tag)
         {
             TiffGenEntry entry = ifd.Entries.First(e => e.Tag == tag);
-            ifd.Entries.Remove(entry);
+            if (entry != null)
+            {
+                ifd.Entries.Remove(entry);
+            }
+            return ifd;
+        }
+
+        public static TiffGenIfd WithEntry(this TiffGenIfd ifd, TiffGenEntry entry)
+        {
+            ifd.WithoutEntry(entry.Tag);
+            ifd.Entries.Add(entry);
+
             return ifd;
         }
     }

@@ -170,6 +170,26 @@ namespace ImageSharp.Formats
             int height = (int)this.ReadUnsignedInteger(ref imageLengthEntry);
 
             image.InitPixels(width, height);
+
+            TiffResolutionUnit resolutionUnit = TiffResolutionUnit.Inch;
+            if (ifd.TryGetIfdEntry(TiffTags.ResolutionUnit, out TiffIfdEntry resolutionUnitEntry))
+            {
+                resolutionUnit = (TiffResolutionUnit)this.ReadUnsignedInteger(ref resolutionUnitEntry);
+            }
+
+            double resolutionUnitFactor = resolutionUnit == TiffResolutionUnit.Centimeter ? 1.0 / 2.54 : 1.0;
+
+            if (ifd.TryGetIfdEntry(TiffTags.XResolution, out TiffIfdEntry xResolutionEntry))
+            {
+                Rational xResolution = this.ReadUnsignedRational(ref xResolutionEntry);
+                image.MetaData.HorizontalResolution = xResolution.ToDouble();
+            }
+            
+            if (ifd.TryGetIfdEntry(TiffTags.YResolution, out TiffIfdEntry yResolutionEntry))
+            {
+                Rational yResolution = this.ReadUnsignedRational(ref yResolutionEntry);
+                image.MetaData.VerticalResolution = yResolution.ToDouble();
+            }
         }
 
         /// <summary>

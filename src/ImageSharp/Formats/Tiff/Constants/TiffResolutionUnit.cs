@@ -23,6 +23,6 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Centimeter.
         /// </summary>
-        Centimeter = 2
+        Centimeter = 3
     }
 }

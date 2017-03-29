@@ -43,6 +43,18 @@ namespace ImageSharp.Colors.Spaces
         /// <summary>
         /// Initializes a new instance of the <see cref="Rgb"/> struct.
         /// </summary>
+        /// <param name="r">The red component ranging between 0 and 1.</param>
+        /// <param name="g">The green component ranging between 0 and 1.</param>
+        /// <param name="b">The blue component ranging between 0 and 1.</param>
+        /// <param name="workingSpace">The rgb working space.</param>
+        public Rgb(float r, float g, float b, IRgbWorkingSpace workingSpace)
+            : this(new Vector3(r, g, b), workingSpace)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Rgb"/> struct.
+        /// </summary>
         /// <param name="vector">The vector representing the r, g, b components.</param>
         public Rgb(Vector3 vector)
             : this(vector, DefaultWorkingSpace)

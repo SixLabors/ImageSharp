@@ -1,0 +1,42 @@
+h1, h2, h3 {
+    font-weight: 400;
+    color: #40064e;
+}
+
+h3 {
+    font-weight: 500;
+    color: #40064e;
+}
+
+header[role="banner"] {
+    background-color: #40064e;
+    color: #fff;
+}
+
+header[role="banner"] h1 {
+    font-size: 4rem;
+    color: #fff;
+}
+
+header[role="banner"] h1 img {
+    width: 96px;
+    margin-right: 1rem;
+    vertical-align: text-top;
+}
+
+header[role="banner"] p {
+    font-size: 2rem;
+}
+
+.repo-icons {
+    padding: 0;
+    list-style: none;
+}
+
+.repo-icons li {
+    display: inline-block;
+}
+
+.repo-icons img {
+    margin-right: 1rem;
+}

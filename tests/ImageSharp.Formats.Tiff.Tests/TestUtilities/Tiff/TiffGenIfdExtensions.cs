@@ -14,7 +14,7 @@ namespace ImageSharp.Tests
     {
         public static TiffGenIfd WithoutEntry(this TiffGenIfd ifd, ushort tag)
         {
-            TiffGenEntry entry = ifd.Entries.First(e => e.Tag == tag);
+            TiffGenEntry entry = ifd.Entries.FirstOrDefault(e => e.Tag == tag);
             if (entry != null)
             {
                 ifd.Entries.Remove(entry);

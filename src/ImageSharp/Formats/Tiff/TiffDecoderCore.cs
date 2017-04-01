@@ -6,6 +6,7 @@
 namespace ImageSharp.Formats
 {
     using System;
+    using System.Buffers;
     using System.IO;
     using System.Text;
 
@@ -40,6 +41,16 @@ namespace ImageSharp.Formats
             this.InputStream = stream;
             this.IsLittleEndian = isLittleEndian;
         }
+
+        /// <summary>
+        /// Gets or sets the photometric interpretation implementation to use when decoding the image.
+        /// </summary>
+        public TiffColorType ColorType { get; set; }
+
+        /// <summary>
+        /// Gets or sets the compression implementation to use when decoding the image.
+        /// </summary>
+        public TiffCompressionType CompressionType { get; set; }
 
         /// <summary>
         /// Gets the input stream.
@@ -93,7 +104,7 @@ namespace ImageSharp.Formats
         public uint ReadHeader()
         {
             byte[] headerBytes = new byte[TiffConstants.SizeOfTiffHeader];
-            this.ReadBytes(headerBytes, TiffConstants.SizeOfTiffHeader);
+            this.InputStream.ReadFull(headerBytes, TiffConstants.SizeOfTiffHeader);
 
             if (headerBytes[0] == TiffConstants.ByteOrderLittleEndian && headerBytes[1] == TiffConstants.ByteOrderLittleEndian)
             {
@@ -129,13 +140,13 @@ namespace ImageSharp.Formats
 
             byte[] buffer = new byte[TiffConstants.SizeOfIfdEntry];
 
-            this.ReadBytes(buffer, 2);
+            this.InputStream.ReadFull(buffer, 2);
             ushort entryCount = this.ToUInt16(buffer, 0);
 
             TiffIfdEntry[] entries = new TiffIfdEntry[entryCount];
             for (int i = 0; i < entryCount; i++)
             {
-                this.ReadBytes(buffer, TiffConstants.SizeOfIfdEntry);
+                this.InputStream.ReadFull(buffer, TiffConstants.SizeOfIfdEntry);
 
                 ushort tag = this.ToUInt16(buffer, 0);
                 TiffType type = (TiffType)this.ToUInt16(buffer, 2);
@@ -145,7 +156,7 @@ namespace ImageSharp.Formats
                 entries[i] = new TiffIfdEntry(tag, type, count, value);
             }
 
-            this.ReadBytes(buffer, 4);
+            this.InputStream.ReadFull(buffer, 4);
             uint nextIfdOffset = this.ToUInt32(buffer, 0);
 
             return new TiffIfd(entries, nextIfdOffset);
@@ -177,18 +188,184 @@ namespace ImageSharp.Formats
                 resolutionUnit = (TiffResolutionUnit)this.ReadUnsignedInteger(ref resolutionUnitEntry);
             }
 
-            double resolutionUnitFactor = resolutionUnit == TiffResolutionUnit.Centimeter ? 1.0 / 2.54 : 1.0;
+            if (resolutionUnit != TiffResolutionUnit.None)
+            {
+                double resolutionUnitFactor = resolutionUnit == TiffResolutionUnit.Centimeter ? 2.54 : 1.0;
 
-            if (ifd.TryGetIfdEntry(TiffTags.XResolution, out TiffIfdEntry xResolutionEntry))
-            {
-                Rational xResolution = this.ReadUnsignedRational(ref xResolutionEntry);
-                image.MetaData.HorizontalResolution = xResolution.ToDouble();
+                if (ifd.TryGetIfdEntry(TiffTags.XResolution, out TiffIfdEntry xResolutionEntry))
+                {
+                    Rational xResolution = this.ReadUnsignedRational(ref xResolutionEntry);
+                    image.MetaData.HorizontalResolution = xResolution.ToDouble() * resolutionUnitFactor;
+                }
+
+                if (ifd.TryGetIfdEntry(TiffTags.YResolution, out TiffIfdEntry yResolutionEntry))
+                {
+                    Rational yResolution = this.ReadUnsignedRational(ref yResolutionEntry);
+                    image.MetaData.VerticalResolution = yResolution.ToDouble() * resolutionUnitFactor;
+                }
             }
-            
-            if (ifd.TryGetIfdEntry(TiffTags.YResolution, out TiffIfdEntry yResolutionEntry))
+
+            this.ReadImageFormat(ifd);
+
+            if (ifd.TryGetIfdEntry(TiffTags.RowsPerStrip, out TiffIfdEntry rowsPerStripEntry)
+                && ifd.TryGetIfdEntry(TiffTags.StripOffsets, out TiffIfdEntry stripOffsetsEntry)
+                && ifd.TryGetIfdEntry(TiffTags.StripByteCounts, out TiffIfdEntry stripByteCountsEntry))
             {
-                Rational yResolution = this.ReadUnsignedRational(ref yResolutionEntry);
-                image.MetaData.VerticalResolution = yResolution.ToDouble();
+                int rowsPerStrip = (int)this.ReadUnsignedInteger(ref rowsPerStripEntry);
+                uint[] stripOffsets = this.ReadUnsignedIntegerArray(ref stripOffsetsEntry);
+                uint[] stripByteCounts = this.ReadUnsignedIntegerArray(ref stripByteCountsEntry);
+
+                int uncompressedStripSize = this.CalculateImageBufferSize(width, rowsPerStrip);
+
+                using (PixelAccessor<TColor> pixels = image.Lock())
+                {
+                    byte[] stripBytes = ArrayPool<byte>.Shared.Rent(uncompressedStripSize);
+
+                    try
+                    {
+                        this.DecompressImageBlock(stripOffsets[0], stripByteCounts[0], stripBytes);
+                        this.ProcessImageBlock(stripBytes, pixels, 0, 0, width, rowsPerStrip);
+                    }
+                    finally
+                    {
+                        ArrayPool<byte>.Shared.Return(stripBytes);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Determines the TIFF compression and color types, and reads any associated parameters.
+        /// </summary>
+        /// <param name="ifd">The IFD to read the image format information for.</param>
+        public void ReadImageFormat(TiffIfd ifd)
+        {
+            TiffCompression compression = TiffCompression.None;
+
+            if (ifd.TryGetIfdEntry(TiffTags.Compression, out TiffIfdEntry compressionEntry))
+            {
+                compression = (TiffCompression)this.ReadUnsignedInteger(ref compressionEntry);
+            }
+
+            switch (compression)
+            {
+                case TiffCompression.None:
+                    {
+                        this.CompressionType = TiffCompressionType.None;
+                        break;
+                    }
+
+                default:
+                    {
+                        throw new NotSupportedException("The specified TIFF compression format is not supported.");
+                    }
+            }
+
+            TiffPhotometricInterpretation photometricInterpretation;
+
+            if (ifd.TryGetIfdEntry(TiffTags.PhotometricInterpretation, out TiffIfdEntry photometricInterpretationEntry))
+            {
+                photometricInterpretation = (TiffPhotometricInterpretation)this.ReadUnsignedInteger(ref photometricInterpretationEntry);
+            }
+            else
+            {
+                if (compression == TiffCompression.Ccitt1D)
+                {
+                    photometricInterpretation = TiffPhotometricInterpretation.WhiteIsZero;
+                }
+                else
+                {
+                    throw new ImageFormatException("The TIFF photometric interpretation entry is missing.");
+                }
+            }
+
+            switch (photometricInterpretation)
+            {
+                case TiffPhotometricInterpretation.WhiteIsZero:
+                    {
+                        if (ifd.TryGetIfdEntry(TiffTags.BitsPerSample, out TiffIfdEntry bitsPerSampleEntry))
+                        {
+                            uint[] bitsPerSample = this.ReadUnsignedIntegerArray(ref bitsPerSampleEntry);
+
+                            if (bitsPerSample.Length == 1 && bitsPerSample[0] == 8)
+                            {
+                                this.ColorType = TiffColorType.WhiteIsZero8;
+                            }
+                            else
+                            {
+                                throw new NotSupportedException("The specified TIFF bit-depth is not supported.");
+                            }
+                        }
+                        else
+                        {
+                            throw new NotSupportedException("TIFF bilevel images are not supported.");
+                        }
+
+                        break;
+                    }
+
+                default:
+                    throw new NotSupportedException("The specified TIFF photometric interpretation is not supported.");
+            }
+        }
+
+        /// <summary>
+        /// Calculates the size (in bytes) for a pixel buffer using the determined color format.
+        /// </summary>
+        /// <param name="width">The width for the desired pixel buffer.</param>
+        /// <param name="height">The height for the desired pixel buffer.</param>
+        /// <returns>The size (in bytes) of the required pixel buffer.</returns>
+        public int CalculateImageBufferSize(int width, int height)
+        {
+            switch (this.ColorType)
+            {
+                case TiffColorType.WhiteIsZero8:
+                    return width * height;
+                default:
+                    throw new InvalidOperationException();
+            }
+        }
+
+        /// <summary>
+        /// Decompresses an image block from the input stream into the specified buffer.
+        /// </summary>
+        /// <param name="offset">The offset within the file of the image block.</param>
+        /// <param name="byteCount">The size (in bytes) of the compressed data.</param>
+        /// <param name="buffer">The buffer to write the uncompressed data.</param>
+        public void DecompressImageBlock(uint offset, uint byteCount, byte[] buffer)
+        {
+            this.InputStream.Seek(offset, SeekOrigin.Begin);
+
+            switch (this.CompressionType)
+            {
+                case TiffCompressionType.None:
+                    NoneTiffCompression.Decompress(this.InputStream, (int)byteCount, buffer);
+                    break;
+                default:
+                    throw new InvalidOperationException();
+            }
+        }
+
+        /// <summary>
+        /// Decodes pixel data using the current photometric interpretation.
+        /// </summary>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <param name="data">The buffer to read image data from.</param>
+        /// <param name="pixels">The image buffer to write pixels to.</param>
+        /// <param name="left">The x-coordinate of the left-hand side of the image block.</param>
+        /// <param name="top">The y-coordinate of the  top of the image block.</param>
+        /// <param name="width">The width of the image block.</param>
+        /// <param name="height">The height of the image block.</param>
+        public void ProcessImageBlock<TColor>(byte[] data, PixelAccessor<TColor> pixels, int left, int top, int width, int height)
+            where TColor : struct, IPixel<TColor>
+        {
+            switch (this.ColorType)
+            {
+                case TiffColorType.WhiteIsZero8:
+                    WhiteIsZero8TiffColor.Decode(data, pixels, left, top, width, height);
+                    break;
+                default:
+                    throw new InvalidOperationException();
             }
         }
 
@@ -207,7 +384,7 @@ namespace ImageSharp.Formats
                 this.InputStream.Seek(offset, SeekOrigin.Begin);
 
                 byte[] data = new byte[byteLength];
-                this.ReadBytes(data, (int)byteLength);
+                this.InputStream.ReadFull(data, (int)byteLength);
                 entry.Value = data;
             }
 
@@ -618,29 +795,6 @@ namespace ImageSharp.Formats
                     return 8u;
                 default:
                     return 0u;
-            }
-        }
-
-        /// <summary>
-        /// Reads a sequence of bytes from the input stream into a buffer.
-        /// </summary>
-        /// <param name="buffer">A buffer to store the retrieved data.</param>
-        /// <param name="count">The number of bytes to read.</param>
-        private void ReadBytes(byte[] buffer, int count)
-        {
-            int offset = 0;
-
-            while (count > 0)
-            {
-                int bytesRead = this.InputStream.Read(buffer, offset, count);
-
-                if (bytesRead == 0)
-                {
-                    break;
-                }
-
-                offset += bytesRead;
-                count -= bytesRead;
             }
         }
 

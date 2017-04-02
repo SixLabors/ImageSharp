@@ -14,13 +14,13 @@ header[role="banner"] {
 }
 
 header[role="banner"] h1 {
-    font-size: 4rem;
+    font-size: 3rem;
     color: #fff;
 }
 
 header[role="banner"] h1 img {
-    width: 96px;
-    margin-right: 1rem;
+    width: 72px;
+    margin-right: .5rem;
     vertical-align: text-top;
 }
 
@@ -35,8 +35,18 @@ header[role="banner"] p {
 
 .repo-icons li {
     display: inline-block;
+    max-width: 25%;
 }
 
-.repo-icons img {
-    margin-right: 1rem;
+@media (min-width: 62em) {
+    header[role="banner"] h1 {
+        font-size: 4rem;
+    }
+    header[role="banner"] h1 img {
+        width: 96px;
+        margin-right: 1rem;
+    }
+    .repo-icons img {
+        margin-right: 1rem;
+    }
 }

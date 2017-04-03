@@ -50,3 +50,7 @@ header[role="banner"] p {
         margin-right: 1rem;
     }
 }
+
+.community img {
+    max-width: 128px;
+}

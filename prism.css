@@ -41,6 +41,7 @@ pre[class*="language-"] {
 :not(pre) > code[class*="language-"],
 pre[class*="language-"] {
 	background: #272822;
+	border: 0;
 }
 
 /* Inline code */
@@ -49,6 +50,7 @@ pre[class*="language-"] {
 	padding: .1em;
 	border-radius: .3em;
 	white-space: normal;
+	border: 0;
 }
 
 .token.comment,

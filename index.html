@@ -7,7 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content="A new cross-platform 2D graphics API for .NET Core." />
     <title>ImageSharp</title>
-
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
     <link href="responsive.min.css" rel="stylesheet" />
     <link href="style.css" rel="stylesheet" />
     <link href="prism.css" rel="stylesheet" />
@@ -52,10 +52,11 @@
         <div class="container">
             <section>
                 <h1>No System.Drawing? No Problem</h1>
-                <p>ImageSharp is a fully featured, fully managed, cross-platform, 2D graphics API designed to allow the processing of images
-                    without the use of System.Drawing.
+                <p>ImageSharp is a fully featured, fully managed, cross-platform, 2D graphics API designed to allow the processing
+                    of images without the use of System.Drawing.
                     <br/><br/>Built against .Net Standard 1.1 ImageSharp can be used in device, cloud, and embedded/IoT scenarios.
                 </p>
+                <p>Hosted on <a href="https://github.com/JimBobSquarePants/ImageSharp" rel="external" target="_blank">Github</a>.</p>
                 <div class="alert">
                     <p>
                         ImageSharp is still in early stages (alpha) but progress has been pretty quick. As such, please do not use on production
@@ -87,32 +88,106 @@
                         easier to code against, and much, much less prone to memory leaks.
                     </p>
                     <p>Gone are system-wide process-locks; ImageSharp images are thread-safe and fully supported in web environments.</p>
-                    <p>Here's an example of the code required to resize an image using the default Bicubic resampler then turn
-                        the colors into their grayscale equivalent using the BT709 standard matrix.
+                    <p>Here's an example of the code required to load an image from a file, resize it, and save back to the
+                        filesystem it as a jpeg with a quality of 75.
                     </p>
-                    <h3>.Net Standard 1.3+</h3>
+                    <h3>System.Drawing</h3>
+                    <pre class="language-csharp"><code>using (Image image = Image.FromFile("foo.jpg", true))
+using (Bitmap resized = new Bitmap(image.Width / 2, image.Width / 2))
+using (Graphics graphics = Graphics.FromImage(resized))
+using (ImageAttributes attributes = new ImageAttributes())
+{
+    attributes.SetWrapMode(WrapMode.TileFlipXY);
+    graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
+    graphics.CompositingQuality = CompositingQuality.HighSpeed;
+    graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
+    graphics.CompositingMode = CompositingMode.SourceCopy;
+    graphics.DrawImage(image, Rectangle.FromLTRB(0, 0, image.Width / 2, image.Width / 2), 0, 0, image.Width, image.Height, GraphicsUnit.Pixel, attributes);
+
+    using (EncoderParameters encoderParameters = new EncoderParameter(Encoder.Quality, 75))
+    {
+        ImageCodecInfo codec = ImageCodecInfo.GetImageEncoders()
+                                             .FirstOrDefault(ici => ici=> ici.FormatID == ImageFormat.Jpeg.Guid));
+
+        using (FileStream output = File.OpenWrite("bar.jpg"))
+        {
+            resized.Save(output, codec, encoderParameters);
+        }
+    }
+}
+</code></pre>
+                    <h3>ImageSharp .Net Standard 1.3+ *</h3>
+                    <small>* .NET Standard is the lowest version that supports the filesystem API. We can load/save from streams though from .NET Standard 1.1+.</small>
                     <pre class="language-csharp"><code>using (Image image = Image.Load("foo.jpg"))
 {
+    image.MetaData.Quality = 75;
+
     image.Resize(image.Width / 2, image.Height / 2)
-         .Grayscale()
          .Save("bar.jpg"); // Automatic encoder selected based on extension.
 }
 </code></pre>
-                    <h3>.Net Standard 1.1, 1.2</h3>
-                    <pre class="language-csharp"><code>using (FileStream stream = File.OpenRead("foo.jpg")) 
-using (FileStream output = File.OpenWrite("bar.jpg")) 
-using (Image image = Image.Load(stream)) 
-{ 
-    image.Resize(image.Width / 2, image.Height / 2) 
-         .Grayscale() 
-         .Save(output); 
-}     
-</code></pre>
-
                     <p>
                         For advanced usage a generic <code>Image&lt;TColor&gt;</code> class is available allowing developers
                         to implement their own color models in the same manner as Microsoft XNA Game Studio and MonoGame.
                     </p>
+            </section>
+            <section class="community">
+                <h1>Support ImageSharp</h1>
+                <p>
+                    We've teamed up with <a href="https://opencollective.com/imagesharp" rel="external" target="_blank">Open Collective</a>                    to allow transparent contribution, donation, and sponsorship of the project. Your support will allow
+                    us to create the best solution possible, contributing to meetup costs, office time, and materials. Please
+                    get involved!
+                </p>
+
+                <div>
+                    <h2>Sponsors</h2>
+
+                    <p>Does your company use ImageSharp? Help keep the project bug-free and feature rich by <a href="https://opencollective.com/imagesharp#sponsor">sponsoring the project</a>.
+                    </p>
+                    <a href="https://opencollective.com/imagesharp/sponsors/0/website" rel="external" target="_blank"><img src="https://opencollective.com/imagesharp/sponsors/0/avatar"></a>
+                    <a href="https://opencollective.com/imagesharp/sponsors/1/website" rel="external" target="_blank"><img src="https://opencollective.com/imagesharp/sponsors/1/avatar"></a>
+                    <a href="https://opencollective.com/imagesharp/sponsors/2/website" rel="external" target="_blank"><img src="https://opencollective.com/imagesharp/sponsors/2/avatar"></a>
+                    <a href="https://opencollective.com/imagesharp/sponsors/3/website" rel="external" target="_blank"><img src="https://opencollective.com/imagesharp/sponsors/3/avatar"></a>
+                    <a href="https://opencollective.com/imagesharp/sponsors/4/website" rel="external" target="_blank"><img src="https://opencollective.com/imagesharp/sponsors/4/avatar"></a>
+
+                </div>
+                <div>
+                    <h2>Backers</h2>
+                    <p>
+                        Love our work and community? [Become a backer](https://opencollective.com/imagesharp) <a href="https://opencollective.com/imagesharp">Become a backer</a>.
+                    </p>
+                    <a href="https://opencollective.com/imagesharp/backers/0/website" rel="external" target="_blank"><img src="https://opencollective.com/imagesharp/backers/0/avatar"></a>
+                    <a href="https://opencollective.com/imagesharp/backers/1/website" rel="external" target="_blank"><img src="https://opencollective.com/imagesharp/backers/1/avatar"></a>
+                    <a href="https://opencollective.com/imagesharp/backers/2/website" rel="external" target="_blank"><img src="https://opencollective.com/imagesharp/backers/2/avatar"></a>
+                    <a href="https://opencollective.com/imagesharp/backers/3/website" rel="external" target="_blank"><img src="https://opencollective.com/imagesharp/backers/3/avatar"></a>
+                    <a href="https://opencollective.com/imagesharp/backers/4/website" rel="external" target="_blank"><img src="https://opencollective.com/imagesharp/backers/4/avatar"></a>
+                    <a href="https://opencollective.com/imagesharp/backers/5/website" rel="external" target="_blank"><img src="https://opencollective.com/imagesharp/backers/5/avatar"></a>
+                    <a href="https://opencollective.com/imagesharp/backers/6/website" rel="external" target="_blank"><img src="https://opencollective.com/imagesharp/backers/6/avatar"></a>
+                    <a href="https://opencollective.com/imagesharp/backers/7/website" rel="external" target="_blank"><img src="https://opencollective.com/imagesharp/backers/7/avatar"></a>
+                    <a href="https://opencollective.com/imagesharp/backers/8/website" rel="external" target="_blank"><img src="https://opencollective.com/imagesharp/backers/8/avatar"></a>
+                    <a href="https://opencollective.com/imagesharp/backers/9/website" rel="external" target="_blank"><img src="https://opencollective.com/imagesharp/backers/9/avatar"></a>
+                    <a href="https://opencollective.com/imagesharp/backers/10/website" rel="external" target="_blank"><img src="https://opencollective.com/imagesharp/backers/10/avatar"></a>
+                    <a href="https://opencollective.com/imagesharp/backers/11/website" rel="external" target="_blank"><img src="https://opencollective.com/imagesharp/backers/11/avatar"></a>
+                    <a href="https://opencollective.com/imagesharp/backers/12/website" rel="external" target="_blank"><img src="https://opencollective.com/imagesharp/backers/12/avatar"></a>
+                    <a href="https://opencollective.com/imagesharp/backers/13/website" rel="external" target="_blank"><img src="https://opencollective.com/imagesharp/backers/13/avatar"></a>
+                    <a href="https://opencollective.com/imagesharp/backers/14/website" rel="external" target="_blank"><img src="https://opencollective.com/imagesharp/backers/14/avatar"></a>
+                    <a href="https://opencollective.com/imagesharp/backers/15/website" rel="external" target="_blank"><img src="https://opencollective.com/imagesharp/backers/15/avatar"></a>
+                    <a href="https://opencollective.com/imagesharp/backers/16/website" rel="external" target="_blank"><img src="https://opencollective.com/imagesharp/backers/16/avatar"></a>
+                    <a href="https://opencollective.com/imagesharp/backers/17/website" rel="external" target="_blank"><img src="https://opencollective.com/imagesharp/backers/17/avatar"></a>
+                    <a href="https://opencollective.com/imagesharp/backers/18/website" rel="external" target="_blank"><img src="https://opencollective.com/imagesharp/backers/18/avatar"></a>
+                    <a href="https://opencollective.com/imagesharp/backers/19/website" rel="external" target="_blank"><img src="https://opencollective.com/imagesharp/backers/19/avatar"></a>
+                    <a href="https://opencollective.com/imagesharp/backers/20/website" rel="external" target="_blank"><img src="https://opencollective.com/imagesharp/backers/20/avatar"></a>
+                    <a href="https://opencollective.com/imagesharp/backers/21/website" rel="external" target="_blank"><img src="https://opencollective.com/imagesharp/backers/21/avatar"></a>
+                    <a href="https://opencollective.com/imagesharp/backers/22/website" rel="external" target="_blank"><img src="https://opencollective.com/imagesharp/backers/22/avatar"></a>
+                    <a href="https://opencollective.com/imagesharp/backers/23/website" rel="external" target="_blank"><img src="https://opencollective.com/imagesharp/backers/23/avatar"></a>
+                    <a href="https://opencollective.com/imagesharp/backers/24/website" rel="external" target="_blank"><img src="https://opencollective.com/imagesharp/backers/24/avatar"></a>
+                    <a href="https://opencollective.com/imagesharp/backers/25/website" rel="external" target="_blank"><img src="https://opencollective.com/imagesharp/backers/25/avatar"></a>
+                    <a href="https://opencollective.com/imagesharp/backers/26/website" rel="external" target="_blank"><img src="https://opencollective.com/imagesharp/backers/26/avatar"></a>
+                    <a href="https://opencollective.com/imagesharp/backers/27/website" rel="external" target="_blank"><img src="https://opencollective.com/imagesharp/backers/27/avatar"></a>
+                    <a href="https://opencollective.com/imagesharp/backers/28/website" rel="external" target="_blank"><img src="https://opencollective.com/imagesharp/backers/28/avatar"></a>
+                    <a href="https://opencollective.com/imagesharp/backers/29/website" rel="external" target="_blank"><img src="https://opencollective.com/imagesharp/backers/29/avatar"></a>
+
+                </div>
             </section>
         </div>
     </main>

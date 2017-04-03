@@ -59,9 +59,10 @@
                 <p>Hosted on <a href="https://github.com/JimBobSquarePants/ImageSharp" rel="external" target="_blank">Github</a>.</p>
                 <div class="alert">
                     <p>
-                        ImageSharp is still in early stages (alpha) but progress has been pretty quick. As such, please do not use on production
-                        environments until the library reaches release candidate status. Pre-release downloads are available
-                        from the <a href="https://www.myget.org/gallery/imagesharp">MyGet package repository</a>.
+                        ImageSharp has made excellent progress and contains many great features but is still considered by us to be still in early stages
+                        (alpha). As such, we cannot support its use on production environments until the library reaches
+                        release candidate status. Pre-release downloads are available from the
+                        <a href="https://www.myget.org/gallery/imagesharp">MyGet package repository</a>.
                     </p>
                 </div>
             </section>
@@ -88,8 +89,8 @@
                         easier to code against, and much, much less prone to memory leaks.
                     </p>
                     <p>Gone are system-wide process-locks; ImageSharp images are thread-safe and fully supported in web environments.</p>
-                    <p>Here's an example of the code required to load an image from a file, resize it, and save back to the
-                        filesystem it as a jpeg with a quality of 75.
+                    <p>Here's an example of the code required to load an image from a file, resize it, and save it back to the
+                        filesystem as a jpeg with a quality of 75.
                     </p>
                     <h3>System.Drawing</h3>
                     <pre class="language-csharp"><code>using (Image image = Image.FromFile("foo.jpg", true))

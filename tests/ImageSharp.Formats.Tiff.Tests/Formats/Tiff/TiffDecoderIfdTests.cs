@@ -9,6 +9,7 @@ namespace ImageSharp.Tests
     using Xunit;
 
     using ImageSharp.Formats;
+    using ImageSharp.Formats.Tiff;
 
     public class TiffDecoderIfdTests
     {
@@ -20,13 +21,13 @@ namespace ImageSharp.Tests
         public void ReadIfd_ReadsNextIfdOffset_IfPresent(bool isLittleEndian)
         {
             Stream stream = new TiffGenIfd()
-                            {
-                                Entries =
+            {
+                Entries =
                                 {
                                     TiffGenEntry.Integer(TiffTags.ImageWidth, TiffType.Long, 150)
                                 },
-                                NextIfd = new TiffGenIfd()
-                            }
+                NextIfd = new TiffGenIfd()
+            }
                             .ToStream(isLittleEndian);
 
             TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null);
@@ -40,12 +41,12 @@ namespace ImageSharp.Tests
         public void ReadIfd_ReadsNextIfdOffset_ZeroIfLastIfd(bool isLittleEndian)
         {
             Stream stream = new TiffGenIfd()
-                            {
-                                Entries =
+            {
+                Entries =
                                 {
                                     TiffGenEntry.Integer(TiffTags.ImageWidth, TiffType.Long, 150)
                                 }
-                            }
+            }
                             .ToStream(isLittleEndian);
 
             TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null);
@@ -59,8 +60,8 @@ namespace ImageSharp.Tests
         public void ReadIfd_ReturnsCorrectNumberOfEntries(bool isLittleEndian)
         {
             Stream stream = new TiffGenIfd()
-                            {
-                                Entries =
+            {
+                Entries =
                                 {
                                     TiffGenEntry.Integer(TiffTags.ImageWidth, TiffType.Long, 150),
                                     TiffGenEntry.Integer(TiffTags.ImageLength, TiffType.Long, 210),
@@ -68,8 +69,8 @@ namespace ImageSharp.Tests
                                     TiffGenEntry.Ascii(TiffTags.Artist, "Image Artist Name"),
                                     TiffGenEntry.Ascii(TiffTags.HostComputer, "Host Computer Name")
                                 },
-                                NextIfd = new TiffGenIfd()
-                            }
+                NextIfd = new TiffGenIfd()
+            }
                             .ToStream(isLittleEndian);
 
             TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null);
@@ -84,22 +85,22 @@ namespace ImageSharp.Tests
         public void ReadIfd_ReadsRawTiffEntryData(bool isLittleEndian)
         {
             Stream stream = new TiffGenIfd()
-                            {
-                                Entries =
+            {
+                Entries =
                                 {
                                     TiffGenEntry.Integer(TiffTags.ImageWidth, TiffType.Long, 150),
                                     TiffGenEntry.Integer(TiffTags.ImageLength, TiffType.Long, 210),
                                     TiffGenEntry.Integer(TiffTags.Orientation, TiffType.Short, 1)
                                 },
-                                NextIfd = new TiffGenIfd()
-                            }
+                NextIfd = new TiffGenIfd()
+            }
                             .ToStream(isLittleEndian);
 
             TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null);
             TiffIfd ifd = decoder.ReadIfd(0);
             TiffIfdEntry entry = ifd.Entries[1];
 
-            byte[] expectedData = isLittleEndian ? new byte[] {210,0,0,0} : new byte[] {0,0,0,210};
+            byte[] expectedData = isLittleEndian ? new byte[] { 210, 0, 0, 0 } : new byte[] { 0, 0, 0, 210 };
             Assert.NotNull(entry);
             Assert.Equal(TiffTags.ImageLength, entry.Tag);
             Assert.Equal(TiffType.Long, entry.Type);

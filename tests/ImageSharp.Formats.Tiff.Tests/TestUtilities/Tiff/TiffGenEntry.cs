@@ -9,7 +9,7 @@ namespace ImageSharp.Tests
     using System.Collections.Generic;
     using System.Linq;
     using System.Text;
-    using ImageSharp.Formats;
+    using ImageSharp.Formats.Tiff;
 
     /// <summary>
     /// A utility data structure to represent Tiff IFD entries in unit tests.

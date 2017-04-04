@@ -5,17 +5,15 @@
 namespace ImageSharp
 {
     using System;
-    using System.Buffers;
     using System.Diagnostics;
     using System.IO;
     using System.Runtime.CompilerServices;
-    using System.Runtime.InteropServices;
 
     /// <summary>
     /// Represents an area of generic <see cref="Image{TColor}"/> pixels.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    public sealed unsafe class PixelArea<TColor> : IDisposable
+    internal sealed unsafe class PixelArea<TColor> : IDisposable
         where TColor : struct, IPixel<TColor>
     {
         /// <summary>
@@ -204,11 +202,11 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Gets a <see cref="BufferPointer{Byte}"/> to the row y.
+        /// Gets a <see cref="BufferSpan{T}"/> to the row y.
         /// </summary>
         /// <param name="y">The y coordinate</param>
-        /// <returns>The <see cref="BufferPointer{Byte}"/></returns>
-        internal BufferPointer<byte> GetRowPointer(int y)
+        /// <returns>The <see cref="BufferSpan{T}"/></returns>
+        internal BufferSpan<byte> GetRowSpan(int y)
         {
             return this.byteBuffer.Slice(y * this.RowStride);
         }

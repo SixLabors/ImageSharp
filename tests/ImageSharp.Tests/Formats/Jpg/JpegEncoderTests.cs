@@ -74,7 +74,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void Encode_IgnoreMetadataIsFalse_ExifProfileIsWritten()
         {
-            var options = new EncoderOptions()
+            EncoderOptions options = new EncoderOptions()
             {
                 IgnoreMetadata = false
             };
@@ -88,7 +88,7 @@ namespace ImageSharp.Tests
                     input.Save(memStream, new JpegFormat(), options);
 
                     memStream.Position = 0;
-                    using (Image output = new Image(memStream))
+                    using (Image output = Image.Load(memStream))
                     {
                         Assert.NotNull(output.MetaData.ExifProfile);
                     }
@@ -99,7 +99,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void Encode_IgnoreMetadataIsTrue_ExifProfileIgnored()
         {
-            var options = new JpegEncoderOptions()
+            JpegEncoderOptions options = new JpegEncoderOptions()
             {
                 IgnoreMetadata = true
             };
@@ -113,7 +113,7 @@ namespace ImageSharp.Tests
                     input.SaveAsJpeg(memStream, options);
 
                     memStream.Position = 0;
-                    using (Image output = new Image(memStream))
+                    using (Image output = Image.Load(memStream))
                     {
                         Assert.Null(output.MetaData.ExifProfile);
                     }

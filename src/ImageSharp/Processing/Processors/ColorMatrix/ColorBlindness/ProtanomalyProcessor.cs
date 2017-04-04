@@ -12,7 +12,7 @@ namespace ImageSharp.Processing.Processors
     /// Converts the colors of the image recreating Protanopia (Red-Weak) color blindness.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    public class ProtanomalyProcessor<TColor> : ColorMatrixFilter<TColor>
+    internal class ProtanomalyProcessor<TColor> : ColorMatrixProcessor<TColor>
         where TColor : struct, IPixel<TColor>
     {
         /// <inheritdoc/>

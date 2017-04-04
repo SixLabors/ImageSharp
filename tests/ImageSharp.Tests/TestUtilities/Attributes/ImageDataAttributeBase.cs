@@ -29,25 +29,25 @@ namespace ImageSharp.Tests
 
         public override IEnumerable<object[]> GetData(MethodInfo testMethod)
         {
-            var type = testMethod.GetParameters().First().ParameterType.GetTypeInfo();
+            TypeInfo type = testMethod.GetParameters().First().ParameterType.GetTypeInfo();
             if (!type.IsGenericType || type.GetGenericTypeDefinition() != typeof(TestImageProvider<>))
             {
                 yield return this.AdditionalParameters;
             }
             else
             {
-                foreach (var kv in this.PixelTypes.ExpandAllTypes())
+                foreach (KeyValuePair<PixelTypes, Type> kv in this.PixelTypes.ExpandAllTypes())
                 {
-                    var factoryType = typeof(TestImageProvider<>).MakeGenericType(kv.Value);
+                    Type factoryType = typeof(TestImageProvider<>).MakeGenericType(kv.Value);
 
                     foreach (object[] originalFacoryMethodArgs in this.GetAllFactoryMethodArgs(testMethod, factoryType))
                     {
-                        var actualFactoryMethodArgs = new object[originalFacoryMethodArgs.Length + 2];
+                        object[] actualFactoryMethodArgs = new object[originalFacoryMethodArgs.Length + 2];
                         Array.Copy(originalFacoryMethodArgs, actualFactoryMethodArgs, originalFacoryMethodArgs.Length);
                         actualFactoryMethodArgs[actualFactoryMethodArgs.Length - 2] = testMethod;
                         actualFactoryMethodArgs[actualFactoryMethodArgs.Length - 1] = kv.Key;
 
-                        var factory = factoryType.GetMethod(this.GetFactoryMethodName(testMethod))
+                        object factory = factoryType.GetMethod(this.GetFactoryMethodName(testMethod))
                             .Invoke(null, actualFactoryMethodArgs);
 
                         object[] result = new object[this.AdditionalParameters.Length + 1];
@@ -61,7 +61,7 @@ namespace ImageSharp.Tests
 
         protected virtual IEnumerable<object[]> GetAllFactoryMethodArgs(MethodInfo testMethod, Type factoryType)
         {
-            var args = this.GetFactoryMethodArgs(testMethod, factoryType);
+            object[] args = this.GetFactoryMethodArgs(testMethod, factoryType);
             return Enumerable.Repeat(args, 1);
         }
 

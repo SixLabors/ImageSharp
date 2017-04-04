@@ -12,7 +12,7 @@ namespace ImageSharp
     /// Provides a resource pool that enables reusing instances of value type arrays for image data <see cref="T:T[]"/>.
     /// </summary>
     /// <typeparam name="T">The value type.</typeparam>
-    public class PixelDataPool<T>
+    internal class PixelDataPool<T>
         where T : struct
     {
         /// <summary>

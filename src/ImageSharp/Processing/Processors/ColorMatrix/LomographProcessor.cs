@@ -12,7 +12,7 @@ namespace ImageSharp.Processing.Processors
     /// Converts the colors of the image recreating an old Lomograph effect.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    public class LomographProcessor<TColor> : ColorMatrixFilter<TColor>
+    internal class LomographProcessor<TColor> : ColorMatrixProcessor<TColor>
         where TColor : struct, IPixel<TColor>
     {
         private static readonly TColor VeryDarkGreen = ColorBuilder<TColor>.FromRGBA(0, 10, 0, 255);

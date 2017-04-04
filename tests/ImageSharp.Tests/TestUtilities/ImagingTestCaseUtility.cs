@@ -44,13 +44,26 @@ namespace ImageSharp.Tests
         /// </summary>
         /// <param name="extension"></param>
         /// <returns>The required extension</returns>
-        public string GetTestOutputFileName(string extension = null)
+        public string GetTestOutputFileName(string extension = null, string tag = null)
         {
             string fn = string.Empty;
 
+            if (string.IsNullOrWhiteSpace(extension))
+            {
+                extension = null;
+            }
+
             fn = Path.GetFileNameWithoutExtension(this.SourceFileOrDescription);
-            extension = extension ?? Path.GetExtension(this.SourceFileOrDescription);
-            extension = extension ?? ".bmp";
+
+            if (string.IsNullOrWhiteSpace(extension))
+            {
+                extension = Path.GetExtension(this.SourceFileOrDescription);
+            }
+
+            if (string.IsNullOrWhiteSpace(extension))
+            {
+                extension = ".bmp";
+            }
 
             if (extension[0] != '.')
             {
@@ -65,7 +78,14 @@ namespace ImageSharp.Tests
                 pixName = '_' + pixName;
             }
 
-            return $"{this.GetTestOutputDir()}/{this.TestName}{pixName}{fn}{extension}";
+            tag = tag ?? string.Empty;
+            if (tag != string.Empty)
+            {
+                tag = '_' + tag;
+            }
+
+
+            return $"{this.GetTestOutputDir()}/{this.TestName}{pixName}{fn}{tag}{extension}";
         }
 
         /// <summary>
@@ -80,27 +100,32 @@ namespace ImageSharp.Tests
             where TColor : struct, IPixel<TColor>
         {
             string path = this.GetTestOutputFileName(extension);
-
-            var format = GetImageFormatByExtension(extension);
+            extension = Path.GetExtension(path);
+            IImageFormat format = GetImageFormatByExtension(extension);
 
             encoder = encoder ?? format.Encoder;
 
-            using (var stream = File.OpenWrite(path))
+            using (FileStream stream = File.OpenWrite(path))
             {
                 image.Save(stream, encoder, options);
             }
         }
 
+        internal void Init(string typeName, string methodName)
+        {
+            this.TestGroupName = typeName;
+            this.TestName = methodName;
+        }
+
         internal void Init(MethodInfo method)
         {
-            this.TestGroupName = method.DeclaringType.Name;
-            this.TestName = method.Name;
+            this.Init(method.DeclaringType.Name, method.Name);
         }
 
         private static IImageFormat GetImageFormatByExtension(string extension)
         {
-            extension = extension.ToLower();
-            return Configuration.Default.ImageFormats.First(f => f.SupportedExtensions.Contains(extension));
+            extension = extension?.TrimStart('.');
+            return Configuration.Default.ImageFormats.First(f => f.SupportedExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase));
         }
 
         private string GetTestOutputDir()

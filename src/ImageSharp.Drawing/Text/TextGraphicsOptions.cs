@@ -21,6 +21,11 @@ namespace ImageSharp.Drawing
         public bool Antialias;
 
         /// <summary>
+        /// The number of subpixels to use while rendering with antialiasing enabled.
+        /// </summary>
+        public int AntialiasSubpixelDepth;
+
+        /// <summary>
         /// Whether the text should be drawing with kerning enabled.
         /// </summary>
         public bool ApplyKerning;
@@ -31,6 +36,12 @@ namespace ImageSharp.Drawing
         public float TabWidth;
 
         /// <summary>
+        /// Flag weather to use the current image resultion to for point size scaling.
+        /// If this is [false] the text renders at 72dpi otherwise it renders at Image resolution
+        /// </summary>
+        public bool UseImageResolution;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="TextGraphicsOptions" /> struct.
         /// </summary>
         /// <param name="enableAntialiasing">If set to <c>true</c> [enable antialiasing].</param>
@@ -39,6 +50,8 @@ namespace ImageSharp.Drawing
             this.Antialias = enableAntialiasing;
             this.ApplyKerning = true;
             this.TabWidth = 4;
+            this.AntialiasSubpixelDepth = 16;
+            this.UseImageResolution = false;
         }
 
         /// <summary>
@@ -50,7 +63,10 @@ namespace ImageSharp.Drawing
         /// </returns>
         public static implicit operator TextGraphicsOptions(GraphicsOptions options)
         {
-            return new TextGraphicsOptions(options.Antialias);
+            return new TextGraphicsOptions(options.Antialias)
+            {
+                AntialiasSubpixelDepth = options.AntialiasSubpixelDepth
+            };
         }
 
         /// <summary>
@@ -62,7 +78,10 @@ namespace ImageSharp.Drawing
         /// </returns>
         public static explicit operator GraphicsOptions(TextGraphicsOptions options)
         {
-            return new GraphicsOptions(options.Antialias);
+            return new GraphicsOptions(options.Antialias)
+            {
+                AntialiasSubpixelDepth = options.AntialiasSubpixelDepth
+            };
         }
     }
 }

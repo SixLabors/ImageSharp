@@ -6,6 +6,7 @@
 namespace ImageSharp.Tests
 {
     using System;
+    using Xunit.Abstractions;
 
     /// <summary>
     /// Provides <see cref="Image{TColor}" /> instances for parametric unit tests.
@@ -14,15 +15,15 @@ namespace ImageSharp.Tests
     public abstract partial class TestImageProvider<TColor>
         where TColor : struct, IPixel<TColor>
     {
-        private class SolidProvider : BlankProvider
+        private class SolidProvider : BlankProvider 
         {
-            private readonly byte a;
+            private byte a;
 
-            private readonly byte b;
+            private byte b;
 
-            private readonly byte g;
+            private byte g;
 
-            private readonly byte r;
+            private byte r;
 
             public SolidProvider(int width, int height, byte r, byte g, byte b, byte a)
                 : base(width, height)
@@ -33,16 +34,43 @@ namespace ImageSharp.Tests
                 this.a = a;
             }
 
+            public SolidProvider()
+                : base()
+            {
+                this.r = 0;
+                this.g = 0;
+                this.b = 0;
+                this.a = 0;
+            }
+
             public override string SourceFileOrDescription
                 => $"Solid{this.Width}x{this.Height}_({this.r},{this.g},{this.b},{this.a})";
 
             public override Image<TColor> GetImage()
             {
-                var image = base.GetImage();
+                Image<TColor> image = base.GetImage();
                 TColor color = default(TColor);
                 color.PackFromBytes(this.r, this.g, this.b, this.a);
 
                 return image.Fill(color);
+            }
+
+            public override void Serialize(IXunitSerializationInfo info)
+            {
+                info.AddValue("red", this.r);
+                info.AddValue("green", this.g);
+                info.AddValue("blue", this.b);
+                info.AddValue("alpha", this.a);
+                base.Serialize(info);
+            }
+
+            public override void Deserialize(IXunitSerializationInfo info)
+            {
+                this.r = info.GetValue<byte>("red");
+                this.g = info.GetValue<byte>("green");
+                this.b = info.GetValue<byte>("blue");
+                this.a = info.GetValue<byte>("alpha");
+                base.Deserialize(info);
             }
         }
     }

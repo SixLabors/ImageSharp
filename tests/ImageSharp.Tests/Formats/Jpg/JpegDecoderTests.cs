@@ -89,11 +89,10 @@ namespace ImageSharp.Tests
                 {
                     image.Save(ms, new JpegEncoder());
                     ms.Seek(0, SeekOrigin.Begin);
-
-                    Image<TColor> mirror = provider.Factory.CreateImage(1, 1);
-                    using (JpegDecoderCore decoder = new JpegDecoderCore(null))
+                    
+                    using (JpegDecoderCore decoder = new JpegDecoderCore(null, null))
                     {
-                        decoder.Decode(mirror, ms, true);
+                        Image<TColor> mirror = decoder.Decode<TColor>(ms);
 
                         Assert.Equal(decoder.ImageWidth, image.Width);
                         Assert.Equal(decoder.ImageHeight, image.Height);
@@ -125,7 +124,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void Decode_IgnoreMetadataIsFalse_ExifProfileIsRead()
         {
-            var options = new DecoderOptions()
+            DecoderOptions options = new DecoderOptions()
             {
                 IgnoreMetadata = false
             };
@@ -141,7 +140,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void Decode_IgnoreMetadataIsTrue_ExifProfileIgnored()
         {
-            var options = new DecoderOptions()
+            DecoderOptions options = new DecoderOptions()
             {
                 IgnoreMetadata = true
             };

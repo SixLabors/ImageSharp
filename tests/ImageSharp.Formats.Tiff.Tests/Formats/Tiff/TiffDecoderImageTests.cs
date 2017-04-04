@@ -10,6 +10,7 @@ namespace ImageSharp.Tests
     using Xunit;
 
     using ImageSharp.Formats;
+    using ImageSharp.Formats.Tiff;
 
     public class TiffDecoderImageTests
     {

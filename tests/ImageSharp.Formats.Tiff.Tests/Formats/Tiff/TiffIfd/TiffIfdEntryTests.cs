@@ -5,10 +5,9 @@
 
 namespace ImageSharp.Tests
 {
-    using System.IO;
     using Xunit;
 
-    using ImageSharp.Formats;
+    using ImageSharp.Formats.Tiff;
 
     public class TiffIfdEntryTests
     {

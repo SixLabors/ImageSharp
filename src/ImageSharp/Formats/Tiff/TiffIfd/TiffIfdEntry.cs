@@ -3,7 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.Formats
+namespace ImageSharp.Formats.Tiff
 {
     /// <summary>
     /// Data structure for holding details of each TIFF IFD entry.

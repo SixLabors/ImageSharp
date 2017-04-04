@@ -3,7 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.Formats
+namespace ImageSharp.Formats.Tiff
 {
     /// <summary>
     /// Enumeration representing the threshholding applied to image data defined by the Tiff file-format.

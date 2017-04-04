@@ -44,7 +44,8 @@ namespace ImageSharp.Colors.Spaces.Conversion.Implementation.Rgb
         {
             DebugGuard.NotNull(input, nameof(input));
 
-            Vector3 vector = Vector3.Transform(input.Vector, this.conversionMatrix);
+            Matrix4x4.Invert(this.conversionMatrix, out Matrix4x4 inverted);
+            Vector3 vector = Vector3.Transform(input.Vector, inverted);
             return new LinearRgb(vector, this.TargetWorkingSpace);
         }
     }

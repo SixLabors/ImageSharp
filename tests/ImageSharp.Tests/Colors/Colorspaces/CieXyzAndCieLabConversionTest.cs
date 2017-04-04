@@ -13,71 +13,61 @@
     /// Test data generated using:
     /// http://www.brucelindbloom.com/index.html?ColorCalculator.html
     /// </remarks>
-    public class CieXyzAndHunterLabConversionTest
+    public class CieXyzAndCieLabConversionTest
     {
-        private static readonly IEqualityComparer<float> FloatComparer = new ApproximateFloatComparer(4);
-
-        /// <summary>
-        /// Tests conversion from <see cref="CieLab"/> to <see cref="CieXyz"/> (<see cref="Illuminants.C"/>).
-        /// </summary>
-        [Theory]
-        [InlineData(0, 0, 0, 0, 0, 0)]
-        [InlineData(100, 0, 0, 0.98074, 1, 1.18232)] // C white point is HunterLab 100, 0, 0
-        public void Convert_HunterLab_to_XYZ(float l, float a, float b, float x, float y, float z)
-        {
-            // Arrange
-            HunterLab input = new HunterLab(l, a, b);
-            ColorSpaceConverter converter = new ColorSpaceConverter { WhitePoint = Illuminants.C };
-
-            // Act
-            CieXyz output = converter.ToCieXyz(input);
-
-            // Assert
-            Assert.Equal(output.X, x, FloatComparer);
-            Assert.Equal(output.Y, y, FloatComparer);
-            Assert.Equal(output.Z, z, FloatComparer);
-        }
+        private static readonly IEqualityComparer<float> FloatComparerLabPrecision = new ApproximateFloatComparer(4);
+        private static readonly IEqualityComparer<float> FloatComparerXyzPrecision = new ApproximateFloatComparer(6);
 
         /// <summary>
         /// Tests conversion from <see cref="CieLab"/> to <see cref="CieXyz"/> (<see cref="Illuminants.D65"/>).
         /// </summary>
         [Theory]
+        [InlineData(100, 0, 0, 0.95047, 1, 1.08883)]
         [InlineData(0, 0, 0, 0, 0, 0)]
-        [InlineData(100, 0, 0, 0.95047, 1, 1.08883)] // D65 white point is HunerLab 100, 0, 0 (adaptation to C performed)
-        public void Convert_HunterLab_to_XYZ_D65(float l, float a, float b, float x, float y, float z)
+        [InlineData(0, 431.0345, 0, 0.95047, 0, 0)]
+        [InlineData(100, -431.0345, 172.4138, 0, 1, 0)]
+        [InlineData(0, 0, -172.4138, 0, 0, 1.08883)]
+        [InlineData(45.6398, 39.8753, 35.2091, 0.216938, 0.150041, 0.048850)]
+        [InlineData(77.1234, -40.1235, 78.1120, 0.358530, 0.517372, 0.076273)]
+        [InlineData(10, -400, 20, 0, 0.011260, 0)]
+        public void Convert_Lab_to_XYZ(float l, float a, float b, float x, float y, float z)
         {
             // Arrange
-            HunterLab input = new HunterLab(l, a, b);
-            ColorSpaceConverter converter = new ColorSpaceConverter { WhitePoint = Illuminants.D65 };
+            CieLab input = new CieLab(l, a, b, Illuminants.D65);
+            ColorSpaceConverter converter = new ColorSpaceConverter { WhitePoint = Illuminants.D65, TargetLabWhitePoint = Illuminants.D65 };
 
             // Act
             CieXyz output = converter.ToCieXyz(input);
 
             // Assert
-            Assert.Equal(output.X, x, FloatComparer);
-            Assert.Equal(output.Y, y, FloatComparer);
-            Assert.Equal(output.Z, z, FloatComparer);
+            Assert.Equal(output.X, x, FloatComparerXyzPrecision);
+            Assert.Equal(output.Y, y, FloatComparerXyzPrecision);
+            Assert.Equal(output.Z, z, FloatComparerXyzPrecision);
         }
 
         /// <summary>
         /// Tests conversion from <see cref="CieXyz"/> (<see cref="Illuminants.D65"/>) to <see cref="CieLab"/>.
         /// </summary>
         [Theory]
+        [InlineData(0.95047, 1, 1.08883, 100, 0, 0)]
         [InlineData(0, 0, 0, 0, 0, 0)]
-        [InlineData(0.95047, 1, 1.08883, 100, 0, 0)] // D65 white point is HunerLab 100, 0, 0 (adaptation to C performed)
-        public void Convert_XYZ_D65_to_HunterLab(float x, float y, float z, float l, float a, float b)
+        [InlineData(0.95047, 0, 0, 0, 431.0345, 0)]
+        [InlineData(0, 1, 0, 100, -431.0345, 172.4138)]
+        [InlineData(0, 0, 1.08883, 0, 0, -172.4138)]
+        [InlineData(0.216938, 0.150041, 0.048850, 45.6398, 39.8753, 35.2091)]
+        public void Convert_XYZ_to_Lab(float x, float y, float z, float l, float a, float b)
         {
             // Arrange
             CieXyz input = new CieXyz(x, y, z);
-            ColorSpaceConverter converter = new ColorSpaceConverter { WhitePoint = Illuminants.D65 };
+            ColorSpaceConverter converter = new ColorSpaceConverter { WhitePoint = Illuminants.D65, TargetLabWhitePoint = Illuminants.D65 };
 
             // Act
-            HunterLab output = converter.ToHunterLab(input);
+            CieLab output = converter.ToCieLab(input);
 
             // Assert
-            Assert.Equal(output.L, l, FloatComparer);
-            Assert.Equal(output.A, a, FloatComparer);
-            Assert.Equal(output.B, b, FloatComparer);
+            Assert.Equal(output.L, l, FloatComparerLabPrecision);
+            Assert.Equal(output.A, a, FloatComparerLabPrecision);
+            Assert.Equal(output.B, b, FloatComparerLabPrecision);
         }
     }
 }

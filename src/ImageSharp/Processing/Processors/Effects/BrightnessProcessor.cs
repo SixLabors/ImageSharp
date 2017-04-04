@@ -13,7 +13,7 @@ namespace ImageSharp.Processing.Processors
     /// An <see cref="IImageProcessor{TColor}"/> to change the brightness of an <see cref="Image{TColor}"/>.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    public class BrightnessProcessor<TColor> : ImageProcessor<TColor>
+    internal class BrightnessProcessor<TColor> : ImageProcessor<TColor>
         where TColor : struct, IPixel<TColor>
     {
         /// <summary>

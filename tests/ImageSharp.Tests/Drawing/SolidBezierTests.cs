@@ -36,15 +36,9 @@ namespace ImageSharp.Tests.Drawing
 
                 using (PixelAccessor<Color> sourcePixels = image.Lock())
                 {
-                    //top of curve
-                    Assert.Equal(Color.HotPink, sourcePixels[138, 116]);
-
-                    //start points
-                    Assert.Equal(Color.HotPink, sourcePixels[10, 400]);
-                    Assert.Equal(Color.HotPink, sourcePixels[300, 400]);
+                    Assert.Equal(Color.HotPink, sourcePixels[150, 300]);
 
                     //curve points should not be never be set
-                    Assert.Equal(Color.Blue, sourcePixels[30, 10]);
                     Assert.Equal(Color.Blue, sourcePixels[240, 30]);
 
                     // inside shape should not be empty
@@ -83,12 +77,7 @@ namespace ImageSharp.Tests.Drawing
                     //top of curve
                     Assert.Equal(mergedColor, sourcePixels[138, 116]);
 
-                    //start points
-                    Assert.Equal(mergedColor, sourcePixels[10, 400]);
-                    Assert.Equal(mergedColor, sourcePixels[300, 400]);
-
                     //curve points should not be never be set
-                    Assert.Equal(Color.Blue, sourcePixels[30, 10]);
                     Assert.Equal(Color.Blue, sourcePixels[240, 30]);
 
                     // inside shape should not be empty

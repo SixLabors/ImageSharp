@@ -14,7 +14,7 @@ namespace ImageSharp.Processing.Processors
     /// </summary>
     /// <remarks>Adapted from <see href="https://softwarebydefault.com/2013/06/29/oil-painting-cartoon-filter/"/> by Dewald Esterhuizen.</remarks>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    public class OilPaintingProcessor<TColor> : ImageProcessor<TColor>
+    internal class OilPaintingProcessor<TColor> : ImageProcessor<TColor>
         where TColor : struct, IPixel<TColor>
     {
         /// <summary>
@@ -139,9 +139,9 @@ namespace ImageSharp.Processing.Processors
                                         }
                                     }
 
-                                    float red = Math.Abs(redBin[maxIndex] / maxIntensity);
-                                    float green = Math.Abs(greenBin[maxIndex] / maxIntensity);
-                                    float blue = Math.Abs(blueBin[maxIndex] / maxIntensity);
+                                    float red = MathF.Abs(redBin[maxIndex] / maxIntensity);
+                                    float green = MathF.Abs(greenBin[maxIndex] / maxIntensity);
+                                    float blue = MathF.Abs(blueBin[maxIndex] / maxIntensity);
 
                                     TColor packed = default(TColor);
                                     packed.PackFromVector4(new Vector4(red, green, blue, sourcePixels[x, y].ToVector4().W));

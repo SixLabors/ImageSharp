@@ -150,7 +150,7 @@ namespace ImageSharp.Tests
                     serialized = memoryStream.ToArray();
                 }
 
-                using (Image image2 = new Image(serialized))
+                using (Image image2 = Image.Load(serialized))
                 using (FileStream output = File.OpenWrite($"{path}/{file.FileName}"))
                 {
                     image2.Save(output);

@@ -21,12 +21,18 @@ namespace ImageSharp.Drawing
         public bool Antialias;
 
         /// <summary>
+        /// The number of subpixels to use while rendering with antialiasing enabled.
+        /// </summary>
+        public int AntialiasSubpixelDepth;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="GraphicsOptions"/> struct.
         /// </summary>
         /// <param name="enableAntialiasing">If set to <c>true</c> [enable antialiasing].</param>
         public GraphicsOptions(bool enableAntialiasing)
         {
             this.Antialias = enableAntialiasing;
+            this.AntialiasSubpixelDepth = 16;
         }
     }
 }

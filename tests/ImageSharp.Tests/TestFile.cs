@@ -46,7 +46,7 @@ namespace ImageSharp.Tests
             this.file = file;
 
             this.Bytes = File.ReadAllBytes(file);
-            this.image = new Image(this.Bytes);
+            this.image = Image.Load(this.Bytes);
         }
 
         /// <summary>
@@ -139,7 +139,7 @@ namespace ImageSharp.Tests
         /// </returns>
         public Image CreateImage(IDecoderOptions options)
         {
-            return new Image(this.Bytes, options);
+            return Image.Load(this.Bytes, options);
         }
 
         /// <summary>
@@ -153,7 +153,7 @@ namespace ImageSharp.Tests
             List<string> directories = new List< string > {
                  "TestImages/Formats/", // Here for code coverage tests.
                   "tests/ImageSharp.Tests/TestImages/Formats/", // from travis/build script
-                  "../../../ImageSharp.Tests/TestImages/Formats/", // from Sandbox46
+                  "../../../../../ImageSharp.Tests/TestImages/Formats/", // from Sandbox46
                   "../../../../TestImages/Formats/",
                   "../../../TestImages/Formats/"
             };
@@ -165,7 +165,7 @@ namespace ImageSharp.Tests
 
             AddFormatsDirectoryFromTestAssebmlyPath(directories);
 
-            var directory = directories.FirstOrDefault(x => Directory.Exists(x));
+            string directory = directories.FirstOrDefault(x => Directory.Exists(x));
 
             if(directory  != null)
             {

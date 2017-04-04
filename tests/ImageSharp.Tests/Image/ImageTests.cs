@@ -21,11 +21,11 @@ namespace ImageSharp.Tests
         {
             Assert.Throws<ArgumentNullException>(() =>
             {
-                new Image((byte[])null);
+                Image.Load((byte[])null);
             });
 
             TestFile file = TestFile.Create(TestImages.Bmp.Car);
-            using (Image image = new Image(file.Bytes))
+            using (Image image = Image.Load(file.Bytes))
             {
                 Assert.Equal(600, image.Width);
                 Assert.Equal(450, image.Height);
@@ -36,7 +36,7 @@ namespace ImageSharp.Tests
         public void ConstructorFileSystem()
         {
             TestFile file = TestFile.Create(TestImages.Bmp.Car);
-            using (Image image = new Image(file.FilePath))
+            using (Image image = Image.Load(file.FilePath))
             {
                 Assert.Equal(600, image.Width);
                 Assert.Equal(450, image.Height);
@@ -49,7 +49,7 @@ namespace ImageSharp.Tests
             System.IO.FileNotFoundException ex = Assert.Throws<System.IO.FileNotFoundException>(
                 () =>
                 {
-                    new Image(Guid.NewGuid().ToString());
+                    Image.Load(Guid.NewGuid().ToString());
                 });
         }
 
@@ -59,7 +59,7 @@ namespace ImageSharp.Tests
             ArgumentNullException ex = Assert.Throws<ArgumentNullException>(
                 () =>
                 {
-                    new Image((string) null);
+                    Image.Load((string) null);
                 });
         }
 
@@ -67,14 +67,14 @@ namespace ImageSharp.Tests
         public void Save_DetecedEncoding()
         {
             string file = TestFile.GetPath("../../TestOutput/Save_DetecedEncoding.png");
-            var dir = System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(file));
+            System.IO.DirectoryInfo dir = System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(file));
             using (Image image = new Image(10, 10))
             {
                 image.Save(file);
             }
 
-            var c = TestFile.Create("../../TestOutput/Save_DetecedEncoding.png");
-            using (var img = c.CreateImage())
+            TestFile c = TestFile.Create("../../TestOutput/Save_DetecedEncoding.png");
+            using (Image img = c.CreateImage())
             {
                 Assert.IsType<PngFormat>(img.CurrentImageFormat);
             }
@@ -84,7 +84,7 @@ namespace ImageSharp.Tests
         public void Save_UnknownExtensionsEncoding()
         {
             string file = TestFile.GetPath("../../TestOutput/Save_DetecedEncoding.tmp");
-            var ex = Assert.Throws<InvalidOperationException>(
+            InvalidOperationException ex = Assert.Throws<InvalidOperationException>(
                 () =>
                     {
                         using (Image image = new Image(10, 10))
@@ -98,14 +98,14 @@ namespace ImageSharp.Tests
         public void Save_SetFormat()
         {
             string file = TestFile.GetPath("../../TestOutput/Save_SetFormat.dat");
-            var dir = System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(file));
+            System.IO.DirectoryInfo dir = System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(file));
             using (Image image = new Image(10, 10))
             {
                 image.Save(file, new PngFormat());
             }
 
-            var c = TestFile.Create("../../TestOutput/Save_SetFormat.dat");
-            using (var img = c.CreateImage())
+            TestFile c = TestFile.Create("../../TestOutput/Save_SetFormat.dat");
+            using (Image img = c.CreateImage())
             {
                 Assert.IsType<PngFormat>(img.CurrentImageFormat);
             }
@@ -115,14 +115,14 @@ namespace ImageSharp.Tests
         public void Save_SetEncoding()
         {
             string file = TestFile.GetPath("../../TestOutput/Save_SetEncoding.dat");
-            var dir = System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(file));
+            System.IO.DirectoryInfo dir = System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(file));
             using (Image image = new Image(10, 10))
             {
                 image.Save(file, new PngEncoder());
             }
 
-            var c = TestFile.Create("../../TestOutput/Save_SetEncoding.dat");
-            using (var img = c.CreateImage())
+            TestFile c = TestFile.Create("../../TestOutput/Save_SetEncoding.dat");
+            using (Image img = c.CreateImage())
             {
                 Assert.IsType<PngFormat>(img.CurrentImageFormat);
             }

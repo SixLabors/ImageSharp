@@ -36,7 +36,7 @@ namespace ImageSharp.Tests
 
         protected override IEnumerable<object[]> GetAllFactoryMethodArgs(MethodInfo testMethod, Type factoryType)
         {
-            var accessor = this.GetPropertyAccessor(testMethod.DeclaringType);
+            Func<object> accessor = this.GetPropertyAccessor(testMethod.DeclaringType);
 
             accessor = accessor ?? this.GetFieldAccessor(testMethod.DeclaringType);
 
@@ -52,7 +52,7 @@ namespace ImageSharp.Tests
         private Func<object> GetFieldAccessor(Type type)
         {
             FieldInfo fieldInfo = null;
-            for (var reflectionType = type;
+            for (Type reflectionType = type;
                  reflectionType != null;
                  reflectionType = reflectionType.GetTypeInfo().BaseType)
             {
@@ -71,7 +71,7 @@ namespace ImageSharp.Tests
         private Func<object> GetPropertyAccessor(Type type)
         {
             PropertyInfo propInfo = null;
-            for (var reflectionType = type;
+            for (Type reflectionType = type;
                  reflectionType != null;
                  reflectionType = reflectionType.GetTypeInfo().BaseType)
             {

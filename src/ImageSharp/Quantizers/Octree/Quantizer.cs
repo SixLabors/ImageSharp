@@ -9,7 +9,6 @@ namespace ImageSharp.Quantizers
     using System.Collections.Generic;
     using System.Numerics;
     using System.Runtime.CompilerServices;
-
     using ImageSharp.Dithering;
 
     /// <summary>
@@ -20,19 +19,9 @@ namespace ImageSharp.Quantizers
         where TColor : struct, IPixel<TColor>
     {
         /// <summary>
-        /// A lookup table for colors
-        /// </summary>
-        private readonly Dictionary<TColor, byte> colorMap = new Dictionary<TColor, byte>();
-
-        /// <summary>
         /// Flag used to indicate whether a single pass or two passes are needed for quantization.
         /// </summary>
         private readonly bool singlePass;
-
-        /// <summary>
-        /// The reduced image palette
-        /// </summary>
-        private TColor[] palette;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Quantizer{TColor}"/> class.
@@ -65,6 +54,7 @@ namespace ImageSharp.Quantizers
             int height = image.Height;
             int width = image.Width;
             byte[] quantizedPixels = new byte[width * height];
+            TColor[] colorPalette;
 
             using (PixelAccessor<TColor> pixels = image.Lock())
             {
@@ -76,8 +66,8 @@ namespace ImageSharp.Quantizers
                     this.FirstPass(pixels, width, height);
                 }
 
-                // Get the palette
-                this.palette = this.GetPalette();
+                // Collect the palette. Octree requires this to be done before the second pass runs.
+                colorPalette = this.GetPalette();
 
                 if (this.Dither)
                 {
@@ -94,7 +84,7 @@ namespace ImageSharp.Quantizers
                 }
             }
 
-            return new QuantizedImage<TColor>(width, height, this.palette, quantizedPixels);
+            return new QuantizedImage<TColor>(width, height, colorPalette, quantizedPixels);
         }
 
         /// <summary>
@@ -124,25 +114,7 @@ namespace ImageSharp.Quantizers
         /// <param name="output">The output pixel array</param>
         /// <param name="width">The width in pixels of the image</param>
         /// <param name="height">The height in pixels of the image</param>
-        protected virtual void SecondPass(PixelAccessor<TColor> source, byte[] output, int width, int height)
-        {
-            for (int y = 0; y < height; y++)
-            {
-                // And loop through each column
-                for (int x = 0; x < width; x++)
-                {
-                    if (this.Dither)
-                    {
-                        // Apply the dithering matrix
-                        TColor sourcePixel = source[x, y];
-                        TColor transformedPixel = this.palette[this.GetClosestColor(sourcePixel, this.palette, this.colorMap)];
-                        this.DitherType.Dither(source, sourcePixel, transformedPixel, x, y, width, height);
-                    }
-
-                    output[(y * source.Width) + x] = this.QuantizePixel(source[x, y]);
-                }
-            }
-        }
+        protected abstract void SecondPass(PixelAccessor<TColor> source, byte[] output, int width, int height);
 
         /// <summary>
         /// Override this to process the pixel in the first pass of the algorithm
@@ -157,16 +129,7 @@ namespace ImageSharp.Quantizers
         }
 
         /// <summary>
-        /// Override this to process the pixel in the second pass of the algorithm
-        /// </summary>
-        /// <param name="pixel">The pixel to quantize</param>
-        /// <returns>
-        /// The quantized value
-        /// </returns>
-        protected abstract byte QuantizePixel(TColor pixel);
-
-        /// <summary>
-        /// Retrieve the palette for the quantized image
+        /// Retrieve the palette for the quantized image. Can be called more than once so make sure calls are cached.
         /// </summary>
         /// <returns>
         /// <see cref="T:TColor[]"/>
@@ -184,9 +147,9 @@ namespace ImageSharp.Quantizers
         protected byte GetClosestColor(TColor pixel, TColor[] colorPalette, Dictionary<TColor, byte> cache)
         {
             // Check if the color is in the lookup table
-            if (this.colorMap.ContainsKey(pixel))
+            if (cache.ContainsKey(pixel))
             {
-                return this.colorMap[pixel];
+                return cache[pixel];
             }
 
             // Not found - loop through the palette and find the nearest match.
@@ -208,14 +171,14 @@ namespace ImageSharp.Quantizers
                 leastDistance = distance;
 
                 // And if it's an exact match, exit the loop
-                if (Math.Abs(distance) < Constants.Epsilon)
+                if (MathF.Abs(distance) < Constants.Epsilon)
                 {
                     break;
                 }
             }
 
             // Now I have the index, pop it into the cache for next time
-            this.colorMap.Add(pixel, colorIndex);
+            cache.Add(pixel, colorIndex);
 
             return colorIndex;
         }

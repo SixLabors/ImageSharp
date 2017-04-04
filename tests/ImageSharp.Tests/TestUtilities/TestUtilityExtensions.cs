@@ -33,7 +33,7 @@ namespace ImageSharp.Tests
             foreach (PixelTypes pt in AllConcretePixelTypes.Where(pt => pt != PixelTypes.StandardImageClass))
             {
                 string typeName = $"{nameSpace}.{pt.ToString()}";
-                var t = ImageSharpAssembly.GetType(typeName);
+                Type t = ImageSharpAssembly.GetType(typeName);
                 if (t == null)
                 {
                     throw new InvalidOperationException($"Could not find: {typeName}");
@@ -58,16 +58,16 @@ namespace ImageSharp.Tests
             byte[] bytesA = new byte[3];
             byte[] bytesB = new byte[3];
 
-            using (var pixA = a.Lock())
+            using (PixelAccessor<TColor> pixA = a.Lock())
             {
-                using (var pixB = b.Lock())
+                using (PixelAccessor<TColor> pixB = b.Lock())
                 {
                     for (int y = 0; y < a.Height; y++)
                     {
                         for (int x = 0; x < a.Width; x++)
                         {
-                            var ca = pixA[x, y];
-                            var cb = pixB[x, y];
+                            TColor ca = pixA[x, y];
+                            TColor cb = pixB[x, y];
 
                             if (compareAlpha)
                             {

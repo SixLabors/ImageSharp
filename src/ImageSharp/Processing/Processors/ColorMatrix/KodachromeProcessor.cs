@@ -12,7 +12,7 @@ namespace ImageSharp.Processing.Processors
     /// Converts the colors of the image recreating an old Kodachrome camera effect.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    public class KodachromeProcessor<TColor> : ColorMatrixFilter<TColor>
+    internal class KodachromeProcessor<TColor> : ColorMatrixProcessor<TColor>
         where TColor : struct, IPixel<TColor>
     {
         /// <inheritdoc/>

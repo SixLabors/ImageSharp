@@ -20,12 +20,12 @@ namespace ImageSharp.Tests
         public void ReadHeader_ReadsEndianness(bool isLittleEndian)
         {
             Stream stream = new TiffGenHeader()
-                            {
-                                FirstIfd = new TiffGenIfd()
-                            }
+            {
+                FirstIfd = new TiffGenIfd()
+            }
                             .ToStream(isLittleEndian);
 
-            TiffDecoderCore decoder = new TiffDecoderCore(stream, false, null);
+            TiffDecoderCore decoder = new TiffDecoderCore(stream, false, null, null);
 
             decoder.ReadHeader();
 
@@ -37,12 +37,12 @@ namespace ImageSharp.Tests
         public void ReadHeader_ReadsFirstIfdOffset(bool isLittleEndian)
         {
             Stream stream = new TiffGenHeader()
-                            {
-                                FirstIfd = new TiffGenIfd()
-                            }
+            {
+                FirstIfd = new TiffGenIfd()
+            }
                             .ToStream(isLittleEndian);
 
-            TiffDecoderCore decoder = new TiffDecoderCore(stream, false, null);
+            TiffDecoderCore decoder = new TiffDecoderCore(stream, false, null, null);
 
             uint firstIfdOffset = decoder.ReadHeader();
 
@@ -60,16 +60,16 @@ namespace ImageSharp.Tests
         public void Decode_ThrowsException_WithInvalidByteOrderMarkers(ushort byteOrderMarker)
         {
             Stream stream = new TiffGenHeader()
-                            {
-                                FirstIfd = new TiffGenIfd(),
-                                ByteOrderMarker = byteOrderMarker
-                            }
+            {
+                FirstIfd = new TiffGenIfd(),
+                ByteOrderMarker = byteOrderMarker
+            }
                             .ToStream(true);
 
             TiffDecoder decoder = new TiffDecoder();
-            
+
             ImageFormatException e = Assert.Throws<ImageFormatException>(() => { TestDecode(decoder, stream); });
-            
+
             Assert.Equal("Invalid TIFF file header.", e.Message);
         }
 
@@ -78,16 +78,16 @@ namespace ImageSharp.Tests
         public void Decode_ThrowsException_WithIncorrectMagicNumber(bool isLittleEndian)
         {
             Stream stream = new TiffGenHeader()
-                            {
-                                FirstIfd = new TiffGenIfd(),
-                                MagicNumber = 32
-                            }
+            {
+                FirstIfd = new TiffGenIfd(),
+                MagicNumber = 32
+            }
                             .ToStream(isLittleEndian);
 
             TiffDecoder decoder = new TiffDecoder();
-            
+
             ImageFormatException e = Assert.Throws<ImageFormatException>(() => { TestDecode(decoder, stream); });
-            
+
             Assert.Equal("Invalid TIFF file header.", e.Message);
         }
 
@@ -96,23 +96,22 @@ namespace ImageSharp.Tests
         public void Decode_ThrowsException_WithNoIfdZero(bool isLittleEndian)
         {
             Stream stream = new TiffGenHeader()
-                            {
-                                FirstIfd = null
-                            }
+            {
+                FirstIfd = null
+            }
                             .ToStream(isLittleEndian);
 
             TiffDecoder decoder = new TiffDecoder();
-            
+
             ImageFormatException e = Assert.Throws<ImageFormatException>(() => { TestDecode(decoder, stream); });
-            
+
             Assert.Equal("Invalid TIFF file header.", e.Message);
         }
 
         private void TestDecode(TiffDecoder decoder, Stream stream)
         {
             Configuration.Default.AddImageFormat(new TiffFormat());
-            Image image = new Image(1,1);
-            decoder.Decode<Color>(image, stream, null);
+            Image<Color> image = decoder.Decode<Color>(Configuration.Default, stream, null);
         }
     }
 }

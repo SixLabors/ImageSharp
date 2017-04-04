@@ -29,11 +29,9 @@ namespace ImageSharp.Tests
             Stream stream = CreateTiffGenIfd()
                             .ToStream(isLittleEndian);
 
-            TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null);
+            TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null, null);
             TiffIfd ifd = decoder.ReadIfd(0);
-            Image<Color> image = new Image<Color>(1, 1);
-
-            decoder.DecodeImage(ifd, image);
+            Image<Color> image = decoder.DecodeImage<Color>(ifd);
 
             Assert.Equal(ImageWidth, image.Width);
             Assert.Equal(ImageHeight, image.Height);
@@ -82,11 +80,9 @@ namespace ImageSharp.Tests
 
             Stream stream = ifdGen.ToStream(isLittleEndian);
 
-            TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null);
+            TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null, null);
             TiffIfd ifd = decoder.ReadIfd(0);
-            Image<Color> image = new Image<Color>(1, 1);
-
-            decoder.DecodeImage(ifd, image);
+            Image<Color> image = decoder.DecodeImage<Color>(ifd);
 
             Assert.Equal(expectedHorizonalResolution, image.MetaData.HorizontalResolution, 10);
             Assert.Equal(expectedVerticalResolution, image.MetaData.VerticalResolution, 10);
@@ -100,11 +96,10 @@ namespace ImageSharp.Tests
                             .WithoutEntry(TiffTags.ImageWidth)
                             .ToStream(isLittleEndian);
 
-            TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null);
+            TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null, null);
             TiffIfd ifd = decoder.ReadIfd(0);
-            Image<Color> image = new Image<Color>(1, 1);
 
-            var e = Assert.Throws<ImageFormatException>(() => decoder.DecodeImage(ifd, image));
+            var e = Assert.Throws<ImageFormatException>(() => decoder.DecodeImage<Color>(ifd));
 
             Assert.Equal("The TIFF IFD does not specify the image dimensions.", e.Message);
         }
@@ -117,11 +112,10 @@ namespace ImageSharp.Tests
                             .WithoutEntry(TiffTags.ImageLength)
                             .ToStream(isLittleEndian);
 
-            TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null);
+            TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null, null);
             TiffIfd ifd = decoder.ReadIfd(0);
-            Image<Color> image = new Image<Color>(1, 1);
 
-            var e = Assert.Throws<ImageFormatException>(() => decoder.DecodeImage(ifd, image));
+            var e = Assert.Throws<ImageFormatException>(() => decoder.DecodeImage<Color>(ifd));
 
             Assert.Equal("The TIFF IFD does not specify the image dimensions.", e.Message);
         }
@@ -135,7 +129,7 @@ namespace ImageSharp.Tests
                             .WithEntry(TiffGenEntry.Integer(TiffTags.Compression, TiffType.Short, compression))
                             .ToStream(isLittleEndian);
 
-            TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null);
+            TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null, null);
             TiffIfd ifd = decoder.ReadIfd(0);
             decoder.ReadImageFormat(ifd);
 
@@ -173,7 +167,7 @@ namespace ImageSharp.Tests
                             .WithEntry(TiffGenEntry.Integer(TiffTags.Compression, TiffType.Short, compression))
                             .ToStream(isLittleEndian);
 
-            TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null);
+            TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null, null);
             TiffIfd ifd = decoder.ReadIfd(0);
 
             var e = Assert.Throws<NotSupportedException>(() => decoder.ReadImageFormat(ifd));
@@ -191,7 +185,7 @@ namespace ImageSharp.Tests
                             .WithEntry(TiffGenEntry.Integer(TiffTags.BitsPerSample, TiffType.Short, bitsPerSample))
                             .ToStream(isLittleEndian);
 
-            TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null);
+            TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null, null);
             TiffIfd ifd = decoder.ReadIfd(0);
             decoder.ReadImageFormat(ifd);
 
@@ -209,7 +203,7 @@ namespace ImageSharp.Tests
         //                     .WithoutEntry(TiffTags.PhotometricInterpretation)
         //                     .ToStream(isLittleEndian);
 
-        //     TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null);
+        //     TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null, null);
         //     TiffIfd ifd = decoder.ReadIfd(0);
         //     decoder.ReadImageFormat(ifd);
 
@@ -224,7 +218,7 @@ namespace ImageSharp.Tests
                             .WithoutEntry(TiffTags.PhotometricInterpretation)
                             .ToStream(isLittleEndian);
 
-            TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null);
+            TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null, null);
             TiffIfd ifd = decoder.ReadIfd(0);
 
             var e = Assert.Throws<ImageFormatException>(() => decoder.ReadImageFormat(ifd));
@@ -263,7 +257,7 @@ namespace ImageSharp.Tests
                             .WithEntry(TiffGenEntry.Integer(TiffTags.PhotometricInterpretation, TiffType.Short, photometricInterpretation))
                             .ToStream(isLittleEndian);
 
-            TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null);
+            TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null, null);
             TiffIfd ifd = decoder.ReadIfd(0);
 
             var e = Assert.Throws<NotSupportedException>(() => decoder.ReadImageFormat(ifd));
@@ -281,7 +275,7 @@ namespace ImageSharp.Tests
                             .WithEntry(TiffGenEntry.Integer(TiffTags.BitsPerSample, TiffType.Short, bitsPerSample))
                             .ToStream(isLittleEndian);
 
-            TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null);
+            TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null, null);
             TiffIfd ifd = decoder.ReadIfd(0);
 
             var e = Assert.Throws<NotSupportedException>(() => decoder.ReadImageFormat(ifd));
@@ -293,7 +287,7 @@ namespace ImageSharp.Tests
         [InlineData(TiffColorType.WhiteIsZero8, 100, 80, 100 * 80)]
         public void CalculateImageBufferSize_ReturnsCorrectSize(ushort colorType, int width, int height, int expectedResult)
         {
-            TiffDecoderCore decoder = new TiffDecoderCore(null);
+            TiffDecoderCore decoder = new TiffDecoderCore(null, null);
 
             int bufferSize = decoder.CalculateImageBufferSize(width, height);
 

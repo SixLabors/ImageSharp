@@ -836,7 +836,7 @@ namespace ImageSharp.Tests
                             }
                             .ToStream(isLittleEndian);
 
-            TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null);
+            TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null, null);
             TiffIfdEntry ifdEntry = decoder.ReadIfd(0).Entries[0];
 
             return (decoder, ifdEntry);

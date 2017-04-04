@@ -13,15 +13,14 @@ namespace ImageSharp.Formats
     public class TiffDecoder : IImageDecoder
     {
         /// <inheritdoc/>
-        public void Decode<TColor>(Image<TColor> image, Stream stream, IDecoderOptions options)
+        public Image<TColor> Decode<TColor>(Configuration configuration, Stream stream, IDecoderOptions options)
             where TColor : struct, IPixel<TColor>
         {
-            Guard.NotNull(image, "image");
             Guard.NotNull(stream, "stream");
 
-            using (TiffDecoderCore decoder = new TiffDecoderCore(options))
+            using (TiffDecoderCore decoder = new TiffDecoderCore(options, configuration))
             {
-                decoder.Decode(image, stream, false);
+                return decoder.Decode<TColor>(stream);
             }
         }
     }

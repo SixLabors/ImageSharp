@@ -22,11 +22,18 @@ namespace ImageSharp.Formats
         private readonly IDecoderOptions options;
 
         /// <summary>
+        /// The global configuration
+        /// </summary>
+        private readonly Configuration configuration;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="TiffDecoderCore" /> class.
         /// </summary>
         /// <param name="options">The decoder options.</param>
-        public TiffDecoderCore(IDecoderOptions options)
+        /// <param name="configuration">The configuration.</param>
+        public TiffDecoderCore(IDecoderOptions options, Configuration configuration)
         {
+            this.configuration = configuration ?? Configuration.Default;
             this.options = options ?? new DecoderOptions();
         }
 
@@ -36,8 +43,9 @@ namespace ImageSharp.Formats
         /// <param name="stream">The input stream.</param>
         /// <param name="isLittleEndian">A flag indicating if the file is encoded in little-endian or big-endian format.</param>
         /// <param name="options">The decoder options.</param>
-        public TiffDecoderCore(Stream stream, bool isLittleEndian, IDecoderOptions options)
-            : this(options)
+        /// <param name="configuration">The configuration.</param>
+        public TiffDecoderCore(Stream stream, bool isLittleEndian, IDecoderOptions options, Configuration configuration)
+            : this(options, configuration)
         {
             this.InputStream = stream;
             this.IsLittleEndian = isLittleEndian;
@@ -75,17 +83,18 @@ namespace ImageSharp.Formats
         /// the data to image.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <param name="image">The image, where the data should be set to.</param>
         /// <param name="stream">The stream, where the image should be.</param>
-        /// <param name="metadataOnly">Whether to decode metadata only.</param>
-        public void Decode<TColor>(Image<TColor> image, Stream stream, bool metadataOnly)
+        /// <returns>The decoded image.</returns>
+        public Image<TColor> Decode<TColor>(Stream stream)
             where TColor : struct, IPixel<TColor>
         {
             this.InputStream = stream;
 
             uint firstIfdOffset = this.ReadHeader();
             TiffIfd firstIfd = this.ReadIfd(firstIfdOffset);
-            this.DecodeImage(firstIfd, image);
+            Image<TColor> image = this.DecodeImage<TColor>(firstIfd);
+
+            return image;
         }
 
         /// <summary>
@@ -168,8 +177,8 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
         /// <param name="ifd">The IFD to read the image from.</param>
-        /// <param name="image">The image, where the data should be set to.</param>
-        public void DecodeImage<TColor>(TiffIfd ifd, Image<TColor> image)
+        /// <returns>The decoded image.</returns>
+        public Image<TColor> DecodeImage<TColor>(TiffIfd ifd)
             where TColor : struct, IPixel<TColor>
         {
             if (!ifd.TryGetIfdEntry(TiffTags.ImageLength, out TiffIfdEntry imageLengthEntry)
@@ -181,7 +190,7 @@ namespace ImageSharp.Formats
             int width = (int)this.ReadUnsignedInteger(ref imageWidthEntry);
             int height = (int)this.ReadUnsignedInteger(ref imageLengthEntry);
 
-            image.InitPixels(width, height);
+            Image<TColor> image = Image.Create<TColor>(width, height, this.configuration);
 
             TiffResolutionUnit resolutionUnit = TiffResolutionUnit.Inch;
             if (ifd.TryGetIfdEntry(TiffTags.ResolutionUnit, out TiffIfdEntry resolutionUnitEntry))
@@ -233,6 +242,8 @@ namespace ImageSharp.Formats
                     }
                 }
             }
+
+            return image;
         }
 
         /// <summary>

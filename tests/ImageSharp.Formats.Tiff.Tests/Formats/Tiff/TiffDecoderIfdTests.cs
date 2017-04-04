@@ -30,7 +30,7 @@ namespace ImageSharp.Tests
             }
                             .ToStream(isLittleEndian);
 
-            TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null);
+            TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null, null);
             TiffIfd ifd = decoder.ReadIfd(0);
 
             Assert.Equal(18u, ifd.NextIfdOffset);
@@ -49,7 +49,7 @@ namespace ImageSharp.Tests
             }
                             .ToStream(isLittleEndian);
 
-            TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null);
+            TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null, null);
             TiffIfd ifd = decoder.ReadIfd(0);
 
             Assert.Equal(0u, ifd.NextIfdOffset);
@@ -73,7 +73,7 @@ namespace ImageSharp.Tests
             }
                             .ToStream(isLittleEndian);
 
-            TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null);
+            TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null, null);
             TiffIfd ifd = decoder.ReadIfd(0);
 
             Assert.NotNull(ifd.Entries);
@@ -96,7 +96,7 @@ namespace ImageSharp.Tests
             }
                             .ToStream(isLittleEndian);
 
-            TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null);
+            TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null, null);
             TiffIfd ifd = decoder.ReadIfd(0);
             TiffIfdEntry entry = ifd.Entries[1];
 

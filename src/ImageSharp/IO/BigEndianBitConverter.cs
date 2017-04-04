@@ -6,43 +6,81 @@
 namespace ImageSharp.IO
 {
     /// <summary>
-    /// Implementation of EndianBitConverter which converts to/from big-endian
-    /// byte arrays.
-    /// <remarks>
-    /// Adapted from Miscellaneous Utility Library <see href="http://jonskeet.uk/csharp/miscutil/" />
-    /// This product includes software developed by Jon Skeet and Marc Gravell. Contact <see href="mailto:skeet@pobox.com" />, or see
-    /// <see href="http://www.pobox.com/~skeet/" />.
-    /// </remarks>
+    /// Implementation of EndianBitConverter which converts to/from big-endian byte arrays.
     /// </summary>
     internal sealed class BigEndianBitConverter : EndianBitConverter
     {
         /// <inheritdoc/>
-        public override Endianness Endianness => Endianness.BigEndian;
-
-        /// <inheritdoc/>
-        public override bool IsLittleEndian() => false;
-
-        /// <inheritdoc/>
-        protected internal override void CopyBytesImpl(long value, int bytes, byte[] buffer, int index)
+        public override Endianness Endianness
         {
-            int endOffset = index + bytes - 1;
-            for (int i = 0; i < bytes; i++)
-            {
-                buffer[endOffset - i] = unchecked((byte)(value & 0xff));
-                value = value >> 8;
-            }
+            get { return Endianness.BigEndian; }
         }
 
         /// <inheritdoc/>
-        protected internal override long FromBytes(byte[] buffer, int startIndex, int bytesToConvert)
+        public override bool IsLittleEndian
         {
-            long ret = 0;
-            for (int i = 0; i < bytesToConvert; i++)
-            {
-                ret = unchecked((ret << 8) | buffer[startIndex + i]);
-            }
+            get { return false; }
+        }
 
-            return ret;
+        /// <inheritdoc/>
+        public override void CopyBytes(short value, byte[] buffer, int index)
+        {
+            CheckByteArgument(buffer, index, 2);
+
+            buffer[index] = (byte)(value >> 8);
+            buffer[index + 1] = (byte)value;
+        }
+
+        /// <inheritdoc/>
+        public override void CopyBytes(int value, byte[] buffer, int index)
+        {
+            CheckByteArgument(buffer, index, 4);
+
+            buffer[index] = (byte)(value >> 24);
+            buffer[index + 1] = (byte)(value >> 16);
+            buffer[index + 2] = (byte)(value >> 8);
+            buffer[index + 3] = (byte)value;
+        }
+
+        /// <inheritdoc/>
+        public override void CopyBytes(long value, byte[] buffer, int index)
+        {
+            CheckByteArgument(buffer, index, 8);
+
+            buffer[index] = (byte)(value >> 56);
+            buffer[index + 1] = (byte)(value >> 48);
+            buffer[index + 2] = (byte)(value >> 40);
+            buffer[index + 3] = (byte)(value >> 32);
+            buffer[index + 4] = (byte)(value >> 24);
+            buffer[index + 5] = (byte)(value >> 16);
+            buffer[index + 6] = (byte)(value >> 8);
+            buffer[index + 7] = (byte)value;
+        }
+
+        /// <inheritdoc/>
+        public override short ToInt16(byte[] value, int startIndex)
+        {
+            CheckByteArgument(value, startIndex, 2);
+
+            return (short)((value[startIndex] << 8) | value[startIndex + 1]);
+        }
+
+        /// <inheritdoc/>
+        public override int ToInt32(byte[] value, int startIndex)
+        {
+            CheckByteArgument(value, startIndex, 4);
+
+            return (value[startIndex] << 24) | (value[startIndex + 1] << 16) | (value[startIndex + 2] << 8) | value[startIndex + 3];
+        }
+
+        /// <inheritdoc/>
+        public override long ToInt64(byte[] value, int startIndex)
+        {
+            CheckByteArgument(value, startIndex, 8);
+
+            long p1 = (value[startIndex] << 24) | (value[startIndex + 1] << 16) | (value[startIndex + 2] << 8) | value[startIndex + 3];
+            long p2 = (value[startIndex + 4] << 24) | (value[startIndex + 5] << 16) | (value[startIndex + 6] << 8) | value[startIndex + 7];
+            return p2 | (p1 << 32);
         }
     }
 }

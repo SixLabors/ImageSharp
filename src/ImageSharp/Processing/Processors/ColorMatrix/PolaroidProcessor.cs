@@ -12,7 +12,7 @@ namespace ImageSharp.Processing.Processors
     /// Converts the colors of the image recreating an old Polaroid effect.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    public class PolaroidProcessor<TColor> : ColorMatrixFilter<TColor>
+    internal class PolaroidProcessor<TColor> : ColorMatrixProcessor<TColor>
         where TColor : struct, IPixel<TColor>
     {
         private static TColor veryDarkOrange = ColorBuilder<TColor>.FromRGB(102, 34, 0);

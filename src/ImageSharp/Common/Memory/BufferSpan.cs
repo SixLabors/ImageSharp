@@ -1,4 +1,4 @@
-// <copyright file="BufferPointer.cs" company="James Jackson-South">
+// <copyright file="BufferSpan.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -11,9 +11,9 @@ namespace ImageSharp
     using System.Runtime.InteropServices;
 
     /// <summary>
-    /// Utility methods for <see cref="BufferPointer{T}"/>
+    /// Utility methods for <see cref="BufferSpan{T}"/>
     /// </summary>
-    internal static class BufferPointer
+    internal static class BufferSpan
     {
         /// <summary>
         /// It's worth to use Marshal.Copy() or Buffer.BlockCopy() over this size.
@@ -24,11 +24,11 @@ namespace ImageSharp
         /// Copy 'count' number of elements of the same type from 'source' to 'dest'
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
-        /// <param name="source">The input <see cref="BufferPointer{T}"/></param>
-        /// <param name="destination">The destination <see cref="BufferPointer{T}"/>.</param>
+        /// <param name="source">The input <see cref="BufferSpan{T}"/></param>
+        /// <param name="destination">The destination <see cref="BufferSpan{T}"/>.</param>
         /// <param name="count">The number of elements to copy</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Copy<T>(BufferPointer<T> source, BufferPointer<T> destination, int count)
+        public static void Copy<T>(BufferSpan<T> source, BufferSpan<T> destination, int count)
             where T : struct
         {
             CopyImpl(source, destination, count);
@@ -42,7 +42,7 @@ namespace ImageSharp
         /// <param name="destination">The destination buffer.</param>
         /// <param name="countInSource">The number of elements to copy from 'source'</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Copy<T>(BufferPointer<T> source, BufferPointer<byte> destination, int countInSource)
+        public static void Copy<T>(BufferSpan<T> source, BufferSpan<byte> destination, int countInSource)
             where T : struct
         {
             CopyImpl(source, destination, countInSource);
@@ -56,14 +56,14 @@ namespace ImageSharp
         /// <param name="destination">The destination buffer"/></param>
         /// <param name="countInDest">The number of <typeparamref name="T"/> elements to copy.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe void Copy<T>(BufferPointer<byte> source, BufferPointer<T> destination, int countInDest)
+        public static unsafe void Copy<T>(BufferSpan<byte> source, BufferSpan<T> destination, int countInDest)
             where T : struct
         {
             int byteCount = SizeOf<T>(countInDest);
 
             if (byteCount > (int)ByteCountThreshold)
             {
-                Marshal.Copy(source.Array, source.Offset, destination.PointerAtOffset, byteCount);
+                Marshal.Copy(source.Array, source.Start, destination.PointerAtOffset, byteCount);
             }
             else
             {
@@ -93,7 +93,7 @@ namespace ImageSharp
             => (uint)SizeOf<T>(count);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static unsafe void CopyImpl<T, TDest>(BufferPointer<T> source, BufferPointer<TDest> destination, int count)
+        private static unsafe void CopyImpl<T, TDest>(BufferSpan<T> source, BufferSpan<TDest> destination, int count)
             where T : struct
             where TDest : struct
         {
@@ -103,22 +103,22 @@ namespace ImageSharp
             {
                 if (Unsafe.SizeOf<T>() == sizeof(long))
                 {
-                    Marshal.Copy(Unsafe.As<long[]>(source.Array), source.Offset, destination.PointerAtOffset, count);
+                    Marshal.Copy(Unsafe.As<long[]>(source.Array), source.Start, destination.PointerAtOffset, count);
                     return;
                 }
                 else if (Unsafe.SizeOf<T>() == sizeof(int))
                 {
-                    Marshal.Copy(Unsafe.As<int[]>(source.Array), source.Offset, destination.PointerAtOffset, count);
+                    Marshal.Copy(Unsafe.As<int[]>(source.Array), source.Start, destination.PointerAtOffset, count);
                     return;
                 }
                 else if (Unsafe.SizeOf<T>() == sizeof(short))
                 {
-                    Marshal.Copy(Unsafe.As<short[]>(source.Array), source.Offset, destination.PointerAtOffset, count);
+                    Marshal.Copy(Unsafe.As<short[]>(source.Array), source.Start, destination.PointerAtOffset, count);
                     return;
                 }
                 else if (Unsafe.SizeOf<T>() == sizeof(byte))
                 {
-                    Marshal.Copy(Unsafe.As<byte[]>(source.Array), source.Offset, destination.PointerAtOffset, count);
+                    Marshal.Copy(Unsafe.As<byte[]>(source.Array), source.Start, destination.PointerAtOffset, count);
                     return;
                 }
             }

@@ -13,7 +13,7 @@ namespace ImageSharp.Processing.Processors
     /// Defines a sampler that uses two one-dimensional matrices to perform convolution against an image.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    public class Convolution2DProcessor<TColor> : ImageProcessor<TColor>
+    internal class Convolution2DProcessor<TColor> : ImageProcessor<TColor>
         where TColor : struct, IPixel<TColor>
     {
         /// <summary>
@@ -108,9 +108,9 @@ namespace ImageSharp.Processing.Processors
                                 }
                             }
 
-                            float red = (float)Math.Sqrt((rX * rX) + (rY * rY));
-                            float green = (float)Math.Sqrt((gX * gX) + (gY * gY));
-                            float blue = (float)Math.Sqrt((bX * bX) + (bY * bY));
+                            float red = MathF.Sqrt((rX * rX) + (rY * rY));
+                            float green = MathF.Sqrt((gX * gX) + (gY * gY));
+                            float blue = MathF.Sqrt((bX * bX) + (bY * bY));
 
                             TColor packed = default(TColor);
                             packed.PackFromVector4(new Vector4(red, green, blue, sourcePixels[x, y].ToVector4().W));

@@ -125,8 +125,8 @@ namespace ImageSharp
             vector += Round;
             vector = Vector2.Clamp(vector, Vector2.Zero, MaxBytes);
 
-            bytes[startIndex] = (byte)(float)Math.Round(vector.X);
-            bytes[startIndex + 1] = (byte)(float)Math.Round(vector.Y);
+            bytes[startIndex] = (byte)MathF.Round(vector.X);
+            bytes[startIndex + 1] = (byte)MathF.Round(vector.Y);
             bytes[startIndex + 2] = 0;
         }
 
@@ -141,8 +141,8 @@ namespace ImageSharp
             vector += Round;
             vector = Vector2.Clamp(vector, Vector2.Zero, MaxBytes);
 
-            bytes[startIndex] = (byte)(float)Math.Round(vector.X);
-            bytes[startIndex + 1] = (byte)(float)Math.Round(vector.Y);
+            bytes[startIndex] = (byte)MathF.Round(vector.X);
+            bytes[startIndex + 1] = (byte)MathF.Round(vector.Y);
             bytes[startIndex + 2] = 0;
             bytes[startIndex + 3] = 255;
         }
@@ -159,8 +159,8 @@ namespace ImageSharp
             vector = Vector2.Clamp(vector, Vector2.Zero, MaxBytes);
 
             bytes[startIndex] = 0;
-            bytes[startIndex + 1] = (byte)(float)Math.Round(vector.Y);
-            bytes[startIndex + 2] = (byte)(float)Math.Round(vector.X);
+            bytes[startIndex + 1] = (byte)MathF.Round(vector.Y);
+            bytes[startIndex + 2] = (byte)MathF.Round(vector.X);
         }
 
         /// <inheritdoc />
@@ -175,8 +175,8 @@ namespace ImageSharp
             vector = Vector2.Clamp(vector, Vector2.Zero, MaxBytes);
 
             bytes[startIndex] = 0;
-            bytes[startIndex + 1] = (byte)(float)Math.Round(vector.Y);
-            bytes[startIndex + 2] = (byte)(float)Math.Round(vector.X);
+            bytes[startIndex + 1] = (byte)MathF.Round(vector.Y);
+            bytes[startIndex + 2] = (byte)MathF.Round(vector.X);
             bytes[startIndex + 3] = 255;
         }
 

@@ -15,7 +15,7 @@ namespace ImageSharp.Tests.Colors
         {
             get
             {
-                var vector4Values = new Vector4[]
+                Vector4[] vector4Values = new Vector4[]
                     {
                         Vector4.Zero,
                         Vector4.One,
@@ -25,9 +25,9 @@ namespace ImageSharp.Tests.Colors
                         Vector4.UnitW,
                     };
 
-                foreach (var vector4 in vector4Values)
+                foreach (Vector4 vector4 in vector4Values)
                 {
-                    var vector4Components = new float[] { vector4.X, vector4.Y, vector4.Z, vector4.W };
+                    float[] vector4Components = new float[] { vector4.X, vector4.Y, vector4.Z, vector4.W };
 
                     yield return new object[] { new Argb(), vector4Components };
                     yield return new object[] { new Bgra4444(), vector4Components };
@@ -47,7 +47,7 @@ namespace ImageSharp.Tests.Colors
         {
             get
             {
-                var vector4Values = new Vector4[]
+                Vector4[] vector4Values = new Vector4[]
                     {
                         Vector4.One,
                         new Vector4(0, 0, 0, 1),
@@ -56,9 +56,9 @@ namespace ImageSharp.Tests.Colors
                         new Vector4(0, 0, 1, 1),
                     };
 
-                foreach (var vector4 in vector4Values)
+                foreach (Vector4 vector4 in vector4Values)
                 {
-                    var vector4Components = new float[] { vector4.X, vector4.Y, vector4.Z, vector4.W };
+                    float[] vector4Components = new float[] { vector4.X, vector4.Y, vector4.Z, vector4.W };
 
                     yield return new object[] { new Argb(), vector4Components };
                     yield return new object[] { new Bgr565(), vector4Components };
@@ -72,12 +72,12 @@ namespace ImageSharp.Tests.Colors
         public void FromVector4ToVector4(IPixel packedVector, float[] vector4ComponentsToPack)
         {
             // Arrange
-            var precision = 2;
-            var vector4ToPack = new Vector4(vector4ComponentsToPack[0], vector4ComponentsToPack[1], vector4ComponentsToPack[2], vector4ComponentsToPack[3]);
+            int precision = 2;
+            Vector4 vector4ToPack = new Vector4(vector4ComponentsToPack[0], vector4ComponentsToPack[1], vector4ComponentsToPack[2], vector4ComponentsToPack[3]);
             packedVector.PackFromVector4(vector4ToPack);
 
             // Act
-            var vector4 = packedVector.ToVector4();
+            Vector4 vector4 = packedVector.ToVector4();
 
             // Assert
             Assert.Equal(vector4ToPack.X, vector4.X, precision);

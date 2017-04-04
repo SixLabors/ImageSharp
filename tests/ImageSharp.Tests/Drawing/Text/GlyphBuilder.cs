@@ -16,7 +16,7 @@ namespace ImageSharp.Tests.Drawing.Text
         public void OriginUsed()
         {
             // Y axis is inverted as it expects to be drawing for bottom left
-            var fullBuilder = new GlyphBuilder(new System.Numerics.Vector2(10, 99));
+            GlyphBuilder fullBuilder = new GlyphBuilder(new System.Numerics.Vector2(10, 99));
             IGlyphRenderer builder = fullBuilder;
 
             builder.BeginGlyph();
@@ -36,7 +36,7 @@ namespace ImageSharp.Tests.Drawing.Text
             builder.EndFigure();
             builder.EndGlyph();
 
-            var points = fullBuilder.Paths.Single().Flatten().Single().Points;
+            System.Collections.Immutable.ImmutableArray<Vector2> points = fullBuilder.Paths.Single().Flatten().Single().Points;
 
             Assert.Contains(new Vector2(10, 99), points);
             Assert.Contains(new Vector2(10, 109), points);
@@ -50,7 +50,7 @@ namespace ImageSharp.Tests.Drawing.Text
             // Y axis is inverted as it expects to be drawing for bottom left
             GlyphBuilder fullBuilder = new GlyphBuilder();
             IGlyphRenderer builder = fullBuilder;
-            for (var i = 0; i < 10; i++)
+            for (int i = 0; i < 10; i++)
             {
                 builder.BeginGlyph();
                 builder.BeginFigure();

@@ -7,6 +7,7 @@ namespace ImageSharp.Quantizers
 {
     using System;
     using System.Collections.Generic;
+    using System.Runtime.CompilerServices;
 
     /// <summary>
     /// Encapsulates methods to calculate the color palette if an image using an Octree pattern.
@@ -16,6 +17,11 @@ namespace ImageSharp.Quantizers
     public sealed class OctreeQuantizer<TColor> : Quantizer<TColor>
         where TColor : struct, IPixel<TColor>
     {
+        /// <summary>
+        /// A lookup table for colors
+        /// </summary>
+        private readonly Dictionary<TColor, byte> colorMap = new Dictionary<TColor, byte>();
+
         /// <summary>
         /// The pixel buffer, used to reduce allocations.
         /// </summary>
@@ -30,6 +36,11 @@ namespace ImageSharp.Quantizers
         /// Maximum allowed color depth
         /// </summary>
         private int colors;
+
+        /// <summary>
+        /// The reduced image palette
+        /// </summary>
+        private TColor[] palette;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="OctreeQuantizer{TColor}"/> class.
@@ -53,6 +64,58 @@ namespace ImageSharp.Quantizers
         }
 
         /// <summary>
+        /// Execute a second pass through the bitmap
+        /// </summary>
+        /// <param name="source">The source image.</param>
+        /// <param name="output">The output pixel array</param>
+        /// <param name="width">The width in pixels of the image</param>
+        /// <param name="height">The height in pixels of the image</param>
+        protected override void SecondPass(PixelAccessor<TColor> source, byte[] output, int width, int height)
+        {
+            // Load up the values for the first pixel. We can use these to speed up the second
+            // pass of the algorithm by avoiding transforming rows of identical color.
+            TColor sourcePixel = source[0, 0];
+            TColor previousPixel = sourcePixel;
+            byte pixelValue = this.QuantizePixel(sourcePixel);
+            TColor[] colorPalette = this.GetPalette();
+            TColor transformedPixel = colorPalette[pixelValue];
+
+            for (int y = 0; y < height; y++)
+            {
+                // And loop through each column
+                for (int x = 0; x < width; x++)
+                {
+                    // Get the pixel.
+                    sourcePixel = source[x, y];
+
+                    // Check if this is the same as the last pixel. If so use that value
+                    // rather than calculating it again. This is an inexpensive optimization.
+                    if (!previousPixel.Equals(sourcePixel))
+                    {
+                        // Quantize the pixel
+                        pixelValue = this.QuantizePixel(sourcePixel);
+
+                        // And setup the previous pointer
+                        previousPixel = sourcePixel;
+
+                        if (this.Dither)
+                        {
+                            transformedPixel = colorPalette[pixelValue];
+                        }
+                    }
+
+                    if (this.Dither)
+                    {
+                        // Apply the dithering matrix. We have to reapply the value now as the original has changed.
+                        this.DitherType.Dither(source, sourcePixel, transformedPixel, x, y, width, height);
+                    }
+
+                    output[(y * source.Width) + x] = pixelValue;
+                }
+            }
+        }
+
+        /// <summary>
         /// Process the pixel in the first pass of the algorithm
         /// </summary>
         /// <param name="pixel">
@@ -69,18 +132,6 @@ namespace ImageSharp.Quantizers
         }
 
         /// <summary>
-        /// Override this to process the pixel in the second pass of the algorithm
-        /// </summary>
-        /// <param name="pixel">The pixel to quantize</param>
-        /// <returns>
-        /// The quantized value
-        /// </returns>
-        protected override byte QuantizePixel(TColor pixel)
-        {
-            return (byte)this.octree.GetPaletteIndex(pixel, this.pixelBuffer);
-        }
-
-        /// <summary>
         /// Retrieve the palette for the quantized image.
         /// </summary>
         /// <returns>
@@ -88,7 +139,32 @@ namespace ImageSharp.Quantizers
         /// </returns>
         protected override TColor[] GetPalette()
         {
-            return this.octree.Palletize(Math.Max(this.colors, 1));
+            if (this.palette == null)
+            {
+                this.palette = this.octree.Palletize(Math.Max(this.colors, 1));
+            }
+
+            return this.palette;
+        }
+
+        /// <summary>
+        /// Process the pixel in the second pass of the algorithm
+        /// </summary>
+        /// <param name="pixel">The pixel to quantize</param>
+        /// <returns>
+        /// The quantized value
+        /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private byte QuantizePixel(TColor pixel)
+        {
+            if (this.Dither)
+            {
+                // The colors have changed so we need to use Euclidean distance caclulation to find the closest value.
+                // This palette can never be null here.
+                return this.GetClosestColor(pixel, this.palette, this.colorMap);
+            }
+
+            return (byte)this.octree.GetPaletteIndex(pixel, this.pixelBuffer);
         }
 
         /// <summary>

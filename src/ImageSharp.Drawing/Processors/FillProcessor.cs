@@ -16,8 +16,8 @@ namespace ImageSharp.Drawing.Processors
     /// Using the bursh as a source of pixels colors blends the brush color with source.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    public class FillProcessor<TColor> : ImageProcessor<TColor>
-    where TColor : struct, IPixel<TColor>
+    internal class FillProcessor<TColor> : ImageProcessor<TColor>
+        where TColor : struct, IPixel<TColor>
     {
         /// <summary>
         /// The brush.

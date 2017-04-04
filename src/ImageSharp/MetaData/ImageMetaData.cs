@@ -5,6 +5,7 @@
 
 namespace ImageSharp
 {
+    using System;
     using System.Collections.Generic;
 
     /// <summary>
@@ -55,12 +56,16 @@ namespace ImageSharp
 
             foreach (ImageProperty property in other.Properties)
             {
-              this.Properties.Add(new ImageProperty(property));
+                this.Properties.Add(new ImageProperty(property));
             }
 
             if (other.ExifProfile != null)
             {
-              this.ExifProfile = new ExifProfile(other.ExifProfile);
+                this.ExifProfile = new ExifProfile(other.ExifProfile);
+            }
+            else
+            {
+                this.ExifProfile = null;
             }
         }
 

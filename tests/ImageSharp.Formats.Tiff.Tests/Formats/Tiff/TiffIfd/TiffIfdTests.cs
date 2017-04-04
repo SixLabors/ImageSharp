@@ -5,7 +5,6 @@
 
 namespace ImageSharp.Tests
 {
-    using System.IO;
     using Xunit;
 
     using ImageSharp.Formats.Tiff;

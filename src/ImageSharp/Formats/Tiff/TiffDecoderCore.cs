@@ -9,6 +9,7 @@ namespace ImageSharp.Formats
     using System.Buffers;
     using System.IO;
     using System.Text;
+    using ImageSharp.Formats.Tiff;
 
     /// <summary>
     /// Performs the tiff decoding operation.

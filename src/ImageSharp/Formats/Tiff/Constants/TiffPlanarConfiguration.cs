@@ -3,7 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.Formats
+namespace ImageSharp.Formats.Tiff
 {
     /// <summary>
     /// Enumeration representing how the components of each pixel are stored the Tiff file-format.

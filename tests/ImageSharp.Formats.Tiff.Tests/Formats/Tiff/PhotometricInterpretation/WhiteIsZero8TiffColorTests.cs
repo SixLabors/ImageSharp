@@ -8,7 +8,7 @@ namespace ImageSharp.Tests
     using System.Collections.Generic;
     using Xunit;
 
-    using ImageSharp.Formats;
+    using ImageSharp.Formats.Tiff;
 
     public class WhiteIsZero8TiffColorTests : PhotometricInterpretationTestBase
     {

@@ -3,7 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.Formats
+namespace ImageSharp.Formats.Tiff
 {
     /// <summary>
     /// Enumeration representing the possible uses of extra components in TIFF format files.

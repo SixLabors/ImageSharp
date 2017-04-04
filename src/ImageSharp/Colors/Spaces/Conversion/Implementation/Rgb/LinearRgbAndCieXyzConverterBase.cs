@@ -44,9 +44,9 @@ namespace ImageSharp.Colors.Spaces.Conversion.Implementation.Rgb
 
             Matrix4x4 xyzMatrix = new Matrix4x4
             {
-                M11 = mXr, M12 = mXg, M13 = mXb,
-                M21 = Yr,  M22 = Yg,  M23 = Yb,
-                M31 = mZr, M32 = mZg, M33 = mZb,
+                M11 = mXr, M21 = mXg, M31 = mXb,
+                M12 = Yr,  M22 = Yg,  M32 = Yb,
+                M13 = mZr, M23 = mZg, M33 = mZb,
                 M44 = 1F
             };
 
@@ -58,9 +58,9 @@ namespace ImageSharp.Colors.Spaces.Conversion.Implementation.Rgb
             // TODO: Is there a built in method for this?
             return new Matrix4x4
             {
-                M11 = vector.X * mXr, M12 = vector.Y * mXg, M13 = vector.Z * mXb,
-                M21 = vector.X * Yr,  M22 = vector.Y * Yg,  M23 = vector.Z * Yb,
-                M31 = vector.X * mZr, M32 = vector.Y * mZg, M33 = vector.Z * mZb,
+                M11 = vector.X * mXr, M21 = vector.Y * mXg, M31 = vector.Z * mXb,
+                M12 = vector.X * Yr,  M22 = vector.Y * Yg,  M32 = vector.Z * Yb,
+                M13 = vector.X * mZr, M23 = vector.Y * mZg, M33 = vector.Z * mZb,
                 M44 = 1F
             };
         }

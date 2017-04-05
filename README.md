@@ -5,9 +5,9 @@
 
 Built against .Net Standard 1.1 ImageSharp can be used in device, cloud, and embedded/IoT scenarios. 
 
-> **ImageSharp has made excellent progress and contains many great features but is still considered by us to be still in early stages (alpha). As such, we cannot support its use on production environments until the library reaches release candidate status.
+> **ImageSharp** has made excellent progress and contains many great features but is still considered by us to be still in early stages (alpha). As such, we cannot support its use on production environments until the library reaches release candidate status.
 >
-> Pre-release downloads are available from the [MyGet package repository](https://www.myget.org/gallery/imagesharp).**
+> Pre-release downloads are available from the [MyGet package repository](https://www.myget.org/gallery/imagesharp).
 
 [![GitHub license](https://img.shields.io/badge/license-Apache%202-blue.svg)](https://raw.githubusercontent.com/JimBobSquarePants/ImageSharp/master/APACHE-2.0-LICENSE.txt)
 [![GitHub issues](https://img.shields.io/github/issues/JimBobSquarePants/ImageSharp.svg)](https://github.com/JimBobSquarePants/ImageSharp/issues)

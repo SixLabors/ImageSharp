@@ -87,6 +87,20 @@ namespace ImageSharp.Tests
         }
 
         [Fact]
+        public void LoadFromNoneSeekableStream()
+        {
+            NoneSeekableStream stream = new NoneSeekableStream(this.DataStream);
+            Image img = Image.Load(stream);
+
+            Assert.NotNull(img);
+            Assert.Equal(TestFormat.GlobalTestFormat, img.CurrentImageFormat);
+
+
+            TestFormat.GlobalTestFormat.VerifyDecodeCall(this.Marker, null, Configuration.Default);
+
+        }
+
+        [Fact]
         public void LoadFromStreamWithType()
         {
             Image<Color> img = Image.Load<Color>(this.DataStream);

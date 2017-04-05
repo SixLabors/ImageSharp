@@ -1,9 +1,13 @@
 
-# <img src="build/icons/imagesharp-logo-heading.png" alt="ImageSharp"/>
+# <img src="https://github.com/JimBobSquarePants/ImageSharp/blob/master/build/icons/imagesharp-logo-256.png" alt="ImageSharp" width="52"/> ImageSharp
 
-**ImageSharp** is a new cross-platform 2D graphics API designed to allow the processing of images without the use of `System.Drawing`. 
+**ImageSharp** is a new ImageSharp is a fully featured, fully managed, cross-platform, 2D graphics API designed to allow the processing of images without the use of `System.Drawing`. 
 
-> **ImageSharp is still in early stages (alpha) but progress has been pretty quick. As such, please do not use on production environments until the library reaches release candidate status. Pre-release downloads are available from the [MyGet package repository](https://www.myget.org/gallery/imagesharp).**
+Built against .Net Standard 1.1 ImageSharp can be used in device, cloud, and embedded/IoT scenarios. 
+
+> **ImageSharp has made excellent progress and contains many great features but is still considered by us to be still in early stages (alpha). As such, we cannot support its use on production environments until the library reaches release candidate status.
+>
+> Pre-release downloads are available from the [MyGet package repository](https://www.myget.org/gallery/imagesharp).**
 
 [![GitHub license](https://img.shields.io/badge/license-Apache%202-blue.svg)](https://raw.githubusercontent.com/JimBobSquarePants/ImageSharp/master/APACHE-2.0-LICENSE.txt)
 [![GitHub issues](https://img.shields.io/github/issues/JimBobSquarePants/ImageSharp.svg)](https://github.com/JimBobSquarePants/ImageSharp/issues)
@@ -69,7 +73,9 @@ There's plenty there and more coming. Check out the [current features](features.
 
 ### API 
 
-Without the constraints of `System.Drawing` We have been able to develop something much more flexible, easier to code against, and much, much less prone to memory leaks. Gone are system-wide process-locks. Images and processors are thread safe usable in parallel processing utilizing all the availables cores. 
+Without the constraints of `System.Drawing` We have been able to develop something much more flexible, easier to code against, and much, much less prone to memory leaks.
+
+Gone are system-wide process-locks; ImageSharp images are thread-safe and fully supported in web environments.
 
 Many `Image` methods are also fluent.
 

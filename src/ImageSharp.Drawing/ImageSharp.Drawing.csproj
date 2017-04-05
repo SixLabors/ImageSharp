@@ -40,7 +40,7 @@
       <PrivateAssets>All</PrivateAssets>
     </PackageReference>
     <PackageReference Include="SixLabors.Fonts" Version="0.1.0-alpha0002" />
-    <PackageReference Include="SixLabors.Shapes" Version="0.1.0-alpha0009" />
+    <PackageReference Include="SixLabors.Shapes" Version="0.1.0-alpha0010" />
   </ItemGroup>
   <PropertyGroup>
     <CodeAnalysisRuleSet>..\..\ImageSharp.ruleset</CodeAnalysisRuleSet>

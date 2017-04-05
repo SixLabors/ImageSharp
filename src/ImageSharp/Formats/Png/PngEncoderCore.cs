@@ -516,9 +516,14 @@ namespace ImageSharp.Formats
                     colorTable[offset + 1] = bytes[1];
                     colorTable[offset + 2] = bytes[2];
 
-                    if (alpha <= this.options.Threshold)
+                    if (alpha < 255 && alpha <= this.options.Threshold)
                     {
-                        transparentPixels.Add((byte)offset);
+                        // Ensure the index is actually being used in our array.
+                        // I'd like to find a faster way of doing this.
+                        if (quantized.Pixels.Contains((byte)i))
+                        {
+                            transparentPixels.Add((byte)i);
+                        }
                     }
                 }
 

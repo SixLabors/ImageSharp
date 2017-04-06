@@ -1,7 +1,7 @@
 
 # <img src="https://github.com/JimBobSquarePants/ImageSharp/blob/master/build/icons/imagesharp-logo-256.png" alt="ImageSharp" width="52"/> ImageSharp
 
-**ImageSharp** is a new ImageSharp is a fully featured, fully managed, cross-platform, 2D graphics API designed to allow the processing of images without the use of `System.Drawing`. 
+**ImageSharp** is a new, fully featured, fully managed, cross-platform, 2D graphics API designed to allow the processing of images without the use of `System.Drawing`. 
 
 Built against .Net Standard 1.1 ImageSharp can be used in device, cloud, and embedded/IoT scenarios. 
 

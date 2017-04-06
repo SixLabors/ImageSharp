@@ -7,9 +7,11 @@ namespace ImageSharp.Tests
 {
     using System;
     using System.Collections;
+    using System.Collections.Generic;
     using System.IO;
     using System.Linq;
     using System.Text;
+    using ImageSharp.Processing;
     using Xunit;
 
     public class ExifProfileTests
@@ -265,6 +267,26 @@ namespace ImageSharp.Tests
             using (MemoryStream memStream = new MemoryStream())
             {
                 Assert.Throws<ImageFormatException>(() => image.SaveAsJpeg(memStream));
+            }
+        }
+
+        [Fact]
+        public void ExifTypeUndefined()
+        {
+            Image image = TestFile.Create(TestImages.Jpeg.Baseline.Bad.ExifUndefType).CreateImage();
+            Assert.NotNull(image);
+
+            ExifProfile profile = image.MetaData.ExifProfile;
+            Assert.NotNull(profile);
+
+            IEnumerator<ExifValue> enumerator = profile.Values.GetEnumerator();
+            while (enumerator.MoveNext())
+            {
+                ExifValue entry = enumerator.Current;
+                if (entry.DataType == ExifDataType.Undefined)
+                {
+                    Assert.NotEqual(0, entry.NumberOfComponents);
+                }
             }
         }
 

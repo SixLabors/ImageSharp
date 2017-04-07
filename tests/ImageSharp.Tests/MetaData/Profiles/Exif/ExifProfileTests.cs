@@ -7,11 +7,9 @@ namespace ImageSharp.Tests
 {
     using System;
     using System.Collections;
-    using System.Collections.Generic;
     using System.IO;
     using System.Linq;
     using System.Text;
-    using ImageSharp.Processing;
     using Xunit;
 
     public class ExifProfileTests
@@ -279,13 +277,11 @@ namespace ImageSharp.Tests
             ExifProfile profile = image.MetaData.ExifProfile;
             Assert.NotNull(profile);
 
-            IEnumerator<ExifValue> enumerator = profile.Values.GetEnumerator();
-            while (enumerator.MoveNext())
+            foreach (ExifValue value in profile.Values)
             {
-                ExifValue entry = enumerator.Current;
-                if (entry.DataType == ExifDataType.Undefined)
+                if (value.DataType == ExifDataType.Undefined)
                 {
-                    Assert.NotEqual(0, entry.NumberOfComponents);
+                    Assert.Equal(4, value.NumberOfComponents);
                 }
             }
         }

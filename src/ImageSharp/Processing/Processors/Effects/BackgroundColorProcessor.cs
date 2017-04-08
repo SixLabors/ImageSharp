@@ -77,7 +77,7 @@ namespace ImageSharp.Processing.Processors
                                 color = Vector4BlendTransforms.PremultipliedLerp(backgroundColor, color, .5F);
                             }
 
-                            if (Math.Abs(a) < Constants.Epsilon)
+                            if (MathF.Abs(a) < Constants.Epsilon)
                             {
                                 color = backgroundColor;
                             }

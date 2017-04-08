@@ -127,8 +127,8 @@ namespace ImageSharp
             vector += Round;
             vector = Vector4.Clamp(vector, Vector4.Zero, MaxBytes);
 
-            bytes[startIndex] = (byte)(float)Math.Round(vector.X);
-            bytes[startIndex + 1] = (byte)(float)Math.Round(vector.Y);
+            bytes[startIndex] = (byte)MathF.Round(vector.X);
+            bytes[startIndex + 1] = (byte)MathF.Round(vector.Y);
             bytes[startIndex + 2] = 0;
         }
 
@@ -143,8 +143,8 @@ namespace ImageSharp
             vector += Round;
             vector = Vector4.Clamp(vector, Vector4.Zero, MaxBytes);
 
-            bytes[startIndex] = (byte)(float)Math.Round(vector.X);
-            bytes[startIndex + 1] = (byte)(float)Math.Round(vector.Y);
+            bytes[startIndex] = (byte)MathF.Round(vector.X);
+            bytes[startIndex + 1] = (byte)MathF.Round(vector.Y);
             bytes[startIndex + 2] = 0;
             bytes[startIndex + 3] = 255;
         }
@@ -161,8 +161,8 @@ namespace ImageSharp
             vector = Vector4.Clamp(vector, Vector4.Zero, MaxBytes);
 
             bytes[startIndex] = 0;
-            bytes[startIndex + 1] = (byte)(float)Math.Round(vector.Y);
-            bytes[startIndex + 2] = (byte)(float)Math.Round(vector.X);
+            bytes[startIndex + 1] = (byte)MathF.Round(vector.Y);
+            bytes[startIndex + 2] = (byte)MathF.Round(vector.X);
         }
 
         /// <inheritdoc />
@@ -177,8 +177,8 @@ namespace ImageSharp
             vector = Vector4.Clamp(vector, Vector4.Zero, MaxBytes);
 
             bytes[startIndex] = 0;
-            bytes[startIndex + 1] = (byte)(float)Math.Round(vector.Y);
-            bytes[startIndex + 2] = (byte)(float)Math.Round(vector.X);
+            bytes[startIndex + 1] = (byte)MathF.Round(vector.Y);
+            bytes[startIndex + 2] = (byte)MathF.Round(vector.X);
             bytes[startIndex + 3] = 255;
         }
 
@@ -237,8 +237,8 @@ namespace ImageSharp
 
             // Clamp the value between min and max values
             // Round rather than truncate.
-            uint word2 = (uint)((int)(float)Math.Round(x * MaxPos).Clamp(MinNeg, MaxPos) & 0xFFFF);
-            uint word1 = (uint)(((int)(float)Math.Round(y * MaxPos).Clamp(MinNeg, MaxPos) & 0xFFFF) << 0x10);
+            uint word2 = (uint)((int)MathF.Round(x * MaxPos).Clamp(MinNeg, MaxPos) & 0xFFFF);
+            uint word1 = (uint)(((int)MathF.Round(y * MaxPos).Clamp(MinNeg, MaxPos) & 0xFFFF) << 0x10);
 
             return word2 | word1;
         }

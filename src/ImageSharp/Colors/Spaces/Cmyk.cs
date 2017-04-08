@@ -93,9 +93,9 @@ namespace ImageSharp.Colors.Spaces
             float m = 1f - (color.G / 255F);
             float y = 1f - (color.B / 255F);
 
-            float k = Math.Min(c, Math.Min(m, y));
+            float k = MathF.Min(c, MathF.Min(m, y));
 
-            if (Math.Abs(k - 1.0f) <= Constants.Epsilon)
+            if (MathF.Abs(k - 1.0f) <= Constants.Epsilon)
             {
                 return new Cmyk(0, 0, 0, 1);
             }

@@ -27,7 +27,7 @@ namespace ImageSharp.Tests.Drawing
         [InlineData(false, 16, 4)] // we always do 4 sub=pixels when antialising is off.
         public void MinimumAntialiasSubpixelDepth(bool antialias, int antialiasSubpixelDepth, int expectedAntialiasSubpixelDepth)
         {
-            var bounds = new ImageSharp.Rectangle(0, 0, 1, 1);
+            ImageSharp.Rectangle bounds = new ImageSharp.Rectangle(0, 0, 1, 1);
 
             Mock<IBrush<Color>> brush = new Mock<IBrush<Color>>();
             Mock<Region> region = new Mock<Region>();

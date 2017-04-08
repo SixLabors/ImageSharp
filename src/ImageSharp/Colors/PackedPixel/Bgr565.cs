@@ -110,9 +110,9 @@ namespace ImageSharp
         public void ToXyzBytes(byte[] bytes, int startIndex)
         {
             Vector4 vector = this.ToVector4() * 255F;
-            bytes[startIndex] = (byte)(float)Math.Round(vector.X);
-            bytes[startIndex + 1] = (byte)(float)Math.Round(vector.Y);
-            bytes[startIndex + 2] = (byte)(float)Math.Round(vector.Z);
+            bytes[startIndex] = (byte)MathF.Round(vector.X);
+            bytes[startIndex + 1] = (byte)MathF.Round(vector.Y);
+            bytes[startIndex + 2] = (byte)MathF.Round(vector.Z);
         }
 
         /// <inheritdoc />
@@ -120,10 +120,10 @@ namespace ImageSharp
         public void ToXyzwBytes(byte[] bytes, int startIndex)
         {
             Vector4 vector = this.ToVector4() * 255F;
-            bytes[startIndex] = (byte)(float)Math.Round(vector.X);
-            bytes[startIndex + 1] = (byte)(float)Math.Round(vector.Y);
-            bytes[startIndex + 2] = (byte)(float)Math.Round(vector.Z);
-            bytes[startIndex + 3] = (byte)(float)Math.Round(vector.W);
+            bytes[startIndex] = (byte)MathF.Round(vector.X);
+            bytes[startIndex + 1] = (byte)MathF.Round(vector.Y);
+            bytes[startIndex + 2] = (byte)MathF.Round(vector.Z);
+            bytes[startIndex + 3] = (byte)MathF.Round(vector.W);
         }
 
         /// <inheritdoc />
@@ -131,9 +131,9 @@ namespace ImageSharp
         public void ToZyxBytes(byte[] bytes, int startIndex)
         {
             Vector4 vector = this.ToVector4() * 255F;
-            bytes[startIndex] = (byte)(float)Math.Round(vector.Z);
-            bytes[startIndex + 1] = (byte)(float)Math.Round(vector.Y);
-            bytes[startIndex + 2] = (byte)(float)Math.Round(vector.X);
+            bytes[startIndex] = (byte)MathF.Round(vector.Z);
+            bytes[startIndex + 1] = (byte)MathF.Round(vector.Y);
+            bytes[startIndex + 2] = (byte)MathF.Round(vector.X);
         }
 
         /// <inheritdoc />
@@ -141,10 +141,10 @@ namespace ImageSharp
         public void ToZyxwBytes(byte[] bytes, int startIndex)
         {
             Vector4 vector = this.ToVector4() * 255F;
-            bytes[startIndex] = (byte)(float)Math.Round(vector.Z);
-            bytes[startIndex + 1] = (byte)(float)Math.Round(vector.Y);
-            bytes[startIndex + 2] = (byte)(float)Math.Round(vector.X);
-            bytes[startIndex + 3] = (byte)(float)Math.Round(vector.W);
+            bytes[startIndex] = (byte)MathF.Round(vector.Z);
+            bytes[startIndex + 1] = (byte)MathF.Round(vector.Y);
+            bytes[startIndex + 2] = (byte)MathF.Round(vector.X);
+            bytes[startIndex + 3] = (byte)MathF.Round(vector.W);
         }
 
         /// <inheritdoc />

@@ -268,6 +268,24 @@ namespace ImageSharp.Tests
             }
         }
 
+        [Fact]
+        public void ExifTypeUndefined()
+        {
+            Image image = TestFile.Create(TestImages.Jpeg.Baseline.Bad.ExifUndefType).CreateImage();
+            Assert.NotNull(image);
+
+            ExifProfile profile = image.MetaData.ExifProfile;
+            Assert.NotNull(profile);
+
+            foreach (ExifValue value in profile.Values)
+            {
+                if (value.DataType == ExifDataType.Undefined)
+                {
+                    Assert.Equal(4, value.NumberOfComponents);
+                }
+            }
+        }
+
         private static ExifProfile GetExifProfile()
         {
             Image image = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan).CreateImage();

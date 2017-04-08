@@ -201,6 +201,21 @@ namespace ImageSharp.Tests.Common
             }
         }
 
+        [Theory]
+        [InlineData(0, 4)]
+        [InlineData(2, 4)]
+        [InlineData(3, 4)]
+        public void DangerousGetPinnableReference(int start, int length)
+        {
+            Foo[] a = Foo.CreateArray(length);
+            fixed (Foo* p = a)
+            {
+                BufferSpan<Foo> span = new BufferSpan<Foo>(a, p, start);
+                ref Foo r = ref span.DangerousGetPinnableReference();
+
+                Assert.True(Unsafe.AreSame(ref a[start], ref r));
+            }
+        }
 
         public class Copy
         {

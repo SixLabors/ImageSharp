@@ -159,6 +159,14 @@ namespace ImageSharp
         }
 
         /// <summary>
+        /// Returns a reference to the 0th element of the Span. If the Span is empty, returns a reference to the location where the 0th element
+        /// would have been stored. Such a reference can be used for pinning but must never be dereferenced.
+        /// </summary>
+        /// <returns>The reference to the 0th element</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public ref T DangerousGetPinnableReference() => ref Unsafe.AsRef<T>((void*)this.PointerAtOffset);
+
+        /// <summary>
         /// Forms a slice out of the given BufferSpan, beginning at 'start'.
         /// </summary>
         /// <param name="start">TThe index at which to begin this slice.</param>

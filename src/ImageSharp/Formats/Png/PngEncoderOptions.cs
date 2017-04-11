@@ -58,11 +58,6 @@ namespace ImageSharp.Formats
         public IQuantizer Quantizer { get; set; }
 
         /// <summary>
-        /// Gets or sets the transparency threshold.
-        /// </summary>
-        public byte Threshold { get; set; } = 0;
-
-        /// <summary>
         /// Gets or sets a value indicating whether this instance should write
         /// gamma information to the stream. The default value is false.
         /// </summary>

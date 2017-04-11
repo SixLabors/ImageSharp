@@ -59,6 +59,46 @@ namespace ImageSharp.Tests.Formats.Png
         }
 
         [Theory]
+        [WithTestPatternImages(100, 100, PixelTypes.Color)]
+        public void CanSaveIndexedPngTwice<TColor>(TestImageProvider<TColor> provider)
+            where TColor : struct, IPixel<TColor>
+        {
+            // does saving a file then repoening mean both files are identical???
+            using (Image<TColor> source = provider.GetImage())
+            using (MemoryStream ms = new MemoryStream())
+            {
+                // image.Save(provider.Utility.GetTestOutputFileName("bmp"));
+                source.MetaData.Quality = 256;
+                source.Save(ms, new PngEncoder());
+                ms.Position = 0;
+                using (Image img1 = Image.Load(ms, new PngDecoder()))
+                {
+                    using (MemoryStream ms2 = new MemoryStream())
+                    {
+                        img1.Save(ms2, new PngEncoder());
+                        ms2.Position = 0;
+                        using (Image img2 = Image.Load(ms2, new PngDecoder()))
+                        {
+                            using (PixelAccessor<Color> pixels1 = img1.Lock())
+                            using (PixelAccessor<Color> pixels2 = img2.Lock())
+                            {
+                                for (int y = 0; y < img1.Height; y++)
+                                {
+                                    for (int x = 0; x < img1.Width; x++)
+                                    {
+                                        Assert.Equal(pixels1[x, y], pixels2[x, y]);
+                                    }
+                                }
+                            }
+                            // img2.Save(provider.Utility.GetTestOutputFileName("bmp", "_loaded"), new BmpEncoder());
+                            ImageComparer.CheckSimilarity(source, img2);
+                        }
+                    }
+                }
+            }
+        }
+
+        [Theory]
         [WithTestPatternImages(300, 300, PixelTypes.All)]
         public void Resize<TColor>(TestImageProvider<TColor> provider)
             where TColor : struct, IPixel<TColor>

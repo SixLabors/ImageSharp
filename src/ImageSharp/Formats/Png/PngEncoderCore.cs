@@ -529,17 +529,18 @@ namespace ImageSharp.Formats
                 }
 
                 this.WriteChunk(stream, PngChunkTypes.Palette, colorTable, 0, colorTableLength);
+
+                // Write the transparency data
+                if (anyAlpha)
+                {
+                    this.WriteChunk(stream, PngChunkTypes.PaletteAlpha, alphaTable, 0, pixelCount);
+                }
             }
             finally
             {
                 ArrayPool<byte>.Shared.Return(colorTable);
+                ArrayPool<byte>.Shared.Return(alphaTable);
                 ArrayPool<byte>.Shared.Return(bytes);
-            }
-
-            // Write the transparency data
-            if (anyAlpha)
-            {
-                this.WriteChunk(stream, PngChunkTypes.PaletteAlpha, alphaTable, 0, pixelCount);
             }
 
             return quantized;

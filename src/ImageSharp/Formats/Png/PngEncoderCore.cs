@@ -495,7 +495,7 @@ namespace ImageSharp.Formats
 
             // Grab the palette and write it to the stream.
             TColor[] palette = quantized.Palette;
-            byte pixelCount = (byte)palette.Length;
+            byte pixelCount = palette.Length.ToByte();
 
             // Get max colors for bit depth.
             int colorTableLength = (int)Math.Pow(2, header.BitDepth) * 3;
@@ -517,6 +517,11 @@ namespace ImageSharp.Formats
                         colorTable[offset] = bytes[0];
                         colorTable[offset + 1] = bytes[1];
                         colorTable[offset + 2] = bytes[2];
+
+                        if (alpha > this.options.Threshold)
+                        {
+                            alpha = 255;
+                        }
 
                         anyAlpha = anyAlpha || alpha < 255;
                         alphaTable[i] = alpha;

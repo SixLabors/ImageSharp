@@ -495,50 +495,52 @@ namespace ImageSharp.Formats
 
             // Grab the palette and write it to the stream.
             TColor[] palette = quantized.Palette;
-            int pixelCount = palette.Length;
-            List<byte> transparentPixels = new List<byte>();
+            byte pixelCount = palette.Length.ToByte();
 
             // Get max colors for bit depth.
             int colorTableLength = (int)Math.Pow(2, header.BitDepth) * 3;
             byte[] colorTable = ArrayPool<byte>.Shared.Rent(colorTableLength);
+            byte[] alphaTable = ArrayPool<byte>.Shared.Rent(pixelCount);
             byte[] bytes = ArrayPool<byte>.Shared.Rent(4);
-
+            bool anyAlpha = false;
             try
             {
-                for (int i = 0; i < pixelCount; i++)
+                for (byte i = 0; i < pixelCount; i++)
                 {
-                    int offset = i * 3;
-                    palette[i].ToXyzwBytes(bytes, 0);
-
-                    int alpha = bytes[3];
-
-                    colorTable[offset] = bytes[0];
-                    colorTable[offset + 1] = bytes[1];
-                    colorTable[offset + 2] = bytes[2];
-
-                    if (alpha < 255 && alpha <= this.options.Threshold)
+                    if (quantized.Pixels.Contains(i))
                     {
-                        // Ensure the index is actually being used in our array.
-                        // I'd like to find a faster way of doing this.
-                        if (quantized.Pixels.Contains((byte)i))
+                        int offset = i * 3;
+                        palette[i].ToXyzwBytes(bytes, 0);
+
+                        byte alpha = bytes[3];
+
+                        colorTable[offset] = bytes[0];
+                        colorTable[offset + 1] = bytes[1];
+                        colorTable[offset + 2] = bytes[2];
+
+                        if (alpha > this.options.Threshold)
                         {
-                            transparentPixels.Add((byte)i);
+                            alpha = 255;
                         }
+
+                        anyAlpha = anyAlpha || alpha < 255;
+                        alphaTable[i] = alpha;
                     }
                 }
 
                 this.WriteChunk(stream, PngChunkTypes.Palette, colorTable, 0, colorTableLength);
+
+                // Write the transparency data
+                if (anyAlpha)
+                {
+                    this.WriteChunk(stream, PngChunkTypes.PaletteAlpha, alphaTable, 0, pixelCount);
+                }
             }
             finally
             {
                 ArrayPool<byte>.Shared.Return(colorTable);
+                ArrayPool<byte>.Shared.Return(alphaTable);
                 ArrayPool<byte>.Shared.Return(bytes);
-            }
-
-            // Write the transparency data
-            if (transparentPixels.Any())
-            {
-                this.WriteChunk(stream, PngChunkTypes.PaletteAlpha, transparentPixels.ToArray());
             }
 
             return quantized;

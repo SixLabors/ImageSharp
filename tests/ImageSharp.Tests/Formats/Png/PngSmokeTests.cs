@@ -13,6 +13,7 @@ namespace ImageSharp.Tests.Formats.Png
     using ImageSharp.Formats;
     using System.Linq;
     using ImageSharp.IO;
+    using System.Numerics;
 
     public class PngSmokeTests
     {
@@ -67,15 +68,19 @@ namespace ImageSharp.Tests.Formats.Png
             using (Image<TColor> source = provider.GetImage())
             using (MemoryStream ms = new MemoryStream())
             {
-                // image.Save(provider.Utility.GetTestOutputFileName("bmp"));
                 source.MetaData.Quality = 256;
-                source.Save(ms, new PngEncoder());
+                source.Save(ms, new PngEncoder(), new PngEncoderOptions {
+                    Threshold = 200
+                });
                 ms.Position = 0;
                 using (Image img1 = Image.Load(ms, new PngDecoder()))
                 {
                     using (MemoryStream ms2 = new MemoryStream())
                     {
-                        img1.Save(ms2, new PngEncoder());
+                        img1.Save(ms2, new PngEncoder(), new PngEncoderOptions
+                        {
+                            Threshold = 200
+                        });
                         ms2.Position = 0;
                         using (Image img2 = Image.Load(ms2, new PngDecoder()))
                         {
@@ -90,8 +95,6 @@ namespace ImageSharp.Tests.Formats.Png
                                     }
                                 }
                             }
-                            // img2.Save(provider.Utility.GetTestOutputFileName("bmp", "_loaded"), new BmpEncoder());
-                            ImageComparer.CheckSimilarity(source, img2);
                         }
                     }
                 }

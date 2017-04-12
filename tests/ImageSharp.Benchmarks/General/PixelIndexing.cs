@@ -24,12 +24,15 @@
 
             private Pinnable<Vector4> pinnable;
 
+            private Vector4[] array;
+
             private int width;
 
             public Data(PinnedImageBuffer<Vector4> buffer)
             {
                 this.pointer = (Vector4*)buffer.Pointer;
                 this.pinnable = Unsafe.As<Pinnable<Vector4>>(buffer.Array);
+                this.array = buffer.Array;
                 this.width = buffer.Width;
             }
 
@@ -69,21 +72,37 @@
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public void IndexWithPointersSrcsUnsafeImpl(int x, int y, Vector4 v)
             {
+                // incorrect, because also should add byte offset here
                 Unsafe.Write((byte*)this.pointer + (((y * this.width) + x) * Unsafe.SizeOf<Vector4>()), v);
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public void IndexWithReferencesImpl(int x, int y, Vector4 v)
+            public void IndexWithReferencesOnPinnableIncorrectImpl(int x, int y, Vector4 v)
             {
                 int elementOffset = (y * this.width) + x;
+                // incorrect, because also should add byte offset here
                 Unsafe.Add(ref this.pinnable.Data, elementOffset) = v;
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public ref Vector4 IndexWithReferencesRefReturnImpl(int x, int y)
+            public ref Vector4 IndexWithReferencesOnPinnableIncorrectRefReturnImpl(int x, int y)
             {
                 int elementOffset = (y * this.width) + x;
                 return ref Unsafe.Add(ref this.pinnable.Data, elementOffset);
+            }
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public void IndexWithReferencesOnArrayImpl(int x, int y, Vector4 v)
+            {
+                int elementOffset = (y * this.width) + x;
+                Unsafe.Add(ref this.array[0], elementOffset) = v;
+            }
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public ref Vector4 IndexWithReferencesOnArrayRefReturnImpl(int x, int y)
+            {
+                int elementOffset = (y * this.width) + x;
+                return ref Unsafe.Add(ref this.array[0], elementOffset);
             }
         }
 
@@ -101,7 +120,7 @@
 
         protected Pinnable<Vector4> pinnable;
 
-        [Params(64, 256, 1024)]
+        [Params(1024)]
         public int Count { get; set; }
 
         [Setup]
@@ -169,7 +188,7 @@
             return sum;
         }
 
-        [Benchmark(Description = "Index.Get: References+refreturns")]
+        [Benchmark(Description = "Index.Get: References|refreturns")]
         public Vector4 IndexWithReferencesRefReturns()
         {
             Vector4 sum = Vector4.Zero;
@@ -186,7 +205,7 @@
 
     public unsafe class PixelIndexingSetter : PixelIndexing
     {
-        [Benchmark(Description = "Index.Set: Pointers+arithmetics", Baseline = true)]
+        [Benchmark(Description = "Index.Set: Pointers|arithmetics", Baseline = true)]
         public void IndexWithPointersBasic()
         {
             Vector4 v = new Vector4(1, 2, 3, 4);
@@ -198,7 +217,7 @@
             }
         }
 
-        [Benchmark(Description = "Index.Set: Pointers+SRCS.Unsafe")]
+        [Benchmark(Description = "Index.Set: Pointers|SRCS.Unsafe")]
         public void IndexWithPointersSrcsUnsafe()
         {
             Vector4 v = new Vector4(1, 2, 3, 4);
@@ -210,29 +229,54 @@
             }
         }
 
-        [Benchmark(Description = "Index.Set: References")]
-        public void IndexWithReferencesBasic()
+        [Benchmark(Description = "Index.Set: References|IncorrectPinnable")]
+        public void IndexWithReferencesPinnableBasic()
         {
             Vector4 v = new Vector4(1, 2, 3, 4);
             Data data = new Data(this.buffer);
 
             for (int i = this.startIndex; i < this.endIndex; i++)
             {
-                data.IndexWithReferencesImpl(i, i, v);
+                data.IndexWithReferencesOnPinnableIncorrectImpl(i, i, v);
             }
         }
 
-        [Benchmark(Description = "Index.Set: References+refreturn")]
-        public void IndexWithReferencesRefReturn()
+        [Benchmark(Description = "Index.Set: References|IncorrectPinnable|refreturn")]
+        public void IndexWithReferencesPinnableRefReturn()
         {
             Vector4 v = new Vector4(1, 2, 3, 4);
             Data data = new Data(this.buffer);
 
             for (int i = this.startIndex; i < this.endIndex; i++)
             {
-                data.IndexWithReferencesRefReturnImpl(i, i) = v;
+                data.IndexWithReferencesOnPinnableIncorrectRefReturnImpl(i, i) = v;
             }
         }
 
+
+
+        [Benchmark(Description = "Index.Set: References|Array[0]")]
+        public void IndexWithReferencesArrayBasic()
+        {
+            Vector4 v = new Vector4(1, 2, 3, 4);
+            Data data = new Data(this.buffer);
+
+            for (int i = this.startIndex; i < this.endIndex; i++)
+            {
+                data.IndexWithReferencesOnArrayImpl(i, i, v);
+            }
+        }
+
+        [Benchmark(Description = "Index.Set: References|Array[0]|refreturn")]
+        public void IndexWithReferencesArrayRefReturn()
+        {
+            Vector4 v = new Vector4(1, 2, 3, 4);
+            Data data = new Data(this.buffer);
+
+            for (int i = this.startIndex; i < this.endIndex; i++)
+            {
+                data.IndexWithReferencesOnArrayRefReturnImpl(i, i) = v;
+            }
+        }
     }
 }

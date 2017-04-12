@@ -64,26 +64,34 @@ namespace ImageSharp
             if (PerTypeValues<TDest>.IsPrimitiveType)
             {
                 Buffer.BlockCopy(source.Array, source.ByteOffset, destination.Array, destination.ByteOffset, byteCount);
+                return;
             }
-            else if (byteCount > ByteCountThreshold)
-            {
-                ref byte destRef = ref Unsafe.As<TDest, byte>(ref destination.DangerousGetPinnableReference());
 
-                fixed (void* pinnedPtr = &destRef)
-                {
-                    Marshal.Copy(source.Array, source.Start, (IntPtr)pinnedPtr, byteCount);
-                }
-            }
-            else
+            ref byte destRef = ref Unsafe.As<TDest, byte>(ref destination.DangerousGetPinnableReference());
+
+            fixed (void* pinnedDest = &destRef)
             {
+#if !NETSTANDARD1_1
                 ref byte srcRef = ref source.DangerousGetPinnableReference();
-                ref byte destRef = ref Unsafe.As<TDest, byte>(ref destination.DangerousGetPinnableReference());
+                fixed (void* pinnedSrc = &srcRef)
+                {
+                    Buffer.MemoryCopy(pinnedSrc, pinnedDest, byteCount, byteCount);
+                    return;
+                }
+#else
+                if (byteCount > ByteCountThreshold)
+                {
+                    IntPtr ptr = (IntPtr)pinnedDest;
+                    Marshal.Copy(source.Array, source.Start, ptr, byteCount);
+                }
+
+                ref byte srcRef = ref source.DangerousGetPinnableReference();
 
                 fixed (void* pinnedSrc = &srcRef)
-                fixed (void* pinnedDest = &destRef)
                 {
-                    Unsafe.CopyBlock(pinnedDest, pinnedSrc, (uint)byteCount);
+                    Unsafe.CopyBlock(pinnedSrc, pinnedDest, (uint)byteCount);
                 }
+#endif
             }
         }
 
@@ -113,48 +121,59 @@ namespace ImageSharp
             where T : struct
             where TDest : struct
         {
-            // TODO: Refactor this method when Unsafe.CopyBlock(ref T, ref T) gets available!
+            // TODO: Use Unsafe.CopyBlock(ref T, ref T) for small buffers when it gets available!
             int byteCount = SizeOf<T>(countInSource);
 
             if (PerTypeValues<T>.IsPrimitiveType && PerTypeValues<TDest>.IsPrimitiveType)
             {
                 Buffer.BlockCopy(source.Array, source.ByteOffset, destination.Array, destination.ByteOffset, byteCount);
+                return;
             }
-            else if (byteCount > ByteCountThreshold)
-            {
-                ref byte destRef = ref Unsafe.As<TDest, byte>(ref destination.DangerousGetPinnableReference());
 
-                fixed (void* pinnedPtr = &destRef)
+            ref byte destRef = ref Unsafe.As<TDest, byte>(ref destination.DangerousGetPinnableReference());
+
+            fixed (void* pinnedDest = &destRef)
+            {
+#if !NETSTANDARD1_1
+                ref byte srcRef = ref Unsafe.As<T, byte>(ref source.DangerousGetPinnableReference());
+                fixed (void* pinnedSrc = &srcRef)
                 {
-                    IntPtr ptr = (IntPtr)pinnedPtr;
+                    Buffer.MemoryCopy(pinnedSrc, pinnedDest, byteCount, byteCount);
+                    return;
+                }
+#else
+                if (byteCount > ByteCountThreshold)
+                {
+                    IntPtr ptr = (IntPtr)pinnedDest;
                     if (Unsafe.SizeOf<T>() == sizeof(long))
                     {
                         Marshal.Copy(Unsafe.As<long[]>(source.Array), source.Start, ptr, countInSource);
+                        return;
                     }
                     else if (Unsafe.SizeOf<T>() == sizeof(int))
                     {
                         Marshal.Copy(Unsafe.As<int[]>(source.Array), source.Start, ptr, countInSource);
+                        return;
                     }
                     else if (Unsafe.SizeOf<T>() == sizeof(short))
                     {
                         Marshal.Copy(Unsafe.As<short[]>(source.Array), source.Start, ptr, countInSource);
+                        return;
                     }
                     else if (Unsafe.SizeOf<T>() == sizeof(byte))
                     {
                         Marshal.Copy(Unsafe.As<byte[]>(source.Array), source.Start, ptr, countInSource);
+                        return;
                     }
                 }
-            }
-            else
-            {
+
                 ref byte srcRef = ref Unsafe.As<T, byte>(ref source.DangerousGetPinnableReference());
-                ref byte destRef = ref Unsafe.As<TDest, byte>(ref destination.DangerousGetPinnableReference());
 
                 fixed (void* pinnedSrc = &srcRef)
-                fixed (void* pinnedDest = &destRef)
                 {
-                    Unsafe.CopyBlock(pinnedDest, pinnedSrc, (uint)byteCount);
+                    Unsafe.CopyBlock(pinnedSrc, pinnedDest, (uint)byteCount);
                 }
+#endif
             }
         }
 

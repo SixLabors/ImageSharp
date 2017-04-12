@@ -93,17 +93,35 @@
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public void IndexWithReferencesOnArrayImpl(int x, int y, Vector4 v)
+            public void IndexWithUnsafeReferenceArithmeticsOnArray0Impl(int x, int y, Vector4 v)
             {
                 int elementOffset = (y * this.width) + x;
                 Unsafe.Add(ref this.array[0], elementOffset) = v;
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public ref Vector4 IndexWithReferencesOnArrayRefReturnImpl(int x, int y)
+            public ref Vector4 IndexWithUnsafeReferenceArithmeticsOnArray0RefReturnImpl(int x, int y)
             {
                 int elementOffset = (y * this.width) + x;
                 return ref Unsafe.Add(ref this.array[0], elementOffset);
+            }
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public void IndexSetArrayStraightforward(int x, int y, Vector4 v)
+            {
+                // No magic.
+                // We just index right into the array as normal people do.
+                // And it looks like this is the fastest way!
+                this.array[(y * this.width) + x] = v;
+            }
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public ref Vector4 IndexWithReferencesOnArrayStraightforwardRefReturnImpl(int x, int y)
+            {
+                // No magic.
+                // We just index right into the array as normal people do.
+                // And it looks like this is the fastest way!
+                return ref this.array[(y * this.width) + x];
             }
         }
 
@@ -209,7 +227,7 @@
 
     public class PixelIndexingSetter : PixelIndexing
     {
-        [Benchmark(Description = "Index.Set: Pointers|arithmetics", Baseline = true)]
+        [Benchmark(Description = "!!! Index.Set: Pointers|arithmetics", Baseline = true)]
         public void IndexWithPointersBasic()
         {
             Vector4 v = new Vector4(1, 2, 3, 4);
@@ -261,7 +279,7 @@
             }
         }
 
-        [Benchmark(Description = "Index.Set: References|Array[0]")]
+        [Benchmark(Description = "Index.Set: References|Array[0]Unsafe")]
         public void IndexWithReferencesArrayBasic()
         {
             Vector4 v = new Vector4(1, 2, 3, 4);
@@ -270,11 +288,11 @@
             int y = this.startIndex;
             for (int x = this.startIndex; x < this.endIndex; x++)
             {
-                data.IndexWithReferencesOnArrayImpl(x, y, v);
+                data.IndexWithUnsafeReferenceArithmeticsOnArray0Impl(x, y, v);
             }
         }
 
-        [Benchmark(Description = "Index.Set: References|Array[0]|refreturn")]
+        [Benchmark(Description = "Index.Set: References|Array[0]Unsafe|refreturn")]
         public void IndexWithReferencesArrayRefReturn()
         {
             Vector4 v = new Vector4(1, 2, 3, 4);
@@ -283,11 +301,44 @@
             int y = this.startIndex;
             for (int x = this.startIndex; x < this.endIndex; x++)
             {
-                data.IndexWithReferencesOnArrayRefReturnImpl(x, y) = v;
+                data.IndexWithUnsafeReferenceArithmeticsOnArray0RefReturnImpl(x, y) = v;
             }
         }
 
-        [Benchmark(Description = "Index.Set: SmartUnsafe")]
+        [Benchmark(Description = "!!! Index.Set: References|Array+Straight")]
+        public void IndexWithReferencesArrayStraightforward()
+        {
+            Vector4 v = new Vector4(1, 2, 3, 4);
+            Data data = new Data(this.buffer);
+
+            int y = this.startIndex;
+            for (int x = this.startIndex; x < this.endIndex; x++)
+            {
+                // No magic.
+                // We just index right into the array as normal people do.
+                // And it looks like this is the fastest way!
+                data.IndexSetArrayStraightforward(x, y, v);
+            }
+        }
+
+
+        [Benchmark(Description = "!!! Index.Set: References|Array+Straight|refreturn")]
+        public void IndexWithReferencesArrayStraightforwardRefReturn()
+        {
+            Vector4 v = new Vector4(1, 2, 3, 4);
+            Data data = new Data(this.buffer);
+            
+            int y = this.startIndex;
+            for (int x = this.startIndex; x < this.endIndex; x++)
+            {
+                // No magic.
+                // We just index right into the array as normal people do.
+                // And it looks like this is the fastest way!
+                data.IndexWithReferencesOnArrayStraightforwardRefReturnImpl(x, y) = v;
+            }
+        }
+
+        [Benchmark(Description = "!!! Index.Set: SmartUnsafe")]
         public void SmartUnsafe()
         {
             Vector4 v = new Vector4(1, 2, 3, 4);
@@ -296,7 +347,7 @@
             // This method is basically an unsafe variant of .GetRowSpan(y) + indexing individual pixels in the row.
             // If a user seriously needs by-pixel manipulation to be performant, we should provide this option.
             
-            ref Vector4 rowStart = ref data.IndexWithReferencesOnArrayRefReturnImpl(this.startIndex, this.startIndex);
+            ref Vector4 rowStart = ref data.IndexWithReferencesOnArrayStraightforwardRefReturnImpl(this.startIndex, this.startIndex);
 
             for (int i = 0; i < this.Count; i++)
             {

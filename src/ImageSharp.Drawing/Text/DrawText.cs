@@ -177,13 +177,14 @@ namespace ImageSharp
                 dpi = new Vector2((float)source.MetaData.HorizontalResolution, (float)source.MetaData.VerticalResolution);
             }
 
-            FontSpan style = new FontSpan(font)
+            FontSpan style = new FontSpan(font, dpi)
             {
                 ApplyKerning = options.ApplyKerning,
-                TabWidth = options.TabWidth
+                TabWidth = options.TabWidth,
+                WrappingWidth = options.WrapTextWidth
             };
 
-            renderer.RenderText(text, style, dpi);
+            renderer.RenderText(text, style);
 
             System.Collections.Generic.IEnumerable<SixLabors.Shapes.IPath> shapesToDraw = glyphBuilder.Paths;
 

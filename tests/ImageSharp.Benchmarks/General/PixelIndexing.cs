@@ -5,6 +5,7 @@
 
     using BenchmarkDotNet.Attributes;
 
+    // Pixel indexing benchmarks compare different methods for getting/setting all pixel values in a subsegment of a single pixel row.
     public abstract unsafe class PixelIndexing
     {
         /// <summary>
@@ -72,7 +73,6 @@
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public void IndexWithPointersSrcsUnsafeImpl(int x, int y, Vector4 v)
             {
-                // incorrect, because also should add byte offset here
                 Unsafe.Write((byte*)this.pointer + (((y * this.width) + x) * Unsafe.SizeOf<Vector4>()), v);
             }
 
@@ -80,7 +80,7 @@
             public void IndexWithReferencesOnPinnableIncorrectImpl(int x, int y, Vector4 v)
             {
                 int elementOffset = (y * this.width) + x;
-                // incorrect, because also should add byte offset here
+                // Incorrect, because also should add a runtime-specific byte offset here. See https://github.com/dotnet/corefx/blob/master/src/System.Memory/src/System/Span.cs#L68
                 Unsafe.Add(ref this.pinnable.Data, elementOffset) = v;
             }
 
@@ -88,6 +88,7 @@
             public ref Vector4 IndexWithReferencesOnPinnableIncorrectRefReturnImpl(int x, int y)
             {
                 int elementOffset = (y * this.width) + x;
+                // Incorrect, because also should add a runtime-specific byte offset here. See https://github.com/dotnet/corefx/blob/master/src/System.Memory/src/System/Span.cs#L68
                 return ref Unsafe.Add(ref this.pinnable.Data, elementOffset);
             }
 
@@ -120,8 +121,8 @@
 
         protected Pinnable<Vector4> pinnable;
 
-        [Params(1024)]
-        public int Count { get; set; }
+        // [Params(1024)]
+        public int Count { get; set; } = 1024;
 
         [Setup]
         public void Setup()
@@ -144,17 +145,17 @@
 
     }
 
-    public unsafe class PixelIndexingGetter : PixelIndexing
+    public class PixelIndexingGetter : PixelIndexing
     {
         [Benchmark(Description = "Index.Get: Pointers+arithmetics", Baseline = true)]
         public Vector4 IndexWithPointersBasic()
         {
             Vector4 sum = Vector4.Zero;
             Data data = new Data(this.buffer);
-
-            for (int i = this.startIndex; i < this.endIndex; i++)
+            int y = this.startIndex;
+            for (int x = this.startIndex; x < this.endIndex; x++)
             {
-                sum += data.GetPointersBasicImpl(i, i);
+                sum += data.GetPointersBasicImpl(x, y);
             }
 
             return sum;
@@ -166,9 +167,10 @@
             Vector4 sum = Vector4.Zero;
             Data data = new Data(this.buffer);
 
-            for (int i = this.startIndex; i < this.endIndex; i++)
+            int y = this.startIndex;
+            for (int x = this.startIndex; x < this.endIndex; x++)
             {
-                sum += data.GetPointersSrcsUnsafeImpl(i, i);
+                sum += data.GetPointersSrcsUnsafeImpl(x, y);
             }
 
             return sum;
@@ -180,9 +182,10 @@
             Vector4 sum = Vector4.Zero;
             Data data = new Data(this.buffer);
 
-            for (int i = this.startIndex; i < this.endIndex; i++)
+            int y = this.startIndex;
+            for (int x = this.startIndex; x < this.endIndex; x++)
             {
-                sum += data.GetReferencesImpl(i, i);
+                sum += data.GetReferencesImpl(x, y);
             }
 
             return sum;
@@ -194,16 +197,17 @@
             Vector4 sum = Vector4.Zero;
             Data data = new Data(this.buffer);
 
-            for (int i = this.startIndex; i < this.endIndex; i++)
+            int y = this.startIndex;
+            for (int x = this.startIndex; x < this.endIndex; x++)
             {
-                sum += data.GetReferencesRefReturnsImpl(i, i);
+                sum += data.GetReferencesRefReturnsImpl(x, y);
             }
 
             return sum;
         }
     }
 
-    public unsafe class PixelIndexingSetter : PixelIndexing
+    public class PixelIndexingSetter : PixelIndexing
     {
         [Benchmark(Description = "Index.Set: Pointers|arithmetics", Baseline = true)]
         public void IndexWithPointersBasic()
@@ -211,9 +215,10 @@
             Vector4 v = new Vector4(1, 2, 3, 4);
             Data data = new Data(this.buffer);
 
-            for (int i = this.startIndex; i < this.endIndex; i++)
+            int y = this.startIndex;
+            for (int x = this.startIndex; x < this.endIndex; x++)
             {
-                data.IndexWithPointersBasicImpl(i, i, v);
+                data.IndexWithPointersBasicImpl(x, y, v);
             }
         }
 
@@ -223,9 +228,10 @@
             Vector4 v = new Vector4(1, 2, 3, 4);
             Data data = new Data(this.buffer);
 
-            for (int i = this.startIndex; i < this.endIndex; i++)
+            int y = this.startIndex;
+            for (int x = this.startIndex; x < this.endIndex; x++)
             {
-                data.IndexWithPointersSrcsUnsafeImpl(i, i, v);
+                data.IndexWithPointersSrcsUnsafeImpl(x, y, v);
             }
         }
 
@@ -235,9 +241,10 @@
             Vector4 v = new Vector4(1, 2, 3, 4);
             Data data = new Data(this.buffer);
 
-            for (int i = this.startIndex; i < this.endIndex; i++)
+            int y = this.startIndex;
+            for (int x = this.startIndex; x < this.endIndex; x++)
             {
-                data.IndexWithReferencesOnPinnableIncorrectImpl(i, i, v);
+                data.IndexWithReferencesOnPinnableIncorrectImpl(x, y, v);
             }
         }
 
@@ -247,13 +254,12 @@
             Vector4 v = new Vector4(1, 2, 3, 4);
             Data data = new Data(this.buffer);
 
-            for (int i = this.startIndex; i < this.endIndex; i++)
+            int y = this.startIndex;
+            for (int x = this.startIndex; x < this.endIndex; x++)
             {
-                data.IndexWithReferencesOnPinnableIncorrectRefReturnImpl(i, i) = v;
+                data.IndexWithReferencesOnPinnableIncorrectRefReturnImpl(x, y) = v;
             }
         }
-
-
 
         [Benchmark(Description = "Index.Set: References|Array[0]")]
         public void IndexWithReferencesArrayBasic()
@@ -261,9 +267,10 @@
             Vector4 v = new Vector4(1, 2, 3, 4);
             Data data = new Data(this.buffer);
 
-            for (int i = this.startIndex; i < this.endIndex; i++)
+            int y = this.startIndex;
+            for (int x = this.startIndex; x < this.endIndex; x++)
             {
-                data.IndexWithReferencesOnArrayImpl(i, i, v);
+                data.IndexWithReferencesOnArrayImpl(x, y, v);
             }
         }
 
@@ -273,9 +280,28 @@
             Vector4 v = new Vector4(1, 2, 3, 4);
             Data data = new Data(this.buffer);
 
-            for (int i = this.startIndex; i < this.endIndex; i++)
+            int y = this.startIndex;
+            for (int x = this.startIndex; x < this.endIndex; x++)
             {
-                data.IndexWithReferencesOnArrayRefReturnImpl(i, i) = v;
+                data.IndexWithReferencesOnArrayRefReturnImpl(x, y) = v;
+            }
+        }
+
+        [Benchmark(Description = "Index.Set: SmartUnsafe")]
+        public void SmartUnsafe()
+        {
+            Vector4 v = new Vector4(1, 2, 3, 4);
+            Data data = new Data(this.buffer);
+
+            // This method is basically an unsafe variant of .GetRowSpan(y) + indexing individual pixels in the row.
+            // If a user seriously needs by-pixel manipulation to be performant, we should provide this option.
+            
+            ref Vector4 rowStart = ref data.IndexWithReferencesOnArrayRefReturnImpl(this.startIndex, this.startIndex);
+
+            for (int i = 0; i < this.Count; i++)
+            {
+                // We don't have to add 'Width * y' here!
+                Unsafe.Add(ref rowStart, i) = v;
             }
         }
     }

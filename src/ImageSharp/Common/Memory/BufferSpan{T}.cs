@@ -76,7 +76,7 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Gets the backing array
+        /// Gets the backing array.
         /// </summary>
         public T[] Array { get; private set; }
 
@@ -122,6 +122,7 @@ namespace ImageSharp
             BufferSpan<byte> result = default(BufferSpan<byte>);
             result.Array = Unsafe.As<byte[]>(source.Array);
             result.Start = source.Start * Unsafe.SizeOf<T>();
+            result.Length = source.Length * Unsafe.SizeOf<T>();
             return result;
         }
 
@@ -131,7 +132,11 @@ namespace ImageSharp
         /// </summary>
         /// <returns>The reference to the 0th element</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ref T DangerousGetPinnableReference() => ref this.Array[this.Start];
+        public ref T DangerousGetPinnableReference()
+        {
+            ref T origin = ref this.Array[0];
+            return ref Unsafe.Add(ref origin, this.Start);
+        }
 
         /// <summary>
         /// Forms a slice out of the given BufferSpan, beginning at 'start'.

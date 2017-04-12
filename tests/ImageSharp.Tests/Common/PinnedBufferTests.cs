@@ -11,6 +11,19 @@
 
     public unsafe class PinnedBufferTests
     {
+        private class Assert : Xunit.Assert
+        {
+            public static void SpanPointsTo<T>(IntPtr ptr, BufferSpan<T> span)
+                where T : struct
+            {
+                ref byte r = ref Unsafe.As<T, byte>(ref span.DangerousGetPinnableReference());
+
+                void* p = Unsafe.AsPointer(ref r);
+
+                Assert.Equal(ptr, (IntPtr)p);
+            }
+        }
+
         [Theory]
         [InlineData(42)]
         [InlineData(1111)]
@@ -121,7 +134,7 @@
 
             Assert.True(buffer.IsDisposedOrLostArrayOwnership);
         }
-
+        
         [Theory]
         [InlineData(7)]
         [InlineData(123)]
@@ -133,7 +146,7 @@
 
                 Assert.Equal(buffer.Array, span.Array);
                 Assert.Equal(0, span.Start);
-                Assert.Equal(buffer.Pointer, span.PointerAtOffset);
+                Assert.SpanPointsTo(buffer.Pointer, span);
                 Assert.Equal(span.Length, bufferLength);
             }
         }
@@ -147,7 +160,7 @@
 
                 Assert.Equal(buffer.Array, span.Array);
                 Assert.Equal(0, span.Start);
-                Assert.Equal(buffer.Pointer, span.PointerAtOffset);
+                Assert.SpanPointsTo(buffer.Pointer, span);
                 Assert.Equal(span.Length, 42);
             }
         }
@@ -166,7 +179,7 @@
 
                     Assert.Equal(buffer.Array, span.Array);
                     Assert.Equal(start, span.Start);
-                    Assert.Equal(buffer.Pointer + start * Unsafe.SizeOf<Foo>(), span.PointerAtOffset);
+                    Assert.SpanPointsTo(buffer.Pointer + start * Unsafe.SizeOf<Foo>(), span);
                     Assert.Equal(span.Length, bufferLength - start);
                 }
             }
@@ -182,7 +195,7 @@
 
                     Assert.Equal(buffer.Array, span.Array);
                     Assert.Equal(start, span.Start);
-                    Assert.Equal(buffer.Pointer + start * Unsafe.SizeOf<Foo>(), span.PointerAtOffset);
+                    Assert.SpanPointsTo(buffer.Pointer + start * Unsafe.SizeOf<Foo>(), span);
                     Assert.Equal(span.Length, spanLength);
                 }
             }

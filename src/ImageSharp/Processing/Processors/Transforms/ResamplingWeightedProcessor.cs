@@ -7,6 +7,7 @@ namespace ImageSharp.Processing.Processors
 {
     using System;
     using System.Buffers;
+    using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
 
     /// <summary>
@@ -111,13 +112,15 @@ namespace ImageSharp.Processing.Processors
                 WeightsWindow ws = result.GetWeightsWindow(i, left, right);
                 result.Weights[i] = ws;
 
-                float* weights = ws.Ptr;
+                ref float weights = ref ws.Ptr;
 
                 for (int j = left; j <= right; j++)
                 {
                     float weight = sampler.GetValue((j - center) / scale);
                     sum += weight;
-                    weights[j - left] = weight;
+
+                    // weights[j - left] = weight:
+                    Unsafe.Add(ref weights, j - left) = weight;
                 }
 
                 // Normalise, best to do it here rather than in the pixel loop later on.
@@ -125,7 +128,9 @@ namespace ImageSharp.Processing.Processors
                 {
                     for (int w = 0; w < ws.Length; w++)
                     {
-                        weights[w] = weights[w] / sum;
+                        // weights[w] = weights[w] / sum:
+                        ref float wRef = ref Unsafe.Add(ref weights, w);
+                        wRef = wRef / sum;
                     }
                 }
             }

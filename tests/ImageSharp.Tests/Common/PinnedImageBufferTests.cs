@@ -1,6 +1,7 @@
 // ReSharper disable InconsistentNaming
 namespace ImageSharp.Tests.Common
 {
+    using System;
     using System.Runtime.CompilerServices;
 
     using Xunit;
@@ -9,6 +10,20 @@ namespace ImageSharp.Tests.Common
 
     public unsafe class PinnedImageBufferTests
     {
+        // ReSharper disable once ClassNeverInstantiated.Local
+        private class Assert : Xunit.Assert
+        {
+            public static void SpanPointsTo<T>(IntPtr ptr, BufferSpan<T> span)
+                where T : struct
+            {
+                ref byte r = ref Unsafe.As<T, byte>(ref span.DangerousGetPinnableReference());
+
+                void* p = Unsafe.AsPointer(ref r);
+
+                Assert.Equal(ptr, (IntPtr)p);
+            }
+        }
+
         [Theory]
         [InlineData(7, 42)]
         [InlineData(1025, 17)]
@@ -65,7 +80,7 @@ namespace ImageSharp.Tests.Common
 
                 Assert.Equal(width * y, span.Start);
                 Assert.Equal(width, span.Length);
-                Assert.Equal(buffer.Pointer + sizeof(Foo) * width * y, span.PointerAtOffset);
+                Assert.SpanPointsTo(buffer.Pointer + sizeof(Foo) * width * y, span);
             }
         }
 
@@ -81,7 +96,7 @@ namespace ImageSharp.Tests.Common
 
                 Assert.Equal(width * y + x, span.Start);
                 Assert.Equal(width - x, span.Length);
-                Assert.Equal(buffer.Pointer + sizeof(Foo) * (width * y + x), span.PointerAtOffset);
+                Assert.SpanPointsTo(buffer.Pointer + sizeof(Foo) * (width * y + x), span);
             }
         }
 

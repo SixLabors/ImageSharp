@@ -126,9 +126,9 @@ namespace ImageSharp
         /// </summary>
         /// <param name="buffer">The <see cref="PinnedBuffer{T}"/> to convert.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe implicit operator BufferSpan<T>(PinnedBuffer<T> buffer)
+        public static implicit operator BufferSpan<T>(PinnedBuffer<T> buffer)
         {
-            return new BufferSpan<T>(buffer.Array, (void*)buffer.Pointer, 0, buffer.Length);
+            return new BufferSpan<T>(buffer.Array, 0, buffer.Length);
         }
 
         /// <summary>
@@ -150,9 +150,9 @@ namespace ImageSharp
         /// <param name="start">The start</param>
         /// <returns>The <see cref="BufferSpan{T}"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe BufferSpan<T> Slice(int start)
+        public BufferSpan<T> Slice(int start)
         {
-            return new BufferSpan<T>(this.Array, (void*)this.Pointer, start, this.Length - start);
+            return new BufferSpan<T>(this.Array, start, this.Length - start);
         }
 
         /// <summary>
@@ -162,9 +162,9 @@ namespace ImageSharp
         /// <param name="length">The length of the slice</param>
         /// <returns>The <see cref="BufferSpan{T}"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe BufferSpan<T> Slice(int start, int length)
+        public BufferSpan<T> Slice(int start, int length)
         {
-            return new BufferSpan<T>(this.Array, (void*)this.Pointer, start, length);
+            return new BufferSpan<T>(this.Array, start, length);
         }
 
         /// <summary>

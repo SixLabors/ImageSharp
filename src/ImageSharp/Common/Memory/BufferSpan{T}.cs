@@ -30,13 +30,12 @@ namespace ImageSharp
         /// Initializes a new instance of the <see cref="BufferSpan{T}"/> struct from a pinned array and an start.
         /// </summary>
         /// <param name="array">The pinned array</param>
-        /// <param name="pointerToArray">Pointer to the beginning of the array</param>
         /// <param name="start">The index at which to begin the span.</param>
         /// <param name="length">The length</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public BufferSpan(T[] array, void* pointerToArray, int start, int length)
+        public BufferSpan(T[] array, int start, int length)
         {
-            GuardArrayAndPointer(array, pointerToArray);
+            GuardArray(array);
 
             DebugGuard.MustBeLessThanOrEqualTo(start, array.Length, nameof(start));
             DebugGuard.MustBeLessThanOrEqualTo(length, array.Length - start, nameof(length));
@@ -44,41 +43,36 @@ namespace ImageSharp
             this.Array = array;
             this.Length = length;
             this.Start = start;
-            this.PointerAtOffset = (IntPtr)pointerToArray + (Unsafe.SizeOf<T>() * start);
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="BufferSpan{T}"/> struct from a pinned array and an start.
         /// </summary>
         /// <param name="array">The pinned array</param>
-        /// <param name="pointerToArray">Pointer to the beginning of the array</param>
         /// <param name="start">The index at which to begin the span.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public BufferSpan(T[] array, void* pointerToArray, int start)
+        public BufferSpan(T[] array, int start)
         {
-            GuardArrayAndPointer(array, pointerToArray);
+            GuardArray(array);
             DebugGuard.MustBeLessThanOrEqualTo(start, array.Length, nameof(start));
 
             this.Array = array;
             this.Length = array.Length - start;
             this.Start = start;
-            this.PointerAtOffset = (IntPtr)pointerToArray + (Unsafe.SizeOf<T>() * start);
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="BufferSpan{T}"/> struct from a pinned array.
         /// </summary>
         /// <param name="array">The pinned array</param>
-        /// <param name="pointerToArray">Pointer to the start of 'array'</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public BufferSpan(T[] array, void* pointerToArray)
+        public BufferSpan(T[] array)
         {
-            GuardArrayAndPointer(array, pointerToArray);
+            GuardArray(array);
 
             this.Array = array;
             this.Start = 0;
             this.Length = array.Length;
-            this.PointerAtOffset = (IntPtr)pointerToArray;
         }
 
         /// <summary>
@@ -102,11 +96,6 @@ namespace ImageSharp
         public int ByteOffset => this.Start * Unsafe.SizeOf<T>();
 
         /// <summary>
-        /// Gets the pointer to the offseted array position
-        /// </summary>
-        public IntPtr PointerAtOffset { get; private set; }
-
-        /// <summary>
         /// Returns a reference to specified element of the span.
         /// </summary>
         /// <param name="index">The index</param>
@@ -117,35 +106,14 @@ namespace ImageSharp
             get
             {
                 DebugGuard.MustBeLessThan(index, this.Length, nameof(index));
-
-                byte* ptr = (byte*)this.PointerAtOffset + BufferSpan.SizeOf<T>(index);
-                return ref Unsafe.AsRef<T>(ptr);
+                ref T arrayRef = ref this.DangerousGetPinnableReference();
+                return ref Unsafe.Add(ref arrayRef, this.Start);
             }
         }
 
         /// <summary>
-        /// Convertes <see cref="BufferSpan{T}"/> instance to a raw 'void*' pointer
-        /// </summary>
-        /// <param name="bufferSpan">The <see cref="BufferSpan{T}"/> to convert</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static explicit operator void*(BufferSpan<T> bufferSpan)
-        {
-            return (void*)bufferSpan.PointerAtOffset;
-        }
-
-        /// <summary>
-        /// Converts <see cref="BufferSpan{T}"/> instance to a raw 'byte*' pointer
-        /// </summary>
-        /// <param name="bufferSpan">The <see cref="BufferSpan{T}"/> to convert</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static explicit operator byte*(BufferSpan<T> bufferSpan)
-        {
-            return (byte*)bufferSpan.PointerAtOffset;
-        }
-
-        /// <summary>
         /// Converts generic <see cref="BufferSpan{T}"/> to a <see cref="BufferSpan{T}"/> of bytes
-        /// setting it's <see cref="Start"/> and <see cref="PointerAtOffset"/> to correct values.
+        /// setting it's <see cref="Start"/> to correct value.
         /// </summary>
         /// <param name="source">The <see cref="BufferSpan{T}"/> to convert</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -154,7 +122,6 @@ namespace ImageSharp
             BufferSpan<byte> result = default(BufferSpan<byte>);
             result.Array = Unsafe.As<byte[]>(source.Array);
             result.Start = source.Start * Unsafe.SizeOf<T>();
-            result.PointerAtOffset = source.PointerAtOffset;
             return result;
         }
 
@@ -164,7 +131,7 @@ namespace ImageSharp
         /// </summary>
         /// <returns>The reference to the 0th element</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ref T DangerousGetPinnableReference() => ref Unsafe.AsRef<T>((void*)this.PointerAtOffset);
+        public ref T DangerousGetPinnableReference() => ref this.Array[this.Start];
 
         /// <summary>
         /// Forms a slice out of the given BufferSpan, beginning at 'start'.
@@ -179,7 +146,6 @@ namespace ImageSharp
             BufferSpan<T> result = default(BufferSpan<T>);
             result.Array = this.Array;
             result.Start = this.Start + start;
-            result.PointerAtOffset = this.PointerAtOffset + (Unsafe.SizeOf<T>() * start);
             result.Length = this.Length - start;
             return result;
         }
@@ -199,7 +165,6 @@ namespace ImageSharp
             BufferSpan<T> result = default(BufferSpan<T>);
             result.Array = this.Array;
             result.Start = this.Start + start;
-            result.PointerAtOffset = this.PointerAtOffset + (Unsafe.SizeOf<T>() * start);
             result.Length = length;
             return result;
         }
@@ -213,14 +178,8 @@ namespace ImageSharp
         {
             DebugGuard.MustBeLessThanOrEqualTo(count, this.Length, nameof(count));
 
-            if (count < 256)
-            {
-                Unsafe.InitBlock((void*)this.PointerAtOffset, 0, BufferSpan.USizeOf<T>(count));
-            }
-            else
-            {
-                System.Array.Clear(this.Array, this.Start, count);
-            }
+            // TODO: Use Unsafe.InitBlock(ref T) for small arrays, when it get's official
+            System.Array.Clear(this.Array, this.Start, count);
         }
 
         /// <summary>
@@ -233,13 +192,9 @@ namespace ImageSharp
         }
 
         [Conditional("DEBUG")]
-        private static void GuardArrayAndPointer(T[] array, void* pointerToArray)
+        private static void GuardArray(T[] array)
         {
             DebugGuard.NotNull(array, nameof(array));
-            DebugGuard.IsFalse(
-                pointerToArray == (void*)0,
-                nameof(pointerToArray),
-                "pointerToArray should not be null pointer!");
         }
     }
 }

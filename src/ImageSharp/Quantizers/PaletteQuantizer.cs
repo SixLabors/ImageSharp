@@ -108,7 +108,7 @@ namespace ImageSharp.Quantizers
                     if (this.Dither)
                     {
                         // Apply the dithering matrix. We have to reapply the value now as the original has changed.
-                        this.DitherType.Dither(source, sourcePixel, transformedPixel, x, y, width, height);
+                        this.DitherType.Dither(source, sourcePixel, transformedPixel, x, y, width, height, false);
                     }
 
                     output[(y * source.Width) + x] = pixelValue;

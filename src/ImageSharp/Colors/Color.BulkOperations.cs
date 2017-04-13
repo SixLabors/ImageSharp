@@ -64,18 +64,20 @@ namespace ImageSharp
 
                 ref uint src = ref Unsafe.As<Color, uint>(ref sourceColors.DangerousGetPinnableReference());
 
-                using (PinnedBuffer<uint> tempBuf = new PinnedBuffer<uint>(unpackedRawCount + Vector<uint>.Count))
+                using (PinnedBuffer<uint> tempBuf = new PinnedBuffer<uint>(
+                    unpackedRawCount + Vector<uint>.Count))
                 {
                     uint* tPtr = (uint*)tempBuf.Pointer;
                     uint[] temp = tempBuf.Array;
                     float[] fTemp = Unsafe.As<float[]>(temp);
                     UnpackedRGBA* dst = (UnpackedRGBA*)tPtr;
 
-                    for (int i = 0; i < count; i++)
+                    for (int i = 0; i < count; i++, dst++)
                     {
+                        uint sVal = Unsafe.Add(ref src, i);
+
                         // This call is the bottleneck now:
-                        ref uint sp = ref Unsafe.Add(ref src, i);
-                        dst->Load(sp);
+                        dst->Load(sVal);
                     }
 
                     for (int i = 0; i < unpackedRawCount; i += vecSize)
@@ -90,7 +92,7 @@ namespace ImageSharp
                         vf.CopyTo(fTemp, i);
                     }
 
-                    BufferSpan.Copy(tempBuf.Span.AsBytes(), destVectors.AsBytes(), unpackedRawCount);
+                    BufferSpan.Copy(tempBuf.Span.AsBytes(), destVectors.AsBytes(), unpackedRawCount * sizeof(uint));
                 }
             }
 

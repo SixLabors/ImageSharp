@@ -105,7 +105,7 @@ namespace ImageSharp
             for (int i = 0; i < count; i++)
             {
                 ref TColor sp = ref Unsafe.Add(ref sourceRef, i);
-                sp.ToXyzBytes(dest, i * 3);
+                sp.ToXyzBytes(dest, destBytes.Start + (i * 3));
             }
         }
 
@@ -152,7 +152,7 @@ namespace ImageSharp
             for (int i = 0; i < count; i++)
             {
                 ref TColor sp = ref Unsafe.Add(ref sourceRef, i);
-                sp.ToXyzwBytes(dest, i * 4);
+                sp.ToXyzwBytes(dest, destBytes.Start + (i * 4));
             }
         }
 
@@ -196,7 +196,7 @@ namespace ImageSharp
             for (int i = 0; i < count; i++)
             {
                 ref TColor sp = ref Unsafe.Add(ref sourceRef, i);
-                sp.ToZyxBytes(dest, i * 3);
+                sp.ToZyxBytes(dest, destBytes.Start + (i * 3));
             }
         }
 
@@ -243,7 +243,7 @@ namespace ImageSharp
             for (int i = 0; i < count; i++)
             {
                 ref TColor sp = ref Unsafe.Add(ref sourceRef, i);
-                sp.ToZyxwBytes(dest, i * 4);
+                sp.ToZyxwBytes(dest, destBytes.Start + (i * 4));
             }
         }
     }

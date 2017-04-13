@@ -7,7 +7,6 @@ namespace ImageSharp.Quantizers
 {
     using System;
     using System.Collections.Generic;
-    using System.Numerics;
     using System.Runtime.CompilerServices;
 
     /// <summary>
@@ -71,13 +70,7 @@ namespace ImageSharp.Quantizers
             return base.Quantize(image, maxColors);
         }
 
-        /// <summary>
-        /// Execute a second pass through the bitmap
-        /// </summary>
-        /// <param name="source">The source image.</param>
-        /// <param name="output">The output pixel array</param>
-        /// <param name="width">The width in pixels of the image</param>
-        /// <param name="height">The height in pixels of the image</param>
+        /// <inheritdoc/>
         protected override void SecondPass(PixelAccessor<TColor> source, byte[] output, int width, int height)
         {
             // Load up the values for the first pixel. We can use these to speed up the second

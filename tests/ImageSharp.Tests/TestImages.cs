@@ -103,6 +103,7 @@ namespace ImageSharp.Tests
             public const string Rings = "Gif/rings.gif";
             public const string Giphy = "Gif/giphy.gif";
             public const string Cheers = "Gif/cheers.gif";
+            public const string Trans = "Gif/trans.gif";
         }
     }
 }

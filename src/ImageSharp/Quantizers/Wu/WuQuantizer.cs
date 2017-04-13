@@ -59,21 +59,6 @@ namespace ImageSharp.Quantizers
         private const int TableLength = IndexCount * IndexCount * IndexCount * IndexAlphaCount;
 
         /// <summary>
-        /// The long array pool.
-        /// </summary>
-        private static readonly ArrayPool<long> LongPool = ArrayPool<long>.Create(TableLength, 25);
-
-        /// <summary>
-        /// The float array pool.
-        /// </summary>
-        private static readonly ArrayPool<float> FloatPool = ArrayPool<float>.Create(TableLength, 5);
-
-        /// <summary>
-        /// The byte array pool.
-        /// </summary>
-        private static readonly ArrayPool<byte> BytePool = ArrayPool<byte>.Create(TableLength, 5);
-
-        /// <summary>
         /// Moment of <c>P(c)</c>.
         /// </summary>
         private readonly long[] vwt;
@@ -118,13 +103,13 @@ namespace ImageSharp.Quantizers
         /// </summary>
         public WuQuantizer()
         {
-            this.vwt = LongPool.Rent(TableLength);
-            this.vmr = LongPool.Rent(TableLength);
-            this.vmg = LongPool.Rent(TableLength);
-            this.vmb = LongPool.Rent(TableLength);
-            this.vma = LongPool.Rent(TableLength);
-            this.m2 = FloatPool.Rent(TableLength);
-            this.tag = BytePool.Rent(TableLength);
+            this.vwt = WuArrayPool.LongPool.Rent(TableLength);
+            this.vmr = WuArrayPool.LongPool.Rent(TableLength);
+            this.vmg = WuArrayPool.LongPool.Rent(TableLength);
+            this.vmb = WuArrayPool.LongPool.Rent(TableLength);
+            this.vma = WuArrayPool.LongPool.Rent(TableLength);
+            this.m2 = WuArrayPool.FloatPool.Rent(TableLength);
+            this.tag = WuArrayPool.BytePool.Rent(TableLength);
         }
 
         /// <inheritdoc/>
@@ -789,13 +774,13 @@ namespace ImageSharp.Quantizers
                 });
 
             // Cleanup
-            LongPool.Return(this.vwt);
-            LongPool.Return(this.vmr);
-            LongPool.Return(this.vmg);
-            LongPool.Return(this.vmb);
-            LongPool.Return(this.vma);
-            FloatPool.Return(this.m2);
-            BytePool.Return(this.tag);
+            WuArrayPool.LongPool.Return(this.vwt);
+            WuArrayPool.LongPool.Return(this.vmr);
+            WuArrayPool.LongPool.Return(this.vmg);
+            WuArrayPool.LongPool.Return(this.vmb);
+            WuArrayPool.LongPool.Return(this.vma);
+            WuArrayPool.FloatPool.Return(this.m2);
+            WuArrayPool.BytePool.Return(this.tag);
 
             return new QuantizedImage<TColor>(width, height, pallette, pixels);
         }

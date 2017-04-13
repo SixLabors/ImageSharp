@@ -58,18 +58,12 @@ namespace ImageSharp.Quantizers
         public override QuantizedImage<TColor> Quantize(ImageBase<TColor> image, int maxColors)
         {
             this.colors = maxColors.Clamp(1, 255);
-            this.octree = new Octree(this.GetBitsNeededForColorDepth(maxColors));
+            this.octree = new Octree(this.GetBitsNeededForColorDepth(this.colors));
 
-            return base.Quantize(image, maxColors);
+            return base.Quantize(image, this.colors);
         }
 
-        /// <summary>
-        /// Execute a second pass through the bitmap
-        /// </summary>
-        /// <param name="source">The source image.</param>
-        /// <param name="output">The output pixel array</param>
-        /// <param name="width">The width in pixels of the image</param>
-        /// <param name="height">The height in pixels of the image</param>
+        /// <inheritdoc/>
         protected override void SecondPass(PixelAccessor<TColor> source, byte[] output, int width, int height)
         {
             // Load up the values for the first pixel. We can use these to speed up the second
@@ -115,36 +109,17 @@ namespace ImageSharp.Quantizers
             }
         }
 
-        /// <summary>
-        /// Process the pixel in the first pass of the algorithm
-        /// </summary>
-        /// <param name="pixel">
-        /// The pixel to quantize
-        /// </param>
-        /// <remarks>
-        /// This function need only be overridden if your quantize algorithm needs two passes,
-        /// such as an Octree quantizer.
-        /// </remarks>
+        /// <inheritdoc/>
         protected override void InitialQuantizePixel(TColor pixel)
         {
             // Add the color to the Octree
             this.octree.AddColor(pixel, this.pixelBuffer);
         }
 
-        /// <summary>
-        /// Retrieve the palette for the quantized image.
-        /// </summary>
-        /// <returns>
-        /// The new color palette
-        /// </returns>
+        /// <inheritdoc/>
         protected override TColor[] GetPalette()
         {
-            if (this.palette == null)
-            {
-                this.palette = this.octree.Palletize(Math.Max(this.colors, 1));
-            }
-
-            return this.palette;
+            return this.palette ?? (this.palette = this.octree.Palletize(Math.Max(this.colors, 1)));
         }
 
         /// <summary>
@@ -175,6 +150,7 @@ namespace ImageSharp.Quantizers
         /// <returns>
         /// The <see cref="int"/>
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private int GetBitsNeededForColorDepth(int colorCount)
         {
             return (int)Math.Ceiling(Math.Log(colorCount, 2));
@@ -189,7 +165,7 @@ namespace ImageSharp.Quantizers
             /// Mask used when getting the appropriate pixels for a given node
             /// </summary>
             // ReSharper disable once StaticMemberInGenericType
-            private static readonly int[] Mask = { 0x100, 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01 };
+            private static readonly int[] Mask = { 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01 };
 
             /// <summary>
             /// The root of the Octree
@@ -380,11 +356,6 @@ namespace ImageSharp.Quantizers
                 private int blue;
 
                 /// <summary>
-                /// Alpha component
-                /// </summary>
-                private int alpha;
-
-                /// <summary>
                 /// The index of this node in the palette
                 /// </summary>
                 private int paletteIndex;
@@ -406,7 +377,7 @@ namespace ImageSharp.Quantizers
                     // Construct the new node
                     this.leaf = level == colorBits;
 
-                    this.red = this.green = this.blue = this.alpha = 0;
+                    this.red = this.green = this.blue = 0;
                     this.pixelCount = 0;
 
                     // If a leaf, increment the leaf count
@@ -454,10 +425,9 @@ namespace ImageSharp.Quantizers
                         int shift = 7 - level;
                         pixel.ToXyzwBytes(buffer, 0);
 
-                        int index = ((buffer[3] & Mask[0]) >> (shift - 3)) |
-                                    ((buffer[2] & Mask[level + 1]) >> (shift - 2)) |
-                                    ((buffer[1] & Mask[level + 1]) >> (shift - 1)) |
-                                    ((buffer[0] & Mask[level + 1]) >> shift);
+                        int index = ((buffer[2] & Mask[level]) >> (shift - 2)) |
+                                    ((buffer[1] & Mask[level]) >> (shift - 1)) |
+                                    ((buffer[0] & Mask[level]) >> shift);
 
                         OctreeNode child = this.children[index];
 
@@ -479,7 +449,7 @@ namespace ImageSharp.Quantizers
                 /// <returns>The number of leaves removed</returns>
                 public int Reduce()
                 {
-                    this.red = this.green = this.blue = this.alpha = 0;
+                    this.red = this.green = this.blue = 0;
                     int childNodes = 0;
 
                     // Loop through all children and add their information to this node
@@ -490,7 +460,6 @@ namespace ImageSharp.Quantizers
                             this.red += this.children[index].red;
                             this.green += this.children[index].green;
                             this.blue += this.children[index].blue;
-                            this.alpha += this.children[index].alpha;
                             this.pixelCount += this.children[index].pixelCount;
                             ++childNodes;
                             this.children[index] = null;
@@ -517,11 +486,10 @@ namespace ImageSharp.Quantizers
                         byte r = (this.red / this.pixelCount).ToByte();
                         byte g = (this.green / this.pixelCount).ToByte();
                         byte b = (this.blue / this.pixelCount).ToByte();
-                        byte a = (this.alpha / this.pixelCount).ToByte();
 
                         // And set the color of the palette entry
                         TColor pixel = default(TColor);
-                        pixel.PackFromBytes(r, g, b, a);
+                        pixel.PackFromBytes(r, g, b, 255);
                         palette[index] = pixel;
 
                         // Consume the next palette index
@@ -558,10 +526,9 @@ namespace ImageSharp.Quantizers
                         int shift = 7 - level;
                         pixel.ToXyzwBytes(buffer, 0);
 
-                        int pixelIndex = ((buffer[3] & Mask[0]) >> (shift - 3)) |
-                                         ((buffer[2] & Mask[level + 1]) >> (shift - 2)) |
-                                         ((buffer[1] & Mask[level + 1]) >> (shift - 1)) |
-                                         ((buffer[0] & Mask[level + 1]) >> shift);
+                        int pixelIndex = ((buffer[2] & Mask[level]) >> (shift - 2)) |
+                                         ((buffer[1] & Mask[level]) >> (shift - 1)) |
+                                         ((buffer[0] & Mask[level]) >> shift);
 
                         if (this.children[pixelIndex] != null)
                         {
@@ -588,7 +555,6 @@ namespace ImageSharp.Quantizers
                     this.red += buffer[0];
                     this.green += buffer[1];
                     this.blue += buffer[2];
-                    this.alpha += buffer[3];
                 }
             }
         }

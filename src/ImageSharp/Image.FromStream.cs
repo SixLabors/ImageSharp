@@ -201,7 +201,7 @@ namespace ImageSharp
         {
             config = config ?? Configuration.Default;
 
-            Image<TColor> img = WithSeekableStream(stream, s => Decode<TColor>(stream, options, config));
+            Image<TColor> img = WithSeekableStream(stream, s => Decode<TColor>(s, options, config));
 
             if (img != null)
             {
@@ -238,7 +238,7 @@ namespace ImageSharp
                     stream.CopyTo(ms);
                     ms.Position = 0;
 
-                    return action(stream);
+                    return action(ms);
                 }
             }
         }

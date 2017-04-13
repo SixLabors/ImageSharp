@@ -7,6 +7,7 @@ namespace ImageSharp.Quantizers
 {
     /// <summary>
     /// Represents a box color cube.
+    /// TODO: This should be a struct for performance
     /// </summary>
     internal sealed class Box
     {

@@ -579,7 +579,7 @@ namespace ImageSharp.Formats
                         // channel and we should try to read it.
                         for (int x = 0; x < this.header.Width; x++)
                         {
-                            int index = newScanline[x];
+                            int index = newScanline[x + 1];
                             int pixelOffset = index * 3;
 
                             byte a = this.paletteAlpha.Length > index ? this.paletteAlpha[index] : (byte)255;
@@ -603,7 +603,7 @@ namespace ImageSharp.Formats
                     {
                         for (int x = 0; x < this.header.Width; x++)
                         {
-                            int index = newScanline[x];
+                            int index = newScanline[x + 1];
                             int pixelOffset = index * 3;
 
                             byte r = this.palette[pixelOffset];

@@ -61,6 +61,7 @@ namespace ImageSharp.Tests
                 public static class Bad
                 {
                     public const string MissingEOF = "Jpg/baseline/badeof.jpg";
+                    public const string ExifUndefType = "Jpg/baseline/ExifUndefType.jpg";
                 }
 
                 public const string Cmyk = "Jpg/baseline/cmyk.jpg";
@@ -102,6 +103,7 @@ namespace ImageSharp.Tests
             public const string Rings = "Gif/rings.gif";
             public const string Giphy = "Gif/giphy.gif";
             public const string Cheers = "Gif/cheers.gif";
+            public const string Trans = "Gif/trans.gif";
         }
     }
 }

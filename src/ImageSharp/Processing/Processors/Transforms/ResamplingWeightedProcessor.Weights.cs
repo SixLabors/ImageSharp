@@ -168,7 +168,7 @@ namespace ImageSharp.Processing.Processors
             /// <returns>The weights</returns>
             public WeightsWindow GetWeightsWindow(int destIdx, int leftIdx, int rightIdx)
             {
-                BufferSpan<float> span = this.dataBuffer.GetRowSpan(destIdx).Slice(leftIdx, rightIdx - leftIdx);
+                BufferSpan<float> span = this.dataBuffer.GetRowSpan(destIdx).Slice(leftIdx, rightIdx - leftIdx + 1);
                 return new WeightsWindow(leftIdx, span);
             }
         }

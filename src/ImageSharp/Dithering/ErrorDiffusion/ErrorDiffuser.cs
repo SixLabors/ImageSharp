@@ -71,8 +71,19 @@ namespace ImageSharp.Dithering
         public void Dither<TColor>(PixelAccessor<TColor> pixels, TColor source, TColor transformed, int x, int y, int width, int height)
             where TColor : struct, IPixel<TColor>
         {
-            // Assign the transformed pixel to the array.
-            pixels[x, y] = transformed;
+            this.Dither(pixels, source, transformed, x, y, width, height, true);
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Dither<TColor>(PixelAccessor<TColor> pixels, TColor source, TColor transformed, int x, int y, int width, int height, bool replacePixel)
+            where TColor : struct, IPixel<TColor>
+        {
+            if (replacePixel)
+            {
+                // Assign the transformed pixel to the array.
+                pixels[x, y] = transformed;
+            }
 
             // Calculate the error
             Vector4 error = source.ToVector4() - transformed.ToVector4();

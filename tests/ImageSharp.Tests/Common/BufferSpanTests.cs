@@ -31,13 +31,14 @@ namespace ImageSharp.Tests.Common
             using (PinnedBuffer<Foo> colorBuf = new PinnedBuffer<Foo>(fooz))
             {
                 BufferSpan<Foo> orig = colorBuf.Slice(1);
-                BufferSpan<byte> asBytes = (BufferSpan<byte>)orig;
+                BufferSpan<byte> asBytes = orig.AsBytes();
 
                 Assert.Equal(asBytes.Start, sizeof(Foo));
+                Assert.Equal(orig.Length * Unsafe.SizeOf<Foo>(), asBytes.Length);
                 Assert.SameRefs(ref orig.DangerousGetPinnableReference(), ref asBytes.DangerousGetPinnableReference());
             }
         }
-
+        
         public class Construct
         {
             [Fact]
@@ -186,6 +187,26 @@ namespace ImageSharp.Tests.Common
 
                 Assert.Equal(new Foo(666, 666), a[start + index]);
             }
+
+            [Theory]
+            [InlineData(10, 0, 0, 5)]
+            [InlineData(10, 1, 1, 5)]
+            [InlineData(10, 1, 1, 6)]
+            [InlineData(10, 1, 1, 7)]
+            public void AsBytes_Read(int length, int start, int index, int byteOffset)
+            {
+                Foo[] a = Foo.CreateArray(length);
+                BufferSpan<Foo> span = new BufferSpan<Foo>(a, start);
+
+                BufferSpan<byte> bytes = span.AsBytes();
+
+                byte actual = bytes[index * Unsafe.SizeOf<Foo>() + byteOffset];
+
+                ref byte baseRef = ref Unsafe.As<Foo, byte>(ref a[0]);
+                byte expected = Unsafe.Add(ref baseRef, (start + index) * Unsafe.SizeOf<Foo>() + byteOffset);
+
+                Assert.Equal(expected, actual);
+            }
         }
 
         [Theory]
@@ -310,7 +331,7 @@ namespace ImageSharp.Tests.Common
                 BufferSpan<Foo> apSource = new BufferSpan<Foo>(source, 1);
                 BufferSpan<byte> apDest = new BufferSpan<byte>(dest, sizeof(Foo));
 
-                BufferSpan.Copy(apSource, apDest, count - 1);
+                BufferSpan.Copy(apSource.AsBytes(), apDest, (count - 1)*sizeof(Foo));
 
                 AssertNotDefault(source, 1);
 
@@ -333,7 +354,7 @@ namespace ImageSharp.Tests.Common
                 BufferSpan<AlignedFoo> apSource = new BufferSpan<AlignedFoo>(source, 1);
                 BufferSpan<byte> apDest = new BufferSpan<byte>(dest, sizeof(AlignedFoo));
 
-                BufferSpan.Copy(apSource, apDest, count - 1);
+                BufferSpan.Copy(apSource.AsBytes(), apDest, (count - 1) * sizeof(AlignedFoo));
 
                 AssertNotDefault(source, 1);
 
@@ -356,7 +377,7 @@ namespace ImageSharp.Tests.Common
                 BufferSpan<int> apSource = new BufferSpan<int>(source);
                 BufferSpan<byte> apDest = new BufferSpan<byte>(dest);
 
-                BufferSpan.Copy(apSource, apDest, count);
+                BufferSpan.Copy(apSource.AsBytes(), apDest, count*sizeof(int));
 
                 AssertNotDefault(source, 1);
 
@@ -377,7 +398,7 @@ namespace ImageSharp.Tests.Common
                 BufferSpan<byte> apSource = new BufferSpan<byte>(source);
                 BufferSpan<Foo> apDest = new BufferSpan<Foo>(dest);
 
-                BufferSpan.Copy(apSource, apDest, count);
+                BufferSpan.Copy(apSource, apDest.AsBytes(), count*sizeof(Foo));
 
                 AssertNotDefault(source, sizeof(Foo) + 1);
                 AssertNotDefault(dest, 1);
@@ -396,7 +417,7 @@ namespace ImageSharp.Tests.Common
                 using (PinnedBuffer<Color> colorBuf = new PinnedBuffer<Color>(colors))
                 using (PinnedBuffer<byte> byteBuf = new PinnedBuffer<byte>(colors.Length * 4))
                 {
-                    BufferSpan.Copy<Color>(colorBuf, byteBuf, colorBuf.Length);
+                    BufferSpan.Copy(colorBuf.Span.AsBytes(), byteBuf, colorBuf.Length*sizeof(Color));
 
                     byte[] a = byteBuf.Array;
 

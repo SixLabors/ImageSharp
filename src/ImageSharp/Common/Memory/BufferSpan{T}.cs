@@ -106,23 +106,23 @@ namespace ImageSharp
             get
             {
                 DebugGuard.MustBeLessThan(index, this.Length, nameof(index));
-                ref T arrayRef = ref this.DangerousGetPinnableReference();
-                return ref Unsafe.Add(ref arrayRef, this.Start);
+                ref T startRef = ref this.DangerousGetPinnableReference();
+                return ref Unsafe.Add(ref startRef, index);
             }
         }
 
         /// <summary>
         /// Converts generic <see cref="BufferSpan{T}"/> to a <see cref="BufferSpan{T}"/> of bytes
-        /// setting it's <see cref="Start"/> to correct value.
+        /// setting it's <see cref="Start"/> and <see cref="Length"/> to correct values.
         /// </summary>
-        /// <param name="source">The <see cref="BufferSpan{T}"/> to convert</param>
+        /// <returns>The span of bytes</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static explicit operator BufferSpan<byte>(BufferSpan<T> source)
+        public BufferSpan<byte> AsBytes()
         {
             BufferSpan<byte> result = default(BufferSpan<byte>);
-            result.Array = Unsafe.As<byte[]>(source.Array);
-            result.Start = source.Start * Unsafe.SizeOf<T>();
-            result.Length = source.Length * Unsafe.SizeOf<T>();
+            result.Array = Unsafe.As<byte[]>(this.Array);
+            result.Start = this.Start * Unsafe.SizeOf<T>();
+            result.Length = this.Length * Unsafe.SizeOf<T>();
             return result;
         }
 

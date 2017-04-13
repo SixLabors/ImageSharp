@@ -46,6 +46,7 @@
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public Vector4 GetPointersSrcsUnsafeImpl(int x, int y)
             {
+                // This is the original solution in PixelAccessor:
                 return Unsafe.Read<Vector4>((byte*)this.pointer + (((y * this.width) + x) * Unsafe.SizeOf<Vector4>()));
             }
 

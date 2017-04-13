@@ -35,7 +35,7 @@ namespace ImageSharp
             fixed (byte* pDest = &destRef)
             {
 #if NETSTANDARD1_1
-                Unsafe.CopyBlock(pDest, pSrc, (uint) byteCount);
+                Unsafe.CopyBlock(pDest, pSrc, (uint)byteCount);
 #else
                 if (byteCount > 512)
                 {

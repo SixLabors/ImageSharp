@@ -64,9 +64,9 @@ namespace ImageSharp.Quantizers
         private static readonly ArrayPool<long> LongPool = ArrayPool<long>.Create(TableLength, 25);
 
         /// <summary>
-        /// The double array pool.
+        /// The float array pool.
         /// </summary>
-        private static readonly ArrayPool<double> DoublePool = ArrayPool<double>.Create(TableLength, 5);
+        private static readonly ArrayPool<float> FloatPool = ArrayPool<float>.Create(TableLength, 5);
 
         /// <summary>
         /// The byte array pool.
@@ -101,7 +101,7 @@ namespace ImageSharp.Quantizers
         /// <summary>
         /// Moment of <c>c^2*P(c)</c>.
         /// </summary>
-        private readonly double[] m2;
+        private readonly float[] m2;
 
         /// <summary>
         /// Color space tag.
@@ -123,7 +123,7 @@ namespace ImageSharp.Quantizers
             this.vmg = LongPool.Rent(TableLength);
             this.vmb = LongPool.Rent(TableLength);
             this.vma = LongPool.Rent(TableLength);
-            this.m2 = DoublePool.Rent(TableLength);
+            this.m2 = FloatPool.Rent(TableLength);
             this.tag = BytePool.Rent(TableLength);
         }
 
@@ -141,8 +141,7 @@ namespace ImageSharp.Quantizers
                 this.Build3DHistogram(imagePixels);
                 this.Get3DMoments();
 
-                Box[] cube;
-                this.BuildCube(out cube, ref colorCount);
+                this.BuildCube(out Box[] cube, ref colorCount);
 
                 return this.GenerateResult(imagePixels, colorCount, cube);
             }
@@ -169,7 +168,7 @@ namespace ImageSharp.Quantizers
         /// <param name="cube">The cube.</param>
         /// <param name="moment">The moment.</param>
         /// <returns>The result.</returns>
-        private static double Volume(Box cube, long[] moment)
+        private static float Volume(Box cube, long[] moment)
         {
             return moment[GetPaletteIndex(cube.R1, cube.G1, cube.B1, cube.A1)]
                    - moment[GetPaletteIndex(cube.R1, cube.G1, cube.B1, cube.A0)]
@@ -369,14 +368,14 @@ namespace ImageSharp.Quantizers
             long[] volumeG = ArrayPool<long>.Shared.Rent(IndexCount * IndexAlphaCount);
             long[] volumeB = ArrayPool<long>.Shared.Rent(IndexCount * IndexAlphaCount);
             long[] volumeA = ArrayPool<long>.Shared.Rent(IndexCount * IndexAlphaCount);
-            double[] volume2 = ArrayPool<double>.Shared.Rent(IndexCount * IndexAlphaCount);
+            float[] volume2 = ArrayPool<float>.Shared.Rent(IndexCount * IndexAlphaCount);
 
             long[] area = ArrayPool<long>.Shared.Rent(IndexAlphaCount);
             long[] areaR = ArrayPool<long>.Shared.Rent(IndexAlphaCount);
             long[] areaG = ArrayPool<long>.Shared.Rent(IndexAlphaCount);
             long[] areaB = ArrayPool<long>.Shared.Rent(IndexAlphaCount);
             long[] areaA = ArrayPool<long>.Shared.Rent(IndexAlphaCount);
-            double[] area2 = ArrayPool<double>.Shared.Rent(IndexAlphaCount);
+            float[] area2 = ArrayPool<float>.Shared.Rent(IndexAlphaCount);
 
             try
             {
@@ -405,7 +404,7 @@ namespace ImageSharp.Quantizers
                             long lineG = 0;
                             long lineB = 0;
                             long lineA = 0;
-                            double line2 = 0;
+                            float line2 = 0;
 
                             for (int a = 1; a < IndexAlphaCount; a++)
                             {
@@ -454,14 +453,14 @@ namespace ImageSharp.Quantizers
                 ArrayPool<long>.Shared.Return(volumeG);
                 ArrayPool<long>.Shared.Return(volumeB);
                 ArrayPool<long>.Shared.Return(volumeA);
-                ArrayPool<double>.Shared.Return(volume2);
+                ArrayPool<float>.Shared.Return(volume2);
 
                 ArrayPool<long>.Shared.Return(area);
                 ArrayPool<long>.Shared.Return(areaR);
                 ArrayPool<long>.Shared.Return(areaG);
                 ArrayPool<long>.Shared.Return(areaB);
                 ArrayPool<long>.Shared.Return(areaA);
-                ArrayPool<double>.Shared.Return(area2);
+                ArrayPool<float>.Shared.Return(area2);
             }
         }
 
@@ -469,15 +468,15 @@ namespace ImageSharp.Quantizers
         /// Computes the weighted variance of a box cube.
         /// </summary>
         /// <param name="cube">The cube.</param>
-        /// <returns>The <see cref="double"/>.</returns>
-        private double Variance(Box cube)
+        /// <returns>The <see cref="float"/>.</returns>
+        private float Variance(Box cube)
         {
-            double dr = Volume(cube, this.vmr);
-            double dg = Volume(cube, this.vmg);
-            double db = Volume(cube, this.vmb);
-            double da = Volume(cube, this.vma);
+            float dr = Volume(cube, this.vmr);
+            float dg = Volume(cube, this.vmg);
+            float db = Volume(cube, this.vmb);
+            float da = Volume(cube, this.vma);
 
-            double xx =
+            float xx =
                 this.m2[GetPaletteIndex(cube.R1, cube.G1, cube.B1, cube.A1)]
                 - this.m2[GetPaletteIndex(cube.R1, cube.G1, cube.B1, cube.A0)]
                 - this.m2[GetPaletteIndex(cube.R1, cube.G1, cube.B0, cube.A1)]
@@ -515,8 +514,8 @@ namespace ImageSharp.Quantizers
         /// <param name="wholeB">The whole blue.</param>
         /// <param name="wholeA">The whole alpha.</param>
         /// <param name="wholeW">The whole weight.</param>
-        /// <returns>The <see cref="double"/>.</returns>
-        private double Maximize(Box cube, int direction, int first, int last, out int cut, double wholeR, double wholeG, double wholeB, double wholeA, double wholeW)
+        /// <returns>The <see cref="float"/>.</returns>
+        private float Maximize(Box cube, int direction, int first, int last, out int cut, float wholeR, float wholeG, float wholeB, float wholeA, float wholeW)
         {
             long baseR = Bottom(cube, direction, this.vmr);
             long baseG = Bottom(cube, direction, this.vmg);
@@ -524,20 +523,20 @@ namespace ImageSharp.Quantizers
             long baseA = Bottom(cube, direction, this.vma);
             long baseW = Bottom(cube, direction, this.vwt);
 
-            double max = 0.0;
+            float max = 0F;
             cut = -1;
 
             for (int i = first; i < last; i++)
             {
-                double halfR = baseR + Top(cube, direction, i, this.vmr);
-                double halfG = baseG + Top(cube, direction, i, this.vmg);
-                double halfB = baseB + Top(cube, direction, i, this.vmb);
-                double halfA = baseA + Top(cube, direction, i, this.vma);
-                double halfW = baseW + Top(cube, direction, i, this.vwt);
+                float halfR = baseR + Top(cube, direction, i, this.vmr);
+                float halfG = baseG + Top(cube, direction, i, this.vmg);
+                float halfB = baseB + Top(cube, direction, i, this.vmb);
+                float halfA = baseA + Top(cube, direction, i, this.vma);
+                float halfW = baseW + Top(cube, direction, i, this.vwt);
 
-                double temp;
+                float temp;
 
-                if (Math.Abs(halfW) < Constants.Epsilon)
+                if (MathF.Abs(halfW) < Constants.Epsilon)
                 {
                     continue;
                 }
@@ -550,7 +549,7 @@ namespace ImageSharp.Quantizers
                 halfA = wholeA - halfA;
                 halfW = wholeW - halfW;
 
-                if (Math.Abs(halfW) < Constants.Epsilon)
+                if (MathF.Abs(halfW) < Constants.Epsilon)
                 {
                     continue;
                 }
@@ -575,21 +574,16 @@ namespace ImageSharp.Quantizers
         /// <returns>Returns a value indicating whether the box has been split.</returns>
         private bool Cut(Box set1, Box set2)
         {
-            double wholeR = Volume(set1, this.vmr);
-            double wholeG = Volume(set1, this.vmg);
-            double wholeB = Volume(set1, this.vmb);
-            double wholeA = Volume(set1, this.vma);
-            double wholeW = Volume(set1, this.vwt);
+            float wholeR = Volume(set1, this.vmr);
+            float wholeG = Volume(set1, this.vmg);
+            float wholeB = Volume(set1, this.vmb);
+            float wholeA = Volume(set1, this.vma);
+            float wholeW = Volume(set1, this.vwt);
 
-            int cutr;
-            int cutg;
-            int cutb;
-            int cuta;
-
-            double maxr = this.Maximize(set1, 0, set1.R0 + 1, set1.R1, out cutr, wholeR, wholeG, wholeB, wholeA, wholeW);
-            double maxg = this.Maximize(set1, 1, set1.G0 + 1, set1.G1, out cutg, wholeR, wholeG, wholeB, wholeA, wholeW);
-            double maxb = this.Maximize(set1, 2, set1.B0 + 1, set1.B1, out cutb, wholeR, wholeG, wholeB, wholeA, wholeW);
-            double maxa = this.Maximize(set1, 3, set1.A0 + 1, set1.A1, out cuta, wholeR, wholeG, wholeB, wholeA, wholeW);
+            float maxr = this.Maximize(set1, 0, set1.R0 + 1, set1.R1, out int cutr, wholeR, wholeG, wholeB, wholeA, wholeW);
+            float maxg = this.Maximize(set1, 1, set1.G0 + 1, set1.G1, out int cutg, wholeR, wholeG, wholeB, wholeA, wholeW);
+            float maxb = this.Maximize(set1, 2, set1.B0 + 1, set1.B1, out int cutb, wholeR, wholeG, wholeB, wholeA, wholeW);
+            float maxa = this.Maximize(set1, 3, set1.A0 + 1, set1.A1, out int cuta, wholeR, wholeG, wholeB, wholeA, wholeW);
 
             int dir;
 
@@ -691,11 +685,11 @@ namespace ImageSharp.Quantizers
         private void BuildCube(out Box[] cube, ref int colorCount)
         {
             cube = new Box[colorCount];
-            double[] vv = new double[colorCount];
+            float[] vv = new float[colorCount];
 
             for (int i = 0; i < colorCount; i++)
             {
-                cube[i] = new Box();
+                cube[i] = default(Box);
             }
 
             cube[0].R0 = cube[0].G0 = cube[0].B0 = cube[0].A0 = 0;
@@ -708,18 +702,18 @@ namespace ImageSharp.Quantizers
             {
                 if (this.Cut(cube[next], cube[i]))
                 {
-                    vv[next] = cube[next].Volume > 1 ? this.Variance(cube[next]) : 0.0;
-                    vv[i] = cube[i].Volume > 1 ? this.Variance(cube[i]) : 0.0;
+                    vv[next] = cube[next].Volume > 1 ? this.Variance(cube[next]) : 0F;
+                    vv[i] = cube[i].Volume > 1 ? this.Variance(cube[i]) : 0F;
                 }
                 else
                 {
-                    vv[next] = 0.0;
+                    vv[next] = 0F;
                     i--;
                 }
 
                 next = 0;
 
-                double temp = vv[0];
+                float temp = vv[0];
                 for (int k = 1; k <= i; k++)
                 {
                     if (vv[k] > temp)
@@ -755,14 +749,14 @@ namespace ImageSharp.Quantizers
             {
                 this.Mark(cube[k], (byte)k);
 
-                double weight = Volume(cube[k], this.vwt);
+                float weight = Volume(cube[k], this.vwt);
 
-                if (Math.Abs(weight) > Constants.Epsilon)
+                if (MathF.Abs(weight) > Constants.Epsilon)
                 {
-                    float r = (float)(Volume(cube[k], this.vmr) / weight);
-                    float g = (float)(Volume(cube[k], this.vmg) / weight);
-                    float b = (float)(Volume(cube[k], this.vmb) / weight);
-                    float a = (float)(Volume(cube[k], this.vma) / weight);
+                    float r = Volume(cube[k], this.vmr) / weight;
+                    float g = Volume(cube[k], this.vmg) / weight;
+                    float b = Volume(cube[k], this.vmb) / weight;
+                    float a = Volume(cube[k], this.vma) / weight;
 
                     TColor color = default(TColor);
                     color.PackFromVector4(new Vector4(r, g, b, a) / 255F);
@@ -800,7 +794,7 @@ namespace ImageSharp.Quantizers
             LongPool.Return(this.vmg);
             LongPool.Return(this.vmb);
             LongPool.Return(this.vma);
-            DoublePool.Return(this.m2);
+            FloatPool.Return(this.m2);
             BytePool.Return(this.tag);
 
             return new QuantizedImage<TColor>(width, height, pallette, pixels);

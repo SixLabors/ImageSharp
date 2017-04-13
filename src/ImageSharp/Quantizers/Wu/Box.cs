@@ -8,7 +8,7 @@ namespace ImageSharp.Quantizers
     /// <summary>
     /// Represents a box color cube.
     /// </summary>
-    internal sealed class Box
+    internal struct Box
     {
         /// <summary>
         /// Gets or sets the min red value, exclusive.

@@ -291,6 +291,7 @@ namespace ImageSharp.Quantizers
         /// <param name="b">The blue value.</param>
         /// <param name="a">The alpha value.</param>
         /// <returns>The index.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int GetPaletteIndex(int r, int g, int b, int a)
         {
             return (r << ((IndexBits * 2) + IndexAlphaBits)) + (r << (IndexBits + IndexAlphaBits + 1))
@@ -841,7 +842,7 @@ namespace ImageSharp.Quantizers
             int b = this.rgbaBuffer[2] >> (8 - IndexBits);
             int a = this.rgbaBuffer[3] >> (8 - IndexAlphaBits);
 
-            return (byte)GetPaletteIndex(r + 1, g + 1, b + 1, a + 1);
+            return this.tag[GetPaletteIndex(r + 1, g + 1, b + 1, a + 1)];
         }
     }
 }

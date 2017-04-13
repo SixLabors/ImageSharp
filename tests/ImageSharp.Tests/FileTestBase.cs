@@ -28,7 +28,7 @@ namespace ImageSharp.Tests
             // TestFile.Create(TestImages.Jpeg.Baseline.GammaDalaiLamaGray), // Perf: Enable for local testing only
             // TestFile.Create(TestImages.Jpeg.Progressive.Bad.BadEOF), // Perf: Enable for local testing only
                TestFile.Create(TestImages.Bmp.Car),
-            // TestFile.Create(TestImages.Bmp.Neg_height), // Perf: Enable for local testing only
+            // TestFile.Create(TestImages.Bmp.NegHeight), // Perf: Enable for local testing only
                TestFile.Create(TestImages.Png.Splash),
             // TestFile.Create(TestImages.Png.ChunkLength1), // Perf: Enable for local testing only
             // TestFile.Create(TestImages.Png.ChunkLength2), // Perf: Enable for local testing only
@@ -46,6 +46,7 @@ namespace ImageSharp.Tests
             // TestFile.Create(TestImages.Png.P1), // Perf: Enable for local testing only
             // TestFile.Create(TestImages.Png.Pd), // Perf: Enable for local testing only
                TestFile.Create(TestImages.Gif.Rings),
+            // TestFile.Create(TestImages.Gif.Trans), // Perf: Enable for local testing only
             // TestFile.Create(TestImages.Gif.Cheers), // Perf: Enable for local testing only
             // TestFile.Create(TestImages.Gif.Giphy) // Perf: Enable for local testing only
         };

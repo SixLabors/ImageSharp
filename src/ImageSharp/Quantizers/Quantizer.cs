@@ -66,22 +66,9 @@ namespace ImageSharp.Quantizers
                     this.FirstPass(pixels, width, height);
                 }
 
-                // Collect the palette. Octree requires this to be done before the second pass runs.
+                // Collect the palette. Required before the second pass runs.
                 colorPalette = this.GetPalette();
-
-                if (this.Dither)
-                {
-                    // We clone the image as we don't want to alter the original.
-                    using (Image<TColor> clone = new Image<TColor>(image))
-                    using (PixelAccessor<TColor> clonedPixels = clone.Lock())
-                    {
-                        this.SecondPass(clonedPixels, quantizedPixels, width, height);
-                    }
-                }
-                else
-                {
-                    this.SecondPass(pixels, quantizedPixels, width, height);
-                }
+                this.SecondPass(pixels, quantizedPixels, width, height);
             }
 
             return new QuantizedImage<TColor>(width, height, colorPalette, quantizedPixels);

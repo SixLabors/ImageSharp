@@ -7,7 +7,6 @@ namespace ImageSharp.Formats
 {
     using System;
     using System.Buffers;
-    using System.Collections.Generic;
     using System.IO;
     using System.Linq;
 
@@ -487,7 +486,7 @@ namespace ImageSharp.Formats
 
             if (this.quantizer == null)
             {
-                this.quantizer = new OctreeQuantizer<TColor>();
+                this.quantizer = new WuQuantizer<TColor>();
             }
 
             // Quantize the image returning a palette. This boxing is icky.

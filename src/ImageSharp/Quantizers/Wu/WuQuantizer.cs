@@ -7,8 +7,9 @@ namespace ImageSharp.Quantizers
 {
     using System;
     using System.Buffers;
+    using System.Collections.Generic;
     using System.Numerics;
-    using System.Threading.Tasks;
+    using System.Runtime.CompilerServices;
 
     /// <summary>
     /// An implementation of Wu's color quantizer with alpha channel.
@@ -30,7 +31,7 @@ namespace ImageSharp.Quantizers
     /// </para>
     /// </remarks>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    public sealed class WuQuantizer<TColor> : IQuantizer<TColor>
+    public class WuQuantizer<TColor> : Quantizer<TColor>
         where TColor : struct, IPixel<TColor>
     {
         /// <summary>
@@ -59,81 +60,231 @@ namespace ImageSharp.Quantizers
         private const int TableLength = IndexCount * IndexCount * IndexCount * IndexAlphaCount;
 
         /// <summary>
-        /// Moment of <c>P(c)</c>.
-        /// </summary>
-        private readonly long[] vwt;
-
-        /// <summary>
-        /// Moment of <c>r*P(c)</c>.
-        /// </summary>
-        private readonly long[] vmr;
-
-        /// <summary>
-        /// Moment of <c>g*P(c)</c>.
-        /// </summary>
-        private readonly long[] vmg;
-
-        /// <summary>
-        /// Moment of <c>b*P(c)</c>.
-        /// </summary>
-        private readonly long[] vmb;
-
-        /// <summary>
-        /// Moment of <c>a*P(c)</c>.
-        /// </summary>
-        private readonly long[] vma;
-
-        /// <summary>
-        /// Moment of <c>c^2*P(c)</c>.
-        /// </summary>
-        private readonly float[] m2;
-
-        /// <summary>
-        /// Color space tag.
-        /// </summary>
-        private readonly byte[] tag;
-
-        /// <summary>
         /// A buffer for storing pixels
         /// </summary>
         private readonly byte[] rgbaBuffer = new byte[4];
 
         /// <summary>
+        /// A lookup table for colors
+        /// </summary>
+        private readonly Dictionary<TColor, byte> colorMap = new Dictionary<TColor, byte>();
+
+        /// <summary>
+        /// Moment of <c>P(c)</c>.
+        /// </summary>
+        private long[] vwt;
+
+        /// <summary>
+        /// Moment of <c>r*P(c)</c>.
+        /// </summary>
+        private long[] vmr;
+
+        /// <summary>
+        /// Moment of <c>g*P(c)</c>.
+        /// </summary>
+        private long[] vmg;
+
+        /// <summary>
+        /// Moment of <c>b*P(c)</c>.
+        /// </summary>
+        private long[] vmb;
+
+        /// <summary>
+        /// Moment of <c>a*P(c)</c>.
+        /// </summary>
+        private long[] vma;
+
+        /// <summary>
+        /// Moment of <c>c^2*P(c)</c>.
+        /// </summary>
+        private float[] m2;
+
+        /// <summary>
+        /// Color space tag.
+        /// </summary>
+        private byte[] tag;
+
+        /// <summary>
+        /// Maximum allowed color depth
+        /// </summary>
+        private int colors;
+
+        /// <summary>
+        /// The reduced image palette
+        /// </summary>
+        private TColor[] palette;
+
+        /// <summary>
+        /// The color cube representing the image palette
+        /// </summary>
+        private Box[] colorCube;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="WuQuantizer{TColor}"/> class.
         /// </summary>
+        /// <remarks>
+        /// The Wu quantizer is a two pass algorithm. The initial pass sets up the 3-D color histogram,
+        /// the second pass quantizes a color based on the position in the histogram.
+        /// </remarks>
         public WuQuantizer()
+            : base(false)
         {
-            this.vwt = WuArrayPool.LongPool.Rent(TableLength);
-            this.vmr = WuArrayPool.LongPool.Rent(TableLength);
-            this.vmg = WuArrayPool.LongPool.Rent(TableLength);
-            this.vmb = WuArrayPool.LongPool.Rent(TableLength);
-            this.vma = WuArrayPool.LongPool.Rent(TableLength);
-            this.m2 = WuArrayPool.FloatPool.Rent(TableLength);
-            this.tag = WuArrayPool.BytePool.Rent(TableLength);
         }
 
         /// <inheritdoc/>
-        public QuantizedImage<TColor> Quantize(ImageBase<TColor> image, int maxColors)
+        public override QuantizedImage<TColor> Quantize(ImageBase<TColor> image, int maxColors)
         {
             Guard.NotNull(image, nameof(image));
 
-            int colorCount = maxColors.Clamp(1, 256);
+            this.colors = maxColors.Clamp(1, 256);
 
-            this.Clear();
-
-            using (PixelAccessor<TColor> imagePixels = image.Lock())
+            try
             {
-                this.Build3DHistogram(imagePixels);
-                this.Get3DMoments();
+                this.vwt = WuArrayPool.LongPool.Rent(TableLength);
+                this.vmr = WuArrayPool.LongPool.Rent(TableLength);
+                this.vmg = WuArrayPool.LongPool.Rent(TableLength);
+                this.vmb = WuArrayPool.LongPool.Rent(TableLength);
+                this.vma = WuArrayPool.LongPool.Rent(TableLength);
+                this.m2 = WuArrayPool.FloatPool.Rent(TableLength);
+                this.tag = WuArrayPool.BytePool.Rent(TableLength);
 
-                this.BuildCube(out Box[] cube, ref colorCount);
+                return base.Quantize(image, this.colors);
+            }
+            finally
+            {
+                WuArrayPool.LongPool.Return(this.vwt, true);
+                WuArrayPool.LongPool.Return(this.vmr, true);
+                WuArrayPool.LongPool.Return(this.vmg, true);
+                WuArrayPool.LongPool.Return(this.vmb, true);
+                WuArrayPool.LongPool.Return(this.vma, true);
+                WuArrayPool.FloatPool.Return(this.m2, true);
+                WuArrayPool.BytePool.Return(this.tag, true);
+            }
+        }
 
-                return this.GenerateResult(imagePixels, colorCount, cube);
+        /// <inheritdoc/>
+        protected override TColor[] GetPalette()
+        {
+            if (this.palette == null)
+            {
+                this.palette = new TColor[this.colors];
+                for (int k = 0; k < this.colors; k++)
+                {
+                    this.Mark(this.colorCube[k], (byte)k);
+
+                    float weight = Volume(this.colorCube[k], this.vwt);
+
+                    if (MathF.Abs(weight) > Constants.Epsilon)
+                    {
+                        float r = Volume(this.colorCube[k], this.vmr) / weight;
+                        float g = Volume(this.colorCube[k], this.vmg) / weight;
+                        float b = Volume(this.colorCube[k], this.vmb) / weight;
+                        float a = Volume(this.colorCube[k], this.vma) / weight;
+
+                        TColor color = default(TColor);
+                        color.PackFromVector4(new Vector4(r, g, b, a) / 255F);
+                        this.palette[k] = color;
+                    }
+                }
+            }
+
+            return this.palette;
+        }
+
+        /// <inheritdoc/>
+        protected override void InitialQuantizePixel(TColor pixel)
+        {
+            // Add the color to a 3-D color histogram.
+            // Colors are expected in r->g->b->a format
+            pixel.ToXyzwBytes(this.rgbaBuffer, 0);
+
+            byte r = this.rgbaBuffer[0];
+            byte g = this.rgbaBuffer[1];
+            byte b = this.rgbaBuffer[2];
+            byte a = this.rgbaBuffer[3];
+
+            int inr = r >> (8 - IndexBits);
+            int ing = g >> (8 - IndexBits);
+            int inb = b >> (8 - IndexBits);
+            int ina = a >> (8 - IndexAlphaBits);
+
+            int ind = GetPaletteIndex(inr + 1, ing + 1, inb + 1, ina + 1);
+
+            this.vwt[ind]++;
+            this.vmr[ind] += r;
+            this.vmg[ind] += g;
+            this.vmb[ind] += b;
+            this.vma[ind] += a;
+            this.m2[ind] += (r * r) + (g * g) + (b * b) + (a * a);
+        }
+
+        /// <inheritdoc/>
+        protected override void FirstPass(PixelAccessor<TColor> source, int width, int height)
+        {
+            // Build up the 3-D color histogram
+            // Loop through each row
+            for (int y = 0; y < height; y++)
+            {
+                // And loop through each column
+                for (int x = 0; x < width; x++)
+                {
+                    // Now I have the pixel, call the FirstPassQuantize function...
+                    this.InitialQuantizePixel(source[x, y]);
+                }
+            }
+
+            this.Get3DMoments();
+            this.BuildCube();
+        }
+
+        /// <inheritdoc/>
+        protected override void SecondPass(PixelAccessor<TColor> source, byte[] output, int width, int height)
+        {
+            // Load up the values for the first pixel. We can use these to speed up the second
+            // pass of the algorithm by avoiding transforming rows of identical color.
+            TColor sourcePixel = source[0, 0];
+            TColor previousPixel = sourcePixel;
+            byte pixelValue = this.QuantizePixel(sourcePixel);
+            TColor[] colorPalette = this.GetPalette();
+            TColor transformedPixel = colorPalette[pixelValue];
+
+            for (int y = 0; y < height; y++)
+            {
+                // And loop through each column
+                for (int x = 0; x < width; x++)
+                {
+                    // Get the pixel.
+                    sourcePixel = source[x, y];
+
+                    // Check if this is the same as the last pixel. If so use that value
+                    // rather than calculating it again. This is an inexpensive optimization.
+                    if (!previousPixel.Equals(sourcePixel))
+                    {
+                        // Quantize the pixel
+                        pixelValue = this.QuantizePixel(sourcePixel);
+
+                        // And setup the previous pointer
+                        previousPixel = sourcePixel;
+
+                        if (this.Dither)
+                        {
+                            transformedPixel = colorPalette[pixelValue];
+                        }
+                    }
+
+                    if (this.Dither)
+                    {
+                        // Apply the dithering matrix. We have to reapply the value now as the original has changed.
+                        this.DitherType.Dither(source, sourcePixel, transformedPixel, x, y, width, height);
+                    }
+
+                    output[(y * source.Width) + x] = pixelValue;
+                }
             }
         }
 
         /// <summary>
-        /// Gets an index.
+        /// Gets the index index of the given color in the palette.
         /// </summary>
         /// <param name="r">The red value.</param>
         /// <param name="g">The green value.</param>
@@ -291,55 +442,6 @@ namespace ImageSharp.Quantizers
 
                 default:
                     throw new ArgumentOutOfRangeException(nameof(direction));
-            }
-        }
-
-        /// <summary>
-        /// Clears the tables.
-        /// </summary>
-        private void Clear()
-        {
-            Array.Clear(this.vwt, 0, TableLength);
-            Array.Clear(this.vmr, 0, TableLength);
-            Array.Clear(this.vmg, 0, TableLength);
-            Array.Clear(this.vmb, 0, TableLength);
-            Array.Clear(this.vma, 0, TableLength);
-            Array.Clear(this.m2, 0, TableLength);
-            Array.Clear(this.tag, 0, TableLength);
-        }
-
-        /// <summary>
-        /// Builds a 3-D color histogram of <c>counts, r/g/b, c^2</c>.
-        /// </summary>
-        /// <param name="pixels">The pixel accessor.</param>
-        private void Build3DHistogram(PixelAccessor<TColor> pixels)
-        {
-            for (int y = 0; y < pixels.Height; y++)
-            {
-                for (int x = 0; x < pixels.Width; x++)
-                {
-                    // Colors are expected in r->g->b->a format
-                    pixels[x, y].ToXyzwBytes(this.rgbaBuffer, 0);
-
-                    byte r = this.rgbaBuffer[0];
-                    byte g = this.rgbaBuffer[1];
-                    byte b = this.rgbaBuffer[2];
-                    byte a = this.rgbaBuffer[3];
-
-                    int inr = r >> (8 - IndexBits);
-                    int ing = g >> (8 - IndexBits);
-                    int inb = b >> (8 - IndexBits);
-                    int ina = a >> (8 - IndexAlphaBits);
-
-                    int ind = GetPaletteIndex(inr + 1, ing + 1, inb + 1, ina + 1);
-
-                    this.vwt[ind]++;
-                    this.vmr[ind] += r;
-                    this.vmg[ind] += g;
-                    this.vmb[ind] += b;
-                    this.vma[ind] += a;
-                    this.m2[ind] += (r * r) + (g * g) + (b * b) + (a * a);
-                }
             }
         }
 
@@ -665,30 +767,28 @@ namespace ImageSharp.Quantizers
         /// <summary>
         /// Builds the cube.
         /// </summary>
-        /// <param name="cube">The cube.</param>
-        /// <param name="colorCount">The color count.</param>
-        private void BuildCube(out Box[] cube, ref int colorCount)
+        private void BuildCube()
         {
-            cube = new Box[colorCount];
-            float[] vv = new float[colorCount];
+            this.colorCube = new Box[this.colors];
+            float[] vv = new float[this.colors];
 
-            for (int i = 0; i < colorCount; i++)
+            for (int i = 0; i < this.colors; i++)
             {
-                cube[i] = default(Box);
+                this.colorCube[i] = new Box();
             }
 
-            cube[0].R0 = cube[0].G0 = cube[0].B0 = cube[0].A0 = 0;
-            cube[0].R1 = cube[0].G1 = cube[0].B1 = IndexCount - 1;
-            cube[0].A1 = IndexAlphaCount - 1;
+            this.colorCube[0].R0 = this.colorCube[0].G0 = this.colorCube[0].B0 = this.colorCube[0].A0 = 0;
+            this.colorCube[0].R1 = this.colorCube[0].G1 = this.colorCube[0].B1 = IndexCount - 1;
+            this.colorCube[0].A1 = IndexAlphaCount - 1;
 
             int next = 0;
 
-            for (int i = 1; i < colorCount; i++)
+            for (int i = 1; i < this.colors; i++)
             {
-                if (this.Cut(cube[next], cube[i]))
+                if (this.Cut(this.colorCube[next], this.colorCube[i]))
                 {
-                    vv[next] = cube[next].Volume > 1 ? this.Variance(cube[next]) : 0F;
-                    vv[i] = cube[i].Volume > 1 ? this.Variance(cube[i]) : 0F;
+                    vv[next] = this.colorCube[next].Volume > 1 ? this.Variance(this.colorCube[next]) : 0F;
+                    vv[i] = this.colorCube[i].Volume > 1 ? this.Variance(this.colorCube[i]) : 0F;
                 }
                 else
                 {
@@ -710,79 +810,38 @@ namespace ImageSharp.Quantizers
 
                 if (temp <= 0.0)
                 {
-                    colorCount = i + 1;
+                    this.colors = i + 1;
                     break;
                 }
             }
         }
 
         /// <summary>
-        /// Generates the quantized result.
+        /// Process the pixel in the second pass of the algorithm
         /// </summary>
-        /// <param name="imagePixels">The image pixels.</param>
-        /// <param name="colorCount">The color count.</param>
-        /// <param name="cube">The cube.</param>
-        /// <returns>The result.</returns>
-        private QuantizedImage<TColor> GenerateResult(PixelAccessor<TColor> imagePixels, int colorCount, Box[] cube)
+        /// <param name="pixel">The pixel to quantize</param>
+        /// <returns>
+        /// The quantized value
+        /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private byte QuantizePixel(TColor pixel)
         {
-            TColor[] pallette = new TColor[colorCount];
-            byte[] pixels = new byte[imagePixels.Width * imagePixels.Height];
-            int width = imagePixels.Width;
-            int height = imagePixels.Height;
-
-            for (int k = 0; k < colorCount; k++)
+            if (this.Dither)
             {
-                this.Mark(cube[k], (byte)k);
-
-                float weight = Volume(cube[k], this.vwt);
-
-                if (MathF.Abs(weight) > Constants.Epsilon)
-                {
-                    float r = Volume(cube[k], this.vmr) / weight;
-                    float g = Volume(cube[k], this.vmg) / weight;
-                    float b = Volume(cube[k], this.vmb) / weight;
-                    float a = Volume(cube[k], this.vma) / weight;
-
-                    TColor color = default(TColor);
-                    color.PackFromVector4(new Vector4(r, g, b, a) / 255F);
-                    pallette[k] = color;
-                }
+                // The colors have changed so we need to use Euclidean distance caclulation to find the closest value.
+                // This palette can never be null here.
+                return this.GetClosestColor(pixel, this.palette, this.colorMap);
             }
 
-            Parallel.For(
-                0,
-                height,
-                imagePixels.ParallelOptions,
-                y =>
-                {
-                    byte[] rgba = ArrayPool<byte>.Shared.Rent(4);
-                    for (int x = 0; x < width; x++)
-                    {
-                        // Expected order r->g->b->a
-                        imagePixels[x, y].ToXyzwBytes(rgba, 0);
+            // Expected order r->g->b->a
+            pixel.ToXyzwBytes(this.rgbaBuffer, 0);
 
-                        int r = rgba[0] >> (8 - IndexBits);
-                        int g = rgba[1] >> (8 - IndexBits);
-                        int b = rgba[2] >> (8 - IndexBits);
-                        int a = rgba[3] >> (8 - IndexAlphaBits);
+            int r = this.rgbaBuffer[0] >> (8 - IndexBits);
+            int g = this.rgbaBuffer[1] >> (8 - IndexBits);
+            int b = this.rgbaBuffer[2] >> (8 - IndexBits);
+            int a = this.rgbaBuffer[3] >> (8 - IndexAlphaBits);
 
-                        int ind = GetPaletteIndex(r + 1, g + 1, b + 1, a + 1);
-                        pixels[(y * width) + x] = this.tag[ind];
-                    }
-
-                    ArrayPool<byte>.Shared.Return(rgba);
-                });
-
-            // Cleanup
-            WuArrayPool.LongPool.Return(this.vwt);
-            WuArrayPool.LongPool.Return(this.vmr);
-            WuArrayPool.LongPool.Return(this.vmg);
-            WuArrayPool.LongPool.Return(this.vmb);
-            WuArrayPool.LongPool.Return(this.vma);
-            WuArrayPool.FloatPool.Return(this.m2);
-            WuArrayPool.BytePool.Return(this.tag);
-
-            return new QuantizedImage<TColor>(width, height, pallette, pixels);
+            return (byte)GetPaletteIndex(r + 1, g + 1, b + 1, a + 1);
         }
     }
 }

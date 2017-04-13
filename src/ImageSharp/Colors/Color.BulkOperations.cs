@@ -90,7 +90,7 @@ namespace ImageSharp
                         vf.CopyTo(fTemp, i);
                     }
 
-                    BufferSpan.Copy<uint>(tempBuf, (BufferSpan<byte>)destVectors, unpackedRawCount);
+                    BufferSpan.Copy(tempBuf.Span.AsBytes(), destVectors.AsBytes(), unpackedRawCount);
                 }
             }
 
@@ -156,18 +156,18 @@ namespace ImageSharp
             }
 
             /// <inheritdoc />
-            internal override void PackFromXyzwBytes(
+            internal override unsafe void PackFromXyzwBytes(
                 BufferSpan<byte> sourceBytes,
                 BufferSpan<Color> destColors,
                 int count)
             {
-                BufferSpan.Copy(sourceBytes, destColors, count);
+                BufferSpan.Copy(sourceBytes, destColors.AsBytes(), count * sizeof(Color));
             }
 
             /// <inheritdoc />
-            internal override void ToXyzwBytes(BufferSpan<Color> sourceColors, BufferSpan<byte> destBytes, int count)
+            internal override unsafe void ToXyzwBytes(BufferSpan<Color> sourceColors, BufferSpan<byte> destBytes, int count)
             {
-                BufferSpan.Copy(sourceColors, destBytes, count);
+                BufferSpan.Copy(sourceColors.AsBytes(), destBytes, count * sizeof(Color));
             }
 
             /// <inheritdoc />

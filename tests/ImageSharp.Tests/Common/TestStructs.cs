@@ -25,6 +25,8 @@ namespace ImageSharp.Tests.Common
                 }
                 return result;
             }
+
+            public override string ToString() => $"({this.A},{this.B})";
         }
 
 

@@ -1,4 +1,4 @@
-// <copyright file="WhiteIsZero8TiffColor.cs" company="James Jackson-South">
+// <copyright file="WhiteIsZero4TiffColor.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -9,9 +9,9 @@ namespace ImageSharp.Formats.Tiff
     using ImageSharp;
 
     /// <summary>
-    /// Implements the 'WhiteIsZero' photometric interpretation (optimised for 8-bit grayscale images).
+    /// Implements the 'WhiteIsZero' photometric interpretation (optimised for 4-bit grayscale images).
     /// </summary>
-    internal static class WhiteIsZero8TiffColor
+    internal static class WhiteIsZero4TiffColor
     {
         /// <summary>
         /// Decodes pixel data using the current photometric interpretation.
@@ -30,14 +30,30 @@ namespace ImageSharp.Formats.Tiff
             TColor color = default(TColor);
 
             uint offset = 0;
+            bool isOddWidth = (width & 1) == 1;
 
             for (int y = top; y < top + height; y++)
             {
-                for (int x = left; x < left + width; x++)
+                for (int x = left; x < left + width - 1; x += 2)
                 {
-                    byte intensity = (byte)(255 - data[offset++]);
-                    color.PackFromBytes(intensity, intensity, intensity, 255);
+                    byte byteData = data[offset++];
+
+                    byte intensity1 = (byte)((15 - ((byteData & 0xF0) >> 4)) * 17);
+                    color.PackFromBytes(intensity1, intensity1, intensity1, 255);
                     pixels[x, y] = color;
+
+                    byte intensity2 = (byte)((15 - (byteData & 0x0F)) * 17);
+                    color.PackFromBytes(intensity2, intensity2, intensity2, 255);
+                    pixels[x + 1, y] = color;
+                }
+
+                if (isOddWidth)
+                {
+                    byte byteData = data[offset++];
+
+                    byte intensity1 = (byte)((15 - ((byteData & 0xF0) >> 4)) * 17);
+                    color.PackFromBytes(intensity1, intensity1, intensity1, 255);
+                    pixels[left + width - 1, y] = color;
                 }
             }
         }

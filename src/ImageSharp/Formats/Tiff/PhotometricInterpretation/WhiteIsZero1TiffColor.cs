@@ -1,17 +1,18 @@
-// <copyright file="WhiteIsZero8TiffColor.cs" company="James Jackson-South">
+// <copyright file="WhiteIsZero1TiffColor.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
 namespace ImageSharp.Formats.Tiff
 {
+    using System;
     using System.Runtime.CompilerServices;
     using ImageSharp;
 
     /// <summary>
-    /// Implements the 'WhiteIsZero' photometric interpretation (optimised for 8-bit grayscale images).
+    /// Implements the 'WhiteIsZero' photometric interpretation (optimised for bilevel images).
     /// </summary>
-    internal static class WhiteIsZero8TiffColor
+    internal static class WhiteIsZero1TiffColor
     {
         /// <summary>
         /// Decodes pixel data using the current photometric interpretation.
@@ -33,11 +34,18 @@ namespace ImageSharp.Formats.Tiff
 
             for (int y = top; y < top + height; y++)
             {
-                for (int x = left; x < left + width; x++)
+                for (int x = left; x < left + width; x += 8)
                 {
-                    byte intensity = (byte)(255 - data[offset++]);
-                    color.PackFromBytes(intensity, intensity, intensity, 255);
-                    pixels[x, y] = color;
+                    byte b = data[offset++];
+                    int maxShift = Math.Min(left + width - x, 8);
+
+                    for (int shift = 0; shift < maxShift; shift++)
+                    {
+                        int bit = (b >> (7 - shift)) & 1;
+                        byte intensity = (bit == 1) ? (byte)0 : (byte)255;
+                        color.PackFromBytes(intensity, intensity, intensity, 255);
+                        pixels[x + shift, y] = color;
+                    }
                 }
             }
         }

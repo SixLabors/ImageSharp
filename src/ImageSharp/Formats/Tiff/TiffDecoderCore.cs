@@ -267,6 +267,12 @@ namespace ImageSharp.Formats
                         break;
                     }
 
+                case TiffCompression.PackBits:
+                    {
+                        this.CompressionType = TiffCompressionType.PackBits;
+                        break;
+                    }
+
                 default:
                     {
                         throw new NotSupportedException("The specified TIFF compression format is not supported.");
@@ -376,6 +382,9 @@ namespace ImageSharp.Formats
             {
                 case TiffCompressionType.None:
                     NoneTiffCompression.Decompress(this.InputStream, (int)byteCount, buffer);
+                    break;
+                case TiffCompressionType.PackBits:
+                    PackBitsTiffCompression.Decompress(this.InputStream, (int)byteCount, buffer);
                     break;
                 default:
                     throw new InvalidOperationException();

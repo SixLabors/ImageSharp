@@ -13,6 +13,11 @@ namespace ImageSharp.Formats.Tiff
         /// <summary>
         /// Image data is stored uncompressed in the TIFF file.
         /// </summary>
-        None = 0
+        None = 0,
+
+        /// <summary>
+        /// Image data is compressed using PackBits compression.
+        /// </summary>
+        PackBits = 1,
     }
 }

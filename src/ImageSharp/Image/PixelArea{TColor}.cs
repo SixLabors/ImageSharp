@@ -30,7 +30,7 @@ namespace ImageSharp
         /// <summary>
         /// The underlying buffer containing the raw pixel data.
         /// </summary>
-        private PinnedBuffer<byte> byteBuffer;
+        private Buffer<byte> byteBuffer;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PixelArea{TColor}"/> class.
@@ -66,7 +66,7 @@ namespace ImageSharp
             this.RowStride = width * GetComponentCount(componentOrder);
             this.Length = bytes.Length; // TODO: Is this the right value for Length?
 
-            this.byteBuffer = new PinnedBuffer<byte>(bytes);
+            this.byteBuffer = new Buffer<byte>(bytes);
         }
 
         /// <summary>
@@ -116,7 +116,7 @@ namespace ImageSharp
             this.RowStride = (width * GetComponentCount(componentOrder)) + padding;
             this.Length = this.RowStride * height;
 
-            this.byteBuffer = new PinnedBuffer<byte>(this.Length);
+            this.byteBuffer = new Buffer<byte>(this.Length);
         }
 
         /// <summary>

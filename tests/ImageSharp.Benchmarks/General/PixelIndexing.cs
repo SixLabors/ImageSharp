@@ -29,9 +29,9 @@
 
             private int width;
 
-            public Data(PinnedImageBuffer<Vector4> buffer)
+            public Data(Buffer2D<Vector4> buffer)
             {
-                this.pointer = (Vector4*)buffer.Pointer;
+                this.pointer = (Vector4*)buffer.Pin();
                 this.pinnable = Unsafe.As<Pinnable<Vector4>>(buffer.Array);
                 this.array = buffer.Array;
                 this.width = buffer.Width;
@@ -126,7 +126,7 @@
             }
         }
 
-        internal PinnedImageBuffer<Vector4> buffer;
+        internal Buffer2D<Vector4> buffer;
 
         protected int width;
 
@@ -147,8 +147,8 @@
         public void Setup()
         {
             this.width = 2048;
-            this.buffer = new PinnedImageBuffer<Vector4>(2048, 2048);
-            this.pointer = (Vector4*)this.buffer.Pointer;
+            this.buffer = new Buffer2D<Vector4>(2048, 2048);
+            this.pointer = (Vector4*)this.buffer.Pin();
             this.array = this.buffer.Array;
             this.pinnable = Unsafe.As<Pinnable<Vector4>>(this.array);
 

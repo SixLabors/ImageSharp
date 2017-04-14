@@ -12,7 +12,7 @@ namespace ImageSharp
 
     /// <summary>
     /// Represents a contiguous region of a pinned managed array.
-    /// The array is usually owned by a <see cref="PinnedBuffer{T}"/> instance.
+    /// The array is usually owned by a <see cref="Buffer{T}"/> instance.
     /// </summary>
     /// <remarks>
     /// <see cref="BufferSpan{T}"/> is very similar to corefx System.Span&lt;T&gt;, and we try to maintain a compatible API.

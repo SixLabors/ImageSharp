@@ -37,15 +37,8 @@ namespace ImageSharp
 #if NETSTANDARD1_1
                 Unsafe.CopyBlock(pDest, pSrc, (uint)byteCount);
 #else
-                if (byteCount > 512)
-                {
-                    int destLength = destination.Length * Unsafe.SizeOf<T>();
-                    Buffer.MemoryCopy(pSrc, pDest, destLength, byteCount);
-                }
-                else
-                {
-                    Unsafe.CopyBlock(pDest, pSrc, (uint)byteCount);
-                }
+                int destLength = destination.Length * Unsafe.SizeOf<T>();
+                Buffer.MemoryCopy(pSrc, pDest, destLength, byteCount);
 #endif
             }
         }

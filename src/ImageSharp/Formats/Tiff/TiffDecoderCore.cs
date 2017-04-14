@@ -224,26 +224,44 @@ namespace ImageSharp.Formats
                 int rowsPerStrip = (int)this.ReadUnsignedInteger(ref rowsPerStripEntry);
                 uint[] stripOffsets = this.ReadUnsignedIntegerArray(ref stripOffsetsEntry);
                 uint[] stripByteCounts = this.ReadUnsignedIntegerArray(ref stripByteCountsEntry);
-
-                int uncompressedStripSize = this.CalculateImageBufferSize(width, rowsPerStrip);
-
-                using (PixelAccessor<TColor> pixels = image.Lock())
-                {
-                    byte[] stripBytes = ArrayPool<byte>.Shared.Rent(uncompressedStripSize);
-
-                    try
-                    {
-                        this.DecompressImageBlock(stripOffsets[0], stripByteCounts[0], stripBytes);
-                        this.ProcessImageBlock(stripBytes, pixels, 0, 0, width, rowsPerStrip);
-                    }
-                    finally
-                    {
-                        ArrayPool<byte>.Shared.Return(stripBytes);
-                    }
-                }
+                DecodeImageStrips(image, rowsPerStrip, stripOffsets, stripByteCounts);
             }
 
             return image;
+        }
+
+        /// <summary>
+        /// Decodes the image data for strip encoded data.
+        /// </summary>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <param name="image">The image to decode data into.</param>
+        /// <param name="rowsPerStrip">The number of rows per strip of data.</param>
+        /// <param name="stripOffsets">An array of byte offsets to each strip in the image.</param>
+        /// <param name="stripByteCounts">An array of the size of each strip (in bytes).</param>
+        private void DecodeImageStrips<TColor>(Image<TColor> image, int rowsPerStrip, uint[] stripOffsets, uint[] stripByteCounts)
+            where TColor : struct, IPixel<TColor>
+        {
+            int uncompressedStripSize = this.CalculateImageBufferSize(image.Width, rowsPerStrip);
+
+            using (PixelAccessor<TColor> pixels = image.Lock())
+            {
+                byte[] stripBytes = ArrayPool<byte>.Shared.Rent(uncompressedStripSize);
+
+                try
+                {
+                    for (int i = 0; i < stripOffsets.Length; i++)
+                    {
+                        int stripHeight = i < stripOffsets.Length - 1 || image.Height % rowsPerStrip == 0 ? rowsPerStrip : image.Height % rowsPerStrip;
+
+                        this.DecompressImageBlock(stripOffsets[i], stripByteCounts[i], stripBytes);
+                        this.ProcessImageBlock(stripBytes, pixels, 0, rowsPerStrip * i, image.Width, stripHeight);
+                    }
+                }
+                finally
+                {
+                    ArrayPool<byte>.Shared.Return(stripBytes);
+                }
+            }
         }
 
         /// <summary>

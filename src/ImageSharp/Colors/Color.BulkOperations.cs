@@ -67,17 +67,18 @@ namespace ImageSharp
                 using (PinnedBuffer<uint> tempBuf = new PinnedBuffer<uint>(
                     unpackedRawCount + Vector<uint>.Count))
                 {
-                    uint* tPtr = (uint*)tempBuf.Pointer;
                     uint[] temp = tempBuf.Array;
                     float[] fTemp = Unsafe.As<float[]>(temp);
-                    UnpackedRGBA* dst = (UnpackedRGBA*)tPtr;
 
-                    for (int i = 0; i < count; i++, dst++)
+                    ref UnpackedRGBA tempBase = ref Unsafe.As<uint, UnpackedRGBA>(ref tempBuf[0]);
+
+                    for (int i = 0; i < count; i++)
                     {
                         uint sVal = Unsafe.Add(ref src, i);
+                        ref UnpackedRGBA dst = ref Unsafe.Add(ref tempBase, i);
 
                         // This call is the bottleneck now:
-                        dst->Load(sVal);
+                        dst.Load(sVal);
                     }
 
                     for (int i = 0; i < unpackedRawCount; i += vecSize)

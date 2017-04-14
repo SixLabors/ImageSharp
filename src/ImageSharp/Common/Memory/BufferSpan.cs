@@ -18,13 +18,16 @@ namespace ImageSharp
         /// Copy 'count' number of elements of the same type from 'source' to 'dest'
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
-        /// <param name="source">The input <see cref="BufferSpan{T}"/></param>
+        /// <param name="source">The <see cref="BufferSpan{T}"/> to copy elements from.</param>
         /// <param name="destination">The destination <see cref="BufferSpan{T}"/>.</param>
         /// <param name="count">The number of elements to copy</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static unsafe void Copy<T>(BufferSpan<T> source, BufferSpan<T> destination, int count)
             where T : struct
         {
+            DebugGuard.MustBeLessThanOrEqualTo(count, source.Length, nameof(count));
+            DebugGuard.MustBeLessThanOrEqualTo(count, destination.Length, nameof(count));
+
             ref byte srcRef = ref Unsafe.As<T, byte>(ref source.DangerousGetPinnableReference());
             ref byte destRef = ref Unsafe.As<T, byte>(ref destination.DangerousGetPinnableReference());
 
@@ -41,6 +44,19 @@ namespace ImageSharp
                 Buffer.MemoryCopy(pSrc, pDest, destLength, byteCount);
 #endif
             }
+        }
+
+        /// <summary>
+        /// Copy all elements of 'source' into 'destination'.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="source">The <see cref="BufferSpan{T}"/> to copy elements from.</param>
+        /// <param name="destination">The destination <see cref="BufferSpan{T}"/>.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void Copy<T>(BufferSpan<T> source, BufferSpan<T> destination)
+            where T : struct
+        {
+            Copy(source, destination, source.Length);
         }
 
         /// <summary>

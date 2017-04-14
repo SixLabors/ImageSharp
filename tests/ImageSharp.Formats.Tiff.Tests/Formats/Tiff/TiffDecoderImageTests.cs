@@ -178,11 +178,32 @@ namespace ImageSharp.Tests
         [Theory]
         [InlineData(false, TiffPhotometricInterpretation.WhiteIsZero, new[] { 8 }, TiffColorType.WhiteIsZero8)]
         [InlineData(true, TiffPhotometricInterpretation.WhiteIsZero, new[] { 8 }, TiffColorType.WhiteIsZero8)]
+        [InlineData(false, TiffPhotometricInterpretation.WhiteIsZero, new[] { 4 }, TiffColorType.WhiteIsZero4)]
+        [InlineData(true, TiffPhotometricInterpretation.WhiteIsZero, new[] { 4 }, TiffColorType.WhiteIsZero4)]
+        [InlineData(false, TiffPhotometricInterpretation.WhiteIsZero, new[] { 1 }, TiffColorType.WhiteIsZero1)]
+        [InlineData(true, TiffPhotometricInterpretation.WhiteIsZero, new[] { 1 }, TiffColorType.WhiteIsZero1)]
         public void ReadImageFormat_DeterminesCorrectColorImplementation(bool isLittleEndian, ushort photometricInterpretation, int[] bitsPerSample, int colorType)
         {
             Stream stream = CreateTiffGenIfd()
                             .WithEntry(TiffGenEntry.Integer(TiffTags.PhotometricInterpretation, TiffType.Short, photometricInterpretation))
                             .WithEntry(TiffGenEntry.Integer(TiffTags.BitsPerSample, TiffType.Short, bitsPerSample))
+                            .ToStream(isLittleEndian);
+
+            TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null, null);
+            TiffIfd ifd = decoder.ReadIfd(0);
+            decoder.ReadImageFormat(ifd);
+
+            Assert.Equal((TiffColorType)colorType, decoder.ColorType);
+        }
+
+        [Theory]
+        [InlineData(false, TiffPhotometricInterpretation.WhiteIsZero, TiffColorType.WhiteIsZero1)]
+        [InlineData(true, TiffPhotometricInterpretation.WhiteIsZero, TiffColorType.WhiteIsZero1)]
+        public void ReadImageFormat_DeterminesCorrectColorImplementation_DefaultsToBilevel(bool isLittleEndian, ushort photometricInterpretation, int colorType)
+        {
+            Stream stream = CreateTiffGenIfd()
+                            .WithEntry(TiffGenEntry.Integer(TiffTags.PhotometricInterpretation, TiffType.Short, photometricInterpretation))
+                            .WithoutEntry(TiffTags.BitsPerSample)
                             .ToStream(isLittleEndian);
 
             TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null, null);
@@ -285,9 +306,14 @@ namespace ImageSharp.Tests
 
         [Theory]
         [InlineData(TiffColorType.WhiteIsZero8, 100, 80, 100 * 80)]
+        [InlineData(TiffColorType.WhiteIsZero4, 100, 80, 50 * 80)]
+        [InlineData(TiffColorType.WhiteIsZero4, 99, 80, 50 * 80)]
+        [InlineData(TiffColorType.WhiteIsZero1, 160, 80, 20 * 80)]
+        [InlineData(TiffColorType.WhiteIsZero1, 153, 80, 20 * 80)]
         public void CalculateImageBufferSize_ReturnsCorrectSize(ushort colorType, int width, int height, int expectedResult)
         {
             TiffDecoderCore decoder = new TiffDecoderCore(null, null);
+            decoder.ColorType = (TiffColorType)colorType;
 
             int bufferSize = decoder.CalculateImageBufferSize(width, height);
 

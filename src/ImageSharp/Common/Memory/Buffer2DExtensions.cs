@@ -1,4 +1,4 @@
-// <copyright file="PinnedImageBufferExtensions{T}.cs" company="James Jackson-South">
+// <copyright file="Buffer2DExtensions{T}.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -11,7 +11,7 @@ namespace ImageSharp
     /// <summary>
     /// Defines extension methods for <see cref="IBuffer2D{T}"/>.
     /// </summary>
-    internal static class PinnedImageBufferExtensions
+    internal static class Buffer2DExtensions
     {
         /// <summary>
         /// Gets a <see cref="BufferSpan{T}"/> to the row 'y' beginning from the pixel at 'x'.

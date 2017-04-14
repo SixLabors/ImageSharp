@@ -11,6 +11,16 @@ namespace ImageSharp.Formats.Tiff
     internal enum TiffColorType
     {
         /// <summary>
+        /// Grayscale:  0 is imaged as white. The maximum value is imaged as black. Optimised implementation for bilevel images.
+        /// </summary>
+        WhiteIsZero1,
+
+        /// <summary>
+        /// Grayscale:  0 is imaged as white. The maximum value is imaged as black. Optimised implementation for 4-bit images.
+        /// </summary>
+        WhiteIsZero4,
+
+        /// <summary>
         /// Grayscale:  0 is imaged as white. The maximum value is imaged as black. Optimised implementation for 8-bit images.
         /// </summary>
         WhiteIsZero8

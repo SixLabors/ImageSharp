@@ -299,18 +299,38 @@ namespace ImageSharp.Formats
                         {
                             uint[] bitsPerSample = this.ReadUnsignedIntegerArray(ref bitsPerSampleEntry);
 
-                            if (bitsPerSample.Length == 1 && bitsPerSample[0] == 8)
+                            if (bitsPerSample.Length == 1)
                             {
-                                this.ColorType = TiffColorType.WhiteIsZero8;
-                            }
-                            else
-                            {
-                                throw new NotSupportedException("The specified TIFF bit-depth is not supported.");
+                                switch (bitsPerSample[0])
+                                {
+                                    case 8:
+                                        {
+                                            this.ColorType = TiffColorType.WhiteIsZero8;
+                                            break;
+                                        }
+
+                                    case 4:
+                                        {
+                                            this.ColorType = TiffColorType.WhiteIsZero4;
+                                            break;
+                                        }
+
+                                    case 1:
+                                        {
+                                            this.ColorType = TiffColorType.WhiteIsZero1;
+                                            break;
+                                        }
+
+                                    default:
+                                        {
+                                            throw new NotSupportedException("The specified TIFF bit-depth is not supported.");
+                                        }
+                                }
                             }
                         }
                         else
                         {
-                            throw new NotSupportedException("TIFF bilevel images are not supported.");
+                            this.ColorType = TiffColorType.WhiteIsZero1;
                         }
 
                         break;
@@ -331,6 +351,10 @@ namespace ImageSharp.Formats
         {
             switch (this.ColorType)
             {
+                case TiffColorType.WhiteIsZero1:
+                    return ((width + 7) / 8) * height;
+                case TiffColorType.WhiteIsZero4:
+                    return ((width + 1) / 2) * height;
                 case TiffColorType.WhiteIsZero8:
                     return width * height;
                 default:
@@ -373,6 +397,12 @@ namespace ImageSharp.Formats
         {
             switch (this.ColorType)
             {
+                case TiffColorType.WhiteIsZero1:
+                    WhiteIsZero1TiffColor.Decode(data, pixels, left, top, width, height);
+                    break;
+                case TiffColorType.WhiteIsZero4:
+                    WhiteIsZero4TiffColor.Decode(data, pixels, left, top, width, height);
+                    break;
                 case TiffColorType.WhiteIsZero8:
                     WhiteIsZero8TiffColor.Decode(data, pixels, left, top, width, height);
                     break;

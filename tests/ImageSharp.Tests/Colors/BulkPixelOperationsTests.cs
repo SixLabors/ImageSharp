@@ -45,8 +45,8 @@ namespace ImageSharp.Tests.Colors
                 int times = 200000;
                 int count = 1024;
 
-                using (PinnedBuffer<ImageSharp.Color> source = new PinnedBuffer<ImageSharp.Color>(count))
-                using (PinnedBuffer<Vector4> dest = new PinnedBuffer<Vector4>(count))
+                using (Buffer<ImageSharp.Color> source = new Buffer<ImageSharp.Color>(count))
+                using (Buffer<Vector4> dest = new Buffer<Vector4>(count))
                 {
                     this.Measure(
                         times,
@@ -310,18 +310,18 @@ namespace ImageSharp.Tests.Colors
             where TSource : struct
             where TDest : struct
         {
-            public PinnedBuffer<TSource> SourceBuffer { get; }
-            public PinnedBuffer<TDest> ActualDestBuffer { get; }
-            public PinnedBuffer<TDest> ExpectedDestBuffer { get; }
+            public Buffer<TSource> SourceBuffer { get; }
+            public Buffer<TDest> ActualDestBuffer { get; }
+            public Buffer<TDest> ExpectedDestBuffer { get; }
 
             public BufferSpan<TSource> Source => this.SourceBuffer;
             public BufferSpan<TDest> ActualDest => this.ActualDestBuffer;
             
             public TestBuffers(TSource[] source, TDest[] expectedDest)
             {
-                this.SourceBuffer = new PinnedBuffer<TSource>(source);
-                this.ExpectedDestBuffer = new PinnedBuffer<TDest>(expectedDest);
-                this.ActualDestBuffer = new PinnedBuffer<TDest>(expectedDest.Length);
+                this.SourceBuffer = new Buffer<TSource>(source);
+                this.ExpectedDestBuffer = new Buffer<TDest>(expectedDest);
+                this.ActualDestBuffer = new Buffer<TDest>(expectedDest.Length);
             }
 
             public void Dispose()

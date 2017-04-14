@@ -1,4 +1,5 @@
-﻿namespace ImageSharp.Tests.Common
+﻿// ReSharper disable InconsistentNaming
+namespace ImageSharp.Tests.Common
 {
     using System;
     using System.Runtime.CompilerServices;
@@ -9,18 +10,23 @@
 
     using static TestStructs;
 
-    public unsafe class PinnedBufferTests
+    public unsafe class BufferTests
     {
+        // ReSharper disable once ClassNeverInstantiated.Local
         private class Assert : Xunit.Assert
         {
-            public static void SpanPointsTo<T>(IntPtr ptr, BufferSpan<T> span)
+            public static void SpanPointsTo<T>(BufferSpan<T> span, Buffer<T> buffer, int bufferOffset = 0)
                 where T : struct
             {
-                ref byte r = ref Unsafe.As<T, byte>(ref span.DangerousGetPinnableReference());
+                ref T actual = ref span.DangerousGetPinnableReference();
+                ref T expected = ref Unsafe.Add(ref buffer[0], bufferOffset);
 
-                void* p = Unsafe.AsPointer(ref r);
+                Assert.True(Unsafe.AreSame(ref expected, ref actual), "span does not point to the expected position");
+            }
 
-                Assert.Equal(ptr, (IntPtr)p);
+            public static void Equal(void* expected, void* actual)
+            {
+                Assert.Equal((IntPtr)expected, (IntPtr)actual);
             }
         }
 
@@ -29,14 +35,12 @@
         [InlineData(1111)]
         public void ConstructWithOwnArray(int count)
         {
-            using (PinnedBuffer<Foo> buffer = new PinnedBuffer<Foo>(count))
+            using (Buffer<Foo> buffer = new Buffer<Foo>(count))
             {
                 Assert.False(buffer.IsDisposedOrLostArrayOwnership);
                 Assert.NotNull(buffer.Array);
                 Assert.Equal(count, buffer.Length);
                 Assert.True(buffer.Array.Length >= count);
-
-                VerifyPointer(buffer);
             }
         }
         
@@ -46,13 +50,11 @@
         public void ConstructWithExistingArray(int count)
         {
             Foo[] array = new Foo[count];
-            using (PinnedBuffer<Foo> buffer = new PinnedBuffer<Foo>(array))
+            using (Buffer<Foo> buffer = new Buffer<Foo>(array))
             {
                 Assert.False(buffer.IsDisposedOrLostArrayOwnership);
                 Assert.Equal(array, buffer.Array);
                 Assert.Equal(count, buffer.Length);
-
-                VerifyPointer(buffer);
             }
         }
 
@@ -62,7 +64,7 @@
         public void Clear(int count)
         {
             Foo[] a = { new Foo() { A = 1, B = 2 }, new Foo() { A = 3, B = 4 } };
-            using (PinnedBuffer<Foo> buffer = new PinnedBuffer<Foo>(a))
+            using (Buffer<Foo> buffer = new Buffer<Foo>(a))
             {
                 buffer.Clear();
 
@@ -76,7 +78,7 @@
         {
             for (int i = 0; i < 100; i++)
             {
-                using (PinnedBuffer<int> buffer = PinnedBuffer<int>.CreateClean(42))
+                using (Buffer<int> buffer = Buffer<int>.CreateClean(42))
                 {
                     for (int j = 0; j < buffer.Length; j++)
                     {
@@ -103,7 +105,7 @@
             {
                 Foo[] a = Foo.CreateArray(length);
                 
-                using (PinnedBuffer<Foo> buffer = new PinnedBuffer<Foo>(a))
+                using (Buffer<Foo> buffer = new Buffer<Foo>(a))
                 {
                     Foo element = buffer[index];
 
@@ -117,7 +119,7 @@
             {
                 Foo[] a = Foo.CreateArray(length);
 
-                using (PinnedBuffer<Foo> buffer = new PinnedBuffer<Foo>(a))
+                using (Buffer<Foo> buffer = new Buffer<Foo>(a))
                 {
                     buffer[index] = new Foo(666, 666);
 
@@ -129,7 +131,7 @@
         [Fact]
         public void Dispose()
         {
-            PinnedBuffer<Foo> buffer = new PinnedBuffer<Foo>(42);
+            Buffer<Foo> buffer = new Buffer<Foo>(42);
             buffer.Dispose();
 
             Assert.True(buffer.IsDisposedOrLostArrayOwnership);
@@ -140,13 +142,13 @@
         [InlineData(123)]
         public void CastToSpan(int bufferLength)
         {
-            using (PinnedBuffer<Foo> buffer = new PinnedBuffer<Foo>(bufferLength))
+            using (Buffer<Foo> buffer = new Buffer<Foo>(bufferLength))
             {
                 BufferSpan<Foo> span = buffer;
 
                 Assert.Equal(buffer.Array, span.Array);
                 Assert.Equal(0, span.Start);
-                Assert.SpanPointsTo(buffer.Pointer, span);
+                Assert.SpanPointsTo(span, buffer);
                 Assert.Equal(span.Length, bufferLength);
             }
         }
@@ -154,13 +156,13 @@
         [Fact]
         public void Span()
         {
-            using (PinnedBuffer<Foo> buffer = new PinnedBuffer<Foo>(42))
+            using (Buffer<Foo> buffer = new Buffer<Foo>(42))
             {
                 BufferSpan<Foo> span = buffer.Span;
 
                 Assert.Equal(buffer.Array, span.Array);
                 Assert.Equal(0, span.Start);
-                Assert.SpanPointsTo(buffer.Pointer, span);
+                Assert.SpanPointsTo(span, buffer);
                 Assert.Equal(span.Length, 42);
             }
         }
@@ -173,13 +175,13 @@
             [InlineData(123, 17)]
             public void WithStartOnly(int bufferLength, int start)
             {
-                using (PinnedBuffer<Foo> buffer = new PinnedBuffer<Foo>(bufferLength))
+                using (Buffer<Foo> buffer = new Buffer<Foo>(bufferLength))
                 {
                     BufferSpan<Foo> span = buffer.Slice(start);
 
                     Assert.Equal(buffer.Array, span.Array);
                     Assert.Equal(start, span.Start);
-                    Assert.SpanPointsTo(buffer.Pointer + start * Unsafe.SizeOf<Foo>(), span);
+                    Assert.SpanPointsTo(span, buffer, start);
                     Assert.Equal(span.Length, bufferLength - start);
                 }
             }
@@ -189,13 +191,13 @@
             [InlineData(123, 17, 42)]
             public void WithStartAndLength(int bufferLength, int start, int spanLength)
             {
-                using (PinnedBuffer<Foo> buffer = new PinnedBuffer<Foo>(bufferLength))
+                using (Buffer<Foo> buffer = new Buffer<Foo>(bufferLength))
                 {
                     BufferSpan<Foo> span = buffer.Slice(start, spanLength);
 
                     Assert.Equal(buffer.Array, span.Array);
                     Assert.Equal(start, span.Start);
-                    Assert.SpanPointsTo(buffer.Pointer + start * Unsafe.SizeOf<Foo>(), span);
+                    Assert.SpanPointsTo(span, buffer, start);
                     Assert.Equal(span.Length, spanLength);
                 }
             }
@@ -205,9 +207,9 @@
         public void UnPinAndTakeArrayOwnership()
         {
             Foo[] data = null;
-            using (PinnedBuffer<Foo> buffer = new PinnedBuffer<Foo>(42))
+            using (Buffer<Foo> buffer = new Buffer<Foo>(42))
             {
-                data = buffer.UnPinAndTakeArrayOwnership();
+                data = buffer.TakeArrayOwnership();
                 Assert.True(buffer.IsDisposedOrLostArrayOwnership);
             }
 
@@ -215,10 +217,41 @@
             Assert.True(data.Length >= 42);
         }
 
-        private static void VerifyPointer(PinnedBuffer<Foo> buffer)
+        public class Pin
         {
-            IntPtr ptr = (IntPtr)Unsafe.AsPointer(ref buffer.Array[0]);
-            Assert.Equal(ptr, buffer.Pointer);
+            [Fact]
+            public void ReturnsPinnedPointerToTheBeginningOfArray()
+            {
+                using (Buffer<Foo> buffer = new Buffer<Foo>(42))
+                {
+                    Foo* actual = (Foo*)buffer.Pin();
+                    fixed (Foo* expected = buffer.Array)
+                    {
+                        Assert.Equal(expected, actual);
+                    }
+                }
+            }
+
+            [Fact]
+            public void SecondCallReturnsTheSamePointer()
+            {
+                using (Buffer<Foo> buffer = new Buffer<Foo>(42))
+                {
+                    IntPtr ptr1 = buffer.Pin();
+                    IntPtr ptr2 = buffer.Pin();
+
+                    Assert.Equal(ptr1, ptr2);
+                }
+            }
+
+            [Fact]
+            public void WhenCalledOnDisposedBuffer_ThrowsInvalidOperationException()
+            {
+                Buffer<Foo> buffer = new Buffer<Foo>(42);
+                buffer.Dispose();
+
+                Assert.Throws<InvalidOperationException>(() => buffer.Pin());
+            }
         }
     }
 }

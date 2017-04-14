@@ -107,7 +107,7 @@ namespace ImageSharp.Processing.Processors
             /// <param name="x">The column position</param>
             /// <returns>The weighted sum</returns>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public Vector4 ComputeWeightedColumnSum(PinnedImageBuffer<Vector4> firstPassPixels, int x)
+            public Vector4 ComputeWeightedColumnSum(Buffer2D<Vector4> firstPassPixels, int x)
             {
                 ref float verticalValues = ref this.Ptr;
                 int left = this.Left;
@@ -131,7 +131,7 @@ namespace ImageSharp.Processing.Processors
         /// </summary>
         internal class WeightsBuffer : IDisposable
         {
-            private PinnedImageBuffer<float> dataBuffer;
+            private Buffer2D<float> dataBuffer;
 
             /// <summary>
             /// Initializes a new instance of the <see cref="WeightsBuffer"/> class.
@@ -140,7 +140,7 @@ namespace ImageSharp.Processing.Processors
             /// <param name="destinationSize">The size of the destination window</param>
             public WeightsBuffer(int sourceSize, int destinationSize)
             {
-                this.dataBuffer = PinnedImageBuffer<float>.CreateClean(sourceSize, destinationSize);
+                this.dataBuffer = Buffer2D<float>.CreateClean(sourceSize, destinationSize);
                 this.Weights = new WeightsWindow[destinationSize];
             }
 

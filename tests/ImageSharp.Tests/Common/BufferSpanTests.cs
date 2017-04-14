@@ -28,7 +28,7 @@ namespace ImageSharp.Tests.Common
         {
             Foo[] fooz = { new Foo(1, 2), new Foo(3, 4), new Foo(5, 6) };
 
-            using (PinnedBuffer<Foo> colorBuf = new PinnedBuffer<Foo>(fooz))
+            using (Buffer<Foo> colorBuf = new Buffer<Foo>(fooz))
             {
                 BufferSpan<Foo> orig = colorBuf.Slice(1);
                 BufferSpan<byte> asBytes = orig.AsBytes();
@@ -414,8 +414,8 @@ namespace ImageSharp.Tests.Common
             {
                 Color[] colors = { new Color(0, 1, 2, 3), new Color(4, 5, 6, 7), new Color(8, 9, 10, 11), };
 
-                using (PinnedBuffer<Color> colorBuf = new PinnedBuffer<Color>(colors))
-                using (PinnedBuffer<byte> byteBuf = new PinnedBuffer<byte>(colors.Length * 4))
+                using (Buffer<Color> colorBuf = new Buffer<Color>(colors))
+                using (Buffer<byte> byteBuf = new Buffer<byte>(colors.Length * 4))
                 {
                     BufferSpan.Copy(colorBuf.Span.AsBytes(), byteBuf, colorBuf.Length*sizeof(Color));
 

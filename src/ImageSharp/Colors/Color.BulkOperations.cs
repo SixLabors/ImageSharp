@@ -64,7 +64,7 @@ namespace ImageSharp
 
                 ref uint src = ref Unsafe.As<Color, uint>(ref sourceColors.DangerousGetPinnableReference());
 
-                using (PinnedBuffer<uint> tempBuf = new PinnedBuffer<uint>(
+                using (Buffer<uint> tempBuf = new Buffer<uint>(
                     unpackedRawCount + Vector<uint>.Count))
                 {
                     uint[] temp = tempBuf.Array;

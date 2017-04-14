@@ -6,6 +6,7 @@ namespace ImageSharp.Formats.Jpg
 {
     using System;
     using System.Runtime.CompilerServices;
+    using System.Runtime.InteropServices;
 
     /// <summary>
     ///     Jpeg specific utilities and extension methods
@@ -33,19 +34,6 @@ namespace ImageSharp.Formats.Jpg
             StretchPixels(dest, stretchFromX, stretchFromY);
         }
 
-        /// <summary>
-        /// Copy an RGB value
-        /// </summary>
-        /// <param name="source">Source pointer</param>
-        /// <param name="dest">Destination pointer</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void CopyRgb(byte* source, byte* dest)
-        {
-            *dest++ = *source++; // R
-            *dest++ = *source++; // G
-            *dest = *source; // B
-        }
-
         // Nothing to stretch if (fromX, fromY) is outside the area, or is at (0,0)
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static bool IsInvalidStretchStartingPosition<TColor>(PixelArea<TColor> area, int fromX, int fromY)
@@ -64,31 +52,38 @@ namespace ImageSharp.Formats.Jpg
 
             for (int y = 0; y < fromY; y++)
             {
-                byte* ptrBase = (byte*)area.DataPointer + (y * area.RowStride);
+                ref RGB24 ptrBase = ref GetRowStart(area, y);
 
                 for (int x = fromX; x < area.Width; x++)
                 {
-                    byte* prevPtr = ptrBase + ((x - 1) * 3);
-                    byte* currPtr = ptrBase + (x * 3);
-
-                    CopyRgb(prevPtr, currPtr);
+                    // Copy the left neighbour pixel to the current one
+                    Unsafe.Add(ref ptrBase, x) = Unsafe.Add(ref ptrBase, x - 1);
                 }
             }
 
             for (int y = fromY; y < area.Height; y++)
             {
-                byte* currBase = (byte*)area.DataPointer + (y * area.RowStride);
-                byte* prevBase = (byte*)area.DataPointer + ((y - 1) * area.RowStride);
+                ref RGB24 currBase = ref GetRowStart(area, y);
+                ref RGB24 prevBase = ref GetRowStart(area, y - 1);
 
                 for (int x = 0; x < area.Width; x++)
                 {
-                    int x3 = 3 * x;
-                    byte* currPtr = currBase + x3;
-                    byte* prevPtr = prevBase + x3;
-
-                    CopyRgb(prevPtr, currPtr);
+                    // Copy the top neighbour pixel to the current one
+                    Unsafe.Add(ref currBase, x) = Unsafe.Add(ref prevBase, x);
                 }
             }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static ref RGB24 GetRowStart<TColor>(PixelArea<TColor> area, int y)
+            where TColor : struct, IPixel<TColor>
+        {
+            return ref Unsafe.As<byte, RGB24>(ref area.GetRowSpan(y).DangerousGetPinnableReference());
+        }
+
+        [StructLayout(LayoutKind.Sequential, Size = 3)]
+        private struct RGB24
+        {
         }
     }
 }

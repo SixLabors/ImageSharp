@@ -15,14 +15,9 @@ namespace ImageSharp
     /// Provides per-pixel access to generic <see cref="Image{TColor}"/> pixels.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    public sealed unsafe class PixelAccessor<TColor> : IDisposable, IPinnedImageBuffer<TColor>
+    public sealed class PixelAccessor<TColor> : IDisposable, IPinnedImageBuffer<TColor>
         where TColor : struct, IPixel<TColor>
     {
-        /// <summary>
-        /// The position of the first pixel in the image.
-        /// </summary>
-        private byte* pixelsBase;
-
         /// <summary>
         /// A value indicating whether this instance of the given entity has been disposed.
         /// </summary>
@@ -94,11 +89,6 @@ namespace ImageSharp
         public TColor[] PixelArray => this.pixelBuffer.Array;
 
         /// <summary>
-        /// Gets the pointer to the pixel buffer.
-        /// </summary>
-        public IntPtr DataPointer => this.pixelBuffer.Pointer;
-
-        /// <summary>
         /// Gets the size of a single pixel in the number of bytes.
         /// </summary>
         public int PixelSize { get; private set; }
@@ -139,15 +129,13 @@ namespace ImageSharp
             get
             {
                 this.CheckCoordinates(x, y);
-
-                return Unsafe.Read<TColor>(this.pixelsBase + (((y * this.Width) + x) * Unsafe.SizeOf<TColor>()));
+                return this.PixelArray[(y * this.Width) + x];
             }
 
             set
             {
                 this.CheckCoordinates(x, y);
-
-                Unsafe.Write(this.pixelsBase + (((y * this.Width) + x) * Unsafe.SizeOf<TColor>()), value);
+                this.PixelArray[(y * this.Width) + x] = value;
             }
         }
 
@@ -179,7 +167,7 @@ namespace ImageSharp
         /// </summary>
         public void Reset()
         {
-            Unsafe.InitBlock(this.pixelsBase, 0, (uint)(this.RowStride * this.Height));
+            this.pixelBuffer.Clear();
         }
 
         /// <summary>
@@ -262,9 +250,7 @@ namespace ImageSharp
         /// <param name="target">The target pixel buffer accessor.</param>
         internal void CopyTo(PixelAccessor<TColor> target)
         {
-            uint byteCount = (uint)(this.Width * this.Height * Unsafe.SizeOf<TColor>());
-
-            Unsafe.CopyBlock(target.pixelsBase, this.pixelsBase, byteCount);
+            BufferSpan.Copy(this.pixelBuffer.Span, target.pixelBuffer.Span);
         }
 
         /// <summary>
@@ -436,7 +422,6 @@ namespace ImageSharp
         private void SetPixelBufferUnsafe(int width, int height, PinnedImageBuffer<TColor> pixels)
         {
             this.pixelBuffer = pixels;
-            this.pixelsBase = (byte*)pixels.Pointer;
 
             this.Width = width;
             this.Height = height;

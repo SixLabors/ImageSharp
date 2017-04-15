@@ -3,6 +3,7 @@
     using System.Collections.Generic;
     using ImageSharp.Colors.Spaces;
     using ImageSharp.Colors.Spaces.Conversion;
+    using ImageSharp.Tests.TestUtilities;
 
     using Xunit;
 
@@ -15,7 +16,7 @@
     /// </remarks>
     public class RgbAndCieXyzConversionTest
     {
-        private static readonly IEqualityComparer<float> FloatComparerPrecision = new ApproximateFloatComparer(6);
+        private static readonly IEqualityComparer<float> FloatComparerPrecision = new FloatRoundingComparer(6);
 
         /// <summary>
         /// Tests conversion from <see cref="CieXyz"/> (<see cref="Illuminants.D50"/>)

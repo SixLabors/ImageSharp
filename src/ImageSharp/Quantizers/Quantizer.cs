@@ -68,7 +68,20 @@ namespace ImageSharp.Quantizers
 
                 // Collect the palette. Required before the second pass runs.
                 colorPalette = this.GetPalette();
-                this.SecondPass(pixels, quantizedPixels, width, height);
+
+                if (this.Dither)
+                {
+                    // We clone the image as we don't want to alter the original.
+                    using (Image<TColor> clone = new Image<TColor>(image))
+                    using (PixelAccessor<TColor> clonedPixels = clone.Lock())
+                    {
+                        this.SecondPass(clonedPixels, quantizedPixels, width, height);
+                    }
+                }
+                else
+                {
+                    this.SecondPass(pixels, quantizedPixels, width, height);
+                }
             }
 
             return new QuantizedImage<TColor>(width, height, colorPalette, quantizedPixels);

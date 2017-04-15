@@ -3,6 +3,7 @@
     using System.Collections.Generic;
     using ImageSharp.Colors.Spaces;
     using ImageSharp.Colors.Spaces.Conversion;
+    using ImageSharp.Tests.TestUtilities;
 
     using Xunit;
 
@@ -15,8 +16,7 @@
     /// </remarks>
     public class CieXyzAndCieLabConversionTest
     {
-        private static readonly IEqualityComparer<float> FloatComparerLabPrecision = new ApproximateFloatComparer(4);
-        private static readonly IEqualityComparer<float> FloatComparerXyzPrecision = new ApproximateFloatComparer(6);
+        private static readonly IEqualityComparer<float> FloatRoundingComparer = new FloatRoundingComparer(4);
 
         /// <summary>
         /// Tests conversion from <see cref="CieLab"/> to <see cref="CieXyz"/> (<see cref="Illuminants.D65"/>).
@@ -40,9 +40,9 @@
             CieXyz output = converter.ToCieXyz(input);
 
             // Assert
-            Assert.Equal(output.X, x, FloatComparerXyzPrecision);
-            Assert.Equal(output.Y, y, FloatComparerXyzPrecision);
-            Assert.Equal(output.Z, z, FloatComparerXyzPrecision);
+            Assert.Equal(output.X, x, FloatRoundingComparer);
+            Assert.Equal(output.Y, y, FloatRoundingComparer);
+            Assert.Equal(output.Z, z, FloatRoundingComparer);
         }
 
         /// <summary>
@@ -65,9 +65,9 @@
             CieLab output = converter.ToCieLab(input);
 
             // Assert
-            Assert.Equal(output.L, l, FloatComparerLabPrecision);
-            Assert.Equal(output.A, a, FloatComparerLabPrecision);
-            Assert.Equal(output.B, b, FloatComparerLabPrecision);
+            Assert.Equal(output.L, l, FloatRoundingComparer);
+            Assert.Equal(output.A, a, FloatRoundingComparer);
+            Assert.Equal(output.B, b, FloatRoundingComparer);
         }
     }
 }

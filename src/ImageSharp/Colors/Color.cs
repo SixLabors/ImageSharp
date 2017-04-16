@@ -62,6 +62,7 @@ namespace ImageSharp
         /// <param name="g">The green component.</param>
         /// <param name="b">The blue component.</param>
         /// <param name="a">The alpha component.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Color(byte r, byte g, byte b, byte a = 255)
         {
             this.packedValue = Pack(r, g, b, a);
@@ -74,6 +75,7 @@ namespace ImageSharp
         /// <param name="g">The green component.</param>
         /// <param name="b">The blue component.</param>
         /// <param name="a">The alpha component.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Color(float r, float g, float b, float a = 1)
         {
             this.packedValue = Pack(r, g, b, a);
@@ -85,6 +87,7 @@ namespace ImageSharp
         /// <param name="vector">
         /// The vector containing the components for the packed vector.
         /// </param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Color(Vector3 vector)
         {
             this.packedValue = Pack(ref vector);
@@ -96,6 +99,7 @@ namespace ImageSharp
         /// <param name="vector">
         /// The vector containing the components for the packed vector.
         /// </param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Color(Vector4 vector)
         {
             this.packedValue = Pack(ref vector);
@@ -107,6 +111,7 @@ namespace ImageSharp
         /// <param name="packed">
         /// The packed value.
         /// </param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Color(uint packed)
         {
             this.packedValue = packed;

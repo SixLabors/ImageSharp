@@ -28,7 +28,7 @@ namespace ImageSharp
         public static Color operator +(Color left, Color right)
         {
             Vector4 add = left.ToVector4() + right.ToVector4();
-            return new Color(Pack(ref add));
+            return Pack(ref add);
         }
 
         /// <summary>
@@ -42,7 +42,7 @@ namespace ImageSharp
         public static Color operator -(Color left, Color right)
         {
             Vector4 sub = left.ToVector4() - right.ToVector4();
-            return new Color(Pack(ref sub));
+            return Pack(ref sub);
         }
 
         /// <summary>
@@ -56,7 +56,7 @@ namespace ImageSharp
         public static Color Normal(Color backdrop, Color source)
         {
             Vector4 normal = Vector4BlendTransforms.Normal(backdrop.ToVector4(), source.ToVector4());
-            return new Color(Pack(ref normal));
+            return Pack(ref normal);
         }
 
         /// <summary>
@@ -76,7 +76,7 @@ namespace ImageSharp
         public static Color Multiply(Color backdrop, Color source)
         {
             Vector4 multiply = Vector4BlendTransforms.Multiply(backdrop.ToVector4(), source.ToVector4());
-            return new Color(Pack(ref multiply));
+            return Pack(ref multiply);
         }
 
         /// <summary>
@@ -95,7 +95,7 @@ namespace ImageSharp
         public static Color Screen(Color backdrop, Color source)
         {
             Vector4 subtract = Vector4BlendTransforms.Screen(backdrop.ToVector4(), source.ToVector4());
-            return new Color(Pack(ref subtract));
+            return Pack(ref subtract);
         }
 
         /// <summary>
@@ -110,7 +110,7 @@ namespace ImageSharp
         public static Color HardLight(Color backdrop, Color source)
         {
             Vector4 hardlight = Vector4BlendTransforms.HardLight(backdrop.ToVector4(), source.ToVector4());
-            return new Color(Pack(ref hardlight));
+            return Pack(ref hardlight);
         }
 
         /// <summary>
@@ -129,7 +129,7 @@ namespace ImageSharp
         public static Color Overlay(Color backdrop, Color source)
         {
             Vector4 overlay = Vector4BlendTransforms.Overlay(backdrop.ToVector4(), source.ToVector4());
-            return new Color(Pack(ref overlay));
+            return Pack(ref overlay);
         }
 
         /// <summary>
@@ -144,7 +144,7 @@ namespace ImageSharp
         public static Color Darken(Color backdrop, Color source)
         {
             Vector4 darken = Vector4BlendTransforms.Darken(backdrop.ToVector4(), source.ToVector4());
-            return new Color(Pack(ref darken));
+            return Pack(ref darken);
         }
 
         /// <summary>
@@ -159,7 +159,7 @@ namespace ImageSharp
         public static Color Lighten(Color backdrop, Color source)
         {
             Vector4 lighten = Vector4BlendTransforms.Lighten(backdrop.ToVector4(), source.ToVector4());
-            return new Color(Pack(ref lighten));
+            return Pack(ref lighten);
         }
 
         /// <summary>
@@ -174,7 +174,7 @@ namespace ImageSharp
         public static Color SoftLight(Color backdrop, Color source)
         {
             Vector4 softlight = Vector4BlendTransforms.SoftLight(backdrop.ToVector4(), source.ToVector4());
-            return new Color(Pack(ref softlight));
+            return Pack(ref softlight);
         }
 
         /// <summary>
@@ -188,7 +188,7 @@ namespace ImageSharp
         public static Color ColorDodge(Color backdrop, Color source)
         {
             Vector4 dodge = Vector4BlendTransforms.Dodge(backdrop.ToVector4(), source.ToVector4());
-            return new Color(Pack(ref dodge));
+            return Pack(ref dodge);
         }
 
         /// <summary>
@@ -202,7 +202,7 @@ namespace ImageSharp
         public static Color ColorBurn(Color backdrop, Color source)
         {
             Vector4 burn = Vector4BlendTransforms.Burn(backdrop.ToVector4(), source.ToVector4());
-            return new Color(Pack(ref burn));
+            return Pack(ref burn);
         }
 
         /// <summary>
@@ -217,7 +217,7 @@ namespace ImageSharp
         public static Color Difference(Color backdrop, Color source)
         {
             Vector4 difference = Vector4BlendTransforms.Difference(backdrop.ToVector4(), source.ToVector4());
-            return new Color(Pack(ref difference));
+            return Pack(ref difference);
         }
 
         /// <summary>
@@ -232,7 +232,7 @@ namespace ImageSharp
         public static Color Exclusion(Color backdrop, Color source)
         {
             Vector4 exclusion = Vector4BlendTransforms.Exclusion(backdrop.ToVector4(), source.ToVector4());
-            return new Color(Pack(ref exclusion));
+            return Pack(ref exclusion);
         }
 
         /// <summary>

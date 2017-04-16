@@ -15,14 +15,9 @@ namespace ImageSharp
     /// Provides per-pixel access to generic <see cref="Image{TColor}"/> pixels.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    public sealed unsafe class PixelAccessor<TColor> : IDisposable, IPinnedImageBuffer<TColor>
+    public sealed class PixelAccessor<TColor> : IDisposable, IBuffer2D<TColor>
         where TColor : struct, IPixel<TColor>
     {
-        /// <summary>
-        /// The position of the first pixel in the image.
-        /// </summary>
-        private byte* pixelsBase;
-
         /// <summary>
         /// A value indicating whether this instance of the given entity has been disposed.
         /// </summary>
@@ -35,9 +30,9 @@ namespace ImageSharp
         private bool isDisposed;
 
         /// <summary>
-        /// The <see cref="PinnedBuffer{T}"/> containing the pixel data.
+        /// The <see cref="Buffer{T}"/> containing the pixel data.
         /// </summary>
-        private PinnedImageBuffer<TColor> pixelBuffer;
+        private Buffer2D<TColor> pixelBuffer;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PixelAccessor{TColor}"/> class.
@@ -59,7 +54,7 @@ namespace ImageSharp
         /// <param name="width">The width of the image represented by the pixel buffer.</param>
         /// <param name="height">The height of the image represented by the pixel buffer.</param>
         public PixelAccessor(int width, int height)
-            : this(width, height, PinnedImageBuffer<TColor>.CreateClean(width, height))
+            : this(width, height, Buffer2D<TColor>.CreateClean(width, height))
         {
         }
 
@@ -69,7 +64,7 @@ namespace ImageSharp
         /// <param name="width">The width of the image represented by the pixel buffer.</param>
         /// <param name="height">The height of the image represented by the pixel buffer.</param>
         /// <param name="pixels">The pixel buffer.</param>
-        private PixelAccessor(int width, int height, PinnedImageBuffer<TColor> pixels)
+        private PixelAccessor(int width, int height, Buffer2D<TColor> pixels)
         {
             Guard.NotNull(pixels, nameof(pixels));
             Guard.MustBeGreaterThan(width, 0, nameof(width));
@@ -92,11 +87,6 @@ namespace ImageSharp
         /// Gets the pixel buffer array.
         /// </summary>
         public TColor[] PixelArray => this.pixelBuffer.Array;
-
-        /// <summary>
-        /// Gets the pointer to the pixel buffer.
-        /// </summary>
-        public IntPtr DataPointer => this.pixelBuffer.Pointer;
 
         /// <summary>
         /// Gets the size of a single pixel in the number of bytes.
@@ -124,7 +114,7 @@ namespace ImageSharp
         public ParallelOptions ParallelOptions { get; }
 
         /// <inheritdoc />
-        BufferSpan<TColor> IPinnedImageBuffer<TColor>.Span => this.pixelBuffer;
+        BufferSpan<TColor> IBuffer2D<TColor>.Span => this.pixelBuffer;
 
         private static BulkPixelOperations<TColor> Operations => BulkPixelOperations<TColor>.Instance;
 
@@ -139,15 +129,13 @@ namespace ImageSharp
             get
             {
                 this.CheckCoordinates(x, y);
-
-                return Unsafe.Read<TColor>(this.pixelsBase + (((y * this.Width) + x) * Unsafe.SizeOf<TColor>()));
+                return this.PixelArray[(y * this.Width) + x];
             }
 
             set
             {
                 this.CheckCoordinates(x, y);
-
-                Unsafe.Write(this.pixelsBase + (((y * this.Width) + x) * Unsafe.SizeOf<TColor>()), value);
+                this.PixelArray[(y * this.Width) + x] = value;
             }
         }
 
@@ -179,7 +167,7 @@ namespace ImageSharp
         /// </summary>
         public void Reset()
         {
-            Unsafe.InitBlock(this.pixelsBase, 0, (uint)(this.RowStride * this.Height));
+            this.pixelBuffer.Clear();
         }
 
         /// <summary>
@@ -251,7 +239,7 @@ namespace ImageSharp
         /// <remarks>If <see cref="M:PixelAccessor.PooledMemory"/> is true then caller is responsible for ensuring <see cref="M:PixelDataPool.Return()"/> is called.</remarks>
         internal TColor[] ReturnCurrentPixelsAndReplaceThemInternally(int width, int height, TColor[] pixels)
         {
-            TColor[] oldPixels = this.pixelBuffer.UnPinAndTakeArrayOwnership();
+            TColor[] oldPixels = this.pixelBuffer.TakeArrayOwnership();
             this.SetPixelBufferUnsafe(width, height, pixels);
             return oldPixels;
         }
@@ -262,9 +250,7 @@ namespace ImageSharp
         /// <param name="target">The target pixel buffer accessor.</param>
         internal void CopyTo(PixelAccessor<TColor> target)
         {
-            uint byteCount = (uint)(this.Width * this.Height * Unsafe.SizeOf<TColor>());
-
-            Unsafe.CopyBlock(target.pixelsBase, this.pixelsBase, byteCount);
+            BufferSpan.Copy(this.pixelBuffer.Span, target.pixelBuffer.Span);
         }
 
         /// <summary>
@@ -424,7 +410,7 @@ namespace ImageSharp
 
         private void SetPixelBufferUnsafe(int width, int height, TColor[] pixels)
         {
-            this.SetPixelBufferUnsafe(width, height, new PinnedImageBuffer<TColor>(pixels, width, height));
+            this.SetPixelBufferUnsafe(width, height, new Buffer2D<TColor>(pixels, width, height));
         }
 
         /// <summary>
@@ -433,10 +419,9 @@ namespace ImageSharp
         /// <param name="width">The width.</param>
         /// <param name="height">The height.</param>
         /// <param name="pixels">The pixel buffer</param>
-        private void SetPixelBufferUnsafe(int width, int height, PinnedImageBuffer<TColor> pixels)
+        private void SetPixelBufferUnsafe(int width, int height, Buffer2D<TColor> pixels)
         {
             this.pixelBuffer = pixels;
-            this.pixelsBase = (byte*)pixels.Pointer;
 
             this.Width = width;
             this.Height = height;

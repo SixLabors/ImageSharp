@@ -13,7 +13,7 @@ namespace ImageSharp
     /// Represents an area of generic <see cref="Image{TColor}"/> pixels.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    internal sealed unsafe class PixelArea<TColor> : IDisposable
+    internal sealed class PixelArea<TColor> : IDisposable
         where TColor : struct, IPixel<TColor>
     {
         /// <summary>
@@ -30,7 +30,7 @@ namespace ImageSharp
         /// <summary>
         /// The underlying buffer containing the raw pixel data.
         /// </summary>
-        private PinnedBuffer<byte> byteBuffer;
+        private Buffer<byte> byteBuffer;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PixelArea{TColor}"/> class.
@@ -66,8 +66,7 @@ namespace ImageSharp
             this.RowStride = width * GetComponentCount(componentOrder);
             this.Length = bytes.Length; // TODO: Is this the right value for Length?
 
-            this.byteBuffer = new PinnedBuffer<byte>(bytes);
-            this.PixelBase = (byte*)this.byteBuffer.Pointer;
+            this.byteBuffer = new Buffer<byte>(bytes);
         }
 
         /// <summary>
@@ -117,8 +116,7 @@ namespace ImageSharp
             this.RowStride = (width * GetComponentCount(componentOrder)) + padding;
             this.Length = this.RowStride * height;
 
-            this.byteBuffer = new PinnedBuffer<byte>(this.Length);
-            this.PixelBase = (byte*)this.byteBuffer.Pointer;
+            this.byteBuffer = new Buffer<byte>(this.Length);
         }
 
         /// <summary>
@@ -137,19 +135,9 @@ namespace ImageSharp
         public ComponentOrder ComponentOrder { get; }
 
         /// <summary>
-        /// Gets the pointer to the pixel buffer.
-        /// </summary>
-        public IntPtr DataPointer => this.byteBuffer.Pointer;
-
-        /// <summary>
         /// Gets the height.
         /// </summary>
         public int Height { get; }
-
-        /// <summary>
-        /// Gets the data pointer.
-        /// </summary>
-        public byte* PixelBase { get; private set; }
 
         /// <summary>
         /// Gets the width of one row in the number of bytes.
@@ -198,7 +186,7 @@ namespace ImageSharp
         /// </summary>
         public void Reset()
         {
-            Unsafe.InitBlock(this.PixelBase, 0, (uint)(this.RowStride * this.Height));
+            this.byteBuffer.Clear();
         }
 
         /// <summary>

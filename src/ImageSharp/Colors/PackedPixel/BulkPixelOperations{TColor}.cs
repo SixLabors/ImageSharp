@@ -27,10 +27,7 @@ namespace ImageSharp
         /// <param name="sourceVectors">The <see cref="BufferSpan{T}"/> to the source vectors.</param>
         /// <param name="destColors">The <see cref="BufferSpan{T}"/> to the destination colors.</param>
         /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void PackFromVector4(
-            BufferSpan<Vector4> sourceVectors,
-            BufferSpan<TColor> destColors,
-            int count)
+        internal virtual void PackFromVector4(BufferSpan<Vector4> sourceVectors, BufferSpan<TColor> destColors, int count)
         {
             ref Vector4 sourceRef = ref sourceVectors.DangerousGetPinnableReference();
             ref TColor destRef = ref destColors.DangerousGetPinnableReference();
@@ -49,10 +46,7 @@ namespace ImageSharp
         /// <param name="sourceColors">The <see cref="BufferSpan{T}"/> to the source colors.</param>
         /// <param name="destVectors">The <see cref="BufferSpan{T}"/> to the destination vectors.</param>
         /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void ToVector4(
-            BufferSpan<TColor> sourceColors,
-            BufferSpan<Vector4> destVectors,
-            int count)
+        internal virtual void ToVector4(BufferSpan<TColor> sourceColors, BufferSpan<Vector4> destVectors, int count)
         {
             ref TColor sourceRef = ref sourceColors.DangerousGetPinnableReference();
             ref Vector4 destRef = ref destVectors.DangerousGetPinnableReference();
@@ -71,10 +65,7 @@ namespace ImageSharp
         /// <param name="sourceBytes">The <see cref="BufferSpan{T}"/> to the source bytes.</param>
         /// <param name="destColors">The <see cref="BufferSpan{T}"/> to the destination colors.</param>
         /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void PackFromXyzBytes(
-            BufferSpan<byte> sourceBytes,
-            BufferSpan<TColor> destColors,
-            int count)
+        internal virtual void PackFromXyzBytes(BufferSpan<byte> sourceBytes, BufferSpan<TColor> destColors, int count)
         {
             ref byte sourceRef = ref sourceBytes.DangerousGetPinnableReference();
             ref TColor destRef = ref destColors.DangerousGetPinnableReference();
@@ -115,10 +106,7 @@ namespace ImageSharp
         /// <param name="sourceBytes">The <see cref="BufferSpan{T}"/> to the source bytes.</param>
         /// <param name="destColors">The <see cref="BufferSpan{T}"/> to the destination colors.</param>
         /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void PackFromXyzwBytes(
-            BufferSpan<byte> sourceBytes,
-            BufferSpan<TColor> destColors,
-            int count)
+        internal virtual void PackFromXyzwBytes(BufferSpan<byte> sourceBytes, BufferSpan<TColor> destColors, int count)
         {
             ref byte sourceRef = ref sourceBytes.DangerousGetPinnableReference();
             ref TColor destRef = ref destColors.DangerousGetPinnableReference();
@@ -141,10 +129,7 @@ namespace ImageSharp
         /// <param name="sourceColors">The <see cref="BufferSpan{T}"/> to the source colors.</param>
         /// <param name="destBytes">The <see cref="BufferSpan{T}"/> to the destination bytes.</param>
         /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void ToXyzwBytes(
-            BufferSpan<TColor> sourceColors,
-            BufferSpan<byte> destBytes,
-            int count)
+        internal virtual void ToXyzwBytes(BufferSpan<TColor> sourceColors, BufferSpan<byte> destBytes, int count)
         {
             ref TColor sourceRef = ref sourceColors.DangerousGetPinnableReference();
             byte[] dest = destBytes.Array;
@@ -162,10 +147,7 @@ namespace ImageSharp
         /// <param name="sourceBytes">The <see cref="BufferSpan{T}"/> to the source bytes.</param>
         /// <param name="destColors">The <see cref="BufferSpan{T}"/> to the destination colors.</param>
         /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void PackFromZyxBytes(
-            BufferSpan<byte> sourceBytes,
-            BufferSpan<TColor> destColors,
-            int count)
+        internal virtual void PackFromZyxBytes(BufferSpan<byte> sourceBytes, BufferSpan<TColor> destColors, int count)
         {
             ref byte sourceRef = ref sourceBytes.DangerousGetPinnableReference();
             ref TColor destRef = ref destColors.DangerousGetPinnableReference();
@@ -206,10 +188,7 @@ namespace ImageSharp
         /// <param name="sourceBytes">The <see cref="BufferSpan{T}"/> to the source bytes.</param>
         /// <param name="destColors">The <see cref="BufferSpan{T}"/> to the destination colors.</param>
         /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void PackFromZyxwBytes(
-            BufferSpan<byte> sourceBytes,
-            BufferSpan<TColor> destColors,
-            int count)
+        internal virtual void PackFromZyxwBytes(BufferSpan<byte> sourceBytes, BufferSpan<TColor> destColors, int count)
         {
             ref byte sourceRef = ref sourceBytes.DangerousGetPinnableReference();
             ref TColor destRef = ref destColors.DangerousGetPinnableReference();
@@ -232,10 +211,7 @@ namespace ImageSharp
         /// <param name="sourceColors">The <see cref="BufferSpan{T}"/> to the source colors.</param>
         /// <param name="destBytes">The <see cref="BufferSpan{T}"/> to the destination bytes.</param>
         /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void ToZyxwBytes(
-            BufferSpan<TColor> sourceColors,
-            BufferSpan<byte> destBytes,
-            int count)
+        internal virtual void ToZyxwBytes(BufferSpan<TColor> sourceColors, BufferSpan<byte> destBytes, int count)
         {
             ref TColor sourceRef = ref sourceColors.DangerousGetPinnableReference();
             byte[] dest = destBytes.Array;

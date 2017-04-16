@@ -29,20 +29,20 @@ namespace ImageSharp.Tests.Drawing
                 using (FileStream output = File.OpenWrite($"{path}/Simple.png"))
                 {
                     image
-                        .BackgroundColor(Color.Blue)
-                        .Fill(Color.HotPink, new Polygon(new BezierLineSegment(simplePath)))
+                        .BackgroundColor(Color32.Blue)
+                        .Fill(Color32.HotPink, new Polygon(new BezierLineSegment(simplePath)))
                         .Save(output);
                 }
 
-                using (PixelAccessor<Color> sourcePixels = image.Lock())
+                using (PixelAccessor<Color32> sourcePixels = image.Lock())
                 {
-                    Assert.Equal(Color.HotPink, sourcePixels[150, 300]);
+                    Assert.Equal(Color32.HotPink, sourcePixels[150, 300]);
 
                     //curve points should not be never be set
-                    Assert.Equal(Color.Blue, sourcePixels[240, 30]);
+                    Assert.Equal(Color32.Blue, sourcePixels[240, 30]);
 
                     // inside shape should not be empty
-                    Assert.Equal(Color.HotPink, sourcePixels[200, 250]);
+                    Assert.Equal(Color32.HotPink, sourcePixels[200, 250]);
                 }
             }
         }
@@ -57,28 +57,28 @@ namespace ImageSharp.Tests.Drawing
                         new Vector2(240, 30),
                         new Vector2(300, 400)
             };
-            Color color = new Color(Color.HotPink.R, Color.HotPink.G, Color.HotPink.B, 150);
+            Color32 color = new Color32(Color32.HotPink.R, Color32.HotPink.G, Color32.HotPink.B, 150);
 
             using (Image image = new Image(500, 500))
             {
                 using (FileStream output = File.OpenWrite($"{path}/Opacity.png"))
                 {
                     image
-                        .BackgroundColor(Color.Blue)
+                        .BackgroundColor(Color32.Blue)
                         .Fill(color, new Polygon(new BezierLineSegment(simplePath)))
                         .Save(output);
                 }
 
                 //shift background color towards forground color by the opacity amount
-                Color mergedColor = new Color(Vector4.Lerp(Color.Blue.ToVector4(), Color.HotPink.ToVector4(), 150f / 255f));
+                Color32 mergedColor = new Color32(Vector4.Lerp(Color32.Blue.ToVector4(), Color32.HotPink.ToVector4(), 150f / 255f));
 
-                using (PixelAccessor<Color> sourcePixels = image.Lock())
+                using (PixelAccessor<Color32> sourcePixels = image.Lock())
                 {
                     //top of curve
                     Assert.Equal(mergedColor, sourcePixels[138, 116]);
 
                     //curve points should not be never be set
-                    Assert.Equal(Color.Blue, sourcePixels[240, 30]);
+                    Assert.Equal(Color32.Blue, sourcePixels[240, 30]);
 
                     // inside shape should not be empty
                     Assert.Equal(mergedColor, sourcePixels[200, 250]);

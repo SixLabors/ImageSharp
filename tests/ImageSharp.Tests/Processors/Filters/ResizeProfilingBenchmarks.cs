@@ -36,13 +36,13 @@ namespace ImageSharp.Tests
         // [Fact]
         public void PrintWeightsData()
         {
-            ResizeProcessor<Color> proc = new ResizeProcessor<Color>(new BicubicResampler(), 200, 200);
+            ResizeProcessor<Color32> proc = new ResizeProcessor<Color32>(new BicubicResampler(), 200, 200);
 
-            ResamplingWeightedProcessor<Color>.WeightsBuffer weights = proc.PrecomputeWeights(200, 500);
+            ResamplingWeightedProcessor<Color32>.WeightsBuffer weights = proc.PrecomputeWeights(200, 500);
 
             StringBuilder bld = new StringBuilder();
 
-            foreach (ResamplingWeightedProcessor<Color>.WeightsWindow window in weights.Weights)
+            foreach (ResamplingWeightedProcessor<Color32>.WeightsWindow window in weights.Weights)
             {
                 for (int i = 0; i < window.Length; i++)
                 {

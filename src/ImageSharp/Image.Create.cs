@@ -29,12 +29,12 @@ namespace ImageSharp
         /// The configuration providing initialization code which allows extending the library.
         /// </param>
         /// <returns>
-        /// A new <see cref="Image{TColor}"/> unless <typeparamref name="TColor"/> is <see cref="Color"/> in which case it returns <see cref="Image" />
+        /// A new <see cref="Image{TColor}"/> unless <typeparamref name="TColor"/> is <see cref="Color32"/> in which case it returns <see cref="Image" />
         /// </returns>
         internal static Image<TColor> Create<TColor>(int width, int height, ImageMetaData metadata, Configuration configuration)
             where TColor : struct, IPixel<TColor>
         {
-            if (typeof(TColor) == typeof(Color))
+            if (typeof(TColor) == typeof(Color32))
             {
                 return new Image(width, height, metadata, configuration) as Image<TColor>;
             }
@@ -55,7 +55,7 @@ namespace ImageSharp
         /// The configuration providing initialization code which allows extending the library.
         /// </param>
         /// <returns>
-        /// A new <see cref="Image{TColor}"/> unless <typeparamref name="TColor"/> is <see cref="Color"/> in which case it returns <see cref="Image" />
+        /// A new <see cref="Image{TColor}"/> unless <typeparamref name="TColor"/> is <see cref="Color32"/> in which case it returns <see cref="Image" />
         /// </returns>
         internal static Image<TColor> Create<TColor>(int width, int height, Configuration configuration)
             where TColor : struct, IPixel<TColor>

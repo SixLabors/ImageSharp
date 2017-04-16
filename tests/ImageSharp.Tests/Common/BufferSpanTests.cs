@@ -420,12 +420,12 @@ namespace ImageSharp.Tests.Common
             [Fact]
             public void ColorToBytes()
             {
-                Color[] colors = { new Color(0, 1, 2, 3), new Color(4, 5, 6, 7), new Color(8, 9, 10, 11), };
+                Color32[] colors = { new Color32(0, 1, 2, 3), new Color32(4, 5, 6, 7), new Color32(8, 9, 10, 11), };
 
-                using (PinnedBuffer<Color> colorBuf = new PinnedBuffer<Color>(colors))
+                using (PinnedBuffer<Color32> colorBuf = new PinnedBuffer<Color32>(colors))
                 using (PinnedBuffer<byte> byteBuf = new PinnedBuffer<byte>(colors.Length*4))
                 {
-                    BufferSpan.Copy<Color>(colorBuf, byteBuf, colorBuf.Length);
+                    BufferSpan.Copy<Color32>(colorBuf, byteBuf, colorBuf.Length);
 
                     byte[] a = byteBuf.Array;
 

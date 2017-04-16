@@ -5,13 +5,13 @@
 
 namespace ImageSharp.Tests
 {
-    public class ImageFactory : GenericFactory<Color>
+    public class ImageFactory : GenericFactory<Color32>
     {
-        public override Image<Color> CreateImage(byte[] bytes) => Image.Load(bytes);
+        public override Image<Color32> CreateImage(byte[] bytes) => Image.Load(bytes);
 
-        public override Image<Color> CreateImage(int width, int height) => new Image(width, height);
+        public override Image<Color32> CreateImage(int width, int height) => new Image(width, height);
 
-        public override Image<Color> CreateImage(Image<Color> other)
+        public override Image<Color32> CreateImage(Image<Color32> other)
         {
             Image img = (Image)other;
             return new Image(img);

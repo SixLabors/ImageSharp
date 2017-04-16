@@ -16,7 +16,7 @@ namespace ImageSharp
     /// packed into a single unsigned integer value.
     /// </summary>
     [DebuggerDisplay("Image: {Width}x{Height}")]
-    public sealed partial class Image : Image<Color>
+    public sealed partial class Image : Image<Color32>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="Image"/> class
@@ -49,7 +49,7 @@ namespace ImageSharp
         /// </summary>
         /// <param name="other">The other image, where the clone should be made from.</param>
         /// <exception cref="System.ArgumentNullException"><paramref name="other"/> is null.</exception>
-        public Image(Image<Color> other)
+        public Image(Image<Color32> other)
             : base(other)
         {
         }

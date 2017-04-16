@@ -37,7 +37,7 @@ namespace ImageSharp.Tests
                 using (Image image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
-                    image.Vignette(Color.HotPink).Save(output);
+                    image.Vignette(Color32.HotPink).Save(output);
                 }
             }
         }

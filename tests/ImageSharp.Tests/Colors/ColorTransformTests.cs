@@ -16,101 +16,101 @@ namespace ImageSharp.Tests.Colors
         /// <summary>
         /// Orange backdrop
         /// </summary>
-        private static readonly Color Backdrop = new Color(204, 102, 0);
+        private static readonly Color32 Backdrop = new Color32(204, 102, 0);
 
         /// <summary>
         /// Blue source
         /// </summary>
-        private static readonly Color Source = new Color(0, 102, 153);
+        private static readonly Color32 Source = new Color32(0, 102, 153);
 
         [Fact]
         public void Normal()
         {
-            Color normal = Color.Normal(Backdrop, Source);
+            Color32 normal = Color32.Normal(Backdrop, Source);
             Assert.True(normal == Source);
         }
 
         [Fact]
         public void Multiply()
         {
-            Assert.True(Color.Multiply(Backdrop, Color.Black) == Color.Black);
-            Assert.True(Color.Multiply(Backdrop, Color.White) == Backdrop);
+            Assert.True(Color32.Multiply(Backdrop, Color32.Black) == Color32.Black);
+            Assert.True(Color32.Multiply(Backdrop, Color32.White) == Backdrop);
 
-            Color multiply = Color.Multiply(Backdrop, Source);
-            Assert.True(multiply == new Color(0, 41, 0));
+            Color32 multiply = Color32.Multiply(Backdrop, Source);
+            Assert.True(multiply == new Color32(0, 41, 0));
         }
 
         [Fact]
         public void Screen()
         {
-            Assert.True(Color.Screen(Backdrop, Color.Black) == Backdrop);
-            Assert.True(Color.Screen(Backdrop, Color.White) == Color.White);
+            Assert.True(Color32.Screen(Backdrop, Color32.Black) == Backdrop);
+            Assert.True(Color32.Screen(Backdrop, Color32.White) == Color32.White);
 
-            Color screen = Color.Screen(Backdrop, Source);
-            Assert.True(screen == new Color(204, 163, 153));
+            Color32 screen = Color32.Screen(Backdrop, Source);
+            Assert.True(screen == new Color32(204, 163, 153));
         }
 
         [Fact]
         public void HardLight()
         {
-            Color hardLight = Color.HardLight(Backdrop, Source);
-            Assert.True(hardLight == new Color(0, 82, 51));
+            Color32 hardLight = Color32.HardLight(Backdrop, Source);
+            Assert.True(hardLight == new Color32(0, 82, 51));
         }
 
         [Fact]
         public void Overlay()
         {
-            Color overlay = Color.Overlay(Backdrop, Source);
-            Assert.True(overlay == new Color(153, 82, 0));
+            Color32 overlay = Color32.Overlay(Backdrop, Source);
+            Assert.True(overlay == new Color32(153, 82, 0));
         }
 
         [Fact]
         public void Darken()
         {
-            Color darken = Color.Darken(Backdrop, Source);
-            Assert.True(darken == new Color(0, 102, 0));
+            Color32 darken = Color32.Darken(Backdrop, Source);
+            Assert.True(darken == new Color32(0, 102, 0));
         }
 
         [Fact]
         public void Lighten()
         {
-            Color lighten = Color.Lighten(Backdrop, Source);
-            Assert.True(lighten == new Color(204, 102, 153));
+            Color32 lighten = Color32.Lighten(Backdrop, Source);
+            Assert.True(lighten == new Color32(204, 102, 153));
         }
 
         [Fact]
         public void SoftLight()
         {
-            Color softLight = Color.SoftLight(Backdrop, Source);
-            Assert.True(softLight == new Color(163, 90, 0));
+            Color32 softLight = Color32.SoftLight(Backdrop, Source);
+            Assert.True(softLight == new Color32(163, 90, 0));
         }
 
         [Fact]
         public void ColorDodge()
         {
-            Color colorDodge = Color.ColorDodge(Backdrop, Source);
-            Assert.True(colorDodge == new Color(204, 170, 0));
+            Color32 colorDodge = Color32.ColorDodge(Backdrop, Source);
+            Assert.True(colorDodge == new Color32(204, 170, 0));
         }
 
         [Fact]
         public void ColorBurn()
         {
-            Color colorBurn = Color.ColorBurn(Backdrop, Source);
-            Assert.True(colorBurn == new Color(0, 0, 0));
+            Color32 colorBurn = Color32.ColorBurn(Backdrop, Source);
+            Assert.True(colorBurn == new Color32(0, 0, 0));
         }
 
         [Fact]
         public void Difference()
         {
-            Color difference = Color.Difference(Backdrop, Source);
-            Assert.True(difference == new Color(204, 0, 153));
+            Color32 difference = Color32.Difference(Backdrop, Source);
+            Assert.True(difference == new Color32(204, 0, 153));
         }
 
         [Fact]
         public void Exclusion()
         {
-            Color exclusion = Color.Exclusion(Backdrop, Source);
-            Assert.True(exclusion == new Color(204, 122, 153));
+            Color32 exclusion = Color32.Exclusion(Backdrop, Source);
+            Assert.True(exclusion == new Color32(204, 122, 153));
         }
     }
 }

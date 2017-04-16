@@ -8,9 +8,9 @@ namespace ImageSharp.Benchmarks.Color.Bulk
     public abstract class ToVector4<TColor>
         where TColor : struct, IPixel<TColor>
     {
-        private PinnedBuffer<TColor> source;
+        private Buffer<TColor> source;
 
-        private PinnedBuffer<Vector4> destination;
+        private Buffer<Vector4> destination;
 
         [Params(64, 300, 1024)]
         public int Count { get; set; }
@@ -18,8 +18,8 @@ namespace ImageSharp.Benchmarks.Color.Bulk
         [Setup]
         public void Setup()
         {
-            this.source = new PinnedBuffer<TColor>(this.Count);
-            this.destination = new PinnedBuffer<Vector4>(this.Count);
+            this.source = new Buffer<TColor>(this.Count);
+            this.destination = new Buffer<Vector4>(this.Count);
         }
 
         [Cleanup]

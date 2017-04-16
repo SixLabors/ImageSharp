@@ -10,22 +10,22 @@ namespace ImageSharp.Tests.Colors
 
     public class BulkPixelOperationsTests
     {
-        public class Color : BulkPixelOperationsTests<ImageSharp.Color32>
+        public class Color32 : BulkPixelOperationsTests<ImageSharp.Color32>
         {
-            public Color(ITestOutputHelper output)
+            public Color32(ITestOutputHelper output)
                 : base(output)
             {
             }
 
             // For 4.6 test runner MemberData does not work without redeclaring the public field in the derived test class:
-            public static new TheoryData<int> ArraySizesData => new TheoryData<int> { 7, 16, 1111 };
+            //public static new TheoryData<int> ArraySizesData => new TheoryData<int> { 7, 16, 1111 };
 
             [Fact]
             public void IsSpecialImplementation()
             {
                 Assert.IsType<ImageSharp.Color32.BulkOperations>(BulkPixelOperations<ImageSharp.Color32>.Instance);
             }
-            
+
             [Fact]
             public void ToVector4SimdAligned()
             {
@@ -36,7 +36,7 @@ namespace ImageSharp.Tests.Colors
                     source,
                     expected,
                     (s, d) => ImageSharp.Color32.BulkOperations.ToVector4SimdAligned(s, d, 64)
-                    );
+                );
             }
 
             // [Fact] // Profiling benchmark - enable manually!
@@ -45,8 +45,8 @@ namespace ImageSharp.Tests.Colors
                 int times = 200000;
                 int count = 1024;
 
-                using (PinnedBuffer<ImageSharp.Color32> source = new PinnedBuffer<ImageSharp.Color32>(count))
-                using (PinnedBuffer<Vector4> dest = new PinnedBuffer<Vector4>(count))
+                using (Buffer<ImageSharp.Color32> source = new Buffer<ImageSharp.Color32>(count))
+                using (Buffer<Vector4> dest = new Buffer<Vector4>(count))
                 {
                     this.Measure(
                         times,
@@ -66,13 +66,13 @@ namespace ImageSharp.Tests.Colors
             {
             }
 
-            public static new TheoryData<int> ArraySizesData => new TheoryData<int> { 7, 16, 1111 };
+            //public static new TheoryData<int> ArraySizesData => new TheoryData<int> { 7, 16, 1111 };
         }
 
         [Theory]
         [WithBlankImages(1, 1, PixelTypes.All)]
         public void GetGlobalInstance<TColor>(TestImageProvider<TColor> dummy)
-            where TColor:struct, IPixel<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             Assert.NotNull(BulkPixelOperations<TColor>.Instance);
         }
@@ -112,7 +112,7 @@ namespace ImageSharp.Tests.Colors
                 source,
                 expected,
                 (s, d) => Operations.PackFromVector4(s, d, count)
-                );
+            );
         }
 
         internal static Vector4[] CreateExpectedVector4Data(TColor[] source)
@@ -137,7 +137,7 @@ namespace ImageSharp.Tests.Colors
                 source,
                 expected,
                 (s, d) => Operations.ToVector4(s, d, count)
-                );
+            );
         }
 
 
@@ -156,10 +156,10 @@ namespace ImageSharp.Tests.Colors
             }
 
             TestOperation(
-                source, 
-                expected, 
+                source,
+                expected,
                 (s, d) => Operations.PackFromXyzBytes(s, d, count)
-                );
+            );
         }
 
         [Theory]
@@ -179,7 +179,7 @@ namespace ImageSharp.Tests.Colors
                 source,
                 expected,
                 (s, d) => Operations.ToXyzBytes(s, d, count)
-                );
+            );
         }
 
         [Theory]
@@ -200,7 +200,7 @@ namespace ImageSharp.Tests.Colors
                 source,
                 expected,
                 (s, d) => Operations.PackFromXyzwBytes(s, d, count)
-                );
+            );
         }
 
         [Theory]
@@ -220,7 +220,7 @@ namespace ImageSharp.Tests.Colors
                 source,
                 expected,
                 (s, d) => Operations.ToXyzwBytes(s, d, count)
-                );
+            );
         }
 
         [Theory]
@@ -241,7 +241,7 @@ namespace ImageSharp.Tests.Colors
                 source,
                 expected,
                 (s, d) => Operations.PackFromZyxBytes(s, d, count)
-                );
+            );
         }
 
         [Theory]
@@ -261,7 +261,7 @@ namespace ImageSharp.Tests.Colors
                 source,
                 expected,
                 (s, d) => Operations.ToZyxBytes(s, d, count)
-                );
+            );
         }
 
         [Theory]
@@ -282,7 +282,7 @@ namespace ImageSharp.Tests.Colors
                 source,
                 expected,
                 (s, d) => Operations.PackFromZyxwBytes(s, d, count)
-                );
+            );
         }
 
         [Theory]
@@ -302,26 +302,26 @@ namespace ImageSharp.Tests.Colors
                 source,
                 expected,
                 (s, d) => Operations.ToZyxwBytes(s, d, count)
-                );
+            );
         }
 
-        
+
         private class TestBuffers<TSource, TDest> : IDisposable
             where TSource : struct
             where TDest : struct
         {
-            public PinnedBuffer<TSource> SourceBuffer { get; }
-            public PinnedBuffer<TDest> ActualDestBuffer { get; }
-            public PinnedBuffer<TDest> ExpectedDestBuffer { get; }
+            public Buffer<TSource> SourceBuffer { get; }
+            public Buffer<TDest> ActualDestBuffer { get; }
+            public Buffer<TDest> ExpectedDestBuffer { get; }
 
             public BufferSpan<TSource> Source => this.SourceBuffer;
             public BufferSpan<TDest> ActualDest => this.ActualDestBuffer;
-            
+
             public TestBuffers(TSource[] source, TDest[] expectedDest)
             {
-                this.SourceBuffer = new PinnedBuffer<TSource>(source);
-                this.ExpectedDestBuffer = new PinnedBuffer<TDest>(expectedDest);
-                this.ActualDestBuffer = new PinnedBuffer<TDest>(expectedDest.Length);
+                this.SourceBuffer = new Buffer<TSource>(source);
+                this.ExpectedDestBuffer = new Buffer<TDest>(expectedDest);
+                this.ActualDestBuffer = new Buffer<TDest>(expectedDest.Length);
             }
 
             public void Dispose()

@@ -6,7 +6,7 @@
     using BenchmarkDotNet.Attributes;
 
     using ImageSharp;
-    
+
     /// <summary>
     /// Compares two implementation candidates for general BulkPixelOperations.ToVector4():
     /// - One iterating with pointers
@@ -14,9 +14,9 @@
     /// </summary>
     public unsafe class PackFromVector4ReferenceVsPointer
     {
-        private PinnedBuffer<ImageSharp.Color32> destination;
+        private Buffer<ImageSharp.Color32> destination;
 
-        private PinnedBuffer<Vector4> source;
+        private Buffer<Vector4> source;
 
         [Params(16, 128, 1024)]
         public int Count { get; set; }
@@ -24,8 +24,10 @@
         [Setup]
         public void Setup()
         {
-            this.destination = new PinnedBuffer<ImageSharp.Color32>(this.Count);
-            this.source = new PinnedBuffer<Vector4>(this.Count * 4);
+            this.destination = new Buffer<ImageSharp.Color32>(this.Count);
+            this.source = new Buffer<Vector4>(this.Count * 4);
+            this.source.Pin();
+            this.destination.Pin();
         }
 
         [Cleanup]
@@ -38,8 +40,8 @@
         [Benchmark(Baseline = true)]
         public void PackUsingPointers()
         {
-            Vector4* sp = (Vector4*)this.source.Pointer;
-            byte* dp = (byte*)this.destination.Pointer;
+            Vector4* sp = (Vector4*)this.source.Pin();
+            byte* dp = (byte*)this.destination.Pin();
             int count = this.Count;
             int size = sizeof(ImageSharp.Color32);
 

@@ -8,9 +8,9 @@ namespace ImageSharp.Benchmarks.Color.Bulk
     public abstract class PackFromXyzw<TColor>
         where TColor : struct, IPixel<TColor>
     {
-        private PinnedBuffer<TColor> destination;
+        private Buffer<TColor> destination;
 
-        private PinnedBuffer<byte> source;
+        private Buffer<byte> source;
 
         [Params(16, 128, 1024)]
         public int Count { get; set; }
@@ -18,8 +18,8 @@ namespace ImageSharp.Benchmarks.Color.Bulk
         [Setup]
         public void Setup()
         {
-            this.destination = new PinnedBuffer<TColor>(this.Count);
-            this.source = new PinnedBuffer<byte>(this.Count * 4);
+            this.destination = new Buffer<TColor>(this.Count);
+            this.source = new Buffer<byte>(this.Count * 4);
         }
 
         [Cleanup]

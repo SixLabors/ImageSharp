@@ -11,6 +11,7 @@ namespace ImageSharp.Benchmarks
     using BenchmarkDotNet.Attributes;
     using CoreSize = ImageSharp.Size;
     using CoreImage = ImageSharp.Image;
+    using CoreVectorImage = ImageSharp.Image<ImageSharp.Color>;
 
     public class Resize : BenchmarkBase
     {
@@ -44,10 +45,30 @@ namespace ImageSharp.Benchmarks
             }
         }
 
+        [Benchmark(Description = "ImageSharp Vector Resize")]
+        public CoreSize ResizeCoreVector()
+        {
+            using (CoreVectorImage image = new CoreVectorImage(2000, 2000))
+            {
+                image.Resize(400, 400);
+                return new CoreSize(image.Width, image.Height);
+            }
+        }
+
         [Benchmark(Description = "ImageSharp Compand Resize")]
         public CoreSize ResizeCoreCompand()
         {
             using (CoreImage image = new CoreImage(2000, 2000))
+            {
+                image.Resize(400, 400, true);
+                return new CoreSize(image.Width, image.Height);
+            }
+        }
+
+        [Benchmark(Description = "ImageSharp Vector Compand Resize")]
+        public CoreSize ResizeCoreVectorCompand()
+        {
+            using (CoreVectorImage image = new CoreVectorImage(2000, 2000))
             {
                 image.Resize(400, 400, true);
                 return new CoreSize(image.Width, image.Height);

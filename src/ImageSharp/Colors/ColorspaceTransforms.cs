@@ -10,7 +10,7 @@ namespace ImageSharp
     using Colors.Spaces;
 
     /// <summary>
-    /// Packed vector type containing four 8-bit unsigned normalized values ranging from 0 to 255.
+    /// Unpacked pixel type containing four 8-bit unsigned normalized values ranging from 0 to 255.
     /// The color components are stored in red, green, blue, and alpha order.
     /// </summary>
     /// <remarks>

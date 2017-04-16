@@ -18,9 +18,9 @@ namespace ImageSharp.Tests.Drawing.Paths
     {
         float thickness = 7.2f;
         GraphicsOptions noneDefault = new GraphicsOptions();
-        Color color = Color.HotPink;
-        SolidBrush brush = Brushes.Solid(Color.HotPink);
-        Pen pen = new Pen(Color.Gray, 99.9f);
+        Color32 color = Color32.HotPink;
+        SolidBrush brush = Brushes.Solid(Color32.HotPink);
+        Pen pen = new Pen(Color32.Gray, 99.9f);
         Vector2[] points = new Vector2[] {
                     new Vector2(10,10),
                     new Vector2(20,10),
@@ -45,7 +45,7 @@ namespace ImageSharp.Tests.Drawing.Paths
             img.DrawLines(brush, thickness, points);
 
             Assert.NotEmpty(img.ProcessorApplications);
-            DrawPathProcessor<Color> processor = Assert.IsType<DrawPathProcessor<Color>>(img.ProcessorApplications[0].processor);
+            DrawPathProcessor<Color32> processor = Assert.IsType<DrawPathProcessor<Color32>>(img.ProcessorApplications[0].processor);
 
             Assert.Equal(GraphicsOptions.Default, processor.Options);
 
@@ -54,7 +54,7 @@ namespace ImageSharp.Tests.Drawing.Paths
             SixLabors.Shapes.Path vector = Assert.IsType<SixLabors.Shapes.Path>(path.Path);
             LinearLineSegment segment = Assert.IsType<LinearLineSegment>(vector.LineSegments[0]);
 
-            Pen<Color> pen = Assert.IsType<Pen<Color>>(processor.Pen);
+            Pen<Color32> pen = Assert.IsType<Pen<Color32>>(processor.Pen);
             Assert.Equal(brush, pen.Brush);
             Assert.Equal(thickness, pen.Width);
         }
@@ -65,7 +65,7 @@ namespace ImageSharp.Tests.Drawing.Paths
             img.DrawLines(brush, thickness, points, noneDefault);
 
             Assert.NotEmpty(img.ProcessorApplications);
-            DrawPathProcessor<Color> processor = Assert.IsType<DrawPathProcessor<Color>>(img.ProcessorApplications[0].processor);
+            DrawPathProcessor<Color32> processor = Assert.IsType<DrawPathProcessor<Color32>>(img.ProcessorApplications[0].processor);
 
             Assert.Equal(noneDefault, processor.Options);
 
@@ -74,7 +74,7 @@ namespace ImageSharp.Tests.Drawing.Paths
             SixLabors.Shapes.Path vector = Assert.IsType<SixLabors.Shapes.Path>(path.Path);
             LinearLineSegment segment = Assert.IsType<LinearLineSegment>(vector.LineSegments[0]);
 
-            Pen<Color> pen = Assert.IsType<Pen<Color>>(processor.Pen);
+            Pen<Color32> pen = Assert.IsType<Pen<Color32>>(processor.Pen);
             Assert.Equal(brush, pen.Brush);
             Assert.Equal(thickness, pen.Width);
         }
@@ -85,7 +85,7 @@ namespace ImageSharp.Tests.Drawing.Paths
             img.DrawLines(color, thickness, points);
 
             Assert.NotEmpty(img.ProcessorApplications);
-            DrawPathProcessor<Color> processor = Assert.IsType<DrawPathProcessor<Color>>(img.ProcessorApplications[0].processor);
+            DrawPathProcessor<Color32> processor = Assert.IsType<DrawPathProcessor<Color32>>(img.ProcessorApplications[0].processor);
 
             Assert.Equal(GraphicsOptions.Default, processor.Options);
 
@@ -94,10 +94,10 @@ namespace ImageSharp.Tests.Drawing.Paths
             SixLabors.Shapes.Path vector = Assert.IsType<SixLabors.Shapes.Path>(path.Path);
             LinearLineSegment segment = Assert.IsType<LinearLineSegment>(vector.LineSegments[0]);
 
-            Pen<Color> pen = Assert.IsType<Pen<Color>>(processor.Pen);
+            Pen<Color32> pen = Assert.IsType<Pen<Color32>>(processor.Pen);
             Assert.Equal(thickness, pen.Width);
 
-            SolidBrush<Color> brush = Assert.IsType<SolidBrush<Color>>(pen.Brush);
+            SolidBrush<Color32> brush = Assert.IsType<SolidBrush<Color32>>(pen.Brush);
             Assert.Equal(color, brush.Color);
         }
 
@@ -107,7 +107,7 @@ namespace ImageSharp.Tests.Drawing.Paths
             img.DrawLines(color, thickness, points, noneDefault);
 
             Assert.NotEmpty(img.ProcessorApplications);
-            DrawPathProcessor<Color> processor = Assert.IsType<DrawPathProcessor<Color>>(img.ProcessorApplications[0].processor);
+            DrawPathProcessor<Color32> processor = Assert.IsType<DrawPathProcessor<Color32>>(img.ProcessorApplications[0].processor);
 
             Assert.Equal(noneDefault, processor.Options);
 
@@ -116,10 +116,10 @@ namespace ImageSharp.Tests.Drawing.Paths
             SixLabors.Shapes.Path vector = Assert.IsType<SixLabors.Shapes.Path>(path.Path);
             LinearLineSegment segment = Assert.IsType<LinearLineSegment>(vector.LineSegments[0]);
 
-            Pen<Color> pen = Assert.IsType<Pen<Color>>(processor.Pen);
+            Pen<Color32> pen = Assert.IsType<Pen<Color32>>(processor.Pen);
             Assert.Equal(thickness, pen.Width);
 
-            SolidBrush<Color> brush = Assert.IsType<SolidBrush<Color>>(pen.Brush);
+            SolidBrush<Color32> brush = Assert.IsType<SolidBrush<Color32>>(pen.Brush);
             Assert.Equal(color, brush.Color);
         }
 
@@ -129,7 +129,7 @@ namespace ImageSharp.Tests.Drawing.Paths
             img.DrawLines(pen, points);
 
             Assert.NotEmpty(img.ProcessorApplications);
-            DrawPathProcessor<Color> processor = Assert.IsType<DrawPathProcessor<Color>>(img.ProcessorApplications[0].processor);
+            DrawPathProcessor<Color32> processor = Assert.IsType<DrawPathProcessor<Color32>>(img.ProcessorApplications[0].processor);
 
             Assert.Equal(GraphicsOptions.Default, processor.Options);
 
@@ -147,7 +147,7 @@ namespace ImageSharp.Tests.Drawing.Paths
             img.DrawLines(pen, points, noneDefault);
 
             Assert.NotEmpty(img.ProcessorApplications);
-            DrawPathProcessor<Color> processor = Assert.IsType<DrawPathProcessor<Color>>(img.ProcessorApplications[0].processor);
+            DrawPathProcessor<Color32> processor = Assert.IsType<DrawPathProcessor<Color32>>(img.ProcessorApplications[0].processor);
 
             Assert.Equal(noneDefault, processor.Options);
 

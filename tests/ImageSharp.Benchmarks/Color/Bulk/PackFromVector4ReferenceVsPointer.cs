@@ -14,7 +14,7 @@
     /// </summary>
     public unsafe class PackFromVector4ReferenceVsPointer
     {
-        private PinnedBuffer<ImageSharp.Color> destination;
+        private PinnedBuffer<ImageSharp.Color32> destination;
 
         private PinnedBuffer<Vector4> source;
 
@@ -24,7 +24,7 @@
         [Setup]
         public void Setup()
         {
-            this.destination = new PinnedBuffer<ImageSharp.Color>(this.Count);
+            this.destination = new PinnedBuffer<ImageSharp.Color32>(this.Count);
             this.source = new PinnedBuffer<Vector4>(this.Count * 4);
         }
 
@@ -41,12 +41,12 @@
             Vector4* sp = (Vector4*)this.source.Pointer;
             byte* dp = (byte*)this.destination.Pointer;
             int count = this.Count;
-            int size = sizeof(ImageSharp.Color);
+            int size = sizeof(ImageSharp.Color32);
 
             for (int i = 0; i < count; i++)
             {
                 Vector4 v = Unsafe.Read<Vector4>(sp);
-                ImageSharp.Color c = default(ImageSharp.Color);
+                ImageSharp.Color32 c = default(ImageSharp.Color32);
                 c.PackFromVector4(v);
                 Unsafe.Write(dp, c);
 
@@ -59,7 +59,7 @@
         public void PackUsingReferences()
         {
             ref Vector4 sp = ref this.source.Array[0];
-            ref ImageSharp.Color dp = ref this.destination.Array[0];
+            ref ImageSharp.Color32 dp = ref this.destination.Array[0];
             int count = this.Count;
 
             for (int i = 0; i < count; i++)

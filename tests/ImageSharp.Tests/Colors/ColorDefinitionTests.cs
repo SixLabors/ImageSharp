@@ -15,14 +15,14 @@ namespace ImageSharp.Tests
     using Xunit;
     public class ColorDefinitionTests
     {
-        public static IEnumerable<string[]> ColorNames => typeof(NamedColors<Color>).GetTypeInfo().GetFields().Select(x => new[] { x.Name });
+        public static IEnumerable<string[]> ColorNames => typeof(NamedColors<Color32>).GetTypeInfo().GetFields().Select(x => new[] { x.Name });
 
         [Theory]
         [MemberData(nameof(ColorNames))]
         public void AllColorsAreOnGenericAndBaseColor(string name)
         {
-            FieldInfo generic = typeof(NamedColors<Color>).GetTypeInfo().GetField(name);
-            FieldInfo specific = typeof(Color).GetTypeInfo().GetField(name);
+            FieldInfo generic = typeof(NamedColors<Color32>).GetTypeInfo().GetField(name);
+            FieldInfo specific = typeof(Color32).GetTypeInfo().GetField(name);
 
             Assert.NotNull(specific);
             Assert.NotNull(generic);
@@ -30,8 +30,8 @@ namespace ImageSharp.Tests
             Assert.True(specific.Attributes.HasFlag(FieldAttributes.Static), "specific must be static");
             Assert.True(generic.Attributes.HasFlag(FieldAttributes.Public), "generic must be public");
             Assert.True(generic.Attributes.HasFlag(FieldAttributes.Static), "generic must be static");
-            Color expected = (Color)generic.GetValue(null);
-            Color actual = (Color)specific.GetValue(null);
+            Color32 expected = (Color32)generic.GetValue(null);
+            Color32 actual = (Color32)specific.GetValue(null);
             Assert.Equal(expected, actual);
         }
     }

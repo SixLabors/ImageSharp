@@ -29,14 +29,14 @@ namespace ImageSharp.Tests.Drawing
         {
             ImageSharp.Rectangle bounds = new ImageSharp.Rectangle(0, 0, 1, 1);
 
-            Mock<IBrush<Color>> brush = new Mock<IBrush<Color>>();
+            Mock<IBrush<Color32>> brush = new Mock<IBrush<Color32>>();
             Mock<Region> region = new Mock<Region>();
             region.Setup(x => x.Bounds).Returns(bounds);
 
             GraphicsOptions options = new GraphicsOptions(antialias) {
                 AntialiasSubpixelDepth = 1
             };
-            FillRegionProcessor<Color> processor = new FillRegionProcessor<Color>(brush.Object, region.Object, options);
+            FillRegionProcessor<Color32> processor = new FillRegionProcessor<Color32>(brush.Object, region.Object, options);
             Image img = new Image(1, 1);
             processor.Apply(img, bounds);
 

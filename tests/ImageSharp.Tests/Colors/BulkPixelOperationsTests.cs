@@ -10,7 +10,7 @@ namespace ImageSharp.Tests.Colors
 
     public class BulkPixelOperationsTests
     {
-        public class Color : BulkPixelOperationsTests<ImageSharp.Color>
+        public class Color : BulkPixelOperationsTests<ImageSharp.Color32>
         {
             public Color(ITestOutputHelper output)
                 : base(output)
@@ -23,19 +23,19 @@ namespace ImageSharp.Tests.Colors
             [Fact]
             public void IsSpecialImplementation()
             {
-                Assert.IsType<ImageSharp.Color.BulkOperations>(BulkPixelOperations<ImageSharp.Color>.Instance);
+                Assert.IsType<ImageSharp.Color32.BulkOperations>(BulkPixelOperations<ImageSharp.Color32>.Instance);
             }
             
             [Fact]
             public void ToVector4SimdAligned()
             {
-                ImageSharp.Color[] source = CreatePixelTestData(64);
+                ImageSharp.Color32[] source = CreatePixelTestData(64);
                 Vector4[] expected = CreateExpectedVector4Data(source);
 
                 TestOperation(
                     source,
                     expected,
-                    (s, d) => ImageSharp.Color.BulkOperations.ToVector4SimdAligned(s, d, 64)
+                    (s, d) => ImageSharp.Color32.BulkOperations.ToVector4SimdAligned(s, d, 64)
                     );
             }
 
@@ -45,14 +45,14 @@ namespace ImageSharp.Tests.Colors
                 int times = 200000;
                 int count = 1024;
 
-                using (PinnedBuffer<ImageSharp.Color> source = new PinnedBuffer<ImageSharp.Color>(count))
+                using (PinnedBuffer<ImageSharp.Color32> source = new PinnedBuffer<ImageSharp.Color32>(count))
                 using (PinnedBuffer<Vector4> dest = new PinnedBuffer<Vector4>(count))
                 {
                     this.Measure(
                         times,
                         () =>
                             {
-                                BulkPixelOperations<ImageSharp.Color>.Instance.ToVector4(source, dest, count);
+                                BulkPixelOperations<ImageSharp.Color32>.Instance.ToVector4(source, dest, count);
                             });
                 }
             }

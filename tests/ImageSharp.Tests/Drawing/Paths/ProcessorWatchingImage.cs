@@ -11,8 +11,8 @@ namespace ImageSharp.Tests.Drawing.Paths
     /// <summary>
     /// Watches but does not actually run the processors against the image.
     /// </summary>
-    /// <seealso cref="ImageSharp.Image{ImageSharp.Color}" />
-    public class ProcessorWatchingImage : Image<Color>
+    /// <seealso cref="ImageSharp.Image{ImageSharp.Color32}" />
+    public class ProcessorWatchingImage : Image<Color32>
     {
         public List<ProcessorDetails> ProcessorApplications { get; } = new List<ProcessorDetails>();
         
@@ -21,7 +21,7 @@ namespace ImageSharp.Tests.Drawing.Paths
         {
         }
 
-        public override void ApplyProcessor(IImageProcessor<Color> processor, Rectangle rectangle)
+        public override void ApplyProcessor(IImageProcessor<Color32> processor, Rectangle rectangle)
         {
             this.ProcessorApplications.Add(new ProcessorDetails
             {
@@ -32,7 +32,7 @@ namespace ImageSharp.Tests.Drawing.Paths
 
         public struct ProcessorDetails
         {
-            public IImageProcessor<Color> processor;
+            public IImageProcessor<Color32> processor;
             public Rectangle rectangle;
         }
     }

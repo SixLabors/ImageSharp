@@ -59,7 +59,7 @@ namespace ImageSharp.Tests
             this.fileSystem.Setup(x => x.Create("path.png")).Returns(stream);
             this.Image.Save("path.png");
 
-            this.encoder.Verify(x => x.Encode<Color>(this.Image, stream, null));
+            this.encoder.Verify(x => x.Encode<Color32>(this.Image, stream, null));
         }
 
         [Fact]
@@ -70,7 +70,7 @@ namespace ImageSharp.Tests
 
             this.Image.Save("path.jpg", this.encoderOptions);
             
-            this.encoder.Verify(x => x.Encode<Color>(this.Image, stream, this.encoderOptions));
+            this.encoder.Verify(x => x.Encode<Color32>(this.Image, stream, this.encoderOptions));
         }
 
         [Fact]
@@ -81,7 +81,7 @@ namespace ImageSharp.Tests
 
             this.Image.Save("path.jpg", this.encoderNotInFormat.Object);
 
-            this.encoderNotInFormat.Verify(x => x.Encode<Color>(this.Image, stream, null));
+            this.encoderNotInFormat.Verify(x => x.Encode<Color32>(this.Image, stream, null));
         }
 
         [Fact]
@@ -92,7 +92,7 @@ namespace ImageSharp.Tests
 
             this.Image.Save("path.jpg", this.encoderNotInFormat.Object, this.encoderOptions);
 
-            this.encoderNotInFormat.Verify(x => x.Encode<Color>(this.Image, stream, this.encoderOptions));
+            this.encoderNotInFormat.Verify(x => x.Encode<Color32>(this.Image, stream, this.encoderOptions));
         }
 
 
@@ -105,7 +105,7 @@ namespace ImageSharp.Tests
 
             this.Image.Save("path.jpg", this.encoderNotInFormat.Object);
 
-            this.encoderNotInFormat.Verify(x => x.Encode<Color>(this.Image, stream, null));
+            this.encoderNotInFormat.Verify(x => x.Encode<Color32>(this.Image, stream, null));
         }
 
         [Fact]
@@ -116,7 +116,7 @@ namespace ImageSharp.Tests
 
             this.Image.Save("path.jpg", this.encoderNotInFormat.Object, this.encoderOptions);
 
-            this.encoderNotInFormat.Verify(x => x.Encode<Color>(this.Image, stream, this.encoderOptions));
+            this.encoderNotInFormat.Verify(x => x.Encode<Color32>(this.Image, stream, this.encoderOptions));
         }
 
         [Fact]
@@ -125,7 +125,7 @@ namespace ImageSharp.Tests
             Stream stream = new MemoryStream();
             this.Image.Save(stream);
             
-            this.encoder.Verify(x => x.Encode<Color>(this.Image, stream, null));
+            this.encoder.Verify(x => x.Encode<Color32>(this.Image, stream, null));
         }
 
         [Fact]
@@ -135,7 +135,7 @@ namespace ImageSharp.Tests
 
             this.Image.Save(stream, this.encoderOptions);
 
-            this.encoder.Verify(x => x.Encode<Color>(this.Image, stream, this.encoderOptions));
+            this.encoder.Verify(x => x.Encode<Color32>(this.Image, stream, this.encoderOptions));
         }
 
         [Fact]
@@ -145,7 +145,7 @@ namespace ImageSharp.Tests
 
             this.Image.Save(stream, this.encoderNotInFormat.Object);
 
-            this.encoderNotInFormat.Verify(x => x.Encode<Color>(this.Image, stream, null));
+            this.encoderNotInFormat.Verify(x => x.Encode<Color32>(this.Image, stream, null));
         }
 
         [Fact]
@@ -155,7 +155,7 @@ namespace ImageSharp.Tests
 
             this.Image.Save(stream, this.encoderNotInFormat.Object, this.encoderOptions);
 
-            this.encoderNotInFormat.Verify(x => x.Encode<Color>(this.Image, stream, this.encoderOptions));
+            this.encoderNotInFormat.Verify(x => x.Encode<Color32>(this.Image, stream, this.encoderOptions));
         }
 
         [Fact]
@@ -165,7 +165,7 @@ namespace ImageSharp.Tests
 
             this.Image.Save(stream, this.formatNotRegistered.Object);
 
-            this.encoderNotInFormat.Verify(x => x.Encode<Color>(this.Image, stream, null));
+            this.encoderNotInFormat.Verify(x => x.Encode<Color32>(this.Image, stream, null));
         }
 
         [Fact]
@@ -175,7 +175,7 @@ namespace ImageSharp.Tests
 
             this.Image.Save(stream, this.formatNotRegistered.Object, this.encoderOptions);
 
-            this.encoderNotInFormat.Verify(x => x.Encode<Color>(this.Image, stream, this.encoderOptions));
+            this.encoderNotInFormat.Verify(x => x.Encode<Color32>(this.Image, stream, this.encoderOptions));
         }
 
         public void Dispose()

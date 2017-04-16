@@ -18,7 +18,7 @@ namespace ImageSharp
     /// as it avoids the need to create new values for modification operations.
     /// </remarks>
     [StructLayout(LayoutKind.Explicit)]
-    public partial struct Color : IPixel<Color>
+    public partial struct Color32 : IPixel<Color32>
     {
         /// <summary>
         /// Gets or sets the red component.
@@ -75,13 +75,13 @@ namespace ImageSharp
         private static readonly Vector4 Half = new Vector4(0.5F);
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Color"/> struct.
+        /// Initializes a new instance of the <see cref="Color32"/> struct.
         /// </summary>
         /// <param name="r">The red component.</param>
         /// <param name="g">The green component.</param>
         /// <param name="b">The blue component.</param>
         /// <param name="a">The alpha component.</param>
-        public Color(byte r, byte g, byte b, byte a = 255)
+        public Color32(byte r, byte g, byte b, byte a = 255)
             : this()
         {
             this.R = r;
@@ -91,56 +91,56 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Color"/> struct.
+        /// Initializes a new instance of the <see cref="Color32"/> struct.
         /// </summary>
         /// <param name="r">The red component.</param>
         /// <param name="g">The green component.</param>
         /// <param name="b">The blue component.</param>
         /// <param name="a">The alpha component.</param>
-        public Color(float r, float g, float b, float a = 1)
+        public Color32(float r, float g, float b, float a = 1)
             : this()
         {
             this = Pack(r, g, b, a);
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Color"/> struct.
+        /// Initializes a new instance of the <see cref="Color32"/> struct.
         /// </summary>
         /// <param name="vector">
         /// The vector containing the components for the packed vector.
         /// </param>
-        public Color(Vector3 vector)
+        public Color32(Vector3 vector)
             : this()
         {
             this = Pack(ref vector);
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Color"/> struct.
+        /// Initializes a new instance of the <see cref="Color32"/> struct.
         /// </summary>
         /// <param name="vector">
         /// The vector containing the components for the packed vector.
         /// </param>
-        public Color(Vector4 vector)
+        public Color32(Vector4 vector)
             : this()
         {
             this = Pack(ref vector);
         }
 
         /// <summary>
-        /// Compares two <see cref="Color"/> objects for equality.
+        /// Compares two <see cref="Color32"/> objects for equality.
         /// </summary>
         /// <param name="left">
-        /// The <see cref="Color"/> on the left side of the operand.
+        /// The <see cref="Color32"/> on the left side of the operand.
         /// </param>
         /// <param name="right">
-        /// The <see cref="Color"/> on the right side of the operand.
+        /// The <see cref="Color32"/> on the right side of the operand.
         /// </param>
         /// <returns>
         /// True if the <paramref name="left"/> parameter is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool operator ==(Color left, Color right)
+        public static bool operator ==(Color32 left, Color32 right)
         {
             return left.R == right.R
                    && left.G == right.G
@@ -149,15 +149,15 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Compares two <see cref="Color"/> objects for equality.
+        /// Compares two <see cref="Color32"/> objects for equality.
         /// </summary>
-        /// <param name="left">The <see cref="Color"/> on the left side of the operand.</param>
-        /// <param name="right">The <see cref="Color"/> on the right side of the operand.</param>
+        /// <param name="left">The <see cref="Color32"/> on the left side of the operand.</param>
+        /// <param name="right">The <see cref="Color32"/> on the right side of the operand.</param>
         /// <returns>
         /// True if the <paramref name="left"/> parameter is not equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool operator !=(Color left, Color right)
+        public static bool operator !=(Color32 left, Color32 right)
         {
             return left.R != right.R
                 && left.G != right.G
@@ -166,22 +166,22 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Creates a new instance of the <see cref="Color"/> struct.
+        /// Creates a new instance of the <see cref="Color32"/> struct.
         /// </summary>
         /// <param name="hex">
         /// The hexadecimal representation of the combined color components arranged
         /// in rgb, rgba, rrggbb, or rrggbbaa format to match web syntax.
         /// </param>
         /// <returns>
-        /// The <see cref="Color"/>.
+        /// The <see cref="Color32"/>.
         /// </returns>
-        public static Color FromHex(string hex)
+        public static Color32 FromHex(string hex)
         {
-            return ColorBuilder<Color>.FromHex(hex);
+            return ColorBuilder<Color32>.FromHex(hex);
         }
 
         /// <inheritdoc />
-        public BulkPixelOperations<Color> CreateBulkOperations() => new BulkOperations();
+        public BulkPixelOperations<Color32> CreateBulkOperations() => new BulkOperations();
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -258,12 +258,12 @@ namespace ImageSharp
         /// <inheritdoc/>
         public override bool Equals(object obj)
         {
-            return (obj is Color) && this.Equals((Color)obj);
+            return (obj is Color32) && this.Equals((Color32)obj);
         }
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool Equals(Color other)
+        public bool Equals(Color32 other)
         {
             return this.R == other.R
                 && this.G == other.G
@@ -311,24 +311,24 @@ namespace ImageSharp
         /// Packs a <see cref="Vector4"/> into a uint.
         /// </summary>
         /// <param name="vector">The vector containing the values to pack.</param>
-        /// <returns>The <see cref="Color"/></returns>
+        /// <returns>The <see cref="Color32"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static Color Pack(ref Vector4 vector)
+        private static Color32 Pack(ref Vector4 vector)
         {
             vector *= MaxBytes;
             vector += Half;
             vector = Vector4.Clamp(vector, Vector4.Zero, MaxBytes);
 
-            return new Color((byte)vector.X, (byte)vector.Y, (byte)vector.Z, (byte)vector.W);
+            return new Color32((byte)vector.X, (byte)vector.Y, (byte)vector.Z, (byte)vector.W);
         }
 
         /// <summary>
         /// Packs a <see cref="Vector3"/> into a uint.
         /// </summary>
         /// <param name="vector">The vector containing the values to pack.</param>
-        /// <returns>The <see cref="Color"/></returns>
+        /// <returns>The <see cref="Color32"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static Color Pack(ref Vector3 vector)
+        private static Color32 Pack(ref Vector3 vector)
         {
             Vector4 value = new Vector4(vector, 1);
             return Pack(ref value);
@@ -341,9 +341,9 @@ namespace ImageSharp
         /// <param name="y">The y-component</param>
         /// <param name="z">The z-component</param>
         /// <param name="w">The w-component</param>
-        /// <returns>The <see cref="Color"/></returns>
+        /// <returns>The <see cref="Color32"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static Color Pack(float x, float y, float z, float w)
+        private static Color32 Pack(float x, float y, float z, float w)
         {
             Vector4 value = new Vector4(x, y, z, w);
             return Pack(ref value);

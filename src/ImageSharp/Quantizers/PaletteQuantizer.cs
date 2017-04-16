@@ -44,7 +44,7 @@ namespace ImageSharp.Quantizers
         {
             if (palette == null)
             {
-                Color[] constants = ColorConstants.WebSafeColors;
+                Color32[] constants = Color32Constants.WebSafeColors;
                 TColor[] safe = new TColor[constants.Length + 1];
 
                 for (int i = 0; i < constants.Length; i++)

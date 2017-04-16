@@ -63,16 +63,16 @@ namespace ImageSharp.Colors.Spaces
         public bool IsEmpty => this.Equals(Empty);
 
         /// <summary>
-        /// Allows the implicit conversion of an instance of <see cref="Color"/> to a
+        /// Allows the implicit conversion of an instance of <see cref="Color32"/> to a
         /// <see cref="CieXyz"/>.
         /// </summary>
         /// <param name="color">
-        /// The instance of <see cref="Color"/> to convert.
+        /// The instance of <see cref="Color32"/> to convert.
         /// </param>
         /// <returns>
         /// An instance of <see cref="CieXyz"/>.
         /// </returns>
-        public static implicit operator CieXyz(Color color)
+        public static implicit operator CieXyz(Color32 color)
         {
             Vector4 vector = color.ToVector4().Expand();
 

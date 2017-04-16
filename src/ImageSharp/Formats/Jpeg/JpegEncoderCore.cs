@@ -307,7 +307,8 @@ namespace ImageSharp.Formats
             rgbBytes.Reset();
             pixels.CopyRGBBytesStretchedTo(rgbBytes, y, x);
 
-            byte* data = (byte*)rgbBytes.DataPointer;
+            ref byte data0 = ref rgbBytes.Bytes[0];
+            int dataIdx = 0;
 
             for (int j = 0; j < 8; j++)
             {
@@ -315,9 +316,9 @@ namespace ImageSharp.Formats
                 for (int i = 0; i < 8; i++)
                 {
                     // Convert returned bytes into the YCbCr color space. Assume RGBA
-                    int r = data[0];
-                    int g = data[1];
-                    int b = data[2];
+                    int r = Unsafe.Add(ref data0, dataIdx);
+                    int g = Unsafe.Add(ref data0, dataIdx + 1);
+                    int b = Unsafe.Add(ref data0, dataIdx + 2);
 
                     // Speed up the algorithm by removing floating point calculation
                     // Scale by 65536, add .5F and truncate value. We use bit shifting to divide the result
@@ -343,7 +344,7 @@ namespace ImageSharp.Formats
                     cbBlockRaw[index] = cb;
                     crBlockRaw[index] = cr;
 
-                    data += 3;
+                    dataIdx += 3;
                 }
             }
         }

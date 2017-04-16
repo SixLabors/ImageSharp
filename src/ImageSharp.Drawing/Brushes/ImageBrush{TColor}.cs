@@ -117,7 +117,7 @@ namespace ImageSharp.Drawing.Brushes
             {
                 Guard.MustBeGreaterThanOrEqualTo(scanlineBuffer.Length, offset + scanlineWidth, nameof(scanlineWidth));
 
-                using (PinnedBuffer<float> buffer = new PinnedBuffer<float>(scanlineBuffer))
+                using (Buffer<float> buffer = new Buffer<float>(scanlineBuffer))
                 {
                     BufferSpan<float> slice = buffer.Slice(offset);
 

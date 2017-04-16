@@ -6,7 +6,6 @@
 namespace ImageSharp
 {
     using System;
-    using System.Numerics;
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
 
@@ -16,59 +15,48 @@ namespace ImageSharp
     internal static class BufferSpan
     {
         /// <summary>
-        /// It's worth to use Marshal.Copy() or Buffer.BlockCopy() over this size.
-        /// </summary>
-        private const int ByteCountThreshold = 1024;
-
-        /// <summary>
         /// Copy 'count' number of elements of the same type from 'source' to 'dest'
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
-        /// <param name="source">The input <see cref="BufferSpan{T}"/></param>
+        /// <param name="source">The <see cref="BufferSpan{T}"/> to copy elements from.</param>
         /// <param name="destination">The destination <see cref="BufferSpan{T}"/>.</param>
         /// <param name="count">The number of elements to copy</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Copy<T>(BufferSpan<T> source, BufferSpan<T> destination, int count)
+        public static unsafe void Copy<T>(BufferSpan<T> source, BufferSpan<T> destination, int count)
             where T : struct
         {
-            CopyImpl(source, destination, count);
+            DebugGuard.MustBeLessThanOrEqualTo(count, source.Length, nameof(count));
+            DebugGuard.MustBeLessThanOrEqualTo(count, destination.Length, nameof(count));
+
+            ref byte srcRef = ref Unsafe.As<T, byte>(ref source.DangerousGetPinnableReference());
+            ref byte destRef = ref Unsafe.As<T, byte>(ref destination.DangerousGetPinnableReference());
+
+            int byteCount = Unsafe.SizeOf<T>() * count;
+
+            // TODO: Use unfixed Unsafe.CopyBlock(ref T, ref T, int) for small blocks, when it gets available!
+            fixed (byte* pSrc = &srcRef)
+            fixed (byte* pDest = &destRef)
+            {
+#if NETSTANDARD1_1
+                Unsafe.CopyBlock(pDest, pSrc, (uint)byteCount);
+#else
+                int destLength = destination.Length * Unsafe.SizeOf<T>();
+                Buffer.MemoryCopy(pSrc, pDest, destLength, byteCount);
+#endif
+            }
         }
 
         /// <summary>
-        /// Copy 'countInSource' elements of <typeparamref name="T"/> from 'source' into the raw byte buffer 'destination'.
+        /// Copy all elements of 'source' into 'destination'.
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
-        /// <param name="source">The source buffer of <typeparamref name="T"/> elements to copy from.</param>
-        /// <param name="destination">The destination buffer.</param>
-        /// <param name="countInSource">The number of elements to copy from 'source'</param>
+        /// <param name="source">The <see cref="BufferSpan{T}"/> to copy elements from.</param>
+        /// <param name="destination">The destination <see cref="BufferSpan{T}"/>.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Copy<T>(BufferSpan<T> source, BufferSpan<byte> destination, int countInSource)
+        public static void Copy<T>(BufferSpan<T> source, BufferSpan<T> destination)
             where T : struct
         {
-            CopyImpl(source, destination, countInSource);
-        }
-
-        /// <summary>
-        /// Copy 'countInDest' number of <typeparamref name="T"/> elements into 'dest' from a raw byte buffer defined by 'source'.
-        /// </summary>
-        /// <typeparam name="T">The element type.</typeparam>
-        /// <param name="source">The raw source buffer to copy from"/></param>
-        /// <param name="destination">The destination buffer"/></param>
-        /// <param name="countInDest">The number of <typeparamref name="T"/> elements to copy.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe void Copy<T>(BufferSpan<byte> source, BufferSpan<T> destination, int countInDest)
-            where T : struct
-        {
-            int byteCount = SizeOf<T>(countInDest);
-
-            if (byteCount > (int)ByteCountThreshold)
-            {
-                Marshal.Copy(source.Array, source.Start, destination.PointerAtOffset, byteCount);
-            }
-            else
-            {
-                Unsafe.CopyBlock((void*)destination.PointerAtOffset, (void*)source.PointerAtOffset, (uint)byteCount);
-            }
+            Copy(source, destination, source.Length);
         }
 
         /// <summary>
@@ -91,39 +79,5 @@ namespace ImageSharp
         public static uint USizeOf<T>(int count)
             where T : struct
             => (uint)SizeOf<T>(count);
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static unsafe void CopyImpl<T, TDest>(BufferSpan<T> source, BufferSpan<TDest> destination, int count)
-            where T : struct
-            where TDest : struct
-        {
-            int byteCount = SizeOf<T>(count);
-
-            if (byteCount > ByteCountThreshold)
-            {
-                if (Unsafe.SizeOf<T>() == sizeof(long))
-                {
-                    Marshal.Copy(Unsafe.As<long[]>(source.Array), source.Start, destination.PointerAtOffset, count);
-                    return;
-                }
-                else if (Unsafe.SizeOf<T>() == sizeof(int))
-                {
-                    Marshal.Copy(Unsafe.As<int[]>(source.Array), source.Start, destination.PointerAtOffset, count);
-                    return;
-                }
-                else if (Unsafe.SizeOf<T>() == sizeof(short))
-                {
-                    Marshal.Copy(Unsafe.As<short[]>(source.Array), source.Start, destination.PointerAtOffset, count);
-                    return;
-                }
-                else if (Unsafe.SizeOf<T>() == sizeof(byte))
-                {
-                    Marshal.Copy(Unsafe.As<byte[]>(source.Array), source.Start, destination.PointerAtOffset, count);
-                    return;
-                }
-            }
-
-            Unsafe.CopyBlock((void*)destination.PointerAtOffset, (void*)source.PointerAtOffset, (uint)byteCount);
-        }
     }
 }

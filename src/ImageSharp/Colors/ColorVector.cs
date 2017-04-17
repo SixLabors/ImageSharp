@@ -218,9 +218,10 @@ namespace ImageSharp
         /// <returns>A hexadecimal string representation of the value.</returns>
         public string ToHex()
         {
+            // Hex is RRGGBBAA
             Vector4 vector = this.backingVector * MaxBytes;
             vector += Half;
-            uint hexOrder = (uint)((byte)vector.X | (byte)vector.Y << 8 | (byte)vector.Z << 16 | (byte)vector.W << 24);
+            uint hexOrder = (uint)((byte)vector.W | (byte)vector.Z << 8 | (byte)vector.Y << 16 | (byte)vector.X << 24);
             return hexOrder.ToString("X8");
         }
 
@@ -244,7 +245,7 @@ namespace ImageSharp
             bytes[startIndex] = (byte)vector.X;
             bytes[startIndex + 1] = (byte)vector.Y;
             bytes[startIndex + 2] = (byte)vector.Z;
-            bytes[startIndex + 2] = (byte)vector.W;
+            bytes[startIndex + 3] = (byte)vector.W;
         }
 
         /// <inheritdoc/>
@@ -267,7 +268,7 @@ namespace ImageSharp
             bytes[startIndex] = (byte)vector.Z;
             bytes[startIndex + 1] = (byte)vector.Y;
             bytes[startIndex + 2] = (byte)vector.X;
-            bytes[startIndex + 2] = (byte)vector.W;
+            bytes[startIndex + 3] = (byte)vector.W;
         }
 
         /// <inheritdoc/>

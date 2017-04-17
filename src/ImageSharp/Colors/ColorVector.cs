@@ -19,26 +19,6 @@ namespace ImageSharp
     public partial struct ColorVector : IPixel<ColorVector>
     {
         /// <summary>
-        /// The shift count for the red component
-        /// </summary>
-        private const int RedShift = 0;
-
-        /// <summary>
-        /// The shift count for the green component
-        /// </summary>
-        private const int GreenShift = 8;
-
-        /// <summary>
-        /// The shift count for the blue component
-        /// </summary>
-        private const int BlueShift = 16;
-
-        /// <summary>
-        /// The shift count for the alpha component
-        /// </summary>
-        private const int AlphaShift = 24;
-
-        /// <summary>
         /// The maximum byte value.
         /// </summary>
         private static readonly Vector4 MaxBytes = new Vector4(255);
@@ -240,7 +220,7 @@ namespace ImageSharp
         {
             Vector4 vector = this.backingVector * MaxBytes;
             vector += Half;
-            uint hexOrder = (uint)((byte)vector.X << RedShift | (byte)vector.Y << GreenShift | (byte)vector.Z << BlueShift | (byte)vector.W << AlphaShift);
+            uint hexOrder = (uint)((byte)vector.X | (byte)vector.Y << 8 | (byte)vector.Z << 16 | (byte)vector.W << 24);
             return hexOrder.ToString("X8");
         }
 

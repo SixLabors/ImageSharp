@@ -16,7 +16,7 @@ namespace ImageSharp.Drawing.Pens
         /// <param name="color">The color.</param>
         /// <param name="width">The width.</param>
         /// <returns>The Pen</returns>
-        public static Pen Solid(Color32 color, float width) => new Pen(color, width);
+        public static Pen Solid(Color color, float width) => new Pen(color, width);
 
         /// <summary>
         /// Create a solid pen with out any drawing patterns
@@ -24,7 +24,7 @@ namespace ImageSharp.Drawing.Pens
         /// <param name="brush">The brush.</param>
         /// <param name="width">The width.</param>
         /// <returns>The Pen</returns>
-        public static Pen Solid(IBrush<Color32> brush, float width) => new Pen(brush, width);
+        public static Pen Solid(IBrush<Color> brush, float width) => new Pen(brush, width);
 
         /// <summary>
         /// Create a pen with a 'Dash' drawing patterns
@@ -32,7 +32,7 @@ namespace ImageSharp.Drawing.Pens
         /// <param name="color">The color.</param>
         /// <param name="width">The width.</param>
         /// <returns>The Pen</returns>
-        public static Pen Dash(Color32 color, float width) => new Pen(Pens<Color32>.Dash(color, width));
+        public static Pen Dash(Color color, float width) => new Pen(Pens<Color>.Dash(color, width));
 
         /// <summary>
         /// Create a pen with a 'Dash' drawing patterns
@@ -40,7 +40,7 @@ namespace ImageSharp.Drawing.Pens
         /// <param name="brush">The brush.</param>
         /// <param name="width">The width.</param>
         /// <returns>The Pen</returns>
-        public static Pen Dash(IBrush<Color32> brush, float width) => new Pen(Pens<Color32>.Dash(brush, width));
+        public static Pen Dash(IBrush<Color> brush, float width) => new Pen(Pens<Color>.Dash(brush, width));
 
         /// <summary>
         /// Create a pen with a 'Dot' drawing patterns
@@ -48,7 +48,7 @@ namespace ImageSharp.Drawing.Pens
         /// <param name="color">The color.</param>
         /// <param name="width">The width.</param>
         /// <returns>The Pen</returns>
-        public static Pen Dot(Color32 color, float width) => new Pen(Pens<Color32>.Dot(color, width));
+        public static Pen Dot(Color color, float width) => new Pen(Pens<Color>.Dot(color, width));
 
         /// <summary>
         /// Create a pen with a 'Dot' drawing patterns
@@ -56,7 +56,7 @@ namespace ImageSharp.Drawing.Pens
         /// <param name="brush">The brush.</param>
         /// <param name="width">The width.</param>
         /// <returns>The Pen</returns>
-        public static Pen Dot(IBrush<Color32> brush, float width) => new Pen(Pens<Color32>.Dot(brush, width));
+        public static Pen Dot(IBrush<Color> brush, float width) => new Pen(Pens<Color>.Dot(brush, width));
 
         /// <summary>
         /// Create a pen with a 'Dash Dot' drawing patterns
@@ -64,7 +64,7 @@ namespace ImageSharp.Drawing.Pens
         /// <param name="color">The color.</param>
         /// <param name="width">The width.</param>
         /// <returns>The Pen</returns>
-        public static Pen DashDot(Color32 color, float width) => new Pen(Pens<Color32>.DashDot(color, width));
+        public static Pen DashDot(Color color, float width) => new Pen(Pens<Color>.DashDot(color, width));
 
         /// <summary>
         /// Create a pen with a 'Dash Dot' drawing patterns
@@ -72,7 +72,7 @@ namespace ImageSharp.Drawing.Pens
         /// <param name="brush">The brush.</param>
         /// <param name="width">The width.</param>
         /// <returns>The Pen</returns>
-        public static Pen DashDot(IBrush<Color32> brush, float width) => new Pen(Pens<Color32>.DashDot(brush, width));
+        public static Pen DashDot(IBrush<Color> brush, float width) => new Pen(Pens<Color>.DashDot(brush, width));
 
         /// <summary>
         /// Create a pen with a 'Dash Dot Dot' drawing patterns
@@ -80,7 +80,7 @@ namespace ImageSharp.Drawing.Pens
         /// <param name="color">The color.</param>
         /// <param name="width">The width.</param>
         /// <returns>The Pen</returns>
-        public static Pen DashDotDot(Color32 color, float width) => new Pen(Pens<Color32>.DashDotDot(color, width));
+        public static Pen DashDotDot(Color color, float width) => new Pen(Pens<Color>.DashDotDot(color, width));
 
         /// <summary>
         /// Create a pen with a 'Dash Dot Dot' drawing patterns
@@ -88,6 +88,6 @@ namespace ImageSharp.Drawing.Pens
         /// <param name="brush">The brush.</param>
         /// <param name="width">The width.</param>
         /// <returns>The Pen</returns>
-        public static Pen DashDotDot(IBrush<Color32> brush, float width) => new Pen(Pens<Color32>.DashDotDot(brush, width));
+        public static Pen DashDotDot(IBrush<Color> brush, float width) => new Pen(Pens<Color>.DashDotDot(brush, width));
     }
 }

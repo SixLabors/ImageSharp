@@ -21,7 +21,7 @@ namespace ImageSharp.Tests
                 using (Image image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{file.FileName}"))
                 {
-                    image.BackgroundColor(Color32.HotPink).Save(output);
+                    image.BackgroundColor(Color.HotPink).Save(output);
                 }
             }
         }

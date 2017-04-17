@@ -51,10 +51,10 @@ namespace ImageSharp.Tests
         [Fact]
         public void Baz()
         {
-            Type type = typeof(Color32).GetTypeInfo().Assembly.GetType("ImageSharp.Color");
+            Type type = typeof(Color).GetTypeInfo().Assembly.GetType("ImageSharp.Color");
             this.Output.WriteLine(type.ToString());
 
-            Type fake = typeof(Color32).GetTypeInfo().Assembly.GetType("ImageSharp.dsaada_DASqewrr");
+            Type fake = typeof(Color).GetTypeInfo().Assembly.GetType("ImageSharp.dsaada_DASqewrr");
             Assert.Null(fake);
         }
         
@@ -84,17 +84,17 @@ namespace ImageSharp.Tests
         }
 
         [Theory]
-        [InlineData(PixelTypes.Color, typeof(Color32))]
+        [InlineData(PixelTypes.Color, typeof(Color))]
         [InlineData(PixelTypes.Argb, typeof(Argb))]
         [InlineData(PixelTypes.HalfVector4, typeof(HalfVector4))]
-        [InlineData(PixelTypes.StandardImageClass, typeof(Color32))]
+        [InlineData(PixelTypes.StandardImageClass, typeof(Color))]
         public void ToType(PixelTypes pt, Type expectedType)
         {
             Assert.Equal(pt.ToType(), expectedType);
         }
 
         [Theory]
-        [InlineData(typeof(Color32), PixelTypes.Color)]
+        [InlineData(typeof(Color), PixelTypes.Color)]
         [InlineData(typeof(Argb), PixelTypes.Argb)]
         public void GetPixelType(Type clrType, PixelTypes expectedPixelType)
         {
@@ -120,9 +120,9 @@ namespace ImageSharp.Tests
 
             AssertContainsPixelType<Alpha8>(PixelTypes.Alpha8, expanded);
             AssertContainsPixelType<Bgr565>(PixelTypes.Bgr565, expanded);
-            AssertContainsPixelType<Color32>(PixelTypes.Color, expanded);
+            AssertContainsPixelType<Color>(PixelTypes.Color, expanded);
             AssertContainsPixelType<HalfVector2>(PixelTypes.HalfVector2, expanded);
-            AssertContainsPixelType<Color32>(PixelTypes.StandardImageClass, expanded);
+            AssertContainsPixelType<Color>(PixelTypes.StandardImageClass, expanded);
         }
 
         [Fact]
@@ -131,8 +131,8 @@ namespace ImageSharp.Tests
             KeyValuePair<PixelTypes, Type>[] expanded = PixelTypes.All.ExpandAllTypes().ToArray();
 
             Assert.True(expanded.Length >= TestUtilityExtensions.GetAllPixelTypes().Length - 2);
-            AssertContainsPixelType<Color32>(PixelTypes.Color, expanded);
-            AssertContainsPixelType<Color32>(PixelTypes.StandardImageClass, expanded);
+            AssertContainsPixelType<Color>(PixelTypes.Color, expanded);
+            AssertContainsPixelType<Color>(PixelTypes.StandardImageClass, expanded);
         }
     }
 }

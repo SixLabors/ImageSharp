@@ -15,7 +15,7 @@ namespace ImageSharp.Tests.Drawing
 
     public class FillPatternBrushTests : FileTestBase
     {
-        private void Test(string name, Color32 background, IBrush<Color32> brush, Color32[,] expectedPattern)
+        private void Test(string name, Color background, IBrush<Color> brush, Color[,] expectedPattern)
         {
             string path = this.CreateOutputDirectory("Fill", "PatternBrush");
             using (Image image = new Image(20, 20))
@@ -29,11 +29,11 @@ namespace ImageSharp.Tests.Drawing
                     image.Save(output);
                 }
 
-                using (PixelAccessor<Color32> sourcePixels = image.Lock())
+                using (PixelAccessor<Color> sourcePixels = image.Lock())
                 {
                     // lets pick random spots to start checking
                     Random r = new Random();
-                    Fast2DArray<Color32> expectedPatternFast = new Fast2DArray<Color32>(expectedPattern);
+                    Fast2DArray<Color> expectedPatternFast = new Fast2DArray<Color>(expectedPattern);
                     int xStride = expectedPatternFast.Width;
                     int yStride = expectedPatternFast.Height;
                     int offsetX = r.Next(image.Width / xStride) * xStride;
@@ -44,8 +44,8 @@ namespace ImageSharp.Tests.Drawing
                         {
                             int actualX = x + offsetX;
                             int actualY = y + offsetY;
-                            Color32 expected = expectedPatternFast[y, x]; // inverted pattern
-                            Color32 actual = sourcePixels[actualX, actualY];
+                            Color expected = expectedPatternFast[y, x]; // inverted pattern
+                            Color actual = sourcePixels[actualX, actualY];
                             if (expected != actual)
                             {
                                 Assert.True(false, $"Expected {expected} but found {actual} at ({actualX},{actualY})");
@@ -63,73 +63,73 @@ namespace ImageSharp.Tests.Drawing
         [Fact]
         public void ImageShouldBeFloodFilledWithPercent10()
         {
-            this.Test("Percent10", Color32.Blue, Brushes.Percent10(Color32.HotPink, Color32.LimeGreen),
+            this.Test("Percent10", Color.Blue, Brushes.Percent10(Color.HotPink, Color.LimeGreen),
                 new[,]
                 {
-                { Color32.HotPink , Color32.LimeGreen, Color32.LimeGreen, Color32.LimeGreen},
-                { Color32.LimeGreen, Color32.LimeGreen, Color32.LimeGreen, Color32.LimeGreen},
-                { Color32.LimeGreen, Color32.LimeGreen, Color32.HotPink , Color32.LimeGreen},
-                { Color32.LimeGreen, Color32.LimeGreen, Color32.LimeGreen, Color32.LimeGreen}
+                { Color.HotPink , Color.LimeGreen, Color.LimeGreen, Color.LimeGreen},
+                { Color.LimeGreen, Color.LimeGreen, Color.LimeGreen, Color.LimeGreen},
+                { Color.LimeGreen, Color.LimeGreen, Color.HotPink , Color.LimeGreen},
+                { Color.LimeGreen, Color.LimeGreen, Color.LimeGreen, Color.LimeGreen}
             });
         }
 
         [Fact]
         public void ImageShouldBeFloodFilledWithPercent10Transparent()
         {
-            Test("Percent10_Transparent", Color32.Blue, Brushes.Percent10(Color32.HotPink),
-            new Color32[,] {
-                { Color32.HotPink , Color32.Blue, Color32.Blue, Color32.Blue},
-                { Color32.Blue, Color32.Blue, Color32.Blue, Color32.Blue},
-                { Color32.Blue, Color32.Blue, Color32.HotPink , Color32.Blue},
-                { Color32.Blue, Color32.Blue, Color32.Blue, Color32.Blue}
+            Test("Percent10_Transparent", Color.Blue, Brushes.Percent10(Color.HotPink),
+            new Color[,] {
+                { Color.HotPink , Color.Blue, Color.Blue, Color.Blue},
+                { Color.Blue, Color.Blue, Color.Blue, Color.Blue},
+                { Color.Blue, Color.Blue, Color.HotPink , Color.Blue},
+                { Color.Blue, Color.Blue, Color.Blue, Color.Blue}
             });
         }
 
         [Fact]
         public void ImageShouldBeFloodFilledWithPercent20()
         {
-            Test("Percent20", Color32.Blue, Brushes.Percent20(Color32.HotPink, Color32.LimeGreen),
-           new Color32[,] {
-                { Color32.HotPink , Color32.LimeGreen, Color32.LimeGreen, Color32.LimeGreen},
-                { Color32.LimeGreen, Color32.LimeGreen, Color32.HotPink , Color32.LimeGreen},
-                { Color32.HotPink , Color32.LimeGreen, Color32.LimeGreen, Color32.LimeGreen},
-                { Color32.LimeGreen, Color32.LimeGreen, Color32.HotPink , Color32.LimeGreen}
+            Test("Percent20", Color.Blue, Brushes.Percent20(Color.HotPink, Color.LimeGreen),
+           new Color[,] {
+                { Color.HotPink , Color.LimeGreen, Color.LimeGreen, Color.LimeGreen},
+                { Color.LimeGreen, Color.LimeGreen, Color.HotPink , Color.LimeGreen},
+                { Color.HotPink , Color.LimeGreen, Color.LimeGreen, Color.LimeGreen},
+                { Color.LimeGreen, Color.LimeGreen, Color.HotPink , Color.LimeGreen}
            });
         }
 
         [Fact]
         public void ImageShouldBeFloodFilledWithPercent20_transparent()
         {
-            Test("Percent20_Transparent", Color32.Blue, Brushes.Percent20(Color32.HotPink),
-           new Color32[,] {
-                { Color32.HotPink , Color32.Blue, Color32.Blue, Color32.Blue},
-                { Color32.Blue, Color32.Blue, Color32.HotPink , Color32.Blue},
-                { Color32.HotPink , Color32.Blue, Color32.Blue, Color32.Blue},
-                { Color32.Blue, Color32.Blue, Color32.HotPink , Color32.Blue}
+            Test("Percent20_Transparent", Color.Blue, Brushes.Percent20(Color.HotPink),
+           new Color[,] {
+                { Color.HotPink , Color.Blue, Color.Blue, Color.Blue},
+                { Color.Blue, Color.Blue, Color.HotPink , Color.Blue},
+                { Color.HotPink , Color.Blue, Color.Blue, Color.Blue},
+                { Color.Blue, Color.Blue, Color.HotPink , Color.Blue}
            });
         }
 
         [Fact]
         public void ImageShouldBeFloodFilledWithHorizontal()
         {
-            Test("Horizontal", Color32.Blue, Brushes.Horizontal(Color32.HotPink, Color32.LimeGreen),
-           new Color32[,] {
-                { Color32.LimeGreen , Color32.LimeGreen, Color32.LimeGreen, Color32.LimeGreen},
-                { Color32.HotPink, Color32.HotPink, Color32.HotPink , Color32.HotPink},
-                { Color32.LimeGreen , Color32.LimeGreen, Color32.LimeGreen, Color32.LimeGreen},
-                { Color32.LimeGreen, Color32.LimeGreen, Color32.LimeGreen , Color32.LimeGreen}
+            Test("Horizontal", Color.Blue, Brushes.Horizontal(Color.HotPink, Color.LimeGreen),
+           new Color[,] {
+                { Color.LimeGreen , Color.LimeGreen, Color.LimeGreen, Color.LimeGreen},
+                { Color.HotPink, Color.HotPink, Color.HotPink , Color.HotPink},
+                { Color.LimeGreen , Color.LimeGreen, Color.LimeGreen, Color.LimeGreen},
+                { Color.LimeGreen, Color.LimeGreen, Color.LimeGreen , Color.LimeGreen}
            });
         }
 
         [Fact]
         public void ImageShouldBeFloodFilledWithHorizontal_transparent()
         {
-            Test("Horizontal_Transparent", Color32.Blue, Brushes.Horizontal(Color32.HotPink),
-           new Color32[,] {
-                { Color32.Blue , Color32.Blue, Color32.Blue, Color32.Blue},
-                { Color32.HotPink, Color32.HotPink, Color32.HotPink , Color32.HotPink},
-                { Color32.Blue , Color32.Blue, Color32.Blue, Color32.Blue},
-                { Color32.Blue, Color32.Blue, Color32.Blue , Color32.Blue}
+            Test("Horizontal_Transparent", Color.Blue, Brushes.Horizontal(Color.HotPink),
+           new Color[,] {
+                { Color.Blue , Color.Blue, Color.Blue, Color.Blue},
+                { Color.HotPink, Color.HotPink, Color.HotPink , Color.HotPink},
+                { Color.Blue , Color.Blue, Color.Blue, Color.Blue},
+                { Color.Blue, Color.Blue, Color.Blue , Color.Blue}
            });
         }
 
@@ -138,96 +138,96 @@ namespace ImageSharp.Tests.Drawing
         [Fact]
         public void ImageShouldBeFloodFilledWithMin()
         {
-            Test("Min", Color32.Blue, Brushes.Min(Color32.HotPink, Color32.LimeGreen),
-           new Color32[,] {
-                { Color32.LimeGreen , Color32.LimeGreen, Color32.LimeGreen, Color32.LimeGreen},
-                { Color32.LimeGreen , Color32.LimeGreen, Color32.LimeGreen, Color32.LimeGreen},
-                { Color32.LimeGreen, Color32.LimeGreen, Color32.LimeGreen , Color32.LimeGreen},
-                { Color32.HotPink, Color32.HotPink, Color32.HotPink , Color32.HotPink}
+            Test("Min", Color.Blue, Brushes.Min(Color.HotPink, Color.LimeGreen),
+           new Color[,] {
+                { Color.LimeGreen , Color.LimeGreen, Color.LimeGreen, Color.LimeGreen},
+                { Color.LimeGreen , Color.LimeGreen, Color.LimeGreen, Color.LimeGreen},
+                { Color.LimeGreen, Color.LimeGreen, Color.LimeGreen , Color.LimeGreen},
+                { Color.HotPink, Color.HotPink, Color.HotPink , Color.HotPink}
            });
         }
 
         [Fact]
         public void ImageShouldBeFloodFilledWithMin_transparent()
         {
-            Test("Min_Transparent", Color32.Blue, Brushes.Min(Color32.HotPink),
-           new Color32[,] {
-                { Color32.Blue , Color32.Blue, Color32.Blue, Color32.Blue},
-                { Color32.Blue , Color32.Blue, Color32.Blue, Color32.Blue},
-                { Color32.Blue, Color32.Blue, Color32.Blue , Color32.Blue},
-                { Color32.HotPink, Color32.HotPink, Color32.HotPink , Color32.HotPink},
+            Test("Min_Transparent", Color.Blue, Brushes.Min(Color.HotPink),
+           new Color[,] {
+                { Color.Blue , Color.Blue, Color.Blue, Color.Blue},
+                { Color.Blue , Color.Blue, Color.Blue, Color.Blue},
+                { Color.Blue, Color.Blue, Color.Blue , Color.Blue},
+                { Color.HotPink, Color.HotPink, Color.HotPink , Color.HotPink},
            });
         }
 
         [Fact]
         public void ImageShouldBeFloodFilledWithVertical()
         {
-            Test("Vertical", Color32.Blue, Brushes.Vertical(Color32.HotPink, Color32.LimeGreen),
-           new Color32[,] {
-                { Color32.LimeGreen, Color32.HotPink, Color32.LimeGreen, Color32.LimeGreen},
-                { Color32.LimeGreen, Color32.HotPink, Color32.LimeGreen, Color32.LimeGreen},
-                { Color32.LimeGreen, Color32.HotPink, Color32.LimeGreen, Color32.LimeGreen},
-                { Color32.LimeGreen, Color32.HotPink, Color32.LimeGreen, Color32.LimeGreen}
+            Test("Vertical", Color.Blue, Brushes.Vertical(Color.HotPink, Color.LimeGreen),
+           new Color[,] {
+                { Color.LimeGreen, Color.HotPink, Color.LimeGreen, Color.LimeGreen},
+                { Color.LimeGreen, Color.HotPink, Color.LimeGreen, Color.LimeGreen},
+                { Color.LimeGreen, Color.HotPink, Color.LimeGreen, Color.LimeGreen},
+                { Color.LimeGreen, Color.HotPink, Color.LimeGreen, Color.LimeGreen}
            });
         }
 
         [Fact]
         public void ImageShouldBeFloodFilledWithVertical_transparent()
         {
-            Test("Vertical_Transparent", Color32.Blue, Brushes.Vertical(Color32.HotPink),
-           new Color32[,] {
-                { Color32.Blue, Color32.HotPink, Color32.Blue, Color32.Blue},
-                { Color32.Blue, Color32.HotPink, Color32.Blue, Color32.Blue},
-                { Color32.Blue, Color32.HotPink, Color32.Blue, Color32.Blue},
-                { Color32.Blue, Color32.HotPink, Color32.Blue, Color32.Blue}
+            Test("Vertical_Transparent", Color.Blue, Brushes.Vertical(Color.HotPink),
+           new Color[,] {
+                { Color.Blue, Color.HotPink, Color.Blue, Color.Blue},
+                { Color.Blue, Color.HotPink, Color.Blue, Color.Blue},
+                { Color.Blue, Color.HotPink, Color.Blue, Color.Blue},
+                { Color.Blue, Color.HotPink, Color.Blue, Color.Blue}
            });
         }
 
         [Fact]
         public void ImageShouldBeFloodFilledWithForwardDiagonal()
         {
-            Test("ForwardDiagonal", Color32.Blue, Brushes.ForwardDiagonal(Color32.HotPink, Color32.LimeGreen),
-           new Color32[,] {
-                { Color32.LimeGreen, Color32.LimeGreen, Color32.LimeGreen, Color32.HotPink},
-                { Color32.LimeGreen, Color32.LimeGreen, Color32.HotPink, Color32.LimeGreen},
-                { Color32.LimeGreen, Color32.HotPink, Color32.LimeGreen, Color32.LimeGreen},
-                { Color32.HotPink, Color32.LimeGreen, Color32.LimeGreen, Color32.LimeGreen}
+            Test("ForwardDiagonal", Color.Blue, Brushes.ForwardDiagonal(Color.HotPink, Color.LimeGreen),
+           new Color[,] {
+                { Color.LimeGreen, Color.LimeGreen, Color.LimeGreen, Color.HotPink},
+                { Color.LimeGreen, Color.LimeGreen, Color.HotPink, Color.LimeGreen},
+                { Color.LimeGreen, Color.HotPink, Color.LimeGreen, Color.LimeGreen},
+                { Color.HotPink, Color.LimeGreen, Color.LimeGreen, Color.LimeGreen}
            });
         }
 
         [Fact]
         public void ImageShouldBeFloodFilledWithForwardDiagonal_transparent()
         {
-            Test("ForwardDiagonal_Transparent", Color32.Blue, Brushes.ForwardDiagonal(Color32.HotPink),
-           new Color32[,] {
-                { Color32.Blue,    Color32.Blue,    Color32.Blue,    Color32.HotPink},
-                { Color32.Blue,    Color32.Blue,    Color32.HotPink, Color32.Blue},
-                { Color32.Blue,    Color32.HotPink, Color32.Blue,    Color32.Blue},
-                { Color32.HotPink, Color32.Blue,    Color32.Blue,    Color32.Blue}
+            Test("ForwardDiagonal_Transparent", Color.Blue, Brushes.ForwardDiagonal(Color.HotPink),
+           new Color[,] {
+                { Color.Blue,    Color.Blue,    Color.Blue,    Color.HotPink},
+                { Color.Blue,    Color.Blue,    Color.HotPink, Color.Blue},
+                { Color.Blue,    Color.HotPink, Color.Blue,    Color.Blue},
+                { Color.HotPink, Color.Blue,    Color.Blue,    Color.Blue}
            });
         }
 
         [Fact]
         public void ImageShouldBeFloodFilledWithBackwardDiagonal()
         {
-            Test("BackwardDiagonal", Color32.Blue, Brushes.BackwardDiagonal(Color32.HotPink, Color32.LimeGreen),
-           new Color32[,] {
-                { Color32.HotPink,   Color32.LimeGreen, Color32.LimeGreen, Color32.LimeGreen},
-                { Color32.LimeGreen, Color32.HotPink,   Color32.LimeGreen, Color32.LimeGreen},
-                { Color32.LimeGreen, Color32.LimeGreen, Color32.HotPink,   Color32.LimeGreen},
-                { Color32.LimeGreen, Color32.LimeGreen, Color32.LimeGreen, Color32.HotPink}
+            Test("BackwardDiagonal", Color.Blue, Brushes.BackwardDiagonal(Color.HotPink, Color.LimeGreen),
+           new Color[,] {
+                { Color.HotPink,   Color.LimeGreen, Color.LimeGreen, Color.LimeGreen},
+                { Color.LimeGreen, Color.HotPink,   Color.LimeGreen, Color.LimeGreen},
+                { Color.LimeGreen, Color.LimeGreen, Color.HotPink,   Color.LimeGreen},
+                { Color.LimeGreen, Color.LimeGreen, Color.LimeGreen, Color.HotPink}
            });
         }
 
         [Fact]
         public void ImageShouldBeFloodFilledWithBackwardDiagonal_transparent()
         {
-            Test("BackwardDiagonal_Transparent", Color32.Blue, Brushes.BackwardDiagonal(Color32.HotPink),
-           new Color32[,] {
-                { Color32.HotPink, Color32.Blue,    Color32.Blue,    Color32.Blue},
-                { Color32.Blue,    Color32.HotPink, Color32.Blue,    Color32.Blue},
-                { Color32.Blue,    Color32.Blue,    Color32.HotPink, Color32.Blue},
-                { Color32.Blue,    Color32.Blue,    Color32.Blue,    Color32.HotPink}
+            Test("BackwardDiagonal_Transparent", Color.Blue, Brushes.BackwardDiagonal(Color.HotPink),
+           new Color[,] {
+                { Color.HotPink, Color.Blue,    Color.Blue,    Color.Blue},
+                { Color.Blue,    Color.HotPink, Color.Blue,    Color.Blue},
+                { Color.Blue,    Color.Blue,    Color.HotPink, Color.Blue},
+                { Color.Blue,    Color.Blue,    Color.Blue,    Color.HotPink}
            });
         }
     }

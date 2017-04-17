@@ -8,7 +8,7 @@ namespace ImageSharp.Drawing.Brushes
     /// <summary>
     /// Provides an implementation of a recolor brush for painting color changes.
     /// </summary>
-    public class RecolorBrush : RecolorBrush<Color32>
+    public class RecolorBrush : RecolorBrush<Color>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="RecolorBrush" /> class.
@@ -16,7 +16,7 @@ namespace ImageSharp.Drawing.Brushes
         /// <param name="sourceColor">Color of the source.</param>
         /// <param name="targetColor">Color of the target.</param>
         /// <param name="threshold">The threshold.</param>
-        public RecolorBrush(Color32 sourceColor, Color32 targetColor, float threshold)
+        public RecolorBrush(Color sourceColor, Color targetColor, float threshold)
             : base(sourceColor, targetColor, threshold)
         {
         }

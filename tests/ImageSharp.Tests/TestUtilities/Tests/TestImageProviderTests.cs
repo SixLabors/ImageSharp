@@ -151,7 +151,7 @@ namespace ImageSharp.Tests
 
         public static readonly TheoryData<object> BasicData = new TheoryData<object>()
                                                                              {
-                                                                                 TestImageProvider<Color32>.Blank(10, 20),
+                                                                                 TestImageProvider<Color>.Blank(10, 20),
                                                                                  TestImageProvider<HalfVector4>.Blank(
                                                                                      10,
                                                                                      20),
@@ -169,7 +169,7 @@ namespace ImageSharp.Tests
 
         public static readonly TheoryData<object> FileData = new TheoryData<object>()
                                                                             {
-                                                                                TestImageProvider<Color32>.File(
+                                                                                TestImageProvider<Color>.File(
                                                                                     TestImages.Bmp.Car),
                                                                                 TestImageProvider<HalfVector4>.File(
                                                                                     TestImages.Bmp.F)

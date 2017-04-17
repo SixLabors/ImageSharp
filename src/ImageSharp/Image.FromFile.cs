@@ -83,7 +83,7 @@ namespace ImageSharp
         /// <returns>The image</returns>
         public static Image Load(string path, IImageDecoder decoder, IDecoderOptions options)
         {
-            return new Image(Load<Color32>(path, decoder, options));
+            return new Image(Load<Color>(path, decoder, options));
         }
 
         /// <summary>

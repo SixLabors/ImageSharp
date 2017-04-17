@@ -6,7 +6,7 @@
 namespace ImageSharp.Drawing.Brushes
 {
     /// <summary>
-    /// A collection of methods for creating brushes. Brushes use <see cref="Color32"/> for painting.
+    /// A collection of methods for creating brushes. Brushes use <see cref="Color"/> for painting.
     /// </summary>
     public class Brushes
     {
@@ -15,7 +15,7 @@ namespace ImageSharp.Drawing.Brushes
         /// </summary>
         /// <param name="color">The color.</param>
         /// <returns>A Brush</returns>
-        public static SolidBrush Solid(Color32 color)
+        public static SolidBrush Solid(Color color)
                   => new SolidBrush(color);
 
         /// <summary>
@@ -24,8 +24,8 @@ namespace ImageSharp.Drawing.Brushes
         /// </summary>
         /// <param name="foreColor">Color of the foreground.</param>
         /// <returns>A Brush</returns>
-        public static PatternBrush Percent10(Color32 foreColor)
-            => new PatternBrush(Brushes<Color32>.Percent10(foreColor, Color32.Transparent));
+        public static PatternBrush Percent10(Color foreColor)
+            => new PatternBrush(Brushes<Color>.Percent10(foreColor, Color.Transparent));
 
         /// <summary>
         /// Create as brush that will paint a Percent10 Hatch Pattern with
@@ -34,8 +34,8 @@ namespace ImageSharp.Drawing.Brushes
         /// <param name="foreColor">Color of the foreground.</param>
         /// <param name="backColor">Color of the background.</param>
         /// <returns>A Brush</returns>
-        public static PatternBrush Percent10(Color32 foreColor, Color32 backColor)
-            => new PatternBrush(Brushes<Color32>.Percent10(foreColor, backColor));
+        public static PatternBrush Percent10(Color foreColor, Color backColor)
+            => new PatternBrush(Brushes<Color>.Percent10(foreColor, backColor));
 
         /// <summary>
         /// Create as brush that will paint a Percent20 Hatch Pattern with
@@ -43,8 +43,8 @@ namespace ImageSharp.Drawing.Brushes
         /// </summary>
         /// <param name="foreColor">Color of the foreground.</param>
         /// <returns>A Brush</returns>
-        public static PatternBrush Percent20(Color32 foreColor)
-            => new PatternBrush(Brushes<Color32>.Percent20(foreColor, Color32.Transparent));
+        public static PatternBrush Percent20(Color foreColor)
+            => new PatternBrush(Brushes<Color>.Percent20(foreColor, Color.Transparent));
 
         /// <summary>
         /// Create as brush that will paint a Percent20 Hatch Pattern with
@@ -53,8 +53,8 @@ namespace ImageSharp.Drawing.Brushes
         /// <param name="foreColor">Color of the foreground.</param>
         /// <param name="backColor">Color of the background.</param>
         /// <returns>A Brush</returns>
-        public static PatternBrush Percent20(Color32 foreColor, Color32 backColor)
-            => new PatternBrush(Brushes<Color32>.Percent20(foreColor, backColor));
+        public static PatternBrush Percent20(Color foreColor, Color backColor)
+            => new PatternBrush(Brushes<Color>.Percent20(foreColor, backColor));
 
         /// <summary>
         /// Create as brush that will paint a Horizontal Hatch Pattern with
@@ -62,8 +62,8 @@ namespace ImageSharp.Drawing.Brushes
         /// </summary>
         /// <param name="foreColor">Color of the foreground.</param>
         /// <returns>A Brush</returns>
-        public static PatternBrush Horizontal(Color32 foreColor)
-            => new PatternBrush(Brushes<Color32>.Horizontal(foreColor, Color32.Transparent));
+        public static PatternBrush Horizontal(Color foreColor)
+            => new PatternBrush(Brushes<Color>.Horizontal(foreColor, Color.Transparent));
 
         /// <summary>
         /// Create as brush that will paint a Horizontal Hatch Pattern with
@@ -72,8 +72,8 @@ namespace ImageSharp.Drawing.Brushes
         /// <param name="foreColor">Color of the foreground.</param>
         /// <param name="backColor">Color of the background.</param>
         /// <returns>A Brush</returns>
-        public static PatternBrush Horizontal(Color32 foreColor, Color32 backColor)
-            => new PatternBrush(Brushes<Color32>.Horizontal(foreColor, backColor));
+        public static PatternBrush Horizontal(Color foreColor, Color backColor)
+            => new PatternBrush(Brushes<Color>.Horizontal(foreColor, backColor));
 
         /// <summary>
         /// Create as brush that will paint a Min Hatch Pattern with
@@ -81,8 +81,8 @@ namespace ImageSharp.Drawing.Brushes
         /// </summary>
         /// <param name="foreColor">Color of the foreground.</param>
         /// <returns>A Brush</returns>
-        public static PatternBrush Min(Color32 foreColor)
-            => new PatternBrush(Brushes<Color32>.Min(foreColor, Color32.Transparent));
+        public static PatternBrush Min(Color foreColor)
+            => new PatternBrush(Brushes<Color>.Min(foreColor, Color.Transparent));
 
         /// <summary>
         /// Create as brush that will paint a Min Hatch Pattern with
@@ -91,8 +91,8 @@ namespace ImageSharp.Drawing.Brushes
         /// <param name="foreColor">Color of the foreground.</param>
         /// <param name="backColor">Color of the background.</param>
         /// <returns>A Brush</returns>
-        public static PatternBrush Min(Color32 foreColor, Color32 backColor)
-            => new PatternBrush(Brushes<Color32>.Min(foreColor, backColor));
+        public static PatternBrush Min(Color foreColor, Color backColor)
+            => new PatternBrush(Brushes<Color>.Min(foreColor, backColor));
 
         /// <summary>
         /// Create as brush that will paint a Vertical Hatch Pattern with
@@ -100,8 +100,8 @@ namespace ImageSharp.Drawing.Brushes
         /// </summary>
         /// <param name="foreColor">Color of the foreground.</param>
         /// <returns>A Brush</returns>
-        public static PatternBrush Vertical(Color32 foreColor)
-            => new PatternBrush(Brushes<Color32>.Vertical(foreColor, Color32.Transparent));
+        public static PatternBrush Vertical(Color foreColor)
+            => new PatternBrush(Brushes<Color>.Vertical(foreColor, Color.Transparent));
 
         /// <summary>
         /// Create as brush that will paint a Vertical Hatch Pattern with
@@ -110,8 +110,8 @@ namespace ImageSharp.Drawing.Brushes
         /// <param name="foreColor">Color of the foreground.</param>
         /// <param name="backColor">Color of the background.</param>
         /// <returns>A Brush</returns>
-        public static PatternBrush Vertical(Color32 foreColor, Color32 backColor)
-            => new PatternBrush(Brushes<Color32>.Vertical(foreColor, backColor));
+        public static PatternBrush Vertical(Color foreColor, Color backColor)
+            => new PatternBrush(Brushes<Color>.Vertical(foreColor, backColor));
 
         /// <summary>
         /// Create as brush that will paint a Forward Diagonal Hatch Pattern with
@@ -119,8 +119,8 @@ namespace ImageSharp.Drawing.Brushes
         /// </summary>
         /// <param name="foreColor">Color of the foreground.</param>
         /// <returns>A Brush</returns>
-        public static PatternBrush ForwardDiagonal(Color32 foreColor)
-            => new PatternBrush(Brushes<Color32>.ForwardDiagonal(foreColor, Color32.Transparent));
+        public static PatternBrush ForwardDiagonal(Color foreColor)
+            => new PatternBrush(Brushes<Color>.ForwardDiagonal(foreColor, Color.Transparent));
 
         /// <summary>
         /// Create as brush that will paint a Forward Diagonal Hatch Pattern with
@@ -129,8 +129,8 @@ namespace ImageSharp.Drawing.Brushes
         /// <param name="foreColor">Color of the foreground.</param>
         /// <param name="backColor">Color of the background.</param>
         /// <returns>A Brush</returns>
-        public static PatternBrush ForwardDiagonal(Color32 foreColor, Color32 backColor)
-            => new PatternBrush(Brushes<Color32>.ForwardDiagonal(foreColor, backColor));
+        public static PatternBrush ForwardDiagonal(Color foreColor, Color backColor)
+            => new PatternBrush(Brushes<Color>.ForwardDiagonal(foreColor, backColor));
 
         /// <summary>
         /// Create as brush that will paint a Backward Diagonal Hatch Pattern with
@@ -138,8 +138,8 @@ namespace ImageSharp.Drawing.Brushes
         /// </summary>
         /// <param name="foreColor">Color of the foreground.</param>
         /// <returns>A Brush</returns>
-        public static PatternBrush BackwardDiagonal(Color32 foreColor)
-            => new PatternBrush(Brushes<Color32>.BackwardDiagonal(foreColor, Color32.Transparent));
+        public static PatternBrush BackwardDiagonal(Color foreColor)
+            => new PatternBrush(Brushes<Color>.BackwardDiagonal(foreColor, Color.Transparent));
 
         /// <summary>
         /// Create as brush that will paint a Backward Diagonal Hatch Pattern with
@@ -148,7 +148,7 @@ namespace ImageSharp.Drawing.Brushes
         /// <param name="foreColor">Color of the foreground.</param>
         /// <param name="backColor">Color of the background.</param>
         /// <returns>A Brush</returns>
-        public static PatternBrush BackwardDiagonal(Color32 foreColor, Color32 backColor)
-            => new PatternBrush(Brushes<Color32>.BackwardDiagonal(foreColor, backColor));
+        public static PatternBrush BackwardDiagonal(Color foreColor, Color backColor)
+            => new PatternBrush(Brushes<Color>.BackwardDiagonal(foreColor, backColor));
     }
 }

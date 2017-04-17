@@ -52,7 +52,7 @@ namespace ImageSharp
 
         /// <summary>
         /// Expands the packed representation into a given byte array.
-        /// Output is expanded to X-> Y-> Z order. Equivalent to R-> G-> B in <see cref="Color32"/>
+        /// Output is expanded to X-> Y-> Z order. Equivalent to R-> G-> B in <see cref="Color"/>
         /// </summary>
         /// <param name="bytes">The bytes to set the color in.</param>
         /// <param name="startIndex">The starting index of the <paramref name="bytes"/>.</param>
@@ -60,7 +60,7 @@ namespace ImageSharp
 
         /// <summary>
         /// Expands the packed representation into a given byte array.
-        /// Output is expanded to X-> Y-> Z-> W order. Equivalent to R-> G-> B-> A in <see cref="Color32"/>
+        /// Output is expanded to X-> Y-> Z-> W order. Equivalent to R-> G-> B-> A in <see cref="Color"/>
         /// </summary>
         /// <param name="bytes">The bytes to set the color in.</param>
         /// <param name="startIndex">The starting index of the <paramref name="bytes"/>.</param>
@@ -68,7 +68,7 @@ namespace ImageSharp
 
         /// <summary>
         /// Expands the packed representation into a given byte array.
-        /// Output is expanded to Z-> Y-> X order. Equivalent to B-> G-> R in <see cref="Color32"/>
+        /// Output is expanded to Z-> Y-> X order. Equivalent to B-> G-> R in <see cref="Color"/>
         /// </summary>
         /// <param name="bytes">The bytes to set the color in.</param>
         /// <param name="startIndex">The starting index of the <paramref name="bytes"/>.</param>
@@ -76,7 +76,7 @@ namespace ImageSharp
 
         /// <summary>
         /// Expands the packed representation into a given byte array.
-        /// Output is expanded to Z-> Y-> X-> W order. Equivalent to B-> G-> R-> A in <see cref="Color32"/>
+        /// Output is expanded to Z-> Y-> X-> W order. Equivalent to B-> G-> R-> A in <see cref="Color"/>
         /// </summary>
         /// <param name="bytes">The bytes to set the color in.</param>
         /// <param name="startIndex">The starting index of the <paramref name="bytes"/>.</param>

@@ -17,8 +17,8 @@ namespace ImageSharp.Tests.Drawing.Paths
     public class FillPolygon : IDisposable
     {
         GraphicsOptions noneDefault = new GraphicsOptions();
-        Color32 color = Color32.HotPink;
-        SolidBrush brush = Brushes.Solid(Color32.HotPink);
+        Color color = Color.HotPink;
+        SolidBrush brush = Brushes.Solid(Color.HotPink);
         Vector2[] path = new Vector2[] {
                     new Vector2(10,10),
                     new Vector2(20,10),
@@ -43,7 +43,7 @@ namespace ImageSharp.Tests.Drawing.Paths
             img.FillPolygon(brush, path);
 
             Assert.NotEmpty(img.ProcessorApplications);
-            FillRegionProcessor<Color32> processor = Assert.IsType<FillRegionProcessor<Color32>>(img.ProcessorApplications[0].processor);
+            FillRegionProcessor<Color> processor = Assert.IsType<FillRegionProcessor<Color>>(img.ProcessorApplications[0].processor);
 
             Assert.Equal(GraphicsOptions.Default, processor.Options);
 
@@ -60,7 +60,7 @@ namespace ImageSharp.Tests.Drawing.Paths
             img.FillPolygon(brush, path, noneDefault);
 
             Assert.NotEmpty(img.ProcessorApplications);
-            FillRegionProcessor<Color32> processor = Assert.IsType<FillRegionProcessor<Color32>>(img.ProcessorApplications[0].processor);
+            FillRegionProcessor<Color> processor = Assert.IsType<FillRegionProcessor<Color>>(img.ProcessorApplications[0].processor);
 
             Assert.Equal(noneDefault, processor.Options);
 
@@ -77,7 +77,7 @@ namespace ImageSharp.Tests.Drawing.Paths
             img.FillPolygon(color, path);
             
             Assert.NotEmpty(img.ProcessorApplications);
-            FillRegionProcessor<Color32> processor = Assert.IsType<FillRegionProcessor<Color32>>(img.ProcessorApplications[0].processor);
+            FillRegionProcessor<Color> processor = Assert.IsType<FillRegionProcessor<Color>>(img.ProcessorApplications[0].processor);
 
             Assert.Equal(GraphicsOptions.Default, processor.Options);
 
@@ -85,7 +85,7 @@ namespace ImageSharp.Tests.Drawing.Paths
             Polygon polygon = Assert.IsType<Polygon>(region.Shape);
             LinearLineSegment segemnt = Assert.IsType<LinearLineSegment>(polygon.LineSegments[0]);
 
-            SolidBrush<Color32> brush = Assert.IsType<SolidBrush<Color32>>(processor.Brush);
+            SolidBrush<Color> brush = Assert.IsType<SolidBrush<Color>>(processor.Brush);
             Assert.Equal(color, brush.Color);
         }
 
@@ -95,7 +95,7 @@ namespace ImageSharp.Tests.Drawing.Paths
             img.FillPolygon(color, path, noneDefault);
 
             Assert.NotEmpty(img.ProcessorApplications);
-            FillRegionProcessor<Color32> processor = Assert.IsType<FillRegionProcessor<Color32>>(img.ProcessorApplications[0].processor);
+            FillRegionProcessor<Color> processor = Assert.IsType<FillRegionProcessor<Color>>(img.ProcessorApplications[0].processor);
 
             Assert.Equal(noneDefault, processor.Options);
 
@@ -103,7 +103,7 @@ namespace ImageSharp.Tests.Drawing.Paths
             Polygon polygon = Assert.IsType<Polygon>(region.Shape);
             LinearLineSegment segemnt = Assert.IsType<LinearLineSegment>(polygon.LineSegments[0]);
 
-            SolidBrush<Color32> brush = Assert.IsType<SolidBrush<Color32>>(processor.Brush);
+            SolidBrush<Color> brush = Assert.IsType<SolidBrush<Color>>(processor.Brush);
             Assert.Equal(color, brush.Color);
         }
     }

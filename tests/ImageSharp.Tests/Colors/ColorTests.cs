@@ -11,7 +11,7 @@ namespace ImageSharp.Tests
     using Xunit;
 
     /// <summary>
-    /// Tests the <see cref="Color32"/> struct.
+    /// Tests the <see cref="Color"/> struct.
     /// </summary>
     public class ColorTests
     {
@@ -21,12 +21,12 @@ namespace ImageSharp.Tests
         [Fact]
         public void AreEqual()
         {
-            Color32 color1 = new Color32(0, 0, 0);
-            Color32 color2 = new Color32(0, 0, 0, 1F);
-            Color32 color3 = Color32.FromHex("#000");
-            Color32 color4 = Color32.FromHex("#000F");
-            Color32 color5 = Color32.FromHex("#000000");
-            Color32 color6 = Color32.FromHex("#000000FF");
+            Color color1 = new Color(0, 0, 0);
+            Color color2 = new Color(0, 0, 0, 1F);
+            Color color3 = Color.FromHex("#000");
+            Color color4 = Color.FromHex("#000F");
+            Color color5 = Color.FromHex("#000000");
+            Color color6 = Color.FromHex("#000000FF");
 
             Assert.Equal(color1, color2);
             Assert.Equal(color1, color3);
@@ -41,11 +41,11 @@ namespace ImageSharp.Tests
         [Fact]
         public void AreNotEqual()
         {
-            Color32 color1 = new Color32(255, 0, 0, 255);
-            Color32 color2 = new Color32(0, 0, 0, 255);
-            Color32 color3 = Color32.FromHex("#000");
-            Color32 color4 = Color32.FromHex("#000000");
-            Color32 color5 = Color32.FromHex("#FF000000");
+            Color color1 = new Color(255, 0, 0, 255);
+            Color color2 = new Color(0, 0, 0, 255);
+            Color color3 = Color.FromHex("#000");
+            Color color4 = Color.FromHex("#000000");
+            Color color5 = Color.FromHex("#FF000000");
 
             Assert.NotEqual(color1, color2);
             Assert.NotEqual(color1, color3);
@@ -59,25 +59,25 @@ namespace ImageSharp.Tests
         [Fact]
         public void ConstructorAssignsProperties()
         {
-            Color32 color1 = new Color32(1, .1f, .133f, .864f);
+            Color color1 = new Color(1, .1f, .133f, .864f);
             Assert.Equal(255, color1.R);
             Assert.Equal((byte)Math.Round(.1f * 255), color1.G);
             Assert.Equal((byte)Math.Round(.133f * 255), color1.B);
             Assert.Equal((byte)Math.Round(.864f * 255), color1.A);
 
-            Color32 color2 = new Color32(1, .1f, .133f);
+            Color color2 = new Color(1, .1f, .133f);
             Assert.Equal(255, color2.R);
             Assert.Equal(Math.Round(.1f * 255), color2.G);
             Assert.Equal(Math.Round(.133f * 255), color2.B);
             Assert.Equal(255, color2.A);
 
-            Color32 color4 = new Color32(new Vector3(1, .1f, .133f));
+            Color color4 = new Color(new Vector3(1, .1f, .133f));
             Assert.Equal(255, color4.R);
             Assert.Equal(Math.Round(.1f * 255), color4.G);
             Assert.Equal(Math.Round(.133f * 255), color4.B);
             Assert.Equal(255, color4.A);
 
-            Color32 color5 = new Color32(new Vector4(1, .1f, .133f, .5f));
+            Color color5 = new Color(new Vector4(1, .1f, .133f, .5f));
             Assert.Equal(255, color5.R);
             Assert.Equal(Math.Round(.1f * 255), color5.G);
             Assert.Equal(Math.Round(.133f * 255), color5.B);
@@ -90,7 +90,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void FromAndToHex()
         {
-            Color32 color = Color32.FromHex("#AABBCCDD");
+            Color color = Color.FromHex("#AABBCCDD");
             Assert.Equal(170, color.R);
             Assert.Equal(187, color.G);
             Assert.Equal(204, color.B);
@@ -118,7 +118,7 @@ namespace ImageSharp.Tests
         [Fact]
         public unsafe void ByteLayout()
         {
-            Color32 color = new Color32(1, 2, 3, 4);
+            Color color = new Color(1, 2, 3, 4);
             byte* colorBase = (byte*)&color;
             Assert.Equal(1, colorBase[0]);
             Assert.Equal(2, colorBase[1]);

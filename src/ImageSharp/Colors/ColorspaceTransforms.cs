@@ -17,46 +17,46 @@ namespace ImageSharp
     /// This struct is fully mutable. This is done (against the guidelines) for the sake of performance,
     /// as it avoids the need to create new values for modification operations.
     /// </remarks>
-    public partial struct Color32
+    public partial struct Color
     {
         /// <summary>
-        /// Allows the implicit conversion of an instance of <see cref="Color32"/> to a
+        /// Allows the implicit conversion of an instance of <see cref="Color"/> to a
         /// <see cref="Bgra32"/>.
         /// </summary>
-        /// <param name="color">The instance of <see cref="Color32"/> to convert.</param>
+        /// <param name="color">The instance of <see cref="Color"/> to convert.</param>
         /// <returns>
         /// An instance of <see cref="Bgra32"/>.
         /// </returns>
-        public static implicit operator Color32(Bgra32 color)
+        public static implicit operator Color(Bgra32 color)
         {
-            return new Color32(color.R, color.G, color.B, color.A);
+            return new Color(color.R, color.G, color.B, color.A);
         }
 
         /// <summary>
         /// Allows the implicit conversion of an instance of <see cref="Cmyk"/> to a
-        /// <see cref="Color32"/>.
+        /// <see cref="Color"/>.
         /// </summary>
         /// <param name="cmykColor">The instance of <see cref="Cmyk"/> to convert.</param>
         /// <returns>
-        /// An instance of <see cref="Color32"/>.
+        /// An instance of <see cref="Color"/>.
         /// </returns>
-        public static implicit operator Color32(Cmyk cmykColor)
+        public static implicit operator Color(Cmyk cmykColor)
         {
             float r = (1 - cmykColor.C) * (1 - cmykColor.K);
             float g = (1 - cmykColor.M) * (1 - cmykColor.K);
             float b = (1 - cmykColor.Y) * (1 - cmykColor.K);
-            return new Color32(r, g, b, 1);
+            return new Color(r, g, b, 1);
         }
 
         /// <summary>
         /// Allows the implicit conversion of an instance of <see cref="YCbCr"/> to a
-        /// <see cref="Color32"/>.
+        /// <see cref="Color"/>.
         /// </summary>
         /// <param name="color">The instance of <see cref="YCbCr"/> to convert.</param>
         /// <returns>
-        /// An instance of <see cref="Color32"/>.
+        /// An instance of <see cref="Color"/>.
         /// </returns>
-        public static implicit operator Color32(YCbCr color)
+        public static implicit operator Color(YCbCr color)
         {
             float y = color.Y;
             float cb = color.Cb - 128;
@@ -66,18 +66,18 @@ namespace ImageSharp
             byte g = (byte)(y - (0.34414F * cb) - (0.71414F * cr)).Clamp(0, 255);
             byte b = (byte)(y + (1.772F * cb)).Clamp(0, 255);
 
-            return new Color32(r, g, b);
+            return new Color(r, g, b);
         }
 
         /// <summary>
         /// Allows the implicit conversion of an instance of <see cref="CieXyz"/> to a
-        /// <see cref="Color32"/>.
+        /// <see cref="Color"/>.
         /// </summary>
         /// <param name="color">The instance of <see cref="CieXyz"/> to convert.</param>
         /// <returns>
-        /// An instance of <see cref="Color32"/>.
+        /// An instance of <see cref="Color"/>.
         /// </returns>
-        public static implicit operator Color32(CieXyz color)
+        public static implicit operator Color(CieXyz color)
         {
             float x = color.X / 100F;
             float y = color.Y / 100F;
@@ -89,25 +89,25 @@ namespace ImageSharp
             float b = (x * 0.0557F) + (y * -0.2040F) + (z * 1.0570F);
 
             Vector4 vector = new Vector4(r, g, b, 1).Compress();
-            return new Color32(vector);
+            return new Color(vector);
         }
 
         /// <summary>
         /// Allows the implicit conversion of an instance of <see cref="Hsv"/> to a
-        /// <see cref="Color32"/>.
+        /// <see cref="Color"/>.
         /// </summary>
         /// <param name="color">The instance of <see cref="Hsv"/> to convert.</param>
         /// <returns>
-        /// An instance of <see cref="Color32"/>.
+        /// An instance of <see cref="Color"/>.
         /// </returns>
-        public static implicit operator Color32(Hsv color)
+        public static implicit operator Color(Hsv color)
         {
             float s = color.S;
             float v = color.V;
 
             if (MathF.Abs(s) < Constants.Epsilon)
             {
-                return new Color32(v, v, v, 1);
+                return new Color(v, v, v, 1);
             }
 
             float h = (MathF.Abs(color.H - 360) < Constants.Epsilon) ? 0 : color.H / 60;
@@ -158,18 +158,18 @@ namespace ImageSharp
                     break;
             }
 
-            return new Color32(r, g, b, 1);
+            return new Color(r, g, b, 1);
         }
 
         /// <summary>
         /// Allows the implicit conversion of an instance of <see cref="Hsl"/> to a
-        /// <see cref="Color32"/>.
+        /// <see cref="Color"/>.
         /// </summary>
         /// <param name="color">The instance of <see cref="Hsl"/> to convert.</param>
         /// <returns>
-        /// An instance of <see cref="Color32"/>.
+        /// An instance of <see cref="Color"/>.
         /// </returns>
-        public static implicit operator Color32(Hsl color)
+        public static implicit operator Color(Hsl color)
         {
             float rangedH = color.H / 360F;
             float r = 0;
@@ -195,18 +195,18 @@ namespace ImageSharp
                 }
             }
 
-            return new Color32(r, g, b, 1);
+            return new Color(r, g, b, 1);
         }
 
         /// <summary>
         /// Allows the implicit conversion of an instance of <see cref="CieLab"/> to a
-        /// <see cref="Color32"/>.
+        /// <see cref="Color"/>.
         /// </summary>
         /// <param name="cieLabColor">The instance of <see cref="CieLab"/> to convert.</param>
         /// <returns>
-        /// An instance of <see cref="Color32"/>.
+        /// An instance of <see cref="Color"/>.
         /// </returns>
-        public static implicit operator Color32(CieLab cieLabColor)
+        public static implicit operator Color(CieLab cieLabColor)
         {
             // First convert back to XYZ...
             float y = (cieLabColor.L + 16F) / 116F;
@@ -229,7 +229,7 @@ namespace ImageSharp
             float g = (x * -0.9689F) + (y * 1.8758F) + (z * 0.0415F);
             float b = (x * 0.0557F) + (y * -0.2040F) + (z * 1.0570F);
 
-            return new Color32(new Vector4(r, g, b, 1F).Compress());
+            return new Color(new Vector4(r, g, b, 1F).Compress());
         }
 
         /// <summary>

@@ -243,7 +243,7 @@ namespace ImageSharp.Tests
 
             TestProfile(profile);
 
-            Image<Color32> thumbnail = profile.CreateThumbnail<Color32>();
+            Image<Color> thumbnail = profile.CreateThumbnail<Color>();
             Assert.NotNull(thumbnail);
             Assert.Equal(256, thumbnail.Width);
             Assert.Equal(170, thumbnail.Height);

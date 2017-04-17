@@ -55,7 +55,7 @@ namespace ImageSharp.Benchmarks.Color.Bulk
         }
     }
 
-    public class ToVector4_Color : ToVector4<ImageSharp.Color32>
+    public class ToVector4_Color : ToVector4<ImageSharp.Color>
     {
     }
 }

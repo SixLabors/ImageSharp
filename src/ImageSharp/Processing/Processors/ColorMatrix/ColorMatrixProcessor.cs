@@ -75,7 +75,7 @@ namespace ImageSharp.Processing.Processors
         /// <param name="matrix">The matrix.</param>
         /// <param name="compand">Whether to compand the color during processing.</param>
         /// <returns>
-        /// The <see cref="Color32"/>.
+        /// The <see cref="Color"/>.
         /// </returns>
         private TColor ApplyMatrix(TColor color, Matrix4x4 matrix, bool compand)
         {

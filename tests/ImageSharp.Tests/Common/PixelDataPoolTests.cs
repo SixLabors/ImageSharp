@@ -18,7 +18,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void PixelDataPoolRentsMinimumSize()
         {
-            Color32[] pixels = PixelDataPool<Color32>.Rent(1024);
+            Color[] pixels = PixelDataPool<Color>.Rent(1024);
 
             Assert.True(pixels.Length >= 1024);
         }
@@ -26,9 +26,9 @@ namespace ImageSharp.Tests
         [Fact]
         public void PixelDataPoolDoesNotThrowWhenReturningNonPooled()
         {
-            Color32[] pixels = new Color32[1024];
+            Color[] pixels = new Color[1024];
 
-            PixelDataPool<Color32>.Return(pixels);
+            PixelDataPool<Color>.Return(pixels);
 
             Assert.True(pixels.Length >= 1024);
         }
@@ -39,7 +39,7 @@ namespace ImageSharp.Tests
         public void CalculateMaxArrayLength(bool isRawData)
         {
             int max = isRawData ? PixelDataPool<int>.CalculateMaxArrayLength()
-                          : PixelDataPool<Color32>.CalculateMaxArrayLength();
+                          : PixelDataPool<Color>.CalculateMaxArrayLength();
 
             Assert.Equal(max < int.MaxValue, !isRawData);
         }

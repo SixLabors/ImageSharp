@@ -9,7 +9,7 @@ namespace ImageSharp.Benchmarks.Image
 
     using BenchmarkDotNet.Attributes;
 
-    using CoreColor = ImageSharp.Color32;
+    using CoreColor = ImageSharp.Color;
     using CoreImage = ImageSharp.Image;
     using SystemColor = System.Drawing.Color;
 

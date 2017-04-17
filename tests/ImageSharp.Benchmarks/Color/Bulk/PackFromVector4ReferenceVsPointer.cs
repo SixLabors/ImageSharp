@@ -6,7 +6,7 @@
     using BenchmarkDotNet.Attributes;
 
     using ImageSharp;
-    
+
     /// <summary>
     /// Compares two implementation candidates for general BulkPixelOperations.ToVector4():
     /// - One iterating with pointers

@@ -9,7 +9,7 @@ namespace ImageSharp.Tests.Common
     using Xunit;
 
     using static TestStructs;
-    
+
     public unsafe class BufferSpanTests
     {
         // ReSharper disable once ClassNeverInstantiated.Local
@@ -38,7 +38,7 @@ namespace ImageSharp.Tests.Common
                 Assert.SameRefs(ref orig.DangerousGetPinnableReference(), ref asBytes.DangerousGetPinnableReference());
             }
         }
-        
+
         public class Construct
         {
             [Fact]
@@ -331,7 +331,7 @@ namespace ImageSharp.Tests.Common
                 BufferSpan<Foo> apSource = new BufferSpan<Foo>(source, 1);
                 BufferSpan<byte> apDest = new BufferSpan<byte>(dest, sizeof(Foo));
 
-                BufferSpan.Copy(apSource.AsBytes(), apDest, (count - 1)*sizeof(Foo));
+                BufferSpan.Copy(apSource.AsBytes(), apDest, (count - 1) * sizeof(Foo));
 
                 AssertNotDefault(source, 1);
 
@@ -377,7 +377,7 @@ namespace ImageSharp.Tests.Common
                 BufferSpan<int> apSource = new BufferSpan<int>(source);
                 BufferSpan<byte> apDest = new BufferSpan<byte>(dest);
 
-                BufferSpan.Copy(apSource.AsBytes(), apDest, count*sizeof(int));
+                BufferSpan.Copy(apSource.AsBytes(), apDest, count * sizeof(int));
 
                 AssertNotDefault(source, 1);
 
@@ -398,7 +398,7 @@ namespace ImageSharp.Tests.Common
                 BufferSpan<byte> apSource = new BufferSpan<byte>(source);
                 BufferSpan<Foo> apDest = new BufferSpan<Foo>(dest);
 
-                BufferSpan.Copy(apSource, apDest.AsBytes(), count*sizeof(Foo));
+                BufferSpan.Copy(apSource, apDest.AsBytes(), count * sizeof(Foo));
 
                 AssertNotDefault(source, sizeof(Foo) + 1);
                 AssertNotDefault(dest, 1);
@@ -410,14 +410,14 @@ namespace ImageSharp.Tests.Common
             }
 
             [Fact]
-            public void ColorToBytes()
+            public void Color32ToBytes()
             {
                 Color[] colors = { new Color(0, 1, 2, 3), new Color(4, 5, 6, 7), new Color(8, 9, 10, 11), };
 
                 using (Buffer<Color> colorBuf = new Buffer<Color>(colors))
                 using (Buffer<byte> byteBuf = new Buffer<byte>(colors.Length * 4))
                 {
-                    BufferSpan.Copy(colorBuf.Span.AsBytes(), byteBuf, colorBuf.Length*sizeof(Color));
+                    BufferSpan.Copy(colorBuf.Span.AsBytes(), byteBuf, colorBuf.Length * sizeof(Color));
 
                     byte[] a = byteBuf.Array;
 

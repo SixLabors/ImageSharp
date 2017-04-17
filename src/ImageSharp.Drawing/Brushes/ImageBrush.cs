@@ -6,15 +6,15 @@
 namespace ImageSharp.Drawing.Brushes
 {
     /// <summary>
-    /// Provides an implementation of a solid brush for painting with repeating images. The brush uses <see cref="Color32"/> for painting.
+    /// Provides an implementation of a solid brush for painting with repeating images. The brush uses <see cref="Color"/> for painting.
     /// </summary>
-    public class ImageBrush : ImageBrush<Color32>
+    public class ImageBrush : ImageBrush<Color>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageBrush" /> class.
         /// </summary>
         /// <param name="image">The image to paint.</param>
-        public ImageBrush(IImageBase<Color32> image)
+        public ImageBrush(IImageBase<Color> image)
             : base(image)
         {
         }

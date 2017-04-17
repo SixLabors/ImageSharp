@@ -37,7 +37,7 @@ namespace ImageSharp.Tests
                 using (Image image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
-                    image.Glow(Color32.HotPink).Save(output);
+                    image.Glow(Color.HotPink).Save(output);
                 }
             }
         }

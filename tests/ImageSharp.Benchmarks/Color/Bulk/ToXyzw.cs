@@ -8,7 +8,7 @@ namespace ImageSharp.Benchmarks.Color.Bulk
 {
     using BenchmarkDotNet.Attributes;
 
-    using Color32 = ImageSharp.Color32;
+    using Color = ImageSharp.Color;
 
     public abstract class ToXyzw<TColor>
         where TColor : struct, IPixel<TColor>
@@ -60,7 +60,7 @@ namespace ImageSharp.Benchmarks.Color.Bulk
         }
     }
     
-    public class ToXyzw_Color : ToXyzw<Color32>
+    public class ToXyzw_Color : ToXyzw<Color>
     {
     }
 

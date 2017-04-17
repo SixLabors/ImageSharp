@@ -35,17 +35,17 @@ namespace ImageSharp.Tests.Drawing
                 using (FileStream output = File.OpenWrite($"{path}/Simple.png"))
                 {
                     image
-                        .BackgroundColor(Color32.Blue)
-                        .Fill(Color32.HotPink, clipped)
+                        .BackgroundColor(Color.Blue)
+                        .Fill(Color.HotPink, clipped)
                         .Save(output);
                 }
 
-                using (PixelAccessor<Color32> sourcePixels = image.Lock())
+                using (PixelAccessor<Color> sourcePixels = image.Lock())
                 {
-                    Assert.Equal(Color32.HotPink, sourcePixels[20, 35]);
+                    Assert.Equal(Color.HotPink, sourcePixels[20, 35]);
 
                     //inside hole
-                    Assert.Equal(Color32.Blue, sourcePixels[60, 100]);
+                    Assert.Equal(Color.Blue, sourcePixels[60, 100]);
                 }
             }
         }
@@ -70,17 +70,17 @@ namespace ImageSharp.Tests.Drawing
                 using (FileStream output = File.OpenWrite($"{path}/SimpleOverlapping.png"))
                 {
                     image
-                        .BackgroundColor(Color32.Blue)
-                        .Fill(Color32.HotPink, simplePath.Clip(hole1))
+                        .BackgroundColor(Color.Blue)
+                        .Fill(Color.HotPink, simplePath.Clip(hole1))
                         .Save(output);
                 }
 
-                using (PixelAccessor<Color32> sourcePixels = image.Lock())
+                using (PixelAccessor<Color> sourcePixels = image.Lock())
                 {
-                    Assert.Equal(Color32.HotPink, sourcePixels[20, 35]);
+                    Assert.Equal(Color.HotPink, sourcePixels[20, 35]);
 
                     //inside hole
-                    Assert.Equal(Color32.Blue, sourcePixels[60, 100]);
+                    Assert.Equal(Color.Blue, sourcePixels[60, 100]);
                 }
             }
         }
@@ -98,27 +98,27 @@ namespace ImageSharp.Tests.Drawing
                             new Vector2(37, 85),
                             new Vector2(93, 85),
                             new Vector2(65, 137)));
-            Color32 color = new Color32(Color32.HotPink.R, Color32.HotPink.G, Color32.HotPink.B, 150);
+            Color color = new Color(Color.HotPink.R, Color.HotPink.G, Color.HotPink.B, 150);
 
             using (Image image = new Image(500, 500))
             {
                 using (FileStream output = File.OpenWrite($"{path}/Opacity.png"))
                 {
                     image
-                        .BackgroundColor(Color32.Blue)
+                        .BackgroundColor(Color.Blue)
                         .Fill(color, simplePath.Clip(hole1))
                         .Save(output);
                 }
 
                 //shift background color towards forground color by the opacity amount
-                Color32 mergedColor = new Color32(Vector4.Lerp(Color32.Blue.ToVector4(), Color32.HotPink.ToVector4(), 150f / 255f));
+                Color mergedColor = new Color(Vector4.Lerp(Color.Blue.ToVector4(), Color.HotPink.ToVector4(), 150f / 255f));
 
-                using (PixelAccessor<Color32> sourcePixels = image.Lock())
+                using (PixelAccessor<Color> sourcePixels = image.Lock())
                 {
                     Assert.Equal(mergedColor, sourcePixels[20, 35]);
 
                     //inside hole
-                    Assert.Equal(Color32.Blue, sourcePixels[60, 100]);
+                    Assert.Equal(Color.Blue, sourcePixels[60, 100]);
                 }
             }
         }

@@ -70,14 +70,14 @@ namespace ImageSharp.Colors.Spaces
         public bool IsEmpty => this.Equals(Empty);
 
         /// <summary>
-        /// Allows the implicit conversion of an instance of <see cref="Color32"/> to a
+        /// Allows the implicit conversion of an instance of <see cref="Color"/> to a
         /// <see cref="Hsl"/>.
         /// </summary>
-        /// <param name="color">The instance of <see cref="Color32"/> to convert.</param>
+        /// <param name="color">The instance of <see cref="Color"/> to convert.</param>
         /// <returns>
         /// An instance of <see cref="Hsl"/>.
         /// </returns>
-        public static implicit operator Hsl(Color32 color)
+        public static implicit operator Hsl(Color color)
         {
             float r = color.R / 255F;
             float g = color.G / 255F;

@@ -23,8 +23,8 @@ namespace ImageSharp.Tests.Drawing
                 using (FileStream output = File.OpenWrite($"{path}/Simple.png"))
                 {
                     image
-                        .BackgroundColor(Color32.Blue)
-                        .DrawLines(Color32.HotPink, 5,
+                        .BackgroundColor(Color.Blue)
+                        .DrawLines(Color.HotPink, 5,
                         new[] {
                             new Vector2(10, 10),
                             new Vector2(200, 150),
@@ -33,13 +33,13 @@ namespace ImageSharp.Tests.Drawing
                         .Save(output);
                 }
 
-                using (PixelAccessor<Color32> sourcePixels = image.Lock())
+                using (PixelAccessor<Color> sourcePixels = image.Lock())
                 {
-                    Assert.Equal(Color32.HotPink, sourcePixels[9, 9]);
+                    Assert.Equal(Color.HotPink, sourcePixels[9, 9]);
 
-                    Assert.Equal(Color32.HotPink, sourcePixels[199, 149]);
+                    Assert.Equal(Color.HotPink, sourcePixels[199, 149]);
 
-                    Assert.Equal(Color32.Blue, sourcePixels[50, 50]);
+                    Assert.Equal(Color.Blue, sourcePixels[50, 50]);
                 }
             }
         }
@@ -53,8 +53,8 @@ namespace ImageSharp.Tests.Drawing
                 using (FileStream output = File.OpenWrite($"{path}/Simple_noantialias.png"))
                 {
                     image
-                        .BackgroundColor(Color32.Blue)
-                        .DrawLines(Color32.HotPink, 5,
+                        .BackgroundColor(Color.Blue)
+                        .DrawLines(Color.HotPink, 5,
                         new[] {
                             new Vector2(10, 10),
                             new Vector2(200, 150),
@@ -64,13 +64,13 @@ namespace ImageSharp.Tests.Drawing
                         .Save(output);
                 }
 
-                using (PixelAccessor<Color32> sourcePixels = image.Lock())
+                using (PixelAccessor<Color> sourcePixels = image.Lock())
                 {
-                    Assert.Equal(Color32.HotPink, sourcePixels[9, 9]);
+                    Assert.Equal(Color.HotPink, sourcePixels[9, 9]);
 
-                    Assert.Equal(Color32.HotPink, sourcePixels[199, 149]);
+                    Assert.Equal(Color.HotPink, sourcePixels[199, 149]);
 
-                    Assert.Equal(Color32.Blue, sourcePixels[50, 50]);
+                    Assert.Equal(Color.Blue, sourcePixels[50, 50]);
                 }
             }
         }
@@ -84,8 +84,8 @@ namespace ImageSharp.Tests.Drawing
                 using (FileStream output = File.OpenWrite($"{path}/Dashed.png"))
                 {
                     image
-                        .BackgroundColor(Color32.Blue)
-                        .DrawLines(Pens.Dash(Color32.HotPink, 5),
+                        .BackgroundColor(Color.Blue)
+                        .DrawLines(Pens.Dash(Color.HotPink, 5),
                         new[] {
                             new Vector2(10, 10),
                             new Vector2(200, 150),
@@ -105,8 +105,8 @@ namespace ImageSharp.Tests.Drawing
                 using (FileStream output = File.OpenWrite($"{path}/Dot.png"))
                 {
                     image
-                        .BackgroundColor(Color32.Blue)
-                        .DrawLines(Pens.Dot(Color32.HotPink, 5),
+                        .BackgroundColor(Color.Blue)
+                        .DrawLines(Pens.Dot(Color.HotPink, 5),
                         new[] {
                             new Vector2(10, 10),
                             new Vector2(200, 150),
@@ -126,8 +126,8 @@ namespace ImageSharp.Tests.Drawing
                 using (FileStream output = File.OpenWrite($"{path}/DashDot.png"))
                 {
                     image
-                        .BackgroundColor(Color32.Blue)
-                        .DrawLines(Pens.DashDot(Color32.HotPink, 5),
+                        .BackgroundColor(Color.Blue)
+                        .DrawLines(Pens.DashDot(Color.HotPink, 5),
                         new[] {
                             new Vector2(10, 10),
                             new Vector2(200, 150),
@@ -147,8 +147,8 @@ namespace ImageSharp.Tests.Drawing
             using (FileStream output = File.OpenWrite($"{path}/DashDotDot.png"))
             {
                 image
-                    .BackgroundColor(Color32.Blue)
-                    .DrawLines(Pens.DashDotDot(Color32.HotPink, 5), new[] {
+                    .BackgroundColor(Color.Blue)
+                    .DrawLines(Pens.DashDotDot(Color.HotPink, 5), new[] {
                             new Vector2(10, 10),
                             new Vector2(200, 150),
                             new Vector2(50, 300)
@@ -162,7 +162,7 @@ namespace ImageSharp.Tests.Drawing
         {
             string path = this.CreateOutputDirectory("Drawing", "Lines");
 
-            Color32 color = new Color32(Color32.HotPink.R, Color32.HotPink.G, Color32.HotPink.B, 150);
+            Color color = new Color(Color.HotPink.R, Color.HotPink.G, Color.HotPink.B, 150);
 
             Image image = new Image(500, 500);
 
@@ -170,7 +170,7 @@ namespace ImageSharp.Tests.Drawing
             using (FileStream output = File.OpenWrite($"{path}/Opacity.png"))
             {
                 image
-                    .BackgroundColor(Color32.Blue)
+                    .BackgroundColor(Color.Blue)
                     .DrawLines(color, 10, new[] {
                             new Vector2(10, 10),
                             new Vector2(200, 150),
@@ -180,15 +180,15 @@ namespace ImageSharp.Tests.Drawing
             }
 
             //shift background color towards forground color by the opacity amount
-            Color32 mergedColor = new Color32(Vector4.Lerp(Color32.Blue.ToVector4(), Color32.HotPink.ToVector4(), 150f/255f));
+            Color mergedColor = new Color(Vector4.Lerp(Color.Blue.ToVector4(), Color.HotPink.ToVector4(), 150f/255f));
 
-            using (PixelAccessor<Color32> sourcePixels = image.Lock())
+            using (PixelAccessor<Color> sourcePixels = image.Lock())
             {
                 Assert.Equal(mergedColor, sourcePixels[9, 9]);
 
                 Assert.Equal(mergedColor, sourcePixels[199, 149]);
 
-                Assert.Equal(Color32.Blue, sourcePixels[50, 50]);
+                Assert.Equal(Color.Blue, sourcePixels[50, 50]);
             }
         }
 
@@ -202,8 +202,8 @@ namespace ImageSharp.Tests.Drawing
             using (FileStream output = File.OpenWrite($"{path}/Rectangle.png"))
             {
                 image
-                    .BackgroundColor(Color32.Blue)
-                    .DrawLines(Color32.HotPink, 10, new[] {
+                    .BackgroundColor(Color.Blue)
+                    .DrawLines(Color.HotPink, 10, new[] {
                             new Vector2(10, 10),
                             new Vector2(200, 10),
                             new Vector2(200, 150),
@@ -212,15 +212,15 @@ namespace ImageSharp.Tests.Drawing
                     .Save(output);
             }
 
-            using (PixelAccessor<Color32> sourcePixels = image.Lock())
+            using (PixelAccessor<Color> sourcePixels = image.Lock())
             {
-                Assert.Equal(Color32.HotPink, sourcePixels[8, 8]);
+                Assert.Equal(Color.HotPink, sourcePixels[8, 8]);
 
-                Assert.Equal(Color32.HotPink, sourcePixels[198, 10]);
+                Assert.Equal(Color.HotPink, sourcePixels[198, 10]);
 
-                Assert.Equal(Color32.Blue, sourcePixels[10, 50]);
+                Assert.Equal(Color.Blue, sourcePixels[10, 50]);
 
-                Assert.Equal(Color32.Blue, sourcePixels[50, 50]);
+                Assert.Equal(Color.Blue, sourcePixels[50, 50]);
             }
         }
 

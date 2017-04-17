@@ -69,9 +69,9 @@ namespace ImageSharp.Tests
                 .Concat(new[] { TestImages.Jpeg.Baseline.Calliphora, TestImages.Jpeg.Baseline.Cmyk })
                 .ToArray();
 
-            Image<Color32>[] testImages =
+            Image<Color>[] testImages =
                 testFiles.Select(
-                        tf => TestImageProvider<Color32>.File(tf, pixelTypeOverride: PixelTypes.StandardImageClass).GetImage())
+                        tf => TestImageProvider<Color>.File(tf, pixelTypeOverride: PixelTypes.StandardImageClass).GetImage())
                     .ToArray();
 
             using (MemoryStream ms = new MemoryStream())
@@ -79,7 +79,7 @@ namespace ImageSharp.Tests
                 this.Measure(executionCount,
                     () =>
                     {
-                        foreach (Image<Color32> img in testImages)
+                        foreach (Image<Color> img in testImages)
                         {
                             JpegEncoder encoder = new JpegEncoder();
                             JpegEncoderOptions options = new JpegEncoderOptions { Quality = quality, Subsample = subsample };

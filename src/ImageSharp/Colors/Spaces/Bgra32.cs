@@ -79,16 +79,16 @@ namespace ImageSharp.Colors.Spaces
         public bool IsEmpty => this.Equals(Empty);
 
         /// <summary>
-        /// Allows the implicit conversion of an instance of <see cref="Color32"/> to a
+        /// Allows the implicit conversion of an instance of <see cref="Color"/> to a
         /// <see cref="Bgra32"/>.
         /// </summary>
         /// <param name="color">
-        /// The instance of <see cref="Color32"/> to convert.
+        /// The instance of <see cref="Color"/> to convert.
         /// </param>
         /// <returns>
         /// An instance of <see cref="Bgra32"/>.
         /// </returns>
-        public static implicit operator Bgra32(Color32 color)
+        public static implicit operator Bgra32(Color color)
         {
             return new Bgra32(color.B, color.G, color.R, color.A);
         }

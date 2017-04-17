@@ -12,7 +12,7 @@ namespace ImageSharp.Benchmarks
     using BenchmarkDotNet.Attributes;
 
     using CoreBrushes = ImageSharp.Drawing.Brushes.Brushes;
-    using CoreColor = ImageSharp.Color32;
+    using CoreColor = ImageSharp.Color;
     using CoreImage = ImageSharp.Image;
 
     public class FillWithPattern

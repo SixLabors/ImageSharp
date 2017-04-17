@@ -11,22 +11,22 @@ namespace ImageSharp
     public enum ComponentOrder
     {
         /// <summary>
-        /// Z-> Y-> X order. Equivalent to B-> G-> R in <see cref="Color32"/>
+        /// Z-> Y-> X order. Equivalent to B-> G-> R in <see cref="Color"/>
         /// </summary>
         Zyx,
 
         /// <summary>
-        /// Z-> Y-> X-> W order. Equivalent to B-> G-> R-> A in <see cref="Color32"/>
+        /// Z-> Y-> X-> W order. Equivalent to B-> G-> R-> A in <see cref="Color"/>
         /// </summary>
         Zyxw,
 
         /// <summary>
-        /// X-> Y-> Z order. Equivalent to R-> G-> B in <see cref="Color32"/>
+        /// X-> Y-> Z order. Equivalent to R-> G-> B in <see cref="Color"/>
         /// </summary>
         Xyz,
 
         /// <summary>
-        /// X-> Y-> Z-> W order. Equivalent to R-> G-> B-> A in <see cref="Color32"/>
+        /// X-> Y-> Z-> W order. Equivalent to R-> G-> B-> A in <see cref="Color"/>
         /// </summary>
         Xyzw,
     }

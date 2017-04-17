@@ -2,7 +2,7 @@
   <PropertyGroup>
     <Description>A cross-platform library for the processing of image files; written in C#</Description>
     <AssemblyTitle>ImageSharp</AssemblyTitle>
-    <VersionPrefix>1.0.0-alpha5</VersionPrefix>
+    <VersionPrefix>1.0.0-alpha6</VersionPrefix>
     <Authors>James Jackson-South and contributors</Authors>
     <TargetFrameworks>netstandard1.3;netstandard1.1</TargetFrameworks>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>

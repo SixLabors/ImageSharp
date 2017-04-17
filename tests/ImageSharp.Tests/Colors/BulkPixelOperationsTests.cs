@@ -10,9 +10,9 @@ namespace ImageSharp.Tests.Colors
 
     public class BulkPixelOperationsTests
     {
-        public class Color : BulkPixelOperationsTests<ImageSharp.Color>
+        public class Color32 : BulkPixelOperationsTests<ImageSharp.Color>
         {
-            public Color(ITestOutputHelper output)
+            public Color32(ITestOutputHelper output)
                 : base(output)
             {
             }
@@ -25,7 +25,7 @@ namespace ImageSharp.Tests.Colors
             {
                 Assert.IsType<ImageSharp.Color.BulkOperations>(BulkPixelOperations<ImageSharp.Color>.Instance);
             }
-            
+
             [Fact]
             public void ToVector4SimdAligned()
             {
@@ -36,7 +36,7 @@ namespace ImageSharp.Tests.Colors
                     source,
                     expected,
                     (s, d) => ImageSharp.Color.BulkOperations.ToVector4SimdAligned(s, d, 64)
-                    );
+                );
             }
 
             // [Fact] // Profiling benchmark - enable manually!
@@ -72,7 +72,7 @@ namespace ImageSharp.Tests.Colors
         [Theory]
         [WithBlankImages(1, 1, PixelTypes.All)]
         public void GetGlobalInstance<TColor>(TestImageProvider<TColor> dummy)
-            where TColor:struct, IPixel<TColor>
+            where TColor : struct, IPixel<TColor>
         {
             Assert.NotNull(BulkPixelOperations<TColor>.Instance);
         }
@@ -112,7 +112,7 @@ namespace ImageSharp.Tests.Colors
                 source,
                 expected,
                 (s, d) => Operations.PackFromVector4(s, d, count)
-                );
+            );
         }
 
         internal static Vector4[] CreateExpectedVector4Data(TColor[] source)
@@ -137,7 +137,7 @@ namespace ImageSharp.Tests.Colors
                 source,
                 expected,
                 (s, d) => Operations.ToVector4(s, d, count)
-                );
+            );
         }
 
 
@@ -156,10 +156,10 @@ namespace ImageSharp.Tests.Colors
             }
 
             TestOperation(
-                source, 
-                expected, 
+                source,
+                expected,
                 (s, d) => Operations.PackFromXyzBytes(s, d, count)
-                );
+            );
         }
 
         [Theory]
@@ -179,7 +179,7 @@ namespace ImageSharp.Tests.Colors
                 source,
                 expected,
                 (s, d) => Operations.ToXyzBytes(s, d, count)
-                );
+            );
         }
 
         [Theory]
@@ -200,7 +200,7 @@ namespace ImageSharp.Tests.Colors
                 source,
                 expected,
                 (s, d) => Operations.PackFromXyzwBytes(s, d, count)
-                );
+            );
         }
 
         [Theory]
@@ -220,7 +220,7 @@ namespace ImageSharp.Tests.Colors
                 source,
                 expected,
                 (s, d) => Operations.ToXyzwBytes(s, d, count)
-                );
+            );
         }
 
         [Theory]
@@ -241,7 +241,7 @@ namespace ImageSharp.Tests.Colors
                 source,
                 expected,
                 (s, d) => Operations.PackFromZyxBytes(s, d, count)
-                );
+            );
         }
 
         [Theory]
@@ -261,7 +261,7 @@ namespace ImageSharp.Tests.Colors
                 source,
                 expected,
                 (s, d) => Operations.ToZyxBytes(s, d, count)
-                );
+            );
         }
 
         [Theory]
@@ -282,7 +282,7 @@ namespace ImageSharp.Tests.Colors
                 source,
                 expected,
                 (s, d) => Operations.PackFromZyxwBytes(s, d, count)
-                );
+            );
         }
 
         [Theory]
@@ -302,10 +302,10 @@ namespace ImageSharp.Tests.Colors
                 source,
                 expected,
                 (s, d) => Operations.ToZyxwBytes(s, d, count)
-                );
+            );
         }
 
-        
+
         private class TestBuffers<TSource, TDest> : IDisposable
             where TSource : struct
             where TDest : struct
@@ -316,7 +316,7 @@ namespace ImageSharp.Tests.Colors
 
             public BufferSpan<TSource> Source => this.SourceBuffer;
             public BufferSpan<TDest> ActualDest => this.ActualDestBuffer;
-            
+
             public TestBuffers(TSource[] source, TDest[] expectedDest)
             {
                 this.SourceBuffer = new Buffer<TSource>(source);

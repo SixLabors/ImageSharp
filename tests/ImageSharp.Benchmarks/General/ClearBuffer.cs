@@ -12,7 +12,7 @@ namespace ImageSharp.Benchmarks.General
     public unsafe class ClearBuffer
     {
         private Buffer<Color> buffer;
-        
+
         [Params(32, 128, 512)]
         public int Count { get; set; }
 
@@ -37,7 +37,7 @@ namespace ImageSharp.Benchmarks.General
         [Benchmark]
         public void Unsafe_InitBlock()
         {
-            Unsafe.InitBlock((void*)this.buffer.Pin(), default(byte), (uint)this.Count*sizeof(uint));
+            Unsafe.InitBlock((void*)this.buffer.Pin(), default(byte), (uint)this.Count * sizeof(uint));
         }
     }
 }

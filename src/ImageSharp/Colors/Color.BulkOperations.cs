@@ -10,9 +10,14 @@ namespace ImageSharp
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
 
-    /// <content>
-    /// Conains the definition of <see cref="BulkOperations"/>
-    /// </content>
+    /// <summary>
+    /// Unpacked pixel type containing four 8-bit unsigned normalized values ranging from 0 to 255.
+    /// The color components are stored in red, green, blue, and alpha order.
+    /// </summary>
+    /// <remarks>
+    /// This struct is fully mutable. This is done (against the guidelines) for the sake of performance,
+    /// as it avoids the need to create new values for modification operations.
+    /// </remarks>
     public partial struct Color
     {
         /// <summary>
@@ -37,15 +42,12 @@ namespace ImageSharp
             ///     <cref>https://github.com/dotnet/corefx/issues/15957</cref>
             /// </see>
             /// </remarks>
-            internal static unsafe void ToVector4SimdAligned(
-                BufferSpan<Color> sourceColors,
-                BufferSpan<Vector4> destVectors,
-                int count)
+            internal static unsafe void ToVector4SimdAligned(BufferSpan<Color> sourceColors, BufferSpan<Vector4> destVectors, int count)
             {
                 if (!Vector.IsHardwareAccelerated)
                 {
                     throw new InvalidOperationException(
-                        "Color.BulkOperations.ToVector4SimdAligned() should not be called when Vector.IsHardwareAccelerated == false!");
+                        "Color32.BulkOperations.ToVector4SimdAligned() should not be called when Vector.IsHardwareAccelerated == false!");
                 }
 
                 int vecSize = Vector<uint>.Count;
@@ -125,10 +127,7 @@ namespace ImageSharp
             }
 
             /// <inheritdoc />
-            internal override void PackFromXyzBytes(
-                BufferSpan<byte> sourceBytes,
-                BufferSpan<Color> destColors,
-                int count)
+            internal override void PackFromXyzBytes(BufferSpan<byte> sourceBytes, BufferSpan<Color> destColors, int count)
             {
                 ref RGB24 sourceRef = ref Unsafe.As<byte, RGB24>(ref sourceBytes.DangerousGetPinnableReference());
                 ref Color destRef = ref destColors.DangerousGetPinnableReference();
@@ -159,10 +158,7 @@ namespace ImageSharp
             }
 
             /// <inheritdoc />
-            internal override unsafe void PackFromXyzwBytes(
-                BufferSpan<byte> sourceBytes,
-                BufferSpan<Color> destColors,
-                int count)
+            internal override unsafe void PackFromXyzwBytes(BufferSpan<byte> sourceBytes, BufferSpan<Color> destColors, int count)
             {
                 BufferSpan.Copy(sourceBytes, destColors.AsBytes(), count * sizeof(Color));
             }
@@ -174,10 +170,7 @@ namespace ImageSharp
             }
 
             /// <inheritdoc />
-            internal override void PackFromZyxBytes(
-                BufferSpan<byte> sourceBytes,
-                BufferSpan<Color> destColors,
-                int count)
+            internal override void PackFromZyxBytes(BufferSpan<byte> sourceBytes, BufferSpan<Color> destColors, int count)
             {
                 ref RGB24 sourceRef = ref Unsafe.As<byte, RGB24>(ref sourceBytes.DangerousGetPinnableReference());
                 ref Color destRef = ref destColors.DangerousGetPinnableReference();
@@ -193,10 +186,7 @@ namespace ImageSharp
             }
 
             /// <inheritdoc />
-            internal override void ToZyxBytes(
-                BufferSpan<Color> sourceColors,
-                BufferSpan<byte> destBytes,
-                int count)
+            internal override void ToZyxBytes(BufferSpan<Color> sourceColors, BufferSpan<byte> destBytes, int count)
             {
                 ref Color sourceRef = ref sourceColors.DangerousGetPinnableReference();
                 ref RGB24 destRef = ref Unsafe.As<byte, RGB24>(ref destBytes.DangerousGetPinnableReference());
@@ -211,10 +201,7 @@ namespace ImageSharp
             }
 
             /// <inheritdoc />
-            internal override void PackFromZyxwBytes(
-                BufferSpan<byte> sourceBytes,
-                BufferSpan<Color> destColors,
-                int count)
+            internal override void PackFromZyxwBytes(BufferSpan<byte> sourceBytes, BufferSpan<Color> destColors, int count)
             {
                 ref RGBA32 sourceRef = ref Unsafe.As<byte, RGBA32>(ref sourceBytes.DangerousGetPinnableReference());
                 ref Color destRef = ref destColors.DangerousGetPinnableReference();
@@ -229,10 +216,7 @@ namespace ImageSharp
             }
 
             /// <inheritdoc />
-            internal override void ToZyxwBytes(
-                BufferSpan<Color> sourceColors,
-                BufferSpan<byte> destBytes,
-                int count)
+            internal override void ToZyxwBytes(BufferSpan<Color> sourceColors, BufferSpan<byte> destBytes, int count)
             {
                 ref Color sourceRef = ref sourceColors.DangerousGetPinnableReference();
                 ref RGBA32 destRef = ref Unsafe.As<byte, RGBA32>(ref destBytes.DangerousGetPinnableReference());

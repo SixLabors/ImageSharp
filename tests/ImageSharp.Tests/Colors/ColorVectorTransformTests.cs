@@ -35,8 +35,8 @@ namespace ImageSharp.Tests.Colors
         [Fact]
         public void Multiply()
         {
-            Assert.Equal(ColorVector.Multiply(Backdrop, ColorVector.Black).ToVector4(), Backdrop.ToVector4(), FloatComparer);
-            Assert.Equal(ColorVector.Multiply(Backdrop, ColorVector.White).ToVector4(), ColorVector.White.ToVector4(), FloatComparer);
+            Assert.Equal(ColorVector.Multiply(Backdrop, ColorVector.Black).ToVector4(), Color.Black.ToVector4(), FloatComparer);
+            Assert.Equal(ColorVector.Multiply(Backdrop, ColorVector.White).ToVector4(), Backdrop.ToVector4(), FloatComparer);
 
             ColorVector multiply = ColorVector.Multiply(Backdrop, Source);
             Assert.Equal(multiply.ToVector4(), new ColorVector(0, 41, 0).ToVector4(), FloatComparer);

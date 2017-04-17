@@ -2,7 +2,7 @@
   <PropertyGroup>
     <Description>An extension to ImageSharp that allows the drawing of images, paths, and text.</Description>
     <AssemblyTitle>ImageSharp.Drawing</AssemblyTitle>
-    <VersionPrefix>1.0.0-alpha5</VersionPrefix>
+    <VersionPrefix>1.0.0-alpha6</VersionPrefix>
     <Authors>James Jackson-South and contributors</Authors>
     <TargetFramework>netstandard1.1</TargetFramework>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -39,8 +39,8 @@
     <PackageReference Include="StyleCop.Analyzers" Version="1.1.0-beta001">
       <PrivateAssets>All</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="SixLabors.Fonts" Version="0.1.0-alpha0005" />
-    <PackageReference Include="SixLabors.Shapes" Version="0.1.0-alpha0010" />
+    <PackageReference Include="SixLabors.Fonts" Version="0.1.0-alpha0008" />
+    <PackageReference Include="SixLabors.Shapes" Version="0.1.0-alpha0011" />
   </ItemGroup>
   <PropertyGroup>
     <CodeAnalysisRuleSet>..\..\ImageSharp.ruleset</CodeAnalysisRuleSet>

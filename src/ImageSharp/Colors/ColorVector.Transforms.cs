@@ -6,9 +6,10 @@
 namespace ImageSharp
 {
     using System.Numerics;
+    using System.Runtime.CompilerServices;
 
     /// <summary>
-    /// Unpacked pixel type containing four 16-bit unsigned normalized values typically ranging from 0 to 1.
+    /// Unpacked pixel type containing four 16-bit floating-point values typically ranging from 0 to 1.
     /// The color components are stored in red, green, blue, and alpha order.
     /// </summary>
     /// <remarks>
@@ -25,6 +26,7 @@ namespace ImageSharp
         /// <returns>
         /// The <see cref="ColorVector"/>.
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ColorVector operator +(ColorVector left, ColorVector right)
         {
             return new ColorVector(left.backingVector + right.backingVector);
@@ -38,6 +40,7 @@ namespace ImageSharp
         /// <returns>
         /// The <see cref="ColorVector"/>.
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ColorVector operator -(ColorVector left, ColorVector right)
         {
             return new ColorVector(left.backingVector - right.backingVector);

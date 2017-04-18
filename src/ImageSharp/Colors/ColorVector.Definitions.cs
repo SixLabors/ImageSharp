@@ -6,7 +6,7 @@
 namespace ImageSharp
 {
     /// <summary>
-    /// Unpacked pixel type containing four 8-bit unsigned normalized values ranging from 0 to 255.
+    /// Unpacked pixel type containing four 16-bit floating-point values typically ranging from 0 to 1.
     /// The color components are stored in red, green, blue, and alpha order.
     /// </summary>
     /// <remarks>

@@ -300,7 +300,7 @@ namespace ImageSharp
         private static bool IsStandardNormalizedType(Type type)
         {
             return type == typeof(Color)
-                || type == typeof(Argb)
+                || type == typeof(Argb32)
                 || type == typeof(Alpha8)
                 || type == typeof(Bgr565)
                 || type == typeof(Bgra4444)

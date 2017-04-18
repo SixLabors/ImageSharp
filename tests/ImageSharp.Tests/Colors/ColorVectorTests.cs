@@ -1,0 +1,132 @@
+﻿// <copyright file="ColorVectorTests.cs" company="James Jackson-South">
+// Copyright (c) James Jackson-South and contributors.
+// Licensed under the Apache License, Version 2.0.
+// </copyright>
+
+namespace ImageSharp.Tests
+{
+    using System.Numerics;
+    using System.Runtime.CompilerServices;
+
+    using Xunit;
+
+    /// <summary>
+    /// Tests the <see cref="ColorVector"/> struct.
+    /// </summary>
+    public class ColorVectorTests
+    {
+        /// <summary>
+        /// Tests the equality operators for equality.
+        /// </summary>
+        [Fact]
+        public void AreEqual()
+        {
+            ColorVector color1 = new ColorVector(0, 0, 0F);
+            ColorVector color2 = new ColorVector(0, 0, 0, 1F);
+            ColorVector color3 = ColorVector.FromHex("#000");
+            ColorVector color4 = ColorVector.FromHex("#000F");
+            ColorVector color5 = ColorVector.FromHex("#000000");
+            ColorVector color6 = ColorVector.FromHex("#000000FF");
+
+            Assert.Equal(color1, color2);
+            Assert.Equal(color1, color3);
+            Assert.Equal(color1, color4);
+            Assert.Equal(color1, color5);
+            Assert.Equal(color1, color6);
+        }
+
+        /// <summary>
+        /// Tests the equality operators for inequality.
+        /// </summary>
+        [Fact]
+        public void AreNotEqual()
+        {
+            ColorVector color1 = new ColorVector(1, 0, 0, 1);
+            ColorVector color2 = new ColorVector(0, 0, 0, 1);
+            ColorVector color3 = ColorVector.FromHex("#000");
+            ColorVector color4 = ColorVector.FromHex("#000000");
+            ColorVector color5 = ColorVector.FromHex("#FF000000");
+
+            Assert.NotEqual(color1, color2);
+            Assert.NotEqual(color1, color3);
+            Assert.NotEqual(color1, color4);
+            Assert.NotEqual(color1, color5);
+        }
+
+        /// <summary>
+        /// Tests whether the color constructor correctly assign properties.
+        /// </summary>
+        [Fact]
+        public void ConstructorAssignsProperties()
+        {
+            ColorVector color1 = new ColorVector(1, .1F, .133F, .864F);
+            Assert.Equal(1F, color1.R);
+            Assert.Equal(.1F, color1.G);
+            Assert.Equal(.133F, color1.B);
+            Assert.Equal(.864F, color1.A);
+
+            ColorVector color2 = new ColorVector(1, .1f, .133f);
+            Assert.Equal(1F, color2.R);
+            Assert.Equal(.1F, color2.G);
+            Assert.Equal(.133F, color2.B);
+            Assert.Equal(1F, color2.A);
+
+            ColorVector color4 = new ColorVector(new Vector3(1, .1f, .133f));
+            Assert.Equal(1F, color4.R);
+            Assert.Equal(.1F, color4.G);
+            Assert.Equal(.133F, color4.B);
+            Assert.Equal(1F, color4.A);
+
+            ColorVector color5 = new ColorVector(new Vector4(1, .1f, .133f, .5f));
+            Assert.Equal(1F, color5.R);
+            Assert.Equal(.1F, color5.G);
+            Assert.Equal(.133F, color5.B);
+            Assert.Equal(.5F, color5.A);
+        }
+
+        /// <summary>
+        /// Tests whether FromHex and ToHex work correctly.
+        /// </summary>
+        [Fact]
+        public void FromAndToHex()
+        {
+            ColorVector color = ColorVector.FromHex("#AABBCCDD");
+            Assert.Equal(170 / 255F, color.R);
+            Assert.Equal(187 / 255F, color.G);
+            Assert.Equal(204 / 255F, color.B);
+            Assert.Equal(221 / 255F, color.A);
+
+            color.A = 170 / 255F;
+            color.B = 187 / 255F;
+            color.G = 204 / 255F;
+            color.R = 221 / 255F;
+
+            Assert.Equal("DDCCBBAA", color.ToHex());
+
+            color.R = 0;
+
+            Assert.Equal("00CCBBAA", color.ToHex());
+
+            color.A = 255 / 255F;
+
+            Assert.Equal("00CCBBFF", color.ToHex());
+        }
+
+        /// <summary>
+        /// Tests that the individual float elements are layed out in RGBA order.
+        /// </summary>
+        [Fact]
+        public void FloatLayout()
+        {
+            ColorVector color = new ColorVector(1F, 2, 3, 4);
+            Vector4 colorBase = Unsafe.As<ColorVector, Vector4>(ref Unsafe.Add(ref color, 0));
+            float[] ordered = new float[4];
+            colorBase.CopyTo(ordered);
+
+            Assert.Equal(1, ordered[0]);
+            Assert.Equal(2, ordered[1]);
+            Assert.Equal(3, ordered[2]);
+            Assert.Equal(4, ordered[3]);
+        }
+    }
+}

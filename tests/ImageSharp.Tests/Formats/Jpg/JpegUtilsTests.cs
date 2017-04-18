@@ -39,7 +39,7 @@ namespace ImageSharp.Tests
         }
 
         [Theory]
-        [WithMemberFactory(nameof(CreateTestImage), PixelTypes.Color | PixelTypes.StandardImageClass | PixelTypes.Argb)]
+        [WithMemberFactory(nameof(CreateTestImage), PixelTypes.Color | PixelTypes.StandardImageClass | PixelTypes.Argb32)]
         public void CopyStretchedRGBTo_FromOrigo<TColor>(TestImageProvider<TColor> provider)
             where TColor : struct, IPixel<TColor>
         {
@@ -61,7 +61,7 @@ namespace ImageSharp.Tests
         }
 
         [Theory]
-        [WithMemberFactory(nameof(CreateTestImage), PixelTypes.Color | PixelTypes.StandardImageClass | PixelTypes.Argb)]
+        [WithMemberFactory(nameof(CreateTestImage), PixelTypes.Color | PixelTypes.StandardImageClass | PixelTypes.Argb32)]
         public void CopyStretchedRGBTo_WithOffset<TColor>(TestImageProvider<TColor> provider)
             where TColor : struct, IPixel<TColor>
         {

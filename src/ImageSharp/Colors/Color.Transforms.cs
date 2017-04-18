@@ -1,4 +1,4 @@
-﻿// <copyright file="ColorTransforms.cs" company="James Jackson-South">
+﻿// <copyright file="Color.Transforms.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -6,9 +6,10 @@
 namespace ImageSharp
 {
     using System.Numerics;
+    using System.Runtime.CompilerServices;
 
     /// <summary>
-    /// Packed vector type containing four 8-bit unsigned normalized values ranging from 0 to 255.
+    /// Packed pixel type containing four 8-bit unsigned normalized values ranging from 0 to 255.
     /// The color components are stored in red, green, blue, and alpha order.
     /// </summary>
     /// <remarks>
@@ -25,10 +26,11 @@ namespace ImageSharp
         /// <returns>
         /// The <see cref="Color"/>.
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Color operator +(Color left, Color right)
         {
             Vector4 add = left.ToVector4() + right.ToVector4();
-            return new Color(Pack(ref add));
+            return PackNew(ref add);
         }
 
         /// <summary>
@@ -39,10 +41,11 @@ namespace ImageSharp
         /// <returns>
         /// The <see cref="Color"/>.
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Color operator -(Color left, Color right)
         {
             Vector4 sub = left.ToVector4() - right.ToVector4();
-            return new Color(Pack(ref sub));
+            return PackNew(ref sub);
         }
 
         /// <summary>
@@ -56,7 +59,7 @@ namespace ImageSharp
         public static Color Normal(Color backdrop, Color source)
         {
             Vector4 normal = Vector4BlendTransforms.Normal(backdrop.ToVector4(), source.ToVector4());
-            return new Color(Pack(ref normal));
+            return PackNew(ref normal);
         }
 
         /// <summary>
@@ -76,7 +79,7 @@ namespace ImageSharp
         public static Color Multiply(Color backdrop, Color source)
         {
             Vector4 multiply = Vector4BlendTransforms.Multiply(backdrop.ToVector4(), source.ToVector4());
-            return new Color(Pack(ref multiply));
+            return PackNew(ref multiply);
         }
 
         /// <summary>
@@ -95,7 +98,7 @@ namespace ImageSharp
         public static Color Screen(Color backdrop, Color source)
         {
             Vector4 subtract = Vector4BlendTransforms.Screen(backdrop.ToVector4(), source.ToVector4());
-            return new Color(Pack(ref subtract));
+            return PackNew(ref subtract);
         }
 
         /// <summary>
@@ -110,7 +113,7 @@ namespace ImageSharp
         public static Color HardLight(Color backdrop, Color source)
         {
             Vector4 hardlight = Vector4BlendTransforms.HardLight(backdrop.ToVector4(), source.ToVector4());
-            return new Color(Pack(ref hardlight));
+            return PackNew(ref hardlight);
         }
 
         /// <summary>
@@ -129,7 +132,7 @@ namespace ImageSharp
         public static Color Overlay(Color backdrop, Color source)
         {
             Vector4 overlay = Vector4BlendTransforms.Overlay(backdrop.ToVector4(), source.ToVector4());
-            return new Color(Pack(ref overlay));
+            return PackNew(ref overlay);
         }
 
         /// <summary>
@@ -144,7 +147,7 @@ namespace ImageSharp
         public static Color Darken(Color backdrop, Color source)
         {
             Vector4 darken = Vector4BlendTransforms.Darken(backdrop.ToVector4(), source.ToVector4());
-            return new Color(Pack(ref darken));
+            return PackNew(ref darken);
         }
 
         /// <summary>
@@ -159,7 +162,7 @@ namespace ImageSharp
         public static Color Lighten(Color backdrop, Color source)
         {
             Vector4 lighten = Vector4BlendTransforms.Lighten(backdrop.ToVector4(), source.ToVector4());
-            return new Color(Pack(ref lighten));
+            return PackNew(ref lighten);
         }
 
         /// <summary>
@@ -174,7 +177,7 @@ namespace ImageSharp
         public static Color SoftLight(Color backdrop, Color source)
         {
             Vector4 softlight = Vector4BlendTransforms.SoftLight(backdrop.ToVector4(), source.ToVector4());
-            return new Color(Pack(ref softlight));
+            return PackNew(ref softlight);
         }
 
         /// <summary>
@@ -188,7 +191,7 @@ namespace ImageSharp
         public static Color ColorDodge(Color backdrop, Color source)
         {
             Vector4 dodge = Vector4BlendTransforms.Dodge(backdrop.ToVector4(), source.ToVector4());
-            return new Color(Pack(ref dodge));
+            return PackNew(ref dodge);
         }
 
         /// <summary>
@@ -202,7 +205,7 @@ namespace ImageSharp
         public static Color ColorBurn(Color backdrop, Color source)
         {
             Vector4 burn = Vector4BlendTransforms.Burn(backdrop.ToVector4(), source.ToVector4());
-            return new Color(Pack(ref burn));
+            return PackNew(ref burn);
         }
 
         /// <summary>
@@ -217,7 +220,7 @@ namespace ImageSharp
         public static Color Difference(Color backdrop, Color source)
         {
             Vector4 difference = Vector4BlendTransforms.Difference(backdrop.ToVector4(), source.ToVector4());
-            return new Color(Pack(ref difference));
+            return PackNew(ref difference);
         }
 
         /// <summary>
@@ -232,7 +235,7 @@ namespace ImageSharp
         public static Color Exclusion(Color backdrop, Color source)
         {
             Vector4 exclusion = Vector4BlendTransforms.Exclusion(backdrop.ToVector4(), source.ToVector4());
-            return new Color(Pack(ref exclusion));
+            return PackNew(ref exclusion);
         }
 
         /// <summary>
@@ -249,7 +252,8 @@ namespace ImageSharp
         /// </returns>
         public static Color Lerp(Color from, Color to, float amount)
         {
-            return new Color(Vector4.Lerp(from.ToVector4(), to.ToVector4(), amount));
+            Vector4 lerp = Vector4.Lerp(from.ToVector4(), to.ToVector4(), amount);
+            return PackNew(ref lerp);
         }
     }
 }

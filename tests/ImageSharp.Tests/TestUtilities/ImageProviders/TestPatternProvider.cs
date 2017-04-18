@@ -193,7 +193,7 @@ namespace ImageSharp.Tests
                 int pixelCount = left * top;
                 uint stepsPerPixel = (uint)(uint.MaxValue / pixelCount);
                 TColor c = default(TColor);
-                Rgba32 t = new Rgba32(0);
+                Color t = new Color(0);
 
                 for (int x = left; x < right; x++)
                     for (int y = top; y < bottom; y++)

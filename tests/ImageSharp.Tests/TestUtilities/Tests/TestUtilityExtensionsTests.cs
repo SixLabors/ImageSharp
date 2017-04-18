@@ -85,7 +85,7 @@ namespace ImageSharp.Tests
 
         [Theory]
         [InlineData(PixelTypes.Color, typeof(Color))]
-        [InlineData(PixelTypes.Argb, typeof(Argb))]
+        [InlineData(PixelTypes.Argb, typeof(Argb32))]
         [InlineData(PixelTypes.HalfVector4, typeof(HalfVector4))]
         [InlineData(PixelTypes.StandardImageClass, typeof(Color))]
         public void ToType(PixelTypes pt, Type expectedType)
@@ -95,7 +95,7 @@ namespace ImageSharp.Tests
 
         [Theory]
         [InlineData(typeof(Color), PixelTypes.Color)]
-        [InlineData(typeof(Argb), PixelTypes.Argb)]
+        [InlineData(typeof(Argb32), PixelTypes.Argb)]
         public void GetPixelType(Type clrType, PixelTypes expectedPixelType)
         {
             Assert.Equal(expectedPixelType, clrType.GetPixelType());

@@ -58,7 +58,7 @@ namespace ImageSharp.Tests.Colors
             }
         }
 
-        public class Argb : BulkPixelOperationsTests<ImageSharp.Argb>
+        public class Argb : BulkPixelOperationsTests<ImageSharp.Argb32>
         {
             // For 4.6 test runner MemberData does not work without redeclaring the public field in the derived test class:
             public Argb(ITestOutputHelper output)

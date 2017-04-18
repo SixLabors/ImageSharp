@@ -1,4 +1,4 @@
-﻿// <copyright file="Argb.cs" company="James Jackson-South">
+﻿// <copyright file="Argb32.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -17,7 +17,7 @@ namespace ImageSharp
     /// This struct is fully mutable. This is done (against the guidelines) for the sake of performance,
     /// as it avoids the need to create new values for modification operations.
     /// </remarks>
-    public struct Argb : IPixel<Argb>, IPackedVector<uint>
+    public struct Argb32 : IPixel<Argb32>, IPackedVector<uint>
     {
         /// <summary>
         /// The shift count for the blue component
@@ -50,58 +50,58 @@ namespace ImageSharp
         private static readonly Vector4 Half = new Vector4(0.5F);
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Argb"/> struct.
+        /// Initializes a new instance of the <see cref="Argb32"/> struct.
         /// </summary>
         /// <param name="r">The red component.</param>
         /// <param name="g">The green component.</param>
         /// <param name="b">The blue component.</param>
         /// <param name="a">The alpha component.</param>
-        public Argb(byte r, byte g, byte b, byte a = 255)
+        public Argb32(byte r, byte g, byte b, byte a = 255)
         {
             this.PackedValue = Pack(r, g, b, a);
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Argb"/> struct.
+        /// Initializes a new instance of the <see cref="Argb32"/> struct.
         /// </summary>
         /// <param name="r">The red component.</param>
         /// <param name="g">The green component.</param>
         /// <param name="b">The blue component.</param>
         /// <param name="a">The alpha component.</param>
-        public Argb(float r, float g, float b, float a = 1)
+        public Argb32(float r, float g, float b, float a = 1)
         {
             this.PackedValue = Pack(r, g, b, a);
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Argb"/> struct.
+        /// Initializes a new instance of the <see cref="Argb32"/> struct.
         /// </summary>
         /// <param name="vector">
         /// The vector containing the components for the packed vector.
         /// </param>
-        public Argb(Vector3 vector)
+        public Argb32(Vector3 vector)
         {
             this.PackedValue = Pack(ref vector);
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Argb"/> struct.
+        /// Initializes a new instance of the <see cref="Argb32"/> struct.
         /// </summary>
         /// <param name="vector">
         /// The vector containing the components for the packed vector.
         /// </param>
-        public Argb(Vector4 vector)
+        public Argb32(Vector4 vector)
         {
             this.PackedValue = Pack(ref vector);
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Argb"/> struct.
+        /// Initializes a new instance of the <see cref="Argb32"/> struct.
         /// </summary>
         /// <param name="packed">
         /// The packed value.
         /// </param>
-        public Argb(uint packed = 0)
+        public Argb32(uint packed = 0)
         {
             this.PackedValue = packed;
         }
@@ -182,33 +182,33 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Compares two <see cref="Argb"/> objects for equality.
+        /// Compares two <see cref="Argb32"/> objects for equality.
         /// </summary>
         /// <param name="left">
-        /// The <see cref="Argb"/> on the left side of the operand.
+        /// The <see cref="Argb32"/> on the left side of the operand.
         /// </param>
         /// <param name="right">
-        /// The <see cref="Argb"/> on the right side of the operand.
+        /// The <see cref="Argb32"/> on the right side of the operand.
         /// </param>
         /// <returns>
         /// True if the <paramref name="left"/> parameter is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool operator ==(Argb left, Argb right)
+        public static bool operator ==(Argb32 left, Argb32 right)
         {
             return left.PackedValue == right.PackedValue;
         }
 
         /// <summary>
-        /// Compares two <see cref="Argb"/> objects for equality.
+        /// Compares two <see cref="Argb32"/> objects for equality.
         /// </summary>
-        /// <param name="left">The <see cref="Argb"/> on the left side of the operand.</param>
-        /// <param name="right">The <see cref="Argb"/> on the right side of the operand.</param>
+        /// <param name="left">The <see cref="Argb32"/> on the left side of the operand.</param>
+        /// <param name="right">The <see cref="Argb32"/> on the right side of the operand.</param>
         /// <returns>
         /// True if the <paramref name="left"/> parameter is not equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool operator !=(Argb left, Argb right)
+        public static bool operator !=(Argb32 left, Argb32 right)
         {
             return left.PackedValue != right.PackedValue;
         }
@@ -221,7 +221,7 @@ namespace ImageSharp
         }
 
         /// <inheritdoc />
-        public BulkPixelOperations<Argb> CreateBulkOperations() => new BulkPixelOperations<Argb>();
+        public BulkPixelOperations<Argb32> CreateBulkOperations() => new BulkPixelOperations<Argb32>();
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -278,12 +278,12 @@ namespace ImageSharp
         /// <inheritdoc/>
         public override bool Equals(object obj)
         {
-            return obj is Argb && this.Equals((Argb)obj);
+            return obj is Argb32 && this.Equals((Argb32)obj);
         }
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool Equals(Argb other)
+        public bool Equals(Argb32 other)
         {
             return this.PackedValue == other.PackedValue;
         }

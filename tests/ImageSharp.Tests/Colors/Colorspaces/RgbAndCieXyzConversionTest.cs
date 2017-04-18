@@ -81,7 +81,7 @@
         [InlineData(1, 1, 1, 0.964220, 1.000000, 0.825210)]
         [InlineData(0, 0, 0, 0, 0, 0)]
         [InlineData(1, 0, 0, 0.436075, 0.222504, 0.013932)]
-        [InlineData(0, 1, 0, 0.385065, 0.716879, 0.097105)]
+        [InlineData(0, 1, 0, 0.385065, 0.716879, 0.0971045)]
         [InlineData(0, 0, 1, 0.143080, 0.060617, 0.714173)]
         [InlineData(0.754902, 0.501961, 0.100000, 0.315757, 0.273323, 0.035506)]
         public void Convert_SRGB_to_XYZ_D50(float r, float g, float b, float x, float y, float z)
@@ -108,7 +108,7 @@
         [InlineData(0, 0, 0, 0, 0, 0)]
         [InlineData(1, 0, 0, 0.412456, 0.212673, 0.019334)]
         [InlineData(0, 1, 0, 0.357576, 0.715152, 0.119192)]
-        [InlineData(0, 0, 1, 0.180437, 0.072175, 0.950304)]
+        [InlineData(0, 0, 1, 0.1804375, 0.072175, 0.950304)]
         [InlineData(0.754902, 0.501961, 0.100000, 0.297676, 0.267854, 0.045504)]
         public void Convert_SRGB_to_XYZ_D65(float r, float g, float b, float x, float y, float z)
         {

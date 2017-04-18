@@ -18,7 +18,7 @@ namespace ImageSharp.Tests
 
         Alpha8 = 1 << 0,
 
-        Argb = 1 << 1,
+        Argb32 = 1 << 1,
 
         Bgr565 = 1 << 2,
 

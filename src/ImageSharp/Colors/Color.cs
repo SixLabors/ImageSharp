@@ -10,7 +10,7 @@ namespace ImageSharp
     using System.Runtime.InteropServices;
 
     /// <summary>
-    /// Unpacked pixel type containing four 8-bit unsigned normalized values ranging from 0 to 255.
+    /// Packed pixel type containing four 8-bit unsigned normalized values ranging from 0 to 255.
     /// The color components are stored in red, green, blue, and alpha order.
     /// </summary>
     /// <remarks>
@@ -18,7 +18,7 @@ namespace ImageSharp
     /// as it avoids the need to create new values for modification operations.
     /// </remarks>
     [StructLayout(LayoutKind.Explicit)]
-    public partial struct Color : IPixel<Color>
+    public partial struct Color : IPixel<Color>, IPackedVector<uint>
     {
         /// <summary>
         /// Gets or sets the red component.
@@ -43,6 +43,12 @@ namespace ImageSharp
         /// </summary>
         [FieldOffset(3)]
         public byte A;
+
+        /// <summary>
+        /// The packed representation of the value.
+        /// </summary>
+        [FieldOffset(0)]
+        public uint Rgba;
 
         /// <summary>
         /// The shift count for the red component
@@ -81,6 +87,7 @@ namespace ImageSharp
         /// <param name="g">The green component.</param>
         /// <param name="b">The blue component.</param>
         /// <param name="a">The alpha component.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Color(byte r, byte g, byte b, byte a = 255)
             : this()
         {
@@ -97,10 +104,11 @@ namespace ImageSharp
         /// <param name="g">The green component.</param>
         /// <param name="b">The blue component.</param>
         /// <param name="a">The alpha component.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Color(float r, float g, float b, float a = 1)
             : this()
         {
-            this = Pack(r, g, b, a);
+            this.Pack(r, g, b, a);
         }
 
         /// <summary>
@@ -109,10 +117,11 @@ namespace ImageSharp
         /// <param name="vector">
         /// The vector containing the components for the packed vector.
         /// </param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Color(Vector3 vector)
             : this()
         {
-            this = Pack(ref vector);
+            this.Pack(ref vector);
         }
 
         /// <summary>
@@ -121,11 +130,28 @@ namespace ImageSharp
         /// <param name="vector">
         /// The vector containing the components for the packed vector.
         /// </param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Color(Vector4 vector)
             : this()
         {
-            this = Pack(ref vector);
+            this = PackNew(ref vector);
         }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Color"/> struct.
+        /// </summary>
+        /// <param name="packed">
+        /// The packed value.
+        /// </param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Color(uint packed)
+            : this()
+        {
+            this.Rgba = packed;
+        }
+
+        /// <inheritdoc/>
+        public uint PackedValue { get => this.Rgba; set => this.Rgba = value; }
 
         /// <summary>
         /// Compares two <see cref="Color"/> objects for equality.
@@ -142,10 +168,7 @@ namespace ImageSharp
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator ==(Color left, Color right)
         {
-            return left.R == right.R
-                   && left.G == right.G
-                   && left.B == right.B
-                   && left.A == right.A;
+            return left.Rgba == right.Rgba;
         }
 
         /// <summary>
@@ -159,10 +182,7 @@ namespace ImageSharp
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator !=(Color left, Color right)
         {
-            return left.R != right.R
-                && left.G != right.G
-                && left.B != right.B
-                && left.A != right.A;
+            return left.Rgba != right.Rgba;
         }
 
         /// <summary>
@@ -245,7 +265,7 @@ namespace ImageSharp
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void PackFromVector4(Vector4 vector)
         {
-            this = Pack(ref vector);
+            this.Pack(ref vector);
         }
 
         /// <inheritdoc/>
@@ -265,10 +285,7 @@ namespace ImageSharp
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Equals(Color other)
         {
-            return this.R == other.R
-                && this.G == other.G
-                && this.B == other.B
-                && this.A == other.A;
+            return this.Rgba == other.Rgba;
         }
 
         /// <summary>
@@ -308,12 +325,12 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Packs a <see cref="Vector4"/> into a uint.
+        /// Packs a <see cref="Vector4"/> into a color returning a new instance as a result.
         /// </summary>
         /// <param name="vector">The vector containing the values to pack.</param>
         /// <returns>The <see cref="Color"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static Color Pack(ref Vector4 vector)
+        private static Color PackNew(ref Vector4 vector)
         {
             vector *= MaxBytes;
             vector += Half;
@@ -323,30 +340,45 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Packs a <see cref="Vector3"/> into a uint.
-        /// </summary>
-        /// <param name="vector">The vector containing the values to pack.</param>
-        /// <returns>The <see cref="Color"/></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static Color Pack(ref Vector3 vector)
-        {
-            Vector4 value = new Vector4(vector, 1);
-            return Pack(ref value);
-        }
-
-        /// <summary>
-        /// Packs the four floats into a <see cref="uint"/>.
+        /// Packs the four floats into a color.
         /// </summary>
         /// <param name="x">The x-component</param>
         /// <param name="y">The y-component</param>
         /// <param name="z">The z-component</param>
         /// <param name="w">The w-component</param>
-        /// <returns>The <see cref="Color"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static Color Pack(float x, float y, float z, float w)
+        private void Pack(float x, float y, float z, float w)
         {
             Vector4 value = new Vector4(x, y, z, w);
-            return Pack(ref value);
+            this.Pack(ref value);
+        }
+
+        /// <summary>
+        /// Packs a <see cref="Vector3"/> into a uint.
+        /// </summary>
+        /// <param name="vector">The vector containing the values to pack.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void Pack(ref Vector3 vector)
+        {
+            Vector4 value = new Vector4(vector, 1);
+            this.Pack(ref value);
+        }
+
+        /// <summary>
+        /// Packs a <see cref="Vector4"/> into a color.
+        /// </summary>
+        /// <param name="vector">The vector containing the values to pack.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void Pack(ref Vector4 vector)
+        {
+            vector *= MaxBytes;
+            vector += Half;
+            vector = Vector4.Clamp(vector, Vector4.Zero, MaxBytes);
+
+            this.R = (byte)vector.X;
+            this.G = (byte)vector.Y;
+            this.B = (byte)vector.Z;
+            this.A = (byte)vector.W;
         }
     }
 }

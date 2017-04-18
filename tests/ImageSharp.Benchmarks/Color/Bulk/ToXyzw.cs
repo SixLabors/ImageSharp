@@ -64,7 +64,7 @@ namespace ImageSharp.Benchmarks.Color.Bulk
     {
     }
 
-    public class ToXyzw_Argb : ToXyzw<Argb>
+    public class ToXyzw_Argb : ToXyzw<Argb32>
     {
     }
 }

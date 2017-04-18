@@ -1,4 +1,4 @@
-// <copyright file="PinnedImageBufferExtensions{T}.cs" company="James Jackson-South">
+// <copyright file="Buffer2DExtensions{T}.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -9,9 +9,9 @@ namespace ImageSharp
     using System.Runtime.CompilerServices;
 
     /// <summary>
-    /// Defines extension methods for <see cref="IPinnedImageBuffer{T}"/>.
+    /// Defines extension methods for <see cref="IBuffer2D{T}"/>.
     /// </summary>
-    internal static class PinnedImageBufferExtensions
+    internal static class Buffer2DExtensions
     {
         /// <summary>
         /// Gets a <see cref="BufferSpan{T}"/> to the row 'y' beginning from the pixel at 'x'.
@@ -22,7 +22,7 @@ namespace ImageSharp
         /// <typeparam name="T">The element type</typeparam>
         /// <returns>The <see cref="BufferSpan{T}"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static BufferSpan<T> GetRowSpan<T>(this IPinnedImageBuffer<T> buffer, int x, int y)
+        public static BufferSpan<T> GetRowSpan<T>(this IBuffer2D<T> buffer, int x, int y)
             where T : struct
         {
             return buffer.Span.Slice((y * buffer.Width) + x, buffer.Width - x);
@@ -36,7 +36,7 @@ namespace ImageSharp
         /// <typeparam name="T">The element type</typeparam>
         /// <returns>The <see cref="BufferSpan{T}"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static BufferSpan<T> GetRowSpan<T>(this IPinnedImageBuffer<T> buffer, int y)
+        public static BufferSpan<T> GetRowSpan<T>(this IBuffer2D<T> buffer, int y)
             where T : struct
         {
             return buffer.Span.Slice(y * buffer.Width, buffer.Width);

@@ -20,7 +20,7 @@ namespace ImageSharp.Tests
         private ITestOutputHelper Output { get; }
 
         [Theory]
-        [WithBlankImages(42, 666, PixelTypes.Color | PixelTypes.Argb | PixelTypes.HalfSingle, "hello")]
+        [WithBlankImages(42, 666, PixelTypes.Color | PixelTypes.Argb32 | PixelTypes.HalfSingle, "hello")]
         public void Use_WithEmptyImageAttribute<TColor>(TestImageProvider<TColor> provider, string message)
             where TColor : struct, IPixel<TColor>
         {
@@ -86,7 +86,7 @@ namespace ImageSharp.Tests
         public static string[] AllBmpFiles => TestImages.Bmp.All;
 
         [Theory]
-        [WithFileCollection(nameof(AllBmpFiles), PixelTypes.Color | PixelTypes.Argb)]
+        [WithFileCollection(nameof(AllBmpFiles), PixelTypes.Color | PixelTypes.Argb32)]
         public void Use_WithFileCollection<TColor>(TestImageProvider<TColor> provider)
             where TColor : struct, IPixel<TColor>
         {
@@ -96,7 +96,7 @@ namespace ImageSharp.Tests
         }
 
         [Theory]
-        [WithSolidFilledImages(10, 20, 255, 100, 50, 200, PixelTypes.Color | PixelTypes.Argb)]
+        [WithSolidFilledImages(10, 20, 255, 100, 50, 200, PixelTypes.Color | PixelTypes.Argb32)]
         public void Use_WithSolidFilledImagesAttribute<TColor>(TestImageProvider<TColor> provider)
             where TColor : struct, IPixel<TColor>
         {

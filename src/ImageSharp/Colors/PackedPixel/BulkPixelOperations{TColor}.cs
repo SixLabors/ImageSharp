@@ -13,14 +13,9 @@ namespace ImageSharp
     /// for pixel buffers of type <typeparamref name="TColor"/>.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    public unsafe class BulkPixelOperations<TColor>
+    public class BulkPixelOperations<TColor>
         where TColor : struct, IPixel<TColor>
     {
-        /// <summary>
-        /// The size of <typeparamref name="TColor"/> in bytes
-        /// </summary>
-        private static readonly int ColorSize = Unsafe.SizeOf<TColor>();
-
         /// <summary>
         /// Gets the global <see cref="BulkPixelOperations{TColor}"/> instance for the pixel type <typeparamref name="TColor"/>
         /// </summary>
@@ -32,23 +27,16 @@ namespace ImageSharp
         /// <param name="sourceVectors">The <see cref="BufferSpan{T}"/> to the source vectors.</param>
         /// <param name="destColors">The <see cref="BufferSpan{T}"/> to the destination colors.</param>
         /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void PackFromVector4(
-            BufferSpan<Vector4> sourceVectors,
-            BufferSpan<TColor> destColors,
-            int count)
+        internal virtual void PackFromVector4(BufferSpan<Vector4> sourceVectors, BufferSpan<TColor> destColors, int count)
         {
-            Vector4* sp = (Vector4*)sourceVectors.PointerAtOffset;
-            byte* dp = (byte*)destColors;
+            ref Vector4 sourceRef = ref sourceVectors.DangerousGetPinnableReference();
+            ref TColor destRef = ref destColors.DangerousGetPinnableReference();
 
             for (int i = 0; i < count; i++)
             {
-                Vector4 v = Unsafe.Read<Vector4>(sp);
-                TColor c = default(TColor);
-                c.PackFromVector4(v);
-                Unsafe.Write(dp, c);
-
-                sp++;
-                dp += ColorSize;
+                ref Vector4 sp = ref Unsafe.Add(ref sourceRef, i);
+                ref TColor dp = ref Unsafe.Add(ref destRef, i);
+                dp.PackFromVector4(sp);
             }
         }
 
@@ -58,20 +46,16 @@ namespace ImageSharp
         /// <param name="sourceColors">The <see cref="BufferSpan{T}"/> to the source colors.</param>
         /// <param name="destVectors">The <see cref="BufferSpan{T}"/> to the destination vectors.</param>
         /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void ToVector4(
-            BufferSpan<TColor> sourceColors,
-            BufferSpan<Vector4> destVectors,
-            int count)
+        internal virtual void ToVector4(BufferSpan<TColor> sourceColors, BufferSpan<Vector4> destVectors, int count)
         {
-            byte* sp = (byte*)sourceColors;
-            Vector4* dp = (Vector4*)destVectors.PointerAtOffset;
+            ref TColor sourceRef = ref sourceColors.DangerousGetPinnableReference();
+            ref Vector4 destRef = ref destVectors.DangerousGetPinnableReference();
 
             for (int i = 0; i < count; i++)
             {
-                TColor c = Unsafe.Read<TColor>(sp);
-                *dp = c.ToVector4();
-                sp += ColorSize;
-                dp++;
+                ref TColor sp = ref Unsafe.Add(ref sourceRef, i);
+                ref Vector4 dp = ref Unsafe.Add(ref destRef, i);
+                dp = sp.ToVector4();
             }
         }
 
@@ -81,21 +65,20 @@ namespace ImageSharp
         /// <param name="sourceBytes">The <see cref="BufferSpan{T}"/> to the source bytes.</param>
         /// <param name="destColors">The <see cref="BufferSpan{T}"/> to the destination colors.</param>
         /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void PackFromXyzBytes(
-            BufferSpan<byte> sourceBytes,
-            BufferSpan<TColor> destColors,
-            int count)
+        internal virtual void PackFromXyzBytes(BufferSpan<byte> sourceBytes, BufferSpan<TColor> destColors, int count)
         {
-            byte* sp = (byte*)sourceBytes;
-            byte* dp = (byte*)destColors.PointerAtOffset;
+            ref byte sourceRef = ref sourceBytes.DangerousGetPinnableReference();
+            ref TColor destRef = ref destColors.DangerousGetPinnableReference();
 
             for (int i = 0; i < count; i++)
             {
-                TColor c = default(TColor);
-                c.PackFromBytes(sp[0], sp[1], sp[2], 255);
-                Unsafe.Write(dp, c);
-                sp += 3;
-                dp += ColorSize;
+                int i3 = i * 3;
+                ref TColor dp = ref Unsafe.Add(ref destRef, i);
+                dp.PackFromBytes(
+                    Unsafe.Add(ref sourceRef, i3),
+                    Unsafe.Add(ref sourceRef, i3 + 1),
+                    Unsafe.Add(ref sourceRef, i3 + 2),
+                    255);
             }
         }
 
@@ -107,14 +90,13 @@ namespace ImageSharp
         /// <param name="count">The number of pixels to convert.</param>
         internal virtual void ToXyzBytes(BufferSpan<TColor> sourceColors, BufferSpan<byte> destBytes, int count)
         {
-            byte* sp = (byte*)sourceColors;
+            ref TColor sourceRef = ref sourceColors.DangerousGetPinnableReference();
             byte[] dest = destBytes.Array;
 
-            for (int i = destBytes.Start; i < destBytes.Start + (count * 3); i += 3)
+            for (int i = 0; i < count; i++)
             {
-                TColor c = Unsafe.Read<TColor>(sp);
-                c.ToXyzBytes(dest, i);
-                sp += ColorSize;
+                ref TColor sp = ref Unsafe.Add(ref sourceRef, i);
+                sp.ToXyzBytes(dest, destBytes.Start + (i * 3));
             }
         }
 
@@ -124,21 +106,20 @@ namespace ImageSharp
         /// <param name="sourceBytes">The <see cref="BufferSpan{T}"/> to the source bytes.</param>
         /// <param name="destColors">The <see cref="BufferSpan{T}"/> to the destination colors.</param>
         /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void PackFromXyzwBytes(
-            BufferSpan<byte> sourceBytes,
-            BufferSpan<TColor> destColors,
-            int count)
+        internal virtual void PackFromXyzwBytes(BufferSpan<byte> sourceBytes, BufferSpan<TColor> destColors, int count)
         {
-            byte* sp = (byte*)sourceBytes;
-            byte* dp = (byte*)destColors.PointerAtOffset;
+            ref byte sourceRef = ref sourceBytes.DangerousGetPinnableReference();
+            ref TColor destRef = ref destColors.DangerousGetPinnableReference();
 
             for (int i = 0; i < count; i++)
             {
-                TColor c = default(TColor);
-                c.PackFromBytes(sp[0], sp[1], sp[2], sp[3]);
-                Unsafe.Write(dp, c);
-                sp += 4;
-                dp += ColorSize;
+                int i4 = i * 4;
+                ref TColor dp = ref Unsafe.Add(ref destRef, i);
+                dp.PackFromBytes(
+                    Unsafe.Add(ref sourceRef, i4),
+                    Unsafe.Add(ref sourceRef, i4 + 1),
+                    Unsafe.Add(ref sourceRef, i4 + 2),
+                    Unsafe.Add(ref sourceRef, i4 + 3));
             }
         }
 
@@ -148,19 +129,15 @@ namespace ImageSharp
         /// <param name="sourceColors">The <see cref="BufferSpan{T}"/> to the source colors.</param>
         /// <param name="destBytes">The <see cref="BufferSpan{T}"/> to the destination bytes.</param>
         /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void ToXyzwBytes(
-            BufferSpan<TColor> sourceColors,
-            BufferSpan<byte> destBytes,
-            int count)
+        internal virtual void ToXyzwBytes(BufferSpan<TColor> sourceColors, BufferSpan<byte> destBytes, int count)
         {
-            byte* sp = (byte*)sourceColors;
+            ref TColor sourceRef = ref sourceColors.DangerousGetPinnableReference();
             byte[] dest = destBytes.Array;
 
-            for (int i = destBytes.Start; i < destBytes.Start + (count * 4); i += 4)
+            for (int i = 0; i < count; i++)
             {
-                TColor c = Unsafe.Read<TColor>(sp);
-                c.ToXyzwBytes(dest, i);
-                sp += ColorSize;
+                ref TColor sp = ref Unsafe.Add(ref sourceRef, i);
+                sp.ToXyzwBytes(dest, destBytes.Start + (i * 4));
             }
         }
 
@@ -170,21 +147,20 @@ namespace ImageSharp
         /// <param name="sourceBytes">The <see cref="BufferSpan{T}"/> to the source bytes.</param>
         /// <param name="destColors">The <see cref="BufferSpan{T}"/> to the destination colors.</param>
         /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void PackFromZyxBytes(
-            BufferSpan<byte> sourceBytes,
-            BufferSpan<TColor> destColors,
-            int count)
+        internal virtual void PackFromZyxBytes(BufferSpan<byte> sourceBytes, BufferSpan<TColor> destColors, int count)
         {
-            byte* sp = (byte*)sourceBytes;
-            byte* dp = (byte*)destColors.PointerAtOffset;
+            ref byte sourceRef = ref sourceBytes.DangerousGetPinnableReference();
+            ref TColor destRef = ref destColors.DangerousGetPinnableReference();
 
             for (int i = 0; i < count; i++)
             {
-                TColor c = default(TColor);
-                c.PackFromBytes(sp[2], sp[1], sp[0], 255);
-                Unsafe.Write(dp, c);
-                sp += 3;
-                dp += ColorSize;
+                int i3 = i * 3;
+                ref TColor dp = ref Unsafe.Add(ref destRef, i);
+                dp.PackFromBytes(
+                    Unsafe.Add(ref sourceRef, i3 + 2),
+                    Unsafe.Add(ref sourceRef, i3 + 1),
+                    Unsafe.Add(ref sourceRef, i3),
+                    255);
             }
         }
 
@@ -196,14 +172,13 @@ namespace ImageSharp
         /// <param name="count">The number of pixels to convert.</param>
         internal virtual void ToZyxBytes(BufferSpan<TColor> sourceColors, BufferSpan<byte> destBytes, int count)
         {
-            byte* sp = (byte*)sourceColors;
+            ref TColor sourceRef = ref sourceColors.DangerousGetPinnableReference();
             byte[] dest = destBytes.Array;
 
-            for (int i = destBytes.Start; i < destBytes.Start + (count * 3); i += 3)
+            for (int i = 0; i < count; i++)
             {
-                TColor c = Unsafe.Read<TColor>(sp);
-                c.ToZyxBytes(dest, i);
-                sp += ColorSize;
+                ref TColor sp = ref Unsafe.Add(ref sourceRef, i);
+                sp.ToZyxBytes(dest, destBytes.Start + (i * 3));
             }
         }
 
@@ -213,21 +188,20 @@ namespace ImageSharp
         /// <param name="sourceBytes">The <see cref="BufferSpan{T}"/> to the source bytes.</param>
         /// <param name="destColors">The <see cref="BufferSpan{T}"/> to the destination colors.</param>
         /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void PackFromZyxwBytes(
-            BufferSpan<byte> sourceBytes,
-            BufferSpan<TColor> destColors,
-            int count)
+        internal virtual void PackFromZyxwBytes(BufferSpan<byte> sourceBytes, BufferSpan<TColor> destColors, int count)
         {
-            byte* sp = (byte*)sourceBytes;
-            byte* dp = (byte*)destColors.PointerAtOffset;
+            ref byte sourceRef = ref sourceBytes.DangerousGetPinnableReference();
+            ref TColor destRef = ref destColors.DangerousGetPinnableReference();
 
             for (int i = 0; i < count; i++)
             {
-                TColor c = default(TColor);
-                c.PackFromBytes(sp[2], sp[1], sp[0], sp[3]);
-                Unsafe.Write(dp, c);
-                sp += 4;
-                dp += ColorSize;
+                int i4 = i * 4;
+                ref TColor dp = ref Unsafe.Add(ref destRef, i);
+                dp.PackFromBytes(
+                    Unsafe.Add(ref sourceRef, i4 + 2),
+                    Unsafe.Add(ref sourceRef, i4 + 1),
+                    Unsafe.Add(ref sourceRef, i4),
+                    Unsafe.Add(ref sourceRef, i4 + 3));
             }
         }
 
@@ -237,19 +211,15 @@ namespace ImageSharp
         /// <param name="sourceColors">The <see cref="BufferSpan{T}"/> to the source colors.</param>
         /// <param name="destBytes">The <see cref="BufferSpan{T}"/> to the destination bytes.</param>
         /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void ToZyxwBytes(
-            BufferSpan<TColor> sourceColors,
-            BufferSpan<byte> destBytes,
-            int count)
+        internal virtual void ToZyxwBytes(BufferSpan<TColor> sourceColors, BufferSpan<byte> destBytes, int count)
         {
-            byte* sp = (byte*)sourceColors;
+            ref TColor sourceRef = ref sourceColors.DangerousGetPinnableReference();
             byte[] dest = destBytes.Array;
 
-            for (int i = destBytes.Start; i < destBytes.Start + (count * 4); i += 4)
+            for (int i = 0; i < count; i++)
             {
-                TColor c = Unsafe.Read<TColor>(sp);
-                c.ToZyxwBytes(dest, i);
-                sp += ColorSize;
+                ref TColor sp = ref Unsafe.Add(ref sourceRef, i);
+                sp.ToZyxwBytes(dest, destBytes.Start + (i * 4));
             }
         }
     }

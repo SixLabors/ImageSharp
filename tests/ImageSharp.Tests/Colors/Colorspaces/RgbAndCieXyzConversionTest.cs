@@ -39,7 +39,7 @@
             Rgb output = converter.ToRgb(input);
 
             // Assert
-            Assert.Equal(output.WorkingSpace, Rgb.DefaultWorkingSpace);
+            Assert.Equal(output.WorkingSpace, Rgb.DefaultWorkingSpace); // TODO: Change Assert.Equal to the correct order, first the expected, then the current value
             Assert.Equal(output.R, r, FloatComparerPrecision);
             Assert.Equal(output.G, g, FloatComparerPrecision);
             Assert.Equal(output.B, b, FloatComparerPrecision);

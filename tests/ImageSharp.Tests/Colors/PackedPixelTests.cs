@@ -62,7 +62,7 @@ namespace ImageSharp.Tests.Colors
         }
 
         [Fact]
-        public void Argb()
+        public void Argb32()
         {
             // Test the limits.
             Assert.Equal((uint)0x0, new Argb32(Vector4.Zero).PackedValue);

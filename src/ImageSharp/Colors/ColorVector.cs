@@ -9,7 +9,7 @@ namespace ImageSharp
     using System.Runtime.CompilerServices;
 
     /// <summary>
-    /// Unpacked pixel type containing four 16-bit unsigned normalized values typically ranging from 0 to 1.
+    /// Unpacked pixel type containing four 16-bit floating-point values typically ranging from 0 to 1.
     /// The color components are stored in red, green, blue, and alpha order.
     /// </summary>
     /// <remarks>
@@ -40,6 +40,7 @@ namespace ImageSharp
         /// <param name="g">The green component.</param>
         /// <param name="b">The blue component.</param>
         /// <param name="a">The alpha component.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ColorVector(byte r, byte g, byte b, byte a = 255)
             : this()
         {
@@ -53,6 +54,7 @@ namespace ImageSharp
         /// <param name="g">The green component.</param>
         /// <param name="b">The blue component.</param>
         /// <param name="a">The alpha component.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ColorVector(float r, float g, float b, float a = 1)
             : this()
         {
@@ -65,6 +67,7 @@ namespace ImageSharp
         /// <param name="vector">
         /// The vector containing the components for the packed vector.
         /// </param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ColorVector(Vector3 vector)
             : this()
         {
@@ -77,6 +80,7 @@ namespace ImageSharp
         /// <param name="vector">
         /// The vector containing the components for the packed vector.
         /// </param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ColorVector(Vector4 vector)
             : this()
         {

@@ -106,7 +106,7 @@ namespace ImageSharp.Processing.Processors
             using (PixelAccessor<TColor> targetPixels = new PixelAccessor<TColor>(width, height))
             {
                 using (PixelAccessor<TColor> sourcePixels = source.Lock())
-                using (PinnedImageBuffer<Vector4> firstPassPixels = new PinnedImageBuffer<Vector4>(width, source.Height))
+                using (Buffer2D<Vector4> firstPassPixels = new Buffer2D<Vector4>(width, source.Height))
                 {
                     firstPassPixels.Clear();
 
@@ -117,7 +117,7 @@ namespace ImageSharp.Processing.Processors
                         y =>
                             {
                                 // TODO: Without Parallel.For() this buffer object could be reused:
-                                using (PinnedBuffer<Vector4> tempRowBuffer = new PinnedBuffer<Vector4>(sourcePixels.Width))
+                                using (Buffer<Vector4> tempRowBuffer = new Buffer<Vector4>(sourcePixels.Width))
                                 {
                                     BufferSpan<TColor> sourceRow = sourcePixels.GetRowSpan(y);
 

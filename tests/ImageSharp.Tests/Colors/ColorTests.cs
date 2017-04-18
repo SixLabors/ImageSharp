@@ -124,6 +124,8 @@ namespace ImageSharp.Tests
             Assert.Equal(2, colorBase[1]);
             Assert.Equal(3, colorBase[2]);
             Assert.Equal(4, colorBase[3]);
+
+            Assert.Equal(4, sizeof(Color));
         }
     }
 }

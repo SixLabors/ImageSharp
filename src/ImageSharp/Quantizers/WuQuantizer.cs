@@ -136,7 +136,7 @@ namespace ImageSharp.Quantizers
         {
             Guard.NotNull(image, nameof(image));
 
-            this.colors = maxColors.Clamp(1, 256);
+            this.colors = maxColors.Clamp(1, 255);
 
             try
             {

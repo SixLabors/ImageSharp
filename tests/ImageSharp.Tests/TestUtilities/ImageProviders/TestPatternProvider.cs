@@ -61,7 +61,7 @@ namespace ImageSharp.Tests
                     BlackWhiteChecker(pixels); // top left
                     VirticalBars(pixels); // top right
                     TransparentGradients(pixels); // bottom left
-                    Rainbow(pixels); // bottom right 
+                    Rainbow(pixels); // bottom right
                 }
             }
             /// <summary>
@@ -70,7 +70,7 @@ namespace ImageSharp.Tests
             /// <param name="pixels"></param>
             private static void VirticalBars(PixelAccessor<TColor> pixels)
             {
-                // topLeft 
+                // topLeft
                 int left = pixels.Width / 2;
                 int right = pixels.Width;
                 int top = 0;
@@ -101,7 +101,7 @@ namespace ImageSharp.Tests
             /// <param name="pixels"></param>
             private static void BlackWhiteChecker(PixelAccessor<TColor> pixels)
             {
-                // topLeft 
+                // topLeft
                 int left = 0;
                 int right = pixels.Width / 2;
                 int top = 0;
@@ -140,7 +140,7 @@ namespace ImageSharp.Tests
             /// <param name="pixels"></param>
             private static void TransparentGradients(PixelAccessor<TColor> pixels)
             {
-                // topLeft 
+                // topLeft
                 int left = 0;
                 int right = pixels.Width / 2;
                 int top = pixels.Height / 2;

@@ -1,20 +1,34 @@
 // ReSharper disable InconsistentNaming
 namespace ImageSharp.Tests.Common
 {
+    using System;
     using System.Runtime.CompilerServices;
 
     using Xunit;
 
     using static TestStructs;
 
-    public unsafe class PinnedImageBufferTests
+    public unsafe class Buffer2DTests
     {
+        // ReSharper disable once ClassNeverInstantiated.Local
+        private class Assert : Xunit.Assert
+        {
+            public static void SpanPointsTo<T>(BufferSpan<T> span, Buffer<T> buffer, int bufferOffset = 0)
+                where T : struct
+            {
+                ref T actual = ref span.DangerousGetPinnableReference();
+                ref T expected = ref Unsafe.Add(ref buffer[0], bufferOffset);
+
+                Assert.True(Unsafe.AreSame(ref expected, ref actual), "span does not point to the expected position");
+            }
+        }
+
         [Theory]
         [InlineData(7, 42)]
         [InlineData(1025, 17)]
         public void Construct(int width, int height)
         {
-            using (PinnedImageBuffer<Foo> buffer = new PinnedImageBuffer<Foo>(width, height))
+            using (Buffer2D<Foo> buffer = new Buffer2D<Foo>(width, height))
             {
                 Assert.Equal(width, buffer.Width);
                 Assert.Equal(height, buffer.Height);
@@ -28,7 +42,7 @@ namespace ImageSharp.Tests.Common
         public void Construct_FromExternalArray(int width, int height)
         {
             Foo[] array = new Foo[width * height + 10];
-            using (PinnedImageBuffer<Foo> buffer = new PinnedImageBuffer<Foo>(array, width, height))
+            using (Buffer2D<Foo> buffer = new Buffer2D<Foo>(array, width, height))
             {
                 Assert.Equal(width, buffer.Width);
                 Assert.Equal(height, buffer.Height);
@@ -42,7 +56,7 @@ namespace ImageSharp.Tests.Common
         {
             for (int i = 0; i < 100; i++)
             {
-                using (PinnedImageBuffer<int> buffer = PinnedImageBuffer<int>.CreateClean(42, 42))
+                using (Buffer2D<int> buffer = Buffer2D<int>.CreateClean(42, 42))
                 {
                     for (int j = 0; j < buffer.Length; j++)
                     {
@@ -59,13 +73,13 @@ namespace ImageSharp.Tests.Common
         [InlineData(17, 42, 41)]
         public void GetRowSpanY(int width, int height, int y)
         {
-            using (PinnedImageBuffer<Foo> buffer = new PinnedImageBuffer<Foo>(width, height))
+            using (Buffer2D<Foo> buffer = new Buffer2D<Foo>(width, height))
             {
                 BufferSpan<Foo> span = buffer.GetRowSpan(y);
 
                 Assert.Equal(width * y, span.Start);
                 Assert.Equal(width, span.Length);
-                Assert.Equal(buffer.Pointer + sizeof(Foo) * width * y, span.PointerAtOffset);
+                Assert.SpanPointsTo(span, buffer, width * y);
             }
         }
 
@@ -75,13 +89,13 @@ namespace ImageSharp.Tests.Common
         [InlineData(17, 42, 0, 41)]
         public void GetRowSpanXY(int width, int height, int x, int y)
         {
-            using (PinnedImageBuffer<Foo> buffer = new PinnedImageBuffer<Foo>(width, height))
+            using (Buffer2D<Foo> buffer = new Buffer2D<Foo>(width, height))
             {
                 BufferSpan<Foo> span = buffer.GetRowSpan(x, y);
 
                 Assert.Equal(width * y + x, span.Start);
                 Assert.Equal(width - x, span.Length);
-                Assert.Equal(buffer.Pointer + sizeof(Foo) * (width * y + x), span.PointerAtOffset);
+                Assert.SpanPointsTo(span, buffer, width * y + x);
             }
         }
 
@@ -91,7 +105,7 @@ namespace ImageSharp.Tests.Common
         [InlineData(99, 88, 98, 87)]
         public void Indexer(int width, int height, int x, int y)
         {
-            using (PinnedImageBuffer<Foo> buffer = new PinnedImageBuffer<Foo>(width, height))
+            using (Buffer2D<Foo> buffer = new Buffer2D<Foo>(width, height))
             {
                 Foo[] array = buffer.Array;
 

@@ -23,11 +23,11 @@ namespace ImageSharp.Colors.Spaces.Conversion.Implementation.CieLch
             float hRadians = MathF.Atan2(b, a);
             float hDegrees = MathF.RadianToDegree(hRadians);
 
-            if (hDegrees > 360)
-            {
-                hDegrees -= 360;
-            }
-            else if (hDegrees < 0)
+            // Wrap the angle round at 360.
+            hDegrees = hDegrees % 360;
+
+            // Make sure it's not negative.
+            while (hDegrees < 0)
             {
                 hDegrees += 360;
             }

@@ -48,7 +48,7 @@ namespace ImageSharp.Colors.Spaces.Conversion.Implementation.Lms
         /// <summary>
         /// XYZ scaling chromatic adaptation transform matrix
         /// </summary>
-        public static readonly Matrix4x4 XYZScaling = Matrix4x4.Transpose(Matrix4x4.Identity);
+        public static readonly Matrix4x4 XyzScaling = Matrix4x4.Transpose(Matrix4x4.Identity);
 
         /// <summary>
         /// Bradford chromatic adaptation transform matrix (used in CMCCAT97)

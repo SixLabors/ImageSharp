@@ -108,6 +108,22 @@ namespace ImageSharp.Colors.Spaces.Conversion
         }
 
         /// <summary>
+        /// Converts a <see cref="CieLch"/> into a <see cref="CieXyz"/>
+        /// </summary>
+        /// <param name="color">The color to convert.</param>
+        /// <returns>The <see cref="CieXyz"/></returns>
+        public CieXyz ToCieXyz(CieLch color)
+        {
+            Guard.NotNull(color, nameof(color));
+
+            // Conversion to Lab
+            CieLab labColor = CieLchToCieLabConverter.Convert(color);
+
+            // Conversion to XYZ (incl. adaptation)
+            return this.ToCieXyz(labColor);
+        }
+
+        /// <summary>
         /// Gets the correct converter for the given rgb working space.
         /// </summary>
         /// <param name="workingSpace">The source working space</param>

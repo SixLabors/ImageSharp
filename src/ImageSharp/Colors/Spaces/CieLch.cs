@@ -1,4 +1,4 @@
-﻿// <copyright file="CieLab.cs" company="James Jackson-South">
+﻿// <copyright file="CieLch.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -10,10 +10,10 @@ namespace ImageSharp.Colors.Spaces
     using System.Numerics;
 
     /// <summary>
-    /// Represents a CIE L*a*b* 1976 color.
-    /// <see href="https://en.wikipedia.org/wiki/Lab_color_space"/>
+    /// Represents the CIE L*C*h°, cylindrical form of the CIE L*a*b* 1976 color.
+    /// <see href="https://en.wikipedia.org/wiki/Lab_color_space#Cylindrical_representation:_CIELCh_or_CIEHLC"/>
     /// </summary>
-    public struct CieLab : IColorVector, IEquatable<CieLab>, IAlmostEquatable<CieLab, float>
+    public struct CieLch : IColorVector, IEquatable<CieLch>, IAlmostEquatable<CieLch, float>
     {
         /// <summary>
         /// D50 standard illuminant.
@@ -22,9 +22,9 @@ namespace ImageSharp.Colors.Spaces
         public static readonly CieXyz DefaultWhitePoint = Illuminants.D50;
 
         /// <summary>
-        /// Represents a <see cref="CieLab"/> that has L, A, B values set to zero.
+        /// Represents a <see cref="CieLch"/> that has L, C, H values set to zero.
         /// </summary>
-        public static readonly CieLab Empty = default(CieLab);
+        public static readonly CieLch Empty = default(CieLch);
 
         /// <summary>
         /// The backing vector for SIMD support.
@@ -32,45 +32,45 @@ namespace ImageSharp.Colors.Spaces
         private readonly Vector3 backingVector;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="CieLab"/> struct.
+        /// Initializes a new instance of the <see cref="CieLch"/> struct.
         /// </summary>
         /// <param name="l">The lightness dimension.</param>
-        /// <param name="a">The a (green - magenta) component.</param>
-        /// <param name="b">The b (blue - yellow) component.</param>
+        /// <param name="c">The chroma, relative saturation.</param>
+        /// <param name="h">The hue in degrees.</param>
         /// <remarks>Uses <see cref="DefaultWhitePoint"/> as white point.</remarks>
-        public CieLab(float l, float a, float b)
-            : this(new Vector3(l, a, b), DefaultWhitePoint)
+        public CieLch(float l, float c, float h)
+            : this(new Vector3(l, c, h), DefaultWhitePoint)
         {
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="CieLab"/> struct.
+        /// Initializes a new instance of the <see cref="CieLch"/> struct.
         /// </summary>
         /// <param name="l">The lightness dimension.</param>
-        /// <param name="a">The a (green - magenta) component.</param>
-        /// <param name="b">The b (blue - yellow) component.</param>
+        /// <param name="c">The chroma, relative saturation.</param>
+        /// <param name="h">The hue in degrees.</param>
         /// <param name="whitePoint">The reference white point. <see cref="Illuminants"/></param>
-        public CieLab(float l, float a, float b, CieXyz whitePoint)
-            : this(new Vector3(l, a, b), whitePoint)
+        public CieLch(float l, float c, float h, CieXyz whitePoint)
+            : this(new Vector3(l, c, h), whitePoint)
         {
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="CieLab"/> struct.
+        /// Initializes a new instance of the <see cref="CieLch"/> struct.
         /// </summary>
-        /// <param name="vector">The vector representing the l, a, b components.</param>
+        /// <param name="vector">The vector representing the l, c, h components.</param>
         /// <remarks>Uses <see cref="DefaultWhitePoint"/> as white point.</remarks>
-        public CieLab(Vector3 vector)
+        public CieLch(Vector3 vector)
             : this(vector, DefaultWhitePoint)
         {
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="CieLab"/> struct.
+        /// Initializes a new instance of the <see cref="CieLch"/> struct.
         /// </summary>
-        /// <param name="vector">The vector representing the l, a, b components.</param>
+        /// <param name="vector">The vector representing the l, c, h components.</param>
         /// <param name="whitePoint">The reference white point. <see cref="Illuminants"/></param>
-        public CieLab(Vector3 vector, CieXyz whitePoint)
+        public CieLch(Vector3 vector, CieXyz whitePoint)
             : this()
         {
             this.backingVector = vector;
@@ -89,19 +89,19 @@ namespace ImageSharp.Colors.Spaces
         public float L => this.backingVector.X;
 
         /// <summary>
-        /// Gets the a color component.
-        /// <remarks>A value ranging from -100 to 100. Negative is green, positive magenta.</remarks>
+        /// Gets the a chroma component.
+        /// <remarks>A value ranging from 0 to 100.</remarks>
         /// </summary>
-        public float A => this.backingVector.Y;
+        public float C => this.backingVector.Y;
 
         /// <summary>
-        /// Gets the b color component.
-        /// <remarks>A value ranging from -100 to 100. Negative is blue, positive is yellow</remarks>
+        /// Gets the h° hue component in degrees.
+        /// <remarks>A value ranging from 0 to 360.</remarks>
         /// </summary>
-        public float B => this.backingVector.Z;
+        public float H => this.backingVector.Z;
 
         /// <summary>
-        /// Gets a value indicating whether this <see cref="CieLab"/> is empty.
+        /// Gets a value indicating whether this <see cref="CieLch"/> is empty.
         /// </summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public bool IsEmpty => this.Equals(Empty);
@@ -110,35 +110,35 @@ namespace ImageSharp.Colors.Spaces
         public Vector3 Vector => this.backingVector;
 
         /// <summary>
-        /// Compares two <see cref="CieLab"/> objects for equality.
+        /// Compares two <see cref="CieLch"/> objects for equality.
         /// </summary>
         /// <param name="left">
-        /// The <see cref="CieLab"/> on the left side of the operand.
+        /// The <see cref="CieLch"/> on the left side of the operand.
         /// </param>
         /// <param name="right">
-        /// The <see cref="CieLab"/> on the right side of the operand.
+        /// The <see cref="CieLch"/> on the right side of the operand.
         /// </param>
         /// <returns>
         /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        public static bool operator ==(CieLab left, CieLab right)
+        public static bool operator ==(CieLch left, CieLch right)
         {
             return left.Equals(right);
         }
 
         /// <summary>
-        /// Compares two <see cref="CieLab"/> objects for inequality
+        /// Compares two <see cref="CieLch"/> objects for inequality
         /// </summary>
         /// <param name="left">
-        /// The <see cref="CieLab"/> on the left side of the operand.
+        /// The <see cref="CieLch"/> on the left side of the operand.
         /// </param>
         /// <param name="right">
-        /// The <see cref="CieLab"/> on the right side of the operand.
+        /// The <see cref="CieLch"/> on the right side of the operand.
         /// </param>
         /// <returns>
         /// True if the current left is unequal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        public static bool operator !=(CieLab left, CieLab right)
+        public static bool operator !=(CieLch left, CieLch right)
         {
             return !left.Equals(right);
         }
@@ -154,37 +154,56 @@ namespace ImageSharp.Colors.Spaces
         {
             if (this.IsEmpty)
             {
-                return "CieLab [Empty]";
+                return "CieLch [Empty]";
             }
 
-            return $"CieLab [ L={this.L:#0.##}, A={this.A:#0.##}, B={this.B:#0.##}]";
+            return $"CieLch [ L={this.L:#0.##}, C={this.C:#0.##}, H={this.H:#0.##}]";
         }
 
         /// <inheritdoc/>
         public override bool Equals(object obj)
         {
-            if (obj is CieLab)
+            if (obj is CieLch)
             {
-                return this.Equals((CieLab)obj);
+                return this.Equals((CieLch)obj);
             }
 
             return false;
         }
 
         /// <inheritdoc/>
-        public bool Equals(CieLab other)
+        public bool Equals(CieLch other)
         {
             return this.backingVector.Equals(other.backingVector);
         }
 
         /// <inheritdoc/>
-        public bool AlmostEquals(CieLab other, float precision)
+        public bool AlmostEquals(CieLch other, float precision)
         {
             Vector3 result = Vector3.Abs(this.backingVector - other.backingVector);
 
             return result.X <= precision
                 && result.Y <= precision
                 && result.Z <= precision;
+        }
+
+        /// <summary>
+        /// Computes the saturation of the color (chroma normalized by lightness)
+        /// </summary>
+        /// <remarks>
+        /// A value ranging from 0 to 100.
+        /// </remarks>
+        /// <returns>The <see cref="float"/></returns>
+        public float Saturation()
+        {
+            float result = 100 * (this.C / this.L);
+
+            if (float.IsNaN(result))
+            {
+                return 0;
+            }
+
+            return result;
         }
     }
 }

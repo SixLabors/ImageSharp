@@ -55,7 +55,8 @@ namespace ImageSharp.Colors.Spaces.Conversion.Implementation.Rgb
 
             Vector3 vector = Vector3.Transform(workingSpace.WhitePoint.Vector, inverseXyzMatrix);
 
-            // TODO: Is there a built in method for this?
+            // Use transposed Rows/Coloumns
+            // TODO: Is there a built in method for this multiplication?
             return new Matrix4x4
             {
                 M11 = vector.X * mXr, M21 = vector.Y * mXg, M31 = vector.Z * mXb,

@@ -14,7 +14,7 @@
     /// </remarks>
     public class CieXyzAndLmsConversionTest
     {
-        private static readonly IEqualityComparer<float> FloatComparer = new ApproximateFloatComparer(6);
+        private static readonly IEqualityComparer<float> FloatRoundingComparer = new FloatRoundingComparer(5);
 
         /// <summary>
         /// Tests conversion from <see cref="CieXyz"/> (<see cref="Illuminants.D65"/>) to <see cref="Lms"/>.
@@ -29,16 +29,16 @@
         public void Convert_Lms_to_CieXyz(float l, float m, float s, float x, float y, float z)
         {
             // Arrange
-            Lms input = new Lms(x, y, z);
+            Lms input = new Lms(l, m, s);
             ColorSpaceConverter converter = new ColorSpaceConverter();
 
             // Act
             CieXyz output = converter.ToCieXyz(input);
 
             // Assert
-            Assert.Equal(output.X, l, FloatComparer);
-            Assert.Equal(output.Y, m, FloatComparer);
-            Assert.Equal(output.Z, s, FloatComparer);
+            Assert.Equal(x, output.X, FloatRoundingComparer);
+            Assert.Equal(y, output.Y, FloatRoundingComparer);
+            Assert.Equal(z, output.Z, FloatRoundingComparer);
         }
 
         /// <summary>
@@ -61,9 +61,9 @@
             Lms output = converter.ToLms(input);
 
             // Assert
-            Assert.Equal(output.L, l, FloatComparer);
-            Assert.Equal(output.M, m, FloatComparer);
-            Assert.Equal(output.S, s, FloatComparer);
+            Assert.Equal(l, output.L, FloatRoundingComparer);
+            Assert.Equal(m, output.M, FloatRoundingComparer);
+            Assert.Equal(s, output.S, FloatRoundingComparer);
         }
     }
 }

@@ -40,7 +40,7 @@ namespace ImageSharp.Colors.Spaces.Conversion.Implementation.Lms
         /// </param>
         public CieXyzAndLmsConverter(Matrix4x4 transformationMatrix)
         {
-            this.TransformationMatrix = Matrix4x4.Transpose(transformationMatrix);
+            this.TransformationMatrix = transformationMatrix;
         }
 
         /// <summary>

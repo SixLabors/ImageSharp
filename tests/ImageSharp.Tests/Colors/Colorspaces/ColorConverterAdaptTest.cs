@@ -10,7 +10,7 @@ namespace ImageSharp.Tests
 
     public class ColorConverterAdaptTest
     {
-        private static readonly IEqualityComparer<float> FloatComparer = new ApproximateFloatComparer(4);
+        private static readonly IEqualityComparer<float> FloatRoundingComparer = new FloatRoundingComparer(3);
 
         [Theory]
         [InlineData(0, 0, 0, 0, 0, 0)]
@@ -28,9 +28,9 @@ namespace ImageSharp.Tests
 
             // Assert
             Assert.Equal(expectedOutput.WorkingSpace, output.WorkingSpace);
-            Assert.Equal(output.R, expectedOutput.R, FloatComparer);
-            Assert.Equal(output.G, expectedOutput.G, FloatComparer);
-            Assert.Equal(output.B, expectedOutput.B, FloatComparer);
+            Assert.Equal(expectedOutput.R, output.R, FloatRoundingComparer);
+            Assert.Equal(expectedOutput.G, output.G, FloatRoundingComparer);
+            Assert.Equal(expectedOutput.B, output.B, FloatRoundingComparer);
         }
 
         [Theory]
@@ -49,9 +49,9 @@ namespace ImageSharp.Tests
 
             // Assert
             Assert.Equal(expectedOutput.WorkingSpace, output.WorkingSpace);
-            Assert.Equal(output.R, expectedOutput.R, FloatComparer);
-            Assert.Equal(output.G, expectedOutput.G, FloatComparer);
-            Assert.Equal(output.B, expectedOutput.B, FloatComparer);
+            Assert.Equal(expectedOutput.R, output.R, FloatRoundingComparer);
+            Assert.Equal(expectedOutput.G, output.G, FloatRoundingComparer);
+            Assert.Equal(expectedOutput.B, output.B, FloatRoundingComparer);
         }
 
         [Theory]
@@ -68,9 +68,9 @@ namespace ImageSharp.Tests
             CieLab output = converter.Adapt(input);
 
             // Assert
-            Assert.Equal(output.L, expectedOutput.L, FloatComparer);
-            Assert.Equal(output.A, expectedOutput.A, FloatComparer);
-            Assert.Equal(output.B, expectedOutput.B, FloatComparer);
+            Assert.Equal(expectedOutput.L, output.L, FloatRoundingComparer);
+            Assert.Equal(expectedOutput.A, output.A, FloatRoundingComparer);
+            Assert.Equal(expectedOutput.B, output.B, FloatRoundingComparer);
         }
 
         [Theory]
@@ -90,9 +90,9 @@ namespace ImageSharp.Tests
             CieXyz output = converter.Adapt(input, Illuminants.D65);
 
             // Assert
-            Assert.Equal(output.X, expectedOutput.X, FloatComparer);
-            Assert.Equal(output.Y, expectedOutput.Y, FloatComparer);
-            Assert.Equal(output.Z, expectedOutput.Z, FloatComparer);
+            Assert.Equal(expectedOutput.X, output.X, FloatRoundingComparer);
+            Assert.Equal(expectedOutput.Y, output.Y, FloatRoundingComparer);
+            Assert.Equal(expectedOutput.Z, output.Z, FloatRoundingComparer);
         }
 
         [Theory]
@@ -113,9 +113,9 @@ namespace ImageSharp.Tests
             CieXyz output = converter.Adapt(input, Illuminants.D65);
 
             // Assert
-            Assert.Equal(output.X, expectedOutput.X, FloatComparer);
-            Assert.Equal(output.Y, expectedOutput.Y, FloatComparer);
-            Assert.Equal(output.Z, expectedOutput.Z, FloatComparer);
+            Assert.Equal(expectedOutput.X, output.X, FloatRoundingComparer);
+            Assert.Equal(expectedOutput.Y, output.Y, FloatRoundingComparer);
+            Assert.Equal(expectedOutput.Z, output.Z, FloatRoundingComparer);
         }
 
         [Theory]
@@ -136,9 +136,9 @@ namespace ImageSharp.Tests
             CieXyz output = converter.Adapt(input, Illuminants.D65);
 
             // Assert
-            Assert.Equal(output.X, expectedOutput.X, FloatComparer);
-            Assert.Equal(output.Y, expectedOutput.Y, FloatComparer);
-            Assert.Equal(output.Z, expectedOutput.Z, FloatComparer);
+            Assert.Equal(expectedOutput.X, output.X, FloatRoundingComparer);
+            Assert.Equal(expectedOutput.Y, output.Y, FloatRoundingComparer);
+            Assert.Equal(expectedOutput.Z, output.Z, FloatRoundingComparer);
         }
     }
 }

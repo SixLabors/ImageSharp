@@ -3,7 +3,6 @@
     using System.Collections.Generic;
     using ImageSharp.Colors.Spaces;
     using ImageSharp.Colors.Spaces.Conversion;
-    using ImageSharp.Tests.TestUtilities;
 
     using Xunit;
 
@@ -40,9 +39,9 @@
             CieXyz output = converter.ToCieXyz(input);
 
             // Assert
-            Assert.Equal(output.X, x, FloatRoundingComparer);
-            Assert.Equal(output.Y, y, FloatRoundingComparer);
-            Assert.Equal(output.Z, z, FloatRoundingComparer);
+            Assert.Equal(x, output.X, FloatRoundingComparer);
+            Assert.Equal(y, output.Y, FloatRoundingComparer);
+            Assert.Equal(z, output.Z, FloatRoundingComparer);
         }
 
         /// <summary>
@@ -65,9 +64,9 @@
             CieLab output = converter.ToCieLab(input);
 
             // Assert
-            Assert.Equal(output.L, l, FloatRoundingComparer);
-            Assert.Equal(output.A, a, FloatRoundingComparer);
-            Assert.Equal(output.B, b, FloatRoundingComparer);
+            Assert.Equal(l, output.L, FloatRoundingComparer);
+            Assert.Equal(a, output.A, FloatRoundingComparer);
+            Assert.Equal(b, output.B, FloatRoundingComparer);
         }
     }
 }

@@ -11,7 +11,7 @@
     /// </summary>
     /// <remarks>
     /// Test data generated using:
-    /// http://www.brucelindbloom.com/index.html?ColorCalculator.html
+    /// <see href="http://www.brucelindbloom.com/index.html?ColorCalculator.html"/>
     /// </remarks>
     public class CieXyzAndHunterLabConversionTest
     {
@@ -23,7 +23,7 @@
         [Theory]
         [InlineData(0, 0, 0, 0, 0, 0)]
         [InlineData(100, 0, 0, 0.98074, 1, 1.18232)] // C white point is HunterLab 100, 0, 0
-        public void Convert_HunterLab_to_XYZ(float l, float a, float b, float x, float y, float z)
+        public void Convert_HunterLab_to_Xyz(float l, float a, float b, float x, float y, float z)
         {
             // Arrange
             HunterLab input = new HunterLab(l, a, b);
@@ -44,7 +44,7 @@
         [Theory]
         [InlineData(0, 0, 0, 0, 0, 0)]
         [InlineData(100, 0, 0, 0.95047, 1, 1.08883)] // D65 white point is HunerLab 100, 0, 0 (adaptation to C performed)
-        public void Convert_HunterLab_to_XYZ_D65(float l, float a, float b, float x, float y, float z)
+        public void Convert_HunterLab_to_Xyz_D65(float l, float a, float b, float x, float y, float z)
         {
             // Arrange
             HunterLab input = new HunterLab(l, a, b);
@@ -65,7 +65,7 @@
         [Theory]
         [InlineData(0, 0, 0, 0, 0, 0)]
         [InlineData(0.95047, 1, 1.08883, 100, 0, 0)] // D65 white point is HunterLab 100, 0, 0 (adaptation to C performed)
-        public void Convert_XYZ_D65_to_HunterLab(float x, float y, float z, float l, float a, float b)
+        public void Convert_Xyz_D65_to_HunterLab(float x, float y, float z, float l, float a, float b)
         {
             // Arrange
             CieXyz input = new CieXyz(x, y, z);

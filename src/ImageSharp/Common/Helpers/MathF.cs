@@ -19,28 +19,89 @@ namespace ImageSharp
         /// </summary>
         public const float PI = (float)Math.PI;
 
-        /// <summary>Returns the absolute value of a single-precision floating-point number.</summary>
-        /// <param name="f">A number that is greater than or equal to <see cref="F:System.Single.MinValue" />, but less than or equal to <see cref="F:System.Single.MaxValue" />.</param>
-        /// <returns>A single-precision floating-point number, x, such that 0 ≤ x ≤<see cref="F:System.Single.MaxValue" />.</returns>
+        /// <summary>
+        /// Returns the absolute value of a single-precision floating-point number.
+        /// </summary>
+        /// <param name="f">
+        /// A number that is greater than or equal to <see cref="F:System.Single.MinValue" />, but less than or equal to <see cref="F:System.Single.MaxValue" />.
+        /// </param>
+        /// <returns>
+        /// A single-precision floating-point number, x, such that 0 ≤ x ≤<see cref="F:System.Single.MaxValue" />.
+        /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float Abs(float f)
         {
             return Math.Abs(f);
         }
 
-        /// <summary>Returns the smallest integral value that is greater than or equal to the specified single-precision floating-point number.</summary>
-        /// <param name="f">A single-precision floating-point number. </param>
-        /// <returns>The smallest integral value that is greater than or equal to <paramref name="f" />.
+        /// <summary>
+        /// Returns the angle whose tangent is the quotient of two specified numbers.
+        /// </summary>
+        /// <param name="y">The y coordinate of a point.</param>
+        /// <param name="x">The x coordinate of a point.</param>
+        /// <returns>
+        /// An angle, θ, measured in radians, such that -π≤θ≤π, and tan(θ) = y / x, where
+        /// (x, y) is a point in the Cartesian plane. Observe the following: For (x, y) in
+        /// quadrant 1, 0 &lt; θ &lt; π/2.For (x, y) in quadrant 2, π/2 &lt; θ≤π.For (x, y) in quadrant
+        /// 3, -π &lt; θ &lt; -π/2.For (x, y) in quadrant 4, -π/2 &lt; θ &lt; 0.For points on the boundaries
+        /// of the quadrants, the return value is the following:If y is 0 and x is not negative,
+        /// θ = 0.If y is 0 and x is negative, θ = π.If y is positive and x is 0, θ = π/2.If
+        /// y is negative and x is 0, θ = -π/2.If y is 0 and x is 0, θ = 0. If x or y is
+        /// <see cref="F:System.Single.NaN"/>, or if x and y are either <see cref="F:System.Single.PositiveInfinity"/> or
+        /// <see cref="F:System.Single.NegativeInfinity"/>, the method returns <see cref="F:System.Single.NaN"/>.
+        /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float Atan2(float y, float x)
+        {
+            return (float)Math.Atan2(y, x);
+        }
+
+        /// <summary>
+        /// Returns the smallest integral value that is greater than or equal to the specified single-precision floating-point number.
+        /// </summary>
+        /// <param name="f">A single-precision floating-point number.</param>
+        /// <returns>
+        /// The smallest integral value that is greater than or equal to <paramref name="f" />.
         /// If <paramref name="f" /> is equal to <see cref="F:System.Single.NaN" />, <see cref="F:System.Single.NegativeInfinity" />,
         /// or <see cref="F:System.Single.PositiveInfinity" />, that value is returned.
-        /// Note that this method returns a <see cref="T:System.Single" /> instead of an integral type.</returns>
+        /// Note that this method returns a <see cref="T:System.Single" /> instead of an integral type.
+        /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float Ceiling(float f)
         {
             return (float)Math.Ceiling(f);
         }
 
-        /// <summary>Returns e raised to the specified power.</summary>
+        /// <summary>
+        /// Returns the cosine of the specified angle.
+        /// </summary>
+        /// <param name="f">An angle, measured in radians.</param>
+        /// <returns>
+        /// The cosine of <paramref name="f"/>. If <paramref name="f"/> is equal to <see cref="F:System.Float.NaN"/>, <see cref="F:System.Float.NegativeInfinity"/>,
+        /// or <see cref="F:System.Float.PositiveInfinity"/>, this method returns <see cref="F:System.Float.NaN"/>.
+        /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float Cos(float f)
+        {
+            return (float)Math.Cos(f);
+        }
+
+        /// <summary>
+        /// Converts a degree (360-periodic) angle to a radian (2*Pi-periodic) angle.
+        /// </summary>
+        /// <param name="degree">The angle in degrees.</param>
+        /// <returns>
+        /// The <see cref="float"/> representing the degree as radians.
+        /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float DegreeToRadian(float degree)
+        {
+            return degree * (PI / 180F);
+        }
+
+        /// <summary>
+        /// Returns e raised to the specified power.
+        /// </summary>
         /// <param name="f">A number specifying a power.</param>
         /// <returns>
         /// The number e raised to the power <paramref name="f" />.
@@ -53,9 +114,12 @@ namespace ImageSharp
             return (float)Math.Exp(f);
         }
 
-        /// <summary>Returns the largest integer less than or equal to the specified single-precision floating-point number.</summary>
+        /// <summary>
+        /// Returns the largest integer less than or equal to the specified single-precision floating-point number.
+        /// </summary>
         /// <param name="f">A single-precision floating-point number. </param>
-        /// <returns>The largest integer less than or equal to <paramref name="f" />.
+        /// <returns>
+        /// The largest integer less than or equal to <paramref name="f" />.
         /// If <paramref name="f" /> is equal to <see cref="F:System.Single.NaN" />, <see cref="F:System.Single.NegativeInfinity" />,
         /// or <see cref="F:System.Single.PositiveInfinity" />, that value is returned.
         /// </returns>
@@ -65,10 +129,13 @@ namespace ImageSharp
             return (float)Math.Floor(f);
         }
 
-        /// <summary>Returns the larger of two single-precision floating-point numbers.</summary>
+        /// <summary>
+        /// Returns the larger of two single-precision floating-point numbers.
+        /// </summary>
         /// <param name="val1">The first of two single-precision floating-point numbers to compare. </param>
         /// <param name="val2">The second of two single-precision floating-point numbers to compare. </param>
-        /// <returns>Parameter <paramref name="val1" /> or <paramref name="val2" />, whichever is larger.
+        /// <returns>
+        /// Parameter <paramref name="val1" /> or <paramref name="val2" />, whichever is larger.
         /// If <paramref name="val1" />, or <paramref name="val2" />, or both <paramref name="val1" /> and <paramref name="val2" /> are
         /// equal to <see cref="F:System.Single.NaN" />, <see cref="F:System.Single.NaN" /> is returned.
         /// </returns>
@@ -78,19 +145,25 @@ namespace ImageSharp
             return Math.Max(val1, val2);
         }
 
-        /// <summary>Returns the smaller of two single-precision floating-point numbers.</summary>
+        /// <summary>
+        /// Returns the smaller of two single-precision floating-point numbers.
+        /// </summary>
         /// <param name="val1">The first of two single-precision floating-point numbers to compare. </param>
         /// <param name="val2">The second of two single-precision floating-point numbers to compare. </param>
-        /// <returns>Parameter <paramref name="val1" /> or <paramref name="val2" />, whichever is smaller.
+        /// <returns>
+        /// Parameter <paramref name="val1" /> or <paramref name="val2" />, whichever is smaller.
         /// If <paramref name="val1" />, <paramref name="val2" />, or both <paramref name="val1" /> and <paramref name="val2" /> are equal
-        /// to <see cref="F:System.Single.NaN" />, <see cref="F:System.Single.NaN" /> is returned.</returns>
+        /// to <see cref="F:System.Single.NaN" />, <see cref="F:System.Single.NaN" /> is returned.
+        /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float Min(float val1, float val2)
         {
             return Math.Min(val1, val2);
         }
 
-        /// <summary>Returns a specified number raised to the specified power.</summary>
+        /// <summary>
+        /// Returns a specified number raised to the specified power.
+        /// </summary>
         /// <param name="x">A single-precision floating-point number to be raised to a power. </param>
         /// <param name="y">A single-precision floating-point number that specifies a power. </param>
         /// <returns>The number <paramref name="x" /> raised to the power <paramref name="y" />.</returns>
@@ -100,7 +173,22 @@ namespace ImageSharp
             return (float)Math.Pow(x, y);
         }
 
-        /// <summary>Rounds a single-precision floating-point value to the nearest integral value.</summary>
+        /// <summary>
+        /// Converts a radian (2*Pi-periodic) angle to a degree (360-periodic) angle.
+        /// </summary>
+        /// <param name="radian">The angle in radians.</param>
+        /// <returns>
+        /// The <see cref="float"/> representing the degree as radians.
+        /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float RadianToDegree(float radian)
+        {
+            return radian / (PI / 180F);
+        }
+
+        /// <summary>
+        /// Rounds a single-precision floating-point value to the nearest integral value.
+        /// </summary>
         /// <param name="f">A single-precision floating-point number to be rounded. </param>
         /// <returns>
         /// The integer nearest <paramref name="f" />.
@@ -113,7 +201,9 @@ namespace ImageSharp
             return (float)Math.Round(f);
         }
 
-        /// <summary>Returns the sine of the specified angle.</summary>
+        /// <summary>
+        /// Returns the sine of the specified angle.
+        /// </summary>
         /// <param name="f">An angle, measured in radians. </param>
         /// <returns>
         /// The sine of <paramref name="f" />.
@@ -126,8 +216,10 @@ namespace ImageSharp
             return (float)Math.Sin(f);
         }
 
-        /// <summary>Returns the square root of a specified number.</summary>
-        /// <param name="f">The number whose square root is to be found. </param>
+        /// <summary>
+        /// Returns the square root of a specified number.
+        /// </summary>
+        /// <param name="f">The number whose square root is to be found.</param>
         /// <returns>
         /// One of the values in the following table.
         /// <paramref name="f" /> parameter Return value Zero or positive The positive square root of <paramref name="f" />.

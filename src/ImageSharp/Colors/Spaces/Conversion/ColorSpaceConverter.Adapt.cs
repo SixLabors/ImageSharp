@@ -102,5 +102,51 @@ namespace ImageSharp.Colors.Spaces.Conversion
             CieXyz xyzColor = this.ToCieXyz(color);
             return this.ToCieLab(xyzColor);
         }
+
+        /// <summary>
+        /// Adapts <see cref="HunterLab"/> color from the source white point to white point set in <see cref="TargetHunterLabWhitePoint"/>.
+        /// </summary>
+        /// <param name="color">The color to adapt</param>
+        /// <returns>The adapted color</returns>
+        public HunterLab Adapt(HunterLab color)
+        {
+            Guard.NotNull(color, nameof(color));
+
+            if (!this.IsChromaticAdaptationPerformed)
+            {
+                throw new InvalidOperationException("Cannot perform chromatic adaptation, provide a chromatic adaptation method and white point.");
+            }
+
+            if (color.WhitePoint.Equals(this.TargetHunterLabWhitePoint))
+            {
+                return color;
+            }
+
+            CieXyz xyzColor = this.ToCieXyz(color);
+            return this.ToHunterLab(xyzColor);
+        }
+
+        /// <summary>
+        /// Adapts <see cref="CieLch"/> color from the source white point to white point set in <see cref="TargetLabWhitePoint"/>.
+        /// </summary>
+        /// <param name="color">The color to adapt</param>
+        /// <returns>The adapted color</returns>
+        public CieLch Adapt(CieLch color)
+        {
+            Guard.NotNull(color, nameof(color));
+
+            if (!this.IsChromaticAdaptationPerformed)
+            {
+                throw new InvalidOperationException("Cannot perform chromatic adaptation, provide a chromatic adaptation method and white point.");
+            }
+
+            if (color.WhitePoint.Equals(this.TargetLabWhitePoint))
+            {
+                return color;
+            }
+
+            CieLab labColor = this.ToCieLab(color);
+            return this.ToCieLch(labColor);
+        }
     }
 }

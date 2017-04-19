@@ -53,7 +53,7 @@ namespace ImageSharp.Colors.Spaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="LinearRgb"/></returns>
-        public LinearRgb ToLinearRGB(HunterLab color)
+        public LinearRgb ToLinearRgb(HunterLab color)
         {
             Guard.NotNull(color, nameof(color));
 
@@ -66,7 +66,7 @@ namespace ImageSharp.Colors.Spaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="LinearRgb"/></returns>
-        public LinearRgb ToLinearRGB(CieLab color)
+        public LinearRgb ToLinearRgb(CieLab color)
         {
             Guard.NotNull(color, nameof(color));
 
@@ -79,7 +79,20 @@ namespace ImageSharp.Colors.Spaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="LinearRgb"/></returns>
-        public LinearRgb ToLinearRGB(Lms color)
+        public LinearRgb ToLinearRgb(Lms color)
+        {
+            Guard.NotNull(color, nameof(color));
+
+            CieXyz xyzColor = this.ToCieXyz(color);
+            return this.ToLinearRgb(xyzColor);
+        }
+
+        /// <summary>
+        /// Converts a <see cref="CieLch"/> into a <see cref="LinearRgb"/>
+        /// </summary>
+        /// <param name="color">The color to convert.</param>
+        /// <returns>The <see cref="LinearRgb"/></returns>
+        public LinearRgb ToLinearRgb(CieLch color)
         {
             Guard.NotNull(color, nameof(color));
 

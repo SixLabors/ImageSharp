@@ -11,7 +11,7 @@
     /// </summary>
     /// <remarks>
     /// Test data generated using:
-    /// http://www.brucelindbloom.com/index.html?ColorCalculator.html
+    /// <see href="http://www.brucelindbloom.com/index.html?ColorCalculator.html"/>
     /// </remarks>
     public class CieXyzAndCieLabConversionTest
     {
@@ -29,7 +29,7 @@
         [InlineData(45.6398, 39.8753, 35.2091, 0.216938, 0.150041, 0.048850)]
         [InlineData(77.1234, -40.1235, 78.1120, 0.358530, 0.517372, 0.076273)]
         [InlineData(10, -400, 20, 0, 0.011260, 0)]
-        public void Convert_Lab_to_XYZ(float l, float a, float b, float x, float y, float z)
+        public void Convert_Lab_to_Xyz(float l, float a, float b, float x, float y, float z)
         {
             // Arrange
             CieLab input = new CieLab(l, a, b, Illuminants.D65);
@@ -54,7 +54,7 @@
         [InlineData(0, 1, 0, 100, -431.0345, 172.4138)]
         [InlineData(0, 0, 1.08883, 0, 0, -172.4138)]
         [InlineData(0.216938, 0.150041, 0.048850, 45.6398, 39.8753, 35.2091)]
-        public void Convert_XYZ_to_Lab(float x, float y, float z, float l, float a, float b)
+        public void Convert_Xyz_to_Lab(float x, float y, float z, float l, float a, float b)
         {
             // Arrange
             CieXyz input = new CieXyz(x, y, z);

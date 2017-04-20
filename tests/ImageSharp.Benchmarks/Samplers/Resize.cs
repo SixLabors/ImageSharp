@@ -11,7 +11,7 @@ namespace ImageSharp.Benchmarks
     using BenchmarkDotNet.Attributes;
     using CoreSize = ImageSharp.Size;
     using CoreImage = ImageSharp.Image;
-    using CoreVectorImage = ImageSharp.Image<ImageSharp.ColorVector>;
+    using CoreVectorImage = ImageSharp.Image<ImageSharp.RgbaVector>;
 
     public class Resize : BenchmarkBase
     {

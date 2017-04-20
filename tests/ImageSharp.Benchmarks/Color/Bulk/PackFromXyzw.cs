@@ -3,7 +3,7 @@ namespace ImageSharp.Benchmarks.Color.Bulk
 {
     using BenchmarkDotNet.Attributes;
 
-    using Color = ImageSharp.Color;
+    using Rgba32 = ImageSharp.Rgba32;
 
     public abstract class PackFromXyzw<TColor>
         where TColor : struct, IPixel<TColor>
@@ -57,7 +57,7 @@ namespace ImageSharp.Benchmarks.Color.Bulk
         }
     }
 
-    public class PackFromXyzw_Color : PackFromXyzw<Color>
+    public class PackFromXyzw_Color : PackFromXyzw<Rgba32>
     {
     }
 }

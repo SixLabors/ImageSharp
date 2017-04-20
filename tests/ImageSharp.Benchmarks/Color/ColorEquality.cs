@@ -7,7 +7,7 @@ namespace ImageSharp.Benchmarks
 {
     using BenchmarkDotNet.Attributes;
 
-    using CoreColor = ImageSharp.Color;
+    using CoreColor = ImageSharp.Rgba32;
     using SystemColor = System.Drawing.Color;
 
     public class ColorEquality

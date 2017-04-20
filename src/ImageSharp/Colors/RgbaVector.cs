@@ -1,4 +1,4 @@
-﻿// <copyright file="ColorVector.cs" company="James Jackson-South">
+﻿// <copyright file="RgbaVector.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -16,7 +16,7 @@ namespace ImageSharp
     /// This struct is fully mutable. This is done (against the guidelines) for the sake of performance,
     /// as it avoids the need to create new values for modification operations.
     /// </remarks>
-    public partial struct ColorVector : IPixel<ColorVector>
+    public partial struct RgbaVector : IPixel<RgbaVector>
     {
         /// <summary>
         /// The maximum byte value.
@@ -34,54 +34,54 @@ namespace ImageSharp
         private Vector4 backingVector;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ColorVector"/> struct.
+        /// Initializes a new instance of the <see cref="RgbaVector"/> struct.
         /// </summary>
         /// <param name="r">The red component.</param>
         /// <param name="g">The green component.</param>
         /// <param name="b">The blue component.</param>
         /// <param name="a">The alpha component.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ColorVector(byte r, byte g, byte b, byte a = 255)
+        public RgbaVector(byte r, byte g, byte b, byte a = 255)
             : this()
         {
             this.backingVector = new Vector4(r, g, b, a) / MaxBytes;
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ColorVector"/> struct.
+        /// Initializes a new instance of the <see cref="RgbaVector"/> struct.
         /// </summary>
         /// <param name="r">The red component.</param>
         /// <param name="g">The green component.</param>
         /// <param name="b">The blue component.</param>
         /// <param name="a">The alpha component.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ColorVector(float r, float g, float b, float a = 1)
+        public RgbaVector(float r, float g, float b, float a = 1)
             : this()
         {
             this.backingVector = new Vector4(r, g, b, a);
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ColorVector"/> struct.
+        /// Initializes a new instance of the <see cref="RgbaVector"/> struct.
         /// </summary>
         /// <param name="vector">
         /// The vector containing the components for the packed vector.
         /// </param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ColorVector(Vector3 vector)
+        public RgbaVector(Vector3 vector)
             : this()
         {
             this.backingVector = new Vector4(vector, 1);
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ColorVector"/> struct.
+        /// Initializes a new instance of the <see cref="RgbaVector"/> struct.
         /// </summary>
         /// <param name="vector">
         /// The vector containing the components for the packed vector.
         /// </param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ColorVector(Vector4 vector)
+        public RgbaVector(Vector4 vector)
             : this()
         {
             this.backingVector = vector;
@@ -160,54 +160,54 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Compares two <see cref="ColorVector"/> objects for equality.
+        /// Compares two <see cref="RgbaVector"/> objects for equality.
         /// </summary>
         /// <param name="left">
-        /// The <see cref="ColorVector"/> on the left side of the operand.
+        /// The <see cref="RgbaVector"/> on the left side of the operand.
         /// </param>
         /// <param name="right">
-        /// The <see cref="ColorVector"/> on the right side of the operand.
+        /// The <see cref="RgbaVector"/> on the right side of the operand.
         /// </param>
         /// <returns>
         /// True if the <paramref name="left"/> parameter is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool operator ==(ColorVector left, ColorVector right)
+        public static bool operator ==(RgbaVector left, RgbaVector right)
         {
             return left.backingVector == right.backingVector;
         }
 
         /// <summary>
-        /// Compares two <see cref="ColorVector"/> objects for equality.
+        /// Compares two <see cref="RgbaVector"/> objects for equality.
         /// </summary>
-        /// <param name="left">The <see cref="ColorVector"/> on the left side of the operand.</param>
-        /// <param name="right">The <see cref="ColorVector"/> on the right side of the operand.</param>
+        /// <param name="left">The <see cref="RgbaVector"/> on the left side of the operand.</param>
+        /// <param name="right">The <see cref="RgbaVector"/> on the right side of the operand.</param>
         /// <returns>
         /// True if the <paramref name="left"/> parameter is not equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool operator !=(ColorVector left, ColorVector right)
+        public static bool operator !=(RgbaVector left, RgbaVector right)
         {
             return left.backingVector != right.backingVector;
         }
 
         /// <summary>
-        /// Creates a new instance of the <see cref="ColorVector"/> struct.
+        /// Creates a new instance of the <see cref="RgbaVector"/> struct.
         /// </summary>
         /// <param name="hex">
         /// The hexadecimal representation of the combined color components arranged
         /// in rgb, rgba, rrggbb, or rrggbbaa format to match web syntax.
         /// </param>
         /// <returns>
-        /// The <see cref="ColorVector"/>.
+        /// The <see cref="RgbaVector"/>.
         /// </returns>
-        public static ColorVector FromHex(string hex)
+        public static RgbaVector FromHex(string hex)
         {
-            return ColorBuilder<ColorVector>.FromHex(hex);
+            return ColorBuilder<RgbaVector>.FromHex(hex);
         }
 
         /// <inheritdoc />
-        public BulkPixelOperations<ColorVector> CreateBulkOperations() => new ColorVector.BulkOperations();
+        public BulkPixelOperations<RgbaVector> CreateBulkOperations() => new RgbaVector.BulkOperations();
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -292,12 +292,12 @@ namespace ImageSharp
         /// <inheritdoc/>
         public override bool Equals(object obj)
         {
-            return (obj is ColorVector) && this.Equals((ColorVector)obj);
+            return (obj is RgbaVector) && this.Equals((RgbaVector)obj);
         }
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool Equals(ColorVector other)
+        public bool Equals(RgbaVector other)
         {
             return this.backingVector == other.backingVector;
         }

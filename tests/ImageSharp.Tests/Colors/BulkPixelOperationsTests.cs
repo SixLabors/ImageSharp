@@ -10,7 +10,7 @@ namespace ImageSharp.Tests.Colors
 
     public class BulkPixelOperationsTests
     {
-        public class Color32 : BulkPixelOperationsTests<ImageSharp.Color>
+        public class Color32 : BulkPixelOperationsTests<ImageSharp.Rgba32>
         {
             public Color32(ITestOutputHelper output)
                 : base(output)
@@ -23,19 +23,19 @@ namespace ImageSharp.Tests.Colors
             [Fact]
             public void IsSpecialImplementation()
             {
-                Assert.IsType<ImageSharp.Color.BulkOperations>(BulkPixelOperations<ImageSharp.Color>.Instance);
+                Assert.IsType<ImageSharp.Rgba32.BulkOperations>(BulkPixelOperations<ImageSharp.Rgba32>.Instance);
             }
 
             [Fact]
             public void ToVector4SimdAligned()
             {
-                ImageSharp.Color[] source = CreatePixelTestData(64);
+                ImageSharp.Rgba32[] source = CreatePixelTestData(64);
                 Vector4[] expected = CreateExpectedVector4Data(source);
 
                 TestOperation(
                     source,
                     expected,
-                    (s, d) => ImageSharp.Color.BulkOperations.ToVector4SimdAligned(s, d, 64)
+                    (s, d) => ImageSharp.Rgba32.BulkOperations.ToVector4SimdAligned(s, d, 64)
                 );
             }
 
@@ -45,14 +45,14 @@ namespace ImageSharp.Tests.Colors
                 int times = 200000;
                 int count = 1024;
 
-                using (Buffer<ImageSharp.Color> source = new Buffer<ImageSharp.Color>(count))
+                using (Buffer<ImageSharp.Rgba32> source = new Buffer<ImageSharp.Rgba32>(count))
                 using (Buffer<Vector4> dest = new Buffer<Vector4>(count))
                 {
                     this.Measure(
                         times,
                         () =>
                             {
-                                BulkPixelOperations<ImageSharp.Color>.Instance.ToVector4(source, dest, count);
+                                BulkPixelOperations<ImageSharp.Rgba32>.Instance.ToVector4(source, dest, count);
                             });
                 }
             }

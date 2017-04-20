@@ -18,7 +18,7 @@ namespace ImageSharp.Tests
         {
             string path = this.CreateOutputDirectory("Drawing", "RecolorImage");
 
-            RecolorBrush brush = new RecolorBrush(Color.Yellow, Color.HotPink, 0.2f);
+            RecolorBrush brush = new RecolorBrush(Rgba32.Yellow, Rgba32.HotPink, 0.2f);
 
             foreach (TestFile file in Files)
             {
@@ -38,7 +38,7 @@ namespace ImageSharp.Tests
         {
             string path = this.CreateOutputDirectory("Drawing", "RecolorImage");
 
-            RecolorBrush brush = new RecolorBrush(Color.Yellow, Color.HotPink, 0.2f);
+            RecolorBrush brush = new RecolorBrush(Rgba32.Yellow, Rgba32.HotPink, 0.2f);
 
             foreach (TestFile file in Files)
             {

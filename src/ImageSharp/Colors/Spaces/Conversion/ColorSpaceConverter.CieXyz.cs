@@ -42,6 +42,22 @@ namespace ImageSharp.Colors.Spaces.Conversion
         }
 
         /// <summary>
+        /// Converts a <see cref="CieLch"/> into a <see cref="CieXyz"/>
+        /// </summary>
+        /// <param name="color">The color to convert.</param>
+        /// <returns>The <see cref="CieXyz"/></returns>
+        public CieXyz ToCieXyz(CieLch color)
+        {
+            Guard.NotNull(color, nameof(color));
+
+            // Conversion to Lab
+            CieLab labColor = CieLchToCieLabConverter.Convert(color);
+
+            // Conversion to XYZ (incl. adaptation)
+            return this.ToCieXyz(labColor);
+        }
+
+        /// <summary>
         /// Converts a <see cref="CieXyy"/> into a <see cref="CieXyz"/>
         /// </summary>
         /// <param name="color">The color to convert.</param>
@@ -52,6 +68,60 @@ namespace ImageSharp.Colors.Spaces.Conversion
 
             // Conversion
             return CieXyzAndCieXyyConverter.Convert(color);
+        }
+
+        /// <summary>
+        /// Converts a <see cref="Cmyk"/> into a <see cref="CieXyz"/>
+        /// </summary>
+        /// <param name="color">The color to convert.</param>
+        /// <returns>The <see cref="CieXyz"/></returns>
+        public CieXyz ToCieXyz(Cmyk color)
+        {
+            Guard.NotNull(color, nameof(color));
+
+            // Conversion
+            Rgb rgb = this.ToRgb(color);
+
+            return this.ToCieXyz(rgb);
+        }
+
+        /// <summary>
+        /// Converts a <see cref="HunterLab"/> into a <see cref="CieXyz"/>
+        /// </summary>
+        /// <param name="color">The color to convert.</param>
+        /// <returns>The <see cref="CieXyz"/></returns>
+        public CieXyz ToCieXyz(HunterLab color)
+        {
+            Guard.NotNull(color, nameof(color));
+
+            // Conversion
+            CieXyz unadapted = HunterLabToCieXyzConverter.Convert(color);
+
+            // Adaptation
+            CieXyz adapted = color.WhitePoint.Equals(this.WhitePoint) || !this.IsChromaticAdaptationPerformed
+                                 ? unadapted
+                                 : this.Adapt(unadapted, color.WhitePoint);
+
+            return adapted;
+        }
+
+        /// <summary>
+        /// Converts a <see cref="LinearRgb"/> into a <see cref="CieXyz"/>
+        /// </summary>
+        /// <param name="color">The color to convert.</param>
+        /// <returns>The <see cref="CieXyz"/></returns>
+        public CieXyz ToCieXyz(LinearRgb color)
+        {
+            Guard.NotNull(color, nameof(color));
+
+            // Conversion
+            LinearRgbToCieXyzConverter converter = this.GetLinearRgbToCieXyzConverter(color.WorkingSpace);
+            CieXyz unadapted = converter.Convert(color);
+
+            // Adaptation
+            return color.WorkingSpace.WhitePoint.Equals(this.WhitePoint) || !this.IsChromaticAdaptationPerformed
+                       ? unadapted
+                       : this.Adapt(unadapted, color.WorkingSpace.WhitePoint);
         }
 
         /// <summary>
@@ -79,61 +149,6 @@ namespace ImageSharp.Colors.Spaces.Conversion
             // Conversion
             LinearRgb linear = RgbToLinearRgbConverter.Convert(color);
             return this.ToCieXyz(linear);
-        }
-
-        /// <summary>
-        /// Converts a <see cref="LinearRgb"/> into a <see cref="CieXyz"/>
-        /// </summary>
-        /// <param name="color">The color to convert.</param>
-        /// <returns>The <see cref="CieXyz"/></returns>
-        public CieXyz ToCieXyz(LinearRgb color)
-        {
-            Guard.NotNull(color, nameof(color));
-
-            // Conversion
-            LinearRgbToCieXyzConverter converter = this.GetLinearRgbToCieXyzConverter(color.WorkingSpace);
-            CieXyz unadapted = converter.Convert(color);
-
-            // Adaptation
-            return color.WorkingSpace.WhitePoint.Equals(this.WhitePoint) || !this.IsChromaticAdaptationPerformed
-                ? unadapted
-                : this.Adapt(unadapted, color.WorkingSpace.WhitePoint);
-        }
-
-        /// <summary>
-        /// Converts a <see cref="HunterLab"/> into a <see cref="CieXyz"/>
-        /// </summary>
-        /// <param name="color">The color to convert.</param>
-        /// <returns>The <see cref="CieXyz"/></returns>
-        public CieXyz ToCieXyz(HunterLab color)
-        {
-            Guard.NotNull(color, nameof(color));
-
-            // Conversion
-            CieXyz unadapted = HunterLabToCieXyzConverter.Convert(color);
-
-            // Adaptation
-            CieXyz adapted = color.WhitePoint.Equals(this.WhitePoint) || !this.IsChromaticAdaptationPerformed
-                ? unadapted
-                : this.Adapt(unadapted, color.WhitePoint);
-
-            return adapted;
-        }
-
-        /// <summary>
-        /// Converts a <see cref="CieLch"/> into a <see cref="CieXyz"/>
-        /// </summary>
-        /// <param name="color">The color to convert.</param>
-        /// <returns>The <see cref="CieXyz"/></returns>
-        public CieXyz ToCieXyz(CieLch color)
-        {
-            Guard.NotNull(color, nameof(color));
-
-            // Conversion to Lab
-            CieLab labColor = CieLchToCieLabConverter.Convert(color);
-
-            // Conversion to XYZ (incl. adaptation)
-            return this.ToCieXyz(labColor);
         }
 
         /// <summary>

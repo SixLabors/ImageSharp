@@ -9,7 +9,7 @@ namespace ImageSharp.Benchmarks.Image
 
     using BenchmarkDotNet.Attributes;
 
-    using CoreColor = ImageSharp.Color;
+    using CoreColor = ImageSharp.Rgba32;
     using CoreImage = ImageSharp.Image;
 
     public class CopyPixels : BenchmarkBase

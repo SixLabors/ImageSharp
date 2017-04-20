@@ -7,11 +7,11 @@ namespace ImageSharp.Benchmarks.General
 
     using BenchmarkDotNet.Attributes;
 
-    using Color = ImageSharp.Color;
+    using Rgba32 = ImageSharp.Rgba32;
 
     public unsafe class ClearBuffer
     {
-        private Buffer<Color> buffer;
+        private Buffer<Rgba32> buffer;
 
         [Params(32, 128, 512)]
         public int Count { get; set; }
@@ -19,7 +19,7 @@ namespace ImageSharp.Benchmarks.General
         [Setup]
         public void Setup()
         {
-            this.buffer = new Buffer<ImageSharp.Color>(this.Count);
+            this.buffer = new Buffer<ImageSharp.Rgba32>(this.Count);
         }
 
         [Cleanup]

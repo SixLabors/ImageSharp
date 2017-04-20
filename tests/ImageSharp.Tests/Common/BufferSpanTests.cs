@@ -412,12 +412,12 @@ namespace ImageSharp.Tests.Common
             [Fact]
             public void Color32ToBytes()
             {
-                Color[] colors = { new Color(0, 1, 2, 3), new Color(4, 5, 6, 7), new Color(8, 9, 10, 11), };
+                Rgba32[] colors = { new Rgba32(0, 1, 2, 3), new Rgba32(4, 5, 6, 7), new Rgba32(8, 9, 10, 11), };
 
-                using (Buffer<Color> colorBuf = new Buffer<Color>(colors))
+                using (Buffer<Rgba32> colorBuf = new Buffer<Rgba32>(colors))
                 using (Buffer<byte> byteBuf = new Buffer<byte>(colors.Length * 4))
                 {
-                    BufferSpan.Copy(colorBuf.Span.AsBytes(), byteBuf, colorBuf.Length * sizeof(Color));
+                    BufferSpan.Copy(colorBuf.Span.AsBytes(), byteBuf, colorBuf.Length * sizeof(Rgba32));
 
                     byte[] a = byteBuf.Array;
 

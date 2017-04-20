@@ -1,4 +1,4 @@
-// <copyright file="Color.BulkOperations.cs" company="James Jackson-South">
+// <copyright file="Rgba32.BulkOperations.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -18,12 +18,12 @@ namespace ImageSharp
     /// This struct is fully mutable. This is done (against the guidelines) for the sake of performance,
     /// as it avoids the need to create new values for modification operations.
     /// </remarks>
-    public partial struct Color
+    public partial struct Rgba32
     {
         /// <summary>
-        /// <see cref="BulkPixelOperations{TColor}"/> implementation optimized for <see cref="Color"/>.
+        /// <see cref="BulkPixelOperations{TColor}"/> implementation optimized for <see cref="Rgba32"/>.
         /// </summary>
-        internal class BulkOperations : BulkPixelOperations<Color>
+        internal class BulkOperations : BulkPixelOperations<Rgba32>
         {
             /// <summary>
             /// SIMD optimized bulk implementation of <see cref="IPixel.PackFromVector4(Vector4)"/>
@@ -42,12 +42,12 @@ namespace ImageSharp
             ///     <cref>https://github.com/dotnet/corefx/issues/15957</cref>
             /// </see>
             /// </remarks>
-            internal static unsafe void ToVector4SimdAligned(BufferSpan<Color> sourceColors, BufferSpan<Vector4> destVectors, int count)
+            internal static unsafe void ToVector4SimdAligned(BufferSpan<Rgba32> sourceColors, BufferSpan<Vector4> destVectors, int count)
             {
                 if (!Vector.IsHardwareAccelerated)
                 {
                     throw new InvalidOperationException(
-                        "Color32.BulkOperations.ToVector4SimdAligned() should not be called when Vector.IsHardwareAccelerated == false!");
+                        "Rgba32.BulkOperations.ToVector4SimdAligned() should not be called when Vector.IsHardwareAccelerated == false!");
                 }
 
                 int vecSize = Vector<uint>.Count;
@@ -64,7 +64,7 @@ namespace ImageSharp
 
                 int unpackedRawCount = count * 4;
 
-                ref uint src = ref Unsafe.As<Color, uint>(ref sourceColors.DangerousGetPinnableReference());
+                ref uint src = ref Unsafe.As<Rgba32, uint>(ref sourceColors.DangerousGetPinnableReference());
 
                 using (Buffer<uint> tempBuf = new Buffer<uint>(
                     unpackedRawCount + Vector<uint>.Count))
@@ -100,7 +100,7 @@ namespace ImageSharp
             }
 
             /// <inheritdoc />
-            internal override void ToVector4(BufferSpan<Color> sourceColors, BufferSpan<Vector4> destVectors, int count)
+            internal override void ToVector4(BufferSpan<Rgba32> sourceColors, BufferSpan<Vector4> destVectors, int count)
             {
                 if (count < 256 || !Vector.IsHardwareAccelerated)
                 {
@@ -127,103 +127,103 @@ namespace ImageSharp
             }
 
             /// <inheritdoc />
-            internal override void PackFromXyzBytes(BufferSpan<byte> sourceBytes, BufferSpan<Color> destColors, int count)
+            internal override void PackFromXyzBytes(BufferSpan<byte> sourceBytes, BufferSpan<Rgba32> destColors, int count)
             {
                 ref RGB24 sourceRef = ref Unsafe.As<byte, RGB24>(ref sourceBytes.DangerousGetPinnableReference());
-                ref Color destRef = ref destColors.DangerousGetPinnableReference();
+                ref Rgba32 destRef = ref destColors.DangerousGetPinnableReference();
 
                 for (int i = 0; i < count; i++)
                 {
                     ref RGB24 sp = ref Unsafe.Add(ref sourceRef, i);
-                    ref Color dp = ref Unsafe.Add(ref destRef, i);
+                    ref Rgba32 dp = ref Unsafe.Add(ref destRef, i);
 
-                    Unsafe.As<Color, RGB24>(ref dp) = sp;
+                    Unsafe.As<Rgba32, RGB24>(ref dp) = sp;
                     dp.A = 255;
                 }
             }
 
             /// <inheritdoc />
-            internal override void ToXyzBytes(BufferSpan<Color> sourceColors, BufferSpan<byte> destBytes, int count)
+            internal override void ToXyzBytes(BufferSpan<Rgba32> sourceColors, BufferSpan<byte> destBytes, int count)
             {
-                ref Color sourceRef = ref sourceColors.DangerousGetPinnableReference();
+                ref Rgba32 sourceRef = ref sourceColors.DangerousGetPinnableReference();
                 ref RGB24 destRef = ref Unsafe.As<byte, RGB24>(ref destBytes.DangerousGetPinnableReference());
 
                 for (int i = 0; i < count; i++)
                 {
-                    ref Color sp = ref Unsafe.Add(ref sourceRef, i);
+                    ref Rgba32 sp = ref Unsafe.Add(ref sourceRef, i);
                     ref RGB24 dp = ref Unsafe.Add(ref destRef, i);
 
-                    dp = Unsafe.As<Color, RGB24>(ref sp);
+                    dp = Unsafe.As<Rgba32, RGB24>(ref sp);
                 }
             }
 
             /// <inheritdoc />
-            internal override unsafe void PackFromXyzwBytes(BufferSpan<byte> sourceBytes, BufferSpan<Color> destColors, int count)
+            internal override unsafe void PackFromXyzwBytes(BufferSpan<byte> sourceBytes, BufferSpan<Rgba32> destColors, int count)
             {
-                BufferSpan.Copy(sourceBytes, destColors.AsBytes(), count * sizeof(Color));
+                BufferSpan.Copy(sourceBytes, destColors.AsBytes(), count * sizeof(Rgba32));
             }
 
             /// <inheritdoc />
-            internal override unsafe void ToXyzwBytes(BufferSpan<Color> sourceColors, BufferSpan<byte> destBytes, int count)
+            internal override unsafe void ToXyzwBytes(BufferSpan<Rgba32> sourceColors, BufferSpan<byte> destBytes, int count)
             {
-                BufferSpan.Copy(sourceColors.AsBytes(), destBytes, count * sizeof(Color));
+                BufferSpan.Copy(sourceColors.AsBytes(), destBytes, count * sizeof(Rgba32));
             }
 
             /// <inheritdoc />
-            internal override void PackFromZyxBytes(BufferSpan<byte> sourceBytes, BufferSpan<Color> destColors, int count)
+            internal override void PackFromZyxBytes(BufferSpan<byte> sourceBytes, BufferSpan<Rgba32> destColors, int count)
             {
                 ref RGB24 sourceRef = ref Unsafe.As<byte, RGB24>(ref sourceBytes.DangerousGetPinnableReference());
-                ref Color destRef = ref destColors.DangerousGetPinnableReference();
+                ref Rgba32 destRef = ref destColors.DangerousGetPinnableReference();
 
                 for (int i = 0; i < count; i++)
                 {
                     ref RGB24 sp = ref Unsafe.Add(ref sourceRef, i);
-                    ref Color dp = ref Unsafe.Add(ref destRef, i);
+                    ref Rgba32 dp = ref Unsafe.Add(ref destRef, i);
 
-                    Unsafe.As<Color, RGB24>(ref dp) = sp.ToZyx();
+                    Unsafe.As<Rgba32, RGB24>(ref dp) = sp.ToZyx();
                     dp.A = 255;
                 }
             }
 
             /// <inheritdoc />
-            internal override void ToZyxBytes(BufferSpan<Color> sourceColors, BufferSpan<byte> destBytes, int count)
+            internal override void ToZyxBytes(BufferSpan<Rgba32> sourceColors, BufferSpan<byte> destBytes, int count)
             {
-                ref Color sourceRef = ref sourceColors.DangerousGetPinnableReference();
+                ref Rgba32 sourceRef = ref sourceColors.DangerousGetPinnableReference();
                 ref RGB24 destRef = ref Unsafe.As<byte, RGB24>(ref destBytes.DangerousGetPinnableReference());
 
                 for (int i = 0; i < count; i++)
                 {
-                    ref Color sp = ref Unsafe.Add(ref sourceRef, i);
+                    ref Rgba32 sp = ref Unsafe.Add(ref sourceRef, i);
                     ref RGB24 dp = ref Unsafe.Add(ref destRef, i);
 
-                    dp = Unsafe.As<Color, RGB24>(ref sp).ToZyx();
+                    dp = Unsafe.As<Rgba32, RGB24>(ref sp).ToZyx();
                 }
             }
 
             /// <inheritdoc />
-            internal override void PackFromZyxwBytes(BufferSpan<byte> sourceBytes, BufferSpan<Color> destColors, int count)
+            internal override void PackFromZyxwBytes(BufferSpan<byte> sourceBytes, BufferSpan<Rgba32> destColors, int count)
             {
                 ref RGBA32 sourceRef = ref Unsafe.As<byte, RGBA32>(ref sourceBytes.DangerousGetPinnableReference());
-                ref Color destRef = ref destColors.DangerousGetPinnableReference();
+                ref Rgba32 destRef = ref destColors.DangerousGetPinnableReference();
 
                 for (int i = 0; i < count; i++)
                 {
                     ref RGBA32 sp = ref Unsafe.Add(ref sourceRef, i);
-                    ref Color dp = ref Unsafe.Add(ref destRef, i);
+                    ref Rgba32 dp = ref Unsafe.Add(ref destRef, i);
                     RGBA32 zyxw = sp.ToZyxw();
-                    dp = Unsafe.As<RGBA32, Color>(ref zyxw);
+                    dp = Unsafe.As<RGBA32, Rgba32>(ref zyxw);
                 }
             }
 
             /// <inheritdoc />
-            internal override void ToZyxwBytes(BufferSpan<Color> sourceColors, BufferSpan<byte> destBytes, int count)
+            internal override void ToZyxwBytes(BufferSpan<Rgba32> sourceColors, BufferSpan<byte> destBytes, int count)
             {
-                ref Color sourceRef = ref sourceColors.DangerousGetPinnableReference();
+                ref Rgba32 sourceRef = ref sourceColors.DangerousGetPinnableReference();
                 ref RGBA32 destRef = ref Unsafe.As<byte, RGBA32>(ref destBytes.DangerousGetPinnableReference());
 
                 for (int i = 0; i < count; i++)
                 {
-                    ref RGBA32 sp = ref Unsafe.As<Color, RGBA32>(ref Unsafe.Add(ref sourceRef, i));
+                    ref RGBA32 sp = ref Unsafe.As<Rgba32, RGBA32>(ref Unsafe.Add(ref sourceRef, i));
                     ref RGBA32 dp = ref Unsafe.Add(ref destRef, i);
                     dp = sp.ToZyxw();
                 }
@@ -264,7 +264,7 @@ namespace ImageSharp
             }
 
             /// <summary>
-            /// Value type to store <see cref="Color"/>-s unpacked into multiple <see cref="uint"/>-s.
+            /// Value type to store <see cref="Rgba32"/>-s unpacked into multiple <see cref="uint"/>-s.
             /// </summary>
             [StructLayout(LayoutKind.Sequential)]
             private struct UnpackedRGBA

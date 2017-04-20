@@ -38,18 +38,18 @@ namespace ImageSharp.Tests.Drawing
                 using (FileStream output = File.OpenWrite($"{path}/Simple.png"))
                 {
                     image
-                        .BackgroundColor(Color.Blue)
-                        .Draw(Color.HotPink, 5, p)
+                        .BackgroundColor(Rgba32.Blue)
+                        .Draw(Rgba32.HotPink, 5, p)
                         .Save(output);
                 }
 
-                using (PixelAccessor<Color> sourcePixels = image.Lock())
+                using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
                 {
-                    Assert.Equal(Color.HotPink, sourcePixels[9, 9]);
+                    Assert.Equal(Rgba32.HotPink, sourcePixels[9, 9]);
 
-                    Assert.Equal(Color.HotPink, sourcePixels[199, 149]);
+                    Assert.Equal(Rgba32.HotPink, sourcePixels[199, 149]);
 
-                    Assert.Equal(Color.Blue, sourcePixels[50, 50]);
+                    Assert.Equal(Rgba32.Blue, sourcePixels[50, 50]);
                 }
             }
         }
@@ -60,7 +60,7 @@ namespace ImageSharp.Tests.Drawing
         {
             string path = this.CreateOutputDirectory("Drawing", "Path");
 
-            Color color = new Color(Color.HotPink.R, Color.HotPink.G, Color.HotPink.B, 150);
+            Rgba32 color = new Rgba32(Rgba32.HotPink.R, Rgba32.HotPink.G, Rgba32.HotPink.B, 150);
 
 
             LinearLineSegment linerSegemnt = new LinearLineSegment(
@@ -81,21 +81,21 @@ namespace ImageSharp.Tests.Drawing
                 using (FileStream output = File.OpenWrite($"{path}/Opacity.png"))
                 {
                     image
-                        .BackgroundColor(Color.Blue)
+                        .BackgroundColor(Rgba32.Blue)
                         .Draw(color, 10, p)
                         .Save(output);
                 }
 
                 //shift background color towards forground color by the opacity amount
-                Color mergedColor = new Color(Vector4.Lerp(Color.Blue.ToVector4(), Color.HotPink.ToVector4(), 150f / 255f));
+                Rgba32 mergedColor = new Rgba32(Vector4.Lerp(Rgba32.Blue.ToVector4(), Rgba32.HotPink.ToVector4(), 150f / 255f));
 
-                using (PixelAccessor<Color> sourcePixels = image.Lock())
+                using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
                 {
                     Assert.Equal(mergedColor, sourcePixels[9, 9]);
 
                     Assert.Equal(mergedColor, sourcePixels[199, 149]);
 
-                    Assert.Equal(Color.Blue, sourcePixels[50, 50]);
+                    Assert.Equal(Rgba32.Blue, sourcePixels[50, 50]);
                 }
             }
         }

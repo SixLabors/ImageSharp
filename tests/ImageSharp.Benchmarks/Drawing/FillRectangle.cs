@@ -11,7 +11,7 @@ namespace ImageSharp.Benchmarks
     using BenchmarkDotNet.Attributes;
     using CoreImage = ImageSharp.Image;
     using CoreRectangle = ImageSharp.Rectangle;
-    using CoreColor = ImageSharp.Color;
+    using CoreColor = ImageSharp.Rgba32;
     using CoreSize = ImageSharp.Size;
 
     using System.Numerics;

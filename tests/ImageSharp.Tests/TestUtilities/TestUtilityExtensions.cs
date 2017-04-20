@@ -18,7 +18,7 @@ namespace ImageSharp.Tests
     {
         private static readonly Dictionary<Type, PixelTypes> ClrTypes2PixelTypes = new Dictionary<Type, PixelTypes>();
 
-        private static readonly Assembly ImageSharpAssembly = typeof(Color).GetTypeInfo().Assembly;
+        private static readonly Assembly ImageSharpAssembly = typeof(Rgba32).GetTypeInfo().Assembly;
 
         private static readonly Dictionary<PixelTypes, Type> PixelTypes2ClrTypes = new Dictionary<PixelTypes, Type>();
 
@@ -28,8 +28,8 @@ namespace ImageSharp.Tests
 
         static TestUtilityExtensions()
         {
-            string nameSpace = typeof(Color).FullName;
-            nameSpace = nameSpace.Substring(0, nameSpace.Length - typeof(Color).Name.Length - 1);
+            string nameSpace = typeof(Rgba32).FullName;
+            nameSpace = nameSpace.Substring(0, nameSpace.Length - typeof(Rgba32).Name.Length - 1);
             foreach (PixelTypes pt in AllConcretePixelTypes.Where(pt => pt != PixelTypes.StandardImageClass))
             {
                 string typeName = $"{nameSpace}.{pt.ToString()}";
@@ -42,7 +42,7 @@ namespace ImageSharp.Tests
                 PixelTypes2ClrTypes[pt] = t;
                 ClrTypes2PixelTypes[t] = pt;
             }
-            PixelTypes2ClrTypes[PixelTypes.StandardImageClass] = typeof(Color);
+            PixelTypes2ClrTypes[PixelTypes.StandardImageClass] = typeof(Rgba32);
         }
 
         public static bool HasFlag(this PixelTypes pixelTypes, PixelTypes flag) => (pixelTypes & flag) == flag;

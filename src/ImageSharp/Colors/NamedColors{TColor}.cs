@@ -5,8 +5,6 @@
 
 namespace ImageSharp
 {
-    using System;
-
     /// <summary>
     /// A set of named colors mapped to the provided color space.
     /// </summary>

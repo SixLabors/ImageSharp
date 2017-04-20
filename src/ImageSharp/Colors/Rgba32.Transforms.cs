@@ -1,4 +1,4 @@
-﻿// <copyright file="Color.Transforms.cs" company="James Jackson-South">
+﻿// <copyright file="Rgba32.Transforms.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -16,7 +16,7 @@ namespace ImageSharp
     /// This struct is fully mutable. This is done (against the guidelines) for the sake of performance,
     /// as it avoids the need to create new values for modification operations.
     /// </remarks>
-    public partial struct Color
+    public partial struct Rgba32
     {
         /// <summary>
         /// Adds the second color to the first.
@@ -24,10 +24,10 @@ namespace ImageSharp
         /// <param name="left">The first source color.</param>
         /// <param name="right">The second source color.</param>
         /// <returns>
-        /// The <see cref="Color"/>.
+        /// The <see cref="Rgba32"/>.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Color operator +(Color left, Color right)
+        public static Rgba32 operator +(Rgba32 left, Rgba32 right)
         {
             Vector4 add = left.ToVector4() + right.ToVector4();
             return PackNew(ref add);
@@ -39,10 +39,10 @@ namespace ImageSharp
         /// <param name="left">The first source color.</param>
         /// <param name="right">The second source color.</param>
         /// <returns>
-        /// The <see cref="Color"/>.
+        /// The <see cref="Rgba32"/>.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Color operator -(Color left, Color right)
+        public static Rgba32 operator -(Rgba32 left, Rgba32 right)
         {
             Vector4 sub = left.ToVector4() - right.ToVector4();
             return PackNew(ref sub);
@@ -54,9 +54,9 @@ namespace ImageSharp
         /// <param name="backdrop">The backdrop color.</param>
         /// <param name="source">The source color.</param>
         /// <returns>
-        /// The <see cref="Color"/>.
+        /// The <see cref="Rgba32"/>.
         /// </returns>
-        public static Color Normal(Color backdrop, Color source)
+        public static Rgba32 Normal(Rgba32 backdrop, Rgba32 source)
         {
             Vector4 normal = Vector4BlendTransforms.Normal(backdrop.ToVector4(), source.ToVector4());
             return PackNew(ref normal);
@@ -74,9 +74,9 @@ namespace ImageSharp
         /// <param name="backdrop">The backdrop color.</param>
         /// <param name="source">The source color.</param>
         /// <returns>
-        /// The <see cref="Color"/>.
+        /// The <see cref="Rgba32"/>.
         /// </returns>
-        public static Color Multiply(Color backdrop, Color source)
+        public static Rgba32 Multiply(Rgba32 backdrop, Rgba32 source)
         {
             Vector4 multiply = Vector4BlendTransforms.Multiply(backdrop.ToVector4(), source.ToVector4());
             return PackNew(ref multiply);
@@ -93,9 +93,9 @@ namespace ImageSharp
         /// <param name="backdrop">The backdrop color.</param>
         /// <param name="source">The source color.</param>
         /// <returns>
-        /// The <see cref="Color"/>.
+        /// The <see cref="Rgba32"/>.
         /// </returns>
-        public static Color Screen(Color backdrop, Color source)
+        public static Rgba32 Screen(Rgba32 backdrop, Rgba32 source)
         {
             Vector4 subtract = Vector4BlendTransforms.Screen(backdrop.ToVector4(), source.ToVector4());
             return PackNew(ref subtract);
@@ -108,9 +108,9 @@ namespace ImageSharp
         /// <param name="backdrop">The backdrop color.</param>
         /// <param name="source">The source color.</param>
         /// <returns>
-        /// The <see cref="Color"/>.
+        /// The <see cref="Rgba32"/>.
         /// </returns>
-        public static Color HardLight(Color backdrop, Color source)
+        public static Rgba32 HardLight(Rgba32 backdrop, Rgba32 source)
         {
             Vector4 hardlight = Vector4BlendTransforms.HardLight(backdrop.ToVector4(), source.ToVector4());
             return PackNew(ref hardlight);
@@ -127,9 +127,9 @@ namespace ImageSharp
         /// <param name="backdrop">The backdrop color.</param>
         /// <param name="source">The source color.</param>
         /// <returns>
-        /// The <see cref="Color"/>.
+        /// The <see cref="Rgba32"/>.
         /// </returns>
-        public static Color Overlay(Color backdrop, Color source)
+        public static Rgba32 Overlay(Rgba32 backdrop, Rgba32 source)
         {
             Vector4 overlay = Vector4BlendTransforms.Overlay(backdrop.ToVector4(), source.ToVector4());
             return PackNew(ref overlay);
@@ -142,9 +142,9 @@ namespace ImageSharp
         /// <param name="backdrop">The backdrop color.</param>
         /// <param name="source">The source color.</param>
         /// <returns>
-        /// The <see cref="Color"/>.
+        /// The <see cref="Rgba32"/>.
         /// </returns>
-        public static Color Darken(Color backdrop, Color source)
+        public static Rgba32 Darken(Rgba32 backdrop, Rgba32 source)
         {
             Vector4 darken = Vector4BlendTransforms.Darken(backdrop.ToVector4(), source.ToVector4());
             return PackNew(ref darken);
@@ -157,9 +157,9 @@ namespace ImageSharp
         /// <param name="backdrop">The backdrop color.</param>
         /// <param name="source">The source color.</param>
         /// <returns>
-        /// The <see cref="Color"/>.
+        /// The <see cref="Rgba32"/>.
         /// </returns>
-        public static Color Lighten(Color backdrop, Color source)
+        public static Rgba32 Lighten(Rgba32 backdrop, Rgba32 source)
         {
             Vector4 lighten = Vector4BlendTransforms.Lighten(backdrop.ToVector4(), source.ToVector4());
             return PackNew(ref lighten);
@@ -172,9 +172,9 @@ namespace ImageSharp
         /// <param name="backdrop">The backdrop color.</param>
         /// <param name="source">The source color.</param>
         /// <returns>
-        /// The <see cref="Color"/>.
+        /// The <see cref="Rgba32"/>.
         /// </returns>
-        public static Color SoftLight(Color backdrop, Color source)
+        public static Rgba32 SoftLight(Rgba32 backdrop, Rgba32 source)
         {
             Vector4 softlight = Vector4BlendTransforms.SoftLight(backdrop.ToVector4(), source.ToVector4());
             return PackNew(ref softlight);
@@ -186,9 +186,9 @@ namespace ImageSharp
         /// <param name="backdrop">The backdrop color.</param>
         /// <param name="source">The source color.</param>
         /// <returns>
-        /// The <see cref="Color"/>.
+        /// The <see cref="Rgba32"/>.
         /// </returns>
-        public static Color ColorDodge(Color backdrop, Color source)
+        public static Rgba32 ColorDodge(Rgba32 backdrop, Rgba32 source)
         {
             Vector4 dodge = Vector4BlendTransforms.Dodge(backdrop.ToVector4(), source.ToVector4());
             return PackNew(ref dodge);
@@ -200,9 +200,9 @@ namespace ImageSharp
         /// <param name="backdrop">The backdrop color.</param>
         /// <param name="source">The source color.</param>
         /// <returns>
-        /// The <see cref="Color"/>.
+        /// The <see cref="Rgba32"/>.
         /// </returns>
-        public static Color ColorBurn(Color backdrop, Color source)
+        public static Rgba32 ColorBurn(Rgba32 backdrop, Rgba32 source)
         {
             Vector4 burn = Vector4BlendTransforms.Burn(backdrop.ToVector4(), source.ToVector4());
             return PackNew(ref burn);
@@ -215,9 +215,9 @@ namespace ImageSharp
         /// <param name="backdrop">The backdrop color.</param>
         /// <param name="source">The source color.</param>
         /// <returns>
-        /// The <see cref="Color"/>.
+        /// The <see cref="Rgba32"/>.
         /// </returns>
-        public static Color Difference(Color backdrop, Color source)
+        public static Rgba32 Difference(Rgba32 backdrop, Rgba32 source)
         {
             Vector4 difference = Vector4BlendTransforms.Difference(backdrop.ToVector4(), source.ToVector4());
             return PackNew(ref difference);
@@ -230,9 +230,9 @@ namespace ImageSharp
         /// <param name="backdrop">The backdrop color.</param>
         /// <param name="source">The source color.</param>
         /// <returns>
-        /// The <see cref="Color"/>.
+        /// The <see cref="Rgba32"/>.
         /// </returns>
-        public static Color Exclusion(Color backdrop, Color source)
+        public static Rgba32 Exclusion(Rgba32 backdrop, Rgba32 source)
         {
             Vector4 exclusion = Vector4BlendTransforms.Exclusion(backdrop.ToVector4(), source.ToVector4());
             return PackNew(ref exclusion);
@@ -248,9 +248,9 @@ namespace ImageSharp
         /// At amount = 0, "from" is returned, at amount = 1, "to" is returned.
         /// </param>
         /// <returns>
-        /// The <see cref="Color"/>
+        /// The <see cref="Rgba32"/>
         /// </returns>
-        public static Color Lerp(Color from, Color to, float amount)
+        public static Rgba32 Lerp(Rgba32 from, Rgba32 to, float amount)
         {
             Vector4 lerp = Vector4.Lerp(from.ToVector4(), to.ToVector4(), amount);
             return PackNew(ref lerp);

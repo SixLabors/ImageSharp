@@ -26,29 +26,31 @@ namespace ImageSharp.Tests
 
         Byte4 = 1 << 4,
 
-        Color = 1 << 5,
+        HalfSingle = 1 << 5,
 
-        HalfSingle = 1 << 6,
+        HalfVector2 = 1 << 6,
 
-        HalfVector2 = 1 << 7,
+        HalfVector4 = 1 << 7,
 
-        HalfVector4 = 1 << 8,
+        NormalizedByte2 = 1 << 8,
 
-        NormalizedByte2 = 1 << 9,
+        NormalizedByte4 = 1 << 9,
 
-        NormalizedByte4 = 1 << 10,
+        NormalizedShort4 = 1 << 10,
 
-        NormalizedShort4 = 1 << 11,
+        Rg32 = 1 << 11,
 
-        Rg32 = 1 << 12,
+        Rgba1010102 = 1 << 12,
 
-        Rgba1010102 = 1 << 13,
+        Rgba32 = 1 << 13,
 
         Rgba64 = 1 << 14,
 
-        Short2 = 1 << 15,
+        RgbaVector = 1 << 15,
 
-        Short4 = 1 << 16,
+        Short2 = 1 << 16,
+
+        Short4 = 1 << 17,
 
         /// <summary>
         /// Triggers instantiating the <see cref="Image"/> subclass of <see cref="Image{TColor}"/>

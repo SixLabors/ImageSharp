@@ -6,16 +6,16 @@
 namespace ImageSharp.Drawing.Pens
 {
     /// <summary>
-    /// Represents a <see cref="Pen{TColor}"/> in the <see cref="Color"/> color space.
+    /// Represents a <see cref="Pen{TColor}"/> in the <see cref="Rgba32"/> color space.
     /// </summary>
-    public class Pen : Pen<Color>
+    public class Pen : Pen<Rgba32>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="Pen"/> class.
         /// </summary>
         /// <param name="color">The color.</param>
         /// <param name="width">The width.</param>
-        public Pen(Color color, float width)
+        public Pen(Rgba32 color, float width)
             : base(color, width)
         {
         }
@@ -25,7 +25,7 @@ namespace ImageSharp.Drawing.Pens
         /// </summary>
         /// <param name="brush">The brush.</param>
         /// <param name="width">The width.</param>
-        public Pen(IBrush<Color> brush, float width)
+        public Pen(IBrush<Rgba32> brush, float width)
             : base(brush, width)
         {
         }
@@ -36,7 +36,7 @@ namespace ImageSharp.Drawing.Pens
         /// <param name="brush">The brush.</param>
         /// <param name="width">The width.</param>
         /// <param name="pattern">The pattern.</param>
-        public Pen(IBrush<Color> brush, float width, float[] pattern)
+        public Pen(IBrush<Rgba32> brush, float width, float[] pattern)
             : base(brush, width, pattern)
         {
         }
@@ -45,7 +45,7 @@ namespace ImageSharp.Drawing.Pens
         /// Initializes a new instance of the <see cref="Pen"/> class.
         /// </summary>
         /// <param name="pen">The pen.</param>
-        internal Pen(Pen<Color> pen)
+        internal Pen(Pen<Rgba32> pen)
             : base(pen)
         {
         }

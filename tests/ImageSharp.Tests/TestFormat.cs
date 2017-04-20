@@ -68,17 +68,17 @@ namespace ImageSharp.Tests
             }
         }
 
-        public Image<TColor> Sample<TColor>()
-            where TColor : struct, IPixel<TColor>
+        public Image<TPixel> Sample<TPixel>()
+            where TPixel : struct, IPixel<TPixel>
         {
             lock (this._sampleImages)
             {
-                if (!this._sampleImages.ContainsKey(typeof(TColor)))
+                if (!this._sampleImages.ContainsKey(typeof(TPixel)))
                 {
-                    this._sampleImages.Add(typeof(TColor), new Image<TColor>(1, 1));
+                    this._sampleImages.Add(typeof(TPixel), new Image<TPixel>(1, 1));
                 }
             
-                return (Image<TColor>)this._sampleImages[typeof(TColor)];
+                return (Image<TPixel>)this._sampleImages[typeof(TPixel)];
             }
         }
 
@@ -149,7 +149,7 @@ namespace ImageSharp.Tests
             }
 
 
-            public Image<TColor> Decode<TColor>(Configuration config, Stream stream, IDecoderOptions options) where TColor : struct, IPixel<TColor>
+            public Image<TPixel> Decode<TPixel>(Configuration config, Stream stream, IDecoderOptions options) where TPixel : struct, IPixel<TPixel>
 
             {
                 var ms = new MemoryStream();
@@ -163,7 +163,7 @@ namespace ImageSharp.Tests
                 });
 
                 // TODO record this happend so we an verify it.
-                return this.testFormat.Sample<TColor>();
+                return this.testFormat.Sample<TPixel>();
             }
         }
 
@@ -176,7 +176,7 @@ namespace ImageSharp.Tests
                 this.testFormat = testFormat;
             }
 
-            public void Encode<TColor>(Image<TColor> image, Stream stream, IEncoderOptions options) where TColor : struct, IPixel<TColor>
+            public void Encode<TPixel>(Image<TPixel> image, Stream stream, IEncoderOptions options) where TPixel : struct, IPixel<TPixel>
             {
                 // TODO record this happend so we an verify it.
             }

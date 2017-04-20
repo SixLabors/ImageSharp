@@ -14,18 +14,18 @@ namespace ImageSharp.Drawing.Processors
     /// <summary>
     /// Combines two images together by blending the pixels.
     /// </summary>
-    /// <typeparam name="TColor">The pixel format.</typeparam>
-    internal class DrawImageProcessor<TColor> : ImageProcessor<TColor>
-        where TColor : struct, IPixel<TColor>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    internal class DrawImageProcessor<TPixel> : ImageProcessor<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="DrawImageProcessor{TColor}"/> class.
+        /// Initializes a new instance of the <see cref="DrawImageProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="image">The image to blend with the currently processing image.</param>
         /// <param name="size">The size to draw the blended image.</param>
         /// <param name="location">The location to draw the blended image.</param>
         /// <param name="alpha">The opacity of the image to blend. Between 0 and 100.</param>
-        public DrawImageProcessor(Image<TColor> image, Size size, Point location, int alpha = 100)
+        public DrawImageProcessor(Image<TPixel> image, Size size, Point location, int alpha = 100)
         {
             Guard.MustBeBetweenOrEqualTo(alpha, 0, 100, nameof(alpha));
             this.Image = image;
@@ -37,7 +37,7 @@ namespace ImageSharp.Drawing.Processors
         /// <summary>
         /// Gets the image to blend.
         /// </summary>
-        public Image<TColor> Image { get; private set; }
+        public Image<TPixel> Image { get; private set; }
 
         /// <summary>
         /// Gets the alpha percentage value.
@@ -55,7 +55,7 @@ namespace ImageSharp.Drawing.Processors
         public Point Location { get; }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
         {
             if (this.Image.Bounds.Size != this.Size)
             {
@@ -72,8 +72,8 @@ namespace ImageSharp.Drawing.Processors
 
             float alpha = this.Alpha / 100F;
 
-            using (PixelAccessor<TColor> toBlendPixels = this.Image.Lock())
-            using (PixelAccessor<TColor> sourcePixels = source.Lock())
+            using (PixelAccessor<TPixel> toBlendPixels = this.Image.Lock())
+            using (PixelAccessor<TPixel> sourcePixels = source.Lock())
             {
                 Parallel.For(
                     minY,
@@ -89,7 +89,7 @@ namespace ImageSharp.Drawing.Processors
                                 // Lerping colors is dependent on the alpha of the blended color
                                 backgroundVector = Vector4BlendTransforms.PremultipliedLerp(backgroundVector, sourceVector, alpha);
 
-                                TColor packed = default(TColor);
+                                TPixel packed = default(TPixel);
                                 packed.PackFromVector4(backgroundVector);
                                 sourcePixels[x, y] = packed;
                             }

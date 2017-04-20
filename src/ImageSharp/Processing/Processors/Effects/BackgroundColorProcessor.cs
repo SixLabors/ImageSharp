@@ -12,15 +12,15 @@ namespace ImageSharp.Processing.Processors
     /// <summary>
     /// Sets the background color of the image.
     /// </summary>
-    /// <typeparam name="TColor">The pixel format.</typeparam>
-    internal class BackgroundColorProcessor<TColor> : ImageProcessor<TColor>
-        where TColor : struct, IPixel<TColor>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    internal class BackgroundColorProcessor<TPixel> : ImageProcessor<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="BackgroundColorProcessor{TColor}"/> class.
+        /// Initializes a new instance of the <see cref="BackgroundColorProcessor{TPixel}"/> class.
         /// </summary>
-        /// <param name="color">The <typeparamref name="TColor"/> to set the background color to.</param>
-        public BackgroundColorProcessor(TColor color)
+        /// <param name="color">The <typeparamref name="TPixel"/> to set the background color to.</param>
+        public BackgroundColorProcessor(TPixel color)
         {
             this.Value = color;
         }
@@ -28,10 +28,10 @@ namespace ImageSharp.Processing.Processors
         /// <summary>
         /// Gets the background color value.
         /// </summary>
-        public TColor Value { get; }
+        public TPixel Value { get; }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
         {
             int startY = sourceRectangle.Y;
             int endY = sourceRectangle.Bottom;
@@ -57,7 +57,7 @@ namespace ImageSharp.Processing.Processors
 
             Vector4 backgroundColor = this.Value.ToVector4();
 
-            using (PixelAccessor<TColor> sourcePixels = source.Lock())
+            using (PixelAccessor<TPixel> sourcePixels = source.Lock())
             {
                 Parallel.For(
                     minY,
@@ -82,7 +82,7 @@ namespace ImageSharp.Processing.Processors
                                 color = backgroundColor;
                             }
 
-                            TColor packed = default(TColor);
+                            TPixel packed = default(TPixel);
                             packed.PackFromVector4(color);
                             sourcePixels[offsetX, offsetY] = packed;
                         }

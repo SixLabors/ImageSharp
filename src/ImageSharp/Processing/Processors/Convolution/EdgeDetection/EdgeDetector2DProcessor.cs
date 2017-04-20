@@ -10,12 +10,12 @@ namespace ImageSharp.Processing.Processors
     /// <summary>
     /// Defines a sampler that detects edges within an image using two one-dimensional matrices.
     /// </summary>
-    /// <typeparam name="TColor">The pixel format.</typeparam>
-    internal abstract class EdgeDetector2DProcessor<TColor> : ImageProcessor<TColor>, IEdgeDetectorProcessor<TColor>
-        where TColor : struct, IPixel<TColor>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    internal abstract class EdgeDetector2DProcessor<TPixel> : ImageProcessor<TPixel>, IEdgeDetectorProcessor<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="EdgeDetector2DProcessor{TColor}"/> class.
+        /// Initializes a new instance of the <see cref="EdgeDetector2DProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="kernelX">The horizontal gradient operator.</param>
         /// <param name="kernelY">The vertical gradient operator.</param>
@@ -39,17 +39,17 @@ namespace ImageSharp.Processing.Processors
         public bool Grayscale { get; set; }
 
         /// <inheritdoc />
-        protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
         {
-            new Convolution2DProcessor<TColor>(this.KernelX, this.KernelY).Apply(source, sourceRectangle);
+            new Convolution2DProcessor<TPixel>(this.KernelX, this.KernelY).Apply(source, sourceRectangle);
         }
 
         /// <inheritdoc/>
-        protected override void BeforeApply(ImageBase<TColor> source, Rectangle sourceRectangle)
+        protected override void BeforeApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
         {
             if (this.Grayscale)
             {
-                new GrayscaleBt709Processor<TColor>().Apply(source, sourceRectangle);
+                new GrayscaleBt709Processor<TPixel>().Apply(source, sourceRectangle);
             }
         }
     }

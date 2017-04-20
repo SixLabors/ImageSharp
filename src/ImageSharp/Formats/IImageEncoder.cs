@@ -14,13 +14,13 @@ namespace ImageSharp.Formats
     public interface IImageEncoder
     {
         /// <summary>
-        /// Encodes the image to the specified stream from the <see cref="Image{TColor}"/>.
+        /// Encodes the image to the specified stream from the <see cref="Image{TPixel}"/>.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <param name="image">The <see cref="Image{TColor}"/> to encode from.</param>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="image">The <see cref="Image{TPixel}"/> to encode from.</param>
         /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
         /// <param name="options">The options for the encoder.</param>
-        void Encode<TColor>(Image<TColor> image, Stream stream, IEncoderOptions options)
-            where TColor : struct, IPixel<TColor>;
+        void Encode<TPixel>(Image<TPixel> image, Stream stream, IEncoderOptions options)
+            where TPixel : struct, IPixel<TPixel>;
     }
 }

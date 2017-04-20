@@ -12,9 +12,9 @@ namespace ImageSharp.Processing.Processors
     /// <summary>
     /// Provides methods that allow the skewing of images.
     /// </summary>
-    /// <typeparam name="TColor">The pixel format.</typeparam>
-    internal class SkewProcessor<TColor> : Matrix3x2Processor<TColor>
-        where TColor : struct, IPixel<TColor>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    internal class SkewProcessor<TPixel> : Matrix3x2Processor<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
         /// The transform matrix to apply.
@@ -37,15 +37,15 @@ namespace ImageSharp.Processing.Processors
         public bool Expand { get; set; } = true;
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
         {
             int height = this.CanvasRectangle.Height;
             int width = this.CanvasRectangle.Width;
             Matrix3x2 matrix = this.GetCenteredMatrix(source, this.processMatrix);
 
-            using (PixelAccessor<TColor> targetPixels = new PixelAccessor<TColor>(width, height))
+            using (PixelAccessor<TPixel> targetPixels = new PixelAccessor<TPixel>(width, height))
             {
-                using (PixelAccessor<TColor> sourcePixels = source.Lock())
+                using (PixelAccessor<TPixel> sourcePixels = source.Lock())
                 {
                     Parallel.For(
                         0,
@@ -69,7 +69,7 @@ namespace ImageSharp.Processing.Processors
         }
 
         /// <inheritdoc/>
-        protected override void BeforeApply(ImageBase<TColor> source, Rectangle sourceRectangle)
+        protected override void BeforeApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
         {
             this.processMatrix = Point.CreateSkew(new Point(0, 0), -this.AngleX, -this.AngleY);
             if (this.Expand)

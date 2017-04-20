@@ -12,10 +12,10 @@ namespace ImageSharp.Processing.Processors
     /// The Prewitt operator filter.
     /// <see href="http://en.wikipedia.org/wiki/Prewitt_operator"/>
     /// </summary>
-    /// <typeparam name="TColor">The pixel format.</typeparam>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
     [SuppressMessage("ReSharper", "StaticMemberInGenericType", Justification = "We want to use only one instance of each array field for each generic type.")]
-    internal class PrewittProcessor<TColor> : EdgeDetector2DProcessor<TColor>
-        where TColor : struct, IPixel<TColor>
+    internal class PrewittProcessor<TPixel> : EdgeDetector2DProcessor<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
         /// The horizontal gradient operator.
@@ -40,7 +40,7 @@ namespace ImageSharp.Processing.Processors
             };
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="PrewittProcessor{TColor}"/> class.
+        /// Initializes a new instance of the <see cref="PrewittProcessor{TPixel}"/> class.
         /// </summary>
         public PrewittProcessor()
             : base(PrewittX, PrewittY)

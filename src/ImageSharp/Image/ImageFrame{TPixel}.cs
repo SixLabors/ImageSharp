@@ -1,4 +1,4 @@
-﻿// <copyright file="ImageFrame{TColor}.cs" company="James Jackson-South">
+﻿// <copyright file="ImageFrame{TPixel}.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -12,12 +12,12 @@ namespace ImageSharp
     /// <summary>
     /// Represents a single frame in a animation.
     /// </summary>
-    /// <typeparam name="TColor">The pixel format.</typeparam>
-    public class ImageFrame<TColor> : ImageBase<TColor>, IImageFrame
-        where TColor : struct, IPixel<TColor>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    public class ImageFrame<TPixel> : ImageBase<TPixel>, IImageFrame
+        where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="ImageFrame{TColor}"/> class.
+        /// Initializes a new instance of the <see cref="ImageFrame{TPixel}"/> class.
         /// </summary>
         /// <param name="width">The width of the image in pixels.</param>
         /// <param name="height">The height of the image in pixels.</param>
@@ -30,10 +30,10 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ImageFrame{TColor}"/> class.
+        /// Initializes a new instance of the <see cref="ImageFrame{TPixel}"/> class.
         /// </summary>
         /// <param name="image">The image to create the frame from.</param>
-        public ImageFrame(ImageBase<TColor> image)
+        public ImageFrame(ImageBase<TPixel> image)
             : base(image)
         {
         }
@@ -53,18 +53,18 @@ namespace ImageSharp
         /// Returns a copy of the image frame in the given pixel format.
         /// </summary>
         /// <param name="scaleFunc">A function that allows for the correction of vector scaling between unknown color formats.</param>
-        /// <typeparam name="TColor2">The pixel format.</typeparam>
-        /// <returns>The <see cref="ImageFrame{TColor2}"/></returns>
-        public ImageFrame<TColor2> To<TColor2>(Func<Vector4, Vector4> scaleFunc = null)
-            where TColor2 : struct, IPixel<TColor2>
+        /// <typeparam name="TPixel2">The pixel format.</typeparam>
+        /// <returns>The <see cref="ImageFrame{TPixel2}"/></returns>
+        public ImageFrame<TPixel2> To<TPixel2>(Func<Vector4, Vector4> scaleFunc = null)
+            where TPixel2 : struct, IPixel<TPixel2>
         {
-            scaleFunc = PackedPixelConverterHelper.ComputeScaleFunction<TColor, TColor2>(scaleFunc);
+            scaleFunc = PackedPixelConverterHelper.ComputeScaleFunction<TPixel, TPixel2>(scaleFunc);
 
-            ImageFrame<TColor2> target = new ImageFrame<TColor2>(this.Width, this.Height, this.Configuration);
+            ImageFrame<TPixel2> target = new ImageFrame<TPixel2>(this.Width, this.Height, this.Configuration);
             target.CopyProperties(this);
 
-            using (PixelAccessor<TColor> pixels = this.Lock())
-            using (PixelAccessor<TColor2> targetPixels = target.Lock())
+            using (PixelAccessor<TPixel> pixels = this.Lock())
+            using (PixelAccessor<TPixel2> targetPixels = target.Lock())
             {
                 Parallel.For(
                     0,
@@ -74,7 +74,7 @@ namespace ImageSharp
                     {
                         for (int x = 0; x < target.Width; x++)
                         {
-                            TColor2 color = default(TColor2);
+                            TPixel2 color = default(TPixel2);
                             color.PackFromVector4(scaleFunc(pixels[x, y].ToVector4()));
                             targetPixels[x, y] = color;
                         }
@@ -87,10 +87,10 @@ namespace ImageSharp
         /// <summary>
         /// Clones the current instance.
         /// </summary>
-        /// <returns>The <see cref="ImageFrame{TColor}"/></returns>
-        internal virtual ImageFrame<TColor> Clone()
+        /// <returns>The <see cref="ImageFrame{TPixel}"/></returns>
+        internal virtual ImageFrame<TPixel> Clone()
         {
-            return new ImageFrame<TColor>(this);
+            return new ImageFrame<TPixel>(this);
         }
 
         /// <summary>

@@ -10,21 +10,21 @@ namespace ImageSharp
     using Processing.Processors;
 
     /// <summary>
-    /// Extension methods for the <see cref="Image{TColor}"/> type.
+    /// Extension methods for the <see cref="Image{TPixel}"/> type.
     /// </summary>
     public static partial class ImageExtensions
     {
         /// <summary>
         /// Crops an image to the area of greatest entropy.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image to crop.</param>
         /// <param name="threshold">The threshold for entropic density.</param>
         /// <returns>The <see cref="Image"/></returns>
-        public static Image<TColor> EntropyCrop<TColor>(this Image<TColor> source, float threshold = .5f)
-            where TColor : struct, IPixel<TColor>
+        public static Image<TPixel> EntropyCrop<TPixel>(this Image<TPixel> source, float threshold = .5f)
+            where TPixel : struct, IPixel<TPixel>
         {
-            EntropyCropProcessor<TColor> processor = new EntropyCropProcessor<TColor>(threshold);
+            EntropyCropProcessor<TPixel> processor = new EntropyCropProcessor<TPixel>(threshold);
 
             source.ApplyProcessor(processor, source.Bounds);
             return source;

@@ -1,4 +1,4 @@
-﻿// <copyright file="ImageBase{TColor}.cs" company="James Jackson-South">
+﻿// <copyright file="ImageBase{TPixel}.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -13,10 +13,10 @@ namespace ImageSharp
     /// The base class of all images. Encapsulates the basic properties and methods required to manipulate
     /// images in different pixel formats.
     /// </summary>
-    /// <typeparam name="TColor">The pixel format.</typeparam>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
     [DebuggerDisplay("Image: {Width}x{Height}")]
-    public abstract class ImageBase<TColor> : IImageBase<TColor>
-        where TColor : struct, IPixel<TColor>
+    public abstract class ImageBase<TPixel> : IImageBase<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
         /// Gets or sets the maximum allowable width in pixels.
@@ -31,7 +31,7 @@ namespace ImageSharp
         /// <summary>
         /// The image pixels
         /// </summary>
-        private TColor[] pixelBuffer;
+        private TPixel[] pixelBuffer;
 
         /// <summary>
         /// A value indicating whether this instance of the given entity has been disposed.
@@ -45,7 +45,7 @@ namespace ImageSharp
         private bool isDisposed;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ImageBase{TColor}"/> class.
+        /// Initializes a new instance of the <see cref="ImageBase{TPixel}"/> class.
         /// </summary>
         /// <param name="configuration">
         /// The configuration providing initialization code which allows extending the library.
@@ -56,7 +56,7 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ImageBase{TColor}"/> class.
+        /// Initializes a new instance of the <see cref="ImageBase{TPixel}"/> class.
         /// </summary>
         /// <param name="width">The width of the image in pixels.</param>
         /// <param name="height">The height of the image in pixels.</param>
@@ -79,15 +79,15 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ImageBase{TColor}"/> class.
+        /// Initializes a new instance of the <see cref="ImageBase{TPixel}"/> class.
         /// </summary>
         /// <param name="other">
-        /// The other <see cref="ImageBase{TColor}"/> to create this instance from.
+        /// The other <see cref="ImageBase{TPixel}"/> to create this instance from.
         /// </param>
         /// <exception cref="System.ArgumentNullException">
-        /// Thrown if the given <see cref="ImageBase{TColor}"/> is null.
+        /// Thrown if the given <see cref="ImageBase{TPixel}"/> is null.
         /// </exception>
-        protected ImageBase(ImageBase<TColor> other)
+        protected ImageBase(ImageBase<TPixel> other)
             : this(other.Configuration)
         {
             Guard.NotNull(other, nameof(other), "Other image cannot be null.");
@@ -98,8 +98,8 @@ namespace ImageSharp
 
             // Rent then copy the pixels. Unsafe.CopyBlock gives us a nice speed boost here.
             this.RentPixels();
-            using (PixelAccessor<TColor> sourcePixels = other.Lock())
-            using (PixelAccessor<TColor> target = this.Lock())
+            using (PixelAccessor<TPixel> sourcePixels = other.Lock())
+            using (PixelAccessor<TPixel> target = this.Lock())
             {
                 // Check we can do this without crashing
                 sourcePixels.CopyTo(target);
@@ -107,7 +107,7 @@ namespace ImageSharp
         }
 
         /// <inheritdoc/>
-        public TColor[] Pixels => this.pixelBuffer;
+        public TPixel[] Pixels => this.pixelBuffer;
 
         /// <inheritdoc/>
         public int Width { get; private set; }
@@ -131,7 +131,7 @@ namespace ImageSharp
         /// </summary>
         /// <param name="processor">The processor.</param>
         /// <param name="rectangle">The rectangle.</param>
-        public virtual void ApplyProcessor(IImageProcessor<TColor> processor, Rectangle rectangle)
+        public virtual void ApplyProcessor(IImageProcessor<TPixel> processor, Rectangle rectangle)
         {
             processor.Apply(this, rectangle);
         }
@@ -150,16 +150,16 @@ namespace ImageSharp
         }
 
         /// <inheritdoc/>
-        public PixelAccessor<TColor> Lock()
+        public PixelAccessor<TPixel> Lock()
         {
-            return new PixelAccessor<TColor>(this);
+            return new PixelAccessor<TPixel>(this);
         }
 
         /// <summary>
         /// Switches the buffers used by the image and the PixelAccessor meaning that the Image will "own" the buffer from the PixelAccessor and the PixelAccessor will now own the Images buffer.
         /// </summary>
         /// <param name="pixelSource">The pixel source.</param>
-        internal void SwapPixelsBuffers(PixelAccessor<TColor> pixelSource)
+        internal void SwapPixelsBuffers(PixelAccessor<TPixel> pixelSource)
         {
             Guard.NotNull(pixelSource, nameof(pixelSource));
 
@@ -167,7 +167,6 @@ namespace ImageSharp
             int newHeight = pixelSource.Height;
 
             // Push my memory into the accessor (which in turn unpins the old puffer ready for the images use)
-            TColor[] newPixels = pixelSource.ReturnCurrentPixelsAndReplaceThemInternally(this.Width, this.Height, this.pixelBuffer);
             this.Width = newWidth;
             this.Height = newHeight;
             this.pixelBuffer = newPixels;
@@ -221,7 +220,7 @@ namespace ImageSharp
         /// </summary>
         private void RentPixels()
         {
-            this.pixelBuffer = PixelDataPool<TColor>.Rent(this.Width * this.Height);
+            this.pixelBuffer = PixelDataPool<TPixel>.Rent(this.Width * this.Height);
         }
 
         /// <summary>
@@ -229,7 +228,7 @@ namespace ImageSharp
         /// </summary>
         private void ReturnPixels()
         {
-            PixelDataPool<TColor>.Return(this.pixelBuffer);
+            PixelDataPool<TPixel>.Return(this.pixelBuffer);
             this.pixelBuffer = null;
         }
 

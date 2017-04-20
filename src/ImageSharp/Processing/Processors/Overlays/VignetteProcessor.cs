@@ -10,17 +10,17 @@ namespace ImageSharp.Processing.Processors
     using System.Threading.Tasks;
 
     /// <summary>
-    /// An <see cref="IImageProcessor{TColor}"/> that applies a radial vignette effect to an <see cref="Image{TColor}"/>.
+    /// An <see cref="IImageProcessor{TPixel}"/> that applies a radial vignette effect to an <see cref="Image{TPixel}"/>.
     /// </summary>
-    /// <typeparam name="TColor">The pixel format.</typeparam>
-    internal class VignetteProcessor<TColor> : ImageProcessor<TColor>
-        where TColor : struct, IPixel<TColor>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    internal class VignetteProcessor<TPixel> : ImageProcessor<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="VignetteProcessor{TColor}" /> class.
+        /// Initializes a new instance of the <see cref="VignetteProcessor{TPixel}" /> class.
         /// </summary>
         /// <param name="color">The color of the vignette.</param>
-        public VignetteProcessor(TColor color)
+        public VignetteProcessor(TPixel color)
         {
             this.VignetteColor = color;
         }
@@ -28,7 +28,7 @@ namespace ImageSharp.Processing.Processors
         /// <summary>
         /// Gets or sets the vignette color to apply.
         /// </summary>
-        public TColor VignetteColor { get; set; }
+        public TPixel VignetteColor { get; set; }
 
         /// <summary>
         /// Gets or sets the the x-radius.
@@ -41,13 +41,13 @@ namespace ImageSharp.Processing.Processors
         public float RadiusY { get; set; }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
         {
             int startY = sourceRectangle.Y;
             int endY = sourceRectangle.Bottom;
             int startX = sourceRectangle.X;
             int endX = sourceRectangle.Right;
-            TColor vignetteColor = this.VignetteColor;
+            TPixel vignetteColor = this.VignetteColor;
             Vector2 centre = Rectangle.Center(sourceRectangle).ToVector2();
             float rX = this.RadiusX > 0 ? MathF.Min(this.RadiusX, sourceRectangle.Width * .5F) : sourceRectangle.Width * .5F;
             float rY = this.RadiusY > 0 ? MathF.Min(this.RadiusY, sourceRectangle.Height * .5F) : sourceRectangle.Height * .5F;
@@ -70,7 +70,7 @@ namespace ImageSharp.Processing.Processors
                 startY = 0;
             }
 
-            using (PixelAccessor<TColor> sourcePixels = source.Lock())
+            using (PixelAccessor<TPixel> sourcePixels = source.Lock())
             {
                 Parallel.For(
                     minY,
@@ -84,7 +84,7 @@ namespace ImageSharp.Processing.Processors
                                 int offsetX = x - startX;
                                 float distance = Vector2.Distance(centre, new Vector2(offsetX, offsetY));
                                 Vector4 sourceColor = sourcePixels[offsetX, offsetY].ToVector4();
-                                TColor packed = default(TColor);
+                                TPixel packed = default(TPixel);
                                 packed.PackFromVector4(Vector4BlendTransforms.PremultipliedLerp(sourceColor, vignetteColor.ToVector4(), .9F * (distance / maxDistance)));
                                 sourcePixels[offsetX, offsetY] = packed;
                             }

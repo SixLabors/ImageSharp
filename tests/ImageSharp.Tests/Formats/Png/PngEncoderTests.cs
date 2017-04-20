@@ -17,10 +17,10 @@ namespace ImageSharp.Tests
     {
         [Theory]
         [WithBlankImages(1, 1, PixelTypes.All)]
-        public void WritesFileMarker<TColor>(TestImageProvider<TColor> provider)
-            where TColor : struct, IPixel<TColor>
+        public void WritesFileMarker<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TColor> image = provider.GetImage())
+            using (Image<TPixel> image = provider.GetImage())
             using (MemoryStream ms = new MemoryStream())
             {
                 image.Save(ms, new PngEncoder());

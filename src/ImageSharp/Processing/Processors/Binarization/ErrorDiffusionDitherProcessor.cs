@@ -10,14 +10,14 @@ namespace ImageSharp.Processing.Processors
     using ImageSharp.Dithering;
 
     /// <summary>
-    /// An <see cref="IImageProcessor{TColor}"/> that dithers an image using error diffusion.
+    /// An <see cref="IImageProcessor{TPixel}"/> that dithers an image using error diffusion.
     /// </summary>
-    /// <typeparam name="TColor">The pixel format.</typeparam>
-    internal class ErrorDiffusionDitherProcessor<TColor> : ImageProcessor<TColor>
-        where TColor : struct, IPixel<TColor>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    internal class ErrorDiffusionDitherProcessor<TPixel> : ImageProcessor<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="ErrorDiffusionDitherProcessor{TColor}"/> class.
+        /// Initializes a new instance of the <see cref="ErrorDiffusionDitherProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="diffuser">The error diffuser</param>
         /// <param name="threshold">The threshold to split the image. Must be between 0 and 1.</param>
@@ -29,8 +29,8 @@ namespace ImageSharp.Processing.Processors
             this.Threshold = threshold;
 
             // Default to white/black for upper/lower.
-            this.UpperColor = NamedColors<TColor>.White;
-            this.LowerColor = NamedColors<TColor>.Black;
+            this.UpperColor = NamedColors<TPixel>.White;
+            this.LowerColor = NamedColors<TPixel>.Black;
         }
 
         /// <summary>
@@ -46,21 +46,21 @@ namespace ImageSharp.Processing.Processors
         /// <summary>
         /// Gets or sets the color to use for pixels that are above the threshold.
         /// </summary>
-        public TColor UpperColor { get; set; }
+        public TPixel UpperColor { get; set; }
 
         /// <summary>
         /// Gets or sets the color to use for pixels that fall below the threshold.
         /// </summary>
-        public TColor LowerColor { get; set; }
+        public TPixel LowerColor { get; set; }
 
         /// <inheritdoc/>
-        protected override void BeforeApply(ImageBase<TColor> source, Rectangle sourceRectangle)
+        protected override void BeforeApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
         {
-            new GrayscaleBt709Processor<TColor>().Apply(source, sourceRectangle);
+            new GrayscaleBt709Processor<TPixel>().Apply(source, sourceRectangle);
         }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
         {
             int startY = sourceRectangle.Y;
             int endY = sourceRectangle.Bottom;
@@ -84,7 +84,7 @@ namespace ImageSharp.Processing.Processors
                 startY = 0;
             }
 
-            using (PixelAccessor<TColor> sourcePixels = source.Lock())
+            using (PixelAccessor<TPixel> sourcePixels = source.Lock())
             {
                 for (int y = minY; y < maxY; y++)
                 {
@@ -92,8 +92,8 @@ namespace ImageSharp.Processing.Processors
                     for (int x = minX; x < maxX; x++)
                     {
                         int offsetX = x - startX;
-                        TColor sourceColor = sourcePixels[offsetX, offsetY];
-                        TColor transformedColor = sourceColor.ToVector4().X >= this.Threshold ? this.UpperColor : this.LowerColor;
+                        TPixel sourceColor = sourcePixels[offsetX, offsetY];
+                        TPixel transformedColor = sourceColor.ToVector4().X >= this.Threshold ? this.UpperColor : this.LowerColor;
                         this.Diffuser.Dither(sourcePixels, sourceColor, transformedColor, offsetX, offsetY, maxX, maxY);
                     }
                 }

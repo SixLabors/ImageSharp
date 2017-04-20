@@ -10,18 +10,18 @@ namespace ImageSharp
     using Processing.Processors;
 
     /// <summary>
-    /// Extension methods for the <see cref="Image{TColor}"/> type.
+    /// Extension methods for the <see cref="Image{TPixel}"/> type.
     /// </summary>
     public static partial class ImageExtensions
     {
         /// <summary>
         /// Inverts the colors of the image.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image<TColor> Invert<TColor>(this Image<TColor> source)
-            where TColor : struct, IPixel<TColor>
+        public static Image<TPixel> Invert<TPixel>(this Image<TPixel> source)
+            where TPixel : struct, IPixel<TPixel>
         {
             return Invert(source, source.Bounds);
         }
@@ -29,16 +29,16 @@ namespace ImageSharp
         /// <summary>
         /// Inverts the colors of the image.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image<TColor> Invert<TColor>(this Image<TColor> source, Rectangle rectangle)
-            where TColor : struct, IPixel<TColor>
+        public static Image<TPixel> Invert<TPixel>(this Image<TPixel> source, Rectangle rectangle)
+            where TPixel : struct, IPixel<TPixel>
         {
-            source.ApplyProcessor(new InvertProcessor<TColor>(), rectangle);
+            source.ApplyProcessor(new InvertProcessor<TPixel>(), rectangle);
             return source;
         }
     }

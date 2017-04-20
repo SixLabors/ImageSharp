@@ -12,16 +12,16 @@ namespace ImageSharp.Drawing.Processors
     /// <summary>
     /// primitive that converts a point in to a color for discovering the fill color based on an implementation
     /// </summary>
-    /// <typeparam name="TColor">The pixel format.</typeparam>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
     /// <seealso cref="System.IDisposable" />
-    public abstract class BrushApplicator<TColor> : IDisposable // disposable will be required if/when there is an ImageBrush
-        where TColor : struct, IPixel<TColor>
+    public abstract class BrushApplicator<TPixel> : IDisposable // disposable will be required if/when there is an ImageBrush
+        where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="BrushApplicator{TColor}"/> class.
+        /// Initializes a new instance of the <see cref="BrushApplicator{TPixel}"/> class.
         /// </summary>
         /// <param name="target">The target.</param>
-        internal BrushApplicator(PixelAccessor<TColor> target)
+        internal BrushApplicator(PixelAccessor<TPixel> target)
         {
             this.Target = target;
         }
@@ -29,15 +29,15 @@ namespace ImageSharp.Drawing.Processors
         /// <summary>
         /// Gets the destinaion
         /// </summary>
-        protected PixelAccessor<TColor> Target { get; }
+        protected PixelAccessor<TPixel> Target { get; }
 
         /// <summary>
         /// Gets the color for a single pixel.
         /// </summary>
         /// <param name="x">The x cordinate.</param>
         /// <param name="y">The y cordinate.</param>
-        /// <returns>The a <typeparamref name="TColor"/> that should be applied to the pixel.</returns>
-        internal abstract TColor this[int x, int y] { get; }
+        /// <returns>The a <typeparamref name="TPixel"/> that should be applied to the pixel.</returns>
+        internal abstract TPixel this[int x, int y] { get; }
 
         /// <inheritdoc/>
         public abstract void Dispose();
@@ -73,7 +73,7 @@ namespace ImageSharp.Drawing.Processors
 
                         Vector4 finalColor = Vector4BlendTransforms.PremultipliedLerp(backgroundVector, sourceVector, opacity);
 
-                        TColor packed = default(TColor);
+                        TPixel packed = default(TPixel);
                         packed.PackFromVector4(finalColor);
                         this.Target[targetX, targetY] = packed;
                     }

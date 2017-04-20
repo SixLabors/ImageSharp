@@ -31,10 +31,10 @@ namespace ImageSharp.Tests
         [WithFile(TestImages.Jpeg.Baseline.Lake, PixelTypes.StandardImageClass, 75, JpegSubsample.Ratio420)]
         [WithFile(TestImages.Jpeg.Baseline.Snake, PixelTypes.StandardImageClass, 75, JpegSubsample.Ratio444)]
         [WithFile(TestImages.Jpeg.Baseline.Lake, PixelTypes.StandardImageClass, 75, JpegSubsample.Ratio444)]
-        public void LoadResizeSave<TColor>(TestImageProvider<TColor> provider, int quality, JpegSubsample subsample)
-            where TColor : struct, IPixel<TColor>
+        public void LoadResizeSave<TPixel>(TestImageProvider<TPixel> provider, int quality, JpegSubsample subsample)
+            where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TColor> image = provider.GetImage().Resize(new ResizeOptions { Size = new Size(150, 100), Mode = ResizeMode.Max }))
+            using (Image<TPixel> image = provider.GetImage().Resize(new ResizeOptions { Size = new Size(150, 100), Mode = ResizeMode.Max }))
             {
                 image.MetaData.Quality = quality;
                 image.MetaData.ExifProfile = null; // Reduce the size of the file
@@ -50,10 +50,10 @@ namespace ImageSharp.Tests
         [Theory]
         [WithFileCollection(nameof(AllBmpFiles), PixelTypes.Rgba32 | PixelTypes.StandardImageClass | PixelTypes.Argb32, JpegSubsample.Ratio420, 75)]
         [WithFileCollection(nameof(AllBmpFiles), PixelTypes.Rgba32 | PixelTypes.StandardImageClass | PixelTypes.Argb32, JpegSubsample.Ratio444, 75)]
-        public void OpenBmp_SaveJpeg<TColor>(TestImageProvider<TColor> provider, JpegSubsample subSample, int quality)
-           where TColor : struct, IPixel<TColor>
+        public void OpenBmp_SaveJpeg<TPixel>(TestImageProvider<TPixel> provider, JpegSubsample subSample, int quality)
+           where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TColor> image = provider.GetImage())
+            using (Image<TPixel> image = provider.GetImage())
             {
                 ImagingTestCaseUtility utility = provider.Utility;
                 utility.TestName += "_" + subSample + "_Q" + quality;

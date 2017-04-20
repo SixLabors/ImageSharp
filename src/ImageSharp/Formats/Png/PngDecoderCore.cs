@@ -154,7 +154,7 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Decodes the stream to the image.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="stream">The stream containing image data. </param>
         /// <exception cref="ImageFormatException">
         /// Thrown if the stream does not contain and end chunk.
@@ -163,8 +163,8 @@ namespace ImageSharp.Formats
         /// Thrown if the image is larger than the maximum allowable size.
         /// </exception>
         /// <returns>The decoded image</returns>
-        public Image<TColor> Decode<TColor>(Stream stream)
-            where TColor : struct, IPixel<TColor>
+        public Image<TPixel> Decode<TPixel>(Stream stream)
+            where TPixel : struct, IPixel<TPixel>
         {
             ImageMetaData metadata = new ImageMetaData();
             this.currentStream = stream;
@@ -215,14 +215,14 @@ namespace ImageSharp.Formats
                     }
                 }
 
-                if (this.header.Width > Image<TColor>.MaxWidth || this.header.Height > Image<TColor>.MaxHeight)
+                if (this.header.Width > Image<TPixel>.MaxWidth || this.header.Height > Image<TPixel>.MaxHeight)
                 {
-                    throw new ArgumentOutOfRangeException($"The input png '{this.header.Width}x{this.header.Height}' is bigger than the max allowed size '{Image<TColor>.MaxWidth}x{Image<TColor>.MaxHeight}'");
+                    throw new ArgumentOutOfRangeException($"The input png '{this.header.Width}x{this.header.Height}' is bigger than the max allowed size '{Image<TPixel>.MaxWidth}x{Image<TPixel>.MaxHeight}'");
                 }
 
-                Image<TColor> image = Image.Create<TColor>(this.header.Width, this.header.Height, metadata, this.configuration);
+                Image<TPixel> image = Image.Create<TPixel>(this.header.Width, this.header.Height, metadata, this.configuration);
 
-                using (PixelAccessor<TColor> pixels = image.Lock())
+                using (PixelAccessor<TPixel> pixels = image.Lock())
                 {
                     this.ReadScanlines(dataStream, pixels);
                 }
@@ -340,11 +340,11 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Reads the scanlines within the image.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="dataStream">The <see cref="MemoryStream"/> containing data.</param>
         /// <param name="pixels"> The pixel data.</param>
-        private void ReadScanlines<TColor>(MemoryStream dataStream, PixelAccessor<TColor> pixels)
-            where TColor : struct, IPixel<TColor>
+        private void ReadScanlines<TPixel>(MemoryStream dataStream, PixelAccessor<TPixel> pixels)
+            where TPixel : struct, IPixel<TPixel>
         {
             this.bytesPerPixel = this.CalculateBytesPerPixel();
             this.bytesPerScanline = this.CalculateScanlineLength(this.header.Width) + 1;
@@ -371,11 +371,11 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Decodes the raw pixel data row by row
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="compressedStream">The compressed pixel data stream.</param>
         /// <param name="pixels">The image pixel accessor.</param>
-        private void DecodePixelData<TColor>(Stream compressedStream, PixelAccessor<TColor> pixels)
-            where TColor : struct, IPixel<TColor>
+        private void DecodePixelData<TPixel>(Stream compressedStream, PixelAccessor<TPixel> pixels)
+            where TPixel : struct, IPixel<TPixel>
         {
             byte[] previousScanline = ArrayPool<byte>.Shared.Rent(this.bytesPerScanline);
             byte[] scanline = ArrayPool<byte>.Shared.Rent(this.bytesPerScanline);
@@ -444,11 +444,11 @@ namespace ImageSharp.Formats
         /// Decodes the raw interlaced pixel data row by row
         /// <see href="https://github.com/juehv/DentalImageViewer/blob/8a1a4424b15d6cc453b5de3f273daf3ff5e3a90d/DentalImageViewer/lib/jiu-0.14.3/net/sourceforge/jiu/codecs/PNGCodec.java"/>
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="compressedStream">The compressed pixel data stream.</param>
         /// <param name="pixels">The image pixel accessor.</param>
-        private void DecodeInterlacedPixelData<TColor>(Stream compressedStream, PixelAccessor<TColor> pixels)
-            where TColor : struct, IPixel<TColor>
+        private void DecodeInterlacedPixelData<TPixel>(Stream compressedStream, PixelAccessor<TPixel> pixels)
+            where TPixel : struct, IPixel<TPixel>
         {
             byte[] previousScanline = ArrayPool<byte>.Shared.Rent(this.bytesPerScanline);
             byte[] scanline = ArrayPool<byte>.Shared.Rent(this.bytesPerScanline);
@@ -532,14 +532,14 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Processes the de-filtered scanline filling the image pixel data
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="defilteredScanline">The de-filtered scanline</param>
         /// <param name="row">The current image row.</param>
         /// <param name="pixels">The image pixels</param>
-        private void ProcessDefilteredScanline<TColor>(byte[] defilteredScanline, int row, PixelAccessor<TColor> pixels)
-            where TColor : struct, IPixel<TColor>
+        private void ProcessDefilteredScanline<TPixel>(byte[] defilteredScanline, int row, PixelAccessor<TPixel> pixels)
+            where TPixel : struct, IPixel<TPixel>
         {
-            TColor color = default(TColor);
+            TPixel color = default(TPixel);
             switch (this.PngColorType)
             {
                 case PngColorType.Grayscale:
@@ -655,16 +655,16 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Processes the interlaced de-filtered scanline filling the image pixel data
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="defilteredScanline">The de-filtered scanline</param>
         /// <param name="row">The current image row.</param>
         /// <param name="pixels">The image pixels</param>
         /// <param name="pixelOffset">The column start index. Always 0 for none interlaced images.</param>
         /// <param name="increment">The column increment. Always 1 for none interlaced images.</param>
-        private void ProcessInterlacedDefilteredScanline<TColor>(byte[] defilteredScanline, int row, PixelAccessor<TColor> pixels, int pixelOffset = 0, int increment = 1)
-            where TColor : struct, IPixel<TColor>
+        private void ProcessInterlacedDefilteredScanline<TPixel>(byte[] defilteredScanline, int row, PixelAccessor<TPixel> pixels, int pixelOffset = 0, int increment = 1)
+            where TPixel : struct, IPixel<TPixel>
         {
-            TColor color = default(TColor);
+            TPixel color = default(TPixel);
 
             switch (this.PngColorType)
             {

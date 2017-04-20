@@ -16,8 +16,8 @@
         /// <summary>
         /// Does a visual comparison between 2 images and then asserts the difference is less then a configurable threshold
         /// </summary>
-        /// <typeparam name="TColorA">The color of the expected image</typeparam>
-        /// <typeparam name="TColorB">The color type fo the the actual image</typeparam>
+        /// <typeparam name="TPixelA">The color of the expected image</typeparam>
+        /// <typeparam name="TPixelB">The color type fo the the actual image</typeparam>
         /// <param name="expected">The expected image</param>
         /// <param name="actual">The actual image</param>
         /// <param name="imageTheshold">
@@ -32,9 +32,9 @@
         /// This is a sampling factor we sample a grid of average pixels <paramref name="scalingFactor"/> width by <paramref name="scalingFactor"/> high
         /// The default undefined value is <see cref="ImageComparer.DefaultScalingFactor"/>
         /// </param>
-        public static void CheckSimilarity<TColorA, TColorB>(Image<TColorA> expected, Image<TColorB> actual, float imageTheshold = DefaultImageThreshold, byte segmentThreshold = DefaultSegmentThreshold, int scalingFactor = DefaultScalingFactor)
-           where TColorA : struct, IPixel<TColorA>
-           where TColorB : struct, IPixel<TColorB>
+        public static void CheckSimilarity<TPixelA, TPixelB>(Image<TPixelA> expected, Image<TPixelB> actual, float imageTheshold = DefaultImageThreshold, byte segmentThreshold = DefaultSegmentThreshold, int scalingFactor = DefaultScalingFactor)
+           where TPixelA : struct, IPixel<TPixelA>
+           where TPixelB : struct, IPixel<TPixelB>
         {
             float percentage = expected.PercentageDifference(actual, segmentThreshold, scalingFactor);
 
@@ -44,8 +44,8 @@
         /// <summary>
         /// Does a visual comparison between 2 images and then and returns the percentage diffence between the 2
         /// </summary>
-        /// <typeparam name="TColorA">The color of the source image</typeparam>
-        /// <typeparam name="TColorB">The color type for the target image</typeparam>
+        /// <typeparam name="TPixelA">The color of the source image</typeparam>
+        /// <typeparam name="TPixelB">The color type for the target image</typeparam>
         /// <param name="source">The source image</param>
         /// <param name="target">The target image</param>
         /// <param name="segmentThreshold">
@@ -57,9 +57,9 @@
         /// The default undefined value is <see cref="ImageComparer.DefaultScalingFactor"/>
         /// </param>
         /// <returns>Returns a number from 0 - 1 which represents the diference focter between the images.</returns>
-        public static float PercentageDifference<TColorA, TColorB>(this Image<TColorA> source, Image<TColorB> target, byte segmentThreshold = DefaultSegmentThreshold, int scalingFactor = DefaultScalingFactor)
-            where TColorA : struct, IPixel<TColorA>
-            where TColorB : struct, IPixel<TColorB>
+        public static float PercentageDifference<TPixelA, TPixelB>(this Image<TPixelA> source, Image<TPixelB> target, byte segmentThreshold = DefaultSegmentThreshold, int scalingFactor = DefaultScalingFactor)
+            where TPixelA : struct, IPixel<TPixelA>
+            where TPixelB : struct, IPixel<TPixelB>
         {
             // code adapted from https://www.codeproject.com/Articles/374386/Simple-image-comparison-in-NET
             Fast2DArray<byte> differences = GetDifferences(source, target, scalingFactor);
@@ -74,9 +74,9 @@
             return diffPixels / (scalingFactor * scalingFactor);
         }
 
-        private static Fast2DArray<byte> GetDifferences<TColorA, TColorB>(Image<TColorA> source, Image<TColorB> target, int scalingFactor)
-            where TColorA : struct, IPixel<TColorA>
-            where TColorB : struct, IPixel<TColorB>
+        private static Fast2DArray<byte> GetDifferences<TPixelA, TPixelB>(Image<TPixelA> source, Image<TPixelB> target, int scalingFactor)
+            where TPixelA : struct, IPixel<TPixelA>
+            where TPixelB : struct, IPixel<TPixelB>
         {
             Fast2DArray<byte> differences = new Fast2DArray<byte>(scalingFactor, scalingFactor);
             Fast2DArray<byte> firstGray = source.GetGrayScaleValues(scalingFactor);
@@ -93,13 +93,13 @@
             return differences;
         }
 
-        private static Fast2DArray<byte> GetGrayScaleValues<TColorA>(this Image<TColorA> source, int scalingFactor)
-            where TColorA : struct, IPixel<TColorA>
+        private static Fast2DArray<byte> GetGrayScaleValues<TPixelA>(this Image<TPixelA> source, int scalingFactor)
+            where TPixelA : struct, IPixel<TPixelA>
         {
             byte[] buffer = new byte[4];
-            using (Image<TColorA> img = new Image<TColorA>(source).Resize(scalingFactor, scalingFactor).Grayscale())
+            using (Image<TPixelA> img = new Image<TPixelA>(source).Resize(scalingFactor, scalingFactor).Grayscale())
             {
-                using (PixelAccessor<TColorA> pixels = img.Lock())
+                using (PixelAccessor<TPixelA> pixels = img.Lock())
                 {
                     Fast2DArray<byte> grayScale = new Fast2DArray<byte>(scalingFactor, scalingFactor);
                     for (int y = 0; y < scalingFactor; y++)

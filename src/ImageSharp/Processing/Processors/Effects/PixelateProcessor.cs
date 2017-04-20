@@ -10,14 +10,14 @@ namespace ImageSharp.Processing.Processors
     using System.Threading.Tasks;
 
     /// <summary>
-    /// An <see cref="IImageProcessor{TColor}"/> to pixelate the colors of an <see cref="Image{TColor}"/>.
+    /// An <see cref="IImageProcessor{TPixel}"/> to pixelate the colors of an <see cref="Image{TPixel}"/>.
     /// </summary>
-    /// <typeparam name="TColor">The pixel format.</typeparam>
-    internal class PixelateProcessor<TColor> : ImageProcessor<TColor>
-        where TColor : struct, IPixel<TColor>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    internal class PixelateProcessor<TPixel> : ImageProcessor<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="PixelateProcessor{TColor}"/> class.
+        /// Initializes a new instance of the <see cref="PixelateProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="size">The size of the pixels. Must be greater than 0.</param>
         /// <exception cref="System.ArgumentException">
@@ -35,7 +35,7 @@ namespace ImageSharp.Processing.Processors
         public int Value { get; }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
         {
             int startY = sourceRectangle.Y;
             int endY = sourceRectangle.Bottom;
@@ -64,9 +64,9 @@ namespace ImageSharp.Processing.Processors
             // Get the range on the y-plane to choose from.
             IEnumerable<int> range = EnumerableExtensions.SteppedRange(minY, i => i < maxY, size);
 
-            using (PixelAccessor<TColor> targetPixels = new PixelAccessor<TColor>(source.Width, source.Height))
+            using (PixelAccessor<TPixel> targetPixels = new PixelAccessor<TPixel>(source.Width, source.Height))
             {
-                using (PixelAccessor<TColor> sourcePixels = source.Lock())
+                using (PixelAccessor<TPixel> sourcePixels = source.Lock())
                 {
                     Parallel.ForEach(
                         range,
@@ -94,7 +94,7 @@ namespace ImageSharp.Processing.Processors
 
                                     // Get the pixel color in the centre of the soon to be pixelated area.
                                     // ReSharper disable AccessToDisposedClosure
-                                    TColor pixel = sourcePixels[offsetX + offsetPx, offsetY + offsetPy];
+                                    TPixel pixel = sourcePixels[offsetX + offsetPx, offsetY + offsetPy];
 
                                     // For each pixel in the pixelate size, set it to the centre color.
                                     for (int l = offsetY; l < offsetY + size && l < maxY; l++)

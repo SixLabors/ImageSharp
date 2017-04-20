@@ -9,7 +9,7 @@ namespace ImageSharp.Tests
 
     /// <summary>
     /// Flags that are mapped to PackedPixel types.
-    /// They trigger the desired parametrization for <see cref="TestImageProvider{TColor}"/>.
+    /// They trigger the desired parametrization for <see cref="TestImageProvider{TPixel}"/>.
     /// </summary>
     [Flags]
     public enum PixelTypes : uint
@@ -53,7 +53,7 @@ namespace ImageSharp.Tests
         Short4 = 1 << 17,
 
         /// <summary>
-        /// Triggers instantiating the <see cref="Image"/> subclass of <see cref="Image{TColor}"/>
+        /// Triggers instantiating the <see cref="Image"/> subclass of <see cref="Image{TPixel}"/>
         /// </summary>
         StandardImageClass = 1 << 29,
 

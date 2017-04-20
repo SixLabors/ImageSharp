@@ -47,8 +47,8 @@ namespace ImageSharp.Tests
 
         public static bool HasFlag(this PixelTypes pixelTypes, PixelTypes flag) => (pixelTypes & flag) == flag;
 
-        public static bool IsEquivalentTo<TColor>(this Image<TColor> a, Image<TColor> b, bool compareAlpha = true)
-            where TColor : struct, IPixel<TColor>
+        public static bool IsEquivalentTo<TPixel>(this Image<TPixel> a, Image<TPixel> b, bool compareAlpha = true)
+            where TPixel : struct, IPixel<TPixel>
         {
             if (a.Width != b.Width || a.Height != b.Height)
             {
@@ -58,16 +58,16 @@ namespace ImageSharp.Tests
             byte[] bytesA = new byte[3];
             byte[] bytesB = new byte[3];
 
-            using (PixelAccessor<TColor> pixA = a.Lock())
+            using (PixelAccessor<TPixel> pixA = a.Lock())
             {
-                using (PixelAccessor<TColor> pixB = b.Lock())
+                using (PixelAccessor<TPixel> pixB = b.Lock())
                 {
                     for (int y = 0; y < a.Height; y++)
                     {
                         for (int x = 0; x < a.Width; x++)
                         {
-                            TColor ca = pixA[x, y];
-                            TColor cb = pixB[x, y];
+                            TPixel ca = pixA[x, y];
+                            TPixel cb = pixB[x, y];
 
                             if (compareAlpha)
                             {

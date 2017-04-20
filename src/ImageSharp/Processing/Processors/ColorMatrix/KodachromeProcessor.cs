@@ -11,9 +11,9 @@ namespace ImageSharp.Processing.Processors
     /// <summary>
     /// Converts the colors of the image recreating an old Kodachrome camera effect.
     /// </summary>
-    /// <typeparam name="TColor">The pixel format.</typeparam>
-    internal class KodachromeProcessor<TColor> : ColorMatrixProcessor<TColor>
-        where TColor : struct, IPixel<TColor>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    internal class KodachromeProcessor<TPixel> : ColorMatrixProcessor<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
         /// <inheritdoc/>
         public override Matrix4x4 Matrix => new Matrix4x4()

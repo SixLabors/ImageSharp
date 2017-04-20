@@ -9,11 +9,11 @@ namespace ImageSharp.Tests
     using Xunit.Abstractions;
 
     /// <summary>
-    /// Provides <see cref="Image{TColor}" /> instances for parametric unit tests.
+    /// Provides <see cref="Image{TPixel}" /> instances for parametric unit tests.
     /// </summary>
-    /// <typeparam name="TColor">The pixel format of the image</typeparam>
-    public abstract partial class TestImageProvider<TColor>
-        where TColor : struct, IPixel<TColor>
+    /// <typeparam name="TPixel">The pixel format of the image</typeparam>
+    public abstract partial class TestImageProvider<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
         private class SolidProvider : BlankProvider 
         {
@@ -46,10 +46,10 @@ namespace ImageSharp.Tests
             public override string SourceFileOrDescription
                 => $"Solid{this.Width}x{this.Height}_({this.r},{this.g},{this.b},{this.a})";
 
-            public override Image<TColor> GetImage()
+            public override Image<TPixel> GetImage()
             {
-                Image<TColor> image = base.GetImage();
-                TColor color = default(TColor);
+                Image<TPixel> image = base.GetImage();
+                TPixel color = default(TPixel);
                 color.PackFromBytes(this.r, this.g, this.b, this.a);
 
                 return image.Fill(color);

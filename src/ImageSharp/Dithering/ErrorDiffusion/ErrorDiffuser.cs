@@ -68,16 +68,16 @@ namespace ImageSharp.Dithering
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Dither<TColor>(PixelAccessor<TColor> pixels, TColor source, TColor transformed, int x, int y, int width, int height)
-            where TColor : struct, IPixel<TColor>
+        public void Dither<TPixel>(PixelAccessor<TPixel> pixels, TPixel source, TPixel transformed, int x, int y, int width, int height)
+            where TPixel : struct, IPixel<TPixel>
         {
             this.Dither(pixels, source, transformed, x, y, width, height, true);
         }
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Dither<TColor>(PixelAccessor<TColor> pixels, TColor source, TColor transformed, int x, int y, int width, int height, bool replacePixel)
-            where TColor : struct, IPixel<TColor>
+        public void Dither<TPixel>(PixelAccessor<TPixel> pixels, TPixel source, TPixel transformed, int x, int y, int width, int height, bool replacePixel)
+            where TPixel : struct, IPixel<TPixel>
         {
             if (replacePixel)
             {
@@ -113,7 +113,7 @@ namespace ImageSharp.Dithering
                         Vector4 result = ((error * coefficientVector) / this.divisorVector) + offsetColor;
                         result.W = offsetColor.W;
 
-                        TColor packed = default(TColor);
+                        TPixel packed = default(TPixel);
                         packed.PackFromVector4(result);
                         pixels[matrixX, matrixY] = packed;
                     }

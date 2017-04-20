@@ -1,4 +1,4 @@
-﻿// <copyright file="PatternBrush{TColor}.cs" company="James Jackson-South">
+﻿// <copyright file="PatternBrush{TPixel}.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -31,38 +31,38 @@ namespace ImageSharp.Drawing.Brushes
     ///  0
     /// </para>
     /// </remarks>
-    /// <typeparam name="TColor">The pixel format.</typeparam>
-    public class PatternBrush<TColor> : IBrush<TColor>
-        where TColor : struct, IPixel<TColor>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    public class PatternBrush<TPixel> : IBrush<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
         /// The pattern.
         /// </summary>
-        private readonly Fast2DArray<TColor> pattern;
+        private readonly Fast2DArray<TPixel> pattern;
         private readonly Fast2DArray<Vector4> patternVector;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="PatternBrush{TColor}"/> class.
+        /// Initializes a new instance of the <see cref="PatternBrush{TPixel}"/> class.
         /// </summary>
         /// <param name="foreColor">Color of the fore.</param>
         /// <param name="backColor">Color of the back.</param>
         /// <param name="pattern">The pattern.</param>
-        public PatternBrush(TColor foreColor, TColor backColor, bool[,] pattern)
+        public PatternBrush(TPixel foreColor, TPixel backColor, bool[,] pattern)
             : this(foreColor, backColor, new Fast2DArray<bool>(pattern))
         {
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="PatternBrush{TColor}"/> class.
+        /// Initializes a new instance of the <see cref="PatternBrush{TPixel}"/> class.
         /// </summary>
         /// <param name="foreColor">Color of the fore.</param>
         /// <param name="backColor">Color of the back.</param>
         /// <param name="pattern">The pattern.</param>
-        internal PatternBrush(TColor foreColor, TColor backColor, Fast2DArray<bool> pattern)
+        internal PatternBrush(TPixel foreColor, TPixel backColor, Fast2DArray<bool> pattern)
         {
             Vector4 foreColorVector = foreColor.ToVector4();
             Vector4 backColorVector = backColor.ToVector4();
-            this.pattern = new Fast2DArray<TColor>(pattern.Width, pattern.Height);
+            this.pattern = new Fast2DArray<TPixel>(pattern.Width, pattern.Height);
             this.patternVector = new Fast2DArray<Vector4>(pattern.Width, pattern.Height);
             for (int i = 0; i < pattern.Data.Length; i++)
             {
@@ -80,17 +80,17 @@ namespace ImageSharp.Drawing.Brushes
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="PatternBrush{TColor}"/> class.
+        /// Initializes a new instance of the <see cref="PatternBrush{TPixel}"/> class.
         /// </summary>
         /// <param name="brush">The brush.</param>
-        internal PatternBrush(PatternBrush<TColor> brush)
+        internal PatternBrush(PatternBrush<TPixel> brush)
         {
             this.pattern = brush.pattern;
             this.patternVector = brush.patternVector;
         }
 
         /// <inheritdoc />
-        public BrushApplicator<TColor> CreateApplicator(PixelAccessor<TColor> sourcePixels, RectangleF region)
+        public BrushApplicator<TPixel> CreateApplicator(PixelAccessor<TPixel> sourcePixels, RectangleF region)
         {
             return new PatternBrushApplicator(sourcePixels, this.pattern, this.patternVector);
         }
@@ -98,12 +98,12 @@ namespace ImageSharp.Drawing.Brushes
         /// <summary>
         /// The pattern brush applicator.
         /// </summary>
-        private class PatternBrushApplicator : BrushApplicator<TColor>
+        private class PatternBrushApplicator : BrushApplicator<TPixel>
         {
             /// <summary>
             /// The pattern.
             /// </summary>
-            private readonly Fast2DArray<TColor> pattern;
+            private readonly Fast2DArray<TPixel> pattern;
             private readonly Fast2DArray<Vector4> patternVector;
 
             /// <summary>
@@ -112,7 +112,7 @@ namespace ImageSharp.Drawing.Brushes
             /// <param name="sourcePixels">The sourcePixels.</param>
             /// <param name="pattern">The pattern.</param>
             /// <param name="patternVector">The patternVector.</param>
-            public PatternBrushApplicator(PixelAccessor<TColor> sourcePixels, Fast2DArray<TColor> pattern, Fast2DArray<Vector4> patternVector)
+            public PatternBrushApplicator(PixelAccessor<TPixel> sourcePixels, Fast2DArray<TPixel> pattern, Fast2DArray<Vector4> patternVector)
                 : base(sourcePixels)
             {
                 this.pattern = pattern;
@@ -127,7 +127,7 @@ namespace ImageSharp.Drawing.Brushes
             /// <returns>
             /// The Color.
             /// </returns>
-            internal override TColor this[int x, int y]
+            internal override TPixel this[int x, int y]
             {
                 get
                 {
@@ -169,7 +169,7 @@ namespace ImageSharp.Drawing.Brushes
 
                             Vector4 finalColor = Vector4BlendTransforms.PremultipliedLerp(backgroundVector, sourceVector, opacity);
 
-                            TColor packed = default(TColor);
+                            TPixel packed = default(TPixel);
                             packed.PackFromVector4(finalColor);
                             this.Target[targetX, targetY] = packed;
                         }

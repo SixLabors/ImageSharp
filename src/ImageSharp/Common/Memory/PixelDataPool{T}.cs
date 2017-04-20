@@ -24,7 +24,7 @@ namespace ImageSharp
         /// Rents the pixel array from the pool.
         /// </summary>
         /// <param name="minimumLength">The minimum length of the array to return.</param>
-        /// <returns>The <see cref="T:TColor[]"/></returns>
+        /// <returns>The <see cref="T:TPixel[]"/></returns>
         public static T[] Rent(int minimumLength)
         {
             return ArrayPool.Rent(minimumLength);

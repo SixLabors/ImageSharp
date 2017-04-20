@@ -23,12 +23,12 @@ namespace ImageSharp.Tests
 
         private ITestOutputHelper Output { get; }
 
-        public static Image<TColor> CreateTestImage<TColor>(GenericFactory<TColor> factory)
-            where TColor : struct, IPixel<TColor>
+        public static Image<TPixel> CreateTestImage<TPixel>(GenericFactory<TPixel> factory)
+            where TPixel : struct, IPixel<TPixel>
         {
-            Image<TColor> image = factory.CreateImage(10, 10);
+            Image<TPixel> image = factory.CreateImage(10, 10);
 
-            using (PixelAccessor<TColor> pixels = image.Lock())
+            using (PixelAccessor<TPixel> pixels = image.Lock())
             {
                 for (int i = 0; i < 10; i++)
                 {
@@ -37,7 +37,7 @@ namespace ImageSharp.Tests
                         Vector4 v = new Vector4(i, j, 0, 1);
                         v /= 10;
 
-                        TColor color = default(TColor);
+                        TPixel color = default(TPixel);
                         color.PackFromVector4(v);
 
                         pixels[i, j] = color;
@@ -61,11 +61,11 @@ namespace ImageSharp.Tests
         [Theory]
         [WithFile(TestImages.Bmp.Car, PixelTypes.Rgba32, true)]
         [WithFile(TestImages.Bmp.Car, PixelTypes.Rgba32, false)]
-        public void IsEquivalentTo_WhenFalse<TColor>(TestImageProvider<TColor> provider, bool compareAlpha)
-            where TColor : struct, IPixel<TColor>
+        public void IsEquivalentTo_WhenFalse<TPixel>(TestImageProvider<TPixel> provider, bool compareAlpha)
+            where TPixel : struct, IPixel<TPixel>
         {
-            Image<TColor> a = provider.GetImage();
-            Image<TColor> b = provider.GetImage();
+            Image<TPixel> a = provider.GetImage();
+            Image<TPixel> b = provider.GetImage();
             b = b.OilPaint(3, 2);
 
             Assert.False(a.IsEquivalentTo(b, compareAlpha));
@@ -74,11 +74,11 @@ namespace ImageSharp.Tests
         [Theory]
         [WithMemberFactory(nameof(CreateTestImage), PixelTypes.Rgba32 | PixelTypes.Bgr565, true)]
         [WithMemberFactory(nameof(CreateTestImage), PixelTypes.Rgba32 | PixelTypes.Bgr565, false)]
-        public void IsEquivalentTo_WhenTrue<TColor>(TestImageProvider<TColor> provider, bool compareAlpha)
-            where TColor : struct, IPixel<TColor>
+        public void IsEquivalentTo_WhenTrue<TPixel>(TestImageProvider<TPixel> provider, bool compareAlpha)
+            where TPixel : struct, IPixel<TPixel>
         {
-            Image<TColor> a = provider.GetImage();
-            Image<TColor> b = provider.GetImage();
+            Image<TPixel> a = provider.GetImage();
+            Image<TPixel> b = provider.GetImage();
 
             Assert.True(a.IsEquivalentTo(b, compareAlpha));
         }

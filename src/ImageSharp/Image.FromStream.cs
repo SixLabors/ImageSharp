@@ -108,70 +108,70 @@ namespace ImageSharp
         /// <summary>
         /// Loads the image from the given stream.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="stream">The stream containing image information.</param>
         /// <exception cref="NotSupportedException">
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
         /// <returns>The image</returns>
-        public static Image<TColor> Load<TColor>(Stream stream)
-            where TColor : struct, IPixel<TColor>
+        public static Image<TPixel> Load<TPixel>(Stream stream)
+            where TPixel : struct, IPixel<TPixel>
         {
-            return Load<TColor>(null, stream, null);
+            return Load<TPixel>(null, stream, null);
         }
 
         /// <summary>
         /// Loads the image from the given stream.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="stream">The stream containing image information.</param>
         /// <param name="options">The options for the decoder.</param>
         /// <exception cref="NotSupportedException">
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
         /// <returns>The image</returns>
-        public static Image<TColor> Load<TColor>(Stream stream, IDecoderOptions options)
-            where TColor : struct, IPixel<TColor>
+        public static Image<TPixel> Load<TPixel>(Stream stream, IDecoderOptions options)
+            where TPixel : struct, IPixel<TPixel>
         {
-            return Load<TColor>(null, stream, options);
+            return Load<TPixel>(null, stream, options);
         }
 
         /// <summary>
         /// Loads the image from the given stream.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="config">The config for the decoder.</param>
         /// <param name="stream">The stream containing image information.</param>
         /// <exception cref="NotSupportedException">
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
         /// <returns>The image</returns>
-        public static Image<TColor> Load<TColor>(Configuration config, Stream stream)
-            where TColor : struct, IPixel<TColor>
+        public static Image<TPixel> Load<TPixel>(Configuration config, Stream stream)
+            where TPixel : struct, IPixel<TPixel>
         {
-            return Load<TColor>(config, stream, null);
+            return Load<TPixel>(config, stream, null);
         }
 
         /// <summary>
         /// Loads the image from the given stream.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="stream">The stream containing image information.</param>
         /// <param name="decoder">The decoder.</param>
         /// <exception cref="NotSupportedException">
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
         /// <returns>The image</returns>
-        public static Image<TColor> Load<TColor>(Stream stream, IImageDecoder decoder)
-            where TColor : struct, IPixel<TColor>
+        public static Image<TPixel> Load<TPixel>(Stream stream, IImageDecoder decoder)
+            where TPixel : struct, IPixel<TPixel>
         {
-            return Load<TColor>(stream, decoder, null);
+            return Load<TPixel>(stream, decoder, null);
         }
 
         /// <summary>
         /// Loads the image from the given stream.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="stream">The stream containing image information.</param>
         /// <param name="decoder">The decoder.</param>
         /// <param name="options">The options for the decoder.</param>
@@ -179,16 +179,16 @@ namespace ImageSharp
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
         /// <returns>The image</returns>
-        public static Image<TColor> Load<TColor>(Stream stream, IImageDecoder decoder, IDecoderOptions options)
-            where TColor : struct, IPixel<TColor>
+        public static Image<TPixel> Load<TPixel>(Stream stream, IImageDecoder decoder, IDecoderOptions options)
+            where TPixel : struct, IPixel<TPixel>
         {
-            return WithSeekableStream(stream, s => decoder.Decode<TColor>(Configuration.Default, s, options));
+            return WithSeekableStream(stream, s => decoder.Decode<TPixel>(Configuration.Default, s, options));
         }
 
         /// <summary>
         /// Loads the image from the given stream.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="config">The configuration options.</param>
         /// <param name="stream">The stream containing image information.</param>
         /// <param name="options">The options for the decoder.</param>
@@ -196,12 +196,12 @@ namespace ImageSharp
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
         /// <returns>The image</returns>
-        public static Image<TColor> Load<TColor>(Configuration config, Stream stream, IDecoderOptions options)
-            where TColor : struct, IPixel<TColor>
+        public static Image<TPixel> Load<TPixel>(Configuration config, Stream stream, IDecoderOptions options)
+            where TPixel : struct, IPixel<TPixel>
         {
             config = config ?? Configuration.Default;
 
-            Image<TColor> img = WithSeekableStream(stream, s => Decode<TColor>(s, options, config));
+            Image<TPixel> img = WithSeekableStream(stream, s => Decode<TPixel>(s, options, config));
 
             if (img != null)
             {

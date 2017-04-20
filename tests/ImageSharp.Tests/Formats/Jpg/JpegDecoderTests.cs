@@ -25,7 +25,7 @@ namespace ImageSharp.Tests
         public static string[] ProgressiveTestJpegs = TestImages.Jpeg.Progressive.All;
 
         [Theory]
-        [WithFileCollection(nameof(BaselineTestJpegs), PixelTypes.Color | PixelTypes.StandardImageClass | PixelTypes.Argb32)]
+        [WithFileCollection(nameof(BaselineTestJpegs), PixelTypes.Rgba32 | PixelTypes.StandardImageClass | PixelTypes.Argb32)]
         public void OpenBaselineJpeg_SaveBmp<TColor>(TestImageProvider<TColor> provider)
             where TColor : struct, IPixel<TColor>
         {
@@ -36,7 +36,7 @@ namespace ImageSharp.Tests
         }
 
         [Theory]
-        [WithFileCollection(nameof(ProgressiveTestJpegs), PixelTypes.Color | PixelTypes.StandardImageClass | PixelTypes.Argb32)]
+        [WithFileCollection(nameof(ProgressiveTestJpegs), PixelTypes.Rgba32 | PixelTypes.StandardImageClass | PixelTypes.Argb32)]
         public void OpenProgressiveJpeg_SaveBmp<TColor>(TestImageProvider<TColor> provider)
             where TColor : struct, IPixel<TColor>
         {

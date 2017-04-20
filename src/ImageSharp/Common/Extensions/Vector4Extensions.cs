@@ -32,7 +32,7 @@ namespace ImageSharp
         /// <see href="http://www.4p8.com/eric.brasseur/gamma.html#formulas"/>
         /// <see href="http://entropymine.com/imageworsener/srgbformula/"/>
         /// </summary>
-        /// <param name="gamma">The <see cref="Color"/> whose signal to expand.</param>
+        /// <param name="gamma">The <see cref="Rgba32"/> whose signal to expand.</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
         public static Vector4 Expand(this Vector4 gamma)
         {

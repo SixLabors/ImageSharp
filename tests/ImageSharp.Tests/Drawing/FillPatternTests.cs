@@ -15,7 +15,7 @@ namespace ImageSharp.Tests.Drawing
 
     public class FillPatternBrushTests : FileTestBase
     {
-        private void Test(string name, Color background, IBrush<Color> brush, Color[,] expectedPattern)
+        private void Test(string name, Rgba32 background, IBrush<Rgba32> brush, Rgba32[,] expectedPattern)
         {
             string path = this.CreateOutputDirectory("Fill", "PatternBrush");
             using (Image image = new Image(20, 20))
@@ -29,11 +29,11 @@ namespace ImageSharp.Tests.Drawing
                     image.Save(output);
                 }
 
-                using (PixelAccessor<Color> sourcePixels = image.Lock())
+                using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
                 {
                     // lets pick random spots to start checking
                     Random r = new Random();
-                    Fast2DArray<Color> expectedPatternFast = new Fast2DArray<Color>(expectedPattern);
+                    Fast2DArray<Rgba32> expectedPatternFast = new Fast2DArray<Rgba32>(expectedPattern);
                     int xStride = expectedPatternFast.Width;
                     int yStride = expectedPatternFast.Height;
                     int offsetX = r.Next(image.Width / xStride) * xStride;
@@ -44,8 +44,8 @@ namespace ImageSharp.Tests.Drawing
                         {
                             int actualX = x + offsetX;
                             int actualY = y + offsetY;
-                            Color expected = expectedPatternFast[y, x]; // inverted pattern
-                            Color actual = sourcePixels[actualX, actualY];
+                            Rgba32 expected = expectedPatternFast[y, x]; // inverted pattern
+                            Rgba32 actual = sourcePixels[actualX, actualY];
                             if (expected != actual)
                             {
                                 Assert.True(false, $"Expected {expected} but found {actual} at ({actualX},{actualY})");
@@ -63,73 +63,73 @@ namespace ImageSharp.Tests.Drawing
         [Fact]
         public void ImageShouldBeFloodFilledWithPercent10()
         {
-            this.Test("Percent10", Color.Blue, Brushes.Percent10(Color.HotPink, Color.LimeGreen),
+            this.Test("Percent10", Rgba32.Blue, Brushes.Percent10(Rgba32.HotPink, Rgba32.LimeGreen),
                 new[,]
                 {
-                { Color.HotPink , Color.LimeGreen, Color.LimeGreen, Color.LimeGreen},
-                { Color.LimeGreen, Color.LimeGreen, Color.LimeGreen, Color.LimeGreen},
-                { Color.LimeGreen, Color.LimeGreen, Color.HotPink , Color.LimeGreen},
-                { Color.LimeGreen, Color.LimeGreen, Color.LimeGreen, Color.LimeGreen}
+                { Rgba32.HotPink , Rgba32.LimeGreen, Rgba32.LimeGreen, Rgba32.LimeGreen},
+                { Rgba32.LimeGreen, Rgba32.LimeGreen, Rgba32.LimeGreen, Rgba32.LimeGreen},
+                { Rgba32.LimeGreen, Rgba32.LimeGreen, Rgba32.HotPink , Rgba32.LimeGreen},
+                { Rgba32.LimeGreen, Rgba32.LimeGreen, Rgba32.LimeGreen, Rgba32.LimeGreen}
             });
         }
 
         [Fact]
         public void ImageShouldBeFloodFilledWithPercent10Transparent()
         {
-            Test("Percent10_Transparent", Color.Blue, Brushes.Percent10(Color.HotPink),
-            new Color[,] {
-                { Color.HotPink , Color.Blue, Color.Blue, Color.Blue},
-                { Color.Blue, Color.Blue, Color.Blue, Color.Blue},
-                { Color.Blue, Color.Blue, Color.HotPink , Color.Blue},
-                { Color.Blue, Color.Blue, Color.Blue, Color.Blue}
+            Test("Percent10_Transparent", Rgba32.Blue, Brushes.Percent10(Rgba32.HotPink),
+            new Rgba32[,] {
+                { Rgba32.HotPink , Rgba32.Blue, Rgba32.Blue, Rgba32.Blue},
+                { Rgba32.Blue, Rgba32.Blue, Rgba32.Blue, Rgba32.Blue},
+                { Rgba32.Blue, Rgba32.Blue, Rgba32.HotPink , Rgba32.Blue},
+                { Rgba32.Blue, Rgba32.Blue, Rgba32.Blue, Rgba32.Blue}
             });
         }
 
         [Fact]
         public void ImageShouldBeFloodFilledWithPercent20()
         {
-            Test("Percent20", Color.Blue, Brushes.Percent20(Color.HotPink, Color.LimeGreen),
-           new Color[,] {
-                { Color.HotPink , Color.LimeGreen, Color.LimeGreen, Color.LimeGreen},
-                { Color.LimeGreen, Color.LimeGreen, Color.HotPink , Color.LimeGreen},
-                { Color.HotPink , Color.LimeGreen, Color.LimeGreen, Color.LimeGreen},
-                { Color.LimeGreen, Color.LimeGreen, Color.HotPink , Color.LimeGreen}
+            Test("Percent20", Rgba32.Blue, Brushes.Percent20(Rgba32.HotPink, Rgba32.LimeGreen),
+           new Rgba32[,] {
+                { Rgba32.HotPink , Rgba32.LimeGreen, Rgba32.LimeGreen, Rgba32.LimeGreen},
+                { Rgba32.LimeGreen, Rgba32.LimeGreen, Rgba32.HotPink , Rgba32.LimeGreen},
+                { Rgba32.HotPink , Rgba32.LimeGreen, Rgba32.LimeGreen, Rgba32.LimeGreen},
+                { Rgba32.LimeGreen, Rgba32.LimeGreen, Rgba32.HotPink , Rgba32.LimeGreen}
            });
         }
 
         [Fact]
         public void ImageShouldBeFloodFilledWithPercent20_transparent()
         {
-            Test("Percent20_Transparent", Color.Blue, Brushes.Percent20(Color.HotPink),
-           new Color[,] {
-                { Color.HotPink , Color.Blue, Color.Blue, Color.Blue},
-                { Color.Blue, Color.Blue, Color.HotPink , Color.Blue},
-                { Color.HotPink , Color.Blue, Color.Blue, Color.Blue},
-                { Color.Blue, Color.Blue, Color.HotPink , Color.Blue}
+            Test("Percent20_Transparent", Rgba32.Blue, Brushes.Percent20(Rgba32.HotPink),
+           new Rgba32[,] {
+                { Rgba32.HotPink , Rgba32.Blue, Rgba32.Blue, Rgba32.Blue},
+                { Rgba32.Blue, Rgba32.Blue, Rgba32.HotPink , Rgba32.Blue},
+                { Rgba32.HotPink , Rgba32.Blue, Rgba32.Blue, Rgba32.Blue},
+                { Rgba32.Blue, Rgba32.Blue, Rgba32.HotPink , Rgba32.Blue}
            });
         }
 
         [Fact]
         public void ImageShouldBeFloodFilledWithHorizontal()
         {
-            Test("Horizontal", Color.Blue, Brushes.Horizontal(Color.HotPink, Color.LimeGreen),
-           new Color[,] {
-                { Color.LimeGreen , Color.LimeGreen, Color.LimeGreen, Color.LimeGreen},
-                { Color.HotPink, Color.HotPink, Color.HotPink , Color.HotPink},
-                { Color.LimeGreen , Color.LimeGreen, Color.LimeGreen, Color.LimeGreen},
-                { Color.LimeGreen, Color.LimeGreen, Color.LimeGreen , Color.LimeGreen}
+            Test("Horizontal", Rgba32.Blue, Brushes.Horizontal(Rgba32.HotPink, Rgba32.LimeGreen),
+           new Rgba32[,] {
+                { Rgba32.LimeGreen , Rgba32.LimeGreen, Rgba32.LimeGreen, Rgba32.LimeGreen},
+                { Rgba32.HotPink, Rgba32.HotPink, Rgba32.HotPink , Rgba32.HotPink},
+                { Rgba32.LimeGreen , Rgba32.LimeGreen, Rgba32.LimeGreen, Rgba32.LimeGreen},
+                { Rgba32.LimeGreen, Rgba32.LimeGreen, Rgba32.LimeGreen , Rgba32.LimeGreen}
            });
         }
 
         [Fact]
         public void ImageShouldBeFloodFilledWithHorizontal_transparent()
         {
-            Test("Horizontal_Transparent", Color.Blue, Brushes.Horizontal(Color.HotPink),
-           new Color[,] {
-                { Color.Blue , Color.Blue, Color.Blue, Color.Blue},
-                { Color.HotPink, Color.HotPink, Color.HotPink , Color.HotPink},
-                { Color.Blue , Color.Blue, Color.Blue, Color.Blue},
-                { Color.Blue, Color.Blue, Color.Blue , Color.Blue}
+            Test("Horizontal_Transparent", Rgba32.Blue, Brushes.Horizontal(Rgba32.HotPink),
+           new Rgba32[,] {
+                { Rgba32.Blue , Rgba32.Blue, Rgba32.Blue, Rgba32.Blue},
+                { Rgba32.HotPink, Rgba32.HotPink, Rgba32.HotPink , Rgba32.HotPink},
+                { Rgba32.Blue , Rgba32.Blue, Rgba32.Blue, Rgba32.Blue},
+                { Rgba32.Blue, Rgba32.Blue, Rgba32.Blue , Rgba32.Blue}
            });
         }
 
@@ -138,96 +138,96 @@ namespace ImageSharp.Tests.Drawing
         [Fact]
         public void ImageShouldBeFloodFilledWithMin()
         {
-            Test("Min", Color.Blue, Brushes.Min(Color.HotPink, Color.LimeGreen),
-           new Color[,] {
-                { Color.LimeGreen , Color.LimeGreen, Color.LimeGreen, Color.LimeGreen},
-                { Color.LimeGreen , Color.LimeGreen, Color.LimeGreen, Color.LimeGreen},
-                { Color.LimeGreen, Color.LimeGreen, Color.LimeGreen , Color.LimeGreen},
-                { Color.HotPink, Color.HotPink, Color.HotPink , Color.HotPink}
+            Test("Min", Rgba32.Blue, Brushes.Min(Rgba32.HotPink, Rgba32.LimeGreen),
+           new Rgba32[,] {
+                { Rgba32.LimeGreen , Rgba32.LimeGreen, Rgba32.LimeGreen, Rgba32.LimeGreen},
+                { Rgba32.LimeGreen , Rgba32.LimeGreen, Rgba32.LimeGreen, Rgba32.LimeGreen},
+                { Rgba32.LimeGreen, Rgba32.LimeGreen, Rgba32.LimeGreen , Rgba32.LimeGreen},
+                { Rgba32.HotPink, Rgba32.HotPink, Rgba32.HotPink , Rgba32.HotPink}
            });
         }
 
         [Fact]
         public void ImageShouldBeFloodFilledWithMin_transparent()
         {
-            Test("Min_Transparent", Color.Blue, Brushes.Min(Color.HotPink),
-           new Color[,] {
-                { Color.Blue , Color.Blue, Color.Blue, Color.Blue},
-                { Color.Blue , Color.Blue, Color.Blue, Color.Blue},
-                { Color.Blue, Color.Blue, Color.Blue , Color.Blue},
-                { Color.HotPink, Color.HotPink, Color.HotPink , Color.HotPink},
+            Test("Min_Transparent", Rgba32.Blue, Brushes.Min(Rgba32.HotPink),
+           new Rgba32[,] {
+                { Rgba32.Blue , Rgba32.Blue, Rgba32.Blue, Rgba32.Blue},
+                { Rgba32.Blue , Rgba32.Blue, Rgba32.Blue, Rgba32.Blue},
+                { Rgba32.Blue, Rgba32.Blue, Rgba32.Blue , Rgba32.Blue},
+                { Rgba32.HotPink, Rgba32.HotPink, Rgba32.HotPink , Rgba32.HotPink},
            });
         }
 
         [Fact]
         public void ImageShouldBeFloodFilledWithVertical()
         {
-            Test("Vertical", Color.Blue, Brushes.Vertical(Color.HotPink, Color.LimeGreen),
-           new Color[,] {
-                { Color.LimeGreen, Color.HotPink, Color.LimeGreen, Color.LimeGreen},
-                { Color.LimeGreen, Color.HotPink, Color.LimeGreen, Color.LimeGreen},
-                { Color.LimeGreen, Color.HotPink, Color.LimeGreen, Color.LimeGreen},
-                { Color.LimeGreen, Color.HotPink, Color.LimeGreen, Color.LimeGreen}
+            Test("Vertical", Rgba32.Blue, Brushes.Vertical(Rgba32.HotPink, Rgba32.LimeGreen),
+           new Rgba32[,] {
+                { Rgba32.LimeGreen, Rgba32.HotPink, Rgba32.LimeGreen, Rgba32.LimeGreen},
+                { Rgba32.LimeGreen, Rgba32.HotPink, Rgba32.LimeGreen, Rgba32.LimeGreen},
+                { Rgba32.LimeGreen, Rgba32.HotPink, Rgba32.LimeGreen, Rgba32.LimeGreen},
+                { Rgba32.LimeGreen, Rgba32.HotPink, Rgba32.LimeGreen, Rgba32.LimeGreen}
            });
         }
 
         [Fact]
         public void ImageShouldBeFloodFilledWithVertical_transparent()
         {
-            Test("Vertical_Transparent", Color.Blue, Brushes.Vertical(Color.HotPink),
-           new Color[,] {
-                { Color.Blue, Color.HotPink, Color.Blue, Color.Blue},
-                { Color.Blue, Color.HotPink, Color.Blue, Color.Blue},
-                { Color.Blue, Color.HotPink, Color.Blue, Color.Blue},
-                { Color.Blue, Color.HotPink, Color.Blue, Color.Blue}
+            Test("Vertical_Transparent", Rgba32.Blue, Brushes.Vertical(Rgba32.HotPink),
+           new Rgba32[,] {
+                { Rgba32.Blue, Rgba32.HotPink, Rgba32.Blue, Rgba32.Blue},
+                { Rgba32.Blue, Rgba32.HotPink, Rgba32.Blue, Rgba32.Blue},
+                { Rgba32.Blue, Rgba32.HotPink, Rgba32.Blue, Rgba32.Blue},
+                { Rgba32.Blue, Rgba32.HotPink, Rgba32.Blue, Rgba32.Blue}
            });
         }
 
         [Fact]
         public void ImageShouldBeFloodFilledWithForwardDiagonal()
         {
-            Test("ForwardDiagonal", Color.Blue, Brushes.ForwardDiagonal(Color.HotPink, Color.LimeGreen),
-           new Color[,] {
-                { Color.LimeGreen, Color.LimeGreen, Color.LimeGreen, Color.HotPink},
-                { Color.LimeGreen, Color.LimeGreen, Color.HotPink, Color.LimeGreen},
-                { Color.LimeGreen, Color.HotPink, Color.LimeGreen, Color.LimeGreen},
-                { Color.HotPink, Color.LimeGreen, Color.LimeGreen, Color.LimeGreen}
+            Test("ForwardDiagonal", Rgba32.Blue, Brushes.ForwardDiagonal(Rgba32.HotPink, Rgba32.LimeGreen),
+           new Rgba32[,] {
+                { Rgba32.LimeGreen, Rgba32.LimeGreen, Rgba32.LimeGreen, Rgba32.HotPink},
+                { Rgba32.LimeGreen, Rgba32.LimeGreen, Rgba32.HotPink, Rgba32.LimeGreen},
+                { Rgba32.LimeGreen, Rgba32.HotPink, Rgba32.LimeGreen, Rgba32.LimeGreen},
+                { Rgba32.HotPink, Rgba32.LimeGreen, Rgba32.LimeGreen, Rgba32.LimeGreen}
            });
         }
 
         [Fact]
         public void ImageShouldBeFloodFilledWithForwardDiagonal_transparent()
         {
-            Test("ForwardDiagonal_Transparent", Color.Blue, Brushes.ForwardDiagonal(Color.HotPink),
-           new Color[,] {
-                { Color.Blue,    Color.Blue,    Color.Blue,    Color.HotPink},
-                { Color.Blue,    Color.Blue,    Color.HotPink, Color.Blue},
-                { Color.Blue,    Color.HotPink, Color.Blue,    Color.Blue},
-                { Color.HotPink, Color.Blue,    Color.Blue,    Color.Blue}
+            Test("ForwardDiagonal_Transparent", Rgba32.Blue, Brushes.ForwardDiagonal(Rgba32.HotPink),
+           new Rgba32[,] {
+                { Rgba32.Blue,    Rgba32.Blue,    Rgba32.Blue,    Rgba32.HotPink},
+                { Rgba32.Blue,    Rgba32.Blue,    Rgba32.HotPink, Rgba32.Blue},
+                { Rgba32.Blue,    Rgba32.HotPink, Rgba32.Blue,    Rgba32.Blue},
+                { Rgba32.HotPink, Rgba32.Blue,    Rgba32.Blue,    Rgba32.Blue}
            });
         }
 
         [Fact]
         public void ImageShouldBeFloodFilledWithBackwardDiagonal()
         {
-            Test("BackwardDiagonal", Color.Blue, Brushes.BackwardDiagonal(Color.HotPink, Color.LimeGreen),
-           new Color[,] {
-                { Color.HotPink,   Color.LimeGreen, Color.LimeGreen, Color.LimeGreen},
-                { Color.LimeGreen, Color.HotPink,   Color.LimeGreen, Color.LimeGreen},
-                { Color.LimeGreen, Color.LimeGreen, Color.HotPink,   Color.LimeGreen},
-                { Color.LimeGreen, Color.LimeGreen, Color.LimeGreen, Color.HotPink}
+            Test("BackwardDiagonal", Rgba32.Blue, Brushes.BackwardDiagonal(Rgba32.HotPink, Rgba32.LimeGreen),
+           new Rgba32[,] {
+                { Rgba32.HotPink,   Rgba32.LimeGreen, Rgba32.LimeGreen, Rgba32.LimeGreen},
+                { Rgba32.LimeGreen, Rgba32.HotPink,   Rgba32.LimeGreen, Rgba32.LimeGreen},
+                { Rgba32.LimeGreen, Rgba32.LimeGreen, Rgba32.HotPink,   Rgba32.LimeGreen},
+                { Rgba32.LimeGreen, Rgba32.LimeGreen, Rgba32.LimeGreen, Rgba32.HotPink}
            });
         }
 
         [Fact]
         public void ImageShouldBeFloodFilledWithBackwardDiagonal_transparent()
         {
-            Test("BackwardDiagonal_Transparent", Color.Blue, Brushes.BackwardDiagonal(Color.HotPink),
-           new Color[,] {
-                { Color.HotPink, Color.Blue,    Color.Blue,    Color.Blue},
-                { Color.Blue,    Color.HotPink, Color.Blue,    Color.Blue},
-                { Color.Blue,    Color.Blue,    Color.HotPink, Color.Blue},
-                { Color.Blue,    Color.Blue,    Color.Blue,    Color.HotPink}
+            Test("BackwardDiagonal_Transparent", Rgba32.Blue, Brushes.BackwardDiagonal(Rgba32.HotPink),
+           new Rgba32[,] {
+                { Rgba32.HotPink, Rgba32.Blue,    Rgba32.Blue,    Rgba32.Blue},
+                { Rgba32.Blue,    Rgba32.HotPink, Rgba32.Blue,    Rgba32.Blue},
+                { Rgba32.Blue,    Rgba32.Blue,    Rgba32.HotPink, Rgba32.Blue},
+                { Rgba32.Blue,    Rgba32.Blue,    Rgba32.Blue,    Rgba32.HotPink}
            });
         }
     }

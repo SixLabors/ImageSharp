@@ -6,15 +6,15 @@
 namespace ImageSharp.Drawing.Brushes
 {
     /// <summary>
-    /// Provides an implementation of a solid brush for painting solid color areas. The brush uses <see cref="Color"/> for painting.
+    /// Provides an implementation of a solid brush for painting solid color areas. The brush uses <see cref="Rgba32"/> for painting.
     /// </summary>
-    public class SolidBrush : SolidBrush<Color>
+    public class SolidBrush : SolidBrush<Rgba32>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="SolidBrush" /> class.
         /// </summary>
         /// <param name="color">The color.</param>
-        public SolidBrush(Color color)
+        public SolidBrush(Rgba32 color)
             : base(color)
         {
         }

@@ -83,7 +83,7 @@ namespace ImageSharp
         /// <returns>The image</returns>
         public static Image Load(Configuration config, Stream stream, IDecoderOptions options)
         {
-            Image<Color> image = Load<Color>(config, stream, options);
+            Image<Rgba32> image = Load<Rgba32>(config, stream, options);
 
             return image as Image ?? new Image(image);
         }
@@ -100,7 +100,7 @@ namespace ImageSharp
         /// <returns>The image</returns>
         public static Image Load(Stream stream, IImageDecoder decoder, IDecoderOptions options)
         {
-            Image<Color> image = new Image(Load<Color>(stream, decoder, options));
+            Image<Rgba32> image = new Image(Load<Rgba32>(stream, decoder, options));
 
             return image as Image ?? new Image(image);
         }

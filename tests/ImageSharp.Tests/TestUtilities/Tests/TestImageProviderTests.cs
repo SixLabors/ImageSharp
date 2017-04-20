@@ -20,7 +20,7 @@ namespace ImageSharp.Tests
         private ITestOutputHelper Output { get; }
 
         [Theory]
-        [WithBlankImages(42, 666, PixelTypes.Color | PixelTypes.Argb32 | PixelTypes.HalfSingle, "hello")]
+        [WithBlankImages(42, 666, PixelTypes.Rgba32 | PixelTypes.Argb32 | PixelTypes.HalfSingle, "hello")]
         public void Use_WithEmptyImageAttribute<TColor>(TestImageProvider<TColor> provider, string message)
             where TColor : struct, IPixel<TColor>
         {
@@ -46,7 +46,7 @@ namespace ImageSharp.Tests
         }
 
         [Theory]
-        [WithBlankImages(1, 1, PixelTypes.Color, PixelTypes.Color)]
+        [WithBlankImages(1, 1, PixelTypes.Rgba32, PixelTypes.Rgba32)]
         [WithBlankImages(1, 1, PixelTypes.Alpha8, PixelTypes.Alpha8)]
         [WithBlankImages(1, 1, PixelTypes.StandardImageClass, PixelTypes.StandardImageClass)]
         public void PixelType_PropertyValueIsCorrect<TColor>(TestImageProvider<TColor> provider, PixelTypes expected)
@@ -86,7 +86,7 @@ namespace ImageSharp.Tests
         public static string[] AllBmpFiles => TestImages.Bmp.All;
 
         [Theory]
-        [WithFileCollection(nameof(AllBmpFiles), PixelTypes.Color | PixelTypes.Argb32)]
+        [WithFileCollection(nameof(AllBmpFiles), PixelTypes.Rgba32 | PixelTypes.Argb32)]
         public void Use_WithFileCollection<TColor>(TestImageProvider<TColor> provider)
             where TColor : struct, IPixel<TColor>
         {
@@ -96,7 +96,7 @@ namespace ImageSharp.Tests
         }
 
         [Theory]
-        [WithSolidFilledImages(10, 20, 255, 100, 50, 200, PixelTypes.Color | PixelTypes.Argb32)]
+        [WithSolidFilledImages(10, 20, 255, 100, 50, 200, PixelTypes.Rgba32 | PixelTypes.Argb32)]
         public void Use_WithSolidFilledImagesAttribute<TColor>(TestImageProvider<TColor> provider)
             where TColor : struct, IPixel<TColor>
         {
@@ -151,7 +151,7 @@ namespace ImageSharp.Tests
 
         public static readonly TheoryData<object> BasicData = new TheoryData<object>()
                                                                              {
-                                                                                 TestImageProvider<Color>.Blank(10, 20),
+                                                                                 TestImageProvider<Rgba32>.Blank(10, 20),
                                                                                  TestImageProvider<HalfVector4>.Blank(
                                                                                      10,
                                                                                      20),
@@ -169,7 +169,7 @@ namespace ImageSharp.Tests
 
         public static readonly TheoryData<object> FileData = new TheoryData<object>()
                                                                             {
-                                                                                TestImageProvider<Color>.File(
+                                                                                TestImageProvider<Rgba32>.File(
                                                                                     TestImages.Bmp.Car),
                                                                                 TestImageProvider<HalfVector4>.File(
                                                                                     TestImages.Bmp.F)

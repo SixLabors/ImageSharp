@@ -125,7 +125,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void CopyFromZYX()
         {
-            using (Image<Color> image = new Image<Color>(1, 1))
+            using (Image<Rgba32> image = new Image<Rgba32>(1, 1))
             {
                 CopyFromZYX(image);
             }
@@ -134,7 +134,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void CopyFromZYXW()
         {
-            using (Image<Color> image = new Image<Color>(1, 1))
+            using (Image<Rgba32> image = new Image<Rgba32>(1, 1))
             {
                 CopyFromZYXW(image);
             }
@@ -143,7 +143,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void CopyToZYX()
         {
-            using (Image<Color> image = new Image<Color>(1, 1))
+            using (Image<Rgba32> image = new Image<Rgba32>(1, 1))
             {
                 CopyToZYX(image);
             }
@@ -152,7 +152,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void CopyToZYXW()
         {
-            using (Image<Color> image = new Image<Color>(1, 1))
+            using (Image<Rgba32> image = new Image<Rgba32>(1, 1))
             {
                 CopyToZYXW(image);
             }
@@ -176,7 +176,7 @@ namespace ImageSharp.Tests
 
                     pixels.CopyFrom(row, 0);
 
-                    Color color = (Color)(object)pixels[0, 0];
+                    Rgba32 color = (Rgba32)(object)pixels[0, 0];
                     Assert.Equal(red, color.R);
                     Assert.Equal(green, color.G);
                     Assert.Equal(blue, color.B);
@@ -204,7 +204,7 @@ namespace ImageSharp.Tests
 
                     pixels.CopyFrom(row, 0);
 
-                    Color color = (Color)(object)pixels[0, 0];
+                    Rgba32 color = (Rgba32)(object)pixels[0, 0];
                     Assert.Equal(red, color.R);
                     Assert.Equal(green, color.G);
                     Assert.Equal(blue, color.B);
@@ -224,7 +224,7 @@ namespace ImageSharp.Tests
 
                 using (PixelArea<TColor> row = new PixelArea<TColor>(1, ComponentOrder.Zyx))
                 {
-                    pixels[0, 0] = (TColor)(object)new Color(red, green, blue);
+                    pixels[0, 0] = (TColor)(object)new Rgba32(red, green, blue);
 
                     pixels.CopyTo(row, 0);
 
@@ -247,7 +247,7 @@ namespace ImageSharp.Tests
 
                 using (PixelArea<TColor> row = new PixelArea<TColor>(1, ComponentOrder.Zyxw))
                 {
-                    pixels[0, 0] = (TColor)(object)new Color(red, green, blue, alpha);
+                    pixels[0, 0] = (TColor)(object)new Rgba32(red, green, blue, alpha);
 
                     pixels.CopyTo(row, 0);
 

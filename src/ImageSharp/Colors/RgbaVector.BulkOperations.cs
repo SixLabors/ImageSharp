@@ -1,4 +1,9 @@
-﻿namespace ImageSharp
+﻿// <copyright file="RgbaVector.BulkOperations.cs" company="James Jackson-South">
+// Copyright (c) James Jackson-South and contributors.
+// Licensed under the Apache License, Version 2.0.
+// </copyright>
+
+namespace ImageSharp
 {
     using System.Numerics;
 
@@ -10,15 +15,15 @@
     /// This struct is fully mutable. This is done (against the guidelines) for the sake of performance,
     /// as it avoids the need to create new values for modification operations.
     /// </remarks>
-    public partial struct ColorVector
+    public partial struct RgbaVector
     {
         /// <summary>
-        /// <see cref="BulkPixelOperations{TColor}"/> implementation optimized for <see cref="ColorVector"/>.
+        /// <see cref="BulkPixelOperations{TColor}"/> implementation optimized for <see cref="RgbaVector"/>.
         /// </summary>
-        internal class BulkOperations : BulkPixelOperations<ColorVector>
+        internal class BulkOperations : BulkPixelOperations<RgbaVector>
         {
             /// <inheritdoc />
-            internal override unsafe void ToVector4(BufferSpan<ColorVector> sourceColors, BufferSpan<Vector4> destVectors, int count)
+            internal override unsafe void ToVector4(BufferSpan<RgbaVector> sourceColors, BufferSpan<Vector4> destVectors, int count)
             {
                 BufferSpan.Copy(sourceColors.AsBytes(), destVectors.AsBytes(), count * sizeof(Vector4));
             }

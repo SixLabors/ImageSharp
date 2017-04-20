@@ -1,4 +1,4 @@
-﻿// <copyright file="Color.cs" company="James Jackson-South">
+﻿// <copyright file="Rgba32.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -18,7 +18,7 @@ namespace ImageSharp
     /// as it avoids the need to create new values for modification operations.
     /// </remarks>
     [StructLayout(LayoutKind.Explicit)]
-    public partial struct Color : IPixel<Color>, IPackedVector<uint>
+    public partial struct Rgba32 : IPixel<Rgba32>, IPackedVector<uint>
     {
         /// <summary>
         /// Gets or sets the red component.
@@ -81,14 +81,14 @@ namespace ImageSharp
         private static readonly Vector4 Half = new Vector4(0.5F);
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Color"/> struct.
+        /// Initializes a new instance of the <see cref="Rgba32"/> struct.
         /// </summary>
         /// <param name="r">The red component.</param>
         /// <param name="g">The green component.</param>
         /// <param name="b">The blue component.</param>
         /// <param name="a">The alpha component.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Color(byte r, byte g, byte b, byte a = 255)
+        public Rgba32(byte r, byte g, byte b, byte a = 255)
             : this()
         {
             this.R = r;
@@ -98,53 +98,53 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Color"/> struct.
+        /// Initializes a new instance of the <see cref="Rgba32"/> struct.
         /// </summary>
         /// <param name="r">The red component.</param>
         /// <param name="g">The green component.</param>
         /// <param name="b">The blue component.</param>
         /// <param name="a">The alpha component.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Color(float r, float g, float b, float a = 1)
+        public Rgba32(float r, float g, float b, float a = 1)
             : this()
         {
             this.Pack(r, g, b, a);
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Color"/> struct.
+        /// Initializes a new instance of the <see cref="Rgba32"/> struct.
         /// </summary>
         /// <param name="vector">
         /// The vector containing the components for the packed vector.
         /// </param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Color(Vector3 vector)
+        public Rgba32(Vector3 vector)
             : this()
         {
             this.Pack(ref vector);
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Color"/> struct.
+        /// Initializes a new instance of the <see cref="Rgba32"/> struct.
         /// </summary>
         /// <param name="vector">
         /// The vector containing the components for the packed vector.
         /// </param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Color(Vector4 vector)
+        public Rgba32(Vector4 vector)
             : this()
         {
             this = PackNew(ref vector);
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Color"/> struct.
+        /// Initializes a new instance of the <see cref="Rgba32"/> struct.
         /// </summary>
         /// <param name="packed">
         /// The packed value.
         /// </param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Color(uint packed)
+        public Rgba32(uint packed)
             : this()
         {
             this.Rgba = packed;
@@ -154,54 +154,54 @@ namespace ImageSharp
         public uint PackedValue { get => this.Rgba; set => this.Rgba = value; }
 
         /// <summary>
-        /// Compares two <see cref="Color"/> objects for equality.
+        /// Compares two <see cref="Rgba32"/> objects for equality.
         /// </summary>
         /// <param name="left">
-        /// The <see cref="Color"/> on the left side of the operand.
+        /// The <see cref="Rgba32"/> on the left side of the operand.
         /// </param>
         /// <param name="right">
-        /// The <see cref="Color"/> on the right side of the operand.
+        /// The <see cref="Rgba32"/> on the right side of the operand.
         /// </param>
         /// <returns>
         /// True if the <paramref name="left"/> parameter is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool operator ==(Color left, Color right)
+        public static bool operator ==(Rgba32 left, Rgba32 right)
         {
             return left.Rgba == right.Rgba;
         }
 
         /// <summary>
-        /// Compares two <see cref="Color"/> objects for equality.
+        /// Compares two <see cref="Rgba32"/> objects for equality.
         /// </summary>
-        /// <param name="left">The <see cref="Color"/> on the left side of the operand.</param>
-        /// <param name="right">The <see cref="Color"/> on the right side of the operand.</param>
+        /// <param name="left">The <see cref="Rgba32"/> on the left side of the operand.</param>
+        /// <param name="right">The <see cref="Rgba32"/> on the right side of the operand.</param>
         /// <returns>
         /// True if the <paramref name="left"/> parameter is not equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool operator !=(Color left, Color right)
+        public static bool operator !=(Rgba32 left, Rgba32 right)
         {
             return left.Rgba != right.Rgba;
         }
 
         /// <summary>
-        /// Creates a new instance of the <see cref="Color"/> struct.
+        /// Creates a new instance of the <see cref="Rgba32"/> struct.
         /// </summary>
         /// <param name="hex">
         /// The hexadecimal representation of the combined color components arranged
         /// in rgb, rgba, rrggbb, or rrggbbaa format to match web syntax.
         /// </param>
         /// <returns>
-        /// The <see cref="Color"/>.
+        /// The <see cref="Rgba32"/>.
         /// </returns>
-        public static Color FromHex(string hex)
+        public static Rgba32 FromHex(string hex)
         {
-            return ColorBuilder<Color>.FromHex(hex);
+            return ColorBuilder<Rgba32>.FromHex(hex);
         }
 
         /// <inheritdoc />
-        public BulkPixelOperations<Color> CreateBulkOperations() => new BulkOperations();
+        public BulkPixelOperations<Rgba32> CreateBulkOperations() => new BulkOperations();
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -278,12 +278,12 @@ namespace ImageSharp
         /// <inheritdoc/>
         public override bool Equals(object obj)
         {
-            return (obj is Color) && this.Equals((Color)obj);
+            return (obj is Rgba32) && this.Equals((Rgba32)obj);
         }
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool Equals(Color other)
+        public bool Equals(Rgba32 other)
         {
             return this.Rgba == other.Rgba;
         }
@@ -328,15 +328,15 @@ namespace ImageSharp
         /// Packs a <see cref="Vector4"/> into a color returning a new instance as a result.
         /// </summary>
         /// <param name="vector">The vector containing the values to pack.</param>
-        /// <returns>The <see cref="Color"/></returns>
+        /// <returns>The <see cref="Rgba32"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static Color PackNew(ref Vector4 vector)
+        private static Rgba32 PackNew(ref Vector4 vector)
         {
             vector *= MaxBytes;
             vector += Half;
             vector = Vector4.Clamp(vector, Vector4.Zero, MaxBytes);
 
-            return new Color((byte)vector.X, (byte)vector.Y, (byte)vector.Z, (byte)vector.W);
+            return new Rgba32((byte)vector.X, (byte)vector.Y, (byte)vector.Z, (byte)vector.W);
         }
 
         /// <summary>

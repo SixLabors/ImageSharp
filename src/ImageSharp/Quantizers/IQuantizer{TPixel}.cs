@@ -1,4 +1,4 @@
-﻿// <copyright file="IQuantizer.cs" company="James Jackson-South">
+﻿// <copyright file="IQuantizer{TPixel}.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -10,9 +10,9 @@ namespace ImageSharp.Quantizers
     /// <summary>
     /// Provides methods for allowing quantization of images pixels.
     /// </summary>
-    /// <typeparam name="TColor">The pixel format.</typeparam>
-    public interface IQuantizer<TColor> : IQuantizer
-        where TColor : struct, IPixel<TColor>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    public interface IQuantizer<TPixel> : IQuantizer
+        where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
         /// Quantize an image and return the resulting output pixels.
@@ -22,15 +22,15 @@ namespace ImageSharp.Quantizers
         /// <returns>
         /// A <see cref="T:QuantizedImage"/> representing a quantized version of the image pixels.
         /// </returns>
-        QuantizedImage<TColor> Quantize(ImageBase<TColor> image, int maxColors);
+        QuantizedImage<TPixel> Quantize(ImageBase<TPixel> image, int maxColors);
     }
 
     /// <summary>
     /// Provides methods for allowing dithering of quantized image pixels.
     /// </summary>
-    /// <typeparam name="TColor">The pixel format.</typeparam>
-    public interface IDitheredQuantizer<TColor> : IQuantizer<TColor>
-        where TColor : struct, IPixel<TColor>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    public interface IDitheredQuantizer<TPixel> : IQuantizer<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
         /// Gets or sets a value indicating whether to apply dithering to the output image.

@@ -11,21 +11,21 @@ namespace ImageSharp
     using Drawing.Brushes;
 
     /// <summary>
-    /// Extension methods for the <see cref="Image{TColor}"/> type.
+    /// Extension methods for the <see cref="Image{TPixel}"/> type.
     /// </summary>
     public static partial class ImageExtensions
     {
         /// <summary>
         /// Flood fills the image in the shape of the provided polygon with the specified brush..
         /// </summary>
-        /// <typeparam name="TColor">The type of the color.</typeparam>
+        /// <typeparam name="TPixel">The type of the color.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="brush">The brush.</param>
         /// <param name="shape">The shape.</param>
         /// <param name="options">The options.</param>
-        /// <returns>The <see cref="Image{TColor}"/>.</returns>
-        public static Image<TColor> Fill<TColor>(this Image<TColor> source, IBrush<TColor> brush, Rectangle shape, GraphicsOptions options)
-            where TColor : struct, IPixel<TColor>
+        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        public static Image<TPixel> Fill<TPixel>(this Image<TPixel> source, IBrush<TPixel> brush, Rectangle shape, GraphicsOptions options)
+            where TPixel : struct, IPixel<TPixel>
         {
             return source.Fill(brush, new SixLabors.Shapes.Rectangle(shape.X, shape.Y, shape.Width, shape.Height), options);
         }
@@ -33,13 +33,13 @@ namespace ImageSharp
         /// <summary>
         /// Flood fills the image in the shape of the provided polygon with the specified brush..
         /// </summary>
-        /// <typeparam name="TColor">The type of the color.</typeparam>
+        /// <typeparam name="TPixel">The type of the color.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="brush">The brush.</param>
         /// <param name="shape">The shape.</param>
-        /// <returns>The <see cref="Image{TColor}"/>.</returns>
-        public static Image<TColor> Fill<TColor>(this Image<TColor> source, IBrush<TColor> brush, Rectangle shape)
-            where TColor : struct, IPixel<TColor>
+        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        public static Image<TPixel> Fill<TPixel>(this Image<TPixel> source, IBrush<TPixel> brush, Rectangle shape)
+            where TPixel : struct, IPixel<TPixel>
         {
             return source.Fill(brush, new SixLabors.Shapes.Rectangle(shape.X, shape.Y, shape.Width, shape.Height));
         }
@@ -47,30 +47,30 @@ namespace ImageSharp
         /// <summary>
         /// Flood fills the image in the shape of the provided polygon with the specified brush..
         /// </summary>
-        /// <typeparam name="TColor">The type of the color.</typeparam>
+        /// <typeparam name="TPixel">The type of the color.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="color">The color.</param>
         /// <param name="shape">The shape.</param>
         /// <param name="options">The options.</param>
-        /// <returns>The <see cref="Image{TColor}"/>.</returns>
-        public static Image<TColor> Fill<TColor>(this Image<TColor> source, TColor color, Rectangle shape, GraphicsOptions options)
-          where TColor : struct, IPixel<TColor>
+        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        public static Image<TPixel> Fill<TPixel>(this Image<TPixel> source, TPixel color, Rectangle shape, GraphicsOptions options)
+          where TPixel : struct, IPixel<TPixel>
         {
-            return source.Fill(new SolidBrush<TColor>(color), shape, options);
+            return source.Fill(new SolidBrush<TPixel>(color), shape, options);
         }
 
         /// <summary>
         /// Flood fills the image in the shape of the provided polygon with the specified brush..
         /// </summary>
-        /// <typeparam name="TColor">The type of the color.</typeparam>
+        /// <typeparam name="TPixel">The type of the color.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="color">The color.</param>
         /// <param name="shape">The shape.</param>
-        /// <returns>The <see cref="Image{TColor}"/>.</returns>
-        public static Image<TColor> Fill<TColor>(this Image<TColor> source, TColor color, Rectangle shape)
-            where TColor : struct, IPixel<TColor>
+        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        public static Image<TPixel> Fill<TPixel>(this Image<TPixel> source, TPixel color, Rectangle shape)
+            where TPixel : struct, IPixel<TPixel>
         {
-            return source.Fill(new SolidBrush<TColor>(color), shape);
+            return source.Fill(new SolidBrush<TPixel>(color), shape);
         }
     }
 }

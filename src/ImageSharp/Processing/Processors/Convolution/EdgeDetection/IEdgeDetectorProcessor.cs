@@ -10,9 +10,9 @@ namespace ImageSharp.Processing.Processors
     /// <summary>
     /// Provides properties and methods allowing the detection of edges within an image.
     /// </summary>
-    /// <typeparam name="TColor">The pixel format.</typeparam>
-    public interface IEdgeDetectorProcessor<TColor> : IImageProcessor<TColor>, IEdgeDetectorProcessor
-        where TColor : struct, IPixel<TColor>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    public interface IEdgeDetectorProcessor<TPixel> : IImageProcessor<TPixel>, IEdgeDetectorProcessor
+        where TPixel : struct, IPixel<TPixel>
     {
     }
 

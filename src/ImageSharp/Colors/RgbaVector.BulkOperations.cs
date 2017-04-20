@@ -18,7 +18,7 @@ namespace ImageSharp
     public partial struct RgbaVector
     {
         /// <summary>
-        /// <see cref="BulkPixelOperations{TColor}"/> implementation optimized for <see cref="RgbaVector"/>.
+        /// <see cref="BulkPixelOperations{TPixel}"/> implementation optimized for <see cref="RgbaVector"/>.
         /// </summary>
         internal class BulkOperations : BulkPixelOperations<RgbaVector>
         {

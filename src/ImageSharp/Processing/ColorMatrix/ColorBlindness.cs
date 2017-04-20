@@ -11,19 +11,19 @@ namespace ImageSharp
     using Processing.Processors;
 
     /// <summary>
-    /// Extension methods for the <see cref="Image{TColor}"/> type.
+    /// Extension methods for the <see cref="Image{TPixel}"/> type.
     /// </summary>
     public static partial class ImageExtensions
     {
         /// <summary>
         /// Applies the given colorblindness simulator to the image.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="colorBlindness">The type of color blindness simulator to apply.</param>
-        /// <returns>The <see cref="Image{TColor}"/>.</returns>
-        public static Image<TColor> ColorBlindness<TColor>(this Image<TColor> source, ColorBlindness colorBlindness)
-            where TColor : struct, IPixel<TColor>
+        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        public static Image<TPixel> ColorBlindness<TPixel>(this Image<TPixel> source, ColorBlindness colorBlindness)
+            where TPixel : struct, IPixel<TPixel>
         {
             return ColorBlindness(source, colorBlindness, source.Bounds);
         }
@@ -31,50 +31,50 @@ namespace ImageSharp
         /// <summary>
         /// Applies the given colorblindness simulator to the image.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="colorBlindness">The type of color blindness simulator to apply.</param>
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
-        /// <returns>The <see cref="Image{TColor}"/>.</returns>
-        public static Image<TColor> ColorBlindness<TColor>(this Image<TColor> source, ColorBlindness colorBlindness, Rectangle rectangle)
-            where TColor : struct, IPixel<TColor>
+        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        public static Image<TPixel> ColorBlindness<TPixel>(this Image<TPixel> source, ColorBlindness colorBlindness, Rectangle rectangle)
+            where TPixel : struct, IPixel<TPixel>
         {
-            IImageProcessor<TColor> processor;
+            IImageProcessor<TPixel> processor;
 
             switch (colorBlindness)
             {
                 case ImageSharp.Processing.ColorBlindness.Achromatomaly:
-                    processor = new AchromatomalyProcessor<TColor>();
+                    processor = new AchromatomalyProcessor<TPixel>();
                     break;
 
                 case ImageSharp.Processing.ColorBlindness.Achromatopsia:
-                    processor = new AchromatopsiaProcessor<TColor>();
+                    processor = new AchromatopsiaProcessor<TPixel>();
                     break;
 
                 case ImageSharp.Processing.ColorBlindness.Deuteranomaly:
-                    processor = new DeuteranomalyProcessor<TColor>();
+                    processor = new DeuteranomalyProcessor<TPixel>();
                     break;
 
                 case ImageSharp.Processing.ColorBlindness.Deuteranopia:
-                    processor = new DeuteranopiaProcessor<TColor>();
+                    processor = new DeuteranopiaProcessor<TPixel>();
                     break;
 
                 case ImageSharp.Processing.ColorBlindness.Protanomaly:
-                    processor = new ProtanomalyProcessor<TColor>();
+                    processor = new ProtanomalyProcessor<TPixel>();
                     break;
 
                 case ImageSharp.Processing.ColorBlindness.Protanopia:
-                    processor = new ProtanopiaProcessor<TColor>();
+                    processor = new ProtanopiaProcessor<TPixel>();
                     break;
 
                 case ImageSharp.Processing.ColorBlindness.Tritanomaly:
-                    processor = new TritanomalyProcessor<TColor>();
+                    processor = new TritanomalyProcessor<TPixel>();
                     break;
 
                 default:
-                    processor = new TritanopiaProcessor<TColor>();
+                    processor = new TritanopiaProcessor<TPixel>();
                     break;
             }
 

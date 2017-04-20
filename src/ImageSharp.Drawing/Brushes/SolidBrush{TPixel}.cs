@@ -1,4 +1,4 @@
-﻿// <copyright file="SolidBrush{TColor}.cs" company="James Jackson-South">
+﻿// <copyright file="SolidBrush{TPixel}.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -13,20 +13,20 @@ namespace ImageSharp.Drawing.Brushes
     /// <summary>
     /// Provides an implementation of a solid brush for painting solid color areas.
     /// </summary>
-    /// <typeparam name="TColor">The pixel format.</typeparam>
-    public class SolidBrush<TColor> : IBrush<TColor>
-        where TColor : struct, IPixel<TColor>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    public class SolidBrush<TPixel> : IBrush<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
         /// The color to paint.
         /// </summary>
-        private readonly TColor color;
+        private readonly TPixel color;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="SolidBrush{TColor}"/> class.
+        /// Initializes a new instance of the <see cref="SolidBrush{TPixel}"/> class.
         /// </summary>
         /// <param name="color">The color.</param>
-        public SolidBrush(TColor color)
+        public SolidBrush(TPixel color)
         {
             this.color = color;
         }
@@ -37,10 +37,10 @@ namespace ImageSharp.Drawing.Brushes
         /// <value>
         /// The color.
         /// </value>
-        public TColor Color => this.color;
+        public TPixel Color => this.color;
 
         /// <inheritdoc />
-        public BrushApplicator<TColor> CreateApplicator(PixelAccessor<TColor> sourcePixels, RectangleF region)
+        public BrushApplicator<TPixel> CreateApplicator(PixelAccessor<TPixel> sourcePixels, RectangleF region)
         {
             return new SolidBrushApplicator(sourcePixels, this.color);
         }
@@ -48,12 +48,12 @@ namespace ImageSharp.Drawing.Brushes
         /// <summary>
         /// The solid brush applicator.
         /// </summary>
-        private class SolidBrushApplicator : BrushApplicator<TColor>
+        private class SolidBrushApplicator : BrushApplicator<TPixel>
         {
             /// <summary>
             /// The solid color.
             /// </summary>
-            private readonly TColor color;
+            private readonly TPixel color;
             private readonly Vector4 colorVector;
 
             /// <summary>
@@ -61,7 +61,7 @@ namespace ImageSharp.Drawing.Brushes
             /// </summary>
             /// <param name="color">The color.</param>
             /// <param name="sourcePixels">The sourcePixels.</param>
-            public SolidBrushApplicator(PixelAccessor<TColor> sourcePixels, TColor color)
+            public SolidBrushApplicator(PixelAccessor<TPixel> sourcePixels, TPixel color)
                 : base(sourcePixels)
             {
                 this.color = color;
@@ -76,7 +76,7 @@ namespace ImageSharp.Drawing.Brushes
             /// <returns>
             /// The color
             /// </returns>
-            internal override TColor this[int x, int y] => this.color;
+            internal override TPixel this[int x, int y] => this.color;
 
             /// <inheritdoc />
             public override void Dispose()
@@ -106,7 +106,7 @@ namespace ImageSharp.Drawing.Brushes
 
                             Vector4 finalColor = Vector4BlendTransforms.PremultipliedLerp(backgroundVector, sourceVector, opacity);
 
-                            TColor packed = default(TColor);
+                            TPixel packed = default(TPixel);
                             packed.PackFromVector4(finalColor);
                             this.Target[targetX, targetY] = packed;
                         }

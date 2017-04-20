@@ -5,11 +5,10 @@
 
 namespace ImageSharp
 {
-    using System;
     using Processing;
 
     /// <summary>
-    /// Extension methods for the <see cref="Image{TColor}"/> type.
+    /// Extension methods for the <see cref="Image{TPixel}"/> type.
     /// </summary>
     public static partial class ImageExtensions
     {
@@ -17,12 +16,12 @@ namespace ImageSharp
         /// Applies the processor to the image.
         /// <remarks>This method does not resize the target image.</remarks>
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="processor">The processor to apply to the image.</param>
-        /// <returns>The <see cref="Image{TColor}"/>.</returns>
-        public static Image<TColor> Apply<TColor>(this Image<TColor> source, IImageProcessor<TColor> processor)
-            where TColor : struct, IPixel<TColor>
+        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        public static Image<TPixel> Apply<TPixel>(this Image<TPixel> source, IImageProcessor<TPixel> processor)
+            where TPixel : struct, IPixel<TPixel>
         {
             source.ApplyProcessor(processor, source.Bounds);
             return source;

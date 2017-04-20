@@ -9,13 +9,13 @@ namespace ImageSharp.Tests
     using System.Reflection;
 
     /// <summary>
-    /// Triggers passing <see cref="TestImageProvider{TColor}"/> instances which produce a blank image of size width * height.
-    /// One <see cref="TestImageProvider{TColor}"/> instance will be passed for each the pixel format defined by the pixelTypes parameter
+    /// Triggers passing <see cref="TestImageProvider{TPixel}"/> instances which produce a blank image of size width * height.
+    /// One <see cref="TestImageProvider{TPixel}"/> instance will be passed for each the pixel format defined by the pixelTypes parameter
     /// </summary>
     public class WithTestPatternImagesAttribute : ImageDataAttributeBase
     {
         /// <summary>
-        /// Triggers passing an <see cref="TestImageProvider{TColor}"/> that produces a test pattern image of size width * height
+        /// Triggers passing an <see cref="TestImageProvider{TPixel}"/> that produces a test pattern image of size width * height
         /// </summary>
         /// <param name="width">The required width</param>
         /// <param name="height">The required height</param>

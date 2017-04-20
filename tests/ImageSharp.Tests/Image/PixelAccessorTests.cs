@@ -15,11 +15,11 @@ namespace ImageSharp.Tests
     /// </summary>
     public class PixelAccessorTests
     {
-        public static Image<TColor> CreateTestImage<TColor>(GenericFactory<TColor> factory)
-            where TColor : struct, IPixel<TColor>
+        public static Image<TPixel> CreateTestImage<TPixel>(GenericFactory<TPixel> factory)
+            where TPixel : struct, IPixel<TPixel>
         {
-            Image<TColor> image = factory.CreateImage(10, 10);
-            using (PixelAccessor<TColor> pixels = image.Lock())
+            Image<TPixel> image = factory.CreateImage(10, 10);
+            using (PixelAccessor<TPixel> pixels = image.Lock())
             {
                 for (int i = 0; i < 10; i++)
                 {
@@ -28,7 +28,7 @@ namespace ImageSharp.Tests
                         Vector4 v = new Vector4(i, j, 0, 1);
                         v /= 10;
 
-                        TColor color = default(TColor);
+                        TPixel color = default(TPixel);
                         color.PackFromVector4(v);
 
                         pixels[i, j] = color;
@@ -43,21 +43,21 @@ namespace ImageSharp.Tests
         [WithMemberFactory(nameof(CreateTestImage), PixelTypes.All, ComponentOrder.Zyx)]
         [WithMemberFactory(nameof(CreateTestImage), PixelTypes.All, ComponentOrder.Xyzw)]
         [WithMemberFactory(nameof(CreateTestImage), PixelTypes.All, ComponentOrder.Zyxw)]
-        public void CopyTo_Then_CopyFrom_OnFullImageRect<TColor>(TestImageProvider<TColor> provider, ComponentOrder order)
-            where TColor : struct, IPixel<TColor>
+        public void CopyTo_Then_CopyFrom_OnFullImageRect<TPixel>(TestImageProvider<TPixel> provider, ComponentOrder order)
+            where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TColor> src = provider.GetImage())
+            using (Image<TPixel> src = provider.GetImage())
             {
-                using (Image<TColor> dest = new Image<TColor>(src.Width, src.Height))
+                using (Image<TPixel> dest = new Image<TPixel>(src.Width, src.Height))
                 {
-                    using (PixelArea<TColor> area = new PixelArea<TColor>(src.Width, src.Height, order))
+                    using (PixelArea<TPixel> area = new PixelArea<TPixel>(src.Width, src.Height, order))
                     {
-                        using (PixelAccessor<TColor> srcPixels = src.Lock())
+                        using (PixelAccessor<TPixel> srcPixels = src.Lock())
                         {
                             srcPixels.CopyTo(area, 0, 0);
                         }
 
-                        using (PixelAccessor<TColor> destPixels = dest.Lock())
+                        using (PixelAccessor<TPixel> destPixels = dest.Lock())
                         {
                             destPixels.CopyFrom(area, 0, 0);
                         }
@@ -69,10 +69,10 @@ namespace ImageSharp.Tests
         }
 
         // TODO: Need a processor in the library with this signature
-        private static void Fill<TColor>(Image<TColor> image, Rectangle region, TColor color)
-             where TColor : struct, IPixel<TColor>
+        private static void Fill<TPixel>(Image<TPixel> image, Rectangle region, TPixel color)
+             where TPixel : struct, IPixel<TPixel>
         {
-            using (PixelAccessor<TColor> pixels = image.Lock())
+            using (PixelAccessor<TPixel> pixels = image.Lock())
             {
                 for (int y = region.Top; y < region.Bottom; y++)
                 {
@@ -89,21 +89,21 @@ namespace ImageSharp.Tests
         [WithBlankImages(16, 16, PixelTypes.All, ComponentOrder.Zyx)]
         [WithBlankImages(16, 16, PixelTypes.All, ComponentOrder.Xyzw)]
         [WithBlankImages(16, 16, PixelTypes.All, ComponentOrder.Zyxw)]
-        public void CopyToThenCopyFromWithOffset<TColor>(TestImageProvider<TColor> provider, ComponentOrder order)
-            where TColor : struct, IPixel<TColor>
+        public void CopyToThenCopyFromWithOffset<TPixel>(TestImageProvider<TPixel> provider, ComponentOrder order)
+            where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TColor> destImage = new Image<TColor>(8, 8))
+            using (Image<TPixel> destImage = new Image<TPixel>(8, 8))
             {
-                using (Image<TColor> srcImage = provider.GetImage())
+                using (Image<TPixel> srcImage = provider.GetImage())
                 {
-                    Fill(srcImage, new Rectangle(4, 4, 8, 8), NamedColors<TColor>.Red);
-                    using (PixelAccessor<TColor> srcPixels = srcImage.Lock())
+                    Fill(srcImage, new Rectangle(4, 4, 8, 8), NamedColors<TPixel>.Red);
+                    using (PixelAccessor<TPixel> srcPixels = srcImage.Lock())
                     {
-                        using (PixelArea<TColor> area = new PixelArea<TColor>(8, 8, order))
+                        using (PixelArea<TPixel> area = new PixelArea<TPixel>(8, 8, order))
                         {
                             srcPixels.CopyTo(area, 4, 4);
 
-                            using (PixelAccessor<TColor> destPixels = destImage.Lock())
+                            using (PixelAccessor<TPixel> destPixels = destImage.Lock())
                             {
                                 destPixels.CopyFrom(area, 0, 0);
                             }
@@ -114,7 +114,7 @@ namespace ImageSharp.Tests
                 provider.Utility.SourceFileOrDescription = order.ToString();
                 provider.Utility.SaveTestOutputFile(destImage, "bmp");
 
-                using (Image<TColor> expectedImage = new Image<TColor>(8, 8).Fill(NamedColors<TColor>.Red))
+                using (Image<TPixel> expectedImage = new Image<TPixel>(8, 8).Fill(NamedColors<TPixel>.Red))
                 {
                     Assert.True(destImage.IsEquivalentTo(expectedImage));
                 }
@@ -158,17 +158,17 @@ namespace ImageSharp.Tests
             }
         }
         
-        private static void CopyFromZYX<TColor>(Image<TColor> image)
-            where TColor : struct, IPixel<TColor>
+        private static void CopyFromZYX<TPixel>(Image<TPixel> image)
+            where TPixel : struct, IPixel<TPixel>
         {
-            using (PixelAccessor<TColor> pixels = image.Lock())
+            using (PixelAccessor<TPixel> pixels = image.Lock())
             {
                 byte red = 1;
                 byte green = 2;
                 byte blue = 3;
                 byte alpha = 255;
 
-                using (PixelArea<TColor> row = new PixelArea<TColor>(1, ComponentOrder.Zyx))
+                using (PixelArea<TPixel> row = new PixelArea<TPixel>(1, ComponentOrder.Zyx))
                 {
                     row.Bytes[0] = blue;
                     row.Bytes[1] = green;
@@ -185,17 +185,17 @@ namespace ImageSharp.Tests
             }
         }
 
-        private static void CopyFromZYXW<TColor>(Image<TColor> image)
-            where TColor : struct, IPixel<TColor>
+        private static void CopyFromZYXW<TPixel>(Image<TPixel> image)
+            where TPixel : struct, IPixel<TPixel>
         {
-            using (PixelAccessor<TColor> pixels = image.Lock())
+            using (PixelAccessor<TPixel> pixels = image.Lock())
             {
                 byte red = 1;
                 byte green = 2;
                 byte blue = 3;
                 byte alpha = 4;
 
-                using (PixelArea<TColor> row = new PixelArea<TColor>(1, ComponentOrder.Zyxw))
+                using (PixelArea<TPixel> row = new PixelArea<TPixel>(1, ComponentOrder.Zyxw))
                 {
                     row.Bytes[0] = blue;
                     row.Bytes[1] = green;
@@ -213,18 +213,18 @@ namespace ImageSharp.Tests
             }
         }
 
-        private static void CopyToZYX<TColor>(Image<TColor> image)
-          where TColor : struct, IPixel<TColor>
+        private static void CopyToZYX<TPixel>(Image<TPixel> image)
+          where TPixel : struct, IPixel<TPixel>
         {
-            using (PixelAccessor<TColor> pixels = image.Lock())
+            using (PixelAccessor<TPixel> pixels = image.Lock())
             {
                 byte red = 1;
                 byte green = 2;
                 byte blue = 3;
 
-                using (PixelArea<TColor> row = new PixelArea<TColor>(1, ComponentOrder.Zyx))
+                using (PixelArea<TPixel> row = new PixelArea<TPixel>(1, ComponentOrder.Zyx))
                 {
-                    pixels[0, 0] = (TColor)(object)new Rgba32(red, green, blue);
+                    pixels[0, 0] = (TPixel)(object)new Rgba32(red, green, blue);
 
                     pixels.CopyTo(row, 0);
 
@@ -235,19 +235,19 @@ namespace ImageSharp.Tests
             }
         }
 
-        private static void CopyToZYXW<TColor>(Image<TColor> image)
-            where TColor : struct, IPixel<TColor>
+        private static void CopyToZYXW<TPixel>(Image<TPixel> image)
+            where TPixel : struct, IPixel<TPixel>
         {
-            using (PixelAccessor<TColor> pixels = image.Lock())
+            using (PixelAccessor<TPixel> pixels = image.Lock())
             {
                 byte red = 1;
                 byte green = 2;
                 byte blue = 3;
                 byte alpha = 4;
 
-                using (PixelArea<TColor> row = new PixelArea<TColor>(1, ComponentOrder.Zyxw))
+                using (PixelArea<TPixel> row = new PixelArea<TPixel>(1, ComponentOrder.Zyxw))
                 {
-                    pixels[0, 0] = (TColor)(object)new Rgba32(red, green, blue, alpha);
+                    pixels[0, 0] = (TPixel)(object)new Rgba32(red, green, blue, alpha);
 
                     pixels.CopyTo(row, 0);
 

@@ -12,9 +12,9 @@ namespace ImageSharp.Processing.Processors
     /// Converts the colors of the image to their sepia equivalent.
     /// The formula used matches the svg specification. <see href="http://www.w3.org/TR/filter-effects/#sepiaEquivalent"/>
     /// </summary>
-    /// <typeparam name="TColor">The pixel format.</typeparam>
-    internal class SepiaProcessor<TColor> : ColorMatrixProcessor<TColor>
-        where TColor : struct, IPixel<TColor>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    internal class SepiaProcessor<TPixel> : ColorMatrixProcessor<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
         /// <inheritdoc/>
         public override Matrix4x4 Matrix => new Matrix4x4

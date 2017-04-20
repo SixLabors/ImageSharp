@@ -6,7 +6,7 @@
 namespace ImageSharp.Drawing.Pens
 {
     /// <summary>
-    /// Represents a <see cref="Pen{TColor}"/> in the <see cref="Rgba32"/> color space.
+    /// Represents a <see cref="Pen{TPixel}"/> in the <see cref="Rgba32"/> color space.
     /// </summary>
     public class Pen : Pen<Rgba32>
     {

@@ -12,10 +12,10 @@ namespace ImageSharp.Processing.Processors
     /// The Kirsch operator filter.
     /// <see href="http://en.wikipedia.org/wiki/Kirsch_operator"/>
     /// </summary>
-    /// <typeparam name="TColor">The pixel format.</typeparam>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
     [SuppressMessage("ReSharper", "StaticMemberInGenericType", Justification = "We want to use only one instance of each array field for each generic type.")]
-    internal class KirschProcessor<TColor> : EdgeDetectorCompassProcessor<TColor>
-        where TColor : struct, IPixel<TColor>
+    internal class KirschProcessor<TPixel> : EdgeDetectorCompassProcessor<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
         /// The North gradient operator

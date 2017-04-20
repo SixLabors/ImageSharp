@@ -1,7 +1,8 @@
-﻿// <copyright file="PixelArea{TColor}.cs" company="James Jackson-South">
+﻿// <copyright file="PixelArea{TPixel}.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
+
 namespace ImageSharp
 {
     using System;
@@ -10,11 +11,11 @@ namespace ImageSharp
     using System.Runtime.CompilerServices;
 
     /// <summary>
-    /// Represents an area of generic <see cref="Image{TColor}"/> pixels.
+    /// Represents an area of generic <see cref="Image{TPixel}"/> pixels.
     /// </summary>
-    /// <typeparam name="TColor">The pixel format.</typeparam>
-    internal sealed class PixelArea<TColor> : IDisposable
-        where TColor : struct, IPixel<TColor>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    internal sealed class PixelArea<TPixel> : IDisposable
+        where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
         /// A value indicating whether this instance of the given entity has been disposed.
@@ -33,7 +34,7 @@ namespace ImageSharp
         private Buffer<byte> byteBuffer;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="PixelArea{TColor}"/> class.
+        /// Initializes a new instance of the <see cref="PixelArea{TPixel}"/> class.
         /// </summary>
         /// <param name="width">The width.</param>
         /// <param name="bytes">The bytes.</param>
@@ -47,7 +48,7 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="PixelArea{TColor}"/> class.
+        /// Initializes a new instance of the <see cref="PixelArea{TPixel}"/> class.
         /// </summary>
         /// <param name="width">The width.</param>
         /// <param name="height">The height.</param>
@@ -70,7 +71,7 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="PixelArea{TColor}"/> class.
+        /// Initializes a new instance of the <see cref="PixelArea{TPixel}"/> class.
         /// </summary>
         /// <param name="width">The width.</param>
         /// <param name="componentOrder">The component order.</param>
@@ -80,7 +81,7 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="PixelArea{TColor}"/> class.
+        /// Initializes a new instance of the <see cref="PixelArea{TPixel}"/> class.
         /// </summary>
         /// <param name="width">The width. </param>
         /// <param name="componentOrder">The component order.</param>
@@ -91,7 +92,7 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="PixelArea{TColor}"/> class.
+        /// Initializes a new instance of the <see cref="PixelArea{TPixel}"/> class.
         /// </summary>
         /// <param name="width">The width.</param>
         /// <param name="height">The height.</param>
@@ -102,7 +103,7 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="PixelArea{TColor}"/> class.
+        /// Initializes a new instance of the <see cref="PixelArea{TPixel}"/> class.
         /// </summary>
         /// <param name="width">The width.</param>
         /// <param name="height">The height.</param>

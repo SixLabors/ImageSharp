@@ -13,6 +13,45 @@ namespace ImageSharp.Colors.Spaces.Conversion
     public partial class ColorSpaceConverter
     {
         /// <summary>
+        /// Converts a <see cref="CieLab"/> into a <see cref="Lms"/>
+        /// </summary>
+        /// <param name="color">The color to convert.</param>
+        /// <returns>The <see cref="Lms"/></returns>
+        public Lms ToLms(CieLab color)
+        {
+            Guard.NotNull(color, nameof(color));
+
+            CieXyz xyzColor = this.ToCieXyz(color);
+            return this.ToLms(xyzColor);
+        }
+
+        /// <summary>
+        /// Converts a <see cref="CieLch"/> into a <see cref="Lms"/>
+        /// </summary>
+        /// <param name="color">The color to convert.</param>
+        /// <returns>The <see cref="Lms"/></returns>
+        public Lms ToLms(CieLch color)
+        {
+            Guard.NotNull(color, nameof(color));
+
+            CieXyz xyzColor = this.ToCieXyz(color);
+            return this.ToLms(xyzColor);
+        }
+
+        /// <summary>
+        /// Converts a <see cref="CieXyy"/> into a <see cref="Lms"/>
+        /// </summary>
+        /// <param name="color">The color to convert.</param>
+        /// <returns>The <see cref="Lms"/></returns>
+        public Lms ToLms(CieXyy color)
+        {
+            Guard.NotNull(color, nameof(color));
+
+            CieXyz xyzColor = this.ToCieXyz(color);
+            return this.ToLms(xyzColor);
+        }
+
+        /// <summary>
         /// Converts a <see cref="CieXyz"/> into a <see cref="Lms"/>
         /// </summary>
         /// <param name="color">The color to convert.</param>
@@ -26,11 +65,11 @@ namespace ImageSharp.Colors.Spaces.Conversion
         }
 
         /// <summary>
-        /// Converts a <see cref="CieLab"/> into a <see cref="Lms"/>
+        /// Converts a <see cref="Cmyk"/> into a <see cref="Lms"/>
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="Lms"/></returns>
-        public Lms ToLms(CieLab color)
+        public Lms ToLms(Cmyk color)
         {
             Guard.NotNull(color, nameof(color));
 
@@ -70,32 +109,6 @@ namespace ImageSharp.Colors.Spaces.Conversion
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="Lms"/></returns>
         public Lms ToLms(Rgb color)
-        {
-            Guard.NotNull(color, nameof(color));
-
-            CieXyz xyzColor = this.ToCieXyz(color);
-            return this.ToLms(xyzColor);
-        }
-
-        /// <summary>
-        /// Converts a <see cref="CieLch"/> into a <see cref="Lms"/>
-        /// </summary>
-        /// <param name="color">The color to convert.</param>
-        /// <returns>The <see cref="Lms"/></returns>
-        public Lms ToLms(CieLch color)
-        {
-            Guard.NotNull(color, nameof(color));
-
-            CieXyz xyzColor = this.ToCieXyz(color);
-            return this.ToLms(xyzColor);
-        }
-
-        /// <summary>
-        /// Converts a <see cref="CieXyy"/> into a <see cref="Lms"/>
-        /// </summary>
-        /// <param name="color">The color to convert.</param>
-        /// <returns>The <see cref="Lms"/></returns>
-        public Lms ToLms(CieXyy color)
         {
             Guard.NotNull(color, nameof(color));
 

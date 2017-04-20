@@ -21,6 +21,7 @@ namespace ImageSharp.Colors.Spaces.Conversion
         public static readonly CieXyz DefaultWhitePoint = Illuminants.D65;
 
         private Matrix4x4 transformationMatrix;
+
         private CieXyzAndLmsConverter cachedCieXyzAndLmsConverter;
 
         /// <summary>

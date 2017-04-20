@@ -18,45 +18,6 @@ namespace ImageSharp.Colors.Spaces.Conversion
         private static readonly CieLabToCieLchConverter CieLabToCieLchConverter = new CieLabToCieLchConverter();
 
         /// <summary>
-        /// Converts a <see cref="CieXyz"/> into a <see cref="CieLch"/>
-        /// </summary>
-        /// <param name="color">The color to convert.</param>
-        /// <returns>The <see cref="CieLch"/></returns>
-        public CieLch ToCieLch(CieXyz color)
-        {
-            Guard.NotNull(color, nameof(color));
-
-            CieLab labColor = this.ToCieLab(color);
-            return this.ToCieLch(labColor);
-        }
-
-        /// <summary>
-        /// Converts a <see cref="Rgb"/> into a <see cref="CieLch"/>
-        /// </summary>
-        /// <param name="color">The color to convert.</param>
-        /// <returns>The <see cref="CieLch"/></returns>
-        public CieLch ToCieLch(Rgb color)
-        {
-            Guard.NotNull(color, nameof(color));
-
-            CieLab labColor = this.ToCieLab(color);
-            return this.ToCieLch(labColor);
-        }
-
-        /// <summary>
-        /// Converts a <see cref="LinearRgb"/> into a <see cref="CieLch"/>
-        /// </summary>
-        /// <param name="color">The color to convert.</param>
-        /// <returns>The <see cref="CieLch"/></returns>
-        public CieLch ToCieLch(LinearRgb color)
-        {
-            Guard.NotNull(color, nameof(color));
-
-            CieLab labColor = this.ToCieLab(color);
-            return this.ToCieLch(labColor);
-        }
-
-        /// <summary>
         /// Converts a <see cref="CieLab"/> into a <see cref="CieLch"/>
         /// </summary>
         /// <param name="color">The color to convert.</param>
@@ -73,16 +34,42 @@ namespace ImageSharp.Colors.Spaces.Conversion
         }
 
         /// <summary>
-        /// Converts a <see cref="Lms"/> into a <see cref="CieLch"/>
+        /// Converts a <see cref="CieXyy"/> into a <see cref="CieLch"/>
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="CieLch"/></returns>
-        public CieLch ToCieLch(Lms color)
+        public CieLch ToCieLch(CieXyy color)
+        {
+            Guard.NotNull(color, nameof(color));
+
+            CieXyz xyzColor = this.ToCieXyz(color);
+            return this.ToCieLch(xyzColor);
+        }
+
+        /// <summary>
+        /// Converts a <see cref="CieXyz"/> into a <see cref="CieLch"/>
+        /// </summary>
+        /// <param name="color">The color to convert.</param>
+        /// <returns>The <see cref="CieLch"/></returns>
+        public CieLch ToCieLch(CieXyz color)
         {
             Guard.NotNull(color, nameof(color));
 
             CieLab labColor = this.ToCieLab(color);
             return this.ToCieLch(labColor);
+        }
+
+        /// <summary>
+        /// Converts a <see cref="Cmyk"/> into a <see cref="CieLch"/>
+        /// </summary>
+        /// <param name="color">The color to convert.</param>
+        /// <returns>The <see cref="CieLch"/></returns>
+        public CieLch ToCieLch(Cmyk color)
+        {
+            Guard.NotNull(color, nameof(color));
+
+            CieXyz xyzColor = this.ToCieXyz(color);
+            return this.ToCieLch(xyzColor);
         }
 
         /// <summary>
@@ -94,8 +81,47 @@ namespace ImageSharp.Colors.Spaces.Conversion
         {
             Guard.NotNull(color, nameof(color));
 
-            CieLab labColor = this.ToCieLab(color);
-            return this.ToCieLch(labColor);
+            CieXyz xyzColor = this.ToCieXyz(color);
+            return this.ToCieLch(xyzColor);
+        }
+
+        /// <summary>
+        /// Converts a <see cref="LinearRgb"/> into a <see cref="CieLch"/>
+        /// </summary>
+        /// <param name="color">The color to convert.</param>
+        /// <returns>The <see cref="CieLch"/></returns>
+        public CieLch ToCieLch(LinearRgb color)
+        {
+            Guard.NotNull(color, nameof(color));
+
+            CieXyz xyzColor = this.ToCieXyz(color);
+            return this.ToCieLch(xyzColor);
+        }
+
+        /// <summary>
+        /// Converts a <see cref="Lms"/> into a <see cref="CieLch"/>
+        /// </summary>
+        /// <param name="color">The color to convert.</param>
+        /// <returns>The <see cref="CieLch"/></returns>
+        public CieLch ToCieLch(Lms color)
+        {
+            Guard.NotNull(color, nameof(color));
+
+            CieXyz xyzColor = this.ToCieXyz(color);
+            return this.ToCieLch(xyzColor);
+        }
+
+        /// <summary>
+        /// Converts a <see cref="Rgb"/> into a <see cref="CieLch"/>
+        /// </summary>
+        /// <param name="color">The color to convert.</param>
+        /// <returns>The <see cref="CieLch"/></returns>
+        public CieLch ToCieLch(Rgb color)
+        {
+            Guard.NotNull(color, nameof(color));
+
+            CieXyz xyzColor = this.ToCieXyz(color);
+            return this.ToCieLch(xyzColor);
         }
     }
 }

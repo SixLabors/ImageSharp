@@ -17,69 +17,11 @@ namespace ImageSharp.Colors.Spaces.Conversion
         private CieXyzToLinearRgbConverter cieXyzToLinearRgbConverter;
 
         /// <summary>
-        /// Converts a <see cref="Rgb"/> into a <see cref="LinearRgb"/>
-        /// </summary>
-        /// <param name="color">The color to convert.</param>
-        /// <returns>The <see cref="LinearRgb"/></returns>
-        public LinearRgb ToLinearRgb(Rgb color)
-        {
-            Guard.NotNull(color, nameof(color));
-
-            // Conversion
-            return RgbToLinearRgbConverter.Convert(color);
-        }
-
-        /// <summary>
-        /// Converts a <see cref="CieXyz"/> into a <see cref="LinearRgb"/>
-        /// </summary>
-        /// <param name="color">The color to convert.</param>
-        /// <returns>The <see cref="LinearRgb"/></returns>
-        public LinearRgb ToLinearRgb(CieXyz color)
-        {
-            Guard.NotNull(color, nameof(color));
-
-            // Adaptation
-            CieXyz adapted = this.TargetRgbWorkingSpace.WhitePoint.Equals(this.WhitePoint) || !this.IsChromaticAdaptationPerformed
-                ? color
-                : this.ChromaticAdaptation.Transform(color, this.WhitePoint, this.TargetRgbWorkingSpace.WhitePoint);
-
-            // Conversion
-            CieXyzToLinearRgbConverter xyzConverter = this.GetCieXyxToLinearRgbConverter(this.TargetRgbWorkingSpace);
-            return xyzConverter.Convert(adapted);
-        }
-
-        /// <summary>
-        /// Converts a <see cref="HunterLab"/> into a <see cref="LinearRgb"/>
-        /// </summary>
-        /// <param name="color">The color to convert.</param>
-        /// <returns>The <see cref="LinearRgb"/></returns>
-        public LinearRgb ToLinearRgb(HunterLab color)
-        {
-            Guard.NotNull(color, nameof(color));
-
-            CieXyz xyzColor = this.ToCieXyz(color);
-            return this.ToLinearRgb(xyzColor);
-        }
-
-        /// <summary>
         /// Converts a <see cref="CieLab"/> into a <see cref="LinearRgb"/>
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="LinearRgb"/></returns>
         public LinearRgb ToLinearRgb(CieLab color)
-        {
-            Guard.NotNull(color, nameof(color));
-
-            CieXyz xyzColor = this.ToCieXyz(color);
-            return this.ToLinearRgb(xyzColor);
-        }
-
-        /// <summary>
-        /// Converts a <see cref="Lms"/> into a <see cref="LinearRgb"/>
-        /// </summary>
-        /// <param name="color">The color to convert.</param>
-        /// <returns>The <see cref="LinearRgb"/></returns>
-        public LinearRgb ToLinearRgb(Lms color)
         {
             Guard.NotNull(color, nameof(color));
 
@@ -111,6 +53,77 @@ namespace ImageSharp.Colors.Spaces.Conversion
 
             CieXyz xyzColor = this.ToCieXyz(color);
             return this.ToLinearRgb(xyzColor);
+        }
+
+        /// <summary>
+        /// Converts a <see cref="CieXyz"/> into a <see cref="LinearRgb"/>
+        /// </summary>
+        /// <param name="color">The color to convert.</param>
+        /// <returns>The <see cref="LinearRgb"/></returns>
+        public LinearRgb ToLinearRgb(CieXyz color)
+        {
+            Guard.NotNull(color, nameof(color));
+
+            // Adaptation
+            CieXyz adapted = this.TargetRgbWorkingSpace.WhitePoint.Equals(this.WhitePoint) || !this.IsChromaticAdaptationPerformed
+                ? color
+                : this.ChromaticAdaptation.Transform(color, this.WhitePoint, this.TargetRgbWorkingSpace.WhitePoint);
+
+            // Conversion
+            CieXyzToLinearRgbConverter xyzConverter = this.GetCieXyxToLinearRgbConverter(this.TargetRgbWorkingSpace);
+            return xyzConverter.Convert(adapted);
+        }
+
+        /// <summary>
+        /// Converts a <see cref="Cmyk"/> into a <see cref="LinearRgb"/>
+        /// </summary>
+        /// <param name="color">The color to convert.</param>
+        /// <returns>The <see cref="LinearRgb"/></returns>
+        public LinearRgb ToLinearRgb(Cmyk color)
+        {
+            Guard.NotNull(color, nameof(color));
+
+            Rgb rgb = this.ToRgb(color);
+            return this.ToLinearRgb(rgb);
+        }
+
+        /// <summary>
+        /// Converts a <see cref="HunterLab"/> into a <see cref="LinearRgb"/>
+        /// </summary>
+        /// <param name="color">The color to convert.</param>
+        /// <returns>The <see cref="LinearRgb"/></returns>
+        public LinearRgb ToLinearRgb(HunterLab color)
+        {
+            Guard.NotNull(color, nameof(color));
+
+            CieXyz xyzColor = this.ToCieXyz(color);
+            return this.ToLinearRgb(xyzColor);
+        }
+
+        /// <summary>
+        /// Converts a <see cref="Lms"/> into a <see cref="LinearRgb"/>
+        /// </summary>
+        /// <param name="color">The color to convert.</param>
+        /// <returns>The <see cref="LinearRgb"/></returns>
+        public LinearRgb ToLinearRgb(Lms color)
+        {
+            Guard.NotNull(color, nameof(color));
+
+            CieXyz xyzColor = this.ToCieXyz(color);
+            return this.ToLinearRgb(xyzColor);
+        }
+
+        /// <summary>
+        /// Converts a <see cref="Rgb"/> into a <see cref="LinearRgb"/>
+        /// </summary>
+        /// <param name="color">The color to convert.</param>
+        /// <returns>The <see cref="LinearRgb"/></returns>
+        public LinearRgb ToLinearRgb(Rgb color)
+        {
+            Guard.NotNull(color, nameof(color));
+
+            // Conversion
+            return RgbToLinearRgbConverter.Convert(color);
         }
 
         /// <summary>

@@ -11,7 +11,7 @@
     /// </summary>
     /// <remarks>
     /// Test data generated using:
-    /// http://www.brucelindbloom.com/index.html?ColorCalculator.html
+    /// <see href="http://www.brucelindbloom.com/index.html?ColorCalculator.html"/>
     /// </remarks>
     public class RgbAndCieXyzConversionTest
     {
@@ -38,10 +38,10 @@
             Rgb output = converter.ToRgb(input);
 
             // Assert
-            Assert.Equal(output.WorkingSpace, Rgb.DefaultWorkingSpace); // TODO: Change Assert.Equal to the correct order, first the expected, then the current value
-            Assert.Equal(output.R, r, FloatRoundingComparer);
-            Assert.Equal(output.G, g, FloatRoundingComparer);
-            Assert.Equal(output.B, b, FloatRoundingComparer);
+            Assert.Equal(Rgb.DefaultWorkingSpace, output.WorkingSpace);
+            Assert.Equal(r, output.R, FloatRoundingComparer);
+            Assert.Equal(g, output.G, FloatRoundingComparer);
+            Assert.Equal(b, output.B, FloatRoundingComparer);
         }
 
         /// <summary>
@@ -66,10 +66,10 @@
             Rgb output = converter.ToRgb(input);
 
             // Assert
-            Assert.Equal(output.WorkingSpace, Rgb.DefaultWorkingSpace);
-            Assert.Equal(output.R, r, FloatRoundingComparer);
-            Assert.Equal(output.G, g, FloatRoundingComparer);
-            Assert.Equal(output.B, b, FloatRoundingComparer);
+            Assert.Equal(Rgb.DefaultWorkingSpace, output.WorkingSpace);
+            Assert.Equal(r, output.R, FloatRoundingComparer);
+            Assert.Equal(g, output.G, FloatRoundingComparer);
+            Assert.Equal(b, output.B, FloatRoundingComparer);
         }
 
         /// <summary>
@@ -93,9 +93,9 @@
             CieXyz output = converter.ToCieXyz(input);
 
             // Assert
-            Assert.Equal(output.X, x, FloatRoundingComparer);
-            Assert.Equal(output.Y, y, FloatRoundingComparer);
-            Assert.Equal(output.Z, z, FloatRoundingComparer);
+            Assert.Equal(x, output.X, FloatRoundingComparer);
+            Assert.Equal(y, output.Y, FloatRoundingComparer);
+            Assert.Equal(z, output.Z, FloatRoundingComparer);
         }
 
         /// <summary>
@@ -119,9 +119,9 @@
             CieXyz output = converter.ToCieXyz(input);
 
             // Assert
-            Assert.Equal(output.X, x, FloatRoundingComparer);
-            Assert.Equal(output.Y, y, FloatRoundingComparer);
-            Assert.Equal(output.Z, z, FloatRoundingComparer);
+            Assert.Equal(x, output.X, FloatRoundingComparer);
+            Assert.Equal(y, output.Y, FloatRoundingComparer);
+            Assert.Equal(z, output.Z, FloatRoundingComparer);
         }
     }
 }

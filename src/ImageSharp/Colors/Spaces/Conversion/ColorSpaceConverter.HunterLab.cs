@@ -13,6 +13,45 @@ namespace ImageSharp.Colors.Spaces.Conversion
     public partial class ColorSpaceConverter
     {
         /// <summary>
+        /// Converts a <see cref="CieLab"/> into a <see cref="HunterLab"/>
+        /// </summary>
+        /// <param name="color">The color to convert.</param>
+        /// <returns>The <see cref="HunterLab"/></returns>
+        public HunterLab ToHunterLab(CieLab color)
+        {
+            Guard.NotNull(color, nameof(color));
+
+            CieXyz xyzColor = this.ToCieXyz(color);
+            return this.ToHunterLab(xyzColor);
+        }
+
+        /// <summary>
+        /// Converts a <see cref="CieLch"/> into a <see cref="HunterLab"/>
+        /// </summary>
+        /// <param name="color">The color to convert.</param>
+        /// <returns>The <see cref="HunterLab"/></returns>
+        public HunterLab ToHunterLab(CieLch color)
+        {
+            Guard.NotNull(color, nameof(color));
+
+            CieXyz xyzColor = this.ToCieXyz(color);
+            return this.ToHunterLab(xyzColor);
+        }
+
+        /// <summary>
+        /// Converts a <see cref="CieXyy"/> into a <see cref="HunterLab"/>
+        /// </summary>
+        /// <param name="color">The color to convert.</param>
+        /// <returns>The <see cref="HunterLab"/></returns>
+        public HunterLab ToHunterLab(CieXyy color)
+        {
+            Guard.NotNull(color, nameof(color));
+
+            CieXyz xyzColor = this.ToCieXyz(color);
+            return this.ToHunterLab(xyzColor);
+        }
+
+        /// <summary>
         /// Converts a <see cref="CieXyz"/> into a <see cref="HunterLab"/>
         /// </summary>
         /// <param name="color">The color to convert.</param>
@@ -31,11 +70,11 @@ namespace ImageSharp.Colors.Spaces.Conversion
         }
 
         /// <summary>
-        /// Converts a <see cref="Rgb"/> into a <see cref="HunterLab"/>
+        /// Converts a <see cref="Cmyk"/> into a <see cref="HunterLab"/>
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="HunterLab"/></returns>
-        public HunterLab ToHunterLab(Rgb color)
+        public HunterLab ToHunterLab(Cmyk color)
         {
             Guard.NotNull(color, nameof(color));
 
@@ -57,19 +96,6 @@ namespace ImageSharp.Colors.Spaces.Conversion
         }
 
         /// <summary>
-        /// Converts a <see cref="CieLab"/> into a <see cref="HunterLab"/>
-        /// </summary>
-        /// <param name="color">The color to convert.</param>
-        /// <returns>The <see cref="HunterLab"/></returns>
-        public HunterLab ToHunterLab(CieLab color)
-        {
-            Guard.NotNull(color, nameof(color));
-
-            CieXyz xyzColor = this.ToCieXyz(color);
-            return this.ToHunterLab(xyzColor);
-        }
-
-        /// <summary>
         /// Converts a <see cref="Lms"/> into a <see cref="HunterLab"/>
         /// </summary>
         /// <param name="color">The color to convert.</param>
@@ -83,24 +109,11 @@ namespace ImageSharp.Colors.Spaces.Conversion
         }
 
         /// <summary>
-        /// Converts a <see cref="CieLab"/> into a <see cref="HunterLab"/>
+        /// Converts a <see cref="Rgb"/> into a <see cref="HunterLab"/>
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="HunterLab"/></returns>
-        public HunterLab ToHunterLab(CieLch color)
-        {
-            Guard.NotNull(color, nameof(color));
-
-            CieXyz xyzColor = this.ToCieXyz(color);
-            return this.ToHunterLab(xyzColor);
-        }
-
-        /// <summary>
-        /// Converts a <see cref="CieLab"/> into a <see cref="CieXyy"/>
-        /// </summary>
-        /// <param name="color">The color to convert.</param>
-        /// <returns>The <see cref="HunterLab"/></returns>
-        public HunterLab ToHunterLab(CieXyy color)
+        public HunterLab ToHunterLab(Rgb color)
         {
             Guard.NotNull(color, nameof(color));
 

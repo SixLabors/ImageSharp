@@ -20,6 +20,40 @@ namespace ImageSharp.Colors.Spaces.Conversion
         private static readonly CieLchToCieLabConverter CieLchToCieLabConverter = new CieLchToCieLabConverter();
 
         /// <summary>
+        /// Converts a <see cref="CieLch"/> into a <see cref="CieLab"/>
+        /// </summary>
+        /// <param name="color">The color to convert.</param>
+        /// <returns>The <see cref="CieLab"/></returns>
+        public CieLab ToCieLab(CieLch color)
+        {
+            Guard.NotNull(color, nameof(color));
+
+            // Conversion (perserving white point)
+            CieLab unadapted = CieLchToCieLabConverter.Convert(color);
+
+            if (!this.IsChromaticAdaptationPerformed)
+            {
+                return unadapted;
+            }
+
+            // Adaptation
+            return this.Adapt(unadapted);
+        }
+
+        /// <summary>
+        /// Converts a <see cref="CieXyy"/> into a <see cref="CieLab"/>
+        /// </summary>
+        /// <param name="color">The color to convert.</param>
+        /// <returns>The <see cref="CieLab"/></returns>
+        public CieLab ToCieLab(CieXyy color)
+        {
+            Guard.NotNull(color, nameof(color));
+
+            CieXyz xyzColor = this.ToCieXyz(color);
+            return this.ToCieLab(xyzColor);
+        }
+
+        /// <summary>
         /// Converts a <see cref="CieXyz"/> into a <see cref="CieLab"/>
         /// </summary>
         /// <param name="color">The color to convert.</param>
@@ -39,24 +73,11 @@ namespace ImageSharp.Colors.Spaces.Conversion
         }
 
         /// <summary>
-        /// Converts a <see cref="LinearRgb"/> into a <see cref="CieLab"/>
+        /// Converts a <see cref="Cmyk"/> into a <see cref="CieLab"/>
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="CieLab"/></returns>
-        public CieLab ToCieLab(LinearRgb color)
-        {
-            Guard.NotNull(color, nameof(color));
-
-            CieXyz xyzColor = this.ToCieXyz(color);
-            return this.ToCieLab(xyzColor);
-        }
-
-        /// <summary>
-        /// Converts a <see cref="Rgb"/> into a <see cref="CieLab"/>
-        /// </summary>
-        /// <param name="color">The color to convert.</param>
-        /// <returns>The <see cref="CieLab"/></returns>
-        public CieLab ToCieLab(Rgb color)
+        public CieLab ToCieLab(Cmyk color)
         {
             Guard.NotNull(color, nameof(color));
 
@@ -91,11 +112,11 @@ namespace ImageSharp.Colors.Spaces.Conversion
         }
 
         /// <summary>
-        /// Converts a <see cref="CieXyy"/> into a <see cref="CieLab"/>
+        /// Converts a <see cref="LinearRgb"/> into a <see cref="CieLab"/>
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="CieLab"/></returns>
-        public CieLab ToCieLab(CieXyy color)
+        public CieLab ToCieLab(LinearRgb color)
         {
             Guard.NotNull(color, nameof(color));
 
@@ -104,24 +125,16 @@ namespace ImageSharp.Colors.Spaces.Conversion
         }
 
         /// <summary>
-        /// Converts a <see cref="CieLch"/> into a <see cref="CieLab"/>
+        /// Converts a <see cref="Rgb"/> into a <see cref="CieLab"/>
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="CieLab"/></returns>
-        public CieLab ToCieLab(CieLch color)
+        public CieLab ToCieLab(Rgb color)
         {
             Guard.NotNull(color, nameof(color));
 
-            // Conversion (perserving white point)
-            CieLab unadapted = CieLchToCieLabConverter.Convert(color);
-
-            if (!this.IsChromaticAdaptationPerformed)
-            {
-                return unadapted;
-            }
-
-            // Adaptation
-            return this.Adapt(unadapted);
+            CieXyz xyzColor = this.ToCieXyz(color);
+            return this.ToCieLab(xyzColor);
         }
     }
 }

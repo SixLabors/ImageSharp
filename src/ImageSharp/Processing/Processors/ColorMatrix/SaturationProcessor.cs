@@ -9,14 +9,14 @@ namespace ImageSharp.Processing.Processors
     using System.Numerics;
 
     /// <summary>
-    /// An <see cref="ImageProcessor{TColor}"/> to change the saturation of an <see cref="Image{TColor}"/>.
+    /// An <see cref="ImageProcessor{TPixel}"/> to change the saturation of an <see cref="Image{TPixel}"/>.
     /// </summary>
-    /// <typeparam name="TColor">The pixel format.</typeparam>
-    internal class SaturationProcessor<TColor> : ColorMatrixProcessor<TColor>
-        where TColor : struct, IPixel<TColor>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    internal class SaturationProcessor<TPixel> : ColorMatrixProcessor<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="SaturationProcessor{TColor}"/> class.
+        /// Initializes a new instance of the <see cref="SaturationProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="saturation">The new saturation of the image. Must be between -100 and 100.</param>
         /// <exception cref="System.ArgumentException">

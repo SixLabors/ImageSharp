@@ -108,70 +108,70 @@ namespace ImageSharp
         /// <summary>
         /// Loads the image from the given file.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="path">The file path to the image.</param>
         /// <exception cref="NotSupportedException">
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
         /// <returns>The image</returns>
-        public static Image<TColor> Load<TColor>(string path)
-            where TColor : struct, IPixel<TColor>
+        public static Image<TPixel> Load<TPixel>(string path)
+            where TPixel : struct, IPixel<TPixel>
         {
-            return Load<TColor>(null, path, null);
+            return Load<TPixel>(null, path, null);
         }
 
         /// <summary>
         /// Loads the image from the given file.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="path">The file path to the image.</param>
         /// <param name="options">The options for the decoder.</param>
         /// <exception cref="NotSupportedException">
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
         /// <returns>The image</returns>
-        public static Image<TColor> Load<TColor>(string path, IDecoderOptions options)
-            where TColor : struct, IPixel<TColor>
+        public static Image<TPixel> Load<TPixel>(string path, IDecoderOptions options)
+            where TPixel : struct, IPixel<TPixel>
         {
-            return Load<TColor>(null, path, options);
+            return Load<TPixel>(null, path, options);
         }
 
         /// <summary>
         /// Loads the image from the given file.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="config">The config for the decoder.</param>
         /// <param name="path">The file path to the image.</param>
         /// <exception cref="NotSupportedException">
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
         /// <returns>The image</returns>
-        public static Image<TColor> Load<TColor>(Configuration config, string path)
-            where TColor : struct, IPixel<TColor>
+        public static Image<TPixel> Load<TPixel>(Configuration config, string path)
+            where TPixel : struct, IPixel<TPixel>
         {
-            return Load<TColor>(config, path, null);
+            return Load<TPixel>(config, path, null);
         }
 
         /// <summary>
         /// Loads the image from the given file.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="path">The file path to the image.</param>
         /// <param name="decoder">The decoder.</param>
         /// <exception cref="NotSupportedException">
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
         /// <returns>The image</returns>
-        public static Image<TColor> Load<TColor>(string path, IImageDecoder decoder)
-            where TColor : struct, IPixel<TColor>
+        public static Image<TPixel> Load<TPixel>(string path, IImageDecoder decoder)
+            where TPixel : struct, IPixel<TPixel>
         {
-            return Load<TColor>(path, decoder, null);
+            return Load<TPixel>(path, decoder, null);
         }
 
         /// <summary>
         /// Loads the image from the given file.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="config">The configuration options.</param>
         /// <param name="path">The file path to the image.</param>
         /// <param name="options">The options for the decoder.</param>
@@ -179,20 +179,20 @@ namespace ImageSharp
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
         /// <returns>The image</returns>
-        public static Image<TColor> Load<TColor>(Configuration config, string path, IDecoderOptions options)
-            where TColor : struct, IPixel<TColor>
+        public static Image<TPixel> Load<TPixel>(Configuration config, string path, IDecoderOptions options)
+            where TPixel : struct, IPixel<TPixel>
         {
             config = config ?? Configuration.Default;
             using (Stream s = config.FileSystem.OpenRead(path))
             {
-                return Load<TColor>(config, s, options);
+                return Load<TPixel>(config, s, options);
             }
         }
 
         /// <summary>
         /// Loads the image from the given file.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="path">The file path to the image.</param>
         /// <param name="decoder">The decoder.</param>
         /// <param name="options">The options for the decoder.</param>
@@ -200,13 +200,13 @@ namespace ImageSharp
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
         /// <returns>The image</returns>
-        public static Image<TColor> Load<TColor>(string path, IImageDecoder decoder, IDecoderOptions options)
-            where TColor : struct, IPixel<TColor>
+        public static Image<TPixel> Load<TPixel>(string path, IImageDecoder decoder, IDecoderOptions options)
+            where TPixel : struct, IPixel<TPixel>
         {
             Configuration config = Configuration.Default;
             using (Stream s = config.FileSystem.OpenRead(path))
             {
-                return Load<TColor>(s, decoder, options);
+                return Load<TPixel>(s, decoder, options);
             }
         }
     }

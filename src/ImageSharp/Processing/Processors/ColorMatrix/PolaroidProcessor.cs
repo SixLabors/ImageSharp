@@ -11,12 +11,12 @@ namespace ImageSharp.Processing.Processors
     /// <summary>
     /// Converts the colors of the image recreating an old Polaroid effect.
     /// </summary>
-    /// <typeparam name="TColor">The pixel format.</typeparam>
-    internal class PolaroidProcessor<TColor> : ColorMatrixProcessor<TColor>
-        where TColor : struct, IPixel<TColor>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    internal class PolaroidProcessor<TPixel> : ColorMatrixProcessor<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
-        private static TColor veryDarkOrange = ColorBuilder<TColor>.FromRGB(102, 34, 0);
-        private static TColor lightOrange = ColorBuilder<TColor>.FromRGBA(255, 153, 102, 178);
+        private static TPixel veryDarkOrange = ColorBuilder<TPixel>.FromRGB(102, 34, 0);
+        private static TPixel lightOrange = ColorBuilder<TPixel>.FromRGBA(255, 153, 102, 178);
 
         /// <inheritdoc/>
         public override Matrix4x4 Matrix => new Matrix4x4()
@@ -37,10 +37,10 @@ namespace ImageSharp.Processing.Processors
         };
 
         /// <inheritdoc/>
-        protected override void AfterApply(ImageBase<TColor> source, Rectangle sourceRectangle)
+        protected override void AfterApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
         {
-            new VignetteProcessor<TColor>(veryDarkOrange).Apply(source, sourceRectangle);
-            new GlowProcessor<TColor>(lightOrange) { Radius = source.Width / 4F }.Apply(source, sourceRectangle);
+            new VignetteProcessor<TPixel>(veryDarkOrange).Apply(source, sourceRectangle);
+            new GlowProcessor<TPixel>(lightOrange) { Radius = source.Width / 4F }.Apply(source, sourceRectangle);
         }
     }
 }

@@ -112,7 +112,7 @@ using (var pixels = image.Lock())
 }
 ```
 
-For advanced usage the `Image<TColor>` and `PixelAccessor<TColor>` classes are available allowing developers to implement their own color models in the same manner as Microsoft XNA Game Studio and MonoGame. 
+For advanced usage the `Image<TPixel>` and `PixelAccessor<TPixel>` classes are available allowing developers to implement their own color models in the same manner as Microsoft XNA Game Studio and MonoGame. 
 
 All in all this should allow image processing to be much more accessible to developers which has always been my goal from the start.
 

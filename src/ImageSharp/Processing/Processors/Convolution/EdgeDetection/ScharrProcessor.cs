@@ -12,10 +12,10 @@ namespace ImageSharp.Processing.Processors
     /// The Scharr operator filter.
     /// <see href="http://en.wikipedia.org/wiki/Sobel_operator#Alternative_operators"/>
     /// </summary>
-    /// <typeparam name="TColor">The pixel format.</typeparam>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
     [SuppressMessage("ReSharper", "StaticMemberInGenericType", Justification = "We want to use only one instance of each array field for each generic type.")]
-    internal class ScharrProcessor<TColor> : EdgeDetector2DProcessor<TColor>
-        where TColor : struct, IPixel<TColor>
+    internal class ScharrProcessor<TPixel> : EdgeDetector2DProcessor<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
         /// The horizontal gradient operator.
@@ -40,7 +40,7 @@ namespace ImageSharp.Processing.Processors
             };
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ScharrProcessor{TColor}"/> class.
+        /// Initializes a new instance of the <see cref="ScharrProcessor{TPixel}"/> class.
         /// </summary>
         public ScharrProcessor()
             : base(ScharrX, ScharrY)

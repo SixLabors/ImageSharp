@@ -1,4 +1,4 @@
-﻿// <copyright file="WuQuantizer.cs" company="James Jackson-South">
+﻿// <copyright file="WuQuantizer{TPixel}.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -30,9 +30,9 @@ namespace ImageSharp.Quantizers
     /// but more expensive versions.
     /// </para>
     /// </remarks>
-    /// <typeparam name="TColor">The pixel format.</typeparam>
-    public class WuQuantizer<TColor> : Quantizer<TColor>
-        where TColor : struct, IPixel<TColor>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    public class WuQuantizer<TPixel> : Quantizer<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
         /// The index bits.
@@ -67,7 +67,7 @@ namespace ImageSharp.Quantizers
         /// <summary>
         /// A lookup table for colors
         /// </summary>
-        private readonly Dictionary<TColor, byte> colorMap = new Dictionary<TColor, byte>();
+        private readonly Dictionary<TPixel, byte> colorMap = new Dictionary<TPixel, byte>();
 
         /// <summary>
         /// Moment of <c>P(c)</c>.
@@ -112,7 +112,7 @@ namespace ImageSharp.Quantizers
         /// <summary>
         /// The reduced image palette
         /// </summary>
-        private TColor[] palette;
+        private TPixel[] palette;
 
         /// <summary>
         /// The color cube representing the image palette
@@ -120,7 +120,7 @@ namespace ImageSharp.Quantizers
         private Box[] colorCube;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="WuQuantizer{TColor}"/> class.
+        /// Initializes a new instance of the <see cref="WuQuantizer{TPixel}"/> class.
         /// </summary>
         /// <remarks>
         /// The Wu quantizer is a two pass algorithm. The initial pass sets up the 3-D color histogram,
@@ -132,7 +132,7 @@ namespace ImageSharp.Quantizers
         }
 
         /// <inheritdoc/>
-        public override QuantizedImage<TColor> Quantize(ImageBase<TColor> image, int maxColors)
+        public override QuantizedImage<TPixel> Quantize(ImageBase<TPixel> image, int maxColors)
         {
             Guard.NotNull(image, nameof(image));
 
@@ -163,11 +163,11 @@ namespace ImageSharp.Quantizers
         }
 
         /// <inheritdoc/>
-        protected override TColor[] GetPalette()
+        protected override TPixel[] GetPalette()
         {
             if (this.palette == null)
             {
-                this.palette = new TColor[this.colors];
+                this.palette = new TPixel[this.colors];
                 for (int k = 0; k < this.colors; k++)
                 {
                     this.Mark(this.colorCube[k], (byte)k);
@@ -181,7 +181,7 @@ namespace ImageSharp.Quantizers
                         float b = Volume(this.colorCube[k], this.vmb) / weight;
                         float a = Volume(this.colorCube[k], this.vma) / weight;
 
-                        TColor color = default(TColor);
+                        TPixel color = default(TPixel);
                         color.PackFromVector4(new Vector4(r, g, b, a) / 255F);
                         this.palette[k] = color;
                     }
@@ -192,7 +192,7 @@ namespace ImageSharp.Quantizers
         }
 
         /// <inheritdoc/>
-        protected override void InitialQuantizePixel(TColor pixel)
+        protected override void InitialQuantizePixel(TPixel pixel)
         {
             // Add the color to a 3-D color histogram.
             // Colors are expected in r->g->b->a format
@@ -219,7 +219,7 @@ namespace ImageSharp.Quantizers
         }
 
         /// <inheritdoc/>
-        protected override void FirstPass(PixelAccessor<TColor> source, int width, int height)
+        protected override void FirstPass(PixelAccessor<TPixel> source, int width, int height)
         {
             // Build up the 3-D color histogram
             // Loop through each row
@@ -238,15 +238,15 @@ namespace ImageSharp.Quantizers
         }
 
         /// <inheritdoc/>
-        protected override void SecondPass(PixelAccessor<TColor> source, byte[] output, int width, int height)
+        protected override void SecondPass(PixelAccessor<TPixel> source, byte[] output, int width, int height)
         {
             // Load up the values for the first pixel. We can use these to speed up the second
             // pass of the algorithm by avoiding transforming rows of identical color.
-            TColor sourcePixel = source[0, 0];
-            TColor previousPixel = sourcePixel;
+            TPixel sourcePixel = source[0, 0];
+            TPixel previousPixel = sourcePixel;
             byte pixelValue = this.QuantizePixel(sourcePixel);
-            TColor[] colorPalette = this.GetPalette();
-            TColor transformedPixel = colorPalette[pixelValue];
+            TPixel[] colorPalette = this.GetPalette();
+            TPixel transformedPixel = colorPalette[pixelValue];
 
             for (int y = 0; y < height; y++)
             {
@@ -825,13 +825,13 @@ namespace ImageSharp.Quantizers
         /// The quantized value
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private byte QuantizePixel(TColor pixel)
+        private byte QuantizePixel(TPixel pixel)
         {
             if (this.Dither)
             {
                 // The colors have changed so we need to use Euclidean distance caclulation to find the closest value.
                 // This palette can never be null here.
-                return this.GetClosestColor(pixel, this.palette, this.colorMap);
+                return this.GetClosesTPixel(pixel, this.palette, this.colorMap);
             }
 
             // Expected order r->g->b->a

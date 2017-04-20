@@ -8,22 +8,22 @@ namespace ImageSharp.Tests
     using System;
 
     /// <summary>
-    /// Provides <see cref="Image{TColor}" /> instances for parametric unit tests.
+    /// Provides <see cref="Image{TPixel}" /> instances for parametric unit tests.
     /// </summary>
-    /// <typeparam name="TColor">The pixel format of the image</typeparam>
-    public abstract partial class TestImageProvider<TColor>
-        where TColor : struct, IPixel<TColor>
+    /// <typeparam name="TPixel">The pixel format of the image</typeparam>
+    public abstract partial class TestImageProvider<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
-        private class LambdaProvider : TestImageProvider<TColor>
+        private class LambdaProvider : TestImageProvider<TPixel>
         {
-            private readonly Func<GenericFactory<TColor>, Image<TColor>> creator;
+            private readonly Func<GenericFactory<TPixel>, Image<TPixel>> creator;
 
-            public LambdaProvider(Func<GenericFactory<TColor>, Image<TColor>> creator)
+            public LambdaProvider(Func<GenericFactory<TPixel>, Image<TPixel>> creator)
             {
                 this.creator = creator;
             }
 
-            public override Image<TColor> GetImage() => this.creator(this.Factory);
+            public override Image<TPixel> GetImage() => this.creator(this.Factory);
         }
     }
 }

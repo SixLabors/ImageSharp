@@ -1,4 +1,4 @@
-﻿// <copyright file="PixelAccessor{TColor}.cs" company="James Jackson-South">
+﻿// <copyright file="PixelAccessor{TPixel}.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -8,15 +8,14 @@ namespace ImageSharp
     using System;
     using System.Diagnostics;
     using System.Runtime.CompilerServices;
-    using System.Runtime.InteropServices;
     using System.Threading.Tasks;
 
     /// <summary>
-    /// Provides per-pixel access to generic <see cref="Image{TColor}"/> pixels.
+    /// Provides per-pixel access to generic <see cref="Image{TPixel}"/> pixels.
     /// </summary>
-    /// <typeparam name="TColor">The pixel format.</typeparam>
-    public sealed class PixelAccessor<TColor> : IDisposable, IBuffer2D<TColor>
-        where TColor : struct, IPixel<TColor>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    public sealed class PixelAccessor<TPixel> : IDisposable, IBuffer2D<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
         /// A value indicating whether this instance of the given entity has been disposed.
@@ -32,13 +31,13 @@ namespace ImageSharp
         /// <summary>
         /// The <see cref="Buffer{T}"/> containing the pixel data.
         /// </summary>
-        private Buffer2D<TColor> pixelBuffer;
+        private Buffer2D<TPixel> pixelBuffer;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="PixelAccessor{TColor}"/> class.
+        /// Initializes a new instance of the <see cref="PixelAccessor{TPixel}"/> class.
         /// </summary>
         /// <param name="image">The image to provide pixel access for.</param>
-        public PixelAccessor(ImageBase<TColor> image)
+        public PixelAccessor(ImageBase<TPixel> image)
         {
             Guard.NotNull(image, nameof(image));
             Guard.MustBeGreaterThan(image.Width, 0, "image width");
@@ -49,22 +48,22 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="PixelAccessor{TColor}"/> class.
+        /// Initializes a new instance of the <see cref="PixelAccessor{TPixel}"/> class.
         /// </summary>
         /// <param name="width">The width of the image represented by the pixel buffer.</param>
         /// <param name="height">The height of the image represented by the pixel buffer.</param>
         public PixelAccessor(int width, int height)
-            : this(width, height, Buffer2D<TColor>.CreateClean(width, height))
+            : this(width, height, Buffer2D<TPixel>.CreateClean(width, height))
         {
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="PixelAccessor{TColor}" /> class.
+        /// Initializes a new instance of the <see cref="PixelAccessor{TPixel}" /> class.
         /// </summary>
         /// <param name="width">The width of the image represented by the pixel buffer.</param>
         /// <param name="height">The height of the image represented by the pixel buffer.</param>
         /// <param name="pixels">The pixel buffer.</param>
-        private PixelAccessor(int width, int height, Buffer2D<TColor> pixels)
+        private PixelAccessor(int width, int height, Buffer2D<TPixel> pixels)
         {
             Guard.NotNull(pixels, nameof(pixels));
             Guard.MustBeGreaterThan(width, 0, nameof(width));
@@ -76,7 +75,7 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Finalizes an instance of the <see cref="PixelAccessor{TColor}"/> class.
+        /// Finalizes an instance of the <see cref="PixelAccessor{TPixel}"/> class.
         /// </summary>
         ~PixelAccessor()
         {
@@ -86,7 +85,7 @@ namespace ImageSharp
         /// <summary>
         /// Gets the pixel buffer array.
         /// </summary>
-        public TColor[] PixelArray => this.pixelBuffer.Array;
+        public TPixel[] PixelArray => this.pixelBuffer.Array;
 
         /// <summary>
         /// Gets the size of a single pixel in the number of bytes.
@@ -114,17 +113,17 @@ namespace ImageSharp
         public ParallelOptions ParallelOptions { get; }
 
         /// <inheritdoc />
-        BufferSpan<TColor> IBuffer2D<TColor>.Span => this.pixelBuffer;
+        BufferSpan<TPixel> IBuffer2D<TPixel>.Span => this.pixelBuffer;
 
-        private static BulkPixelOperations<TColor> Operations => BulkPixelOperations<TColor>.Instance;
+        private static BulkPixelOperations<TPixel> Operations => BulkPixelOperations<TPixel>.Instance;
 
         /// <summary>
         /// Gets or sets the pixel at the specified position.
         /// </summary>
         /// <param name="x">The x-coordinate of the pixel. Must be greater than or equal to zero and less than the width of the image.</param>
         /// <param name="y">The y-coordinate of the pixel. Must be greater than or equal to zero and less than the height of the image.</param>
-        /// <returns>The <see typeparam="TColor"/> at the specified position.</returns>
-        public TColor this[int x, int y]
+        /// <returns>The <see typeparam="TPixel"/> at the specified position.</returns>
+        public TPixel this[int x, int y]
         {
             get
             {
@@ -179,7 +178,7 @@ namespace ImageSharp
         /// <exception cref="NotSupportedException">
         /// Thrown when an unsupported component order value is passed.
         /// </exception>
-        internal void CopyFrom(PixelArea<TColor> area, int targetY, int targetX = 0)
+        internal void CopyFrom(PixelArea<TPixel> area, int targetY, int targetX = 0)
         {
             this.CheckCoordinates(area, targetX, targetY);
 
@@ -195,7 +194,7 @@ namespace ImageSharp
         /// <exception cref="NotSupportedException">
         /// Thrown when an unsupported component order value is passed.
         /// </exception>
-        internal void CopyTo(PixelArea<TColor> area, int sourceY, int sourceX = 0)
+        internal void CopyTo(PixelArea<TPixel> area, int sourceY, int sourceX = 0)
         {
             this.CheckCoordinates(area, sourceX, sourceY);
 
@@ -212,7 +211,7 @@ namespace ImageSharp
         /// <exception cref="NotSupportedException">
         /// Thrown when an unsupported component order value is passed.
         /// </exception>
-        internal void SafeCopyTo(PixelArea<TColor> area, int sourceY, int sourceX = 0)
+        internal void SafeCopyTo(PixelArea<TPixel> area, int sourceY, int sourceX = 0)
         {
             int width = Math.Min(area.Width, this.Width - sourceX);
             if (width < 1)
@@ -237,18 +236,17 @@ namespace ImageSharp
         /// <param name="pixels">The pixels.</param>
         /// <returns>Returns the old pixel data thats has gust been replaced.</returns>
         /// <remarks>If <see cref="M:PixelAccessor.PooledMemory"/> is true then caller is responsible for ensuring <see cref="M:PixelDataPool.Return()"/> is called.</remarks>
-        internal TColor[] ReturnCurrentPixelsAndReplaceThemInternally(int width, int height, TColor[] pixels)
         {
-            TColor[] oldPixels = this.pixelBuffer.TakeArrayOwnership();
+            TPixel[] oldPixels = this.pixelBuffer.TakeArrayOwnership();
             this.SetPixelBufferUnsafe(width, height, pixels);
             return oldPixels;
         }
 
         /// <summary>
-        /// Copies the pixels to another <see cref="PixelAccessor{TColor}"/> of the same size.
+        /// Copies the pixels to another <see cref="PixelAccessor{TPixel}"/> of the same size.
         /// </summary>
         /// <param name="target">The target pixel buffer accessor.</param>
-        internal void CopyTo(PixelAccessor<TColor> target)
+        internal void CopyTo(PixelAccessor<TPixel> target)
         {
             BufferSpan.Copy(this.pixelBuffer.Span, target.pixelBuffer.Span);
         }
@@ -262,12 +260,12 @@ namespace ImageSharp
         /// <param name="width">The width.</param>
         /// <param name="height">The height.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void CopyFromZyx(PixelArea<TColor> area, int targetX, int targetY, int width, int height)
+        private void CopyFromZyx(PixelArea<TPixel> area, int targetX, int targetY, int width, int height)
         {
             for (int y = 0; y < height; y++)
             {
                 BufferSpan<byte> source = area.GetRowSpan(y);
-                BufferSpan<TColor> destination = this.GetRowSpan(targetX, targetY + y);
+                BufferSpan<TPixel> destination = this.GetRowSpan(targetX, targetY + y);
 
                 Operations.PackFromZyxBytes(source, destination, width);
             }
@@ -282,12 +280,12 @@ namespace ImageSharp
         /// <param name="width">The width.</param>
         /// <param name="height">The height.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void CopyFromZyxw(PixelArea<TColor> area, int targetX, int targetY, int width, int height)
+        private void CopyFromZyxw(PixelArea<TPixel> area, int targetX, int targetY, int width, int height)
         {
             for (int y = 0; y < height; y++)
             {
                 BufferSpan<byte> source = area.GetRowSpan(y);
-                BufferSpan<TColor> destination = this.GetRowSpan(targetX, targetY + y);
+                BufferSpan<TPixel> destination = this.GetRowSpan(targetX, targetY + y);
 
                 Operations.PackFromZyxwBytes(source, destination, width);
             }
@@ -302,12 +300,12 @@ namespace ImageSharp
         /// <param name="width">The width.</param>
         /// <param name="height">The height.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void CopyFromXyz(PixelArea<TColor> area, int targetX, int targetY, int width, int height)
+        private void CopyFromXyz(PixelArea<TPixel> area, int targetX, int targetY, int width, int height)
         {
             for (int y = 0; y < height; y++)
             {
                 BufferSpan<byte> source = area.GetRowSpan(y);
-                BufferSpan<TColor> destination = this.GetRowSpan(targetX, targetY + y);
+                BufferSpan<TPixel> destination = this.GetRowSpan(targetX, targetY + y);
 
                 Operations.PackFromXyzBytes(source, destination, width);
             }
@@ -322,12 +320,12 @@ namespace ImageSharp
         /// <param name="width">The width.</param>
         /// <param name="height">The height.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void CopyFromXyzw(PixelArea<TColor> area, int targetX, int targetY, int width, int height)
+        private void CopyFromXyzw(PixelArea<TPixel> area, int targetX, int targetY, int width, int height)
         {
             for (int y = 0; y < height; y++)
             {
                 BufferSpan<byte> source = area.GetRowSpan(y);
-                BufferSpan<TColor> destination = this.GetRowSpan(targetX, targetY + y);
+                BufferSpan<TPixel> destination = this.GetRowSpan(targetX, targetY + y);
                 Operations.PackFromXyzwBytes(source, destination, width);
             }
         }
@@ -341,11 +339,11 @@ namespace ImageSharp
         /// <param name="width">The width.</param>
         /// <param name="height">The height.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void CopyToZyx(PixelArea<TColor> area, int sourceX, int sourceY, int width, int height)
+        private void CopyToZyx(PixelArea<TPixel> area, int sourceX, int sourceY, int width, int height)
         {
             for (int y = 0; y < height; y++)
             {
-                BufferSpan<TColor> source = this.GetRowSpan(sourceX, sourceY + y);
+                BufferSpan<TPixel> source = this.GetRowSpan(sourceX, sourceY + y);
                 BufferSpan<byte> destination = area.GetRowSpan(y);
                 Operations.ToZyxBytes(source, destination, width);
             }
@@ -360,11 +358,11 @@ namespace ImageSharp
         /// <param name="width">The width.</param>
         /// <param name="height">The height.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void CopyToZyxw(PixelArea<TColor> area, int sourceX, int sourceY, int width, int height)
+        private void CopyToZyxw(PixelArea<TPixel> area, int sourceX, int sourceY, int width, int height)
         {
             for (int y = 0; y < height; y++)
             {
-                BufferSpan<TColor> source = this.GetRowSpan(sourceX, sourceY + y);
+                BufferSpan<TPixel> source = this.GetRowSpan(sourceX, sourceY + y);
                 BufferSpan<byte> destination = area.GetRowSpan(y);
                 Operations.ToZyxwBytes(source, destination, width);
             }
@@ -379,11 +377,11 @@ namespace ImageSharp
         /// <param name="width">The width.</param>
         /// <param name="height">The height.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void CopyToXyz(PixelArea<TColor> area, int sourceX, int sourceY, int width, int height)
+        private void CopyToXyz(PixelArea<TPixel> area, int sourceX, int sourceY, int width, int height)
         {
             for (int y = 0; y < height; y++)
             {
-                BufferSpan<TColor> source = this.GetRowSpan(sourceX, sourceY + y);
+                BufferSpan<TPixel> source = this.GetRowSpan(sourceX, sourceY + y);
                 BufferSpan<byte> destination = area.GetRowSpan(y);
                 Operations.ToXyzBytes(source, destination, width);
             }
@@ -398,19 +396,19 @@ namespace ImageSharp
         /// <param name="width">The width.</param>
         /// <param name="height">The height.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void CopyToXyzw(PixelArea<TColor> area, int sourceX, int sourceY, int width, int height)
+        private void CopyToXyzw(PixelArea<TPixel> area, int sourceX, int sourceY, int width, int height)
         {
             for (int y = 0; y < height; y++)
             {
-                BufferSpan<TColor> source = this.GetRowSpan(sourceX, sourceY + y);
+                BufferSpan<TPixel> source = this.GetRowSpan(sourceX, sourceY + y);
                 BufferSpan<byte> destination = area.GetRowSpan(y);
                 Operations.ToXyzwBytes(source, destination, width);
             }
         }
 
-        private void SetPixelBufferUnsafe(int width, int height, TColor[] pixels)
+        private void SetPixelBufferUnsafe(int width, int height, TPixel[] pixels)
         {
-            this.SetPixelBufferUnsafe(width, height, new Buffer2D<TColor>(pixels, width, height));
+            this.SetPixelBufferUnsafe(width, height, new Buffer2D<TPixel>(pixels, width, height));
         }
 
         /// <summary>
@@ -419,13 +417,13 @@ namespace ImageSharp
         /// <param name="width">The width.</param>
         /// <param name="height">The height.</param>
         /// <param name="pixels">The pixel buffer</param>
-        private void SetPixelBufferUnsafe(int width, int height, Buffer2D<TColor> pixels)
+        private void SetPixelBufferUnsafe(int width, int height, Buffer2D<TPixel> pixels)
         {
             this.pixelBuffer = pixels;
 
             this.Width = width;
             this.Height = height;
-            this.PixelSize = Unsafe.SizeOf<TColor>();
+            this.PixelSize = Unsafe.SizeOf<TPixel>();
             this.RowStride = this.Width * this.PixelSize;
         }
 
@@ -440,7 +438,7 @@ namespace ImageSharp
         /// <exception cref="NotSupportedException">
         /// Thrown when an unsupported component order value is passed.
         /// </exception>
-        private void CopyFrom(PixelArea<TColor> area, int targetX, int targetY, int width, int height)
+        private void CopyFrom(PixelArea<TPixel> area, int targetX, int targetY, int width, int height)
         {
             switch (area.ComponentOrder)
             {
@@ -472,7 +470,7 @@ namespace ImageSharp
         /// <exception cref="NotSupportedException">
         /// Thrown when an unsupported component order value is passed.
         /// </exception>
-        private void CopyTo(PixelArea<TColor> area, int sourceX, int sourceY, int width, int height)
+        private void CopyTo(PixelArea<TPixel> area, int sourceX, int sourceY, int width, int height)
         {
             switch (area.ComponentOrder)
             {
@@ -503,7 +501,7 @@ namespace ImageSharp
         /// Thrown if the dimensions are not within the bounds of the image.
         /// </exception>
         [Conditional("DEBUG")]
-        private void CheckCoordinates(PixelArea<TColor> area, int x, int y)
+        private void CheckCoordinates(PixelArea<TPixel> area, int x, int y)
         {
             int width = Math.Min(area.Width, this.Width - x);
             if (width < 1)

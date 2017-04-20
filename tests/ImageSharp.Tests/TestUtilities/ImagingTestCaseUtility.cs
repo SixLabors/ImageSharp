@@ -19,12 +19,12 @@ namespace ImageSharp.Tests
     public class ImagingTestCaseUtility : TestBase
     {
         /// <summary>
-        /// Name of the TColor in the owner <see cref="TestImageProvider{TColor}"/>
+        /// Name of the TPixel in the owner <see cref="TestImageProvider{TPixel}"/>
         /// </summary>
         public string PixelTypeName { get; set; } = string.Empty;
 
         /// <summary>
-        /// The name of the file which is provided by <see cref="TestImageProvider{TColor}"/>
+        /// The name of the file which is provided by <see cref="TestImageProvider{TPixel}"/>
         /// Or a short string describing the image in the case of a non-file based image provider.
         /// </summary>
         public string SourceFileOrDescription { get; set; } = string.Empty;
@@ -91,13 +91,13 @@ namespace ImageSharp.Tests
         /// <summary>
         /// Encodes image by the format matching the required extension, than saves it to the recommended output file.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format of the image</typeparam>
+        /// <typeparam name="TPixel">The pixel format of the image</typeparam>
         /// <param name="image">The image instance</param>
         /// <param name="extension">The requested extension</param>
         /// <param name="encoder">Optional encoder</param>
         /// <param name="options">Optional encoder options</param>
-        public void SaveTestOutputFile<TColor>(Image<TColor> image, string extension = null, IImageEncoder encoder = null, IEncoderOptions options = null)
-            where TColor : struct, IPixel<TColor>
+        public void SaveTestOutputFile<TPixel>(Image<TPixel> image, string extension = null, IImageEncoder encoder = null, IEncoderOptions options = null)
+            where TPixel : struct, IPixel<TPixel>
         {
             string path = this.GetTestOutputFileName(extension);
             extension = Path.GetExtension(path);

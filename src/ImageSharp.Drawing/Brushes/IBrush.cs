@@ -12,13 +12,13 @@ namespace ImageSharp.Drawing
     /// <summary>
     /// Brush represents a logical configuration of a brush which can be used to source pixel colors
     /// </summary>
-    /// <typeparam name="TColor">The pixel format.</typeparam>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
     /// <remarks>
-    /// A brush is a simple class that will return an <see cref="BrushApplicator{TColor}" /> that will perform the
-    /// logic for converting a pixel location to a <typeparamref name="TColor"/>.
+    /// A brush is a simple class that will return an <see cref="BrushApplicator{TPixel}" /> that will perform the
+    /// logic for converting a pixel location to a <typeparamref name="TPixel"/>.
     /// </remarks>
-    public interface IBrush<TColor>
-        where TColor : struct, IPixel<TColor>
+    public interface IBrush<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
         /// Creates the applicator for this brush.
@@ -32,6 +32,6 @@ namespace ImageSharp.Drawing
         /// The <paramref name="region" /> when being applied to things like shapes would usually be the
         /// bounding box of the shape not necessarily the bounds of the whole image
         /// </remarks>
-        BrushApplicator<TColor> CreateApplicator(PixelAccessor<TColor> pixelSource, RectangleF region);
+        BrushApplicator<TPixel> CreateApplicator(PixelAccessor<TPixel> pixelSource, RectangleF region);
     }
 }

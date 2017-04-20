@@ -23,8 +23,8 @@ namespace ImageSharp.Dithering
         /// <param name="y">The row index.</param>
         /// <param name="width">The image width.</param>
         /// <param name="height">The image height.</param>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
-        void Dither<TColor>(PixelAccessor<TColor> pixels, TColor source, TColor upper, TColor lower, byte[] bytes, int index, int x, int y, int width, int height)
-            where TColor : struct, IPixel<TColor>;
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        void Dither<TPixel>(PixelAccessor<TPixel> pixels, TPixel source, TPixel upper, TPixel lower, byte[] bytes, int index, int x, int y, int width, int height)
+            where TPixel : struct, IPixel<TPixel>;
     }
 }

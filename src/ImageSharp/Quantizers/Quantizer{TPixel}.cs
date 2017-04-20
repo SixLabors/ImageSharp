@@ -1,4 +1,4 @@
-﻿// <copyright file="Quantizer.cs" company="James Jackson-South">
+﻿// <copyright file="Quantizer{TPixel}.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -14,9 +14,9 @@ namespace ImageSharp.Quantizers
     /// <summary>
     /// Encapsulates methods to calculate the color palette of an image.
     /// </summary>
-    /// <typeparam name="TColor">The pixel format.</typeparam>
-    public abstract class Quantizer<TColor> : IDitheredQuantizer<TColor>
-        where TColor : struct, IPixel<TColor>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    public abstract class Quantizer<TPixel> : IDitheredQuantizer<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
         /// Flag used to indicate whether a single pass or two passes are needed for quantization.
@@ -24,7 +24,7 @@ namespace ImageSharp.Quantizers
         private readonly bool singlePass;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Quantizer{TColor}"/> class.
+        /// Initializes a new instance of the <see cref="Quantizer{TPixel}"/> class.
         /// </summary>
         /// <param name="singlePass">
         /// If true, the quantization only needs to loop through the source pixels once
@@ -46,7 +46,7 @@ namespace ImageSharp.Quantizers
         public IErrorDiffuser DitherType { get; set; } = new SierraLite();
 
         /// <inheritdoc/>
-        public virtual QuantizedImage<TColor> Quantize(ImageBase<TColor> image, int maxColors)
+        public virtual QuantizedImage<TPixel> Quantize(ImageBase<TPixel> image, int maxColors)
         {
             Guard.NotNull(image, nameof(image));
 
@@ -54,9 +54,9 @@ namespace ImageSharp.Quantizers
             int height = image.Height;
             int width = image.Width;
             byte[] quantizedPixels = new byte[width * height];
-            TColor[] colorPalette;
+            TPixel[] colorPalette;
 
-            using (PixelAccessor<TColor> pixels = image.Lock())
+            using (PixelAccessor<TPixel> pixels = image.Lock())
             {
                 // Call the FirstPass function if not a single pass algorithm.
                 // For something like an Octree quantizer, this will run through
@@ -72,8 +72,8 @@ namespace ImageSharp.Quantizers
                 if (this.Dither)
                 {
                     // We clone the image as we don't want to alter the original.
-                    using (Image<TColor> clone = new Image<TColor>(image))
-                    using (PixelAccessor<TColor> clonedPixels = clone.Lock())
+                    using (Image<TPixel> clone = new Image<TPixel>(image))
+                    using (PixelAccessor<TPixel> clonedPixels = clone.Lock())
                     {
                         this.SecondPass(clonedPixels, quantizedPixels, width, height);
                     }
@@ -84,7 +84,7 @@ namespace ImageSharp.Quantizers
                 }
             }
 
-            return new QuantizedImage<TColor>(width, height, colorPalette, quantizedPixels);
+            return new QuantizedImage<TPixel>(width, height, colorPalette, quantizedPixels);
         }
 
         /// <summary>
@@ -93,7 +93,7 @@ namespace ImageSharp.Quantizers
         /// <param name="source">The source data</param>
         /// <param name="width">The width in pixels of the image.</param>
         /// <param name="height">The height in pixels of the image.</param>
-        protected virtual void FirstPass(PixelAccessor<TColor> source, int width, int height)
+        protected virtual void FirstPass(PixelAccessor<TPixel> source, int width, int height)
         {
             // Loop through each row
             for (int y = 0; y < height; y++)
@@ -114,7 +114,7 @@ namespace ImageSharp.Quantizers
         /// <param name="output">The output pixel array</param>
         /// <param name="width">The width in pixels of the image</param>
         /// <param name="height">The height in pixels of the image</param>
-        protected abstract void SecondPass(PixelAccessor<TColor> source, byte[] output, int width, int height);
+        protected abstract void SecondPass(PixelAccessor<TPixel> source, byte[] output, int width, int height);
 
         /// <summary>
         /// Override this to process the pixel in the first pass of the algorithm
@@ -124,7 +124,7 @@ namespace ImageSharp.Quantizers
         /// This function need only be overridden if your quantize algorithm needs two passes,
         /// such as an Octree quantizer.
         /// </remarks>
-        protected virtual void InitialQuantizePixel(TColor pixel)
+        protected virtual void InitialQuantizePixel(TPixel pixel)
         {
         }
 
@@ -132,9 +132,9 @@ namespace ImageSharp.Quantizers
         /// Retrieve the palette for the quantized image. Can be called more than once so make sure calls are cached.
         /// </summary>
         /// <returns>
-        /// <see cref="T:TColor[]"/>
+        /// <see cref="T:TPixel[]"/>
         /// </returns>
-        protected abstract TColor[] GetPalette();
+        protected abstract TPixel[] GetPalette();
 
         /// <summary>
         /// Returns the closest color from the palette to the given color by calculating the Euclidean distance.
@@ -144,7 +144,7 @@ namespace ImageSharp.Quantizers
         /// <param name="cache">The cache to store the result in.</param>
         /// <returns>The <see cref="byte"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected byte GetClosestColor(TColor pixel, TColor[] colorPalette, Dictionary<TColor, byte> cache)
+        protected byte GetClosesTPixel(TPixel pixel, TPixel[] colorPalette, Dictionary<TPixel, byte> cache)
         {
             // Check if the color is in the lookup table
             if (cache.ContainsKey(pixel))

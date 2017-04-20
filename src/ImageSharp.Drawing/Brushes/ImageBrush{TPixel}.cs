@@ -1,11 +1,10 @@
-﻿// <copyright file="ImageBrush{TColor}.cs" company="James Jackson-South">
+﻿// <copyright file="ImageBrush{TPixel}.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
 namespace ImageSharp.Drawing.Brushes
 {
-    using System;
     using System.Numerics;
 
     using Processors;
@@ -13,26 +12,26 @@ namespace ImageSharp.Drawing.Brushes
     /// <summary>
     /// Provides an implementation of an image brush for painting images within areas.
     /// </summary>
-    /// <typeparam name="TColor">The pixel format.</typeparam>
-    public class ImageBrush<TColor> : IBrush<TColor>
-    where TColor : struct, IPixel<TColor>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    public class ImageBrush<TPixel> : IBrush<TPixel>
+    where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
         /// The image to paint.
         /// </summary>
-        private readonly IImageBase<TColor> image;
+        private readonly IImageBase<TPixel> image;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ImageBrush{TColor}"/> class.
+        /// Initializes a new instance of the <see cref="ImageBrush{TPixel}"/> class.
         /// </summary>
         /// <param name="image">The image.</param>
-        public ImageBrush(IImageBase<TColor> image)
+        public ImageBrush(IImageBase<TPixel> image)
         {
             this.image = image;
         }
 
         /// <inheritdoc />
-        public BrushApplicator<TColor> CreateApplicator(PixelAccessor<TColor> sourcePixels, RectangleF region)
+        public BrushApplicator<TPixel> CreateApplicator(PixelAccessor<TPixel> sourcePixels, RectangleF region)
         {
             return new ImageBrushApplicator(sourcePixels, this.image, region);
         }
@@ -40,12 +39,12 @@ namespace ImageSharp.Drawing.Brushes
         /// <summary>
         /// The image brush applicator.
         /// </summary>
-        private class ImageBrushApplicator : BrushApplicator<TColor>
+        private class ImageBrushApplicator : BrushApplicator<TPixel>
         {
             /// <summary>
             /// The source pixel accessor.
             /// </summary>
-            private readonly PixelAccessor<TColor> source;
+            private readonly PixelAccessor<TPixel> source;
 
             /// <summary>
             /// The y-length.
@@ -74,7 +73,7 @@ namespace ImageSharp.Drawing.Brushes
             /// <param name="sourcePixels">
             /// The sourcePixels.
             /// </param>
-            public ImageBrushApplicator(PixelAccessor<TColor> sourcePixels, IImageBase<TColor> image, RectangleF region)
+            public ImageBrushApplicator(PixelAccessor<TPixel> sourcePixels, IImageBase<TPixel> image, RectangleF region)
                 : base(sourcePixels)
             {
                 this.source = image.Lock();
@@ -91,7 +90,7 @@ namespace ImageSharp.Drawing.Brushes
             /// <returns>
             /// The color
             /// </returns>
-            internal override TColor this[int x, int y]
+            internal override TPixel this[int x, int y]
             {
                 get
                 {
@@ -135,7 +134,7 @@ namespace ImageSharp.Drawing.Brushes
 
                             Vector4 finalColor = Vector4BlendTransforms.PremultipliedLerp(backgroundVector, sourceVector, opacity);
 
-                            TColor packed = default(TColor);
+                            TPixel packed = default(TPixel);
                             packed.PackFromVector4(finalColor);
                             this.Target[targetX, targetY] = packed;
                         }

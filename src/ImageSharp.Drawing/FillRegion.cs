@@ -12,61 +12,61 @@ namespace ImageSharp
     using Drawing.Processors;
 
     /// <summary>
-    /// Extension methods for the <see cref="Image{TColor}"/> type.
+    /// Extension methods for the <see cref="Image{TPixel}"/> type.
     /// </summary>
     public static partial class ImageExtensions
     {
         /// <summary>
         /// Flood fills the image with the specified brush.
         /// </summary>
-        /// <typeparam name="TColor">The type of the color.</typeparam>
+        /// <typeparam name="TPixel">The type of the color.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="brush">The details how to fill the region of interest.</param>
-        /// <returns>The <see cref="Image{TColor}"/>.</returns>
-        public static Image<TColor> Fill<TColor>(this Image<TColor> source, IBrush<TColor> brush)
-            where TColor : struct, IPixel<TColor>
+        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        public static Image<TPixel> Fill<TPixel>(this Image<TPixel> source, IBrush<TPixel> brush)
+            where TPixel : struct, IPixel<TPixel>
         {
-            return source.Apply(new FillProcessor<TColor>(brush));
+            return source.Apply(new FillProcessor<TPixel>(brush));
         }
 
         /// <summary>
         /// Flood fills the image with the specified color.
         /// </summary>
-        /// <typeparam name="TColor">The type of the color.</typeparam>
+        /// <typeparam name="TPixel">The type of the color.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="color">The color.</param>
-        /// <returns>The <see cref="Image{TColor}"/>.</returns>
-        public static Image<TColor> Fill<TColor>(this Image<TColor> source, TColor color)
-            where TColor : struct, IPixel<TColor>
+        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        public static Image<TPixel> Fill<TPixel>(this Image<TPixel> source, TPixel color)
+            where TPixel : struct, IPixel<TPixel>
         {
-            return source.Fill(new SolidBrush<TColor>(color));
+            return source.Fill(new SolidBrush<TPixel>(color));
         }
 
         /// <summary>
         /// Flood fills the image with in the region with the specified brush.
         /// </summary>
-        /// <typeparam name="TColor">The type of the color.</typeparam>
+        /// <typeparam name="TPixel">The type of the color.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="brush">The brush.</param>
         /// <param name="region">The region.</param>
         /// <param name="options">The graphics options.</param>
-        /// <returns>The <see cref="Image{TColor}"/>.</returns>
-        public static Image<TColor> Fill<TColor>(this Image<TColor> source, IBrush<TColor> brush, Region region, GraphicsOptions options)
-          where TColor : struct, IPixel<TColor>
+        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        public static Image<TPixel> Fill<TPixel>(this Image<TPixel> source, IBrush<TPixel> brush, Region region, GraphicsOptions options)
+          where TPixel : struct, IPixel<TPixel>
         {
-            return source.Apply(new FillRegionProcessor<TColor>(brush, region, options));
+            return source.Apply(new FillRegionProcessor<TPixel>(brush, region, options));
         }
 
         /// <summary>
         /// Flood fills the image with in the region with the specified brush.
         /// </summary>
-        /// <typeparam name="TColor">The type of the color.</typeparam>
+        /// <typeparam name="TPixel">The type of the color.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="brush">The brush.</param>
         /// <param name="region">The region.</param>
-        /// <returns>The <see cref="Image{TColor}"/>.</returns>
-        public static Image<TColor> Fill<TColor>(this Image<TColor> source, IBrush<TColor> brush, Region region)
-          where TColor : struct, IPixel<TColor>
+        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        public static Image<TPixel> Fill<TPixel>(this Image<TPixel> source, IBrush<TPixel> brush, Region region)
+          where TPixel : struct, IPixel<TPixel>
         {
             return source.Fill(brush, region, GraphicsOptions.Default);
         }
@@ -74,30 +74,30 @@ namespace ImageSharp
         /// <summary>
         /// Flood fills the image with in the region with the specified color.
         /// </summary>
-        /// <typeparam name="TColor">The type of the color.</typeparam>
+        /// <typeparam name="TPixel">The type of the color.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="color">The color.</param>
         /// <param name="region">The region.</param>
         /// <param name="options">The options.</param>
-        /// <returns>The <see cref="Image{TColor}"/>.</returns>
-        public static Image<TColor> Fill<TColor>(this Image<TColor> source, TColor color, Region region, GraphicsOptions options)
-          where TColor : struct, IPixel<TColor>
+        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        public static Image<TPixel> Fill<TPixel>(this Image<TPixel> source, TPixel color, Region region, GraphicsOptions options)
+          where TPixel : struct, IPixel<TPixel>
         {
-            return source.Fill(new SolidBrush<TColor>(color), region, options);
+            return source.Fill(new SolidBrush<TPixel>(color), region, options);
         }
 
         /// <summary>
         /// Flood fills the image with in the region with the specified color.
         /// </summary>
-        /// <typeparam name="TColor">The type of the color.</typeparam>
+        /// <typeparam name="TPixel">The type of the color.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="color">The color.</param>
         /// <param name="region">The region.</param>
-        /// <returns>The <see cref="Image{TColor}"/>.</returns>
-        public static Image<TColor> Fill<TColor>(this Image<TColor> source, TColor color, Region region)
-          where TColor : struct, IPixel<TColor>
+        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        public static Image<TPixel> Fill<TPixel>(this Image<TPixel> source, TPixel color, Region region)
+          where TPixel : struct, IPixel<TPixel>
         {
-            return source.Fill(new SolidBrush<TColor>(color), region);
+            return source.Fill(new SolidBrush<TPixel>(color), region);
         }
     }
 }

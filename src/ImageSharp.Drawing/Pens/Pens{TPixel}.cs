@@ -1,18 +1,16 @@
-﻿// <copyright file="Pens{TColor}.cs" company="James Jackson-South">
+﻿// <copyright file="Pens{TPixel}.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
 namespace ImageSharp.Drawing.Pens
 {
-    using System;
-
     /// <summary>
     /// Common Pen styles
     /// </summary>
-    /// <typeparam name="TColor">The type of the color.</typeparam>
-    public class Pens<TColor>
-        where TColor : struct, IPixel<TColor>
+    /// <typeparam name="TPixel">The type of the color.</typeparam>
+    public class Pens<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
         private static readonly float[] DashDotPattern = new[] { 3f, 1f, 1f, 1f };
         private static readonly float[] DashDotDotPattern = new[] { 3f, 1f, 1f, 1f, 1f, 1f };
@@ -25,8 +23,8 @@ namespace ImageSharp.Drawing.Pens
         /// <param name="color">The color.</param>
         /// <param name="width">The width.</param>
         /// <returns>The Pen</returns>
-        public static Pen<TColor> Solid(TColor color, float width)
-            => new Pen<TColor>(color, width);
+        public static Pen<TPixel> Solid(TPixel color, float width)
+            => new Pen<TPixel>(color, width);
 
         /// <summary>
         /// Create a solid pen with out any drawing patterns
@@ -34,8 +32,8 @@ namespace ImageSharp.Drawing.Pens
         /// <param name="brush">The brush.</param>
         /// <param name="width">The width.</param>
         /// <returns>The Pen</returns>
-        public static Pen<TColor> Solid(IBrush<TColor> brush, float width)
-            => new Pen<TColor>(brush, width);
+        public static Pen<TPixel> Solid(IBrush<TPixel> brush, float width)
+            => new Pen<TPixel>(brush, width);
 
         /// <summary>
         /// Create a pen with a 'Dash' drawing patterns
@@ -43,8 +41,8 @@ namespace ImageSharp.Drawing.Pens
         /// <param name="color">The color.</param>
         /// <param name="width">The width.</param>
         /// <returns>The Pen</returns>
-        public static Pen<TColor> Dash(TColor color, float width)
-            => new Pen<TColor>(color, width, DashedPattern);
+        public static Pen<TPixel> Dash(TPixel color, float width)
+            => new Pen<TPixel>(color, width, DashedPattern);
 
         /// <summary>
         /// Create a pen with a 'Dash' drawing patterns
@@ -52,8 +50,8 @@ namespace ImageSharp.Drawing.Pens
         /// <param name="brush">The brush.</param>
         /// <param name="width">The width.</param>
         /// <returns>The Pen</returns>
-        public static Pen<TColor> Dash(IBrush<TColor> brush, float width)
-            => new Pen<TColor>(brush, width, DashedPattern);
+        public static Pen<TPixel> Dash(IBrush<TPixel> brush, float width)
+            => new Pen<TPixel>(brush, width, DashedPattern);
 
         /// <summary>
         /// Create a pen with a 'Dot' drawing patterns
@@ -61,8 +59,8 @@ namespace ImageSharp.Drawing.Pens
         /// <param name="color">The color.</param>
         /// <param name="width">The width.</param>
         /// <returns>The Pen</returns>
-        public static Pen<TColor> Dot(TColor color, float width)
-            => new Pen<TColor>(color, width, DottedPattern);
+        public static Pen<TPixel> Dot(TPixel color, float width)
+            => new Pen<TPixel>(color, width, DottedPattern);
 
         /// <summary>
         /// Create a pen with a 'Dot' drawing patterns
@@ -70,8 +68,8 @@ namespace ImageSharp.Drawing.Pens
         /// <param name="brush">The brush.</param>
         /// <param name="width">The width.</param>
         /// <returns>The Pen</returns>
-        public static Pen<TColor> Dot(IBrush<TColor> brush, float width)
-            => new Pen<TColor>(brush, width, DottedPattern);
+        public static Pen<TPixel> Dot(IBrush<TPixel> brush, float width)
+            => new Pen<TPixel>(brush, width, DottedPattern);
 
         /// <summary>
         /// Create a pen with a 'Dash Dot' drawing patterns
@@ -79,8 +77,8 @@ namespace ImageSharp.Drawing.Pens
         /// <param name="color">The color.</param>
         /// <param name="width">The width.</param>
         /// <returns>The Pen</returns>
-        public static Pen<TColor> DashDot(TColor color, float width)
-            => new Pen<TColor>(color, width, DashDotPattern);
+        public static Pen<TPixel> DashDot(TPixel color, float width)
+            => new Pen<TPixel>(color, width, DashDotPattern);
 
         /// <summary>
         /// Create a pen with a 'Dash Dot' drawing patterns
@@ -88,8 +86,8 @@ namespace ImageSharp.Drawing.Pens
         /// <param name="brush">The brush.</param>
         /// <param name="width">The width.</param>
         /// <returns>The Pen</returns>
-        public static Pen<TColor> DashDot(IBrush<TColor> brush, float width)
-            => new Pen<TColor>(brush, width, DashDotPattern);
+        public static Pen<TPixel> DashDot(IBrush<TPixel> brush, float width)
+            => new Pen<TPixel>(brush, width, DashDotPattern);
 
         /// <summary>
         /// Create a pen with a 'Dash Dot Dot' drawing patterns
@@ -97,8 +95,8 @@ namespace ImageSharp.Drawing.Pens
         /// <param name="color">The color.</param>
         /// <param name="width">The width.</param>
         /// <returns>The Pen</returns>
-        public static Pen<TColor> DashDotDot(TColor color, float width)
-            => new Pen<TColor>(color, width, DashDotDotPattern);
+        public static Pen<TPixel> DashDotDot(TPixel color, float width)
+            => new Pen<TPixel>(color, width, DashDotDotPattern);
 
         /// <summary>
         /// Create a pen with a 'Dash Dot Dot' drawing patterns
@@ -106,7 +104,7 @@ namespace ImageSharp.Drawing.Pens
         /// <param name="brush">The brush.</param>
         /// <param name="width">The width.</param>
         /// <returns>The Pen</returns>
-        public static Pen<TColor> DashDotDot(IBrush<TColor> brush, float width)
-            => new Pen<TColor>(brush, width, DashDotDotPattern);
+        public static Pen<TPixel> DashDotDot(IBrush<TPixel> brush, float width)
+            => new Pen<TPixel>(brush, width, DashDotDotPattern);
     }
 }

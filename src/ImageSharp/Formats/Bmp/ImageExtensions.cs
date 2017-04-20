@@ -11,22 +11,22 @@ namespace ImageSharp
     using Formats;
 
     /// <summary>
-    /// Extension methods for the <see cref="Image{TColor}"/> type.
+    /// Extension methods for the <see cref="Image{TPixel}"/> type.
     /// </summary>
     public static partial class ImageExtensions
     {
         /// <summary>
         /// Saves the image to the given stream with the bmp format.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="stream">The stream to save the image to.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
         /// <returns>
-        /// The <see cref="Image{TColoR}"/>.
+        /// The <see cref="Image{TPixel}"/>.
         /// </returns>
-        public static Image<TColor> SaveAsBmp<TColor>(this Image<TColor> source, Stream stream)
-            where TColor : struct, IPixel<TColor>
+        public static Image<TPixel> SaveAsBmp<TPixel>(this Image<TPixel> source, Stream stream)
+            where TPixel : struct, IPixel<TPixel>
                         => source.Save(stream, new BmpEncoder());
     }
 }

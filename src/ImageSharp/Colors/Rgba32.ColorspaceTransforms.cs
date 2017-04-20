@@ -189,9 +189,9 @@ namespace ImageSharp
                     float temp2 = (l < 0.5f) ? l * (1f + s) : l + s - (l * s);
                     float temp1 = (2f * l) - temp2;
 
-                    r = GeTPixelComponent(temp1, temp2, rangedH + 0.3333333F);
-                    g = GeTPixelComponent(temp1, temp2, rangedH);
-                    b = GeTPixelComponent(temp1, temp2, rangedH - 0.3333333F);
+                    r = GetColorComponent(temp1, temp2, rangedH + 0.3333333F);
+                    g = GetColorComponent(temp1, temp2, rangedH);
+                    b = GetColorComponent(temp1, temp2, rangedH - 0.3333333F);
                 }
             }
 
@@ -241,7 +241,7 @@ namespace ImageSharp
         /// <returns>
         /// The <see cref="float"/>.
         /// </returns>
-        private static float GeTPixelComponent(float first, float second, float third)
+        private static float GetColorComponent(float first, float second, float third)
         {
             third = MoveIntoRange(third);
             if (third < 0.1666667F)

@@ -11,14 +11,14 @@ namespace ImageSharp.Processing.Processors
     using ImageSharp.Dithering;
 
     /// <summary>
-    /// An <see cref="IImageProcessor{TColor}"/> that dithers an image using error diffusion.
+    /// An <see cref="IImageProcessor{TPixel}"/> that dithers an image using error diffusion.
     /// </summary>
-    /// <typeparam name="TColor">The pixel format.</typeparam>
-    internal class OrderedDitherProcessor<TColor> : ImageProcessor<TColor>
-        where TColor : struct, IPixel<TColor>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    internal class OrderedDitherProcessor<TPixel> : ImageProcessor<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="OrderedDitherProcessor{TColor}"/> class.
+        /// Initializes a new instance of the <see cref="OrderedDitherProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="dither">The ordered ditherer.</param>
         /// <param name="index">The component index to test the threshold against. Must range from 0 to 3.</param>
@@ -28,7 +28,7 @@ namespace ImageSharp.Processing.Processors
             Guard.MustBeBetweenOrEqualTo(index, 0, 3, nameof(index));
 
             // Alpha8 only stores the pixel data in the alpha channel.
-            if (typeof(TColor) == typeof(Alpha8))
+            if (typeof(TPixel) == typeof(Alpha8))
             {
                 index = 3;
             }
@@ -37,8 +37,8 @@ namespace ImageSharp.Processing.Processors
             this.Index = index;
 
             // Default to white/black for upper/lower.
-            this.UpperColor = NamedColors<TColor>.White;
-            this.LowerColor = NamedColors<TColor>.Black;
+            this.UpperColor = NamedColors<TPixel>.White;
+            this.LowerColor = NamedColors<TPixel>.Black;
         }
 
         /// <summary>
@@ -54,21 +54,21 @@ namespace ImageSharp.Processing.Processors
         /// <summary>
         /// Gets or sets the color to use for pixels that are above the threshold.
         /// </summary>
-        public TColor UpperColor { get; set; }
+        public TPixel UpperColor { get; set; }
 
         /// <summary>
         /// Gets or sets the color to use for pixels that fall below the threshold.
         /// </summary>
-        public TColor LowerColor { get; set; }
+        public TPixel LowerColor { get; set; }
 
         /// <inheritdoc/>
-        protected override void BeforeApply(ImageBase<TColor> source, Rectangle sourceRectangle)
+        protected override void BeforeApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
         {
-            new GrayscaleBt709Processor<TColor>().Apply(source, sourceRectangle);
+            new GrayscaleBt709Processor<TPixel>().Apply(source, sourceRectangle);
         }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
         {
             int startY = sourceRectangle.Y;
             int endY = sourceRectangle.Bottom;
@@ -92,7 +92,7 @@ namespace ImageSharp.Processing.Processors
                 startY = 0;
             }
 
-            using (PixelAccessor<TColor> sourcePixels = source.Lock())
+            using (PixelAccessor<TPixel> sourcePixels = source.Lock())
             {
                 for (int y = minY; y < maxY; y++)
                 {
@@ -102,7 +102,7 @@ namespace ImageSharp.Processing.Processors
                     for (int x = minX; x < maxX; x++)
                     {
                         int offsetX = x - startX;
-                        TColor sourceColor = sourcePixels[offsetX, offsetY];
+                        TPixel sourceColor = sourcePixels[offsetX, offsetY];
                         this.Dither.Dither(sourcePixels, sourceColor, this.UpperColor, this.LowerColor, bytes, this.Index, offsetX, offsetY, maxX, maxY);
                     }
 

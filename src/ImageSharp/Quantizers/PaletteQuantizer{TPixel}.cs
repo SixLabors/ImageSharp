@@ -1,4 +1,4 @@
-﻿// <copyright file="PaletteQuantizer.cs" company="James Jackson-South">
+﻿// <copyright file="PaletteQuantizer{TPixel}.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -13,9 +13,9 @@ namespace ImageSharp.Quantizers
     /// Encapsulates methods to create a quantized image based upon the given palette.
     /// <see href="http://msdn.microsoft.com/en-us/library/aa479306.aspx"/>
     /// </summary>
-    /// <typeparam name="TColor">The pixel format.</typeparam>
-    public sealed class PaletteQuantizer<TColor> : Quantizer<TColor>
-        where TColor : struct, IPixel<TColor>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    public sealed class PaletteQuantizer<TPixel> : Quantizer<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
         /// The pixel buffer, used to reduce allocations.
@@ -25,32 +25,32 @@ namespace ImageSharp.Quantizers
         /// <summary>
         /// A lookup table for colors
         /// </summary>
-        private readonly Dictionary<TColor, byte> colorMap = new Dictionary<TColor, byte>();
+        private readonly Dictionary<TPixel, byte> colorMap = new Dictionary<TPixel, byte>();
 
         /// <summary>
         /// List of all colors in the palette
         /// </summary>
-        private TColor[] colors;
+        private TPixel[] colors;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="PaletteQuantizer{TColor}"/> class.
+        /// Initializes a new instance of the <see cref="PaletteQuantizer{TPixel}"/> class.
         /// </summary>
         /// <param name="palette">
         /// The color palette. If none is given this will default to the web safe colors defined
         /// in the CSS Color Module Level 4.
         /// </param>
-        public PaletteQuantizer(TColor[] palette = null)
+        public PaletteQuantizer(TPixel[] palette = null)
             : base(true)
         {
             if (palette == null)
             {
                 Rgba32[] constants = ColorConstants.WebSafeColors;
-                TColor[] safe = new TColor[constants.Length + 1];
+                TPixel[] safe = new TPixel[constants.Length + 1];
 
                 for (int i = 0; i < constants.Length; i++)
                 {
                     constants[i].ToXyzwBytes(this.pixelBuffer, 0);
-                    TColor packed = default(TColor);
+                    TPixel packed = default(TPixel);
                     packed.PackFromBytes(this.pixelBuffer[0], this.pixelBuffer[1], this.pixelBuffer[2], this.pixelBuffer[3]);
                     safe[i] = packed;
                 }
@@ -64,22 +64,22 @@ namespace ImageSharp.Quantizers
         }
 
         /// <inheritdoc/>
-        public override QuantizedImage<TColor> Quantize(ImageBase<TColor> image, int maxColors)
+        public override QuantizedImage<TPixel> Quantize(ImageBase<TPixel> image, int maxColors)
         {
             Array.Resize(ref this.colors, maxColors.Clamp(1, 255));
             return base.Quantize(image, maxColors);
         }
 
         /// <inheritdoc/>
-        protected override void SecondPass(PixelAccessor<TColor> source, byte[] output, int width, int height)
+        protected override void SecondPass(PixelAccessor<TPixel> source, byte[] output, int width, int height)
         {
             // Load up the values for the first pixel. We can use these to speed up the second
             // pass of the algorithm by avoiding transforming rows of identical color.
-            TColor sourcePixel = source[0, 0];
-            TColor previousPixel = sourcePixel;
+            TPixel sourcePixel = source[0, 0];
+            TPixel previousPixel = sourcePixel;
             byte pixelValue = this.QuantizePixel(sourcePixel);
-            TColor[] colorPalette = this.GetPalette();
-            TColor transformedPixel = colorPalette[pixelValue];
+            TPixel[] colorPalette = this.GetPalette();
+            TPixel transformedPixel = colorPalette[pixelValue];
 
             for (int y = 0; y < height; y++)
             {
@@ -117,7 +117,7 @@ namespace ImageSharp.Quantizers
         }
 
         /// <inheritdoc/>
-        protected override TColor[] GetPalette()
+        protected override TPixel[] GetPalette()
         {
             return this.colors;
         }
@@ -130,9 +130,9 @@ namespace ImageSharp.Quantizers
         /// The quantized value
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private byte QuantizePixel(TColor pixel)
+        private byte QuantizePixel(TPixel pixel)
         {
-            return this.GetClosestColor(pixel, this.GetPalette(), this.colorMap);
+            return this.GetClosesTPixel(pixel, this.GetPalette(), this.colorMap);
         }
     }
 }

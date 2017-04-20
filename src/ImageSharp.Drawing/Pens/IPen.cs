@@ -11,9 +11,9 @@ namespace ImageSharp.Drawing.Pens
     /// <summary>
     /// Interface representing a Pen
     /// </summary>
-    /// <typeparam name="TColor">The type of the color.</typeparam>
-    public interface IPen<TColor>
-            where TColor : struct, IPixel<TColor>
+    /// <typeparam name="TPixel">The type of the color.</typeparam>
+    public interface IPen<TPixel>
+            where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
         /// Creates the applicator for applying this pen to an Image
@@ -26,6 +26,6 @@ namespace ImageSharp.Drawing.Pens
         /// <remarks>
         /// The <paramref name="region" /> when being applied to things like shapes would usually be the bounding box of the shape not necessarily the shape of the whole image.
         /// </remarks>
-        PenApplicator<TColor> CreateApplicator(PixelAccessor<TColor> pixelSource, RectangleF region);
+        PenApplicator<TPixel> CreateApplicator(PixelAccessor<TPixel> pixelSource, RectangleF region);
     }
 }

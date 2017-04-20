@@ -22,10 +22,10 @@ namespace ImageSharp
         /// Returns the correct scaling function for the given types The compute scale function.
         /// </summary>
         /// <param name="scaleFunc">The scale function.</param>
-        /// <typeparam name="TColor">The source pixel format.</typeparam>
-        /// <typeparam name="TColor2">The target pixel format.</typeparam>
+        /// <typeparam name="TPixel">The source pixel format.</typeparam>
+        /// <typeparam name="TPixel2">The target pixel format.</typeparam>
         /// <returns>The <see cref="Func{Vector4,Vector4}"/></returns>
-        public static Func<Vector4, Vector4> ComputeScaleFunction<TColor, TColor2>(Func<Vector4, Vector4> scaleFunc)
+        public static Func<Vector4, Vector4> ComputeScaleFunction<TPixel, TPixel2>(Func<Vector4, Vector4> scaleFunc)
         {
             // Custom type with a custom function.
             if (scaleFunc != null)
@@ -33,8 +33,8 @@ namespace ImageSharp
                 return scaleFunc;
             }
 
-            Type source = typeof(TColor);
-            Type target = typeof(TColor2);
+            Type source = typeof(TPixel);
+            Type target = typeof(TPixel2);
 
             // Normalized standard
             if (IsStandardNormalizedType(source))

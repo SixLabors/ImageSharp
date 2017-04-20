@@ -10,14 +10,14 @@ namespace ImageSharp.Processing.Processors
     using System.Threading.Tasks;
 
     /// <summary>
-    /// An <see cref="IImageProcessor{TColor}"/> to change the brightness of an <see cref="Image{TColor}"/>.
+    /// An <see cref="IImageProcessor{TPixel}"/> to change the brightness of an <see cref="Image{TPixel}"/>.
     /// </summary>
-    /// <typeparam name="TColor">The pixel format.</typeparam>
-    internal class BrightnessProcessor<TColor> : ImageProcessor<TColor>
-        where TColor : struct, IPixel<TColor>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    internal class BrightnessProcessor<TPixel> : ImageProcessor<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="BrightnessProcessor{TColor}"/> class.
+        /// Initializes a new instance of the <see cref="BrightnessProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="brightness">The new brightness of the image. Must be between -100 and 100.</param>
         /// <exception cref="System.ArgumentException">
@@ -35,7 +35,7 @@ namespace ImageSharp.Processing.Processors
         public int Value { get; }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
         {
             float brightness = this.Value / 100F;
 
@@ -61,7 +61,7 @@ namespace ImageSharp.Processing.Processors
                 startY = 0;
             }
 
-            using (PixelAccessor<TColor> sourcePixels = source.Lock())
+            using (PixelAccessor<TPixel> sourcePixels = source.Lock())
             {
                 Parallel.For(
                     minY,
@@ -79,7 +79,7 @@ namespace ImageSharp.Processing.Processors
                                 Vector3 transformed = new Vector3(vector.X, vector.Y, vector.Z) + new Vector3(brightness);
                                 vector = new Vector4(transformed, vector.W);
 
-                                TColor packed = default(TColor);
+                                TPixel packed = default(TPixel);
                                 packed.PackFromVector4(vector.Compress());
 
                                 sourcePixels[offsetX, offsetY] = packed;

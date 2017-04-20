@@ -1,4 +1,4 @@
-﻿// <copyright file="ColorBuilder{TColor}.cs" company="James Jackson-South">
+﻿// <copyright file="ColorBuilder{TPixel}.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -11,19 +11,19 @@ namespace ImageSharp
     /// <summary>
     /// A set of named colors mapped to the provided Color space.
     /// </summary>
-    /// <typeparam name="TColor">The type of the color.</typeparam>
-    public static class ColorBuilder<TColor>
-        where TColor : struct, IPixel<TColor>
+    /// <typeparam name="TPixel">The type of the color.</typeparam>
+    public static class ColorBuilder<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
-        /// Creates a new <typeparamref name="TColor"/> representation from the string representing a color.
+        /// Creates a new <typeparamref name="TPixel"/> representation from the string representing a color.
         /// </summary>
         /// <param name="hex">
         /// The hexadecimal representation of the combined color components arranged
         /// in rgb, rgba, rrggbb, or rrggbbaa format to match web syntax.
         /// </param>
-        /// <returns>Returns a <typeparamref name="TColor"/> that represents the color defined by the provided RGBA heax string.</returns>
-        public static TColor FromHex(string hex)
+        /// <returns>Returns a <typeparamref name="TPixel"/> that represents the color defined by the provided RGBA heax string.</returns>
+        public static TPixel FromHex(string hex)
         {
             Guard.NotNullOrEmpty(hex, nameof(hex));
 
@@ -34,7 +34,7 @@ namespace ImageSharp
                 throw new ArgumentException("Hexadecimal string is not in the correct format.", nameof(hex));
             }
 
-            TColor result = default(TColor);
+            TPixel result = default(TPixel);
 
             result.PackFromBytes(
                 (byte)(packedValue >> 24),
@@ -45,30 +45,30 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Creates a new <typeparamref name="TColor"/> representation from standard RGB bytes with 100% opacity.
+        /// Creates a new <typeparamref name="TPixel"/> representation from standard RGB bytes with 100% opacity.
         /// </summary>
         /// <param name="red">The red intensity.</param>
         /// <param name="green">The green intensity.</param>
         /// <param name="blue">The blue intensity.</param>
-        /// <returns>Returns a <typeparamref name="TColor"/> that represents the color defined by the provided RGB values with 100% opacity.</returns>
-        public static TColor FromRGB(byte red, byte green, byte blue)
+        /// <returns>Returns a <typeparamref name="TPixel"/> that represents the color defined by the provided RGB values with 100% opacity.</returns>
+        public static TPixel FromRGB(byte red, byte green, byte blue)
         {
-            TColor color = default(TColor);
+            TPixel color = default(TPixel);
             color.PackFromBytes(red, green, blue, 255);
             return color;
         }
 
         /// <summary>
-        /// Creates a new <typeparamref name="TColor"/> representation from standard RGBA bytes.
+        /// Creates a new <typeparamref name="TPixel"/> representation from standard RGBA bytes.
         /// </summary>
         /// <param name="red">The red intensity.</param>
         /// <param name="green">The green intensity.</param>
         /// <param name="blue">The blue intensity.</param>
         /// <param name="alpha">The alpha intensity.</param>
-        /// <returns>Returns a <typeparamref name="TColor"/> that represents the color defined by the provided RGBA values.</returns>
-        public static TColor FromRGBA(byte red, byte green, byte blue, byte alpha)
+        /// <returns>Returns a <typeparamref name="TPixel"/> that represents the color defined by the provided RGBA values.</returns>
+        public static TPixel FromRGBA(byte red, byte green, byte blue, byte alpha)
         {
-            TColor color = default(TColor);
+            TPixel color = default(TPixel);
             color.PackFromBytes(red, green, blue, alpha);
             return color;
         }

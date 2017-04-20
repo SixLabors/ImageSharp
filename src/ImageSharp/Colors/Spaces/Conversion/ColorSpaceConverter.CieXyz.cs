@@ -42,6 +42,19 @@ namespace ImageSharp.Colors.Spaces.Conversion
         }
 
         /// <summary>
+        /// Converts a <see cref="CieXyy"/> into a <see cref="CieXyz"/>
+        /// </summary>
+        /// <param name="color">The color to convert.</param>
+        /// <returns>The <see cref="CieXyz"/></returns>
+        public CieXyz ToCieXyz(CieXyy color)
+        {
+            Guard.NotNull(color, nameof(color));
+
+            // Conversion
+            return CieXyzAndCieXyyConverter.Convert(color);
+        }
+
+        /// <summary>
         /// Converts a <see cref="Lms"/> into a <see cref="CieXyz"/>
         /// </summary>
         /// <param name="color">The color to convert.</param>

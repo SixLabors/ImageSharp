@@ -89,5 +89,18 @@ namespace ImageSharp.Colors.Spaces.Conversion
             CieXyz xyzColor = this.ToCieXyz(color);
             return this.ToLms(xyzColor);
         }
+
+        /// <summary>
+        /// Converts a <see cref="CieXyy"/> into a <see cref="Lms"/>
+        /// </summary>
+        /// <param name="color">The color to convert.</param>
+        /// <returns>The <see cref="Lms"/></returns>
+        public Lms ToLms(CieXyy color)
+        {
+            Guard.NotNull(color, nameof(color));
+
+            CieXyz xyzColor = this.ToCieXyz(color);
+            return this.ToLms(xyzColor);
+        }
     }
 }

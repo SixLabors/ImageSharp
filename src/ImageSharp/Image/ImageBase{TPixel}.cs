@@ -167,6 +167,7 @@ namespace ImageSharp
             int newHeight = pixelSource.Height;
 
             // Push my memory into the accessor (which in turn unpins the old puffer ready for the images use)
+            TPixel[] newPixels = pixelSource.ReturnCurrentColorsAndReplaceThemInternally(this.Width, this.Height, this.pixelBuffer);
             this.Width = newWidth;
             this.Height = newHeight;
             this.pixelBuffer = newPixels;

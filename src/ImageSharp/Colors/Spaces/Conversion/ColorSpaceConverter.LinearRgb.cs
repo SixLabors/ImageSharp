@@ -101,6 +101,19 @@ namespace ImageSharp.Colors.Spaces.Conversion
         }
 
         /// <summary>
+        /// Converts a <see cref="CieXyy"/> into a <see cref="LinearRgb"/>
+        /// </summary>
+        /// <param name="color">The color to convert.</param>
+        /// <returns>The <see cref="LinearRgb"/></returns>
+        public LinearRgb ToLinearRgb(CieXyy color)
+        {
+            Guard.NotNull(color, nameof(color));
+
+            CieXyz xyzColor = this.ToCieXyz(color);
+            return this.ToLinearRgb(xyzColor);
+        }
+
+        /// <summary>
         /// Gets the correct converter for the given rgb working space.
         /// </summary>
         /// <param name="workingSpace">The target working space</param>

@@ -5,107 +5,109 @@
 
 namespace ImageSharp.Colors.Spaces.Conversion
 {
-    using ImageSharp.Colors.Spaces.Conversion.Implementation.Rgb;
+    using ImageSharp.Colors.Spaces.Conversion.Implementation.CieXyy;
 
     /// <summary>
     /// Converts between color spaces ensuring that the color is adapted using chromatic adaptation.
     /// </summary>
     public partial class ColorSpaceConverter
     {
-        private static readonly LinearRgbToRgbConverter LinearRgbToRgbConverter = new LinearRgbToRgbConverter();
+        private static readonly CieXyzAndCieXyyConverter CieXyzAndCieXyyConverter = new CieXyzAndCieXyyConverter();
 
         /// <summary>
-        /// Converts a <see cref="LinearRgb"/> into a <see cref="Rgb"/>
+        /// Converts a <see cref="CieXyz"/> into a <see cref="CieXyy"/>
         /// </summary>
         /// <param name="color">The color to convert.</param>
-        /// <returns>The <see cref="Rgb"/></returns>
-        public Rgb ToRgb(LinearRgb color)
+        /// <returns>The <see cref="CieXyy"/></returns>
+        public CieXyy ToCieXyy(CieXyz color)
         {
             Guard.NotNull(color, nameof(color));
 
-            // Conversion
-            return LinearRgbToRgbConverter.Convert(color);
+            return CieXyzAndCieXyyConverter.Convert(color);
         }
 
         /// <summary>
-        /// Converts a <see cref="CieXyz"/> into a <see cref="Rgb"/>
+        /// Converts a <see cref="CieLab"/> into a <see cref="CieXyy"/>
         /// </summary>
         /// <param name="color">The color to convert.</param>
-        /// <returns>The <see cref="Rgb"/></returns>
-        public Rgb ToRgb(CieXyz color)
-        {
-            Guard.NotNull(color, nameof(color));
-
-            // Conversion
-            LinearRgb linear = this.ToLinearRgb(color);
-
-            // Compand
-            return this.ToRgb(linear);
-        }
-
-        /// <summary>
-        /// Converts a <see cref="HunterLab"/> into a <see cref="Rgb"/>
-        /// </summary>
-        /// <param name="color">The color to convert.</param>
-        /// <returns>The <see cref="Rgb"/></returns>
-        public Rgb ToRgb(HunterLab color)
+        /// <returns>The <see cref="CieXyy"/></returns>
+        public CieXyy ToCieXyy(CieLab color)
         {
             Guard.NotNull(color, nameof(color));
 
             CieXyz xyzColor = this.ToCieXyz(color);
-            return this.ToRgb(xyzColor);
+
+            return this.ToCieXyy(xyzColor);
         }
 
         /// <summary>
-        /// Converts a <see cref="CieLab"/> into a <see cref="Rgb"/>
+        /// Converts a <see cref="CieLch"/> into a <see cref="CieXyy"/>
         /// </summary>
         /// <param name="color">The color to convert.</param>
-        /// <returns>The <see cref="Rgb"/></returns>
-        public Rgb ToRgb(CieLab color)
+        /// <returns>The <see cref="CieXyy"/></returns>
+        public CieXyy ToCieXyy(CieLch color)
         {
             Guard.NotNull(color, nameof(color));
 
             CieXyz xyzColor = this.ToCieXyz(color);
-            return this.ToRgb(xyzColor);
+
+            return this.ToCieXyy(xyzColor);
         }
 
         /// <summary>
-        /// Converts a <see cref="Lms"/> into a <see cref="Rgb"/>
+        /// Converts a <see cref="HunterLab"/> into a <see cref="CieXyy"/>
         /// </summary>
         /// <param name="color">The color to convert.</param>
-        /// <returns>The <see cref="Rgb"/></returns>
-        public Rgb ToRgb(Lms color)
+        /// <returns>The <see cref="CieXyy"/></returns>
+        public CieXyy ToCieXyy(HunterLab color)
         {
             Guard.NotNull(color, nameof(color));
 
             CieXyz xyzColor = this.ToCieXyz(color);
-            return this.ToRgb(xyzColor);
+
+            return this.ToCieXyy(xyzColor);
         }
 
         /// <summary>
-        /// Converts a <see cref="CieLch"/> into a <see cref="Rgb"/>
+        /// Converts a <see cref="LinearRgb"/> into a <see cref="CieXyy"/>
         /// </summary>
         /// <param name="color">The color to convert.</param>
-        /// <returns>The <see cref="Rgb"/></returns>
-        public Rgb ToRgb(CieLch color)
+        /// <returns>The <see cref="CieXyy"/></returns>
+        public CieXyy ToCieXyy(LinearRgb color)
         {
             Guard.NotNull(color, nameof(color));
 
             CieXyz xyzColor = this.ToCieXyz(color);
-            return this.ToRgb(xyzColor);
+
+            return this.ToCieXyy(xyzColor);
         }
 
         /// <summary>
-        /// Converts a <see cref="CieXyy"/> into a <see cref="Rgb"/>
+        /// Converts a <see cref="Rgb"/> into a <see cref="CieXyy"/>
         /// </summary>
         /// <param name="color">The color to convert.</param>
-        /// <returns>The <see cref="Rgb"/></returns>
-        public Rgb ToRgb(CieXyy color)
+        /// <returns>The <see cref="CieXyy"/></returns>
+        public CieXyy ToCieXyy(Rgb color)
         {
             Guard.NotNull(color, nameof(color));
 
             CieXyz xyzColor = this.ToCieXyz(color);
-            return this.ToRgb(xyzColor);
+
+            return this.ToCieXyy(xyzColor);
+        }
+
+        /// <summary>
+        /// Converts a <see cref="Lms"/> into a <see cref="CieXyy"/>
+        /// </summary>
+        /// <param name="color">The color to convert.</param>
+        /// <returns>The <see cref="CieXyy"/></returns>
+        public CieXyy ToCieXyy(Lms color)
+        {
+            Guard.NotNull(color, nameof(color));
+
+            CieXyz xyzColor = this.ToCieXyz(color);
+
+            return this.ToCieXyy(xyzColor);
         }
     }
 }

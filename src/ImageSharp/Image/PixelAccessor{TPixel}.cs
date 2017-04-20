@@ -236,6 +236,7 @@ namespace ImageSharp
         /// <param name="pixels">The pixels.</param>
         /// <returns>Returns the old pixel data thats has gust been replaced.</returns>
         /// <remarks>If <see cref="M:PixelAccessor.PooledMemory"/> is true then caller is responsible for ensuring <see cref="M:PixelDataPool.Return()"/> is called.</remarks>
+        internal TPixel[] ReturnCurrentColorsAndReplaceThemInternally(int width, int height, TPixel[] pixels)
         {
             TPixel[] oldPixels = this.pixelBuffer.TakeArrayOwnership();
             this.SetPixelBufferUnsafe(width, height, pixels);

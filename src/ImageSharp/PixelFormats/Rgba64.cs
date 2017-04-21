@@ -11,6 +11,7 @@ namespace ImageSharp.PixelFormats
 
     /// <summary>
     /// Packed pixel type containing four 16-bit unsigned normalized values ranging from 0 to 1.
+    /// Ranges from &lt;0, 0, 0, 0&gt; to &lt;1, 1, 1, 1&gt; in vector form.
     /// </summary>
     public struct Rgba64 : IPixel<Rgba64>, IPackedVector<ulong>
     {

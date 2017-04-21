@@ -11,6 +11,7 @@ namespace ImageSharp.PixelFormats
 
     /// <summary>
     /// Packed pixel type containing four 8-bit unsigned integer values, ranging from 0 to 255.
+    /// Ranges from &lt;0, 0, 0, 0&gt; to &lt;1, 1, 1, 1&gt; in vector form.
     /// </summary>
     public struct Byte4 : IPixel<Byte4>, IPackedVector<uint>
     {

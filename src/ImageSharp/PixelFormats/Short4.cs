@@ -11,6 +11,7 @@ namespace ImageSharp.PixelFormats
 
     /// <summary>
     /// Packed pixel type containing four 16-bit signed integer values.
+    /// Ranges from &lt;-37267, -37267, -37267, -37267&gt; to &lt;37267, 37267, 37267, 37267&gt; in vector form.
     /// </summary>
     public struct Short4 : IPixel<Short4>, IPackedVector<ulong>
     {

@@ -9,12 +9,14 @@ namespace ImageSharp.Processing.Processors
     using System.Numerics;
     using System.Threading.Tasks;
 
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// Defines a sampler that detects edges within an image using a eight two dimensional matrices.
     /// </summary>
-    /// <typeparam name="TColor">The pixel format.</typeparam>
-    internal abstract class EdgeDetectorCompassProcessor<TColor> : ImageProcessor<TColor>, IEdgeDetectorProcessor<TColor>
-        where TColor : struct, IPixel<TColor>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    internal abstract class EdgeDetectorCompassProcessor<TPixel> : ImageProcessor<TPixel>, IEdgeDetectorProcessor<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
         /// Gets the North gradient operator
@@ -60,16 +62,16 @@ namespace ImageSharp.Processing.Processors
         public bool Grayscale { get; set; }
 
         /// <inheritdoc/>
-        protected override void BeforeApply(ImageBase<TColor> source, Rectangle sourceRectangle)
+        protected override void BeforeApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
         {
             if (this.Grayscale)
             {
-                new GrayscaleBt709Processor<TColor>().Apply(source, sourceRectangle);
+                new GrayscaleBt709Processor<TPixel>().Apply(source, sourceRectangle);
             }
         }
 
         /// <inheritdoc />
-        protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
         {
             Fast2DArray<float>[] kernels = { this.North, this.NorthWest, this.West, this.SouthWest, this.South, this.SouthEast, this.East, this.NorthEast };
 
@@ -85,9 +87,9 @@ namespace ImageSharp.Processing.Processors
             int maxY = Math.Min(source.Height, endY);
 
             // we need a clean copy for each pass to start from
-            using (ImageBase<TColor> cleanCopy = new Image<TColor>(source))
+            using (ImageBase<TPixel> cleanCopy = new Image<TPixel>(source))
             {
-                new ConvolutionProcessor<TColor>(kernels[0]).Apply(source, sourceRectangle);
+                new ConvolutionProcessor<TPixel>(kernels[0]).Apply(source, sourceRectangle);
 
                 if (kernels.Length == 1)
                 {
@@ -112,12 +114,12 @@ namespace ImageSharp.Processing.Processors
                 // ReSharper disable once ForCanBeConvertedToForeach
                 for (int i = 1; i < kernels.Length; i++)
                 {
-                    using (ImageBase<TColor> pass = new Image<TColor>(cleanCopy))
+                    using (ImageBase<TPixel> pass = new Image<TPixel>(cleanCopy))
                     {
-                        new ConvolutionProcessor<TColor>(kernels[i]).Apply(pass, sourceRectangle);
+                        new ConvolutionProcessor<TPixel>(kernels[i]).Apply(pass, sourceRectangle);
 
-                        using (PixelAccessor<TColor> passPixels = pass.Lock())
-                        using (PixelAccessor<TColor> targetPixels = source.Lock())
+                        using (PixelAccessor<TPixel> passPixels = pass.Lock())
+                        using (PixelAccessor<TPixel> targetPixels = source.Lock())
                         {
                             Parallel.For(
                                 minY,
@@ -131,7 +133,7 @@ namespace ImageSharp.Processing.Processors
                                         int offsetX = x - shiftX;
 
                                         // Grab the max components of the two pixels
-                                        TColor packed = default(TColor);
+                                        TPixel packed = default(TPixel);
                                         packed.PackFromVector4(Vector4.Max(passPixels[offsetX, offsetY].ToVector4(), targetPixels[offsetX, offsetY].ToVector4()));
                                         targetPixels[offsetX, offsetY] = packed;
                                     }

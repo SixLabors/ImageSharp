@@ -15,15 +15,17 @@ namespace ImageSharp.Tests.Formats.Png
     using ImageSharp.IO;
     using System.Numerics;
 
+    using ImageSharp.PixelFormats;
+
     public class PngSmokeTests
     {
         [Theory]
         [WithTestPatternImages(300, 300, PixelTypes.All)]
-        public void GeneralTest<TColor>(TestImageProvider<TColor> provider)
-            where TColor : struct, IPixel<TColor>
+        public void GeneralTest<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
         {
             // does saving a file then repoening mean both files are identical???
-            using (Image<TColor> image = provider.GetImage())
+            using (Image<TPixel> image = provider.GetImage())
             using (MemoryStream ms = new MemoryStream())
             {
                 // image.Save(provider.Utility.GetTestOutputFileName("bmp"));
@@ -40,11 +42,11 @@ namespace ImageSharp.Tests.Formats.Png
 
         [Theory]
         [WithTestPatternImages(100, 100, PixelTypes.All)]
-        public void CanSaveIndexedPng<TColor>(TestImageProvider<TColor> provider)
-            where TColor : struct, IPixel<TColor>
+        public void CanSaveIndexedPng<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
         {
             // does saving a file then repoening mean both files are identical???
-            using (Image<TColor> image = provider.GetImage())
+            using (Image<TPixel> image = provider.GetImage())
             using (MemoryStream ms = new MemoryStream())
             {
                 // image.Save(provider.Utility.GetTestOutputFileName("bmp"));
@@ -62,11 +64,11 @@ namespace ImageSharp.Tests.Formats.Png
         // JJS: Commented out for now since the test does not take into lossy nature of indexing.
         //[Theory]
         //[WithTestPatternImages(100, 100, PixelTypes.Color)]
-        //public void CanSaveIndexedPngTwice<TColor>(TestImageProvider<TColor> provider)
-        //    where TColor : struct, IPixel<TColor>
+        //public void CanSaveIndexedPngTwice<TPixel>(TestImageProvider<TPixel> provider)
+        //    where TPixel : struct, IPixel<TPixel>
         //{
         //    // does saving a file then repoening mean both files are identical???
-        //    using (Image<TColor> source = provider.GetImage())
+        //    using (Image<TPixel> source = provider.GetImage())
         //    using (MemoryStream ms = new MemoryStream())
         //    {
         //        source.MetaData.Quality = 256;
@@ -104,11 +106,11 @@ namespace ImageSharp.Tests.Formats.Png
 
         [Theory]
         [WithTestPatternImages(300, 300, PixelTypes.All)]
-        public void Resize<TColor>(TestImageProvider<TColor> provider)
-            where TColor : struct, IPixel<TColor>
+        public void Resize<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
         {
             // does saving a file then repoening mean both files are identical???
-            using (Image<TColor> image = provider.GetImage())
+            using (Image<TPixel> image = provider.GetImage())
             using (MemoryStream ms = new MemoryStream())
             {
                 // image.Save(provider.Utility.GetTestOutputFileName("png"));

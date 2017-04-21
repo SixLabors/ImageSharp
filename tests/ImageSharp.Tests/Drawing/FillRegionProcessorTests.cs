@@ -1,20 +1,13 @@
 ﻿
 namespace ImageSharp.Tests.Drawing
 {
-    using System;
-    using System.IO;
     using ImageSharp;
-    using ImageSharp.Drawing.Brushes;
-    using Processing;
-    using System.Collections.Generic;
     using Xunit;
     using ImageSharp.Drawing;
-    using System.Numerics;
-    using SixLabors.Shapes;
     using ImageSharp.Drawing.Processors;
-    using ImageSharp.Drawing.Pens;
     using Moq;
-    using System.Collections.Immutable;
+
+    using ImageSharp.PixelFormats;
 
     public class FillRegionProcessorTests
     {
@@ -29,14 +22,14 @@ namespace ImageSharp.Tests.Drawing
         {
             ImageSharp.Rectangle bounds = new ImageSharp.Rectangle(0, 0, 1, 1);
 
-            Mock<IBrush<Color>> brush = new Mock<IBrush<Color>>();
+            Mock<IBrush<Rgba32>> brush = new Mock<IBrush<Rgba32>>();
             Mock<Region> region = new Mock<Region>();
             region.Setup(x => x.Bounds).Returns(bounds);
 
             GraphicsOptions options = new GraphicsOptions(antialias) {
                 AntialiasSubpixelDepth = 1
             };
-            FillRegionProcessor<Color> processor = new FillRegionProcessor<Color>(brush.Object, region.Object, options);
+            FillRegionProcessor<Rgba32> processor = new FillRegionProcessor<Rgba32>(brush.Object, region.Object, options);
             Image img = new Image(1, 1);
             processor.Apply(img, bounds);
 

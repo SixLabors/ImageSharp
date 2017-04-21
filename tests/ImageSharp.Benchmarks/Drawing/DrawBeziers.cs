@@ -12,7 +12,8 @@ namespace ImageSharp.Benchmarks
 
     using BenchmarkDotNet.Attributes;
 
-    using CoreColor = ImageSharp.Color;
+    using ImageSharp.PixelFormats;
+
     using CoreImage = ImageSharp.Image;
     using CorePoint = ImageSharp.Point;
 
@@ -50,7 +51,7 @@ namespace ImageSharp.Benchmarks
             using (CoreImage image = new CoreImage(800, 800))
             {
                 image.DrawBeziers(
-                    CoreColor.HotPink,
+                    Rgba32.HotPink,
                     10,
                     new[] {
                         new Vector2(10, 500),

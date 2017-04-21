@@ -9,16 +9,16 @@ namespace ImageSharp.Tests
     using System.Reflection;
 
     /// <summary>
-    /// Triggers passing <see cref="TestImageProvider{TColor}"/> instances which read an image from the given file
-    /// One <see cref="TestImageProvider{TColor}"/> instance will be passed for each the pixel format defined by the pixelTypes parameter
+    /// Triggers passing <see cref="TestImageProvider{TPixel}"/> instances which read an image from the given file
+    /// One <see cref="TestImageProvider{TPixel}"/> instance will be passed for each the pixel format defined by the pixelTypes parameter
     /// </summary>
     public class WithFileAttribute : ImageDataAttributeBase
     {
         private readonly string fileName;
 
         /// <summary>
-        /// Triggers passing <see cref="TestImageProvider{TColor}"/> instances which read an image from the given file
-        /// One <see cref="TestImageProvider{TColor}"/> instance will be passed for each the pixel format defined by the pixelTypes parameter
+        /// Triggers passing <see cref="TestImageProvider{TPixel}"/> instances which read an image from the given file
+        /// One <see cref="TestImageProvider{TPixel}"/> instance will be passed for each the pixel format defined by the pixelTypes parameter
         /// </summary>
         /// <param name="fileName">The name of the file</param>
         /// <param name="pixelTypes">The requested pixel types</param>

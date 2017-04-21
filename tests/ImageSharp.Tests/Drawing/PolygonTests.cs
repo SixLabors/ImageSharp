@@ -13,6 +13,8 @@ namespace ImageSharp.Tests.Drawing
     using ImageSharp.Drawing;
     using System.Numerics;
 
+    using ImageSharp.PixelFormats;
+
     public class PolygonTests : FileTestBase
     {
         [Fact]
@@ -25,8 +27,8 @@ namespace ImageSharp.Tests.Drawing
                 using (FileStream output = File.OpenWrite($"{path}/Simple.png"))
                 {
                     image
-                        .BackgroundColor(Color.Blue)
-                        .DrawPolygon(Color.HotPink, 5,
+                        .BackgroundColor(Rgba32.Blue)
+                        .DrawPolygon(Rgba32.HotPink, 5,
                         new[] {
                             new Vector2(10, 10),
                             new Vector2(200, 150),
@@ -35,15 +37,15 @@ namespace ImageSharp.Tests.Drawing
                         .Save(output);
                 }
 
-                using (PixelAccessor<Color> sourcePixels = image.Lock())
+                using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
                 {
-                    Assert.Equal(Color.HotPink, sourcePixels[9, 9]);
+                    Assert.Equal(Rgba32.HotPink, sourcePixels[9, 9]);
 
-                    Assert.Equal(Color.HotPink, sourcePixels[199, 149]);
+                    Assert.Equal(Rgba32.HotPink, sourcePixels[199, 149]);
 
-                    Assert.Equal(Color.Blue, sourcePixels[50, 50]);
+                    Assert.Equal(Rgba32.Blue, sourcePixels[50, 50]);
 
-                    Assert.Equal(Color.Blue, sourcePixels[2, 2]);
+                    Assert.Equal(Rgba32.Blue, sourcePixels[2, 2]);
                 }
             }
         }
@@ -58,30 +60,30 @@ namespace ImageSharp.Tests.Drawing
                             new Vector2(50, 300)
             };
 
-            Color color = new Color(Color.HotPink.R, Color.HotPink.G, Color.HotPink.B, 150);
+            Rgba32 color = new Rgba32(Rgba32.HotPink.R, Rgba32.HotPink.G, Rgba32.HotPink.B, 150);
 
             using (Image image = new Image(500, 500))
             {
                 using (FileStream output = File.OpenWrite($"{path}/Opacity.png"))
                 {
                     image
-                        .BackgroundColor(Color.Blue)
+                        .BackgroundColor(Rgba32.Blue)
                         .DrawPolygon(color, 10, simplePath)
                         .Save(output);
                 }
 
                 //shift background color towards forground color by the opacity amount
-                Color mergedColor = new Color(Vector4.Lerp(Color.Blue.ToVector4(), Color.HotPink.ToVector4(), 150f / 255f));
+                Rgba32 mergedColor = new Rgba32(Vector4.Lerp(Rgba32.Blue.ToVector4(), Rgba32.HotPink.ToVector4(), 150f / 255f));
 
-                using (PixelAccessor<Color> sourcePixels = image.Lock())
+                using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
                 {
                     Assert.Equal(mergedColor, sourcePixels[9, 9]);
 
                     Assert.Equal(mergedColor, sourcePixels[199, 149]);
 
-                    Assert.Equal(Color.Blue, sourcePixels[50, 50]);
+                    Assert.Equal(Rgba32.Blue, sourcePixels[50, 50]);
 
-                    Assert.Equal(Color.Blue, sourcePixels[2, 2]);
+                    Assert.Equal(Rgba32.Blue, sourcePixels[2, 2]);
                 }
             }
         }
@@ -96,22 +98,22 @@ namespace ImageSharp.Tests.Drawing
                 using (FileStream output = File.OpenWrite($"{path}/Rectangle.png"))
                 {
                     image
-                        .BackgroundColor(Color.Blue)
-                        .Draw(Color.HotPink, 10, new Rectangle(10, 10, 190, 140))
+                        .BackgroundColor(Rgba32.Blue)
+                        .Draw(Rgba32.HotPink, 10, new Rectangle(10, 10, 190, 140))
                         .Save(output);
                 }
 
-                using (PixelAccessor<Color> sourcePixels = image.Lock())
+                using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
                 {
-                    Assert.Equal(Color.HotPink, sourcePixels[8, 8]);
+                    Assert.Equal(Rgba32.HotPink, sourcePixels[8, 8]);
 
-                    Assert.Equal(Color.HotPink, sourcePixels[198, 10]);
+                    Assert.Equal(Rgba32.HotPink, sourcePixels[198, 10]);
 
-                    Assert.Equal(Color.HotPink, sourcePixels[10, 50]);
+                    Assert.Equal(Rgba32.HotPink, sourcePixels[10, 50]);
 
-                    Assert.Equal(Color.Blue, sourcePixels[50, 50]);
+                    Assert.Equal(Rgba32.Blue, sourcePixels[50, 50]);
 
-                    Assert.Equal(Color.Blue, sourcePixels[2, 2]);
+                    Assert.Equal(Rgba32.Blue, sourcePixels[2, 2]);
                 }
             }
         }

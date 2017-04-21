@@ -7,29 +7,28 @@ namespace ImageSharp.Drawing.Processors
 {
     using System;
     using System.Buffers;
-    using System.Numerics;
-    using System.Threading.Tasks;
     using Drawing;
+    using ImageSharp.PixelFormats;
     using ImageSharp.Processing;
 
     /// <summary>
     /// Usinf a brsuh and a shape fills shape with contents of brush the
     /// </summary>
-    /// <typeparam name="TColor">The type of the color.</typeparam>
-    /// <seealso cref="ImageSharp.Processing.ImageProcessor{TColor}" />
-    internal class FillRegionProcessor<TColor> : ImageProcessor<TColor>
-        where TColor : struct, IPixel<TColor>
+    /// <typeparam name="TPixel">The type of the color.</typeparam>
+    /// <seealso cref="ImageSharp.Processing.ImageProcessor{TPixel}" />
+    internal class FillRegionProcessor<TPixel> : ImageProcessor<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
         private const float AntialiasFactor = 1f;
         private const int DrawPadding = 1;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="FillRegionProcessor{TColor}" /> class.
+        /// Initializes a new instance of the <see cref="FillRegionProcessor{TPixel}" /> class.
         /// </summary>
         /// <param name="brush">The details how to fill the region of interest.</param>
         /// <param name="region">The region of interest to be filled.</param>
         /// <param name="options">The configuration options.</param>
-        public FillRegionProcessor(IBrush<TColor> brush, Region region, GraphicsOptions options)
+        public FillRegionProcessor(IBrush<TPixel> brush, Region region, GraphicsOptions options)
         {
             this.Region = region;
             this.Brush = brush;
@@ -39,7 +38,7 @@ namespace ImageSharp.Drawing.Processors
         /// <summary>
         /// Gets the brush.
         /// </summary>
-        public IBrush<TColor> Brush { get; }
+        public IBrush<TPixel> Brush { get; }
 
         /// <summary>
         /// Gets the region that this processor applies to.
@@ -55,7 +54,7 @@ namespace ImageSharp.Drawing.Processors
         public GraphicsOptions Options { get; }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
         {
             Region region = this.Region;
             Rectangle rect = region.Bounds;
@@ -88,8 +87,8 @@ namespace ImageSharp.Drawing.Processors
                 }
             }
 
-            using (PixelAccessor<TColor> sourcePixels = source.Lock())
-            using (BrushApplicator<TColor> applicator = this.Brush.CreateApplicator(sourcePixels, rect))
+            using (PixelAccessor<TPixel> sourcePixels = source.Lock())
+            using (BrushApplicator<TPixel> applicator = this.Brush.CreateApplicator(sourcePixels, rect))
             {
                 float[] buffer = arrayPool.Rent(maxIntersections);
                 int scanlineWidth = maxX - minX;

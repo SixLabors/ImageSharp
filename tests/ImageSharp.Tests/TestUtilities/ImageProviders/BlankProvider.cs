@@ -6,12 +6,15 @@
 namespace ImageSharp.Tests
 {
     using System;
+
+    using ImageSharp.PixelFormats;
+
     using Xunit.Abstractions;
 
-    public abstract partial class TestImageProvider<TColor>
-        where TColor : struct, IPixel<TColor>
+    public abstract partial class TestImageProvider<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
-        private class BlankProvider : TestImageProvider<TColor>, IXunitSerializable
+        private class BlankProvider : TestImageProvider<TPixel>, IXunitSerializable
         {
             public BlankProvider(int width, int height)
             {
@@ -30,7 +33,7 @@ namespace ImageSharp.Tests
 
             protected int Width { get; private set; }
 
-            public override Image<TColor> GetImage() => this.Factory.CreateImage(this.Width, this.Height);
+            public override Image<TPixel> GetImage() => this.Factory.CreateImage(this.Width, this.Height);
 
 
             public override void Deserialize(IXunitSerializationInfo info)

@@ -7,22 +7,24 @@ namespace ImageSharp
 {
     using System;
 
+    using ImageSharp.PixelFormats;
+
     using Processing.Processors;
 
     /// <summary>
-    /// Extension methods for the <see cref="Image{TColor}"/> type.
+    /// Extension methods for the <see cref="Image{TPixel}"/> type.
     /// </summary>
     public static partial class ImageExtensions
     {
         /// <summary>
         /// Applies a box blur to the image.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="radius">The 'radius' value representing the size of the area to sample.</param>
-        /// <returns>The <see cref="Image{TColor}"/>.</returns>
-        public static Image<TColor> BoxBlur<TColor>(this Image<TColor> source, int radius = 7)
-            where TColor : struct, IPixel<TColor>
+        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        public static Image<TPixel> BoxBlur<TPixel>(this Image<TPixel> source, int radius = 7)
+            where TPixel : struct, IPixel<TPixel>
         {
             return BoxBlur(source, radius, source.Bounds);
         }
@@ -30,17 +32,17 @@ namespace ImageSharp
         /// <summary>
         /// Applies a box blur to the image.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="radius">The 'radius' value representing the size of the area to sample.</param>
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
-        /// <returns>The <see cref="Image{TColor}"/>.</returns>
-        public static Image<TColor> BoxBlur<TColor>(this Image<TColor> source, int radius, Rectangle rectangle)
-            where TColor : struct, IPixel<TColor>
+        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        public static Image<TPixel> BoxBlur<TPixel>(this Image<TPixel> source, int radius, Rectangle rectangle)
+            where TPixel : struct, IPixel<TPixel>
         {
-            source.ApplyProcessor(new BoxBlurProcessor<TColor>(radius), rectangle);
+            source.ApplyProcessor(new BoxBlurProcessor<TPixel>(radius), rectangle);
             return source;
         }
     }

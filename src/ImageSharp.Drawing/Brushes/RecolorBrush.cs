@@ -5,19 +5,21 @@
 
 namespace ImageSharp.Drawing.Brushes
 {
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// Provides an implementation of a recolor brush for painting color changes.
     /// </summary>
-    public class RecolorBrush : RecolorBrush<Color>
+    public class RecolorBrush : RecolorBrush<Rgba32>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="RecolorBrush" /> class.
         /// </summary>
         /// <param name="sourceColor">Color of the source.</param>
-        /// <param name="targetColor">Color of the target.</param>
+        /// <param name="targeTPixel">Color of the target.</param>
         /// <param name="threshold">The threshold.</param>
-        public RecolorBrush(Color sourceColor, Color targetColor, float threshold)
-            : base(sourceColor, targetColor, threshold)
+        public RecolorBrush(Rgba32 sourceColor, Rgba32 targeTPixel, float threshold)
+            : base(sourceColor, targeTPixel, threshold)
         {
         }
     }

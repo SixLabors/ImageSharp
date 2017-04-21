@@ -41,6 +41,7 @@
     <PackageReference Include="System.Threading.Tasks.Parallel" Version="4.3.0" />
     <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.3.0" />
     <PackageReference Include="System.Numerics.Vectors" Version="4.3.0" />
+    <PackageReference Include="System.IO.Compression" Version="4.3.0" />
   </ItemGroup>
   <PropertyGroup>
     <CodeAnalysisRuleSet>..\..\ImageSharp.ruleset</CodeAnalysisRuleSet>

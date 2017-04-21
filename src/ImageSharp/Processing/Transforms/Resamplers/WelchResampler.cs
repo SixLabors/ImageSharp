@@ -24,7 +24,7 @@ namespace ImageSharp.Processing
 
             if (x < 3F)
             {
-                return ImageMaths.SinC(x) * (1F - (x * x / 9.0F));
+                return MathF.SinC(x) * (1F - (x * x / 9F));
             }
 
             return 0F;

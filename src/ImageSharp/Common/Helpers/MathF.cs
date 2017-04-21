@@ -126,6 +126,26 @@ namespace ImageSharp
             return (float)Math.Sin(f);
         }
 
+        /// <summary>
+        /// Returns the result of a normalized sine cardinal function for the given value.
+        /// SinC(x) = sin(pi*x)/(pi*x).
+        /// </summary>
+        /// <param name="f">A single-precision floating-point number to calculate the result for.</param>
+        /// <returns>
+        /// The sine cardinal of <paramref name="f" />.
+        /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float SinC(float f)
+        {
+            if (Abs(f) > Constants.Epsilon)
+            {
+                f *= PI;
+                return Clean(Sin(f) / f);
+            }
+
+            return 1F;
+        }
+
         /// <summary>Returns the square root of a specified number.</summary>
         /// <param name="f">The number whose square root is to be found. </param>
         /// <returns>
@@ -139,6 +159,24 @@ namespace ImageSharp
         public static float Sqrt(float f)
         {
             return (float)Math.Sqrt(f);
+        }
+
+        /// <summary>
+        /// Ensures that any passed float is correctly rounded to zero
+        /// </summary>
+        /// <param name="x">The value to clean.</param>
+        /// <returns>
+        /// The <see cref="float"/>
+        /// </returns>.
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static float Clean(float x)
+        {
+            if (Abs(x) < Constants.Epsilon)
+            {
+                return 0F;
+            }
+
+            return x;
         }
     }
 }

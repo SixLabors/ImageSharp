@@ -8,6 +8,7 @@ namespace ImageSharp.Colors.Spaces
     using System;
     using System.ComponentModel;
     using System.Numerics;
+    using ImageSharp.PixelFormats;
 
     /// <summary>
     /// Represents an CIE 1931 color
@@ -63,16 +64,16 @@ namespace ImageSharp.Colors.Spaces
         public bool IsEmpty => this.Equals(Empty);
 
         /// <summary>
-        /// Allows the implicit conversion of an instance of <see cref="Color"/> to a
+        /// Allows the implicit conversion of an instance of <see cref="Rgba32"/> to a
         /// <see cref="CieXyz"/>.
         /// </summary>
         /// <param name="color">
-        /// The instance of <see cref="Color"/> to convert.
+        /// The instance of <see cref="Rgba32"/> to convert.
         /// </param>
         /// <returns>
         /// An instance of <see cref="CieXyz"/>.
         /// </returns>
-        public static implicit operator CieXyz(Color color)
+        public static implicit operator CieXyz(Rgba32 color)
         {
             Vector4 vector = color.ToVector4().Expand();
 

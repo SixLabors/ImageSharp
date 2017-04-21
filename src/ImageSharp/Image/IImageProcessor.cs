@@ -8,12 +8,14 @@ namespace ImageSharp.Processing
     using System;
     using System.Threading.Tasks;
 
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// Encapsulates methods to alter the pixels of an image.
     /// </summary>
-    /// <typeparam name="TColor">The pixel format.</typeparam>
-    public interface IImageProcessor<TColor>
-        where TColor : struct, IPixel<TColor>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    public interface IImageProcessor<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
         /// Gets or sets the parallel options for processing tasks in parallel.
@@ -27,7 +29,7 @@ namespace ImageSharp.Processing
         bool Compand { get; set; }
 
         /// <summary>
-        /// Applies the process to the specified portion of the specified <see cref="ImageBase{TColor}"/>.
+        /// Applies the process to the specified portion of the specified <see cref="ImageBase{TPixel}"/>.
         /// </summary>
         /// <param name="source">The source image. Cannot be null.</param>
         /// <param name="sourceRectangle">
@@ -39,6 +41,6 @@ namespace ImageSharp.Processing
         /// <exception cref="System.ArgumentException">
         /// <paramref name="sourceRectangle"/> doesnt fit the dimension of the image.
         /// </exception>
-        void Apply(ImageBase<TColor> source, Rectangle sourceRectangle);
+        void Apply(ImageBase<TPixel> source, Rectangle sourceRectangle);
     }
 }

@@ -5,6 +5,7 @@
 
 namespace ImageSharp.Tests.Colors
 {
+    using ImageSharp.PixelFormats;
     using Xunit;
 
     /// <summary>
@@ -18,101 +19,101 @@ namespace ImageSharp.Tests.Colors
         /// <summary>
         /// Orange backdrop
         /// </summary>
-        private static readonly ColorVector Backdrop = new ColorVector(204, 102, 0);
+        private static readonly RgbaVector Backdrop = new RgbaVector(204, 102, 0);
 
         /// <summary>
         /// Blue source
         /// </summary>
-        private static readonly ColorVector Source = new ColorVector(0, 102, 153);
+        private static readonly RgbaVector Source = new RgbaVector(0, 102, 153);
 
         [Fact]
         public void Normal()
         {
-            ColorVector normal = ColorVector.Normal(Backdrop, Source);
+            RgbaVector normal = RgbaVector.Normal(Backdrop, Source);
             Assert.True(normal == Source);
         }
 
         [Fact]
         public void Multiply()
         {
-            Assert.Equal(ColorVector.Multiply(Backdrop, ColorVector.Black).ToVector4(), Color.Black.ToVector4(), FloatComparer);
-            Assert.Equal(ColorVector.Multiply(Backdrop, ColorVector.White).ToVector4(), Backdrop.ToVector4(), FloatComparer);
+            Assert.Equal(RgbaVector.Multiply(Backdrop, RgbaVector.Black).ToVector4(), Rgba32.Black.ToVector4(), FloatComparer);
+            Assert.Equal(RgbaVector.Multiply(Backdrop, RgbaVector.White).ToVector4(), Backdrop.ToVector4(), FloatComparer);
 
-            ColorVector multiply = ColorVector.Multiply(Backdrop, Source);
-            Assert.Equal(multiply.ToVector4(), new ColorVector(0, 41, 0).ToVector4(), FloatComparer);
+            RgbaVector multiply = RgbaVector.Multiply(Backdrop, Source);
+            Assert.Equal(multiply.ToVector4(), new RgbaVector(0, 41, 0).ToVector4(), FloatComparer);
         }
 
         [Fact]
         public void Screen()
         {
-            Assert.Equal(ColorVector.Screen(Backdrop, ColorVector.Black).ToVector4(), Backdrop.ToVector4(), FloatComparer);
-            Assert.Equal(ColorVector.Screen(Backdrop, ColorVector.White).ToVector4(), ColorVector.White.ToVector4(), FloatComparer);
+            Assert.Equal(RgbaVector.Screen(Backdrop, RgbaVector.Black).ToVector4(), Backdrop.ToVector4(), FloatComparer);
+            Assert.Equal(RgbaVector.Screen(Backdrop, RgbaVector.White).ToVector4(), RgbaVector.White.ToVector4(), FloatComparer);
 
-            ColorVector screen = ColorVector.Screen(Backdrop, Source);
-            Assert.Equal(screen.ToVector4(), new ColorVector(204, 163, 153).ToVector4(), FloatComparer);
+            RgbaVector screen = RgbaVector.Screen(Backdrop, Source);
+            Assert.Equal(screen.ToVector4(), new RgbaVector(204, 163, 153).ToVector4(), FloatComparer);
         }
 
         [Fact]
         public void HardLight()
         {
-            ColorVector hardLight = ColorVector.HardLight(Backdrop, Source);
-            Assert.Equal(hardLight.ToVector4(), new ColorVector(0, 82, 51).ToVector4(), FloatComparer);
+            RgbaVector hardLight = RgbaVector.HardLight(Backdrop, Source);
+            Assert.Equal(hardLight.ToVector4(), new RgbaVector(0, 82, 51).ToVector4(), FloatComparer);
         }
 
         [Fact]
         public void Overlay()
         {
-            ColorVector overlay = ColorVector.Overlay(Backdrop, Source);
-            Assert.Equal(overlay.ToVector4(), new ColorVector(153, 82, 0).ToVector4(), FloatComparer);
+            RgbaVector overlay = RgbaVector.Overlay(Backdrop, Source);
+            Assert.Equal(overlay.ToVector4(), new RgbaVector(153, 82, 0).ToVector4(), FloatComparer);
         }
 
         [Fact]
         public void Darken()
         {
-            ColorVector darken = ColorVector.Darken(Backdrop, Source);
-            Assert.Equal(darken.ToVector4(), new ColorVector(0, 102, 0).ToVector4(), FloatComparer);
+            RgbaVector darken = RgbaVector.Darken(Backdrop, Source);
+            Assert.Equal(darken.ToVector4(), new RgbaVector(0, 102, 0).ToVector4(), FloatComparer);
         }
 
         [Fact]
         public void Lighten()
         {
-            ColorVector lighten = ColorVector.Lighten(Backdrop, Source);
-            Assert.Equal(lighten.ToVector4(), new ColorVector(204, 102, 153).ToVector4(), FloatComparer);
+            RgbaVector lighten = RgbaVector.Lighten(Backdrop, Source);
+            Assert.Equal(lighten.ToVector4(), new RgbaVector(204, 102, 153).ToVector4(), FloatComparer);
         }
 
         [Fact]
         public void SoftLight()
         {
-            ColorVector softLight = ColorVector.SoftLight(Backdrop, Source);
-            Assert.Equal(softLight.ToVector4(), new ColorVector(163, 90, 0).ToVector4(), FloatComparer);
+            RgbaVector softLight = RgbaVector.SoftLight(Backdrop, Source);
+            Assert.Equal(softLight.ToVector4(), new RgbaVector(163, 90, 0).ToVector4(), FloatComparer);
         }
 
         [Fact]
         public void ColorDodge()
         {
-            ColorVector colorDodge = ColorVector.ColorDodge(Backdrop, Source);
-            Assert.Equal(colorDodge.ToVector4(), new ColorVector(204, 170, 0).ToVector4(), FloatComparer);
+            RgbaVector colorDodge = RgbaVector.ColorDodge(Backdrop, Source);
+            Assert.Equal(colorDodge.ToVector4(), new RgbaVector(204, 170, 0).ToVector4(), FloatComparer);
         }
 
         [Fact]
         public void ColorBurn()
         {
-            ColorVector colorBurn = ColorVector.ColorBurn(Backdrop, Source);
-            Assert.Equal(colorBurn.ToVector4(), new ColorVector(0, 0, 0).ToVector4(), FloatComparer);
+            RgbaVector colorBurn = RgbaVector.ColorBurn(Backdrop, Source);
+            Assert.Equal(colorBurn.ToVector4(), new RgbaVector(0, 0, 0).ToVector4(), FloatComparer);
         }
 
         [Fact]
         public void Difference()
         {
-            ColorVector difference = ColorVector.Difference(Backdrop, Source);
-            Assert.Equal(difference.ToVector4(), new ColorVector(204, 0, 153).ToVector4(), FloatComparer);
+            RgbaVector difference = RgbaVector.Difference(Backdrop, Source);
+            Assert.Equal(difference.ToVector4(), new RgbaVector(204, 0, 153).ToVector4(), FloatComparer);
         }
 
         [Fact]
         public void Exclusion()
         {
-            ColorVector exclusion = ColorVector.Exclusion(Backdrop, Source);
-            Assert.Equal(exclusion.ToVector4(), new ColorVector(204, 122, 153).ToVector4(), FloatComparer);
+            RgbaVector exclusion = RgbaVector.Exclusion(Backdrop, Source);
+            Assert.Equal(exclusion.ToVector4(), new RgbaVector(204, 122, 153).ToVector4(), FloatComparer);
         }
     }
 }

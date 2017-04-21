@@ -13,7 +13,8 @@ namespace ImageSharp.Benchmarks
 
     using BenchmarkDotNet.Attributes;
 
-    using CoreColor = ImageSharp.Color;
+    using ImageSharp.PixelFormats;
+
     using CoreImage = ImageSharp.Image;
 
     public class FillPolygon : BenchmarkBase
@@ -57,7 +58,7 @@ namespace ImageSharp.Benchmarks
             using (CoreImage image = new CoreImage(800, 800))
             {
                 image.FillPolygon(
-                    CoreColor.HotPink,
+                    Rgba32.HotPink,
                     new[] {
                         new Vector2(10, 10),
                         new Vector2(550, 50),
@@ -77,7 +78,7 @@ namespace ImageSharp.Benchmarks
             using (CoreImage image = new CoreImage(800, 800))
             {
                 image.Fill(
-                    CoreColor.HotPink,
+                    Rgba32.HotPink,
                     this.shape);
 
                 using (MemoryStream ms = new MemoryStream())

@@ -8,6 +8,7 @@ namespace ImageSharp.Colors.Spaces
     using System;
     using System.ComponentModel;
     using System.Numerics;
+    using ImageSharp.PixelFormats;
 
     /// <summary>
     /// Represents an CMYK (cyan, magenta, yellow, keyline) color.
@@ -78,7 +79,7 @@ namespace ImageSharp.Colors.Spaces
         public bool IsEmpty => this.Equals(Empty);
 
         /// <summary>
-        /// Allows the implicit conversion of an instance of <see cref="Color"/> to a
+        /// Allows the implicit conversion of an instance of <see cref="Rgba32"/> to a
         /// <see cref="Cmyk"/>.
         /// </summary>
         /// <param name="color">
@@ -87,7 +88,7 @@ namespace ImageSharp.Colors.Spaces
         /// <returns>
         /// An instance of <see cref="Cmyk"/>.
         /// </returns>
-        public static implicit operator Cmyk(Color color)
+        public static implicit operator Cmyk(Rgba32 color)
         {
             float c = 1f - (color.R / 255F);
             float m = 1f - (color.G / 255F);

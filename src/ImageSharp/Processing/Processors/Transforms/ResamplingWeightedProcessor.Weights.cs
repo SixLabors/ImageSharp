@@ -7,7 +7,7 @@ namespace ImageSharp.Processing.Processors
     /// <content>
     /// Conains the definition of <see cref="WeightsWindow"/> and <see cref="WeightsBuffer"/>.
     /// </content>
-    internal abstract partial class ResamplingWeightedProcessor<TColor>
+    internal abstract partial class ResamplingWeightedProcessor<TPixel>
     {
         /// <summary>
         /// Points to a collection of of weights allocated in <see cref="WeightsBuffer"/>.

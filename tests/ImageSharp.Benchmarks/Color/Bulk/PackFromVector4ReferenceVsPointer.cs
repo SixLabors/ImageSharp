@@ -6,6 +6,7 @@
     using BenchmarkDotNet.Attributes;
 
     using ImageSharp;
+    using ImageSharp.PixelFormats;
 
     /// <summary>
     /// Compares two implementation candidates for general BulkPixelOperations.ToVector4():
@@ -14,7 +15,7 @@
     /// </summary>
     public unsafe class PackFromVector4ReferenceVsPointer
     {
-        private Buffer<ImageSharp.Rgba32> destination;
+        private Buffer<Rgba32> destination;
 
         private Buffer<Vector4> source;
 
@@ -24,7 +25,7 @@
         [Setup]
         public void Setup()
         {
-            this.destination = new Buffer<ImageSharp.Rgba32>(this.Count);
+            this.destination = new Buffer<Rgba32>(this.Count);
             this.source = new Buffer<Vector4>(this.Count * 4);
             this.source.Pin();
             this.destination.Pin();
@@ -43,12 +44,12 @@
             Vector4* sp = (Vector4*)this.source.Pin();
             byte* dp = (byte*)this.destination.Pin();
             int count = this.Count;
-            int size = sizeof(ImageSharp.Rgba32);
+            int size = sizeof(Rgba32);
 
             for (int i = 0; i < count; i++)
             {
                 Vector4 v = Unsafe.Read<Vector4>(sp);
-                ImageSharp.Rgba32 c = default(ImageSharp.Rgba32);
+                Rgba32 c = default(Rgba32);
                 c.PackFromVector4(v);
                 Unsafe.Write(dp, c);
 
@@ -61,7 +62,7 @@
         public void PackUsingReferences()
         {
             ref Vector4 sp = ref this.source.Array[0];
-            ref ImageSharp.Rgba32 dp = ref this.destination.Array[0];
+            ref Rgba32 dp = ref this.destination.Array[0];
             int count = this.Count;
 
             for (int i = 0; i < count; i++)

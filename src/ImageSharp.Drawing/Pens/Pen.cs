@@ -5,6 +5,8 @@
 
 namespace ImageSharp.Drawing.Pens
 {
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// Represents a <see cref="Pen{TPixel}"/> in the <see cref="Rgba32"/> color space.
     /// </summary>

@@ -10,6 +10,8 @@ namespace ImageSharp.Processing.Processors
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
 
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// Provides methods that allow the resizing of images using various algorithms.
     /// Adapted from <see href="http://www.realtimerendering.com/resources/GraphicsGems/gemsiii/filter_rcg.c"/>

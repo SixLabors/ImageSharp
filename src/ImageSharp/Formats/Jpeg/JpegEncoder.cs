@@ -7,6 +7,8 @@ namespace ImageSharp.Formats
 {
     using System.IO;
 
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// Encoder for writing the data image to a stream in jpeg format.
     /// </summary>

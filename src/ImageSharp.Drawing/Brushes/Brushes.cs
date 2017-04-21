@@ -5,6 +5,8 @@
 
 namespace ImageSharp.Drawing.Brushes
 {
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// A collection of methods for creating brushes. Brushes use <see cref="Rgba32"/> for painting.
     /// </summary>

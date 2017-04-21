@@ -9,6 +9,8 @@ namespace ImageSharp.Processing.Processors
     using System.Numerics;
     using System.Threading.Tasks;
 
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// Defines a sampler that uses two one-dimensional matrices to perform two-pass convolution against an image.
     /// </summary>

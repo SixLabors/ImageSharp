@@ -8,6 +8,8 @@ namespace ImageSharp.Processing.Processors
     using System;
     using System.Diagnostics.CodeAnalysis;
 
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// The Laplacian 5 x 5 operator filter.
     /// <see href="http://en.wikipedia.org/wiki/Discrete_Laplace_operator"/>

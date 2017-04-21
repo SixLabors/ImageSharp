@@ -12,6 +12,7 @@ namespace ImageSharp.Tests.Drawing.Text
     using ImageSharp.Drawing.Brushes;
     using ImageSharp.Drawing.Pens;
     using ImageSharp.Drawing.Processors;
+    using ImageSharp.PixelFormats;
     using ImageSharp.Tests.Drawing.Paths;
 
     using SixLabors.Fonts;

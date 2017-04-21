@@ -10,6 +10,9 @@ namespace ImageSharp.Tests
     using System.IO;
     using System.Linq;
     using System.Text;
+
+    using ImageSharp.PixelFormats;
+
     using Xunit;
 
     public class ExifProfileTests

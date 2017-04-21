@@ -8,6 +8,8 @@ namespace ImageSharp.Formats
     using System;
     using System.IO;
 
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// Encoder for generating an image out of a png encoded stream.
     /// </summary>

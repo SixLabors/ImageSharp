@@ -11,6 +11,7 @@ namespace ImageSharp.Tests
     using System.Reflection;
 
     using ImageSharp.Formats;
+    using ImageSharp.PixelFormats;
 
     /// <summary>
     /// Utility class to provide information about the test image & the test case for the test code,

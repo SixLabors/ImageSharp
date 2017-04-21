@@ -5,12 +5,10 @@
 
 namespace ImageSharp
 {
-    using System;
-
     using Drawing;
     using Drawing.Brushes;
     using Drawing.Pens;
-
+    using ImageSharp.PixelFormats;
     using SixLabors.Shapes;
 
     /// <summary>

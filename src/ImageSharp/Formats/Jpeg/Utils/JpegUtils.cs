@@ -8,6 +8,8 @@ namespace ImageSharp.Formats.Jpg
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
 
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     ///     Jpeg specific utilities and extension methods
     /// </summary>

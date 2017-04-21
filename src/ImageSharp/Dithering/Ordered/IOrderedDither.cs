@@ -5,6 +5,8 @@
 
 namespace ImageSharp.Dithering
 {
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// Encapsulates properties and methods required to perfom ordered dithering on an image.
     /// </summary>

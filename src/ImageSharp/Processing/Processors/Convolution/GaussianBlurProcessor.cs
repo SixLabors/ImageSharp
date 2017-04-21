@@ -7,6 +7,8 @@ namespace ImageSharp.Processing.Processors
 {
     using System;
 
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// Applies a Gaussian blur sampler to the image.
     /// </summary>

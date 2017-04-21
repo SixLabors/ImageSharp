@@ -5,6 +5,8 @@
 
 namespace ImageSharp.Dithering.Ordered
 {
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// The base class for performing ordered ditheroing using a 4x4 matrix.
     /// </summary>

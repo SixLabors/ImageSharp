@@ -8,6 +8,8 @@ namespace ImageSharp.Processing.Processors
     using System;
     using System.Numerics;
 
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// Converts the colors of the image to Grayscale applying the formula as specified by ITU-R Recommendation BT.709
     /// <see href="https://en.wikipedia.org/wiki/Rec._709#Luma_coefficients"/>.

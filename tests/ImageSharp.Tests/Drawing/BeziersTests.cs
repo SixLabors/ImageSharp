@@ -11,6 +11,9 @@ namespace ImageSharp.Tests.Drawing
     using System.Diagnostics.CodeAnalysis;
     using System.IO;
     using System.Numerics;
+
+    using ImageSharp.PixelFormats;
+
     using Xunit;
 
     public class Beziers : FileTestBase

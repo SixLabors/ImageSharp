@@ -8,6 +8,8 @@ namespace ImageSharp.Processing.Processors
     using System;
     using System.Diagnostics.CodeAnalysis;
 
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// The Kirsch operator filter.
     /// <see href="http://www.tutorialspoint.com/dip/Robinson_Compass_Mask.htm"/>

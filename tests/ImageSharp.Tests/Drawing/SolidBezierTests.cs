@@ -8,6 +8,8 @@ namespace ImageSharp.Tests.Drawing
     using System.IO;
     using System.Numerics;
 
+    using ImageSharp.PixelFormats;
+
     using SixLabors.Shapes;
 
     using Xunit;

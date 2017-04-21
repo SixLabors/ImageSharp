@@ -9,6 +9,7 @@ namespace ImageSharp
     using System;
     using System.IO;
     using Formats;
+    using ImageSharp.PixelFormats;
 
     /// <summary>
     /// Represents an image. Each pixel is a made up four 8-bit components red, green, blue, and alpha

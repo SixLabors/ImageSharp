@@ -9,6 +9,8 @@ namespace ImageSharp.Tests.Colors
     using System.Diagnostics;
     using System.Numerics;
 
+    using ImageSharp.PixelFormats;
+
     using Xunit;
 
     /// <summary>

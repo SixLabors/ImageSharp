@@ -6,6 +6,8 @@ namespace ImageSharp.Tests.Common
     using System;
     using System.Runtime.CompilerServices;
 
+    using ImageSharp.PixelFormats;
+
     using Xunit;
 
     using static TestStructs;

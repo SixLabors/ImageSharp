@@ -8,6 +8,7 @@ namespace ImageSharp
     using System;
     using System.Numerics;
     using System.Threading.Tasks;
+    using ImageSharp.PixelFormats;
 
     /// <summary>
     /// Represents a single frame in a animation.

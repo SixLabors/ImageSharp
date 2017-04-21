@@ -5,6 +5,8 @@
 
 namespace ImageSharp.Tests
 {
+    using ImageSharp.PixelFormats;
+
     public class ImageFactory : GenericFactory<Rgba32>
     {
         public override Image<Rgba32> CreateImage(byte[] bytes) => Image.Load(bytes);

@@ -8,6 +8,8 @@ namespace ImageSharp.Processing
     using System;
     using System.Threading.Tasks;
 
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// Allows the application of processors to images.
     /// </summary>

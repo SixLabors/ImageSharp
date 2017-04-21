@@ -2,6 +2,8 @@
 {
     using System;
     using ImageSharp;
+    using ImageSharp.PixelFormats;
+
     using Xunit;
 
     /// <summary>

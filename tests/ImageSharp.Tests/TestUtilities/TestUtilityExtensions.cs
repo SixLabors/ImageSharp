@@ -11,6 +11,8 @@ namespace ImageSharp.Tests
     using System.Linq;
     using System.Reflection;
 
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// Extension methods for TestUtilities
     /// </summary>

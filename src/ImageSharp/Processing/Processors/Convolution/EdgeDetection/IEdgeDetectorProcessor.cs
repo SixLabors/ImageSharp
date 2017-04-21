@@ -7,6 +7,8 @@ namespace ImageSharp.Processing.Processors
 {
     using System;
 
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// Provides properties and methods allowing the detection of edges within an image.
     /// </summary>

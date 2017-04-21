@@ -8,6 +8,8 @@ namespace ImageSharp.Processing.Processors
     using System;
     using System.Diagnostics.CodeAnalysis;
 
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// The Scharr operator filter.
     /// <see href="http://en.wikipedia.org/wiki/Sobel_operator#Alternative_operators"/>

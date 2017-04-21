@@ -7,7 +7,7 @@ namespace ImageSharp.Drawing.Processors
 {
     using System;
     using System.Numerics;
-    using System.Runtime.CompilerServices;
+    using ImageSharp.PixelFormats;
 
     /// <summary>
     /// primitive that converts a point in to a color for discovering the fill color based on an implementation

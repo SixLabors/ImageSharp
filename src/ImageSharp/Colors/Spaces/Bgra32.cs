@@ -8,6 +8,7 @@ namespace ImageSharp.Colors.Spaces
     using System;
     using System.ComponentModel;
     using System.Numerics;
+    using ImageSharp.PixelFormats;
 
     /// <summary>
     /// Represents an BGRA (blue, green, red, alpha) color.

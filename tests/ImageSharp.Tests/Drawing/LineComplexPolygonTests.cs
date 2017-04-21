@@ -11,6 +11,7 @@ namespace ImageSharp.Tests.Drawing
     using ImageSharp.Drawing;
     using System.Numerics;
     using ImageSharp.Drawing.Pens;
+    using ImageSharp.PixelFormats;
 
     using SixLabors.Shapes;
 

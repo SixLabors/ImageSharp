@@ -5,8 +5,7 @@
 
 namespace ImageSharp.Drawing
 {
-    using System;
-
+    using ImageSharp.PixelFormats;
     using Processors;
 
     /// <summary>

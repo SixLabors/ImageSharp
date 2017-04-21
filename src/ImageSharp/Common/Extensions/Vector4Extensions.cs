@@ -8,6 +8,7 @@ namespace ImageSharp
     using System;
     using System.Numerics;
     using System.Runtime.CompilerServices;
+    using ImageSharp.PixelFormats;
 
     /// <summary>
     /// Extension methods for the <see cref="Vector4"/> struct.

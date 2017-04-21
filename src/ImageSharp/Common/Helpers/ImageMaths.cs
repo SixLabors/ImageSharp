@@ -101,25 +101,6 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Gets the result of a sine cardinal function for the given value.
-        /// </summary>
-        /// <param name="x">The value to calculate the result for.</param>
-        /// <returns>
-        /// The <see cref="float"/>.
-        /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static float SinC(float x)
-        {
-            if (MathF.Abs(x) > Constants.Epsilon)
-            {
-                x *= MathF.PI;
-                return Clean(MathF.Sin(x) / x);
-            }
-
-            return 1.0f;
-        }
-
-        /// <summary>
         /// Returns the given degrees converted to radians.
         /// </summary>
         /// <param name="degrees">The angle in degrees.</param>
@@ -285,24 +266,6 @@ namespace ImageSharp
             }
 
             return GetBoundingRectangle(topLeft, bottomRight);
-        }
-
-        /// <summary>
-        /// Ensures that any passed double is correctly rounded to zero
-        /// </summary>
-        /// <param name="x">The value to clean.</param>
-        /// <returns>
-        /// The <see cref="float"/>
-        /// </returns>.
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static float Clean(float x)
-        {
-            if (MathF.Abs(x) < Constants.Epsilon)
-            {
-                return 0F;
-            }
-
-            return x;
         }
     }
 }

@@ -8,7 +8,7 @@
     using Xunit;
 
     /// <summary>
-    /// Tests <see cref="CieXyz"/>-<see cref="CieLab"/> conversions.
+    /// Tests <see cref="Rgb"/>-<see cref="Cmyk"/> conversions.
     /// </summary>
     /// <remarks>
     /// Test data generated using:

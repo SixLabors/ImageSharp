@@ -58,8 +58,22 @@ namespace ImageSharp.Colors.Spaces.Conversion
         /// Converts a <see cref="Cmyk"/> into a <see cref="CieXyy"/>
         /// </summary>
         /// <param name="color">The color to convert.</param>
-        /// <returns>The <see cref="Cmyk"/></returns>
+        /// <returns>The <see cref="CieXyy"/></returns>
         public CieXyy ToCieXyy(Cmyk color)
+        {
+            Guard.NotNull(color, nameof(color));
+
+            CieXyz xyzColor = this.ToCieXyz(color);
+
+            return this.ToCieXyy(xyzColor);
+        }
+
+        /// <summary>
+        /// Converts a <see cref="Hsl"/> into a <see cref="CieXyy"/>
+        /// </summary>
+        /// <param name="color">The color to convert.</param>
+        /// <returns>The <see cref="CieXyy"/></returns>
+        public CieXyy ToCieXyy(Hsl color)
         {
             Guard.NotNull(color, nameof(color));
 

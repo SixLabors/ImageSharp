@@ -83,6 +83,19 @@ namespace ImageSharp.Colors.Spaces.Conversion
         }
 
         /// <summary>
+        /// Converts a <see cref="Hsl"/> into a <see cref="HunterLab"/>
+        /// </summary>
+        /// <param name="color">The color to convert.</param>
+        /// <returns>The <see cref="HunterLab"/></returns>
+        public HunterLab ToHunterLab(Hsl color)
+        {
+            Guard.NotNull(color, nameof(color));
+
+            CieXyz xyzColor = this.ToCieXyz(color);
+            return this.ToHunterLab(xyzColor);
+        }
+
+        /// <summary>
         /// Converts a <see cref="LinearRgb"/> into a <see cref="HunterLab"/>
         /// </summary>
         /// <param name="color">The color to convert.</param>

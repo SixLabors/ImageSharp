@@ -32,9 +32,18 @@ namespace ImageSharp.Colors.Spaces
         /// <param name="y">The yellow component.</param>
         /// <param name="k">The keyline black component.</param>
         public Cmyk(float c, float m, float y, float k)
+            : this(new Vector4(c, m, y, k))
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Cmyk"/> struct.
+        /// </summary>
+        /// <param name="vector">The vector representing the c, m, y, k components.</param>
+        public Cmyk(Vector4 vector)
             : this()
         {
-            this.backingVector = Vector4.Clamp(new Vector4(c, m, y, k), Vector4.Zero, Vector4.One);
+            this.backingVector = Vector4.Clamp(vector, Vector4.Zero, Vector4.One);
         }
 
         /// <summary>

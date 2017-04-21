@@ -11,6 +11,7 @@ namespace ImageSharp.PixelFormats
 
     /// <summary>
     /// Packed pixel type containing four 8-bit signed normalized values, ranging from −1 to 1.
+    /// Ranges from &lt;-1, -1, -1, -1&gt; to &lt;1, 1, 1, 1&gt; in vector form.
     /// </summary>
     public struct NormalizedByte4 : IPixel<NormalizedByte4>, IPackedVector<uint>
     {

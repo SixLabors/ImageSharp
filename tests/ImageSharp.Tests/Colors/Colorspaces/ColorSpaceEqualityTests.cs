@@ -27,6 +27,7 @@ namespace ImageSharp.Tests.Colors
                     Lms.Empty,
                     LinearRgb.Empty,
                     Rgb.Empty,
+                    Hsl.Empty
                 };
 
         public static readonly TheoryData<object, object, Type> EqualityData =
@@ -40,6 +41,7 @@ namespace ImageSharp.Tests.Colors
                { new Lms(Vector3.One), new Lms(Vector3.One), typeof(Lms) },
                { new LinearRgb(Vector3.One), new LinearRgb(Vector3.One), typeof(LinearRgb) },
                { new Rgb(Vector3.One), new Rgb(Vector3.One), typeof(Rgb) },
+               { new Hsl(Vector3.One), new Hsl(Vector3.One), typeof(Hsl) },
            };
 
         public static readonly TheoryData<object, object, Type> NotEqualityDataNulls =
@@ -54,6 +56,7 @@ namespace ImageSharp.Tests.Colors
                { new Lms(Vector3.One), null, typeof(Lms) },
                { new LinearRgb(Vector3.One), null, typeof(LinearRgb) },
                { new Rgb(Vector3.One), null, typeof(Rgb) },
+               { new Hsl(Vector3.One), null, typeof(Hsl) },
             };
 
         public static readonly TheoryData<object, object, Type> NotEqualityDataDifferentObjects =
@@ -64,6 +67,7 @@ namespace ImageSharp.Tests.Colors
                 { new CieXyz(Vector3.One), new HunterLab(Vector3.Zero), null },
                 { new Rgb(Vector3.One), new LinearRgb(Vector3.Zero), null },
                 { new Rgb(Vector3.One), new Lms(Vector3.Zero), null },
+                { new Cmyk(Vector4.One), new Hsl(Vector3.Zero), null },
            };
 
         public static readonly TheoryData<object, object, Type> NotEqualityData =
@@ -78,6 +82,8 @@ namespace ImageSharp.Tests.Colors
                { new Lms(Vector3.One), new Lms(Vector3.Zero), typeof(Lms) },
                { new LinearRgb(Vector3.One), new LinearRgb(Vector3.Zero), typeof(LinearRgb) },
                { new Rgb(Vector3.One), new Rgb(Vector3.Zero), typeof(Rgb) },
+               { new Cmyk(Vector4.One), new Cmyk(Vector4.Zero), typeof(Cmyk) },
+               { new Hsl(Vector3.One), new Hsl(Vector3.Zero), typeof(Hsl) },
            };
 
         public static readonly TheoryData<object, object, Type, float> AlmostEqualsData =
@@ -94,6 +100,7 @@ namespace ImageSharp.Tests.Colors
                 { new CieXyz(380F, 380F, 380F), new CieXyz(380.001F, 380F, 380F), typeof(CieXyz), .01F },
                 { new CieXyz(380F, 380F, 380F), new CieXyz(380F, 380.001F, 380F), typeof(CieXyz), .01F },
                 { new CieXyz(380F, 380F, 380F), new CieXyz(380F, 380F, 380.001F), typeof(CieXyz), .01F },
+                { new Cmyk(1, 1, 1, 1), new Cmyk(1, 1, 1, .99F), typeof(Cmyk), .01F },
             };
 
         public static readonly TheoryData<object, object, Type, float> AlmostNotEqualsData =

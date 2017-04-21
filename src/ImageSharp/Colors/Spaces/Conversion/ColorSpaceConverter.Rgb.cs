@@ -83,6 +83,19 @@ namespace ImageSharp.Colors.Spaces.Conversion
         }
 
         /// <summary>
+        /// Converts a <see cref="Hsl"/> into a <see cref="Rgb"/>
+        /// </summary>
+        /// <param name="color">The color to convert.</param>
+        /// <returns>The <see cref="Rgb"/></returns>
+        public Rgb ToRgb(Hsl color)
+        {
+            Guard.NotNull(color, nameof(color));
+
+            // Conversion
+            return HslAndRgbConverter.Convert(color);
+        }
+
+        /// <summary>
         /// Converts a <see cref="HunterLab"/> into a <see cref="Rgb"/>
         /// </summary>
         /// <param name="color">The color to convert.</param>

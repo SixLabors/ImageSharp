@@ -5,14 +5,9 @@
 
 namespace ImageSharp.PixelFormats
 {
-    /// <summary>
-    /// Packed vector type containing four 8-bit unsigned normalized values ranging from 0 to 255.
-    /// The color components are stored in red, green, blue, and alpha order.
-    /// </summary>
-    /// <remarks>
-    /// This struct is fully mutable. This is done (against the guidelines) for the sake of performance,
-    /// as it avoids the need to create new values for modification operations.
-    /// </remarks>
+    /// <content>
+    /// Provides standardized deifinitions for named colors.
+    /// </content>
     public partial struct Rgba32
     {
         /// <summary>

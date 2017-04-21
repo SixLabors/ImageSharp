@@ -10,7 +10,8 @@ namespace ImageSharp.PixelFormats
     using System.Runtime.CompilerServices;
 
     /// <summary>
-    /// Packed pixel type containing a single 8 bit normalized W values ranging from 0 to 1.
+    /// Packed pixel type containing a single 8 bit normalized W values.
+    /// Ranges from &lt;0, 0, 0, 0&gt; to &lt;0, 0, 0, 1&gt; in vector form.
     /// </summary>
     public struct Alpha8 : IPixel<Alpha8>, IPackedVector<byte>
     {

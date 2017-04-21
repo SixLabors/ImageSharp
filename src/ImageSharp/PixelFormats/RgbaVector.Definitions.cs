@@ -5,14 +5,9 @@
 
 namespace ImageSharp.PixelFormats
 {
-    /// <summary>
-    /// Unpacked pixel type containing four 16-bit floating-point values typically ranging from 0 to 1.
-    /// The color components are stored in red, green, blue, and alpha order.
-    /// </summary>
-    /// <remarks>
-    /// This struct is fully mutable. This is done (against the guidelines) for the sake of performance,
-    /// as it avoids the need to create new values for modification operations.
-    /// </remarks>
+    /// <content>
+    /// Provides operators and composition algorithms.
+    /// </content>
     public partial struct RgbaVector
     {
         /// <summary>

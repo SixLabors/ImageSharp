@@ -10,6 +10,7 @@ namespace ImageSharp.PixelFormats
 
     /// <summary>
     /// Packed pixel type containing two 16-bit signed normalized values, ranging from −1 to 1.
+    /// Ranges from &lt;-1, -1, 0, 1&gt; to &lt;1, 1, 0, 1&gt; in vector form.
     /// </summary>
     public struct NormalizedShort2 : IPixel<NormalizedShort2>, IPackedVector<uint>
     {

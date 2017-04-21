@@ -12,6 +12,7 @@ namespace ImageSharp.PixelFormats
     /// <summary>
     /// Packed vector type containing unsigned normalized values ranging from 0 to 1.
     /// The x, y and z components use 10 bits, and the w component uses 2 bits.
+    /// Ranges from &lt;0, 0, 0, 0&gt; to &lt;1, 1, 1, 1&gt; in vector form.
     /// </summary>
     public struct Rgba1010102 : IPixel<Rgba1010102>, IPackedVector<uint>
     {

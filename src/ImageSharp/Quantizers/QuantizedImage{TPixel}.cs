@@ -6,6 +6,7 @@
 namespace ImageSharp.Quantizers
 {
     using System;
+    using ImageSharp.PixelFormats;
 
     /// <summary>
     /// Represents a quantized image where the pixels indexed by a color palette.

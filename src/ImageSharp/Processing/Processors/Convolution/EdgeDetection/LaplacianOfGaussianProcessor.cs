@@ -8,6 +8,8 @@ namespace ImageSharp.Processing.Processors
     using System;
     using System.Diagnostics.CodeAnalysis;
 
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// The Laplacian of Gaussian operator filter.
     /// <see href="http://fourier.eng.hmc.edu/e161/lectures/gradient/node8.html"/>

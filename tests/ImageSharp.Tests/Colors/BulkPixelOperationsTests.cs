@@ -5,12 +5,14 @@ namespace ImageSharp.Tests.Colors
     using System;
     using System.Numerics;
 
+    using ImageSharp.PixelFormats;
+
     using Xunit;
     using Xunit.Abstractions;
 
     public class BulkPixelOperationsTests
     {
-        public class Color32 : BulkPixelOperationsTests<ImageSharp.Rgba32>
+        public class Color32 : BulkPixelOperationsTests<Rgba32>
         {
             public Color32(ITestOutputHelper output)
                 : base(output)
@@ -23,19 +25,19 @@ namespace ImageSharp.Tests.Colors
             [Fact]
             public void IsSpecialImplementation()
             {
-                Assert.IsType<ImageSharp.Rgba32.BulkOperations>(BulkPixelOperations<ImageSharp.Rgba32>.Instance);
+                Assert.IsType<Rgba32.BulkOperations>(BulkPixelOperations<Rgba32>.Instance);
             }
 
             [Fact]
             public void ToVector4SimdAligned()
             {
-                ImageSharp.Rgba32[] source = CreatePixelTestData(64);
+                Rgba32[] source = CreatePixelTestData(64);
                 Vector4[] expected = CreateExpectedVector4Data(source);
 
                 TestOperation(
                     source,
                     expected,
-                    (s, d) => ImageSharp.Rgba32.BulkOperations.ToVector4SimdAligned(s, d, 64)
+                    (s, d) => Rgba32.BulkOperations.ToVector4SimdAligned(s, d, 64)
                 );
             }
 
@@ -45,20 +47,20 @@ namespace ImageSharp.Tests.Colors
                 int times = 200000;
                 int count = 1024;
 
-                using (Buffer<ImageSharp.Rgba32> source = new Buffer<ImageSharp.Rgba32>(count))
+                using (Buffer<Rgba32> source = new Buffer<Rgba32>(count))
                 using (Buffer<Vector4> dest = new Buffer<Vector4>(count))
                 {
                     this.Measure(
                         times,
                         () =>
                             {
-                                BulkPixelOperations<ImageSharp.Rgba32>.Instance.ToVector4(source, dest, count);
+                                BulkPixelOperations<Rgba32>.Instance.ToVector4(source, dest, count);
                             });
                 }
             }
         }
 
-        public class Argb : BulkPixelOperationsTests<ImageSharp.Argb32>
+        public class Argb : BulkPixelOperationsTests<Argb32>
         {
             // For 4.6 test runner MemberData does not work without redeclaring the public field in the derived test class:
             public Argb(ITestOutputHelper output)

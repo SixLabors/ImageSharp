@@ -8,6 +8,7 @@ namespace ImageSharp
     using System;
 
     using ImageSharp.Dithering;
+    using ImageSharp.PixelFormats;
     using ImageSharp.Processing.Processors;
 
     /// <summary>

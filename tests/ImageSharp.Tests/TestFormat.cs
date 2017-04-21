@@ -12,6 +12,8 @@ namespace ImageSharp.Tests
     using System.Linq;
     using System.Reflection;
     using ImageSharp.Formats;
+    using ImageSharp.PixelFormats;
+
     using Xunit;
 
     /// <summary>

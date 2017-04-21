@@ -11,6 +11,7 @@ namespace ImageSharp.Benchmarks.Image
 
     using ImageSharp;
     using ImageSharp.Formats;
+    using ImageSharp.PixelFormats;
     using ImageSharp.Quantizers;
 
     /// <summary>

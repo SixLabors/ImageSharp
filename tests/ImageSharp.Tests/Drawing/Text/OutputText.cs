@@ -13,6 +13,8 @@ namespace ImageSharp.Tests.Drawing.Text
     using SixLabors.Shapes;
     using ImageSharp.Drawing.Processors;
     using ImageSharp.Drawing.Pens;
+    using ImageSharp.PixelFormats;
+
     using SixLabors.Fonts;
 
     public class OutputText : FileTestBase

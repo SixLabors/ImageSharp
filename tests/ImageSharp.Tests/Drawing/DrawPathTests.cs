@@ -5,14 +5,12 @@
 
 namespace ImageSharp.Tests.Drawing
 {
-    using Drawing;
-    using ImageSharp.Drawing;
     using ShapePath = SixLabors.Shapes.Path;
     using SixLabors.Shapes;
-    using System;
-    using System.Diagnostics.CodeAnalysis;
     using System.IO;
     using System.Numerics;
+
+    using ImageSharp.PixelFormats;
 
     using Xunit;
 

@@ -10,6 +10,8 @@ namespace ImageSharp
     using System.Collections.ObjectModel;
     using System.IO;
 
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// Represents an EXIF profile providing access to the collection of values.
     /// </summary>

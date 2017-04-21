@@ -5,6 +5,8 @@
 
 namespace ImageSharp.Drawing.Pens
 {
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// Common Pen styles
     /// </summary>

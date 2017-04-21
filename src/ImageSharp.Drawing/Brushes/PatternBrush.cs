@@ -5,6 +5,8 @@
 
 namespace ImageSharp.Drawing.Brushes
 {
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// Provides an implementation of a pattern brush for painting patterns. The brush use <see cref="Rgba32"/> for painting.
     /// </summary>

@@ -5,6 +5,8 @@
 
 namespace ImageSharp.Drawing.Brushes
 {
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// Provides an implementation of a solid brush for painting with repeating images. The brush uses <see cref="Rgba32"/> for painting.
     /// </summary>

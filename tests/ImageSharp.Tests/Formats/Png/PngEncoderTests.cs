@@ -11,6 +11,8 @@ namespace ImageSharp.Tests
     using System.Linq;
     using System.Threading.Tasks;
     using ImageSharp.IO;
+    using ImageSharp.PixelFormats;
+
     using Xunit;
 
     public class PngEncoderTests : FileTestBase

@@ -8,6 +8,8 @@ namespace ImageSharp
     using System;
     using System.Buffers;
 
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// Provides a resource pool that enables reusing instances of value type arrays for image data <see cref="T:T[]"/>.
     /// </summary>

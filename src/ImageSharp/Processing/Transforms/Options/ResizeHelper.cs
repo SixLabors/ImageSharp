@@ -8,6 +8,8 @@ namespace ImageSharp.Processing
     using System;
     using System.Linq;
 
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// Provides methods to help calculate the target rectangle when resizing using the
     /// <see cref="ResizeMode"/> enumeration.

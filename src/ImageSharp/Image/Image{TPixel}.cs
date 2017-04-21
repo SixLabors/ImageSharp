@@ -14,6 +14,7 @@ namespace ImageSharp
     using System.Threading.Tasks;
 
     using Formats;
+    using ImageSharp.PixelFormats;
     using Processing;
 
     /// <summary>

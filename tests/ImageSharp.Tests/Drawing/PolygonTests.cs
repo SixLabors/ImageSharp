@@ -13,6 +13,8 @@ namespace ImageSharp.Tests.Drawing
     using ImageSharp.Drawing;
     using System.Numerics;
 
+    using ImageSharp.PixelFormats;
+
     public class PolygonTests : FileTestBase
     {
         [Fact]

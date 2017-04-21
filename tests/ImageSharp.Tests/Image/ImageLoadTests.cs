@@ -7,9 +7,10 @@ namespace ImageSharp.Tests
 {
     using System;
     using System.IO;
-    using System.Linq;
+
     using ImageSharp.Formats;
     using ImageSharp.IO;
+    using ImageSharp.PixelFormats;
     using Moq;
     using Xunit;
 

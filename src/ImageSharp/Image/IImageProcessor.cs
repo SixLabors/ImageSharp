@@ -8,6 +8,8 @@ namespace ImageSharp.Processing
     using System;
     using System.Threading.Tasks;
 
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// Encapsulates methods to alter the pixels of an image.
     /// </summary>

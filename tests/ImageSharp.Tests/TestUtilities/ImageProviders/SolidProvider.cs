@@ -6,6 +6,9 @@
 namespace ImageSharp.Tests
 {
     using System;
+
+    using ImageSharp.PixelFormats;
+
     using Xunit.Abstractions;
 
     /// <summary>

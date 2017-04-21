@@ -6,6 +6,7 @@
 namespace ImageSharp
 {
     using System;
+    using ImageSharp.PixelFormats;
 
     /// <summary>
     /// Encapsulates the basic properties and methods required to manipulate images in varying formats.

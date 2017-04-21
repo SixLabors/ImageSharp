@@ -10,6 +10,8 @@ namespace ImageSharp.Formats
     using System.IO;
     using System.Text;
 
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// Performs the gif decoding operation.
     /// </summary>

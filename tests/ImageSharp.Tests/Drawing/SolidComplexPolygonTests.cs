@@ -11,6 +11,8 @@ namespace ImageSharp.Tests.Drawing
     using ImageSharp.Drawing;
     using System.Numerics;
 
+    using ImageSharp.PixelFormats;
+
     using SixLabors.Shapes;
 
     public class SolidComplexPolygonTests : FileTestBase

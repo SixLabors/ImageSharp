@@ -11,9 +11,10 @@ namespace ImageSharp.Benchmarks
     using BenchmarkDotNet.Attributes;
     using CoreImage = ImageSharp.Image;
     using CorePoint = ImageSharp.Point;
-    using CoreColor = ImageSharp.Rgba32;
     using System.IO;
     using System.Numerics;
+
+    using ImageSharp.PixelFormats;
 
     public class DrawPolygon : BenchmarkBase
     {
@@ -48,7 +49,7 @@ namespace ImageSharp.Benchmarks
             using (CoreImage image = new CoreImage(800, 800))
             {
                 image.DrawPolygon(
-                    CoreColor.HotPink,
+                    Rgba32.HotPink,
                     10,
                     new[] {
                         new Vector2(10, 10),

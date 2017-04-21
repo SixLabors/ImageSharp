@@ -7,6 +7,8 @@ namespace ImageSharp.Tests
 {
     using System;
 
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// Utility class to create specialized subclasses of generic classes (eg. <see cref="Image"/>)
     /// Used as parameter for <see cref="WithMemberFactoryAttribute"/> -based factory methods

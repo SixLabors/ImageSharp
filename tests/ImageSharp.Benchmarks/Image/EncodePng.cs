@@ -12,6 +12,7 @@ namespace ImageSharp.Benchmarks.Image
     using BenchmarkDotNet.Attributes;
 
     using ImageSharp.Formats;
+    using ImageSharp.PixelFormats;
     using ImageSharp.Quantizers;
 
     using CoreImage = ImageSharp.Image;
@@ -66,10 +67,10 @@ namespace ImageSharp.Benchmarks.Image
         {
             using (MemoryStream memoryStream = new MemoryStream())
             {
-                Quantizer<ImageSharp.Rgba32> quantizer = this.UseOctreeQuantizer
-                                                            ? (Quantizer<ImageSharp.Rgba32>)
-                                                            new OctreeQuantizer<ImageSharp.Rgba32>()
-                                                            : new PaletteQuantizer<ImageSharp.Rgba32>();
+                Quantizer<Rgba32> quantizer = this.UseOctreeQuantizer
+                ? (Quantizer<Rgba32>)
+                new OctreeQuantizer<Rgba32>()
+                : new PaletteQuantizer<Rgba32>();
 
                 PngEncoderOptions options = new PngEncoderOptions() { Quantizer = quantizer };
                 this.bmpCore.SaveAsPng(memoryStream, options);

@@ -8,6 +8,7 @@ namespace ImageSharp.Quantizers
     using System;
     using System.Collections.Generic;
     using System.Runtime.CompilerServices;
+    using ImageSharp.PixelFormats;
 
     /// <summary>
     /// Encapsulates methods to create a quantized image based upon the given palette.

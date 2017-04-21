@@ -12,6 +12,8 @@ namespace ImageSharp.Formats
     using System.Linq;
     using System.Runtime.CompilerServices;
 
+    using ImageSharp.PixelFormats;
+
     using static ComparableExtensions;
 
     /// <summary>

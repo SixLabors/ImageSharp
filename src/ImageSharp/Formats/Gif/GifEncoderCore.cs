@@ -10,6 +10,8 @@ namespace ImageSharp.Formats
     using System.IO;
     using System.Linq;
 
+    using ImageSharp.PixelFormats;
+
     using IO;
     using Quantizers;
 

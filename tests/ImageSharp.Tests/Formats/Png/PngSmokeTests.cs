@@ -15,6 +15,8 @@ namespace ImageSharp.Tests.Formats.Png
     using ImageSharp.IO;
     using System.Numerics;
 
+    using ImageSharp.PixelFormats;
+
     public class PngSmokeTests
     {
         [Theory]

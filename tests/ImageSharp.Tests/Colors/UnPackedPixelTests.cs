@@ -2,6 +2,8 @@
 {
     using System.Numerics;
 
+    using ImageSharp.PixelFormats;
+
     using Xunit;
 
     public class UnPackedPixelTests

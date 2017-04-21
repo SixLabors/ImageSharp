@@ -5,7 +5,7 @@
 
 namespace ImageSharp.Drawing.Brushes
 {
-    using System;
+    using ImageSharp.PixelFormats;
 
     /// <summary>
     /// A collection of methods for creating generic brushes.

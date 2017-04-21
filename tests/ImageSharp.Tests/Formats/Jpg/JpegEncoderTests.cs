@@ -15,6 +15,7 @@ using Xunit.Abstractions;
 namespace ImageSharp.Tests
 {
     using ImageSharp.Formats.Jpg;
+    using ImageSharp.PixelFormats;
     using ImageSharp.Processing;
 
     public class JpegEncoderTests : MeasureFixture

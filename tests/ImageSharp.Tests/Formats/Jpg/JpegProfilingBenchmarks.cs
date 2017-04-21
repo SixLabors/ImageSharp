@@ -11,6 +11,7 @@ namespace ImageSharp.Tests
     using System.Numerics;
 
     using ImageSharp.Formats;
+    using ImageSharp.PixelFormats;
 
     using Xunit;
     using Xunit.Abstractions;

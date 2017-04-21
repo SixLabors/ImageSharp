@@ -12,6 +12,8 @@ namespace ImageSharp.Tests
     using System.Reflection;
 
     using ImageSharp.Colors.Spaces;
+    using ImageSharp.PixelFormats;
+
     using Xunit;
     public class ColorDefinitionTests
     {

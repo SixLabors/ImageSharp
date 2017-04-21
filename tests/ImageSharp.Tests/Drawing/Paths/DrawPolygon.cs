@@ -2,17 +2,16 @@
 namespace ImageSharp.Tests.Drawing.Paths
 {
     using System;
-    using System.IO;
-    using ImageSharp;
+
     using ImageSharp.Drawing.Brushes;
-    using Processing;
-    using System.Collections.Generic;
+
     using Xunit;
     using ImageSharp.Drawing;
     using System.Numerics;
     using SixLabors.Shapes;
     using ImageSharp.Drawing.Processors;
     using ImageSharp.Drawing.Pens;
+    using ImageSharp.PixelFormats;
 
     public class DrawPolygon : IDisposable
     {

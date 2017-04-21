@@ -5,6 +5,8 @@
 
 namespace ImageSharp.Drawing.Brushes
 {
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// Provides an implementation of a recolor brush for painting color changes.
     /// </summary>

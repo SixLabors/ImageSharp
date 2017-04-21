@@ -7,6 +7,8 @@ namespace ImageSharp.Tests
 {
     using System.IO;
 
+    using ImageSharp.PixelFormats;
+
     using Xunit;
 
     public class VignetteTest : FileTestBase

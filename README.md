@@ -39,7 +39,7 @@ The **ImageSharp** library is made up of multiple packages.
 
 Packages include:
 - **ImageSharp**
-  - Contains the Image classes, Colors, Primitives, Configuration, and other core functionality.
+  - Contains the Image classes, PixelFormats, Primitives, Configuration, and other core functionality.
   - The IImageFormat interface, Jpeg, Png, Bmp, and Gif formats.
   - Transform methods like Resize, Crop, Skew, Rotate - Anything that alters the dimensions of the image.
   - Non-transform methods like Gaussian Blur, Pixelate, Edge Detection - Anything that maintains the original image dimensions.
@@ -108,7 +108,8 @@ Setting individual pixel values is perfomed as follows:
 using (image = new Image(400, 400)
 using (var pixels = image.Lock())
 {
-    pixels[200, 200] = Color.White;
+	// Rgba32 is our default PixelFormat, equivalent to System.Drawing Color
+    pixels[200, 200] = Rgba32.White;
 }
 ```
 

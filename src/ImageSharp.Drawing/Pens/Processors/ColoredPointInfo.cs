@@ -5,19 +5,19 @@
 
 namespace ImageSharp.Drawing.Processors
 {
-    using System;
+    using ImageSharp.PixelFormats;
 
     /// <summary>
     /// Returns details about how far away from the inside of a shape and the color the pixel could be.
     /// </summary>
-    /// <typeparam name="TColor">The type of the color.</typeparam>
-    public struct ColoredPointInfo<TColor>
-        where TColor : struct, IPixel<TColor>
+    /// <typeparam name="TPixel">The type of the color.</typeparam>
+    public struct ColoredPointInfo<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
         /// The color
         /// </summary>
-        public TColor Color;
+        public TPixel Color;
 
         /// <summary>
         /// The distance from element

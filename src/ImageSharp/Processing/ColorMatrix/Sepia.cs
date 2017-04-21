@@ -7,22 +7,24 @@ namespace ImageSharp
 {
     using System;
 
+    using ImageSharp.PixelFormats;
+
     using Processing;
     using Processing.Processors;
 
     /// <summary>
-    /// Extension methods for the <see cref="Image{TColor}"/> type.
+    /// Extension methods for the <see cref="Image{TPixel}"/> type.
     /// </summary>
     public static partial class ImageExtensions
     {
         /// <summary>
         /// Applies sepia toning to the image.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image<TColor> Sepia<TColor>(this Image<TColor> source)
-            where TColor : struct, IPixel<TColor>
+        public static Image<TPixel> Sepia<TPixel>(this Image<TPixel> source)
+            where TPixel : struct, IPixel<TPixel>
         {
             return Sepia(source, source.Bounds);
         }
@@ -30,16 +32,16 @@ namespace ImageSharp
         /// <summary>
         /// Applies sepia toning to the image.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image<TColor> Sepia<TColor>(this Image<TColor> source, Rectangle rectangle)
-            where TColor : struct, IPixel<TColor>
+        public static Image<TPixel> Sepia<TPixel>(this Image<TPixel> source, Rectangle rectangle)
+            where TPixel : struct, IPixel<TPixel>
         {
-            source.ApplyProcessor(new SepiaProcessor<TColor>(), rectangle);
+            source.ApplyProcessor(new SepiaProcessor<TPixel>(), rectangle);
             return source;
         }
     }

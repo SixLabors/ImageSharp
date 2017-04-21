@@ -7,22 +7,24 @@ namespace ImageSharp
 {
     using System;
 
+    using ImageSharp.PixelFormats;
+
     using Processing.Processors;
 
     /// <summary>
-    /// Extension methods for the <see cref="Image{TColor}"/> type.
+    /// Extension methods for the <see cref="Image{TPixel}"/> type.
     /// </summary>
     public static partial class ImageExtensions
     {
         /// <summary>
         /// Alters the contrast component of the image.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="amount">The new contrast of the image. Must be between -100 and 100.</param>
-        /// <returns>The <see cref="Image{TColor}"/>.</returns>
-        public static Image<TColor> Contrast<TColor>(this Image<TColor> source, int amount)
-            where TColor : struct, IPixel<TColor>
+        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        public static Image<TPixel> Contrast<TPixel>(this Image<TPixel> source, int amount)
+            where TPixel : struct, IPixel<TPixel>
         {
             return Contrast(source, amount, source.Bounds);
         }
@@ -30,17 +32,17 @@ namespace ImageSharp
         /// <summary>
         /// Alters the contrast component of the image.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="amount">The new contrast of the image. Must be between -100 and 100.</param>
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
-        /// <returns>The <see cref="Image{TColor}"/>.</returns>
-        public static Image<TColor> Contrast<TColor>(this Image<TColor> source, int amount, Rectangle rectangle)
-            where TColor : struct, IPixel<TColor>
+        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        public static Image<TPixel> Contrast<TPixel>(this Image<TPixel> source, int amount, Rectangle rectangle)
+            where TPixel : struct, IPixel<TPixel>
         {
-            source.ApplyProcessor(new ContrastProcessor<TColor>(amount), rectangle);
+            source.ApplyProcessor(new ContrastProcessor<TPixel>(amount), rectangle);
             return source;
         }
     }

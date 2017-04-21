@@ -13,6 +13,7 @@ We've achieved a lot so far and hope to do a lot more in the future. We're alway
  - [ ] Tiff (Help needed)
 - **Metadata**
  - [x] EXIF Read/Write (Jpeg just now)
+ - [ ] ICC (In Progress)
 - **Quantizers (IQuantizer with alpha channel support, dithering, and thresholding)**
  - [x] Octree
  - [x] Xiaolin Wu
@@ -28,7 +29,6 @@ We've achieved a lot so far and hope to do a lot more in the future. We're alway
  - [x] Bayer
  - [x] Ordered
 - **Basic color structs with implicit operators.**
- - [x] Color - 32bit color in RGBA order (IPackedPixel\<TPacked\>).
  - [x] Bgra32
  - [x] CIE Lab
  - [x] CIE XYZ
@@ -38,7 +38,7 @@ We've achieved a lot so far and hope to do a lot more in the future. We're alway
  - [x] YCbCr
 - **IPackedPixel representations of color models. Compatible with Microsoft XNA Game Studio and MonoGame IPackedVector\<TPacked\>.**
  - [x] Alpha8 
- - [x] Argb 
+ - [x] Argb32 
  - [x] Bgr565 
  - [x] Bgra444 
  - [x] Bgra565 
@@ -52,7 +52,9 @@ We've achieved a lot so far and hope to do a lot more in the future. We're alway
  - [x] NormalizedShort4 
  - [x] Rg32 
  - [x] Rgba1010102 
+ - [x] Rgba32 - 32bit color in RGBA order - Our default pixel format.
  - [x] Rgba64 
+ - [x] RgbaVector
  - [x] Short2 
  - [x] Short4 
 - **Basic shape primitives.**

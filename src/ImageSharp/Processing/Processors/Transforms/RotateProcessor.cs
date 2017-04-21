@@ -9,12 +9,14 @@ namespace ImageSharp.Processing.Processors
     using System.Numerics;
     using System.Threading.Tasks;
 
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// Provides methods that allow the rotating of images.
     /// </summary>
-    /// <typeparam name="TColor">The pixel format.</typeparam>
-    internal class RotateProcessor<TColor> : Matrix3x2Processor<TColor>
-        where TColor : struct, IPixel<TColor>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    internal class RotateProcessor<TPixel> : Matrix3x2Processor<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
         /// The transform matrix to apply.
@@ -32,7 +34,7 @@ namespace ImageSharp.Processing.Processors
         public bool Expand { get; set; } = true;
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
         {
             if (this.OptimizedApply(source))
             {
@@ -43,9 +45,9 @@ namespace ImageSharp.Processing.Processors
             int width = this.CanvasRectangle.Width;
             Matrix3x2 matrix = this.GetCenteredMatrix(source, this.processMatrix);
 
-            using (PixelAccessor<TColor> targetPixels = new PixelAccessor<TColor>(width, height))
+            using (PixelAccessor<TPixel> targetPixels = new PixelAccessor<TPixel>(width, height))
             {
-                using (PixelAccessor<TColor> sourcePixels = source.Lock())
+                using (PixelAccessor<TPixel> sourcePixels = source.Lock())
                 {
                     Parallel.For(
                         0,
@@ -69,7 +71,7 @@ namespace ImageSharp.Processing.Processors
         }
 
         /// <inheritdoc/>
-        protected override void BeforeApply(ImageBase<TColor> source, Rectangle sourceRectangle)
+        protected override void BeforeApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
         {
             if (MathF.Abs(this.Angle) < Constants.Epsilon || MathF.Abs(this.Angle - 90) < Constants.Epsilon || MathF.Abs(this.Angle - 180) < Constants.Epsilon || MathF.Abs(this.Angle - 270) < Constants.Epsilon)
             {
@@ -88,7 +90,7 @@ namespace ImageSharp.Processing.Processors
         /// </summary>
         /// <param name="source">The source image.</param>
         /// <returns>The <see cref="bool"/></returns>
-        private bool OptimizedApply(ImageBase<TColor> source)
+        private bool OptimizedApply(ImageBase<TPixel> source)
         {
             if (MathF.Abs(this.Angle) < Constants.Epsilon)
             {
@@ -121,14 +123,14 @@ namespace ImageSharp.Processing.Processors
         /// Rotates the image 270 degrees clockwise at the centre point.
         /// </summary>
         /// <param name="source">The source image.</param>
-        private void Rotate270(ImageBase<TColor> source)
+        private void Rotate270(ImageBase<TPixel> source)
         {
             int width = source.Width;
             int height = source.Height;
 
-            using (PixelAccessor<TColor> targetPixels = new PixelAccessor<TColor>(height, width))
+            using (PixelAccessor<TPixel> targetPixels = new PixelAccessor<TPixel>(height, width))
             {
-                using (PixelAccessor<TColor> sourcePixels = source.Lock())
+                using (PixelAccessor<TPixel> sourcePixels = source.Lock())
                 {
                     Parallel.For(
                         0,
@@ -154,14 +156,14 @@ namespace ImageSharp.Processing.Processors
         /// Rotates the image 180 degrees clockwise at the centre point.
         /// </summary>
         /// <param name="source">The source image.</param>
-        private void Rotate180(ImageBase<TColor> source)
+        private void Rotate180(ImageBase<TPixel> source)
         {
             int width = source.Width;
             int height = source.Height;
 
-            using (PixelAccessor<TColor> targetPixels = new PixelAccessor<TColor>(width, height))
+            using (PixelAccessor<TPixel> targetPixels = new PixelAccessor<TPixel>(width, height))
             {
-                using (PixelAccessor<TColor> sourcePixels = source.Lock())
+                using (PixelAccessor<TPixel> sourcePixels = source.Lock())
                 {
                     Parallel.For(
                         0,
@@ -186,14 +188,14 @@ namespace ImageSharp.Processing.Processors
         /// Rotates the image 90 degrees clockwise at the centre point.
         /// </summary>
         /// <param name="source">The source image.</param>
-        private void Rotate90(ImageBase<TColor> source)
+        private void Rotate90(ImageBase<TPixel> source)
         {
             int width = source.Width;
             int height = source.Height;
 
-            using (PixelAccessor<TColor> targetPixels = new PixelAccessor<TColor>(height, width))
+            using (PixelAccessor<TPixel> targetPixels = new PixelAccessor<TPixel>(height, width))
             {
-                using (PixelAccessor<TColor> sourcePixels = source.Lock())
+                using (PixelAccessor<TPixel> sourcePixels = source.Lock())
                 {
                     Parallel.For(
                         0,

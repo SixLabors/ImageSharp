@@ -10,16 +10,17 @@ namespace ImageSharp.Tests
     using System.Numerics;
 
     using ImageSharp.Formats.Jpg;
+    using ImageSharp.PixelFormats;
 
     using Xunit;
 
     public class JpegUtilsTests : TestBase
     {
-        public static Image<TColor> CreateTestImage<TColor>(GenericFactory<TColor> factory)
-            where TColor : struct, IPixel<TColor>
+        public static Image<TPixel> CreateTestImage<TPixel>(GenericFactory<TPixel> factory)
+            where TPixel : struct, IPixel<TPixel>
         {
-            Image<TColor> image = factory.CreateImage(10, 10);
-            using (PixelAccessor<TColor> pixels = image.Lock())
+            Image<TPixel> image = factory.CreateImage(10, 10);
+            using (PixelAccessor<TPixel> pixels = image.Lock())
             {
                 for (int i = 0; i < 10; i++)
                 {
@@ -27,7 +28,7 @@ namespace ImageSharp.Tests
                     {
                         Vector4 v = new Vector4(i / 10f, j / 10f, 0, 1);
 
-                        TColor color = default(TColor);
+                        TPixel color = default(TPixel);
                         color.PackFromVector4(v);
 
                         pixels[i, j] = color;
@@ -39,15 +40,15 @@ namespace ImageSharp.Tests
         }
 
         [Theory]
-        [WithMemberFactory(nameof(CreateTestImage), PixelTypes.Color | PixelTypes.StandardImageClass | PixelTypes.Argb32)]
-        public void CopyStretchedRGBTo_FromOrigo<TColor>(TestImageProvider<TColor> provider)
-            where TColor : struct, IPixel<TColor>
+        [WithMemberFactory(nameof(CreateTestImage), PixelTypes.Rgba32| PixelTypes.StandardImageClass | PixelTypes.Argb32)]
+        public void CopyStretchedRGBTo_FromOrigo<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TColor> src = provider.GetImage())
-            using (Image<TColor> dest = provider.Factory.CreateImage(8, 8))
-            using (PixelArea<TColor> area = new PixelArea<TColor>(8, 8, ComponentOrder.Xyz))
-            using (PixelAccessor<TColor> s = src.Lock())
-            using (PixelAccessor<TColor> d = dest.Lock())
+            using (Image<TPixel> src = provider.GetImage())
+            using (Image<TPixel> dest = provider.Factory.CreateImage(8, 8))
+            using (PixelArea<TPixel> area = new PixelArea<TPixel>(8, 8, ComponentOrder.Xyz))
+            using (PixelAccessor<TPixel> s = src.Lock())
+            using (PixelAccessor<TPixel> d = dest.Lock())
             {
                 s.CopyRGBBytesStretchedTo(area, 0, 0);
                 d.CopyFrom(area, 0, 0);
@@ -61,15 +62,15 @@ namespace ImageSharp.Tests
         }
 
         [Theory]
-        [WithMemberFactory(nameof(CreateTestImage), PixelTypes.Color | PixelTypes.StandardImageClass | PixelTypes.Argb32)]
-        public void CopyStretchedRGBTo_WithOffset<TColor>(TestImageProvider<TColor> provider)
-            where TColor : struct, IPixel<TColor>
+        [WithMemberFactory(nameof(CreateTestImage), PixelTypes.Rgba32| PixelTypes.StandardImageClass | PixelTypes.Argb32)]
+        public void CopyStretchedRGBTo_WithOffset<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TColor> src = provider.GetImage())
-            using (PixelArea<TColor> area = new PixelArea<TColor>(8, 8, ComponentOrder.Xyz))
-            using (Image<TColor> dest = provider.Factory.CreateImage(8, 8))
-            using (PixelAccessor<TColor> s = src.Lock())
-            using (PixelAccessor<TColor> d = dest.Lock())
+            using (Image<TPixel> src = provider.GetImage())
+            using (PixelArea<TPixel> area = new PixelArea<TPixel>(8, 8, ComponentOrder.Xyz))
+            using (Image<TPixel> dest = provider.Factory.CreateImage(8, 8))
+            using (PixelAccessor<TPixel> s = src.Lock())
+            using (PixelAccessor<TPixel> d = dest.Lock())
             {
                 s.CopyRGBBytesStretchedTo(area, 7, 6);
                 d.CopyFrom(area, 0, 0);

@@ -17,6 +17,7 @@ namespace ImageSharp.Tests
     using System.Numerics;
 
     using ImageSharp.Formats.Jpg;
+    using ImageSharp.PixelFormats;
     using ImageSharp.Processing;
 
     public class BadEOFJpegTests : MeasureFixture
@@ -27,11 +28,11 @@ namespace ImageSharp.Tests
         }
 
         [Theory]
-        [WithFile(TestImages.Jpeg.Baseline.Bad.MissingEOF, PixelTypes.Color)]
-        public void LoadBaselineImage<TColor>(TestImageProvider<TColor> provider)
-            where TColor : struct, IPixel<TColor>
+        [WithFile(TestImages.Jpeg.Baseline.Bad.MissingEOF, PixelTypes.Rgba32)]
+        public void LoadBaselineImage<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TColor> image = provider.GetImage())
+            using (Image<TPixel> image = provider.GetImage())
             {
                 Assert.NotNull(image);
                 provider.Utility.SaveTestOutputFile(image, "bmp");
@@ -39,11 +40,11 @@ namespace ImageSharp.Tests
         }
 
         [Theory] // TODO: #18
-        [WithFile(TestImages.Jpeg.Progressive.Bad.BadEOF, PixelTypes.Color)]
-        public void LoadProgressiveImage<TColor>(TestImageProvider<TColor> provider)
-            where TColor : struct, IPixel<TColor>
+        [WithFile(TestImages.Jpeg.Progressive.Bad.BadEOF, PixelTypes.Rgba32)]
+        public void LoadProgressiveImage<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TColor> image = provider.GetImage())
+            using (Image<TPixel> image = provider.GetImage())
             {
                 Assert.NotNull(image);
                 provider.Utility.SaveTestOutputFile(image, "bmp");

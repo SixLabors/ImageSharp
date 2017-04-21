@@ -7,7 +7,8 @@ namespace ImageSharp.Benchmarks
 {
     using BenchmarkDotNet.Attributes;
 
-    using CoreColor = ImageSharp.Color;
+    using ImageSharp.PixelFormats;
+
     using SystemColor = System.Drawing.Color;
 
     public class ColorEquality
@@ -21,7 +22,7 @@ namespace ImageSharp.Benchmarks
         [Benchmark(Description = "ImageSharp Color Equals")]
         public bool ColorEqual()
         {
-            return new CoreColor(128, 128, 128, 128).Equals(new CoreColor(128, 128, 128, 128));
+            return new Rgba32(128, 128, 128, 128).Equals(new Rgba32(128, 128, 128, 128));
         }
     }
 }

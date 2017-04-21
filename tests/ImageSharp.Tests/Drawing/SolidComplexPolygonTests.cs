@@ -11,6 +11,8 @@ namespace ImageSharp.Tests.Drawing
     using ImageSharp.Drawing;
     using System.Numerics;
 
+    using ImageSharp.PixelFormats;
+
     using SixLabors.Shapes;
 
     public class SolidComplexPolygonTests : FileTestBase
@@ -35,17 +37,17 @@ namespace ImageSharp.Tests.Drawing
                 using (FileStream output = File.OpenWrite($"{path}/Simple.png"))
                 {
                     image
-                        .BackgroundColor(Color.Blue)
-                        .Fill(Color.HotPink, clipped)
+                        .BackgroundColor(Rgba32.Blue)
+                        .Fill(Rgba32.HotPink, clipped)
                         .Save(output);
                 }
 
-                using (PixelAccessor<Color> sourcePixels = image.Lock())
+                using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
                 {
-                    Assert.Equal(Color.HotPink, sourcePixels[20, 35]);
+                    Assert.Equal(Rgba32.HotPink, sourcePixels[20, 35]);
 
                     //inside hole
-                    Assert.Equal(Color.Blue, sourcePixels[60, 100]);
+                    Assert.Equal(Rgba32.Blue, sourcePixels[60, 100]);
                 }
             }
         }
@@ -70,17 +72,17 @@ namespace ImageSharp.Tests.Drawing
                 using (FileStream output = File.OpenWrite($"{path}/SimpleOverlapping.png"))
                 {
                     image
-                        .BackgroundColor(Color.Blue)
-                        .Fill(Color.HotPink, simplePath.Clip(hole1))
+                        .BackgroundColor(Rgba32.Blue)
+                        .Fill(Rgba32.HotPink, simplePath.Clip(hole1))
                         .Save(output);
                 }
 
-                using (PixelAccessor<Color> sourcePixels = image.Lock())
+                using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
                 {
-                    Assert.Equal(Color.HotPink, sourcePixels[20, 35]);
+                    Assert.Equal(Rgba32.HotPink, sourcePixels[20, 35]);
 
                     //inside hole
-                    Assert.Equal(Color.Blue, sourcePixels[60, 100]);
+                    Assert.Equal(Rgba32.Blue, sourcePixels[60, 100]);
                 }
             }
         }
@@ -98,27 +100,27 @@ namespace ImageSharp.Tests.Drawing
                             new Vector2(37, 85),
                             new Vector2(93, 85),
                             new Vector2(65, 137)));
-            Color color = new Color(Color.HotPink.R, Color.HotPink.G, Color.HotPink.B, 150);
+            Rgba32 color = new Rgba32(Rgba32.HotPink.R, Rgba32.HotPink.G, Rgba32.HotPink.B, 150);
 
             using (Image image = new Image(500, 500))
             {
                 using (FileStream output = File.OpenWrite($"{path}/Opacity.png"))
                 {
                     image
-                        .BackgroundColor(Color.Blue)
+                        .BackgroundColor(Rgba32.Blue)
                         .Fill(color, simplePath.Clip(hole1))
                         .Save(output);
                 }
 
                 //shift background color towards forground color by the opacity amount
-                Color mergedColor = new Color(Vector4.Lerp(Color.Blue.ToVector4(), Color.HotPink.ToVector4(), 150f / 255f));
+                Rgba32 mergedColor = new Rgba32(Vector4.Lerp(Rgba32.Blue.ToVector4(), Rgba32.HotPink.ToVector4(), 150f / 255f));
 
-                using (PixelAccessor<Color> sourcePixels = image.Lock())
+                using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
                 {
                     Assert.Equal(mergedColor, sourcePixels[20, 35]);
 
                     //inside hole
-                    Assert.Equal(Color.Blue, sourcePixels[60, 100]);
+                    Assert.Equal(Rgba32.Blue, sourcePixels[60, 100]);
                 }
             }
         }

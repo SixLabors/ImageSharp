@@ -11,6 +11,7 @@ namespace ImageSharp.Benchmarks.Image
 
     using ImageSharp;
     using ImageSharp.Formats;
+    using ImageSharp.PixelFormats;
     using ImageSharp.Quantizers;
 
     /// <summary>
@@ -51,7 +52,7 @@ namespace ImageSharp.Benchmarks.Image
         {
             using (MemoryStream memoryStream = new MemoryStream())
             {
-                PngEncoderOptions options = new PngEncoderOptions() { Quantizer = new OctreeQuantizer<Color>(), Quality = 256 };
+                PngEncoderOptions options = new PngEncoderOptions() { Quantizer = new OctreeQuantizer<Rgba32>(), Quality = 256 };
 
                 this.bmpCore.SaveAsPng(memoryStream, options);
             }
@@ -62,7 +63,7 @@ namespace ImageSharp.Benchmarks.Image
         {
             using (MemoryStream memoryStream = new MemoryStream())
             {
-                PngEncoderOptions options = new PngEncoderOptions { Quantizer = new OctreeQuantizer<Color> { Dither = false }, Quality = 256 };
+                PngEncoderOptions options = new PngEncoderOptions { Quantizer = new OctreeQuantizer<Rgba32> { Dither = false }, Quality = 256 };
 
                 this.bmpCore.SaveAsPng(memoryStream, options);
             }
@@ -73,7 +74,7 @@ namespace ImageSharp.Benchmarks.Image
         {
             using (MemoryStream memoryStream = new MemoryStream())
             {
-                PngEncoderOptions options = new PngEncoderOptions { Quantizer = new PaletteQuantizer<Color>(), Quality = 256 };
+                PngEncoderOptions options = new PngEncoderOptions { Quantizer = new PaletteQuantizer<Rgba32>(), Quality = 256 };
 
                 this.bmpCore.SaveAsPng(memoryStream, options);
             }
@@ -84,7 +85,7 @@ namespace ImageSharp.Benchmarks.Image
         {
             using (MemoryStream memoryStream = new MemoryStream())
             {
-                PngEncoderOptions options = new PngEncoderOptions { Quantizer = new PaletteQuantizer<Color> { Dither = false }, Quality = 256 };
+                PngEncoderOptions options = new PngEncoderOptions { Quantizer = new PaletteQuantizer<Rgba32> { Dither = false }, Quality = 256 };
 
                 this.bmpCore.SaveAsPng(memoryStream, options);
             }
@@ -95,7 +96,7 @@ namespace ImageSharp.Benchmarks.Image
         {
             using (MemoryStream memoryStream = new MemoryStream())
             {
-                PngEncoderOptions options = new PngEncoderOptions() { Quantizer = new WuQuantizer<Color>(), Quality = 256 };
+                PngEncoderOptions options = new PngEncoderOptions() { Quantizer = new WuQuantizer<Rgba32>(), Quality = 256 };
 
                 this.bmpCore.SaveAsPng(memoryStream, options);
             }

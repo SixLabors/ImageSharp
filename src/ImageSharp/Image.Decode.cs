@@ -10,6 +10,8 @@ namespace ImageSharp
     using System.Linq;
     using Formats;
 
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// Represents an image. Each pixel is a made up four 8-bit components red, green, blue, and alpha
     /// packed into a single unsigned integer value.
@@ -51,15 +53,15 @@ namespace ImageSharp
         /// <summary>
         /// Decodes the image stream to the current image.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="stream">The stream.</param>
         /// <param name="options">The options for the decoder.</param>
         /// <param name="config">the configuration.</param>
         /// <returns>
         ///  The decoded image
         /// </returns>
-        private static Image<TColor> Decode<TColor>(Stream stream, IDecoderOptions options, Configuration config)
-        where TColor : struct, IPixel<TColor>
+        private static Image<TPixel> Decode<TPixel>(Stream stream, IDecoderOptions options, Configuration config)
+        where TPixel : struct, IPixel<TPixel>
         {
             IImageFormat format = DiscoverFormat(stream, config);
             if (format == null)
@@ -67,7 +69,7 @@ namespace ImageSharp
                 return null;
             }
 
-            Image<TColor> img = format.Decoder.Decode<TColor>(config, stream, options);
+            Image<TPixel> img = format.Decoder.Decode<TPixel>(config, stream, options);
             img.CurrentImageFormat = format;
             return img;
         }

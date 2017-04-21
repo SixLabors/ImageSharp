@@ -6,13 +6,13 @@ namespace ImageSharp.Tests.Drawing.Paths
     using ImageSharp;
     using Processing;
     using System.Collections.Generic;
-    using ImageSharp.Formats;
+   using ImageSharp.PixelFormats;
 
     /// <summary>
     /// Watches but does not actually run the processors against the image.
     /// </summary>
-    /// <seealso cref="ImageSharp.Image{ImageSharp.Color}" />
-    public class ProcessorWatchingImage : Image<Color>
+    /// <seealso cref="ImageSharp.Image{Rgba32}" />
+    public class ProcessorWatchingImage : Image<Rgba32>
     {
         public List<ProcessorDetails> ProcessorApplications { get; } = new List<ProcessorDetails>();
         
@@ -21,7 +21,7 @@ namespace ImageSharp.Tests.Drawing.Paths
         {
         }
 
-        public override void ApplyProcessor(IImageProcessor<Color> processor, Rectangle rectangle)
+        public override void ApplyProcessor(IImageProcessor<Rgba32> processor, Rectangle rectangle)
         {
             this.ProcessorApplications.Add(new ProcessorDetails
             {
@@ -32,7 +32,7 @@ namespace ImageSharp.Tests.Drawing.Paths
 
         public struct ProcessorDetails
         {
-            public IImageProcessor<Color> processor;
+            public IImageProcessor<Rgba32> processor;
             public Rectangle rectangle;
         }
     }

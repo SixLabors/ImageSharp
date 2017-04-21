@@ -8,6 +8,8 @@ namespace ImageSharp.Processing
     using System;
     using System.Linq;
 
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// Provides methods to help calculate the target rectangle when resizing using the
     /// <see cref="ResizeMode"/> enumeration.
@@ -17,14 +19,14 @@ namespace ImageSharp.Processing
         /// <summary>
         /// Calculates the target location and bounds to perform the resize operation against.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The source image.</param>
         /// <param name="options">The resize options.</param>
         /// <returns>
         /// The <see cref="Rectangle"/>.
         /// </returns>
-        public static Rectangle CalculateTargetLocationAndBounds<TColor>(ImageBase<TColor> source, ResizeOptions options)
-            where TColor : struct, IPixel<TColor>
+        public static Rectangle CalculateTargetLocationAndBounds<TPixel>(ImageBase<TPixel> source, ResizeOptions options)
+            where TPixel : struct, IPixel<TPixel>
         {
             switch (options.Mode)
             {
@@ -48,14 +50,14 @@ namespace ImageSharp.Processing
         /// <summary>
         /// Calculates the target rectangle for crop mode.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The source image.</param>
         /// <param name="options">The resize options.</param>
         /// <returns>
         /// The <see cref="Rectangle"/>.
         /// </returns>
-        private static Rectangle CalculateCropRectangle<TColor>(ImageBase<TColor> source, ResizeOptions options)
-            where TColor : struct, IPixel<TColor>
+        private static Rectangle CalculateCropRectangle<TPixel>(ImageBase<TPixel> source, ResizeOptions options)
+            where TPixel : struct, IPixel<TPixel>
         {
             int width = options.Size.Width;
             int height = options.Size.Height;
@@ -167,14 +169,14 @@ namespace ImageSharp.Processing
         /// <summary>
         /// Calculates the target rectangle for pad mode.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The source image.</param>
         /// <param name="options">The resize options.</param>
         /// <returns>
         /// The <see cref="Rectangle"/>.
         /// </returns>
-        private static Rectangle CalculatePadRectangle<TColor>(ImageBase<TColor> source, ResizeOptions options)
-            where TColor : struct, IPixel<TColor>
+        private static Rectangle CalculatePadRectangle<TPixel>(ImageBase<TPixel> source, ResizeOptions options)
+            where TPixel : struct, IPixel<TPixel>
         {
             int width = options.Size.Width;
             int height = options.Size.Height;
@@ -248,14 +250,14 @@ namespace ImageSharp.Processing
         /// <summary>
         /// Calculates the target rectangle for box pad mode.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The source image.</param>
         /// <param name="options">The resize options.</param>
         /// <returns>
         /// The <see cref="Rectangle"/>.
         /// </returns>
-        private static Rectangle CalculateBoxPadRectangle<TColor>(ImageBase<TColor> source, ResizeOptions options)
-            where TColor : struct, IPixel<TColor>
+        private static Rectangle CalculateBoxPadRectangle<TPixel>(ImageBase<TPixel> source, ResizeOptions options)
+            where TPixel : struct, IPixel<TPixel>
         {
             int width = options.Size.Width;
             int height = options.Size.Height;
@@ -335,14 +337,14 @@ namespace ImageSharp.Processing
         /// <summary>
         /// Calculates the target rectangle for max mode.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The source image.</param>
         /// <param name="options">The resize options.</param>
         /// <returns>
         /// The <see cref="Rectangle"/>.
         /// </returns>
-        private static Rectangle CalculateMaxRectangle<TColor>(ImageBase<TColor> source, ResizeOptions options)
-            where TColor : struct, IPixel<TColor>
+        private static Rectangle CalculateMaxRectangle<TPixel>(ImageBase<TPixel> source, ResizeOptions options)
+            where TPixel : struct, IPixel<TPixel>
         {
             int width = options.Size.Width;
             int height = options.Size.Height;
@@ -376,14 +378,14 @@ namespace ImageSharp.Processing
         /// <summary>
         /// Calculates the target rectangle for min mode.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The source image.</param>
         /// <param name="options">The resize options.</param>
         /// <returns>
         /// The <see cref="Rectangle"/>.
         /// </returns>
-        private static Rectangle CalculateMinRectangle<TColor>(ImageBase<TColor> source, ResizeOptions options)
-            where TColor : struct, IPixel<TColor>
+        private static Rectangle CalculateMinRectangle<TPixel>(ImageBase<TPixel> source, ResizeOptions options)
+            where TPixel : struct, IPixel<TPixel>
         {
             int width = options.Size.Width;
             int height = options.Size.Height;

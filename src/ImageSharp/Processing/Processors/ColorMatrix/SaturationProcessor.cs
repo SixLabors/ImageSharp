@@ -8,6 +8,8 @@ namespace ImageSharp.Processing.Processors
     using System;
     using System.Numerics;
 
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// An <see cref="ImageProcessor{TPixel}"/> to change the saturation of an <see cref="Image{TPixel}"/>.
     /// </summary>

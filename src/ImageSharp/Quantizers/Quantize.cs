@@ -8,6 +8,7 @@ namespace ImageSharp
     using System;
     using System.Threading.Tasks;
 
+    using ImageSharp.PixelFormats;
     using ImageSharp.Quantizers;
 
     /// <summary>

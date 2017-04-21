@@ -3,7 +3,7 @@ namespace ImageSharp.Benchmarks.Color.Bulk
 {
     using BenchmarkDotNet.Attributes;
 
-    using Rgba32 = ImageSharp.Rgba32;
+    using ImageSharp.PixelFormats;
 
     public abstract class ToXyz<TPixel>
         where TPixel : struct, IPixel<TPixel>

@@ -13,6 +13,8 @@ namespace ImageSharp.Tests.Drawing
     using System.Numerics;
     using Xunit;
     using ImageSharp.Drawing.Brushes;
+    using ImageSharp.PixelFormats;
+
     using SixLabors.Shapes;
 
     public class SolidPolygonTests : FileTestBase

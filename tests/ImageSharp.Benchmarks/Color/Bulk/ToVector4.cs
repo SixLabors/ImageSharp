@@ -5,6 +5,8 @@ namespace ImageSharp.Benchmarks.Color.Bulk
 
     using BenchmarkDotNet.Attributes;
 
+    using ImageSharp.PixelFormats;
+
     public abstract class ToVector4<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
@@ -55,7 +57,7 @@ namespace ImageSharp.Benchmarks.Color.Bulk
         }
     }
 
-    public class ToVector4_Color : ToVector4<ImageSharp.Rgba32>
+    public class ToVector4_Color : ToVector4<Rgba32>
     {
     }
 }

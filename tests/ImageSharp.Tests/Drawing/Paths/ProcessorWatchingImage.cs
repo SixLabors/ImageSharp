@@ -6,12 +6,12 @@ namespace ImageSharp.Tests.Drawing.Paths
     using ImageSharp;
     using Processing;
     using System.Collections.Generic;
-    using ImageSharp.Formats;
+   using ImageSharp.PixelFormats;
 
     /// <summary>
     /// Watches but does not actually run the processors against the image.
     /// </summary>
-    /// <seealso cref="ImageSharp.Image{ImageSharp.Rgba32}" />
+    /// <seealso cref="ImageSharp.Image{Rgba32}" />
     public class ProcessorWatchingImage : Image<Rgba32>
     {
         public List<ProcessorDetails> ProcessorApplications { get; } = new List<ProcessorDetails>();

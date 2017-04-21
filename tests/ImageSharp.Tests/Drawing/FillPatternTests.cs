@@ -10,7 +10,7 @@ namespace ImageSharp.Tests.Drawing
 
     using ImageSharp.Drawing;
     using ImageSharp.Drawing.Brushes;
-
+    using ImageSharp.PixelFormats;
     using Xunit;
 
     public class FillPatternBrushTests : FileTestBase

@@ -10,6 +10,7 @@ namespace ImageSharp.Drawing.Processors
     using System.Threading.Tasks;
 
     using Drawing;
+    using ImageSharp.PixelFormats;
     using ImageSharp.Processing;
 
     /// <summary>

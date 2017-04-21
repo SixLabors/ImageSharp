@@ -3,6 +3,7 @@ namespace ImageSharp.Tests
     using System.IO;
     using System.Text;
 
+    using ImageSharp.PixelFormats;
     using ImageSharp.Processing;
     using ImageSharp.Processing.Processors;
 

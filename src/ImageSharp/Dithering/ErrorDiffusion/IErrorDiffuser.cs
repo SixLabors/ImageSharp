@@ -5,7 +5,7 @@
 
 namespace ImageSharp.Dithering
 {
-    using System;
+    using ImageSharp.PixelFormats;
 
     /// <summary>
     /// Encapsulates properties and methods required to perfom diffused error dithering on an image.

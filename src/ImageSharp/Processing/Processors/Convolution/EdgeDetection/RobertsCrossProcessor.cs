@@ -8,6 +8,8 @@ namespace ImageSharp.Processing.Processors
     using System;
     using System.Diagnostics.CodeAnalysis;
 
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// The Roberts Cross operator filter.
     /// <see href="http://en.wikipedia.org/wiki/Roberts_cross"/>

@@ -8,6 +8,8 @@ namespace ImageSharp.Formats
     using System;
     using System.IO;
 
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// Encapsulates properties and methods required for encoding an image to a stream.
     /// </summary>

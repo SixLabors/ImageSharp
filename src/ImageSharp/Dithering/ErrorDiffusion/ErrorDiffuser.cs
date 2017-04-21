@@ -8,6 +8,8 @@ namespace ImageSharp.Dithering
     using System.Numerics;
     using System.Runtime.CompilerServices;
 
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// The base class for performing error diffusion based dithering.
     /// </summary>

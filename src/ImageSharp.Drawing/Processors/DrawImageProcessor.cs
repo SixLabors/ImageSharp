@@ -8,7 +8,7 @@ namespace ImageSharp.Drawing.Processors
     using System;
     using System.Numerics;
     using System.Threading.Tasks;
-
+    using ImageSharp.PixelFormats;
     using ImageSharp.Processing;
 
     /// <summary>

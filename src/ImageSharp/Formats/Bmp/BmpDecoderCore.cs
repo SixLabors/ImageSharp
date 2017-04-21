@@ -7,6 +7,8 @@ namespace ImageSharp.Formats
     using System;
     using System.IO;
 
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// Performs the bmp decoding operation.
     /// </summary>

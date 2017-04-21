@@ -8,6 +8,8 @@ namespace ImageSharp.Processing.Processors
     using System;
     using System.Numerics;
 
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// Encapsulates properties and methods for creating processors that utilize a matrix to
     /// alter the image pixels.

@@ -5,10 +5,10 @@
 
 namespace ImageSharp.Drawing.Pens
 {
-    using System;
     using System.Numerics;
 
     using ImageSharp.Drawing.Brushes;
+    using ImageSharp.PixelFormats;
     using Processors;
 
     /// <summary>

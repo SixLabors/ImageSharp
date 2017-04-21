@@ -7,6 +7,8 @@ namespace ImageSharp.Processing.Processors
 {
     using System;
 
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// Defines a sampler that detects edges within an image using two one-dimensional matrices.
     /// </summary>

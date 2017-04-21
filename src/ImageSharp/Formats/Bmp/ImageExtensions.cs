@@ -10,6 +10,8 @@ namespace ImageSharp
 
     using Formats;
 
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// Extension methods for the <see cref="Image{TPixel}"/> type.
     /// </summary>

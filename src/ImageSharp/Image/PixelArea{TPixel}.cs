@@ -8,7 +8,7 @@ namespace ImageSharp
     using System;
     using System.Diagnostics;
     using System.IO;
-    using System.Runtime.CompilerServices;
+    using ImageSharp.PixelFormats;
 
     /// <summary>
     /// Represents an area of generic <see cref="Image{TPixel}"/> pixels.

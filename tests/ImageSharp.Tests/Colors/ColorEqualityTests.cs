@@ -8,6 +8,8 @@ namespace ImageSharp.Tests.Colors
     using System;
     using System.Numerics;
     using ImageSharp.Colors.Spaces;
+    using ImageSharp.PixelFormats;
+
     using Xunit;
 
     /// <summary>

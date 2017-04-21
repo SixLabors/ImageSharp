@@ -10,6 +10,8 @@ namespace ImageSharp
     using System.Numerics;
     using System.Runtime.CompilerServices;
 
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// Provides common mathematical methods.
     /// </summary>

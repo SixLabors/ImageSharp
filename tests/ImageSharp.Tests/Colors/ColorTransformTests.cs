@@ -5,6 +5,8 @@
 
 namespace ImageSharp.Tests.Colors
 {
+    using ImageSharp.PixelFormats;
+
     using Xunit;
 
     /// <summary>

@@ -8,6 +8,8 @@ namespace ImageSharp.Processing.Processors
     using System;
     using System.Diagnostics.CodeAnalysis;
 
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// The Kayyali operator filter.
     /// <see href="http://edgedetection.webs.com/"/>

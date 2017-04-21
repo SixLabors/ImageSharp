@@ -10,7 +10,7 @@ namespace ImageSharp
     using Drawing;
     using Drawing.Brushes;
     using Drawing.Pens;
-
+    using ImageSharp.PixelFormats;
     using SixLabors.Fonts;
 
     /// <summary>

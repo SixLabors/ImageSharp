@@ -9,6 +9,7 @@ namespace ImageSharp
     using System.Diagnostics;
     using System.Runtime.CompilerServices;
     using System.Threading.Tasks;
+    using ImageSharp.PixelFormats;
 
     /// <summary>
     /// Provides per-pixel access to generic <see cref="Image{TPixel}"/> pixels.

@@ -5,11 +5,11 @@
 
 namespace ImageSharp.Quantizers
 {
-    using System;
     using System.Collections.Generic;
     using System.Numerics;
     using System.Runtime.CompilerServices;
     using ImageSharp.Dithering;
+    using ImageSharp.PixelFormats;
 
     /// <summary>
     /// Encapsulates methods to calculate the color palette of an image.

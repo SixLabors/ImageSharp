@@ -1,20 +1,13 @@
 ﻿
 namespace ImageSharp.Tests.Drawing
 {
-    using System;
-    using System.IO;
     using ImageSharp;
-    using ImageSharp.Drawing.Brushes;
-    using Processing;
-    using System.Collections.Generic;
     using Xunit;
     using ImageSharp.Drawing;
-    using System.Numerics;
-    using SixLabors.Shapes;
     using ImageSharp.Drawing.Processors;
-    using ImageSharp.Drawing.Pens;
     using Moq;
-    using System.Collections.Immutable;
+
+    using ImageSharp.PixelFormats;
 
     public class FillRegionProcessorTests
     {

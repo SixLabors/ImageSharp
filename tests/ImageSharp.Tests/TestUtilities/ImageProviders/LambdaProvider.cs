@@ -7,6 +7,8 @@ namespace ImageSharp.Tests
 {
     using System;
 
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// Provides <see cref="Image{TPixel}" /> instances for parametric unit tests.
     /// </summary>

@@ -5,9 +5,8 @@
 
 namespace ImageSharp
 {
-    using System;
-
     using Drawing.Processors;
+    using ImageSharp.PixelFormats;
 
     /// <summary>
     /// Extension methods for the <see cref="Image"/> type.

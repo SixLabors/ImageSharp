@@ -8,6 +8,8 @@ namespace ImageSharp.Formats
     using System;
     using System.IO;
 
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// Image encoder for writing image data to a stream in gif format.
     /// </summary>

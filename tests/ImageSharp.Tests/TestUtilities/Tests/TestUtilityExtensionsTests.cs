@@ -11,6 +11,8 @@ namespace ImageSharp.Tests
     using System.Numerics;
     using System.Reflection;
 
+    using ImageSharp.PixelFormats;
+
     using Xunit;
     using Xunit.Abstractions;
 
@@ -51,7 +53,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void Baz()
         {
-            Type type = typeof(Rgba32).GetTypeInfo().Assembly.GetType("ImageSharp.Rgba32");
+            Type type = typeof(Rgba32).GetTypeInfo().Assembly.GetType("ImageSharp.PixelFormats.Rgba32");
             this.Output.WriteLine(type.ToString());
 
             Type fake = typeof(Rgba32).GetTypeInfo().Assembly.GetType("ImageSharp.dsaada_DASqewrr");

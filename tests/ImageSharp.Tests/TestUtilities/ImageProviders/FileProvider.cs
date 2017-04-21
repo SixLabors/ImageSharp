@@ -7,6 +7,9 @@ namespace ImageSharp.Tests
 {
     using System;
     using System.Collections.Concurrent;
+
+    using ImageSharp.PixelFormats;
+
     using Xunit.Abstractions;
 
     public abstract partial class TestImageProvider<TPixel>

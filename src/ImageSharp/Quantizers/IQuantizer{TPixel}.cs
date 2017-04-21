@@ -6,6 +6,7 @@
 namespace ImageSharp.Quantizers
 {
     using ImageSharp.Dithering;
+    using ImageSharp.PixelFormats;
 
     /// <summary>
     /// Provides methods for allowing quantization of images pixels.

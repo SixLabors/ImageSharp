@@ -6,7 +6,7 @@
 namespace ImageSharp.Drawing.Brushes
 {
     using System.Numerics;
-
+    using ImageSharp.PixelFormats;
     using Processors;
 
     /// <summary>

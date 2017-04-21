@@ -9,6 +9,8 @@ namespace ImageSharp.Processing.Processors
     using System.Numerics;
     using System.Threading.Tasks;
 
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// Provides methods that allow the skewing of images.
     /// </summary>

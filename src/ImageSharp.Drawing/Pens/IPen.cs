@@ -5,7 +5,7 @@
 
 namespace ImageSharp.Drawing.Pens
 {
-    using System;
+    using ImageSharp.PixelFormats;
     using Processors;
 
     /// <summary>

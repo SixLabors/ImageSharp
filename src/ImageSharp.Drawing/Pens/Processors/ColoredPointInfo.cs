@@ -5,7 +5,7 @@
 
 namespace ImageSharp.Drawing.Processors
 {
-    using System;
+    using ImageSharp.PixelFormats;
 
     /// <summary>
     /// Returns details about how far away from the inside of a shape and the color the pixel could be.

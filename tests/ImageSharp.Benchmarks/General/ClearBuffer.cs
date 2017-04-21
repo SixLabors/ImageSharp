@@ -7,7 +7,7 @@ namespace ImageSharp.Benchmarks.General
 
     using BenchmarkDotNet.Attributes;
 
-    using Rgba32 = ImageSharp.Rgba32;
+    using ImageSharp.PixelFormats;
 
     public unsafe class ClearBuffer
     {
@@ -19,7 +19,7 @@ namespace ImageSharp.Benchmarks.General
         [Setup]
         public void Setup()
         {
-            this.buffer = new Buffer<ImageSharp.Rgba32>(this.Count);
+            this.buffer = new Buffer<Rgba32>(this.Count);
         }
 
         [Cleanup]

@@ -11,8 +11,10 @@ namespace ImageSharp.Benchmarks
 
     using BenchmarkDotNet.Attributes;
 
+    using ImageSharp.PixelFormats;
+
     using CoreBrushes = ImageSharp.Drawing.Brushes.Brushes;
-    using CoreColor = ImageSharp.Rgba32;
+
     using CoreImage = ImageSharp.Image;
 
     public class FillWithPattern
@@ -40,7 +42,7 @@ namespace ImageSharp.Benchmarks
         {
             using (CoreImage image = new CoreImage(800, 800))
             {
-                image.Fill(CoreBrushes.BackwardDiagonal(CoreColor.HotPink));
+                image.Fill(CoreBrushes.BackwardDiagonal(Rgba32.HotPink));
 
                 using (MemoryStream ms = new MemoryStream())
                 {

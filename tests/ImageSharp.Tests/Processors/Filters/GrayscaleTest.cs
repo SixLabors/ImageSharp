@@ -12,6 +12,8 @@ namespace ImageSharp.Tests
     using ImageSharp.Tests;
     using System.Numerics;
 
+    using ImageSharp.PixelFormats;
+
     public class GrayscaleTest : FileTestBase
     {
         /// <summary>

@@ -9,6 +9,8 @@ namespace ImageSharp.Processing.Processors
     using System.Numerics;
     using System.Threading.Tasks;
 
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// An <see cref="IImageProcessor{TPixel}"/> to invert the colors of an <see cref="Image{TPixel}"/>.
     /// </summary>

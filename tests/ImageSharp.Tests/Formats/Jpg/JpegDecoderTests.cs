@@ -10,6 +10,7 @@ namespace ImageSharp.Tests
     using System.IO;
 
     using ImageSharp.Formats;
+    using ImageSharp.PixelFormats;
 
     using Xunit;
 

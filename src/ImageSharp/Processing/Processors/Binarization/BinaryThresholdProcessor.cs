@@ -8,6 +8,8 @@ namespace ImageSharp.Processing.Processors
     using System;
     using System.Threading.Tasks;
 
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// An <see cref="IImageProcessor{TPixel}"/> to perform binary threshold filtering against an
     /// <see cref="Image"/>. The image will be converted to grayscale before thresholding occurs.

@@ -11,10 +11,11 @@ namespace ImageSharp.Benchmarks
     using BenchmarkDotNet.Attributes;
     using CoreImage = ImageSharp.Image;
     using CoreRectangle = ImageSharp.Rectangle;
-    using CoreColor = ImageSharp.Color;
     using CoreSize = ImageSharp.Size;
 
     using System.Numerics;
+
+    using ImageSharp.PixelFormats;
 
     public class FillRectangle : BenchmarkBase
     {
@@ -39,7 +40,7 @@ namespace ImageSharp.Benchmarks
         {
             using (CoreImage image = new CoreImage(800, 800))
             {
-            	image.Fill(CoreColor.HotPink, new CoreRectangle(10, 10, 190, 140));
+            	image.Fill(Rgba32.HotPink, new CoreRectangle(10, 10, 190, 140));
 
                 return new CoreSize(image.Width, image.Height);
             }
@@ -51,7 +52,7 @@ namespace ImageSharp.Benchmarks
             using (CoreImage image = new CoreImage(800, 800))
             {
                 image.FillPolygon(
-                    CoreColor.HotPink,
+                    Rgba32.HotPink,
                     new[] {
 		                new Vector2(10, 10),
 		                new Vector2(200, 10),

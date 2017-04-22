@@ -7,25 +7,27 @@ namespace ImageSharp
 {
     using System;
 
+    using ImageSharp.PixelFormats;
+
     using Processing;
     using Processing.Processors;
 
     /// <summary>
-    /// Extension methods for the <see cref="Image{TColor}"/> type.
+    /// Extension methods for the <see cref="Image{TPixel}"/> type.
     /// </summary>
     public static partial class ImageExtensions
     {
         /// <summary>
         /// Flips an image by the given instructions.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image to rotate, flip, or both.</param>
         /// <param name="flipType">The <see cref="FlipType"/> to perform the flip.</param>
         /// <returns>The <see cref="Image"/></returns>
-        public static Image<TColor> Flip<TColor>(this Image<TColor> source, FlipType flipType)
-            where TColor : struct, IPixel<TColor>
+        public static Image<TPixel> Flip<TPixel>(this Image<TPixel> source, FlipType flipType)
+            where TPixel : struct, IPixel<TPixel>
         {
-            FlipProcessor<TColor> processor = new FlipProcessor<TColor>(flipType);
+            FlipProcessor<TPixel> processor = new FlipProcessor<TPixel>(flipType);
 
             source.ApplyProcessor(processor, source.Bounds);
             return source;

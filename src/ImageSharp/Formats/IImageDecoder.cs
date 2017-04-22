@@ -8,20 +8,22 @@ namespace ImageSharp.Formats
     using System;
     using System.IO;
 
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// Encapsulates properties and methods required for decoding an image from a stream.
     /// </summary>
     public interface IImageDecoder
     {
         /// <summary>
-        /// Decodes the image from the specified stream to the <see cref="ImageBase{TColor}"/>.
+        /// Decodes the image from the specified stream to the <see cref="ImageBase{TPixel}"/>.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="configuration">The configuration for the image.</param>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
         /// <param name="options">The options for the decoder.</param>
         /// <returns>The decoded image</returns>
-        Image<TColor> Decode<TColor>(Configuration configuration, Stream stream, IDecoderOptions options)
-            where TColor : struct, IPixel<TColor>;
+        Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream, IDecoderOptions options)
+            where TPixel : struct, IPixel<TPixel>;
     }
 }

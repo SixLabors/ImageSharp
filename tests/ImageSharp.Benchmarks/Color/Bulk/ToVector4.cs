@@ -5,10 +5,12 @@ namespace ImageSharp.Benchmarks.Color.Bulk
 
     using BenchmarkDotNet.Attributes;
 
-    public abstract class ToVector4<TColor>
-        where TColor : struct, IPixel<TColor>
+    using ImageSharp.PixelFormats;
+
+    public abstract class ToVector4<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
-        private Buffer<TColor> source;
+        private Buffer<TPixel> source;
 
         private Buffer<Vector4> destination;
 
@@ -18,7 +20,7 @@ namespace ImageSharp.Benchmarks.Color.Bulk
         [Setup]
         public void Setup()
         {
-            this.source = new Buffer<TColor>(this.Count);
+            this.source = new Buffer<TPixel>(this.Count);
             this.destination = new Buffer<Vector4>(this.Count);
         }
 
@@ -32,12 +34,12 @@ namespace ImageSharp.Benchmarks.Color.Bulk
         [Benchmark(Baseline = true)]
         public void PerElement()
         {
-            TColor[] s = this.source.Array;
+            TPixel[] s = this.source.Array;
             Vector4[] d = this.destination.Array;
 
             for (int i = 0; i < this.Count; i++)
             {
-                TColor c = s[i];
+                TPixel c = s[i];
                 d[i] = c.ToVector4();
             }
         }
@@ -45,17 +47,17 @@ namespace ImageSharp.Benchmarks.Color.Bulk
         [Benchmark]
         public void CommonBulk()
         {
-            new BulkPixelOperations<TColor>().ToVector4(this.source, this.destination, this.Count);
+            new BulkPixelOperations<TPixel>().ToVector4(this.source, this.destination, this.Count);
         }
 
         [Benchmark]
         public void OptimizedBulk()
         {
-            BulkPixelOperations<TColor>.Instance.ToVector4(this.source, this.destination, this.Count);
+            BulkPixelOperations<TPixel>.Instance.ToVector4(this.source, this.destination, this.Count);
         }
     }
 
-    public class ToVector4_Color : ToVector4<ImageSharp.Color>
+    public class ToVector4_Color : ToVector4<Rgba32>
     {
     }
 }

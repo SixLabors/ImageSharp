@@ -8,6 +8,8 @@ namespace ImageSharp
     using System;
     using System.Buffers;
 
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// Provides a resource pool that enables reusing instances of value type arrays for image data <see cref="T:T[]"/>.
     /// </summary>
@@ -24,7 +26,7 @@ namespace ImageSharp
         /// Rents the pixel array from the pool.
         /// </summary>
         /// <param name="minimumLength">The minimum length of the array to return.</param>
-        /// <returns>The <see cref="T:TColor[]"/></returns>
+        /// <returns>The <see cref="T:TPixel[]"/></returns>
         public static T[] Rent(int minimumLength)
         {
             return ArrayPool.Rent(minimumLength);

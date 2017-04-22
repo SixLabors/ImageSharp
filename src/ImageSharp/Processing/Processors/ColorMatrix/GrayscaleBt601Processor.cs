@@ -8,13 +8,15 @@ namespace ImageSharp.Processing.Processors
     using System;
     using System.Numerics;
 
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// Converts the colors of the image to Grayscale applying the formula as specified by ITU-R Recommendation BT.601
     /// <see href="https://en.wikipedia.org/wiki/Luma_%28video%29#Rec._601_luma_versus_Rec._709_luma_coefficients"/>.
     /// </summary>
-    /// <typeparam name="TColor">The pixel format.</typeparam>
-    internal class GrayscaleBt601Processor<TColor> : ColorMatrixProcessor<TColor>
-        where TColor : struct, IPixel<TColor>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    internal class GrayscaleBt601Processor<TPixel> : ColorMatrixProcessor<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
         /// <inheritdoc/>
         public override Matrix4x4 Matrix => new Matrix4x4()

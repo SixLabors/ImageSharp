@@ -12,6 +12,7 @@ namespace ImageSharp.Formats
 
     using ImageSharp.Formats.Jpg;
     using ImageSharp.Formats.Jpg.Components;
+    using ImageSharp.PixelFormats;
 
     /// <summary>
     /// Image encoder for writing an image to a stream as a jpeg.
@@ -165,11 +166,11 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Encode writes the image to the jpeg baseline format with the given options.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="image">The image to write from.</param>
         /// <param name="stream">The stream to write to.</param>
-        public void Encode<TColor>(Image<TColor> image, Stream stream)
-            where TColor : struct, IPixel<TColor>
+        public void Encode<TPixel>(Image<TPixel> image, Stream stream)
+            where TPixel : struct, IPixel<TPixel>
         {
             Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));
@@ -225,7 +226,7 @@ namespace ImageSharp.Formats
             this.WriteDefineHuffmanTables(componentCount);
 
             // Write the image data.
-            using (PixelAccessor<TColor> pixels = image.Lock())
+            using (PixelAccessor<TPixel> pixels = image.Lock())
             {
                 this.WriteStartOfScan(pixels);
             }
@@ -282,23 +283,23 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Converts the 8x8 region of the image whose top-left corner is x,y to its YCbCr values.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="pixels">The pixel accessor.</param>
         /// <param name="x">The x-position within the image.</param>
         /// <param name="y">The y-position within the image.</param>
         /// <param name="yBlock">The luminance block.</param>
         /// <param name="cbBlock">The red chroma block.</param>
         /// <param name="crBlock">The blue chroma block.</param>
-        /// <param name="rgbBytes">Temporal <see cref="PixelArea{TColor}"/> provided by the caller</param>
-        private static void ToYCbCr<TColor>(
-            PixelAccessor<TColor> pixels,
+        /// <param name="rgbBytes">Temporal <see cref="PixelArea{TPixel}"/> provided by the caller</param>
+        private static void ToYCbCr<TPixel>(
+            PixelAccessor<TPixel> pixels,
             int x,
             int y,
             Block8x8F* yBlock,
             Block8x8F* cbBlock,
             Block8x8F* crBlock,
-            PixelArea<TColor> rgbBytes)
-            where TColor : struct, IPixel<TColor>
+            PixelArea<TPixel> rgbBytes)
+            where TPixel : struct, IPixel<TPixel>
         {
             float* yBlockRaw = (float*)yBlock;
             float* cbBlockRaw = (float*)cbBlock;
@@ -442,12 +443,12 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Encodes the image with no subsampling.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
-        private void Encode444<TColor>(PixelAccessor<TColor> pixels)
-            where TColor : struct, IPixel<TColor>
+        private void Encode444<TPixel>(PixelAccessor<TPixel> pixels)
+            where TPixel : struct, IPixel<TPixel>
         {
-            // TODO: Need a JpegScanEncoder<TColor> class or struct that encapsulates the scan-encoding implementation. (Similar to JpegScanDecoder.)
+            // TODO: Need a JpegScanEncoder<TPixel> class or struct that encapsulates the scan-encoding implementation. (Similar to JpegScanDecoder.)
             Block8x8F b = default(Block8x8F);
             Block8x8F cb = default(Block8x8F);
             Block8x8F cr = default(Block8x8F);
@@ -463,7 +464,7 @@ namespace ImageSharp.Formats
             // ReSharper disable once InconsistentNaming
             int prevDCY = 0, prevDCCb = 0, prevDCCr = 0;
 
-            using (PixelArea<TColor> rgbBytes = new PixelArea<TColor>(8, 8, ComponentOrder.Xyz))
+            using (PixelArea<TPixel> rgbBytes = new PixelArea<TPixel>(8, 8, ComponentOrder.Xyz))
             {
                 for (int y = 0; y < pixels.Height; y += 8)
                 {
@@ -714,9 +715,9 @@ namespace ImageSharp.Formats
         /// Writes the metadata profiles to the image.
         /// </summary>
         /// <param name="image">The image.</param>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
-        private void WriteProfiles<TColor>(Image<TColor> image)
-            where TColor : struct, IPixel<TColor>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        private void WriteProfiles<TPixel>(Image<TPixel> image)
+            where TPixel : struct, IPixel<TPixel>
         {
             if (this.options.IgnoreMetadata)
             {
@@ -786,12 +787,12 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Writes the StartOfScan marker.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
-        private void WriteStartOfScan<TColor>(PixelAccessor<TColor> pixels)
-            where TColor : struct, IPixel<TColor>
+        private void WriteStartOfScan<TPixel>(PixelAccessor<TPixel> pixels)
+            where TPixel : struct, IPixel<TPixel>
         {
-            // TODO: Need a JpegScanEncoder<TColor> class or struct that encapsulates the scan-encoding implementation. (Similar to JpegScanDecoder.)
+            // TODO: Need a JpegScanEncoder<TPixel> class or struct that encapsulates the scan-encoding implementation. (Similar to JpegScanDecoder.)
             // TODO: We should allow grayscale writing.
             this.outputStream.Write(SosHeaderYCbCr, 0, SosHeaderYCbCr.Length);
 
@@ -813,12 +814,12 @@ namespace ImageSharp.Formats
         /// Encodes the image with subsampling. The Cb and Cr components are each subsampled
         /// at a factor of 2 both horizontally and vertically.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
-        private void Encode420<TColor>(PixelAccessor<TColor> pixels)
-            where TColor : struct, IPixel<TColor>
+        private void Encode420<TPixel>(PixelAccessor<TPixel> pixels)
+            where TPixel : struct, IPixel<TPixel>
         {
-            // TODO: Need a JpegScanEncoder<TColor> class or struct that encapsulates the scan-encoding implementation. (Similar to JpegScanDecoder.)
+            // TODO: Need a JpegScanEncoder<TPixel> class or struct that encapsulates the scan-encoding implementation. (Similar to JpegScanDecoder.)
             Block8x8F b = default(Block8x8F);
 
             BlockQuad cb = default(BlockQuad);
@@ -837,7 +838,7 @@ namespace ImageSharp.Formats
             // ReSharper disable once InconsistentNaming
             int prevDCY = 0, prevDCCb = 0, prevDCCr = 0;
 
-            using (PixelArea<TColor> rgbBytes = new PixelArea<TColor>(8, 8, ComponentOrder.Xyz))
+            using (PixelArea<TPixel> rgbBytes = new PixelArea<TPixel>(8, 8, ComponentOrder.Xyz))
             {
                 for (int y = 0; y < pixels.Height; y += 16)
                 {

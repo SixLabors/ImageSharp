@@ -13,7 +13,7 @@ namespace ImageSharp.Tests
     using Xunit.Sdk;
 
     /// <summary>
-    /// Base class for Theory Data attributes which pass an instance of <see cref="TestImageProvider{TColor}"/> to the test case.
+    /// Base class for Theory Data attributes which pass an instance of <see cref="TestImageProvider{TPixel}"/> to the test case.
     /// </summary>
     public abstract class ImageDataAttributeBase : DataAttribute
     {

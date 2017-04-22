@@ -5,8 +5,8 @@
     using Colourful;
     using Colourful.Conversion;
 
-    using ImageSharp.Colors.Spaces;
-    using ImageSharp.Colors.Spaces.Conversion;
+    using ImageSharp.ColorSpaces;
+    using ImageSharp.ColorSpaces.Conversion;
 
     public class ColorspaceCieXyzToRgbConvert
     {

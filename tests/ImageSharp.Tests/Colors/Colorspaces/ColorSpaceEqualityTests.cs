@@ -9,7 +9,7 @@ namespace ImageSharp.Tests.Colors
     using System.Numerics;
     using Xunit;
 
-    using ImageSharp.Colors.Spaces;
+    using ImageSharp.ColorSpaces;
 
     /// <summary>
     /// Test implementations of IEquatable and IAlmostEquatable in our colorspaces

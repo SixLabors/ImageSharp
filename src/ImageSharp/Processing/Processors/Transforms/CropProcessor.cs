@@ -8,15 +8,17 @@ namespace ImageSharp.Processing.Processors
     using System;
     using System.Threading.Tasks;
 
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// Provides methods to allow the cropping of an image.
     /// </summary>
-    /// <typeparam name="TColor">The pixel format.</typeparam>
-    internal class CropProcessor<TColor> : ImageProcessor<TColor>
-        where TColor : struct, IPixel<TColor>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    internal class CropProcessor<TPixel> : ImageProcessor<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="CropProcessor{TColor}"/> class.
+        /// Initializes a new instance of the <see cref="CropProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="cropRectangle">The target cropped rectangle.</param>
         public CropProcessor(Rectangle cropRectangle)
@@ -30,7 +32,7 @@ namespace ImageSharp.Processing.Processors
         public Rectangle CropRectangle { get; }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
         {
             if (this.CropRectangle == sourceRectangle)
             {
@@ -42,9 +44,9 @@ namespace ImageSharp.Processing.Processors
             int minX = Math.Max(this.CropRectangle.X, sourceRectangle.X);
             int maxX = Math.Min(this.CropRectangle.Right, sourceRectangle.Right);
 
-            using (PixelAccessor<TColor> targetPixels = new PixelAccessor<TColor>(this.CropRectangle.Width, this.CropRectangle.Height))
+            using (PixelAccessor<TPixel> targetPixels = new PixelAccessor<TPixel>(this.CropRectangle.Width, this.CropRectangle.Height))
             {
-                using (PixelAccessor<TColor> sourcePixels = source.Lock())
+                using (PixelAccessor<TPixel> sourcePixels = source.Lock())
                 {
                     Parallel.For(
                         minY,

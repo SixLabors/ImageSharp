@@ -9,15 +9,17 @@ namespace ImageSharp.Processing.Processors
     using System.Numerics;
     using System.Threading.Tasks;
 
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// Defines a sampler that uses two one-dimensional matrices to perform convolution against an image.
     /// </summary>
-    /// <typeparam name="TColor">The pixel format.</typeparam>
-    internal class Convolution2DProcessor<TColor> : ImageProcessor<TColor>
-        where TColor : struct, IPixel<TColor>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    internal class Convolution2DProcessor<TPixel> : ImageProcessor<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="Convolution2DProcessor{TColor}"/> class.
+        /// Initializes a new instance of the <see cref="Convolution2DProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="kernelX">The horizontal gradient operator.</param>
         /// <param name="kernelY">The vertical gradient operator.</param>
@@ -38,7 +40,7 @@ namespace ImageSharp.Processing.Processors
         public Fast2DArray<float> KernelY { get; }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
         {
             int kernelYHeight = this.KernelY.Height;
             int kernelYWidth = this.KernelY.Width;
@@ -54,9 +56,9 @@ namespace ImageSharp.Processing.Processors
             int maxY = endY - 1;
             int maxX = endX - 1;
 
-            using (PixelAccessor<TColor> targetPixels = new PixelAccessor<TColor>(source.Width, source.Height))
+            using (PixelAccessor<TPixel> targetPixels = new PixelAccessor<TPixel>(source.Width, source.Height))
             {
-                using (PixelAccessor<TColor> sourcePixels = source.Lock())
+                using (PixelAccessor<TPixel> sourcePixels = source.Lock())
                 {
                     Parallel.For(
                     startY,
@@ -112,7 +114,7 @@ namespace ImageSharp.Processing.Processors
                             float green = MathF.Sqrt((gX * gX) + (gY * gY));
                             float blue = MathF.Sqrt((bX * bX) + (bY * bY));
 
-                            TColor packed = default(TColor);
+                            TPixel packed = default(TPixel);
                             packed.PackFromVector4(new Vector4(red, green, blue, sourcePixels[x, y].ToVector4().W));
                             targetPixels[x, y] = packed;
                         }

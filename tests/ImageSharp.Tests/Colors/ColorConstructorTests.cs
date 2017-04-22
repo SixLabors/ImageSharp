@@ -7,6 +7,9 @@ namespace ImageSharp.Tests.Colors
 {
     using System.Collections.Generic;
     using System.Numerics;
+
+    using ImageSharp.PixelFormats;
+
     using Xunit;
 
     public class ColorConstructorTests

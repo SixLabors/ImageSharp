@@ -5,10 +5,12 @@
 
 namespace ImageSharp.Drawing.Brushes
 {
+    using ImageSharp.PixelFormats;
+
     /// <summary>
-    /// Provides an implementation of a pattern brush for painting patterns. The brush use <see cref="Color"/> for painting.
+    /// Provides an implementation of a pattern brush for painting patterns. The brush use <see cref="Rgba32"/> for painting.
     /// </summary>
-    public class PatternBrush : PatternBrush<Color>
+    public class PatternBrush : PatternBrush<Rgba32>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="PatternBrush"/> class.
@@ -16,7 +18,7 @@ namespace ImageSharp.Drawing.Brushes
         /// <param name="foreColor">Color of the fore.</param>
         /// <param name="backColor">Color of the back.</param>
         /// <param name="pattern">The pattern.</param>
-        public PatternBrush(Color foreColor, Color backColor, bool[,] pattern)
+        public PatternBrush(Rgba32 foreColor, Rgba32 backColor, bool[,] pattern)
             : base(foreColor, backColor, pattern)
         {
         }
@@ -25,7 +27,7 @@ namespace ImageSharp.Drawing.Brushes
         /// Initializes a new instance of the <see cref="PatternBrush"/> class.
         /// </summary>
         /// <param name="brush">The brush.</param>
-        internal PatternBrush(PatternBrush<Color> brush)
+        internal PatternBrush(PatternBrush<Rgba32> brush)
             : base(brush)
         {
         }

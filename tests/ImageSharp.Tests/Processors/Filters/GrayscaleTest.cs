@@ -12,6 +12,8 @@ namespace ImageSharp.Tests
     using ImageSharp.Tests;
     using System.Numerics;
 
+    using ImageSharp.PixelFormats;
+
     public class GrayscaleTest : FileTestBase
     {
         /// <summary>
@@ -20,14 +22,14 @@ namespace ImageSharp.Tests
         [Theory]
         [WithTestPatternImages(50, 50, PixelTypes.StandardImageClass, GrayscaleMode.Bt709)] 
         [WithTestPatternImages(50, 50, PixelTypes.StandardImageClass, GrayscaleMode.Bt601)]
-        public void ImageShouldApplyGrayscaleFilterAll<TColor>(TestImageProvider<TColor> provider, GrayscaleMode value)
-            where TColor : struct, IPixel<TColor>
+        public void ImageShouldApplyGrayscaleFilterAll<TPixel>(TestImageProvider<TPixel> provider, GrayscaleMode value)
+            where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TColor> image = provider.GetImage())
+            using (Image<TPixel> image = provider.GetImage())
             {
                 image.Grayscale(value);
                 byte[] data = new byte[3];
-                foreach (TColor p in image.Pixels)
+                foreach (TPixel p in image.Pixels)
                 {
                     p.ToXyzBytes(data, 0);
                     Assert.Equal(data[0], data[1]);

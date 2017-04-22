@@ -3,6 +3,7 @@ namespace ImageSharp.Tests
     using System.IO;
     using System.Text;
 
+    using ImageSharp.PixelFormats;
     using ImageSharp.Processing;
     using ImageSharp.Processing.Processors;
 
@@ -36,13 +37,13 @@ namespace ImageSharp.Tests
         // [Fact]
         public void PrintWeightsData()
         {
-            ResizeProcessor<Color> proc = new ResizeProcessor<Color>(new BicubicResampler(), 200, 200);
+            ResizeProcessor<Rgba32> proc = new ResizeProcessor<Rgba32>(new BicubicResampler(), 200, 200);
 
-            ResamplingWeightedProcessor<Color>.WeightsBuffer weights = proc.PrecomputeWeights(200, 500);
+            ResamplingWeightedProcessor<Rgba32>.WeightsBuffer weights = proc.PrecomputeWeights(200, 500);
 
             StringBuilder bld = new StringBuilder();
 
-            foreach (ResamplingWeightedProcessor<Color>.WeightsWindow window in weights.Weights)
+            foreach (ResamplingWeightedProcessor<Rgba32>.WeightsWindow window in weights.Weights)
             {
                 for (int i = 0; i < window.Length; i++)
                 {

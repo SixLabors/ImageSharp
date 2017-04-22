@@ -10,11 +10,11 @@ namespace ImageSharp
     using Drawing;
     using Drawing.Brushes;
     using Drawing.Pens;
-
+    using ImageSharp.PixelFormats;
     using SixLabors.Fonts;
 
     /// <summary>
-    /// Extension methods for the <see cref="Image{TColor}"/> type.
+    /// Extension methods for the <see cref="Image{TPixel}"/> type.
     /// </summary>
     public static partial class ImageExtensions
     {
@@ -23,17 +23,17 @@ namespace ImageSharp
         /// <summary>
         /// Draws the text onto the the image filled via the brush.
         /// </summary>
-        /// <typeparam name="TColor">The type of the color.</typeparam>
+        /// <typeparam name="TPixel">The type of the color.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="text">The text.</param>
         /// <param name="font">The font.</param>
         /// <param name="color">The color.</param>
         /// <param name="location">The location.</param>
         /// <returns>
-        /// The <see cref="Image{TColor}" />.
+        /// The <see cref="Image{TPixel}" />.
         /// </returns>
-        public static Image<TColor> DrawText<TColor>(this Image<TColor> source, string text, Font font, TColor color, Vector2 location)
-           where TColor : struct, IPixel<TColor>
+        public static Image<TPixel> DrawText<TPixel>(this Image<TPixel> source, string text, Font font, TPixel color, Vector2 location)
+           where TPixel : struct, IPixel<TPixel>
         {
             return source.DrawText(text, font, color, location, TextGraphicsOptions.Default);
         }
@@ -41,7 +41,7 @@ namespace ImageSharp
         /// <summary>
         /// Draws the text onto the the image filled via the brush.
         /// </summary>
-        /// <typeparam name="TColor">The type of the color.</typeparam>
+        /// <typeparam name="TPixel">The type of the color.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="text">The text.</param>
         /// <param name="font">The font.</param>
@@ -49,28 +49,28 @@ namespace ImageSharp
         /// <param name="location">The location.</param>
         /// <param name="options">The options.</param>
         /// <returns>
-        /// The <see cref="Image{TColor}" />.
+        /// The <see cref="Image{TPixel}" />.
         /// </returns>
-        public static Image<TColor> DrawText<TColor>(this Image<TColor> source, string text, Font font, TColor color, Vector2 location, TextGraphicsOptions options)
-           where TColor : struct, IPixel<TColor>
+        public static Image<TPixel> DrawText<TPixel>(this Image<TPixel> source, string text, Font font, TPixel color, Vector2 location, TextGraphicsOptions options)
+           where TPixel : struct, IPixel<TPixel>
         {
-            return source.DrawText(text, font, Brushes<TColor>.Solid(color), null, location, options);
+            return source.DrawText(text, font, Brushes<TPixel>.Solid(color), null, location, options);
         }
 
         /// <summary>
         /// Draws the text onto the the image filled via the brush.
         /// </summary>
-        /// <typeparam name="TColor">The type of the color.</typeparam>
+        /// <typeparam name="TPixel">The type of the color.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="text">The text.</param>
         /// <param name="font">The font.</param>
         /// <param name="brush">The brush.</param>
         /// <param name="location">The location.</param>
         /// <returns>
-        /// The <see cref="Image{TColor}" />.
+        /// The <see cref="Image{TPixel}" />.
         /// </returns>
-        public static Image<TColor> DrawText<TColor>(this Image<TColor> source, string text, Font font, IBrush<TColor> brush, Vector2 location)
-           where TColor : struct, IPixel<TColor>
+        public static Image<TPixel> DrawText<TPixel>(this Image<TPixel> source, string text, Font font, IBrush<TPixel> brush, Vector2 location)
+           where TPixel : struct, IPixel<TPixel>
         {
             return source.DrawText(text, font, brush, location, TextGraphicsOptions.Default);
         }
@@ -78,7 +78,7 @@ namespace ImageSharp
         /// <summary>
         /// Draws the text onto the the image filled via the brush.
         /// </summary>
-        /// <typeparam name="TColor">The type of the color.</typeparam>
+        /// <typeparam name="TPixel">The type of the color.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="text">The text.</param>
         /// <param name="font">The font.</param>
@@ -86,10 +86,10 @@ namespace ImageSharp
         /// <param name="location">The location.</param>
         /// <param name="options">The options.</param>
         /// <returns>
-        /// The <see cref="Image{TColor}" />.
+        /// The <see cref="Image{TPixel}" />.
         /// </returns>
-        public static Image<TColor> DrawText<TColor>(this Image<TColor> source, string text, Font font, IBrush<TColor> brush, Vector2 location, TextGraphicsOptions options)
-           where TColor : struct, IPixel<TColor>
+        public static Image<TPixel> DrawText<TPixel>(this Image<TPixel> source, string text, Font font, IBrush<TPixel> brush, Vector2 location, TextGraphicsOptions options)
+           where TPixel : struct, IPixel<TPixel>
         {
             return source.DrawText(text, font, brush, null, location, options);
         }
@@ -97,17 +97,17 @@ namespace ImageSharp
         /// <summary>
         /// Draws the text onto the the image outlined via the pen.
         /// </summary>
-        /// <typeparam name="TColor">The type of the color.</typeparam>
+        /// <typeparam name="TPixel">The type of the color.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="text">The text.</param>
         /// <param name="font">The font.</param>
         /// <param name="pen">The pen.</param>
         /// <param name="location">The location.</param>
         /// <returns>
-        /// The <see cref="Image{TColor}" />.
+        /// The <see cref="Image{TPixel}" />.
         /// </returns>
-        public static Image<TColor> DrawText<TColor>(this Image<TColor> source, string text, Font font, IPen<TColor> pen, Vector2 location)
-           where TColor : struct, IPixel<TColor>
+        public static Image<TPixel> DrawText<TPixel>(this Image<TPixel> source, string text, Font font, IPen<TPixel> pen, Vector2 location)
+           where TPixel : struct, IPixel<TPixel>
         {
             return source.DrawText(text, font, pen, location, TextGraphicsOptions.Default);
         }
@@ -115,7 +115,7 @@ namespace ImageSharp
         /// <summary>
         /// Draws the text onto the the image outlined via the pen.
         /// </summary>
-        /// <typeparam name="TColor">The type of the color.</typeparam>
+        /// <typeparam name="TPixel">The type of the color.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="text">The text.</param>
         /// <param name="font">The font.</param>
@@ -123,10 +123,10 @@ namespace ImageSharp
         /// <param name="location">The location.</param>
         /// <param name="options">The options.</param>
         /// <returns>
-        /// The <see cref="Image{TColor}" />.
+        /// The <see cref="Image{TPixel}" />.
         /// </returns>
-        public static Image<TColor> DrawText<TColor>(this Image<TColor> source, string text, Font font, IPen<TColor> pen, Vector2 location, TextGraphicsOptions options)
-           where TColor : struct, IPixel<TColor>
+        public static Image<TPixel> DrawText<TPixel>(this Image<TPixel> source, string text, Font font, IPen<TPixel> pen, Vector2 location, TextGraphicsOptions options)
+           where TPixel : struct, IPixel<TPixel>
         {
             return source.DrawText(text, font, null, pen, location, options);
         }
@@ -134,7 +134,7 @@ namespace ImageSharp
         /// <summary>
         /// Draws the text onto the the image filled via the brush then outlined via the pen.
         /// </summary>
-        /// <typeparam name="TColor">The type of the color.</typeparam>
+        /// <typeparam name="TPixel">The type of the color.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="text">The text.</param>
         /// <param name="font">The font.</param>
@@ -142,10 +142,10 @@ namespace ImageSharp
         /// <param name="pen">The pen.</param>
         /// <param name="location">The location.</param>
         /// <returns>
-        /// The <see cref="Image{TColor}" />.
+        /// The <see cref="Image{TPixel}" />.
         /// </returns>
-        public static Image<TColor> DrawText<TColor>(this Image<TColor> source, string text, Font font, IBrush<TColor> brush, IPen<TColor> pen, Vector2 location)
-           where TColor : struct, IPixel<TColor>
+        public static Image<TPixel> DrawText<TPixel>(this Image<TPixel> source, string text, Font font, IBrush<TPixel> brush, IPen<TPixel> pen, Vector2 location)
+           where TPixel : struct, IPixel<TPixel>
         {
             return source.DrawText(text, font, brush, pen, location, TextGraphicsOptions.Default);
         }
@@ -153,7 +153,7 @@ namespace ImageSharp
         /// <summary>
         /// Draws the text onto the the image filled via the brush then outlined via the pen.
         /// </summary>
-        /// <typeparam name="TColor">The type of the color.</typeparam>
+        /// <typeparam name="TPixel">The type of the color.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="text">The text.</param>
         /// <param name="font">The font.</param>
@@ -162,10 +162,10 @@ namespace ImageSharp
         /// <param name="location">The location.</param>
         /// <param name="options">The options.</param>
         /// <returns>
-        /// The <see cref="Image{TColor}" />.
+        /// The <see cref="Image{TPixel}" />.
         /// </returns>
-        public static Image<TColor> DrawText<TColor>(this Image<TColor> source, string text, Font font, IBrush<TColor> brush, IPen<TColor> pen, Vector2 location, TextGraphicsOptions options)
-           where TColor : struct, IPixel<TColor>
+        public static Image<TPixel> DrawText<TPixel>(this Image<TPixel> source, string text, Font font, IBrush<TPixel> brush, IPen<TPixel> pen, Vector2 location, TextGraphicsOptions options)
+           where TPixel : struct, IPixel<TPixel>
         {
             GlyphBuilder glyphBuilder = new GlyphBuilder(location);
 

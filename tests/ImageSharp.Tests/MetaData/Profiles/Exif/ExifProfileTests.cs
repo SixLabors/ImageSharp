@@ -10,6 +10,9 @@ namespace ImageSharp.Tests
     using System.IO;
     using System.Linq;
     using System.Text;
+
+    using ImageSharp.PixelFormats;
+
     using Xunit;
 
     public class ExifProfileTests
@@ -243,7 +246,7 @@ namespace ImageSharp.Tests
 
             TestProfile(profile);
 
-            Image<Color> thumbnail = profile.CreateThumbnail<Color>();
+            Image<Rgba32> thumbnail = profile.CreateThumbnail<Rgba32>();
             Assert.NotNull(thumbnail);
             Assert.Equal(256, thumbnail.Width);
             Assert.Equal(170, thumbnail.Height);

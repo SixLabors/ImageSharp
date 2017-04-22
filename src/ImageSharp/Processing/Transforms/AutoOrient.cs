@@ -6,22 +6,25 @@
 namespace ImageSharp
 {
     using System;
+
+    using ImageSharp.PixelFormats;
+
     using Processing;
     using Processing.Processors;
 
     /// <summary>
-    /// Extension methods for the <see cref="Image{TColor}"/> type.
+    /// Extension methods for the <see cref="Image{TPixel}"/> type.
     /// </summary>
     public static partial class ImageExtensions
     {
         /// <summary>
         /// Adjusts an image so that its orientation is suitable for viewing. Adjustments are based on EXIF metadata embedded in the image.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image to auto rotate.</param>
         /// <returns>The <see cref="Image"/></returns>
-        public static Image<TColor> AutoOrient<TColor>(this Image<TColor> source)
-            where TColor : struct, IPixel<TColor>
+        public static Image<TPixel> AutoOrient<TPixel>(this Image<TPixel> source)
+            where TPixel : struct, IPixel<TPixel>
         {
             Orientation orientation = GetExifOrientation(source);
 
@@ -60,11 +63,11 @@ namespace ImageSharp
         /// <summary>
         /// Returns the current EXIF orientation
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image to auto rotate.</param>
         /// <returns>The <see cref="Orientation"/></returns>
-        private static Orientation GetExifOrientation<TColor>(Image<TColor> source)
-            where TColor : struct, IPixel<TColor>
+        private static Orientation GetExifOrientation<TPixel>(Image<TPixel> source)
+            where TPixel : struct, IPixel<TPixel>
         {
             if (source.MetaData.ExifProfile == null)
             {

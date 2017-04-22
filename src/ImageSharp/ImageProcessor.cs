@@ -8,12 +8,14 @@ namespace ImageSharp.Processing
     using System;
     using System.Threading.Tasks;
 
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// Allows the application of processors to images.
     /// </summary>
-    /// <typeparam name="TColor">The pixel format.</typeparam>
-    internal abstract class ImageProcessor<TColor> : IImageProcessor<TColor>
-        where TColor : struct, IPixel<TColor>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    internal abstract class ImageProcessor<TPixel> : IImageProcessor<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
         /// <inheritdoc/>
         public virtual ParallelOptions ParallelOptions { get; set; }
@@ -22,7 +24,7 @@ namespace ImageSharp.Processing
         public virtual bool Compand { get; set; } = false;
 
         /// <inheritdoc/>
-        public void Apply(ImageBase<TColor> source, Rectangle sourceRectangle)
+        public void Apply(ImageBase<TPixel> source, Rectangle sourceRectangle)
         {
             if (this.ParallelOptions == null)
             {
@@ -50,19 +52,19 @@ namespace ImageSharp.Processing
         /// <param name="sourceRectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
         /// </param>
-        protected virtual void BeforeApply(ImageBase<TColor> source, Rectangle sourceRectangle)
+        protected virtual void BeforeApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
         {
         }
 
         /// <summary>
-        /// Applies the process to the specified portion of the specified <see cref="ImageBase{TColor}"/> at the specified location
+        /// Applies the process to the specified portion of the specified <see cref="ImageBase{TPixel}"/> at the specified location
         /// and with the specified size.
         /// </summary>
         /// <param name="source">The source image. Cannot be null.</param>
         /// <param name="sourceRectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
         /// </param>
-        protected abstract void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle);
+        protected abstract void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle);
 
         /// <summary>
         /// This method is called after the process is applied to prepare the processor.
@@ -71,7 +73,7 @@ namespace ImageSharp.Processing
         /// <param name="sourceRectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
         /// </param>
-        protected virtual void AfterApply(ImageBase<TColor> source, Rectangle sourceRectangle)
+        protected virtual void AfterApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
         {
         }
     }

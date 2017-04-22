@@ -189,7 +189,7 @@ namespace ImageSharp
         /// <summary>
         /// Rounds a single-precision floating-point value to the nearest integral value.
         /// </summary>
-        /// <param name="f">A single-precision floating-point number to be rounded. </param>
+        /// <param name="f">A single-precision floating-point number to be rounded.</param>
         /// <returns>
         /// The integer nearest <paramref name="f" />.
         /// If the fractional component of <paramref name="f" /> is halfway between two integers, one of which is even and the other odd, then the even number is returned.
@@ -204,7 +204,7 @@ namespace ImageSharp
         /// <summary>
         /// Returns the sine of the specified angle.
         /// </summary>
-        /// <param name="f">An angle, measured in radians. </param>
+        /// <param name="f">An angle, measured in radians.</param>
         /// <returns>
         /// The sine of <paramref name="f" />.
         /// If <paramref name="f" /> is equal to <see cref="F:System.Single.NaN" />, <see cref="F:System.Single.NegativeInfinity" />,
@@ -214,6 +214,26 @@ namespace ImageSharp
         public static float Sin(float f)
         {
             return (float)Math.Sin(f);
+        }
+
+        /// <summary>
+        /// Returns the result of a normalized sine cardinal function for the given value.
+        /// SinC(x) = sin(pi*x)/(pi*x).
+        /// </summary>
+        /// <param name="f">A single-precision floating-point number to calculate the result for.</param>
+        /// <returns>
+        /// The sine cardinal of <paramref name="f" />.
+        /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float SinC(float f)
+        {
+            if (Abs(f) > Constants.Epsilon)
+            {
+                f *= PI;
+                return Clean(Sin(f) / f);
+            }
+
+            return 1F;
         }
 
         /// <summary>
@@ -231,6 +251,24 @@ namespace ImageSharp
         public static float Sqrt(float f)
         {
             return (float)Math.Sqrt(f);
+        }
+
+        /// <summary>
+        /// Ensures that any passed float is correctly rounded to zero
+        /// </summary>
+        /// <param name="x">The value to clean.</param>
+        /// <returns>
+        /// The <see cref="float"/>
+        /// </returns>.
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static float Clean(float x)
+        {
+            if (Abs(x) < Constants.Epsilon)
+            {
+                return 0F;
+            }
+
+            return x;
         }
     }
 }

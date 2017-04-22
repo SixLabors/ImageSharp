@@ -8,14 +8,16 @@ namespace ImageSharp.Processing.Processors
     using System;
     using System.Diagnostics.CodeAnalysis;
 
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// The Laplacian 3 x 3 operator filter.
     /// <see href="http://en.wikipedia.org/wiki/Discrete_Laplace_operator"/>
     /// </summary>
-    /// <typeparam name="TColor">The pixel format.</typeparam>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
     [SuppressMessage("ReSharper", "StaticMemberInGenericType", Justification = "We want to use only one instance of each array field for each generic type.")]
-    internal class Laplacian3X3Processor<TColor> : EdgeDetectorProcessor<TColor>
-        where TColor : struct, IPixel<TColor>
+    internal class Laplacian3X3Processor<TPixel> : EdgeDetectorProcessor<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
         /// The 2d gradient operator.
@@ -29,7 +31,7 @@ namespace ImageSharp.Processing.Processors
             };
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Laplacian3X3Processor{TColor}"/> class.
+        /// Initializes a new instance of the <see cref="Laplacian3X3Processor{TPixel}"/> class.
         /// </summary>
         public Laplacian3X3Processor()
             : base(Laplacian3X3XY)

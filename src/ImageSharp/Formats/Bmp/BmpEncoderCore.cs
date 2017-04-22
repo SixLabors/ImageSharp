@@ -8,6 +8,8 @@ namespace ImageSharp.Formats
     using System;
     using System.IO;
 
+    using ImageSharp.PixelFormats;
+
     using IO;
 
     /// <summary>
@@ -35,13 +37,13 @@ namespace ImageSharp.Formats
         }
 
         /// <summary>
-        /// Encodes the image to the specified stream from the <see cref="ImageBase{TColor}"/>.
+        /// Encodes the image to the specified stream from the <see cref="ImageBase{TPixel}"/>.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <param name="image">The <see cref="ImageBase{TColor}"/> to encode from.</param>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="image">The <see cref="ImageBase{TPixel}"/> to encode from.</param>
         /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
-        public void Encode<TColor>(ImageBase<TColor> image, Stream stream)
-            where TColor : struct, IPixel<TColor>
+        public void Encode<TPixel>(ImageBase<TPixel> image, Stream stream)
+            where TPixel : struct, IPixel<TPixel>
         {
             Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));
@@ -124,15 +126,15 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Writes the pixel data to the binary stream.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="writer">The <see cref="EndianBinaryWriter"/> containing the stream to write to.</param>
         /// <param name="image">
-        /// The <see cref="ImageBase{TColor}"/> containing pixel data.
+        /// The <see cref="ImageBase{TPixel}"/> containing pixel data.
         /// </param>
-        private void WriteImage<TColor>(EndianBinaryWriter writer, ImageBase<TColor> image)
-            where TColor : struct, IPixel<TColor>
+        private void WriteImage<TPixel>(EndianBinaryWriter writer, ImageBase<TPixel> image)
+            where TPixel : struct, IPixel<TPixel>
         {
-            using (PixelAccessor<TColor> pixels = image.Lock())
+            using (PixelAccessor<TPixel> pixels = image.Lock())
             {
                 switch (this.options.BitsPerPixel)
                 {
@@ -150,13 +152,13 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Writes the 32bit color palette to the stream.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="writer">The <see cref="EndianBinaryWriter"/> containing the stream to write to.</param>
-        /// <param name="pixels">The <see cref="PixelAccessor{TColor}"/> containing pixel data.</param>
-        private void Write32Bit<TColor>(EndianBinaryWriter writer, PixelAccessor<TColor> pixels)
-            where TColor : struct, IPixel<TColor>
+        /// <param name="pixels">The <see cref="PixelAccessor{TPixel}"/> containing pixel data.</param>
+        private void Write32Bit<TPixel>(EndianBinaryWriter writer, PixelAccessor<TPixel> pixels)
+            where TPixel : struct, IPixel<TPixel>
         {
-            using (PixelArea<TColor> row = new PixelArea<TColor>(pixels.Width, ComponentOrder.Zyxw, this.padding))
+            using (PixelArea<TPixel> row = new PixelArea<TPixel>(pixels.Width, ComponentOrder.Zyxw, this.padding))
             {
                 for (int y = pixels.Height - 1; y >= 0; y--)
                 {
@@ -169,13 +171,13 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Writes the 24bit color palette to the stream.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="writer">The <see cref="EndianBinaryWriter"/> containing the stream to write to.</param>
-        /// <param name="pixels">The <see cref="PixelAccessor{TColor}"/> containing pixel data.</param>
-        private void Write24Bit<TColor>(EndianBinaryWriter writer, PixelAccessor<TColor> pixels)
-            where TColor : struct, IPixel<TColor>
+        /// <param name="pixels">The <see cref="PixelAccessor{TPixel}"/> containing pixel data.</param>
+        private void Write24Bit<TPixel>(EndianBinaryWriter writer, PixelAccessor<TPixel> pixels)
+            where TPixel : struct, IPixel<TPixel>
         {
-            using (PixelArea<TColor> row = new PixelArea<TColor>(pixels.Width, ComponentOrder.Zyx, this.padding))
+            using (PixelArea<TPixel> row = new PixelArea<TPixel>(pixels.Width, ComponentOrder.Zyx, this.padding))
             {
                 for (int y = pixels.Height - 1; y >= 0; y--)
                 {

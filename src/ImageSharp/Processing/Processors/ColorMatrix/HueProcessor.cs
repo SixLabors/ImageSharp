@@ -8,15 +8,17 @@ namespace ImageSharp.Processing.Processors
     using System;
     using System.Numerics;
 
+    using ImageSharp.PixelFormats;
+
     /// <summary>
-    /// An <see cref="ImageProcessor{TColor}"/> to change the hue of an <see cref="Image{TColor}"/>.
+    /// An <see cref="ImageProcessor{TPixel}"/> to change the hue of an <see cref="Image{TPixel}"/>.
     /// </summary>
-    /// <typeparam name="TColor">The pixel format.</typeparam>
-    internal class HueProcessor<TColor> : ColorMatrixProcessor<TColor>
-        where TColor : struct, IPixel<TColor>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    internal class HueProcessor<TPixel> : ColorMatrixProcessor<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="HueProcessor{TColor}"/> class.
+        /// Initializes a new instance of the <see cref="HueProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="angle">The new brightness of the image. Must be between -100 and 100.</param>
         public HueProcessor(float angle)

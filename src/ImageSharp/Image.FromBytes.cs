@@ -9,6 +9,8 @@ namespace ImageSharp
     using System.IO;
     using Formats;
 
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// Represents an image. Each pixel is a made up four 8-bit components red, green, blue, and alpha
     /// packed into a single unsigned integer value.
@@ -109,70 +111,70 @@ namespace ImageSharp
         /// <summary>
         /// Loads the image from the given byte array.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="data">The byte array containing image data.</param>
         /// <exception cref="NotSupportedException">
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
         /// <returns>The image</returns>
-        public static Image<TColor> Load<TColor>(byte[] data)
-            where TColor : struct, IPixel<TColor>
+        public static Image<TPixel> Load<TPixel>(byte[] data)
+            where TPixel : struct, IPixel<TPixel>
         {
-            return Load<TColor>(null, data, null);
+            return Load<TPixel>(null, data, null);
         }
 
         /// <summary>
         /// Loads the image from the given byte array.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="data">The byte array containing image data.</param>
         /// <param name="options">The options for the decoder.</param>
         /// <exception cref="NotSupportedException">
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
         /// <returns>The image</returns>
-        public static Image<TColor> Load<TColor>(byte[] data, IDecoderOptions options)
-            where TColor : struct, IPixel<TColor>
+        public static Image<TPixel> Load<TPixel>(byte[] data, IDecoderOptions options)
+            where TPixel : struct, IPixel<TPixel>
         {
-            return Load<TColor>(null, data, options);
+            return Load<TPixel>(null, data, options);
         }
 
         /// <summary>
         /// Loads the image from the given byte array.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="config">The config for the decoder.</param>
         /// <param name="data">The byte array containing image data.</param>
         /// <exception cref="NotSupportedException">
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
         /// <returns>The image</returns>
-        public static Image<TColor> Load<TColor>(Configuration config, byte[] data)
-            where TColor : struct, IPixel<TColor>
+        public static Image<TPixel> Load<TPixel>(Configuration config, byte[] data)
+            where TPixel : struct, IPixel<TPixel>
         {
-            return Load<TColor>(config, data, null);
+            return Load<TPixel>(config, data, null);
         }
 
         /// <summary>
         /// Loads the image from the given byte array.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="data">The byte array containing image data.</param>
         /// <param name="decoder">The decoder.</param>
         /// <exception cref="NotSupportedException">
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
         /// <returns>The image</returns>
-        public static Image<TColor> Load<TColor>(byte[] data, IImageDecoder decoder)
-            where TColor : struct, IPixel<TColor>
+        public static Image<TPixel> Load<TPixel>(byte[] data, IImageDecoder decoder)
+            where TPixel : struct, IPixel<TPixel>
         {
-            return Load<TColor>(data, decoder, null);
+            return Load<TPixel>(data, decoder, null);
         }
 
         /// <summary>
         /// Loads the image from the given byte array.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="config">The configuration options.</param>
         /// <param name="data">The byte array containing image data.</param>
         /// <param name="options">The options for the decoder.</param>
@@ -180,19 +182,19 @@ namespace ImageSharp
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
         /// <returns>The image</returns>
-        public static Image<TColor> Load<TColor>(Configuration config, byte[] data, IDecoderOptions options)
-            where TColor : struct, IPixel<TColor>
+        public static Image<TPixel> Load<TPixel>(Configuration config, byte[] data, IDecoderOptions options)
+            where TPixel : struct, IPixel<TPixel>
         {
             using (MemoryStream ms = new MemoryStream(data))
             {
-                return Load<TColor>(config, ms, options);
+                return Load<TPixel>(config, ms, options);
             }
         }
 
         /// <summary>
         /// Loads the image from the given byte array.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="data">The byte array containing image data.</param>
         /// <param name="decoder">The decoder.</param>
         /// <param name="options">The options for the decoder.</param>
@@ -200,12 +202,12 @@ namespace ImageSharp
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
         /// <returns>The image</returns>
-        public static Image<TColor> Load<TColor>(byte[] data, IImageDecoder decoder, IDecoderOptions options)
-            where TColor : struct, IPixel<TColor>
+        public static Image<TPixel> Load<TPixel>(byte[] data, IImageDecoder decoder, IDecoderOptions options)
+            where TPixel : struct, IPixel<TPixel>
         {
             using (MemoryStream ms = new MemoryStream(data))
             {
-                return Load<TColor>(ms, decoder, options);
+                return Load<TPixel>(ms, decoder, options);
             }
         }
     }

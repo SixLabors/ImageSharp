@@ -7,22 +7,24 @@ namespace ImageSharp
 {
     using System;
 
+    using ImageSharp.PixelFormats;
+
     using Processing;
     using Processing.Processors;
 
     /// <summary>
-    /// Extension methods for the <see cref="Image{TColor}"/> type.
+    /// Extension methods for the <see cref="Image{TPixel}"/> type.
     /// </summary>
     public static partial class ImageExtensions
     {
         /// <summary>
         /// Alters the colors of the image recreating an old Kodachrome camera effect.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
-        /// <returns>The <see cref="Image{TColor}"/>.</returns>
-        public static Image<TColor> Kodachrome<TColor>(this Image<TColor> source)
-            where TColor : struct, IPixel<TColor>
+        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        public static Image<TPixel> Kodachrome<TPixel>(this Image<TPixel> source)
+            where TPixel : struct, IPixel<TPixel>
         {
             return Kodachrome(source, source.Bounds);
         }
@@ -30,16 +32,16 @@ namespace ImageSharp
         /// <summary>
         /// Alters the colors of the image recreating an old Kodachrome camera effect.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
-        /// <returns>The <see cref="Image{TColor}"/>.</returns>
-        public static Image<TColor> Kodachrome<TColor>(this Image<TColor> source, Rectangle rectangle)
-            where TColor : struct, IPixel<TColor>
+        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        public static Image<TPixel> Kodachrome<TPixel>(this Image<TPixel> source, Rectangle rectangle)
+            where TPixel : struct, IPixel<TPixel>
         {
-            source.ApplyProcessor(new KodachromeProcessor<TColor>(), rectangle);
+            source.ApplyProcessor(new KodachromeProcessor<TPixel>(), rectangle);
             return source;
         }
     }

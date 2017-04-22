@@ -8,6 +8,9 @@ namespace ImageSharp.ColorSpaces
     using System;
     using System.ComponentModel;
     using System.Numerics;
+    using System.Runtime.CompilerServices;
+
+    using ImageSharp.PixelFormats;
 
     /// <summary>
     /// Represents an RGB color with specified <see cref="IRgbWorkingSpace"/> working space
@@ -105,6 +108,22 @@ namespace ImageSharp.ColorSpaces
 
         /// <inheritdoc />
         public Vector3 Vector => this.backingVector;
+
+        /// <summary>
+        /// Allows the implicit conversion of an instance of <see cref="Rgba32"/> to a
+        /// <see cref="Rgb"/>.
+        /// </summary>
+        /// <param name="color">
+        /// The instance of <see cref="Rgba32"/> to convert.
+        /// </param>
+        /// <returns>
+        /// An instance of <see cref="Rgb"/>.
+        /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static implicit operator Rgb(Rgba32 color)
+        {
+            return new Rgb(color.R / 255F, color.G / 255F, color.B / 255F);
+        }
 
         /// <summary>
         /// Compares two <see cref="Rgb"/> objects for equality.

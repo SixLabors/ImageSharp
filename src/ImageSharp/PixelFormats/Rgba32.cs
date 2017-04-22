@@ -9,6 +9,8 @@ namespace ImageSharp.PixelFormats
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
 
+    using ImageSharp.ColorSpaces;
+
     /// <summary>
     /// Packed pixel type containing four 8-bit unsigned normalized values ranging from 0 to 255.
     /// The color components are stored in red, green, blue, and alpha order.
@@ -152,7 +154,30 @@ namespace ImageSharp.PixelFormats
         }
 
         /// <inheritdoc/>
-        public uint PackedValue { get => this.Rgba; set => this.Rgba = value; }
+        public uint PackedValue
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => this.Rgba;
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            set => this.Rgba = value;
+        }
+
+        /// <summary>
+        /// Allows the implicit conversion of an instance of <see cref="Rgb"/> to a
+        /// <see cref="Rgba32"/>.
+        /// </summary>
+        /// <param name="color">
+        /// The instance of <see cref="Rgb"/> to convert.
+        /// </param>
+        /// <returns>
+        /// An instance of <see cref="Rgba32"/>.
+        /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static implicit operator Rgba32(Rgb color)
+        {
+            return new Rgba32(color.R, color.G, color.B);
+        }
 
         /// <summary>
         /// Compares two <see cref="Rgba32"/> objects for equality.

@@ -6,14 +6,14 @@
 namespace ImageSharp.Drawing.Processors
 {
     using System;
-    using System.Numerics;
+    using ImageSharp.PixelFormats;
 
     /// <summary>
     /// primitive that converts a <see cref="PointInfo"/> into a color and a distance away from the drawable part of the path.
     /// </summary>
-    /// <typeparam name="TColor">The type of the color.</typeparam>
-    public abstract class PenApplicator<TColor> : IDisposable
-        where TColor : struct, IPixel<TColor>
+    /// <typeparam name="TPixel">The type of the color.</typeparam>
+    public abstract class PenApplicator<TPixel> : IDisposable
+        where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
         /// Gets the required region.
@@ -27,7 +27,7 @@ namespace ImageSharp.Drawing.Processors
         public abstract void Dispose();
 
         /// <summary>
-        /// Gets a <see cref="ColoredPointInfo{TColor}" /> from a point represented by a <see cref="PointInfo" />.
+        /// Gets a <see cref="ColoredPointInfo{TPixel}" /> from a point represented by a <see cref="PointInfo" />.
         /// </summary>
         /// <param name="x">The x.</param>
         /// <param name="y">The y.</param>
@@ -35,6 +35,6 @@ namespace ImageSharp.Drawing.Processors
         /// <returns>
         /// Returns the color details and distance from a solid bit of the line.
         /// </returns>
-        public abstract ColoredPointInfo<TColor> GetColor(int x, int y, PointInfo info);
+        public abstract ColoredPointInfo<TPixel> GetColor(int x, int y, PointInfo info);
     }
 }

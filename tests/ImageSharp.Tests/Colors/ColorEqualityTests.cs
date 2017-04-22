@@ -7,6 +7,9 @@ namespace ImageSharp.Tests.Colors
 {
     using System;
     using System.Numerics;
+
+    using ImageSharp.PixelFormats;
+
     using Xunit;
 
     /// <summary>
@@ -32,7 +35,7 @@ namespace ImageSharp.Tests.Colors
                { new NormalizedShort4(Vector4.One), new NormalizedShort4(Vector4.One), typeof(NormalizedShort4) },
                { new Rg32(Vector2.One), new Rg32(Vector2.One), typeof(Rg32) },
                { new Rgba1010102(Vector4.One), new Rgba1010102(Vector4.One), typeof(Rgba1010102) },
-               { new Color(Vector4.One), new Color(Vector4.One), typeof(Color) },
+               { new Rgba32(Vector4.One), new Rgba32(Vector4.One), typeof(Rgba32) },
                { new Rgba64(Vector4.One), new Rgba64(Vector4.One), typeof(Rgba64) },
                { new Short2(Vector2.One * 0x7FFF), new Short2(Vector2.One * 0x7FFF), typeof(Short2) },
                { new Short4(Vector4.One * 0x7FFF), new Short4(Vector4.One * 0x7FFF), typeof(Short4) },
@@ -90,7 +93,7 @@ namespace ImageSharp.Tests.Colors
                 { new NormalizedShort4(Vector4.One), new NormalizedShort4(Vector4.Zero), typeof(NormalizedShort4) },
                 { new Rg32(Vector2.One), new Rg32(Vector2.Zero), typeof(Rg32) },
                 { new Rgba1010102(Vector4.One), new Rgba1010102(Vector4.Zero), typeof(Rgba1010102) },
-                { new Color(Vector4.One), new Color(Vector4.Zero), typeof(Color) },
+                { new Rgba32(Vector4.One), new Rgba32(Vector4.Zero), typeof(Rgba32) },
                 { new Rgba64(Vector4.One), new Rgba64(Vector4.Zero), typeof(Rgba64) },
                 { new Short2(Vector2.One * 0x7FFF), new Short2(Vector2.Zero), typeof(Short2) },
                 { new Short4(Vector4.One * 0x7FFF), new Short4(Vector4.Zero), typeof(Short4) },

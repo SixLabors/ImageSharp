@@ -11,9 +11,9 @@ namespace ImageSharp.Colors.Spaces
     /// Defines a generalized method that a value type or class implements to create
     /// a type-specific method for determining approximate equality of instances.
     /// </summary>
-    /// <typeparam name="TColor">The type of objects to compare.</typeparam>
+    /// <typeparam name="TPixel">The type of objects to compare.</typeparam>
     /// <typeparam name="TPrecision">The object specifying the type to specify precision with.</typeparam>
-    public interface IAlmostEquatable<in TColor, in TPrecision>
+    public interface IAlmostEquatable<in TPixel, in TPrecision>
         where TPrecision : struct, IComparable<TPrecision>
     {
         /// <summary>
@@ -25,6 +25,6 @@ namespace ImageSharp.Colors.Spaces
         /// <returns>
         /// true if the current object is equal to the other parameter; otherwise, false.
         /// </returns>
-        bool AlmostEquals(TColor other, TPrecision precision);
+        bool AlmostEquals(TPixel other, TPrecision precision);
     }
 }

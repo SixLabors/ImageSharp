@@ -9,9 +9,11 @@ namespace ImageSharp.Benchmarks
     using System.Drawing.Drawing2D;
 
     using BenchmarkDotNet.Attributes;
+
+    using ImageSharp.PixelFormats;
+
     using CoreSize = ImageSharp.Size;
     using CoreImage = ImageSharp.Image;
-    using CoreVectorImage = ImageSharp.Image<ImageSharp.ColorVector>;
 
     public class Resize : BenchmarkBase
     {
@@ -48,7 +50,7 @@ namespace ImageSharp.Benchmarks
         [Benchmark(Description = "ImageSharp Vector Resize")]
         public CoreSize ResizeCoreVector()
         {
-            using (CoreVectorImage image = new CoreVectorImage(2000, 2000))
+            using (CoreImage image = new CoreImage(2000, 2000))
             {
                 image.Resize(400, 400);
                 return new CoreSize(image.Width, image.Height);
@@ -68,7 +70,7 @@ namespace ImageSharp.Benchmarks
         [Benchmark(Description = "ImageSharp Vector Compand Resize")]
         public CoreSize ResizeCoreVectorCompand()
         {
-            using (CoreVectorImage image = new CoreVectorImage(2000, 2000))
+            using (CoreImage image = new CoreImage(2000, 2000))
             {
                 image.Resize(400, 400, true);
                 return new CoreSize(image.Width, image.Height);

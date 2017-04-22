@@ -3,12 +3,12 @@ namespace ImageSharp.Benchmarks.Color.Bulk
 {
     using BenchmarkDotNet.Attributes;
 
-    using Color = ImageSharp.Color;
+    using ImageSharp.PixelFormats;
 
-    public abstract class ToXyz<TColor>
-        where TColor : struct, IPixel<TColor>
+    public abstract class ToXyz<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
-        private Buffer<TColor> source;
+        private Buffer<TPixel> source;
 
         private Buffer<byte> destination;
 
@@ -18,7 +18,7 @@ namespace ImageSharp.Benchmarks.Color.Bulk
         [Setup]
         public void Setup()
         {
-            this.source = new Buffer<TColor>(this.Count);
+            this.source = new Buffer<TPixel>(this.Count);
             this.destination = new Buffer<byte>(this.Count * 3);
         }
 
@@ -32,12 +32,12 @@ namespace ImageSharp.Benchmarks.Color.Bulk
         [Benchmark(Baseline = true)]
         public void PerElement()
         {
-            TColor[] s = this.source.Array;
+            TPixel[] s = this.source.Array;
             byte[] d = this.destination.Array;
 
             for (int i = 0; i < this.Count; i++)
             {
-                TColor c = s[i];
+                TPixel c = s[i];
                 c.ToXyzBytes(d, i * 4);
             }
         }
@@ -45,17 +45,17 @@ namespace ImageSharp.Benchmarks.Color.Bulk
         [Benchmark]
         public void CommonBulk()
         {
-            new BulkPixelOperations<TColor>().ToXyzBytes(this.source, this.destination, this.Count);
+            new BulkPixelOperations<TPixel>().ToXyzBytes(this.source, this.destination, this.Count);
         }
 
         [Benchmark]
         public void OptimizedBulk()
         {
-            BulkPixelOperations<TColor>.Instance.ToXyzBytes(this.source, this.destination, this.Count);
+            BulkPixelOperations<TPixel>.Instance.ToXyzBytes(this.source, this.destination, this.Count);
         }
     }
 
-    public class ToXyz_Color : ToXyz<Color>
+    public class ToXyz_Color : ToXyz<Rgba32>
     {
     }
 }

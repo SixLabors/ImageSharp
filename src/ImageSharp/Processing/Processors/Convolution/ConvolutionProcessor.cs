@@ -9,15 +9,17 @@ namespace ImageSharp.Processing.Processors
     using System.Numerics;
     using System.Threading.Tasks;
 
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// Defines a sampler that uses a 2 dimensional matrix to perform convolution against an image.
     /// </summary>
-    /// <typeparam name="TColor">The pixel format.</typeparam>
-    internal class ConvolutionProcessor<TColor> : ImageProcessor<TColor>
-        where TColor : struct, IPixel<TColor>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    internal class ConvolutionProcessor<TPixel> : ImageProcessor<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="ConvolutionProcessor{TColor}"/> class.
+        /// Initializes a new instance of the <see cref="ConvolutionProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="kernelXY">The 2d gradient operator.</param>
         public ConvolutionProcessor(Fast2DArray<float> kernelXY)
@@ -31,7 +33,7 @@ namespace ImageSharp.Processing.Processors
         public Fast2DArray<float> KernelXY { get; }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
         {
             int kernelLength = this.KernelXY.Height;
             int radius = kernelLength >> 1;
@@ -43,9 +45,9 @@ namespace ImageSharp.Processing.Processors
             int maxY = endY - 1;
             int maxX = endX - 1;
 
-            using (PixelAccessor<TColor> targetPixels = new PixelAccessor<TColor>(source.Width, source.Height))
+            using (PixelAccessor<TPixel> targetPixels = new PixelAccessor<TPixel>(source.Width, source.Height))
             {
-                using (PixelAccessor<TColor> sourcePixels = source.Lock())
+                using (PixelAccessor<TPixel> sourcePixels = source.Lock())
                 {
                     Parallel.For(
                     startY,
@@ -83,7 +85,7 @@ namespace ImageSharp.Processing.Processors
                                 }
                             }
 
-                            TColor packed = default(TColor);
+                            TPixel packed = default(TPixel);
                             packed.PackFromVector4(new Vector4(red, green, blue, sourcePixels[x, y].ToVector4().W));
                             targetPixels[x, y] = packed;
                         }

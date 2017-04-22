@@ -9,15 +9,17 @@ namespace ImageSharp.Processing.Processors
     using System.Numerics;
     using System.Threading.Tasks;
 
+    using ImageSharp.PixelFormats;
+
     /// <summary>
-    /// An <see cref="IImageProcessor{TColor}"/> to change the alpha component of an <see cref="Image{TColor}"/>.
+    /// An <see cref="IImageProcessor{TPixel}"/> to change the alpha component of an <see cref="Image{TPixel}"/>.
     /// </summary>
-    /// <typeparam name="TColor">The pixel format.</typeparam>
-    internal class AlphaProcessor<TColor> : ImageProcessor<TColor>
-        where TColor : struct, IPixel<TColor>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    internal class AlphaProcessor<TPixel> : ImageProcessor<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="AlphaProcessor{TColor}"/> class.
+        /// Initializes a new instance of the <see cref="AlphaProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="percent">The percentage to adjust the opacity of the image. Must be between 0 and 100.</param>
         /// <exception cref="System.ArgumentException">
@@ -35,7 +37,7 @@ namespace ImageSharp.Processing.Processors
         public int Value { get; }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
         {
             float alpha = this.Value / 100F;
 
@@ -63,7 +65,7 @@ namespace ImageSharp.Processing.Processors
 
             Vector4 alphaVector = new Vector4(1, 1, 1, alpha);
 
-            using (PixelAccessor<TColor> sourcePixels = source.Lock())
+            using (PixelAccessor<TPixel> sourcePixels = source.Lock())
             {
                 Parallel.For(
                     minY,
@@ -75,7 +77,7 @@ namespace ImageSharp.Processing.Processors
                         for (int x = minX; x < maxX; x++)
                         {
                             int offsetX = x - startX;
-                            TColor packed = default(TColor);
+                            TPixel packed = default(TPixel);
                             packed.PackFromVector4(sourcePixels[offsetX, offsetY].ToVector4() * alphaVector);
                             sourcePixels[offsetX, offsetY] = packed;
                         }

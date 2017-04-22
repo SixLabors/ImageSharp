@@ -7,6 +7,8 @@ namespace ImageSharp.Tests
 {
     using System.IO;
 
+    using ImageSharp.PixelFormats;
+
     using Xunit;
 
     public class BackgroundColorTest : FileTestBase
@@ -21,7 +23,7 @@ namespace ImageSharp.Tests
                 using (Image image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{file.FileName}"))
                 {
-                    image.BackgroundColor(Color.HotPink).Save(output);
+                    image.BackgroundColor(Rgba32.HotPink).Save(output);
                 }
             }
         }

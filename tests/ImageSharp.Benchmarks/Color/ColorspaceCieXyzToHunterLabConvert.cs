@@ -5,9 +5,8 @@
     using Colourful;
     using Colourful.Conversion;
 
-    using ImageSharp.Colors.Spaces;
-
-    using ColorSpaceConverter = ImageSharp.Colors.Spaces.Conversion.ColorSpaceConverter;
+    using ImageSharp.ColorSpaces;
+    using ImageSharp.ColorSpaces.Conversion;
 
     public class ColorspaceCieXyzToHunterLabConvert
     {

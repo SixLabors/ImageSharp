@@ -8,7 +8,7 @@ namespace ImageSharp
     /// <summary>
     /// Enumerates the primary platform/operating system framework for which the profile was created
     /// </summary>
-    internal enum IccPrimaryPlatformType : uint
+    public enum IccPrimaryPlatformType : uint
     {
         /// <summary>
         /// No platform identified

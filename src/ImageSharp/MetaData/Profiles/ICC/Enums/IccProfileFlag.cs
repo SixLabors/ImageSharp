@@ -13,7 +13,7 @@ namespace ImageSharp
     /// the rest can be used for vendor specific values
     /// </summary>
     [Flags]
-    internal enum IccProfileFlag : int
+    public enum IccProfileFlag : int
     {
         /// <summary>
         /// No flags (equivalent to NotEmbedded and Independent)

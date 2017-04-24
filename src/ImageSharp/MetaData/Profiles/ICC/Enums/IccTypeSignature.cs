@@ -8,7 +8,7 @@ namespace ImageSharp
     /// <summary>
     /// Type Signature
     /// </summary>
-    internal enum IccTypeSignature : uint
+    public enum IccTypeSignature : uint
     {
         /// <summary>
         /// Unknown type signature

@@ -14,7 +14,7 @@ namespace ImageSharp
     /// <summary>
     /// Represents an ICC profile
     /// </summary>
-    internal class IccProfile
+    public sealed class IccProfile
     {
         /// <summary>
         /// The byte array to read the ICC profile from

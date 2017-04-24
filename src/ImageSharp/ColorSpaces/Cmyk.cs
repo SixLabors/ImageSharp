@@ -8,6 +8,7 @@ namespace ImageSharp.ColorSpaces
     using System;
     using System.ComponentModel;
     using System.Numerics;
+    using System.Runtime.CompilerServices;
 
     /// <summary>
     /// Represents an CMYK (cyan, magenta, yellow, keyline) color.
@@ -31,6 +32,7 @@ namespace ImageSharp.ColorSpaces
         /// <param name="m">The magenta component.</param>
         /// <param name="y">The yellow component.</param>
         /// <param name="k">The keyline black component.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Cmyk(float c, float m, float y, float k)
             : this(new Vector4(c, m, y, k))
         {
@@ -40,6 +42,7 @@ namespace ImageSharp.ColorSpaces
         /// Initializes a new instance of the <see cref="Cmyk"/> struct.
         /// </summary>
         /// <param name="vector">The vector representing the c, m, y, k components.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Cmyk(Vector4 vector)
             : this()
         {
@@ -50,25 +53,41 @@ namespace ImageSharp.ColorSpaces
         /// Gets the cyan color component.
         /// <remarks>A value ranging between 0 and 1.</remarks>
         /// </summary>
-        public float C => this.backingVector.X;
+        public float C
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => this.backingVector.X;
+        }
 
         /// <summary>
         /// Gets the magenta color component.
         /// <remarks>A value ranging between 0 and 1.</remarks>
         /// </summary>
-        public float M => this.backingVector.Y;
+        public float M
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => this.backingVector.Y;
+        }
 
         /// <summary>
         /// Gets the yellow color component.
         /// <remarks>A value ranging between 0 and 1.</remarks>
         /// </summary>
-        public float Y => this.backingVector.Z;
+        public float Y
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => this.backingVector.Z;
+        }
 
         /// <summary>
         /// Gets the keyline black color component.
         /// <remarks>A value ranging between 0 and 1.</remarks>
         /// </summary>
-        public float K => this.backingVector.W;
+        public float K
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => this.backingVector.W;
+        }
 
         /// <summary>
         /// Gets a value indicating whether this <see cref="Cmyk"/> is empty.
@@ -88,6 +107,7 @@ namespace ImageSharp.ColorSpaces
         /// <returns>
         /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator ==(Cmyk left, Cmyk right)
         {
             return left.Equals(right);
@@ -105,6 +125,7 @@ namespace ImageSharp.ColorSpaces
         /// <returns>
         /// True if the current left is unequal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator !=(Cmyk left, Cmyk right)
         {
             return !left.Equals(right);
@@ -128,6 +149,7 @@ namespace ImageSharp.ColorSpaces
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override bool Equals(object obj)
         {
             if (obj is Cmyk)
@@ -139,12 +161,14 @@ namespace ImageSharp.ColorSpaces
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Equals(Cmyk other)
         {
             return this.backingVector.Equals(other.backingVector);
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool AlmostEquals(Cmyk other, float precision)
         {
             Vector4 result = Vector4.Abs(this.backingVector - other.backingVector);

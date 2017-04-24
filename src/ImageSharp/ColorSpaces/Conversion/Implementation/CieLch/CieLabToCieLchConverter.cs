@@ -5,6 +5,8 @@
 
 namespace ImageSharp.ColorSpaces.Conversion.Implementation.CieLch
 {
+    using System.Runtime.CompilerServices;
+
     using ImageSharp.ColorSpaces;
 
     /// <summary>
@@ -13,6 +15,7 @@ namespace ImageSharp.ColorSpaces.Conversion.Implementation.CieLch
     internal class CieLabToCieLchConverter : IColorConversion<CieLab, CieLch>
     {
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public CieLch Convert(CieLab input)
         {
             DebugGuard.NotNull(input, nameof(input));

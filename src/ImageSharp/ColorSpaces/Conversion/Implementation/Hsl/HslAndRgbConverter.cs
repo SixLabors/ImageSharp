@@ -16,8 +16,11 @@ namespace ImageSharp.ColorSpaces.Conversion.Implementation.Hsl
     internal class HslAndRgbConverter : IColorConversion<Hsl, Rgb>, IColorConversion<Rgb, Hsl>
     {
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Rgb Convert(Hsl input)
         {
+            DebugGuard.NotNull(input, nameof(input));
+
             float rangedH = input.H / 360F;
             float r = 0;
             float g = 0;
@@ -46,8 +49,11 @@ namespace ImageSharp.ColorSpaces.Conversion.Implementation.Hsl
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Hsl Convert(Rgb input)
         {
+            DebugGuard.NotNull(input, nameof(input));
+
             float r = input.R;
             float g = input.G;
             float b = input.B;

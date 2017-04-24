@@ -6,6 +6,7 @@
 namespace ImageSharp.ColorSpaces.Conversion.Implementation.Cmyk
 {
     using System;
+    using System.Runtime.CompilerServices;
 
     using ImageSharp.ColorSpaces;
 
@@ -15,6 +16,7 @@ namespace ImageSharp.ColorSpaces.Conversion.Implementation.Cmyk
     internal class CmykAndRgbConverter : IColorConversion<Cmyk, Rgb>, IColorConversion<Rgb, Cmyk>
     {
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Rgb Convert(Cmyk input)
         {
             float r = (1F - input.C) * (1F - input.K);
@@ -25,6 +27,7 @@ namespace ImageSharp.ColorSpaces.Conversion.Implementation.Cmyk
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Cmyk Convert(Rgb input)
         {
             // To CMYK
@@ -35,7 +38,7 @@ namespace ImageSharp.ColorSpaces.Conversion.Implementation.Cmyk
             // To CMYK
             float k = MathF.Min(c, MathF.Min(m, y));
 
-            if (Math.Abs(k - 1F) < Constants.Epsilon)
+            if (MathF.Abs(k - 1F) < Constants.Epsilon)
             {
                 return new Cmyk(0, 0, 0, 1F);
             }

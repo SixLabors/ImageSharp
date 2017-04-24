@@ -5,6 +5,8 @@
 
 namespace ImageSharp.ColorSpaces.Conversion.Implementation.CieLab
 {
+    using System.Runtime.CompilerServices;
+
     using ImageSharp.ColorSpaces;
 
     /// <summary>
@@ -15,6 +17,7 @@ namespace ImageSharp.ColorSpaces.Conversion.Implementation.CieLab
         /// <summary>
         /// Initializes a new instance of the <see cref="CieXyzToCieLabConverter"/> class.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public CieXyzToCieLabConverter()
             : this(CieLab.DefaultWhitePoint)
         {
@@ -24,6 +27,7 @@ namespace ImageSharp.ColorSpaces.Conversion.Implementation.CieLab
         /// Initializes a new instance of the <see cref="CieXyzToCieLabConverter"/> class.
         /// </summary>
         /// <param name="labWhitePoint">The target reference lab white point</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public CieXyzToCieLabConverter(CieXyz labWhitePoint)
         {
             this.LabWhitePoint = labWhitePoint;
@@ -32,9 +36,14 @@ namespace ImageSharp.ColorSpaces.Conversion.Implementation.CieLab
         /// <summary>
         /// Gets the target reference whitepoint. When not set, <see cref="CieLab.DefaultWhitePoint"/> is used.
         /// </summary>
-        public CieXyz LabWhitePoint { get; }
+        public CieXyz LabWhitePoint
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get;
+        }
 
         /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public CieLab Convert(CieXyz input)
         {
             DebugGuard.NotNull(input, nameof(input));

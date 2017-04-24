@@ -10,7 +10,7 @@ namespace ImageSharp
     /// <summary>
     /// The data of an ICC tag entry
     /// </summary>
-    internal abstract class IccTagDataEntry : IEquatable<IccTagDataEntry>
+    public abstract class IccTagDataEntry : IEquatable<IccTagDataEntry>
     {
         private IccProfileTag tagSignature = IccProfileTag.Unknown;
 
@@ -45,8 +45,8 @@ namespace ImageSharp
         /// </summary>
         public IccProfileTag TagSignature
         {
-            get { return this.tagSignature; }
-            set { this.tagSignature = value; }
+            get => this.tagSignature;
+            set => this.tagSignature = value;
         }
 
         /// <inheritdoc/>

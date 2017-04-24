@@ -13,7 +13,7 @@ namespace ImageSharp
     /// the rest can be used for vendor specific values
     /// </summary>
     [Flags]
-    internal enum IccDeviceAttribute : long
+    public enum IccDeviceAttribute : long
     {
         /// <summary>
         /// Opacity transparent

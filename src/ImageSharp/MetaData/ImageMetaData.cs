@@ -117,6 +117,11 @@ namespace ImageSharp
         public ExifProfile ExifProfile { get; set; }
 
         /// <summary>
+        /// Gets or sets the ICC profile.
+        /// </summary>
+        public IccProfile IccProfile { get; set; }
+
+        /// <summary>
         /// Gets or sets the frame delay for animated images.
         /// If not 0, this field specifies the number of hundredths (1/100) of a second to
         /// wait before continuing with the processing of the Data Stream.

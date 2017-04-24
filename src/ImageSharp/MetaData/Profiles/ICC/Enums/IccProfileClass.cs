@@ -8,7 +8,7 @@ namespace ImageSharp
     /// <summary>
     /// Profile Class Name
     /// </summary>
-    internal enum IccProfileClass : uint
+    public enum IccProfileClass : uint
     {
         /// <summary>
         /// Input profiles are generally used with devices such as scanners and

@@ -84,6 +84,11 @@ namespace ImageSharp.Formats
         private bool isExif;
 
         /// <summary>
+        /// Whether the image has an ICC header
+        /// </summary>
+        private bool isIcc;
+
+        /// <summary>
         /// The vertical resolution. Calculated if the image has a JFIF header.
         /// </summary>
         private short verticalResolution;
@@ -435,6 +440,9 @@ namespace ImageSharp.Formats
                         break;
                     case JpegConstants.Markers.APP1:
                         this.ProcessApp1Marker(remaining, metadata);
+                        break;
+                    case JpegConstants.Markers.APP2:
+                        this.ProcessApp2Marker(remaining, metadata);
                         break;
                     case JpegConstants.Markers.APP14:
                         this.ProcessApp14Marker(remaining);
@@ -962,11 +970,54 @@ namespace ImageSharp.Formats
             byte[] profile = new byte[remaining];
             this.InputProcessor.ReadFull(profile, 0, remaining);
 
-            if (profile[0] == 'E' && profile[1] == 'x' && profile[2] == 'i' && profile[3] == 'f' && profile[4] == '\0'
-                && profile[5] == '\0')
+            if (profile[0] == 'E' &&
+                profile[1] == 'x' &&
+                profile[2] == 'i' &&
+                profile[3] == 'f' &&
+                profile[4] == '\0' &&
+                profile[5] == '\0')
             {
                 this.isExif = true;
                 metadata.ExifProfile = new ExifProfile(profile);
+            }
+        }
+
+        /// <summary>
+        /// Processes the App2 marker retrieving any stored ICC profile information
+        /// </summary>
+        /// <param name="remaining">The remaining bytes in the segment block.</param>
+        /// <param name="metadata">The image.</param>
+        private void ProcessApp2Marker(int remaining, ImageMetaData metadata)
+        {
+            // Length is 14 though we only need to check 12.
+            const int Icclength = 14;
+            if (remaining < Icclength || this.options.IgnoreMetadata)
+            {
+                this.InputProcessor.Skip(remaining);
+                return;
+            }
+
+            byte[] identifier = new byte[Icclength];
+            this.InputProcessor.ReadFull(identifier, 0, Icclength);
+
+            if (identifier[0] == 'I' &&
+                identifier[1] == 'C' &&
+                identifier[2] == 'C' &&
+                identifier[3] == '_' &&
+                identifier[4] == 'P' &&
+                identifier[5] == 'R' &&
+                identifier[6] == 'O' &&
+                identifier[7] == 'F' &&
+                identifier[8] == 'I' &&
+                identifier[9] == 'L' &&
+                identifier[10] == 'E' &&
+                identifier[11] == '\0')
+            {
+                this.isIcc = true;
+                remaining -= Icclength;
+                byte[] profile = new byte[remaining];
+                this.InputProcessor.ReadFull(profile, 0, remaining);
+                metadata.IccProfile = new IccProfile(profile);
             }
         }
 

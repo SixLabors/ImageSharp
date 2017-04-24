@@ -8,7 +8,7 @@ namespace ImageSharp
     /// <summary>
     /// Color Space Type
     /// </summary>
-    internal enum IccColorSpaceType : uint
+    public enum IccColorSpaceType : uint
     {
         /// <summary>
         /// CIE XYZ

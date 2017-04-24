@@ -8,6 +8,7 @@ namespace ImageSharp.ColorSpaces
     using System;
     using System.ComponentModel;
     using System.Numerics;
+    using System.Runtime.CompilerServices;
 
     /// <summary>
     /// Represents an Hunter LAB color.
@@ -38,6 +39,7 @@ namespace ImageSharp.ColorSpaces
         /// <param name="a">The a (green - magenta) component.</param>
         /// <param name="b">The b (blue - yellow) component.</param>
         /// <remarks>Uses <see cref="DefaultWhitePoint"/> as white point.</remarks>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public HunterLab(float l, float a, float b)
             : this(new Vector3(l, a, b), DefaultWhitePoint)
         {
@@ -50,6 +52,7 @@ namespace ImageSharp.ColorSpaces
         /// <param name="a">The a (green - magenta) component.</param>
         /// <param name="b">The b (blue - yellow) component.</param>
         /// <param name="whitePoint">The reference white point. <see cref="Illuminants"/></param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public HunterLab(float l, float a, float b, CieXyz whitePoint)
             : this(new Vector3(l, a, b), whitePoint)
         {
@@ -60,6 +63,7 @@ namespace ImageSharp.ColorSpaces
         /// </summary>
         /// <param name="vector">The vector representing the l, a, b components.</param>
         /// <remarks>Uses <see cref="DefaultWhitePoint"/> as white point.</remarks>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public HunterLab(Vector3 vector)
             : this(vector, DefaultWhitePoint)
         {
@@ -70,6 +74,7 @@ namespace ImageSharp.ColorSpaces
         /// </summary>
         /// <param name="vector">The vector representing the l a b components.</param>
         /// <param name="whitePoint">The reference white point. <see cref="Illuminants"/></param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public HunterLab(Vector3 vector, CieXyz whitePoint)
             : this()
         {
@@ -86,19 +91,31 @@ namespace ImageSharp.ColorSpaces
         /// Gets the lightness dimension.
         /// <remarks>A value ranging between 0 (black), 100 (diffuse white) or higher (specular white).</remarks>
         /// </summary>
-        public float L => this.backingVector.X;
+        public float L
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => this.backingVector.X;
+        }
 
         /// <summary>
         /// Gets the a color component.
         /// <remarks>A value ranging from -100 to 100. Negative is green, positive magenta.</remarks>
         /// </summary>
-        public float A => this.backingVector.Y;
+        public float A
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => this.backingVector.Y;
+        }
 
         /// <summary>
         /// Gets the b color component.
         /// <remarks>A value ranging from -100 to 100. Negative is blue, positive is yellow</remarks>
         /// </summary>
-        public float B => this.backingVector.Z;
+        public float B
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => this.backingVector.Z;
+        }
 
         /// <summary>
         /// Gets a value indicating whether this <see cref="HunterLab"/> is empty.
@@ -107,7 +124,11 @@ namespace ImageSharp.ColorSpaces
         public bool IsEmpty => this.Equals(Empty);
 
         /// <inheritdoc />
-        public Vector3 Vector => this.backingVector;
+        public Vector3 Vector
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => this.backingVector;
+        }
 
         /// <summary>
         /// Compares two <see cref="HunterLab"/> objects for equality.
@@ -121,6 +142,7 @@ namespace ImageSharp.ColorSpaces
         /// <returns>
         /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator ==(HunterLab left, HunterLab right)
         {
             return left.Equals(right);
@@ -138,6 +160,7 @@ namespace ImageSharp.ColorSpaces
         /// <returns>
         /// True if the current left is unequal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator !=(HunterLab left, HunterLab right)
         {
             return !left.Equals(right);
@@ -161,6 +184,7 @@ namespace ImageSharp.ColorSpaces
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override bool Equals(object obj)
         {
             if (obj is HunterLab)
@@ -172,12 +196,14 @@ namespace ImageSharp.ColorSpaces
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Equals(HunterLab other)
         {
             return this.backingVector.Equals(other.backingVector);
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool AlmostEquals(HunterLab other, float precision)
         {
             Vector3 result = Vector3.Abs(this.backingVector - other.backingVector);

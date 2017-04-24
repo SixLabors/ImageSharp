@@ -24,7 +24,14 @@ namespace ImageSharp.Formats
         /// <summary>
         /// The dictionary of available color types.
         /// </summary>
-        private static readonly Dictionary<int, byte[]> ColorTypes = new Dictionary<int, byte[]>();
+        private static readonly Dictionary<PngColorType, byte[]> ColorTypes = new Dictionary<PngColorType, byte[]>()
+        {
+            [PngColorType.Grayscale] = new byte[] { 1, 2, 4, 8 },
+            [PngColorType.Rgb] = new byte[] { 8 },
+            [PngColorType.Palette] = new byte[] { 1, 2, 4, 8 },
+            [PngColorType.GrayscaleWithAlpha] = new byte[] { 8 },
+            [PngColorType.RgbWithAlpha] = new byte[] { 8 },
+        };
 
         /// <summary>
         /// The amount to increment when processing each column per scanline for each interlaced pass
@@ -122,20 +129,24 @@ namespace ImageSharp.Formats
         private bool isEndChunkReached;
 
         /// <summary>
-        /// Initializes static members of the <see cref="PngDecoderCore"/> class.
+        /// Previous scanline processed
         /// </summary>
-        static PngDecoderCore()
-        {
-            ColorTypes.Add((int)PngColorType.Grayscale, new byte[] { 1, 2, 4, 8 });
+        private byte[] previousScanline;
 
-            ColorTypes.Add((int)PngColorType.Rgb, new byte[] { 8 });
+        /// <summary>
+        /// The current scanline that is being processed
+        /// </summary>
+        private byte[] scanline;
 
-            ColorTypes.Add((int)PngColorType.Palette, new byte[] { 1, 2, 4, 8 });
+        /// <summary>
+        /// The index of the current scanline being processed
+        /// </summary>
+        private int currentRow = 0;
 
-            ColorTypes.Add((int)PngColorType.GrayscaleWithAlpha, new byte[] { 8 });
-
-            ColorTypes.Add((int)PngColorType.RgbWithAlpha, new byte[] { 8 });
-        }
+        /// <summary>
+        /// The current number of bytes read in the current scanline
+        /// </summary>
+        private int currentRowBytesRead = 0;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PngDecoderCore"/> class.
@@ -171,65 +182,76 @@ namespace ImageSharp.Formats
             ImageMetaData metadata = new ImageMetaData();
             this.currentStream = stream;
             this.currentStream.Skip(8);
-
-            using (MemoryStream dataStream = new MemoryStream())
+            Image<TPixel> image = null;
+            PixelAccessor<TPixel> pixels = null;
+            try
             {
-                PngChunk currentChunk;
-                while (!this.isEndChunkReached && (currentChunk = this.ReadChunk()) != null)
+                using (DeframeStream deframeStream = new DeframeStream(this.currentStream))
                 {
-                    try
+                    PngChunk currentChunk;
+                    while (!this.isEndChunkReached && (currentChunk = this.ReadChunk()) != null)
                     {
-                        switch (currentChunk.Type)
+                        try
                         {
-                            case PngChunkTypes.Header:
-                                this.ReadHeaderChunk(currentChunk.Data);
-                                this.ValidateHeader();
-                                break;
-                            case PngChunkTypes.Physical:
-                                this.ReadPhysicalChunk(metadata, currentChunk.Data);
-                                break;
-                            case PngChunkTypes.Data:
-                                dataStream.Write(currentChunk.Data, 0, currentChunk.Length);
-                                break;
-                            case PngChunkTypes.Palette:
-                                byte[] pal = new byte[currentChunk.Length];
-                                Buffer.BlockCopy(currentChunk.Data, 0, pal, 0, currentChunk.Length);
-                                this.palette = pal;
-                                metadata.Quality = pal.Length / 3;
-                                break;
-                            case PngChunkTypes.PaletteAlpha:
-                                byte[] alpha = new byte[currentChunk.Length];
-                                Buffer.BlockCopy(currentChunk.Data, 0, alpha, 0, currentChunk.Length);
-                                this.paletteAlpha = alpha;
-                                break;
-                            case PngChunkTypes.Text:
-                                this.ReadTextChunk(metadata, currentChunk.Data, currentChunk.Length);
-                                break;
-                            case PngChunkTypes.End:
-                                this.isEndChunkReached = true;
-                                break;
+                            switch (currentChunk.Type)
+                            {
+                                case PngChunkTypes.Header:
+                                    this.ReadHeaderChunk(currentChunk.Data);
+                                    this.ValidateHeader();
+                                    break;
+                                case PngChunkTypes.Physical:
+                                    this.ReadPhysicalChunk(metadata, currentChunk.Data);
+                                    break;
+                                case PngChunkTypes.Data:
+                                    if (image == null)
+                                    {
+                                        this.InitializeImage(metadata, out image, out pixels);
+                                    }
+
+                                    deframeStream.AllocateNewBytes(currentChunk.Length);
+                                    this.ReadScanlines(deframeStream.CompressedStream, pixels);
+                                    stream.Read(this.crcBuffer, 0, 4);
+                                    break;
+                                case PngChunkTypes.Palette:
+                                    byte[] pal = new byte[currentChunk.Length];
+                                    Buffer.BlockCopy(currentChunk.Data, 0, pal, 0, currentChunk.Length);
+                                    this.palette = pal;
+                                    metadata.Quality = pal.Length / 3;
+                                    break;
+                                case PngChunkTypes.PaletteAlpha:
+                                    byte[] alpha = new byte[currentChunk.Length];
+                                    Buffer.BlockCopy(currentChunk.Data, 0, alpha, 0, currentChunk.Length);
+                                    this.paletteAlpha = alpha;
+                                    break;
+                                case PngChunkTypes.Text:
+                                    this.ReadTextChunk(metadata, currentChunk.Data, currentChunk.Length);
+                                    break;
+                                case PngChunkTypes.End:
+                                    this.isEndChunkReached = true;
+                                    break;
+                            }
+                        }
+                        finally
+                        {
+                            // Data is rented in ReadChunkData()
+                            if (currentChunk.Data != null)
+                            {
+                                ArrayPool<byte>.Shared.Return(currentChunk.Data);
+                            }
                         }
                     }
-                    finally
-                    {
-                        // Data is rented in ReadChunkData()
-                        ArrayPool<byte>.Shared.Return(currentChunk.Data);
-                    }
-                }
-
-                if (this.header.Width > Image<TPixel>.MaxWidth || this.header.Height > Image<TPixel>.MaxHeight)
-                {
-                    throw new ArgumentOutOfRangeException($"The input png '{this.header.Width}x{this.header.Height}' is bigger than the max allowed size '{Image<TPixel>.MaxWidth}x{Image<TPixel>.MaxHeight}'");
-                }
-
-                Image<TPixel> image = Image.Create<TPixel>(this.header.Width, this.header.Height, metadata, this.configuration);
-
-                using (PixelAccessor<TPixel> pixels = image.Lock())
-                {
-                    this.ReadScanlines(dataStream, pixels);
                 }
 
                 return image;
+            }
+            finally
+            {
+                pixels?.Dispose();
+                if (this.previousScanline != null)
+                {
+                    ArrayPool<byte>.Shared.Return(this.previousScanline);
+                    ArrayPool<byte>.Shared.Return(this.scanline);
+                }
             }
         }
 
@@ -294,6 +316,39 @@ namespace ImageSharp.Formats
         }
 
         /// <summary>
+        /// Initializes the image and various buffers needed for processing
+        /// </summary>
+        /// <typeparam name="TPixel">The type the pixels will be</typeparam>
+        /// <param name="metadata">The metadata information for the image</param>
+        /// <param name="image">The image that we will populate</param>
+        /// <param name="pixels">The pixel accessor</param>
+        private void InitializeImage<TPixel>(ImageMetaData metadata, out Image<TPixel> image, out PixelAccessor<TPixel> pixels)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            if (this.header.Width > Image<TPixel>.MaxWidth || this.header.Height > Image<TPixel>.MaxHeight)
+            {
+                throw new ArgumentOutOfRangeException($"The input png '{this.header.Width}x{this.header.Height}' is bigger than the max allowed size '{Image<TPixel>.MaxWidth}x{Image<TPixel>.MaxHeight}'");
+            }
+
+            image = Image.Create<TPixel>(this.header.Width, this.header.Height, metadata, this.configuration);
+            pixels = image.Lock();
+            this.bytesPerPixel = this.CalculateBytesPerPixel();
+            this.bytesPerScanline = this.CalculateScanlineLength(this.header.Width) + 1;
+            this.bytesPerSample = 1;
+            if (this.header.BitDepth >= 8)
+            {
+                this.bytesPerSample = this.header.BitDepth / 8;
+            }
+
+            this.previousScanline = ArrayPool<byte>.Shared.Rent(this.bytesPerScanline);
+            this.scanline = ArrayPool<byte>.Shared.Rent(this.bytesPerScanline);
+
+            // Zero out the scanlines, because the bytes that are rented from the arraypool may not be zero.
+            Array.Clear(this.scanline, 0, this.bytesPerScanline);
+            Array.Clear(this.previousScanline, 0, this.bytesPerScanline);
+        }
+
+        /// <summary>
         /// Calculates the correct number of bytes per pixel for the given color type.
         /// </summary>
         /// <returns>The <see cref="int"/></returns>
@@ -345,28 +400,16 @@ namespace ImageSharp.Formats
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="dataStream">The <see cref="MemoryStream"/> containing data.</param>
         /// <param name="pixels"> The pixel data.</param>
-        private void ReadScanlines<TPixel>(MemoryStream dataStream, PixelAccessor<TPixel> pixels)
+        private void ReadScanlines<TPixel>(Stream dataStream, PixelAccessor<TPixel> pixels)
             where TPixel : struct, IPixel<TPixel>
         {
-            this.bytesPerPixel = this.CalculateBytesPerPixel();
-            this.bytesPerScanline = this.CalculateScanlineLength(this.header.Width) + 1;
-            this.bytesPerSample = 1;
-            if (this.header.BitDepth >= 8)
+            if (this.header.InterlaceMethod == PngInterlaceMode.Adam7)
             {
-                this.bytesPerSample = this.header.BitDepth / 8;
+                this.DecodeInterlacedPixelData(dataStream, pixels);
             }
-
-            dataStream.Position = 0;
-            using (ZlibInflateStream compressedStream = new ZlibInflateStream(dataStream))
+            else
             {
-                if (this.header.InterlaceMethod == PngInterlaceMode.Adam7)
-                {
-                    this.DecodeInterlacedPixelData(compressedStream, pixels);
-                }
-                else
-                {
-                    this.DecodePixelData(compressedStream, pixels);
-                }
+                this.DecodePixelData(dataStream, pixels);
             }
         }
 
@@ -379,66 +422,58 @@ namespace ImageSharp.Formats
         private void DecodePixelData<TPixel>(Stream compressedStream, PixelAccessor<TPixel> pixels)
             where TPixel : struct, IPixel<TPixel>
         {
-            byte[] previousScanline = ArrayPool<byte>.Shared.Rent(this.bytesPerScanline);
-            byte[] scanline = ArrayPool<byte>.Shared.Rent(this.bytesPerScanline);
-
-            // Zero out the scanlines, because the bytes that are rented from the arraypool may not be zero.
-            Array.Clear(scanline, 0, this.bytesPerScanline);
-            Array.Clear(previousScanline, 0, this.bytesPerScanline);
-
-            try
+            while (this.currentRow < this.header.Height)
             {
-                for (int y = 0; y < this.header.Height; y++)
+                int bytesRead = compressedStream.Read(this.scanline, this.currentRowBytesRead, this.bytesPerScanline - this.currentRowBytesRead);
+                this.currentRowBytesRead += bytesRead;
+                if (this.currentRowBytesRead < this.bytesPerScanline)
                 {
-                    compressedStream.Read(scanline, 0, this.bytesPerScanline);
-
-                    FilterType filterType = (FilterType)scanline[0];
-
-                    switch (filterType)
-                    {
-                        case FilterType.None:
-
-                            NoneFilter.Decode(scanline);
-
-                            break;
-
-                        case FilterType.Sub:
-
-                            SubFilter.Decode(scanline, this.bytesPerScanline, this.bytesPerPixel);
-
-                            break;
-
-                        case FilterType.Up:
-
-                            UpFilter.Decode(scanline, previousScanline, this.bytesPerScanline);
-
-                            break;
-
-                        case FilterType.Average:
-
-                            AverageFilter.Decode(scanline, previousScanline, this.bytesPerScanline, this.bytesPerPixel);
-
-                            break;
-
-                        case FilterType.Paeth:
-
-                            PaethFilter.Decode(scanline, previousScanline, this.bytesPerScanline, this.bytesPerPixel);
-
-                            break;
-
-                        default:
-                            throw new ImageFormatException("Unknown filter type.");
-                    }
-
-                    this.ProcessDefilteredScanline(scanline, y, pixels);
-
-                    Swap(ref scanline, ref previousScanline);
+                    return;
                 }
-            }
-            finally
-            {
-                ArrayPool<byte>.Shared.Return(previousScanline);
-                ArrayPool<byte>.Shared.Return(scanline);
+
+                this.currentRowBytesRead = 0;
+                FilterType filterType = (FilterType)this.scanline[0];
+
+                switch (filterType)
+                {
+                    case FilterType.None:
+
+                        NoneFilter.Decode(this.scanline);
+
+                        break;
+
+                    case FilterType.Sub:
+
+                        SubFilter.Decode(this.scanline, this.bytesPerScanline, this.bytesPerPixel);
+
+                        break;
+
+                    case FilterType.Up:
+
+                        UpFilter.Decode(this.scanline, this.previousScanline, this.bytesPerScanline);
+
+                        break;
+
+                    case FilterType.Average:
+
+                        AverageFilter.Decode(this.scanline, this.previousScanline, this.bytesPerScanline, this.bytesPerPixel);
+
+                        break;
+
+                    case FilterType.Paeth:
+
+                        PaethFilter.Decode(this.scanline, this.previousScanline, this.bytesPerScanline, this.bytesPerPixel);
+
+                        break;
+
+                    default:
+                        throw new ImageFormatException("Unknown filter type.");
+                }
+
+                this.ProcessDefilteredScanline(this.scanline, this.currentRow, pixels);
+
+                Swap(ref this.scanline, ref this.previousScanline);
+                this.currentRow++;
             }
         }
 
@@ -637,20 +672,30 @@ namespace ImageSharp.Formats
 
                 case PngColorType.RgbWithAlpha:
 
-                    for (int x = 0; x < this.header.Width; x++)
-                    {
-                        int offset = 1 + (x * this.bytesPerPixel);
-
-                        byte r = defilteredScanline[offset];
-                        byte g = defilteredScanline[offset + this.bytesPerSample];
-                        byte b = defilteredScanline[offset + (2 * this.bytesPerSample)];
-                        byte a = defilteredScanline[offset + (3 * this.bytesPerSample)];
-
-                        color.PackFromBytes(r, g, b, a);
-                        pixels[x, row] = color;
-                    }
+                    this.RgbWithAlpha(defilteredScanline, pixels);
 
                     break;
+            }
+        }
+
+        /// <summary>
+        /// Processing the RGB with Alpha is a straight copy
+        /// </summary>
+        /// <typeparam name="TPixel">The type of pixel</typeparam>
+        /// <param name="defilteredScanline">The completed scanline</param>
+        /// <param name="pixels">The pixel accessor</param>
+        private unsafe void RgbWithAlpha<TPixel>(byte[] defilteredScanline, PixelAccessor<TPixel> pixels)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            int offset = this.bytesPerSample * 4;
+            int width = this.header.Width * offset;
+            int pixelId = this.currentRow * this.header.Width;
+            Rgba32[] pixelArray = pixels.PixelArray as Rgba32[];
+
+            fixed (byte* defilteredPointer = defilteredScanline)
+            fixed (Rgba32* pixelPtr = pixelArray)
+            {
+                Unsafe.CopyBlock(pixelPtr + pixelId, defilteredPointer + 1, (uint)(defilteredScanline.Length - 1));
             }
         }
 
@@ -819,7 +864,7 @@ namespace ImageSharp.Formats
             this.header.Height = BitConverter.ToInt32(data, 4);
 
             this.header.BitDepth = data[8];
-            this.header.ColorType = data[9];
+            this.header.ColorType = (PngColorType)data[9];
             this.header.CompressionMethod = data[10];
             this.header.FilterMethod = data[11];
             this.header.InterlaceMethod = (PngInterlaceMode)data[12];
@@ -872,6 +917,11 @@ namespace ImageSharp.Formats
             }
 
             this.ReadChunkType(chunk);
+            if (chunk.Type == PngChunkTypes.Data)
+            {
+                return chunk;
+            }
+
             this.ReadChunkData(chunk);
             this.ReadChunkCrc(chunk);
 

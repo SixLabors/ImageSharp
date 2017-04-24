@@ -8,6 +8,7 @@ namespace ImageSharp.ColorSpaces
     using System;
     using System.ComponentModel;
     using System.Numerics;
+    using System.Runtime.CompilerServices;
 
     /// <summary>
     /// Represents the coordinates of CIEXY chromaticity space
@@ -29,6 +30,7 @@ namespace ImageSharp.ColorSpaces
         /// </summary>
         /// <param name="x">Chromaticity coordinate x (usually from 0 to 1)</param>
         /// <param name="y">Chromaticity coordinate y (usually from 0 to 1)</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public CieXyChromaticityCoordinates(float x, float y)
             : this(new Vector2(x, y))
         {
@@ -38,6 +40,7 @@ namespace ImageSharp.ColorSpaces
         /// Initializes a new instance of the <see cref="CieXyChromaticityCoordinates"/> struct.
         /// </summary>
         /// <param name="vector">The vector containing the XY Chromaticity coordinates</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public CieXyChromaticityCoordinates(Vector2 vector)
         {
             this.backingVector = vector;
@@ -49,7 +52,11 @@ namespace ImageSharp.ColorSpaces
         /// <remarks>
         /// Ranges usually from 0 to 1.
         /// </remarks>
-        public float X => this.backingVector.X;
+        public float X
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => this.backingVector.X;
+        }
 
         /// <summary>
         /// Gets the chromaticity Y-coordinate
@@ -57,7 +64,11 @@ namespace ImageSharp.ColorSpaces
         /// <remarks>
         /// Ranges usually from 0 to 1.
         /// </remarks>
-        public float Y => this.backingVector.Y;
+        public float Y
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => this.backingVector.Y;
+        }
 
         /// <summary>
         /// Gets a value indicating whether this <see cref="CieXyChromaticityCoordinates"/> is empty.
@@ -77,6 +88,7 @@ namespace ImageSharp.ColorSpaces
         /// <returns>
         /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator ==(CieXyChromaticityCoordinates left, CieXyChromaticityCoordinates right)
         {
             return left.Equals(right);
@@ -94,6 +106,7 @@ namespace ImageSharp.ColorSpaces
         /// <returns>
         /// True if the current left is unequal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator !=(CieXyChromaticityCoordinates left, CieXyChromaticityCoordinates right)
         {
             return !left.Equals(right);
@@ -117,6 +130,7 @@ namespace ImageSharp.ColorSpaces
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override bool Equals(object obj)
         {
             if (obj is CieXyChromaticityCoordinates)
@@ -128,12 +142,14 @@ namespace ImageSharp.ColorSpaces
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Equals(CieXyChromaticityCoordinates other)
         {
             return this.backingVector.Equals(other.backingVector);
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool AlmostEquals(CieXyChromaticityCoordinates other, float precision)
         {
             Vector2 result = Vector2.Abs(this.backingVector - other.backingVector);

@@ -5,7 +5,9 @@
 
 namespace ImageSharp.ColorSpaces.Conversion.Implementation.HunterLab
 {
-    using HunterLab = ImageSharp.ColorSpaces.HunterLab;
+    using System.Runtime.CompilerServices;
+
+    using ImageSharp.ColorSpaces;
 
     /// <summary>
     /// Color converter between HunterLab and CieXyz
@@ -13,6 +15,7 @@ namespace ImageSharp.ColorSpaces.Conversion.Implementation.HunterLab
     internal class HunterLabToCieXyzConverter : CieXyzAndHunterLabConverterBase, IColorConversion<HunterLab, CieXyz>
     {
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public CieXyz Convert(HunterLab input)
         {
             DebugGuard.NotNull(input, nameof(input));

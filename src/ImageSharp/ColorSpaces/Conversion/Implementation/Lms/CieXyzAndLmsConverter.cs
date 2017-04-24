@@ -6,6 +6,7 @@
 namespace ImageSharp.ColorSpaces.Conversion.Implementation.Lms
 {
     using System.Numerics;
+    using System.Runtime.CompilerServices;
 
     using ImageSharp.ColorSpaces;
 
@@ -26,6 +27,7 @@ namespace ImageSharp.ColorSpaces.Conversion.Implementation.Lms
         /// <summary>
         /// Initializes a new instance of the <see cref="CieXyzAndLmsConverter"/> class.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public CieXyzAndLmsConverter()
             : this(DefaultTransformationMatrix)
         {
@@ -38,6 +40,7 @@ namespace ImageSharp.ColorSpaces.Conversion.Implementation.Lms
         /// Definition of the cone response domain (see <see cref="LmsAdaptationMatrix"/>),
         /// if not set <see cref="DefaultTransformationMatrix"/> will be used.
         /// </param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public CieXyzAndLmsConverter(Matrix4x4 transformationMatrix)
         {
             this.TransformationMatrix = transformationMatrix;
@@ -49,10 +52,8 @@ namespace ImageSharp.ColorSpaces.Conversion.Implementation.Lms
         /// </summary>
         public Matrix4x4 TransformationMatrix
         {
-            get
-            {
-                return this.transformationMatrix;
-            }
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => this.transformationMatrix;
 
             set
             {
@@ -62,6 +63,7 @@ namespace ImageSharp.ColorSpaces.Conversion.Implementation.Lms
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Lms Convert(CieXyz input)
         {
             DebugGuard.NotNull(input, nameof(input));
@@ -71,6 +73,7 @@ namespace ImageSharp.ColorSpaces.Conversion.Implementation.Lms
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public CieXyz Convert(Lms input)
         {
             DebugGuard.NotNull(input, nameof(input));

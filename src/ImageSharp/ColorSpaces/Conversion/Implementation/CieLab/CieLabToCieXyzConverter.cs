@@ -5,6 +5,8 @@
 
 namespace ImageSharp.ColorSpaces.Conversion.Implementation.CieLab
 {
+    using System.Runtime.CompilerServices;
+
     using ImageSharp.ColorSpaces;
 
     /// <summary>
@@ -13,6 +15,7 @@ namespace ImageSharp.ColorSpaces.Conversion.Implementation.CieLab
     internal class CieLabToCieXyzConverter : IColorConversion<CieLab, CieXyz>
     {
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public CieXyz Convert(CieLab input)
         {
             DebugGuard.NotNull(input, nameof(input));

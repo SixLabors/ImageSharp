@@ -138,5 +138,19 @@ namespace ImageSharp.ColorSpaces.Conversion
 
             return HslAndRgbConverter.Convert(color);
         }
+
+        /// <summary>
+        /// Converts a <see cref="YCbCr"/> into a <see cref="Hsl"/>
+        /// </summary>
+        /// <param name="color">The color to convert.</param>
+        /// <returns>The <see cref="Hsl"/></returns>
+        public Hsl ToHsl(YCbCr color)
+        {
+            Guard.NotNull(color, nameof(color));
+
+            Rgb rgb = this.ToRgb(color);
+
+            return HslAndRgbConverter.Convert(rgb);
+        }
     }
 }

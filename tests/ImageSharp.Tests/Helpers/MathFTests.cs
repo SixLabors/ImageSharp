@@ -67,9 +67,41 @@
         }
 
         [Fact]
+        public void MathF_Round_Is_Equal()
+        {
+            Assert.Equal(MathF.Round(1.2345F), (float)Math.Round(1.2345F));
+        }
+
+        [Fact]
+        public void MathF_Round_With_Midpoint_Is_Equal()
+        {
+            Assert.Equal(MathF.Round(1.2345F, MidpointRounding.AwayFromZero), (float)Math.Round(1.2345F, MidpointRounding.AwayFromZero));
+        }
+
+        [Fact]
         public void MathF_Sin_Is_Equal()
         {
             Assert.Equal(MathF.Sin(1.2345F), (float)Math.Sin(1.2345F));
+        }
+
+        [Fact]
+        public void MathF_SinC_Is_Equal()
+        {
+            float f = 1.2345F;
+            float expected;
+            if (Math.Abs(f) > Constants.Epsilon)
+            {
+                f *= (float)Math.PI;
+                float sinC = (float)Math.Sin(f) / f;
+
+                expected = Math.Abs(sinC) < Constants.Epsilon ? 0F : sinC;
+            }
+            else
+            {
+                expected = 1F;
+            }
+
+            Assert.Equal(MathF.SinC(1.2345F), expected);
         }
 
         [Fact]

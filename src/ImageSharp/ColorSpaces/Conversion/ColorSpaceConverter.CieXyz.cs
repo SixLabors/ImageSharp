@@ -167,6 +167,21 @@ namespace ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
+        /// Converts a <see cref="YCbCr"/> into a <see cref="CieXyz"/>
+        /// </summary>
+        /// <param name="color">The color to convert.</param>
+        /// <returns>The <see cref="CieXyz"/></returns>
+        public CieXyz ToCieXyz(YCbCr color)
+        {
+            Guard.NotNull(color, nameof(color));
+
+            // Conversion
+            Rgb rgb = this.ToRgb(color);
+
+            return this.ToCieXyz(rgb);
+        }
+
+        /// <summary>
         /// Gets the correct converter for the given rgb working space.
         /// </summary>
         /// <param name="workingSpace">The source working space</param>

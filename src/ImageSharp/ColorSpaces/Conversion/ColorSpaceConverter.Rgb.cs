@@ -144,7 +144,11 @@ namespace ImageSharp.ColorSpaces.Conversion
             Guard.NotNull(color, nameof(color));
 
             // Conversion
-            return YCbCrAndRgbConverter.Convert(color);
+            Rgb rgb = YCbCrAndRgbConverter.Convert(color);
+
+            // Adaptation
+            // TODO: Check this!
+            return rgb.WorkingSpace.Equals(this.TargetRgbWorkingSpace) ? rgb : this.Adapt(rgb);
         }
     }
 }

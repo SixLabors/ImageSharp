@@ -13,7 +13,7 @@ namespace ImageSharp
     /// Each tag value represent the size of the tag in the profile.
     /// </remarks>
     /// </summary>
-    internal enum IccProfileTag : uint
+    public enum IccProfileTag : uint
     {
         /// <summary>
         /// Unknown tag

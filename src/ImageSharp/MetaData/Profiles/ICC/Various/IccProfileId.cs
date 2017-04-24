@@ -10,7 +10,7 @@ namespace ImageSharp
     /// <summary>
     /// ICC Profile ID
     /// </summary>
-    internal struct IccProfileId : IEquatable<IccProfileId>
+    public struct IccProfileId : IEquatable<IccProfileId>
     {
         /// <summary>
         /// A profile ID with all values set to zero

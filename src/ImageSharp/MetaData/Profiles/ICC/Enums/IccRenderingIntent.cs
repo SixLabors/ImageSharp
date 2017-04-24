@@ -8,7 +8,7 @@ namespace ImageSharp
     /// <summary>
     /// Rendering intent
     /// </summary>
-    internal enum IccRenderingIntent : uint
+    public enum IccRenderingIntent : uint
     {
         /// <summary>
         /// In perceptual transforms the PCS values represent hypothetical

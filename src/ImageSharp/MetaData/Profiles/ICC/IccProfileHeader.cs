@@ -11,7 +11,7 @@ namespace ImageSharp
     /// <summary>
     /// Contains all values of an ICC profile header
     /// </summary>
-    internal sealed class IccProfileHeader
+    public sealed class IccProfileHeader
     {
         /// <summary>
         /// Gets or sets the profile size in bytes (will be ignored when writing a profile)

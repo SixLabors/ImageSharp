@@ -138,5 +138,19 @@ namespace ImageSharp.ColorSpaces.Conversion
 
             return CmykAndRgbConverter.Convert(color);
         }
+
+        /// <summary>
+        /// Converts a <see cref="YCbCr"/> into a <see cref="Cmyk"/>
+        /// </summary>
+        /// <param name="color">The color to convert.</param>
+        /// <returns>The <see cref="Cmyk"/></returns>
+        public Cmyk ToCmyk(YCbCr color)
+        {
+            Guard.NotNull(color, nameof(color));
+
+            Rgb rgb = this.ToRgb(color);
+
+            return CmykAndRgbConverter.Convert(rgb);
+        }
     }
 }

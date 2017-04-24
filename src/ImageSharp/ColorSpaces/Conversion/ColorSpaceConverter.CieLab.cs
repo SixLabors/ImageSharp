@@ -149,5 +149,18 @@ namespace ImageSharp.ColorSpaces.Conversion
             CieXyz xyzColor = this.ToCieXyz(color);
             return this.ToCieLab(xyzColor);
         }
+
+        /// <summary>
+        /// Converts a <see cref="YCbCr"/> into a <see cref="CieLab"/>
+        /// </summary>
+        /// <param name="color">The color to convert.</param>
+        /// <returns>The <see cref="CieLab"/></returns>
+        public CieLab ToCieLab(YCbCr color)
+        {
+            Guard.NotNull(color, nameof(color));
+
+            CieXyz xyzColor = this.ToCieXyz(color);
+            return this.ToCieLab(xyzColor);
+        }
     }
 }

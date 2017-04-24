@@ -202,6 +202,25 @@ namespace ImageSharp
         }
 
         /// <summary>
+        /// Rounds a single-precision floating-point value to the nearest integer.
+        /// A parameter specifies how to round the value if it is midway between two numbers.
+        /// </summary>
+        /// <param name="f">A single-precision floating-point number to be rounded. </param>
+        /// <param name="mode">Specification for how to round <paramref name="f" /> if it is midway between two other numbers.</param>
+        /// <returns>
+        /// The integer nearest <paramref name="f" />. If <paramref name="f" /> is halfway between two integers, one of which is even
+        /// and the other odd, then <paramref name="mode" /> determines which of the two is returned.
+        /// Note that this method returns a <see cref="T:System.Single" /> instead of an integral type.
+        /// </returns>
+        /// <exception cref="T:System.ArgumentException">
+        /// <paramref name="mode" /> is not a valid value of <see cref="T:System.MidpointRounding" />.</exception>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float Round(float f, MidpointRounding mode)
+        {
+            return (float)Math.Round(f, mode);
+        }
+
+        /// <summary>
         /// Returns the sine of the specified angle.
         /// </summary>
         /// <param name="f">An angle, measured in radians.</param>

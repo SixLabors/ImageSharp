@@ -24,10 +24,10 @@ namespace ImageSharp.ColorSpaces.Conversion.Implementation.HunterLab
 
             if (whitePoint.Equals(Illuminants.C))
             {
-                return 175;
+                return 175F;
             }
 
-            return 100 * (175 / 198.04F) * (whitePoint.X + whitePoint.Y);
+            return 100F * (175F / 198.04F) * (whitePoint.X + whitePoint.Y);
         }
 
         /// <summary>
@@ -42,10 +42,10 @@ namespace ImageSharp.ColorSpaces.Conversion.Implementation.HunterLab
 
             if (whitePoint == Illuminants.C)
             {
-                return 70;
+                return 70F;
             }
 
-            return 100 * (70 / 218.11F) * (whitePoint.Y + whitePoint.Z);
+            return 100F * (70F / 218.11F) * (whitePoint.Y + whitePoint.Z);
         }
     }
 }

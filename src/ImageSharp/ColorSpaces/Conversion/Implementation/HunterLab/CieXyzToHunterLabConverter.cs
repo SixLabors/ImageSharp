@@ -5,7 +5,9 @@
 
 namespace ImageSharp.ColorSpaces.Conversion.Implementation.HunterLab
 {
-    using HunterLab = ImageSharp.ColorSpaces.HunterLab;
+    using System.Runtime.CompilerServices;
+
+    using ImageSharp.ColorSpaces;
 
     /// <summary>
     /// Color converter between CieXyz and HunterLab
@@ -15,6 +17,7 @@ namespace ImageSharp.ColorSpaces.Conversion.Implementation.HunterLab
         /// <summary>
         /// Initializes a new instance of the <see cref="CieXyzToHunterLabConverter"/> class.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public CieXyzToHunterLabConverter()
             : this(HunterLab.DefaultWhitePoint)
         {
@@ -24,6 +27,7 @@ namespace ImageSharp.ColorSpaces.Conversion.Implementation.HunterLab
         /// Initializes a new instance of the <see cref="CieXyzToHunterLabConverter"/> class.
         /// </summary>
         /// <param name="labWhitePoint">The hunter Lab white point.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public CieXyzToHunterLabConverter(CieXyz labWhitePoint)
         {
             this.HunterLabWhitePoint = labWhitePoint;
@@ -32,9 +36,14 @@ namespace ImageSharp.ColorSpaces.Conversion.Implementation.HunterLab
         /// <summary>
         /// Gets the target reference white. When not set, <see cref="HunterLab.DefaultWhitePoint"/> is used.
         /// </summary>
-        public CieXyz HunterLabWhitePoint { get; }
+        public CieXyz HunterLabWhitePoint
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get;
+        }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public HunterLab Convert(CieXyz input)
         {
             DebugGuard.NotNull(input, nameof(input));

@@ -8,6 +8,7 @@ namespace ImageSharp.ColorSpaces
     using System;
     using System.ComponentModel;
     using System.Numerics;
+    using System.Runtime.CompilerServices;
 
     /// <summary>
     /// Represents an CIE XYZ 1931 color
@@ -31,6 +32,7 @@ namespace ImageSharp.ColorSpaces
         /// <param name="x">X is a mix (a linear combination) of cone response curves chosen to be nonnegative</param>
         /// <param name="y">The y luminance component.</param>
         /// <param name="z">Z is quasi-equal to blue stimulation, or the S cone of the human eye.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public CieXyz(float x, float y, float z)
             : this(new Vector3(x, y, z))
         {
@@ -40,6 +42,7 @@ namespace ImageSharp.ColorSpaces
         /// Initializes a new instance of the <see cref="CieXyz"/> struct.
         /// </summary>
         /// <param name="vector">The vector representing the x, y, z components.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public CieXyz(Vector3 vector)
             : this()
         {
@@ -51,19 +54,31 @@ namespace ImageSharp.ColorSpaces
         /// Gets the X component. A mix (a linear combination) of cone response curves chosen to be nonnegative.
         /// <remarks>A value usually ranging between 0 and 1.</remarks>
         /// </summary>
-        public float X => this.backingVector.X;
+        public float X
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => this.backingVector.X;
+        }
 
         /// <summary>
         /// Gets the Y luminance component.
         /// <remarks>A value usually ranging between 0 and 1.</remarks>
         /// </summary>
-        public float Y => this.backingVector.Y;
+        public float Y
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => this.backingVector.Y;
+        }
 
         /// <summary>
         /// Gets the Z component. Quasi-equal to blue stimulation, or the S cone response
         /// <remarks>A value usually ranging between 0 and 1.</remarks>
         /// </summary>
-        public float Z => this.backingVector.Z;
+        public float Z
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => this.backingVector.Z;
+        }
 
         /// <summary>
         /// Gets a value indicating whether this <see cref="CieXyz"/> is empty.
@@ -72,7 +87,11 @@ namespace ImageSharp.ColorSpaces
         public bool IsEmpty => this.Equals(Empty);
 
         /// <inheritdoc />
-        public Vector3 Vector => this.backingVector;
+        public Vector3 Vector
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => this.backingVector;
+        }
 
         /// <summary>
         /// Compares two <see cref="CieXyz"/> objects for equality.
@@ -86,6 +105,7 @@ namespace ImageSharp.ColorSpaces
         /// <returns>
         /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator ==(CieXyz left, CieXyz right)
         {
             return left.Equals(right);
@@ -103,6 +123,7 @@ namespace ImageSharp.ColorSpaces
         /// <returns>
         /// True if the current left is unequal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator !=(CieXyz left, CieXyz right)
         {
             return !left.Equals(right);
@@ -126,6 +147,7 @@ namespace ImageSharp.ColorSpaces
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override bool Equals(object obj)
         {
             if (obj is CieXyz)
@@ -137,12 +159,14 @@ namespace ImageSharp.ColorSpaces
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Equals(CieXyz other)
         {
             return this.backingVector.Equals(other.backingVector);
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool AlmostEquals(CieXyz other, float precision)
         {
             Vector3 result = Vector3.Abs(this.backingVector - other.backingVector);

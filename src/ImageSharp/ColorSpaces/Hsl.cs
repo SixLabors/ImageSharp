@@ -8,6 +8,7 @@ namespace ImageSharp.ColorSpaces
     using System;
     using System.ComponentModel;
     using System.Numerics;
+    using System.Runtime.CompilerServices;
 
     /// <summary>
     /// Represents a Hsl (hue, saturation, lightness) color.
@@ -35,6 +36,7 @@ namespace ImageSharp.ColorSpaces
         /// <param name="h">The h hue component.</param>
         /// <param name="s">The s saturation component.</param>
         /// <param name="l">The l value (lightness) component.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Hsl(float h, float s, float l)
             : this(new Vector3(h, s, l))
         {
@@ -44,6 +46,7 @@ namespace ImageSharp.ColorSpaces
         /// Initializes a new instance of the <see cref="Hsl"/> struct.
         /// </summary>
         /// <param name="vector">The vector representing the h, s, l components.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Hsl(Vector3 vector)
         {
             this.backingVector = Vector3.Clamp(vector, Vector3.Zero, VectorMax);
@@ -53,19 +56,31 @@ namespace ImageSharp.ColorSpaces
         /// Gets the hue component.
         /// <remarks>A value ranging between 0 and 360.</remarks>
         /// </summary>
-        public float H => this.backingVector.X;
+        public float H
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => this.backingVector.X;
+        }
 
         /// <summary>
         /// Gets the saturation component.
         /// <remarks>A value ranging between 0 and 1.</remarks>
         /// </summary>
-        public float S => this.backingVector.Y;
+        public float S
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => this.backingVector.Y;
+        }
 
         /// <summary>
         /// Gets the lightness component.
         /// <remarks>A value ranging between 0 and 1.</remarks>
         /// </summary>
-        public float L => this.backingVector.Z;
+        public float L
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => this.backingVector.Z;
+        }
 
         /// <summary>
         /// Gets a value indicating whether this <see cref="Hsl"/> is empty.
@@ -74,7 +89,11 @@ namespace ImageSharp.ColorSpaces
         public bool IsEmpty => this.Equals(Empty);
 
         /// <inheritdoc/>
-        public Vector3 Vector => this.backingVector;
+        public Vector3 Vector
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => this.backingVector;
+        }
 
         /// <summary>
         /// Compares two <see cref="Hsl"/> objects for equality.
@@ -88,6 +107,7 @@ namespace ImageSharp.ColorSpaces
         /// <returns>
         /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator ==(Hsl left, Hsl right)
         {
             return left.Equals(right);
@@ -105,6 +125,7 @@ namespace ImageSharp.ColorSpaces
         /// <returns>
         /// True if the current left is unequal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator !=(Hsl left, Hsl right)
         {
             return !left.Equals(right);
@@ -128,6 +149,7 @@ namespace ImageSharp.ColorSpaces
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override bool Equals(object obj)
         {
             if (obj is Hsl)
@@ -139,12 +161,14 @@ namespace ImageSharp.ColorSpaces
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Equals(Hsl other)
         {
             return this.backingVector.Equals(other.backingVector);
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool AlmostEquals(Hsl other, float precision)
         {
             Vector3 result = Vector3.Abs(this.backingVector - other.backingVector);

@@ -5,6 +5,8 @@
 
 namespace ImageSharp.ColorSpaces.Conversion.Implementation.CieXyy
 {
+    using System.Runtime.CompilerServices;
+
     using ImageSharp.ColorSpaces;
 
     /// <summary>
@@ -14,6 +16,7 @@ namespace ImageSharp.ColorSpaces.Conversion.Implementation.CieXyy
     internal class CieXyzAndCieXyyConverter : IColorConversion<CieXyz, CieXyy>, IColorConversion<CieXyy, CieXyz>
     {
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public CieXyy Convert(CieXyz input)
         {
             DebugGuard.NotNull(input, nameof(input));
@@ -30,6 +33,7 @@ namespace ImageSharp.ColorSpaces.Conversion.Implementation.CieXyy
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public CieXyz Convert(CieXyy input)
         {
             DebugGuard.NotNull(input, nameof(input));

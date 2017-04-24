@@ -38,6 +38,7 @@ namespace ImageSharp.ColorSpaces
         /// <param name="r">The red component ranging between 0 and 1.</param>
         /// <param name="g">The green component ranging between 0 and 1.</param>
         /// <param name="b">The blue component ranging between 0 and 1.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Rgb(float r, float g, float b)
             : this(new Vector3(r, g, b))
         {
@@ -50,6 +51,7 @@ namespace ImageSharp.ColorSpaces
         /// <param name="g">The green component ranging between 0 and 1.</param>
         /// <param name="b">The blue component ranging between 0 and 1.</param>
         /// <param name="workingSpace">The rgb working space.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Rgb(float r, float g, float b, IRgbWorkingSpace workingSpace)
             : this(new Vector3(r, g, b), workingSpace)
         {
@@ -59,6 +61,7 @@ namespace ImageSharp.ColorSpaces
         /// Initializes a new instance of the <see cref="Rgb"/> struct.
         /// </summary>
         /// <param name="vector">The vector representing the r, g, b components.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Rgb(Vector3 vector)
             : this(vector, DefaultWorkingSpace)
         {
@@ -69,6 +72,7 @@ namespace ImageSharp.ColorSpaces
         /// </summary>
         /// <param name="vector">The vector representing the r, g, b components.</param>
         /// <param name="workingSpace">The rgb working space.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Rgb(Vector3 vector, IRgbWorkingSpace workingSpace)
             : this()
         {
@@ -81,24 +85,40 @@ namespace ImageSharp.ColorSpaces
         /// Gets the red component.
         /// <remarks>A value usually ranging between 0 and 1.</remarks>
         /// </summary>
-        public float R => this.backingVector.X;
+        public float R
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => this.backingVector.X;
+        }
 
         /// <summary>
         /// Gets the green component.
         /// <remarks>A value usually ranging between 0 and 1.</remarks>
         /// </summary>
-        public float G => this.backingVector.Y;
+        public float G
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => this.backingVector.Y;
+        }
 
         /// <summary>
         /// Gets the blue component.
         /// <remarks>A value usually ranging between 0 and 1.</remarks>
         /// </summary>
-        public float B => this.backingVector.Z;
+        public float B
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => this.backingVector.Z;
+        }
 
         /// <summary>
         /// Gets the Rgb color space <seealso cref="RgbWorkingSpaces"/>
         /// </summary>
-        public IRgbWorkingSpace WorkingSpace { get; }
+        public IRgbWorkingSpace WorkingSpace
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get;
+        }
 
         /// <summary>
         /// Gets a value indicating whether this <see cref="Rgb"/> is empty.
@@ -107,7 +127,11 @@ namespace ImageSharp.ColorSpaces
         public bool IsEmpty => this.Equals(Empty);
 
         /// <inheritdoc />
-        public Vector3 Vector => this.backingVector;
+        public Vector3 Vector
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => this.backingVector;
+        }
 
         /// <summary>
         /// Allows the implicit conversion of an instance of <see cref="Rgba32"/> to a
@@ -137,6 +161,7 @@ namespace ImageSharp.ColorSpaces
         /// <returns>
         /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator ==(Rgb left, Rgb right)
         {
             return left.Equals(right);
@@ -154,6 +179,7 @@ namespace ImageSharp.ColorSpaces
         /// <returns>
         /// True if the current left is unequal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator !=(Rgb left, Rgb right)
         {
             return !left.Equals(right);
@@ -177,6 +203,7 @@ namespace ImageSharp.ColorSpaces
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override bool Equals(object obj)
         {
             if (obj is Rgb)
@@ -188,12 +215,14 @@ namespace ImageSharp.ColorSpaces
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Equals(Rgb other)
         {
             return this.backingVector.Equals(other.backingVector);
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool AlmostEquals(Rgb other, float precision)
         {
             Vector3 result = Vector3.Abs(this.backingVector - other.backingVector);

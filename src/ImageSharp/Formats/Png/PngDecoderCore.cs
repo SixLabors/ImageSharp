@@ -470,7 +470,7 @@ namespace ImageSharp.Formats
                         throw new ImageFormatException("Unknown filter type.");
                 }
 
-                this.ProcessDefilteredScanline(this.scanline, this.currentRow, pixels);
+                this.ProcessDefilteredScanline(this.scanline, pixels);
 
                 Swap(ref this.scanline, ref this.previousScanline);
                 this.currentRow++;
@@ -571,12 +571,13 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="defilteredScanline">The de-filtered scanline</param>
-        /// <param name="row">The current image row.</param>
         /// <param name="pixels">The image pixels</param>
-        private void ProcessDefilteredScanline<TPixel>(byte[] defilteredScanline, int row, PixelAccessor<TPixel> pixels)
+        private void ProcessDefilteredScanline<TPixel>(byte[] defilteredScanline, PixelAccessor<TPixel> pixels)
             where TPixel : struct, IPixel<TPixel>
         {
             TPixel color = default(TPixel);
+            BufferSpan<TPixel> pixelBuffer = pixels.GetRowSpan(this.currentRow);
+            BufferSpan<byte> scanlineBuffer = new BufferSpan<byte>(defilteredScanline);
             switch (this.PngColorType)
             {
                 case PngColorType.Grayscale:
@@ -586,7 +587,7 @@ namespace ImageSharp.Formats
                     {
                         byte intensity = (byte)(newScanline1[x] * factor);
                         color.PackFromBytes(intensity, intensity, intensity, 255);
-                        pixels[x, row] = color;
+                        pixels[x, this.currentRow] = color;
                     }
 
                     break;
@@ -601,7 +602,7 @@ namespace ImageSharp.Formats
                         byte alpha = defilteredScanline[offset + this.bytesPerSample];
 
                         color.PackFromBytes(intensity, intensity, intensity, alpha);
-                        pixels[x, row] = color;
+                        pixels[x, this.currentRow] = color;
                     }
 
                     break;
@@ -633,7 +634,7 @@ namespace ImageSharp.Formats
                                 color.PackFromBytes(0, 0, 0, 0);
                             }
 
-                            pixels[x, row] = color;
+                            pixels[x, this.currentRow] = color;
                         }
                     }
                     else
@@ -648,7 +649,7 @@ namespace ImageSharp.Formats
                             byte b = this.palette[pixelOffset + 2];
 
                             color.PackFromBytes(r, g, b, 255);
-                            pixels[x, row] = color;
+                            pixels[x, this.currentRow] = color;
                         }
                     }
 
@@ -665,37 +666,16 @@ namespace ImageSharp.Formats
                         byte b = defilteredScanline[offset + (2 * this.bytesPerSample)];
 
                         color.PackFromBytes(r, g, b, 255);
-                        pixels[x, row] = color;
+                        pixels[x, this.currentRow] = color;
                     }
 
                     break;
 
                 case PngColorType.RgbWithAlpha:
 
-                    this.RgbWithAlpha(defilteredScanline, pixels);
+                    BulkPixelOperations<TPixel>.Instance.PackFromXyzwBytes(scanlineBuffer, pixelBuffer, this.header.Width);
 
                     break;
-            }
-        }
-
-        /// <summary>
-        /// Processing the RGB with Alpha is a straight copy
-        /// </summary>
-        /// <typeparam name="TPixel">The type of pixel</typeparam>
-        /// <param name="defilteredScanline">The completed scanline</param>
-        /// <param name="pixels">The pixel accessor</param>
-        private unsafe void RgbWithAlpha<TPixel>(byte[] defilteredScanline, PixelAccessor<TPixel> pixels)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            int offset = this.bytesPerSample * 4;
-            int width = this.header.Width * offset;
-            int pixelId = this.currentRow * this.header.Width;
-            Rgba32[] pixelArray = pixels.PixelArray as Rgba32[];
-
-            fixed (byte* defilteredPointer = defilteredScanline)
-            fixed (Rgba32* pixelPtr = pixelArray)
-            {
-                Unsafe.CopyBlock(pixelPtr + pixelId, defilteredPointer + 1, (uint)(defilteredScanline.Length - 1));
             }
         }
 

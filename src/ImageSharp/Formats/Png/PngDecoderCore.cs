@@ -577,7 +577,7 @@ namespace ImageSharp.Formats
         {
             TPixel color = default(TPixel);
             BufferSpan<TPixel> pixelBuffer = pixels.GetRowSpan(this.currentRow);
-            BufferSpan<byte> scanlineBuffer = new BufferSpan<byte>(defilteredScanline);
+            BufferSpan<byte> scanlineBuffer = new BufferSpan<byte>(defilteredScanline, 1);
             switch (this.PngColorType)
             {
                 case PngColorType.Grayscale:

@@ -609,49 +609,7 @@ namespace ImageSharp.Formats
 
                 case PngColorType.Palette:
 
-                    byte[] newScanline = ToArrayByBitsLength(defilteredScanline, this.bytesPerScanline, this.header.BitDepth);
-
-                    if (this.paletteAlpha != null && this.paletteAlpha.Length > 0)
-                    {
-                        // If the alpha palette is not null and has one or more entries, this means, that the image contains an alpha
-                        // channel and we should try to read it.
-                        for (int x = 0; x < this.header.Width; x++)
-                        {
-                            int index = newScanline[x + 1];
-                            int pixelOffset = index * 3;
-
-                            byte a = this.paletteAlpha.Length > index ? this.paletteAlpha[index] : (byte)255;
-
-                            if (a > 0)
-                            {
-                                byte r = this.palette[pixelOffset];
-                                byte g = this.palette[pixelOffset + 1];
-                                byte b = this.palette[pixelOffset + 2];
-                                color.PackFromBytes(r, g, b, a);
-                            }
-                            else
-                            {
-                                color.PackFromBytes(0, 0, 0, 0);
-                            }
-
-                            pixels[x, this.currentRow] = color;
-                        }
-                    }
-                    else
-                    {
-                        for (int x = 0; x < this.header.Width; x++)
-                        {
-                            int index = newScanline[x + 1];
-                            int pixelOffset = index * 3;
-
-                            byte r = this.palette[pixelOffset];
-                            byte g = this.palette[pixelOffset + 1];
-                            byte b = this.palette[pixelOffset + 2];
-
-                            color.PackFromBytes(r, g, b, 255);
-                            pixels[x, this.currentRow] = color;
-                        }
-                    }
+                    this.ProcessScanlineFromPalette(defilteredScanline, pixels);
 
                     break;
 
@@ -666,6 +624,62 @@ namespace ImageSharp.Formats
                     BulkPixelOperations<TPixel>.Instance.PackFromXyzwBytes(scanlineBuffer, pixelBuffer, this.header.Width);
 
                     break;
+            }
+        }
+
+        /// <summary>
+        /// Processes a scanline that uses a palette
+        /// </summary>
+        /// <typeparam name="TPixel">The type of pixel we are expanding to</typeparam>
+        /// <param name="defilteredScanline">The scanline</param>
+        /// <param name="pixels">The output pixels</param>
+        private void ProcessScanlineFromPalette<TPixel>(byte[] defilteredScanline, PixelAccessor<TPixel> pixels)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            byte[] newScanline = ToArrayByBitsLength(defilteredScanline, this.bytesPerScanline, this.header.BitDepth);
+            byte[] palette = this.palette;
+            TPixel color = default(TPixel);
+
+            if (this.paletteAlpha != null && this.paletteAlpha.Length > 0)
+            {
+                // If the alpha palette is not null and has one or more entries, this means, that the image contains an alpha
+                // channel and we should try to read it.
+                for (int x = 0; x < this.header.Width; x++)
+                {
+                    int index = newScanline[x + 1];
+                    int pixelOffset = index * 3;
+
+                    byte a = this.paletteAlpha.Length > index ? this.paletteAlpha[index] : (byte)255;
+
+                    if (a > 0)
+                    {
+                        byte r = palette[pixelOffset];
+                        byte g = palette[pixelOffset + 1];
+                        byte b = palette[pixelOffset + 2];
+                        color.PackFromBytes(r, g, b, a);
+                    }
+                    else
+                    {
+                        color.PackFromBytes(0, 0, 0, 0);
+                    }
+
+                    pixels[x, this.currentRow] = color;
+                }
+            }
+            else
+            {
+                for (int x = 0; x < this.header.Width; x++)
+                {
+                    int index = newScanline[x + 1];
+                    int pixelOffset = index * 3;
+
+                    byte r = palette[pixelOffset];
+                    byte g = palette[pixelOffset + 1];
+                    byte b = palette[pixelOffset + 2];
+
+                    color.PackFromBytes(r, g, b, 255);
+                    pixels[x, this.currentRow] = color;
+                }
             }
         }
 

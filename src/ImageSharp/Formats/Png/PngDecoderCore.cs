@@ -657,17 +657,7 @@ namespace ImageSharp.Formats
 
                 case PngColorType.Rgb:
 
-                    for (int x = 0; x < this.header.Width; x++)
-                    {
-                        int offset = 1 + (x * this.bytesPerPixel);
-
-                        byte r = defilteredScanline[offset];
-                        byte g = defilteredScanline[offset + this.bytesPerSample];
-                        byte b = defilteredScanline[offset + (2 * this.bytesPerSample)];
-
-                        color.PackFromBytes(r, g, b, 255);
-                        pixels[x, this.currentRow] = color;
-                    }
+                    BulkPixelOperations<TPixel>.Instance.PackFromXyzBytes(scanlineBuffer, pixelBuffer, this.header.Width);
 
                     break;
 

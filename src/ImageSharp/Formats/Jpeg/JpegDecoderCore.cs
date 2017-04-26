@@ -39,6 +39,11 @@ namespace ImageSharp.Formats
 #pragma warning restore SA401
 
         /// <summary>
+        /// Lookup tables for converting YCbCr to Rgb
+        /// </summary>
+        private static YCbCrToRgbTables yCbCrToRgbTables = YCbCrToRgbTables.Create();
+
+        /// <summary>
         /// The decoder options.
         /// </summary>
         private readonly IDecoderOptions options;
@@ -249,35 +254,6 @@ namespace ImageSharp.Formats
                         throw new ImageFormatException("Too many components");
                 }
             }
-        }
-
-        /// <summary>
-        /// Optimized method to pack bytes to the image from the YCbCr color space.
-        /// This is faster than implicit casting as it avoids double packing.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="packed">The packed pixel.</param>
-        /// <param name="y">The y luminance component.</param>
-        /// <param name="cb">The cb chroma component.</param>
-        /// <param name="cr">The cr chroma component.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void PackYcbCr<TPixel>(ref TPixel packed, byte y, byte cb, byte cr)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            int ccb = cb - 128;
-            int ccr = cr - 128;
-
-            // Speed up the algorithm by removing floating point calculation
-            // Scale by 65536, add .5F and truncate value. We use bit shifting to divide the result
-            int r0 = 91881 * ccr; // (1.402F * 65536) + .5F
-            int g0 = 22554 * ccb; // (0.34414F * 65536) + .5F
-            int g1 = 46802 * ccr; // (0.71414F  * 65536) + .5F
-            int b0 = 116130 * ccb; // (1.772F * 65536) + .5F
-
-            byte r = (byte)(y + (r0 >> 16)).Clamp(0, 255);
-            byte g = (byte)(y - (g0 >> 16) - (g1 >> 16)).Clamp(0, 255);
-            byte b = (byte)(y + (b0 >> 16)).Clamp(0, 255);
-            packed.PackFromBytes(r, g, b, 255);
         }
 
         /// <summary>
@@ -705,26 +681,34 @@ namespace ImageSharp.Formats
             using (PixelAccessor<TPixel> pixels = image.Lock())
             {
                 Parallel.For(
-                    0,
-                    image.Height,
-                    image.Configuration.ParallelOptions,
-                    y =>
-                    {
-                        // TODO: Simplify + optimize + share duplicate code across converter methods
-                        int yo = this.ycbcrImage.GetRowYOffset(y);
-                        int co = this.ycbcrImage.GetRowCOffset(y);
+                 0,
+                 image.Height,
+                 image.Configuration.ParallelOptions,
+                 y =>
+                 {
+                     // TODO. This Parallel loop doesn't give us the boost it should.
+                     ref byte ycRef = ref this.ycbcrImage.YChannel.Pixels[0];
+                     ref byte cbRef = ref this.ycbcrImage.CbChannel.Pixels[0];
+                     ref byte crRef = ref this.ycbcrImage.CrChannel.Pixels[0];
+                     fixed (YCbCrToRgbTables* tables = &yCbCrToRgbTables)
+                     {
+                         // TODO: Simplify + optimize + share duplicate code across converter methods
+                         int yo = this.ycbcrImage.GetRowYOffset(y);
+                         int co = this.ycbcrImage.GetRowCOffset(y);
 
-                        for (int x = 0; x < image.Width; x++)
-                        {
-                            byte yy = this.ycbcrImage.YChannel.Pixels[yo + x];
-                            byte cb = this.ycbcrImage.CbChannel.Pixels[co + (x / scale)];
-                            byte cr = this.ycbcrImage.CrChannel.Pixels[co + (x / scale)];
+                         for (int x = 0; x < image.Width; x++)
+                         {
+                             int cOff = co + (x / scale);
+                             byte yy = Unsafe.Add(ref ycRef, yo + x);
+                             byte cb = Unsafe.Add(ref cbRef, cOff);
+                             byte cr = Unsafe.Add(ref crRef, cOff);
 
-                            TPixel packed = default(TPixel);
-                            PackYcbCr<TPixel>(ref packed, yy, cb, cr);
-                            pixels[x, y] = packed;
-                        }
-                    });
+                             TPixel packed = default(TPixel);
+                             YCbCrToRgbTables.Pack(ref packed, tables, yy, cb, cr);
+                             pixels[x, y] = packed;
+                         }
+                     }
+                 });
             }
 
             this.AssignResolution(image);

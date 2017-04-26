@@ -5,11 +5,9 @@
 
 namespace ImageSharp.Formats
 {
-    using System;
     using System.Buffers;
     using System.IO;
     using System.Runtime.CompilerServices;
-
     using ImageSharp.Formats.Jpg;
     using ImageSharp.Formats.Jpg.Components;
     using ImageSharp.PixelFormats;
@@ -23,6 +21,11 @@ namespace ImageSharp.Formats
         /// The number of quantization tables.
         /// </summary>
         private const int QuantizationTableCount = 2;
+
+        /// <summary>
+        /// Lookup tables for converting Rgb to YCbCr
+        /// </summary>
+        private static readonly RgbToYCbCrTables RgbToYCbCrTables = default(RgbToYCbCrTables).Init();
 
         /// <summary>
         /// Counts the number of bits needed to hold an integer.
@@ -321,29 +324,9 @@ namespace ImageSharp.Formats
                     int g = Unsafe.Add(ref data0, dataIdx + 1);
                     int b = Unsafe.Add(ref data0, dataIdx + 2);
 
-                    // Speed up the algorithm by removing floating point calculation
-                    // Scale by 65536, add .5F and truncate value. We use bit shifting to divide the result
-                    int y0 = 19595 * r; // (0.299F * 65536) + .5F
-                    int y1 = 38470 * g; // (0.587F * 65536) + .5F
-                    int y2 = 7471 * b; // (0.114F * 65536) + .5F
-
-                    int cb0 = -11057 * r; // (-0.168736F * 65536) + .5F
-                    int cb1 = 21710 * g; // (0.331264F * 65536) + .5F
-                    int cb2 = 32768 * b; // (0.5F * 65536) + .5F
-
-                    int cr0 = 32768 * r; // (0.5F * 65536) + .5F
-                    int cr1 = 27439 * g; // (0.418688F * 65536) + .5F
-                    int cr2 = 5329 * b; // (0.081312F * 65536) + .5F
-
-                    float yy = (y0 + y1 + y2) >> 16;
-                    float cb = 128 + ((cb0 - cb1 + cb2) >> 16);
-                    float cr = 128 + ((cr0 - cr1 - cr2) >> 16);
-
                     int index = j8 + i;
 
-                    yBlockRaw[index] = yy;
-                    cbBlockRaw[index] = cb;
-                    crBlockRaw[index] = cr;
+                    RgbToYCbCrTables.Allocate(ref yBlockRaw, ref cbBlockRaw, ref crBlockRaw, index, r, g, b);
 
                     dataIdx += 3;
                 }

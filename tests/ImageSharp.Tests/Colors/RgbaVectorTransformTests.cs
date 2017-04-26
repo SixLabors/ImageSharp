@@ -36,13 +36,13 @@ namespace ImageSharp.Tests.Colors
         [Fact]
         public void Multiply()
         {
-            Assert.Equal(RgbaVector.Multiply(Backdrop, RgbaVector.Black).ToVector4(), Rgba32.Black.ToVector4(), FloatComparer);
+            Assert.Equal(RgbaVector.Multiply(Backdrop, RgbaVector.Black).ToVector4(), RgbaVector.Black.ToVector4(), FloatComparer);
             Assert.Equal(RgbaVector.Multiply(Backdrop, RgbaVector.White).ToVector4(), Backdrop.ToVector4(), FloatComparer);
 
             RgbaVector multiply = RgbaVector.Multiply(Backdrop, Source);
             Assert.Equal(multiply.ToVector4(), new RgbaVector(0, 41, 0).ToVector4(), FloatComparer);
         }
-
+ 
         [Fact]
         public void Screen()
         {

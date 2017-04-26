@@ -1,4 +1,4 @@
-﻿// <copyright file="ColorVectorTransformTests.cs" company="James Jackson-South">
+﻿// <copyright file="RgbaVectorTransformTests.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -12,7 +12,7 @@ namespace ImageSharp.Tests.Colors
     /// Tests the color transform algorithms. Test results match the output of CSS equivalents.
     /// <see href="https://jsfiddle.net/jamessouth/L1v8r6kh/"/>
     /// </summary>
-    public class ColorVectorTransformTests
+    public class RgbaVectorTransformTests
     {
         private static readonly ApproximateFloatComparer FloatComparer = new ApproximateFloatComparer(0.01F);
 

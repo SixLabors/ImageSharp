@@ -40,7 +40,7 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Lookup tables for converting YCbCr to Rgb
         /// </summary>
-        private static readonly YCbCrToRgbTables YCbCrToRgbTables = default(YCbCrToRgbTables).Init();
+        private static YCbCrToRgbTables yCbCrToRgbTables = YCbCrToRgbTables.Create();
 
         /// <summary>
         /// The decoder options.
@@ -685,19 +685,23 @@ namespace ImageSharp.Formats
                     image.Configuration.ParallelOptions,
                     y =>
                     {
-                        // TODO: Simplify + optimize + share duplicate code across converter methods
-                        int yo = this.ycbcrImage.GetRowYOffset(y);
-                        int co = this.ycbcrImage.GetRowCOffset(y);
-
-                        for (int x = 0; x < image.Width; x++)
+                        // TODO. How can we use the fixed tables inside the lambda?
+                        fixed (YCbCrToRgbTables* tables = &yCbCrToRgbTables)
                         {
-                            byte yy = this.ycbcrImage.YChannel.Pixels[yo + x];
-                            byte cb = this.ycbcrImage.CbChannel.Pixels[co + (x / scale)];
-                            byte cr = this.ycbcrImage.CrChannel.Pixels[co + (x / scale)];
+                            // TODO: Simplify + optimize + share duplicate code across converter methods
+                            int yo = this.ycbcrImage.GetRowYOffset(y);
+                            int co = this.ycbcrImage.GetRowCOffset(y);
 
-                            TPixel packed = default(TPixel);
-                            YCbCrToRgbTables.Pack(ref packed, yy, cb, cr);
-                            pixels[x, y] = packed;
+                            for (int x = 0; x < image.Width; x++)
+                            {
+                                byte yy = this.ycbcrImage.YChannel.Pixels[yo + x];
+                                byte cb = this.ycbcrImage.CbChannel.Pixels[co + (x / scale)];
+                                byte cr = this.ycbcrImage.CrChannel.Pixels[co + (x / scale)];
+
+                                TPixel packed = default(TPixel);
+                                YCbCrToRgbTables.Pack(ref packed, tables, yy, cb, cr);
+                                pixels[x, y] = packed;
+                            }
                         }
                     });
             }

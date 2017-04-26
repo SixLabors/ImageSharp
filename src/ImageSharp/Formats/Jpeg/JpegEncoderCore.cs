@@ -328,7 +328,7 @@ namespace ImageSharp.Formats
 
                     int index = j8 + i;
 
-                    RgbToYCbCrTables.Allocate(ref yBlockRaw, ref cbBlockRaw, ref crBlockRaw, tables, index, r, g, b);
+                    RgbToYCbCrTables.Allocate(ref yBlockRaw, ref cbBlockRaw, ref crBlockRaw, ref tables, index, r, g, b);
 
                     dataIdx += 3;
                 }

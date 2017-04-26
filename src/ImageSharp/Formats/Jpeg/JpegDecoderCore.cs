@@ -7,7 +7,6 @@ namespace ImageSharp.Formats
 {
     using System;
     using System.IO;
-    using System.Runtime.CompilerServices;
     using System.Threading.Tasks;
 
     using ImageSharp.Formats.Jpg;
@@ -37,6 +36,11 @@ namespace ImageSharp.Formats
         /// </summary>
         public InputProcessor InputProcessor;
 #pragma warning restore SA401
+
+        /// <summary>
+        /// Lookup tables for converting YCbCr to Rgb
+        /// </summary>
+        private static readonly YCbCrToRgbTables YCbCrToRgbTables = default(YCbCrToRgbTables).Init();
 
         /// <summary>
         /// The decoder options.
@@ -249,35 +253,6 @@ namespace ImageSharp.Formats
                         throw new ImageFormatException("Too many components");
                 }
             }
-        }
-
-        /// <summary>
-        /// Optimized method to pack bytes to the image from the YCbCr color space.
-        /// This is faster than implicit casting as it avoids double packing.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="packed">The packed pixel.</param>
-        /// <param name="y">The y luminance component.</param>
-        /// <param name="cb">The cb chroma component.</param>
-        /// <param name="cr">The cr chroma component.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void PackYcbCr<TPixel>(ref TPixel packed, byte y, byte cb, byte cr)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            int ccb = cb - 128;
-            int ccr = cr - 128;
-
-            // Speed up the algorithm by removing floating point calculation
-            // Scale by 65536, add .5F and truncate value. We use bit shifting to divide the result
-            int r0 = 91881 * ccr; // (1.402F * 65536) + .5F
-            int g0 = 22554 * ccb; // (0.34414F * 65536) + .5F
-            int g1 = 46802 * ccr; // (0.71414F  * 65536) + .5F
-            int b0 = 116130 * ccb; // (1.772F * 65536) + .5F
-
-            byte r = (byte)(y + (r0 >> 16)).Clamp(0, 255);
-            byte g = (byte)(y - (g0 >> 16) - (g1 >> 16)).Clamp(0, 255);
-            byte b = (byte)(y + (b0 >> 16)).Clamp(0, 255);
-            packed.PackFromBytes(r, g, b, 255);
         }
 
         /// <summary>
@@ -721,7 +696,7 @@ namespace ImageSharp.Formats
                             byte cr = this.ycbcrImage.CrChannel.Pixels[co + (x / scale)];
 
                             TPixel packed = default(TPixel);
-                            PackYcbCr<TPixel>(ref packed, yy, cb, cr);
+                            YCbCrToRgbTables.Pack(ref packed, yy, cb, cr);
                             pixels[x, y] = packed;
                         }
                     });

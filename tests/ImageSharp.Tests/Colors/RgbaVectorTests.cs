@@ -1,4 +1,4 @@
-﻿// <copyright file="ColorVectorTests.cs" company="James Jackson-South">
+﻿// <copyright file="RgbaVectorTests.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -15,7 +15,7 @@ namespace ImageSharp.Tests
     /// <summary>
     /// Tests the <see cref="RgbaVector"/> struct.
     /// </summary>
-    public class ColorVectorTests
+    public class RgbaVectorTests
     {
         /// <summary>
         /// Tests the equality operators for equality.

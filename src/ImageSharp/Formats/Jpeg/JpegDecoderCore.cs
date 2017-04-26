@@ -7,6 +7,7 @@ namespace ImageSharp.Formats
 {
     using System;
     using System.IO;
+    using System.Runtime.CompilerServices;
     using System.Threading.Tasks;
 
     using ImageSharp.Formats.Jpg;
@@ -680,30 +681,34 @@ namespace ImageSharp.Formats
             using (PixelAccessor<TPixel> pixels = image.Lock())
             {
                 Parallel.For(
-                    0,
-                    image.Height,
-                    image.Configuration.ParallelOptions,
-                    y =>
-                    {
-                        // TODO. How can we use the fixed tables inside the lambda?
-                        fixed (YCbCrToRgbTables* tables = &yCbCrToRgbTables)
-                        {
-                            // TODO: Simplify + optimize + share duplicate code across converter methods
-                            int yo = this.ycbcrImage.GetRowYOffset(y);
-                            int co = this.ycbcrImage.GetRowCOffset(y);
+                 0,
+                 image.Height,
+                 image.Configuration.ParallelOptions,
+                 y =>
+                 {
+                     // TODO. This Parallel loop doesn't give us the boost it should.
+                     ref byte ycRef = ref this.ycbcrImage.YChannel.Pixels[0];
+                     ref byte cbRef = ref this.ycbcrImage.CbChannel.Pixels[0];
+                     ref byte crRef = ref this.ycbcrImage.CrChannel.Pixels[0];
+                     fixed (YCbCrToRgbTables* tables = &yCbCrToRgbTables)
+                     {
+                         // TODO: Simplify + optimize + share duplicate code across converter methods
+                         int yo = this.ycbcrImage.GetRowYOffset(y);
+                         int co = this.ycbcrImage.GetRowCOffset(y);
 
-                            for (int x = 0; x < image.Width; x++)
-                            {
-                                byte yy = this.ycbcrImage.YChannel.Pixels[yo + x];
-                                byte cb = this.ycbcrImage.CbChannel.Pixels[co + (x / scale)];
-                                byte cr = this.ycbcrImage.CrChannel.Pixels[co + (x / scale)];
+                         for (int x = 0; x < image.Width; x++)
+                         {
+                             int cOff = co + (x / scale);
+                             byte yy = Unsafe.Add(ref ycRef, yo + x);
+                             byte cb = Unsafe.Add(ref cbRef, cOff);
+                             byte cr = Unsafe.Add(ref crRef, cOff);
 
-                                TPixel packed = default(TPixel);
-                                YCbCrToRgbTables.Pack(ref packed, tables, yy, cb, cr);
-                                pixels[x, y] = packed;
-                            }
-                        }
-                    });
+                             TPixel packed = default(TPixel);
+                             YCbCrToRgbTables.Pack(ref packed, tables, yy, cb, cr);
+                             pixels[x, y] = packed;
+                         }
+                     }
+                 });
             }
 
             this.AssignResolution(image);

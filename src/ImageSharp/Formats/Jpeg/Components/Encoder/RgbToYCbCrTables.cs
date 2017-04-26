@@ -104,7 +104,7 @@ namespace ImageSharp.Formats.Jpg
         /// <param name="g">The green value.</param>
         /// <param name="b">The blue value.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Allocate(ref float* yBlockRaw, ref float* cbBlockRaw, ref float* crBlockRaw, RgbToYCbCrTables* tables, int index, int r, int g, int b)
+        public static void Allocate(ref float* yBlockRaw, ref float* cbBlockRaw, ref float* crBlockRaw, ref RgbToYCbCrTables* tables, int index, int r, int g, int b)
         {
             // float y = (0.299F * r) + (0.587F * g) + (0.114F * b);
             yBlockRaw[index] = (tables->YRTable[r] + tables->YGTable[g] + tables->YBTable[b]) >> ScaleBits;

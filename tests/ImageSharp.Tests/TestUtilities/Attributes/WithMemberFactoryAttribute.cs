@@ -26,7 +26,7 @@ namespace ImageSharp.Tests
         /// <param name="pixelTypes">The requested pixel types</param>
         /// <param name="additionalParameters">Additional theory parameter values</param>
         public WithMemberFactoryAttribute(string memberMethodName, PixelTypes pixelTypes, params object[] additionalParameters)
-            : base(pixelTypes, additionalParameters)
+            : base(null, pixelTypes, additionalParameters)
         {
             this.memberMethodName = memberMethodName;
         }

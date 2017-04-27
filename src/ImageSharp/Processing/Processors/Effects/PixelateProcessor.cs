@@ -66,51 +66,46 @@ namespace ImageSharp.Processing.Processors
             // Get the range on the y-plane to choose from.
             IEnumerable<int> range = EnumerableExtensions.SteppedRange(minY, i => i < maxY, size);
 
-            using (PixelAccessor<TPixel> targetPixels = new PixelAccessor<TPixel>(source.Width, source.Height))
+            using (PixelAccessor<TPixel> sourcePixels = source.Lock())
             {
-                using (PixelAccessor<TPixel> sourcePixels = source.Lock())
-                {
-                    Parallel.ForEach(
-                        range,
-                        this.ParallelOptions,
-                        y =>
+                Parallel.ForEach(
+                    range,
+                    this.ParallelOptions,
+                    y =>
+                        {
+                            int offsetY = y - startY;
+                            int offsetPy = offset;
+
+                            for (int x = minX; x < maxX; x += size)
                             {
-                                int offsetY = y - startY;
-                                int offsetPy = offset;
+                                int offsetX = x - startX;
+                                int offsetPx = offset;
 
-                                for (int x = minX; x < maxX; x += size)
+                                // Make sure that the offset is within the boundary of the image.
+                                while (offsetY + offsetPy >= maxY)
                                 {
-                                    int offsetX = x - startX;
-                                    int offsetPx = offset;
+                                    offsetPy--;
+                                }
 
-                                    // Make sure that the offset is within the boundary of the image.
-                                    while (offsetY + offsetPy >= maxY)
+                                while (x + offsetPx >= maxX)
+                                {
+                                    offsetPx--;
+                                }
+
+                                // Get the pixel color in the centre of the soon to be pixelated area.
+                                // ReSharper disable AccessToDisposedClosure
+                                TPixel pixel = sourcePixels[offsetX + offsetPx, offsetY + offsetPy];
+
+                                // For each pixel in the pixelate size, set it to the centre color.
+                                for (int l = offsetY; l < offsetY + size && l < maxY; l++)
+                                {
+                                    for (int k = offsetX; k < offsetX + size && k < maxX; k++)
                                     {
-                                        offsetPy--;
-                                    }
-
-                                    while (x + offsetPx >= maxX)
-                                    {
-                                        offsetPx--;
-                                    }
-
-                                    // Get the pixel color in the centre of the soon to be pixelated area.
-                                    // ReSharper disable AccessToDisposedClosure
-                                    TPixel pixel = sourcePixels[offsetX + offsetPx, offsetY + offsetPy];
-
-                                    // For each pixel in the pixelate size, set it to the centre color.
-                                    for (int l = offsetY; l < offsetY + size && l < maxY; l++)
-                                    {
-                                        for (int k = offsetX; k < offsetX + size && k < maxX; k++)
-                                        {
-                                            targetPixels[k, l] = pixel;
-                                        }
+                                        sourcePixels[k, l] = pixel;
                                     }
                                 }
-                            });
-
-                    source.SwapPixelsBuffers(targetPixels);
-                }
+                            }
+                        });
             }
         }
     }

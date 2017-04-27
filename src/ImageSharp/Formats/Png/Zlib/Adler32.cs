@@ -138,7 +138,7 @@ namespace ImageSharp.Formats
             }
 
             // (By Per Bothner)
-            uint s1 = this.checksum;
+            uint s1 = this.checksum & 0xFFFF;
             uint s2 = this.checksum >> 16;
 
             while (count > 0)
@@ -151,7 +151,7 @@ namespace ImageSharp.Formats
                 count -= n;
                 while (--n > -1)
                 {
-                    s1 = s1 + buffer[offset++];
+                    s1 = s1 + (uint)(buffer[offset++] & 0xff);
                     s2 = s2 + s1;
                 }
 

@@ -21,6 +21,7 @@ namespace ImageSharp.Tests
             public const string Blur = "Png/blur.png";
             public const string Indexed = "Png/indexed.png";
             public const string Splash = "Png/splash.png";
+            public const string Cross = "Png/cross.png";
             public const string Powerpoint = "Png/pp.png";
             public const string SplashInterlaced = "Png/splash-interlaced.png";
             public const string Interlaced = "Png/interlaced.png";

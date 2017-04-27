@@ -53,6 +53,7 @@ namespace ImageSharp.Formats
     ///    checksum of zero.)"
     /// </remarks>
     /// <see cref="DeframeStream"/>
+    /// <see cref="ZlibDeflateStream"/>
     internal sealed class Adler32 : IChecksum
     {
         /// <summary>
@@ -131,13 +132,18 @@ namespace ImageSharp.Formats
                 throw new ArgumentOutOfRangeException(nameof(count), "cannot be negative");
             }
 
+            if (offset >= buffer.Length)
+            {
+                throw new ArgumentOutOfRangeException(nameof(offset), "not a valid index into buffer");
+            }
+
             if (offset + count > buffer.Length)
             {
                 throw new ArgumentOutOfRangeException(nameof(count), "exceeds buffer size");
             }
 
             // (By Per Bothner)
-            uint s1 = this.checksum;
+            uint s1 = this.checksum & 0xFFFF;
             uint s2 = this.checksum >> 16;
 
             while (count > 0)
@@ -145,12 +151,16 @@ namespace ImageSharp.Formats
                 // We can defer the modulo operation:
                 // s1 maximally grows from 65521 to 65521 + 255 * 3800
                 // s2 maximally grows by 3800 * median(s1) = 2090079800 < 2^31
-                int n = Math.Min(3800, count);
+                int n = 3800;
+                if (n > count)
+                {
+                    n = count;
+                }
 
                 count -= n;
-                while (--n > -1)
+                while (--n >= 0)
                 {
-                    s1 = s1 + buffer[offset++];
+                    s1 = s1 + (uint)(buffer[offset++] & 0xff);
                     s2 = s2 + s1;
                 }
 

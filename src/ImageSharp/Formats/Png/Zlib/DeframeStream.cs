@@ -3,6 +3,7 @@
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.IO.Compression;
     using System.Text;
 
     /// <summary>
@@ -18,7 +19,25 @@
         /// <summary>
         /// The compressed stream sitting over the top of the deframer
         /// </summary>
-        private ZlibInflateStream compressedStream;
+        private DeflateStream compressedStream;
+
+        /// <summary>
+        /// A value indicating whether this instance of the given entity has been disposed.
+        /// </summary>
+        /// <value><see langword="true"/> if this instance has been disposed; otherwise, <see langword="false"/>.</value>
+        /// <remarks>
+        /// If the entity is disposed, it must not be disposed a second
+        /// time. The isDisposed field is set the first time the entity
+        /// is disposed. If the isDisposed field is true, then the Dispose()
+        /// method will not dispose again. This help not to prolong the entity's
+        /// life in the Garbage Collector.
+        /// </remarks>
+        private bool isDisposed;
+
+        /// <summary>
+        /// The read crc data.
+        /// </summary>
+        private byte[] crcread;
 
         /// <summary>
         /// The current data remaining to be read
@@ -52,7 +71,7 @@
         /// <summary>
         /// Gets the compressed stream over the deframed inner stream
         /// </summary>
-        public ZlibInflateStream CompressedStream => this.compressedStream;
+        public DeflateStream CompressedStream => this.compressedStream;
 
         /// <summary>
         /// Adds new bytes from a frame found in the original stream
@@ -63,7 +82,7 @@
             this.currentDataRemaining = bytes;
             if (this.compressedStream == null)
             {
-                this.compressedStream = new ZlibInflateStream(this);
+                this.InitializeInflateStream();
             }
         }
 
@@ -114,8 +133,89 @@
         /// <inheritdoc/>
         protected override void Dispose(bool disposing)
         {
-            this.compressedStream.Dispose();
+            if (this.isDisposed)
+            {
+                return;
+            }
+
+            if (disposing)
+            {
+                // dispose managed resources
+                if (this.compressedStream != null)
+                {
+                    this.compressedStream.Dispose();
+                    this.compressedStream = null;
+
+                    if (this.crcread == null)
+                    {
+                        // Consume the trailing 4 bytes
+                        this.crcread = new byte[4];
+                        for (int i = 0; i < 4; i++)
+                        {
+                            this.crcread[i] = (byte)this.innerStream.ReadByte();
+                        }
+                    }
+                }
+            }
+
             base.Dispose(disposing);
+
+            // Call the appropriate methods to clean up
+            // unmanaged resources here.
+            // Note disposing is done.
+            this.isDisposed = true;
+        }
+
+        private void InitializeInflateStream()
+        {
+            // The DICT dictionary identifier identifying the used dictionary.
+
+            // The preset dictionary.
+            bool fdict;
+
+            // Read the zlib header : http://tools.ietf.org/html/rfc1950
+            // CMF(Compression Method and flags)
+            // This byte is divided into a 4 - bit compression method and a
+            // 4-bit information field depending on the compression method.
+            // bits 0 to 3  CM Compression method
+            // bits 4 to 7  CINFO Compression info
+            //
+            //   0   1
+            // +---+---+
+            // |CMF|FLG|
+            // +---+---+
+            int cmf = this.innerStream.ReadByte();
+            int flag = this.innerStream.ReadByte();
+            this.currentDataRemaining -= 2;
+            if (cmf == -1 || flag == -1)
+            {
+                return;
+            }
+
+            if ((cmf & 0x0f) != 8)
+            {
+                throw new Exception($"Bad compression method for ZLIB header: cmf={cmf}");
+            }
+
+            // CINFO is the base-2 logarithm of the LZ77 window size, minus eight.
+            // int cinfo = ((cmf & (0xf0)) >> 8);
+            fdict = (flag & 32) != 0;
+
+            if (fdict)
+            {
+                // The DICT dictionary identifier identifying the used dictionary.
+                byte[] dictId = new byte[4];
+
+                for (int i = 0; i < 4; i++)
+                {
+                    // We consume but don't use this.
+                    dictId[i] = (byte)this.innerStream.ReadByte();
+                    this.currentDataRemaining--;
+                }
+            }
+
+            // Initialize the deflate Stream.
+            this.compressedStream = new DeflateStream(this, CompressionMode.Decompress, true);
         }
     }
 }

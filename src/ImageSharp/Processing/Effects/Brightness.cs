@@ -20,12 +20,12 @@ namespace ImageSharp
         /// Alters the brightness component of the image.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-                /// <param name="source">The image this method extends.</param>
+        /// <param name="source">The image this method extends.</param>
         /// <param name="amount">The new brightness of the image. Must be between -100 and 100.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static Image<TPixel> Brightness<TPixel>(this Image<TPixel> source, int amount)
             where TPixel : struct, IPixel<TPixel>
-                    {
+        {
             return Brightness(source, amount, source.Bounds);
         }
 
@@ -33,7 +33,7 @@ namespace ImageSharp
         /// Alters the brightness component of the image.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-                /// <param name="source">The image this method extends.</param>
+        /// <param name="source">The image this method extends.</param>
         /// <param name="amount">The new brightness of the image. Must be between -100 and 100.</param>
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.

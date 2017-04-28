@@ -43,7 +43,7 @@ namespace ImageSharp.Tests
 
             foreach (TestFile file in Files)
             {
-                string filename = file.GetFileName(value);
+                string filename = file.GetFileName(value + "-InBox");
                 using (Image image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {

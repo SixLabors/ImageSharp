@@ -26,7 +26,7 @@ namespace ImageSharp.Tests
             using (Image<TPixel> image = provider.GetImage())
             {
                 image.GaussianBlur(value)
-                    .DebugSave(provider);
+                    .DebugSave(provider, value.ToString());
             }
         }
 
@@ -40,7 +40,7 @@ namespace ImageSharp.Tests
             {
                 Rectangle rect = new Rectangle(image.Width / 4, image.Height / 4, image.Width / 2, image.Height / 2);
                 image.GaussianBlur(value, rect)
-                    .DebugSave(provider);
+                    .DebugSave(provider, value.ToString());
 
                 // lets draw identical shapes over the blured areas and ensure that it didn't change the outer area
                 image.Fill(NamedColors<TPixel>.HotPink, rect);

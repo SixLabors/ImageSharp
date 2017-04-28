@@ -43,6 +43,7 @@ namespace ImageSharp
                 case PixelTransformMode.Normal: return PorterDuffFunctions<TBckPixel, TSrcPixel>.NormalBlendFunction;
                 case PixelTransformMode.Multiply: return PorterDuffFunctions<TBckPixel, TSrcPixel>.MultiplyFunction;
                 case PixelTransformMode.Add: return PorterDuffFunctions<TBckPixel, TSrcPixel>.AddFunction;
+                case PixelTransformMode.Substract: return PorterDuffFunctions<TBckPixel, TSrcPixel>.SubstractFunction;
                 case PixelTransformMode.Screen: return PorterDuffFunctions<TBckPixel, TSrcPixel>.ScreenFunction;
                 case PixelTransformMode.Darken: return PorterDuffFunctions<TBckPixel, TSrcPixel>.DarkenFunction;
                 case PixelTransformMode.Lighten: return PorterDuffFunctions<TBckPixel, TSrcPixel>.LightenFunction;

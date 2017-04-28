@@ -5,7 +5,6 @@
 
 namespace ImageSharp.Processing.Processors
 {
-    using System;
     using System.Numerics;
     using System.Threading.Tasks;
 
@@ -57,10 +56,11 @@ namespace ImageSharp.Processing.Processors
             int maxX = endX - 1;
 
             using (PixelAccessor<TPixel> targetPixels = new PixelAccessor<TPixel>(source.Width, source.Height))
+            using (PixelAccessor<TPixel> sourcePixels = source.Lock())
             {
-                using (PixelAccessor<TPixel> sourcePixels = source.Lock())
-                {
-                    Parallel.For(
+                sourcePixels.CopyTo(targetPixels);
+
+                Parallel.For(
                     startY,
                     endY,
                     this.ParallelOptions,
@@ -119,7 +119,6 @@ namespace ImageSharp.Processing.Processors
                             targetPixels[x, y] = packed;
                         }
                     });
-                }
 
                 source.SwapPixelsBuffers(targetPixels);
             }

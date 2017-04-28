@@ -20,7 +20,7 @@ namespace ImageSharp.Tests.Formats.Png
     public class PngSmokeTests
     {
         [Theory]
-        [WithTestPatternImages(300, 300, PixelTypes.All)]
+        [WithTestPatternImages(300, 300, PixelTypes.StandardImageClass)]
         public void GeneralTest<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -41,7 +41,7 @@ namespace ImageSharp.Tests.Formats.Png
         }
 
         [Theory]
-        [WithTestPatternImages(100, 100, PixelTypes.All)]
+        [WithTestPatternImages(100, 100, PixelTypes.StandardImageClass)]
         public void CanSaveIndexedPng<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -56,7 +56,7 @@ namespace ImageSharp.Tests.Formats.Png
                 using (Image img2 = Image.Load(ms, new PngDecoder()))
                 {
                     // img2.Save(provider.Utility.GetTestOutputFileName("bmp", "_loaded"), new BmpEncoder());
-                    ImageComparer.CheckSimilarity(image, img2);
+                    ImageComparer.CheckSimilarity(image, img2, 0.03f);
                 }
             }
         }
@@ -105,7 +105,7 @@ namespace ImageSharp.Tests.Formats.Png
         //}
 
         [Theory]
-        [WithTestPatternImages(300, 300, PixelTypes.All)]
+        [WithTestPatternImages(300, 300, PixelTypes.StandardImageClass)]
         public void Resize<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {

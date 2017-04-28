@@ -181,7 +181,7 @@ namespace ImageSharp.Formats
             {
                 Width = image.Width,
                 Height = image.Height,
-                ColorType = (byte)this.pngColorType,
+                ColorType = this.pngColorType,
                 BitDepth = this.bitDepth,
                 FilterMethod = 0, // None
                 CompressionMethod = 0,
@@ -462,7 +462,7 @@ namespace ImageSharp.Formats
             WriteInteger(this.chunkDataBuffer, 4, header.Height);
 
             this.chunkDataBuffer[8] = header.BitDepth;
-            this.chunkDataBuffer[9] = header.ColorType;
+            this.chunkDataBuffer[9] = (byte)header.ColorType;
             this.chunkDataBuffer[10] = header.CompressionMethod;
             this.chunkDataBuffer[11] = header.FilterMethod;
             this.chunkDataBuffer[12] = (byte)header.InterlaceMethod;

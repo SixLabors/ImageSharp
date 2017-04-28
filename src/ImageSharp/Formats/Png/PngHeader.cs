@@ -34,7 +34,7 @@ namespace ImageSharp.Formats
         /// image data. Color type codes represent sums of the following values:
         /// 1 (palette used), 2 (color used), and 4 (alpha channel used).
         /// </summary>
-        public byte ColorType { get; set; }
+        public PngColorType ColorType { get; set; }
 
         /// <summary>
         /// Gets or sets the compression method.

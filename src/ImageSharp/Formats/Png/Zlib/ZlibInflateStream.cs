@@ -1,23 +1,25 @@
-﻿// <copyright file="ZlibInflateStream.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
-// Licensed under the Apache License, Version 2.0.
-// </copyright>
-
-namespace ImageSharp.Formats
+﻿namespace ImageSharp.Formats
 {
     using System;
+    using System.Collections.Generic;
     using System.IO;
     using System.IO.Compression;
+    using System.Text;
 
     /// <summary>
-    /// Provides methods and properties for decompressing streams by using the Zlib Deflate algorithm.
+    /// Provides methods and properties for deframing streams from PNGs.
     /// </summary>
-    internal sealed class ZlibInflateStream : Stream
+    internal class ZlibInflateStream : Stream
     {
         /// <summary>
-        /// The raw stream containing the uncompressed image data.
+        /// The inner raw memory stream
         /// </summary>
-        private readonly Stream rawStream;
+        private readonly Stream innerStream;
+
+        /// <summary>
+        /// The compressed stream sitting over the top of the deframer
+        /// </summary>
+        private DeflateStream compressedStream;
 
         /// <summary>
         /// A value indicating whether this instance of the given entity has been disposed.
@@ -38,123 +40,76 @@ namespace ImageSharp.Formats
         private byte[] crcread;
 
         /// <summary>
-        /// The stream responsible for decompressing the input stream.
+        /// The current data remaining to be read
         /// </summary>
-        private DeflateStream deflateStream;
+        private int currentDataRemaining;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ZlibInflateStream"/> class.
         /// </summary>
-        /// <param name="stream">The stream.</param>
-        /// <exception cref="Exception">
-        /// Thrown if the compression method is incorrect.
-        /// </exception>
-        public ZlibInflateStream(Stream stream)
+        /// <param name="innerStream">The inner raw stream</param>
+        public ZlibInflateStream(Stream innerStream)
         {
-            // The DICT dictionary identifier identifying the used dictionary.
-
-            // The preset dictionary.
-            bool fdict;
-            this.rawStream = stream;
-
-            // Read the zlib header : http://tools.ietf.org/html/rfc1950
-            // CMF(Compression Method and flags)
-            // This byte is divided into a 4 - bit compression method and a
-            // 4-bit information field depending on the compression method.
-            // bits 0 to 3  CM Compression method
-            // bits 4 to 7  CINFO Compression info
-            //
-            //   0   1
-            // +---+---+
-            // |CMF|FLG|
-            // +---+---+
-            int cmf = this.rawStream.ReadByte();
-            int flag = this.rawStream.ReadByte();
-            if (cmf == -1 || flag == -1)
-            {
-                return;
-            }
-
-            if ((cmf & 0x0f) != 8)
-            {
-                throw new Exception($"Bad compression method for ZLIB header: cmf={cmf}");
-            }
-
-            // CINFO is the base-2 logarithm of the LZ77 window size, minus eight.
-            // int cinfo = ((cmf & (0xf0)) >> 8);
-            fdict = (flag & 32) != 0;
-
-            if (fdict)
-            {
-                // The DICT dictionary identifier identifying the used dictionary.
-                byte[] dictId = new byte[4];
-
-                for (int i = 0; i < 4; i++)
-                {
-                    // We consume but don't use this.
-                    dictId[i] = (byte)this.rawStream.ReadByte();
-                }
-            }
-
-            // Initialize the deflate Stream.
-            this.deflateStream = new DeflateStream(this.rawStream, CompressionMode.Decompress, true);
+            this.innerStream = innerStream;
         }
 
         /// <inheritdoc/>
-        public override bool CanRead => true;
+        public override bool CanRead => this.innerStream.CanRead;
 
         /// <inheritdoc/>
         public override bool CanSeek => false;
 
         /// <inheritdoc/>
-        public override bool CanWrite => false;
+        public override bool CanWrite => throw new NotSupportedException();
 
         /// <inheritdoc/>
-        public override long Length
-        {
-            get
-            {
-                throw new NotSupportedException();
-            }
-        }
+        public override long Length => throw new NotSupportedException();
 
         /// <inheritdoc/>
-        public override long Position
-        {
-            get
-            {
-                throw new NotSupportedException();
-            }
+        public override long Position { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 
-            set
+        /// <summary>
+        /// Gets the compressed stream over the deframed inner stream
+        /// </summary>
+        public DeflateStream CompressedStream => this.compressedStream;
+
+        /// <summary>
+        /// Adds new bytes from a frame found in the original stream
+        /// </summary>
+        /// <param name="bytes">blabla</param>
+        public void AllocateNewBytes(int bytes)
+        {
+            this.currentDataRemaining = bytes;
+            if (this.compressedStream == null)
             {
-                throw new NotSupportedException();
+                this.InitializeInflateStream();
             }
         }
 
         /// <inheritdoc/>
         public override void Flush()
         {
-            this.deflateStream?.Flush();
+            throw new NotSupportedException();
+        }
+
+        /// <inheritdoc/>
+        public override int ReadByte()
+        {
+            this.currentDataRemaining--;
+            return this.innerStream.ReadByte();
         }
 
         /// <inheritdoc/>
         public override int Read(byte[] buffer, int offset, int count)
         {
-            // We dont't check CRC on reading
-            int read = this.deflateStream.Read(buffer, offset, count);
-            if (read < 1 && this.crcread == null)
+            if (this.currentDataRemaining == 0)
             {
-                // The deflater has ended. We try to read the next 4 bytes from raw stream (crc)
-                this.crcread = new byte[4];
-                for (int i = 0; i < 4; i++)
-                {
-                    // we dont really check/use this
-                    this.crcread[i] = (byte)this.rawStream.ReadByte();
-                }
+                return 0;
             }
 
-            return read;
+            int bytesToRead = Math.Min(count, this.currentDataRemaining);
+            this.currentDataRemaining -= bytesToRead;
+            return this.innerStream.Read(buffer, offset, bytesToRead);
         }
 
         /// <inheritdoc/>
@@ -186,10 +141,10 @@ namespace ImageSharp.Formats
             if (disposing)
             {
                 // dispose managed resources
-                if (this.deflateStream != null)
+                if (this.compressedStream != null)
                 {
-                    this.deflateStream.Dispose();
-                    this.deflateStream = null;
+                    this.compressedStream.Dispose();
+                    this.compressedStream = null;
 
                     if (this.crcread == null)
                     {
@@ -197,7 +152,7 @@ namespace ImageSharp.Formats
                         this.crcread = new byte[4];
                         for (int i = 0; i < 4; i++)
                         {
-                            this.crcread[i] = (byte)this.rawStream.ReadByte();
+                            this.crcread[i] = (byte)this.innerStream.ReadByte();
                         }
                     }
                 }
@@ -209,6 +164,58 @@ namespace ImageSharp.Formats
             // unmanaged resources here.
             // Note disposing is done.
             this.isDisposed = true;
+        }
+
+        private void InitializeInflateStream()
+        {
+            // The DICT dictionary identifier identifying the used dictionary.
+
+            // The preset dictionary.
+            bool fdict;
+
+            // Read the zlib header : http://tools.ietf.org/html/rfc1950
+            // CMF(Compression Method and flags)
+            // This byte is divided into a 4 - bit compression method and a
+            // 4-bit information field depending on the compression method.
+            // bits 0 to 3  CM Compression method
+            // bits 4 to 7  CINFO Compression info
+            //
+            //   0   1
+            // +---+---+
+            // |CMF|FLG|
+            // +---+---+
+            int cmf = this.innerStream.ReadByte();
+            int flag = this.innerStream.ReadByte();
+            this.currentDataRemaining -= 2;
+            if (cmf == -1 || flag == -1)
+            {
+                return;
+            }
+
+            if ((cmf & 0x0f) != 8)
+            {
+                throw new Exception($"Bad compression method for ZLIB header: cmf={cmf}");
+            }
+
+            // CINFO is the base-2 logarithm of the LZ77 window size, minus eight.
+            // int cinfo = ((cmf & (0xf0)) >> 8);
+            fdict = (flag & 32) != 0;
+
+            if (fdict)
+            {
+                // The DICT dictionary identifier identifying the used dictionary.
+                byte[] dictId = new byte[4];
+
+                for (int i = 0; i < 4; i++)
+                {
+                    // We consume but don't use this.
+                    dictId[i] = (byte)this.innerStream.ReadByte();
+                    this.currentDataRemaining--;
+                }
+            }
+
+            // Initialize the deflate Stream.
+            this.compressedStream = new DeflateStream(this, CompressionMode.Decompress, true);
         }
     }
 }

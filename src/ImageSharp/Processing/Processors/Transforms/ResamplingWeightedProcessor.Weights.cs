@@ -52,13 +52,14 @@ namespace ImageSharp.Processing.Processors
             /// Computes the sum of vectors in 'rowSpan' weighted by weight values, pointed by this <see cref="WeightsWindow"/> instance.
             /// </summary>
             /// <param name="rowSpan">The input span of vectors</param>
+            /// <param name="sourceX">The source row position.</param>
             /// <returns>The weighted sum</returns>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public Vector4 ComputeWeightedRowSum(BufferSpan<Vector4> rowSpan)
+            public Vector4 ComputeWeightedRowSum(BufferSpan<Vector4> rowSpan, int sourceX)
             {
                 ref float horizontalValues = ref this.Ptr;
                 int left = this.Left;
-                ref Vector4 vecPtr = ref Unsafe.Add(ref rowSpan.DangerousGetPinnableReference(), left);
+                ref Vector4 vecPtr = ref Unsafe.Add(ref rowSpan.DangerousGetPinnableReference(), left + sourceX);
 
                 // Destination color components
                 Vector4 result = Vector4.Zero;
@@ -78,13 +79,14 @@ namespace ImageSharp.Processing.Processors
             /// Applies <see cref="Vector4Extensions.Expand(float)"/> to all input vectors.
             /// </summary>
             /// <param name="rowSpan">The input span of vectors</param>
+            /// <param name="sourceX">The source row position.</param>
             /// <returns>The weighted sum</returns>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public Vector4 ComputeExpandedWeightedRowSum(BufferSpan<Vector4> rowSpan)
+            public Vector4 ComputeExpandedWeightedRowSum(BufferSpan<Vector4> rowSpan, int sourceX)
             {
                 ref float horizontalValues = ref this.Ptr;
                 int left = this.Left;
-                ref Vector4 vecPtr = ref Unsafe.Add(ref rowSpan.DangerousGetPinnableReference(), left);
+                ref Vector4 vecPtr = ref Unsafe.Add(ref rowSpan.DangerousGetPinnableReference(), left + sourceX);
 
                 // Destination color components
                 Vector4 result = Vector4.Zero;
@@ -100,14 +102,15 @@ namespace ImageSharp.Processing.Processors
             }
 
             /// <summary>
-            /// Computes the sum of vectors in 'firstPassPixels' at a column pointed by 'x',
+            /// Computes the sum of vectors in 'firstPassPixels' at a row pointed by 'x',
             /// weighted by weight values, pointed by this <see cref="WeightsWindow"/> instance.
             /// </summary>
             /// <param name="firstPassPixels">The buffer of input vectors in row first order</param>
-            /// <param name="x">The column position</param>
+            /// <param name="x">The row position</param>
+            /// <param name="sourceY">The source column position.</param>
             /// <returns>The weighted sum</returns>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public Vector4 ComputeWeightedColumnSum(Buffer2D<Vector4> firstPassPixels, int x)
+            public Vector4 ComputeWeightedColumnSum(Buffer2D<Vector4> firstPassPixels, int x, int sourceY)
             {
                 ref float verticalValues = ref this.Ptr;
                 int left = this.Left;
@@ -118,7 +121,7 @@ namespace ImageSharp.Processing.Processors
                 for (int i = 0; i < this.Length; i++)
                 {
                     float yw = Unsafe.Add(ref verticalValues, i);
-                    int index = left + i;
+                    int index = left + i + sourceY;
                     result += firstPassPixels[x, index] * yw;
                 }
 

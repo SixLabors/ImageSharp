@@ -1,4 +1,4 @@
-﻿// <copyright file="DrawImageProcessor.cs" company="James Jackson-South">
+﻿// <copyright file="DrawImageEffectProcessor.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -21,7 +21,7 @@ namespace ImageSharp.Drawing.Processors
         /// <summary>
         /// Initializes a new instance of the <see cref="DrawImageEffectProcessor{TPixel}"/> class.
         /// </summary>
-        /// <param name="image">The image to blend with the currently processing image.</param>        
+        /// <param name="image">The image to blend with the currently processing image.</param>
         /// <param name="size">The size to draw the blended image.</param>
         /// <param name="location">The location to draw the blended image.</param>
         /// <param name="pixelFunction">Pixel function effect to apply on every pixel</param>

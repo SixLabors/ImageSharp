@@ -14,6 +14,7 @@ namespace ImageSharp.Benchmarks
 
     using CoreSize = ImageSharp.Size;
     using CoreImage = ImageSharp.Image;
+    using CoreImageVector = ImageSharp.Image<PixelFormats.RgbaVector>;
 
     public class Resize : BenchmarkBase
     {
@@ -50,7 +51,7 @@ namespace ImageSharp.Benchmarks
         [Benchmark(Description = "ImageSharp Vector Resize")]
         public CoreSize ResizeCoreVector()
         {
-            using (CoreImage image = new CoreImage(2000, 2000))
+            using (CoreImageVector image = new CoreImageVector(2000, 2000))
             {
                 image.Resize(400, 400);
                 return new CoreSize(image.Width, image.Height);
@@ -70,7 +71,7 @@ namespace ImageSharp.Benchmarks
         [Benchmark(Description = "ImageSharp Vector Compand Resize")]
         public CoreSize ResizeCoreVectorCompand()
         {
-            using (CoreImage image = new CoreImage(2000, 2000))
+            using (CoreImageVector image = new CoreImageVector(2000, 2000))
             {
                 image.Resize(400, 400, true);
                 return new CoreSize(image.Width, image.Height);

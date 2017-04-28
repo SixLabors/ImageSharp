@@ -244,7 +244,7 @@ namespace ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static TBckPixel Compose(Vector4 backdrop, Vector4 source, Vector4 xform)
         {
-            System.Diagnostics.Debug.Assert(source.W > 0, nameof(source) + " Alpha must be non zero");
+            DebugGuard.MustBeGreaterThan(source.W, 0, nameof(source.W));
 
             // calculate weights
             float xw = backdrop.W * source.W;

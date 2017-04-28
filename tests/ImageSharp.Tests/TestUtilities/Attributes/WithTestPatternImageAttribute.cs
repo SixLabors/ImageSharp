@@ -22,7 +22,19 @@ namespace ImageSharp.Tests
         /// <param name="pixelTypes">The requested parameter</param>
         /// <param name="additionalParameters">Additional theory parameter values</param>
         public WithTestPatternImagesAttribute(int width, int height, PixelTypes pixelTypes, params object[] additionalParameters)
-            : base(pixelTypes, additionalParameters)
+            : this(null, width, height, pixelTypes,additionalParameters)
+        {
+        }
+
+        /// <summary>
+        /// Triggers passing an <see cref="TestImageProvider{TPixel}"/> that produces a test pattern image of size width * height
+        /// </summary>
+        /// <param name="width">The required width</param>
+        /// <param name="height">The required height</param>
+        /// <param name="pixelTypes">The requested parameter</param>
+        /// <param name="additionalParameters">Additional theory parameter values</param>
+        public WithTestPatternImagesAttribute(string memberData, int width, int height, PixelTypes pixelTypes, params object[] additionalParameters)
+            : base(memberData, pixelTypes, additionalParameters)
         {
             this.Width = width;
             this.Height = height;

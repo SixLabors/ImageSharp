@@ -22,7 +22,21 @@ namespace ImageSharp.Tests
         /// <param name="pixelTypes">The requested parameter</param>
         /// <param name="additionalParameters">Additional theory parameter values</param>
         public WithBlankImagesAttribute(int width, int height, PixelTypes pixelTypes, params object[] additionalParameters)
-            : base(pixelTypes, additionalParameters)
+            : base(null, pixelTypes, additionalParameters)
+        {
+            this.Width = width;
+            this.Height = height;
+        }
+
+        /// <summary>
+        /// Triggers passing an <see cref="TestImageProvider{TPixel}"/> that produces a blank image of size width * height
+        /// </summary>
+        /// <param name="width">The required width</param>
+        /// <param name="height">The required height</param>
+        /// <param name="pixelTypes">The requested parameter</param>
+        /// <param name="additionalParameters">Additional theory parameter values</param>
+        public WithBlankImagesAttribute(string memberData, int width, int height, PixelTypes pixelTypes, params object[] additionalParameters)
+            : base(memberData, pixelTypes, additionalParameters)
         {
             this.Width = width;
             this.Height = height;

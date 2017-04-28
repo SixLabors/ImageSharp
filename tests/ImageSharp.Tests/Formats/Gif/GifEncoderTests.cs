@@ -9,9 +9,23 @@ namespace ImageSharp.Tests
     using Xunit;
 
     using ImageSharp.Formats;
+    using ImageSharp.PixelFormats;
 
     public class GifEncoderTests
     {
+        private const PixelTypes PixelTypes = Tests.PixelTypes.StandardImageClass | Tests.PixelTypes.RgbaVector | Tests.PixelTypes.Argb32;
+
+        [Theory]
+        [WithTestPatternImages(100, 100, PixelTypes)]
+        public void EncodeGeneratedPatterns<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                provider.Utility.SaveTestOutputFile(image, "gif", new GifEncoder());
+            }
+        }
+
         [Fact]
         public void Encode_IgnoreMetadataIsFalse_CommentsAreWritten()
         {

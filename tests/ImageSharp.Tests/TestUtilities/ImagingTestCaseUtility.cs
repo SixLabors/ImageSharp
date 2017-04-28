@@ -97,10 +97,10 @@ namespace ImageSharp.Tests
         /// <param name="extension">The requested extension</param>
         /// <param name="encoder">Optional encoder</param>
         /// <param name="options">Optional encoder options</param>
-        public void SaveTestOutputFile<TPixel>(Image<TPixel> image, string extension = null, IImageEncoder encoder = null, IEncoderOptions options = null)
+        public void SaveTestOutputFile<TPixel>(Image<TPixel> image, string extension = null, IImageEncoder encoder = null, IEncoderOptions options = null, string tag = null)
             where TPixel : struct, IPixel<TPixel>
         {
-            string path = this.GetTestOutputFileName(extension);
+            string path = this.GetTestOutputFileName(extension: extension, tag:tag);
             extension = Path.GetExtension(path);
             IImageFormat format = GetImageFormatByExtension(extension);
 

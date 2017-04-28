@@ -33,5 +33,22 @@ namespace ImageSharp.Tests
                 }
             }
         }
+
+        [Theory]
+        [MemberData(nameof(ContrastValues))]
+        public void ImageShouldApplyContrastFilterInBox(int value)
+        {
+            string path = this.CreateOutputDirectory("Contrast");
+
+            foreach (TestFile file in Files)
+            {
+                string filename = file.GetFileName(value + "-InBox");
+                using (Image image = file.CreateImage())
+                using (FileStream output = File.OpenWrite($"{path}/{filename}"))
+                {
+                    image.Contrast(value, new Rectangle(10, 10, image.Width / 2, image.Height / 2)).Save(output);
+                }
+            }
+        }
     }
 }

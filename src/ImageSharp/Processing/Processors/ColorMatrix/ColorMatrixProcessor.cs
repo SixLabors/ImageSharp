@@ -7,6 +7,7 @@ namespace ImageSharp.Processing.Processors
 {
     using System;
     using System.Numerics;
+    using System.Runtime.CompilerServices;
     using System.Threading.Tasks;
 
     using ImageSharp.PixelFormats;
@@ -79,6 +80,7 @@ namespace ImageSharp.Processing.Processors
         /// <returns>
         /// The <see cref="Rgba32"/>.
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private TPixel ApplyMatrix(TPixel color, Matrix4x4 matrix, bool compand)
         {
             Vector4 vector = color.ToVector4();

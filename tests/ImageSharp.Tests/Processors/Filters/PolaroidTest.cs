@@ -25,5 +25,21 @@ namespace ImageSharp.Tests
                 }
             }
         }
+
+        [Fact]
+        public void ImageShouldApplyPolaroidFilterInBox()
+        {
+            string path = this.CreateOutputDirectory("Polaroid");
+
+            foreach (TestFile file in Files)
+            {
+                string filename = file.GetFileName("InBox");
+                using (Image image = file.CreateImage())
+                using (FileStream output = File.OpenWrite($"{path}/{filename}"))
+                {
+                    image.Polaroid(new Rectangle(10, 10, image.Width / 2, image.Height / 2)).Save(output);
+                }
+            }
+        }
     }
 }

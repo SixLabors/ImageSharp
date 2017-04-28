@@ -141,7 +141,12 @@ namespace ImageSharp.Formats
         /// <summary>
         /// The index of the current scanline being processed
         /// </summary>
-        private int currentRow = 0;
+        private int currentRow = Adam7FirstRow[0];
+
+        /// <summary>
+        /// The current pass for an interlaced PNG
+        /// </summary>
+        private int pass = 0;
 
         /// <summary>
         /// The current number of bytes read in the current scanline
@@ -186,7 +191,7 @@ namespace ImageSharp.Formats
             PixelAccessor<TPixel> pixels = null;
             try
             {
-                using (DeframeStream deframeStream = new DeframeStream(this.currentStream))
+                using (ZlibInflateStream deframeStream = new ZlibInflateStream(this.currentStream))
                 {
                     PngChunk currentChunk;
                     while (!this.isEndChunkReached && (currentChunk = this.ReadChunk()) != null)
@@ -487,82 +492,85 @@ namespace ImageSharp.Formats
         private void DecodeInterlacedPixelData<TPixel>(Stream compressedStream, PixelAccessor<TPixel> pixels)
             where TPixel : struct, IPixel<TPixel>
         {
-            byte[] previousScanline = ArrayPool<byte>.Shared.Rent(this.bytesPerScanline);
-            byte[] scanline = ArrayPool<byte>.Shared.Rent(this.bytesPerScanline);
-
-            try
+            while (true)
             {
-                for (int pass = 0; pass < 7; pass++)
+                int numColumns = this.ComputeColumnsAdam7(this.pass);
+
+                if (numColumns == 0)
                 {
-                    // Zero out the scanlines, because the bytes that are rented from the arraypool may not be zero.
-                    Array.Clear(scanline, 0, this.bytesPerScanline);
-                    Array.Clear(previousScanline, 0, this.bytesPerScanline);
+                    this.pass++;
 
-                    int y = Adam7FirstRow[pass];
-                    int numColumns = this.ComputeColumnsAdam7(pass);
-
-                    if (numColumns == 0)
-                    {
-                        // This pass contains no data; skip to next pass
-                        continue;
-                    }
-
-                    int bytesPerInterlaceScanline = this.CalculateScanlineLength(numColumns) + 1;
-
-                    while (y < this.header.Height)
-                    {
-                        compressedStream.Read(scanline, 0, bytesPerInterlaceScanline);
-
-                        FilterType filterType = (FilterType)scanline[0];
-
-                        switch (filterType)
-                        {
-                            case FilterType.None:
-
-                                NoneFilter.Decode(scanline);
-
-                                break;
-
-                            case FilterType.Sub:
-
-                                SubFilter.Decode(scanline, bytesPerInterlaceScanline, this.bytesPerPixel);
-
-                                break;
-
-                            case FilterType.Up:
-
-                                UpFilter.Decode(scanline, previousScanline, bytesPerInterlaceScanline);
-
-                                break;
-
-                            case FilterType.Average:
-
-                                AverageFilter.Decode(scanline, previousScanline, bytesPerInterlaceScanline, this.bytesPerPixel);
-
-                                break;
-
-                            case FilterType.Paeth:
-
-                                PaethFilter.Decode(scanline, previousScanline, bytesPerInterlaceScanline, this.bytesPerPixel);
-
-                                break;
-
-                            default:
-                                throw new ImageFormatException("Unknown filter type.");
-                        }
-
-                        this.ProcessInterlacedDefilteredScanline(scanline, y, pixels, Adam7FirstColumn[pass], Adam7ColumnIncrement[pass]);
-
-                        Swap(ref scanline, ref previousScanline);
-
-                        y += Adam7RowIncrement[pass];
-                    }
+                    // This pass contains no data; skip to next pass
+                    continue;
                 }
-            }
-            finally
-            {
-                ArrayPool<byte>.Shared.Return(previousScanline);
-                ArrayPool<byte>.Shared.Return(scanline);
+
+                int bytesPerInterlaceScanline = this.CalculateScanlineLength(numColumns) + 1;
+
+                while (this.currentRow < this.header.Height)
+                {
+                    int bytesRead = compressedStream.Read(this.scanline, this.currentRowBytesRead, bytesPerInterlaceScanline - this.currentRowBytesRead);
+                    this.currentRowBytesRead += bytesRead;
+                    if (this.currentRowBytesRead < bytesPerInterlaceScanline)
+                    {
+                        return;
+                    }
+
+                    this.currentRowBytesRead = 0;
+
+                    FilterType filterType = (FilterType)this.scanline[0];
+
+                    switch (filterType)
+                    {
+                        case FilterType.None:
+
+                            NoneFilter.Decode(this.scanline);
+
+                            break;
+
+                        case FilterType.Sub:
+
+                            SubFilter.Decode(this.scanline, bytesPerInterlaceScanline, this.bytesPerPixel);
+
+                            break;
+
+                        case FilterType.Up:
+
+                            UpFilter.Decode(this.scanline, this.previousScanline, bytesPerInterlaceScanline);
+
+                            break;
+
+                        case FilterType.Average:
+
+                            AverageFilter.Decode(this.scanline, this.previousScanline, bytesPerInterlaceScanline, this.bytesPerPixel);
+
+                            break;
+
+                        case FilterType.Paeth:
+
+                            PaethFilter.Decode(this.scanline, this.previousScanline, bytesPerInterlaceScanline, this.bytesPerPixel);
+
+                            break;
+
+                        default:
+                            throw new ImageFormatException("Unknown filter type.");
+                    }
+
+                    this.ProcessInterlacedDefilteredScanline(this.scanline, this.currentRow, pixels, Adam7FirstColumn[this.pass], Adam7ColumnIncrement[this.pass]);
+
+                    Swap(ref this.scanline, ref this.previousScanline);
+
+                    this.currentRow += Adam7RowIncrement[this.pass];
+                }
+
+                this.pass++;
+                if (this.pass < 7)
+                {
+                    this.currentRow = Adam7FirstRow[this.pass];
+                }
+                else
+                {
+                    break;
+                }
             }
         }
 

@@ -191,7 +191,7 @@ namespace ImageSharp.Formats
             PixelAccessor<TPixel> pixels = null;
             try
             {
-                using (DeframeStream deframeStream = new DeframeStream(this.currentStream))
+                using (ZlibInflateStream deframeStream = new ZlibInflateStream(this.currentStream))
                 {
                     PngChunk currentChunk;
                     while (!this.isEndChunkReached && (currentChunk = this.ReadChunk()) != null)
@@ -492,12 +492,14 @@ namespace ImageSharp.Formats
         private void DecodeInterlacedPixelData<TPixel>(Stream compressedStream, PixelAccessor<TPixel> pixels)
             where TPixel : struct, IPixel<TPixel>
         {
-            while (this.pass < 7)
+            while (true)
             {
                 int numColumns = this.ComputeColumnsAdam7(this.pass);
 
                 if (numColumns == 0)
                 {
+                    this.pass++;
+
                     // This pass contains no data; skip to next pass
                     continue;
                 }
@@ -561,6 +563,14 @@ namespace ImageSharp.Formats
                 }
 
                 this.pass++;
+                if (this.pass < 7)
+                {
+                    this.currentRow = Adam7FirstRow[this.pass];
+                }
+                else
+                {
+                    break;
+                }
             }
         }
 

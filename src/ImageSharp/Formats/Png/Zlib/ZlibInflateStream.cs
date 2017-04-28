@@ -9,7 +9,7 @@
     /// <summary>
     /// Provides methods and properties for deframing streams from PNGs.
     /// </summary>
-    internal class DeframeStream : Stream
+    internal class ZlibInflateStream : Stream
     {
         /// <summary>
         /// The inner raw memory stream
@@ -45,10 +45,10 @@
         private int currentDataRemaining;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="DeframeStream"/> class.
+        /// Initializes a new instance of the <see cref="ZlibInflateStream"/> class.
         /// </summary>
         /// <param name="innerStream">The inner raw stream</param>
-        public DeframeStream(Stream innerStream)
+        public ZlibInflateStream(Stream innerStream)
         {
             this.innerStream = innerStream;
         }

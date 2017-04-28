@@ -216,26 +216,26 @@ namespace ImageSharp.Formats.Jpg
             d.V0L = c0 + c1;
             d.V4L = c0 - c1;
 
-            Vector4 w0 = new Vector4(0.541196f);
-            Vector4 w1 = new Vector4(1.306563f);
+            float w0 = 0.541196f;
+            float w1 = 1.306563f;
 
             d.V2L = (w0 * c2) + (w1 * c3);
             d.V6L = (w0 * c3) - (w1 * c2);
 
-            w0 = new Vector4(1.175876f);
-            w1 = new Vector4(0.785695f);
+            w0 = 1.175876f;
+            w1 = 0.785695f;
             c3 = (w0 * t4) + (w1 * t7);
             c0 = (w0 * t7) - (w1 * t4);
 
-            w0 = new Vector4(1.387040f);
-            w1 = new Vector4(0.275899f);
+            w0 = 1.387040f;
+            w1 = 0.275899f;
             c2 = (w0 * t5) + (w1 * t6);
             c1 = (w0 * t6) - (w1 * t5);
 
             d.V3L = c0 - c2;
             d.V5L = c3 - c1;
 
-            Vector4 invsqrt2 = new Vector4(0.707107f);
+            float invsqrt2 = 0.707107f;
             c0 = (c0 + c2) * invsqrt2;
             c3 = (c3 + c1) * invsqrt2;
 
@@ -281,19 +281,19 @@ namespace ImageSharp.Formats.Jpg
             d.V0R = c0 + c1;
             d.V4R = c0 - c1;
 
-            Vector4 w0 = new Vector4(0.541196f);
-            Vector4 w1 = new Vector4(1.306563f);
+            float w0 = 0.541196f;
+            float w1 = 1.306563f;
 
             d.V2R = (w0 * c2) + (w1 * c3);
             d.V6R = (w0 * c3) - (w1 * c2);
 
-            w0 = new Vector4(1.175876f);
-            w1 = new Vector4(0.785695f);
+            w0 = 1.175876f;
+            w1 = 0.785695f;
             c3 = (w0 * t4) + (w1 * t7);
             c0 = (w0 * t7) - (w1 * t4);
 
-            w0 = new Vector4(1.387040f);
-            w1 = new Vector4(0.275899f);
+            w0 = 1.387040f;
+            w1 = 0.275899f;
             c2 = (w0 * t5) + (w1 * t6);
             c1 = (w0 * t6) - (w1 * t5);
 

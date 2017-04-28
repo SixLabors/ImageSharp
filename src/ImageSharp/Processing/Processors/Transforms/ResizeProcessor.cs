@@ -133,7 +133,7 @@ namespace ImageSharp.Processing.Processors
                                         for (int x = minX; x < maxX; x++)
                                         {
                                             WeightsWindow window = this.HorizontalWeights.Weights[x - startX];
-                                            firstPassPixels[x, y] = window.ComputeExpandedWeightedRowSum(tempRowBuffer);
+                                            firstPassPixels[x, y] = window.ComputeExpandedWeightedRowSum(tempRowBuffer, sourceX);
                                         }
                                     }
                                     else
@@ -141,7 +141,7 @@ namespace ImageSharp.Processing.Processors
                                         for (int x = minX; x < maxX; x++)
                                         {
                                             WeightsWindow window = this.HorizontalWeights.Weights[x - startX];
-                                            firstPassPixels[x, y] = window.ComputeWeightedRowSum(tempRowBuffer);
+                                            firstPassPixels[x, y] = window.ComputeWeightedRowSum(tempRowBuffer, sourceX);
                                         }
                                     }
                                 }
@@ -162,7 +162,7 @@ namespace ImageSharp.Processing.Processors
                                 for (int x = 0; x < width; x++)
                                 {
                                     // Destination color components
-                                    Vector4 destination = window.ComputeWeightedColumnSum(firstPassPixels, x);
+                                    Vector4 destination = window.ComputeWeightedColumnSum(firstPassPixels, x, sourceY);
                                     destination = destination.Compress();
                                     TPixel d = default(TPixel);
                                     d.PackFromVector4(destination);
@@ -174,7 +174,7 @@ namespace ImageSharp.Processing.Processors
                                 for (int x = 0; x < width; x++)
                                 {
                                     // Destination color components
-                                    Vector4 destination = window.ComputeWeightedColumnSum(firstPassPixels, x);
+                                    Vector4 destination = window.ComputeWeightedColumnSum(firstPassPixels, x, sourceY);
 
                                     TPixel d = default(TPixel);
                                     d.PackFromVector4(destination);

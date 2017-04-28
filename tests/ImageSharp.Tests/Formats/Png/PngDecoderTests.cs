@@ -9,9 +9,29 @@ namespace ImageSharp.Tests
     using Xunit;
 
     using ImageSharp.Formats;
+    using ImageSharp.PixelFormats;
 
     public class PngDecoderTests
     {
+        private const PixelTypes PixelTypes = Tests.PixelTypes.StandardImageClass | Tests.PixelTypes.RgbaVector | Tests.PixelTypes.Argb32;
+
+        public static readonly string[] TestFiles =
+            {
+                TestImages.Png.Splash, TestImages.Png.Indexed, TestImages.Png.Interlaced, TestImages.Png.FilterVar,
+                TestImages.Png.ChunkLength1, TestImages.Png.ChunkLength2
+            };
+
+        [Theory]
+        [WithFileCollection(nameof(TestFiles), PixelTypes)]
+        public void DecodeAndReSave<TPixel>(TestImageProvider<TPixel> imageProvider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = imageProvider.GetImage())
+            {
+                imageProvider.Utility.SaveTestOutputFile(image, "bmp");
+            }
+        }
+
         [Fact]
         public void Decode_IgnoreMetadataIsFalse_TextChunckIsRead()
         {

@@ -5,11 +5,9 @@
 
 namespace ImageSharp.Formats
 {
-    using System;
     using System.Buffers;
     using System.IO;
     using System.Runtime.CompilerServices;
-
     using ImageSharp.Formats.Jpg;
     using ImageSharp.Formats.Jpg.Components;
     using ImageSharp.PixelFormats;
@@ -102,6 +100,11 @@ namespace ImageSharp.Formats
                         99, 99, 99, 99, 99, 99, 99, 99,
                     }
             };
+
+        /// <summary>
+        /// Lookup tables for converting Rgb to YCbCr
+        /// </summary>
+        private static RgbToYCbCrTables rgbToYCbCrTables = RgbToYCbCrTables.Create();
 
         /// <summary>
         /// A scratch buffer to reduce allocations.
@@ -285,6 +288,7 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="pixels">The pixel accessor.</param>
+        /// <param name="tables">The reference to the tables instance.</param>
         /// <param name="x">The x-position within the image.</param>
         /// <param name="y">The y-position within the image.</param>
         /// <param name="yBlock">The luminance block.</param>
@@ -293,6 +297,7 @@ namespace ImageSharp.Formats
         /// <param name="rgbBytes">Temporal <see cref="PixelArea{TPixel}"/> provided by the caller</param>
         private static void ToYCbCr<TPixel>(
             PixelAccessor<TPixel> pixels,
+            RgbToYCbCrTables* tables,
             int x,
             int y,
             Block8x8F* yBlock,
@@ -321,29 +326,9 @@ namespace ImageSharp.Formats
                     int g = Unsafe.Add(ref data0, dataIdx + 1);
                     int b = Unsafe.Add(ref data0, dataIdx + 2);
 
-                    // Speed up the algorithm by removing floating point calculation
-                    // Scale by 65536, add .5F and truncate value. We use bit shifting to divide the result
-                    int y0 = 19595 * r; // (0.299F * 65536) + .5F
-                    int y1 = 38470 * g; // (0.587F * 65536) + .5F
-                    int y2 = 7471 * b; // (0.114F * 65536) + .5F
-
-                    int cb0 = -11057 * r; // (-0.168736F * 65536) + .5F
-                    int cb1 = 21710 * g; // (0.331264F * 65536) + .5F
-                    int cb2 = 32768 * b; // (0.5F * 65536) + .5F
-
-                    int cr0 = 32768 * r; // (0.5F * 65536) + .5F
-                    int cr1 = 27439 * g; // (0.418688F * 65536) + .5F
-                    int cr2 = 5329 * b; // (0.081312F * 65536) + .5F
-
-                    float yy = (y0 + y1 + y2) >> 16;
-                    float cb = 128 + ((cb0 - cb1 + cb2) >> 16);
-                    float cr = 128 + ((cr0 - cr1 - cr2) >> 16);
-
                     int index = j8 + i;
 
-                    yBlockRaw[index] = yy;
-                    cbBlockRaw[index] = cb;
-                    crBlockRaw[index] = cr;
+                    RgbToYCbCrTables.Allocate(ref yBlockRaw, ref cbBlockRaw, ref crBlockRaw, ref tables, index, r, g, b);
 
                     dataIdx += 3;
                 }
@@ -464,38 +449,41 @@ namespace ImageSharp.Formats
             // ReSharper disable once InconsistentNaming
             int prevDCY = 0, prevDCCb = 0, prevDCCr = 0;
 
-            using (PixelArea<TPixel> rgbBytes = new PixelArea<TPixel>(8, 8, ComponentOrder.Xyz))
+            fixed (RgbToYCbCrTables* tables = &rgbToYCbCrTables)
             {
-                for (int y = 0; y < pixels.Height; y += 8)
+                using (PixelArea<TPixel> rgbBytes = new PixelArea<TPixel>(8, 8, ComponentOrder.Xyz))
                 {
-                    for (int x = 0; x < pixels.Width; x += 8)
+                    for (int y = 0; y < pixels.Height; y += 8)
                     {
-                        ToYCbCr(pixels, x, y, &b, &cb, &cr, rgbBytes);
+                        for (int x = 0; x < pixels.Width; x += 8)
+                        {
+                            ToYCbCr(pixels, tables, x, y, &b, &cb, &cr, rgbBytes);
 
-                        prevDCY = this.WriteBlock(
-                            QuantIndex.Luminance,
-                            prevDCY,
-                            &b,
-                            &temp1,
-                            &temp2,
-                            &onStackLuminanceQuantTable,
-                            unzig.Data);
-                        prevDCCb = this.WriteBlock(
-                            QuantIndex.Chrominance,
-                            prevDCCb,
-                            &cb,
-                            &temp1,
-                            &temp2,
-                            &onStackChrominanceQuantTable,
-                            unzig.Data);
-                        prevDCCr = this.WriteBlock(
-                            QuantIndex.Chrominance,
-                            prevDCCr,
-                            &cr,
-                            &temp1,
-                            &temp2,
-                            &onStackChrominanceQuantTable,
-                            unzig.Data);
+                            prevDCY = this.WriteBlock(
+                                QuantIndex.Luminance,
+                                prevDCY,
+                                &b,
+                                &temp1,
+                                &temp2,
+                                &onStackLuminanceQuantTable,
+                                unzig.Data);
+                            prevDCCb = this.WriteBlock(
+                                QuantIndex.Chrominance,
+                                prevDCCb,
+                                &cb,
+                                &temp1,
+                                &temp2,
+                                &onStackChrominanceQuantTable,
+                                unzig.Data);
+                            prevDCCr = this.WriteBlock(
+                                QuantIndex.Chrominance,
+                                prevDCCr,
+                                &cr,
+                                &temp1,
+                                &temp2,
+                                &onStackChrominanceQuantTable,
+                                unzig.Data);
+                        }
                     }
                 }
             }
@@ -837,49 +825,51 @@ namespace ImageSharp.Formats
 
             // ReSharper disable once InconsistentNaming
             int prevDCY = 0, prevDCCb = 0, prevDCCr = 0;
-
-            using (PixelArea<TPixel> rgbBytes = new PixelArea<TPixel>(8, 8, ComponentOrder.Xyz))
+            fixed (RgbToYCbCrTables* tables = &rgbToYCbCrTables)
             {
-                for (int y = 0; y < pixels.Height; y += 16)
+                using (PixelArea<TPixel> rgbBytes = new PixelArea<TPixel>(8, 8, ComponentOrder.Xyz))
                 {
-                    for (int x = 0; x < pixels.Width; x += 16)
+                    for (int y = 0; y < pixels.Height; y += 16)
                     {
-                        for (int i = 0; i < 4; i++)
+                        for (int x = 0; x < pixels.Width; x += 16)
                         {
-                            int xOff = (i & 1) * 8;
-                            int yOff = (i & 2) * 4;
+                            for (int i = 0; i < 4; i++)
+                            {
+                                int xOff = (i & 1) * 8;
+                                int yOff = (i & 2) * 4;
 
-                            ToYCbCr(pixels, x + xOff, y + yOff, &b, cbPtr + i, crPtr + i, rgbBytes);
+                                ToYCbCr(pixels, tables, x + xOff, y + yOff, &b, cbPtr + i, crPtr + i, rgbBytes);
 
-                            prevDCY = this.WriteBlock(
-                                QuantIndex.Luminance,
-                                prevDCY,
+                                prevDCY = this.WriteBlock(
+                                    QuantIndex.Luminance,
+                                    prevDCY,
+                                    &b,
+                                    &temp1,
+                                    &temp2,
+                                    &onStackLuminanceQuantTable,
+                                    unzig.Data);
+                            }
+
+                            Block8x8F.Scale16X16To8X8(&b, cbPtr);
+                            prevDCCb = this.WriteBlock(
+                                QuantIndex.Chrominance,
+                                prevDCCb,
                                 &b,
                                 &temp1,
                                 &temp2,
-                                &onStackLuminanceQuantTable,
+                                &onStackChrominanceQuantTable,
+                                unzig.Data);
+
+                            Block8x8F.Scale16X16To8X8(&b, crPtr);
+                            prevDCCr = this.WriteBlock(
+                                QuantIndex.Chrominance,
+                                prevDCCr,
+                                &b,
+                                &temp1,
+                                &temp2,
+                                &onStackChrominanceQuantTable,
                                 unzig.Data);
                         }
-
-                        Block8x8F.Scale16X16To8X8(&b, cbPtr);
-                        prevDCCb = this.WriteBlock(
-                            QuantIndex.Chrominance,
-                            prevDCCb,
-                            &b,
-                            &temp1,
-                            &temp2,
-                            &onStackChrominanceQuantTable,
-                            unzig.Data);
-
-                        Block8x8F.Scale16X16To8X8(&b, crPtr);
-                        prevDCCr = this.WriteBlock(
-                            QuantIndex.Chrominance,
-                            prevDCCr,
-                            &b,
-                            &temp1,
-                            &temp2,
-                            &onStackChrominanceQuantTable,
-                            unzig.Data);
                     }
                 }
             }

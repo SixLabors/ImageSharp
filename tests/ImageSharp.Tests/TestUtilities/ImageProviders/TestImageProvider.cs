@@ -11,12 +11,16 @@ namespace ImageSharp.Tests
     using ImageSharp.PixelFormats;
 
     using Xunit.Abstractions;
-
+ 	public interface ITestImageProvider
+    {
+        PixelTypes PixelType { get; }
+        ImagingTestCaseUtility Utility { get; }
+    }
     /// <summary>
     /// Provides <see cref="Image{TPixel}" /> instances for parametric unit tests.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format of the image</typeparam>
-    public abstract partial class TestImageProvider<TPixel> 
+    public abstract partial class TestImageProvider<TPixel> : ITestImageProvider
         where TPixel : struct, IPixel<TPixel>
     {
         public PixelTypes PixelType { get; private set; } = typeof(TPixel).GetPixelType();

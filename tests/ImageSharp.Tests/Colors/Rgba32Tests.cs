@@ -1,4 +1,4 @@
-﻿// <copyright file="ColorTests.cs" company="James Jackson-South">
+﻿// <copyright file="Rgba32Tests.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -15,7 +15,7 @@ namespace ImageSharp.Tests
     /// <summary>
     /// Tests the <see cref="Rgba32"/> struct.
     /// </summary>
-    public class ColorTests
+    public class Rgba32Tests
     {
         /// <summary>
         /// Tests the equality operators for equality.

@@ -15,31 +15,31 @@ namespace ImageSharp.Formats.Jpg
     internal static class DCT
     {
 #pragma warning disable SA1310 // FieldNamesMustNotContainUnderscore
-        private static readonly Vector4 C_1_175876 = new Vector4(1.175876f);
+        private static readonly float C_1_175876 = 1.175876f;
 
-        private static readonly Vector4 C_1_961571 = new Vector4(-1.961571f);
+        private static readonly float C_1_961571 = -1.961571f;
 
-        private static readonly Vector4 C_0_390181 = new Vector4(-0.390181f);
+        private static readonly float C_0_390181 = -0.390181f;
 
-        private static readonly Vector4 C_0_899976 = new Vector4(-0.899976f);
+        private static readonly float C_0_899976 = -0.899976f;
 
-        private static readonly Vector4 C_2_562915 = new Vector4(-2.562915f);
+        private static readonly float C_2_562915 = -2.562915f;
 
-        private static readonly Vector4 C_0_298631 = new Vector4(0.298631f);
+        private static readonly float C_0_298631 = 0.298631f;
 
-        private static readonly Vector4 C_2_053120 = new Vector4(2.053120f);
+        private static readonly float C_2_053120 = 2.053120f;
 
-        private static readonly Vector4 C_3_072711 = new Vector4(3.072711f);
+        private static readonly float C_3_072711 = 3.072711f;
 
-        private static readonly Vector4 C_1_501321 = new Vector4(1.501321f);
+        private static readonly float C_1_501321 = 1.501321f;
 
-        private static readonly Vector4 C_0_541196 = new Vector4(0.541196f);
+        private static readonly float C_0_541196 = 0.541196f;
 
-        private static readonly Vector4 C_1_847759 = new Vector4(-1.847759f);
+        private static readonly float C_1_847759 = -1.847759f;
 
-        private static readonly Vector4 C_0_765367 = new Vector4(0.765367f);
+        private static readonly float C_0_765367 = 0.765367f;
 
-        private static readonly Vector4 C_0_125 = new Vector4(0.1250f);
+        private static readonly float C_0_125 = 0.1250f;
 #pragma warning restore SA1310 // FieldNamesMustNotContainUnderscore
         private static readonly Vector4 InvSqrt2 = new Vector4(0.707107f);
 

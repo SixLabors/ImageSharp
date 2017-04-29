@@ -75,7 +75,7 @@ namespace ImageSharp
             }
             else
             {
-                this.ExifProfile = null;
+                this.IccProfiles = new List<IccProfile>();
             }
         }
 

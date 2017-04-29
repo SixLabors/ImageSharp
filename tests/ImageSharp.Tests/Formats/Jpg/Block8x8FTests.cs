@@ -309,7 +309,7 @@ namespace ImageSharp.Tests
             float[] data = Create8x8FloatData();
             Block8x8F block = new Block8x8F();
             block.LoadFrom(data);
-            block.MultiplyAllInplace(new Vector4(5, 5, 5, 5));
+            block.MultiplyAllInplace(5);
 
             int stride = 256;
             int height = 42;

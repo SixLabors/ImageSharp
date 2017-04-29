@@ -5,7 +5,6 @@
 
 namespace ImageSharp
 {
-    using System;
     using System.Numerics;
     using System.Runtime.CompilerServices;
     using ImageSharp.PixelFormats;
@@ -13,7 +12,7 @@ namespace ImageSharp
     /// <summary>
     /// Extension methods for the <see cref="Vector4"/> struct.
     /// </summary>
-    public static class Vector4Extensions
+    internal static class Vector4Extensions
     {
         /// <summary>
         /// Compresses a linear color signal to its sRGB equivalent.
@@ -22,6 +21,7 @@ namespace ImageSharp
         /// </summary>
         /// <param name="linear">The <see cref="Vector4"/> whose signal to compress.</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 Compress(this Vector4 linear)
         {
             // TODO: Is there a faster way to do this?
@@ -35,6 +35,7 @@ namespace ImageSharp
         /// </summary>
         /// <param name="gamma">The <see cref="Rgba32"/> whose signal to expand.</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 Expand(this Vector4 gamma)
         {
             // TODO: Is there a faster way to do this?

@@ -1,4 +1,4 @@
-﻿// <copyright file="DefaultDarkenPixelBlender{TPixel}.cs" company="James Jackson-South">
+﻿// <copyright file="DefaultLightenPixelBlender{TPixel}.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -16,13 +16,15 @@ namespace ImageSharp.PixelFormats.PixelBlenders
     internal class DefaultLightenPixelBlender<TPixel> : PixelBlender<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
+        /// <summary>
+        /// Gets the static instance of this blender.
+        /// </summary>
+        public static DefaultLightenPixelBlender<TPixel> Instance { get; } = new DefaultLightenPixelBlender<TPixel>();
+
         /// <inheritdoc />
         public override TPixel Compose(TPixel background, TPixel source, float amount)
         {
-            Vector4 result = Vector4BlendTransforms.Lighten(background.ToVector4(), source.ToVector4());
-            TPixel resultPixel = default(TPixel);
-            resultPixel.PackFromVector4(result);
-            return resultPixel;
+            return PorterDuffFunctions<TPixel>.LightenFunction(background, source, amount);
         }
 
         /// <inheritdoc />
@@ -34,8 +36,7 @@ namespace ImageSharp.PixelFormats.PixelBlenders
 
             for (int i = 0; i < destination.Length; i++)
             {
-                Vector4 result = Vector4BlendTransforms.Lighten(background[i].ToVector4(), source[i].ToVector4());
-                destination[i].PackFromVector4(result);
+                destination[i] = PorterDuffFunctions<TPixel>.LightenFunction(destination[i], source[i], amount[i]);
             }
         }
     }

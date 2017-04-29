@@ -74,8 +74,6 @@ namespace ImageSharp.Processing.Processors
                     rowColors[i] = glowColor;
                 }
 
-                PixelBlender<TPixel> blender = PixelOperations<TPixel>.Instance.GetPixelBlender(PixelBlenderMode.Default);
-
                 Parallel.For(
                     minY,
                     maxY,

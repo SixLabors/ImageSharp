@@ -35,56 +35,6 @@ namespace ImageSharp.PixelFormats
         private PixelBlender<TPixel> screenBlender = new DefaultScreenPixelBlender<TPixel>();
 
         /// <summary>
-        /// Gets the HardLightBlender.
-        /// </summary>
-        private PixelBlender<TPixel> hardLightBlender = new DefaultHardLightPixelBlender<TPixel>();
-
-        /// <summary>
-        /// Gets the OverlayBlender.
-        /// </summary>
-        private PixelBlender<TPixel> overlayBlender = new DefaultOverlayPixelBlender<TPixel>();
-
-        /// <summary>
-        /// Gets the DarkenBlender.
-        /// </summary>
-        private PixelBlender<TPixel> darkenBlender = new DefaultDarkenPixelBlender<TPixel>();
-
-        /// <summary>
-        /// Gets the LightenBlender.
-        /// </summary>
-        private PixelBlender<TPixel> lightenBlender = new DefaultLightenPixelBlender<TPixel>();
-
-        /// <summary>
-        /// Gets the SoftLightBlender.
-        /// </summary>
-        private PixelBlender<TPixel> softLightBlender = new DefaultSoftLightPixelBlender<TPixel>();
-
-        /// <summary>
-        /// Gets the DodgeBlender.
-        /// </summary>
-        private PixelBlender<TPixel> dodgeBlender = new DefaultDodgePixelBlender<TPixel>();
-
-        /// <summary>
-        /// Gets the BurnBlender.
-        /// </summary>
-        private PixelBlender<TPixel> burnBlender = new DefaultBurnPixelBlender<TPixel>();
-
-        /// <summary>
-        /// Gets the DifferenceBlender.
-        /// </summary>
-        private PixelBlender<TPixel> differenceBlender = new DefaultDifferencePixelBlender<TPixel>();
-
-        /// <summary>
-        /// Gets the DifferenceBlender.
-        /// </summary>
-        private PixelBlender<TPixel> exclusionBlender = new DefaultExclusionPixelBlender<TPixel>();
-
-        /// <summary>
-        /// Gets the PremultipliedLerpBlender.
-        /// </summary>
-        private PixelBlender<TPixel> premultipliedLerpBlender = new DefaultPremultipliedLerpPixelBlender<TPixel>();
-
-        /// <summary>
         /// Find an instance of the pixel blender.
         /// </summary>
         /// <param name="mode">The blending mode to apply</param>
@@ -93,32 +43,25 @@ namespace ImageSharp.PixelFormats
         {
             switch (mode)
             {
-                case PixelBlenderMode.Normal:
-                    return this.normalBlender;
                 case PixelBlenderMode.Multiply:
-                    return this.multiplyBlender;
+                    return DefaultMultiplyPixelBlender<TPixel>.Instance;
+                case PixelBlenderMode.Add:
+                    return DefaultAddPixelBlender<TPixel>.Instance;
+                case PixelBlenderMode.Substract:
+                    return DefaultSubstractPixelBlender<TPixel>.Instance;
                 case PixelBlenderMode.Screen:
-                    return this.screenBlender;
-                case PixelBlenderMode.HardLight:
-                    return this.hardLightBlender;
-                case PixelBlenderMode.Overlay:
-                    return this.overlayBlender;
+                    return DefaultScreenPixelBlender<TPixel>.Instance;
                 case PixelBlenderMode.Darken:
-                    return this.darkenBlender;
+                    return DefaultDarkenPixelBlender<TPixel>.Instance;
                 case PixelBlenderMode.Lighten:
-                    return this.lightenBlender;
-                case PixelBlenderMode.SoftLight:
-                    return this.softLightBlender;
-                case PixelBlenderMode.Dodge:
-                    return this.dodgeBlender;
-                case PixelBlenderMode.Burn:
-                    return this.burnBlender;
-                case PixelBlenderMode.Difference:
-                    return this.differenceBlender;
-                case PixelBlenderMode.Exclusion:
-                    return this.exclusionBlender;
+                    return DefaultLightenPixelBlender<TPixel>.Instance;
+                case PixelBlenderMode.Overlay:
+                    return DefaultOverlayPixelBlender<TPixel>.Instance;
+                case PixelBlenderMode.HardLight:
+                    return DefaultHardLightPixelBlender<TPixel>.Instance;
+                case PixelBlenderMode.Normal:
                 default:
-                    return this.premultipliedLerpBlender;
+                    return DefaultNormalPixelBlender<TPixel>.Instance;
             }
         }
     }

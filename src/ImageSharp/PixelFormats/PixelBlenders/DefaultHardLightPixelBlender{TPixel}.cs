@@ -16,13 +16,15 @@ namespace ImageSharp.PixelFormats.PixelBlenders
     internal class DefaultHardLightPixelBlender<TPixel> : PixelBlender<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
+        /// <summary>
+        /// Gets the static instance of this blender.
+        /// </summary>
+        public static DefaultHardLightPixelBlender<TPixel> Instance { get; } = new DefaultHardLightPixelBlender<TPixel>();
+
         /// <inheritdoc />
         public override TPixel Compose(TPixel background, TPixel source, float amount)
         {
-            Vector4 result = Vector4BlendTransforms.HardLight(background.ToVector4(), source.ToVector4());
-            TPixel resultPixel = default(TPixel);
-            resultPixel.PackFromVector4(result);
-            return resultPixel;
+            return PorterDuffFunctions<TPixel>.HardLightFunction(background, source, amount);
         }
 
         /// <inheritdoc />
@@ -34,8 +36,7 @@ namespace ImageSharp.PixelFormats.PixelBlenders
 
             for (int i = 0; i < destination.Length; i++)
             {
-                Vector4 result = Vector4BlendTransforms.HardLight(background[i].ToVector4(), source[i].ToVector4());
-                destination[i].PackFromVector4(result);
+                destination[i] = PorterDuffFunctions<TPixel>.HardLightFunction(destination[i], source[i], amount[i]);
             }
         }
     }

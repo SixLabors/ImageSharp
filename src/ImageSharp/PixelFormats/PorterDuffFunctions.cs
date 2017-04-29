@@ -11,8 +11,7 @@ namespace ImageSharp.PixelFormats
     /// <summary>
     /// Collection of Porter Duff alpha blending functions
     /// </summary>
-    /// <typeparam name="TBckPixel">Backdrop Pixel Format</typeparam>
-    /// <typeparam name="TsrcPixel">Source Pixel Format</typeparam>
+    /// <typeparam name="TPixel">Pixel Format</typeparam>
     /// <remarks>
     /// These functions are designed to be a general solution for all color cases,
     /// that is, they take in account the alpha value of both the backdrop
@@ -21,9 +20,8 @@ namespace ImageSharp.PixelFormats
     /// Note there are faster functions for when the backdrop color is known
     /// to be opaque
     /// </remarks>
-    internal static class PorterDuffFunctions<TBckPixel, TsrcPixel>
-        where TBckPixel : IPixel
-        where TsrcPixel : IPixel
+    internal static class PorterDuffFunctions<TPixel>
+        where TPixel : IPixel
     {
         /// <summary>
         /// Source over backdrop
@@ -32,7 +30,8 @@ namespace ImageSharp.PixelFormats
         /// <param name="source">Source color</param>
         /// <param name="opacity">Opacity applied to Source Alpha</param>
         /// <returns>Output color</returns>
-        public static TBckPixel NormalBlendFunction(TBckPixel backdrop, TsrcPixel source, float opacity)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel NormalBlendFunction(TPixel backdrop, TPixel source, float opacity)
         {
             Vector4 l = source.ToVector4();
             l.W *= opacity;
@@ -53,7 +52,8 @@ namespace ImageSharp.PixelFormats
         /// <param name="source">Source color</param>
         /// <param name="opacity">Opacity applied to Source Alpha</param>
         /// <returns>Output color</returns>
-        public static TBckPixel MultiplyFunction(TBckPixel backdrop, TsrcPixel source, float opacity)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel MultiplyFunction(TPixel backdrop, TPixel source, float opacity)
         {
             Vector4 l = source.ToVector4();
             l.W *= opacity;
@@ -74,7 +74,8 @@ namespace ImageSharp.PixelFormats
         /// <param name="source">Source color</param>
         /// <param name="opacity">Opacity applied to Source Alpha</param>
         /// <returns>Output color</returns>
-        public static TBckPixel AddFunction(TBckPixel backdrop, TsrcPixel source, float opacity)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel AddFunction(TPixel backdrop, TPixel source, float opacity)
         {
             Vector4 l = source.ToVector4();
             l.W *= opacity;
@@ -95,7 +96,8 @@ namespace ImageSharp.PixelFormats
         /// <param name="source">Source color</param>
         /// <param name="opacity">Opacity applied to Source Alpha</param>
         /// <returns>Output color</returns>
-        public static TBckPixel SubstractFunction(TBckPixel backdrop, TsrcPixel source, float opacity)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel SubstractFunction(TPixel backdrop, TPixel source, float opacity)
         {
             Vector4 l = source.ToVector4();
             l.W *= opacity;
@@ -116,7 +118,8 @@ namespace ImageSharp.PixelFormats
         /// <param name="source">Source color</param>
         /// <param name="opacity">Opacity applied to Source Alpha</param>
         /// <returns>Output color</returns>
-        public static TBckPixel ScreenFunction(TBckPixel backdrop, TsrcPixel source, float opacity)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel ScreenFunction(TPixel backdrop, TPixel source, float opacity)
         {
             Vector4 l = source.ToVector4();
             l.W *= opacity;
@@ -137,7 +140,8 @@ namespace ImageSharp.PixelFormats
         /// <param name="source">Source color</param>
         /// <param name="opacity">Opacity applied to Source Alpha</param>
         /// <returns>Output color</returns>
-        public static TBckPixel DarkenFunction(TBckPixel backdrop, TsrcPixel source, float opacity)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel DarkenFunction(TPixel backdrop, TPixel source, float opacity)
         {
             Vector4 l = source.ToVector4();
             l.W *= opacity;
@@ -158,7 +162,8 @@ namespace ImageSharp.PixelFormats
         /// <param name="source">Source color</param>
         /// <param name="opacity">Opacity applied to Source Alpha</param>
         /// <returns>Output color</returns>
-        public static TBckPixel LightenFunction(TBckPixel backdrop, TsrcPixel source, float opacity)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel LightenFunction(TPixel backdrop, TPixel source, float opacity)
         {
             Vector4 l = source.ToVector4();
             l.W *= opacity;
@@ -179,7 +184,8 @@ namespace ImageSharp.PixelFormats
         /// <param name="source">Source color</param>
         /// <param name="opacity">Opacity applied to Source Alpha</param>
         /// <returns>Output color</returns>
-        public static TBckPixel OverlayFunction(TBckPixel backdrop, TsrcPixel source, float opacity)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel OverlayFunction(TPixel backdrop, TPixel source, float opacity)
         {
             Vector4 l = source.ToVector4();
             l.W *= opacity;
@@ -204,7 +210,8 @@ namespace ImageSharp.PixelFormats
         /// <param name="source">Source color</param>
         /// <param name="opacity">Opacity applied to Source Alpha</param>
         /// <returns>Output color</returns>
-        public static TBckPixel HardLightFunction(TBckPixel backdrop, TsrcPixel source, float opacity)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel HardLightFunction(TPixel backdrop, TPixel source, float opacity)
         {
             Vector4 l = source.ToVector4();
             l.W *= opacity;
@@ -242,7 +249,7 @@ namespace ImageSharp.PixelFormats
         /// <param name="xform">Desired transformed color, without taking Alpha channel in account</param>
         /// <returns>The final color</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static TBckPixel Compose(Vector4 backdrop, Vector4 source, Vector4 xform)
+        private static TPixel Compose(Vector4 backdrop, Vector4 source, Vector4 xform)
         {
             DebugGuard.MustBeGreaterThan(source.W, 0, nameof(source.W));
 
@@ -258,7 +265,7 @@ namespace ImageSharp.PixelFormats
             xform = ((xform * xw) + (backdrop * bw) + (source * sw)) / a;
             xform.W = a;
 
-            TBckPixel packed = default(TBckPixel);
+            TPixel packed = default(TPixel);
             packed.PackFromVector4(xform);
 
             return packed;

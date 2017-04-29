@@ -155,10 +155,10 @@ namespace ImageSharp.Drawing.Brushes
                 {
                     for (int i = 0; i < scanline.Length; i++)
                     {
-                        amountBuffer[i] = scanline[i] * this.Options.BlendPercentage;
+                        amountBuffer[i] = (scanline[i] * this.Options.BlendPercentage).Clamp(0, 1);
 
                         int patternX = (x + i) % this.pattern.Width;
-                        overlay[i] = this.pattern[y, x];
+                        overlay[i] = this.pattern[patternY, patternX];
                     }
 
                     BufferSpan<TPixel> destinationRow = this.Target.GetRowSpan(x, y).Slice(0, scanline.Length);

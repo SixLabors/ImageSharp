@@ -6,6 +6,7 @@
 namespace ImageSharp.PixelFormats.PixelBlenders
 {
     using System;
+    using System.Numerics;
     using ImageSharp.PixelFormats;
 
     /// <summary>
@@ -15,10 +16,15 @@ namespace ImageSharp.PixelFormats.PixelBlenders
     internal class DefaultNormalPixelBlender<TPixel> : PixelBlender<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
+        /// <summary>
+        /// Gets the static instance of this blender.
+        /// </summary>
+        public static DefaultNormalPixelBlender<TPixel> Instance { get; } = new DefaultNormalPixelBlender<TPixel>();
+
         /// <inheritdoc />
         public override TPixel Compose(TPixel background, TPixel source, float amount)
         {
-            return source;
+            return PorterDuffFunctions<TPixel>.NormalBlendFunction(background, source, amount);
         }
 
         /// <inheritdoc />
@@ -30,7 +36,7 @@ namespace ImageSharp.PixelFormats.PixelBlenders
 
             for (int i = 0; i < destination.Length; i++)
             {
-                destination[i] = source[i];
+                destination[i] = PorterDuffFunctions<TPixel>.NormalBlendFunction(destination[i], source[i], amount[i]);
             }
         }
     }

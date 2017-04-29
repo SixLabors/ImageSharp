@@ -16,13 +16,15 @@ namespace ImageSharp.PixelFormats.PixelBlenders
     internal class DefaultDarkenPixelBlender<TPixel> : PixelBlender<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
+        /// <summary>
+        /// Gets the static instance of this blender.
+        /// </summary>
+        public static DefaultDarkenPixelBlender<TPixel> Instance { get; } = new DefaultDarkenPixelBlender<TPixel>();
+
         /// <inheritdoc />
         public override TPixel Compose(TPixel background, TPixel source, float amount)
         {
-            Vector4 result = Vector4BlendTransforms.Darken(background.ToVector4(), source.ToVector4());
-            TPixel resultPixel = default(TPixel);
-            resultPixel.PackFromVector4(result);
-            return resultPixel;
+            return PorterDuffFunctions<TPixel>.DarkenFunction(background, source, amount);
         }
 
         /// <inheritdoc />
@@ -34,8 +36,7 @@ namespace ImageSharp.PixelFormats.PixelBlenders
 
             for (int i = 0; i < destination.Length; i++)
             {
-                Vector4 result = Vector4BlendTransforms.Darken(background[i].ToVector4(), source[i].ToVector4());
-                destination[i].PackFromVector4(result);
+                destination[i] = PorterDuffFunctions<TPixel>.DarkenFunction(destination[i], source[i], amount[i]);
             }
         }
     }

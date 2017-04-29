@@ -24,14 +24,17 @@ namespace ImageSharp.Drawing.Processors
         /// The brush.
         /// </summary>
         private readonly IBrush<TPixel> brush;
+        private readonly GraphicsOptions options;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="FillProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="brush">The brush to source pixel colors from.</param>
-        public FillProcessor(IBrush<TPixel> brush)
+        /// <param name="options">The options</param>
+        public FillProcessor(IBrush<TPixel> brush, GraphicsOptions options)
         {
             this.brush = brush;
+            this.options = options;
         }
 
         /// <inheritdoc/>
@@ -63,7 +66,7 @@ namespace ImageSharp.Drawing.Processors
             // for example If brush is SolidBrush<TPixel> then we could just get the color upfront
             // and skip using the IBrushApplicator<TPixel>?.
             using (PixelAccessor<TPixel> sourcePixels = source.Lock())
-            using (BrushApplicator<TPixel> applicator = this.brush.CreateApplicator(sourcePixels, sourceRectangle))
+            using (BrushApplicator<TPixel> applicator = this.brush.CreateApplicator(sourcePixels, sourceRectangle, this.options))
             {
                 Parallel.For(
                     minY,

@@ -12,7 +12,7 @@ namespace ImageSharp
     /// <summary>
     /// Provides methods to write ICC data types
     /// </summary>
-    internal sealed partial class IccDataWriter
+    internal sealed partial class IccDataWriter : IDisposable
     {
         private static readonly bool IsLittleEndian = BitConverter.IsLittleEndian;
         private static readonly Encoding AsciiEncoding = Encoding.GetEncoding("ASCII");
@@ -21,6 +21,11 @@ namespace ImageSharp
         /// The underlying stream where the data is written to
         /// </summary>
         private readonly MemoryStream dataStream;
+
+        /// <summary>
+        /// To detect redundant calls
+        /// </summary>
+        private bool isDisposed = false;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="IccDataWriter"/> class.
@@ -167,6 +172,12 @@ namespace ImageSharp
             return this.WriteEmpty(p >= 4 ? 0 : p);
         }
 
+        /// <inheritdoc/>
+        public void Dispose()
+        {
+            this.Dispose(true);
+        }
+
         /// <summary>
         /// Writes given bytes from pointer
         /// </summary>
@@ -227,6 +238,19 @@ namespace ImageSharp
             }
 
             return count;
+        }
+
+        private void Dispose(bool disposing)
+        {
+            if (!this.isDisposed)
+            {
+                if (disposing)
+                {
+                    this.dataStream?.Dispose();
+                }
+
+                this.isDisposed = true;
+            }
         }
     }
 }

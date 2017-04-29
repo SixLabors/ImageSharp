@@ -15,69 +15,48 @@ namespace ImageSharp.PixelFormats
     public enum PixelBlenderMode
     {
         /// <summary>
-        /// The default composition mode.
+        /// Default blending mode, also known as "Normal" or "Alpha Blending"
         /// </summary>
-        /// <remarks> uses PremultipliedLerpTransform </remarks>
-        Default = 0,
+        Normal = 0,
 
         /// <summary>
-        /// Normal transform.
-        /// </summary>
-        Normal,
-
-        /// <summary>
-        /// Multiply Transform.
+        /// Backdrop + Source
         /// </summary>
         Multiply,
 
         /// <summary>
-        /// Screen Transform.
+        /// Backdrop + Source
+        /// </summary>
+        Add,
+
+        /// <summary>
+        /// Backdrop - Source
+        /// </summary>
+        Substract,
+
+        /// <summary>
+        /// Screen effect
         /// </summary>
         Screen,
 
         /// <summary>
-        /// HardLight Transform.
-        /// </summary>
-        HardLight,
-
-        /// <summary>
-        /// Overlay Transform.
-        /// </summary>
-        Overlay,
-
-        /// <summary>
-        /// Darken Transform.
+        /// Darken effect
         /// </summary>
         Darken,
 
         /// <summary>
-        /// Lighten Transform.
+        /// Lighten effect
         /// </summary>
         Lighten,
 
         /// <summary>
-        /// SoftLight Transform.
+        /// Overlay effect
         /// </summary>
-        SoftLight,
+        Overlay,
 
         /// <summary>
-        /// Dodge Transform.
+        /// Hard light effect
         /// </summary>
-        Dodge,
-
-        /// <summary>
-        /// Burn Transform.
-        /// </summary>
-        Burn,
-
-        /// <summary>
-        /// Difference Transform.
-        /// </summary>
-        Difference,
-
-        /// <summary>
-        /// Exclusion Transform.
-        /// </summary>
-        Exclusion
+        HardLight
     }
 }

@@ -31,7 +31,7 @@ namespace ImageSharp.Drawing
         /// <param name="enableAntialiasing">If set to <c>true</c> [enable antialiasing].</param>
         public GraphicsOptions(bool enableAntialiasing)
         {
-            this.blenderMode = PixelBlenderMode.Default;
+            this.blenderMode = PixelBlenderMode.Normal;
             this.blendPercentage = 1;
             this.antialiasSubpixelDepth = 16;
             this.antialias = enableAntialiasing;
@@ -63,6 +63,10 @@ namespace ImageSharp.Drawing
             get => this.blendPercentage ?? 1;
             set => this.blendPercentage = value;
         }
+
+        // In the future we could expose a PixelBlender<TPixel> directly on here
+        // or some forms of PixelBlender factory for each pixel type. Will need
+        // some API thought post V1.
 
         /// <summary>
         /// Gets or sets a value indicating the blending percentage to apply to the drawing operation

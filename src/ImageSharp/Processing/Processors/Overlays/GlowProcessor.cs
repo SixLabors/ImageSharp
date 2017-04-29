@@ -76,18 +76,19 @@ namespace ImageSharp.Processing.Processors
                 }
 
                 // TODO move GraphicOptions into core so all processes can use it.
-                PixelBlender<TPixel> blender = PixelOperations<TPixel>.Instance.GetPixelBlender(PixelBlenderMode.Default);
+                PixelBlender<TPixel> blender = PixelOperations<TPixel>.Instance.GetPixelBlender(PixelBlenderMode.Normal);
                 for (int y = minY; y < maxY; y++)
                 {
                     int offsetY = y - startY;
                     int offsetX = minX - startX;
                     for (int i = 0; i < width; i++)
                     {
-                        float distance = Vector2.Distance(centre, new Vector2((i + offsetX), offsetY));
-                        amounts[i] = 1 - (.95F * (distance / maxDistance));
+                        float distance = Vector2.Distance(centre, new Vector2(i + offsetX, offsetY));
+                        amounts[i] = (1 - (.95F * (distance / maxDistance))).Clamp(0, 1);
                     }
 
                     BufferSpan<TPixel> destination = sourcePixels.GetRowSpan(offsetY).Slice(offsetX, width);
+
                     blender.Compose(destination, destination, rowColors, amounts);
                 }
             }

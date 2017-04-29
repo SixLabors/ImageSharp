@@ -1,4 +1,4 @@
-﻿// <copyright file="DefaultDifferencePixelBlender{TPixel}.cs" company="James Jackson-South">
+﻿// <copyright file="DefaultSubstractPixelBlender{TPixel}.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -13,16 +13,18 @@ namespace ImageSharp.PixelFormats.PixelBlenders
     /// Abstract base class for calling pixel composition functions
     /// </summary>
     /// <typeparam name="TPixel">The type of the pixel</typeparam>
-    internal class DefaultDifferencePixelBlender<TPixel> : PixelBlender<TPixel>
+    internal class DefaultSubstractPixelBlender<TPixel> : PixelBlender<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
+        /// <summary>
+        /// Gets the static instance of this blender.
+        /// </summary>
+        public static DefaultSubstractPixelBlender<TPixel> Instance { get; } = new DefaultSubstractPixelBlender<TPixel>();
+
         /// <inheritdoc />
         public override TPixel Compose(TPixel background, TPixel source, float amount)
         {
-            Vector4 result = Vector4BlendTransforms.Difference(background.ToVector4(), source.ToVector4());
-            TPixel resultPixel = default(TPixel);
-            resultPixel.PackFromVector4(result);
-            return resultPixel;
+            return PorterDuffFunctions<TPixel>.SubstractFunction(background, source, amount);
         }
 
         /// <inheritdoc />
@@ -34,8 +36,7 @@ namespace ImageSharp.PixelFormats.PixelBlenders
 
             for (int i = 0; i < destination.Length; i++)
             {
-                Vector4 result = Vector4BlendTransforms.Difference(background[i].ToVector4(), source[i].ToVector4());
-                destination[i].PackFromVector4(result);
+                destination[i] = PorterDuffFunctions<TPixel>.SubstractFunction(destination[i], source[i], amount[i]);
             }
         }
     }

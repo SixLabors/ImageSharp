@@ -24,7 +24,7 @@ namespace ImageSharp.Tests
                     {
                         using (FileStream output = File.OpenWrite($"{path}/{file.FileName}"))
                         {
-                            image.DrawImage(blend, 75, new Size(image.Width / 2, image.Height / 2), new Point(image.Width / 4, image.Height / 4))
+                            image.DrawImage(blend, .75f, new Size(image.Width / 2, image.Height / 2), new Point(image.Width / 4, image.Height / 4))
                                  .Save(output);
                         }
                     }

@@ -6,6 +6,7 @@
 namespace ImageSharp.Formats
 {
     using System;
+    using System.Collections.Generic;
     using System.IO;
     using System.Runtime.CompilerServices;
     using System.Threading.Tasks;
@@ -87,11 +88,6 @@ namespace ImageSharp.Formats
         /// Whether the image has a EXIF header
         /// </summary>
         private bool isExif;
-
-        /// <summary>
-        /// Whether the image has an ICC header
-        /// </summary>
-        private bool isIcc;
 
         /// <summary>
         /// The vertical resolution. Calculated if the image has a JFIF header.
@@ -997,11 +993,11 @@ namespace ImageSharp.Formats
                 identifier[10] == 'E' &&
                 identifier[11] == '\0')
             {
-                this.isIcc = true;
                 remaining -= Icclength;
                 byte[] profile = new byte[remaining];
                 this.InputProcessor.ReadFull(profile, 0, remaining);
-                metadata.IccProfile = new IccProfile(profile);
+
+                metadata.IccProfiles.Add(new IccProfile(profile));
             }
         }
 
@@ -1021,8 +1017,11 @@ namespace ImageSharp.Formats
             remaining -= 13;
 
             // TODO: We should be using constants for this.
-            this.isJfif = this.Temp[0] == 'J' && this.Temp[1] == 'F' && this.Temp[2] == 'I' && this.Temp[3] == 'F'
-                          && this.Temp[4] == '\x00';
+            this.isJfif = this.Temp[0] == 'J' &&
+                          this.Temp[1] == 'F' &&
+                          this.Temp[2] == 'I' &&
+                          this.Temp[3] == 'F' &&
+                          this.Temp[4] == '\x00';
 
             if (this.isJfif)
             {

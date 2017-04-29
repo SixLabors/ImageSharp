@@ -65,25 +65,31 @@ namespace ImageSharp.Processing.Processors
                 startY = 0;
             }
 
+            int width = maxX - minX;
+            using (Buffer<TPixel> rowColors = new Buffer<TPixel>(width))
+            using (Buffer<float> amounts = new Buffer<float>(width))
             using (PixelAccessor<TPixel> sourcePixels = source.Lock())
             {
-                Parallel.For(
-                    minY,
-                    maxY,
-                    this.ParallelOptions,
-                    y =>
-                        {
-                            int offsetY = y - startY;
-                            for (int x = minX; x < maxX; x++)
-                            {
-                                int offsetX = x - startX;
-                                float distance = Vector2.Distance(centre, new Vector2(offsetX, offsetY));
-                                Vector4 sourceColor = sourcePixels[offsetX, offsetY].ToVector4();
-                                TPixel packed = default(TPixel);
-                                packed.PackFromVector4(Vector4BlendTransforms.PremultipliedLerp(sourceColor, glowColor.ToVector4(), 1 - (.95F * (distance / maxDistance))));
-                                sourcePixels[offsetX, offsetY] = packed;
-                            }
-                        });
+                for (int i = 0; i < width; i++)
+                {
+                    rowColors[i] = glowColor;
+                }
+
+                // TODO move GraphicOptions into core so all processes can use it.
+                PixelBlender<TPixel> blender = PixelOperations<TPixel>.Instance.GetPixelBlender(PixelBlenderMode.Default);
+                for (int y = minY; y < maxY; y++)
+                {
+                    int offsetY = y - startY;
+                    int offsetX = minX - startX;
+                    for (int i = 0; i < width; i++)
+                    {
+                        float distance = Vector2.Distance(centre, new Vector2((i + offsetX), offsetY));
+                        amounts[i] = 1 - (.95F * (distance / maxDistance));
+                    }
+
+                    BufferSpan<TPixel> destination = sourcePixels.GetRowSpan(offsetY).Slice(offsetX, width);
+                    blender.Compose(destination, destination, rowColors, amounts);
+                }
             }
         }
     }

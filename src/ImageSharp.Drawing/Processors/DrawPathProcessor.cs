@@ -55,7 +55,7 @@ namespace ImageSharp.Drawing.Processors
         protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
         {
             using (PixelAccessor<TPixel> sourcePixels = source.Lock())
-            using (PenApplicator<TPixel> applicator = this.Pen.CreateApplicator(sourcePixels, this.Path.Bounds))
+            using (PenApplicator<TPixel> applicator = this.Pen.CreateApplicator(sourcePixels, this.Path.Bounds, this.Options))
             {
                 Rectangle rect = RectangleF.Ceiling(applicator.RequiredRegion);
 

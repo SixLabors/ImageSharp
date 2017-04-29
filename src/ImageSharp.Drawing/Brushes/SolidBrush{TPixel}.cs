@@ -39,9 +39,33 @@ namespace ImageSharp.Drawing.Brushes
         public TPixel Color => this.color;
 
         /// <inheritdoc />
-        public BrushApplicator<TPixel> CreateApplicator(PixelAccessor<TPixel> sourcePixels, RectangleF region)
+        public BrushApplicator<TPixel> CreateApplicator(PixelAccessor<TPixel> sourcePixels, RectangleF region, GraphicsOptions options)
         {
-            return new SolidBrushApplicator(sourcePixels, this.color);
+            if (options.BlendPercentage < 0)
+            {
+                return new SolidBrushApplicator(sourcePixels, this.color, options);
+            }
+            else
+            {
+                return new SolidNoBlendBrushApplicator(sourcePixels, this.color, options);
+            }
+        }
+
+        /// <summary>
+        /// The solid brush applicator.
+        /// </summary>
+        private class SolidNoBlendBrushApplicator : SolidBrushApplicator
+        {
+            public SolidNoBlendBrushApplicator(PixelAccessor<TPixel> sourcePixels, TPixel color, GraphicsOptions options)
+                : base(sourcePixels, color, options)
+            {
+            }
+
+            internal override void Apply(BufferSpan<float> scanline, int x, int y)
+            {
+                BufferSpan<TPixel> destinationRow = this.Target.GetRowSpan(x, y).Slice(0, scanline.Length);
+                this.Blender.Compose(destinationRow, destinationRow, this.Colors, scanline);
+            }
         }
 
         /// <summary>
@@ -50,22 +74,25 @@ namespace ImageSharp.Drawing.Brushes
         private class SolidBrushApplicator : BrushApplicator<TPixel>
         {
             /// <summary>
-            /// The solid color.
-            /// </summary>
-            private readonly TPixel color;
-            private readonly Vector4 colorVector;
-
-            /// <summary>
             /// Initializes a new instance of the <see cref="SolidBrushApplicator"/> class.
             /// </summary>
             /// <param name="color">The color.</param>
+            /// <param name="options">The options</param>
             /// <param name="sourcePixels">The sourcePixels.</param>
-            public SolidBrushApplicator(PixelAccessor<TPixel> sourcePixels, TPixel color)
-                : base(sourcePixels)
+            public SolidBrushApplicator(PixelAccessor<TPixel> sourcePixels, TPixel color, GraphicsOptions options)
+                : base(sourcePixels, options)
             {
-                this.color = color;
-                this.colorVector = color.ToVector4();
+                this.Colors = new Buffer<TPixel>(sourcePixels.Width);
+                for (int i = 0; i < this.Colors.Length; i++)
+                {
+                    this.Colors[i] = color;
+                }
             }
+
+            /// <summary>
+            /// Gets the colors.
+            /// </summary>
+            protected Buffer<TPixel> Colors { get; }
 
             /// <summary>
             /// Gets the color for a single pixel.
@@ -75,41 +102,27 @@ namespace ImageSharp.Drawing.Brushes
             /// <returns>
             /// The color
             /// </returns>
-            internal override TPixel this[int x, int y] => this.color;
+            internal override TPixel this[int x, int y] => this.Colors[x];
 
             /// <inheritdoc />
             public override void Dispose()
             {
-                // noop
+                this.Colors.Dispose();
             }
 
             /// <inheritdoc />
-            internal override void Apply(float[] scanlineBuffer, int scanlineWidth, int offset, int x, int y)
+            internal override void Apply(BufferSpan<float> scanline, int x, int y)
             {
-                Guard.MustBeGreaterThanOrEqualTo(scanlineBuffer.Length, offset + scanlineWidth, nameof(scanlineWidth));
+                BufferSpan<TPixel> destinationRow = this.Target.GetRowSpan(x, y).Slice(0, scanline.Length);
 
-                using (Buffer<float> buffer = new Buffer<float>(scanlineBuffer))
+                using (Buffer<float> amountBuffer = new Buffer<float>(scanline.Length))
                 {
-                    BufferSpan<float> slice = buffer.Slice(offset);
-
-                    for (int xPos = 0; xPos < scanlineWidth; xPos++)
+                    for (int i = 0; i < scanline.Length; i++)
                     {
-                        int targetX = xPos + x;
-                        int targetY = y;
-
-                        float opacity = slice[xPos];
-                        if (opacity > Constants.Epsilon)
-                        {
-                            Vector4 backgroundVector = this.Target[targetX, targetY].ToVector4();
-                            Vector4 sourceVector = this.colorVector;
-
-                            Vector4 finalColor = Vector4BlendTransforms.PremultipliedLerp(backgroundVector, sourceVector, opacity);
-
-                            TPixel packed = default(TPixel);
-                            packed.PackFromVector4(finalColor);
-                            this.Target[targetX, targetY] = packed;
-                        }
+                        amountBuffer[i] = scanline[i] * this.Options.BlendPercentage;
                     }
+
+                    this.Blender.Compose(destinationRow, destinationRow, this.Colors, amountBuffer);
                 }
             }
         }

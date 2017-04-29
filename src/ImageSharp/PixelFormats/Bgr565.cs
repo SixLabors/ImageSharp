@@ -69,7 +69,7 @@ namespace ImageSharp.PixelFormats
         }
 
         /// <inheritdoc />
-        public BulkPixelOperations<Bgr565> CreateBulkOperations() => new BulkPixelOperations<Bgr565>();
+        public PixelOperations<Bgr565> CreateBulkOperations() => new PixelOperations<Bgr565>();
 
         /// <summary>
         /// Expands the packed representation into a <see cref="Vector3"/>.

@@ -10,7 +10,7 @@ namespace ImageSharp.Tests.Colors
     using Xunit;
     using Xunit.Abstractions;
 
-    public class BulkPixelOperationsTests
+    public class PixelOperationsTests
     {
         public class Color32 : BulkPixelOperationsTests<Rgba32>
         {
@@ -25,7 +25,7 @@ namespace ImageSharp.Tests.Colors
             [Fact]
             public void IsSpecialImplementation()
             {
-                Assert.IsType<Rgba32.BulkOperations>(BulkPixelOperations<Rgba32>.Instance);
+                Assert.IsType<Rgba32.PixelOperations>(PixelOperations<Rgba32>.Instance);
             }
 
             [Fact]
@@ -37,7 +37,7 @@ namespace ImageSharp.Tests.Colors
                 TestOperation(
                     source,
                     expected,
-                    (s, d) => Rgba32.BulkOperations.ToVector4SimdAligned(s, d, 64)
+                    (s, d) => Rgba32.PixelOperations.ToVector4SimdAligned(s, d, 64)
                 );
             }
 
@@ -54,7 +54,7 @@ namespace ImageSharp.Tests.Colors
                         times,
                         () =>
                             {
-                                BulkPixelOperations<Rgba32>.Instance.ToVector4(source, dest, count);
+                                PixelOperations<Rgba32>.Instance.ToVector4(source, dest, count);
                             });
                 }
             }
@@ -76,7 +76,7 @@ namespace ImageSharp.Tests.Colors
         public void GetGlobalInstance<TPixel>(TestImageProvider<TPixel> dummy)
             where TPixel : struct, IPixel<TPixel>
         {
-            Assert.NotNull(BulkPixelOperations<TPixel>.Instance);
+            Assert.NotNull(PixelOperations<TPixel>.Instance);
         }
     }
 
@@ -90,7 +90,7 @@ namespace ImageSharp.Tests.Colors
 
         public static TheoryData<int> ArraySizesData => new TheoryData<int> { 7, 16, 1111 };
 
-        private static BulkPixelOperations<TPixel> Operations => BulkPixelOperations<TPixel>.Instance;
+        private static PixelOperations<TPixel> Operations => PixelOperations<TPixel>.Instance;
 
         internal static TPixel[] CreateExpectedPixelData(Vector4[] source)
         {

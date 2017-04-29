@@ -53,7 +53,7 @@ namespace ImageSharp.Sandbox46
 
         private static void RunToVector4ProfilingTest()
         {
-            BulkPixelOperationsTests.Color32 tests = new BulkPixelOperationsTests.Color32(new ConsoleOutput());
+            PixelOperationsTests.Color32 tests = new PixelOperationsTests.Color32(new ConsoleOutput());
             tests.Benchmark_ToVector4();
         }
 

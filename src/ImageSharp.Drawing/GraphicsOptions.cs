@@ -5,6 +5,8 @@
 
 namespace ImageSharp.Drawing
 {
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// Options for influencing the drawing functions.
     /// </summary>
@@ -15,15 +17,13 @@ namespace ImageSharp.Drawing
         /// </summary>
         public static readonly GraphicsOptions Default = new GraphicsOptions(true);
 
-        /// <summary>
-        /// Whether antialiasing should be applied.
-        /// </summary>
-        public bool Antialias;
+        private float? blendPercentage;
 
-        /// <summary>
-        /// The number of subpixels to use while rendering with antialiasing enabled.
-        /// </summary>
-        public int AntialiasSubpixelDepth;
+        private int? antialiasSubpixelDepth;
+
+        private bool? antialias;
+
+        private PixelBlenderMode blenderMode;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="GraphicsOptions"/> struct.
@@ -31,8 +31,46 @@ namespace ImageSharp.Drawing
         /// <param name="enableAntialiasing">If set to <c>true</c> [enable antialiasing].</param>
         public GraphicsOptions(bool enableAntialiasing)
         {
-            this.Antialias = enableAntialiasing;
-            this.AntialiasSubpixelDepth = 16;
+            this.blenderMode = PixelBlenderMode.Default;
+            this.blendPercentage = 1;
+            this.antialiasSubpixelDepth = 16;
+            this.antialias = enableAntialiasing;
+        }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether antialiasing should be applied.
+        /// </summary>
+        public bool Antialias
+        {
+            get => this.antialias ?? true;
+            set => this.antialias = value;
+        }
+
+        /// <summary>
+        /// Gets or sets a value indicating the number of subpixels to use while rendering with antialiasing enabled.
+        /// </summary>
+        public int AntialiasSubpixelDepth
+        {
+            get => this.antialiasSubpixelDepth ?? 16;
+            set => this.antialiasSubpixelDepth = value;
+        }
+
+        /// <summary>
+        /// Gets or sets a value indicating the blending percentage to apply to the drawing operation
+        /// </summary>
+        public float BlendPercentage
+        {
+            get => this.blendPercentage ?? 1;
+            set => this.blendPercentage = value;
+        }
+
+        /// <summary>
+        /// Gets or sets a value indicating the blending percentage to apply to the drawing operation
+        /// </summary>
+        public PixelBlenderMode BlenderMode
+        {
+            get => this.blenderMode;
+            set => this.blenderMode = value;
         }
     }
 }

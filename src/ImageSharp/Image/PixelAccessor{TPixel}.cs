@@ -116,7 +116,7 @@ namespace ImageSharp
         /// <inheritdoc />
         BufferSpan<TPixel> IBuffer2D<TPixel>.Span => this.pixelBuffer;
 
-        private static BulkPixelOperations<TPixel> Operations => BulkPixelOperations<TPixel>.Instance;
+        private static PixelOperations<TPixel> Operations => PixelOperations<TPixel>.Instance;
 
         /// <summary>
         /// Gets or sets the pixel at the specified position.

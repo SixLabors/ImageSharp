@@ -11,7 +11,7 @@ namespace ImageSharp.PixelFormats
     /// Transform algorithms that match the equations defined in the W3C Compositing and Blending Level 1 specification.
     /// <see href="https://www.w3.org/TR/compositing-1/"/>
     /// </summary>
-    public class Vector4BlendTransforms
+    internal class Vector4BlendTransforms
     {
         /// <summary>
         /// The blending formula simply selects the source vector.

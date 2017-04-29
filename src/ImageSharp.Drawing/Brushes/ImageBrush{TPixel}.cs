@@ -31,9 +31,9 @@ namespace ImageSharp.Drawing.Brushes
         }
 
         /// <inheritdoc />
-        public BrushApplicator<TPixel> CreateApplicator(PixelAccessor<TPixel> sourcePixels, RectangleF region)
+        public BrushApplicator<TPixel> CreateApplicator(PixelAccessor<TPixel> sourcePixels, RectangleF region, GraphicsOptions options)
         {
-            return new ImageBrushApplicator(sourcePixels, this.image, region);
+            return new ImageBrushApplicator(sourcePixels, this.image, region, options);
         }
 
         /// <summary>
@@ -57,9 +57,14 @@ namespace ImageSharp.Drawing.Brushes
             private readonly int xLength;
 
             /// <summary>
-            /// The offset.
+            /// The Y offset.
             /// </summary>
-            private readonly Vector2 offset;
+            private readonly int offsetY;
+
+            /// <summary>
+            /// The X offset.
+            /// </summary>
+            private readonly int offsetX;
 
             /// <summary>
             /// Initializes a new instance of the <see cref="ImageBrushApplicator"/> class.
@@ -70,16 +75,18 @@ namespace ImageSharp.Drawing.Brushes
             /// <param name="region">
             /// The region.
             /// </param>
+            /// <param name="options">The options</param>
             /// <param name="sourcePixels">
             /// The sourcePixels.
             /// </param>
-            public ImageBrushApplicator(PixelAccessor<TPixel> sourcePixels, IImageBase<TPixel> image, RectangleF region)
-                : base(sourcePixels)
+            public ImageBrushApplicator(PixelAccessor<TPixel> sourcePixels, IImageBase<TPixel> image, RectangleF region, GraphicsOptions options)
+                : base(sourcePixels, options)
             {
                 this.source = image.Lock();
                 this.xLength = image.Width;
                 this.yLength = image.Height;
-                this.offset = new Vector2(MathF.Max(MathF.Floor(region.Top), 0), MathF.Max(MathF.Floor(region.Left), 0));
+                this.offsetY = (int)MathF.Max(MathF.Floor(region.Top), 0);
+                this.offsetX = (int)MathF.Max(MathF.Floor(region.Left), 0);
             }
 
             /// <summary>
@@ -94,13 +101,8 @@ namespace ImageSharp.Drawing.Brushes
             {
                 get
                 {
-                    Vector2 point = new Vector2(x, y);
-
-                    // Offset the requested pixel by the value in the rectangle (the shapes position)
-                    point = point - this.offset;
-                    int srcX = (int)point.X % this.xLength;
-                    int srcY = (int)point.Y % this.yLength;
-
+                    int srcX = (x - this.offsetX) % this.xLength;
+                    int srcY = (y - this.offsetY) % this.yLength;
                     return this.source[srcX, srcY];
                 }
             }
@@ -112,33 +114,27 @@ namespace ImageSharp.Drawing.Brushes
             }
 
             /// <inheritdoc />
-            internal override void Apply(float[] scanlineBuffer, int scanlineWidth, int offset, int x, int y)
+            internal override void Apply(BufferSpan<float> scanline, int x, int y)
             {
-                Guard.MustBeGreaterThanOrEqualTo(scanlineBuffer.Length, offset + scanlineWidth, nameof(scanlineWidth));
-
-                using (Buffer<float> buffer = new Buffer<float>(scanlineBuffer))
+                // create a span for colors
+                using (Buffer<float> amountBuffer = new Buffer<float>(scanline.Length))
+                using (Buffer<TPixel> overlay = new Buffer<TPixel>(scanline.Length))
                 {
-                    BufferSpan<float> slice = buffer.Slice(offset);
+                    int sourceY = (y - this.offsetY) % this.yLength;
+                    int offsetX = x - this.offsetX;
+                    BufferSpan<TPixel> sourceRow = this.source.GetRowSpan(sourceY);
 
-                    for (int xPos = 0; xPos < scanlineWidth; xPos++)
+                    for (int i = 0; i < scanline.Length; i++)
                     {
-                        int targetX = xPos + x;
-                        int targetY = y;
+                        amountBuffer[i] = scanline[i] * this.Options.BlendPercentage;
 
-                        float opacity = slice[xPos];
-                        if (opacity > Constants.Epsilon)
-                        {
-                            Vector4 backgroundVector = this.Target[targetX, targetY].ToVector4();
-
-                            Vector4 sourceVector = this[targetX, targetY].ToVector4();
-
-                            Vector4 finalColor = Vector4BlendTransforms.PremultipliedLerp(backgroundVector, sourceVector, opacity);
-
-                            TPixel packed = default(TPixel);
-                            packed.PackFromVector4(finalColor);
-                            this.Target[targetX, targetY] = packed;
-                        }
+                        int sourceX = (i + offsetX) % this.xLength;
+                        TPixel pixel = sourceRow[sourceX];
+                        overlay[i] = pixel;
                     }
+
+                    BufferSpan<TPixel> destinationRow = this.Target.GetRowSpan(x, y).Slice(0, scanline.Length);
+                    this.Blender.Compose(destinationRow, destinationRow, overlay, amountBuffer);
                 }
             }
         }

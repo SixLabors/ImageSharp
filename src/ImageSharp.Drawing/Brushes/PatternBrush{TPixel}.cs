@@ -90,9 +90,9 @@ namespace ImageSharp.Drawing.Brushes
         }
 
         /// <inheritdoc />
-        public BrushApplicator<TPixel> CreateApplicator(PixelAccessor<TPixel> sourcePixels, RectangleF region)
+        public BrushApplicator<TPixel> CreateApplicator(PixelAccessor<TPixel> sourcePixels, RectangleF region, GraphicsOptions options)
         {
-            return new PatternBrushApplicator(sourcePixels, this.pattern, this.patternVector);
+            return new PatternBrushApplicator(sourcePixels, this.pattern, this.patternVector, options);
         }
 
         /// <summary>
@@ -112,8 +112,9 @@ namespace ImageSharp.Drawing.Brushes
             /// <param name="sourcePixels">The sourcePixels.</param>
             /// <param name="pattern">The pattern.</param>
             /// <param name="patternVector">The patternVector.</param>
-            public PatternBrushApplicator(PixelAccessor<TPixel> sourcePixels, Fast2DArray<TPixel> pattern, Fast2DArray<Vector4> patternVector)
-                : base(sourcePixels)
+            /// <param name="options">The options</param>
+            public PatternBrushApplicator(PixelAccessor<TPixel> sourcePixels, Fast2DArray<TPixel> pattern, Fast2DArray<Vector4> patternVector, GraphicsOptions options)
+                : base(sourcePixels, options)
             {
                 this.pattern = pattern;
                 this.patternVector = patternVector;
@@ -146,34 +147,22 @@ namespace ImageSharp.Drawing.Brushes
             }
 
             /// <inheritdoc />
-            internal override void Apply(float[] scanlineBuffer, int scanlineWidth, int offset, int x, int y)
+            internal override void Apply(BufferSpan<float> scanline, int x, int y)
             {
-                Guard.MustBeGreaterThanOrEqualTo(scanlineBuffer.Length, offset + scanlineWidth, nameof(scanlineWidth));
-
-                using (Buffer<float> buffer = new Buffer<float>(scanlineBuffer))
+                int patternY = y % this.pattern.Height;
+                using (Buffer<float> amountBuffer = new Buffer<float>(scanline.Length))
+                using (Buffer<TPixel> overlay = new Buffer<TPixel>(scanline.Length))
                 {
-                    BufferSpan<float> slice = buffer.Slice(offset);
-
-                    for (int xPos = 0; xPos < scanlineWidth; xPos++)
+                    for (int i = 0; i < scanline.Length; i++)
                     {
-                        int targetX = xPos + x;
-                        int targetY = y;
+                        amountBuffer[i] = scanline[i] * this.Options.BlendPercentage;
 
-                        float opacity = slice[xPos];
-                        if (opacity > Constants.Epsilon)
-                        {
-                            Vector4 backgroundVector = this.Target[targetX, targetY].ToVector4();
-
-                            // 2d array index at row/column
-                            Vector4 sourceVector = this.patternVector[targetY % this.patternVector.Height, targetX % this.patternVector.Width];
-
-                            Vector4 finalColor = Vector4BlendTransforms.PremultipliedLerp(backgroundVector, sourceVector, opacity);
-
-                            TPixel packed = default(TPixel);
-                            packed.PackFromVector4(finalColor);
-                            this.Target[targetX, targetY] = packed;
-                        }
+                        int patternX = (x + i) % this.pattern.Width;
+                        overlay[i] = this.pattern[y, x];
                     }
+
+                    BufferSpan<TPixel> destinationRow = this.Target.GetRowSpan(x, y).Slice(0, scanline.Length);
+                    this.Blender.Compose(destinationRow, destinationRow, overlay, amountBuffer);
                 }
             }
         }

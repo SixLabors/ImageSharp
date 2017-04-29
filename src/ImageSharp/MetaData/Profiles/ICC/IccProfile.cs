@@ -124,6 +124,16 @@ namespace ImageSharp
 
 #endif
 
+        /// <summary>
+        /// Converts this instance to a byte array.
+        /// </summary>
+        /// <returns>The <see cref="T:byte[]"/></returns>
+        public byte[] ToByteArray()
+        {
+            IccWriter writer = new IccWriter();
+            return writer.Write(this);
+        }
+
         private void InitializeHeader()
         {
             if (this.header != null)

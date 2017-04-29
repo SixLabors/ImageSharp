@@ -22,11 +22,13 @@ namespace ImageSharp
         {
             Guard.NotNull(profile, nameof(profile));
 
-            IccDataWriter writer = new IccDataWriter();
-            IccTagTableEntry[] tagTable = this.WriteTagData(writer, profile.Entries);
-            this.WriteTagTable(writer, tagTable);
-            this.WriteHeader(writer, profile.Header);
-            return writer.GetData();
+            using (IccDataWriter writer = new IccDataWriter())
+            {
+                IccTagTableEntry[] tagTable = this.WriteTagData(writer, profile.Entries);
+                this.WriteTagTable(writer, tagTable);
+                this.WriteHeader(writer, profile.Header);
+                return writer.GetData();
+            }
         }
 
         private void WriteHeader(IccDataWriter writer, IccProfileHeader header)

@@ -6,7 +6,9 @@
 namespace ImageSharp.Formats
 {
     using System.Buffers;
+    using System.Collections.Generic;
     using System.IO;
+    using System.Linq;
     using System.Runtime.CompilerServices;
     using ImageSharp.Formats.Jpg;
     using ImageSharp.Formats.Jpg.Components;
@@ -109,7 +111,7 @@ namespace ImageSharp.Formats
         /// <summary>
         /// A scratch buffer to reduce allocations.
         /// </summary>
-        private readonly byte[] buffer = new byte[16];
+        private readonly byte[] buffer = new byte[20];
 
         /// <summary>
         /// A buffer for reducing the number of stream writes when emitting Huffman tables. 64 seems to be enough.
@@ -514,19 +516,17 @@ namespace ImageSharp.Formats
             this.buffer[12] = 0x01; // versionlo
             this.buffer[13] = 0x01; // xyunits as dpi
 
-            // No thumbnail
-            this.buffer[14] = 0x00; // Thumbnail width
-            this.buffer[15] = 0x00; // Thumbnail height
-
-            this.outputStream.Write(this.buffer, 0, 16);
-
             // Resolution. Big Endian
-            this.buffer[0] = (byte)(horizontalResolution >> 8);
-            this.buffer[1] = (byte)horizontalResolution;
-            this.buffer[2] = (byte)(verticalResolution >> 8);
-            this.buffer[3] = (byte)verticalResolution;
+            this.buffer[14] = (byte)(horizontalResolution >> 8);
+            this.buffer[15] = (byte)horizontalResolution;
+            this.buffer[16] = (byte)(verticalResolution >> 8);
+            this.buffer[17] = (byte)verticalResolution;
 
-            this.outputStream.Write(this.buffer, 0, 4);
+            // No thumbnail
+            this.buffer[18] = 0x00; // Thumbnail width
+            this.buffer[19] = 0x00; // Thumbnail height
+
+            this.outputStream.Write(this.buffer, 0, 20);
         }
 
         /// <summary>
@@ -674,7 +674,7 @@ namespace ImageSharp.Formats
         /// <exception cref="ImageFormatException">
         /// Thrown if the EXIF profile size exceeds the limit
         /// </exception>
-        private void WriteProfile(ExifProfile exifProfile)
+        private void WriteExifProfile(ExifProfile exifProfile)
         {
             const int Max = 65533;
             byte[] data = exifProfile?.ToByteArray();
@@ -700,6 +700,66 @@ namespace ImageSharp.Formats
         }
 
         /// <summary>
+        /// Writes the ICC profiles.
+        /// </summary>
+        /// <param name="iccProfiles">The list of ICC profiles.</param>
+        /// <exception cref="ImageFormatException">
+        /// Thrown if any of the ICC profiles size exceeds the limit
+        /// </exception>
+        private void WriteICCProfiles(IList<IccProfile> iccProfiles)
+        {
+            // Just incase someone set the value to null by accident.
+            if (iccProfiles == null || !iccProfiles.Any())
+            {
+                return;
+            }
+
+            const int Max = 65533;
+            int count = iccProfiles.Count;
+
+            for (int i = 1; i <= count; i++)
+            {
+                byte[] data = iccProfiles[i - 1]?.ToByteArray();
+
+                if (data == null || data.Length == 0)
+                {
+                    continue;
+                }
+
+                if (data.Length > Max)
+                {
+                    throw new ImageFormatException($"ICC profile size exceeds limit. nameof{Max}");
+                }
+
+                this.buffer[0] = JpegConstants.Markers.XFF;
+                this.buffer[1] = JpegConstants.Markers.APP2; // Application Marker
+                int length = data.Length + 16;
+                this.buffer[2] = (byte)((length >> 8) & 0xFF);
+                this.buffer[3] = (byte)(length & 0xFF);
+
+                this.outputStream.Write(this.buffer, 0, 4);
+
+                this.buffer[0] = (byte)'I';
+                this.buffer[1] = (byte)'C';
+                this.buffer[2] = (byte)'C';
+                this.buffer[3] = (byte)'_';
+                this.buffer[4] = (byte)'P';
+                this.buffer[5] = (byte)'R';
+                this.buffer[6] = (byte)'O';
+                this.buffer[7] = (byte)'F';
+                this.buffer[8] = (byte)'I';
+                this.buffer[9] = (byte)'L';
+                this.buffer[10] = (byte)'E';
+                this.buffer[11] = 0x00;
+                this.buffer[12] = (byte)i; // The position within the collection.
+                this.buffer[13] = (byte)count; // The total number of profiles.
+
+                this.outputStream.Write(this.buffer, 0, 14);
+                this.outputStream.Write(data, 0, data.Length);
+            }
+        }
+
+        /// <summary>
         /// Writes the metadata profiles to the image.
         /// </summary>
         /// <param name="image">The image.</param>
@@ -713,7 +773,8 @@ namespace ImageSharp.Formats
             }
 
             image.MetaData.SyncProfiles();
-            this.WriteProfile(image.MetaData.ExifProfile);
+            this.WriteExifProfile(image.MetaData.ExifProfile);
+            this.WriteICCProfiles(image.MetaData.IccProfiles);
         }
 
         /// <summary>

@@ -7,6 +7,7 @@ namespace ImageSharp
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
 
     /// <summary>
     /// Encapsulates the metadata of an image.
@@ -67,6 +68,15 @@ namespace ImageSharp
             {
                 this.ExifProfile = null;
             }
+
+            if (other.IccProfiles != null && other.IccProfiles.Any())
+            {
+                this.IccProfiles = new List<IccProfile>(other.IccProfiles);
+            }
+            else
+            {
+                this.ExifProfile = null;
+            }
         }
 
         /// <summary>
@@ -83,10 +93,10 @@ namespace ImageSharp
 
             set
             {
-              if (value > 0)
-              {
-                  this.horizontalResolution = value;
-              }
+                if (value > 0)
+                {
+                    this.horizontalResolution = value;
+                }
             }
         }
 
@@ -117,9 +127,9 @@ namespace ImageSharp
         public ExifProfile ExifProfile { get; set; }
 
         /// <summary>
-        /// Gets or sets the ICC profile.
+        /// Gets or sets the list of ICC profiles.
         /// </summary>
-        public IccProfile IccProfile { get; set; }
+        public IList<IccProfile> IccProfiles { get; set; } = new List<IccProfile>();
 
         /// <summary>
         /// Gets or sets the frame delay for animated images.

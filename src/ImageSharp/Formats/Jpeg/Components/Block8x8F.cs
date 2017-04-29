@@ -256,6 +256,31 @@ namespace ImageSharp.Formats.Jpg
         }
 
         /// <summary>
+        /// Multiply all elements of the block.
+        /// </summary>
+        /// <param name="scaleVec">Vector to multiply by</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void MultiplyAllInplace(float scaleVec)
+        {
+            this.V0L *= scaleVec;
+            this.V0R *= scaleVec;
+            this.V1L *= scaleVec;
+            this.V1R *= scaleVec;
+            this.V2L *= scaleVec;
+            this.V2R *= scaleVec;
+            this.V3L *= scaleVec;
+            this.V3R *= scaleVec;
+            this.V4L *= scaleVec;
+            this.V4R *= scaleVec;
+            this.V5L *= scaleVec;
+            this.V5R *= scaleVec;
+            this.V6L *= scaleVec;
+            this.V6R *= scaleVec;
+            this.V7L *= scaleVec;
+            this.V7R *= scaleVec;
+        }
+
+        /// <summary>
         /// Adds a vector to all elements of the block.
         /// </summary>
         /// <param name="diff">The added vector</param>

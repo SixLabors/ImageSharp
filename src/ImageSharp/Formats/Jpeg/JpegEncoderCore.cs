@@ -109,7 +109,7 @@ namespace ImageSharp.Formats
         /// <summary>
         /// A scratch buffer to reduce allocations.
         /// </summary>
-        private readonly byte[] buffer = new byte[16];
+        private readonly byte[] buffer = new byte[20];
 
         /// <summary>
         /// A buffer for reducing the number of stream writes when emitting Huffman tables. 64 seems to be enough.
@@ -514,19 +514,17 @@ namespace ImageSharp.Formats
             this.buffer[12] = 0x01; // versionlo
             this.buffer[13] = 0x01; // xyunits as dpi
 
-            // No thumbnail
-            this.buffer[14] = 0x00; // Thumbnail width
-            this.buffer[15] = 0x00; // Thumbnail height
-
-            this.outputStream.Write(this.buffer, 0, 16);
-
             // Resolution. Big Endian
-            this.buffer[0] = (byte)(horizontalResolution >> 8);
-            this.buffer[1] = (byte)horizontalResolution;
-            this.buffer[2] = (byte)(verticalResolution >> 8);
-            this.buffer[3] = (byte)verticalResolution;
+            this.buffer[14] = (byte)(horizontalResolution >> 8);
+            this.buffer[15] = (byte)horizontalResolution;
+            this.buffer[16] = (byte)(verticalResolution >> 8);
+            this.buffer[17] = (byte)verticalResolution;
 
-            this.outputStream.Write(this.buffer, 0, 4);
+            // No thumbnail
+            this.buffer[18] = 0x00; // Thumbnail width
+            this.buffer[19] = 0x00; // Thumbnail height
+
+            this.outputStream.Write(this.buffer, 0, 20);
         }
 
         /// <summary>

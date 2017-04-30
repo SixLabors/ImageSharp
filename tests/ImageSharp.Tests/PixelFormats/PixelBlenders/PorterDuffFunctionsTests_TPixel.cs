@@ -41,7 +41,7 @@ namespace ImageSharp.Tests.PixelFormats.PixelBlenders
         public void NormalBlendFunction_Blender<TPixel>(TestPixel<TPixel> back, TestPixel<TPixel> source, float amount, TestPixel<TPixel> expected)
             where TPixel : struct, IPixel<TPixel>
         {
-            TPixel actual = new DefaultNormalPixelBlender<TPixel>().Compose(back, source, amount);
+            TPixel actual = new DefaultNormalPixelBlender<TPixel>().Blend(back, source, amount);
             VectorAssert.Equal(expected, actual, 2);
         }
 
@@ -51,7 +51,7 @@ namespace ImageSharp.Tests.PixelFormats.PixelBlenders
             where TPixel : struct, IPixel<TPixel>
         {
             BufferSpan<TPixel> dest = new BufferSpan<TPixel>(new TPixel[1]);
-            new DefaultNormalPixelBlender<TPixel>().Compose(dest, back.AsSpan(), source.AsSpan(), AsSpan(amount));
+            new DefaultNormalPixelBlender<TPixel>().Blend(dest, back.AsSpan(), source.AsSpan(), AsSpan(amount));
             VectorAssert.Equal(expected, dest[0], 2);
         }
 
@@ -80,7 +80,7 @@ namespace ImageSharp.Tests.PixelFormats.PixelBlenders
         public void MultiplyFunction_Blender<TPixel>(TestPixel<TPixel> back, TestPixel<TPixel> source, float amount, TestPixel<TPixel> expected)
             where TPixel : struct, IPixel<TPixel>
         {
-            TPixel actual = new DefaultMultiplyPixelBlender<TPixel>().Compose(back, source, amount);
+            TPixel actual = new DefaultMultiplyPixelBlender<TPixel>().Blend(back, source, amount);
             VectorAssert.Equal(expected, actual, 2);
         }
 
@@ -90,7 +90,7 @@ namespace ImageSharp.Tests.PixelFormats.PixelBlenders
             where TPixel : struct, IPixel<TPixel>
         {
             BufferSpan<TPixel> dest = new BufferSpan<TPixel>(new TPixel[1]);
-            new DefaultMultiplyPixelBlender<TPixel>().Compose(dest, back.AsSpan(), source.AsSpan(), AsSpan(amount));
+            new DefaultMultiplyPixelBlender<TPixel>().Blend(dest, back.AsSpan(), source.AsSpan(), AsSpan(amount));
             VectorAssert.Equal(expected, dest[0], 2);
         }
 
@@ -119,7 +119,7 @@ namespace ImageSharp.Tests.PixelFormats.PixelBlenders
         public void AddFunction_Blender<TPixel>(TestPixel<TPixel> back, TestPixel<TPixel> source, float amount, TestPixel<TPixel> expected)
             where TPixel : struct, IPixel<TPixel>
         {
-            TPixel actual = new DefaultAddPixelBlender<TPixel>().Compose(back, source, amount);
+            TPixel actual = new DefaultAddPixelBlender<TPixel>().Blend(back, source, amount);
             VectorAssert.Equal(expected, actual, 2);
         }
 
@@ -129,7 +129,7 @@ namespace ImageSharp.Tests.PixelFormats.PixelBlenders
             where TPixel : struct, IPixel<TPixel>
         {
             BufferSpan<TPixel> dest = new BufferSpan<TPixel>(new TPixel[1]);
-            new DefaultAddPixelBlender<TPixel>().Compose(dest, back.AsSpan(), source.AsSpan(), AsSpan(amount));
+            new DefaultAddPixelBlender<TPixel>().Blend(dest, back.AsSpan(), source.AsSpan(), AsSpan(amount));
             VectorAssert.Equal(expected, dest[0], 2);
         }
 
@@ -158,7 +158,7 @@ namespace ImageSharp.Tests.PixelFormats.PixelBlenders
         public void SubstractFunction_Blender<TPixel>(TestPixel<TPixel> back, TestPixel<TPixel> source, float amount, TestPixel<TPixel> expected)
             where TPixel : struct, IPixel<TPixel>
         {
-            TPixel actual = new DefaultSubstractPixelBlender<TPixel>().Compose(back, source, amount);
+            TPixel actual = new DefaultSubstractPixelBlender<TPixel>().Blend(back, source, amount);
             VectorAssert.Equal(expected, actual, 2);
         }
 
@@ -168,7 +168,7 @@ namespace ImageSharp.Tests.PixelFormats.PixelBlenders
             where TPixel : struct, IPixel<TPixel>
         {
             BufferSpan<TPixel> dest = new BufferSpan<TPixel>(new TPixel[1]);
-            new DefaultSubstractPixelBlender<TPixel>().Compose(dest, back.AsSpan(), source.AsSpan(), AsSpan(amount));
+            new DefaultSubstractPixelBlender<TPixel>().Blend(dest, back.AsSpan(), source.AsSpan(), AsSpan(amount));
             VectorAssert.Equal(expected, dest[0], 2);
         }
 
@@ -197,7 +197,7 @@ namespace ImageSharp.Tests.PixelFormats.PixelBlenders
         public void ScreenFunction_Blender<TPixel>(TestPixel<TPixel> back, TestPixel<TPixel> source, float amount, TestPixel<TPixel> expected)
             where TPixel : struct, IPixel<TPixel>
         {
-            TPixel actual = new DefaultScreenPixelBlender<TPixel>().Compose(back, source, amount);
+            TPixel actual = new DefaultScreenPixelBlender<TPixel>().Blend(back, source, amount);
             VectorAssert.Equal(expected, actual, 2);
         }
 
@@ -207,7 +207,7 @@ namespace ImageSharp.Tests.PixelFormats.PixelBlenders
             where TPixel : struct, IPixel<TPixel>
         {
             BufferSpan<TPixel> dest = new BufferSpan<TPixel>(new TPixel[1]);
-            new DefaultScreenPixelBlender<TPixel>().Compose(dest, back.AsSpan(), source.AsSpan(), AsSpan(amount));
+            new DefaultScreenPixelBlender<TPixel>().Blend(dest, back.AsSpan(), source.AsSpan(), AsSpan(amount));
             VectorAssert.Equal(expected, dest[0], 2);
         }
 
@@ -236,7 +236,7 @@ namespace ImageSharp.Tests.PixelFormats.PixelBlenders
         public void DarkenFunction_Blender<TPixel>(TestPixel<TPixel> back, TestPixel<TPixel> source, float amount, TestPixel<TPixel> expected)
             where TPixel : struct, IPixel<TPixel>
         {
-            TPixel actual = new DefaultDarkenPixelBlender<TPixel>().Compose(back, source, amount);
+            TPixel actual = new DefaultDarkenPixelBlender<TPixel>().Blend(back, source, amount);
             VectorAssert.Equal(expected, actual, 2);
         }
 
@@ -246,7 +246,7 @@ namespace ImageSharp.Tests.PixelFormats.PixelBlenders
             where TPixel : struct, IPixel<TPixel>
         {
             BufferSpan<TPixel> dest = new BufferSpan<TPixel>(new TPixel[1]);
-            new DefaultDarkenPixelBlender<TPixel>().Compose(dest, back.AsSpan(), source.AsSpan(), AsSpan(amount));
+            new DefaultDarkenPixelBlender<TPixel>().Blend(dest, back.AsSpan(), source.AsSpan(), AsSpan(amount));
             VectorAssert.Equal(expected, dest[0], 2);
         }
 
@@ -275,7 +275,7 @@ namespace ImageSharp.Tests.PixelFormats.PixelBlenders
         public void LightenFunction_Blender<TPixel>(TestPixel<TPixel> back, TestPixel<TPixel> source, float amount, TestPixel<TPixel> expected)
             where TPixel : struct, IPixel<TPixel>
         {
-            TPixel actual = new DefaultLightenPixelBlender<TPixel>().Compose(back, source, amount);
+            TPixel actual = new DefaultLightenPixelBlender<TPixel>().Blend(back, source, amount);
             VectorAssert.Equal(expected, actual, 2);
         }
 
@@ -285,7 +285,7 @@ namespace ImageSharp.Tests.PixelFormats.PixelBlenders
             where TPixel : struct, IPixel<TPixel>
         {
             BufferSpan<TPixel> dest = new BufferSpan<TPixel>(new TPixel[1]);
-            new DefaultLightenPixelBlender<TPixel>().Compose(dest, back.AsSpan(), source.AsSpan(), AsSpan(amount));
+            new DefaultLightenPixelBlender<TPixel>().Blend(dest, back.AsSpan(), source.AsSpan(), AsSpan(amount));
             VectorAssert.Equal(expected, dest[0], 2);
         }
 
@@ -314,7 +314,7 @@ namespace ImageSharp.Tests.PixelFormats.PixelBlenders
         public void OverlayFunction_Blender<TPixel>(TestPixel<TPixel> back, TestPixel<TPixel> source, float amount, TestPixel<TPixel> expected)
             where TPixel : struct, IPixel<TPixel>
         {
-            TPixel actual = new DefaultOverlayPixelBlender<TPixel>().Compose(back, source, amount);
+            TPixel actual = new DefaultOverlayPixelBlender<TPixel>().Blend(back, source, amount);
             VectorAssert.Equal(expected, actual, 2);
         }
 
@@ -324,7 +324,7 @@ namespace ImageSharp.Tests.PixelFormats.PixelBlenders
             where TPixel : struct, IPixel<TPixel>
         {
             BufferSpan<TPixel> dest = new BufferSpan<TPixel>(new TPixel[1]);
-            new DefaultOverlayPixelBlender<TPixel>().Compose(dest, back.AsSpan(), source.AsSpan(), AsSpan(amount));
+            new DefaultOverlayPixelBlender<TPixel>().Blend(dest, back.AsSpan(), source.AsSpan(), AsSpan(amount));
             VectorAssert.Equal(expected, dest[0], 2);
         }
 
@@ -353,7 +353,7 @@ namespace ImageSharp.Tests.PixelFormats.PixelBlenders
         public void HardLightFunction_Blender<TPixel>(TestPixel<TPixel> back, TestPixel<TPixel> source, float amount, TestPixel<TPixel> expected)
             where TPixel : struct, IPixel<TPixel>
         {
-            TPixel actual = new DefaultHardLightPixelBlender<TPixel>().Compose(back, source, amount);
+            TPixel actual = new DefaultHardLightPixelBlender<TPixel>().Blend(back, source, amount);
             VectorAssert.Equal(expected, actual, 2);
         }
 
@@ -363,7 +363,7 @@ namespace ImageSharp.Tests.PixelFormats.PixelBlenders
             where TPixel : struct, IPixel<TPixel>
         {
             BufferSpan<TPixel> dest = new BufferSpan<TPixel>(new TPixel[1]);
-            new DefaultHardLightPixelBlender<TPixel>().Compose(dest, back.AsSpan(), source.AsSpan(), AsSpan(amount));
+            new DefaultHardLightPixelBlender<TPixel>().Blend(dest, back.AsSpan(), source.AsSpan(), AsSpan(amount));
             VectorAssert.Equal(expected, dest[0], 2);
         }
     }

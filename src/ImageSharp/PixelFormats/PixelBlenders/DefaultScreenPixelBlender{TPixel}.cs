@@ -10,7 +10,7 @@ namespace ImageSharp.PixelFormats.PixelBlenders
     using ImageSharp.PixelFormats;
 
     /// <summary>
-    /// Abstract base class for calling pixel composition functions
+    /// Applies an "Screen" blending to pixels.
     /// </summary>
     /// <typeparam name="TPixel">The type of the pixel</typeparam>
     internal class DefaultScreenPixelBlender<TPixel> : PixelBlender<TPixel>
@@ -22,13 +22,13 @@ namespace ImageSharp.PixelFormats.PixelBlenders
         public static DefaultScreenPixelBlender<TPixel> Instance { get; } = new DefaultScreenPixelBlender<TPixel>();
 
         /// <inheritdoc />
-        public override TPixel Compose(TPixel background, TPixel source, float amount)
+        public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
             return PorterDuffFunctions<TPixel>.ScreenFunction(background, source, amount);
         }
 
         /// <inheritdoc />
-        public override void Compose(BufferSpan<TPixel> destination, BufferSpan<TPixel> background, BufferSpan<TPixel> source, BufferSpan<float> amount)
+        public override void Blend(BufferSpan<TPixel> destination, BufferSpan<TPixel> background, BufferSpan<TPixel> source, BufferSpan<float> amount)
         {
             Guard.MustBeGreaterThanOrEqualTo(background.Length, destination.Length, nameof(background.Length));
             Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));

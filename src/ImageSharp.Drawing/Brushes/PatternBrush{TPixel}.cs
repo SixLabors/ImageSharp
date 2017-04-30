@@ -162,7 +162,7 @@ namespace ImageSharp.Drawing.Brushes
                     }
 
                     BufferSpan<TPixel> destinationRow = this.Target.GetRowSpan(x, y).Slice(0, scanline.Length);
-                    this.Blender.Compose(destinationRow, destinationRow, overlay, amountBuffer);
+                    this.Blender.Blend(destinationRow, destinationRow, overlay, amountBuffer);
                 }
             }
         }

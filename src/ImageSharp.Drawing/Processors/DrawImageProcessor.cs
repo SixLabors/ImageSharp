@@ -67,7 +67,6 @@ namespace ImageSharp.Drawing.Processors
             {
                 if (targetImage.Bounds.Size != this.Size)
                 {
-                    // should Resize be moved to core?
                     targetImage = disposableImage = new Image<TPixel>(this.Image).Resize(this.Size.Width, this.Size.Height);
                 }
 
@@ -80,7 +79,7 @@ namespace ImageSharp.Drawing.Processors
 
                 int width = maxX - minX;
                 using (Buffer<float> amount = new Buffer<float>(width))
-                using (PixelAccessor<TPixel> toBlendPixels = this.Image.Lock())
+                using (PixelAccessor<TPixel> toBlendPixels = targetImage.Lock())
                 using (PixelAccessor<TPixel> sourcePixels = source.Lock())
                 {
                     for (int i = 0; i < width; i++)
@@ -96,19 +95,8 @@ namespace ImageSharp.Drawing.Processors
                             {
                                 BufferSpan<TPixel> background = sourcePixels.GetRowSpan(y).Slice(minX, width);
                                 BufferSpan<TPixel> foreground = toBlendPixels.GetRowSpan(y - minY).Slice(0, width);
-                                this.blender.Compose(background, background, foreground, amount);
-
-                            // for (int x = minX; x < maxX; x++)
-                            // {
-                            //     Vector4 backgroundVector = sourcePixels[x, y].ToVector4();
-                            //     Vector4 sourceVector = toBlendPixels[x - minX, y - minY].ToVector4();
-                            //     // Lerping colors is dependent on the alpha of the blended color
-                            //     backgroundVector = Vector4BlendTransforms.PremultipliedLerp(backgroundVector, sourceVector, alpha);
-                            //     TPixel packed = default(TPixel);
-                            //     packed.PackFromVector4(backgroundVector);
-                            //     sourcePixels[x, y] = packed;
-                            // }
-                        });
+                                this.blender.Blend(background, background, foreground, amount);
+                            });
                 }
             }
             finally

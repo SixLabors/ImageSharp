@@ -20,42 +20,42 @@ namespace ImageSharp.PixelFormats
         Normal = 0,
 
         /// <summary>
-        /// Backdrop + Source
+        /// Blends the 2 values by multiplication.
         /// </summary>
         Multiply,
 
         /// <summary>
-        /// Backdrop + Source
+        /// Blends the 2 values by addition.
         /// </summary>
         Add,
 
         /// <summary>
-        /// Backdrop - Source
+        /// Blends the 2 values by subtraction.
         /// </summary>
         Substract,
 
         /// <summary>
-        /// Screen effect
+        /// Multiplies the complements of the backdrop and source values, then complements the result.
         /// </summary>
         Screen,
 
         /// <summary>
-        /// Darken effect
+        /// Selects the minimum of the backdrop and source values.
         /// </summary>
         Darken,
 
         /// <summary>
-        /// Lighten effect
+        /// Selects the max of the backdrop and source values.
         /// </summary>
         Lighten,
 
         /// <summary>
-        /// Overlay effect
+        /// Multiplies or screens the values, depending on the backdrop vector values.
         /// </summary>
         Overlay,
 
         /// <summary>
-        /// Hard light effect
+        /// Multiplies or screens the colors, depending on the source value.
         /// </summary>
         HardLight
     }

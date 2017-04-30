@@ -98,7 +98,7 @@ namespace ImageSharp.Drawing.Brushes
                         amountBuffer[i] = scanline[i] * this.Options.BlendPercentage;
                     }
 
-                    this.Blender.Compose(destinationRow, destinationRow, this.Colors, amountBuffer);
+                    this.Blender.Blend(destinationRow, destinationRow, this.Colors, amountBuffer);
                 }
             }
         }

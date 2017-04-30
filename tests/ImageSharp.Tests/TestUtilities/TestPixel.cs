@@ -34,8 +34,13 @@ namespace ImageSharp.Tests.TestUtilities
         public TPixel AsPixel()
         {
             TPixel pix = default(TPixel);
-            pix.PackFromVector4(new System.Numerics.Vector4( this.Red, this.Green, this.Blue, this.Alpha));
+            pix.PackFromVector4(new System.Numerics.Vector4(this.Red, this.Green, this.Blue, this.Alpha));
             return pix;
+        }
+
+        internal BufferSpan<TPixel> AsSpan()
+        {
+            return new BufferSpan<TPixel>(new[] { AsPixel() });
         }
 
         public void Deserialize(IXunitSerializationInfo info)

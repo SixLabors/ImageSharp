@@ -16,6 +16,12 @@ namespace ImageSharp.Tests.PixelFormats.PixelBlenders
 
     public class PorterDuffFunctionsTests_TPixel
     {
+        private static BufferSpan<T> AsSpan<T>(T value)
+            where T : struct
+        {
+            return new BufferSpan<T>(new[] { value });
+        }
+
         public static TheoryData<object, object, float, object> NormalBlendFunctionData = new TheoryData<object, object, float, object>() {
             { new TestPixel<Rgba32>(1,1,1,1), new TestPixel<Rgba32>(1,1,1,1), 1, new TestPixel<Rgba32>(1,1,1,1) },
             { new TestPixel<Rgba32>(1,1,1,1), new TestPixel<Rgba32>(0,0,0,.8f), .5f, new TestPixel<Rgba32>(0.6f, 0.6f, 0.6f, 1) },
@@ -27,7 +33,26 @@ namespace ImageSharp.Tests.PixelFormats.PixelBlenders
             where TPixel : struct, IPixel<TPixel>
         {
             TPixel actual = PorterDuffFunctions<TPixel>.NormalBlendFunction(back, source, amount);
-            VectorAssert.Equal(expected, actual, 3);
+            VectorAssert.Equal(expected, actual, 2);
+        }
+
+        [Theory]
+        [MemberData(nameof(NormalBlendFunctionData))]
+        public void NormalBlendFunction_Blender<TPixel>(TestPixel<TPixel> back, TestPixel<TPixel> source, float amount, TestPixel<TPixel> expected)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel actual = new DefaultNormalPixelBlender<TPixel>().Compose(back, source, amount);
+            VectorAssert.Equal(expected, actual, 2);
+        }
+
+        [Theory]
+        [MemberData(nameof(NormalBlendFunctionData))]
+        public void NormalBlendFunction_Blender_Bulk<TPixel>(TestPixel<TPixel> back, TestPixel<TPixel> source, float amount, TestPixel<TPixel> expected)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            BufferSpan<TPixel> dest = new BufferSpan<TPixel>(new TPixel[1]);
+            new DefaultNormalPixelBlender<TPixel>().Compose(dest, back.AsSpan(), source.AsSpan(), AsSpan(amount));
+            VectorAssert.Equal(expected, dest[0], 2);
         }
 
         public static TheoryData<object, object, float, object> MultiplyFunctionData = new TheoryData<object, object, float, object>() {
@@ -50,14 +75,33 @@ namespace ImageSharp.Tests.PixelFormats.PixelBlenders
             VectorAssert.Equal(expected, actual, 2);
         }
 
+        [Theory]
+        [MemberData(nameof(MultiplyFunctionData))]
+        public void MultiplyFunction_Blender<TPixel>(TestPixel<TPixel> back, TestPixel<TPixel> source, float amount, TestPixel<TPixel> expected)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel actual = new DefaultMultiplyPixelBlender<TPixel>().Compose(back, source, amount);
+            VectorAssert.Equal(expected, actual, 2);
+        }
+
+        [Theory]
+        [MemberData(nameof(MultiplyFunctionData))]
+        public void MultiplyFunction_Blender_Bulk<TPixel>(TestPixel<TPixel> back, TestPixel<TPixel> source, float amount, TestPixel<TPixel> expected)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            BufferSpan<TPixel> dest = new BufferSpan<TPixel>(new TPixel[1]);
+            new DefaultMultiplyPixelBlender<TPixel>().Compose(dest, back.AsSpan(), source.AsSpan(), AsSpan(amount));
+            VectorAssert.Equal(expected, dest[0], 2);
+        }
+
         public static TheoryData<object, object, float, object> AddFunctionData = new TheoryData<object, object, float, object>() {
             { new TestPixel<Rgba32>(1,1,1,1), new TestPixel<Rgba32>(1,1,1,1), 1, new TestPixel<Rgba32>(1,1,1,1) },
-            { new TestPixel<Rgba32>(1,1,1,1), new TestPixel<Rgba32>(0,0,0,.8f), .5f, new TestPixel<Rgba32>(.6f, .6f, .6f, 1f) },
+            { new TestPixel<Rgba32>(1,1,1,1), new TestPixel<Rgba32>(0,0,0,.8f), .5f, new TestPixel<Rgba32>(1f, 1f, 1f, 1f) },
             {
                 new TestPixel<Rgba32>(0.2f,0.2f,0.2f,0.3f),
                 new TestPixel<Rgba32>(0.3f,0.3f,0.3f,0.2f),
                 .5f,
-                new TestPixel<Rgba32>(.2075676f, .2075676f, .2075676f, .37f)
+                new TestPixel<Rgba32>(.2431373f, .2431373f, .2431373f, .372549f)
             },
         };
 
@@ -66,8 +110,27 @@ namespace ImageSharp.Tests.PixelFormats.PixelBlenders
         public void AddFunction<TPixel>(TestPixel<TPixel> back, TestPixel<TPixel> source, float amount, TestPixel<TPixel> expected)
             where TPixel : struct, IPixel<TPixel>
         {
-            TPixel actual = PorterDuffFunctions<TPixel>.MultiplyFunction(back, source, amount);
+            TPixel actual = PorterDuffFunctions<TPixel>.AddFunction(back, source, amount);
             VectorAssert.Equal(expected, actual, 2);
+        }
+
+        [Theory]
+        [MemberData(nameof(AddFunctionData))]
+        public void AddFunction_Blender<TPixel>(TestPixel<TPixel> back, TestPixel<TPixel> source, float amount, TestPixel<TPixel> expected)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel actual = new DefaultAddPixelBlender<TPixel>().Compose(back, source, amount);
+            VectorAssert.Equal(expected, actual, 2);
+        }
+
+        [Theory]
+        [MemberData(nameof(AddFunctionData))]
+        public void AddFunction_Blender_Bulk<TPixel>(TestPixel<TPixel> back, TestPixel<TPixel> source, float amount, TestPixel<TPixel> expected)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            BufferSpan<TPixel> dest = new BufferSpan<TPixel>(new TPixel[1]);
+            new DefaultAddPixelBlender<TPixel>().Compose(dest, back.AsSpan(), source.AsSpan(), AsSpan(amount));
+            VectorAssert.Equal(expected, dest[0], 2);
         }
 
         public static TheoryData<object, object, float, object> SubstractFunctionData = new TheoryData<object, object, float, object>() {
@@ -90,6 +153,25 @@ namespace ImageSharp.Tests.PixelFormats.PixelBlenders
             VectorAssert.Equal(expected, actual, 2);
         }
 
+        [Theory]
+        [MemberData(nameof(SubstractFunctionData))]
+        public void SubstractFunction_Blender<TPixel>(TestPixel<TPixel> back, TestPixel<TPixel> source, float amount, TestPixel<TPixel> expected)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel actual = new DefaultSubstractPixelBlender<TPixel>().Compose(back, source, amount);
+            VectorAssert.Equal(expected, actual, 2);
+        }
+
+        [Theory]
+        [MemberData(nameof(SubstractFunctionData))]
+        public void SubstractFunction_Blender_Bulk<TPixel>(TestPixel<TPixel> back, TestPixel<TPixel> source, float amount, TestPixel<TPixel> expected)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            BufferSpan<TPixel> dest = new BufferSpan<TPixel>(new TPixel[1]);
+            new DefaultSubstractPixelBlender<TPixel>().Compose(dest, back.AsSpan(), source.AsSpan(), AsSpan(amount));
+            VectorAssert.Equal(expected, dest[0], 2);
+        }
+
         public static TheoryData<object, object, float, object> ScreenFunctionData = new TheoryData<object, object, float, object>() {
             { new TestPixel<Rgba32>(1,1,1,1), new TestPixel<Rgba32>(1,1,1,1), 1, new TestPixel<Rgba32>(1,1,1,1) },
             { new TestPixel<Rgba32>(1,1,1,1), new TestPixel<Rgba32>(0,0,0,.8f), .5f, new TestPixel<Rgba32>(1,1,1, 1f) },
@@ -108,6 +190,25 @@ namespace ImageSharp.Tests.PixelFormats.PixelBlenders
         {
             TPixel actual = PorterDuffFunctions<TPixel>.ScreenFunction(back, source, amount);
             VectorAssert.Equal(expected, actual, 2);
+        }
+
+        [Theory]
+        [MemberData(nameof(ScreenFunctionData))]
+        public void ScreenFunction_Blender<TPixel>(TestPixel<TPixel> back, TestPixel<TPixel> source, float amount, TestPixel<TPixel> expected)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel actual = new DefaultScreenPixelBlender<TPixel>().Compose(back, source, amount);
+            VectorAssert.Equal(expected, actual, 2);
+        }
+
+        [Theory]
+        [MemberData(nameof(ScreenFunctionData))]
+        public void ScreenFunction_Blender_Bulk<TPixel>(TestPixel<TPixel> back, TestPixel<TPixel> source, float amount, TestPixel<TPixel> expected)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            BufferSpan<TPixel> dest = new BufferSpan<TPixel>(new TPixel[1]);
+            new DefaultScreenPixelBlender<TPixel>().Compose(dest, back.AsSpan(), source.AsSpan(), AsSpan(amount));
+            VectorAssert.Equal(expected, dest[0], 2);
         }
 
         public static TheoryData<object, object, float, object> DarkenFunctionData = new TheoryData<object, object, float, object>() {
@@ -130,6 +231,25 @@ namespace ImageSharp.Tests.PixelFormats.PixelBlenders
             VectorAssert.Equal(expected, actual, 2);
         }
 
+        [Theory]
+        [MemberData(nameof(DarkenFunctionData))]
+        public void DarkenFunction_Blender<TPixel>(TestPixel<TPixel> back, TestPixel<TPixel> source, float amount, TestPixel<TPixel> expected)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel actual = new DefaultDarkenPixelBlender<TPixel>().Compose(back, source, amount);
+            VectorAssert.Equal(expected, actual, 2);
+        }
+
+        [Theory]
+        [MemberData(nameof(DarkenFunctionData))]
+        public void DarkenFunction_Blender_Bulk<TPixel>(TestPixel<TPixel> back, TestPixel<TPixel> source, float amount, TestPixel<TPixel> expected)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            BufferSpan<TPixel> dest = new BufferSpan<TPixel>(new TPixel[1]);
+            new DefaultDarkenPixelBlender<TPixel>().Compose(dest, back.AsSpan(), source.AsSpan(), AsSpan(amount));
+            VectorAssert.Equal(expected, dest[0], 2);
+        }
+
         public static TheoryData<object, object, float, object> LightenFunctionData = new TheoryData<object, object, float, object>() {
             { new TestPixel<Rgba32>(1,1,1,1), new TestPixel<Rgba32>(1,1,1,1), 1, new TestPixel<Rgba32>(1,1,1,1) },
             { new TestPixel<Rgba32>(1,1,1,1), new TestPixel<Rgba32>(0,0,0,.8f), .5f, new TestPixel<Rgba32>(1,1,1,1f) },
@@ -148,6 +268,25 @@ namespace ImageSharp.Tests.PixelFormats.PixelBlenders
         {
             TPixel actual = PorterDuffFunctions<TPixel>.LightenFunction(back, source, amount);
             VectorAssert.Equal(expected, actual, 2);
+        }
+
+        [Theory]
+        [MemberData(nameof(LightenFunctionData))]
+        public void LightenFunction_Blender<TPixel>(TestPixel<TPixel> back, TestPixel<TPixel> source, float amount, TestPixel<TPixel> expected)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel actual = new DefaultLightenPixelBlender<TPixel>().Compose(back, source, amount);
+            VectorAssert.Equal(expected, actual, 2);
+        }
+
+        [Theory]
+        [MemberData(nameof(LightenFunctionData))]
+        public void LightenFunction_Blender_Bulk<TPixel>(TestPixel<TPixel> back, TestPixel<TPixel> source, float amount, TestPixel<TPixel> expected)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            BufferSpan<TPixel> dest = new BufferSpan<TPixel>(new TPixel[1]);
+            new DefaultLightenPixelBlender<TPixel>().Compose(dest, back.AsSpan(), source.AsSpan(), AsSpan(amount));
+            VectorAssert.Equal(expected, dest[0], 2);
         }
 
         public static TheoryData<object, object, float, object> OverlayFunctionData = new TheoryData<object, object, float, object>() {
@@ -170,6 +309,25 @@ namespace ImageSharp.Tests.PixelFormats.PixelBlenders
             VectorAssert.Equal(expected, actual, 2);
         }
 
+        [Theory]
+        [MemberData(nameof(OverlayFunctionData))]
+        public void OverlayFunction_Blender<TPixel>(TestPixel<TPixel> back, TestPixel<TPixel> source, float amount, TestPixel<TPixel> expected)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel actual = new DefaultOverlayPixelBlender<TPixel>().Compose(back, source, amount);
+            VectorAssert.Equal(expected, actual, 2);
+        }
+
+        [Theory]
+        [MemberData(nameof(OverlayFunctionData))]
+        public void OverlayFunction_Blender_Bulk<TPixel>(TestPixel<TPixel> back, TestPixel<TPixel> source, float amount, TestPixel<TPixel> expected)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            BufferSpan<TPixel> dest = new BufferSpan<TPixel>(new TPixel[1]);
+            new DefaultOverlayPixelBlender<TPixel>().Compose(dest, back.AsSpan(), source.AsSpan(), AsSpan(amount));
+            VectorAssert.Equal(expected, dest[0], 2);
+        }
+
         public static TheoryData<object, object, float, object> HardLightFunctionData = new TheoryData<object, object, float, object>() {
             { new TestPixel<Rgba32>(1,1,1,1), new TestPixel<Rgba32>(1,1,1,1), 1, new TestPixel<Rgba32>(1,1,1,1) },
             { new TestPixel<Rgba32>(1,1,1,1), new TestPixel<Rgba32>(0,0,0,.8f), .5f, new TestPixel<Rgba32>(0.6f,0.6f,0.6f,1f) },
@@ -188,6 +346,25 @@ namespace ImageSharp.Tests.PixelFormats.PixelBlenders
         {
             TPixel actual = PorterDuffFunctions<TPixel>.HardLightFunction(back, source, amount);
             VectorAssert.Equal(expected, actual, 2);
+        }
+
+        [Theory]
+        [MemberData(nameof(HardLightFunctionData))]
+        public void HardLightFunction_Blender<TPixel>(TestPixel<TPixel> back, TestPixel<TPixel> source, float amount, TestPixel<TPixel> expected)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel actual = new DefaultHardLightPixelBlender<TPixel>().Compose(back, source, amount);
+            VectorAssert.Equal(expected, actual, 2);
+        }
+
+        [Theory]
+        [MemberData(nameof(HardLightFunctionData))]
+        public void HardLightFunction_Blender_Bulk<TPixel>(TestPixel<TPixel> back, TestPixel<TPixel> source, float amount, TestPixel<TPixel> expected)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            BufferSpan<TPixel> dest = new BufferSpan<TPixel>(new TPixel[1]);
+            new DefaultHardLightPixelBlender<TPixel>().Compose(dest, back.AsSpan(), source.AsSpan(), AsSpan(amount));
+            VectorAssert.Equal(expected, dest[0], 2);
         }
     }
 }

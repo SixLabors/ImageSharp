@@ -13,7 +13,7 @@ namespace ImageSharp.PixelFormats
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
-        /// Composes 2 pixels together.
+        /// Blend 2 pixels together.
         /// </summary>
         /// <param name="background">The background color.</param>
         /// <param name="source">The source color.</param>
@@ -22,10 +22,10 @@ namespace ImageSharp.PixelFormats
         /// At amount = 0, "from" is returned, at amount = 1, "to" is returned.
         /// </param>
         /// <returns>The final pixel value after composition</returns>
-        public abstract TPixel Compose(TPixel background, TPixel source, float amount);
+        public abstract TPixel Blend(TPixel background, TPixel source, float amount);
 
         /// <summary>
-        /// Composes 2 pixels together.
+        /// Blend 2 pixels together.
         /// </summary>
         /// <param name="destination">The destination span.</param>
         /// <param name="background">The background span.</param>
@@ -34,6 +34,6 @@ namespace ImageSharp.PixelFormats
         /// A value between 0 and 1 indicating the weight of the second source vector.
         /// At amount = 0, "from" is returned, at amount = 1, "to" is returned.
         /// </param>
-        public abstract void Compose(BufferSpan<TPixel> destination, BufferSpan<TPixel> background, BufferSpan<TPixel> source, BufferSpan<float> amount);
+        public abstract void Blend(BufferSpan<TPixel> destination, BufferSpan<TPixel> background, BufferSpan<TPixel> source, BufferSpan<float> amount);
     }
 }

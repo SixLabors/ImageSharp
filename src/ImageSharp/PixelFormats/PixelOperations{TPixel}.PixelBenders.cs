@@ -5,35 +5,14 @@
 
 namespace ImageSharp.PixelFormats
 {
-    using System.Numerics;
-    using System.Runtime.CompilerServices;
     using ImageSharp.PixelFormats.PixelBlenders;
 
-#pragma warning disable CS1710 // XML comment has a duplicate typeparam tag
-    /// <summary>
-    /// A stateless class implementing Strategy Pattern for batched pixel-data conversion operations
-    /// for pixel buffers of type <typeparamref name="TPixel"/>.
-    /// </summary>
-    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <content>
+    /// Provides access to pixel blenders
+    /// </content>
     public partial class PixelOperations<TPixel>
-#pragma warning restore CS1710 // XML comment has a duplicate typeparam tag
         where TPixel : struct, IPixel<TPixel>
     {
-        /// <summary>
-        /// Gets the NormalBlender.
-        /// </summary>
-        private PixelBlender<TPixel> normalBlender = new DefaultNormalPixelBlender<TPixel>();
-
-        /// <summary>
-        /// Gets the MultiplyBlender.
-        /// </summary>
-        private PixelBlender<TPixel> multiplyBlender = new DefaultMultiplyPixelBlender<TPixel>();
-
-        /// <summary>
-        /// Gets the ScreenBlender.
-        /// </summary>
-        private PixelBlender<TPixel> screenBlender = new DefaultScreenPixelBlender<TPixel>();
-
         /// <summary>
         /// Find an instance of the pixel blender.
         /// </summary>

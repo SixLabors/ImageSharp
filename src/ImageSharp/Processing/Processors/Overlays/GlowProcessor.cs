@@ -18,13 +18,19 @@ namespace ImageSharp.Processing.Processors
     internal class GlowProcessor<TPixel> : ImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
+        private readonly GraphicsOptions options;
+        private readonly PixelBlender<TPixel> blender;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="GlowProcessor{TPixel}" /> class.
         /// </summary>
         /// <param name="color">The color or the glow.</param>
-        public GlowProcessor(TPixel color)
+        /// <param name="options">The options effecting blending and composition.</param>
+        public GlowProcessor(TPixel color, GraphicsOptions options)
         {
+            this.options = options;
             this.GlowColor = color;
+            this.blender = PixelOperations<TPixel>.Instance.GetPixelBlender(this.options.BlenderMode);
         }
 
         /// <summary>
@@ -67,7 +73,6 @@ namespace ImageSharp.Processing.Processors
 
             int width = maxX - minX;
             using (Buffer<TPixel> rowColors = new Buffer<TPixel>(width))
-            using (Buffer<float> amounts = new Buffer<float>(width))
             using (PixelAccessor<TPixel> sourcePixels = source.Lock())
             {
                 for (int i = 0; i < width; i++)
@@ -75,22 +80,27 @@ namespace ImageSharp.Processing.Processors
                     rowColors[i] = glowColor;
                 }
 
-                // TODO move GraphicOptions into core so all processes can use it.
-                PixelBlender<TPixel> blender = PixelOperations<TPixel>.Instance.GetPixelBlender(PixelBlenderMode.Normal);
-                for (int y = minY; y < maxY; y++)
-                {
-                    int offsetY = y - startY;
-                    int offsetX = minX - startX;
-                    for (int i = 0; i < width; i++)
-                    {
-                        float distance = Vector2.Distance(centre, new Vector2(i + offsetX, offsetY));
-                        amounts[i] = (1 - (.95F * (distance / maxDistance))).Clamp(0, 1);
-                    }
+                Parallel.For(
+                         minY,
+                         maxY,
+                         this.ParallelOptions,
+                         y =>
+                         {
+                             using (Buffer<float> amounts = new Buffer<float>(width))
+                             {
+                                 int offsetY = y - startY;
+                                 int offsetX = minX - startX;
+                                 for (int i = 0; i < width; i++)
+                                 {
+                                     float distance = Vector2.Distance(centre, new Vector2(i + offsetX, offsetY));
+                                     amounts[i] = (this.options.BlendPercentage * (1 - (.95F * (distance / maxDistance)))).Clamp(0, 1);
+                                 }
 
-                    BufferSpan<TPixel> destination = sourcePixels.GetRowSpan(offsetY).Slice(offsetX, width);
+                                 BufferSpan<TPixel> destination = sourcePixels.GetRowSpan(offsetY).Slice(offsetX, width);
 
-                    blender.Compose(destination, destination, rowColors, amounts);
-                }
+                                 this.blender.Blend(destination, destination, rowColors, amounts);
+                             }
+                         });
             }
         }
     }

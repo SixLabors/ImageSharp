@@ -41,31 +41,7 @@ namespace ImageSharp.Drawing.Brushes
         /// <inheritdoc />
         public BrushApplicator<TPixel> CreateApplicator(PixelAccessor<TPixel> sourcePixels, RectangleF region, GraphicsOptions options)
         {
-            if (options.BlendPercentage < 0)
-            {
-                return new SolidBrushApplicator(sourcePixels, this.color, options);
-            }
-            else
-            {
-                return new SolidNoBlendBrushApplicator(sourcePixels, this.color, options);
-            }
-        }
-
-        /// <summary>
-        /// The solid brush applicator.
-        /// </summary>
-        private class SolidNoBlendBrushApplicator : SolidBrushApplicator
-        {
-            public SolidNoBlendBrushApplicator(PixelAccessor<TPixel> sourcePixels, TPixel color, GraphicsOptions options)
-                : base(sourcePixels, color, options)
-            {
-            }
-
-            internal override void Apply(BufferSpan<float> scanline, int x, int y)
-            {
-                BufferSpan<TPixel> destinationRow = this.Target.GetRowSpan(x, y).Slice(0, scanline.Length);
-                this.Blender.Compose(destinationRow, destinationRow, this.Colors, scanline);
-            }
+            return new SolidBrushApplicator(sourcePixels, this.color, options);
         }
 
         /// <summary>

@@ -224,8 +224,7 @@ namespace ImageSharp.Formats
                 writer.Write((byte)1); // Data sub-block index (always 1)
 
                 // 0 means loop indefinitely. Count is set as play n + 1 times.
-                repeatCount = (ushort)(Math.Max((ushort)0, repeatCount) - 1);
-
+                repeatCount = (ushort)Math.Max(0, repeatCount - 1);
                 writer.Write(repeatCount); // Repeat count for images.
 
                 writer.Write(GifConstants.Terminator); // Terminator

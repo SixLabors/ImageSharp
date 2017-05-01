@@ -133,7 +133,7 @@ namespace ImageSharp.Quantizers
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private byte QuantizePixel(TPixel pixel)
         {
-            return this.GetClosesTPixel(pixel, this.GetPalette(), this.colorMap);
+            return this.GetClosestPixel(pixel, this.GetPalette(), this.colorMap);
         }
     }
 }

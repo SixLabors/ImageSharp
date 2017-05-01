@@ -18,13 +18,20 @@ namespace ImageSharp.Processing.Processors
     internal class VignetteProcessor<TPixel> : ImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
+        private readonly GraphicsOptions options;
+        private readonly PixelBlender<TPixel> blender;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="VignetteProcessor{TPixel}" /> class.
         /// </summary>
         /// <param name="color">The color of the vignette.</param>
-        public VignetteProcessor(TPixel color)
+        /// <param name="options">The options effecting blending and composition.</param>
+        public VignetteProcessor(TPixel color, GraphicsOptions options)
         {
             this.VignetteColor = color;
+
+            this.options = options;
+            this.blender = PixelOperations<TPixel>.Instance.GetPixelBlender(this.options.BlenderMode);
         }
 
         /// <summary>
@@ -72,23 +79,34 @@ namespace ImageSharp.Processing.Processors
                 startY = 0;
             }
 
+            int width = maxX - minX;
+            using (Buffer<TPixel> rowColors = new Buffer<TPixel>(width))
             using (PixelAccessor<TPixel> sourcePixels = source.Lock())
             {
+                for (int i = 0; i < width; i++)
+                {
+                    rowColors[i] = vignetteColor;
+                }
+
                 Parallel.For(
                     minY,
                     maxY,
                     this.ParallelOptions,
                     y =>
                         {
-                            int offsetY = y - startY;
-                            for (int x = minX; x < maxX; x++)
+                            using (Buffer<float> amounts = new Buffer<float>(width))
                             {
-                                int offsetX = x - startX;
-                                float distance = Vector2.Distance(centre, new Vector2(offsetX, offsetY));
-                                Vector4 sourceColor = sourcePixels[offsetX, offsetY].ToVector4();
-                                TPixel packed = default(TPixel);
-                                packed.PackFromVector4(Vector4BlendTransforms.PremultipliedLerp(sourceColor, vignetteColor.ToVector4(), .9F * (distance / maxDistance)));
-                                sourcePixels[offsetX, offsetY] = packed;
+                                int offsetY = y - startY;
+                                int offsetX = minX - startX;
+                                for (int i = 0; i < width; i++)
+                                {
+                                    float distance = Vector2.Distance(centre, new Vector2(i + offsetX, offsetY));
+                                    amounts[i] = (this.options.BlendPercentage * (.9F * (distance / maxDistance))).Clamp(0, 1);
+                                }
+
+                                BufferSpan<TPixel> destination = sourcePixels.GetRowSpan(offsetY).Slice(offsetX, width);
+
+                                this.blender.Blend(destination, destination, rowColors, amounts);
                             }
                         });
             }

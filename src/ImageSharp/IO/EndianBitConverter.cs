@@ -16,12 +16,12 @@ namespace ImageSharp.IO
         /// <summary>
         /// The little-endian bit converter.
         /// </summary>
-        public static readonly LittleEndianBitConverter LittleEndianConverter = new LittleEndianBitConverter();
+        public static readonly NativeBitConverter NativeEndianConverter = new NativeBitConverter();
 
         /// <summary>
         /// The big-endian bit converter.
         /// </summary>
-        public static readonly BigEndianBitConverter BigEndianConverter = new BigEndianBitConverter();
+        public static readonly ReversedBitConverter ReverseEndianConverter = new ReversedBitConverter();
 
         /// <summary>
         /// Gets the byte order ("endianness") in which data is converted using this class.
@@ -49,9 +49,25 @@ namespace ImageSharp.IO
             switch (endianness)
             {
                 case Endianness.LittleEndian:
-                    return LittleEndianConverter;
+                    if (BitConverter.IsLittleEndian)
+                    {
+                        return NativeEndianConverter;
+                    }
+                    else
+                    {
+                        return ReverseEndianConverter;
+                    }
+
                 case Endianness.BigEndian:
-                    return BigEndianConverter;
+                    if (BitConverter.IsLittleEndian)
+                    {
+                        return ReverseEndianConverter;
+                    }
+                    else
+                    {
+                        return NativeEndianConverter;
+                    }
+
                 default:
                     throw new ArgumentException("Not a valid form of Endianness", nameof(endianness));
             }

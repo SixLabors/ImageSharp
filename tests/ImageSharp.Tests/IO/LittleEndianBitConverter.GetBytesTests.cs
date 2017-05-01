@@ -9,7 +9,7 @@ namespace ImageSharp.Tests.IO
     using Xunit;
 
     /// <summary>
-    /// The <see cref="LittleEndianBitConverter"/> tests.
+    /// The <see cref="NativeBitConverter"/> tests.
     /// </summary>
     public class LittleEndianBitConverterGetBytesTests
     {
@@ -19,8 +19,8 @@ namespace ImageSharp.Tests.IO
         [Fact]
         public void GetBytesBoolean()
         {
-            this.CheckBytes(new byte[] { 0 }, EndianBitConverter.LittleEndianConverter.GetBytes(false));
-            this.CheckBytes(new byte[] { 1 }, EndianBitConverter.LittleEndianConverter.GetBytes(true));
+            this.CheckBytes(new byte[] { 0 }, EndianBitConverter.GetConverter(Endianness.LittleEndian).GetBytes(false));
+            this.CheckBytes(new byte[] { 1 }, EndianBitConverter.GetConverter(Endianness.LittleEndian).GetBytes(true));
         }
 
         /// <summary>
@@ -29,11 +29,11 @@ namespace ImageSharp.Tests.IO
         [Fact]
         public void GetBytesShort()
         {
-            this.CheckBytes(new byte[] { 0, 0 }, EndianBitConverter.LittleEndianConverter.GetBytes((short)0));
-            this.CheckBytes(new byte[] { 1, 0 }, EndianBitConverter.LittleEndianConverter.GetBytes((short)1));
-            this.CheckBytes(new byte[] { 0, 1 }, EndianBitConverter.LittleEndianConverter.GetBytes((short)256));
-            this.CheckBytes(new byte[] { 255, 255 }, EndianBitConverter.LittleEndianConverter.GetBytes((short)-1));
-            this.CheckBytes(new byte[] { 1, 1 }, EndianBitConverter.LittleEndianConverter.GetBytes((short)257));
+            this.CheckBytes(new byte[] { 0, 0 }, EndianBitConverter.GetConverter(Endianness.LittleEndian).GetBytes((short)0));
+            this.CheckBytes(new byte[] { 1, 0 }, EndianBitConverter.GetConverter(Endianness.LittleEndian).GetBytes((short)1));
+            this.CheckBytes(new byte[] { 0, 1 }, EndianBitConverter.GetConverter(Endianness.LittleEndian).GetBytes((short)256));
+            this.CheckBytes(new byte[] { 255, 255 }, EndianBitConverter.GetConverter(Endianness.LittleEndian).GetBytes((short)-1));
+            this.CheckBytes(new byte[] { 1, 1 }, EndianBitConverter.GetConverter(Endianness.LittleEndian).GetBytes((short)257));
         }
 
         /// <summary>
@@ -42,11 +42,11 @@ namespace ImageSharp.Tests.IO
         [Fact]
         public void GetBytesUShort()
         {
-            this.CheckBytes(new byte[] { 0, 0 }, EndianBitConverter.LittleEndianConverter.GetBytes((ushort)0));
-            this.CheckBytes(new byte[] { 1, 0 }, EndianBitConverter.LittleEndianConverter.GetBytes((ushort)1));
-            this.CheckBytes(new byte[] { 0, 1 }, EndianBitConverter.LittleEndianConverter.GetBytes((ushort)256));
-            this.CheckBytes(new byte[] { 255, 255 }, EndianBitConverter.LittleEndianConverter.GetBytes(ushort.MaxValue));
-            this.CheckBytes(new byte[] { 1, 1 }, EndianBitConverter.LittleEndianConverter.GetBytes((ushort)257));
+            this.CheckBytes(new byte[] { 0, 0 }, EndianBitConverter.GetConverter(Endianness.LittleEndian).GetBytes((ushort)0));
+            this.CheckBytes(new byte[] { 1, 0 }, EndianBitConverter.GetConverter(Endianness.LittleEndian).GetBytes((ushort)1));
+            this.CheckBytes(new byte[] { 0, 1 }, EndianBitConverter.GetConverter(Endianness.LittleEndian).GetBytes((ushort)256));
+            this.CheckBytes(new byte[] { 255, 255 }, EndianBitConverter.GetConverter(Endianness.LittleEndian).GetBytes(ushort.MaxValue));
+            this.CheckBytes(new byte[] { 1, 1 }, EndianBitConverter.GetConverter(Endianness.LittleEndian).GetBytes((ushort)257));
         }
 
         /// <summary>
@@ -55,13 +55,13 @@ namespace ImageSharp.Tests.IO
         [Fact]
         public void GetBytesInt()
         {
-            this.CheckBytes(new byte[] { 0, 0, 0, 0 }, EndianBitConverter.LittleEndianConverter.GetBytes(0));
-            this.CheckBytes(new byte[] { 1, 0, 0, 0 }, EndianBitConverter.LittleEndianConverter.GetBytes(1));
-            this.CheckBytes(new byte[] { 0, 1, 0, 0 }, EndianBitConverter.LittleEndianConverter.GetBytes(256));
-            this.CheckBytes(new byte[] { 0, 0, 1, 0 }, EndianBitConverter.LittleEndianConverter.GetBytes(65536));
-            this.CheckBytes(new byte[] { 0, 0, 0, 1 }, EndianBitConverter.LittleEndianConverter.GetBytes(16777216));
-            this.CheckBytes(new byte[] { 255, 255, 255, 255 }, EndianBitConverter.LittleEndianConverter.GetBytes(-1));
-            this.CheckBytes(new byte[] { 1, 1, 0, 0 }, EndianBitConverter.LittleEndianConverter.GetBytes(257));
+            this.CheckBytes(new byte[] { 0, 0, 0, 0 }, EndianBitConverter.GetConverter(Endianness.LittleEndian).GetBytes(0));
+            this.CheckBytes(new byte[] { 1, 0, 0, 0 }, EndianBitConverter.GetConverter(Endianness.LittleEndian).GetBytes(1));
+            this.CheckBytes(new byte[] { 0, 1, 0, 0 }, EndianBitConverter.GetConverter(Endianness.LittleEndian).GetBytes(256));
+            this.CheckBytes(new byte[] { 0, 0, 1, 0 }, EndianBitConverter.GetConverter(Endianness.LittleEndian).GetBytes(65536));
+            this.CheckBytes(new byte[] { 0, 0, 0, 1 }, EndianBitConverter.GetConverter(Endianness.LittleEndian).GetBytes(16777216));
+            this.CheckBytes(new byte[] { 255, 255, 255, 255 }, EndianBitConverter.GetConverter(Endianness.LittleEndian).GetBytes(-1));
+            this.CheckBytes(new byte[] { 1, 1, 0, 0 }, EndianBitConverter.GetConverter(Endianness.LittleEndian).GetBytes(257));
         }
 
         /// <summary>
@@ -70,13 +70,13 @@ namespace ImageSharp.Tests.IO
         [Fact]
         public void GetBytesUInt()
         {
-            this.CheckBytes(new byte[] { 0, 0, 0, 0 }, EndianBitConverter.LittleEndianConverter.GetBytes((uint)0));
-            this.CheckBytes(new byte[] { 1, 0, 0, 0 }, EndianBitConverter.LittleEndianConverter.GetBytes((uint)1));
-            this.CheckBytes(new byte[] { 0, 1, 0, 0 }, EndianBitConverter.LittleEndianConverter.GetBytes((uint)256));
-            this.CheckBytes(new byte[] { 0, 0, 1, 0 }, EndianBitConverter.LittleEndianConverter.GetBytes((uint)65536));
-            this.CheckBytes(new byte[] { 0, 0, 0, 1 }, EndianBitConverter.LittleEndianConverter.GetBytes((uint)16777216));
-            this.CheckBytes(new byte[] { 255, 255, 255, 255 }, EndianBitConverter.LittleEndianConverter.GetBytes(uint.MaxValue));
-            this.CheckBytes(new byte[] { 1, 1, 0, 0 }, EndianBitConverter.LittleEndianConverter.GetBytes((uint)257));
+            this.CheckBytes(new byte[] { 0, 0, 0, 0 }, EndianBitConverter.GetConverter(Endianness.LittleEndian).GetBytes((uint)0));
+            this.CheckBytes(new byte[] { 1, 0, 0, 0 }, EndianBitConverter.GetConverter(Endianness.LittleEndian).GetBytes((uint)1));
+            this.CheckBytes(new byte[] { 0, 1, 0, 0 }, EndianBitConverter.GetConverter(Endianness.LittleEndian).GetBytes((uint)256));
+            this.CheckBytes(new byte[] { 0, 0, 1, 0 }, EndianBitConverter.GetConverter(Endianness.LittleEndian).GetBytes((uint)65536));
+            this.CheckBytes(new byte[] { 0, 0, 0, 1 }, EndianBitConverter.GetConverter(Endianness.LittleEndian).GetBytes((uint)16777216));
+            this.CheckBytes(new byte[] { 255, 255, 255, 255 }, EndianBitConverter.GetConverter(Endianness.LittleEndian).GetBytes(uint.MaxValue));
+            this.CheckBytes(new byte[] { 1, 1, 0, 0 }, EndianBitConverter.GetConverter(Endianness.LittleEndian).GetBytes((uint)257));
         }
 
         /// <summary>
@@ -85,17 +85,17 @@ namespace ImageSharp.Tests.IO
         [Fact]
         public void GetBytesLong()
         {
-            this.CheckBytes(new byte[] { 0, 0, 0, 0, 0, 0, 0, 0 }, EndianBitConverter.LittleEndianConverter.GetBytes(0L));
-            this.CheckBytes(new byte[] { 1, 0, 0, 0, 0, 0, 0, 0 }, EndianBitConverter.LittleEndianConverter.GetBytes(1L));
-            this.CheckBytes(new byte[] { 0, 1, 0, 0, 0, 0, 0, 0 }, EndianBitConverter.LittleEndianConverter.GetBytes(256L));
-            this.CheckBytes(new byte[] { 0, 0, 1, 0, 0, 0, 0, 0 }, EndianBitConverter.LittleEndianConverter.GetBytes(65536L));
-            this.CheckBytes(new byte[] { 0, 0, 0, 1, 0, 0, 0, 0 }, EndianBitConverter.LittleEndianConverter.GetBytes(16777216L));
-            this.CheckBytes(new byte[] { 0, 0, 0, 0, 1, 0, 0, 0 }, EndianBitConverter.LittleEndianConverter.GetBytes(4294967296L));
-            this.CheckBytes(new byte[] { 0, 0, 0, 0, 0, 1, 0, 0 }, EndianBitConverter.LittleEndianConverter.GetBytes(1099511627776L));
-            this.CheckBytes(new byte[] { 0, 0, 0, 0, 0, 0, 1, 0 }, EndianBitConverter.LittleEndianConverter.GetBytes(1099511627776L * 256));
-            this.CheckBytes(new byte[] { 0, 0, 0, 0, 0, 0, 0, 1 }, EndianBitConverter.LittleEndianConverter.GetBytes(1099511627776L * 256 * 256));
-            this.CheckBytes(new byte[] { 255, 255, 255, 255, 255, 255, 255, 255 }, EndianBitConverter.LittleEndianConverter.GetBytes(-1L));
-            this.CheckBytes(new byte[] { 1, 1, 0, 0, 0, 0, 0, 0 }, EndianBitConverter.LittleEndianConverter.GetBytes(257L));
+            this.CheckBytes(new byte[] { 0, 0, 0, 0, 0, 0, 0, 0 }, EndianBitConverter.GetConverter(Endianness.LittleEndian).GetBytes(0L));
+            this.CheckBytes(new byte[] { 1, 0, 0, 0, 0, 0, 0, 0 }, EndianBitConverter.GetConverter(Endianness.LittleEndian).GetBytes(1L));
+            this.CheckBytes(new byte[] { 0, 1, 0, 0, 0, 0, 0, 0 }, EndianBitConverter.GetConverter(Endianness.LittleEndian).GetBytes(256L));
+            this.CheckBytes(new byte[] { 0, 0, 1, 0, 0, 0, 0, 0 }, EndianBitConverter.GetConverter(Endianness.LittleEndian).GetBytes(65536L));
+            this.CheckBytes(new byte[] { 0, 0, 0, 1, 0, 0, 0, 0 }, EndianBitConverter.GetConverter(Endianness.LittleEndian).GetBytes(16777216L));
+            this.CheckBytes(new byte[] { 0, 0, 0, 0, 1, 0, 0, 0 }, EndianBitConverter.GetConverter(Endianness.LittleEndian).GetBytes(4294967296L));
+            this.CheckBytes(new byte[] { 0, 0, 0, 0, 0, 1, 0, 0 }, EndianBitConverter.GetConverter(Endianness.LittleEndian).GetBytes(1099511627776L));
+            this.CheckBytes(new byte[] { 0, 0, 0, 0, 0, 0, 1, 0 }, EndianBitConverter.GetConverter(Endianness.LittleEndian).GetBytes(1099511627776L * 256));
+            this.CheckBytes(new byte[] { 0, 0, 0, 0, 0, 0, 0, 1 }, EndianBitConverter.GetConverter(Endianness.LittleEndian).GetBytes(1099511627776L * 256 * 256));
+            this.CheckBytes(new byte[] { 255, 255, 255, 255, 255, 255, 255, 255 }, EndianBitConverter.GetConverter(Endianness.LittleEndian).GetBytes(-1L));
+            this.CheckBytes(new byte[] { 1, 1, 0, 0, 0, 0, 0, 0 }, EndianBitConverter.GetConverter(Endianness.LittleEndian).GetBytes(257L));
         }
 
         /// <summary>
@@ -104,17 +104,17 @@ namespace ImageSharp.Tests.IO
         [Fact]
         public void GetBytesULong()
         {
-            this.CheckBytes(new byte[] { 0, 0, 0, 0, 0, 0, 0, 0 }, EndianBitConverter.LittleEndianConverter.GetBytes(0UL));
-            this.CheckBytes(new byte[] { 1, 0, 0, 0, 0, 0, 0, 0 }, EndianBitConverter.LittleEndianConverter.GetBytes(1UL));
-            this.CheckBytes(new byte[] { 0, 1, 0, 0, 0, 0, 0, 0 }, EndianBitConverter.LittleEndianConverter.GetBytes(256UL));
-            this.CheckBytes(new byte[] { 0, 0, 1, 0, 0, 0, 0, 0 }, EndianBitConverter.LittleEndianConverter.GetBytes(65536UL));
-            this.CheckBytes(new byte[] { 0, 0, 0, 1, 0, 0, 0, 0 }, EndianBitConverter.LittleEndianConverter.GetBytes(16777216UL));
-            this.CheckBytes(new byte[] { 0, 0, 0, 0, 1, 0, 0, 0 }, EndianBitConverter.LittleEndianConverter.GetBytes(4294967296UL));
-            this.CheckBytes(new byte[] { 0, 0, 0, 0, 0, 1, 0, 0 }, EndianBitConverter.LittleEndianConverter.GetBytes(1099511627776UL));
-            this.CheckBytes(new byte[] { 0, 0, 0, 0, 0, 0, 1, 0 }, EndianBitConverter.LittleEndianConverter.GetBytes(1099511627776UL * 256));
-            this.CheckBytes(new byte[] { 0, 0, 0, 0, 0, 0, 0, 1 }, EndianBitConverter.LittleEndianConverter.GetBytes(1099511627776UL * 256 * 256));
-            this.CheckBytes(new byte[] { 255, 255, 255, 255, 255, 255, 255, 255 }, EndianBitConverter.LittleEndianConverter.GetBytes(ulong.MaxValue));
-            this.CheckBytes(new byte[] { 1, 1, 0, 0, 0, 0, 0, 0 }, EndianBitConverter.LittleEndianConverter.GetBytes(257UL));
+            this.CheckBytes(new byte[] { 0, 0, 0, 0, 0, 0, 0, 0 }, EndianBitConverter.GetConverter(Endianness.LittleEndian).GetBytes(0UL));
+            this.CheckBytes(new byte[] { 1, 0, 0, 0, 0, 0, 0, 0 }, EndianBitConverter.GetConverter(Endianness.LittleEndian).GetBytes(1UL));
+            this.CheckBytes(new byte[] { 0, 1, 0, 0, 0, 0, 0, 0 }, EndianBitConverter.GetConverter(Endianness.LittleEndian).GetBytes(256UL));
+            this.CheckBytes(new byte[] { 0, 0, 1, 0, 0, 0, 0, 0 }, EndianBitConverter.GetConverter(Endianness.LittleEndian).GetBytes(65536UL));
+            this.CheckBytes(new byte[] { 0, 0, 0, 1, 0, 0, 0, 0 }, EndianBitConverter.GetConverter(Endianness.LittleEndian).GetBytes(16777216UL));
+            this.CheckBytes(new byte[] { 0, 0, 0, 0, 1, 0, 0, 0 }, EndianBitConverter.GetConverter(Endianness.LittleEndian).GetBytes(4294967296UL));
+            this.CheckBytes(new byte[] { 0, 0, 0, 0, 0, 1, 0, 0 }, EndianBitConverter.GetConverter(Endianness.LittleEndian).GetBytes(1099511627776UL));
+            this.CheckBytes(new byte[] { 0, 0, 0, 0, 0, 0, 1, 0 }, EndianBitConverter.GetConverter(Endianness.LittleEndian).GetBytes(1099511627776UL * 256));
+            this.CheckBytes(new byte[] { 0, 0, 0, 0, 0, 0, 0, 1 }, EndianBitConverter.GetConverter(Endianness.LittleEndian).GetBytes(1099511627776UL * 256 * 256));
+            this.CheckBytes(new byte[] { 255, 255, 255, 255, 255, 255, 255, 255 }, EndianBitConverter.GetConverter(Endianness.LittleEndian).GetBytes(ulong.MaxValue));
+            this.CheckBytes(new byte[] { 1, 1, 0, 0, 0, 0, 0, 0 }, EndianBitConverter.GetConverter(Endianness.LittleEndian).GetBytes(257UL));
         }
 
         /// <summary>

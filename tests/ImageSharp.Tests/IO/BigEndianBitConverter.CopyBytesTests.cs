@@ -17,37 +17,37 @@ namespace ImageSharp.Tests.IO
         [Fact]
         public void CopyToWithNullBufferThrowsException()
         {
-            Assert.Throws<ArgumentNullException>(() => EndianBitConverter.BigEndianConverter.CopyBytes(false, null, 0));
-            Assert.Throws<ArgumentNullException>(() => EndianBitConverter.BigEndianConverter.CopyBytes((short)42, null, 0));
-            Assert.Throws<ArgumentNullException>(() => EndianBitConverter.BigEndianConverter.CopyBytes((ushort)42, null, 0));
-            Assert.Throws<ArgumentNullException>(() => EndianBitConverter.BigEndianConverter.CopyBytes(42, null, 0));
-            Assert.Throws<ArgumentNullException>(() => EndianBitConverter.BigEndianConverter.CopyBytes(42u, null, 0));
-            Assert.Throws<ArgumentNullException>(() => EndianBitConverter.BigEndianConverter.CopyBytes(42L, null, 0));
-            Assert.Throws<ArgumentNullException>(() => EndianBitConverter.BigEndianConverter.CopyBytes((ulong)42L, null, 0));
+            Assert.Throws<ArgumentNullException>(() => EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes(false, null, 0));
+            Assert.Throws<ArgumentNullException>(() => EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes((short)42, null, 0));
+            Assert.Throws<ArgumentNullException>(() => EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes((ushort)42, null, 0));
+            Assert.Throws<ArgumentNullException>(() => EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes(42, null, 0));
+            Assert.Throws<ArgumentNullException>(() => EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes(42u, null, 0));
+            Assert.Throws<ArgumentNullException>(() => EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes(42L, null, 0));
+            Assert.Throws<ArgumentNullException>(() => EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes((ulong)42L, null, 0));
         }
 
         [Fact]
         public void CopyToWithIndexTooBigThrowsException()
         {
-            Assert.Throws<ArgumentOutOfRangeException>(() => EndianBitConverter.BigEndianConverter.CopyBytes(false, new byte[1], 1));
-            Assert.Throws<ArgumentOutOfRangeException>(() => EndianBitConverter.BigEndianConverter.CopyBytes((short)42, new byte[2], 1));
-            Assert.Throws<ArgumentOutOfRangeException>(() => EndianBitConverter.BigEndianConverter.CopyBytes((ushort)42, new byte[2], 1));
-            Assert.Throws<ArgumentOutOfRangeException>(() => EndianBitConverter.BigEndianConverter.CopyBytes(42, new byte[4], 1));
-            Assert.Throws<ArgumentOutOfRangeException>(() => EndianBitConverter.BigEndianConverter.CopyBytes(42u, new byte[4], 1));
-            Assert.Throws<ArgumentOutOfRangeException>(() => EndianBitConverter.BigEndianConverter.CopyBytes(42L, new byte[8], 1));
-            Assert.Throws<ArgumentOutOfRangeException>(() => EndianBitConverter.BigEndianConverter.CopyBytes((ulong)42L, new byte[8], 1));
+            Assert.Throws<ArgumentOutOfRangeException>(() => EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes(false, new byte[1], 1));
+            Assert.Throws<ArgumentOutOfRangeException>(() => EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes((short)42, new byte[2], 1));
+            Assert.Throws<ArgumentOutOfRangeException>(() => EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes((ushort)42, new byte[2], 1));
+            Assert.Throws<ArgumentOutOfRangeException>(() => EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes(42, new byte[4], 1));
+            Assert.Throws<ArgumentOutOfRangeException>(() => EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes(42u, new byte[4], 1));
+            Assert.Throws<ArgumentOutOfRangeException>(() => EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes(42L, new byte[8], 1));
+            Assert.Throws<ArgumentOutOfRangeException>(() => EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes((ulong)42L, new byte[8], 1));
         }
 
         [Fact]
         public void CopyToWithBufferTooSmallThrowsException()
         {
-            Assert.Throws<ArgumentOutOfRangeException>(() => EndianBitConverter.BigEndianConverter.CopyBytes(false, new byte[0], 0));
-            Assert.Throws<ArgumentOutOfRangeException>(() => EndianBitConverter.BigEndianConverter.CopyBytes((short)42, new byte[1], 0));
-            Assert.Throws<ArgumentOutOfRangeException>(() => EndianBitConverter.BigEndianConverter.CopyBytes((ushort)42, new byte[1], 0));
-            Assert.Throws<ArgumentOutOfRangeException>(() => EndianBitConverter.BigEndianConverter.CopyBytes(42, new byte[3], 0));
-            Assert.Throws<ArgumentOutOfRangeException>(() => EndianBitConverter.BigEndianConverter.CopyBytes(42u, new byte[3], 0));
-            Assert.Throws<ArgumentOutOfRangeException>(() => EndianBitConverter.BigEndianConverter.CopyBytes(42L, new byte[7], 0));
-            Assert.Throws<ArgumentOutOfRangeException>(() => EndianBitConverter.BigEndianConverter.CopyBytes((ulong)42L, new byte[7], 0));
+            Assert.Throws<ArgumentOutOfRangeException>(() => EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes(false, new byte[0], 0));
+            Assert.Throws<ArgumentOutOfRangeException>(() => EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes((short)42, new byte[1], 0));
+            Assert.Throws<ArgumentOutOfRangeException>(() => EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes((ushort)42, new byte[1], 0));
+            Assert.Throws<ArgumentOutOfRangeException>(() => EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes(42, new byte[3], 0));
+            Assert.Throws<ArgumentOutOfRangeException>(() => EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes(42u, new byte[3], 0));
+            Assert.Throws<ArgumentOutOfRangeException>(() => EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes(42L, new byte[7], 0));
+            Assert.Throws<ArgumentOutOfRangeException>(() => EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes((ulong)42L, new byte[7], 0));
         }
 
         /// <summary>
@@ -58,9 +58,9 @@ namespace ImageSharp.Tests.IO
         {
             byte[] buffer = new byte[1];
 
-            EndianBitConverter.BigEndianConverter.CopyBytes(false, buffer, 0);
+            EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes(false, buffer, 0);
             this.CheckBytes(new byte[] { 0 }, buffer);
-            EndianBitConverter.BigEndianConverter.CopyBytes(true, buffer, 0);
+            EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes(true, buffer, 0);
             this.CheckBytes(new byte[] { 1 }, buffer);
         }
 
@@ -72,15 +72,15 @@ namespace ImageSharp.Tests.IO
         {
             byte[] buffer = new byte[2];
 
-            EndianBitConverter.BigEndianConverter.CopyBytes((short)0, buffer, 0);
+            EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes((short)0, buffer, 0);
             this.CheckBytes(new byte[] { 0, 0 }, buffer);
-            EndianBitConverter.BigEndianConverter.CopyBytes((short)1, buffer, 0);
+            EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes((short)1, buffer, 0);
             this.CheckBytes(new byte[] { 0, 1 }, buffer);
-            EndianBitConverter.BigEndianConverter.CopyBytes((short)256, buffer, 0);
+            EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes((short)256, buffer, 0);
             this.CheckBytes(new byte[] { 1, 0 }, buffer);
-            EndianBitConverter.BigEndianConverter.CopyBytes((short)-1, buffer, 0);
+            EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes((short)-1, buffer, 0);
             this.CheckBytes(new byte[] { 255, 255 }, buffer);
-            EndianBitConverter.BigEndianConverter.CopyBytes((short)257, buffer, 0);
+            EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes((short)257, buffer, 0);
             this.CheckBytes(new byte[] { 1, 1 }, buffer);
         }
 
@@ -92,15 +92,15 @@ namespace ImageSharp.Tests.IO
         {
             byte[] buffer = new byte[2];
 
-            EndianBitConverter.BigEndianConverter.CopyBytes((ushort)0, buffer, 0);
+            EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes((ushort)0, buffer, 0);
             this.CheckBytes(new byte[] { 0, 0 }, buffer);
-            EndianBitConverter.BigEndianConverter.CopyBytes((ushort)1, buffer, 0);
+            EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes((ushort)1, buffer, 0);
             this.CheckBytes(new byte[] { 0, 1 }, buffer);
-            EndianBitConverter.BigEndianConverter.CopyBytes((ushort)256, buffer, 0);
+            EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes((ushort)256, buffer, 0);
             this.CheckBytes(new byte[] { 1, 0 }, buffer);
-            EndianBitConverter.BigEndianConverter.CopyBytes(ushort.MaxValue, buffer, 0);
+            EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes(ushort.MaxValue, buffer, 0);
             this.CheckBytes(new byte[] { 255, 255 }, buffer);
-            EndianBitConverter.BigEndianConverter.CopyBytes((ushort)257, buffer, 0);
+            EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes((ushort)257, buffer, 0);
             this.CheckBytes(new byte[] { 1, 1 }, buffer);
         }
 
@@ -112,19 +112,19 @@ namespace ImageSharp.Tests.IO
         {
             byte[] buffer = new byte[4];
 
-            EndianBitConverter.BigEndianConverter.CopyBytes(0, buffer, 0);
+            EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes(0, buffer, 0);
             this.CheckBytes(new byte[] { 0, 0, 0, 0 }, buffer);
-            EndianBitConverter.BigEndianConverter.CopyBytes(1, buffer, 0);
+            EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes(1, buffer, 0);
             this.CheckBytes(new byte[] { 0, 0, 0, 1 }, buffer);
-            EndianBitConverter.BigEndianConverter.CopyBytes(256, buffer, 0);
+            EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes(256, buffer, 0);
             this.CheckBytes(new byte[] { 0, 0, 1, 0 }, buffer);
-            EndianBitConverter.BigEndianConverter.CopyBytes(65536, buffer, 0);
+            EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes(65536, buffer, 0);
             this.CheckBytes(new byte[] { 0, 1, 0, 0 }, buffer);
-            EndianBitConverter.BigEndianConverter.CopyBytes(16777216, buffer, 0);
+            EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes(16777216, buffer, 0);
             this.CheckBytes(new byte[] { 1, 0, 0, 0 }, buffer);
-            EndianBitConverter.BigEndianConverter.CopyBytes(-1, buffer, 0);
+            EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes(-1, buffer, 0);
             this.CheckBytes(new byte[] { 255, 255, 255, 255 }, buffer);
-            EndianBitConverter.BigEndianConverter.CopyBytes(257, buffer, 0);
+            EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes(257, buffer, 0);
             this.CheckBytes(new byte[] { 0, 0, 1, 1 }, buffer);
         }
 
@@ -136,19 +136,19 @@ namespace ImageSharp.Tests.IO
         {
             byte[] buffer = new byte[4];
 
-            EndianBitConverter.BigEndianConverter.CopyBytes((uint)0, buffer, 0);
+            EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes((uint)0, buffer, 0);
             this.CheckBytes(new byte[] { 0, 0, 0, 0 }, buffer);
-            EndianBitConverter.BigEndianConverter.CopyBytes((uint)1, buffer, 0);
+            EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes((uint)1, buffer, 0);
             this.CheckBytes(new byte[] { 0, 0, 0, 1 }, buffer);
-            EndianBitConverter.BigEndianConverter.CopyBytes((uint)256, buffer, 0);
+            EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes((uint)256, buffer, 0);
             this.CheckBytes(new byte[] { 0, 0, 1, 0 }, buffer);
-            EndianBitConverter.BigEndianConverter.CopyBytes((uint)65536, buffer, 0);
+            EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes((uint)65536, buffer, 0);
             this.CheckBytes(new byte[] { 0, 1, 0, 0 }, buffer);
-            EndianBitConverter.BigEndianConverter.CopyBytes((uint)16777216, buffer, 0);
+            EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes((uint)16777216, buffer, 0);
             this.CheckBytes(new byte[] { 1, 0, 0, 0 }, buffer);
-            EndianBitConverter.BigEndianConverter.CopyBytes(uint.MaxValue, buffer, 0);
+            EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes(uint.MaxValue, buffer, 0);
             this.CheckBytes(new byte[] { 255, 255, 255, 255 }, buffer);
-            EndianBitConverter.BigEndianConverter.CopyBytes((uint)257, buffer, 0);
+            EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes((uint)257, buffer, 0);
             this.CheckBytes(new byte[] { 0, 0, 1, 1 }, buffer);
         }
 
@@ -160,27 +160,27 @@ namespace ImageSharp.Tests.IO
         {
             byte[] buffer = new byte[8];
 
-            EndianBitConverter.BigEndianConverter.CopyBytes(0L, buffer, 0);
+            EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes(0L, buffer, 0);
             this.CheckBytes(new byte[] { 0, 0, 0, 0, 0, 0, 0, 0 }, buffer);
-            EndianBitConverter.BigEndianConverter.CopyBytes(1L, buffer, 0);
+            EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes(1L, buffer, 0);
             this.CheckBytes(new byte[] { 0, 0, 0, 0, 0, 0, 0, 1 }, buffer);
-            EndianBitConverter.BigEndianConverter.CopyBytes(256L, buffer, 0);
+            EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes(256L, buffer, 0);
             this.CheckBytes(new byte[] { 0, 0, 0, 0, 0, 0, 1, 0 }, buffer);
-            EndianBitConverter.BigEndianConverter.CopyBytes(65536L, buffer, 0);
+            EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes(65536L, buffer, 0);
             this.CheckBytes(new byte[] { 0, 0, 0, 0, 0, 1, 0, 0 }, buffer);
-            EndianBitConverter.BigEndianConverter.CopyBytes(16777216L, buffer, 0);
+            EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes(16777216L, buffer, 0);
             this.CheckBytes(new byte[] { 0, 0, 0, 0, 1, 0, 0, 0 }, buffer);
-            EndianBitConverter.BigEndianConverter.CopyBytes(4294967296L, buffer, 0);
+            EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes(4294967296L, buffer, 0);
             this.CheckBytes(new byte[] { 0, 0, 0, 1, 0, 0, 0, 0 }, buffer);
-            EndianBitConverter.BigEndianConverter.CopyBytes(1099511627776L, buffer, 0);
+            EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes(1099511627776L, buffer, 0);
             this.CheckBytes(new byte[] { 0, 0, 1, 0, 0, 0, 0, 0 }, buffer);
-            EndianBitConverter.BigEndianConverter.CopyBytes(1099511627776L * 256, buffer, 0);
+            EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes(1099511627776L * 256, buffer, 0);
             this.CheckBytes(new byte[] { 0, 1, 0, 0, 0, 0, 0, 0 }, buffer);
-            EndianBitConverter.BigEndianConverter.CopyBytes(1099511627776L * 256 * 256, buffer, 0);
+            EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes(1099511627776L * 256 * 256, buffer, 0);
             this.CheckBytes(new byte[] { 1, 0, 0, 0, 0, 0, 0, 0 }, buffer);
-            EndianBitConverter.BigEndianConverter.CopyBytes(-1L, buffer, 0);
+            EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes(-1L, buffer, 0);
             this.CheckBytes(new byte[] { 255, 255, 255, 255, 255, 255, 255, 255 }, buffer);
-            EndianBitConverter.BigEndianConverter.CopyBytes(257L, buffer, 0);
+            EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes(257L, buffer, 0);
             this.CheckBytes(new byte[] { 0, 0, 0, 0, 0, 0, 1, 1 }, buffer);
         }
 
@@ -192,27 +192,27 @@ namespace ImageSharp.Tests.IO
         {
             byte[] buffer = new byte[8];
 
-            EndianBitConverter.BigEndianConverter.CopyBytes(0UL, buffer, 0);
+            EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes(0UL, buffer, 0);
             this.CheckBytes(new byte[] { 0, 0, 0, 0, 0, 0, 0, 0 }, buffer);
-            EndianBitConverter.BigEndianConverter.CopyBytes(1UL, buffer, 0);
+            EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes(1UL, buffer, 0);
             this.CheckBytes(new byte[] { 0, 0, 0, 0, 0, 0, 0, 1 }, buffer);
-            EndianBitConverter.BigEndianConverter.CopyBytes(256UL, buffer, 0);
+            EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes(256UL, buffer, 0);
             this.CheckBytes(new byte[] { 0, 0, 0, 0, 0, 0, 1, 0 }, buffer);
-            EndianBitConverter.BigEndianConverter.CopyBytes(65536UL, buffer, 0);
+            EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes(65536UL, buffer, 0);
             this.CheckBytes(new byte[] { 0, 0, 0, 0, 0, 1, 0, 0 }, buffer);
-            EndianBitConverter.BigEndianConverter.CopyBytes(16777216UL, buffer, 0);
+            EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes(16777216UL, buffer, 0);
             this.CheckBytes(new byte[] { 0, 0, 0, 0, 1, 0, 0, 0 }, buffer);
-            EndianBitConverter.BigEndianConverter.CopyBytes(4294967296UL, buffer, 0);
+            EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes(4294967296UL, buffer, 0);
             this.CheckBytes(new byte[] { 0, 0, 0, 1, 0, 0, 0, 0 }, buffer);
-            EndianBitConverter.BigEndianConverter.CopyBytes(1099511627776UL, buffer, 0);
+            EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes(1099511627776UL, buffer, 0);
             this.CheckBytes(new byte[] { 0, 0, 1, 0, 0, 0, 0, 0 }, buffer);
-            EndianBitConverter.BigEndianConverter.CopyBytes(1099511627776UL * 256, buffer, 0);
+            EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes(1099511627776UL * 256, buffer, 0);
             this.CheckBytes(new byte[] { 0, 1, 0, 0, 0, 0, 0, 0 }, buffer);
-            EndianBitConverter.BigEndianConverter.CopyBytes(1099511627776UL * 256 * 256, buffer, 0);
+            EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes(1099511627776UL * 256 * 256, buffer, 0);
             this.CheckBytes(new byte[] { 1, 0, 0, 0, 0, 0, 0, 0 }, buffer);
-            EndianBitConverter.BigEndianConverter.CopyBytes(ulong.MaxValue, buffer, 0);
+            EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes(ulong.MaxValue, buffer, 0);
             this.CheckBytes(new byte[] { 255, 255, 255, 255, 255, 255, 255, 255 }, buffer);
-            EndianBitConverter.BigEndianConverter.CopyBytes(257UL, buffer, 0);
+            EndianBitConverter.GetConverter(Endianness.BigEndian).CopyBytes(257UL, buffer, 0);
             this.CheckBytes(new byte[] { 0, 0, 0, 0, 0, 0, 1, 1 }, buffer);
         }
 

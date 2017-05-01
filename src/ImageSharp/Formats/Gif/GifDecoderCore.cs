@@ -8,6 +8,7 @@ namespace ImageSharp.Formats
     using System;
     using System.Buffers;
     using System.IO;
+    using System.Runtime.CompilerServices;
     using System.Text;
 
     using ImageSharp.PixelFormats;
@@ -332,6 +333,7 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <param name="imageDescriptor">The <see cref="GifImageDescriptor"/>.</param>
         /// <param name="indices">The pixel array to write to.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void ReadFrameIndices(GifImageDescriptor imageDescriptor, byte[] indices)
         {
             int dataSize = this.currentStream.ReadByte();
@@ -366,7 +368,7 @@ namespace ImageSharp.Formats
                 // This initializes the image to become fully transparent because the alpha channel is zero.
                 this.image = Image.Create<TPixel>(imageWidth, imageHeight, this.metaData, this.configuration);
 
-                this.SetFrameDelay(this.metaData);
+                this.SetFrameMetaData(this.metaData);
 
                 image = this.image;
             }
@@ -380,7 +382,7 @@ namespace ImageSharp.Formats
 
                 currentFrame = this.previousFrame.Clone();
 
-                this.SetFrameDelay(currentFrame.MetaData);
+                this.SetFrameMetaData(currentFrame.MetaData);
 
                 image = currentFrame;
 
@@ -506,14 +508,20 @@ namespace ImageSharp.Formats
         }
 
         /// <summary>
-        /// Sets the frame delay in the metadata.
+        /// Sets the frames metadata.
         /// </summary>
         /// <param name="metaData">The meta data.</param>
-        private void SetFrameDelay(IMetaData metaData)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void SetFrameMetaData(IMetaData metaData)
         {
             if (this.graphicsControlExtension != null && this.graphicsControlExtension.DelayTime > 0)
             {
-                metaData.FrameDelay = this.graphicsControlExtension.DelayTime;
+                if (this.graphicsControlExtension.DelayTime > 0)
+                {
+                    metaData.FrameDelay = this.graphicsControlExtension.DelayTime;
+                }
+
+                metaData.DisposalMethod = this.graphicsControlExtension.DisposalMethod;
             }
         }
     }

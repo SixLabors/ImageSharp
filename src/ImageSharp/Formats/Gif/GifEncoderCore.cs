@@ -191,7 +191,7 @@ namespace ImageSharp.Formats
             {
                 Width = (short)image.Width,
                 Height = (short)image.Height,
-                GlobalColorTableFlag = false, // Always false for now.
+                GlobalColorTableFlag = false, // TODO: Always false for now.
                 GlobalColorTableSize = this.bitDepth - 1,
                 BackgroundColorIndex = (byte)tranparencyIndex
             };
@@ -312,16 +312,10 @@ namespace ImageSharp.Formats
         private void WriteGraphicalControlExtension<TPixel>(ImageBase<TPixel> image, IMetaData metaData, EndianBinaryWriter writer, int transparencyIndex)
             where TPixel : struct, IPixel<TPixel>
         {
-            // TODO: Check transparency logic.
-            bool hasTransparent = transparencyIndex < 255;
-            DisposalMethod disposalMethod = hasTransparent
-                ? DisposalMethod.RestoreToBackground
-                : DisposalMethod.Unspecified;
-
             GifGraphicsControlExtension extension = new GifGraphicsControlExtension()
             {
-                DisposalMethod = disposalMethod,
-                TransparencyFlag = hasTransparent,
+                DisposalMethod = metaData.DisposalMethod,
+                TransparencyFlag = transparencyIndex < 255,
                 TransparencyIndex = transparencyIndex,
                 DelayTime = metaData.FrameDelay
             };

@@ -36,6 +36,11 @@ namespace ImageSharp.Formats
         private int bitDepth;
 
         /// <summary>
+        /// Whether the current image has multiple frames.
+        /// </summary>
+        private bool hasMultipleFrames;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="GifEncoderCore"/> class.
         /// </summary>
         /// <param name="options">The options for the encoder.</param>
@@ -74,7 +79,13 @@ namespace ImageSharp.Formats
             this.bitDepth = ImageMaths.GetBitsNeededForColorDepth(quality);
 
             // Quantize the image returning a palette.
-            QuantizedImage<TPixel> quantized = ((IQuantizer<TPixel>)this.Quantizer).Quantize(image, quality);
+            this.hasMultipleFrames = image.Frames.Any();
+
+            // Dithering when animating gifs is a bad idea as we introduce pixel tearing across frames.
+            IQuantizer<TPixel> ditheredQuantizer = (IQuantizer<TPixel>)this.Quantizer;
+            ditheredQuantizer.Dither = !this.hasMultipleFrames;
+
+            QuantizedImage<TPixel> quantized = ditheredQuantizer.Quantize(image, quality);
 
             int index = this.GetTransparentIndex(quantized);
 
@@ -92,7 +103,7 @@ namespace ImageSharp.Formats
             this.WriteImageData(quantized, writer);
 
             // Write additional frames.
-            if (image.Frames.Any())
+            if (this.hasMultipleFrames)
             {
                 this.WriteApplicationExtension(writer, image.MetaData.RepeatCount, image.Frames.Count);
 
@@ -100,7 +111,7 @@ namespace ImageSharp.Formats
                 for (int i = 0; i < image.Frames.Count; i++)
                 {
                     ImageFrame<TPixel> frame = image.Frames[i];
-                    QuantizedImage<TPixel> quantizedFrame = ((IQuantizer<TPixel>)this.Quantizer).Quantize(frame, quality);
+                    QuantizedImage<TPixel> quantizedFrame = ditheredQuantizer.Quantize(frame, quality);
 
                     this.WriteGraphicalControlExtension(frame, writer, this.GetTransparentIndex(quantizedFrame));
                     this.WriteImageDescriptor(frame, writer);

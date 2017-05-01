@@ -122,11 +122,42 @@ namespace ImageSharp.Benchmarks
                                 float distance = Vector2.Distance(centre, new Vector2(offsetX, offsetY));
                                 Vector4 sourceColor = sourcePixels[offsetX, offsetY].ToVector4();
                                 TPixel packed = default(TPixel);
-                                packed.PackFromVector4(Vector4BlendTransforms.PremultipliedLerp(sourceColor, glowColor.ToVector4(), 1 - (.95F * (distance / maxDistance))));
+                                packed.PackFromVector4(PremultipliedLerp(sourceColor, glowColor.ToVector4(), 1 - (.95F * (distance / maxDistance))));
                                 sourcePixels[offsetX, offsetY] = packed;
                             }
                         });
                 }
+            }
+            public static Vector4 PremultipliedLerp(Vector4 backdrop, Vector4 source, float amount)
+            {
+                amount = amount.Clamp(0, 1);
+
+                // Santize on zero alpha
+                if (MathF.Abs(backdrop.W) < Constants.Epsilon)
+                {
+                    source.W *= amount;
+                    return source;
+                }
+
+                if (MathF.Abs(source.W) < Constants.Epsilon)
+                {
+                    return backdrop;
+                }
+
+                // Premultiply the source vector.
+                // Oddly premultiplying the background vector creates dark outlines when pixels
+                // Have low alpha values.
+                source = new Vector4(source.X, source.Y, source.Z, 1) * (source.W * amount);
+
+                // This should be implementing the following formula
+                // https://en.wikipedia.org/wiki/Alpha_compositing
+                // Vout =  Vs + Vb (1 - Vsa)
+                // Aout = Vsa + Vsb (1 - Vsa)
+                Vector3 inverseW = new Vector3(1 - source.W);
+                Vector3 xyzB = new Vector3(backdrop.X, backdrop.Y, backdrop.Z);
+                Vector3 xyzS = new Vector3(source.X, source.Y, source.Z);
+
+                return new Vector4(xyzS + (xyzB * inverseW), source.W + (backdrop.W * (1 - source.W)));
             }
         }
     }

@@ -60,7 +60,7 @@ namespace ImageSharp
         /// </summary>
         public float BlendPercentage
         {
-            get => this.blendPercentage ?? 1;
+            get => (this.blendPercentage ?? 1).Clamp(0, 1);
             set => this.blendPercentage = value;
         }
 

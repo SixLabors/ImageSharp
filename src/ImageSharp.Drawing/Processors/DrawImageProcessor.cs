@@ -74,8 +74,12 @@ namespace ImageSharp.Drawing.Processors
                 Rectangle bounds = this.Image.Bounds;
                 int minX = Math.Max(this.Location.X, sourceRectangle.X);
                 int maxX = Math.Min(this.Location.X + bounds.Width, sourceRectangle.Width);
+                maxX = Math.Min(this.Location.X + this.Size.Width, maxX);
+
                 int minY = Math.Max(this.Location.Y, sourceRectangle.Y);
                 int maxY = Math.Min(this.Location.Y + bounds.Height, sourceRectangle.Bottom);
+
+                maxY = Math.Min(this.Location.Y + this.Size.Height, maxY);
 
                 int width = maxX - minX;
                 using (Buffer<float> amount = new Buffer<float>(width))
@@ -94,7 +98,7 @@ namespace ImageSharp.Drawing.Processors
                         y =>
                             {
                                 BufferSpan<TPixel> background = sourcePixels.GetRowSpan(y).Slice(minX, width);
-                                BufferSpan<TPixel> foreground = toBlendPixels.GetRowSpan(y - minY).Slice(0, width);
+                                BufferSpan<TPixel> foreground = toBlendPixels.GetRowSpan(y - this.Location.Y).Slice(0, width);
                                 this.blender.Blend(background, background, foreground, amount);
                             });
                 }

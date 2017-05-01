@@ -96,7 +96,7 @@ namespace ImageSharp
         /// <param name="source">The image this method extends.</param>
         /// <param name="image">The image to blend with the currently processing image.</param>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="percent">The opacity of the image image to blend. Must be between 0 and 100.</param>
+        /// <param name="percent">The opacity of the image image to blend. Must be between 0 and 1.</param>
         /// <param name="size">The size to draw the blended image.</param>
         /// <param name="location">The location to draw the blended image.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>

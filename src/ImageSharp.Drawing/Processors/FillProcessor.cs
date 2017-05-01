@@ -62,32 +62,30 @@ namespace ImageSharp.Drawing.Processors
                 startY = 0;
             }
 
+            int width = maxX - minX;
+
             // we could possibly do some optermising by having knowledge about the individual brushes operate
             // for example If brush is SolidBrush<TPixel> then we could just get the color upfront
             // and skip using the IBrushApplicator<TPixel>?.
             using (PixelAccessor<TPixel> sourcePixels = source.Lock())
+            using (Buffer<float> amount = new Buffer<float>(width))
             using (BrushApplicator<TPixel> applicator = this.brush.CreateApplicator(sourcePixels, sourceRectangle, this.options))
             {
-                Parallel.For(
+                    for (int i = 0; i < width; i++)
+                    {
+                        amount[i] = this.options.BlendPercentage;
+                    }
+
+                    Parallel.For(
                     minY,
                     maxY,
                     this.ParallelOptions,
                     y =>
                     {
                         int offsetY = y - startY;
-                        for (int x = minX; x < maxX; x++)
-                        {
-                            int offsetX = x - startX;
+                        int offsetX = minX - startX;
 
-                            Vector4 backgroundVector = sourcePixels[offsetX, offsetY].ToVector4();
-                            Vector4 sourceVector = applicator[offsetX, offsetY].ToVector4();
-
-                            Vector4 finalColor = Vector4BlendTransforms.PremultipliedLerp(backgroundVector, sourceVector, 1);
-
-                            TPixel packed = default(TPixel);
-                            packed.PackFromVector4(finalColor);
-                            sourcePixels[offsetX, offsetY] = packed;
-                        }
+                        applicator.Apply(amount, offsetX, offsetY);
                     });
             }
         }

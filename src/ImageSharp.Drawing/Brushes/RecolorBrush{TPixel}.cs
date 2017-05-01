@@ -72,26 +72,29 @@ namespace ImageSharp.Drawing.Brushes
             /// <summary>
             /// The target color.
             /// </summary>
-            private readonly Vector4 targeTPixel;
+            private readonly Vector4 targetColor;
 
             /// <summary>
             /// The threshold.
             /// </summary>
             private readonly float threshold;
 
+            private readonly TPixel targetColorPixel;
+
             /// <summary>
             /// Initializes a new instance of the <see cref="RecolorBrushApplicator" /> class.
             /// </summary>
             /// <param name="sourcePixels">The source pixels.</param>
             /// <param name="sourceColor">Color of the source.</param>
-            /// <param name="targeTPixel">Color of the target.</param>
+            /// <param name="targetColor">Color of the target.</param>
             /// <param name="threshold">The threshold .</param>
             /// <param name="options">The options</param>
-            public RecolorBrushApplicator(PixelAccessor<TPixel> sourcePixels, TPixel sourceColor, TPixel targeTPixel, float threshold, GraphicsOptions options)
+            public RecolorBrushApplicator(PixelAccessor<TPixel> sourcePixels, TPixel sourceColor, TPixel targetColor, float threshold, GraphicsOptions options)
                 : base(sourcePixels, options)
             {
                 this.sourceColor = sourceColor.ToVector4();
-                this.targeTPixel = targeTPixel.ToVector4();
+                this.targetColor = targetColor.ToVector4();
+                this.targetColorPixel = targetColor;
 
                 // Lets hack a min max extreams for a color space by letteing the IPackedPixel clamp our values to something in the correct spaces :)
                 TPixel maxColor = default(TPixel);
@@ -120,11 +123,10 @@ namespace ImageSharp.Drawing.Brushes
                     if (distance <= this.threshold)
                     {
                         float lerpAmount = (this.threshold - distance) / this.threshold;
-                        Vector4 blended = Vector4BlendTransforms.PremultipliedLerp(
-                            background,
-                            this.targeTPixel,
+                        return this.Blender.Blend(
+                            result,
+                            this.targetColorPixel,
                             lerpAmount);
-                        result.PackFromVector4(blended);
                     }
 
                     return result;

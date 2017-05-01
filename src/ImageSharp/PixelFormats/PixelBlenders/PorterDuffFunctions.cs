@@ -9,7 +9,7 @@ namespace ImageSharp.PixelFormats.PixelBlenders
     using System.Runtime.CompilerServices;
 
     /// <summary>
-    /// Collection of Porter Duff alpha blending functions
+    /// Collection of Porter Duff alpha blending functions applying an the 'Over' composition model.
     /// </summary>
     /// <remarks>
     /// These functions are designed to be a general solution for all color cases,
@@ -19,7 +19,7 @@ namespace ImageSharp.PixelFormats.PixelBlenders
     /// Note there are faster functions for when the backdrop color is known
     /// to be opaque
     /// </remarks>
-    internal static class PorterDuffFunctions
+    internal static partial class PorterDuffFunctions
     {
         /// <summary>
         /// Source over backdrop

@@ -89,7 +89,7 @@ namespace ImageSharp.PixelFormats
         }
 
         /// <inheritdoc />
-        public BulkPixelOperations<NormalizedByte2> CreateBulkOperations() => new BulkPixelOperations<NormalizedByte2>();
+        public PixelOperations<NormalizedByte2> CreateBulkOperations() => new PixelOperations<NormalizedByte2>();
 
         /// <summary>
         /// Expands the packed representation into a <see cref="Vector2"/>.

@@ -1,4 +1,4 @@
-// <copyright file="Rgba32.BulkOperations.cs" company="James Jackson-South">
+// <copyright file="Rgba32.PixelOperations.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -16,9 +16,9 @@ namespace ImageSharp.PixelFormats
     public partial struct Rgba32
     {
         /// <summary>
-        /// <see cref="BulkPixelOperations{TPixel}"/> implementation optimized for <see cref="Rgba32"/>.
+        /// <see cref="PixelOperations{TPixel}"/> implementation optimized for <see cref="Rgba32"/>.
         /// </summary>
-        internal class BulkOperations : BulkPixelOperations<Rgba32>
+        internal class PixelOperations : PixelOperations<Rgba32>
         {
             /// <summary>
             /// SIMD optimized bulk implementation of <see cref="IPixel.PackFromVector4(Vector4)"/>

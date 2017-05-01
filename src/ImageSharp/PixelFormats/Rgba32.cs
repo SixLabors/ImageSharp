@@ -202,7 +202,7 @@ namespace ImageSharp.PixelFormats
         }
 
         /// <inheritdoc />
-        public BulkPixelOperations<Rgba32> CreateBulkOperations() => new BulkOperations();
+        public PixelOperations<Rgba32> CreateBulkOperations() => new PixelOperations();
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

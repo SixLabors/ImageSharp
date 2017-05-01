@@ -18,19 +18,22 @@ namespace ImageSharp.Drawing.Processors
     internal class DrawImageProcessor<TPixel> : ImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
+        private readonly PixelBlender<TPixel> blender;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="DrawImageProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="image">The image to blend with the currently processing image.</param>
         /// <param name="size">The size to draw the blended image.</param>
         /// <param name="location">The location to draw the blended image.</param>
-        /// <param name="alpha">The opacity of the image to blend. Between 0 and 100.</param>
-        public DrawImageProcessor(Image<TPixel> image, Size size, Point location, int alpha = 100)
+        /// <param name="options">The opacity of the image to blend. Between 0 and 100.</param>
+        public DrawImageProcessor(Image<TPixel> image, Size size, Point location, GraphicsOptions options)
         {
-            Guard.MustBeBetweenOrEqualTo(alpha, 0, 100, nameof(alpha));
+            Guard.MustBeBetweenOrEqualTo(options.BlendPercentage, 0, 1, nameof(options.BlendPercentage));
             this.Image = image;
             this.Size = size;
-            this.Alpha = alpha;
+            this.Alpha = options.BlendPercentage;
+            this.blender = PixelOperations<TPixel>.Instance.GetPixelBlender(options.BlenderMode);
             this.Location = location;
         }
 
@@ -42,7 +45,7 @@ namespace ImageSharp.Drawing.Processors
         /// <summary>
         /// Gets the alpha percentage value.
         /// </summary>
-        public int Alpha { get; }
+        public float Alpha { get; }
 
         /// <summary>
         /// Gets the size to draw the blended image.
@@ -57,43 +60,52 @@ namespace ImageSharp.Drawing.Processors
         /// <inheritdoc/>
         protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
         {
-            if (this.Image.Bounds.Size != this.Size)
+            Image<TPixel> disposableImage = null;
+            Image<TPixel> targetImage = this.Image;
+
+            try
             {
-                // should Resize be moved to core?
-                this.Image = this.Image.Resize(this.Size.Width, this.Size.Height);
-            }
+                if (targetImage.Bounds.Size != this.Size)
+                {
+                    targetImage = disposableImage = new Image<TPixel>(this.Image).Resize(this.Size.Width, this.Size.Height);
+                }
 
-            // Align start/end positions.
-            Rectangle bounds = this.Image.Bounds;
-            int minX = Math.Max(this.Location.X, sourceRectangle.X);
-            int maxX = Math.Min(this.Location.X + bounds.Width, sourceRectangle.Width);
-            int minY = Math.Max(this.Location.Y, sourceRectangle.Y);
-            int maxY = Math.Min(this.Location.Y + bounds.Height, sourceRectangle.Bottom);
+                // Align start/end positions.
+                Rectangle bounds = this.Image.Bounds;
+                int minX = Math.Max(this.Location.X, sourceRectangle.X);
+                int maxX = Math.Min(this.Location.X + bounds.Width, sourceRectangle.Width);
+                maxX = Math.Min(this.Location.X + this.Size.Width, maxX);
 
-            float alpha = this.Alpha / 100F;
+                int minY = Math.Max(this.Location.Y, sourceRectangle.Y);
+                int maxY = Math.Min(this.Location.Y + bounds.Height, sourceRectangle.Bottom);
 
-            using (PixelAccessor<TPixel> toBlendPixels = this.Image.Lock())
-            using (PixelAccessor<TPixel> sourcePixels = source.Lock())
-            {
-                Parallel.For(
-                    minY,
-                    maxY,
-                    this.ParallelOptions,
-                    y =>
-                        {
-                            for (int x = minX; x < maxX; x++)
+                maxY = Math.Min(this.Location.Y + this.Size.Height, maxY);
+
+                int width = maxX - minX;
+                using (Buffer<float> amount = new Buffer<float>(width))
+                using (PixelAccessor<TPixel> toBlendPixels = targetImage.Lock())
+                using (PixelAccessor<TPixel> sourcePixels = source.Lock())
+                {
+                    for (int i = 0; i < width; i++)
+                    {
+                        amount[i] = this.Alpha;
+                    }
+
+                    Parallel.For(
+                        minY,
+                        maxY,
+                        this.ParallelOptions,
+                        y =>
                             {
-                                Vector4 backgroundVector = sourcePixels[x, y].ToVector4();
-                                Vector4 sourceVector = toBlendPixels[x - minX, y - minY].ToVector4();
-
-                                // Lerping colors is dependent on the alpha of the blended color
-                                backgroundVector = Vector4BlendTransforms.PremultipliedLerp(backgroundVector, sourceVector, alpha);
-
-                                TPixel packed = default(TPixel);
-                                packed.PackFromVector4(backgroundVector);
-                                sourcePixels[x, y] = packed;
-                            }
-                        });
+                                BufferSpan<TPixel> background = sourcePixels.GetRowSpan(y).Slice(minX, width);
+                                BufferSpan<TPixel> foreground = toBlendPixels.GetRowSpan(y - this.Location.Y).Slice(0, width);
+                                this.blender.Blend(background, background, foreground, amount);
+                            });
+                }
+            }
+            finally
+            {
+                disposableImage?.Dispose();
             }
         }
     }

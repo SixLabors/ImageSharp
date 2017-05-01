@@ -21,11 +21,25 @@ namespace ImageSharp
         /// <typeparam name="TPixel">The type of the color.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="brush">The details how to fill the region of interest.</param>
+        /// <param name="options">The graphics options.</param>
+        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        public static Image<TPixel> Fill<TPixel>(this Image<TPixel> source, IBrush<TPixel> brush, GraphicsOptions options)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            return source.Apply(new FillProcessor<TPixel>(brush, options));
+        }
+
+        /// <summary>
+        /// Flood fills the image with the specified brush.
+        /// </summary>
+        /// <typeparam name="TPixel">The type of the color.</typeparam>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="brush">The details how to fill the region of interest.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static Image<TPixel> Fill<TPixel>(this Image<TPixel> source, IBrush<TPixel> brush)
             where TPixel : struct, IPixel<TPixel>
         {
-            return source.Apply(new FillProcessor<TPixel>(brush));
+            return source.Fill(brush, GraphicsOptions.Default);
         }
 
         /// <summary>

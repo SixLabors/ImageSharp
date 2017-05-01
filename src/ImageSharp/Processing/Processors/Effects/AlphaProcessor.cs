@@ -21,26 +21,24 @@ namespace ImageSharp.Processing.Processors
         /// <summary>
         /// Initializes a new instance of the <see cref="AlphaProcessor{TPixel}"/> class.
         /// </summary>
-        /// <param name="percent">The percentage to adjust the opacity of the image. Must be between 0 and 100.</param>
+        /// <param name="percent">The percentage to adjust the opacity of the image. Must be between 0 and 1.</param>
         /// <exception cref="System.ArgumentException">
-        /// <paramref name="percent"/> is less than 0 or is greater than 100.
+        /// <paramref name="percent"/> is less than 0 or is greater than 1.
         /// </exception>
-        public AlphaProcessor(int percent)
+        public AlphaProcessor(float percent)
         {
-            Guard.MustBeBetweenOrEqualTo(percent, 0, 100, nameof(percent));
+            Guard.MustBeBetweenOrEqualTo(percent, 0, 1, nameof(percent));
             this.Value = percent;
         }
 
         /// <summary>
         /// Gets the alpha value.
         /// </summary>
-        public int Value { get; }
+        public float Value { get; }
 
         /// <inheritdoc/>
         protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
         {
-            float alpha = this.Value / 100F;
-
             int startY = sourceRectangle.Y;
             int endY = sourceRectangle.Bottom;
             int startX = sourceRectangle.X;
@@ -63,7 +61,7 @@ namespace ImageSharp.Processing.Processors
                 startY = 0;
             }
 
-            Vector4 alphaVector = new Vector4(1, 1, 1, alpha);
+            Vector4 alphaVector = new Vector4(1, 1, 1, this.Value);
 
             using (PixelAccessor<TPixel> sourcePixels = source.Lock())
             {

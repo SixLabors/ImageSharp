@@ -54,9 +54,9 @@ namespace ImageSharp.Drawing.Brushes
         public TPixel TargeTPixel { get; }
 
         /// <inheritdoc />
-        public BrushApplicator<TPixel> CreateApplicator(PixelAccessor<TPixel> sourcePixels, RectangleF region)
+        public BrushApplicator<TPixel> CreateApplicator(PixelAccessor<TPixel> sourcePixels, RectangleF region, GraphicsOptions options)
         {
-            return new RecolorBrushApplicator(sourcePixels, this.SourceColor, this.TargeTPixel, this.Threshold);
+            return new RecolorBrushApplicator(sourcePixels, this.SourceColor, this.TargeTPixel, this.Threshold, options);
         }
 
         /// <summary>
@@ -72,25 +72,29 @@ namespace ImageSharp.Drawing.Brushes
             /// <summary>
             /// The target color.
             /// </summary>
-            private readonly Vector4 targeTPixel;
+            private readonly Vector4 targetColor;
 
             /// <summary>
             /// The threshold.
             /// </summary>
             private readonly float threshold;
 
+            private readonly TPixel targetColorPixel;
+
             /// <summary>
             /// Initializes a new instance of the <see cref="RecolorBrushApplicator" /> class.
             /// </summary>
             /// <param name="sourcePixels">The source pixels.</param>
             /// <param name="sourceColor">Color of the source.</param>
-            /// <param name="targeTPixel">Color of the target.</param>
+            /// <param name="targetColor">Color of the target.</param>
             /// <param name="threshold">The threshold .</param>
-            public RecolorBrushApplicator(PixelAccessor<TPixel> sourcePixels, TPixel sourceColor, TPixel targeTPixel, float threshold)
-                : base(sourcePixels)
+            /// <param name="options">The options</param>
+            public RecolorBrushApplicator(PixelAccessor<TPixel> sourcePixels, TPixel sourceColor, TPixel targetColor, float threshold, GraphicsOptions options)
+                : base(sourcePixels, options)
             {
                 this.sourceColor = sourceColor.ToVector4();
-                this.targeTPixel = targeTPixel.ToVector4();
+                this.targetColor = targetColor.ToVector4();
+                this.targetColorPixel = targetColor;
 
                 // Lets hack a min max extreams for a color space by letteing the IPackedPixel clamp our values to something in the correct spaces :)
                 TPixel maxColor = default(TPixel);
@@ -119,11 +123,10 @@ namespace ImageSharp.Drawing.Brushes
                     if (distance <= this.threshold)
                     {
                         float lerpAmount = (this.threshold - distance) / this.threshold;
-                        Vector4 blended = Vector4BlendTransforms.PremultipliedLerp(
-                            background,
-                            this.targeTPixel,
+                        return this.Blender.Blend(
+                            result,
+                            this.targetColorPixel,
                             lerpAmount);
-                        result.PackFromVector4(blended);
                     }
 
                     return result;
@@ -136,42 +139,24 @@ namespace ImageSharp.Drawing.Brushes
             }
 
             /// <inheritdoc />
-            internal override void Apply(float[] scanlineBuffer, int scanlineWidth, int offset, int x, int y)
+            internal override void Apply(BufferSpan<float> scanline, int x, int y)
             {
-                Guard.MustBeGreaterThanOrEqualTo(scanlineBuffer.Length, offset + scanlineWidth, nameof(scanlineWidth));
-
-                using (Buffer<float> buffer = new Buffer<float>(scanlineBuffer))
+                using (Buffer<float> amountBuffer = new Buffer<float>(scanline.Length))
+                using (Buffer<TPixel> overlay = new Buffer<TPixel>(scanline.Length))
                 {
-                    BufferSpan<float> slice = buffer.Slice(offset);
-
-                    for (int xPos = 0; xPos < scanlineWidth; xPos++)
+                    for (int i = 0; i < scanline.Length; i++)
                     {
-                        int targetX = xPos + x;
-                        int targetY = y;
+                        amountBuffer[i] = scanline[i] * this.Options.BlendPercentage;
 
-                        float opacity = slice[xPos];
-                        if (opacity > Constants.Epsilon)
-                        {
-                            Vector4 backgroundVector = this.Target[targetX, targetY].ToVector4();
+                        int offsetX = x + i;
 
-                            Vector4 sourceVector = backgroundVector;
-                            float distance = Vector4.DistanceSquared(sourceVector, this.sourceColor);
-                            if (distance <= this.threshold)
-                            {
-                                float lerpAmount = (this.threshold - distance) / this.threshold;
-                                sourceVector = Vector4BlendTransforms.PremultipliedLerp(
-                                    sourceVector,
-                                    this.targeTPixel,
-                                    lerpAmount);
-
-                                Vector4 finalColor = Vector4BlendTransforms.PremultipliedLerp(backgroundVector, sourceVector, opacity);
-
-                                TPixel packed = default(TPixel);
-                                packed.PackFromVector4(finalColor);
-                                this.Target[targetX, targetY] = packed;
-                            }
-                        }
+                        // no doubt this one can be optermised further but I can't imagine its
+                        // actually being used and can probably be removed/interalised for now
+                        overlay[i] = this[offsetX, y];
                     }
+
+                    BufferSpan<TPixel> destinationRow = this.Target.GetRowSpan(x, y).Slice(0, scanline.Length);
+                    this.Blender.Blend(destinationRow, destinationRow, overlay, amountBuffer);
                 }
             }
         }

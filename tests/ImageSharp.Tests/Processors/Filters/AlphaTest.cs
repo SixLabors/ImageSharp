@@ -11,11 +11,11 @@ namespace ImageSharp.Tests
 
     public class AlphaTest : FileTestBase
     {
-        public static readonly TheoryData<int> AlphaValues
-        = new TheoryData<int>
+        public static readonly TheoryData<float> AlphaValues
+        = new TheoryData<float>
         {
-            20 ,
-            80
+            20/100f ,
+            80/100f
         };
 
         [Theory]

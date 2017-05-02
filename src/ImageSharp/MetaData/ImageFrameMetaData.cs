@@ -5,6 +5,8 @@
 
 namespace ImageSharp
 {
+    using ImageSharp.Formats;
+
     /// <summary>
     /// Encapsulates the metadata of an image frame.
     /// </summary>
@@ -29,14 +31,13 @@ namespace ImageSharp
             DebugGuard.NotNull(other, nameof(other));
 
             this.FrameDelay = other.FrameDelay;
+            this.DisposalMethod = other.DisposalMethod;
         }
 
-        /// <summary>
-        /// Gets or sets the frame delay for animated images.
-        /// If not 0, this field specifies the number of hundredths (1/100) of a second to
-        /// wait before continuing with the processing of the Data Stream.
-        /// The clock starts ticking immediately after the graphic is rendered.
-        /// </summary>
+        /// <inheritdoc/>
         public int FrameDelay { get; set; }
+
+        /// <inheritdoc/>
+        public DisposalMethod DisposalMethod { get; set; }
     }
 }

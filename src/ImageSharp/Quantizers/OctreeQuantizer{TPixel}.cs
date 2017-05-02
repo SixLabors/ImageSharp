@@ -60,6 +60,7 @@ namespace ImageSharp.Quantizers
         {
             this.colors = maxColors.Clamp(1, 255);
             this.octree = new Octree(this.GetBitsNeededForColorDepth(this.colors));
+            this.palette = null;
 
             return base.Quantize(image, this.colors);
         }
@@ -137,7 +138,7 @@ namespace ImageSharp.Quantizers
             {
                 // The colors have changed so we need to use Euclidean distance caclulation to find the closest value.
                 // This palette can never be null here.
-                return this.GetClosesTPixel(pixel, this.palette, this.colorMap);
+                return this.GetClosestPixel(pixel, this.palette, this.colorMap);
             }
 
             return (byte)this.octree.GetPaletteIndex(pixel, this.pixelBuffer);

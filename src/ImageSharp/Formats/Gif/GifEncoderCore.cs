@@ -36,6 +36,11 @@ namespace ImageSharp.Formats
         private int bitDepth;
 
         /// <summary>
+        /// Whether the current image has multiple frames.
+        /// </summary>
+        private bool hasFrames;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="GifEncoderCore"/> class.
         /// </summary>
         /// <param name="options">The options for the encoder.</param>
@@ -74,7 +79,13 @@ namespace ImageSharp.Formats
             this.bitDepth = ImageMaths.GetBitsNeededForColorDepth(quality);
 
             // Quantize the image returning a palette.
-            QuantizedImage<TPixel> quantized = ((IQuantizer<TPixel>)this.Quantizer).Quantize(image, quality);
+            this.hasFrames = image.Frames.Any();
+
+            // Dithering when animating gifs is a bad idea as we introduce pixel tearing across frames.
+            IQuantizer<TPixel> ditheredQuantizer = (IQuantizer<TPixel>)this.Quantizer;
+            ditheredQuantizer.Dither = !this.hasFrames;
+
+            QuantizedImage<TPixel> quantized = ditheredQuantizer.Quantize(image, quality);
 
             int index = this.GetTransparentIndex(quantized);
 
@@ -92,7 +103,7 @@ namespace ImageSharp.Formats
             this.WriteImageData(quantized, writer);
 
             // Write additional frames.
-            if (image.Frames.Any())
+            if (this.hasFrames)
             {
                 this.WriteApplicationExtension(writer, image.MetaData.RepeatCount, image.Frames.Count);
 
@@ -100,7 +111,7 @@ namespace ImageSharp.Formats
                 for (int i = 0; i < image.Frames.Count; i++)
                 {
                     ImageFrame<TPixel> frame = image.Frames[i];
-                    QuantizedImage<TPixel> quantizedFrame = ((IQuantizer<TPixel>)this.Quantizer).Quantize(frame, quality);
+                    QuantizedImage<TPixel> quantizedFrame = ditheredQuantizer.Quantize(frame, quality);
 
                     this.WriteGraphicalControlExtension(frame, writer, this.GetTransparentIndex(quantizedFrame));
                     this.WriteImageDescriptor(frame, writer);
@@ -180,7 +191,7 @@ namespace ImageSharp.Formats
             {
                 Width = (short)image.Width,
                 Height = (short)image.Height,
-                GlobalColorTableFlag = false, // Always false for now.
+                GlobalColorTableFlag = false, // TODO: Always false for now.
                 GlobalColorTableSize = this.bitDepth - 1,
                 BackgroundColorIndex = (byte)tranparencyIndex
             };
@@ -224,8 +235,7 @@ namespace ImageSharp.Formats
                 writer.Write((byte)1); // Data sub-block index (always 1)
 
                 // 0 means loop indefinitely. Count is set as play n + 1 times.
-                repeatCount = (ushort)(Math.Max((ushort)0, repeatCount) - 1);
-
+                repeatCount = (ushort)Math.Max(0, repeatCount - 1);
                 writer.Write(repeatCount); // Repeat count for images.
 
                 writer.Write(GifConstants.Terminator); // Terminator
@@ -302,16 +312,10 @@ namespace ImageSharp.Formats
         private void WriteGraphicalControlExtension<TPixel>(ImageBase<TPixel> image, IMetaData metaData, EndianBinaryWriter writer, int transparencyIndex)
             where TPixel : struct, IPixel<TPixel>
         {
-            // TODO: Check transparency logic.
-            bool hasTransparent = transparencyIndex < 255;
-            DisposalMethod disposalMethod = hasTransparent
-                ? DisposalMethod.RestoreToBackground
-                : DisposalMethod.Unspecified;
-
             GifGraphicsControlExtension extension = new GifGraphicsControlExtension()
             {
-                DisposalMethod = disposalMethod,
-                TransparencyFlag = hasTransparent,
+                DisposalMethod = metaData.DisposalMethod,
+                TransparencyFlag = transparencyIndex < 255,
                 TransparencyIndex = transparencyIndex,
                 DelayTime = metaData.FrameDelay
             };

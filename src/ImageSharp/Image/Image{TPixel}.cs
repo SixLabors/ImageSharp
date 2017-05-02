@@ -79,7 +79,6 @@ namespace ImageSharp
         public Image(ImageBase<TPixel> other)
             : base(other)
         {
-            this.MetaData = new ImageMetaData();
         }
 
         /// <summary>
@@ -107,7 +106,7 @@ namespace ImageSharp
         /// <summary>
         /// Gets the meta data of the image.
         /// </summary>
-        public ImageMetaData MetaData { get; private set; }
+        public ImageMetaData MetaData { get; private set; } = new ImageMetaData();
 
         /// <summary>
         /// Gets the width of the image in inches. It is calculated as the width of the image

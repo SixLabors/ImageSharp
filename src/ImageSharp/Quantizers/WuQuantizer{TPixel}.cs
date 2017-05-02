@@ -138,6 +138,7 @@ namespace ImageSharp.Quantizers
             Guard.NotNull(image, nameof(image));
 
             this.colors = maxColors.Clamp(1, 255);
+            this.palette = null;
 
             try
             {
@@ -832,7 +833,7 @@ namespace ImageSharp.Quantizers
             {
                 // The colors have changed so we need to use Euclidean distance caclulation to find the closest value.
                 // This palette can never be null here.
-                return this.GetClosesTPixel(pixel, this.palette, this.colorMap);
+                return this.GetClosestPixel(pixel, this.palette, this.colorMap);
             }
 
             // Expected order r->g->b->a

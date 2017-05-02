@@ -15,7 +15,7 @@ namespace ImageSharp.Quantizers
     /// Encapsulates methods to calculate the color palette of an image.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    public abstract class Quantizer<TPixel> : IDitheredQuantizer<TPixel>
+    public abstract class Quantizer<TPixel> : IQuantizer<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
@@ -144,7 +144,7 @@ namespace ImageSharp.Quantizers
         /// <param name="cache">The cache to store the result in.</param>
         /// <returns>The <see cref="byte"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected byte GetClosesTPixel(TPixel pixel, TPixel[] colorPalette, Dictionary<TPixel, byte> cache)
+        protected byte GetClosestPixel(TPixel pixel, TPixel[] colorPalette, Dictionary<TPixel, byte> cache)
         {
             // Check if the color is in the lookup table
             if (cache.ContainsKey(pixel))

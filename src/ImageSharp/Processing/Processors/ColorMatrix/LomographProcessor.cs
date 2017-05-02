@@ -18,6 +18,16 @@ namespace ImageSharp.Processing.Processors
         where TPixel : struct, IPixel<TPixel>
     {
         private static readonly TPixel VeryDarkGreen = ColorBuilder<TPixel>.FromRGBA(0, 10, 0, 255);
+        private GraphicsOptions options;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="LomographProcessor{TPixel}" /> class.
+        /// </summary>
+        /// <param name="options">The options effecting blending and composition.</param>
+        public LomographProcessor(GraphicsOptions options)
+        {
+            this.options = options;
+        }
 
         /// <inheritdoc/>
         public override Matrix4x4 Matrix => new Matrix4x4()
@@ -34,7 +44,7 @@ namespace ImageSharp.Processing.Processors
         /// <inheritdoc/>
         protected override void AfterApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
         {
-            new VignetteProcessor<TPixel>(VeryDarkGreen).Apply(source, sourceRectangle);
+            new VignetteProcessor<TPixel>(VeryDarkGreen, this.options).Apply(source, sourceRectangle);
         }
     }
 }

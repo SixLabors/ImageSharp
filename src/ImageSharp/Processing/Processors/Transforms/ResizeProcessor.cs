@@ -123,7 +123,7 @@ namespace ImageSharp.Processing.Processors
                                 {
                                     BufferSpan<TPixel> sourceRow = sourcePixels.GetRowSpan(y);
 
-                                    BulkPixelOperations<TPixel>.Instance.ToVector4(
+                                    PixelOperations<TPixel>.Instance.ToVector4(
                                         sourceRow,
                                         tempRowBuffer,
                                         sourceRow.Length);

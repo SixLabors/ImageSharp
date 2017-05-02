@@ -38,7 +38,7 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Whether the current image has multiple frames.
         /// </summary>
-        private bool hasMultipleFrames;
+        private bool hasFrames;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="GifEncoderCore"/> class.
@@ -79,11 +79,11 @@ namespace ImageSharp.Formats
             this.bitDepth = ImageMaths.GetBitsNeededForColorDepth(quality);
 
             // Quantize the image returning a palette.
-            this.hasMultipleFrames = image.Frames.Any();
+            this.hasFrames = image.Frames.Any();
 
             // Dithering when animating gifs is a bad idea as we introduce pixel tearing across frames.
             IQuantizer<TPixel> ditheredQuantizer = (IQuantizer<TPixel>)this.Quantizer;
-            ditheredQuantizer.Dither = !this.hasMultipleFrames;
+            ditheredQuantizer.Dither = !this.hasFrames;
 
             QuantizedImage<TPixel> quantized = ditheredQuantizer.Quantize(image, quality);
 
@@ -103,7 +103,7 @@ namespace ImageSharp.Formats
             this.WriteImageData(quantized, writer);
 
             // Write additional frames.
-            if (this.hasMultipleFrames)
+            if (this.hasFrames)
             {
                 this.WriteApplicationExtension(writer, image.MetaData.RepeatCount, image.Frames.Count);
 

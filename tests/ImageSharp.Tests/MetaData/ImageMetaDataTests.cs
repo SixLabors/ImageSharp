@@ -5,6 +5,7 @@
 
 namespace ImageSharp.Tests
 {
+    using ImageSharp.Formats;
     using Xunit;
 
     /// <summary>
@@ -27,6 +28,7 @@ namespace ImageSharp.Tests
             metaData.Properties.Add(imageProperty);
             metaData.Quality = 24;
             metaData.RepeatCount = 1;
+            metaData.DisposalMethod = DisposalMethod.RestoreToBackground;
 
             ImageMetaData clone = new ImageMetaData(metaData);
 
@@ -37,6 +39,7 @@ namespace ImageSharp.Tests
             Assert.Equal(imageProperty, clone.Properties[0]);
             Assert.Equal(24, clone.Quality);
             Assert.Equal(1, clone.RepeatCount);
+            Assert.Equal(DisposalMethod.RestoreToBackground, clone.DisposalMethod);
         }
 
         [Fact]

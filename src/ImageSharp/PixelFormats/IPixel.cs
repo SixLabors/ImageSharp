@@ -16,11 +16,11 @@ namespace ImageSharp.PixelFormats
         where TSelf : struct, IPixel<TSelf>
     {
         /// <summary>
-        /// Creates a <see cref="BulkPixelOperations{TPixel}"/> instance for this pixel type.
-        /// This method is not intended to be consumed directly. Use <see cref="BulkPixelOperations{TPixel}.Instance"/> instead.
+        /// Creates a <see cref="PixelOperations{TPixel}"/> instance for this pixel type.
+        /// This method is not intended to be consumed directly. Use <see cref="PixelOperations{TPixel}.Instance"/> instead.
         /// </summary>
-        /// <returns>The <see cref="BulkPixelOperations{TPixel}"/> instance.</returns>
-        BulkPixelOperations<TSelf> CreateBulkOperations();
+        /// <returns>The <see cref="PixelOperations{TPixel}"/> instance.</returns>
+        PixelOperations<TSelf> CreateBulkOperations();
     }
 
     /// <summary>

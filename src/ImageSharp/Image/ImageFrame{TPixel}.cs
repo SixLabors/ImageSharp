@@ -34,6 +34,16 @@ namespace ImageSharp
         /// Initializes a new instance of the <see cref="ImageFrame{TPixel}"/> class.
         /// </summary>
         /// <param name="image">The image to create the frame from.</param>
+        public ImageFrame(ImageFrame<TPixel> image)
+            : base(image)
+        {
+            this.CopyProperties(image);
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ImageFrame{TPixel}"/> class.
+        /// </summary>
+        /// <param name="image">The image to create the frame from.</param>
         public ImageFrame(ImageBase<TPixel> image)
             : base(image)
         {

@@ -2,7 +2,7 @@
   <PropertyGroup>
     <Description>An extension to ImageSharp that allows the drawing of images, paths, and text.</Description>
     <AssemblyTitle>ImageSharp.Drawing</AssemblyTitle>
-    <VersionPrefix>1.0.0-alpha7</VersionPrefix>
+    <VersionPrefix>1.0.0-alpha8</VersionPrefix>
     <Authors>James Jackson-South and contributors</Authors>
     <TargetFramework>netstandard1.1</TargetFramework>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>

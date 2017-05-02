@@ -9,7 +9,7 @@ namespace ImageSharp.Quantizers
     using ImageSharp.PixelFormats;
 
     /// <summary>
-    /// Provides methods for allowing quantization of images pixels.
+    /// Provides methods for for allowing quantization of images pixels with configurable dithering.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     public interface IQuantizer<TPixel> : IQuantizer
@@ -27,11 +27,9 @@ namespace ImageSharp.Quantizers
     }
 
     /// <summary>
-    /// Provides methods for allowing dithering of quantized image pixels.
+    /// Provides methods for allowing quantization of images pixels with configurable dithering.
     /// </summary>
-    /// <typeparam name="TPixel">The pixel format.</typeparam>
-    public interface IDitheredQuantizer<TPixel> : IQuantizer<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+    public interface IQuantizer
     {
         /// <summary>
         /// Gets or sets a value indicating whether to apply dithering to the output image.
@@ -42,12 +40,5 @@ namespace ImageSharp.Quantizers
         /// Gets or sets the dithering algorithm to apply to the output image.
         /// </summary>
         IErrorDiffuser DitherType { get; set; }
-    }
-
-    /// <summary>
-    /// Provides methods for allowing quantization of images pixels.
-    /// </summary>
-    public interface IQuantizer
-    {
     }
 }

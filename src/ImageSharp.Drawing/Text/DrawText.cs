@@ -181,7 +181,8 @@ namespace ImageSharp
             {
                 ApplyKerning = options.ApplyKerning,
                 TabWidth = options.TabWidth,
-                WrappingWidth = options.WrapTextWidth
+                WrappingWidth = options.WrapTextWidth,
+                Alignment = options.TextAlignment
             };
 
             renderer.RenderText(text, style);

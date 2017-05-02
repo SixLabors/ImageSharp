@@ -5,13 +5,9 @@
 
 namespace ImageSharp
 {
-    using System;
     using System.Collections.Generic;
-<<<<<<< HEAD
     using System.Linq;
-=======
     using ImageSharp.Formats;
->>>>>>> refs/remotes/origin/master
 
     /// <summary>
     /// Encapsulates the metadata of an image.

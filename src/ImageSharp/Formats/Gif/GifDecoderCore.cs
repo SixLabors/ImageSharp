@@ -514,7 +514,7 @@ namespace ImageSharp.Formats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void SetFrameMetaData(IMetaData metaData)
         {
-            if (this.graphicsControlExtension != null && this.graphicsControlExtension.DelayTime > 0)
+            if (this.graphicsControlExtension != null)
             {
                 if (this.graphicsControlExtension.DelayTime > 0)
                 {

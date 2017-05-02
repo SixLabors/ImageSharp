@@ -26,7 +26,7 @@ namespace ImageSharp
         public static Image<TPixel> Lomograph<TPixel>(this Image<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
         {
-            return Lomograph(source, source.Bounds);
+            return Lomograph(source, source.Bounds, GraphicsOptions.Default);
         }
 
         /// <summary>
@@ -41,7 +41,36 @@ namespace ImageSharp
         public static Image<TPixel> Lomograph<TPixel>(this Image<TPixel> source, Rectangle rectangle)
             where TPixel : struct, IPixel<TPixel>
         {
-            source.ApplyProcessor(new LomographProcessor<TPixel>(), rectangle);
+            return Lomograph(source, rectangle, GraphicsOptions.Default);
+        }
+
+        /// <summary>
+        /// Alters the colors of the image recreating an old Lomograph camera effect.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="options">The options effecting pixel blending.</param>
+        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        public static Image<TPixel> Lomograph<TPixel>(this Image<TPixel> source, GraphicsOptions options)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            return Lomograph(source, source.Bounds, options);
+        }
+
+        /// <summary>
+        /// Alters the colors of the image recreating an old Lomograph camera effect.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="rectangle">
+        /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
+        /// </param>
+        /// <param name="options">The options effecting pixel blending.</param>
+        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        public static Image<TPixel> Lomograph<TPixel>(this Image<TPixel> source, Rectangle rectangle, GraphicsOptions options)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            source.ApplyProcessor(new LomographProcessor<TPixel>(options), rectangle);
             return source;
         }
     }

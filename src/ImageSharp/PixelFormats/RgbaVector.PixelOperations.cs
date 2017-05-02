@@ -13,9 +13,9 @@ namespace ImageSharp.PixelFormats
     public partial struct RgbaVector
     {
         /// <summary>
-        /// <see cref="BulkPixelOperations{TPixel}"/> implementation optimized for <see cref="RgbaVector"/>.
+        /// <see cref="PixelOperations{TPixel}"/> implementation optimized for <see cref="RgbaVector"/>.
         /// </summary>
-        internal class BulkOperations : BulkPixelOperations<RgbaVector>
+        internal class PixelOperations : PixelOperations<RgbaVector>
         {
             /// <inheritdoc />
             internal override unsafe void ToVector4(BufferSpan<RgbaVector> sourceColors, BufferSpan<Vector4> destVectors, int count)

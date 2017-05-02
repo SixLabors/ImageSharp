@@ -623,13 +623,13 @@ namespace ImageSharp.Formats
 
                 case PngColorType.Rgb:
 
-                    BulkPixelOperations<TPixel>.Instance.PackFromXyzBytes(scanlineBuffer, pixelBuffer, this.header.Width);
+                    PixelOperations<TPixel>.Instance.PackFromXyzBytes(scanlineBuffer, pixelBuffer, this.header.Width);
 
                     break;
 
                 case PngColorType.RgbWithAlpha:
 
-                    BulkPixelOperations<TPixel>.Instance.PackFromXyzwBytes(scanlineBuffer, pixelBuffer, this.header.Width);
+                    PixelOperations<TPixel>.Instance.PackFromXyzwBytes(scanlineBuffer, pixelBuffer, this.header.Width);
 
                     break;
             }

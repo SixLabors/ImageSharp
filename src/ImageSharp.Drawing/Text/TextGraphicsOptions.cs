@@ -2,9 +2,11 @@
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
-
 namespace ImageSharp.Drawing
 {
+    using ImageSharp.PixelFormats;
+    using SixLabors.Fonts;
+
     /// <summary>
     /// Options for influencing the drawing functions.
     /// </summary>
@@ -15,36 +17,23 @@ namespace ImageSharp.Drawing
         /// </summary>
         public static readonly TextGraphicsOptions Default = new TextGraphicsOptions(true);
 
-        /// <summary>
-        /// Whether antialiasing should be applied.
-        /// </summary>
-        public bool Antialias;
+        private float? blendPercentage;
 
-        /// <summary>
-        /// The number of subpixels to use while rendering with antialiasing enabled.
-        /// </summary>
-        public int AntialiasSubpixelDepth;
+        private int? antialiasSubpixelDepth;
 
-        /// <summary>
-        /// Whether the text should be drawing with kerning enabled.
-        /// </summary>
-        public bool ApplyKerning;
+        private bool? antialias;
 
-        /// <summary>
-        /// The number of space widths a tab should lock to.
-        /// </summary>
-        public float TabWidth;
+        private bool? applyKerning;
 
-        /// <summary>
-        /// Flag weather to use the current image resultion to for point size scaling.
-        /// If this is [false] the text renders at 72dpi otherwise it renders at Image resolution
-        /// </summary>
-        public bool UseImageResolution;
+        private float? tabWidth;
 
-        /// <summary>
-        /// If greater than zero determine the width at which text should wrap.
-        /// </summary>
-        public float WrapTextWidth;
+        private PixelBlenderMode blenderMode;
+
+        private bool? useImageResolution;
+
+        private float wrapTextWidth;
+
+        private SixLabors.Fonts.TextAlignment? textAlignment;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="TextGraphicsOptions" /> struct.
@@ -52,13 +41,70 @@ namespace ImageSharp.Drawing
         /// <param name="enableAntialiasing">If set to <c>true</c> [enable antialiasing].</param>
         public TextGraphicsOptions(bool enableAntialiasing)
         {
-            this.Antialias = enableAntialiasing;
-            this.ApplyKerning = true;
-            this.TabWidth = 4;
-            this.AntialiasSubpixelDepth = 16;
-            this.UseImageResolution = false;
-            this.WrapTextWidth = 0;
+            this.applyKerning = true;
+            this.tabWidth = 4;
+            this.useImageResolution = false;
+            this.wrapTextWidth = 0;
+            this.textAlignment = SixLabors.Fonts.TextAlignment.Left;
+
+            this.antialiasSubpixelDepth = 16;
+            this.blenderMode = PixelBlenderMode.Normal;
+            this.blendPercentage = 1;
+            this.antialias = enableAntialiasing;
         }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether antialiasing should be applied.
+        /// </summary>
+        public bool Antialias { get => this.antialias ?? true; set => this.antialias = value; }
+
+        /// <summary>
+        /// Gets or sets a value indicating the number of subpixels to use while rendering with antialiasing enabled.
+        /// </summary>
+        public int AntialiasSubpixelDepth { get => this.antialiasSubpixelDepth ?? 16; set => this.antialiasSubpixelDepth = value; }
+
+        /// <summary>
+        /// Gets or sets a value indicating the blending percentage to apply to the drawing operation
+        /// </summary>
+        public float BlendPercentage { get => (this.blendPercentage ?? 1).Clamp(0, 1); set => this.blendPercentage = value; }
+
+        // In the future we could expose a PixelBlender<TPixel> directly on here
+        // or some forms of PixelBlender factory for each pixel type. Will need
+        // some API thought post V1.
+
+        /// <summary>
+        /// Gets or sets a value indicating the blending percentage to apply to the drawing operation
+        /// </summary>
+        public PixelBlenderMode BlenderMode { get => this.blenderMode; set => this.blenderMode = value; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the text should be drawing with kerning enabled.
+        /// </summary>
+        public bool ApplyKerning { get => this.applyKerning ?? true; set => this.applyKerning = value; }
+
+        /// <summary>
+        /// Gets or sets a value indicating the number of space widths a tab should lock to.
+        /// </summary>
+        public float TabWidth { get => this.tabWidth ?? 4; set => this.tabWidth = value; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether to use the current image resultion to for point size scaling.
+        /// If this is [false] the text renders at 72dpi otherwise it renders at Image resolution
+        /// </summary>
+        public bool UseImageResolution { get => this.useImageResolution ?? false; set => this.useImageResolution = value; }
+
+        /// <summary>
+        /// Gets or sets a value indicating if greater than zero determine the width at which text should wrap.
+        /// </summary>
+        public float WrapTextWidth { get => this.wrapTextWidth; set => this.wrapTextWidth = value; }
+
+        /// <summary>
+        /// Gets or sets a value indicating how to align the text relative to the rendering space.
+        /// If <see cref="WrapTextWidth"/> is greater than zero it will align relative to the space
+        /// defined by the location and width, if <see cref="WrapTextWidth"/> equals zero, and thus
+        /// wrapping disabled, then the alignment is relative to the drawing location.
+        /// </summary>
+        public TextAlignment TextAlignment { get => this.textAlignment ?? TextAlignment.Left; set => this.textAlignment = value; }
 
         /// <summary>
         /// Performs an implicit conversion from <see cref="GraphicsOptions"/> to <see cref="TextGraphicsOptions"/>.
@@ -71,7 +117,9 @@ namespace ImageSharp.Drawing
         {
             return new TextGraphicsOptions(options.Antialias)
             {
-                AntialiasSubpixelDepth = options.AntialiasSubpixelDepth
+                AntialiasSubpixelDepth = options.AntialiasSubpixelDepth,
+                blendPercentage = options.BlendPercentage,
+                blenderMode = options.BlenderMode
             };
         }
 
@@ -86,7 +134,9 @@ namespace ImageSharp.Drawing
         {
             return new GraphicsOptions(options.Antialias)
             {
-                AntialiasSubpixelDepth = options.AntialiasSubpixelDepth
+                AntialiasSubpixelDepth = options.AntialiasSubpixelDepth,
+                BlenderMode = options.BlenderMode,
+                BlendPercentage = options.BlendPercentage
             };
         }
     }

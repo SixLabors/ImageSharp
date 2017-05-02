@@ -55,7 +55,7 @@ namespace ImageSharp.Drawing.Processors
         protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
         {
             using (PixelAccessor<TPixel> sourcePixels = source.Lock())
-            using (PenApplicator<TPixel> applicator = this.Pen.CreateApplicator(sourcePixels, this.Path.Bounds))
+            using (PenApplicator<TPixel> applicator = this.Pen.CreateApplicator(sourcePixels, this.Path.Bounds, this.Options))
             {
                 Rectangle rect = RectangleF.Ceiling(applicator.RequiredRegion);
 
@@ -86,37 +86,34 @@ namespace ImageSharp.Drawing.Processors
                     polyStartY = 0;
                 }
 
-                Parallel.For(
-                    minY,
-                    maxY,
-                    this.ParallelOptions,
-                    y =>
-                    {
-                        int offsetY = y - polyStartY;
+                int width = maxX - minX;
+                PixelBlender<TPixel> blender = PixelOperations<TPixel>.Instance.GetPixelBlender(this.Options.BlenderMode);
 
-                        for (int x = minX; x < maxX; x++)
+                Parallel.For(
+                minY,
+                maxY,
+                this.ParallelOptions,
+                y =>
+                {
+                    int offsetY = y - polyStartY;
+
+                    using (Buffer<float> amount = new Buffer<float>(width))
+                    using (Buffer<TPixel> colors = new Buffer<TPixel>(width))
+                    {
+                        for (int i = 0; i < width; i++)
                         {
-                            // TODO add find intersections code to skip and scan large regions of this.
+                            int x = i + minX;
                             int offsetX = x - startX;
                             PointInfo info = this.Path.GetPointInfo(offsetX, offsetY);
-
                             ColoredPointInfo<TPixel> color = applicator.GetColor(offsetX, offsetY, info);
-
-                            float opacity = this.Opacity(color.DistanceFromElement);
-
-                            if (opacity > Constants.Epsilon)
-                            {
-                                Vector4 backgroundVector = sourcePixels[offsetX, offsetY].ToVector4();
-                                Vector4 sourceVector = color.Color.ToVector4();
-
-                                Vector4 finalColor = Vector4BlendTransforms.PremultipliedLerp(backgroundVector, sourceVector, opacity);
-
-                                TPixel packed = default(TPixel);
-                                packed.PackFromVector4(finalColor);
-                                sourcePixels[offsetX, offsetY] = packed;
-                            }
+                            amount[i] = (this.Opacity(color.DistanceFromElement) * this.Options.BlendPercentage).Clamp(0, 1);
+                            colors[i] = color.Color;
                         }
-                    });
+
+                        BufferSpan<TPixel> destination = sourcePixels.GetRowSpan(offsetY).Slice(minX - startX, width);
+                        blender.Blend(destination, destination, colors, amount);
+                    }
+                });
             }
         }
 

@@ -21,15 +21,30 @@ namespace ImageSharp.Drawing.Processors
         /// Initializes a new instance of the <see cref="BrushApplicator{TPixel}"/> class.
         /// </summary>
         /// <param name="target">The target.</param>
-        internal BrushApplicator(PixelAccessor<TPixel> target)
+        /// <param name="options">The options.</param>
+        internal BrushApplicator(PixelAccessor<TPixel> target, GraphicsOptions options)
         {
             this.Target = target;
+
+            this.Options = options;
+
+            this.Blender = PixelOperations<TPixel>.Instance.GetPixelBlender(options.BlenderMode);
         }
+
+        /// <summary>
+        /// Gets the blendder
+        /// </summary>
+        internal PixelBlender<TPixel> Blender { get; }
 
         /// <summary>
         /// Gets the destinaion
         /// </summary>
         protected PixelAccessor<TPixel> Target { get; }
+
+        /// <summary>
+        /// Gets the blend percentage
+        /// </summary>
+        protected GraphicsOptions Options { get; private set; }
 
         /// <summary>
         /// Gets the color for a single pixel.
@@ -45,39 +60,27 @@ namespace ImageSharp.Drawing.Processors
         /// <summary>
         /// Applies the opactiy weighting for each pixel in a scanline to the target based on the pattern contained in the brush.
         /// </summary>
-        /// <param name="scanlineBuffer">The a collection of opacity values between 0 and 1 to be merged with the brushed color value before being applied to the target.</param>
-        /// <param name="scanlineWidth">The number of pixels effected by this scanline.</param>
-        /// <param name="offset">The offset fromthe begining of <paramref name="scanlineBuffer" /> the opacity data starts.</param>
+        /// <param name="scanline">The a collection of opacity values between 0 and 1 to be merged with the brushed color value before being applied to the target.</param>
         /// <param name="x">The x position in the target pixel space that the start of the scanline data corresponds to.</param>
         /// <param name="y">The y position in  the target pixel space that whole scanline corresponds to.</param>
         /// <remarks>scanlineBuffer will be > scanlineWidth but provide and offset in case we want to share a larger buffer across runs.</remarks>
-        internal virtual void Apply(float[] scanlineBuffer, int scanlineWidth, int offset, int x, int y)
+        internal virtual void Apply(BufferSpan<float> scanline, int x, int y)
         {
-            DebugGuard.MustBeGreaterThanOrEqualTo(scanlineBuffer.Length, offset + scanlineWidth, nameof(scanlineWidth));
-
-            using (Buffer<float> buffer = new Buffer<float>(scanlineBuffer))
+            using (Buffer<float> amountBuffer = new Buffer<float>(scanline.Length))
+            using (Buffer<TPixel> overlay = new Buffer<TPixel>(scanline.Length))
             {
-                BufferSpan<float> slice = buffer.Slice(offset);
-
-                for (int xPos = 0; xPos < scanlineWidth; xPos++)
+                for (int i = 0; i < scanline.Length; i++)
                 {
-                    int targetX = xPos + x;
-                    int targetY = y;
-
-                    float opacity = slice[xPos];
-                    if (opacity > Constants.Epsilon)
+                    if (this.Options.BlendPercentage < 1)
                     {
-                        Vector4 backgroundVector = this.Target[targetX, targetY].ToVector4();
-
-                        Vector4 sourceVector = this[targetX, targetY].ToVector4();
-
-                        Vector4 finalColor = Vector4BlendTransforms.PremultipliedLerp(backgroundVector, sourceVector, opacity);
-
-                        TPixel packed = default(TPixel);
-                        packed.PackFromVector4(finalColor);
-                        this.Target[targetX, targetY] = packed;
+                        amountBuffer[i] = scanline[i] * this.Options.BlendPercentage;
                     }
+
+                    overlay[i] = this[x + i, y];
                 }
+
+                BufferSpan<TPixel> destinationRow = this.Target.GetRowSpan(x, y).Slice(0, scanline.Length);
+                this.Blender.Blend(destinationRow, destinationRow, overlay, amountBuffer);
             }
         }
     }

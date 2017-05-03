@@ -88,7 +88,7 @@
         public void MathF_SinC_Is_Equal()
         {
             float f = 1.2345F;
-            float expected;
+            float expected = 1F;
             if (Math.Abs(f) > Constants.Epsilon)
             {
                 f *= (float)Math.PI;
@@ -96,11 +96,7 @@
 
                 expected = Math.Abs(sinC) < Constants.Epsilon ? 0F : sinC;
             }
-            else
-            {
-                expected = 1F;
-            }
-
+            
             Assert.Equal(MathF.SinC(1.2345F), expected);
         }
 

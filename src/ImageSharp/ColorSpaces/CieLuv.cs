@@ -1,4 +1,4 @@
-﻿// <copyright file="CieLch.cs" company="James Jackson-South">
+﻿// <copyright file="CieLuv.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -11,21 +11,23 @@ namespace ImageSharp.ColorSpaces
     using System.Runtime.CompilerServices;
 
     /// <summary>
-    /// Represents the CIE L*C*h°, cylindrical form of the CIE L*a*b* 1976 color.
-    /// <see href="https://en.wikipedia.org/wiki/Lab_color_space#Cylindrical_representation:_CIELCh_or_CIEHLC"/>
+    /// The CIE 1976 (L*, u*, v*) color space, commonly known by its abbreviation CIELUV, is a color space adopted by the International
+    /// Commission on Illumination (CIE) in 1976, as a simple-to-compute transformation of the 1931 CIE XYZ color space, but which
+    /// attempted perceptual uniformity
+    /// <see href="https://en.wikipedia.org/wiki/CIELUV"/>
     /// </summary>
-    public struct CieLch : IColorVector, IEquatable<CieLch>, IAlmostEquatable<CieLch, float>
+    public struct CieLuv : IColorVector, IEquatable<CieLuv>, IAlmostEquatable<CieLuv, float>
     {
         /// <summary>
-        /// D50 standard illuminant.
+        /// D65 standard illuminant.
         /// Used when reference white is not specified explicitly.
         /// </summary>
-        public static readonly CieXyz DefaultWhitePoint = Illuminants.D50;
+        public static readonly CieXyz DefaultWhitePoint = Illuminants.D65;
 
         /// <summary>
-        /// Represents a <see cref="CieLch"/> that has L, C, H values set to zero.
+        /// Represents a <see cref="CieLuv"/> that has L, U, and V values set to zero.
         /// </summary>
-        public static readonly CieLch Empty = default(CieLch);
+        public static readonly CieLuv Empty = default(CieLuv);
 
         /// <summary>
         /// The backing vector for SIMD support.
@@ -33,49 +35,49 @@ namespace ImageSharp.ColorSpaces
         private readonly Vector3 backingVector;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="CieLch"/> struct.
+        /// Initializes a new instance of the <see cref="CieLuv"/> struct.
         /// </summary>
         /// <param name="l">The lightness dimension.</param>
-        /// <param name="c">The chroma, relative saturation.</param>
-        /// <param name="h">The hue in degrees.</param>
+        /// <param name="u">The blue-yellow chromaticity coordinate of the given whitepoint.</param>
+        /// <param name="v">The red-green chromaticity coordinate of the given whitepoint.</param>
         /// <remarks>Uses <see cref="DefaultWhitePoint"/> as white point.</remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public CieLch(float l, float c, float h)
-            : this(new Vector3(l, c, h), DefaultWhitePoint)
+        public CieLuv(float l, float u, float v)
+            : this(new Vector3(l, u, v), DefaultWhitePoint)
         {
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="CieLch"/> struct.
+        /// Initializes a new instance of the <see cref="CieLuv"/> struct.
         /// </summary>
         /// <param name="l">The lightness dimension.</param>
-        /// <param name="c">The chroma, relative saturation.</param>
-        /// <param name="h">The hue in degrees.</param>
+        /// <param name="u">The blue-yellow chromaticity coordinate of the given whitepoint.</param>
+        /// <param name="v">The red-green chromaticity coordinate of the given whitepoint.</param>
         /// <param name="whitePoint">The reference white point. <see cref="Illuminants"/></param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public CieLch(float l, float c, float h, CieXyz whitePoint)
-            : this(new Vector3(l, c, h), whitePoint)
+        public CieLuv(float l, float u, float v, CieXyz whitePoint)
+            : this(new Vector3(l, u, v), whitePoint)
         {
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="CieLch"/> struct.
+        /// Initializes a new instance of the <see cref="CieLuv"/> struct.
         /// </summary>
-        /// <param name="vector">The vector representing the l, c, h components.</param>
+        /// <param name="vector">The vector representing the l, u, v components.</param>
         /// <remarks>Uses <see cref="DefaultWhitePoint"/> as white point.</remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public CieLch(Vector3 vector)
+        public CieLuv(Vector3 vector)
             : this(vector, DefaultWhitePoint)
         {
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="CieLch"/> struct.
+        /// Initializes a new instance of the <see cref="CieLuv"/> struct.
         /// </summary>
-        /// <param name="vector">The vector representing the l, c, h components.</param>
+        /// <param name="vector">The vector representing the l, u, v components.</param>
         /// <param name="whitePoint">The reference white point. <see cref="Illuminants"/></param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public CieLch(Vector3 vector, CieXyz whitePoint)
+        public CieLuv(Vector3 vector, CieXyz whitePoint)
             : this()
         {
             this.backingVector = vector;
@@ -92,8 +94,8 @@ namespace ImageSharp.ColorSpaces
         }
 
         /// <summary>
-        /// Gets the lightness dimension.
-        /// <remarks>A value ranging between 0 (black), 100 (diffuse white) or higher (specular white).</remarks>
+        /// Gets the lightness dimension
+        /// <remarks>A value usually ranging between 0 and 100.</remarks>
         /// </summary>
         public float L
         {
@@ -102,27 +104,27 @@ namespace ImageSharp.ColorSpaces
         }
 
         /// <summary>
-        /// Gets the a chroma component.
-        /// <remarks>A value ranging from 0 to 100.</remarks>
+        /// Gets the blue-yellow chromaticity coordinate of the given whitepoint.
+        /// <remarks>A value usually ranging between -100 and 100.</remarks>
         /// </summary>
-        public float C
+        public float U
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get => this.backingVector.Y;
         }
 
         /// <summary>
-        /// Gets the h° hue component in degrees.
-        /// <remarks>A value ranging from 0 to 360.</remarks>
+        /// Gets the red-green chromaticity coordinate of the given whitepoint.
+        /// <remarks>A value usually ranging between -100 and 100.</remarks>
         /// </summary>
-        public float H
+        public float V
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get => this.backingVector.Z;
         }
 
         /// <summary>
-        /// Gets a value indicating whether this <see cref="CieLch"/> is empty.
+        /// Gets a value indicating whether this <see cref="CieLuv"/> is empty.
         /// </summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public bool IsEmpty => this.Equals(Empty);
@@ -135,37 +137,37 @@ namespace ImageSharp.ColorSpaces
         }
 
         /// <summary>
-        /// Compares two <see cref="CieLch"/> objects for equality.
+        /// Compares two <see cref="CieLuv"/> objects for equality.
         /// </summary>
         /// <param name="left">
-        /// The <see cref="CieLch"/> on the left side of the operand.
+        /// The <see cref="CieLuv"/> on the left side of the operand.
         /// </param>
         /// <param name="right">
-        /// The <see cref="CieLch"/> on the right side of the operand.
+        /// The <see cref="CieLuv"/> on the right side of the operand.
         /// </param>
         /// <returns>
         /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool operator ==(CieLch left, CieLch right)
+        public static bool operator ==(CieLuv left, CieLuv right)
         {
             return left.Equals(right);
         }
 
         /// <summary>
-        /// Compares two <see cref="CieLch"/> objects for inequality
+        /// Compares two <see cref="CieLuv"/> objects for inequality.
         /// </summary>
         /// <param name="left">
-        /// The <see cref="CieLch"/> on the left side of the operand.
+        /// The <see cref="CieLuv"/> on the left side of the operand.
         /// </param>
         /// <param name="right">
-        /// The <see cref="CieLch"/> on the right side of the operand.
+        /// The <see cref="CieLuv"/> on the right side of the operand.
         /// </param>
         /// <returns>
         /// True if the current left is unequal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool operator !=(CieLch left, CieLch right)
+        public static bool operator !=(CieLuv left, CieLuv right)
         {
             return !left.Equals(right);
         }
@@ -186,19 +188,19 @@ namespace ImageSharp.ColorSpaces
         {
             if (this.IsEmpty)
             {
-                return "CieLch [Empty]";
+                return "CieLuv [ Empty ]";
             }
 
-            return $"CieLch [ L={this.L:#0.##}, C={this.C:#0.##}, H={this.H:#0.##}]";
+            return $"CieLuv [ L={this.L:#0.##}, U={this.U:#0.##}, V={this.V:#0.##} ]";
         }
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override bool Equals(object obj)
         {
-            if (obj is CieLch)
+            if (obj is CieLuv)
             {
-                return this.Equals((CieLch)obj);
+                return this.Equals((CieLuv)obj);
             }
 
             return false;
@@ -206,15 +208,15 @@ namespace ImageSharp.ColorSpaces
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool Equals(CieLch other)
+        public bool Equals(CieLuv other)
         {
             return this.backingVector.Equals(other.backingVector)
-                && this.WhitePoint.Equals(other.WhitePoint);
+                   && this.WhitePoint.Equals(other.WhitePoint);
         }
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool AlmostEquals(CieLch other, float precision)
+        public bool AlmostEquals(CieLuv other, float precision)
         {
             Vector3 result = Vector3.Abs(this.backingVector - other.backingVector);
 
@@ -222,26 +224,6 @@ namespace ImageSharp.ColorSpaces
                    && result.X <= precision
                    && result.Y <= precision
                    && result.Z <= precision;
-        }
-
-        /// <summary>
-        /// Computes the saturation of the color (chroma normalized by lightness)
-        /// </summary>
-        /// <remarks>
-        /// A value ranging from 0 to 100.
-        /// </remarks>
-        /// <returns>The <see cref="float"/></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public float Saturation()
-        {
-            float result = 100 * (this.C / this.L);
-
-            if (float.IsNaN(result))
-            {
-                return 0;
-            }
-
-            return result;
         }
     }
 }

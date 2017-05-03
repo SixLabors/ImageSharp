@@ -169,7 +169,12 @@ namespace ImageSharp.ColorSpaces
         /// <inheritdoc/>
         public override int GetHashCode()
         {
-            return this.backingVector.GetHashCode();
+            unchecked
+            {
+                int hashCode = this.WhitePoint.GetHashCode();
+                hashCode = (hashCode * 397) ^ this.backingVector.GetHashCode();
+                return hashCode;
+            }
         }
 
         /// <inheritdoc/>
@@ -199,7 +204,8 @@ namespace ImageSharp.ColorSpaces
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Equals(HunterLab other)
         {
-            return this.backingVector.Equals(other.backingVector);
+            return this.backingVector.Equals(other.backingVector)
+                && this.WhitePoint.Equals(other.WhitePoint);
         }
 
         /// <inheritdoc/>
@@ -208,9 +214,10 @@ namespace ImageSharp.ColorSpaces
         {
             Vector3 result = Vector3.Abs(this.backingVector - other.backingVector);
 
-            return result.X <= precision
-                && result.Y <= precision
-                && result.Z <= precision;
+            return this.WhitePoint.Equals(other.WhitePoint)
+                   && result.X <= precision
+                   && result.Y <= precision
+                   && result.Z <= precision;
         }
     }
 }

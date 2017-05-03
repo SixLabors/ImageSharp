@@ -44,6 +44,20 @@ namespace ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
+        /// Converts a <see cref="CieLuv"/> into a <see cref="YCbCr"/>
+        /// </summary>
+        /// <param name="color">The color to convert.</param>
+        /// <returns>The <see cref="YCbCr"/></returns>
+        public YCbCr ToYCbCr(CieLuv color)
+        {
+            Guard.NotNull(color, nameof(color));
+
+            CieXyz xyzColor = this.ToCieXyz(color);
+
+            return this.ToYCbCr(xyzColor);
+        }
+
+        /// <summary>
         /// Converts a <see cref="CieXyy"/> into a <see cref="YCbCr"/>
         /// </summary>
         /// <param name="color">The color to convert.</param>

@@ -18,7 +18,7 @@ namespace ImageSharp.ColorSpaces
     public struct Lms : IColorVector, IEquatable<Lms>, IAlmostEquatable<Lms, float>
     {
         /// <summary>
-        /// Represents a <see cref="Lms"/> that has Y, Cb, and Cr values set to zero.
+        /// Represents a <see cref="Lms"/> that has L, M, and S values set to zero.
         /// </summary>
         public static readonly Lms Empty = default(Lms);
 
@@ -42,7 +42,7 @@ namespace ImageSharp.ColorSpaces
         /// <summary>
         /// Initializes a new instance of the <see cref="Lms"/> struct.
         /// </summary>
-        /// <param name="vector">The vector representing the x, y, z components.</param>
+        /// <param name="vector">The vector representing the l, m, s components.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Lms(Vector3 vector)
             : this()

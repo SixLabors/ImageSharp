@@ -9,7 +9,7 @@ namespace ImageSharp.Tests
     using Xunit;
 
     /// <summary>
-    /// Tests <see cref="ColorSpaceConverter.Adapt" /> methods.
+    /// Tests <see cref="M:ColorSpaceConverter.Adapt" /> methods.
     /// Test data generated using:
     /// <see cref="http://www.brucelindbloom.com/index.html?ChromAdaptCalc.html"/>
     /// <see cref="http://www.brucelindbloom.com/index.html?ColorCalculator.html"/>
@@ -63,7 +63,7 @@ namespace ImageSharp.Tests
         [Theory]
         [InlineData(0, 0, 0, 0, 0, 0)]
         [InlineData(22, 33, 1, 22.269869, 32.841164, 1.633926)]
-        public void Adapt_Lab_D65_To_D50(float l1, float a1, float b1, float l2, float a2, float b2)
+        public void Adapt_Lab_D50_To_D65(float l1, float a1, float b1, float l2, float a2, float b2)
         {
             // Arrange
             CieLab input = new CieLab(l1, a1, b1, Illuminants.D65);

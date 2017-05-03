@@ -92,7 +92,7 @@ namespace ImageSharp.Tests.Colors
                { new Rgb(Vector3.One), new Rgb(Vector3.Zero), typeof(Rgb) },
                { new Cmyk(Vector4.One), new Cmyk(Vector4.Zero), typeof(Cmyk) },
                { new Hsl(Vector3.One), new Hsl(Vector3.Zero), typeof(Hsl) },
-               { new Hsv(Vector3.One), new Hsv(Vector3.Zero), typeof(YCbCr) },
+               { new Hsv(Vector3.One), new Hsv(Vector3.Zero), typeof(Hsv) },
                { new YCbCr(Vector3.One), new YCbCr(Vector3.Zero), typeof(YCbCr) },
            };
 

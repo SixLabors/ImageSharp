@@ -11,7 +11,9 @@ namespace ImageSharp.PixelFormats
 
     /// <summary>
     /// Packed pixel type containing unsigned normalized values, ranging from 0 to 1, using 4 bits each for x, y, z, and w.
+    /// <para>
     /// Ranges from &lt;0, 0, 0, 0&gt; to &lt;1, 1, 1, 1&gt; in vector form.
+    /// </para>
     /// </summary>
     public struct Bgra4444 : IPixel<Bgra4444>, IPackedVector<ushort>
     {

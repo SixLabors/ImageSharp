@@ -182,7 +182,7 @@ namespace ImageSharp
                     break;
             }
 
-            Func<PixelAccessor<TPixel>, int> getMinY = pixels =>
+            int GetMinY(PixelAccessor<TPixel> pixels)
             {
                 for (int y = 0; y < height; y++)
                 {
@@ -196,9 +196,9 @@ namespace ImageSharp
                 }
 
                 return 0;
-            };
+            }
 
-            Func<PixelAccessor<TPixel>, int> getMaxY = pixels =>
+            int GetMaxY(PixelAccessor<TPixel> pixels)
             {
                 for (int y = height - 1; y > -1; y--)
                 {
@@ -212,9 +212,9 @@ namespace ImageSharp
                 }
 
                 return height;
-            };
+            }
 
-            Func<PixelAccessor<TPixel>, int> getMinX = pixels =>
+            int GetMinX(PixelAccessor<TPixel> pixels)
             {
                 for (int x = 0; x < width; x++)
                 {
@@ -228,9 +228,9 @@ namespace ImageSharp
                 }
 
                 return 0;
-            };
+            }
 
-            Func<PixelAccessor<TPixel>, int> getMaxX = pixels =>
+            int GetMaxX(PixelAccessor<TPixel> pixels)
             {
                 for (int x = width - 1; x > -1; x--)
                 {
@@ -244,14 +244,14 @@ namespace ImageSharp
                 }
 
                 return height;
-            };
+            }
 
             using (PixelAccessor<TPixel> bitmapPixels = bitmap.Lock())
             {
-                topLeft.Y = getMinY(bitmapPixels);
-                topLeft.X = getMinX(bitmapPixels);
-                bottomRight.Y = (getMaxY(bitmapPixels) + 1).Clamp(0, height);
-                bottomRight.X = (getMaxX(bitmapPixels) + 1).Clamp(0, width);
+                topLeft.Y = GetMinY(bitmapPixels);
+                topLeft.X = GetMinX(bitmapPixels);
+                bottomRight.Y = (GetMaxY(bitmapPixels) + 1).Clamp(0, height);
+                bottomRight.X = (GetMaxX(bitmapPixels) + 1).Clamp(0, width);
             }
 
             return GetBoundingRectangle(topLeft, bottomRight);

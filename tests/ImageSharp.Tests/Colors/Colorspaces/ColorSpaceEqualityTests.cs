@@ -44,7 +44,7 @@ namespace ImageSharp.Tests.Colors
                { new LinearRgb(Vector3.One), new LinearRgb(Vector3.One), typeof(LinearRgb) },
                { new Rgb(Vector3.One), new Rgb(Vector3.One), typeof(Rgb) },
                { new Hsl(Vector3.One), new Hsl(Vector3.One), typeof(Hsl) },
-               { new Hsv(Vector3.One), new Hsv(Vector3.One), typeof(Hsl) },
+               { new Hsv(Vector3.One), new Hsv(Vector3.One), typeof(Hsv) },
                { new YCbCr(Vector3.One), new YCbCr(Vector3.One), typeof(YCbCr) },
            };
 

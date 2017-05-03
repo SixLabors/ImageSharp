@@ -83,6 +83,20 @@ namespace ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
+        /// Converts a <see cref="Hsv"/> into a <see cref="CieXyy"/>
+        /// </summary>
+        /// <param name="color">The color to convert.</param>
+        /// <returns>The <see cref="CieXyy"/></returns>
+        public CieXyy ToCieXyy(Hsv color)
+        {
+            Guard.NotNull(color, nameof(color));
+
+            CieXyz xyzColor = this.ToCieXyz(color);
+
+            return this.ToCieXyy(xyzColor);
+        }
+
+        /// <summary>
         /// Converts a <see cref="HunterLab"/> into a <see cref="CieXyy"/>
         /// </summary>
         /// <param name="color">The color to convert.</param>

@@ -100,6 +100,20 @@ namespace ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
+        /// Converts a <see cref="Hsv"/> into a <see cref="YCbCr"/>
+        /// </summary>
+        /// <param name="color">The color to convert.</param>
+        /// <returns>The <see cref="YCbCr"/></returns>
+        public YCbCr ToYCbCr(Hsv color)
+        {
+            Guard.NotNull(color, nameof(color));
+
+            Rgb rgb = this.ToRgb(color);
+
+            return YCbCrAndRgbConverter.Convert(rgb);
+        }
+
+        /// <summary>
         /// Converts a <see cref="HunterLab"/> into a <see cref="YCbCr"/>
         /// </summary>
         /// <param name="color">The color to convert.</param>

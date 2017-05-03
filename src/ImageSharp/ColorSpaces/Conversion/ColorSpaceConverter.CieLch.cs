@@ -34,6 +34,19 @@ namespace ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
+        /// Converts a <see cref="CieLuv"/> into a <see cref="CieLch"/>
+        /// </summary>
+        /// <param name="color">The color to convert.</param>
+        /// <returns>The <see cref="CieLch"/></returns>
+        public CieLch ToCieLch(CieLuv color)
+        {
+            Guard.NotNull(color, nameof(color));
+
+            CieXyz xyzColor = this.ToCieXyz(color);
+            return this.ToCieLch(xyzColor);
+        }
+
+        /// <summary>
         /// Converts a <see cref="CieXyy"/> into a <see cref="CieLch"/>
         /// </summary>
         /// <param name="color">The color to convert.</param>

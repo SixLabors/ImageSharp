@@ -33,6 +33,7 @@ namespace ImageSharp.ColorSpaces.Conversion
             this.WhitePoint = DefaultWhitePoint;
             this.LmsAdaptationMatrix = CieXyzAndLmsConverter.DefaultTransformationMatrix;
             this.ChromaticAdaptation = new VonKriesChromaticAdaptation(this.cachedCieXyzAndLmsConverter, this.cachedCieXyzAndLmsConverter);
+            this.TargetLuvWhitePoint = CieLuv.DefaultWhitePoint;
             this.TargetLabWhitePoint = CieLab.DefaultWhitePoint;
             this.TargetHunterLabWhitePoint = HunterLab.DefaultWhitePoint;
             this.TargetRgbWorkingSpace = Rgb.DefaultWorkingSpace;
@@ -43,6 +44,12 @@ namespace ImageSharp.ColorSpaces.Conversion
         /// When null, no adaptation will be performed.
         /// </summary>
         public CieXyz WhitePoint { get; set; }
+
+        /// <summary>
+        /// Gets or sets the white point used *when creating* Luv/LChuv colors. (Luv/LChuv colors on the input already contain the white point information)
+        /// Defaults to: <see cref="CieLuv.DefaultWhitePoint"/>.
+        /// </summary>
+        public CieXyz TargetLuvWhitePoint { get; set; }
 
         /// <summary>
         /// Gets or sets the white point used *when creating* Lab/LChab colors. (Lab/LChab colors on the input already contain the white point information)

@@ -10,7 +10,9 @@ namespace ImageSharp.PixelFormats
 
     /// <summary>
     /// Packed pixel type containing two 16-bit floating-point values.
+    /// <para>
     /// Ranges from &lt;0, 0, 0, 1&gt; to &lt;1, 0, 0, 1&gt; in vector form.
+    /// </para>
     /// </summary>
     public struct HalfVector2 : IPixel<HalfVector2>, IPackedVector<uint>
     {

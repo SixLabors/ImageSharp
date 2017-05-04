@@ -6,13 +6,16 @@
 namespace ImageSharp.ColorSpaces.Conversion
 {
     using ImageSharp.ColorSpaces;
+    using ImageSharp.ColorSpaces.Conversion.Implementation.CieLchuv;
     using ImageSharp.ColorSpaces.Conversion.Implementation.CieLuv;
 
-    /// <summary>
-    /// Converts between color spaces ensuring that the color is adapted using chromatic adaptation.
-    /// </summary>
+    /// <content>
+    /// Allows conversion to <see cref="CieLuv"/>.
+    /// </content>
     public partial class ColorSpaceConverter
     {
+        private static readonly CieLchuvToCieLuvConverter CieLchuvToCieLuvConverter = new CieLchuvToCieLuvConverter();
+
         /// <summary>
         /// Converts a <see cref="CieLab"/> into a <see cref="CieLuv"/>
         /// </summary>
@@ -37,6 +40,27 @@ namespace ImageSharp.ColorSpaces.Conversion
 
             CieXyz xyzColor = this.ToCieXyz(color);
             return this.ToCieLuv(xyzColor);
+        }
+
+        /// <summary>
+        /// Converts a <see cref="CieLchuv"/> into a <see cref="CieLuv"/>
+        /// </summary>
+        /// <param name="color">The color to convert.</param>
+        /// <returns>The <see cref="CieLab"/></returns>
+        public CieLuv ToCieLuv(CieLchuv color)
+        {
+            Guard.NotNull(color, nameof(color));
+
+            // Conversion (perserving white point)
+            CieLuv unadapted = CieLchuvToCieLuvConverter.Convert(color);
+
+            if (!this.IsChromaticAdaptationPerformed)
+            {
+                return unadapted;
+            }
+
+            // Adaptation
+            return this.Adapt(unadapted);
         }
 
         /// <summary>

@@ -7,9 +7,9 @@ namespace ImageSharp.ColorSpaces.Conversion
 {
     using ImageSharp.ColorSpaces.Conversion.Implementation.CieLch;
 
-    /// <summary>
-    /// Converts between color spaces ensuring that the color is adapted using chromatic adaptation.
-    /// </summary>
+    /// <content>
+    /// Allows conversion to <see cref="CieLch"/>.
+    /// </content>
     public partial class ColorSpaceConverter
     {
         /// <summary>
@@ -31,6 +31,19 @@ namespace ImageSharp.ColorSpaces.Conversion
 
             // Conversion
             return CieLabToCieLchConverter.Convert(adapted);
+        }
+
+        /// <summary>
+        /// Converts a <see cref="CieLchuv"/> into a <see cref="CieLch"/>
+        /// </summary>
+        /// <param name="color">The color to convert.</param>
+        /// <returns>The <see cref="CieLch"/></returns>
+        public CieLch ToCieLch(CieLchuv color)
+        {
+            Guard.NotNull(color, nameof(color));
+
+            CieXyz xyzColor = this.ToCieXyz(color);
+            return this.ToCieLch(xyzColor);
         }
 
         /// <summary>

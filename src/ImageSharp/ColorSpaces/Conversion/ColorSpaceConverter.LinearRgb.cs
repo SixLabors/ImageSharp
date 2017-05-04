@@ -7,9 +7,9 @@ namespace ImageSharp.ColorSpaces.Conversion
 {
     using ImageSharp.ColorSpaces.Conversion.Implementation.Rgb;
 
-    /// <summary>
-    /// Converts between color spaces ensuring that the color is adapted using chromatic adaptation.
-    /// </summary>
+    /// <content>
+    /// Allows conversion to <see cref="LinearRgb"/>.
+    /// </content>
     public partial class ColorSpaceConverter
     {
         private static readonly RgbToLinearRgbConverter RgbToLinearRgbConverter = new RgbToLinearRgbConverter();
@@ -35,6 +35,19 @@ namespace ImageSharp.ColorSpaces.Conversion
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="LinearRgb"/></returns>
         public LinearRgb ToLinearRgb(CieLch color)
+        {
+            Guard.NotNull(color, nameof(color));
+
+            CieXyz xyzColor = this.ToCieXyz(color);
+            return this.ToLinearRgb(xyzColor);
+        }
+
+        /// <summary>
+        /// Converts a <see cref="CieLchuv"/> into a <see cref="LinearRgb"/>
+        /// </summary>
+        /// <param name="color">The color to convert.</param>
+        /// <returns>The <see cref="LinearRgb"/></returns>
+        public LinearRgb ToLinearRgb(CieLchuv color)
         {
             Guard.NotNull(color, nameof(color));
 

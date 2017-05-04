@@ -7,20 +7,20 @@
     using Xunit;
 
     /// <summary>
-    /// Tests <see cref="CieLab"/>-<see cref="CieLch"/> conversions.
+    /// Tests <see cref="CieLuv"/>-<see cref="CieLchuv"/> conversions.
     /// </summary>
     /// <remarks>
     /// Test data generated using:
     /// <see href="http://www.brucelindbloom.com/index.html?ColorCalculator.html"/>
     /// </remarks>
-    public class CieLabAndCieLchConversionTests
+    public class CieLuvAndCieLchuvuvConversionTests
     {
         private static readonly IEqualityComparer<float> FloatRoundingComparer = new FloatRoundingComparer(4);
 
         private static readonly ColorSpaceConverter Converter = new ColorSpaceConverter();
 
         /// <summary>
-        /// Tests conversion from <see cref="CieLch"/> to <see cref="CieLab"/>.
+        /// Tests conversion from <see cref="CieLchuv"/> to <see cref="CieLuv"/>.
         /// </summary>
         [Theory]
         [InlineData(0, 0, 0, 0, 0, 0)]
@@ -32,22 +32,22 @@
         [InlineData(10, 36.0555, 123.6901, 10, -20, 30)]
         [InlineData(10, 36.0555, 303.6901, 10, 20, -30)]
         [InlineData(10, 36.0555, 236.3099, 10, -20, -30)]
-        public void Convert_Lch_to_Lab(float l, float c, float h, float l2, float a, float b)
+        public void Convert_Lchuv_to_Luv(float l, float c, float h, float l2, float u, float v)
         {
             // Arrange
-            CieLch input = new CieLch(l, c, h);
+            CieLchuv input = new CieLchuv(l, c, h);
 
             // Act
-            CieLab output = Converter.ToCieLab(input);
+            CieLuv output = Converter.ToCieLuv(input);
 
             // Assert
             Assert.Equal(l2, output.L, FloatRoundingComparer);
-            Assert.Equal(a, output.A, FloatRoundingComparer);
-            Assert.Equal(b, output.B, FloatRoundingComparer);
+            Assert.Equal(u, output.U, FloatRoundingComparer);
+            Assert.Equal(v, output.V, FloatRoundingComparer);
         }
 
         /// <summary>
-        /// Tests conversion from <see cref="CieLab"/> to <see cref="CieLch"/>.
+        /// Tests conversion from <see cref="CieLuv"/> to <see cref="CieLchuv"/>.
         /// </summary>
         [Theory]
         [InlineData(0, 0, 0, 0, 0, 0)]
@@ -59,13 +59,14 @@
         [InlineData(10, -20, 30, 10, 36.0555, 123.6901)]
         [InlineData(10, 20, -30, 10, 36.0555, 303.6901)]
         [InlineData(10, -20, -30, 10, 36.0555, 236.3099)]
-        public void Convert_Lab_to_LCHab(float l, float a, float b, float l2, float c, float h)
+        [InlineData(37.3511, 24.1720, 16.0684, 37.3511, 29.0255, 33.6141)]
+        public void Convert_Luv_to_LCHuv(float l, float u, float v, float l2, float c, float h)
         {
             // Arrange
-            CieLab input = new CieLab(l, a, b);
+            CieLuv input = new CieLuv(l, u, v);
 
             // Act
-            CieLch output = Converter.ToCieLch(input);
+            CieLchuv output = Converter.ToCieLchuv(input);
 
             // Assert
             Assert.Equal(l2, output.L, FloatRoundingComparer);

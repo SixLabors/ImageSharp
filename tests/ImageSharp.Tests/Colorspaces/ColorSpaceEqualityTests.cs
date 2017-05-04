@@ -3,7 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.Tests.Colors
+namespace ImageSharp.Tests.Colorspaces
 {
     using System;
     using System.Numerics;
@@ -21,6 +21,7 @@ namespace ImageSharp.Tests.Colors
                 {
                     CieLab.Empty,
                     CieLch.Empty,
+                    CieLchuv.Empty,
                     CieLuv.Empty,
                     CieXyz.Empty,
                     CieXyy.Empty,
@@ -38,6 +39,7 @@ namespace ImageSharp.Tests.Colors
                {
                { new CieLab(Vector3.One), new CieLab(Vector3.One), typeof(CieLab) },
                { new CieLch(Vector3.One), new CieLch(Vector3.One), typeof(CieLch) },
+               { new CieLchuv(Vector3.One), new CieLchuv(Vector3.One), typeof(CieLchuv) },
                { new CieLuv(Vector3.One), new CieLuv(Vector3.One), typeof(CieLuv) },
                { new CieXyz(Vector3.One), new CieXyz(Vector3.One), typeof(CieXyz) },
                { new CieXyy(Vector3.One), new CieXyy(Vector3.One), typeof(CieXyy) },
@@ -56,6 +58,7 @@ namespace ImageSharp.Tests.Colors
                 // Valid object against null
                { new CieLab(Vector3.One), null, typeof(CieLab) },
                { new CieLch(Vector3.One), null, typeof(CieLch) },
+               { new CieLchuv(Vector3.One), null, typeof(CieLchuv) },
                { new CieLuv(Vector3.One), null, typeof(CieLuv) },
                { new CieXyz(Vector3.One), null, typeof(CieXyz) },
                { new CieXyy(Vector3.One), null, typeof(CieXyy) },
@@ -73,7 +76,7 @@ namespace ImageSharp.Tests.Colors
                {
                 // Valid objects of different types but not equal
                 { new CieLab(Vector3.One), new CieLch(Vector3.Zero), null },
-                { new CieLuv(Vector3.One), new CieLuv(Vector3.Zero), null },
+                { new CieLuv(Vector3.One), new CieLchuv(Vector3.Zero), null },
                 { new CieXyz(Vector3.One), new HunterLab(Vector3.Zero), null },
                 { new Rgb(Vector3.One), new LinearRgb(Vector3.Zero), null },
                 { new Rgb(Vector3.One), new Lms(Vector3.Zero), null },
@@ -88,6 +91,7 @@ namespace ImageSharp.Tests.Colors
                 // Valid objects of the same type but not equal
                { new CieLab(Vector3.One), new CieLab(Vector3.Zero), typeof(CieLab) },
                { new CieLch(Vector3.One), new CieLch(Vector3.Zero), typeof(CieLch) },
+               { new CieLchuv(Vector3.One), new CieLchuv(Vector3.Zero), typeof(CieLchuv) },
                { new CieLuv(Vector3.One), new CieLuv(Vector3.Zero), typeof(CieLuv) },
                { new CieXyz(Vector3.One), new CieXyz(Vector3.Zero), typeof(CieXyz) },
                { new CieXyy(Vector3.One), new CieXyy(Vector3.Zero), typeof(CieXyy) },
@@ -112,6 +116,7 @@ namespace ImageSharp.Tests.Colors
                 { new CieLab(0F, 0F, 0F), new CieLab(0F, 0F, .0001F), typeof(CieLab), .0001F },
                 { new CieLab(0F, 0F, 0F), new CieLab(.0005F, 0F, 0F), typeof(CieLab), .0005F },
                 { new CieLch(0F, 0F, 0F), new CieLch(0F, .001F, 0F), typeof(CieLch), .001F },
+                { new CieLchuv(0F, 0F, 0F), new CieLchuv(0F, .001F, 0F), typeof(CieLchuv), .001F },
                 { new CieLuv(0F, 0F, 0F), new CieLuv(0F, .001F, 0F), typeof(CieLuv), .001F },
                 { new CieXyz(380F, 380F, 380F), new CieXyz(380F, 380F, 380F), typeof(CieXyz), 0F },
                 { new CieXyz(380F, 380F, 380F), new CieXyz(380.001F, 380F, 380F), typeof(CieXyz), .01F },

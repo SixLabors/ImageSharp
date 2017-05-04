@@ -11,9 +11,9 @@ namespace ImageSharp.ColorSpaces.Conversion
     using ImageSharp.ColorSpaces.Conversion.Implementation.HunterLab;
     using ImageSharp.ColorSpaces.Conversion.Implementation.Rgb;
 
-    /// <summary>
-    /// Converts between color spaces ensuring that the color is adapted using chromatic adaptation.
-    /// </summary>
+    /// <content>
+    /// Allows conversion to <see cref="CieXyz"/>.
+    /// </content>
     public partial class ColorSpaceConverter
     {
         private static readonly CieLabToCieXyzConverter CieLabToCieXyzConverter = new CieLabToCieXyzConverter();
@@ -58,6 +58,23 @@ namespace ImageSharp.ColorSpaces.Conversion
 
             // Conversion to XYZ (incl. adaptation)
             return this.ToCieXyz(labColor);
+        }
+
+        /// <summary>
+        /// Converts a <see cref="CieLuv"/> into a <see cref="CieXyz"/>
+        /// </summary>
+        /// <param name="color">The color to convert.</param>
+        /// <returns>The <see cref="CieXyz"/></returns>
+        public CieXyz ToCieXyz(CieLchuv color)
+        {
+            Guard.NotNull(color, nameof(color));
+
+            // Conversion to Luv
+            CieLuv luvColor = CieLchuvToCieLuvConverter.Convert(color);
+
+            // Conversion to XYZ (incl. adaptation)
+            CieXyz result = this.ToCieXyz(luvColor);
+            return result;
         }
 
         /// <summary>

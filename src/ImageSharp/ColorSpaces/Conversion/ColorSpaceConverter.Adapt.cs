@@ -10,9 +10,9 @@ namespace ImageSharp.ColorSpaces.Conversion
     using ImageSharp.ColorSpaces;
     using ImageSharp.ColorSpaces.Conversion.Implementation.Rgb;
 
-    /// <summary>
-    /// Converts between color spaces ensuring that the color is adapted using chromatic adaptation.
-    /// </summary>
+    /// <content>
+    /// Performs chromatic adaptation on the various color spaces.
+    /// </content>
     public partial class ColorSpaceConverter
     {
         /// <summary>
@@ -79,6 +79,29 @@ namespace ImageSharp.ColorSpaces.Conversion
 
             CieLab labColor = this.ToCieLab(color);
             return this.ToCieLch(labColor);
+        }
+
+        /// <summary>
+        /// Adapts <see cref="CieLchuv"/> color from the source white point to white point set in <see cref="TargetLabWhitePoint"/>.
+        /// </summary>
+        /// <param name="color">The color to adapt</param>
+        /// <returns>The adapted color</returns>
+        public CieLchuv Adapt(CieLchuv color)
+        {
+            Guard.NotNull(color, nameof(color));
+
+            if (!this.IsChromaticAdaptationPerformed)
+            {
+                throw new InvalidOperationException("Cannot perform chromatic adaptation, provide a chromatic adaptation method and white point.");
+            }
+
+            if (color.WhitePoint.Equals(this.TargetLabWhitePoint))
+            {
+                return color;
+            }
+
+            CieLuv luvColor = this.ToCieLuv(color);
+            return this.ToCieLchuv(luvColor);
         }
 
         /// <summary>

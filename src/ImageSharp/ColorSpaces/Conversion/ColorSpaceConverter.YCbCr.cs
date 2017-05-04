@@ -8,9 +8,9 @@ namespace ImageSharp.ColorSpaces.Conversion
     using ImageSharp.ColorSpaces;
     using ImageSharp.ColorSpaces.Conversion.Implementation.YCbCr;
 
-    /// <summary>
-    /// Converts between color spaces ensuring that the color is adapted using chromatic adaptation.
-    /// </summary>
+    /// <content>
+    /// Allows conversion to <see cref="YCbCr"/>.
+    /// </content>
     public partial class ColorSpaceConverter
     {
         private static readonly YCbCrAndRgbConverter YCbCrAndRgbConverter = new YCbCrAndRgbConverter();
@@ -35,6 +35,20 @@ namespace ImageSharp.ColorSpaces.Conversion
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="YCbCr"/></returns>
         public YCbCr ToYCbCr(CieLch color)
+        {
+            Guard.NotNull(color, nameof(color));
+
+            CieXyz xyzColor = this.ToCieXyz(color);
+
+            return this.ToYCbCr(xyzColor);
+        }
+
+        /// <summary>
+        /// Converts a <see cref="CieLchuv"/> into a <see cref="YCbCr"/>
+        /// </summary>
+        /// <param name="color">The color to convert.</param>
+        /// <returns>The <see cref="YCbCr"/></returns>
+        public YCbCr ToYCbCr(CieLchuv color)
         {
             Guard.NotNull(color, nameof(color));
 

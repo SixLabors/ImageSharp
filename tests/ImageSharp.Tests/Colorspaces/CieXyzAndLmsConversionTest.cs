@@ -1,4 +1,4 @@
-﻿namespace ImageSharp.Tests
+﻿namespace ImageSharp.Tests.Colorspaces
 {
     using System.Collections.Generic;
     using ImageSharp.ColorSpaces;

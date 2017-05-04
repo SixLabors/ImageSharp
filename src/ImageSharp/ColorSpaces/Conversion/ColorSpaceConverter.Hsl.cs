@@ -8,9 +8,9 @@ namespace ImageSharp.ColorSpaces.Conversion
     using ImageSharp.ColorSpaces;
     using ImageSharp.ColorSpaces.Conversion.Implementation.Hsl;
 
-    /// <summary>
-    /// Converts between color spaces ensuring that the color is adapted using chromatic adaptation.
-    /// </summary>
+    /// <content>
+    /// Allows conversion to <see cref="Hsl"/>.
+    /// </content>
     public partial class ColorSpaceConverter
     {
         private static readonly HslAndRgbConverter HslAndRgbConverter = new HslAndRgbConverter();
@@ -35,6 +35,20 @@ namespace ImageSharp.ColorSpaces.Conversion
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="Hsl"/></returns>
         public Hsl ToHsl(CieLch color)
+        {
+            Guard.NotNull(color, nameof(color));
+
+            CieXyz xyzColor = this.ToCieXyz(color);
+
+            return this.ToHsl(xyzColor);
+        }
+
+        /// <summary>
+        /// Converts a <see cref="CieLchuv"/> into a <see cref="Hsl"/>
+        /// </summary>
+        /// <param name="color">The color to convert.</param>
+        /// <returns>The <see cref="Hsl"/></returns>
+        public Hsl ToHsl(CieLchuv color)
         {
             Guard.NotNull(color, nameof(color));
 

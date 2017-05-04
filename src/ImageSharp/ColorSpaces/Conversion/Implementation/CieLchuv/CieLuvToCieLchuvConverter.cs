@@ -1,9 +1,9 @@
-﻿// <copyright file="CieLabToCieLchConverter.cs" company="James Jackson-South">
+﻿// <copyright file="CieLuvToCieLchuvConverter.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.ColorSpaces.Conversion.Implementation.CieLch
+namespace ImageSharp.ColorSpaces.Conversion.Implementation.CieLchuv
 {
     using System.Runtime.CompilerServices;
 
@@ -12,17 +12,17 @@ namespace ImageSharp.ColorSpaces.Conversion.Implementation.CieLch
     /// <summary>
     /// Converts from <see cref="CieLab"/> to <see cref="CieLch"/>.
     /// </summary>
-    internal class CieLabToCieLchConverter : IColorConversion<CieLab, CieLch>
+    internal class CieLuvToCieLchuvConverter : IColorConversion<CieLuv, CieLchuv>
     {
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public CieLch Convert(CieLab input)
+        public CieLchuv Convert(CieLuv input)
         {
             DebugGuard.NotNull(input, nameof(input));
 
             // Conversion algorithm described here:
-            // https://en.wikipedia.org/wiki/Lab_color_space#Cylindrical_representation:_CIELCh_or_CIEHLC
-            float l = input.L, a = input.A, b = input.B;
+            // https://en.wikipedia.org/wiki/CIELUV#Cylindrical_representation_.28CIELCH.29
+            float l = input.L, a = input.U, b = input.V;
             float c = MathF.Sqrt((a * a) + (b * b));
             float hRadians = MathF.Atan2(b, a);
             float hDegrees = MathF.RadianToDegree(hRadians);
@@ -36,7 +36,7 @@ namespace ImageSharp.ColorSpaces.Conversion.Implementation.CieLch
                 hDegrees += 360;
             }
 
-            return new CieLch(l, c, hDegrees, input.WhitePoint);
+            return new CieLchuv(l, c, hDegrees, input.WhitePoint);
         }
     }
 }

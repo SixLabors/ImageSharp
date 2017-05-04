@@ -8,9 +8,9 @@ namespace ImageSharp.ColorSpaces.Conversion
     using ImageSharp.ColorSpaces;
     using ImageSharp.ColorSpaces.Conversion.Implementation.Cmyk;
 
-    /// <summary>
-    /// Converts between color spaces ensuring that the color is adapted using chromatic adaptation.
-    /// </summary>
+    /// <content>
+    /// Allows conversion to <see cref="Cmyk"/>.
+    /// </content>
     public partial class ColorSpaceConverter
     {
         private static readonly CmykAndRgbConverter CmykAndRgbConverter = new CmykAndRgbConverter();
@@ -35,6 +35,20 @@ namespace ImageSharp.ColorSpaces.Conversion
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="Cmyk"/></returns>
         public Cmyk ToCmyk(CieLch color)
+        {
+            Guard.NotNull(color, nameof(color));
+
+            CieXyz xyzColor = this.ToCieXyz(color);
+
+            return this.ToCmyk(xyzColor);
+        }
+
+        /// <summary>
+        /// Converts a <see cref="CieLchuv"/> into a <see cref="Cmyk"/>
+        /// </summary>
+        /// <param name="color">The color to convert.</param>
+        /// <returns>The <see cref="Cmyk"/></returns>
+        public Cmyk ToCmyk(CieLchuv color)
         {
             Guard.NotNull(color, nameof(color));
 

@@ -80,10 +80,7 @@ namespace ImageSharp.ColorSpaces.Conversion
         /// </summary>
         public Matrix4x4 LmsAdaptationMatrix
         {
-            get
-            {
-                return this.transformationMatrix;
-            }
+            get => this.transformationMatrix;
 
             set
             {

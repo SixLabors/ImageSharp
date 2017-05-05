@@ -111,7 +111,7 @@ namespace ImageSharp.Formats
             this.QuantizationTables = new Block8x8F[MaxTq + 1];
             this.Temp = new byte[2 * Block8x8F.ScalarCount];
             this.ComponentArray = new Component[MaxComponents];
-            this.DecodedBlocks = new DecodedBlockArray[MaxComponents];
+            this.DecodedBlocks = new Buffer<DecodedBlock>[MaxComponents];
         }
 
         /// <summary>
@@ -125,12 +125,12 @@ namespace ImageSharp.Formats
         public HuffmanTree[] HuffmanTrees { get; }
 
         /// <summary>
-        /// Gets the array of <see cref="DecodedBlockArray"/>-s storing the "raw" frequency-domain decoded blocks.
+        /// Gets the array of <see cref="Buffer{T}"/>-s storing the "raw" frequency-domain decoded blocks.
         /// We need to apply IDCT, dequantiazition and unzigging to transform them into color-space blocks.
         /// This is done by <see cref="ProcessBlocksIntoJpegImageChannels{TPixel}"/>.
         /// When <see cref="IsProgressive"/>==true, we are touching these blocks multiple times - each time we process a Scan.
         /// </summary>
-        public DecodedBlockArray[] DecodedBlocks { get; }
+        public Buffer<DecodedBlock>[] DecodedBlocks { get; }
 
         /// <summary>
         /// Gets the quantization tables, in zigzag order.
@@ -216,9 +216,9 @@ namespace ImageSharp.Formats
                 this.HuffmanTrees[i].Dispose();
             }
 
-            foreach (DecodedBlockArray blockArray in this.DecodedBlocks)
+            foreach (Buffer<DecodedBlock> blockArray in this.DecodedBlocks)
             {
-                blockArray.Dispose();
+                blockArray?.Dispose();
             }
 
             this.ycbcrImage?.Dispose();
@@ -1308,7 +1308,7 @@ namespace ImageSharp.Formats
             {
                 int count = this.TotalMCUCount * this.ComponentArray[i].HorizontalFactor
                            * this.ComponentArray[i].VerticalFactor;
-                this.DecodedBlocks[i] = new DecodedBlockArray(count);
+                this.DecodedBlocks[i] = Buffer<DecodedBlock>.CreateClean(count);
             }
         }
     }

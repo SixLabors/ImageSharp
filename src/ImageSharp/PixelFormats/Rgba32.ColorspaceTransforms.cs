@@ -3,7 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.PixelFormats
+namespace ImageSharp
 {
     using System;
     using System.Numerics;

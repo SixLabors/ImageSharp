@@ -17,7 +17,7 @@ namespace ImageSharp.Tests.Drawing.Paths
         public List<ProcessorDetails> ProcessorApplications { get; } = new List<ProcessorDetails>();
         
         public ProcessorWatchingImage(int width, int height)
-           : base(width, height, Configuration.CreateDefaultInstance())
+           : base(Configuration.CreateDefaultInstance(), width, height)
         {
         }
 

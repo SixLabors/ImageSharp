@@ -8,9 +8,6 @@ namespace ImageSharp.Benchmarks
 
     using BenchmarkDotNet.Attributes;
     using ImageSharp.PixelFormats;
-    using ImageSharp.Drawing;
-    using ImageSharp.Processing.Processors;
-    using CoreImage = ImageSharp.Image;
     using CoreSize = ImageSharp.Size;
     using System.Numerics;
     using ImageSharp.PixelFormats.PixelBlenders;
@@ -57,7 +54,7 @@ namespace ImageSharp.Benchmarks
         [Benchmark(Description = "ImageSharp BulkVectorConvert")]
         public CoreSize BulkVectorConvert()
         {
-            using (CoreImage image = new CoreImage(800, 800))
+            using (Image<Rgba32> image = new Image<Rgba32>(800, 800))
             {
                 Buffer<float> amounts = new Buffer<float>(image.Width);
 
@@ -80,7 +77,7 @@ namespace ImageSharp.Benchmarks
         [Benchmark(Description = "ImageSharp BulkPixelConvert")]
         public CoreSize BulkPixelConvert()
         {
-            using (CoreImage image = new CoreImage(800, 800))
+            using (Image<Rgba32> image = new Image<Rgba32>(800, 800))
             {
                 Buffer<float> amounts = new Buffer<float>(image.Width);
 

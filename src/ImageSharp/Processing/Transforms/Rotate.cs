@@ -23,7 +23,7 @@ namespace ImageSharp
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image to rotate.</param>
         /// <param name="degrees">The angle in degrees to perform the rotation.</param>
-        /// <returns>The <see cref="Image"/></returns>
+        /// <returns>The <see cref="Image{TPixel}"/></returns>
         public static Image<TPixel> Rotate<TPixel>(this Image<TPixel> source, float degrees)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -36,7 +36,7 @@ namespace ImageSharp
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image to rotate.</param>
         /// <param name="rotateType">The <see cref="RotateType"/> to perform the rotation.</param>
-        /// <returns>The <see cref="Image"/></returns>
+        /// <returns>The <see cref="Image{TPixel}"/></returns>
         public static Image<TPixel> Rotate<TPixel>(this Image<TPixel> source, RotateType rotateType)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -50,7 +50,7 @@ namespace ImageSharp
         /// <param name="source">The image to rotate.</param>
         /// <param name="degrees">The angle in degrees to perform the rotation.</param>
         /// <param name="expand">Whether to expand the image to fit the rotated result.</param>
-        /// <returns>The <see cref="Image"/></returns>
+        /// <returns>The <see cref="Image{TPixel}"/></returns>
         public static Image<TPixel> Rotate<TPixel>(this Image<TPixel> source, float degrees, bool expand)
             where TPixel : struct, IPixel<TPixel>
         {

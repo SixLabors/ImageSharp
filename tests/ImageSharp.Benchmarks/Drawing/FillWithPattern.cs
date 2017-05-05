@@ -11,11 +11,8 @@ namespace ImageSharp.Benchmarks
 
     using BenchmarkDotNet.Attributes;
 
+    using ImageSharp.Drawing.Brushes;
     using ImageSharp.PixelFormats;
-
-    using CoreBrushes = ImageSharp.Drawing.Brushes.Brushes;
-
-    using CoreImage = ImageSharp.Image;
 
     public class FillWithPattern
     {
@@ -40,9 +37,9 @@ namespace ImageSharp.Benchmarks
         [Benchmark(Description = "ImageSharp Fill with Pattern")]
         public void DrawPatternPolygon3Core()
         {
-            using (CoreImage image = new CoreImage(800, 800))
+            using (Image<Rgba32> image = new Image<Rgba32>(800, 800))
             {
-                image.Fill(CoreBrushes.BackwardDiagonal(Rgba32.HotPink));
+                image.Fill(Brushes<Rgba32>.BackwardDiagonal(Rgba32.HotPink));
 
                 using (MemoryStream ms = new MemoryStream())
                 {

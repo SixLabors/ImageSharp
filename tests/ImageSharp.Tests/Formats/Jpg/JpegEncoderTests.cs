@@ -82,14 +82,14 @@ namespace ImageSharp.Tests
 
             TestFile testFile = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan);
 
-            using (Image input = testFile.CreateImage())
+            using (Image<Rgba32> input = testFile.CreateImage())
             {
                 using (MemoryStream memStream = new MemoryStream())
                 {
                     input.Save(memStream, new JpegFormat(), options);
 
                     memStream.Position = 0;
-                    using (Image output = Image.Load(memStream))
+                    using (Image<Rgba32> output = Image<Rgba32>.Load(memStream))
                     {
                         Assert.NotNull(output.MetaData.ExifProfile);
                     }
@@ -107,14 +107,14 @@ namespace ImageSharp.Tests
 
             TestFile testFile = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan);
 
-            using (Image input = testFile.CreateImage())
+            using (Image<Rgba32> input = testFile.CreateImage())
             {
                 using (MemoryStream memStream = new MemoryStream())
                 {
                     input.SaveAsJpeg(memStream, options);
 
                     memStream.Position = 0;
-                    using (Image output = Image.Load(memStream))
+                    using (Image<Rgba32> output = Image<Rgba32>.Load(memStream))
                     {
                         Assert.Null(output.MetaData.ExifProfile);
                     }

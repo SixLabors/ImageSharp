@@ -24,7 +24,7 @@ namespace ImageSharp.Tests.Drawing.Text
     {
         Rgba32 color = Rgba32.HotPink;
 
-        SolidBrush brush = Brushes.Solid(Rgba32.HotPink);
+        SolidBrush<Rgba32> brush = Brushes<Rgba32>.Solid(Rgba32.HotPink);
 
         IPath path = new SixLabors.Shapes.Path(
             new LinearLineSegment(
@@ -54,7 +54,7 @@ namespace ImageSharp.Tests.Drawing.Text
             this.img.DrawText(
                 "123",
                 this.Font,
-                Brushes.Solid(Rgba32.Red),
+                Brushes<Rgba32>.Solid(Rgba32.Red),
                 null,
                 Vector2.Zero,
                 new TextGraphicsOptions(true));
@@ -67,7 +67,7 @@ namespace ImageSharp.Tests.Drawing.Text
         [Fact]
         public void FillsForEachACharachterWhenBrushSetAndNotPenDefaultOptions()
         {
-            this.img.DrawText("123", this.Font, Brushes.Solid(Rgba32.Red), null, Vector2.Zero);
+            this.img.DrawText("123", this.Font, Brushes<Rgba32>.Solid(Rgba32.Red), null, Vector2.Zero);
 
             Assert.NotEmpty(this.img.ProcessorApplications);
             Assert.Equal(3, this.img.ProcessorApplications.Count); // 3 fills where applied
@@ -77,7 +77,7 @@ namespace ImageSharp.Tests.Drawing.Text
         [Fact]
         public void FillsForEachACharachterWhenBrushSet()
         {
-            this.img.DrawText("123", this.Font, Brushes.Solid(Rgba32.Red), Vector2.Zero, new TextGraphicsOptions(true));
+            this.img.DrawText("123", this.Font, Brushes<Rgba32>.Solid(Rgba32.Red), Vector2.Zero, new TextGraphicsOptions(true));
 
             Assert.NotEmpty(this.img.ProcessorApplications);
             Assert.Equal(3, this.img.ProcessorApplications.Count); // 3 fills where applied
@@ -87,7 +87,7 @@ namespace ImageSharp.Tests.Drawing.Text
         [Fact]
         public void FillsForEachACharachterWhenBrushSetDefaultOptions()
         {
-            this.img.DrawText("123", this.Font, Brushes.Solid(Rgba32.Red), Vector2.Zero);
+            this.img.DrawText("123", this.Font, Brushes<Rgba32>.Solid(Rgba32.Red), Vector2.Zero);
 
             Assert.NotEmpty(this.img.ProcessorApplications);
             Assert.Equal(3, this.img.ProcessorApplications.Count); // 3 fills where applied
@@ -130,7 +130,7 @@ namespace ImageSharp.Tests.Drawing.Text
                 "123",
                 this.Font,
                 null,
-                Pens.Dash(Rgba32.Red, 1),
+                Pens<Rgba32>.Dash(Rgba32.Red, 1),
                 Vector2.Zero,
                 new TextGraphicsOptions(true));
 
@@ -142,7 +142,7 @@ namespace ImageSharp.Tests.Drawing.Text
         [Fact]
         public void DrawForEachACharachterWhenPenSetAndNotBrushDefaultOptions()
         {
-            this.img.DrawText("123", this.Font, null, Pens.Dash(Rgba32.Red, 1), Vector2.Zero);
+            this.img.DrawText("123", this.Font, null, Pens<Rgba32>.Dash(Rgba32.Red, 1), Vector2.Zero);
 
             Assert.NotEmpty(this.img.ProcessorApplications);
             Assert.Equal(3, this.img.ProcessorApplications.Count); // 3 fills where applied
@@ -152,7 +152,7 @@ namespace ImageSharp.Tests.Drawing.Text
         [Fact]
         public void DrawForEachACharachterWhenPenSet()
         {
-            this.img.DrawText("123", this.Font, Pens.Dash(Rgba32.Red, 1), Vector2.Zero, new TextGraphicsOptions(true));
+            this.img.DrawText("123", this.Font, Pens<Rgba32>.Dash(Rgba32.Red, 1), Vector2.Zero, new TextGraphicsOptions(true));
 
             Assert.NotEmpty(this.img.ProcessorApplications);
             Assert.Equal(3, this.img.ProcessorApplications.Count); // 3 fills where applied
@@ -162,7 +162,7 @@ namespace ImageSharp.Tests.Drawing.Text
         [Fact]
         public void DrawForEachACharachterWhenPenSetDefaultOptions()
         {
-            this.img.DrawText("123", this.Font, Pens.Dash(Rgba32.Red, 1), Vector2.Zero);
+            this.img.DrawText("123", this.Font, Pens<Rgba32>.Dash(Rgba32.Red, 1), Vector2.Zero);
 
             Assert.NotEmpty(this.img.ProcessorApplications);
             Assert.Equal(3, this.img.ProcessorApplications.Count); // 3 fills where applied
@@ -175,8 +175,8 @@ namespace ImageSharp.Tests.Drawing.Text
             this.img.DrawText(
                 "123",
                 this.Font,
-                Brushes.Solid(Rgba32.Red),
-                Pens.Dash(Rgba32.Red, 1),
+                Brushes<Rgba32>.Solid(Rgba32.Red),
+                Pens<Rgba32>.Dash(Rgba32.Red, 1),
                 Vector2.Zero,
                 new TextGraphicsOptions(true));
 
@@ -187,7 +187,7 @@ namespace ImageSharp.Tests.Drawing.Text
         [Fact]
         public void DrawForEachACharachterWhenPenSetAndFillFroEachWhenBrushSetDefaultOptions()
         {
-            this.img.DrawText("123", this.Font, Brushes.Solid(Rgba32.Red), Pens.Dash(Rgba32.Red, 1), Vector2.Zero);
+            this.img.DrawText("123", this.Font, Brushes<Rgba32>.Solid(Rgba32.Red), Pens<Rgba32>.Dash(Rgba32.Red, 1), Vector2.Zero);
 
             Assert.NotEmpty(this.img.ProcessorApplications);
             Assert.Equal(6, this.img.ProcessorApplications.Count);
@@ -199,8 +199,8 @@ namespace ImageSharp.Tests.Drawing.Text
             this.img.DrawText(
                 "1",
                 this.Font,
-                Brushes.Solid(Rgba32.Red),
-                Pens.Dash(Rgba32.Red, 1),
+                Brushes<Rgba32>.Solid(Rgba32.Red),
+                Pens<Rgba32>.Dash(Rgba32.Red, 1),
                 Vector2.Zero,
                 new TextGraphicsOptions(true));
 
@@ -213,7 +213,7 @@ namespace ImageSharp.Tests.Drawing.Text
         [Fact]
         public void BrushAppliesBeforPenDefaultOptions()
         {
-            this.img.DrawText("1", this.Font, Brushes.Solid(Rgba32.Red), Pens.Dash(Rgba32.Red, 1), Vector2.Zero);
+            this.img.DrawText("1", this.Font, Brushes<Rgba32>.Solid(Rgba32.Red), Pens<Rgba32>.Dash(Rgba32.Red, 1), Vector2.Zero);
 
             Assert.NotEmpty(this.img.ProcessorApplications);
             Assert.Equal(2, this.img.ProcessorApplications.Count);
@@ -226,11 +226,11 @@ namespace ImageSharp.Tests.Drawing.Text
         {
             this.img.MetaData.VerticalResolution = 1;
             this.img.MetaData.HorizontalResolution = 1;
-            this.img.DrawText("1", this.Font, Brushes.Solid(Rgba32.Red), Vector2.Zero, new TextGraphicsOptions(true) {
+            this.img.DrawText("1", this.Font, Brushes<Rgba32>.Solid(Rgba32.Red), Vector2.Zero, new TextGraphicsOptions(true) {
                 UseImageResolution = false
             });
 
-            this.img.DrawText("1", this.Font, Brushes.Solid(Rgba32.Red), Vector2.Zero, new TextGraphicsOptions(true)
+            this.img.DrawText("1", this.Font, Brushes<Rgba32>.Solid(Rgba32.Red), Vector2.Zero, new TextGraphicsOptions(true)
             {
                 UseImageResolution = true
             });

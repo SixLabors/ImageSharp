@@ -5,13 +5,11 @@
 
 namespace ImageSharp
 {
-    using System;
     using Drawing.Processors;
-    using ImageSharp.Drawing;
     using ImageSharp.PixelFormats;
 
     /// <summary>
-    /// Extension methods for the <see cref="Image"/> type.
+    /// Extension methods for the <see cref="Image{TPixel}"/> type.
     /// </summary>
     public static partial class ImageExtensions
     {

@@ -10,6 +10,7 @@ namespace ImageSharp.Benchmarks.Image
     using BenchmarkDotNet.Attributes;
 
     using ImageSharp;
+    using ImageSharp.PixelFormats;
 
     public class DecodeFilteredPng : BenchmarkBase
     {
@@ -31,7 +32,7 @@ namespace ImageSharp.Benchmarks.Image
 
         private Size LoadPng(MemoryStream stream)
         {
-            using (Image image = Image.Load(stream))
+            using (Image<Rgba32> image = Image<Rgba32>.Load(stream))
             {
                 return new Size(image.Width, image.Height);
             }

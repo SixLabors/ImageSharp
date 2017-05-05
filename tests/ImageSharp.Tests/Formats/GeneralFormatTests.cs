@@ -7,6 +7,8 @@ namespace ImageSharp.Tests
 {
     using System.IO;
 
+    using ImageSharp.PixelFormats;
+
     using Xunit;
 
     public class GeneralFormatTests : FileTestBase
@@ -18,7 +20,7 @@ namespace ImageSharp.Tests
 
             foreach (TestFile file in Files)
             {
-                using (Image image = file.CreateImage())
+                using (Image<Rgba32> image = file.CreateImage())
                 {
                     using (FileStream output = File.OpenWrite($"{path}/{file.FileName}"))
                     {
@@ -37,7 +39,7 @@ namespace ImageSharp.Tests
 
             foreach (TestFile file in Files)
             {
-                using (Image image = file.CreateImage())
+                using (Image<Rgba32> image = file.CreateImage())
                 {
                     string filename = path + "/" + file.FileNameWithoutExtension + ".txt";
                     File.WriteAllText(filename, image.ToBase64String());
@@ -52,7 +54,7 @@ namespace ImageSharp.Tests
 
             foreach (TestFile file in Files)
             {
-                using (Image image = file.CreateImage())
+                using (Image<Rgba32> image = file.CreateImage())
                 {
                     using (FileStream output = File.OpenWrite($"{path}/{file.FileName}"))
                     {
@@ -69,9 +71,9 @@ namespace ImageSharp.Tests
 
             foreach (TestFile file in Files)
             {
-                using (Image srcImage = file.CreateImage())
+                using (Image<Rgba32> srcImage = file.CreateImage())
                 {
-                    using (Image image = new Image(srcImage))
+                    using (Image<Rgba32> image = new Image<Rgba32>(srcImage))
                     {
                         using (FileStream output = File.OpenWrite($"{path}/Octree-{file.FileName}"))
                         {
@@ -81,7 +83,7 @@ namespace ImageSharp.Tests
                         }
                     }
 
-                    using (Image image = new Image(srcImage))
+                    using (Image<Rgba32> image = new Image<Rgba32>(srcImage))
                     {
                         using (FileStream output = File.OpenWrite($"{path}/Wu-{file.FileName}"))
                         {
@@ -90,7 +92,7 @@ namespace ImageSharp.Tests
                         }
                     }
 
-                    using (Image image = new Image(srcImage))
+                    using (Image<Rgba32> image = new Image<Rgba32>(srcImage))
                     {
                         using (FileStream output = File.OpenWrite($"{path}/Palette-{file.FileName}"))
                         {
@@ -109,7 +111,7 @@ namespace ImageSharp.Tests
 
             foreach (TestFile file in Files)
             {
-                using (Image image = file.CreateImage())
+                using (Image<Rgba32> image = file.CreateImage())
                 {
                     using (FileStream output = File.OpenWrite($"{path}/{file.FileNameWithoutExtension}.bmp"))
                     {
@@ -142,7 +144,7 @@ namespace ImageSharp.Tests
             foreach (TestFile file in Files)
             {
                 byte[] serialized;
-                using (Image image = file.CreateImage())
+                using (Image<Rgba32> image = file.CreateImage())
                 using (MemoryStream memoryStream = new MemoryStream())
                 {
                     image.Save(memoryStream);
@@ -150,7 +152,7 @@ namespace ImageSharp.Tests
                     serialized = memoryStream.ToArray();
                 }
 
-                using (Image image2 = Image.Load(serialized))
+                using (Image<Rgba32> image2 = Image<Rgba32>.Load(serialized))
                 using (FileStream output = File.OpenWrite($"{path}/{file.FileName}"))
                 {
                     image2.Save(output);

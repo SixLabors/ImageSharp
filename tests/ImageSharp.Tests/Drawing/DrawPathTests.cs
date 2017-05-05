@@ -20,7 +20,7 @@ namespace ImageSharp.Tests.Drawing
         public void ImageShouldBeOverlayedByPath()
         {
             string path = this.CreateOutputDirectory("Drawing", "Path");
-            using (Image image = new Image(500, 500))
+            using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
                 LinearLineSegment linerSegemnt = new LinearLineSegment(
                     new Vector2(10, 10),
@@ -74,7 +74,7 @@ namespace ImageSharp.Tests.Drawing
 
             ShapePath p = new ShapePath(linerSegemnt, bazierSegment);
 
-            using (Image image = new Image(500, 500))
+            using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
                 using (FileStream output = File.OpenWrite($"{path}/Opacity.png"))
                 {

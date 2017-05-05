@@ -7,6 +7,8 @@ namespace ImageSharp.Tests
 {
     using System.IO;
 
+    using ImageSharp.PixelFormats;
+
     using Xunit;
 
     public class EntropyCropTest : FileTestBase
@@ -27,7 +29,7 @@ namespace ImageSharp.Tests
             foreach (TestFile file in Files)
             {
                 string filename = file.GetFileName(value);
-                using (Image image = file.CreateImage())
+                using (Image<Rgba32> image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
                     image.EntropyCrop(value).Save(output);

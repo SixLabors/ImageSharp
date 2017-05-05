@@ -15,14 +15,12 @@ namespace ImageSharp.Benchmarks.Image
     using ImageSharp.PixelFormats;
     using ImageSharp.Quantizers;
 
-    using CoreImage = ImageSharp.Image;
-
     public class EncodePng : BenchmarkBase
     {
         // System.Drawing needs this.
         private Stream bmpStream;
         private Image bmpDrawing;
-        private CoreImage bmpCore;
+        private Image<Rgba32> bmpCore;
 
         [Params(false)]
         public bool LargeImage { get; set; }
@@ -39,7 +37,7 @@ namespace ImageSharp.Benchmarks.Image
                                   ? "../ImageSharp.Tests/TestImages/Formats/Jpg/baseline/jpeg420exif.jpg"
                                   : "../ImageSharp.Tests/TestImages/Formats/Bmp/Car.bmp";
                 this.bmpStream = File.OpenRead(path);
-                this.bmpCore = CoreImage.Load(this.bmpStream);
+                this.bmpCore = Image<Rgba32>.Load(this.bmpStream);
                 this.bmpStream.Position = 0;
                 this.bmpDrawing = Image.FromStream(this.bmpStream);
             }

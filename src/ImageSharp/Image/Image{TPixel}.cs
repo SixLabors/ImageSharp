@@ -22,7 +22,7 @@ namespace ImageSharp
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     [DebuggerDisplay("Image: {Width}x{Height}")]
-    public class Image<TPixel> : ImageBase<TPixel>, IImage
+    public partial class Image<TPixel> : ImageBase<TPixel>, IImage
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>

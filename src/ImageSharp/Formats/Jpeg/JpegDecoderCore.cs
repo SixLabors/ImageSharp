@@ -482,7 +482,7 @@ namespace ImageSharp.Formats
         private Image<TPixel> ConvertJpegPixelsToImagePixels<TPixel>(ImageMetaData metadata)
             where TPixel : struct, IPixel<TPixel>
         {
-            Image<TPixel> image = Image.Create<TPixel>(this.ImageWidth, this.ImageHeight, metadata, this.configuration);
+            Image<TPixel> image = Image<TPixel>.Create(this.ImageWidth, this.ImageHeight, metadata, this.configuration);
 
             if (this.grayImage.IsInitialized)
             {

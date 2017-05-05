@@ -21,7 +21,7 @@ namespace ImageSharp.Benchmarks.Image
     {
         // System.Drawing needs this.
         private Stream bmpStream;
-        private Image bmpCore;
+        private Image<Rgba32> bmpCore;
 
         [Params(false)]
         public bool LargeImage { get; set; }
@@ -35,7 +35,7 @@ namespace ImageSharp.Benchmarks.Image
                                   ? "../ImageSharp.Tests/TestImages/Formats/Jpg/baseline/jpeg420exif.jpg"
                                   : "../ImageSharp.Tests/TestImages/Formats/Bmp/Car.bmp";
                 this.bmpStream = File.OpenRead(path);
-                this.bmpCore = Image.Load(this.bmpStream);
+                this.bmpCore = Image<Rgba32>.Load(this.bmpStream);
                 this.bmpStream.Position = 0;
             }
         }

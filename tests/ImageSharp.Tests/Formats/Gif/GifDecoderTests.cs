@@ -40,7 +40,7 @@ namespace ImageSharp.Tests
 
             TestFile testFile = TestFile.Create(TestImages.Gif.Rings);
 
-            using (Image image = testFile.CreateImage(options))
+            using (Image<Rgba32> image = testFile.CreateImage(options))
             {
                 Assert.Equal(1, image.MetaData.Properties.Count);
                 Assert.Equal("Comments", image.MetaData.Properties[0].Name);
@@ -58,7 +58,7 @@ namespace ImageSharp.Tests
 
             TestFile testFile = TestFile.Create(TestImages.Gif.Rings);
 
-            using (Image image = testFile.CreateImage(options))
+            using (Image<Rgba32> image = testFile.CreateImage(options))
             {
                 Assert.Equal(0, image.MetaData.Properties.Count);
             }
@@ -74,7 +74,7 @@ namespace ImageSharp.Tests
 
             TestFile testFile = TestFile.Create(TestImages.Gif.Rings);
 
-            using (Image image = testFile.CreateImage(options))
+            using (Image<Rgba32> image = testFile.CreateImage(options))
             {
                 Assert.Equal(1, image.MetaData.Properties.Count);
                 Assert.Equal("浉条卥慨灲", image.MetaData.Properties[0].Value);

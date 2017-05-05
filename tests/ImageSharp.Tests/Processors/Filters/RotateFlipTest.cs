@@ -6,6 +6,9 @@
 namespace ImageSharp.Tests
 {
     using System.IO;
+
+    using ImageSharp.PixelFormats;
+
     using Processing;
     using Xunit;
 
@@ -30,7 +33,7 @@ namespace ImageSharp.Tests
             foreach (TestFile file in Files)
             {
                 string filename = file.GetFileName(rotateType + "-" + flipType);
-                using (Image image = file.CreateImage())
+                using (Image<Rgba32> image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
                     image.RotateFlip(rotateType, flipType).Save(output);

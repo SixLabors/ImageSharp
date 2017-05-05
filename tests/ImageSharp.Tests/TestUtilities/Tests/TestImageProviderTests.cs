@@ -66,7 +66,7 @@ namespace ImageSharp.Tests
         {
             Image<TPixel> img = provider.GetImage();
 
-            Assert.IsType<Image>(img);
+            Assert.IsType<Image<Rgba32>>(img);
         }
 
         [Theory]
@@ -146,7 +146,7 @@ namespace ImageSharp.Tests
             Assert.Equal(img.Width, 3);
             if (provider.PixelType == PixelTypes.StandardImageClass)
             {
-                Assert.IsType<Image>(img);
+                Assert.IsType<Image<Rgba32>>(img);
             }
 
         }

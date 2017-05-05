@@ -89,7 +89,7 @@ namespace ImageSharp.Tests
                     input.Save(memStream, new JpegFormat(), options);
 
                     memStream.Position = 0;
-                    using (Image<Rgba32> output = Image<Rgba32>.Load(memStream))
+                    using (Image<Rgba32> output = Image.Load<Rgba32>(memStream))
                     {
                         Assert.NotNull(output.MetaData.ExifProfile);
                     }
@@ -114,7 +114,7 @@ namespace ImageSharp.Tests
                     input.SaveAsJpeg(memStream, options);
 
                     memStream.Position = 0;
-                    using (Image<Rgba32> output = Image<Rgba32>.Load(memStream))
+                    using (Image<Rgba32> output = Image.Load<Rgba32>(memStream))
                     {
                         Assert.Null(output.MetaData.ExifProfile);
                     }

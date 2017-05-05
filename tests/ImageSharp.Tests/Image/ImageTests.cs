@@ -22,11 +22,11 @@ namespace ImageSharp.Tests
         {
             Assert.Throws<ArgumentNullException>(() =>
             {
-                Image<Rgba32>.Load((byte[])null);
+                Image.Load<Rgba32>((byte[])null);
             });
 
             TestFile file = TestFile.Create(TestImages.Bmp.Car);
-            using (Image<Rgba32> image = Image<Rgba32>.Load(file.Bytes))
+            using (Image<Rgba32> image = Image.Load<Rgba32>(file.Bytes))
             {
                 Assert.Equal(600, image.Width);
                 Assert.Equal(450, image.Height);
@@ -37,7 +37,7 @@ namespace ImageSharp.Tests
         public void ConstructorFileSystem()
         {
             TestFile file = TestFile.Create(TestImages.Bmp.Car);
-            using (Image<Rgba32> image = Image<Rgba32>.Load(file.FilePath))
+            using (Image<Rgba32> image = Image.Load<Rgba32>(file.FilePath))
             {
                 Assert.Equal(600, image.Width);
                 Assert.Equal(450, image.Height);
@@ -50,7 +50,7 @@ namespace ImageSharp.Tests
             System.IO.FileNotFoundException ex = Assert.Throws<System.IO.FileNotFoundException>(
                 () =>
                 {
-                    Image<Rgba32>.Load(Guid.NewGuid().ToString());
+                    Image.Load<Rgba32>(Guid.NewGuid().ToString());
                 });
         }
 
@@ -60,7 +60,7 @@ namespace ImageSharp.Tests
             ArgumentNullException ex = Assert.Throws<ArgumentNullException>(
                 () =>
                 {
-                    Image<Rgba32>.Load((string)null);
+                    Image.Load<Rgba32>((string)null);
                 });
         }
 

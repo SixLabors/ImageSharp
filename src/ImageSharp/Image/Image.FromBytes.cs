@@ -1,4 +1,4 @@
-﻿// <copyright file="Image{TPixel}.FromBytes.cs" company="James Jackson-South">
+﻿// <copyright file="Image.FromBytes.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -13,17 +13,18 @@ namespace ImageSharp
     /// <content>
     /// Adds static methods allowing the creation of new image from a byte array.
     /// </content>
-    public partial class Image<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+    public partial class Image
     {
         /// <summary>
         /// Create a new instance of the <see cref="Image{TPixel}"/> class from the given byte array.
         /// </summary>
         /// <param name="data">The byte array containing image data.</param>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> Load(byte[] data)
+        public static Image<TPixel> Load<TPixel>(byte[] data)
+            where TPixel : struct, IPixel<TPixel>
         {
-            return Load(null, data, null);
+            return Load<TPixel>(null, data, null);
         }
 
         /// <summary>
@@ -31,10 +32,12 @@ namespace ImageSharp
         /// </summary>
         /// <param name="data">The byte array containing image data.</param>
         /// <param name="options">The options for the decoder.</param>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> Load(byte[] data, IDecoderOptions options)
+        public static Image<TPixel> Load<TPixel>(byte[] data, IDecoderOptions options)
+            where TPixel : struct, IPixel<TPixel>
         {
-            return Load(null, data, options);
+            return Load<TPixel>(null, data, options);
         }
 
         /// <summary>
@@ -42,10 +45,12 @@ namespace ImageSharp
         /// </summary>
         /// <param name="config">The config for the decoder.</param>
         /// <param name="data">The byte array containing image data.</param>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> Load(Configuration config, byte[] data)
+        public static Image<TPixel> Load<TPixel>(Configuration config, byte[] data)
+            where TPixel : struct, IPixel<TPixel>
         {
-            return Load(config, data, null);
+            return Load<TPixel>(config, data, null);
         }
 
         /// <summary>
@@ -53,10 +58,12 @@ namespace ImageSharp
         /// </summary>
         /// <param name="data">The byte array containing image data.</param>
         /// <param name="decoder">The decoder.</param>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> Load(byte[] data, IImageDecoder decoder)
+        public static Image<TPixel> Load<TPixel>(byte[] data, IImageDecoder decoder)
+            where TPixel : struct, IPixel<TPixel>
         {
-            return Load(data, decoder, null);
+            return Load<TPixel>(data, decoder, null);
         }
 
         /// <summary>
@@ -65,12 +72,14 @@ namespace ImageSharp
         /// <param name="config">The configuration options.</param>
         /// <param name="data">The byte array containing image data.</param>
         /// <param name="options">The options for the decoder.</param>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> Load(Configuration config, byte[] data, IDecoderOptions options)
+        public static Image<TPixel> Load<TPixel>(Configuration config, byte[] data, IDecoderOptions options)
+            where TPixel : struct, IPixel<TPixel>
         {
             using (MemoryStream ms = new MemoryStream(data))
             {
-                return Load(config, ms, options);
+                return Load<TPixel>(config, ms, options);
             }
         }
 
@@ -80,12 +89,14 @@ namespace ImageSharp
         /// <param name="data">The byte array containing image data.</param>
         /// <param name="decoder">The decoder.</param>
         /// <param name="options">The options for the decoder.</param>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> Load(byte[] data, IImageDecoder decoder, IDecoderOptions options)
+        public static Image<TPixel> Load<TPixel>(byte[] data, IImageDecoder decoder, IDecoderOptions options)
+            where TPixel : struct, IPixel<TPixel>
         {
             using (MemoryStream ms = new MemoryStream(data))
             {
-                return Load(ms, decoder, options);
+                return Load<TPixel>(ms, decoder, options);
             }
         }
     }

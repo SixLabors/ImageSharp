@@ -43,7 +43,7 @@ namespace ImageSharp.Tests
                     input.Save(memStream, new GifFormat(), options);
 
                     memStream.Position = 0;
-                    using (Image<Rgba32> output = Image<Rgba32>.Load(memStream))
+                    using (Image<Rgba32> output = Image.Load<Rgba32>(memStream))
                     {
                         Assert.Equal(1, output.MetaData.Properties.Count);
                         Assert.Equal("Comments", output.MetaData.Properties[0].Name);
@@ -70,7 +70,7 @@ namespace ImageSharp.Tests
                     input.SaveAsGif(memStream, options);
 
                     memStream.Position = 0;
-                    using (Image<Rgba32> output = Image<Rgba32>.Load(memStream))
+                    using (Image<Rgba32> output = Image.Load<Rgba32>(memStream))
                     {
                         Assert.Equal(0, output.MetaData.Properties.Count);
                     }
@@ -91,7 +91,7 @@ namespace ImageSharp.Tests
                     input.Save(memStream, new GifFormat());
 
                     memStream.Position = 0;
-                    using (Image<Rgba32> output = Image<Rgba32>.Load(memStream))
+                    using (Image<Rgba32> output = Image.Load<Rgba32>(memStream))
                     {
                         Assert.Equal(1, output.MetaData.Properties.Count);
                         Assert.Equal("Comments", output.MetaData.Properties[0].Name);

@@ -76,7 +76,7 @@ namespace ImageSharp.Tests
                 image.SaveAsJpeg(memStream);
 
                 memStream.Position = 0;
-                image = Image<Rgba32>.Load(memStream);
+                image = Image.Load<Rgba32>(memStream);
 
                 profile = image.MetaData.ExifProfile;
                 Assert.NotNull(profile);
@@ -94,7 +94,7 @@ namespace ImageSharp.Tests
                 image.SaveAsJpeg(memStream);
 
                 memStream.Position = 0;
-                image = Image<Rgba32>.Load(memStream);
+                image = Image.Load<Rgba32>(memStream);
 
                 profile = image.MetaData.ExifProfile;
                 Assert.NotNull(profile);
@@ -307,7 +307,7 @@ namespace ImageSharp.Tests
                 image.Dispose();
 
                 memStream.Position = 0;
-                return Image<Rgba32>.Load(memStream);
+                return Image.Load<Rgba32>(memStream);
             }
         }
 

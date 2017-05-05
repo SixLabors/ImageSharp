@@ -21,7 +21,7 @@ namespace ImageSharp.Tests.Drawing
         public void ImageShouldBeOverlayedByPath()
         {
             string path = this.CreateOutputDirectory("Drawing", "Lines");
-            using (Image image = new Image(500, 500))
+            using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
                 using (FileStream output = File.OpenWrite($"{path}/Simple.png"))
                 {
@@ -51,7 +51,7 @@ namespace ImageSharp.Tests.Drawing
         public void ImageShouldBeOverlayedByPath_NoAntialias()
         {
             string path = this.CreateOutputDirectory("Drawing", "Lines");
-            using (Image image = new Image(500, 500))
+            using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
                 using (FileStream output = File.OpenWrite($"{path}/Simple_noantialias.png"))
                 {
@@ -82,7 +82,7 @@ namespace ImageSharp.Tests.Drawing
         public void ImageShouldBeOverlayedByPathDashed()
         {
             string path = this.CreateOutputDirectory("Drawing", "Lines");
-            using (Image image = new Image(500, 500))
+            using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
                 using (FileStream output = File.OpenWrite($"{path}/Dashed.png"))
                 {
@@ -103,7 +103,7 @@ namespace ImageSharp.Tests.Drawing
         public void ImageShouldBeOverlayedByPathDotted()
         {
             string path = this.CreateOutputDirectory("Drawing", "Lines");
-            using (Image image = new Image(500, 500))
+            using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
                 using (FileStream output = File.OpenWrite($"{path}/Dot.png"))
                 {
@@ -124,7 +124,7 @@ namespace ImageSharp.Tests.Drawing
         public void ImageShouldBeOverlayedByPathDashDot()
         {
             string path = this.CreateOutputDirectory("Drawing", "Lines");
-            using (Image image = new Image(500, 500))
+            using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
                 using (FileStream output = File.OpenWrite($"{path}/DashDot.png"))
                 {
@@ -145,7 +145,7 @@ namespace ImageSharp.Tests.Drawing
         public void ImageShouldBeOverlayedByPathDashDotDot()
         {
             string path = this.CreateOutputDirectory("Drawing", "Lines");
-            Image image = new Image(500, 500);
+            Image<Rgba32> image = new Image<Rgba32>(500, 500);
 
             using (FileStream output = File.OpenWrite($"{path}/DashDotDot.png"))
             {
@@ -167,7 +167,7 @@ namespace ImageSharp.Tests.Drawing
 
             Rgba32 color = new Rgba32(Rgba32.HotPink.R, Rgba32.HotPink.G, Rgba32.HotPink.B, 150);
 
-            Image image = new Image(500, 500);
+            Image<Rgba32> image = new Image<Rgba32>(500, 500);
 
 
             using (FileStream output = File.OpenWrite($"{path}/Opacity.png"))
@@ -200,7 +200,7 @@ namespace ImageSharp.Tests.Drawing
         {
             string path = this.CreateOutputDirectory("Drawing", "Lines");
 
-            Image image = new Image(500, 500);
+            Image<Rgba32> image = new Image<Rgba32>(500, 500);
 
             using (FileStream output = File.OpenWrite($"{path}/Rectangle.png"))
             {

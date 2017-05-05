@@ -8,6 +8,8 @@ namespace ImageSharp.Tests
     using Processing;
     using System.IO;
 
+    using ImageSharp.PixelFormats;
+
     using Xunit;
 
     public class DetectEdgesTest : FileTestBase
@@ -36,7 +38,7 @@ namespace ImageSharp.Tests
             foreach (TestFile file in Files)
             {
                 string filename = file.GetFileName(detector);
-                using (Image image = file.CreateImage())
+                using (Image<Rgba32> image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
                     image.DetectEdges(detector).Save(output);
@@ -53,7 +55,7 @@ namespace ImageSharp.Tests
             foreach (TestFile file in Files)
             {
                 string filename = file.GetFileName(detector + "-InBox");
-                using (Image image = file.CreateImage())
+                using (Image<Rgba32> image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
                     image.DetectEdges(detector, new Rectangle(image.Width / 4, image.Height / 4, image.Width / 2, image.Height / 2))

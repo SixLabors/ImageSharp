@@ -11,6 +11,8 @@ namespace ImageSharp.Tests
 
     using ImageSharp.Formats;
     using ImageSharp.IO;
+    using ImageSharp.PixelFormats;
+
     using Xunit;
 
     /// <summary>
@@ -236,7 +238,7 @@ namespace ImageSharp.Tests
         {
             Configuration.Default.AddImageFormat(new PngFormat());
 
-            Image image = new Image(1, 1);
+            Image<Rgba32> image = new Image<Rgba32>(1, 1);
             Assert.Equal(image.Configuration.ParallelOptions, Configuration.Default.ParallelOptions);
             Assert.Equal(image.Configuration.ImageFormats, Configuration.Default.ImageFormats);
         }
@@ -249,8 +251,8 @@ namespace ImageSharp.Tests
         {
             Configuration.Default.AddImageFormat(new PngFormat());
 
-            Image image = new Image(1, 1);
-            Image image2 = new Image(image);
+            Image<Rgba32> image = new Image<Rgba32>(1, 1);
+            Image<Rgba32> image2 = new Image<Rgba32>(image);
             Assert.Equal(image2.Configuration.ParallelOptions, image.Configuration.ParallelOptions);
             Assert.True(image2.Configuration.ImageFormats.SequenceEqual(image.Configuration.ImageFormats));
         }

@@ -15,7 +15,7 @@ namespace ImageSharp.Tests.Drawing.Paths
     {
         GraphicsOptions noneDefault = new GraphicsOptions();
         Rgba32 color = Rgba32.HotPink;
-        SolidBrush brush = Brushes.Solid(Rgba32.HotPink);
+        SolidBrush<Rgba32> brush = Brushes.Solid(Rgba32.HotPink);
         IPath path = new SixLabors.Shapes.Path(new LinearLineSegment(new Vector2[] {
                     new Vector2(10,10),
                     new Vector2(20,10),
@@ -45,7 +45,7 @@ namespace ImageSharp.Tests.Drawing.Paths
             Assert.Equal(GraphicsOptions.Default, processor.Options);
 
             ShapeRegion region = Assert.IsType<ShapeRegion>(processor.Region);
-            
+
             // path is converted to a polygon before filling
             Polygon polygon = Assert.IsType<Polygon>(region.Shape);
             LinearLineSegment segments = Assert.IsType<LinearLineSegment>(polygon.LineSegments[0]);

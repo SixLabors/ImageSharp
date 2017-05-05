@@ -24,7 +24,7 @@ namespace ImageSharp.Tests.Drawing.Text
     {
         Rgba32 color = Rgba32.HotPink;
 
-        SolidBrush brush = Brushes.Solid(Rgba32.HotPink);
+        SolidBrush<Rgba32> brush = Brushes.Solid(Rgba32.HotPink);
 
         IPath path = new SixLabors.Shapes.Path(
             new LinearLineSegment(

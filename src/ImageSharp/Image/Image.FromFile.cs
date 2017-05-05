@@ -14,8 +14,75 @@ namespace ImageSharp
     /// <content>
     /// Adds static methods allowing the creation of new image from a given file.
     /// </content>
-    public partial class Image
+    public sealed partial class Image
     {
+        /// <summary>
+        /// Create a new instance of the <see cref="Image{Rgba32}"/> class from the given file.
+        /// </summary>
+        /// <param name="path">The file path to the image.</param>
+        /// <exception cref="NotSupportedException">
+        /// Thrown if the stream is not readable nor seekable.
+        /// </exception>
+        /// <returns>A new <see cref="Image{Rgba32}"/>.</returns>
+        public static Image<Rgba32> Load(string path) => Load<Rgba32>(path);
+
+        /// <summary>
+        /// Create a new instance of the <see cref="Image{Rgba32}"/> class from the given file.
+        /// </summary>
+        /// <param name="path">The file path to the image.</param>
+        /// <param name="options">The options for the decoder.</param>
+        /// <exception cref="NotSupportedException">
+        /// Thrown if the stream is not readable nor seekable.
+        /// </exception>
+        /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
+        public static Image<Rgba32> Load(string path, IDecoderOptions options) => Load<Rgba32>(path, options);
+
+        /// <summary>
+        /// Create a new instance of the <see cref="Image{Rgba32}"/> class from the given file.
+        /// </summary>
+        /// <param name="config">The config for the decoder.</param>
+        /// <param name="path">The file path to the image.</param>
+        /// <exception cref="NotSupportedException">
+        /// Thrown if the stream is not readable nor seekable.
+        /// </exception>
+        /// <returns>A new <see cref="Image{Rgba32}"/>.</returns>
+        public static Image<Rgba32> Load(Configuration config, string path) => Load<Rgba32>(config, path);
+
+        /// <summary>
+        /// Create a new instance of the <see cref="Image{Rgba32}"/> class from the given file.
+        /// </summary>
+        /// <param name="path">The file path to the image.</param>
+        /// <param name="decoder">The decoder.</param>
+        /// <exception cref="NotSupportedException">
+        /// Thrown if the stream is not readable nor seekable.
+        /// </exception>
+        /// <returns>A new <see cref="Image{Rgba32}"/>.</returns>
+        public static Image<Rgba32> Load(string path, IImageDecoder decoder) => Load<Rgba32>(path, decoder);
+
+        /// <summary>
+        /// Create a new instance of the <see cref="Image{Rgba32}"/> class from the given file.
+        /// </summary>
+        /// <param name="config">The configuration options.</param>
+        /// <param name="path">The file path to the image.</param>
+        /// <param name="options">The options for the decoder.</param>
+        /// <exception cref="NotSupportedException">
+        /// Thrown if the stream is not readable nor seekable.
+        /// </exception>
+        /// <returns>A new <see cref="Image{Rgba32}"/>.</returns>
+        public static Image<Rgba32> Load(Configuration config, string path, IDecoderOptions options) => Load<Rgba32>(config, path, options);
+
+        /// <summary>
+        /// Create a new instance of the <see cref="Image{Rgba32}"/> class from the given file.
+        /// </summary>
+        /// <param name="path">The file path to the image.</param>
+        /// <param name="decoder">The decoder.</param>
+        /// <param name="options">The options for the decoder.</param>
+        /// <exception cref="NotSupportedException">
+        /// Thrown if the stream is not readable nor seekable.
+        /// </exception>
+        /// <returns>A new <see cref="Image{Rgba32}"/>.</returns>
+        public static Image<Rgba32> Load(string path, IImageDecoder decoder, IDecoderOptions options) => Load<Rgba32>(path, decoder, options);
+
         /// <summary>
         /// Create a new instance of the <see cref="Image{TPixel}"/> class from the given file.
         /// </summary>

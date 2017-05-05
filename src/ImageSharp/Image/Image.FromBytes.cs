@@ -13,8 +13,57 @@ namespace ImageSharp
     /// <content>
     /// Adds static methods allowing the creation of new image from a byte array.
     /// </content>
-    public partial class Image
+    public sealed partial class Image
     {
+        /// <summary>
+        /// Create a new instance of the <see cref="Image{Rgba32}"/> class from the given byte array.
+        /// </summary>
+        /// <param name="data">The byte array containing image data.</param>
+        /// <returns>A new <see cref="Image{Rgba32}"/>.</returns>
+        public static Image<Rgba32> Load(byte[] data) => Load<Rgba32>(null, data, null);
+
+        /// <summary>
+        /// Create a new instance of the <see cref="Image{Rgba32}"/> class from the given byte array.
+        /// </summary>
+        /// <param name="data">The byte array containing image data.</param>
+        /// <param name="options">The options for the decoder.</param>
+        /// <returns>A new <see cref="Image{Rgba32}"/>.</returns>
+        public static Image<Rgba32> Load(byte[] data, IDecoderOptions options) => Load<Rgba32>(null, data, options);
+
+        /// <summary>
+        /// Create a new instance of the <see cref="Image{TPixel}"/> class from the given byte array.
+        /// </summary>
+        /// <param name="config">The config for the decoder.</param>
+        /// <param name="data">The byte array containing image data.</param>
+        /// <returns>A new <see cref="Image{Rgba32}"/>.</returns>
+        public static Image<Rgba32> Load(Configuration config, byte[] data) => Load<Rgba32>(config, data, null);
+
+        /// <summary>
+        /// Create a new instance of the <see cref="Image{Rgba32}"/> class from the given byte array.
+        /// </summary>
+        /// <param name="data">The byte array containing image data.</param>
+        /// <param name="decoder">The decoder.</param>
+        /// <returns>A new <see cref="Image{Rgba32}"/>.</returns>
+        public static Image<Rgba32> Load(byte[] data, IImageDecoder decoder) => Load<Rgba32>(data, decoder, null);
+
+        /// <summary>
+        /// Create a new instance of the <see cref="Image{TPixel}"/> class from the given byte array.
+        /// </summary>
+        /// <param name="config">The configuration options.</param>
+        /// <param name="data">The byte array containing image data.</param>
+        /// <param name="options">The options for the decoder.</param>
+        /// <returns>A new <see cref="Image{Rgba32}"/>.</returns>
+        public static Image<Rgba32> Load(Configuration config, byte[] data, IDecoderOptions options) => Load<Rgba32>(config, data, options);
+
+        /// <summary>
+        /// Create a new instance of the <see cref="Image{TPixel}"/> class from the given byte array.
+        /// </summary>
+        /// <param name="data">The byte array containing image data.</param>
+        /// <param name="decoder">The decoder.</param>
+        /// <param name="options">The options for the decoder.</param>
+        /// <returns>A new <see cref="Image{Rgba32}"/>.</returns>
+        public static Image<Rgba32> Load(byte[] data, IImageDecoder decoder, IDecoderOptions options) => Load<Rgba32>(data, decoder, options);
+
         /// <summary>
         /// Create a new instance of the <see cref="Image{TPixel}"/> class from the given byte array.
         /// </summary>

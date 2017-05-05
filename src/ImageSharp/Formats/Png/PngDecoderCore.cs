@@ -335,7 +335,7 @@ namespace ImageSharp.Formats
                 throw new ArgumentOutOfRangeException($"The input png '{this.header.Width}x{this.header.Height}' is bigger than the max allowed size '{Image<TPixel>.MaxWidth}x{Image<TPixel>.MaxHeight}'");
             }
 
-            image = new Image<TPixel>(this.header.Width, this.header.Height, metadata, this.configuration);
+            image = new Image<TPixel>(this.configuration, this.header.Width, this.header.Height, metadata);
             pixels = image.Lock();
             this.bytesPerPixel = this.CalculateBytesPerPixel();
             this.bytesPerScanline = this.CalculateScanlineLength(this.header.Width) + 1;

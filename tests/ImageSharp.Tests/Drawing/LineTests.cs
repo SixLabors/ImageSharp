@@ -88,7 +88,7 @@ namespace ImageSharp.Tests.Drawing
                 {
                     image
                         .BackgroundColor(Rgba32.Blue)
-                        .DrawLines(Pens<Rgba32>.Dash(Rgba32.HotPink, 5),
+                        .DrawLines(Pens.Dash(Rgba32.HotPink, 5),
                         new[] {
                             new Vector2(10, 10),
                             new Vector2(200, 150),
@@ -109,7 +109,7 @@ namespace ImageSharp.Tests.Drawing
                 {
                     image
                         .BackgroundColor(Rgba32.Blue)
-                        .DrawLines(Pens<Rgba32>.Dot(Rgba32.HotPink, 5),
+                        .DrawLines(Pens.Dot(Rgba32.HotPink, 5),
                         new[] {
                             new Vector2(10, 10),
                             new Vector2(200, 150),
@@ -130,7 +130,7 @@ namespace ImageSharp.Tests.Drawing
                 {
                     image
                         .BackgroundColor(Rgba32.Blue)
-                        .DrawLines(Pens<Rgba32>.DashDot(Rgba32.HotPink, 5),
+                        .DrawLines(Pens.DashDot(Rgba32.HotPink, 5),
                         new[] {
                             new Vector2(10, 10),
                             new Vector2(200, 150),
@@ -151,7 +151,7 @@ namespace ImageSharp.Tests.Drawing
             {
                 image
                     .BackgroundColor(Rgba32.Blue)
-                    .DrawLines(Pens<Rgba32>.DashDotDot(Rgba32.HotPink, 5), new[] {
+                    .DrawLines(Pens.DashDotDot(Rgba32.HotPink, 5), new[] {
                             new Vector2(10, 10),
                             new Vector2(200, 150),
                             new Vector2(50, 300)

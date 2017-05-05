@@ -14,7 +14,7 @@ namespace ImageSharp.Tests.Drawing.Paths
     {
         GraphicsOptions noneDefault = new GraphicsOptions();
         Rgba32 color = Rgba32.HotPink;
-        SolidBrush<Rgba32> brush = Brushes<Rgba32>.Solid(Rgba32.HotPink);
+        SolidBrush<Rgba32> brush = Brushes.Solid(Rgba32.HotPink);
         ImageSharp.Rectangle rectangle = new ImageSharp.Rectangle(10, 10, 77, 76);
 
         private ProcessorWatchingImage img;

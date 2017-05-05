@@ -1,4 +1,4 @@
-﻿// <copyright file="Pens{TPixel}.cs" company="James Jackson-South">
+﻿// <copyright file="Pens.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -10,9 +10,7 @@ namespace ImageSharp.Drawing.Pens
     /// <summary>
     /// Common Pen styles
     /// </summary>
-    /// <typeparam name="TPixel">The type of the color.</typeparam>
-    public class Pens<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+    public static class Pens
     {
         private static readonly float[] DashDotPattern = new[] { 3f, 1f, 1f, 1f };
         private static readonly float[] DashDotDotPattern = new[] { 3f, 1f, 1f, 1f, 1f, 1f };
@@ -24,8 +22,10 @@ namespace ImageSharp.Drawing.Pens
         /// </summary>
         /// <param name="color">The color.</param>
         /// <param name="width">The width.</param>
+        /// <typeparam name="TPixel">The type of the color.</typeparam>
         /// <returns>The Pen</returns>
-        public static Pen<TPixel> Solid(TPixel color, float width)
+        public static Pen<TPixel> Solid<TPixel>(TPixel color, float width)
+            where TPixel : struct, IPixel<TPixel>
             => new Pen<TPixel>(color, width);
 
         /// <summary>
@@ -33,8 +33,10 @@ namespace ImageSharp.Drawing.Pens
         /// </summary>
         /// <param name="brush">The brush.</param>
         /// <param name="width">The width.</param>
+        /// <typeparam name="TPixel">The type of the color.</typeparam>
         /// <returns>The Pen</returns>
-        public static Pen<TPixel> Solid(IBrush<TPixel> brush, float width)
+        public static Pen<TPixel> Solid<TPixel>(IBrush<TPixel> brush, float width)
+            where TPixel : struct, IPixel<TPixel>
             => new Pen<TPixel>(brush, width);
 
         /// <summary>
@@ -42,8 +44,10 @@ namespace ImageSharp.Drawing.Pens
         /// </summary>
         /// <param name="color">The color.</param>
         /// <param name="width">The width.</param>
+        /// <typeparam name="TPixel">The type of the color.</typeparam>
         /// <returns>The Pen</returns>
-        public static Pen<TPixel> Dash(TPixel color, float width)
+        public static Pen<TPixel> Dash<TPixel>(TPixel color, float width)
+            where TPixel : struct, IPixel<TPixel>
             => new Pen<TPixel>(color, width, DashedPattern);
 
         /// <summary>
@@ -51,8 +55,10 @@ namespace ImageSharp.Drawing.Pens
         /// </summary>
         /// <param name="brush">The brush.</param>
         /// <param name="width">The width.</param>
+        /// <typeparam name="TPixel">The type of the color.</typeparam>
         /// <returns>The Pen</returns>
-        public static Pen<TPixel> Dash(IBrush<TPixel> brush, float width)
+        public static Pen<TPixel> Dash<TPixel>(IBrush<TPixel> brush, float width)
+            where TPixel : struct, IPixel<TPixel>
             => new Pen<TPixel>(brush, width, DashedPattern);
 
         /// <summary>
@@ -60,8 +66,10 @@ namespace ImageSharp.Drawing.Pens
         /// </summary>
         /// <param name="color">The color.</param>
         /// <param name="width">The width.</param>
+        /// <typeparam name="TPixel">The type of the color.</typeparam>
         /// <returns>The Pen</returns>
-        public static Pen<TPixel> Dot(TPixel color, float width)
+        public static Pen<TPixel> Dot<TPixel>(TPixel color, float width)
+            where TPixel : struct, IPixel<TPixel>
             => new Pen<TPixel>(color, width, DottedPattern);
 
         /// <summary>
@@ -69,8 +77,10 @@ namespace ImageSharp.Drawing.Pens
         /// </summary>
         /// <param name="brush">The brush.</param>
         /// <param name="width">The width.</param>
+        /// <typeparam name="TPixel">The type of the color.</typeparam>
         /// <returns>The Pen</returns>
-        public static Pen<TPixel> Dot(IBrush<TPixel> brush, float width)
+        public static Pen<TPixel> Dot<TPixel>(IBrush<TPixel> brush, float width)
+            where TPixel : struct, IPixel<TPixel>
             => new Pen<TPixel>(brush, width, DottedPattern);
 
         /// <summary>
@@ -78,8 +88,10 @@ namespace ImageSharp.Drawing.Pens
         /// </summary>
         /// <param name="color">The color.</param>
         /// <param name="width">The width.</param>
+        /// <typeparam name="TPixel">The type of the color.</typeparam>
         /// <returns>The Pen</returns>
-        public static Pen<TPixel> DashDot(TPixel color, float width)
+        public static Pen<TPixel> DashDot<TPixel>(TPixel color, float width)
+            where TPixel : struct, IPixel<TPixel>
             => new Pen<TPixel>(color, width, DashDotPattern);
 
         /// <summary>
@@ -87,8 +99,10 @@ namespace ImageSharp.Drawing.Pens
         /// </summary>
         /// <param name="brush">The brush.</param>
         /// <param name="width">The width.</param>
+        /// <typeparam name="TPixel">The type of the color.</typeparam>
         /// <returns>The Pen</returns>
-        public static Pen<TPixel> DashDot(IBrush<TPixel> brush, float width)
+        public static Pen<TPixel> DashDot<TPixel>(IBrush<TPixel> brush, float width)
+            where TPixel : struct, IPixel<TPixel>
             => new Pen<TPixel>(brush, width, DashDotPattern);
 
         /// <summary>
@@ -96,8 +110,10 @@ namespace ImageSharp.Drawing.Pens
         /// </summary>
         /// <param name="color">The color.</param>
         /// <param name="width">The width.</param>
+        /// <typeparam name="TPixel">The type of the color.</typeparam>
         /// <returns>The Pen</returns>
-        public static Pen<TPixel> DashDotDot(TPixel color, float width)
+        public static Pen<TPixel> DashDotDot<TPixel>(TPixel color, float width)
+            where TPixel : struct, IPixel<TPixel>
             => new Pen<TPixel>(color, width, DashDotDotPattern);
 
         /// <summary>
@@ -105,8 +121,10 @@ namespace ImageSharp.Drawing.Pens
         /// </summary>
         /// <param name="brush">The brush.</param>
         /// <param name="width">The width.</param>
+        /// <typeparam name="TPixel">The type of the color.</typeparam>
         /// <returns>The Pen</returns>
-        public static Pen<TPixel> DashDotDot(IBrush<TPixel> brush, float width)
+        public static Pen<TPixel> DashDotDot<TPixel>(IBrush<TPixel> brush, float width)
+            where TPixel : struct, IPixel<TPixel>
             => new Pen<TPixel>(brush, width, DashDotDotPattern);
     }
 }

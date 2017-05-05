@@ -1,4 +1,4 @@
-﻿// <copyright file="Brushes{TPixel}.cs" company="James Jackson-South">
+﻿// <copyright file="Brushes.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -10,10 +10,8 @@ namespace ImageSharp.Drawing.Brushes
     /// <summary>
     /// A collection of methods for creating generic brushes.
     /// </summary>
-    /// <typeparam name="TPixel">The pixel format.</typeparam>
     /// <returns>A New <see cref="PatternBrush{TPixel}"/></returns>
-    public class Brushes<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+    public static class Brushes
     {
         /// <summary>
         /// Percent10 Hatch Pattern
@@ -98,16 +96,20 @@ namespace ImageSharp.Drawing.Brushes
         /// Create as brush that will paint a solid color
         /// </summary>
         /// <param name="color">The color.</param>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A New <see cref="PatternBrush{TPixel}"/></returns>
-        public static SolidBrush<TPixel> Solid(TPixel color)
+        public static SolidBrush<TPixel> Solid<TPixel>(TPixel color)
+            where TPixel : struct, IPixel<TPixel>
             => new SolidBrush<TPixel>(color);
 
         /// <summary>
         /// Create as brush that will paint a Percent10 Hatch Pattern with the specified colors
         /// </summary>
         /// <param name="foreColor">Color of the foreground.</param>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A New <see cref="PatternBrush{TPixel}"/></returns>
-        public static PatternBrush<TPixel> Percent10(TPixel foreColor)
+        public static PatternBrush<TPixel> Percent10<TPixel>(TPixel foreColor)
+            where TPixel : struct, IPixel<TPixel>
             => new PatternBrush<TPixel>(foreColor, NamedColors<TPixel>.Transparent, Percent10Pattern);
 
         /// <summary>
@@ -115,8 +117,10 @@ namespace ImageSharp.Drawing.Brushes
         /// </summary>
         /// <param name="foreColor">Color of the foreground.</param>
         /// <param name="backColor">Color of the background.</param>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A New <see cref="PatternBrush{TPixel}"/></returns>
-        public static PatternBrush<TPixel> Percent10(TPixel foreColor, TPixel backColor)
+        public static PatternBrush<TPixel> Percent10<TPixel>(TPixel foreColor, TPixel backColor)
+            where TPixel : struct, IPixel<TPixel>
             => new PatternBrush<TPixel>(foreColor, backColor, Percent10Pattern);
 
         /// <summary>
@@ -124,8 +128,10 @@ namespace ImageSharp.Drawing.Brushes
         /// transparent background.
         /// </summary>
         /// <param name="foreColor">Color of the foreground.</param>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A New <see cref="PatternBrush{TPixel}"/></returns>
-        public static PatternBrush<TPixel> Percent20(TPixel foreColor)
+        public static PatternBrush<TPixel> Percent20<TPixel>(TPixel foreColor)
+            where TPixel : struct, IPixel<TPixel>
             => new PatternBrush<TPixel>(foreColor, NamedColors<TPixel>.Transparent, Percent20Pattern);
 
         /// <summary>
@@ -133,8 +139,10 @@ namespace ImageSharp.Drawing.Brushes
         /// </summary>
         /// <param name="foreColor">Color of the foreground.</param>
         /// <param name="backColor">Color of the background.</param>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A New <see cref="PatternBrush{TPixel}"/></returns>
-        public static PatternBrush<TPixel> Percent20(TPixel foreColor, TPixel backColor)
+        public static PatternBrush<TPixel> Percent20<TPixel>(TPixel foreColor, TPixel backColor)
+            where TPixel : struct, IPixel<TPixel>
             => new PatternBrush<TPixel>(foreColor, backColor, Percent20Pattern);
 
         /// <summary>
@@ -142,8 +150,10 @@ namespace ImageSharp.Drawing.Brushes
         /// transparent background.
         /// </summary>
         /// <param name="foreColor">Color of the foreground.</param>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A New <see cref="PatternBrush{TPixel}"/></returns>
-        public static PatternBrush<TPixel> Horizontal(TPixel foreColor)
+        public static PatternBrush<TPixel> Horizontal<TPixel>(TPixel foreColor)
+            where TPixel : struct, IPixel<TPixel>
             => new PatternBrush<TPixel>(foreColor, NamedColors<TPixel>.Transparent, HorizontalPattern);
 
         /// <summary>
@@ -151,8 +161,10 @@ namespace ImageSharp.Drawing.Brushes
         /// </summary>
         /// <param name="foreColor">Color of the foreground.</param>
         /// <param name="backColor">Color of the background.</param>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A New <see cref="PatternBrush{TPixel}"/></returns>
-        public static PatternBrush<TPixel> Horizontal(TPixel foreColor, TPixel backColor)
+        public static PatternBrush<TPixel> Horizontal<TPixel>(TPixel foreColor, TPixel backColor)
+            where TPixel : struct, IPixel<TPixel>
             => new PatternBrush<TPixel>(foreColor, backColor, HorizontalPattern);
 
         /// <summary>
@@ -160,8 +172,10 @@ namespace ImageSharp.Drawing.Brushes
         /// transparent background.
         /// </summary>
         /// <param name="foreColor">Color of the foreground.</param>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A New <see cref="PatternBrush{TPixel}"/></returns>
-        public static PatternBrush<TPixel> Min(TPixel foreColor)
+        public static PatternBrush<TPixel> Min<TPixel>(TPixel foreColor)
+            where TPixel : struct, IPixel<TPixel>
             => new PatternBrush<TPixel>(foreColor, NamedColors<TPixel>.Transparent, MinPattern);
 
         /// <summary>
@@ -169,8 +183,10 @@ namespace ImageSharp.Drawing.Brushes
         /// </summary>
         /// <param name="foreColor">Color of the foreground.</param>
         /// <param name="backColor">Color of the background.</param>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A New <see cref="PatternBrush{TPixel}"/></returns>
-        public static PatternBrush<TPixel> Min(TPixel foreColor, TPixel backColor)
+        public static PatternBrush<TPixel> Min<TPixel>(TPixel foreColor, TPixel backColor)
+            where TPixel : struct, IPixel<TPixel>
             => new PatternBrush<TPixel>(foreColor, backColor, MinPattern);
 
         /// <summary>
@@ -178,8 +194,10 @@ namespace ImageSharp.Drawing.Brushes
         /// transparent background.
         /// </summary>
         /// <param name="foreColor">Color of the foreground.</param>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A New <see cref="PatternBrush{TPixel}"/></returns>
-        public static PatternBrush<TPixel> Vertical(TPixel foreColor)
+        public static PatternBrush<TPixel> Vertical<TPixel>(TPixel foreColor)
+            where TPixel : struct, IPixel<TPixel>
             => new PatternBrush<TPixel>(foreColor, NamedColors<TPixel>.Transparent, VerticalPattern);
 
         /// <summary>
@@ -187,8 +205,10 @@ namespace ImageSharp.Drawing.Brushes
         /// </summary>
         /// <param name="foreColor">Color of the foreground.</param>
         /// <param name="backColor">Color of the background.</param>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A New <see cref="PatternBrush{TPixel}"/></returns>
-        public static PatternBrush<TPixel> Vertical(TPixel foreColor, TPixel backColor)
+        public static PatternBrush<TPixel> Vertical<TPixel>(TPixel foreColor, TPixel backColor)
+            where TPixel : struct, IPixel<TPixel>
             => new PatternBrush<TPixel>(foreColor, backColor, VerticalPattern);
 
         /// <summary>
@@ -196,8 +216,10 @@ namespace ImageSharp.Drawing.Brushes
         /// transparent background.
         /// </summary>
         /// <param name="foreColor">Color of the foreground.</param>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A New <see cref="PatternBrush{TPixel}"/></returns>
-        public static PatternBrush<TPixel> ForwardDiagonal(TPixel foreColor)
+        public static PatternBrush<TPixel> ForwardDiagonal<TPixel>(TPixel foreColor)
+            where TPixel : struct, IPixel<TPixel>
             => new PatternBrush<TPixel>(foreColor, NamedColors<TPixel>.Transparent, ForwardDiagonalPattern);
 
         /// <summary>
@@ -205,8 +227,10 @@ namespace ImageSharp.Drawing.Brushes
         /// </summary>
         /// <param name="foreColor">Color of the foreground.</param>
         /// <param name="backColor">Color of the background.</param>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A New <see cref="PatternBrush{TPixel}"/></returns>
-        public static PatternBrush<TPixel> ForwardDiagonal(TPixel foreColor, TPixel backColor)
+        public static PatternBrush<TPixel> ForwardDiagonal<TPixel>(TPixel foreColor, TPixel backColor)
+            where TPixel : struct, IPixel<TPixel>
             => new PatternBrush<TPixel>(foreColor, backColor, ForwardDiagonalPattern);
 
         /// <summary>
@@ -214,8 +238,10 @@ namespace ImageSharp.Drawing.Brushes
         /// transparent background.
         /// </summary>
         /// <param name="foreColor">Color of the foreground.</param>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A New <see cref="PatternBrush{TPixel}"/></returns>
-        public static PatternBrush<TPixel> BackwardDiagonal(TPixel foreColor)
+        public static PatternBrush<TPixel> BackwardDiagonal<TPixel>(TPixel foreColor)
+            where TPixel : struct, IPixel<TPixel>
             => new PatternBrush<TPixel>(foreColor, NamedColors<TPixel>.Transparent, BackwardDiagonalPattern);
 
         /// <summary>
@@ -223,8 +249,10 @@ namespace ImageSharp.Drawing.Brushes
         /// </summary>
         /// <param name="foreColor">Color of the foreground.</param>
         /// <param name="backColor">Color of the background.</param>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A New <see cref="PatternBrush{TPixel}"/></returns>
-        public static PatternBrush<TPixel> BackwardDiagonal(TPixel foreColor, TPixel backColor)
+        public static PatternBrush<TPixel> BackwardDiagonal<TPixel>(TPixel foreColor, TPixel backColor)
+            where TPixel : struct, IPixel<TPixel>
             => new PatternBrush<TPixel>(foreColor, backColor, BackwardDiagonalPattern);
     }
 }

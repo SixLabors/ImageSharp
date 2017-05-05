@@ -15,7 +15,7 @@ namespace ImageSharp.Tests.Drawing.Paths
     {
         GraphicsOptions noneDefault = new GraphicsOptions();
         Rgba32 color = Rgba32.HotPink;
-        SolidBrush<Rgba32> brush = Brushes<Rgba32>.Solid(Rgba32.HotPink);
+        SolidBrush<Rgba32> brush = Brushes.Solid(Rgba32.HotPink);
         Vector2[] path = new Vector2[] {
                     new Vector2(10,10),
                     new Vector2(20,10),

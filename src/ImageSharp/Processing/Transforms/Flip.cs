@@ -23,7 +23,7 @@ namespace ImageSharp
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image to rotate, flip, or both.</param>
         /// <param name="flipType">The <see cref="FlipType"/> to perform the flip.</param>
-        /// <returns>The <see cref="Image"/></returns>
+        /// <returns>The <see cref="Image{TPixel}"/></returns>
         public static Image<TPixel> Flip<TPixel>(this Image<TPixel> source, FlipType flipType)
             where TPixel : struct, IPixel<TPixel>
         {

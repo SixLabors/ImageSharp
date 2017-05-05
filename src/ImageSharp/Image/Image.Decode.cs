@@ -12,11 +12,10 @@ namespace ImageSharp
 
     using ImageSharp.PixelFormats;
 
-    /// <summary>
-    /// Represents an image. Each pixel is a made up four 8-bit components red, green, blue, and alpha
-    /// packed into a single unsigned integer value.
-    /// </summary>
-    public sealed partial class Image
+    /// <content>
+    /// Adds static methods allowing the decoding of new images.
+    /// </content>
+    public static partial class Image
     {
         /// <summary>
         /// By reading the header on the provided stream this calculates the images format.
@@ -53,15 +52,15 @@ namespace ImageSharp
         /// <summary>
         /// Decodes the image stream to the current image.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="stream">The stream.</param>
         /// <param name="options">The options for the decoder.</param>
         /// <param name="config">the configuration.</param>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>
-        ///  The decoded image
+        /// A new <see cref="Image{TPixel}"/>.
         /// </returns>
         private static Image<TPixel> Decode<TPixel>(Stream stream, IDecoderOptions options, Configuration config)
-        where TPixel : struct, IPixel<TPixel>
+            where TPixel : struct, IPixel<TPixel>
         {
             IImageFormat format = DiscoverFormat(stream, config);
             if (format == null)

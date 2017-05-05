@@ -32,7 +32,7 @@ namespace ImageSharp.Tests.Drawing.Text
         public void DrawAB()
         {
             //draws 2 overlapping triangle glyphs twice 1 set on each line
-            using (Image img = new Image(100, 200))
+            using (Image<Rgba32> img = new Image<Rgba32>(100, 200))
             {
                 img.Fill(Rgba32.DarkBlue)
                    .DrawText("AB\nAB", new Font(this.Font, 50), Rgba32.Red, new Vector2(0, 0));

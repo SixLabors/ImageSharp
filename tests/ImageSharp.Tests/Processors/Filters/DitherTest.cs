@@ -9,6 +9,7 @@ namespace ImageSharp.Tests
 
     using ImageSharp.Dithering;
     using ImageSharp.Dithering.Ordered;
+    using ImageSharp.PixelFormats;
 
     using Xunit;
 
@@ -41,7 +42,7 @@ namespace ImageSharp.Tests
             foreach (TestFile file in Files)
             {
                 string filename = file.GetFileName(name);
-                using (Image image = file.CreateImage())
+                using (Image<Rgba32> image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
                     image.Dither(ditherer).Save(output);
@@ -58,7 +59,7 @@ namespace ImageSharp.Tests
             foreach (TestFile file in Files)
             {
                 string filename = file.GetFileName($"{name}-InBox");
-                using (Image image = file.CreateImage())
+                using (Image<Rgba32> image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
                     image.Dither(ditherer, new Rectangle(10, 10, image.Width / 2, image.Height / 2)).Save(output);
@@ -75,7 +76,7 @@ namespace ImageSharp.Tests
             foreach (TestFile file in Files)
             {
                 string filename = file.GetFileName(name);
-                using (Image image = file.CreateImage())
+                using (Image<Rgba32> image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
                     image.Dither(diffuser, .5F).Save(output);
@@ -92,7 +93,7 @@ namespace ImageSharp.Tests
             foreach (TestFile file in Files)
             {
                 string filename = file.GetFileName($"{name}-InBox");
-                using (Image image = file.CreateImage())
+                using (Image<Rgba32> image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
                     image.Dither(diffuser, .5F, new Rectangle(10, 10, image.Width / 2, image.Height / 2)).Save(output);

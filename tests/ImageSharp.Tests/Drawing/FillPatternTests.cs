@@ -18,7 +18,7 @@ namespace ImageSharp.Tests.Drawing
         private void Test(string name, Rgba32 background, IBrush<Rgba32> brush, Rgba32[,] expectedPattern)
         {
             string path = this.CreateOutputDirectory("Fill", "PatternBrush");
-            using (Image image = new Image(20, 20))
+            using (Image<Rgba32> image = new Image<Rgba32>(20, 20))
             {
                 image
                     .Fill(background)

@@ -14,7 +14,7 @@ namespace ImageSharp.Tests.Drawing.Paths
     {
         GraphicsOptions noneDefault = new GraphicsOptions();
         Rgba32 color = Rgba32.HotPink;
-        SolidBrush brush = Brushes.Solid(Rgba32.HotPink);
+        SolidBrush<Rgba32> brush = Brushes.Solid(Rgba32.HotPink);
         ImageSharp.Rectangle rectangle = new ImageSharp.Rectangle(10, 10, 77, 76);
 
         private ProcessorWatchingImage img;
@@ -45,7 +45,7 @@ namespace ImageSharp.Tests.Drawing.Paths
             Assert.Equal(rect.Location.Y, rectangle.Y);
             Assert.Equal(rect.Size.Width, rectangle.Width);
             Assert.Equal(rect.Size.Height, rectangle.Height);
-            
+
             Assert.Equal(brush, processor.Brush);
         }
 
@@ -73,7 +73,7 @@ namespace ImageSharp.Tests.Drawing.Paths
         public void CorrectlySetsColorAndRectangle()
         {
             img.Fill(color, rectangle);
-            
+
             Assert.NotEmpty(img.ProcessorApplications);
             FillRegionProcessor<Rgba32> processor = Assert.IsType<FillRegionProcessor<Rgba32>>(img.ProcessorApplications[0].processor);
 

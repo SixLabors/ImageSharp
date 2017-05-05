@@ -22,7 +22,7 @@ namespace ImageSharp
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image to auto rotate.</param>
-        /// <returns>The <see cref="Image"/></returns>
+        /// <returns>The <see cref="Image{TPixel}"/></returns>
         public static Image<TPixel> AutoOrient<TPixel>(this Image<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
         {

@@ -20,7 +20,7 @@ namespace ImageSharp.Tests
 
             foreach (TestFile file in Files)
             {
-                using (Image image = file.CreateImage())
+                using (Image<Rgba32> image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{file.FileName}"))
                 {
                     image.Glow().Save(output);
@@ -36,7 +36,7 @@ namespace ImageSharp.Tests
             foreach (TestFile file in Files)
             {
                 string filename = file.GetFileName("Color");
-                using (Image image = file.CreateImage())
+                using (Image<Rgba32> image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
                     image.Glow(Rgba32.HotPink).Save(output);
@@ -52,7 +52,7 @@ namespace ImageSharp.Tests
             foreach (TestFile file in Files)
             {
                 string filename = file.GetFileName("Radius");
-                using (Image image = file.CreateImage())
+                using (Image<Rgba32> image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
                     image.Glow(image.Width / 4F).Save(output);
@@ -68,7 +68,7 @@ namespace ImageSharp.Tests
             foreach (TestFile file in Files)
             {
                 string filename = file.GetFileName("InBox");
-                using (Image image = file.CreateImage())
+                using (Image<Rgba32> image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
                     image.Glow(new Rectangle(image.Width / 8, image.Height / 8, image.Width / 2, image.Height / 2))

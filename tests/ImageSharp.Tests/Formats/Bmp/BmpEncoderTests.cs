@@ -7,6 +7,8 @@ using ImageSharp.Formats;
 
 namespace ImageSharp.Tests
 {
+    using ImageSharp.PixelFormats;
+
     using Xunit;
 
     public class BmpEncoderTests : FileTestBase
@@ -27,7 +29,7 @@ namespace ImageSharp.Tests
             foreach (TestFile file in Files)
             {
                 string filename = file.GetFileNameWithoutExtension(bitsPerPixel);
-                using (Image image = file.CreateImage())
+                using (Image<Rgba32> image = file.CreateImage())
                 {
                     image.Save($"{path}/{filename}.bmp", new BmpEncoderOptions { BitsPerPixel = bitsPerPixel });
                 }

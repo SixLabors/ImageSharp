@@ -10,7 +10,8 @@ namespace ImageSharp.Benchmarks
 
     using BenchmarkDotNet.Attributes;
 
-    using CoreImage = ImageSharp.Image;
+    using ImageSharp.PixelFormats;
+
     using CoreSize = ImageSharp.Size;
 
     public class Crop : BenchmarkBase
@@ -38,7 +39,7 @@ namespace ImageSharp.Benchmarks
         [Benchmark(Description = "ImageSharp Crop")]
         public CoreSize CropResizeCore()
         {
-            using (CoreImage image = new CoreImage(800, 800))
+            using (Image<Rgba32> image = new Image<Rgba32>(800, 800))
             {
                 image.Crop(100, 100);
                 return new CoreSize(image.Width, image.Height);

@@ -10,7 +10,7 @@ namespace ImageSharp.Benchmarks.Image
 
     using BenchmarkDotNet.Attributes;
 
-    using ImageSharp.PixelFormats;
+    using CoreImage = ImageSharp.Image;
 
     using CoreSize = ImageSharp.Size;
 
@@ -44,7 +44,7 @@ namespace ImageSharp.Benchmarks.Image
         {
             using (MemoryStream memoryStream = new MemoryStream(this.pngBytes))
             {
-                using (Image<Rgba32> image = Image<Rgba32>.Load(memoryStream))
+                using (Image<Rgba32> image = CoreImage.Load<Rgba32>(memoryStream))
                 {
                     return new CoreSize(image.Width, image.Height);
                 }

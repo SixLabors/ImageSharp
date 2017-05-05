@@ -14,8 +14,7 @@ namespace ImageSharp
     /// <content>
     /// Adds static methods allowing the creation of new image from a given file.
     /// </content>
-    public partial class Image<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+    public partial class Image
     {
         /// <summary>
         /// Create a new instance of the <see cref="Image{TPixel}"/> class from the given file.
@@ -24,10 +23,12 @@ namespace ImageSharp
         /// <exception cref="NotSupportedException">
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> Load(string path)
+        public static Image<TPixel> Load<TPixel>(string path)
+            where TPixel : struct, IPixel<TPixel>
         {
-            return Load(null, path, null);
+            return Load<TPixel>(null, path, null);
         }
 
         /// <summary>
@@ -38,10 +39,12 @@ namespace ImageSharp
         /// <exception cref="NotSupportedException">
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> Load(string path, IDecoderOptions options)
+        public static Image<TPixel> Load<TPixel>(string path, IDecoderOptions options)
+            where TPixel : struct, IPixel<TPixel>
         {
-            return Load(null, path, options);
+            return Load<TPixel>(null, path, options);
         }
 
         /// <summary>
@@ -52,10 +55,12 @@ namespace ImageSharp
         /// <exception cref="NotSupportedException">
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> Load(Configuration config, string path)
+        public static Image<TPixel> Load<TPixel>(Configuration config, string path)
+            where TPixel : struct, IPixel<TPixel>
         {
-            return Load(config, path, null);
+            return Load<TPixel>(config, path, null);
         }
 
         /// <summary>
@@ -66,10 +71,12 @@ namespace ImageSharp
         /// <exception cref="NotSupportedException">
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> Load(string path, IImageDecoder decoder)
+        public static Image<TPixel> Load<TPixel>(string path, IImageDecoder decoder)
+            where TPixel : struct, IPixel<TPixel>
         {
-            return Load(path, decoder, null);
+            return Load<TPixel>(path, decoder, null);
         }
 
         /// <summary>
@@ -81,13 +88,15 @@ namespace ImageSharp
         /// <exception cref="NotSupportedException">
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> Load(Configuration config, string path, IDecoderOptions options)
+        public static Image<TPixel> Load<TPixel>(Configuration config, string path, IDecoderOptions options)
+            where TPixel : struct, IPixel<TPixel>
         {
             config = config ?? Configuration.Default;
             using (Stream s = config.FileSystem.OpenRead(path))
             {
-                return Load(config, s, options);
+                return Load<TPixel>(config, s, options);
             }
         }
 
@@ -100,13 +109,15 @@ namespace ImageSharp
         /// <exception cref="NotSupportedException">
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> Load(string path, IImageDecoder decoder, IDecoderOptions options)
+        public static Image<TPixel> Load<TPixel>(string path, IImageDecoder decoder, IDecoderOptions options)
+            where TPixel : struct, IPixel<TPixel>
         {
             Configuration config = Configuration.Default;
             using (Stream s = config.FileSystem.OpenRead(path))
             {
-                return Load(s, decoder, options);
+                return Load<TPixel>(s, decoder, options);
             }
         }
     }

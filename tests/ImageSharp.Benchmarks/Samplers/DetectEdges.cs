@@ -9,9 +9,9 @@ namespace ImageSharp.Benchmarks
 
     using BenchmarkDotNet.Attributes;
 
-    using ImageSharp.PixelFormats;
-
     using Processing;
+
+    using CoreImage = ImageSharp.Image;
 
     public class DetectEdges : BenchmarkBase
     {
@@ -24,7 +24,7 @@ namespace ImageSharp.Benchmarks
             {
                 using (FileStream stream = File.OpenRead("../ImageSharp.Tests/TestImages/Formats/Bmp/Car.bmp"))
                 {
-                    this.image = Image<Rgba32>.Load(stream);
+                    this.image = CoreImage.Load<Rgba32>(stream);
                 }
             }
         }

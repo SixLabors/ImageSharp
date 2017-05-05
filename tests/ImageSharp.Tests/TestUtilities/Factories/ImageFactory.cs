@@ -9,7 +9,7 @@ namespace ImageSharp.Tests
 
     public class ImageFactory : GenericFactory<Rgba32>
     {
-        public override Image<Rgba32> CreateImage(byte[] bytes) => Image<Rgba32>.Load(bytes);
+        public override Image<Rgba32> CreateImage(byte[] bytes) => Image.Load<Rgba32>(bytes);
 
         public override Image<Rgba32> CreateImage(int width, int height) => new Image<Rgba32>(width, height);
 

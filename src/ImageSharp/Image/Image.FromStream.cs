@@ -15,8 +15,7 @@ namespace ImageSharp
     /// <content>
     /// Adds static methods allowing the creation of new image from a given stream.
     /// </content>
-    public partial class Image<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+    public partial class Image
     {
         /// <summary>
         /// Create a new instance of the <see cref="Image{TPixel}"/> class from the given stream.
@@ -25,10 +24,12 @@ namespace ImageSharp
         /// <exception cref="NotSupportedException">
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
-        /// <returns>The image</returns>
-        public static Image<TPixel> Load(Stream stream)
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <returns>A new <see cref="Image{TPixel}"/>.</returns>>
+        public static Image<TPixel> Load<TPixel>(Stream stream)
+            where TPixel : struct, IPixel<TPixel>
         {
-            return Load(null, stream, null);
+            return Load<TPixel>(null, stream, null);
         }
 
         /// <summary>
@@ -39,10 +40,12 @@ namespace ImageSharp
         /// <exception cref="NotSupportedException">
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
-        /// <returns>The image</returns>
-        public static Image<TPixel> Load(Stream stream, IDecoderOptions options)
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <returns>A new <see cref="Image{TPixel}"/>.</returns>>
+        public static Image<TPixel> Load<TPixel>(Stream stream, IDecoderOptions options)
+            where TPixel : struct, IPixel<TPixel>
         {
-            return Load(null, stream, options);
+            return Load<TPixel>(null, stream, options);
         }
 
         /// <summary>
@@ -53,10 +56,12 @@ namespace ImageSharp
         /// <exception cref="NotSupportedException">
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
-        /// <returns>The image</returns>
-        public static Image<TPixel> Load(Configuration config, Stream stream)
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <returns>A new <see cref="Image{TPixel}"/>.</returns>>
+        public static Image<TPixel> Load<TPixel>(Configuration config, Stream stream)
+            where TPixel : struct, IPixel<TPixel>
         {
-            return Load(config, stream, null);
+            return Load<TPixel>(config, stream, null);
         }
 
         /// <summary>
@@ -67,10 +72,12 @@ namespace ImageSharp
         /// <exception cref="NotSupportedException">
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
-        /// <returns>The image</returns>
-        public static Image<TPixel> Load(Stream stream, IImageDecoder decoder)
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <returns>A new <see cref="Image{TPixel}"/>.</returns>>
+        public static Image<TPixel> Load<TPixel>(Stream stream, IImageDecoder decoder)
+            where TPixel : struct, IPixel<TPixel>
         {
-            return Load(stream, decoder, null);
+            return Load<TPixel>(stream, decoder, null);
         }
 
         /// <summary>
@@ -82,8 +89,10 @@ namespace ImageSharp
         /// <exception cref="NotSupportedException">
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
-        /// <returns>The image</returns>
-        public static Image<TPixel> Load(Stream stream, IImageDecoder decoder, IDecoderOptions options)
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <returns>A new <see cref="Image{TPixel}"/>.</returns>>
+        public static Image<TPixel> Load<TPixel>(Stream stream, IImageDecoder decoder, IDecoderOptions options)
+            where TPixel : struct, IPixel<TPixel>
         {
             return WithSeekableStream(stream, s => decoder.Decode<TPixel>(Configuration.Default, s, options));
         }
@@ -97,11 +106,13 @@ namespace ImageSharp
         /// <exception cref="NotSupportedException">
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
-        /// <returns>The image</returns>
-        public static Image<TPixel> Load(Configuration config, Stream stream, IDecoderOptions options)
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <returns>A new <see cref="Image{TPixel}"/>.</returns>>
+        public static Image<TPixel> Load<TPixel>(Configuration config, Stream stream, IDecoderOptions options)
+            where TPixel : struct, IPixel<TPixel>
         {
             config = config ?? Configuration.Default;
-            Image<TPixel> img = WithSeekableStream(stream, s => Decode(s, options, config));
+            Image<TPixel> img = WithSeekableStream(stream, s => Decode<TPixel>(s, options, config));
 
             if (img != null)
             {

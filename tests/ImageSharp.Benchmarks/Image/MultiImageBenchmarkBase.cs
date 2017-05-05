@@ -15,7 +15,7 @@ namespace ImageSharp.Benchmarks.Image
 
     using BenchmarkDotNet.Attributes;
 
-    using ImageSharp.PixelFormats;
+    using CoreImage = ImageSharp.Image;
 
     public abstract class MultiImageBenchmarkBase : BenchmarkBase
     {
@@ -154,7 +154,7 @@ namespace ImageSharp.Benchmarks.Image
 
                     using (MemoryStream ms1 = new MemoryStream(bytes))
                     {
-                        this.FileNamesToImageSharpImages[fn] = Image<Rgba32>.Load(ms1);
+                        this.FileNamesToImageSharpImages[fn] = CoreImage.Load<Rgba32>(ms1);
 
                     }
 

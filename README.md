@@ -85,7 +85,8 @@ Here's an example of the code required to resize an image using the default Bicu
 
 On platforms supporting netstandard 1.3+
 ```csharp
-using (Image<Rgba32> image = Image.Load<Rgba32>("foo.jpg"))
+// Image.Load(string path) is a shortcut for our default type. Other pixel formats use Image.Load<TPixel>(string path))
+using (Image<Rgba32> image = Image.Load("foo.jpg"))
 {
     image.Resize(image.Width / 2, image.Height / 2)
          .Grayscale()
@@ -94,6 +95,7 @@ using (Image<Rgba32> image = Image.Load<Rgba32>("foo.jpg"))
 ```
 on netstandard 1.1 - 1.2
 ```csharp
+// Image.Load(Stream stream) is a shortcut for our default type. Other pixel formats use Image.Load<TPixel>(Stream stream))
 using (FileStream stream = File.OpenRead("foo.jpg"))
 using (FileStream output = File.OpenWrite("bar.jpg"))
 using (Image<Rgba32> image = Image.Load<Rgba32>(stream))

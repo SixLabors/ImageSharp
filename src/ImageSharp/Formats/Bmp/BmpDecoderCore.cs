@@ -127,7 +127,7 @@ namespace ImageSharp.Formats
                         + $"bigger then the max allowed size '{Image<TPixel>.MaxWidth}x{Image<TPixel>.MaxHeight}'");
                 }
 
-                Image<TPixel> image = Image.Create<TPixel>(this.infoHeader.Width, this.infoHeader.Height, this.configuration);
+                Image<TPixel> image = new Image<TPixel>(this.infoHeader.Width, this.infoHeader.Height, this.configuration);
                 using (PixelAccessor<TPixel> pixels = image.Lock())
                 {
                     switch (this.infoHeader.Compression)

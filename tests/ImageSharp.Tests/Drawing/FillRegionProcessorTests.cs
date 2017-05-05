@@ -16,7 +16,7 @@ namespace ImageSharp.Tests.Drawing
         [InlineData(true, 2, 4)]
         [InlineData(true, 5, 5)]
         [InlineData(true, 8, 8)]
-        [InlineData(false, 8, 4)] 
+        [InlineData(false, 8, 4)]
         [InlineData(false, 16, 4)] // we always do 4 sub=pixels when antialising is off.
         public void MinimumAntialiasSubpixelDepth(bool antialias, int antialiasSubpixelDepth, int expectedAntialiasSubpixelDepth)
         {
@@ -30,7 +30,7 @@ namespace ImageSharp.Tests.Drawing
                 AntialiasSubpixelDepth = 1
             };
             FillRegionProcessor<Rgba32> processor = new FillRegionProcessor<Rgba32>(brush.Object, region.Object, options);
-            Image img = new Image(1, 1);
+            Image<Rgba32> img = new Image<Rgba32>(1, 1);
             processor.Apply(img, bounds);
 
             region.Verify(x => x.Scan(It.IsAny<float>(), It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<int>()), Times.Exactly(4));

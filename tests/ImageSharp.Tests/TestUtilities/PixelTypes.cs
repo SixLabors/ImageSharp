@@ -53,7 +53,7 @@ namespace ImageSharp.Tests
         Short4 = 1 << 17,
 
         /// <summary>
-        /// Triggers instantiating the <see cref="Image"/> subclass of <see cref="Image{TPixel}"/>
+        /// Triggers instantiating the <see cref="Image{Rgba32}"/> subclass of <see cref="Image{TPixel}"/>
         /// </summary>
         StandardImageClass = 1 << 29,
 

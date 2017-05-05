@@ -15,7 +15,7 @@ namespace ImageSharp.Tests.Drawing.Paths
     {
         GraphicsOptions noneDefault = new GraphicsOptions();
         Rgba32 color = Rgba32.HotPink;
-        SolidBrush brush = Brushes.Solid(Rgba32.HotPink);
+        SolidBrush<Rgba32> brush = Brushes.Solid(Rgba32.HotPink);
         Vector2[] path = new Vector2[] {
                     new Vector2(10,10),
                     new Vector2(20,10),
@@ -47,7 +47,7 @@ namespace ImageSharp.Tests.Drawing.Paths
             ShapeRegion region = Assert.IsType<ShapeRegion>(processor.Region);
             Polygon polygon = Assert.IsType<Polygon>(region.Shape);
             LinearLineSegment segemnt = Assert.IsType<LinearLineSegment>(polygon.LineSegments[0]);
-            
+
             Assert.Equal(brush, processor.Brush);
         }
 
@@ -72,7 +72,7 @@ namespace ImageSharp.Tests.Drawing.Paths
         public void CorrectlySetsColorAndPath()
         {
             img.FillPolygon(color, path);
-            
+
             Assert.NotEmpty(img.ProcessorApplications);
             FillRegionProcessor<Rgba32> processor = Assert.IsType<FillRegionProcessor<Rgba32>>(img.ProcessorApplications[0].processor);
 

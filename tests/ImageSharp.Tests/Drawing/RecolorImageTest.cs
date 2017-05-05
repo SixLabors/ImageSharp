@@ -20,11 +20,11 @@ namespace ImageSharp.Tests
         {
             string path = this.CreateOutputDirectory("Drawing", "RecolorImage");
 
-            RecolorBrush brush = new RecolorBrush(Rgba32.Yellow, Rgba32.HotPink, 0.2f);
+            RecolorBrush<Rgba32> brush = new RecolorBrush<Rgba32>(Rgba32.Yellow, Rgba32.HotPink, 0.2f);
 
             foreach (TestFile file in Files)
             {
-                using (Image image = file.CreateImage())
+                using (Image<Rgba32> image = file.CreateImage())
                 {
                     using (FileStream output = File.OpenWrite($"{path}/{file.FileName}"))
                     {
@@ -40,11 +40,11 @@ namespace ImageSharp.Tests
         {
             string path = this.CreateOutputDirectory("Drawing", "RecolorImage");
 
-            RecolorBrush brush = new RecolorBrush(Rgba32.Yellow, Rgba32.HotPink, 0.2f);
+            RecolorBrush<Rgba32> brush = new RecolorBrush<Rgba32>(Rgba32.Yellow, Rgba32.HotPink, 0.2f);
 
             foreach (TestFile file in Files)
             {
-                using (Image image = file.CreateImage())
+                using (Image<Rgba32> image = file.CreateImage())
                 {
                     using (FileStream output = File.OpenWrite($"{path}/Shaped_{file.FileName}"))
                     {

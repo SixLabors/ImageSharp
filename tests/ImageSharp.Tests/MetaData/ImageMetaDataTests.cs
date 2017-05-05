@@ -6,6 +6,8 @@
 namespace ImageSharp.Tests
 {
     using ImageSharp.Formats;
+    using ImageSharp.PixelFormats;
+
     using Xunit;
 
     /// <summary>
@@ -81,7 +83,7 @@ namespace ImageSharp.Tests
             exifProfile.SetValue(ExifTag.XResolution, new Rational(200));
             exifProfile.SetValue(ExifTag.YResolution, new Rational(300));
 
-            Image image = new Image(1, 1);
+            Image<Rgba32> image = new Image<Rgba32>(1, 1);
             image.MetaData.ExifProfile = exifProfile;
             image.MetaData.HorizontalResolution = 400;
             image.MetaData.VerticalResolution = 500;

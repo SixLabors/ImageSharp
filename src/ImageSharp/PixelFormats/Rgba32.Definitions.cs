@@ -3,8 +3,10 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.PixelFormats
+namespace ImageSharp
 {
+    using ImageSharp.PixelFormats;
+
     /// <content>
     /// Provides standardized deifinitions for named colors.
     /// </content>

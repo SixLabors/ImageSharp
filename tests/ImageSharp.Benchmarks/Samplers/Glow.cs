@@ -8,9 +8,7 @@ namespace ImageSharp.Benchmarks
 
     using BenchmarkDotNet.Attributes;
     using ImageSharp.PixelFormats;
-    using ImageSharp.Drawing;
     using ImageSharp.Processing.Processors;
-    using CoreImage = ImageSharp.Image;
     using CoreSize = ImageSharp.Size;
     using ImageSharp.Processing;
     using System.Numerics;
@@ -32,7 +30,7 @@ namespace ImageSharp.Benchmarks
         [Benchmark(Description = "ImageSharp Glow - Bulk")]
         public CoreSize GlowBulk()
         {
-            using (CoreImage image = new CoreImage(800, 800))
+            using (Image<Rgba32> image = new Image<Rgba32>(800, 800))
             {
                 image.ApplyProcessor(bulk, image.Bounds);
                 return new CoreSize(image.Width, image.Height);
@@ -42,7 +40,7 @@ namespace ImageSharp.Benchmarks
         [Benchmark(Description = "ImageSharp Glow - Parallel")]
         public CoreSize GLowSimple()
         {
-            using (CoreImage image = new CoreImage(800, 800))
+            using (Image<Rgba32> image = new Image<Rgba32>(800, 800))
             {
                 image.ApplyProcessor(parallel, image.Bounds);
                 return new CoreSize(image.Width, image.Height);

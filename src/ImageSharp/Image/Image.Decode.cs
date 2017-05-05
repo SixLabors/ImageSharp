@@ -15,7 +15,7 @@ namespace ImageSharp
     /// <content>
     /// Adds static methods allowing the decoding of new images.
     /// </content>
-    public sealed partial class Image
+    public static partial class Image
     {
         /// <summary>
         /// By reading the header on the provided stream this calculates the images format.

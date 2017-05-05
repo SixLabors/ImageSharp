@@ -10,7 +10,7 @@ namespace ImageSharp
     /// <content>
     /// Adds static methods allowing the creation of new images from given dimensions.
     /// </content>
-    public sealed partial class Image
+    public static partial class Image
     {
         /// <summary>
         /// Create a new instance of the <see cref="Image{TPixel}"/> class with the given height and the width.

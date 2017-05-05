@@ -12,6 +12,8 @@ namespace ImageSharp.Tests
     using System.Linq;
     using System.Reflection;
 
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// A test image file.
     /// </summary>
@@ -30,7 +32,7 @@ namespace ImageSharp.Tests
         /// <summary>
         /// The image.
         /// </summary>
-        private readonly Image image;
+        private readonly Image<Rgba32> image;
 
         /// <summary>
         /// The file.
@@ -46,7 +48,7 @@ namespace ImageSharp.Tests
             this.file = file;
 
             this.Bytes = File.ReadAllBytes(file);
-            this.image = Image.Load(this.Bytes);
+            this.image = Image<Rgba32>.Load(this.Bytes);
         }
 
         /// <summary>
@@ -125,9 +127,9 @@ namespace ImageSharp.Tests
         /// <returns>
         /// The <see cref="Image"/>.
         /// </returns>
-        public Image CreateImage()
+        public Image<Rgba32> CreateImage()
         {
-            return new Image(this.image);
+            return new Image<Rgba32>(this.image);
         }
 
         /// <summary>
@@ -137,9 +139,9 @@ namespace ImageSharp.Tests
         /// <returns>
         /// The <see cref="Image"/>.
         /// </returns>
-        public Image CreateImage(IDecoderOptions options)
+        public Image<Rgba32> CreateImage(IDecoderOptions options)
         {
-            return Image.Load(this.Bytes, options);
+            return Image<Rgba32>.Load(this.Bytes, options);
         }
 
         /// <summary>

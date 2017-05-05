@@ -5,7 +5,6 @@
 
 namespace ImageSharp
 {
-    using System;
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
     using System.IO;
@@ -139,7 +138,7 @@ namespace ImageSharp
 
             using (MemoryStream memStream = new MemoryStream(this.data, this.thumbnailOffset, this.thumbnailLength))
             {
-                return Image.Load<TPixel>(memStream);
+                return Image<TPixel>.Load(memStream);
             }
         }
 

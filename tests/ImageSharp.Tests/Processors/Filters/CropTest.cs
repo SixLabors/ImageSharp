@@ -7,6 +7,8 @@ namespace ImageSharp.Tests
 {
     using System.IO;
 
+    using ImageSharp.PixelFormats;
+
     using Xunit;
 
     public class CropTest : FileTestBase
@@ -18,7 +20,7 @@ namespace ImageSharp.Tests
 
             foreach (TestFile file in Files)
             {
-                using (Image image = file.CreateImage())
+                using (Image<Rgba32> image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{file.FileName}"))
                 {
                     image.Crop(image.Width / 2, image.Height / 2).Save(output);

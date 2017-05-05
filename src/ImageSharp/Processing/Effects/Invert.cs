@@ -21,7 +21,7 @@ namespace ImageSharp
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
-        /// <returns>The <see cref="Image"/>.</returns>
+        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static Image<TPixel> Invert<TPixel>(this Image<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -36,7 +36,7 @@ namespace ImageSharp
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
-        /// <returns>The <see cref="Image"/>.</returns>
+        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static Image<TPixel> Invert<TPixel>(this Image<TPixel> source, Rectangle rectangle)
             where TPixel : struct, IPixel<TPixel>
         {

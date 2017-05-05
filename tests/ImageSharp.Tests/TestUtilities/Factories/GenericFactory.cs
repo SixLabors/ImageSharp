@@ -23,7 +23,7 @@ namespace ImageSharp.Tests
 
         public virtual Image<TPixel> CreateImage(byte[] bytes)
         {
-            return Image.Load<TPixel>(bytes);
+            return Image<TPixel>.Load(bytes);
         }
 
         public virtual Image<TPixel> CreateImage(Image<TPixel> other)

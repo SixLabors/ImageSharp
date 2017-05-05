@@ -32,7 +32,7 @@ namespace ImageSharp.Tests.Drawing
                             new Vector2(93, 85),
                             new Vector2(65, 137)));
 
-            using (Image image = new Image(500, 500))
+            using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
                 using (FileStream output = File.OpenWrite($"{path}/Simple.png"))
                 {
@@ -82,7 +82,7 @@ namespace ImageSharp.Tests.Drawing
                             new Vector2(263, 25),
                             new Vector2(235, 57)));
 
-            using (Image image = new Image(500, 500))
+            using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
                 using (FileStream output = File.OpenWrite($"{path}/SimpleVanishHole.png"))
                 {
@@ -133,7 +133,7 @@ namespace ImageSharp.Tests.Drawing
                             new Vector2(130, 40),
                             new Vector2(65, 137)));
 
-            using (Image image = new Image(500, 500))
+            using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
                 using (FileStream output = File.OpenWrite($"{path}/SimpleOverlapping.png"))
                 {
@@ -179,13 +179,13 @@ namespace ImageSharp.Tests.Drawing
                             new Vector2(93, 85),
                             new Vector2(65, 137)));
 
-            using (Image image = new Image(500, 500))
+            using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
                 using (FileStream output = File.OpenWrite($"{path}/Dashed.png"))
                 {
                     image
                         .BackgroundColor(Rgba32.Blue)
-                        .Draw(Pens.Dash(Rgba32.HotPink, 5), simplePath.Clip(hole1))
+                        .Draw(Pens<Rgba32>.Dash(Rgba32.HotPink, 5), simplePath.Clip(hole1))
                         .Save(output);
                 }
             }
@@ -207,7 +207,7 @@ namespace ImageSharp.Tests.Drawing
                             new Vector2(65, 137)));
             Rgba32 color = new Rgba32(Rgba32.HotPink.R, Rgba32.HotPink.G, Rgba32.HotPink.B, 150);
 
-            using (Image image = new Image(500, 500))
+            using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
                 using (FileStream output = File.OpenWrite($"{path}/Opacity.png"))
                 {

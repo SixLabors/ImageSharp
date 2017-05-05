@@ -29,7 +29,7 @@ namespace ImageSharp.Tests.Drawing
                             new Vector2(50, 300)
             };
 
-            using (Image image = new Image(500, 500))
+            using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
                 using (FileStream output = File.OpenWrite($"{path}/Simple.png"))
                 {
@@ -55,12 +55,12 @@ namespace ImageSharp.Tests.Drawing
                             new Vector2(50, 300)
             };
 
-            using (Image image = new Image(500, 500))
+            using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
                 using (FileStream output = File.OpenWrite($"{path}/Pattern.png"))
                 {
                     image
-                        .FillPolygon(Brushes.Horizontal(Rgba32.HotPink), simplePath, new GraphicsOptions(true))
+                        .FillPolygon(Brushes<Rgba32>.Horizontal(Rgba32.HotPink), simplePath, new GraphicsOptions(true))
                         .Save(output);
                 }
 
@@ -81,7 +81,7 @@ namespace ImageSharp.Tests.Drawing
                             new Vector2(50, 300)
             };
 
-            using (Image image = new Image(500, 500))
+            using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             using (FileStream output = File.OpenWrite($"{path}/Simple_NoAntialias.png"))
             {
                 image
@@ -112,11 +112,11 @@ namespace ImageSharp.Tests.Drawing
                             new Vector2(50, 300)
             };
 
-            using (Image brushImage = TestFile.Create(TestImages.Bmp.Car).CreateImage())
-            using (Image image = new Image(500, 500))
+            using (Image<Rgba32> brushImage = TestFile.Create(TestImages.Bmp.Car).CreateImage())
+            using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             using (FileStream output = File.OpenWrite($"{path}/Image.png"))
             {
-                ImageBrush brush = new ImageBrush(brushImage);
+                ImageBrush<Rgba32> brush = new ImageBrush<Rgba32>(brushImage);
 
                 image
                 .BackgroundColor(Rgba32.Blue)
@@ -136,7 +136,7 @@ namespace ImageSharp.Tests.Drawing
             };
             Rgba32 color = new Rgba32(Rgba32.HotPink.R, Rgba32.HotPink.G, Rgba32.HotPink.B, 150);
 
-            using (Image image = new Image(500, 500))
+            using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
                 using (FileStream output = File.OpenWrite($"{path}/Opacity.png"))
                 {
@@ -161,7 +161,7 @@ namespace ImageSharp.Tests.Drawing
         {
             string path = this.CreateOutputDirectory("Drawing", "FilledPolygons");
 
-            using (Image image = new Image(500, 500))
+            using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
                 using (FileStream output = File.OpenWrite($"{path}/Rectangle.png"))
                 {
@@ -191,7 +191,7 @@ namespace ImageSharp.Tests.Drawing
         {
             string path = this.CreateOutputDirectory("Drawing", "FilledPolygons");
 
-            using (Image image = new Image(100, 100))
+            using (Image<Rgba32> image = new Image<Rgba32>(100, 100))
             {
                 using (FileStream output = File.OpenWrite($"{path}/Triangle.png"))
                 {
@@ -217,7 +217,7 @@ namespace ImageSharp.Tests.Drawing
 
             Configuration config = Configuration.CreateDefaultInstance();
             config.ParallelOptions.MaxDegreeOfParallelism = 1;
-            using (Image image = new Image(100, 100, config))
+            using (Image<Rgba32> image = new Image<Rgba32>(100, 100, config))
             {
                 using (FileStream output = File.OpenWrite($"{path}/Septagon.png"))
                 {
@@ -236,7 +236,7 @@ namespace ImageSharp.Tests.Drawing
 
             Configuration config = Configuration.CreateDefaultInstance();
             config.ParallelOptions.MaxDegreeOfParallelism = 1;
-            using (Image image = new Image(100, 100, config))
+            using (Image<Rgba32> image = new Image<Rgba32>(100, 100, config))
             {
                 using (FileStream output = File.OpenWrite($"{path}/ellipse.png"))
                 {
@@ -256,7 +256,7 @@ namespace ImageSharp.Tests.Drawing
 
             Configuration config = Configuration.CreateDefaultInstance();
             config.ParallelOptions.MaxDegreeOfParallelism = 1;
-            using (Image image = new Image(200, 200, config))
+            using (Image<Rgba32> image = new Image<Rgba32>(200, 200, config))
             {
                 using (FileStream output = File.OpenWrite($"{path}/clipped-corner.png"))
                 {

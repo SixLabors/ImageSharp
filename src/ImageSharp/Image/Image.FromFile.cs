@@ -14,7 +14,7 @@ namespace ImageSharp
     /// <content>
     /// Adds static methods allowing the creation of new image from a given file.
     /// </content>
-    public sealed partial class Image
+    public static partial class Image
     {
         /// <summary>
         /// Create a new instance of the <see cref="Image{Rgba32}"/> class from the given file.

@@ -185,7 +185,7 @@ namespace ImageSharp.Tests.Drawing
                 {
                     image
                         .BackgroundColor(Rgba32.Blue)
-                        .Draw(Pens<Rgba32>.Dash(Rgba32.HotPink, 5), simplePath.Clip(hole1))
+                        .Draw(Pens.Dash(Rgba32.HotPink, 5), simplePath.Clip(hole1))
                         .Save(output);
                 }
             }

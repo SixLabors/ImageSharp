@@ -54,7 +54,7 @@ namespace ImageSharp
         public static Image<TPixel> DrawText<TPixel>(this Image<TPixel> source, string text, Font font, TPixel color, Vector2 location, TextGraphicsOptions options)
            where TPixel : struct, IPixel<TPixel>
         {
-            return source.DrawText(text, font, Brushes<TPixel>.Solid(color), null, location, options);
+            return source.DrawText(text, font, Brushes.Solid(color), null, location, options);
         }
 
         /// <summary>

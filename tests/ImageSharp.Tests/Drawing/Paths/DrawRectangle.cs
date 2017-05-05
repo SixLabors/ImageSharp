@@ -15,7 +15,7 @@ namespace ImageSharp.Tests.Drawing.Paths
         float thickness = 7.2f;
         GraphicsOptions noneDefault = new GraphicsOptions();
         Rgba32 color = Rgba32.HotPink;
-        SolidBrush<Rgba32> brush = Brushes<Rgba32>.Solid(Rgba32.HotPink);
+        SolidBrush<Rgba32> brush = Brushes.Solid(Rgba32.HotPink);
         Pen<Rgba32> pen = new Pen<Rgba32>(Rgba32.Gray, 99.9f);
         ImageSharp.Rectangle rectangle = new ImageSharp.Rectangle(10, 10, 98, 324);
 

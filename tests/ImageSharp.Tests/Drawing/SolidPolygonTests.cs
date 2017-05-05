@@ -60,7 +60,7 @@ namespace ImageSharp.Tests.Drawing
                 using (FileStream output = File.OpenWrite($"{path}/Pattern.png"))
                 {
                     image
-                        .FillPolygon(Brushes<Rgba32>.Horizontal(Rgba32.HotPink), simplePath, new GraphicsOptions(true))
+                        .FillPolygon(Brushes.Horizontal(Rgba32.HotPink), simplePath, new GraphicsOptions(true))
                         .Save(output);
                 }
 

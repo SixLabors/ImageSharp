@@ -1,5 +1,5 @@
 
-# <img src="https://github.com/JimBobSquarePants/ImageSharp/blob/master/build/icons/imagesharp-logo-256.png" alt="ImageSharp" width="52"/> ImageSharp
+# <img src="https://raw.githubusercontent.com/JimBobSquarePants/ImageSharp/master/build/icons/imagesharp-logo-256.png" alt="ImageSharp" width="52"/> ImageSharp
 
 **ImageSharp** is a new, fully featured, fully managed, cross-platform, 2D graphics API designed to allow the processing of images without the use of `System.Drawing`. 
 
@@ -39,8 +39,8 @@ The **ImageSharp** library is made up of multiple packages.
 
 Packages include:
 - **ImageSharp**
-  - Contains the Image classes, PixelFormats, Primitives, Configuration, and other core functionality.
-  - The IImageFormat interface, Jpeg, Png, Bmp, and Gif formats.
+  - Contains the generic `Image<TPixel>` class, PixelFormats, Primitives, Configuration, and other core functionality.
+  - The `IImageFormat` interface, Jpeg, Png, Bmp, and Gif formats.
   - Transform methods like Resize, Crop, Skew, Rotate - Anything that alters the dimensions of the image.
   - Non-transform methods like Gaussian Blur, Pixelate, Edge Detection - Anything that maintains the original image dimensions.
 
@@ -77,13 +77,15 @@ Without the constraints of `System.Drawing` We have been able to develop somethi
 
 Gone are system-wide process-locks; ImageSharp images are thread-safe and fully supported in web environments.
 
-Many `Image` methods are also fluent.
+Many `Image<TPixel>` methods are also fluent.
 
 Here's an example of the code required to resize an image using the default Bicubic resampler then turn the colors into their grayscale equivalent using the BT709 standard matrix.
 
+`Rgba32` is our default PixelFormat, equivalent to `System.Drawing Color`.
+
 On platforms supporting netstandard 1.3+
 ```csharp
-using (Image image = Image.Load("foo.jpg"))
+using (Image<Rgba32> image = Image<Rgba32>.Load("foo.jpg"))
 {
     image.Resize(image.Width / 2, image.Height / 2)
          .Grayscale()
@@ -94,7 +96,7 @@ on netstandard 1.1 - 1.2
 ```csharp
 using (FileStream stream = File.OpenRead("foo.jpg"))
 using (FileStream output = File.OpenWrite("bar.jpg"))
-using (Image image = Image.Load(stream))
+using (Image<Rgba32> image = Image<Rgba32>.Load(stream))
 {
     image.Resize(image.Width / 2, image.Height / 2)
          .Grayscale()
@@ -105,15 +107,14 @@ using (Image image = Image.Load(stream))
 Setting individual pixel values is perfomed as follows:
 
 ```csharp
-using (image = new Image(400, 400)
-using (var pixels = image.Lock())
+using (Image<Rgba32> image = new Image<Rgba32>(400, 400)
+using (PixelAccessor<Rgba32> pixels = image.Lock())
 {
-	// Rgba32 is our default PixelFormat, equivalent to System.Drawing Color
     pixels[200, 200] = Rgba32.White;
 }
 ```
 
-For advanced usage the `Image<TPixel>` and `PixelAccessor<TPixel>` classes are available allowing developers to implement their own color models in the same manner as Microsoft XNA Game Studio and MonoGame. 
+For advanced usage there are multiple [PixelFormat implementations](https://github.com/JimBobSquarePants/ImageSharp/tree/master/src/ImageSharp/PixelFormats) available allowing developers to implement their own color models in the same manner as Microsoft XNA Game Studio and MonoGame. 
 
 All in all this should allow image processing to be much more accessible to developers which has always been my goal from the start.
 
@@ -121,7 +122,7 @@ All in all this should allow image processing to be much more accessible to deve
 
 Please... Spread the word, contribute algorithms, submit performance improvements, unit tests. 
 
-Performance is a biggie, if you know anything about the new vector types and can apply some fancy new stuff with that it would be awesome. 
+Performance is a biggie, if you know anything about the `System.Numerics.Vectors` types and can apply some fancy new stuff with that it would be awesome. 
 
 There's a lot of developers out there who could write this stuff a lot better and faster than I and I would love to see what we collectively can come up with so please, if you can help in any way it would be most welcome and benificial for all.
 

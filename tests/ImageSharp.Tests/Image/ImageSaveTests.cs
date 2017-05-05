@@ -49,9 +49,10 @@ namespace ImageSharp.Tests
 
             this.fileSystem = new Mock<IFileSystem>();
             this.encoderOptions = new Mock<IEncoderOptions>().Object;
-            this.Image = new Image<Rgba32>(1, 1, new Configuration(this.format.Object) {
+            this.Image = new Image<Rgba32>(new Configuration(this.format.Object)
+            {
                 FileSystem = this.fileSystem.Object
-            });
+            }, 1, 1);
         }
 
         [Fact]

@@ -217,7 +217,7 @@ namespace ImageSharp.Tests.Drawing
 
             Configuration config = Configuration.CreateDefaultInstance();
             config.ParallelOptions.MaxDegreeOfParallelism = 1;
-            using (Image<Rgba32> image = new Image<Rgba32>(100, 100, config))
+            using (Image<Rgba32> image = new Image<Rgba32>(config, 100, 100))
             {
                 using (FileStream output = File.OpenWrite($"{path}/Septagon.png"))
                 {
@@ -236,7 +236,7 @@ namespace ImageSharp.Tests.Drawing
 
             Configuration config = Configuration.CreateDefaultInstance();
             config.ParallelOptions.MaxDegreeOfParallelism = 1;
-            using (Image<Rgba32> image = new Image<Rgba32>(100, 100, config))
+            using (Image<Rgba32> image = new Image<Rgba32>(config, 100, 100))
             {
                 using (FileStream output = File.OpenWrite($"{path}/ellipse.png"))
                 {
@@ -256,7 +256,7 @@ namespace ImageSharp.Tests.Drawing
 
             Configuration config = Configuration.CreateDefaultInstance();
             config.ParallelOptions.MaxDegreeOfParallelism = 1;
-            using (Image<Rgba32> image = new Image<Rgba32>(200, 200, config))
+            using (Image<Rgba32> image = new Image<Rgba32>(config, 200, 200))
             {
                 using (FileStream output = File.OpenWrite($"{path}/clipped-corner.png"))
                 {

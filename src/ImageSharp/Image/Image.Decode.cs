@@ -15,8 +15,7 @@ namespace ImageSharp
     /// <content>
     /// Adds static methods allowing the decoding of new images.
     /// </content>
-    public partial class Image<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+    public partial class Image
     {
         /// <summary>
         /// By reading the header on the provided stream this calculates the images format.
@@ -56,10 +55,12 @@ namespace ImageSharp
         /// <param name="stream">The stream.</param>
         /// <param name="options">The options for the decoder.</param>
         /// <param name="config">the configuration.</param>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>
-        ///  The decoded image
+        /// A new <see cref="Image{TPixel}"/>.
         /// </returns>
-        private static Image<TPixel> Decode(Stream stream, IDecoderOptions options, Configuration config)
+        private static Image<TPixel> Decode<TPixel>(Stream stream, IDecoderOptions options, Configuration config)
+            where TPixel : struct, IPixel<TPixel>
         {
             IImageFormat format = DiscoverFormat(stream, config);
             if (format == null)

@@ -152,7 +152,7 @@ namespace ImageSharp.Tests
                     serialized = memoryStream.ToArray();
                 }
 
-                using (Image<Rgba32> image2 = Image<Rgba32>.Load(serialized))
+                using (Image<Rgba32> image2 = Image.Load<Rgba32>(serialized))
                 using (FileStream output = File.OpenWrite($"{path}/{file.FileName}"))
                 {
                     image2.Save(output);

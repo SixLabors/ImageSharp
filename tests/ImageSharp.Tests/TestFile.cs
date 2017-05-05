@@ -48,7 +48,7 @@ namespace ImageSharp.Tests
             this.file = file;
 
             this.Bytes = File.ReadAllBytes(file);
-            this.image = Image<Rgba32>.Load(this.Bytes);
+            this.image = Image.Load<Rgba32>(this.Bytes);
         }
 
         /// <summary>
@@ -141,7 +141,7 @@ namespace ImageSharp.Tests
         /// </returns>
         public Image<Rgba32> CreateImage(IDecoderOptions options)
         {
-            return Image<Rgba32>.Load(this.Bytes, options);
+            return Image.Load<Rgba32>(this.Bytes, options);
         }
 
         /// <summary>

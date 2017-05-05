@@ -11,7 +11,7 @@ namespace ImageSharp.Benchmarks.Image
 
     using BenchmarkDotNet.Attributes;
 
-    using ImageSharp.PixelFormats;
+    using CoreImage = ImageSharp.Image;
 
     public class EncodeGif : BenchmarkBase
     {
@@ -26,7 +26,7 @@ namespace ImageSharp.Benchmarks.Image
             if (this.bmpStream == null)
             {
                 this.bmpStream = File.OpenRead("../ImageSharp.Tests/TestImages/Formats/Bmp/Car.bmp");
-                this.bmpCore = Image<Rgba32>.Load(this.bmpStream);
+                this.bmpCore = CoreImage.Load<Rgba32>(this.bmpStream);
                 this.bmpStream.Position = 0;
                 this.bmpDrawing = Image.FromStream(this.bmpStream);
             }

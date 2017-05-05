@@ -59,7 +59,7 @@ namespace ImageSharp.Tests
             Type fake = typeof(Rgba32).GetTypeInfo().Assembly.GetType("ImageSharp.dsaada_DASqewrr");
             Assert.Null(fake);
         }
-        
+
         [Theory]
         [WithFile(TestImages.Bmp.Car, PixelTypes.Rgba32, true)]
         [WithFile(TestImages.Bmp.Car, PixelTypes.Rgba32, false)]

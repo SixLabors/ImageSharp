@@ -32,7 +32,7 @@ namespace ImageSharp.Tests.Formats.Png
 
                 image.Save(ms, new PngEncoder());
                 ms.Position = 0;
-                using (Image<Rgba32> img2 = Image<Rgba32>.Load(ms, new PngDecoder()))
+                using (Image<Rgba32> img2 = Image.Load<Rgba32>(ms, new PngDecoder()))
                 {
                     // img2.Save(provider.Utility.GetTestOutputFileName("bmp", "_loaded"), new BmpEncoder());
                     ImageComparer.CheckSimilarity(image, img2);
@@ -53,7 +53,7 @@ namespace ImageSharp.Tests.Formats.Png
                 image.MetaData.Quality = 256;
                 image.Save(ms, new PngEncoder());
                 ms.Position = 0;
-                using (Image<Rgba32> img2 = Image<Rgba32>.Load(ms, new PngDecoder()))
+                using (Image<Rgba32> img2 = Image.Load<Rgba32>(ms, new PngDecoder()))
                 {
                     // img2.Save(provider.Utility.GetTestOutputFileName("bmp", "_loaded"), new BmpEncoder());
                     ImageComparer.CheckSimilarity(image, img2, 0.03f);
@@ -119,7 +119,7 @@ namespace ImageSharp.Tests.Formats.Png
 
                 image.Save(ms, new PngEncoder());
                 ms.Position = 0;
-                using (Image<Rgba32> img2 = Image<Rgba32>.Load(ms, new PngDecoder()))
+                using (Image<Rgba32> img2 = Image.Load<Rgba32>(ms, new PngDecoder()))
                 {
                     ImageComparer.CheckSimilarity(image, img2);
                 }

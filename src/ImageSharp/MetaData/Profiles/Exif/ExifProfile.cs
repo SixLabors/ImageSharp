@@ -138,7 +138,7 @@ namespace ImageSharp
 
             using (MemoryStream memStream = new MemoryStream(this.data, this.thumbnailOffset, this.thumbnailLength))
             {
-                return Image<TPixel>.Load(memStream);
+                return Image.Load<TPixel>(memStream);
             }
         }
 

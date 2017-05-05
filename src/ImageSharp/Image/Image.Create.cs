@@ -1,4 +1,4 @@
-﻿// <copyright file="Image.cs" company="James Jackson-South">
+﻿// <copyright file="Image.Create.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -10,8 +10,7 @@ namespace ImageSharp
     /// <content>
     /// Adds static methods allowing the creation of new images from given dimensions.
     /// </content>
-    public partial class Image<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+    public partial class Image
     {
         /// <summary>
         /// Create a new instance of the <see cref="Image{TPixel}"/> class with the given height and the width.
@@ -21,12 +20,14 @@ namespace ImageSharp
         /// <param name="configuration">
         /// The configuration providing initialization code which allows extending the library.
         /// </param>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>
         /// A new <see cref="Image{TPixel}"/>.
         /// </returns>
-        internal static Image<TPixel> Create(int width, int height, Configuration configuration)
+        internal static Image<TPixel> Create<TPixel>(int width, int height, Configuration configuration)
+            where TPixel : struct, IPixel<TPixel>
         {
-            return Create(width, height, null, configuration);
+            return Create<TPixel>(width, height, null, configuration);
         }
 
         /// <summary>
@@ -38,10 +39,12 @@ namespace ImageSharp
         /// <param name="configuration">
         /// The configuration providing initialization code which allows extending the library.
         /// </param>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>
         /// A new <see cref="Image{TPixel}"/>.
         /// </returns>
-        internal static Image<TPixel> Create(int width, int height, ImageMetaData metadata, Configuration configuration)
+        internal static Image<TPixel> Create<TPixel>(int width, int height, ImageMetaData metadata, Configuration configuration)
+            where TPixel : struct, IPixel<TPixel>
         {
             return new Image<TPixel>(width, height, metadata, configuration);
         }

@@ -366,7 +366,7 @@ namespace ImageSharp.Formats
                 this.metaData.Quality = colorTableLength / 3;
 
                 // This initializes the image to become fully transparent because the alpha channel is zero.
-                this.image = Image<TPixel>.Create(imageWidth, imageHeight, this.metaData, this.configuration);
+                this.image = Image.Create<TPixel>(imageWidth, imageHeight, this.metaData, this.configuration);
 
                 this.SetFrameMetaData(this.metaData);
 

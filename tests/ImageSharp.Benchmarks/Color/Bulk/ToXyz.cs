@@ -55,7 +55,7 @@ namespace ImageSharp.Benchmarks.Color.Bulk
         }
     }
 
-    public class ToXyz_Color : ToXyz<Rgba32>
+    public class ToXyz_Rgba32 : ToXyz<Rgba32>
     {
     }
 }

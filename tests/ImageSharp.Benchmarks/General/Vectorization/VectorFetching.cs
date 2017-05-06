@@ -86,5 +86,23 @@ namespace ImageSharp.Benchmarks.General.Vectorization
                 a = a * v;
             }
         }
+
+        [Benchmark]
+        public void FetchWithBufferSpanUtility()
+        {
+            Vector<float> v = new Vector<float>(this.testValue);
+
+            BufferSpan<float> span = new BufferSpan<float>(this.data);
+
+            ref Vector<float> start = ref span.FetchVector();
+
+            int n = this.InputSize / Vector<uint>.Count;
+
+            for (int i = 0; i < n; i++)
+            {
+                ref Vector<float> a = ref Unsafe.Add(ref start, i);
+                a = a * v;
+            }
+        }
     }
 }

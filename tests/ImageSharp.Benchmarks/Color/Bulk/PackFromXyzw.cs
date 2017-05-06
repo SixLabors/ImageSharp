@@ -57,7 +57,7 @@ namespace ImageSharp.Benchmarks.Color.Bulk
         }
     }
 
-    public class PackFromXyzw_Color : PackFromXyzw<Rgba32>
+    public class PackFromXyzw_Rgba32 : PackFromXyzw<Rgba32>
     {
     }
 }

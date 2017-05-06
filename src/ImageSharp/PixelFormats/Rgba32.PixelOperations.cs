@@ -44,13 +44,11 @@ namespace ImageSharp
                 if (!Vector.IsHardwareAccelerated)
                 {
                     throw new InvalidOperationException(
-                        "Rgba32.BulkOperations.ToVector4SimdAligned() should not be called when Vector.IsHardwareAccelerated == false!");
+                        "Rgba32.PixelOperations.ToVector4SimdAligned() should not be called when Vector.IsHardwareAccelerated == false!");
                 }
 
-                int vecSize = Vector<uint>.Count;
-
                 DebugGuard.IsTrue(
-                    count % vecSize == 0,
+                    count % Vector<uint>.Count == 0,
                     nameof(count),
                     "Argument 'count' should divisible by Vector<uint>.Count!");
 
@@ -61,25 +59,25 @@ namespace ImageSharp
 
                 int unpackedRawCount = count * 4;
 
-                ref uint bSource = ref Unsafe.As<Rgba32, uint>(ref sourceColors.DangerousGetPinnableReference());
-                ref UnpackedRGBA bDestUnpacked = ref Unsafe.As<Vector4, UnpackedRGBA>(ref destVectors.DangerousGetPinnableReference());
-                ref Vector<uint> bDestUint = ref Unsafe.As<UnpackedRGBA, Vector<uint>>(ref bDestUnpacked);
-                ref Vector<float> bDestFloat = ref Unsafe.As<UnpackedRGBA, Vector<float>>(ref bDestUnpacked);
+                ref uint sourceBase = ref Unsafe.As<Rgba32, uint>(ref sourceColors.DangerousGetPinnableReference());
+                ref UnpackedRGBA destBaseAsUnpacked = ref Unsafe.As<Vector4, UnpackedRGBA>(ref destVectors.DangerousGetPinnableReference());
+                ref Vector<uint> destBaseAsUInt = ref Unsafe.As<UnpackedRGBA, Vector<uint>>(ref destBaseAsUnpacked);
+                ref Vector<float> destBaseAsFloat = ref Unsafe.As<UnpackedRGBA, Vector<float>>(ref destBaseAsUnpacked);
 
                 for (int i = 0; i < count; i++)
                 {
-                    uint sVal = Unsafe.Add(ref bSource, i);
-                    ref UnpackedRGBA dst = ref Unsafe.Add(ref bDestUnpacked, i);
+                    uint sVal = Unsafe.Add(ref sourceBase, i);
+                    ref UnpackedRGBA dst = ref Unsafe.Add(ref destBaseAsUnpacked, i);
 
                     // This call is the bottleneck now:
                     dst.Load(sVal);
                 }
 
-                int n = unpackedRawCount / vecSize;
+                int numOfVectors = unpackedRawCount / Vector<uint>.Count;
 
-                for (int i = 0; i < n; i++)
+                for (int i = 0; i < numOfVectors; i++)
                 {
-                    Vector<uint> vi = Unsafe.Add(ref bDestUint, i);
+                    Vector<uint> vi = Unsafe.Add(ref destBaseAsUInt, i);
 
                     vi &= mask;
                     vi |= magicInt;
@@ -87,7 +85,7 @@ namespace ImageSharp
                     Vector<float> vf = Vector.AsVectorSingle(vi);
                     vf = (vf - magicFloat) * bVec;
 
-                    Unsafe.Add(ref bDestFloat, i) = vf;
+                    Unsafe.Add(ref destBaseAsFloat, i) = vf;
                 }
             }
 

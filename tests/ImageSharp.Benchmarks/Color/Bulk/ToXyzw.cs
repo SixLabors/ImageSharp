@@ -59,11 +59,11 @@ namespace ImageSharp.Benchmarks.Color.Bulk
         }
     }
     
-    public class ToXyzw_Color : ToXyzw<Rgba32>
+    public class ToXyzw_Rgba32 : ToXyzw<Rgba32>
     {
     }
 
-    public class ToXyzw_Argb : ToXyzw<Argb32>
+    public class ToXyzw_Argb32 : ToXyzw<Argb32>
     {
     }
 }

@@ -39,7 +39,7 @@ namespace ImageSharp
             ///     <cref>https://github.com/dotnet/corefx/issues/15957</cref>
             /// </see>
             /// </remarks>
-            internal static unsafe void ToVector4SimdAligned(BufferSpan<Rgba32> sourceColors, BufferSpan<Vector4> destVectors, int count)
+            internal static void ToVector4SimdAligned(BufferSpan<Rgba32> sourceColors, BufferSpan<Vector4> destVectors, int count)
             {
                 if (!Vector.IsHardwareAccelerated)
                 {

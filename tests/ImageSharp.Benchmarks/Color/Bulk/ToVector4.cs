@@ -57,7 +57,7 @@ namespace ImageSharp.Benchmarks.Color.Bulk
         }
     }
 
-    public class ToVector4_Color : ToVector4<Rgba32>
+    public class ToVector4_Rgba32 : ToVector4<Rgba32>
     {
     }
 }

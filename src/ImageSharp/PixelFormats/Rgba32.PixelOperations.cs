@@ -61,38 +61,33 @@ namespace ImageSharp
 
                 int unpackedRawCount = count * 4;
 
-                ref uint src = ref Unsafe.As<Rgba32, uint>(ref sourceColors.DangerousGetPinnableReference());
+                ref uint bSource = ref Unsafe.As<Rgba32, uint>(ref sourceColors.DangerousGetPinnableReference());
+                ref UnpackedRGBA bDestUnpacked = ref Unsafe.As<Vector4, UnpackedRGBA>(ref destVectors.DangerousGetPinnableReference());
+                ref Vector<uint> bDestUint = ref Unsafe.As<UnpackedRGBA, Vector<uint>>(ref bDestUnpacked);
+                ref Vector<float> bDestFloat = ref Unsafe.As<UnpackedRGBA, Vector<float>>(ref bDestUnpacked);
 
-                using (Buffer<uint> tempBuf = new Buffer<uint>(
-                    unpackedRawCount + Vector<uint>.Count))
+                for (int i = 0; i < count; i++)
                 {
-                    uint[] temp = tempBuf.Array;
-                    float[] fTemp = Unsafe.As<float[]>(temp);
+                    uint sVal = Unsafe.Add(ref bSource, i);
+                    ref UnpackedRGBA dst = ref Unsafe.Add(ref bDestUnpacked, i);
 
-                    ref UnpackedRGBA tempBase = ref Unsafe.As<uint, UnpackedRGBA>(ref tempBuf[0]);
+                    // This call is the bottleneck now:
+                    dst.Load(sVal);
+                }
 
-                    for (int i = 0; i < count; i++)
-                    {
-                        uint sVal = Unsafe.Add(ref src, i);
-                        ref UnpackedRGBA dst = ref Unsafe.Add(ref tempBase, i);
+                int n = unpackedRawCount / vecSize;
 
-                        // This call is the bottleneck now:
-                        dst.Load(sVal);
-                    }
+                for (int i = 0; i < n; i++)
+                {
+                    Vector<uint> vi = Unsafe.Add(ref bDestUint, i);
 
-                    for (int i = 0; i < unpackedRawCount; i += vecSize)
-                    {
-                        Vector<uint> vi = new Vector<uint>(temp, i);
+                    vi &= mask;
+                    vi |= magicInt;
 
-                        vi &= mask;
-                        vi |= magicInt;
+                    Vector<float> vf = Vector.AsVectorSingle(vi);
+                    vf = (vf - magicFloat) * bVec;
 
-                        Vector<float> vf = Vector.AsVectorSingle(vi);
-                        vf = (vf - magicFloat) * bVec;
-                        vf.CopyTo(fTemp, i);
-                    }
-
-                    BufferSpan.Copy(tempBuf.Span.AsBytes(), destVectors.AsBytes(), unpackedRawCount * sizeof(uint));
+                    Unsafe.Add(ref bDestFloat, i) = vf;
                 }
             }
 

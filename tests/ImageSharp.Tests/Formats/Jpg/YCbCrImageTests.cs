@@ -61,9 +61,9 @@ namespace ImageSharp.Tests
             //this.PrintChannel("Cb", img.CbChannel);
             //this.PrintChannel("Cr", img.CrChannel);
 
-            Assert.Equal(img.YChannel.Stride, 400);
-            Assert.Equal(img.CbChannel.Stride, 400 / expectedCStrideDiv);
-            Assert.Equal(img.CrChannel.Stride, 400 / expectedCStrideDiv);
+            Assert.Equal(img.YChannel.Width, 400);
+            Assert.Equal(img.CbChannel.Width, 400 / expectedCStrideDiv);
+            Assert.Equal(img.CrChannel.Width, 400 / expectedCStrideDiv);
         }
 
     }

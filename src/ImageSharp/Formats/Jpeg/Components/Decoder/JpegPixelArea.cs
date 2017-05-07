@@ -25,6 +25,16 @@ namespace ImageSharp.Formats.Jpg
         }
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="JpegPixelArea" /> struct from existing buffer.
+        /// <see cref="Stride"/> will be set to <see cref="Buffer2D{T}.Width"/> of <paramref name="pixels"/> and <see cref="Offset"/> will be set to 0.
+        /// </summary>
+        /// <param name="pixels">The pixel buffer</param>
+        public JpegPixelArea(Buffer2D<byte> pixels)
+            : this(pixels, pixels.Width, 0)
+        {
+        }
+
+        /// <summary>
         /// Gets the pixels buffer.
         /// </summary>
         public Buffer2D<byte> Pixels { get; private set; }
@@ -62,30 +72,6 @@ namespace ImageSharp.Formats.Jpg
             {
                 return this.Pixels[(y * this.Stride) + x];
             }
-        }
-
-        /// <summary>
-        /// Creates a new instance of the <see cref="JpegPixelArea" /> struct.
-        /// Pixel array will be handled by <see cref="Buffer2D{T}"/>, but
-        /// <see cref="ReturnPooled" /> can be called when the instance is no longer needed.
-        /// </summary>
-        /// <param name="width">The width.</param>
-        /// <param name="height">The height.</param>
-        /// <returns>A <see cref="JpegPixelArea" /> with pooled data</returns>
-        public static JpegPixelArea CreatePooled(int width, int height) => new JpegPixelArea(Buffer2D<byte>.CreateClean(width, height), width, 0);
-
-        /// <summary>
-        /// Dispose <see cref="Pixels" />.
-        /// </summary>
-        public void ReturnPooled()
-        {
-            if (this.Pixels == null)
-            {
-                return;
-            }
-
-            this.Pixels.Dispose();
-            this.Pixels = null;
         }
 
         /// <summary>

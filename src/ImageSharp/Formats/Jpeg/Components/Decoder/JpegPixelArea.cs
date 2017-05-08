@@ -4,7 +4,6 @@
 // </copyright>
 namespace ImageSharp.Formats.Jpg
 {
-    using System.Buffers;
     using System.Runtime.CompilerServices;
 
     /// <summary>
@@ -15,20 +14,30 @@ namespace ImageSharp.Formats.Jpg
         /// <summary>
         /// Initializes a new instance of the <see cref="JpegPixelArea" /> struct from existing data.
         /// </summary>
-        /// <param name="pixels">The pixel array</param>
-        /// <param name="striede">The stride</param>
+        /// <param name="pixels">The pixel buffer</param>
+        /// <param name="stride">The stride</param>
         /// <param name="offset">The offset</param>
-        public JpegPixelArea(byte[] pixels, int striede, int offset)
+        public JpegPixelArea(Buffer2D<byte> pixels, int stride, int offset)
         {
-            this.Stride = striede;
+            this.Stride = stride;
             this.Pixels = pixels;
             this.Offset = offset;
         }
 
         /// <summary>
-        /// Gets the pixels.
+        /// Initializes a new instance of the <see cref="JpegPixelArea" /> struct from existing buffer.
+        /// <see cref="Stride"/> will be set to <see cref="Buffer2D{T}.Width"/> of <paramref name="pixels"/> and <see cref="Offset"/> will be set to 0.
         /// </summary>
-        public byte[] Pixels { get; private set; }
+        /// <param name="pixels">The pixel buffer</param>
+        public JpegPixelArea(Buffer2D<byte> pixels)
+            : this(pixels, pixels.Width, 0)
+        {
+        }
+
+        /// <summary>
+        /// Gets the pixels buffer.
+        /// </summary>
+        public Buffer2D<byte> Pixels { get; private set; }
 
         /// <summary>
         /// Gets a value indicating whether the instance has been initalized. (Is not default(JpegPixelArea))
@@ -36,21 +45,19 @@ namespace ImageSharp.Formats.Jpg
         public bool IsInitialized => this.Pixels != null;
 
         /// <summary>
-        /// Gets or the stride.
+        /// Gets the stride.
         /// </summary>
         public int Stride { get; }
 
         /// <summary>
-        /// Gets or the offset.
+        /// Gets the offset.
         /// </summary>
         public int Offset { get; }
 
         /// <summary>
         /// Gets a <see cref="MutableSpan{T}" /> of bytes to the pixel area
         /// </summary>
-        public MutableSpan<byte> Span => new MutableSpan<byte>(this.Pixels, this.Offset);
-
-        private static ArrayPool<byte> BytePool => ArrayPool<byte>.Shared;
+        public MutableSpan<byte> Span => new MutableSpan<byte>(this.Pixels.Array, this.Offset);
 
         /// <summary>
         /// Returns the pixel at (x, y)
@@ -65,35 +72,6 @@ namespace ImageSharp.Formats.Jpg
             {
                 return this.Pixels[(y * this.Stride) + x];
             }
-        }
-
-        /// <summary>
-        /// Creates a new instance of the <see cref="JpegPixelArea" /> struct.
-        /// Pixel array will be taken from a pool, this instance will be the owner of it's pixel data, therefore
-        /// <see cref="ReturnPooled" /> should be called when the instance is no longer needed.
-        /// </summary>
-        /// <param name="width">The width.</param>
-        /// <param name="height">The height.</param>
-        /// <returns>A <see cref="JpegPixelArea" /> with pooled data</returns>
-        public static JpegPixelArea CreatePooled(int width, int height)
-        {
-            int size = width * height;
-            byte[] pixels = BytePool.Rent(size);
-            return new JpegPixelArea(pixels, width, 0);
-        }
-
-        /// <summary>
-        /// Returns <see cref="Pixels" /> to the pool
-        /// </summary>
-        public void ReturnPooled()
-        {
-            if (this.Pixels == null)
-            {
-                return;
-            }
-
-            BytePool.Return(this.Pixels);
-            this.Pixels = null;
         }
 
         /// <summary>
@@ -129,7 +107,7 @@ namespace ImageSharp.Formats.Jpg
         public unsafe void LoadColorsFrom(Block8x8F* block, Block8x8F* temp)
         {
             // Level shift by +128, clip to [0, 255], and write to dst.
-            block->CopyColorsTo(new MutableSpan<byte>(this.Pixels, this.Offset), this.Stride, temp);
+            block->CopyColorsTo(new MutableSpan<byte>(this.Pixels.Array, this.Offset), this.Stride, temp);
         }
     }
 }

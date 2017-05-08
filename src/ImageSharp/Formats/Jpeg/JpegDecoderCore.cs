@@ -111,7 +111,7 @@ namespace ImageSharp.Formats
             this.QuantizationTables = new Block8x8F[MaxTq + 1];
             this.Temp = new byte[2 * Block8x8F.ScalarCount];
             this.ComponentArray = new Component[MaxComponents];
-            this.DecodedBlocks = new DecodedBlockArray[MaxComponents];
+            this.DecodedBlocks = new Buffer<DecodedBlock>[MaxComponents];
         }
 
         /// <summary>
@@ -125,12 +125,12 @@ namespace ImageSharp.Formats
         public HuffmanTree[] HuffmanTrees { get; }
 
         /// <summary>
-        /// Gets the array of <see cref="DecodedBlockArray"/>-s storing the "raw" frequency-domain decoded blocks.
+        /// Gets the array of <see cref="Buffer{T}"/>-s storing the "raw" frequency-domain decoded blocks.
         /// We need to apply IDCT, dequantiazition and unzigging to transform them into color-space blocks.
         /// This is done by <see cref="ProcessBlocksIntoJpegImageChannels{TPixel}"/>.
         /// When <see cref="IsProgressive"/>==true, we are touching these blocks multiple times - each time we process a Scan.
         /// </summary>
-        public DecodedBlockArray[] DecodedBlocks { get; }
+        public Buffer<DecodedBlock>[] DecodedBlocks { get; }
 
         /// <summary>
         /// Gets the quantization tables, in zigzag order.
@@ -216,15 +216,15 @@ namespace ImageSharp.Formats
                 this.HuffmanTrees[i].Dispose();
             }
 
-            foreach (DecodedBlockArray blockArray in this.DecodedBlocks)
+            foreach (Buffer<DecodedBlock> blockArray in this.DecodedBlocks)
             {
-                blockArray.Dispose();
+                blockArray?.Dispose();
             }
 
             this.ycbcrImage?.Dispose();
             this.InputProcessor.Dispose();
-            this.grayImage.ReturnPooled();
-            this.blackImage.ReturnPooled();
+            this.grayImage.Pixels?.Dispose();
+            this.blackImage.Pixels?.Dispose();
         }
 
         /// <summary>
@@ -243,11 +243,11 @@ namespace ImageSharp.Formats
                 switch (compIndex)
                 {
                     case 0:
-                        return this.ycbcrImage.YChannel;
+                        return new JpegPixelArea(this.ycbcrImage.YChannel);
                     case 1:
-                        return this.ycbcrImage.CbChannel;
+                        return new JpegPixelArea(this.ycbcrImage.CbChannel);
                     case 2:
-                        return this.ycbcrImage.CrChannel;
+                        return new JpegPixelArea(this.ycbcrImage.CrChannel);
                     case 3:
                         return this.blackImage;
                     default:
@@ -586,9 +586,9 @@ namespace ImageSharp.Formats
 
                         for (int x = 0; x < image.Width; x++)
                         {
-                            byte cyan = this.ycbcrImage.YChannel.Pixels[yo + x];
-                            byte magenta = this.ycbcrImage.CbChannel.Pixels[co + (x / scale)];
-                            byte yellow = this.ycbcrImage.CrChannel.Pixels[co + (x / scale)];
+                            byte cyan = this.ycbcrImage.YChannel[yo + x];
+                            byte magenta = this.ycbcrImage.CbChannel[co + (x / scale)];
+                            byte yellow = this.ycbcrImage.CrChannel[co + (x / scale)];
 
                             TPixel packed = default(TPixel);
                             this.PackCmyk(ref packed, cyan, magenta, yellow, x, y);
@@ -655,9 +655,9 @@ namespace ImageSharp.Formats
 
                         for (int x = 0; x < image.Width; x++)
                         {
-                            byte red = this.ycbcrImage.YChannel.Pixels[yo + x];
-                            byte green = this.ycbcrImage.CbChannel.Pixels[co + (x / scale)];
-                            byte blue = this.ycbcrImage.CrChannel.Pixels[co + (x / scale)];
+                            byte red = this.ycbcrImage.YChannel[yo + x];
+                            byte green = this.ycbcrImage.CbChannel[co + (x / scale)];
+                            byte blue = this.ycbcrImage.CrChannel[co + (x / scale)];
 
                             TPixel packed = default(TPixel);
                             packed.PackFromBytes(red, green, blue, 255);
@@ -687,9 +687,9 @@ namespace ImageSharp.Formats
                  y =>
                  {
                      // TODO. This Parallel loop doesn't give us the boost it should.
-                     ref byte ycRef = ref this.ycbcrImage.YChannel.Pixels[0];
-                     ref byte cbRef = ref this.ycbcrImage.CbChannel.Pixels[0];
-                     ref byte crRef = ref this.ycbcrImage.CrChannel.Pixels[0];
+                     ref byte ycRef = ref this.ycbcrImage.YChannel[0];
+                     ref byte cbRef = ref this.ycbcrImage.CbChannel[0];
+                     ref byte crRef = ref this.ycbcrImage.CrChannel[0];
                      fixed (YCbCrToRgbTables* tables = &yCbCrToRgbTables)
                      {
                          // TODO: Simplify + optimize + share duplicate code across converter methods
@@ -737,9 +737,9 @@ namespace ImageSharp.Formats
 
                         for (int x = 0; x < image.Width; x++)
                         {
-                            byte yy = this.ycbcrImage.YChannel.Pixels[yo + x];
-                            byte cb = this.ycbcrImage.CbChannel.Pixels[co + (x / scale)];
-                            byte cr = this.ycbcrImage.CrChannel.Pixels[co + (x / scale)];
+                            byte yy = this.ycbcrImage.YChannel[yo + x];
+                            byte cb = this.ycbcrImage.CbChannel[co + (x / scale)];
+                            byte cr = this.ycbcrImage.CrChannel[co + (x / scale)];
 
                             TPixel packed = default(TPixel);
                             this.PackYcck(ref packed, yy, cb, cr, x, y);
@@ -787,7 +787,8 @@ namespace ImageSharp.Formats
 
             if (this.ComponentCount == 1)
             {
-                this.grayImage = JpegPixelArea.CreatePooled(8 * this.MCUCountX, 8 * this.MCUCountY);
+                Buffer2D<byte> buffer = Buffer2D<byte>.CreateClean(8 * this.MCUCountX, 8 * this.MCUCountY);
+                this.grayImage = new JpegPixelArea(buffer);
             }
             else
             {
@@ -826,7 +827,8 @@ namespace ImageSharp.Formats
                     int h3 = this.ComponentArray[3].HorizontalFactor;
                     int v3 = this.ComponentArray[3].VerticalFactor;
 
-                    this.blackImage = JpegPixelArea.CreatePooled(8 * h3 * this.MCUCountX, 8 * v3 * this.MCUCountY);
+                    Buffer2D<byte> buffer = Buffer2D<byte>.CreateClean(8 * h3 * this.MCUCountX, 8 * v3 * this.MCUCountY);
+                    this.blackImage = new JpegPixelArea(buffer);
                 }
             }
         }
@@ -1308,7 +1310,7 @@ namespace ImageSharp.Formats
             {
                 int count = this.TotalMCUCount * this.ComponentArray[i].HorizontalFactor
                            * this.ComponentArray[i].VerticalFactor;
-                this.DecodedBlocks[i] = new DecodedBlockArray(count);
+                this.DecodedBlocks[i] = Buffer<DecodedBlock>.CreateClean(count);
             }
         }
     }

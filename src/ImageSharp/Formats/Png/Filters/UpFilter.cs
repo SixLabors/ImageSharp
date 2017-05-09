@@ -21,18 +21,14 @@ namespace ImageSharp.Formats
         /// <param name="previousScanline">The previous scanline.</param>
         /// <param name="bytesPerScanline">The number of bytes per scanline</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Decode(byte[] scanline, byte[] previousScanline, int bytesPerScanline)
+        public static void Decode(ref byte scanline, ref byte previousScanline, int bytesPerScanline)
         {
             // Up(x) + Prior(x)
-            fixed (byte* scan = scanline)
-            fixed (byte* prev = previousScanline)
+            for (int x = 1; x < bytesPerScanline; x++)
             {
-                for (int x = 1; x < bytesPerScanline; x++)
-                {
-                    byte above = prev[x];
-
-                    scan[x] = (byte)((scan[x] + above) % 256);
-                }
+                ref byte scan = ref Unsafe.Add(ref scanline, x);
+                ref byte above = ref Unsafe.Add(ref previousScanline, x);
+                scan = (byte)((scan + above) % 256);
             }
         }
 

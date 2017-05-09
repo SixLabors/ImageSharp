@@ -22,18 +22,23 @@ namespace ImageSharp.Formats
         /// <param name="bytesPerScanline">The number of bytes per scanline</param>
         /// <param name="bytesPerPixel">The bytes per pixel.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Decode(byte[] scanline, byte[] previousScanline, int bytesPerScanline, int bytesPerPixel)
+        public static void Decode(ref byte scanline, ref byte previousScanline, int bytesPerScanline, int bytesPerPixel)
         {
             // Average(x) + floor((Raw(x-bpp)+Prior(x))/2)
-            fixed (byte* scan = scanline)
-            fixed (byte* prev = previousScanline)
+            for (int x = 1; x < bytesPerScanline; x++)
             {
-                for (int x = 1; x < bytesPerScanline; x++)
+                if (x - bytesPerPixel < 1)
                 {
-                    byte left = (x - bytesPerPixel < 1) ? (byte)0 : scan[x - bytesPerPixel];
-                    byte above = prev[x];
-
-                    scan[x] = (byte)((scan[x] + Average(left, above)) % 256);
+                    ref byte scan = ref Unsafe.Add(ref scanline, x);
+                    ref byte above = ref Unsafe.Add(ref previousScanline, x);
+                    scan = (byte)((scan + (above >> 1)) % 256);
+                }
+                else
+                {
+                    ref byte scan = ref Unsafe.Add(ref scanline, x);
+                    ref byte left = ref Unsafe.Add(ref scanline, x - bytesPerPixel);
+                    ref byte above = ref Unsafe.Add(ref previousScanline, x);
+                    scan = (byte)((scan + Average(left, above)) % 256);
                 }
             }
         }

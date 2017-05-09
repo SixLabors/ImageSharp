@@ -51,24 +51,31 @@ namespace ImageSharp.Formats
         /// <param name="scanline">The scanline to encode</param>
         /// <param name="previousScanline">The previous scanline.</param>
         /// <param name="result">The filtered scanline result.</param>
+        /// <param name="bytesPerScanline">The number of bytes per scanline</param>
         /// <param name="bytesPerPixel">The bytes per pixel.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Encode(byte[] scanline, byte[] previousScanline, byte[] result, int bytesPerPixel)
+        public static void Encode(ref byte scanline, ref byte previousScanline, ref byte result, int bytesPerScanline, int bytesPerPixel)
         {
             // Paeth(x) = Raw(x) - PaethPredictor(Raw(x-bpp), Prior(x), Prior(x - bpp))
-            fixed (byte* scan = scanline)
-            fixed (byte* prev = previousScanline)
-            fixed (byte* res = result)
+            result = 4;
+
+            for (int x = 0; x < bytesPerScanline; x++)
             {
-                res[0] = 4;
-
-                for (int x = 0; x < scanline.Length; x++)
+                if (x - bytesPerPixel < 0)
                 {
-                    byte left = (x - bytesPerPixel < 0) ? (byte)0 : scan[x - bytesPerPixel];
-                    byte above = prev[x];
-                    byte upperLeft = (x - bytesPerPixel < 0) ? (byte)0 : prev[x - bytesPerPixel];
-
-                    res[x + 1] = (byte)((scan[x] - PaethPredicator(left, above, upperLeft)) % 256);
+                    ref byte scan = ref Unsafe.Add(ref scanline, x);
+                    ref byte above = ref Unsafe.Add(ref previousScanline, x);
+                    ref byte res = ref Unsafe.Add(ref result, x + 1);
+                    res = (byte)((scan - PaethPredicator(0, above, 0)) % 256);
+                }
+                else
+                {
+                    ref byte scan = ref Unsafe.Add(ref scanline, x);
+                    ref byte left = ref Unsafe.Add(ref scanline, x - bytesPerPixel);
+                    ref byte above = ref Unsafe.Add(ref previousScanline, x);
+                    ref byte upperLeft = ref Unsafe.Add(ref previousScanline, x - bytesPerPixel);
+                    ref byte res = ref Unsafe.Add(ref result, x + 1);
+                    res = (byte)((scan - PaethPredicator(left, above, upperLeft)) % 256);
                 }
             }
         }

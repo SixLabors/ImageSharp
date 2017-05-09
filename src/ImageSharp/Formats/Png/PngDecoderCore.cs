@@ -438,11 +438,11 @@ namespace ImageSharp.Formats
 
                 this.currentRowBytesRead = 0;
 
-                var filterType = (FilterType)this.scanline[0];
-                var scanBuffer = new BufferSpan<byte>(this.scanline);
-                ref byte scanPoint = ref scanBuffer.DangerousGetPinnableReference();
-                var prevBuffer = new BufferSpan<byte>(this.previousScanline);
-                ref byte prevPoint = ref prevBuffer.DangerousGetPinnableReference();
+                var scanSpan = new BufferSpan<byte>(this.scanline);
+                var prevSpan = new BufferSpan<byte>(this.previousScanline);
+                ref byte scanPointer = ref scanSpan.DangerousGetPinnableReference();
+                ref byte prevPointer = ref prevSpan.DangerousGetPinnableReference();
+                var filterType = (FilterType)scanPointer;
 
                 switch (filterType)
                 {
@@ -451,22 +451,22 @@ namespace ImageSharp.Formats
 
                     case FilterType.Sub:
 
-                        SubFilter.Decode(ref scanPoint, this.bytesPerScanline, this.bytesPerPixel);
+                        SubFilter.Decode(ref scanPointer, this.bytesPerScanline, this.bytesPerPixel);
                         break;
 
                     case FilterType.Up:
 
-                        UpFilter.Decode(ref scanPoint, ref prevPoint, this.bytesPerScanline);
+                        UpFilter.Decode(ref scanPointer, ref prevPointer, this.bytesPerScanline);
                         break;
 
                     case FilterType.Average:
 
-                        AverageFilter.Decode(ref scanPoint, ref prevPoint, this.bytesPerScanline, this.bytesPerPixel);
+                        AverageFilter.Decode(ref scanPointer, ref prevPointer, this.bytesPerScanline, this.bytesPerPixel);
                         break;
 
                     case FilterType.Paeth:
 
-                        PaethFilter.Decode(ref scanPoint, ref prevPoint, this.bytesPerScanline, this.bytesPerPixel);
+                        PaethFilter.Decode(ref scanPointer, ref prevPointer, this.bytesPerScanline, this.bytesPerPixel);
                         break;
 
                     default:
@@ -515,11 +515,11 @@ namespace ImageSharp.Formats
 
                     this.currentRowBytesRead = 0;
 
-                    var filterType = (FilterType)this.scanline[0];
-                    var scanBuffer = new BufferSpan<byte>(this.scanline);
-                    ref byte scanPointer = ref scanBuffer.DangerousGetPinnableReference();
-                    var prevBuffer = new BufferSpan<byte>(this.previousScanline);
-                    ref byte prevPointer = ref prevBuffer.DangerousGetPinnableReference();
+                    var scanSpan = new BufferSpan<byte>(this.scanline);
+                    var prevSpan = new BufferSpan<byte>(this.previousScanline);
+                    ref byte scanPointer = ref scanSpan.DangerousGetPinnableReference();
+                    ref byte prevPointer = ref prevSpan.DangerousGetPinnableReference();
+                    var filterType = (FilterType)scanPointer;
 
                     switch (filterType)
                     {

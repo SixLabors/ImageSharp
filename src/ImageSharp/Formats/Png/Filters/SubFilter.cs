@@ -45,21 +45,28 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <param name="scanline">The scanline to encode</param>
         /// <param name="result">The filtered scanline result.</param>
+        /// <param name="bytesPerScanline">The number of bytes per scanline</param>
         /// <param name="bytesPerPixel">The bytes per pixel.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Encode(byte[] scanline, byte[] result, int bytesPerPixel)
+        public static void Encode(ref byte scanline, ref byte result, int bytesPerScanline, int bytesPerPixel)
         {
             // Sub(x) = Raw(x) - Raw(x-bpp)
-            fixed (byte* scan = scanline)
-            fixed (byte* res = result)
+            result = 1;
+
+            for (int x = 0; x < bytesPerScanline; x++)
             {
-                res[0] = 1;
-
-                for (int x = 0; x < scanline.Length; x++)
+                if (x - bytesPerPixel < 0)
                 {
-                    byte priorRawByte = (x - bytesPerPixel < 0) ? (byte)0 : scan[x - bytesPerPixel];
-
-                    res[x + 1] = (byte)((scan[x] - priorRawByte) % 256);
+                    ref byte scan = ref Unsafe.Add(ref scanline, x);
+                    ref byte res = ref Unsafe.Add(ref result, x + 1);
+                    res = (byte)(scan % 256);
+                }
+                else
+                {
+                    ref byte scan = ref Unsafe.Add(ref scanline, x);
+                    ref byte prev = ref Unsafe.Add(ref scanline, x - bytesPerPixel);
+                    ref byte res = ref Unsafe.Add(ref result, x + 1);
+                    res = (byte)((scan - prev) % 256);
                 }
             }
         }

@@ -9,7 +9,7 @@ namespace ImageSharp.Formats
     using System.Buffers;
     using System.IO;
     using System.Linq;
-
+    using System.Runtime.CompilerServices;
     using ImageSharp.PixelFormats;
 
     using Quantizers;
@@ -70,6 +70,11 @@ namespace ImageSharp.Formats
         /// The number of bytes per pixel.
         /// </summary>
         private int bytesPerPixel;
+
+        /// <summary>
+        /// The number of bytes per scanline
+        /// </summary>
+        private int bytesPerScanline;
 
         /// <summary>
         /// The buffer for the sub filter
@@ -177,7 +182,7 @@ namespace ImageSharp.Formats
 
             this.bytesPerPixel = this.CalculateBytesPerPixel();
 
-            PngHeader header = new PngHeader
+            var header = new PngHeader
             {
                 Width = image.Width,
                 Height = image.Height,
@@ -307,7 +312,7 @@ namespace ImageSharp.Formats
             where TPixel : struct, IPixel<TPixel>
         {
             // We can use the optimized PixelAccessor here and copy the bytes in unmanaged memory.
-            using (PixelArea<TPixel> pixelRow = new PixelArea<TPixel>(this.width, rawScanline, this.bytesPerPixel == 4 ? ComponentOrder.Xyzw : ComponentOrder.Xyz))
+            using (var pixelRow = new PixelArea<TPixel>(this.width, rawScanline, this.bytesPerPixel == 4 ? ComponentOrder.Xyzw : ComponentOrder.Xyz))
             {
                 pixels.CopyTo(pixelRow, row);
             }
@@ -354,6 +359,11 @@ namespace ImageSharp.Formats
         /// <returns>The <see cref="T:byte[]"/></returns>
         private byte[] GetOptimalFilteredScanline(byte[] rawScanline, byte[] previousScanline, byte[] result)
         {
+            var scanSpan = new BufferSpan<byte>(rawScanline);
+            var prevSpan = new BufferSpan<byte>(previousScanline);
+            ref byte scanPointer = ref scanSpan.DangerousGetPinnableReference();
+            ref byte prevPointer = ref prevSpan.DangerousGetPinnableReference();
+
             // Palette images don't compress well with adaptive filtering.
             if (this.pngColorType == PngColorType.Palette || this.bitDepth < 8)
             {
@@ -363,13 +373,18 @@ namespace ImageSharp.Formats
 
             // This order, while different to the enumerated order is more likely to produce a smaller sum
             // early on which shaves a couple of milliseconds off the processing time.
-            UpFilter.Encode(rawScanline, previousScanline, this.up);
-            int currentSum = this.CalculateTotalVariation(this.up, int.MaxValue);
+            var upSpan = new BufferSpan<byte>(this.up);
+            ref byte upPointer = ref upSpan.DangerousGetPinnableReference();
+            UpFilter.Encode(ref scanPointer, ref prevPointer, ref upPointer, this.bytesPerScanline);
+
+            int currentSum = this.CalculateTotalVariation(ref upPointer, int.MaxValue);
             int lowestSum = currentSum;
             result = this.up;
 
-            PaethFilter.Encode(rawScanline, previousScanline, this.paeth, this.bytesPerPixel);
-            currentSum = this.CalculateTotalVariation(this.paeth, currentSum);
+            var paethSpan = new BufferSpan<byte>(this.paeth);
+            ref byte paethPointer = ref paethSpan.DangerousGetPinnableReference();
+            PaethFilter.Encode(ref scanPointer, ref prevPointer, ref paethPointer, this.bytesPerScanline, this.bytesPerPixel);
+            currentSum = this.CalculateTotalVariation(ref paethPointer, currentSum);
 
             if (currentSum < lowestSum)
             {
@@ -377,8 +392,10 @@ namespace ImageSharp.Formats
                 result = this.paeth;
             }
 
-            SubFilter.Encode(rawScanline, this.sub, this.bytesPerPixel);
-            currentSum = this.CalculateTotalVariation(this.sub, int.MaxValue);
+            var subSpan = new BufferSpan<byte>(this.sub);
+            ref byte subPointer = ref subSpan.DangerousGetPinnableReference();
+            SubFilter.Encode(ref scanPointer, ref subPointer, this.bytesPerScanline, this.bytesPerPixel);
+            currentSum = this.CalculateTotalVariation(ref subPointer, int.MaxValue);
 
             if (currentSum < lowestSum)
             {
@@ -386,8 +403,10 @@ namespace ImageSharp.Formats
                 result = this.sub;
             }
 
-            AverageFilter.Encode(rawScanline, previousScanline, this.average, this.bytesPerPixel);
-            currentSum = this.CalculateTotalVariation(this.average, currentSum);
+            var averageSpan = new BufferSpan<byte>(this.average);
+            ref byte averagePointer = ref averageSpan.DangerousGetPinnableReference();
+            AverageFilter.Encode(ref scanPointer, ref prevPointer, ref averagePointer, this.bytesPerScanline, this.bytesPerPixel);
+            currentSum = this.CalculateTotalVariation(ref averagePointer, currentSum);
 
             if (currentSum < lowestSum)
             {
@@ -404,13 +423,14 @@ namespace ImageSharp.Formats
         /// <param name="scanline">The scanline bytes</param>
         /// <param name="lastSum">The last variation sum</param>
         /// <returns>The <see cref="int"/></returns>
-        private int CalculateTotalVariation(byte[] scanline, int lastSum)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private int CalculateTotalVariation(ref byte scanline, int lastSum)
         {
             int sum = 0;
 
-            for (int i = 1; i < scanline.Length; i++)
+            for (int i = 1; i < this.bytesPerScanline; i++)
             {
-                byte v = scanline[i];
+                ref byte v = ref Unsafe.Add(ref scanline, i);
                 sum += v < 128 ? v : 256 - v;
 
                 // No point continuing if we are larger.
@@ -601,10 +621,10 @@ namespace ImageSharp.Formats
         private void WriteDataChunks<TPixel>(PixelAccessor<TPixel> pixels, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
-            int bytesPerScanline = this.width * this.bytesPerPixel;
-            byte[] previousScanline = new byte[bytesPerScanline];
-            byte[] rawScanline = new byte[bytesPerScanline];
-            int resultLength = bytesPerScanline + 1;
+            this.bytesPerScanline = this.width * this.bytesPerPixel;
+            byte[] previousScanline = new byte[this.bytesPerScanline];
+            byte[] rawScanline = new byte[this.bytesPerScanline];
+            int resultLength = this.bytesPerScanline + 1;
             byte[] result = new byte[resultLength];
 
             if (this.pngColorType != PngColorType.Palette)
@@ -621,7 +641,7 @@ namespace ImageSharp.Formats
             try
             {
                 memoryStream = new MemoryStream();
-                using (ZlibDeflateStream deflateStream = new ZlibDeflateStream(memoryStream, this.options.CompressionLevel))
+                using (var deflateStream = new ZlibDeflateStream(memoryStream, this.options.CompressionLevel))
                 {
                     for (int y = 0; y < this.height; y++)
                     {

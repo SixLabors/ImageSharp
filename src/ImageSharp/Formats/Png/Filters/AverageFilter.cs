@@ -22,22 +22,25 @@ namespace ImageSharp.Formats
         /// <param name="bytesPerScanline">The number of bytes per scanline</param>
         /// <param name="bytesPerPixel">The bytes per pixel.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Decode(ref byte scanline, ref byte previousScanline, int bytesPerScanline, int bytesPerPixel)
+        public static void Decode(BufferSpan<byte> scanline, BufferSpan<byte> previousScanline, int bytesPerScanline, int bytesPerPixel)
         {
+            ref byte scanPointer = ref scanline.DangerousGetPinnableReference();
+            ref byte prevPointer = ref previousScanline.DangerousGetPinnableReference();
+
             // Average(x) + floor((Raw(x-bpp)+Prior(x))/2)
             for (int x = 1; x < bytesPerScanline; x++)
             {
                 if (x - bytesPerPixel < 1)
                 {
-                    ref byte scan = ref Unsafe.Add(ref scanline, x);
-                    ref byte above = ref Unsafe.Add(ref previousScanline, x);
+                    ref byte scan = ref Unsafe.Add(ref scanPointer, x);
+                    byte above = Unsafe.Add(ref prevPointer, x);
                     scan = (byte)((scan + (above >> 1)) % 256);
                 }
                 else
                 {
-                    ref byte scan = ref Unsafe.Add(ref scanline, x);
-                    ref byte left = ref Unsafe.Add(ref scanline, x - bytesPerPixel);
-                    ref byte above = ref Unsafe.Add(ref previousScanline, x);
+                    ref byte scan = ref Unsafe.Add(ref scanPointer, x);
+                    byte left = Unsafe.Add(ref scanPointer, x - bytesPerPixel);
+                    byte above = Unsafe.Add(ref prevPointer, x);
                     scan = (byte)((scan + Average(left, above)) % 256);
                 }
             }
@@ -52,26 +55,30 @@ namespace ImageSharp.Formats
         /// <param name="bytesPerScanline">The number of bytes per scanline</param>
         /// <param name="bytesPerPixel">The bytes per pixel.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Encode(ref byte scanline, ref byte previousScanline, ref byte result, int bytesPerScanline, int bytesPerPixel)
+        public static void Encode(BufferSpan<byte> scanline, BufferSpan<byte> previousScanline, BufferSpan<byte> result, int bytesPerScanline, int bytesPerPixel)
         {
+            ref byte scanPointer = ref scanline.DangerousGetPinnableReference();
+            ref byte prevPointer = ref previousScanline.DangerousGetPinnableReference();
+            ref byte resultPointer = ref result.DangerousGetPinnableReference();
+
             // Average(x) = Raw(x) - floor((Raw(x-bpp)+Prior(x))/2)
-            result = 3;
+            resultPointer = 3;
 
             for (int x = 0; x < bytesPerScanline; x++)
             {
                 if (x - bytesPerPixel < 0)
                 {
-                    ref byte scan = ref Unsafe.Add(ref scanline, x);
-                    ref byte above = ref Unsafe.Add(ref previousScanline, x);
-                    ref byte res = ref Unsafe.Add(ref result, x + 1);
+                    byte scan = Unsafe.Add(ref scanPointer, x);
+                    byte above = Unsafe.Add(ref prevPointer, x);
+                    ref byte res = ref Unsafe.Add(ref resultPointer, x + 1);
                     res = (byte)((scan - (above >> 1)) % 256);
                 }
                 else
                 {
-                    ref byte scan = ref Unsafe.Add(ref scanline, x);
-                    ref byte left = ref Unsafe.Add(ref scanline, x - bytesPerPixel);
-                    ref byte above = ref Unsafe.Add(ref previousScanline, x);
-                    ref byte res = ref Unsafe.Add(ref result, x + 1);
+                    byte scan = Unsafe.Add(ref scanPointer, x);
+                    byte left = Unsafe.Add(ref scanPointer, x - bytesPerPixel);
+                    byte above = Unsafe.Add(ref prevPointer, x);
+                    ref byte res = ref Unsafe.Add(ref resultPointer, x + 1);
                     res = (byte)((scan - Average(left, above)) % 256);
                 }
             }

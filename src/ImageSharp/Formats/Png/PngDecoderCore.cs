@@ -440,9 +440,7 @@ namespace ImageSharp.Formats
 
                 var scanSpan = new BufferSpan<byte>(this.scanline);
                 var prevSpan = new BufferSpan<byte>(this.previousScanline);
-                ref byte scanPointer = ref scanSpan.DangerousGetPinnableReference();
-                ref byte prevPointer = ref prevSpan.DangerousGetPinnableReference();
-                var filterType = (FilterType)scanPointer;
+                var filterType = (FilterType)scanSpan[0];
 
                 switch (filterType)
                 {
@@ -451,22 +449,22 @@ namespace ImageSharp.Formats
 
                     case FilterType.Sub:
 
-                        SubFilter.Decode(ref scanPointer, this.bytesPerScanline, this.bytesPerPixel);
+                        SubFilter.Decode(scanSpan, this.bytesPerScanline, this.bytesPerPixel);
                         break;
 
                     case FilterType.Up:
 
-                        UpFilter.Decode(ref scanPointer, ref prevPointer, this.bytesPerScanline);
+                        UpFilter.Decode(scanSpan, prevSpan, this.bytesPerScanline);
                         break;
 
                     case FilterType.Average:
 
-                        AverageFilter.Decode(ref scanPointer, ref prevPointer, this.bytesPerScanline, this.bytesPerPixel);
+                        AverageFilter.Decode(scanSpan, prevSpan, this.bytesPerScanline, this.bytesPerPixel);
                         break;
 
                     case FilterType.Paeth:
 
-                        PaethFilter.Decode(ref scanPointer, ref prevPointer, this.bytesPerScanline, this.bytesPerPixel);
+                        PaethFilter.Decode(scanSpan, prevSpan, this.bytesPerScanline, this.bytesPerPixel);
                         break;
 
                     default:
@@ -517,9 +515,7 @@ namespace ImageSharp.Formats
 
                     var scanSpan = new BufferSpan<byte>(this.scanline);
                     var prevSpan = new BufferSpan<byte>(this.previousScanline);
-                    ref byte scanPointer = ref scanSpan.DangerousGetPinnableReference();
-                    ref byte prevPointer = ref prevSpan.DangerousGetPinnableReference();
-                    var filterType = (FilterType)scanPointer;
+                    var filterType = (FilterType)scanSpan[0];
 
                     switch (filterType)
                     {
@@ -528,22 +524,22 @@ namespace ImageSharp.Formats
 
                         case FilterType.Sub:
 
-                            SubFilter.Decode(ref scanPointer, bytesPerInterlaceScanline, this.bytesPerPixel);
+                            SubFilter.Decode(scanSpan, bytesPerInterlaceScanline, this.bytesPerPixel);
                             break;
 
                         case FilterType.Up:
 
-                            UpFilter.Decode(ref scanPointer, ref prevPointer, bytesPerInterlaceScanline);
+                            UpFilter.Decode(scanSpan, prevSpan, bytesPerInterlaceScanline);
                             break;
 
                         case FilterType.Average:
 
-                            AverageFilter.Decode(ref scanPointer, ref prevPointer, bytesPerInterlaceScanline, this.bytesPerPixel);
+                            AverageFilter.Decode(scanSpan, prevSpan, bytesPerInterlaceScanline, this.bytesPerPixel);
                             break;
 
                         case FilterType.Paeth:
 
-                            PaethFilter.Decode(ref scanPointer, ref prevPointer, bytesPerInterlaceScanline, this.bytesPerPixel);
+                            PaethFilter.Decode(scanSpan, prevSpan, bytesPerInterlaceScanline, this.bytesPerPixel);
                             break;
 
                         default:

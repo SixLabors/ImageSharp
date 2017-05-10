@@ -361,8 +361,6 @@ namespace ImageSharp.Formats
         {
             var scanSpan = new BufferSpan<byte>(rawScanline);
             var prevSpan = new BufferSpan<byte>(previousScanline);
-            ref byte scanPointer = ref scanSpan.DangerousGetPinnableReference();
-            ref byte prevPointer = ref prevSpan.DangerousGetPinnableReference();
 
             // Palette images don't compress well with adaptive filtering.
             if (this.pngColorType == PngColorType.Palette || this.bitDepth < 8)
@@ -374,17 +372,15 @@ namespace ImageSharp.Formats
             // This order, while different to the enumerated order is more likely to produce a smaller sum
             // early on which shaves a couple of milliseconds off the processing time.
             var upSpan = new BufferSpan<byte>(this.up);
-            ref byte upPointer = ref upSpan.DangerousGetPinnableReference();
-            UpFilter.Encode(ref scanPointer, ref prevPointer, ref upPointer, this.bytesPerScanline);
+            UpFilter.Encode(scanSpan, prevSpan, upSpan, this.bytesPerScanline);
 
-            int currentSum = this.CalculateTotalVariation(ref upPointer, int.MaxValue);
+            int currentSum = this.CalculateTotalVariation(upSpan, int.MaxValue);
             int lowestSum = currentSum;
             result = this.up;
 
             var paethSpan = new BufferSpan<byte>(this.paeth);
-            ref byte paethPointer = ref paethSpan.DangerousGetPinnableReference();
-            PaethFilter.Encode(ref scanPointer, ref prevPointer, ref paethPointer, this.bytesPerScanline, this.bytesPerPixel);
-            currentSum = this.CalculateTotalVariation(ref paethPointer, currentSum);
+            PaethFilter.Encode(scanSpan, prevSpan, paethSpan, this.bytesPerScanline, this.bytesPerPixel);
+            currentSum = this.CalculateTotalVariation(paethSpan, currentSum);
 
             if (currentSum < lowestSum)
             {
@@ -393,9 +389,8 @@ namespace ImageSharp.Formats
             }
 
             var subSpan = new BufferSpan<byte>(this.sub);
-            ref byte subPointer = ref subSpan.DangerousGetPinnableReference();
-            SubFilter.Encode(ref scanPointer, ref subPointer, this.bytesPerScanline, this.bytesPerPixel);
-            currentSum = this.CalculateTotalVariation(ref subPointer, int.MaxValue);
+            SubFilter.Encode(scanSpan, subSpan, this.bytesPerScanline, this.bytesPerPixel);
+            currentSum = this.CalculateTotalVariation(subSpan, int.MaxValue);
 
             if (currentSum < lowestSum)
             {
@@ -404,9 +399,8 @@ namespace ImageSharp.Formats
             }
 
             var averageSpan = new BufferSpan<byte>(this.average);
-            ref byte averagePointer = ref averageSpan.DangerousGetPinnableReference();
-            AverageFilter.Encode(ref scanPointer, ref prevPointer, ref averagePointer, this.bytesPerScanline, this.bytesPerPixel);
-            currentSum = this.CalculateTotalVariation(ref averagePointer, currentSum);
+            AverageFilter.Encode(scanSpan, prevSpan, averageSpan, this.bytesPerScanline, this.bytesPerPixel);
+            currentSum = this.CalculateTotalVariation(averageSpan, currentSum);
 
             if (currentSum < lowestSum)
             {
@@ -424,17 +418,18 @@ namespace ImageSharp.Formats
         /// <param name="lastSum">The last variation sum</param>
         /// <returns>The <see cref="int"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private int CalculateTotalVariation(ref byte scanline, int lastSum)
+        private int CalculateTotalVariation(BufferSpan<byte> scanline, int lastSum)
         {
+            ref byte scanPointer = ref scanline.DangerousGetPinnableReference();
             int sum = 0;
 
             for (int i = 1; i < this.bytesPerScanline; i++)
             {
-                ref byte v = ref Unsafe.Add(ref scanline, i);
+                byte v = Unsafe.Add(ref scanPointer, i);
                 sum += v < 128 ? v : 256 - v;
 
                 // No point continuing if we are larger.
-                if (sum > lastSum)
+                if (sum >= lastSum)
                 {
                     break;
                 }

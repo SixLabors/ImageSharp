@@ -23,14 +23,14 @@ namespace ImageSharp.Formats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Decode(BufferSpan<byte> scanline, BufferSpan<byte> previousScanline, int bytesPerScanline)
         {
-            ref byte scanPointer = ref scanline.DangerousGetPinnableReference();
-            ref byte prevPointer = ref previousScanline.DangerousGetPinnableReference();
+            ref byte scanBaseRef = ref scanline.DangerousGetPinnableReference();
+            ref byte prevBaseRef = ref previousScanline.DangerousGetPinnableReference();
 
             // Up(x) + Prior(x)
             for (int x = 1; x < bytesPerScanline; x++)
             {
-                ref byte scan = ref Unsafe.Add(ref scanPointer, x);
-                byte above = Unsafe.Add(ref prevPointer, x);
+                ref byte scan = ref Unsafe.Add(ref scanBaseRef, x);
+                byte above = Unsafe.Add(ref prevBaseRef, x);
                 scan = (byte)((scan + above) % 256);
             }
         }
@@ -45,18 +45,18 @@ namespace ImageSharp.Formats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Encode(BufferSpan<byte> scanline, BufferSpan<byte> previousScanline, BufferSpan<byte> result, int bytesPerScanline)
         {
-            ref byte scanPointer = ref scanline.DangerousGetPinnableReference();
-            ref byte prevPointer = ref previousScanline.DangerousGetPinnableReference();
-            ref byte resultPointer = ref result.DangerousGetPinnableReference();
+            ref byte scanBaseRef = ref scanline.DangerousGetPinnableReference();
+            ref byte prevBaseRef = ref previousScanline.DangerousGetPinnableReference();
+            ref byte resultBaseRef = ref result.DangerousGetPinnableReference();
 
             // Up(x) = Raw(x) - Prior(x)
-            resultPointer = 2;
+            resultBaseRef = 2;
 
             for (int x = 0; x < bytesPerScanline; x++)
             {
-                byte scan = Unsafe.Add(ref scanPointer, x);
-                byte above = Unsafe.Add(ref prevPointer, x);
-                ref byte res = ref Unsafe.Add(ref resultPointer, x + 1);
+                byte scan = Unsafe.Add(ref scanBaseRef, x);
+                byte above = Unsafe.Add(ref prevBaseRef, x);
+                ref byte res = ref Unsafe.Add(ref resultBaseRef, x + 1);
                 res = (byte)((scan - above) % 256);
             }
         }

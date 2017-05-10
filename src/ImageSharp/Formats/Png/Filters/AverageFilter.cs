@@ -24,23 +24,23 @@ namespace ImageSharp.Formats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Decode(BufferSpan<byte> scanline, BufferSpan<byte> previousScanline, int bytesPerScanline, int bytesPerPixel)
         {
-            ref byte scanPointer = ref scanline.DangerousGetPinnableReference();
-            ref byte prevPointer = ref previousScanline.DangerousGetPinnableReference();
+            ref byte scanBaseRef = ref scanline.DangerousGetPinnableReference();
+            ref byte prevBaseRef = ref previousScanline.DangerousGetPinnableReference();
 
             // Average(x) + floor((Raw(x-bpp)+Prior(x))/2)
             for (int x = 1; x < bytesPerScanline; x++)
             {
                 if (x - bytesPerPixel < 1)
                 {
-                    ref byte scan = ref Unsafe.Add(ref scanPointer, x);
-                    byte above = Unsafe.Add(ref prevPointer, x);
+                    ref byte scan = ref Unsafe.Add(ref scanBaseRef, x);
+                    byte above = Unsafe.Add(ref prevBaseRef, x);
                     scan = (byte)((scan + (above >> 1)) % 256);
                 }
                 else
                 {
-                    ref byte scan = ref Unsafe.Add(ref scanPointer, x);
-                    byte left = Unsafe.Add(ref scanPointer, x - bytesPerPixel);
-                    byte above = Unsafe.Add(ref prevPointer, x);
+                    ref byte scan = ref Unsafe.Add(ref scanBaseRef, x);
+                    byte left = Unsafe.Add(ref scanBaseRef, x - bytesPerPixel);
+                    byte above = Unsafe.Add(ref prevBaseRef, x);
                     scan = (byte)((scan + Average(left, above)) % 256);
                 }
             }
@@ -57,28 +57,28 @@ namespace ImageSharp.Formats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Encode(BufferSpan<byte> scanline, BufferSpan<byte> previousScanline, BufferSpan<byte> result, int bytesPerScanline, int bytesPerPixel)
         {
-            ref byte scanPointer = ref scanline.DangerousGetPinnableReference();
-            ref byte prevPointer = ref previousScanline.DangerousGetPinnableReference();
-            ref byte resultPointer = ref result.DangerousGetPinnableReference();
+            ref byte scanBaseRef = ref scanline.DangerousGetPinnableReference();
+            ref byte prevBaseRef = ref previousScanline.DangerousGetPinnableReference();
+            ref byte resultBaseRef = ref result.DangerousGetPinnableReference();
 
             // Average(x) = Raw(x) - floor((Raw(x-bpp)+Prior(x))/2)
-            resultPointer = 3;
+            resultBaseRef = 3;
 
             for (int x = 0; x < bytesPerScanline; x++)
             {
                 if (x - bytesPerPixel < 0)
                 {
-                    byte scan = Unsafe.Add(ref scanPointer, x);
-                    byte above = Unsafe.Add(ref prevPointer, x);
-                    ref byte res = ref Unsafe.Add(ref resultPointer, x + 1);
+                    byte scan = Unsafe.Add(ref scanBaseRef, x);
+                    byte above = Unsafe.Add(ref prevBaseRef, x);
+                    ref byte res = ref Unsafe.Add(ref resultBaseRef, x + 1);
                     res = (byte)((scan - (above >> 1)) % 256);
                 }
                 else
                 {
-                    byte scan = Unsafe.Add(ref scanPointer, x);
-                    byte left = Unsafe.Add(ref scanPointer, x - bytesPerPixel);
-                    byte above = Unsafe.Add(ref prevPointer, x);
-                    ref byte res = ref Unsafe.Add(ref resultPointer, x + 1);
+                    byte scan = Unsafe.Add(ref scanBaseRef, x);
+                    byte left = Unsafe.Add(ref scanBaseRef, x - bytesPerPixel);
+                    byte above = Unsafe.Add(ref prevBaseRef, x);
+                    ref byte res = ref Unsafe.Add(ref resultBaseRef, x + 1);
                     res = (byte)((scan - Average(left, above)) % 256);
                 }
             }

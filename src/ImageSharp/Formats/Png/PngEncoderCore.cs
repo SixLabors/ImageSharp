@@ -420,12 +420,12 @@ namespace ImageSharp.Formats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private int CalculateTotalVariation(BufferSpan<byte> scanline, int lastSum)
         {
-            ref byte scanPointer = ref scanline.DangerousGetPinnableReference();
+            ref byte scanBaseRef = ref scanline.DangerousGetPinnableReference();
             int sum = 0;
 
             for (int i = 1; i < this.bytesPerScanline; i++)
             {
-                byte v = Unsafe.Add(ref scanPointer, i);
+                byte v = Unsafe.Add(ref scanBaseRef, i);
                 sum += v < 128 ? v : 256 - v;
 
                 // No point continuing if we are larger.

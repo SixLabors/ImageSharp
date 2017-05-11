@@ -7,6 +7,8 @@ namespace ImageSharp.Drawing.Brushes
 {
     using System;
     using System.Numerics;
+
+    using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
     using Processors;
 
@@ -147,7 +149,7 @@ namespace ImageSharp.Drawing.Brushes
             }
 
             /// <inheritdoc />
-            internal override void Apply(BufferSpan<float> scanline, int x, int y)
+            internal override void Apply(Span<float> scanline, int x, int y)
             {
                 int patternY = y % this.pattern.Height;
                 using (Buffer<float> amountBuffer = new Buffer<float>(scanline.Length))
@@ -161,7 +163,7 @@ namespace ImageSharp.Drawing.Brushes
                         overlay[i] = this.pattern[patternY, patternX];
                     }
 
-                    BufferSpan<TPixel> destinationRow = this.Target.GetRowSpan(x, y).Slice(0, scanline.Length);
+                    Span<TPixel> destinationRow = this.Target.GetRowSpan(x, y).Slice(0, scanline.Length);
                     this.Blender.Blend(destinationRow, destinationRow, overlay, amountBuffer);
                 }
             }

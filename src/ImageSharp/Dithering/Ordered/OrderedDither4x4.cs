@@ -5,6 +5,7 @@
 
 namespace ImageSharp.Dithering.Ordered
 {
+    using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
 
     /// <summary>

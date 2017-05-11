@@ -8,6 +8,8 @@ namespace ImageSharp.Drawing.Processors
     using System;
     using System.Numerics;
     using System.Threading.Tasks;
+
+    using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
     using ImageSharp.Processing;
     using Pens;
@@ -110,7 +112,7 @@ namespace ImageSharp.Drawing.Processors
                             colors[i] = color.Color;
                         }
 
-                        BufferSpan<TPixel> destination = sourcePixels.GetRowSpan(offsetY).Slice(minX - startX, width);
+                        Span<TPixel> destination = sourcePixels.GetRowSpan(offsetY).Slice(minX - startX, width);
                         blender.Blend(destination, destination, colors, amount);
                     }
                 });

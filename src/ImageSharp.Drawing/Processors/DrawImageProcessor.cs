@@ -8,6 +8,8 @@ namespace ImageSharp.Drawing.Processors
     using System;
     using System.Numerics;
     using System.Threading.Tasks;
+
+    using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
     using ImageSharp.Processing;
 
@@ -97,8 +99,8 @@ namespace ImageSharp.Drawing.Processors
                         this.ParallelOptions,
                         y =>
                             {
-                                BufferSpan<TPixel> background = sourcePixels.GetRowSpan(y).Slice(minX, width);
-                                BufferSpan<TPixel> foreground = toBlendPixels.GetRowSpan(y - this.Location.Y).Slice(0, width);
+                                Span<TPixel> background = sourcePixels.GetRowSpan(y).Slice(minX, width);
+                                Span<TPixel> foreground = toBlendPixels.GetRowSpan(y - this.Location.Y).Slice(0, width);
                                 this.blender.Blend(background, background, foreground, amount);
                             });
                 }

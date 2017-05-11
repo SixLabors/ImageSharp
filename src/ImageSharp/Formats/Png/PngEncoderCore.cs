@@ -399,16 +399,14 @@ namespace ImageSharp.Formats
 
             // This order, while different to the enumerated order is more likely to produce a smaller sum
             // early on which shaves a couple of milliseconds off the processing time.
-            BufferSpan<byte> upSpan = this.up.Span;
-            UpFilter.Encode(scanSpan, prevSpan, upSpan, this.bytesPerScanline);
+            UpFilter.Encode(scanSpan, prevSpan, this.up);
 
-            int currentSum = this.CalculateTotalVariation(upSpan, int.MaxValue);
+            int currentSum = this.CalculateTotalVariation(this.up, int.MaxValue);
             int lowestSum = currentSum;
             Buffer<byte> actualResult = this.up;
 
-            BufferSpan<byte> paethSpan = this.paeth.Span;
-            PaethFilter.Encode(scanSpan, prevSpan, paethSpan, this.bytesPerScanline, this.bytesPerPixel);
-            currentSum = this.CalculateTotalVariation(paethSpan, currentSum);
+            PaethFilter.Encode(scanSpan, prevSpan, this.paeth, this.bytesPerPixel);
+            currentSum = this.CalculateTotalVariation(this.paeth, currentSum);
 
             if (currentSum < lowestSum)
             {
@@ -416,9 +414,8 @@ namespace ImageSharp.Formats
                 actualResult = this.paeth;
             }
 
-            BufferSpan<byte> subSpan = this.sub.Span;
-            SubFilter.Encode(scanSpan, subSpan, this.bytesPerScanline, this.bytesPerPixel);
-            currentSum = this.CalculateTotalVariation(subSpan, int.MaxValue);
+            SubFilter.Encode(scanSpan, this.sub, this.bytesPerPixel);
+            currentSum = this.CalculateTotalVariation(this.sub, int.MaxValue);
 
             if (currentSum < lowestSum)
             {
@@ -426,9 +423,8 @@ namespace ImageSharp.Formats
                 actualResult = this.sub;
             }
 
-            BufferSpan<byte> averageSpan = this.average.Span;
-            AverageFilter.Encode(scanSpan, prevSpan, averageSpan, this.bytesPerScanline, this.bytesPerPixel);
-            currentSum = this.CalculateTotalVariation(averageSpan, currentSum);
+            AverageFilter.Encode(scanSpan, prevSpan, this.average, this.bytesPerPixel);
+            currentSum = this.CalculateTotalVariation(this.average, currentSum);
 
             if (currentSum < lowestSum)
             {

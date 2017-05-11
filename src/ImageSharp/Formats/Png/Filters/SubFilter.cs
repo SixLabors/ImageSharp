@@ -18,15 +18,14 @@ namespace ImageSharp.Formats
         /// Decodes the scanline
         /// </summary>
         /// <param name="scanline">The scanline to decode</param>
-        /// <param name="bytesPerScanline">The number of bytes per scanline</param>
         /// <param name="bytesPerPixel">The bytes per pixel.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Decode(BufferSpan<byte> scanline, int bytesPerScanline, int bytesPerPixel)
+        public static void Decode(BufferSpan<byte> scanline, int bytesPerPixel)
         {
             ref byte scanBaseRef = ref scanline.DangerousGetPinnableReference();
 
             // Sub(x) + Raw(x-bpp)
-            for (int x = 1; x < bytesPerScanline; x++)
+            for (int x = 1; x < scanline.Length; x++)
             {
                 if (x - bytesPerPixel < 1)
                 {
@@ -47,18 +46,19 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <param name="scanline">The scanline to encode</param>
         /// <param name="result">The filtered scanline result.</param>
-        /// <param name="bytesPerScanline">The number of bytes per scanline</param>
         /// <param name="bytesPerPixel">The bytes per pixel.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Encode(BufferSpan<byte> scanline, BufferSpan<byte> result, int bytesPerScanline, int bytesPerPixel)
+        public static void Encode(BufferSpan<byte> scanline, BufferSpan<byte> result, int bytesPerPixel)
         {
+            Guard.MustBeSizedAtLeast(result, scanline, nameof(result));
+
             ref byte scanBaseRef = ref scanline.DangerousGetPinnableReference();
             ref byte resultBaseRef = ref result.DangerousGetPinnableReference();
 
             // Sub(x) = Raw(x) - Raw(x-bpp)
             resultBaseRef = 1;
 
-            for (int x = 0; x < bytesPerScanline; x++)
+            for (int x = 0; x < scanline.Length; x++)
             {
                 if (x - bytesPerPixel < 0)
                 {

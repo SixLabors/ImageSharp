@@ -230,5 +230,43 @@ namespace ImageSharp
                 throw new ArgumentException(message, parameterName);
             }
         }
+
+        /// <summary>
+        /// Verifies, that the target span is of same size than the 'other' span.
+        /// </summary>
+        /// <typeparam name="T">The element type of the spans</typeparam>
+        /// <param name="target">The target span.</param>
+        /// <param name="other">The 'other' span to compare 'target' to.</param>
+        /// <param name="parameterName">The name of the parameter that is to be checked.</param>
+        /// <exception cref="ArgumentException">
+        /// <paramref name="target"/> is true
+        /// </exception>
+        public static void MustBeSameSized<T>(BufferSpan<T> target, BufferSpan<T> other, string parameterName)
+            where T : struct
+        {
+            if (target.Length != other.Length)
+            {
+                throw new ArgumentException("Span-s must be the same size!", parameterName);
+            }
+        }
+
+        /// <summary>
+        /// Verifies, that the `target` span has the length of 'minSpan', or longer.
+        /// </summary>
+        /// <typeparam name="T">The element type of the spans</typeparam>
+        /// <param name="target">The target span.</param>
+        /// <param name="minSpan">The 'minSpan' span to compare 'target' to.</param>
+        /// <param name="parameterName">The name of the parameter that is to be checked.</param>
+        /// <exception cref="ArgumentException">
+        /// <paramref name="target"/> is true
+        /// </exception>
+        public static void MustBeSizedAtLeast<T>(BufferSpan<T> target, BufferSpan<T> minSpan, string parameterName)
+            where T : struct
+        {
+            if (target.Length < minSpan.Length)
+            {
+                throw new ArgumentException($"Span-s must be at least of length {minSpan.Length}!", parameterName);
+            }
+        }
     }
 }

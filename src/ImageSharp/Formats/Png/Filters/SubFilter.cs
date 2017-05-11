@@ -50,7 +50,7 @@ namespace ImageSharp.Formats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Encode(BufferSpan<byte> scanline, BufferSpan<byte> result, int bytesPerPixel)
         {
-            Guard.MustBeSizedAtLeast(result, scanline, nameof(result));
+            DebugGuard.MustBeSizedAtLeast(result, scanline, nameof(result));
 
             ref byte scanBaseRef = ref scanline.DangerousGetPinnableReference();
             ref byte resultBaseRef = ref result.DangerousGetPinnableReference();

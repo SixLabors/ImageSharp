@@ -19,15 +19,16 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <param name="scanline">The scanline to decode</param>
         /// <param name="previousScanline">The previous scanline.</param>
-        /// <param name="bytesPerScanline">The number of bytes per scanline</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Decode(BufferSpan<byte> scanline, BufferSpan<byte> previousScanline, int bytesPerScanline)
+        public static void Decode(BufferSpan<byte> scanline, BufferSpan<byte> previousScanline)
         {
+            Guard.MustBeSameSized(scanline, previousScanline, nameof(scanline));
+
             ref byte scanBaseRef = ref scanline.DangerousGetPinnableReference();
             ref byte prevBaseRef = ref previousScanline.DangerousGetPinnableReference();
 
             // Up(x) + Prior(x)
-            for (int x = 1; x < bytesPerScanline; x++)
+            for (int x = 1; x < scanline.Length; x++)
             {
                 ref byte scan = ref Unsafe.Add(ref scanBaseRef, x);
                 byte above = Unsafe.Add(ref prevBaseRef, x);
@@ -41,10 +42,12 @@ namespace ImageSharp.Formats
         /// <param name="scanline">The scanline to encode</param>
         /// <param name="previousScanline">The previous scanline.</param>
         /// <param name="result">The filtered scanline result.</param>
-        /// <param name="bytesPerScanline">The number of bytes per scanline</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Encode(BufferSpan<byte> scanline, BufferSpan<byte> previousScanline, BufferSpan<byte> result, int bytesPerScanline)
+        public static void Encode(BufferSpan<byte> scanline, BufferSpan<byte> previousScanline, BufferSpan<byte> result)
         {
+            Guard.MustBeSameSized(scanline, previousScanline, nameof(scanline));
+            Guard.MustBeSizedAtLeast(result, scanline, nameof(result));
+
             ref byte scanBaseRef = ref scanline.DangerousGetPinnableReference();
             ref byte prevBaseRef = ref previousScanline.DangerousGetPinnableReference();
             ref byte resultBaseRef = ref result.DangerousGetPinnableReference();
@@ -52,7 +55,7 @@ namespace ImageSharp.Formats
             // Up(x) = Raw(x) - Prior(x)
             resultBaseRef = 2;
 
-            for (int x = 0; x < bytesPerScanline; x++)
+            for (int x = 0; x < scanline.Length; x++)
             {
                 byte scan = Unsafe.Add(ref scanBaseRef, x);
                 byte above = Unsafe.Add(ref prevBaseRef, x);

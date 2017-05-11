@@ -12,23 +12,24 @@ namespace ImageSharp.Formats
     /// the value of a pixel.
     /// <see href="https://www.w3.org/TR/PNG-Filters.html"/>
     /// </summary>
-    internal static unsafe class AverageFilter
+    internal static class AverageFilter
     {
         /// <summary>
         /// Decodes the scanline
         /// </summary>
         /// <param name="scanline">The scanline to decode</param>
         /// <param name="previousScanline">The previous scanline.</param>
-        /// <param name="bytesPerScanline">The number of bytes per scanline</param>
         /// <param name="bytesPerPixel">The bytes per pixel.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Decode(BufferSpan<byte> scanline, BufferSpan<byte> previousScanline, int bytesPerScanline, int bytesPerPixel)
+        public static void Decode(BufferSpan<byte> scanline, BufferSpan<byte> previousScanline, int bytesPerPixel)
         {
+            Guard.MustBeSameSized(scanline, previousScanline, nameof(scanline));
+
             ref byte scanBaseRef = ref scanline.DangerousGetPinnableReference();
             ref byte prevBaseRef = ref previousScanline.DangerousGetPinnableReference();
 
             // Average(x) + floor((Raw(x-bpp)+Prior(x))/2)
-            for (int x = 1; x < bytesPerScanline; x++)
+            for (int x = 1; x < scanline.Length; x++)
             {
                 if (x - bytesPerPixel < 1)
                 {
@@ -52,11 +53,13 @@ namespace ImageSharp.Formats
         /// <param name="scanline">The scanline to encode</param>
         /// <param name="previousScanline">The previous scanline.</param>
         /// <param name="result">The filtered scanline result.</param>
-        /// <param name="bytesPerScanline">The number of bytes per scanline</param>
         /// <param name="bytesPerPixel">The bytes per pixel.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Encode(BufferSpan<byte> scanline, BufferSpan<byte> previousScanline, BufferSpan<byte> result, int bytesPerScanline, int bytesPerPixel)
+        public static void Encode(BufferSpan<byte> scanline, BufferSpan<byte> previousScanline, BufferSpan<byte> result, int bytesPerPixel)
         {
+            Guard.MustBeSameSized(scanline, previousScanline, nameof(scanline));
+            Guard.MustBeSizedAtLeast(result, scanline, nameof(result));
+
             ref byte scanBaseRef = ref scanline.DangerousGetPinnableReference();
             ref byte prevBaseRef = ref previousScanline.DangerousGetPinnableReference();
             ref byte resultBaseRef = ref result.DangerousGetPinnableReference();
@@ -64,7 +67,7 @@ namespace ImageSharp.Formats
             // Average(x) = Raw(x) - floor((Raw(x-bpp)+Prior(x))/2)
             resultBaseRef = 3;
 
-            for (int x = 0; x < bytesPerScanline; x++)
+            for (int x = 0; x < scanline.Length; x++)
             {
                 if (x - bytesPerPixel < 0)
                 {

@@ -430,10 +430,7 @@ namespace ImageSharp.Formats
                 }
 
                 this.currentRowBytesRead = 0;
-
-                BufferSpan<byte> scanSpan = this.scanline.Span;
-                BufferSpan<byte> prevSpan = this.previousScanline.Span;
-                var filterType = (FilterType)scanSpan[0];
+                var filterType = (FilterType)this.scanline[0];
 
                 switch (filterType)
                 {
@@ -442,22 +439,22 @@ namespace ImageSharp.Formats
 
                     case FilterType.Sub:
 
-                        SubFilter.Decode(scanSpan, this.bytesPerScanline, this.bytesPerPixel);
+                        SubFilter.Decode(this.scanline, this.bytesPerPixel);
                         break;
 
                     case FilterType.Up:
 
-                        UpFilter.Decode(scanSpan, prevSpan, this.bytesPerScanline);
+                        UpFilter.Decode(this.scanline, this.previousScanline);
                         break;
 
                     case FilterType.Average:
 
-                        AverageFilter.Decode(scanSpan, prevSpan, this.bytesPerScanline, this.bytesPerPixel);
+                        AverageFilter.Decode(this.scanline, this.previousScanline, this.bytesPerPixel);
                         break;
 
                     case FilterType.Paeth:
 
-                        PaethFilter.Decode(scanSpan, prevSpan, this.bytesPerScanline, this.bytesPerPixel);
+                        PaethFilter.Decode(this.scanline, this.previousScanline, this.bytesPerPixel);
                         break;
 
                     default:
@@ -506,8 +503,8 @@ namespace ImageSharp.Formats
 
                     this.currentRowBytesRead = 0;
 
-                    BufferSpan<byte> scanSpan = this.scanline.Span;
-                    BufferSpan<byte> prevSpan = this.previousScanline.Span;
+                    BufferSpan<byte> scanSpan = this.scanline.Slice(0, bytesPerInterlaceScanline);
+                    BufferSpan<byte> prevSpan = this.previousScanline.Span.Slice(0, bytesPerInterlaceScanline);
                     var filterType = (FilterType)scanSpan[0];
 
                     switch (filterType)
@@ -517,22 +514,22 @@ namespace ImageSharp.Formats
 
                         case FilterType.Sub:
 
-                            SubFilter.Decode(scanSpan, bytesPerInterlaceScanline, this.bytesPerPixel);
+                            SubFilter.Decode(scanSpan, this.bytesPerPixel);
                             break;
 
                         case FilterType.Up:
 
-                            UpFilter.Decode(scanSpan, prevSpan, bytesPerInterlaceScanline);
+                            UpFilter.Decode(scanSpan, prevSpan);
                             break;
 
                         case FilterType.Average:
 
-                            AverageFilter.Decode(scanSpan, prevSpan, bytesPerInterlaceScanline, this.bytesPerPixel);
+                            AverageFilter.Decode(scanSpan, prevSpan, this.bytesPerPixel);
                             break;
 
                         case FilterType.Paeth:
 
-                            PaethFilter.Decode(scanSpan, prevSpan, bytesPerInterlaceScanline, this.bytesPerPixel);
+                            PaethFilter.Decode(scanSpan, prevSpan, this.bytesPerPixel);
                             break;
 
                         default:

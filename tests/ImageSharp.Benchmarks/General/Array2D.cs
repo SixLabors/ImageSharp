@@ -9,6 +9,8 @@ namespace ImageSharp.Benchmarks.General
 
     using BenchmarkDotNet.Attributes;
 
+    using ImageSharp.Memory;
+
     public class Array2D
     {
         private float[] flatArray;

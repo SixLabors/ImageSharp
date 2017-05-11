@@ -5,6 +5,7 @@
 
 namespace ImageSharp.Formats
 {
+    using System;
     using System.Runtime.CompilerServices;
 
     /// <summary>
@@ -22,7 +23,7 @@ namespace ImageSharp.Formats
         /// <param name="previousScanline">The previous scanline.</param>
         /// <param name="bytesPerPixel">The bytes per pixel.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Decode(BufferSpan<byte> scanline, BufferSpan<byte> previousScanline, int bytesPerPixel)
+        public static void Decode(Span<byte> scanline, Span<byte> previousScanline, int bytesPerPixel)
         {
             DebugGuard.MustBeSameSized(scanline, previousScanline, nameof(scanline));
 
@@ -57,7 +58,7 @@ namespace ImageSharp.Formats
         /// <param name="result">The filtered scanline result.</param>
         /// <param name="bytesPerPixel">The bytes per pixel.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Encode(BufferSpan<byte> scanline, BufferSpan<byte> previousScanline, BufferSpan<byte> result, int bytesPerPixel)
+        public static void Encode(Span<byte> scanline, Span<byte> previousScanline, Span<byte> result, int bytesPerPixel)
         {
             DebugGuard.MustBeSameSized(scanline, previousScanline, nameof(scanline));
             DebugGuard.MustBeSizedAtLeast(result, scanline, nameof(result));

@@ -5,6 +5,7 @@ namespace ImageSharp.Tests.Colors
     using System;
     using System.Numerics;
 
+    using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
 
     using Xunit;
@@ -180,7 +181,7 @@ namespace ImageSharp.Tests.Colors
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.ToXyzBytes(s, d, count)
+                (s, d) => Operations.ToXyzBytes(s, d, 0, count)
             );
         }
 
@@ -221,7 +222,7 @@ namespace ImageSharp.Tests.Colors
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.ToXyzwBytes(s, d, count)
+                (s, d) => Operations.ToXyzwBytes(s, d, 0, count)
             );
         }
 
@@ -262,7 +263,7 @@ namespace ImageSharp.Tests.Colors
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.ToZyxBytes(s, d, count)
+                (s, d) => Operations.ToZyxBytes(s, d, 0, count)
             );
         }
 
@@ -303,7 +304,7 @@ namespace ImageSharp.Tests.Colors
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.ToZyxwBytes(s, d, count)
+                (s, d) => Operations.ToZyxwBytes(s, d, 0, count)
             );
         }
 
@@ -316,8 +317,8 @@ namespace ImageSharp.Tests.Colors
             public Buffer<TDest> ActualDestBuffer { get; }
             public Buffer<TDest> ExpectedDestBuffer { get; }
 
-            public BufferSpan<TSource> Source => this.SourceBuffer;
-            public BufferSpan<TDest> ActualDest => this.ActualDestBuffer;
+            public Span<TSource> Source => this.SourceBuffer;
+            public Span<TDest> ActualDest => this.ActualDestBuffer;
 
             public TestBuffers(TSource[] source, TDest[] expectedDest)
             {
@@ -366,13 +367,13 @@ namespace ImageSharp.Tests.Colors
         internal static void TestOperation<TSource, TDest>(
             TSource[] source,
             TDest[] expected,
-            Action<BufferSpan<TSource>, BufferSpan<TDest>> action)
+            Action<Span<TSource>, Buffer<TDest>> action)
             where TSource : struct
             where TDest : struct
         {
             using (TestBuffers<TSource, TDest> buffers = new TestBuffers<TSource, TDest>(source, expected))
             {
-                action(buffers.Source, buffers.ActualDest);
+                action(buffers.Source, buffers.ActualDestBuffer);
                 buffers.Verify();
             }
         }

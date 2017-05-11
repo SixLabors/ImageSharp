@@ -10,6 +10,7 @@ namespace ImageSharp.Tests.Drawing
 
     using ImageSharp.Drawing;
     using ImageSharp.Drawing.Brushes;
+    using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
     using Xunit;
 

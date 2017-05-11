@@ -3,7 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp
+namespace ImageSharp.Memory
 {
     using System;
     using System.Diagnostics;
@@ -94,11 +94,11 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Performs an implicit conversion from a 2D array to a <see cref="ImageSharp.Fast2DArray{T}" />.
+        /// Performs an implicit conversion from a 2D array to a <see cref="Fast2DArray{T}" />.
         /// </summary>
         /// <param name="data">The source array.</param>
         /// <returns>
-        /// The <see cref="ImageSharp.Fast2DArray{T}"/> represenation on the source data.
+        /// The <see cref="Fast2DArray{T}"/> represenation on the source data.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static implicit operator Fast2DArray<T>(T[,] data)

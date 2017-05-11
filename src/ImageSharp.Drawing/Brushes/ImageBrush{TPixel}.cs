@@ -5,7 +5,10 @@
 
 namespace ImageSharp.Drawing.Brushes
 {
+    using System;
     using System.Numerics;
+
+    using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
     using Processors;
 
@@ -114,7 +117,7 @@ namespace ImageSharp.Drawing.Brushes
             }
 
             /// <inheritdoc />
-            internal override void Apply(BufferSpan<float> scanline, int x, int y)
+            internal override void Apply(Span<float> scanline, int x, int y)
             {
                 // create a span for colors
                 using (Buffer<float> amountBuffer = new Buffer<float>(scanline.Length))
@@ -122,7 +125,7 @@ namespace ImageSharp.Drawing.Brushes
                 {
                     int sourceY = (y - this.offsetY) % this.yLength;
                     int offsetX = x - this.offsetX;
-                    BufferSpan<TPixel> sourceRow = this.source.GetRowSpan(sourceY);
+                    Span<TPixel> sourceRow = this.source.GetRowSpan(sourceY);
 
                     for (int i = 0; i < scanline.Length; i++)
                     {
@@ -133,7 +136,7 @@ namespace ImageSharp.Drawing.Brushes
                         overlay[i] = pixel;
                     }
 
-                    BufferSpan<TPixel> destinationRow = this.Target.GetRowSpan(x, y).Slice(0, scanline.Length);
+                    Span<TPixel> destinationRow = this.Target.GetRowSpan(x, y).Slice(0, scanline.Length);
                     this.Blender.Blend(destinationRow, destinationRow, overlay, amountBuffer);
                 }
             }

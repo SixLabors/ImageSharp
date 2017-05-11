@@ -3,6 +3,7 @@ namespace ImageSharp.Benchmarks.Color.Bulk
 {
     using BenchmarkDotNet.Attributes;
 
+    using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
 
     public abstract class ToXyz<TPixel>
@@ -45,13 +46,13 @@ namespace ImageSharp.Benchmarks.Color.Bulk
         [Benchmark]
         public void CommonBulk()
         {
-            new PixelOperations<TPixel>().ToXyzBytes(this.source, this.destination, this.Count);
+            new PixelOperations<TPixel>().ToXyzBytes(this.source, this.destination, 0, this.Count);
         }
 
         [Benchmark]
         public void OptimizedBulk()
         {
-            PixelOperations<TPixel>.Instance.ToXyzBytes(this.source, this.destination, this.Count);
+            PixelOperations<TPixel>.Instance.ToXyzBytes(this.source, this.destination, 0, this.Count);
         }
     }
 

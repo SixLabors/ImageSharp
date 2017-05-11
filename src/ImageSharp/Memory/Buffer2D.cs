@@ -3,9 +3,8 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp
+namespace ImageSharp.Memory
 {
-    using System;
     using System.Runtime.CompilerServices;
 
     /// <summary>

@@ -15,6 +15,8 @@ namespace ImageSharp.Benchmarks
     using System;
     using System.Threading.Tasks;
 
+    using ImageSharp.Memory;
+
     public class Glow : BenchmarkBase
     {
         private GlowProcessor<Rgba32> bulk;

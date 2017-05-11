@@ -46,34 +46,34 @@ namespace ImageSharp.Benchmarks
             }
         }
 
-        [Benchmark(Description = "ImageSharp Vector Resize")]
-        public CoreSize ResizeCoreVector()
-        {
-            using (Image<RgbaVector> image = new Image<RgbaVector>(2000, 2000))
-            {
-                image.Resize(400, 400);
-                return new CoreSize(image.Width, image.Height);
-            }
-        }
+        //[Benchmark(Description = "ImageSharp Vector Resize")]
+        //public CoreSize ResizeCoreVector()
+        //{
+        //    using (Image<RgbaVector> image = new Image<RgbaVector>(2000, 2000))
+        //    {
+        //        image.Resize(400, 400);
+        //        return new CoreSize(image.Width, image.Height);
+        //    }
+        //}
 
-        [Benchmark(Description = "ImageSharp Compand Resize")]
-        public CoreSize ResizeCoreCompand()
-        {
-            using (Image<Rgba32> image = new Image<Rgba32>(2000, 2000))
-            {
-                image.Resize(400, 400, true);
-                return new CoreSize(image.Width, image.Height);
-            }
-        }
+        //[Benchmark(Description = "ImageSharp Compand Resize")]
+        //public CoreSize ResizeCoreCompand()
+        //{
+        //    using (Image<Rgba32> image = new Image<Rgba32>(2000, 2000))
+        //    {
+        //        image.Resize(400, 400, true);
+        //        return new CoreSize(image.Width, image.Height);
+        //    }
+        //}
 
-        [Benchmark(Description = "ImageSharp Vector Compand Resize")]
-        public CoreSize ResizeCoreVectorCompand()
-        {
-            using (Image<RgbaVector> image = new Image<RgbaVector>(2000, 2000))
-            {
-                image.Resize(400, 400, true);
-                return new CoreSize(image.Width, image.Height);
-            }
-        }
+        //[Benchmark(Description = "ImageSharp Vector Compand Resize")]
+        //public CoreSize ResizeCoreVectorCompand()
+        //{
+        //    using (Image<RgbaVector> image = new Image<RgbaVector>(2000, 2000))
+        //    {
+        //        image.Resize(400, 400, true);
+        //        return new CoreSize(image.Width, image.Height);
+        //    }
+        //}
     }
 }

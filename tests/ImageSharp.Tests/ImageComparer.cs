@@ -2,6 +2,7 @@
 {
     using System;
     using ImageSharp;
+    using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
 
     using Xunit;

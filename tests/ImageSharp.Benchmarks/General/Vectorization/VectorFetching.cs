@@ -1,9 +1,11 @@
 namespace ImageSharp.Benchmarks.General.Vectorization
 {
+    using System;
     using System.Numerics;
     using System.Runtime.CompilerServices;
 
     using BenchmarkDotNet.Attributes;
+    using ImageSharp.Memory;
 
     /// <summary>
     /// This benchmark compares different methods for fetching memory data into <see cref="Vector{T}"/>
@@ -88,11 +90,11 @@ namespace ImageSharp.Benchmarks.General.Vectorization
         }
 
         [Benchmark]
-        public void FetchWithBufferSpanUtility()
+        public void FetchWithSpanUtility()
         {
             Vector<float> v = new Vector<float>(this.testValue);
 
-            BufferSpan<float> span = new BufferSpan<float>(this.data);
+            Span<float> span = new Span<float>(this.data);
 
             ref Vector<float> start = ref span.FetchVector();
 

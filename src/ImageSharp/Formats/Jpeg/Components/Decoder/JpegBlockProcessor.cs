@@ -8,6 +8,8 @@ namespace ImageSharp.Formats.Jpg
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
 
+    using ImageSharp.Memory;
+
     /// <summary>
     /// Encapsulates the implementation of processing "raw" <see cref="Buffer{T}"/>-s into Jpeg image channels.
     /// </summary>

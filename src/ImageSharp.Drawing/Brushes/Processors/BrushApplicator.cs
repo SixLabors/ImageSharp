@@ -7,6 +7,8 @@ namespace ImageSharp.Drawing.Processors
 {
     using System;
     using System.Numerics;
+
+    using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
 
     /// <summary>
@@ -64,7 +66,7 @@ namespace ImageSharp.Drawing.Processors
         /// <param name="x">The x position in the target pixel space that the start of the scanline data corresponds to.</param>
         /// <param name="y">The y position in  the target pixel space that whole scanline corresponds to.</param>
         /// <remarks>scanlineBuffer will be > scanlineWidth but provide and offset in case we want to share a larger buffer across runs.</remarks>
-        internal virtual void Apply(BufferSpan<float> scanline, int x, int y)
+        internal virtual void Apply(Span<float> scanline, int x, int y)
         {
             using (Buffer<float> amountBuffer = new Buffer<float>(scanline.Length))
             using (Buffer<TPixel> overlay = new Buffer<TPixel>(scanline.Length))
@@ -79,7 +81,7 @@ namespace ImageSharp.Drawing.Processors
                     overlay[i] = this[x + i, y];
                 }
 
-                BufferSpan<TPixel> destinationRow = this.Target.GetRowSpan(x, y).Slice(0, scanline.Length);
+                Span<TPixel> destinationRow = this.Target.GetRowSpan(x, y).Slice(0, scanline.Length);
                 this.Blender.Blend(destinationRow, destinationRow, overlay, amountBuffer);
             }
         }

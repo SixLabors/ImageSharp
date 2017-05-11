@@ -131,12 +131,12 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Previous scanline processed
         /// </summary>
-        private byte[] previousScanline;
+        private Buffer<byte> previousScanline;
 
         /// <summary>
         /// The current scanline that is being processed
         /// </summary>
-        private byte[] scanline;
+        private Buffer<byte> scanline;
 
         /// <summary>
         /// The index of the current scanline being processed
@@ -252,11 +252,8 @@ namespace ImageSharp.Formats
             finally
             {
                 pixels?.Dispose();
-                if (this.previousScanline != null)
-                {
-                    ArrayPool<byte>.Shared.Return(this.previousScanline);
-                    ArrayPool<byte>.Shared.Return(this.scanline);
-                }
+                this.scanline?.Dispose();
+                this.previousScanline?.Dispose();
             }
         }
 
@@ -345,12 +342,8 @@ namespace ImageSharp.Formats
                 this.bytesPerSample = this.header.BitDepth / 8;
             }
 
-            this.previousScanline = ArrayPool<byte>.Shared.Rent(this.bytesPerScanline);
-            this.scanline = ArrayPool<byte>.Shared.Rent(this.bytesPerScanline);
-
-            // Zero out the scanlines, because the bytes that are rented from the arraypool may not be zero.
-            Array.Clear(this.scanline, 0, this.bytesPerScanline);
-            Array.Clear(this.previousScanline, 0, this.bytesPerScanline);
+            this.previousScanline = Buffer<byte>.CreateClean(this.bytesPerScanline);
+            this.scanline = Buffer<byte>.CreateClean(this.bytesPerScanline);
         }
 
         /// <summary>
@@ -429,7 +422,7 @@ namespace ImageSharp.Formats
         {
             while (this.currentRow < this.header.Height)
             {
-                int bytesRead = compressedStream.Read(this.scanline, this.currentRowBytesRead, this.bytesPerScanline - this.currentRowBytesRead);
+                int bytesRead = compressedStream.Read(this.scanline.Array, this.currentRowBytesRead, this.bytesPerScanline - this.currentRowBytesRead);
                 this.currentRowBytesRead += bytesRead;
                 if (this.currentRowBytesRead < this.bytesPerScanline)
                 {
@@ -438,8 +431,8 @@ namespace ImageSharp.Formats
 
                 this.currentRowBytesRead = 0;
 
-                var scanSpan = new BufferSpan<byte>(this.scanline);
-                var prevSpan = new BufferSpan<byte>(this.previousScanline);
+                BufferSpan<byte> scanSpan = this.scanline.Span;
+                BufferSpan<byte> prevSpan = this.previousScanline.Span;
                 var filterType = (FilterType)scanSpan[0];
 
                 switch (filterType)
@@ -471,7 +464,7 @@ namespace ImageSharp.Formats
                         throw new ImageFormatException("Unknown filter type.");
                 }
 
-                this.ProcessDefilteredScanline(this.scanline, pixels);
+                this.ProcessDefilteredScanline(this.scanline.Array, pixels);
 
                 Swap(ref this.scanline, ref this.previousScanline);
                 this.currentRow++;
@@ -504,7 +497,7 @@ namespace ImageSharp.Formats
 
                 while (this.currentRow < this.header.Height)
                 {
-                    int bytesRead = compressedStream.Read(this.scanline, this.currentRowBytesRead, bytesPerInterlaceScanline - this.currentRowBytesRead);
+                    int bytesRead = compressedStream.Read(this.scanline.Array, this.currentRowBytesRead, bytesPerInterlaceScanline - this.currentRowBytesRead);
                     this.currentRowBytesRead += bytesRead;
                     if (this.currentRowBytesRead < bytesPerInterlaceScanline)
                     {
@@ -513,8 +506,8 @@ namespace ImageSharp.Formats
 
                     this.currentRowBytesRead = 0;
 
-                    var scanSpan = new BufferSpan<byte>(this.scanline);
-                    var prevSpan = new BufferSpan<byte>(this.previousScanline);
+                    BufferSpan<byte> scanSpan = this.scanline.Span;
+                    BufferSpan<byte> prevSpan = this.previousScanline.Span;
                     var filterType = (FilterType)scanSpan[0];
 
                     switch (filterType)
@@ -546,7 +539,7 @@ namespace ImageSharp.Formats
                             throw new ImageFormatException("Unknown filter type.");
                     }
 
-                    this.ProcessInterlacedDefilteredScanline(this.scanline, this.currentRow, pixels, Adam7FirstColumn[this.pass], Adam7ColumnIncrement[this.pass]);
+                    this.ProcessInterlacedDefilteredScanline(this.scanline.Array, this.currentRow, pixels, Adam7FirstColumn[this.pass], Adam7ColumnIncrement[this.pass]);
 
                     Swap(ref this.scanline, ref this.previousScanline);
 

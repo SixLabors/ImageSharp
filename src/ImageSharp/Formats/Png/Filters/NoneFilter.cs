@@ -16,28 +16,17 @@ namespace ImageSharp.Formats
     internal static class NoneFilter
     {
         /// <summary>
-        /// Decodes the scanline
-        /// </summary>
-        /// <param name="scanline">The scanline to decode</param>
-        /// <returns>The <see cref="T:byte[]"/></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static byte[] Decode(byte[] scanline)
-        {
-            // No change required.
-            return scanline;
-        }
-
-        /// <summary>
         /// Encodes the scanline
         /// </summary>
         /// <param name="scanline">The scanline to encode</param>
         /// <param name="result">The filtered scanline result.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Encode(byte[] scanline, byte[] result)
+        public static void Encode(BufferSpan<byte> scanline, BufferSpan<byte> result)
         {
             // Insert a byte before the data.
             result[0] = 0;
-            Buffer.BlockCopy(scanline, 0, result, 1, scanline.Length);
+            result = result.Slice(1);
+            BufferSpan.Copy(scanline, result);
         }
     }
 }

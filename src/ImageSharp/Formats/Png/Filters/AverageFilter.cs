@@ -23,7 +23,7 @@ namespace ImageSharp.Formats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Decode(BufferSpan<byte> scanline, BufferSpan<byte> previousScanline, int bytesPerPixel)
         {
-            Guard.MustBeSameSized(scanline, previousScanline, nameof(scanline));
+            DebugGuard.MustBeSameSized(scanline, previousScanline, nameof(scanline));
 
             ref byte scanBaseRef = ref scanline.DangerousGetPinnableReference();
             ref byte prevBaseRef = ref previousScanline.DangerousGetPinnableReference();
@@ -57,8 +57,8 @@ namespace ImageSharp.Formats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Encode(BufferSpan<byte> scanline, BufferSpan<byte> previousScanline, BufferSpan<byte> result, int bytesPerPixel)
         {
-            Guard.MustBeSameSized(scanline, previousScanline, nameof(scanline));
-            Guard.MustBeSizedAtLeast(result, scanline, nameof(result));
+            DebugGuard.MustBeSameSized(scanline, previousScanline, nameof(scanline));
+            DebugGuard.MustBeSizedAtLeast(result, scanline, nameof(result));
 
             ref byte scanBaseRef = ref scanline.DangerousGetPinnableReference();
             ref byte prevBaseRef = ref previousScanline.DangerousGetPinnableReference();

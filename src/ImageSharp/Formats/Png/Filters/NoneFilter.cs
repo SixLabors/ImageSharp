@@ -21,11 +21,12 @@ namespace ImageSharp.Formats
         /// <param name="scanline">The scanline to encode</param>
         /// <param name="result">The filtered scanline result.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Encode(byte[] scanline, byte[] result)
+        public static void Encode(BufferSpan<byte> scanline, BufferSpan<byte> result)
         {
             // Insert a byte before the data.
             result[0] = 0;
-            Buffer.BlockCopy(scanline, 0, result, 1, scanline.Length);
+            result = result.Slice(1);
+            BufferSpan.Copy(scanline, result);
         }
     }
 }

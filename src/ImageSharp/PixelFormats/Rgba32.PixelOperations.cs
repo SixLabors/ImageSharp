@@ -93,6 +93,9 @@ namespace ImageSharp
             /// <inheritdoc />
             internal override void ToVector4(Span<Rgba32> sourceColors, Span<Vector4> destVectors, int count)
             {
+                Guard.MustBeSizedAtLeast(sourceColors, count, nameof(sourceColors));
+                Guard.MustBeSizedAtLeast(destVectors, count, nameof(destVectors));
+
                 if (count < 256 || !Vector.IsHardwareAccelerated)
                 {
                     // Doesn't worth to bother with SIMD:
@@ -120,6 +123,9 @@ namespace ImageSharp
             /// <inheritdoc />
             internal override void PackFromXyzBytes(Span<byte> sourceBytes, Span<Rgba32> destColors, int count)
             {
+                Guard.MustBeSizedAtLeast(sourceBytes, count * 3, nameof(sourceBytes));
+                Guard.MustBeSizedAtLeast(destColors, count, nameof(destColors));
+
                 ref RGB24 sourceRef = ref Unsafe.As<byte, RGB24>(ref sourceBytes.DangerousGetPinnableReference());
                 ref Rgba32 destRef = ref destColors.DangerousGetPinnableReference();
 
@@ -136,6 +142,9 @@ namespace ImageSharp
             /// <inheritdoc />
             internal override void ToXyzBytes(Span<Rgba32> sourceColors, Span<byte> destBytes, int count)
             {
+                Guard.MustBeSizedAtLeast(sourceColors, count, nameof(sourceColors));
+                Guard.MustBeSizedAtLeast(destBytes, count * 3, nameof(destBytes));
+
                 ref Rgba32 sourceRef = ref sourceColors.DangerousGetPinnableReference();
                 ref RGB24 destRef = ref Unsafe.As<byte, RGB24>(ref destBytes.DangerousGetPinnableReference());
 
@@ -151,18 +160,27 @@ namespace ImageSharp
             /// <inheritdoc />
             internal override unsafe void PackFromXyzwBytes(Span<byte> sourceBytes, Span<Rgba32> destColors, int count)
             {
+                Guard.MustBeSizedAtLeast(sourceBytes, count * 4, nameof(sourceBytes));
+                Guard.MustBeSizedAtLeast(destColors, count, nameof(destColors));
+
                 SpanHelper.Copy(sourceBytes, destColors.AsBytes(), count * sizeof(Rgba32));
             }
 
             /// <inheritdoc />
             internal override unsafe void ToXyzwBytes(Span<Rgba32> sourceColors, Span<byte> destBytes, int count)
             {
+                Guard.MustBeSizedAtLeast(sourceColors, count, nameof(sourceColors));
+                Guard.MustBeSizedAtLeast(destBytes, count * 4, nameof(destBytes));
+
                 SpanHelper.Copy(sourceColors.AsBytes(), destBytes, count * sizeof(Rgba32));
             }
 
             /// <inheritdoc />
             internal override void PackFromZyxBytes(Span<byte> sourceBytes, Span<Rgba32> destColors, int count)
             {
+                Guard.MustBeSizedAtLeast(sourceBytes, count * 3, nameof(sourceBytes));
+                Guard.MustBeSizedAtLeast(destColors, count, nameof(destColors));
+
                 ref RGB24 sourceRef = ref Unsafe.As<byte, RGB24>(ref sourceBytes.DangerousGetPinnableReference());
                 ref Rgba32 destRef = ref destColors.DangerousGetPinnableReference();
 
@@ -179,6 +197,9 @@ namespace ImageSharp
             /// <inheritdoc />
             internal override void ToZyxBytes(Span<Rgba32> sourceColors, Span<byte> destBytes, int count)
             {
+                Guard.MustBeSizedAtLeast(sourceColors, count, nameof(sourceColors));
+                Guard.MustBeSizedAtLeast(destBytes, count * 3, nameof(destBytes));
+
                 ref Rgba32 sourceRef = ref sourceColors.DangerousGetPinnableReference();
                 ref RGB24 destRef = ref Unsafe.As<byte, RGB24>(ref destBytes.DangerousGetPinnableReference());
 
@@ -194,6 +215,9 @@ namespace ImageSharp
             /// <inheritdoc />
             internal override void PackFromZyxwBytes(Span<byte> sourceBytes, Span<Rgba32> destColors, int count)
             {
+                Guard.MustBeSizedAtLeast(sourceBytes, count * 4, nameof(sourceBytes));
+                Guard.MustBeSizedAtLeast(destColors, count, nameof(destColors));
+
                 ref RGBA32 sourceRef = ref Unsafe.As<byte, RGBA32>(ref sourceBytes.DangerousGetPinnableReference());
                 ref Rgba32 destRef = ref destColors.DangerousGetPinnableReference();
 
@@ -209,6 +233,9 @@ namespace ImageSharp
             /// <inheritdoc />
             internal override void ToZyxwBytes(Span<Rgba32> sourceColors, Span<byte> destBytes, int count)
             {
+                Guard.MustBeSizedAtLeast(sourceColors, count, nameof(sourceColors));
+                Guard.MustBeSizedAtLeast(destBytes, count * 4, nameof(destBytes));
+
                 ref Rgba32 sourceRef = ref sourceColors.DangerousGetPinnableReference();
                 ref RGBA32 destRef = ref Unsafe.As<byte, RGBA32>(ref destBytes.DangerousGetPinnableReference());
 

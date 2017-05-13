@@ -51,13 +51,13 @@ namespace ImageSharp.Benchmarks.Color.Bulk
         [Benchmark]
         public void CommonBulk()
         {
-            new PixelOperations<TPixel>().ToXyzwBytes(this.source, this.destination, 0, this.Count);
+            new PixelOperations<TPixel>().ToXyzwBytes(this.source, this.destination, this.Count);
         }
 
         [Benchmark]
         public void OptimizedBulk()
         {
-            PixelOperations<TPixel>.Instance.ToXyzwBytes(this.source, this.destination, 0, this.Count);
+            PixelOperations<TPixel>.Instance.ToXyzwBytes(this.source, this.destination, this.Count);
         }
     }
 

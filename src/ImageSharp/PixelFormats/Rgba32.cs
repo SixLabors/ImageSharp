@@ -50,12 +50,6 @@ namespace ImageSharp
         public byte A;
 
         /// <summary>
-        /// The packed representation of the value.
-        /// </summary>
-        [FieldOffset(0)]
-        public uint Rgba;
-
-        /// <summary>
         /// The shift count for the red component
         /// </summary>
         private const int RedShift = 0;
@@ -91,10 +85,24 @@ namespace ImageSharp
         /// <param name="r">The red component.</param>
         /// <param name="g">The green component.</param>
         /// <param name="b">The blue component.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Rgba32(byte r, byte g, byte b)
+        {
+            this.R = r;
+            this.G = g;
+            this.B = b;
+            this.A = 255;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Rgba32"/> struct.
+        /// </summary>
+        /// <param name="r">The red component.</param>
+        /// <param name="g">The green component.</param>
+        /// <param name="b">The blue component.</param>
         /// <param name="a">The alpha component.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Rgba32(byte r, byte g, byte b, byte a = 255)
-            : this()
+        public Rgba32(byte r, byte g, byte b, byte a)
         {
             this.R = r;
             this.G = g;
@@ -153,6 +161,24 @@ namespace ImageSharp
             : this()
         {
             this.Rgba = packed;
+        }
+
+        /// <summary>
+        /// Gets or sets the packed representation of the Rgba32 struct.
+        /// </summary>
+        public uint Rgba
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return Unsafe.As<Rgba32, uint>(ref this);
+            }
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            set
+            {
+                Unsafe.As<Rgba32, uint>(ref this) = value;
+            }
         }
 
         /// <inheritdoc/>

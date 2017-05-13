@@ -58,9 +58,22 @@ namespace ImageSharp.PixelFormats
         /// <param name="g">The green component.</param>
         /// <param name="b">The blue component.</param>
         /// <param name="a">The alpha component.</param>
-        public Argb32(byte r, byte g, byte b, byte a = 255)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Argb32(byte r, byte g, byte b, byte a)
         {
             this.PackedValue = Pack(r, g, b, a);
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Argb32"/> struct.
+        /// </summary>
+        /// <param name="r">The red component.</param>
+        /// <param name="g">The green component.</param>
+        /// <param name="b">The blue component.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Argb32(byte r, byte g, byte b)
+        {
+            this.PackedValue = Pack(r, g, b, 255);
         }
 
         /// <summary>

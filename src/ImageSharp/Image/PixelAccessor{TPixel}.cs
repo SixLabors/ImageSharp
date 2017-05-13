@@ -348,10 +348,8 @@ namespace ImageSharp
             for (int y = 0; y < height; y++)
             {
                 Span<TPixel> source = this.GetRowSpan(sourceX, sourceY + y);
-                using (Buffer<byte> destination = new Buffer<byte>(area.Bytes))
-                {
-                    Operations.ToZyxBytes(source, destination, y * area.RowStride, width);
-                }
+                Span<byte> destination = area.GetRowSpan(y);
+                Operations.ToZyxBytes(source, destination, width);
             }
         }
 
@@ -369,10 +367,8 @@ namespace ImageSharp
             for (int y = 0; y < height; y++)
             {
                 Span<TPixel> source = this.GetRowSpan(sourceX, sourceY + y);
-                using (Buffer<byte> destination = new Buffer<byte>(area.Bytes))
-                {
-                    Operations.ToZyxwBytes(source, destination, y * area.RowStride, width);
-                }
+                Span<byte> destination = area.GetRowSpan(y);
+                Operations.ToZyxwBytes(source, destination, width);
             }
         }
 
@@ -390,10 +386,8 @@ namespace ImageSharp
             for (int y = 0; y < height; y++)
             {
                 Span<TPixel> source = this.GetRowSpan(sourceX, sourceY + y);
-                using (Buffer<byte> destination = new Buffer<byte>(area.Bytes))
-                {
-                    Operations.ToXyzBytes(source, destination, y * area.RowStride, width);
-                }
+                Span<byte> destination = area.GetRowSpan(y);
+                Operations.ToXyzBytes(source, destination, width);
             }
         }
 
@@ -411,10 +405,8 @@ namespace ImageSharp
             for (int y = 0; y < height; y++)
             {
                 Span<TPixel> source = this.GetRowSpan(sourceX, sourceY + y);
-                using (Buffer<byte> destination = new Buffer<byte>(area.Bytes))
-                {
-                    Operations.ToXyzwBytes(source, destination, y * area.RowStride, width);
-                }
+                Span<byte> destination = area.GetRowSpan(y);
+                Operations.ToXyzwBytes(source, destination, width);
             }
         }
 

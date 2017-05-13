@@ -9,8 +9,6 @@ namespace ImageSharp.PixelFormats
     using System.Numerics;
     using System.Runtime.CompilerServices;
 
-    using ImageSharp.Memory;
-
     /// <summary>
     /// A stateless class implementing Strategy Pattern for batched pixel-data conversion operations
     /// for pixel buffers of type <typeparamref name="TPixel"/>.
@@ -86,21 +84,19 @@ namespace ImageSharp.PixelFormats
         }
 
         /// <summary>
-        /// Bulk version of <see cref="IPixel.ToXyzBytes(byte[], int)"/>.
+        /// Bulk version of <see cref="IPixel.ToXyzBytes(Span{byte}, int)"/>.
         /// </summary>
         /// <param name="sourceColors">The <see cref="Span{T}"/> to the source colors.</param>
-        /// <param name="destBytes">The <see cref="Buffer{T}"/> to the destination bytes.</param>
-        /// <param name="startIndex">The starting index of the <paramref name="destBytes"/>.</param>
+        /// <param name="destBytes">The <see cref="Span{T}"/> to the destination bytes.</param>
         /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void ToXyzBytes(Span<TPixel> sourceColors, Buffer<byte> destBytes, int startIndex, int count)
+        internal virtual void ToXyzBytes(Span<TPixel> sourceColors, Span<byte> destBytes, int count)
         {
             ref TPixel sourceRef = ref sourceColors.DangerousGetPinnableReference();
-            byte[] dest = destBytes.Array;
 
             for (int i = 0; i < count; i++)
             {
                 ref TPixel sp = ref Unsafe.Add(ref sourceRef, i);
-                sp.ToXyzBytes(dest, startIndex + (i * 3));
+                sp.ToXyzBytes(destBytes, i * 3);
             }
         }
 
@@ -128,21 +124,19 @@ namespace ImageSharp.PixelFormats
         }
 
         /// <summary>
-        /// Bulk version of <see cref="IPixel.ToXyzwBytes(byte[], int)"/>.
+        /// Bulk version of <see cref="IPixel.ToXyzwBytes(Span{byte}, int)"/>
         /// </summary>
         /// <param name="sourceColors">The <see cref="Span{T}"/> to the source colors.</param>
-        /// <param name="destBytes">The <see cref="Buffer{T}"/> to the destination bytes.</param>
-        /// <param name="startIndex">The starting index of the <paramref name="destBytes"/>.</param>
+        /// <param name="destBytes">The <see cref="Span{T}"/> to the destination bytes.</param>
         /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void ToXyzwBytes(Span<TPixel> sourceColors, Buffer<byte> destBytes, int startIndex, int count)
+        internal virtual void ToXyzwBytes(Span<TPixel> sourceColors, Span<byte> destBytes, int count)
         {
             ref TPixel sourceRef = ref sourceColors.DangerousGetPinnableReference();
-            byte[] dest = destBytes.Array;
 
             for (int i = 0; i < count; i++)
             {
                 ref TPixel sp = ref Unsafe.Add(ref sourceRef, i);
-                sp.ToXyzwBytes(dest, startIndex + (i * 4));
+                sp.ToXyzwBytes(destBytes, i * 4);
             }
         }
 
@@ -170,21 +164,19 @@ namespace ImageSharp.PixelFormats
         }
 
         /// <summary>
-        /// Bulk version of <see cref="IPixel.ToZyxBytes(byte[], int)"/>.
+        /// Bulk version of <see cref="IPixel.ToZyxBytes(Span{byte}, int)"/>.
         /// </summary>
         /// <param name="sourceColors">The <see cref="Span{T}"/> to the source colors.</param>
-        /// <param name="destBytes">The <see cref="Buffer{T}"/> to the destination bytes.</param>
-        /// <param name="startIndex">The starting index of the <paramref name="destBytes"/>.</param>
+        /// <param name="destBytes">The <see cref="Span{T}"/> to the destination bytes.</param>
         /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void ToZyxBytes(Span<TPixel> sourceColors, Buffer<byte> destBytes, int startIndex, int count)
+        internal virtual void ToZyxBytes(Span<TPixel> sourceColors, Span<byte> destBytes, int count)
         {
             ref TPixel sourceRef = ref sourceColors.DangerousGetPinnableReference();
-            byte[] dest = destBytes.Array;
 
             for (int i = 0; i < count; i++)
             {
                 ref TPixel sp = ref Unsafe.Add(ref sourceRef, i);
-                sp.ToZyxBytes(dest, startIndex + (i * 3));
+                sp.ToZyxBytes(destBytes, i * 3);
             }
         }
 
@@ -212,21 +204,19 @@ namespace ImageSharp.PixelFormats
         }
 
         /// <summary>
-        /// Bulk version of <see cref="IPixel.ToZyxwBytes(byte[], int)"/>.
+        /// Bulk version of <see cref="IPixel.ToZyxwBytes(Span{byte}, int)"/>.
         /// </summary>
         /// <param name="sourceColors">The <see cref="Span{T}"/> to the source colors.</param>
-        /// <param name="destBytes">The <see cref="Buffer{T}"/> to the destination bytes.</param>
-        /// <param name="startIndex">The starting index of the <paramref name="destBytes"/>.</param>
+        /// <param name="destBytes">The <see cref="Span{T}"/> to the destination bytes.</param>
         /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void ToZyxwBytes(Span<TPixel> sourceColors, Buffer<byte> destBytes, int startIndex, int count)
+        internal virtual void ToZyxwBytes(Span<TPixel> sourceColors, Span<byte> destBytes, int count)
         {
             ref TPixel sourceRef = ref sourceColors.DangerousGetPinnableReference();
-            byte[] dest = destBytes.Array;
 
             for (int i = 0; i < count; i++)
             {
                 ref TPixel sp = ref Unsafe.Add(ref sourceRef, i);
-                sp.ToZyxwBytes(dest, startIndex + (i * 4));
+                sp.ToZyxwBytes(destBytes, i * 4);
             }
         }
     }

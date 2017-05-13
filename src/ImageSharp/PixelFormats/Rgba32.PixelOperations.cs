@@ -134,10 +134,10 @@ namespace ImageSharp
             }
 
             /// <inheritdoc />
-            internal override void ToXyzBytes(Span<Rgba32> sourceColors, Buffer<byte> destBytes, int startIndex, int count)
+            internal override void ToXyzBytes(Span<Rgba32> sourceColors, Span<byte> destBytes, int count)
             {
                 ref Rgba32 sourceRef = ref sourceColors.DangerousGetPinnableReference();
-                ref RGB24 destRef = ref Unsafe.As<byte, RGB24>(ref new Span<byte>(destBytes.Array, startIndex).DangerousGetPinnableReference());
+                ref RGB24 destRef = ref Unsafe.As<byte, RGB24>(ref destBytes.DangerousGetPinnableReference());
 
                 for (int i = 0; i < count; i++)
                 {
@@ -155,9 +155,9 @@ namespace ImageSharp
             }
 
             /// <inheritdoc />
-            internal override unsafe void ToXyzwBytes(Span<Rgba32> sourceColors, Buffer<byte> destBytes, int startIndex, int count)
+            internal override unsafe void ToXyzwBytes(Span<Rgba32> sourceColors, Span<byte> destBytes, int count)
             {
-                SpanHelper.Copy(sourceColors.AsBytes(), new Span<byte>(destBytes.Array, startIndex), count * sizeof(Rgba32));
+                SpanHelper.Copy(sourceColors.AsBytes(), destBytes, count * sizeof(Rgba32));
             }
 
             /// <inheritdoc />
@@ -177,10 +177,10 @@ namespace ImageSharp
             }
 
             /// <inheritdoc />
-            internal override void ToZyxBytes(Span<Rgba32> sourceColors, Buffer<byte> destBytes, int startIndex, int count)
+            internal override void ToZyxBytes(Span<Rgba32> sourceColors, Span<byte> destBytes, int count)
             {
                 ref Rgba32 sourceRef = ref sourceColors.DangerousGetPinnableReference();
-                ref RGB24 destRef = ref Unsafe.As<byte, RGB24>(ref new Span<byte>(destBytes.Array, startIndex).DangerousGetPinnableReference());
+                ref RGB24 destRef = ref Unsafe.As<byte, RGB24>(ref destBytes.DangerousGetPinnableReference());
 
                 for (int i = 0; i < count; i++)
                 {
@@ -207,10 +207,10 @@ namespace ImageSharp
             }
 
             /// <inheritdoc />
-            internal override void ToZyxwBytes(Span<Rgba32> sourceColors, Buffer<byte> destBytes, int startIndex, int count)
+            internal override void ToZyxwBytes(Span<Rgba32> sourceColors, Span<byte> destBytes, int count)
             {
                 ref Rgba32 sourceRef = ref sourceColors.DangerousGetPinnableReference();
-                ref RGBA32 destRef = ref Unsafe.As<byte, RGBA32>(ref new Span<byte>(destBytes.Array, startIndex).DangerousGetPinnableReference());
+                ref RGBA32 destRef = ref Unsafe.As<byte, RGBA32>(ref destBytes.DangerousGetPinnableReference());
 
                 for (int i = 0; i < count; i++)
                 {

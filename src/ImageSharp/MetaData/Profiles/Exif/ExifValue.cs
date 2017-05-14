@@ -39,7 +39,7 @@ namespace ImageSharp
             }
             else
             {
-                Array array = (Array)other.exifValue;
+                var array = (Array)other.exifValue;
                 this.exifValue = array.Clone();
             }
         }
@@ -264,7 +264,7 @@ namespace ImageSharp
                 return this.ToString(this.exifValue);
             }
 
-            StringBuilder sb = new StringBuilder();
+            var sb = new StringBuilder();
             foreach (object value in (Array)this.exifValue)
             {
                 sb.Append(this.ToString(value));

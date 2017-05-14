@@ -9,6 +9,8 @@ namespace ImageSharp
     using System.Diagnostics;
     using System.Runtime.CompilerServices;
     using System.Threading.Tasks;
+
+    using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
 
     /// <summary>
@@ -114,7 +116,7 @@ namespace ImageSharp
         public ParallelOptions ParallelOptions { get; }
 
         /// <inheritdoc />
-        BufferSpan<TPixel> IBuffer2D<TPixel>.Span => this.pixelBuffer;
+        Span<TPixel> IBuffer2D<TPixel>.Span => this.pixelBuffer;
 
         private static PixelOperations<TPixel> Operations => PixelOperations<TPixel>.Instance;
 
@@ -250,7 +252,7 @@ namespace ImageSharp
         /// <param name="target">The target pixel buffer accessor.</param>
         internal void CopyTo(PixelAccessor<TPixel> target)
         {
-            BufferSpan.Copy(this.pixelBuffer.Span, target.pixelBuffer.Span);
+            SpanHelper.Copy(this.pixelBuffer.Span, target.pixelBuffer.Span);
         }
 
         /// <summary>
@@ -266,8 +268,8 @@ namespace ImageSharp
         {
             for (int y = 0; y < height; y++)
             {
-                BufferSpan<byte> source = area.GetRowSpan(y);
-                BufferSpan<TPixel> destination = this.GetRowSpan(targetX, targetY + y);
+                Span<byte> source = area.GetRowSpan(y);
+                Span<TPixel> destination = this.GetRowSpan(targetX, targetY + y);
 
                 Operations.PackFromZyxBytes(source, destination, width);
             }
@@ -286,8 +288,8 @@ namespace ImageSharp
         {
             for (int y = 0; y < height; y++)
             {
-                BufferSpan<byte> source = area.GetRowSpan(y);
-                BufferSpan<TPixel> destination = this.GetRowSpan(targetX, targetY + y);
+                Span<byte> source = area.GetRowSpan(y);
+                Span<TPixel> destination = this.GetRowSpan(targetX, targetY + y);
 
                 Operations.PackFromZyxwBytes(source, destination, width);
             }
@@ -306,8 +308,8 @@ namespace ImageSharp
         {
             for (int y = 0; y < height; y++)
             {
-                BufferSpan<byte> source = area.GetRowSpan(y);
-                BufferSpan<TPixel> destination = this.GetRowSpan(targetX, targetY + y);
+                Span<byte> source = area.GetRowSpan(y);
+                Span<TPixel> destination = this.GetRowSpan(targetX, targetY + y);
 
                 Operations.PackFromXyzBytes(source, destination, width);
             }
@@ -326,8 +328,8 @@ namespace ImageSharp
         {
             for (int y = 0; y < height; y++)
             {
-                BufferSpan<byte> source = area.GetRowSpan(y);
-                BufferSpan<TPixel> destination = this.GetRowSpan(targetX, targetY + y);
+                Span<byte> source = area.GetRowSpan(y);
+                Span<TPixel> destination = this.GetRowSpan(targetX, targetY + y);
                 Operations.PackFromXyzwBytes(source, destination, width);
             }
         }
@@ -345,8 +347,8 @@ namespace ImageSharp
         {
             for (int y = 0; y < height; y++)
             {
-                BufferSpan<TPixel> source = this.GetRowSpan(sourceX, sourceY + y);
-                BufferSpan<byte> destination = area.GetRowSpan(y);
+                Span<TPixel> source = this.GetRowSpan(sourceX, sourceY + y);
+                Span<byte> destination = area.GetRowSpan(y);
                 Operations.ToZyxBytes(source, destination, width);
             }
         }
@@ -364,8 +366,8 @@ namespace ImageSharp
         {
             for (int y = 0; y < height; y++)
             {
-                BufferSpan<TPixel> source = this.GetRowSpan(sourceX, sourceY + y);
-                BufferSpan<byte> destination = area.GetRowSpan(y);
+                Span<TPixel> source = this.GetRowSpan(sourceX, sourceY + y);
+                Span<byte> destination = area.GetRowSpan(y);
                 Operations.ToZyxwBytes(source, destination, width);
             }
         }
@@ -383,8 +385,8 @@ namespace ImageSharp
         {
             for (int y = 0; y < height; y++)
             {
-                BufferSpan<TPixel> source = this.GetRowSpan(sourceX, sourceY + y);
-                BufferSpan<byte> destination = area.GetRowSpan(y);
+                Span<TPixel> source = this.GetRowSpan(sourceX, sourceY + y);
+                Span<byte> destination = area.GetRowSpan(y);
                 Operations.ToXyzBytes(source, destination, width);
             }
         }
@@ -402,8 +404,8 @@ namespace ImageSharp
         {
             for (int y = 0; y < height; y++)
             {
-                BufferSpan<TPixel> source = this.GetRowSpan(sourceX, sourceY + y);
-                BufferSpan<byte> destination = area.GetRowSpan(y);
+                Span<TPixel> source = this.GetRowSpan(sourceX, sourceY + y);
+                Span<byte> destination = area.GetRowSpan(y);
                 Operations.ToXyzwBytes(source, destination, width);
             }
         }

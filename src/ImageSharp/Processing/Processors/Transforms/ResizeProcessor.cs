@@ -9,6 +9,7 @@ namespace ImageSharp.Processing.Processors
     using System.Numerics;
     using System.Threading.Tasks;
 
+    using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
 
     /// <summary>
@@ -121,7 +122,7 @@ namespace ImageSharp.Processing.Processors
                                 // TODO: Without Parallel.For() this buffer object could be reused:
                                 using (Buffer<Vector4> tempRowBuffer = new Buffer<Vector4>(sourcePixels.Width))
                                 {
-                                    BufferSpan<TPixel> sourceRow = sourcePixels.GetRowSpan(y);
+                                    Span<TPixel> sourceRow = sourcePixels.GetRowSpan(y);
 
                                     PixelOperations<TPixel>.Instance.ToVector4(
                                         sourceRow,

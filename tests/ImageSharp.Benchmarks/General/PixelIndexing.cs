@@ -5,6 +5,8 @@
 
     using BenchmarkDotNet.Attributes;
 
+    using ImageSharp.Memory;
+
     // Pixel indexing benchmarks compare different methods for getting/setting all pixel values in a subsegment of a single pixel row.
     public abstract unsafe class PixelIndexing
     {

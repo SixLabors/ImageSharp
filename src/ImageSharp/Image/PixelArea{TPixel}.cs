@@ -8,6 +8,8 @@ namespace ImageSharp
     using System;
     using System.Diagnostics;
     using System.IO;
+
+    using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
 
     /// <summary>
@@ -191,11 +193,11 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Gets a <see cref="BufferSpan{T}"/> to the row y.
+        /// Gets a <see cref="Span{T}"/> to the row y.
         /// </summary>
         /// <param name="y">The y coordinate</param>
-        /// <returns>The <see cref="BufferSpan{T}"/></returns>
-        internal BufferSpan<byte> GetRowSpan(int y)
+        /// <returns>The <see cref="Span{T}"/></returns>
+        internal Span<byte> GetRowSpan(int y)
         {
             return this.byteBuffer.Slice(y * this.RowStride);
         }

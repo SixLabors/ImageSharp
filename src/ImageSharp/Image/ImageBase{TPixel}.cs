@@ -7,6 +7,8 @@ namespace ImageSharp
 {
     using System;
     using System.Diagnostics;
+
+    using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
     using Processing;
 

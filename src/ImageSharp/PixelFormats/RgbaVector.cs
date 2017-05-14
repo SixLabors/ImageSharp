@@ -5,6 +5,7 @@
 
 namespace ImageSharp.PixelFormats
 {
+    using System;
     using System.Numerics;
     using System.Runtime.CompilerServices;
 
@@ -234,7 +235,7 @@ namespace ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToXyzBytes(byte[] bytes, int startIndex)
+        public void ToXyzBytes(Span<byte> bytes, int startIndex)
         {
             Vector4 vector = Vector4.Clamp(this.backingVector, Vector4.Zero, Vector4.One) * MaxBytes;
             vector += Half;
@@ -245,7 +246,7 @@ namespace ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToXyzwBytes(byte[] bytes, int startIndex)
+        public void ToXyzwBytes(Span<byte> bytes, int startIndex)
         {
             Vector4 vector = Vector4.Clamp(this.backingVector, Vector4.Zero, Vector4.One) * MaxBytes;
             vector += Half;
@@ -257,7 +258,7 @@ namespace ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToZyxBytes(byte[] bytes, int startIndex)
+        public void ToZyxBytes(Span<byte> bytes, int startIndex)
         {
             Vector4 vector = Vector4.Clamp(this.backingVector, Vector4.Zero, Vector4.One) * MaxBytes;
             vector += Half;
@@ -268,7 +269,7 @@ namespace ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToZyxwBytes(byte[] bytes, int startIndex)
+        public void ToZyxwBytes(Span<byte> bytes, int startIndex)
         {
             Vector4 vector = Vector4.Clamp(this.backingVector, Vector4.Zero, Vector4.One) * MaxBytes;
             vector += Half;

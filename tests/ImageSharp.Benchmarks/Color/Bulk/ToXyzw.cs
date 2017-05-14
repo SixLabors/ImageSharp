@@ -7,6 +7,8 @@ using System.Threading.Tasks;
 namespace ImageSharp.Benchmarks.Color.Bulk
 {
     using BenchmarkDotNet.Attributes;
+
+    using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
 
     public abstract class ToXyzw<TPixel>
@@ -58,7 +60,7 @@ namespace ImageSharp.Benchmarks.Color.Bulk
             PixelOperations<TPixel>.Instance.ToXyzwBytes(this.source, this.destination, this.Count);
         }
     }
-    
+
     public class ToXyzw_Rgba32 : ToXyzw<Rgba32>
     {
     }

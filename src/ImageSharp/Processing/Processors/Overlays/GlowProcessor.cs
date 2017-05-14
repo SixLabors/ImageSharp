@@ -9,6 +9,7 @@ namespace ImageSharp.Processing.Processors
     using System.Numerics;
     using System.Threading.Tasks;
 
+    using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
 
     /// <summary>
@@ -96,7 +97,7 @@ namespace ImageSharp.Processing.Processors
                                      amounts[i] = (this.options.BlendPercentage * (1 - (.95F * (distance / maxDistance)))).Clamp(0, 1);
                                  }
 
-                                 BufferSpan<TPixel> destination = sourcePixels.GetRowSpan(offsetY).Slice(offsetX, width);
+                                 Span<TPixel> destination = sourcePixels.GetRowSpan(offsetY).Slice(offsetX, width);
 
                                  this.blender.Blend(destination, destination, rowColors, amounts);
                              }

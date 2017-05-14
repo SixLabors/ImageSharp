@@ -5,6 +5,7 @@
 
 namespace ImageSharp.Formats
 {
+    using System;
     using System.Runtime.CompilerServices;
 
     /// <summary>
@@ -20,7 +21,7 @@ namespace ImageSharp.Formats
         /// <param name="scanline">The scanline to decode</param>
         /// <param name="previousScanline">The previous scanline.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Decode(BufferSpan<byte> scanline, BufferSpan<byte> previousScanline)
+        public static void Decode(Span<byte> scanline, Span<byte> previousScanline)
         {
             DebugGuard.MustBeSameSized(scanline, previousScanline, nameof(scanline));
 
@@ -43,7 +44,7 @@ namespace ImageSharp.Formats
         /// <param name="previousScanline">The previous scanline.</param>
         /// <param name="result">The filtered scanline result.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Encode(BufferSpan<byte> scanline, BufferSpan<byte> previousScanline, BufferSpan<byte> result)
+        public static void Encode(Span<byte> scanline, Span<byte> previousScanline, Span<byte> result)
         {
             DebugGuard.MustBeSameSized(scanline, previousScanline, nameof(scanline));
             DebugGuard.MustBeSizedAtLeast(result, scanline, nameof(result));

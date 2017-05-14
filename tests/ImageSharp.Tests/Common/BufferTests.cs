@@ -6,6 +6,8 @@ namespace ImageSharp.Tests.Common
     using System.Runtime.InteropServices;
     using System.Threading.Tasks;
 
+    using ImageSharp.Memory;
+
     using Xunit;
 
     using static TestStructs;
@@ -15,7 +17,7 @@ namespace ImageSharp.Tests.Common
         // ReSharper disable once ClassNeverInstantiated.Local
         private class Assert : Xunit.Assert
         {
-            public static void SpanPointsTo<T>(BufferSpan<T> span, Buffer<T> buffer, int bufferOffset = 0)
+            public static void SpanPointsTo<T>(Span<T> span, Buffer<T> buffer, int bufferOffset = 0)
                 where T : struct
             {
                 ref T actual = ref span.DangerousGetPinnableReference();
@@ -58,10 +60,8 @@ namespace ImageSharp.Tests.Common
             }
         }
 
-        [Theory]
-        [InlineData(42)]
-        [InlineData(1111)]
-        public void Clear(int count)
+        [Fact]
+        public void Clear()
         {
             Foo[] a = { new Foo() { A = 1, B = 2 }, new Foo() { A = 3, B = 4 } };
             using (Buffer<Foo> buffer = new Buffer<Foo>(a))
@@ -144,10 +144,10 @@ namespace ImageSharp.Tests.Common
         {
             using (Buffer<Foo> buffer = new Buffer<Foo>(bufferLength))
             {
-                BufferSpan<Foo> span = buffer;
+                Span<Foo> span = buffer;
 
-                Assert.Equal(buffer.Array, span.Array);
-                Assert.Equal(0, span.Start);
+                //Assert.Equal(buffer.Array, span.ToArray());
+                //Assert.Equal(0, span.Start);
                 Assert.SpanPointsTo(span, buffer);
                 Assert.Equal(span.Length, bufferLength);
             }
@@ -158,10 +158,10 @@ namespace ImageSharp.Tests.Common
         {
             using (Buffer<Foo> buffer = new Buffer<Foo>(42))
             {
-                BufferSpan<Foo> span = buffer.Span;
+                Span<Foo> span = buffer.Span;
 
-                Assert.Equal(buffer.Array, span.Array);
-                Assert.Equal(0, span.Start);
+                // Assert.Equal(buffer.Array, span.ToArray());
+                // Assert.Equal(0, span.Start);
                 Assert.SpanPointsTo(span, buffer);
                 Assert.Equal(span.Length, 42);
             }
@@ -177,10 +177,8 @@ namespace ImageSharp.Tests.Common
             {
                 using (Buffer<Foo> buffer = new Buffer<Foo>(bufferLength))
                 {
-                    BufferSpan<Foo> span = buffer.Slice(start);
+                    Span<Foo> span = buffer.Slice(start);
 
-                    Assert.Equal(buffer.Array, span.Array);
-                    Assert.Equal(start, span.Start);
                     Assert.SpanPointsTo(span, buffer, start);
                     Assert.Equal(span.Length, bufferLength - start);
                 }
@@ -193,10 +191,8 @@ namespace ImageSharp.Tests.Common
             {
                 using (Buffer<Foo> buffer = new Buffer<Foo>(bufferLength))
                 {
-                    BufferSpan<Foo> span = buffer.Slice(start, spanLength);
+                    Span<Foo> span = buffer.Slice(start, spanLength);
 
-                    Assert.Equal(buffer.Array, span.Array);
-                    Assert.Equal(start, span.Start);
                     Assert.SpanPointsTo(span, buffer, start);
                     Assert.Equal(span.Length, spanLength);
                 }

@@ -5,6 +5,7 @@
 
 namespace ImageSharp.Formats
 {
+    using System;
     using System.Runtime.CompilerServices;
 
     /// <summary>
@@ -20,7 +21,7 @@ namespace ImageSharp.Formats
         /// <param name="scanline">The scanline to decode</param>
         /// <param name="bytesPerPixel">The bytes per pixel.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Decode(BufferSpan<byte> scanline, int bytesPerPixel)
+        public static void Decode(Span<byte> scanline, int bytesPerPixel)
         {
             ref byte scanBaseRef = ref scanline.DangerousGetPinnableReference();
 
@@ -48,7 +49,7 @@ namespace ImageSharp.Formats
         /// <param name="result">The filtered scanline result.</param>
         /// <param name="bytesPerPixel">The bytes per pixel.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Encode(BufferSpan<byte> scanline, BufferSpan<byte> result, int bytesPerPixel)
+        public static void Encode(Span<byte> scanline, Span<byte> result, int bytesPerPixel)
         {
             DebugGuard.MustBeSizedAtLeast(result, scanline, nameof(result));
 

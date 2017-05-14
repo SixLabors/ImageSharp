@@ -42,7 +42,8 @@ namespace ImageSharp.Web.Middleware
         /// <returns>The <see cref="Task"/></returns>
         public async Task Invoke(HttpContext context)
         {
-            return;
+            // Call the next delegate/middleware in the pipeline
+            await this.next(context);
         }
     }
 }

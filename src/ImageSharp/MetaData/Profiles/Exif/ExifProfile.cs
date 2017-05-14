@@ -238,11 +238,18 @@ namespace ImageSharp
         private void SyncResolution(ExifTag tag, double resolution)
         {
             ExifValue value = this.GetValue(tag);
-            if (value != null)
+            if (value == null)
             {
-              Rational newResolution = new Rational(resolution, false);
-              this.SetValue(tag, newResolution);
+                return;
             }
+
+            if (value.IsArray || value.DataType != ExifDataType.Rational)
+            {
+                this.RemoveValue(value.Tag);
+            }
+
+            Rational newResolution = new Rational(resolution, false);
+            this.SetValue(tag, newResolution);
         }
 
         private void InitializeValues()

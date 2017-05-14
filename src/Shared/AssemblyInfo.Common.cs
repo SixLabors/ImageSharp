@@ -38,3 +38,4 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("ImageSharp.Benchmarks")]
 [assembly: InternalsVisibleTo("ImageSharp.Tests")]
 [assembly: InternalsVisibleTo("ImageSharp.Sandbox46")]
+[assembly: InternalsVisibleTo("ImageSharp.Web")]

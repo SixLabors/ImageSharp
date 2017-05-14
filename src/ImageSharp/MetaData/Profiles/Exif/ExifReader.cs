@@ -75,7 +75,7 @@ namespace ImageSharp
         {
             DebugGuard.NotNull(data, nameof(data));
 
-            Collection<ExifValue> result = new Collection<ExifValue>();
+            var result = new Collection<ExifValue>();
 
             this.exifData = data;
 
@@ -357,7 +357,7 @@ namespace ImageSharp
         private TEnum ToEnum<TEnum>(int value, TEnum defaultValue)
             where TEnum : struct
         {
-            TEnum enumValue = (TEnum)(object)value;
+            var enumValue = (TEnum)(object)value;
             if (Enum.GetValues(typeof(TEnum)).Cast<TEnum>().Any(v => v.Equals(enumValue)))
             {
                 return enumValue;
@@ -403,7 +403,7 @@ namespace ImageSharp
 
         private void GetThumbnail(uint offset)
         {
-            Collection<ExifValue> values = new Collection<ExifValue>();
+            var values = new Collection<ExifValue>();
             this.AddValues(values, offset);
 
             foreach (ExifValue value in values)

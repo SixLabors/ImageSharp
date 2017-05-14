@@ -136,7 +136,7 @@ namespace ImageSharp
                 return null;
             }
 
-            using (MemoryStream memStream = new MemoryStream(this.data, this.thumbnailOffset, this.thumbnailLength))
+            using (var memStream = new MemoryStream(this.data, this.thumbnailOffset, this.thumbnailLength))
             {
                 return Image.Load<TPixel>(memStream);
             }
@@ -201,7 +201,7 @@ namespace ImageSharp
                 }
             }
 
-            ExifValue newExifValue = ExifValue.Create(tag, value);
+            var newExifValue = ExifValue.Create(tag, value);
             this.values.Add(newExifValue);
         }
 
@@ -221,7 +221,7 @@ namespace ImageSharp
                 return null;
             }
 
-            ExifWriter writer = new ExifWriter(this.values, this.Parts);
+            var writer = new ExifWriter(this.values, this.Parts);
             return writer.GetData();
         }
 
@@ -248,7 +248,7 @@ namespace ImageSharp
                 this.RemoveValue(value.Tag);
             }
 
-            Rational newResolution = new Rational(resolution, false);
+            var newResolution = new Rational(resolution, false);
             this.SetValue(tag, newResolution);
         }
 
@@ -265,7 +265,7 @@ namespace ImageSharp
                 return;
             }
 
-            ExifReader reader = new ExifReader();
+            var reader = new ExifReader();
             this.values = reader.Read(this.data);
             this.invalidTags = new List<ExifTag>(reader.InvalidTags);
             this.thumbnailOffset = (int)reader.ThumbnailOffset;

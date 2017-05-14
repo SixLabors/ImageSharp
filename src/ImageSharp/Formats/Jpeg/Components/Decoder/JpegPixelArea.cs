@@ -6,6 +6,8 @@ namespace ImageSharp.Formats.Jpg
 {
     using System.Runtime.CompilerServices;
 
+    using ImageSharp.Memory;
+
     /// <summary>
     /// Represents an area of a Jpeg subimage (channel)
     /// </summary>

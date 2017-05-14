@@ -3,7 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp
+namespace ImageSharp.Memory
 {
     using System;
     using System.Runtime.CompilerServices;
@@ -14,29 +14,29 @@ namespace ImageSharp
     internal static class Buffer2DExtensions
     {
         /// <summary>
-        /// Gets a <see cref="BufferSpan{T}"/> to the row 'y' beginning from the pixel at 'x'.
+        /// Gets a <see cref="Span{T}"/> to the row 'y' beginning from the pixel at 'x'.
         /// </summary>
         /// <param name="buffer">The buffer</param>
         /// <param name="x">The x coordinate (position in the row)</param>
         /// <param name="y">The y (row) coordinate</param>
         /// <typeparam name="T">The element type</typeparam>
-        /// <returns>The <see cref="BufferSpan{T}"/></returns>
+        /// <returns>The <see cref="Span{T}"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static BufferSpan<T> GetRowSpan<T>(this IBuffer2D<T> buffer, int x, int y)
+        public static Span<T> GetRowSpan<T>(this IBuffer2D<T> buffer, int x, int y)
             where T : struct
         {
             return buffer.Span.Slice((y * buffer.Width) + x, buffer.Width - x);
         }
 
         /// <summary>
-        /// Gets a <see cref="BufferSpan{T}"/> to the row 'y' beginning from the pixel at 'x'.
+        /// Gets a <see cref="Span{T}"/> to the row 'y' beginning from the pixel at 'x'.
         /// </summary>
         /// <param name="buffer">The buffer</param>
         /// <param name="y">The y (row) coordinate</param>
         /// <typeparam name="T">The element type</typeparam>
-        /// <returns>The <see cref="BufferSpan{T}"/></returns>
+        /// <returns>The <see cref="Span{T}"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static BufferSpan<T> GetRowSpan<T>(this IBuffer2D<T> buffer, int y)
+        public static Span<T> GetRowSpan<T>(this IBuffer2D<T> buffer, int y)
             where T : struct
         {
             return buffer.Span.Slice(y * buffer.Width, buffer.Width);

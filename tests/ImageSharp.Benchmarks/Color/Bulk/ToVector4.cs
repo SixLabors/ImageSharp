@@ -5,6 +5,7 @@ namespace ImageSharp.Benchmarks.Color.Bulk
 
     using BenchmarkDotNet.Attributes;
 
+    using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
 
     public abstract class ToVector4<TPixel>

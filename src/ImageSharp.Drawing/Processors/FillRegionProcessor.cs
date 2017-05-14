@@ -8,6 +8,8 @@ namespace ImageSharp.Drawing.Processors
     using System;
     using System.Buffers;
     using Drawing;
+
+    using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
     using ImageSharp.Processing;
 

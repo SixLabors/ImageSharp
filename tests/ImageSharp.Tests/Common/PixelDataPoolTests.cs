@@ -8,6 +8,7 @@ namespace ImageSharp.Tests
 {
     using System.Linq;
 
+    using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
 
     using Xunit;

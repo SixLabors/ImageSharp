@@ -12,6 +12,7 @@ namespace ImageSharp.Formats
     using System.Linq;
     using System.Runtime.CompilerServices;
 
+    using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
 
     using static ComparableExtensions;
@@ -503,8 +504,8 @@ namespace ImageSharp.Formats
 
                     this.currentRowBytesRead = 0;
 
-                    BufferSpan<byte> scanSpan = this.scanline.Slice(0, bytesPerInterlaceScanline);
-                    BufferSpan<byte> prevSpan = this.previousScanline.Span.Slice(0, bytesPerInterlaceScanline);
+                    Span<byte> scanSpan = this.scanline.Slice(0, bytesPerInterlaceScanline);
+                    Span<byte> prevSpan = this.previousScanline.Span.Slice(0, bytesPerInterlaceScanline);
                     var filterType = (FilterType)scanSpan[0];
 
                     switch (filterType)
@@ -565,8 +566,8 @@ namespace ImageSharp.Formats
             where TPixel : struct, IPixel<TPixel>
         {
             var color = default(TPixel);
-            BufferSpan<TPixel> pixelBuffer = pixels.GetRowSpan(this.currentRow);
-            var scanlineBuffer = new BufferSpan<byte>(defilteredScanline, 1);
+            Span<TPixel> pixelBuffer = pixels.GetRowSpan(this.currentRow);
+            var scanlineBuffer = new Span<byte>(defilteredScanline, 1);
 
             switch (this.PngColorType)
             {

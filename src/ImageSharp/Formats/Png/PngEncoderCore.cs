@@ -10,6 +10,8 @@ namespace ImageSharp.Formats
     using System.IO;
     using System.Linq;
     using System.Runtime.CompilerServices;
+
+    using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
 
     using Quantizers;
@@ -340,7 +342,7 @@ namespace ImageSharp.Formats
         private void CollecTPixelBytes<TPixel>(PixelAccessor<TPixel> pixels, int row)
             where TPixel : struct, IPixel<TPixel>
         {
-            BufferSpan<TPixel> rowSpan = pixels.GetRowSpan(row);
+            Span<TPixel> rowSpan = pixels.GetRowSpan(row);
 
             if (this.bytesPerPixel == 4)
             {
@@ -387,8 +389,8 @@ namespace ImageSharp.Formats
         /// <returns>The <see cref="T:byte[]"/></returns>
         private Buffer<byte> GetOptimalFilteredScanline()
         {
-            BufferSpan<byte> scanSpan = this.rawScanline.Span;
-            BufferSpan<byte> prevSpan = this.previousScanline.Span;
+            Span<byte> scanSpan = this.rawScanline.Span;
+            Span<byte> prevSpan = this.previousScanline.Span;
 
             // Palette images don't compress well with adaptive filtering.
             if (this.pngColorType == PngColorType.Palette || this.bitDepth < 8)
@@ -442,7 +444,7 @@ namespace ImageSharp.Formats
         /// <param name="lastSum">The last variation sum</param>
         /// <returns>The <see cref="int"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private int CalculateTotalVariation(BufferSpan<byte> scanline, int lastSum)
+        private int CalculateTotalVariation(Span<byte> scanline, int lastSum)
         {
             ref byte scanBaseRef = ref scanline.DangerousGetPinnableReference();
             int sum = 0;

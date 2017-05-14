@@ -5,7 +5,10 @@
 
 namespace ImageSharp.PixelFormats
 {
+    using System;
     using System.Numerics;
+
+    using ImageSharp.Memory;
 
     /// <content>
     /// Provides optimized overrides for bulk operations.
@@ -18,9 +21,12 @@ namespace ImageSharp.PixelFormats
         internal class PixelOperations : PixelOperations<RgbaVector>
         {
             /// <inheritdoc />
-            internal override unsafe void ToVector4(BufferSpan<RgbaVector> sourceColors, BufferSpan<Vector4> destVectors, int count)
+            internal override unsafe void ToVector4(Span<RgbaVector> sourceColors, Span<Vector4> destVectors, int count)
             {
-                BufferSpan.Copy(sourceColors.AsBytes(), destVectors.AsBytes(), count * sizeof(Vector4));
+                Guard.MustBeSizedAtLeast(sourceColors, count, nameof(sourceColors));
+                Guard.MustBeSizedAtLeast(destVectors, count, nameof(destVectors));
+
+                SpanHelper.Copy(sourceColors.AsBytes(), destVectors.AsBytes(), count * sizeof(Vector4));
             }
         }
     }

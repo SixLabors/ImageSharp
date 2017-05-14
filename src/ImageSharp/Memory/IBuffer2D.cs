@@ -3,8 +3,10 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp
+namespace ImageSharp.Memory
 {
+    using System;
+
     /// <summary>
     /// An interface that represents a pinned buffer of value type objects
     /// interpreted as a 2D region of <see cref="Width"/> x <see cref="Height"/> elements.
@@ -24,8 +26,8 @@ namespace ImageSharp
         int Height { get; }
 
         /// <summary>
-        /// Gets a <see cref="BufferSpan{T}"/> to the backing buffer.
+        /// Gets a <see cref="Span{T}"/> to the backing buffer.
         /// </summary>
-        BufferSpan<T> Span { get; }
+        Span<T> Span { get; }
     }
 }

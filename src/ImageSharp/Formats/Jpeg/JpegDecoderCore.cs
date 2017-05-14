@@ -11,6 +11,7 @@ namespace ImageSharp.Formats
     using System.Threading.Tasks;
 
     using ImageSharp.Formats.Jpg;
+    using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
 
     /// <summary>

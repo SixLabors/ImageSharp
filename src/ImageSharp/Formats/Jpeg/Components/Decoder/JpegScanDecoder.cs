@@ -9,6 +9,8 @@ namespace ImageSharp.Formats.Jpg
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
 
+    using ImageSharp.Memory;
+
     /// <summary>
     /// Encapsulates the impementation of Jpeg SOS Huffman decoding. See JpegScanDecoder.md!
     ///

@@ -21,7 +21,7 @@ namespace ImageSharp
         /// <returns>the tag data entry</returns>
         public IccTagDataEntry ReadTagDataEntry(IccTagTableEntry info)
         {
-            this.index = (int)info.Offset;
+            this.currentIndex = (int)info.Offset;
             IccTypeSignature type = this.ReadTagDataEntryHeader();
 
             switch (type)
@@ -43,9 +43,9 @@ namespace ImageSharp
                 case IccTypeSignature.Lut8:
                     return this.ReadLut8TagDataEntry();
                 case IccTypeSignature.LutAToB:
-                    return this.ReadLutAToBTagDataEntry();
+                    return this.ReadLutAtoBTagDataEntry();
                 case IccTypeSignature.LutBToA:
-                    return this.ReadLutBToATagDataEntry();
+                    return this.ReadLutBtoATagDataEntry();
                 case IccTypeSignature.Measurement:
                     return this.ReadMeasurementTagDataEntry();
                 case IccTypeSignature.MultiLocalizedUnicode:
@@ -108,7 +108,7 @@ namespace ImageSharp
         /// <returns>The read signature</returns>
         public IccTypeSignature ReadTagDataEntryHeader()
         {
-            IccTypeSignature type = (IccTypeSignature)this.ReadUInt32();
+            var type = (IccTypeSignature)this.ReadUInt32();
             this.AddIndex(4); // 4 bytes are not used
             return type;
         }
@@ -144,7 +144,7 @@ namespace ImageSharp
         public IccChromaticityTagDataEntry ReadChromaticityTagDataEntry()
         {
             ushort channelCount = this.ReadUInt16();
-            IccColorantEncoding colorant = (IccColorantEncoding)this.ReadUInt16();
+            var colorant = (IccColorantEncoding)this.ReadUInt16();
 
             if (Enum.IsDefined(typeof(IccColorantEncoding), colorant) && colorant != IccColorantEncoding.Unknown)
             {
@@ -206,20 +206,19 @@ namespace ImageSharp
             {
                 return new IccCurveTagDataEntry();
             }
-            else if (pointCount == 1)
+
+            if (pointCount == 1)
             {
                 return new IccCurveTagDataEntry(this.ReadUFix8());
             }
-            else
-            {
-                float[] cdata = new float[pointCount];
-                for (int i = 0; i < pointCount; i++)
-                {
-                    cdata[i] = this.ReadUInt16() / 65535f;
-                }
 
-                return new IccCurveTagDataEntry(cdata);
+            float[] cdata = new float[pointCount];
+            for (int i = 0; i < pointCount; i++)
+            {
+                cdata[i] = this.ReadUInt16() / 65535f;
             }
+
+            return new IccCurveTagDataEntry(cdata);
 
             // TODO: If the input is PCSXYZ, 1+(32 767/32 768) shall be mapped to the value 1,0. If the output is PCSXYZ, the value 1,0 shall be mapped to 1+(32 767/32 768).
         }
@@ -328,9 +327,9 @@ namespace ImageSharp
         /// Reads a <see cref="IccLutAToBTagDataEntry"/>
         /// </summary>
         /// <returns>The read entry</returns>
-        public IccLutAToBTagDataEntry ReadLutAToBTagDataEntry()
+        public IccLutAToBTagDataEntry ReadLutAtoBTagDataEntry()
         {
-            int start = this.index - 8; // 8 is the tag header size
+            int start = this.currentIndex - 8; // 8 is the tag header size
 
             byte inChCount = this.data[this.AddIndex(1)];
             byte outChCount = this.data[this.AddIndex(1)];
@@ -351,31 +350,31 @@ namespace ImageSharp
 
             if (bCurveOffset != 0)
             {
-                this.index = (int)bCurveOffset + start;
+                this.currentIndex = (int)bCurveOffset + start;
                 bCurve = this.ReadCurves(outChCount);
             }
 
             if (mCurveOffset != 0)
             {
-                this.index = (int)mCurveOffset + start;
+                this.currentIndex = (int)mCurveOffset + start;
                 mCurve = this.ReadCurves(outChCount);
             }
 
             if (aCurveOffset != 0)
             {
-                this.index = (int)aCurveOffset + start;
+                this.currentIndex = (int)aCurveOffset + start;
                 aCurve = this.ReadCurves(inChCount);
             }
 
             if (clutOffset != 0)
             {
-                this.index = (int)clutOffset + start;
+                this.currentIndex = (int)clutOffset + start;
                 clut = this.ReadClut(inChCount, outChCount, false);
             }
 
             if (matrixOffset != 0)
             {
-                this.index = (int)matrixOffset + start;
+                this.currentIndex = (int)matrixOffset + start;
                 matrix3x3 = this.ReadMatrix(3, 3, false);
                 matrix3x1 = this.ReadMatrix(3, false);
             }
@@ -387,9 +386,9 @@ namespace ImageSharp
         /// Reads a <see cref="IccLutBToATagDataEntry"/>
         /// </summary>
         /// <returns>The read entry</returns>
-        public IccLutBToATagDataEntry ReadLutBToATagDataEntry()
+        public IccLutBToATagDataEntry ReadLutBtoATagDataEntry()
         {
-            int start = this.index - 8; // 8 is the tag header size
+            int start = this.currentIndex - 8; // 8 is the tag header size
 
             byte inChCount = this.data[this.AddIndex(1)];
             byte outChCount = this.data[this.AddIndex(1)];
@@ -410,31 +409,31 @@ namespace ImageSharp
 
             if (bCurveOffset != 0)
             {
-                this.index = (int)bCurveOffset + start;
+                this.currentIndex = (int)bCurveOffset + start;
                 bCurve = this.ReadCurves(inChCount);
             }
 
             if (mCurveOffset != 0)
             {
-                this.index = (int)mCurveOffset + start;
+                this.currentIndex = (int)mCurveOffset + start;
                 mCurve = this.ReadCurves(inChCount);
             }
 
             if (aCurveOffset != 0)
             {
-                this.index = (int)aCurveOffset + start;
+                this.currentIndex = (int)aCurveOffset + start;
                 aCurve = this.ReadCurves(outChCount);
             }
 
             if (clutOffset != 0)
             {
-                this.index = (int)clutOffset + start;
+                this.currentIndex = (int)clutOffset + start;
                 clut = this.ReadClut(inChCount, outChCount, false);
             }
 
             if (matrixOffset != 0)
             {
-                this.index = (int)matrixOffset + start;
+                this.currentIndex = (int)matrixOffset + start;
                 matrix3x3 = this.ReadMatrix(3, 3, false);
                 matrix3x1 = this.ReadMatrix(3, false);
             }
@@ -462,8 +461,10 @@ namespace ImageSharp
         /// <returns>The read entry</returns>
         public IccMultiLocalizedUnicodeTagDataEntry ReadMultiLocalizedUnicodeTagDataEntry()
         {
-            int start = this.index - 8; // 8 is the tag header size
+            int start = this.currentIndex - 8; // 8 is the tag header size
             uint recordCount = this.ReadUInt32();
+
+            // TODO: Why are we storing variable
             uint recordSize = this.ReadUInt32();
             IccLocalizedString[] text = new IccLocalizedString[recordCount];
 
@@ -480,7 +481,7 @@ namespace ImageSharp
 
             for (int i = 0; i < recordCount; i++)
             {
-                this.index = (int)(start + offset[i]);
+                this.currentIndex = (int)(start + offset[i]);
                 text[i] = new IccLocalizedString(new CultureInfo(culture[i]), this.ReadUnicodeString((int)length[i]));
             }
 
@@ -493,8 +494,9 @@ namespace ImageSharp
         /// <returns>The read entry</returns>
         public IccMultiProcessElementsTagDataEntry ReadMultiProcessElementsTagDataEntry()
         {
-            int start = this.index - 8;
+            int start = this.currentIndex - 8;
 
+            // TODO: Why are we storing variable
             ushort inChannelCount = this.ReadUInt16();
             ushort outChannelCount = this.ReadUInt16();
             uint elementCount = this.ReadUInt32();
@@ -508,7 +510,7 @@ namespace ImageSharp
             IccMultiProcessElement[] elements = new IccMultiProcessElement[elementCount];
             for (int i = 0; i < elementCount; i++)
             {
-                this.index = (int)positionTable[i].Offset + start;
+                this.currentIndex = (int)positionTable[i].Offset + start;
                 elements[i] = this.ReadMultiProcessElement();
             }
 
@@ -567,7 +569,7 @@ namespace ImageSharp
         /// <returns>The read entry</returns>
         public IccProfileSequenceIdentifierTagDataEntry ReadProfileSequenceIdentifierTagDataEntry()
         {
-            int start = this.index - 8; // 8 is the tag header size
+            int start = this.currentIndex - 8; // 8 is the tag header size
             uint count = this.ReadUInt32();
             IccPositionNumber[] table = new IccPositionNumber[count];
             for (int i = 0; i < count; i++)
@@ -578,7 +580,7 @@ namespace ImageSharp
             IccProfileSequenceIdentifier[] entries = new IccProfileSequenceIdentifier[count];
             for (int i = 0; i < count; i++)
             {
-                this.index = (int)(start + table[i].Offset);
+                this.currentIndex = (int)(start + table[i].Offset);
                 IccProfileId id = this.ReadProfileId();
                 this.ReadCheckTagDataEntryHeader(IccTypeSignature.MultiLocalizedUnicode);
                 IccMultiLocalizedUnicodeTagDataEntry description = this.ReadMultiLocalizedUnicodeTagDataEntry();
@@ -594,7 +596,7 @@ namespace ImageSharp
         /// <returns>The read entry</returns>
         public IccResponseCurveSet16TagDataEntry ReadResponseCurveSet16TagDataEntry()
         {
-            int start = this.index - 8; // 8 is the tag header size
+            int start = this.currentIndex - 8; // 8 is the tag header size
             ushort channelCount = this.ReadUInt16();
             ushort measurmentCount = this.ReadUInt16();
 
@@ -607,7 +609,7 @@ namespace ImageSharp
             IccResponseCurve[] curves = new IccResponseCurve[measurmentCount];
             for (int i = 0; i < measurmentCount; i++)
             {
-                this.index = (int)(start + offset[i]);
+                this.currentIndex = (int)(start + offset[i]);
                 curves[i] = this.ReadResponseCurve(channelCount);
             }
 
@@ -766,8 +768,8 @@ namespace ImageSharp
         /// <returns>The read entry</returns>
         public IccTextDescriptionTagDataEntry ReadTextDescriptionTagDataEntry()
         {
-            string asciiValue, unicodeValue, scriptcodeValue;
-            asciiValue = unicodeValue = scriptcodeValue = null;
+            string unicodeValue, scriptcodeValue;
+            string asciiValue = unicodeValue = scriptcodeValue = null;
 
             int asciiCount = (int)this.ReadUInt32();
             if (asciiCount > 0)
@@ -830,7 +832,7 @@ namespace ImageSharp
         /// <returns>The read entry</returns>
         public IccScreeningTagDataEntry ReadScreeningTagDataEntry()
         {
-            IccScreeningFlag flags = (IccScreeningFlag)this.ReadInt32();
+            var flags = (IccScreeningFlag)this.ReadInt32();
             uint channelCount = this.ReadUInt32();
             IccScreeningChannel[] channels = new IccScreeningChannel[channelCount];
             for (int i = 0; i < channels.Length; i++)

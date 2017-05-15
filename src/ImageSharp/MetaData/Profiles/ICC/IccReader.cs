@@ -20,7 +20,7 @@ namespace ImageSharp
             Guard.NotNull(data, nameof(data));
             Guard.IsTrue(data.Length >= 128, nameof(data), "Data length must be at least 128 to be a valid ICC profile");
 
-            IccDataReader reader = new IccDataReader(data);
+            var reader = new IccDataReader(data);
             IccProfileHeader header = this.ReadHeader(reader);
             IccTagDataEntry[] tagData = this.ReadTagData(reader);
 
@@ -37,7 +37,7 @@ namespace ImageSharp
             Guard.NotNull(data, nameof(data));
             Guard.IsTrue(data.Length >= 128, nameof(data), "Data length must be at least 128 to be a valid profile header");
 
-            IccDataReader reader = new IccDataReader(data);
+            var reader = new IccDataReader(data);
             return this.ReadHeader(reader);
         }
 
@@ -51,7 +51,7 @@ namespace ImageSharp
             Guard.NotNull(data, nameof(data));
             Guard.IsTrue(data.Length >= 128, nameof(data), "Data length must be at least 128 to be a valid ICC profile");
 
-            IccDataReader reader = new IccDataReader(data);
+            var reader = new IccDataReader(data);
             return this.ReadTagData(reader);
         }
 

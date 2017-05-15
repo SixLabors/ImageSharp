@@ -61,10 +61,10 @@ namespace ImageSharp
                     count += this.WriteLut8TagDataEntry(entry as IccLut8TagDataEntry);
                     break;
                 case IccTypeSignature.LutAToB:
-                    count += this.WriteLutAToBTagDataEntry(entry as IccLutAToBTagDataEntry);
+                    count += this.WriteLutAtoBTagDataEntry(entry as IccLutAToBTagDataEntry);
                     break;
                 case IccTypeSignature.LutBToA:
-                    count += this.WriteLutBToATagDataEntry(entry as IccLutBToATagDataEntry);
+                    count += this.WriteLutBtoATagDataEntry(entry as IccLutBToATagDataEntry);
                     break;
                 case IccTypeSignature.Measurement:
                     count += this.WriteMeasurementTagDataEntry(entry as IccMeasurementTagDataEntry);
@@ -337,7 +337,7 @@ namespace ImageSharp
         /// </summary>
         /// <param name="value">The entry to write</param>
         /// <returns>The number of bytes written</returns>
-        public int WriteLutAToBTagDataEntry(IccLutAToBTagDataEntry value)
+        public int WriteLutAtoBTagDataEntry(IccLutAToBTagDataEntry value)
         {
             long start = this.dataStream.Position - 8;  // 8 is the tag header size
 
@@ -435,7 +435,7 @@ namespace ImageSharp
         /// </summary>
         /// <param name="value">The entry to write</param>
         /// <returns>The number of bytes written</returns>
-        public int WriteLutBToATagDataEntry(IccLutBToATagDataEntry value)
+        public int WriteLutBtoATagDataEntry(IccLutBToATagDataEntry value)
         {
             long start = this.dataStream.Position - 8;  // 8 is the tag header size
 

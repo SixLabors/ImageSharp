@@ -22,7 +22,7 @@ namespace ImageSharp
         {
             Guard.NotNull(profile, nameof(profile));
 
-            using (IccDataWriter writer = new IccDataWriter())
+            using (var writer = new IccDataWriter())
             {
                 IccTagTableEntry[] tagTable = this.WriteTagData(writer, profile.Entries);
                 this.WriteTagTable(writer, tagTable);
@@ -76,8 +76,8 @@ namespace ImageSharp
 
         private IccTagTableEntry[] WriteTagData(IccDataWriter writer, List<IccTagDataEntry> entries)
         {
-            List<IccTagDataEntry> inData = new List<IccTagDataEntry>(entries);
-            List<IccTagDataEntry[]> dupData = new List<IccTagDataEntry[]>();
+            var inData = new List<IccTagDataEntry>(entries);
+            var dupData = new List<IccTagDataEntry[]>();
 
             // Filter out duplicate entries. They only need to be defined once but can be used multiple times
             while (inData.Count > 0)
@@ -90,7 +90,7 @@ namespace ImageSharp
                 }
             }
 
-            List<IccTagTableEntry> table = new List<IccTagTableEntry>();
+            var table = new List<IccTagTableEntry>();
 
             // (Header size) + (entry count) + (nr of entries) * (size of table entry)
             writer.SetIndex(128 + 4 + (entries.Count * 12));

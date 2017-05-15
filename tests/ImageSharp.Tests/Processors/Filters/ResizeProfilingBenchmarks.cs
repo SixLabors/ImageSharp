@@ -27,7 +27,7 @@ namespace ImageSharp.Tests
             this.Measure(this.ExecutionCount,
                 () =>
                     {
-                        using (Image image = new Image(width, height))
+                        using (Image<Rgba32> image = new Image<Rgba32>(width, height))
                         {
                             image.Resize(width / 4, height / 4);
                         }

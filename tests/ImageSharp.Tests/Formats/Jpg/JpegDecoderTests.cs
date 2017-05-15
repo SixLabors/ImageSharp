@@ -105,7 +105,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void Decoder_Reads_Correct_Resolution_From_Jfif()
         {
-            using (Image image = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan).CreateImage())
+            using (Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan).CreateImage())
             {
                 Assert.Equal(300, image.MetaData.HorizontalResolution);
                 Assert.Equal(300, image.MetaData.VerticalResolution);
@@ -115,7 +115,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void Decoder_Reads_Correct_Resolution_From_Exif()
         {
-            using (Image image = TestFile.Create(TestImages.Jpeg.Baseline.Jpeg420).CreateImage())
+            using (Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Baseline.Jpeg420).CreateImage())
             {
                 Assert.Equal(72, image.MetaData.HorizontalResolution);
                 Assert.Equal(72, image.MetaData.VerticalResolution);
@@ -132,7 +132,7 @@ namespace ImageSharp.Tests
 
             TestFile testFile = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan);
 
-            using (Image image = testFile.CreateImage(options))
+            using (Image<Rgba32> image = testFile.CreateImage(options))
             {
                 Assert.NotNull(image.MetaData.ExifProfile);
             }
@@ -148,7 +148,7 @@ namespace ImageSharp.Tests
 
             TestFile testFile = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan);
 
-            using (Image image = testFile.CreateImage(options))
+            using (Image<Rgba32> image = testFile.CreateImage(options))
             {
                 Assert.Null(image.MetaData.ExifProfile);
             }

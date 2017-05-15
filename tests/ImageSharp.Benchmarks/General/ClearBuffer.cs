@@ -3,11 +3,10 @@ namespace ImageSharp.Benchmarks.General
 {
     using System;
     using System.Runtime.CompilerServices;
-    using System.Runtime.InteropServices;
 
     using BenchmarkDotNet.Attributes;
 
-    using ImageSharp.PixelFormats;
+    using ImageSharp.Memory;
 
     public unsafe class ClearBuffer
     {

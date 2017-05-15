@@ -6,6 +6,9 @@
 namespace ImageSharp.Tests
 {
     using System.IO;
+
+    using ImageSharp.PixelFormats;
+
     using Processing;
     using Xunit;
 
@@ -33,7 +36,7 @@ namespace ImageSharp.Tests
 
             TestFile file = TestFile.Create(TestImages.Bmp.F);
 
-            using (Image image = file.CreateImage())
+            using (Image<Rgba32> image = file.CreateImage())
             {
                 image.MetaData.ExifProfile = new ExifProfile();
                 image.MetaData.ExifProfile.SetValue(ExifTag.Orientation, orientation);

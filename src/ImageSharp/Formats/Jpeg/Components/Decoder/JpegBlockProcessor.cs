@@ -8,8 +8,10 @@ namespace ImageSharp.Formats.Jpg
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
 
+    using ImageSharp.Memory;
+
     /// <summary>
-    /// Encapsulates the implementation of processing "raw" <see cref="DecodedBlockArray"/>-s into Jpeg image channels.
+    /// Encapsulates the implementation of processing "raw" <see cref="Buffer{T}"/>-s into Jpeg image channels.
     /// </summary>
     [StructLayout(LayoutKind.Sequential)]
     internal unsafe struct JpegBlockProcessor
@@ -47,10 +49,10 @@ namespace ImageSharp.Formats.Jpg
         /// <param name="decoder">The <see cref="JpegDecoderCore"/> instance</param>
         public void ProcessAllBlocks(JpegDecoderCore decoder)
         {
-            DecodedBlockArray blockArray = decoder.DecodedBlocks[this.componentIndex];
-            for (int i = 0; i < blockArray.Count; i++)
+            Buffer<DecodedBlock> blockArray = decoder.DecodedBlocks[this.componentIndex];
+            for (int i = 0; i < blockArray.Length; i++)
             {
-                this.ProcessBlockColors(decoder, ref blockArray.Buffer[i]);
+                this.ProcessBlockColors(decoder, ref blockArray[i]);
             }
         }
 

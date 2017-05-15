@@ -36,14 +36,14 @@ namespace ImageSharp.Tests
 
             TestFile testFile = TestFile.Create(TestImages.Gif.Rings);
 
-            using (Image input = testFile.CreateImage())
+            using (Image<Rgba32> input = testFile.CreateImage())
             {
                 using (MemoryStream memStream = new MemoryStream())
                 {
                     input.Save(memStream, new GifFormat(), options);
 
                     memStream.Position = 0;
-                    using (Image output = Image.Load(memStream))
+                    using (Image<Rgba32> output = Image.Load<Rgba32>(memStream))
                     {
                         Assert.Equal(1, output.MetaData.Properties.Count);
                         Assert.Equal("Comments", output.MetaData.Properties[0].Name);
@@ -63,14 +63,14 @@ namespace ImageSharp.Tests
 
             TestFile testFile = TestFile.Create(TestImages.Gif.Rings);
 
-            using (Image input = testFile.CreateImage())
+            using (Image<Rgba32> input = testFile.CreateImage())
             {
                 using (MemoryStream memStream = new MemoryStream())
                 {
                     input.SaveAsGif(memStream, options);
 
                     memStream.Position = 0;
-                    using (Image output = Image.Load(memStream))
+                    using (Image<Rgba32> output = Image.Load<Rgba32>(memStream))
                     {
                         Assert.Equal(0, output.MetaData.Properties.Count);
                     }
@@ -81,7 +81,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void Encode_CommentIsToLong_CommentIsTrimmed()
         {
-            using (Image input = new Image(1, 1))
+            using (Image<Rgba32> input = new Image<Rgba32>(1, 1))
             {
                 string comments = new string('c', 256);
                 input.MetaData.Properties.Add(new ImageProperty("Comments", comments));
@@ -91,7 +91,7 @@ namespace ImageSharp.Tests
                     input.Save(memStream, new GifFormat());
 
                     memStream.Position = 0;
-                    using (Image output = Image.Load(memStream))
+                    using (Image<Rgba32> output = Image.Load<Rgba32>(memStream))
                     {
                         Assert.Equal(1, output.MetaData.Properties.Count);
                         Assert.Equal("Comments", output.MetaData.Properties[0].Name);

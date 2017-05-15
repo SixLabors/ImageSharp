@@ -3,13 +3,14 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.PixelFormats
+namespace ImageSharp
 {
+    using System;
     using System.Numerics;
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
 
-    using ImageSharp.ColorSpaces;
+    using ImageSharp.PixelFormats;
 
     /// <summary>
     /// Packed pixel type containing four 8-bit unsigned normalized values ranging from 0 to 255.
@@ -156,30 +157,7 @@ namespace ImageSharp.PixelFormats
         }
 
         /// <inheritdoc/>
-        public uint PackedValue
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => this.Rgba;
-
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            set => this.Rgba = value;
-        }
-
-        /// <summary>
-        /// Allows the implicit conversion of an instance of <see cref="Rgb"/> to a
-        /// <see cref="Rgba32"/>.
-        /// </summary>
-        /// <param name="color">
-        /// The instance of <see cref="Rgb"/> to convert.
-        /// </param>
-        /// <returns>
-        /// An instance of <see cref="Rgba32"/>.
-        /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static implicit operator Rgba32(Rgb color)
-        {
-            return new Rgba32(color.R, color.G, color.B);
-        }
+        public uint PackedValue { get => this.Rgba; set => this.Rgba = value; }
 
         /// <summary>
         /// Compares two <see cref="Rgba32"/> objects for equality.
@@ -229,7 +207,6 @@ namespace ImageSharp.PixelFormats
         }
 
         /// <inheritdoc />
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public PixelOperations<Rgba32> CreateBulkOperations() => new PixelOperations();
 
         /// <inheritdoc/>
@@ -254,7 +231,7 @@ namespace ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToXyzBytes(byte[] bytes, int startIndex)
+        public void ToXyzBytes(Span<byte> bytes, int startIndex)
         {
             bytes[startIndex] = this.R;
             bytes[startIndex + 1] = this.G;
@@ -263,7 +240,7 @@ namespace ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToXyzwBytes(byte[] bytes, int startIndex)
+        public void ToXyzwBytes(Span<byte> bytes, int startIndex)
         {
             bytes[startIndex] = this.R;
             bytes[startIndex + 1] = this.G;
@@ -273,7 +250,7 @@ namespace ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToZyxBytes(byte[] bytes, int startIndex)
+        public void ToZyxBytes(Span<byte> bytes, int startIndex)
         {
             bytes[startIndex] = this.B;
             bytes[startIndex + 1] = this.G;
@@ -282,7 +259,7 @@ namespace ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToZyxwBytes(byte[] bytes, int startIndex)
+        public void ToZyxwBytes(Span<byte> bytes, int startIndex)
         {
             bytes[startIndex] = this.B;
             bytes[startIndex + 1] = this.G;

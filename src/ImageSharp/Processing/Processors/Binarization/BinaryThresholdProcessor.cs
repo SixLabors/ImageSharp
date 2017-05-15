@@ -12,7 +12,7 @@ namespace ImageSharp.Processing.Processors
 
     /// <summary>
     /// An <see cref="IImageProcessor{TPixel}"/> to perform binary threshold filtering against an
-    /// <see cref="Image"/>. The image will be converted to grayscale before thresholding occurs.
+    /// <see cref="Image{TPixel}"/>. The image will be converted to grayscale before thresholding occurs.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     internal class BinaryThresholdProcessor<TPixel> : ImageProcessor<TPixel>

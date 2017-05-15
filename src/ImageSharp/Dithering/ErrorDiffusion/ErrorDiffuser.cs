@@ -8,6 +8,7 @@ namespace ImageSharp.Dithering
     using System.Numerics;
     using System.Runtime.CompilerServices;
 
+    using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
 
     /// <summary>

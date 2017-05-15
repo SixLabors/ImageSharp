@@ -5,19 +5,19 @@
 
 namespace ImageSharp.Benchmarks
 {
+    using System;
 
     using BenchmarkDotNet.Attributes;
     using ImageSharp.PixelFormats;
-    using ImageSharp.Drawing;
-    using ImageSharp.Processing.Processors;
-    using CoreImage = ImageSharp.Image;
     using CoreSize = ImageSharp.Size;
     using System.Numerics;
+
+    using ImageSharp.Memory;
     using ImageSharp.PixelFormats.PixelBlenders;
 
     public class PorterDuffBulkVsPixel : BenchmarkBase
     {
-        private void BulkVectorConvert<TPixel>(BufferSpan<TPixel> destination, BufferSpan<TPixel> background, BufferSpan<TPixel> source, BufferSpan<float> amount)
+        private void BulkVectorConvert<TPixel>(Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
             where TPixel : struct, IPixel<TPixel>
         {
             Guard.MustBeGreaterThanOrEqualTo(background.Length, destination.Length, nameof(background.Length));
@@ -26,9 +26,9 @@ namespace ImageSharp.Benchmarks
 
             using (Buffer<Vector4> buffer = new Buffer<Vector4>(destination.Length * 3))
             {
-                BufferSpan<Vector4> destinationSpan = buffer.Slice(0, destination.Length);
-                BufferSpan<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);
-                BufferSpan<Vector4> sourceSpan = buffer.Slice(destination.Length * 2, destination.Length);
+                Span<Vector4> destinationSpan = buffer.Slice(0, destination.Length);
+                Span<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);
+                Span<Vector4> sourceSpan = buffer.Slice(destination.Length * 2, destination.Length);
 
                 PixelOperations<TPixel>.Instance.ToVector4(background, backgroundSpan, destination.Length);
                 PixelOperations<TPixel>.Instance.ToVector4(source, sourceSpan, destination.Length);
@@ -41,7 +41,7 @@ namespace ImageSharp.Benchmarks
                 PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
             }
         }
-        private void BulkPixelConvert<TPixel>(BufferSpan<TPixel> destination, BufferSpan<TPixel> background, BufferSpan<TPixel> source, BufferSpan<float> amount)
+        private void BulkPixelConvert<TPixel>(Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
            where TPixel : struct, IPixel<TPixel>
         {
             Guard.MustBeGreaterThanOrEqualTo(destination.Length, background.Length, nameof(destination));
@@ -57,7 +57,7 @@ namespace ImageSharp.Benchmarks
         [Benchmark(Description = "ImageSharp BulkVectorConvert")]
         public CoreSize BulkVectorConvert()
         {
-            using (CoreImage image = new CoreImage(800, 800))
+            using (Image<Rgba32> image = new Image<Rgba32>(800, 800))
             {
                 Buffer<float> amounts = new Buffer<float>(image.Width);
 
@@ -69,7 +69,7 @@ namespace ImageSharp.Benchmarks
                 {
                     for (int y = 0; y < image.Height; y++)
                     {
-                        BufferSpan<Rgba32> span = pixels.GetRowSpan(y);
+                        Span<Rgba32> span = pixels.GetRowSpan(y);
                         BulkVectorConvert(span, span, span, amounts);
                     }
                 }
@@ -80,7 +80,7 @@ namespace ImageSharp.Benchmarks
         [Benchmark(Description = "ImageSharp BulkPixelConvert")]
         public CoreSize BulkPixelConvert()
         {
-            using (CoreImage image = new CoreImage(800, 800))
+            using (Image<Rgba32> image = new Image<Rgba32>(800, 800))
             {
                 Buffer<float> amounts = new Buffer<float>(image.Width);
 
@@ -92,7 +92,7 @@ namespace ImageSharp.Benchmarks
                 {
                     for (int y = 0; y < image.Height; y++)
                     {
-                        BufferSpan<Rgba32> span = pixels.GetRowSpan(y);
+                        Span<Rgba32> span = pixels.GetRowSpan(y);
                         BulkPixelConvert(span, span, span, amounts);
                     }
                 }

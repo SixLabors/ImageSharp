@@ -8,6 +8,7 @@ namespace ImageSharp.Tests
     using System;
 
     using ImageSharp.Formats;
+    using ImageSharp.PixelFormats;
 
     using Xunit;
 
@@ -21,11 +22,11 @@ namespace ImageSharp.Tests
         {
             Assert.Throws<ArgumentNullException>(() =>
             {
-                Image.Load((byte[])null);
+                Image.Load<Rgba32>((byte[])null);
             });
 
             TestFile file = TestFile.Create(TestImages.Bmp.Car);
-            using (Image image = Image.Load(file.Bytes))
+            using (Image<Rgba32> image = Image.Load<Rgba32>(file.Bytes))
             {
                 Assert.Equal(600, image.Width);
                 Assert.Equal(450, image.Height);
@@ -36,7 +37,7 @@ namespace ImageSharp.Tests
         public void ConstructorFileSystem()
         {
             TestFile file = TestFile.Create(TestImages.Bmp.Car);
-            using (Image image = Image.Load(file.FilePath))
+            using (Image<Rgba32> image = Image.Load<Rgba32>(file.FilePath))
             {
                 Assert.Equal(600, image.Width);
                 Assert.Equal(450, image.Height);
@@ -49,7 +50,7 @@ namespace ImageSharp.Tests
             System.IO.FileNotFoundException ex = Assert.Throws<System.IO.FileNotFoundException>(
                 () =>
                 {
-                    Image.Load(Guid.NewGuid().ToString());
+                    Image.Load<Rgba32>(Guid.NewGuid().ToString());
                 });
         }
 
@@ -59,7 +60,7 @@ namespace ImageSharp.Tests
             ArgumentNullException ex = Assert.Throws<ArgumentNullException>(
                 () =>
                 {
-                    Image.Load((string) null);
+                    Image.Load<Rgba32>((string)null);
                 });
         }
 
@@ -68,13 +69,13 @@ namespace ImageSharp.Tests
         {
             string file = TestFile.GetPath("../../TestOutput/Save_DetecedEncoding.png");
             System.IO.DirectoryInfo dir = System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(file));
-            using (Image image = new Image(10, 10))
+            using (Image<Rgba32> image = new Image<Rgba32>(10, 10))
             {
                 image.Save(file);
             }
 
             TestFile c = TestFile.Create("../../TestOutput/Save_DetecedEncoding.png");
-            using (Image img = c.CreateImage())
+            using (Image<Rgba32> img = c.CreateImage())
             {
                 Assert.IsType<PngFormat>(img.CurrentImageFormat);
             }
@@ -87,7 +88,7 @@ namespace ImageSharp.Tests
             InvalidOperationException ex = Assert.Throws<InvalidOperationException>(
                 () =>
                     {
-                        using (Image image = new Image(10, 10))
+                        using (Image<Rgba32> image = new Image<Rgba32>(10, 10))
                         {
                             image.Save(file);
                         }
@@ -99,13 +100,13 @@ namespace ImageSharp.Tests
         {
             string file = TestFile.GetPath("../../TestOutput/Save_SetFormat.dat");
             System.IO.DirectoryInfo dir = System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(file));
-            using (Image image = new Image(10, 10))
+            using (Image<Rgba32> image = new Image<Rgba32>(10, 10))
             {
                 image.Save(file, new PngFormat());
             }
 
             TestFile c = TestFile.Create("../../TestOutput/Save_SetFormat.dat");
-            using (Image img = c.CreateImage())
+            using (Image<Rgba32> img = c.CreateImage())
             {
                 Assert.IsType<PngFormat>(img.CurrentImageFormat);
             }
@@ -116,13 +117,13 @@ namespace ImageSharp.Tests
         {
             string file = TestFile.GetPath("../../TestOutput/Save_SetEncoding.dat");
             System.IO.DirectoryInfo dir = System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(file));
-            using (Image image = new Image(10, 10))
+            using (Image<Rgba32> image = new Image<Rgba32>(10, 10))
             {
                 image.Save(file, new PngEncoder());
             }
 
             TestFile c = TestFile.Create("../../TestOutput/Save_SetEncoding.dat");
-            using (Image img = c.CreateImage())
+            using (Image<Rgba32> img = c.CreateImage())
             {
                 Assert.IsType<PngFormat>(img.CurrentImageFormat);
             }

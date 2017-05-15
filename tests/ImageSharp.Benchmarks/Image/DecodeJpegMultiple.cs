@@ -8,8 +8,7 @@ namespace ImageSharp.Benchmarks.Image
     using System.Collections.Generic;
     using BenchmarkDotNet.Attributes;
 
-    using Image = ImageSharp.Image;
-    using ImageSharpSize = ImageSharp.Size;
+    using CoreImage = ImageSharp.Image;
 
     [Config(typeof(Config.Short))]
     public class DecodeJpegMultiple : MultiImageBenchmarkBase
@@ -25,8 +24,8 @@ namespace ImageSharp.Benchmarks.Image
         public void DecodeJpegImageSharp()
         {
             this.ForEachStream(
-                ms => ImageSharp.Image.Load(ms)
-                );  
+                ms => CoreImage.Load<Rgba32>(ms)
+                );
         }
 
         [Benchmark(Baseline = true, Description = "DecodeJpegMultiple - System.Drawing")]

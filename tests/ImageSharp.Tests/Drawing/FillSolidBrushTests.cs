@@ -22,7 +22,7 @@ namespace ImageSharp.Tests.Drawing
         public void ImageShouldBeFloodFilledWithColorOnDefaultBackground()
         {
             string path = this.CreateOutputDirectory("Fill", "SolidBrush");
-            using (Image image = new Image(500, 500))
+            using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
                 using (FileStream output = File.OpenWrite($"{path}/DefaultBack.png"))
                 {
@@ -44,7 +44,7 @@ namespace ImageSharp.Tests.Drawing
         public void ImageShouldBeFloodFilledWithColor()
         {
             string path = this.CreateOutputDirectory("Fill", "SolidBrush");
-            using (Image image = new Image(500, 500))
+            using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
                 using (FileStream output = File.OpenWrite($"{path}/Simple.png"))
                 {
@@ -67,7 +67,7 @@ namespace ImageSharp.Tests.Drawing
         public void ImageShouldBeFloodFilledWithColorOpacity()
         {
             string path = this.CreateOutputDirectory("Fill", "SolidBrush");
-            using (Image image = new Image(500, 500))
+            using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
                 Rgba32 color = new Rgba32(Rgba32.HotPink.R, Rgba32.HotPink.G, Rgba32.HotPink.B, 150);
 

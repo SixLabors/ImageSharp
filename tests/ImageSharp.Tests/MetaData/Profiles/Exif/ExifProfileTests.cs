@@ -20,7 +20,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void Constructor()
         {
-            Image image = TestFile.Create(TestImages.Jpeg.Baseline.Calliphora).CreateImage();
+            Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Baseline.Calliphora).CreateImage();
 
             Assert.Null(image.MetaData.ExifProfile);
 
@@ -70,13 +70,13 @@ namespace ImageSharp.Tests
 
                 profile.SetValue(ExifTag.ExposureTime, new Rational(exposureTime));
 
-                Image image = new Image(1, 1);
+                Image<Rgba32> image = new Image<Rgba32>(1, 1);
                 image.MetaData.ExifProfile = profile;
 
                 image.SaveAsJpeg(memStream);
 
                 memStream.Position = 0;
-                image = Image.Load(memStream);
+                image = Image.Load<Rgba32>(memStream);
 
                 profile = image.MetaData.ExifProfile;
                 Assert.NotNull(profile);
@@ -94,7 +94,7 @@ namespace ImageSharp.Tests
                 image.SaveAsJpeg(memStream);
 
                 memStream.Position = 0;
-                image = Image.Load(memStream);
+                image = Image.Load<Rgba32>(memStream);
 
                 profile = image.MetaData.ExifProfile;
                 Assert.NotNull(profile);
@@ -107,7 +107,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void ReadWriteInfinity()
         {
-            Image image = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan).CreateImage();
+            Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan).CreateImage();
             image.MetaData.ExifProfile.SetValue(ExifTag.ExposureBiasValue, new SignedRational(double.PositiveInfinity));
 
             image = WriteAndRead(image);
@@ -135,7 +135,7 @@ namespace ImageSharp.Tests
         {
             Rational[] latitude = new Rational[] { new Rational(12.3), new Rational(4.56), new Rational(789.0) };
 
-            Image image = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan).CreateImage();
+            Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan).CreateImage();
             image.MetaData.ExifProfile.SetValue(ExifTag.Software, "ImageSharp");
 
             ExifValue value = image.MetaData.ExifProfile.GetValue(ExifTag.Software);
@@ -261,7 +261,7 @@ namespace ImageSharp.Tests
                 junk.Append("I");
             }
 
-            Image image = new Image(100, 100);
+            Image<Rgba32> image = new Image<Rgba32>(100, 100);
             image.MetaData.ExifProfile = new ExifProfile();
             image.MetaData.ExifProfile.SetValue(ExifTag.ImageDescription, junk.ToString());
 
@@ -274,7 +274,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void ExifTypeUndefined()
         {
-            Image image = TestFile.Create(TestImages.Jpeg.Baseline.Bad.ExifUndefType).CreateImage();
+            Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Baseline.Bad.ExifUndefType).CreateImage();
             Assert.NotNull(image);
 
             ExifProfile profile = image.MetaData.ExifProfile;
@@ -291,7 +291,7 @@ namespace ImageSharp.Tests
 
         private static ExifProfile GetExifProfile()
         {
-            Image image = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan).CreateImage();
+            Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan).CreateImage();
 
             ExifProfile profile = image.MetaData.ExifProfile;
             Assert.NotNull(profile);
@@ -299,7 +299,7 @@ namespace ImageSharp.Tests
             return profile;
         }
 
-        private static Image WriteAndRead(Image image)
+        private static Image<Rgba32> WriteAndRead(Image<Rgba32> image)
         {
             using (MemoryStream memStream = new MemoryStream())
             {
@@ -307,7 +307,7 @@ namespace ImageSharp.Tests
                 image.Dispose();
 
                 memStream.Position = 0;
-                return Image.Load(memStream);
+                return Image.Load<Rgba32>(memStream);
             }
         }
 

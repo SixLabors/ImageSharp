@@ -6,6 +6,9 @@
 namespace ImageSharp.Tests
 {
     using System.Linq;
+
+    using ImageSharp.PixelFormats;
+
     using Xunit;
 
     public class ExifValueTests
@@ -13,7 +16,7 @@ namespace ImageSharp.Tests
         private static ExifValue GetExifValue()
         {
             ExifProfile profile;
-            using (Image image = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan).CreateImage())
+            using (Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan).CreateImage())
             {
                 profile = image.MetaData.ExifProfile;
             }

@@ -8,6 +8,7 @@ namespace ImageSharp.Formats.Tiff
     using System;
     using System.Runtime.CompilerServices;
     using ImageSharp;
+    using ImageSharp.PixelFormats;
 
     /// <summary>
     /// Implements the 'WhiteIsZero' photometric interpretation (optimised for bilevel images).
@@ -17,7 +18,7 @@ namespace ImageSharp.Formats.Tiff
         /// <summary>
         /// Decodes pixel data using the current photometric interpretation.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="data">The buffer to read image data from.</param>
         /// <param name="pixels">The image buffer to write pixels to.</param>
         /// <param name="left">The x-coordinate of the left-hand side of the image block.</param>
@@ -25,10 +26,10 @@ namespace ImageSharp.Formats.Tiff
         /// <param name="width">The width of the image block.</param>
         /// <param name="height">The height of the image block.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Decode<TColor>(byte[] data, PixelAccessor<TColor> pixels, int left, int top, int width, int height)
-            where TColor : struct, IPixel<TColor>
+        public static void Decode<TPixel>(byte[] data, PixelAccessor<TPixel> pixels, int left, int top, int width, int height)
+            where TPixel : struct, IPixel<TPixel>
         {
-            TColor color = default(TColor);
+            TPixel color = default(TPixel);
 
             uint offset = 0;
 

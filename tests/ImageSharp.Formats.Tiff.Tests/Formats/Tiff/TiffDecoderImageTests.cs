@@ -31,7 +31,7 @@ namespace ImageSharp.Tests
 
             TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null, null);
             TiffIfd ifd = decoder.ReadIfd(0);
-            Image<Color> image = decoder.DecodeImage<Color>(ifd);
+            Image<Rgba32> image = decoder.DecodeImage<Rgba32>(ifd);
 
             Assert.Equal(ImageWidth, image.Width);
             Assert.Equal(ImageHeight, image.Height);
@@ -82,7 +82,7 @@ namespace ImageSharp.Tests
 
             TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null, null);
             TiffIfd ifd = decoder.ReadIfd(0);
-            Image<Color> image = decoder.DecodeImage<Color>(ifd);
+            Image<Rgba32> image = decoder.DecodeImage<Rgba32>(ifd);
 
             Assert.Equal(expectedHorizonalResolution, image.MetaData.HorizontalResolution, 10);
             Assert.Equal(expectedVerticalResolution, image.MetaData.VerticalResolution, 10);
@@ -99,7 +99,7 @@ namespace ImageSharp.Tests
             TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null, null);
             TiffIfd ifd = decoder.ReadIfd(0);
 
-            var e = Assert.Throws<ImageFormatException>(() => decoder.DecodeImage<Color>(ifd));
+            var e = Assert.Throws<ImageFormatException>(() => decoder.DecodeImage<Rgba32>(ifd));
 
             Assert.Equal("The TIFF IFD does not specify the image dimensions.", e.Message);
         }
@@ -115,7 +115,7 @@ namespace ImageSharp.Tests
             TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null, null);
             TiffIfd ifd = decoder.ReadIfd(0);
 
-            var e = Assert.Throws<ImageFormatException>(() => decoder.DecodeImage<Color>(ifd));
+            var e = Assert.Throws<ImageFormatException>(() => decoder.DecodeImage<Rgba32>(ifd));
 
             Assert.Equal("The TIFF IFD does not specify the image dimensions.", e.Message);
         }

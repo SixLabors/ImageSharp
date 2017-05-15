@@ -201,6 +201,11 @@ namespace ImageSharp.Formats
             public const byte APP1 = 0xe1;
 
             /// <summary>
+            /// Application specific marker for marking where to store ICC profile information.
+            /// </summary>
+            public const byte APP2 = 0xe2;
+
+            /// <summary>
             /// Application specific marker used by Adobe for storing encoding information for DCT filters.
             /// </summary>
             public const byte APP14 = 0xee;

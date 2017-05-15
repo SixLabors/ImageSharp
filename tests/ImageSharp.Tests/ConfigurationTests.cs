@@ -7,6 +7,7 @@ namespace ImageSharp.Tests
 {
     using System;
     using System.Collections.Generic;
+    using System.IO;
     using System.Linq;
 
     using ImageSharp.Formats;
@@ -23,7 +24,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void DefaultsToLocalFileSystem()
         {
-            Configuration configuration = Configuration.CreateDefaultInstance();
+            var configuration = Configuration.CreateDefaultInstance();
 
             ImageSharp.IO.IFileSystem fs = configuration.FileSystem;
 
@@ -33,7 +34,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void IfAutoloadWellknwonFormatesIsTrueAllFormateAreLoaded()
         {
-            Configuration configuration = Configuration.CreateDefaultInstance();
+            var configuration = Configuration.CreateDefaultInstance();
 
             Assert.Equal(4, configuration.ImageFormats.Count);
         }
@@ -95,7 +96,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void TestAddImageFormatThrowsWithNullEncoder()
         {
-            TestFormat format = new TestFormat { Encoder = null };
+            var format = new TestFormat { Encoder = null };
 
             Assert.Throws<ArgumentNullException>(() =>
             {
@@ -110,7 +111,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void TestAddImageFormatThrowsWithNullDecoder()
         {
-            TestFormat format = new TestFormat { Decoder = null };
+            var format = new TestFormat { Decoder = null };
 
             Assert.Throws<ArgumentNullException>(() =>
             {
@@ -125,7 +126,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void TestAddImageFormatThrowsWithNullOrEmptyMimeType()
         {
-            TestFormat format = new TestFormat { MimeType = null };
+            var format = new TestFormat { MimeType = null };
 
             Assert.Throws<ArgumentNullException>(() =>
             {
@@ -147,7 +148,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void TestAddImageFormatThrowsWithNullOrEmptyExtension()
         {
-            TestFormat format = new TestFormat { Extension = null };
+            var format = new TestFormat { Extension = null };
 
             Assert.Throws<ArgumentNullException>(() =>
             {
@@ -169,7 +170,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void TestAddImageFormatThrowsWenSupportedExtensionsIsNullOrEmpty()
         {
-            TestFormat format = new TestFormat { SupportedExtensions = null };
+            var format = new TestFormat { SupportedExtensions = null };
 
             Assert.Throws<ArgumentNullException>(() =>
             {
@@ -191,7 +192,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void TestAddImageFormatThrowsWithoutDefaultExtension()
         {
-            TestFormat format = new TestFormat { Extension = "test" };
+            var format = new TestFormat { Extension = "test" };
 
             Assert.Throws<ArgumentException>(() =>
             {
@@ -206,7 +207,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void TestAddImageFormatThrowsWithEmptySupportedExtension()
         {
-            TestFormat format = new TestFormat
+            var format = new TestFormat
             {
                 Extension = "test",
                 SupportedExtensions = new[] { "test", string.Empty }
@@ -238,7 +239,7 @@ namespace ImageSharp.Tests
         {
             Configuration.Default.AddImageFormat(new PngFormat());
 
-            Image<Rgba32> image = new Image<Rgba32>(1, 1);
+            var image = new Image<Rgba32>(1, 1);
             Assert.Equal(image.Configuration.ParallelOptions, Configuration.Default.ParallelOptions);
             Assert.Equal(image.Configuration.ImageFormats, Configuration.Default.ImageFormats);
         }
@@ -251,8 +252,8 @@ namespace ImageSharp.Tests
         {
             Configuration.Default.AddImageFormat(new PngFormat());
 
-            Image<Rgba32> image = new Image<Rgba32>(1, 1);
-            Image<Rgba32> image2 = new Image<Rgba32>(image);
+            var image = new Image<Rgba32>(1, 1);
+            var image2 = new Image<Rgba32>(image);
             Assert.Equal(image2.Configuration.ParallelOptions, image.Configuration.ParallelOptions);
             Assert.True(image2.Configuration.ImageFormats.SequenceEqual(image.Configuration.ImageFormats));
         }

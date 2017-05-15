@@ -181,7 +181,7 @@ namespace ImageSharp.Tests.Colors
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.ToXyzBytes(s, d, 0, count)
+                (s, d) => Operations.ToXyzBytes(s, d, count)
             );
         }
 
@@ -222,7 +222,7 @@ namespace ImageSharp.Tests.Colors
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.ToXyzwBytes(s, d, 0, count)
+                (s, d) => Operations.ToXyzwBytes(s, d, count)
             );
         }
 
@@ -263,7 +263,7 @@ namespace ImageSharp.Tests.Colors
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.ToZyxBytes(s, d, 0, count)
+                (s, d) => Operations.ToZyxBytes(s, d, count)
             );
         }
 
@@ -304,7 +304,7 @@ namespace ImageSharp.Tests.Colors
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.ToZyxwBytes(s, d, 0, count)
+                (s, d) => Operations.ToZyxwBytes(s, d, count)
             );
         }
 

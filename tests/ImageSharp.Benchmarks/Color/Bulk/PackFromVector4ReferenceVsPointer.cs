@@ -6,7 +6,8 @@
     using BenchmarkDotNet.Attributes;
 
     using ImageSharp;
-    
+    using ImageSharp.Memory;
+
     /// <summary>
     /// Compares two implementation candidates for general BulkPixelOperations.ToVector4():
     /// - One iterating with pointers
@@ -14,9 +15,9 @@
     /// </summary>
     public unsafe class PackFromVector4ReferenceVsPointer
     {
-        private PinnedBuffer<ImageSharp.Color> destination;
+        private Buffer<Rgba32> destination;
 
-        private PinnedBuffer<Vector4> source;
+        private Buffer<Vector4> source;
 
         [Params(16, 128, 1024)]
         public int Count { get; set; }
@@ -24,8 +25,10 @@
         [Setup]
         public void Setup()
         {
-            this.destination = new PinnedBuffer<ImageSharp.Color>(this.Count);
-            this.source = new PinnedBuffer<Vector4>(this.Count * 4);
+            this.destination = new Buffer<Rgba32>(this.Count);
+            this.source = new Buffer<Vector4>(this.Count * 4);
+            this.source.Pin();
+            this.destination.Pin();
         }
 
         [Cleanup]
@@ -38,15 +41,15 @@
         [Benchmark(Baseline = true)]
         public void PackUsingPointers()
         {
-            Vector4* sp = (Vector4*)this.source.Pointer;
-            byte* dp = (byte*)this.destination.Pointer;
+            Vector4* sp = (Vector4*)this.source.Pin();
+            byte* dp = (byte*)this.destination.Pin();
             int count = this.Count;
-            int size = sizeof(ImageSharp.Color);
+            int size = sizeof(Rgba32);
 
             for (int i = 0; i < count; i++)
             {
                 Vector4 v = Unsafe.Read<Vector4>(sp);
-                ImageSharp.Color c = default(ImageSharp.Color);
+                Rgba32 c = default(Rgba32);
                 c.PackFromVector4(v);
                 Unsafe.Write(dp, c);
 
@@ -59,7 +62,7 @@
         public void PackUsingReferences()
         {
             ref Vector4 sp = ref this.source.Array[0];
-            ref ImageSharp.Color dp = ref this.destination.Array[0];
+            ref Rgba32 dp = ref this.destination.Array[0];
             int count = this.Count;
 
             for (int i = 0; i < count; i++)

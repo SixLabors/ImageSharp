@@ -7,16 +7,23 @@ namespace ImageSharp.Tests
 {
     using System;
     using System.Reflection;
-    using Xunit.Abstractions;
 
-    /// <summary>
-    /// Provides <see cref="Image{TColor}" /> instances for parametric unit tests.
-    /// </summary>
-    /// <typeparam name="TColor">The pixel format of the image</typeparam>
-    public abstract partial class TestImageProvider<TColor> 
-        where TColor : struct, IPixel<TColor>
+    using ImageSharp.PixelFormats;
+
+    using Xunit.Abstractions;
+ 	public interface ITestImageProvider
     {
-        public PixelTypes PixelType { get; private set; } = typeof(TColor).GetPixelType();
+        PixelTypes PixelType { get; }
+        ImagingTestCaseUtility Utility { get; }
+    }
+    /// <summary>
+    /// Provides <see cref="Image{TPixel}" /> instances for parametric unit tests.
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel format of the image</typeparam>
+    public abstract partial class TestImageProvider<TPixel> : ITestImageProvider
+        where TPixel : struct, IPixel<TPixel>
+    {
+        public PixelTypes PixelType { get; private set; } = typeof(TPixel).GetPixelType();
 
         public virtual string SourceFileOrDescription => "";
 
@@ -25,25 +32,25 @@ namespace ImageSharp.Tests
         /// </summary>
         public ImagingTestCaseUtility Utility { get; private set; }
 
-        public GenericFactory<TColor> Factory { get; private set; } = new GenericFactory<TColor>();
+        public GenericFactory<TPixel> Factory { get; private set; } = new GenericFactory<TPixel>();
         public string TypeName { get; private set; }
         public string MethodName { get; private set; }
 
-        public static TestImageProvider<TColor> TestPattern(
+        public static TestImageProvider<TPixel> TestPattern(
                 int width,
                 int height,
                 MethodInfo testMethod = null,
                 PixelTypes pixelTypeOverride = PixelTypes.Undefined)
             => new TestPatternProvider(width, height).Init(testMethod, pixelTypeOverride);
 
-        public static TestImageProvider<TColor> Blank(
+        public static TestImageProvider<TPixel> Blank(
                         int width,
                         int height,
                         MethodInfo testMethod = null,
                         PixelTypes pixelTypeOverride = PixelTypes.Undefined)
                     => new BlankProvider(width, height).Init(testMethod, pixelTypeOverride);
 
-        public static TestImageProvider<TColor> File(
+        public static TestImageProvider<TPixel> File(
             string filePath,
             MethodInfo testMethod = null,
             PixelTypes pixelTypeOverride = PixelTypes.Undefined)
@@ -51,13 +58,13 @@ namespace ImageSharp.Tests
             return new FileProvider(filePath).Init(testMethod, pixelTypeOverride);
         }
 
-        public static TestImageProvider<TColor> Lambda(
-                Func<GenericFactory<TColor>, Image<TColor>> func,
+        public static TestImageProvider<TPixel> Lambda(
+                Func<GenericFactory<TPixel>, Image<TPixel>> func,
                 MethodInfo testMethod = null,
                 PixelTypes pixelTypeOverride = PixelTypes.Undefined)
             => new LambdaProvider(func).Init(testMethod, pixelTypeOverride);
 
-        public static TestImageProvider<TColor> Solid(
+        public static TestImageProvider<TPixel> Solid(
             int width,
             int height,
             byte r,
@@ -71,9 +78,9 @@ namespace ImageSharp.Tests
         }
 
         /// <summary>
-        /// Returns an <see cref="Image{TColor}"/> instance to the test case with the necessary traits.
+        /// Returns an <see cref="Image{TPixel}"/> instance to the test case with the necessary traits.
         /// </summary>
-        public abstract Image<TColor> GetImage();
+        public abstract Image<TPixel> GetImage();
 
         public virtual void Deserialize(IXunitSerializationInfo info)
         {
@@ -91,7 +98,7 @@ namespace ImageSharp.Tests
             info.AddValue("MethodName", this.MethodName);
         }
 
-        protected TestImageProvider<TColor> Init(string typeName, string methodName, PixelTypes pixelTypeOverride)
+        protected TestImageProvider<TPixel> Init(string typeName, string methodName, PixelTypes pixelTypeOverride)
         {
             if (pixelTypeOverride != PixelTypes.Undefined)
             {
@@ -102,7 +109,7 @@ namespace ImageSharp.Tests
 
             if (pixelTypeOverride == PixelTypes.StandardImageClass)
             {
-                this.Factory = new ImageFactory() as GenericFactory<TColor>;
+                this.Factory = new ImageFactory() as GenericFactory<TPixel>;
             }
 
             this.Utility = new ImagingTestCaseUtility()
@@ -119,7 +126,7 @@ namespace ImageSharp.Tests
             return this;
         }
 
-        protected TestImageProvider<TColor> Init(MethodInfo testMethod, PixelTypes pixelTypeOverride)
+        protected TestImageProvider<TPixel> Init(MethodInfo testMethod, PixelTypes pixelTypeOverride)
         {
             return Init(testMethod?.DeclaringType.Name, testMethod?.Name, pixelTypeOverride);
         }

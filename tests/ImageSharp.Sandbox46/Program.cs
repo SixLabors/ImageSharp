@@ -7,7 +7,7 @@ namespace ImageSharp.Sandbox46
 {
     using System;
     using System.Runtime.DesignerServices;
-    
+
     using ImageSharp.Tests;
     using ImageSharp.Tests.Colors;
 
@@ -53,10 +53,10 @@ namespace ImageSharp.Sandbox46
 
         private static void RunToVector4ProfilingTest()
         {
-            BulkPixelOperationsTests.Color tests = new BulkPixelOperationsTests.Color(new ConsoleOutput());
+            PixelOperationsTests.Color32 tests = new PixelOperationsTests.Color32(new ConsoleOutput());
             tests.Benchmark_ToVector4();
         }
-        
+
         private static void RunDecodeJpegProfilingTests()
         {
             Console.WriteLine("RunDecodeJpegProfilingTests...");

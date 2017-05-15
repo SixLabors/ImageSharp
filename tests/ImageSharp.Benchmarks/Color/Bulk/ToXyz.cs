@@ -3,14 +3,15 @@ namespace ImageSharp.Benchmarks.Color.Bulk
 {
     using BenchmarkDotNet.Attributes;
 
-    using Color = ImageSharp.Color;
+    using ImageSharp.Memory;
+    using ImageSharp.PixelFormats;
 
-    public abstract class ToXyz<TColor>
-        where TColor : struct, IPixel<TColor>
+    public abstract class ToXyz<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
-        private PinnedBuffer<TColor> source;
+        private Buffer<TPixel> source;
 
-        private PinnedBuffer<byte> destination;
+        private Buffer<byte> destination;
 
         [Params(16, 128, 1024)]
         public int Count { get; set; }
@@ -18,8 +19,8 @@ namespace ImageSharp.Benchmarks.Color.Bulk
         [Setup]
         public void Setup()
         {
-            this.source = new PinnedBuffer<TColor>(this.Count);
-            this.destination = new PinnedBuffer<byte>(this.Count * 3);
+            this.source = new Buffer<TPixel>(this.Count);
+            this.destination = new Buffer<byte>(this.Count * 3);
         }
 
         [Cleanup]
@@ -32,12 +33,12 @@ namespace ImageSharp.Benchmarks.Color.Bulk
         [Benchmark(Baseline = true)]
         public void PerElement()
         {
-            TColor[] s = this.source.Array;
+            TPixel[] s = this.source.Array;
             byte[] d = this.destination.Array;
 
             for (int i = 0; i < this.Count; i++)
             {
-                TColor c = s[i];
+                TPixel c = s[i];
                 c.ToXyzBytes(d, i * 4);
             }
         }
@@ -45,17 +46,17 @@ namespace ImageSharp.Benchmarks.Color.Bulk
         [Benchmark]
         public void CommonBulk()
         {
-            new BulkPixelOperations<TColor>().ToXyzBytes(this.source, this.destination, this.Count);
+            new PixelOperations<TPixel>().ToXyzBytes(this.source, this.destination, this.Count);
         }
 
         [Benchmark]
         public void OptimizedBulk()
         {
-            BulkPixelOperations<TColor>.Instance.ToXyzBytes(this.source, this.destination, this.Count);
+            PixelOperations<TPixel>.Instance.ToXyzBytes(this.source, this.destination, this.Count);
         }
     }
 
-    public class ToXyz_Color : ToXyz<Color>
+    public class ToXyz_Rgba32 : ToXyz<Rgba32>
     {
     }
 }

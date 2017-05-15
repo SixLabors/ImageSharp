@@ -25,7 +25,7 @@ namespace ImageSharp.Processing
 
             if (x < 5F)
             {
-                return ImageMaths.SinC(x) * ImageMaths.SinC(x / 5F);
+                return MathF.SinC(x) * MathF.SinC(x / 5F);
             }
 
             return 0F;

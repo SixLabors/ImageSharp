@@ -9,29 +9,36 @@ namespace ImageSharp.Processing.Processors
     using System.Numerics;
     using System.Threading.Tasks;
 
+    using ImageSharp.Memory;
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// Sets the background color of the image.
     /// </summary>
-    /// <typeparam name="TColor">The pixel format.</typeparam>
-    internal class BackgroundColorProcessor<TColor> : ImageProcessor<TColor>
-        where TColor : struct, IPixel<TColor>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    internal class BackgroundColorProcessor<TPixel> : ImageProcessor<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
+        private readonly GraphicsOptions options;
+
         /// <summary>
-        /// Initializes a new instance of the <see cref="BackgroundColorProcessor{TColor}"/> class.
+        /// Initializes a new instance of the <see cref="BackgroundColorProcessor{TPixel}"/> class.
         /// </summary>
-        /// <param name="color">The <typeparamref name="TColor"/> to set the background color to.</param>
-        public BackgroundColorProcessor(TColor color)
+        /// <param name="color">The <typeparamref name="TPixel"/> to set the background color to.</param>
+        /// <param name="options">The options defining blending algorithum and amount.</param>
+        public BackgroundColorProcessor(TPixel color, GraphicsOptions options)
         {
             this.Value = color;
+            this.options = options;
         }
 
         /// <summary>
         /// Gets the background color value.
         /// </summary>
-        public TColor Value { get; }
+        public TPixel Value { get; }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
         {
             int startY = sourceRectangle.Y;
             int endY = sourceRectangle.Bottom;
@@ -55,10 +62,19 @@ namespace ImageSharp.Processing.Processors
                 startY = 0;
             }
 
-            Vector4 backgroundColor = this.Value.ToVector4();
+            int width = maxX - minX;
 
-            using (PixelAccessor<TColor> sourcePixels = source.Lock())
+            using (Buffer<TPixel> colors = new Buffer<TPixel>(width))
+            using (Buffer<float> amount = new Buffer<float>(width))
+            using (PixelAccessor<TPixel> sourcePixels = source.Lock())
             {
+                for (int i = 0; i < width; i++)
+                {
+                    colors[i] = this.Value;
+                    amount[i] = this.options.BlendPercentage;
+                }
+
+                PixelBlender<TPixel> blender = PixelOperations<TPixel>.Instance.GetPixelBlender(this.options.BlenderMode);
                 Parallel.For(
                     minY,
                     maxY,
@@ -66,26 +82,11 @@ namespace ImageSharp.Processing.Processors
                     y =>
                     {
                         int offsetY = y - startY;
-                        for (int x = minX; x < maxX; x++)
-                        {
-                            int offsetX = x - startX;
-                            Vector4 color = sourcePixels[offsetX, offsetY].ToVector4();
-                            float a = color.W;
 
-                            if (a < 1 && a > 0)
-                            {
-                                color = Vector4BlendTransforms.PremultipliedLerp(backgroundColor, color, .5F);
-                            }
+                        Span<TPixel> destination = sourcePixels.GetRowSpan(offsetY).Slice(minX - startX, width);
 
-                            if (MathF.Abs(a) < Constants.Epsilon)
-                            {
-                                color = backgroundColor;
-                            }
-
-                            TColor packed = default(TColor);
-                            packed.PackFromVector4(color);
-                            sourcePixels[offsetX, offsetY] = packed;
-                        }
+                        // this switched color & destination in the 2nd and 3rd places because we are applying the target colour under the current one
+                        blender.Blend(destination, colors, destination, amount);
                     });
             }
         }

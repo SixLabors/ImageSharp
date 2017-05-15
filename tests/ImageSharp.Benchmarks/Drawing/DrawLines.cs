@@ -12,9 +12,7 @@ namespace ImageSharp.Benchmarks
 
     using BenchmarkDotNet.Attributes;
 
-    using CoreColor = ImageSharp.Color;
-    using CoreImage = ImageSharp.Image;
-    using CorePoint = ImageSharp.Point;
+    using ImageSharp.PixelFormats;
 
     public class DrawLines : BenchmarkBase
     {
@@ -23,7 +21,6 @@ namespace ImageSharp.Benchmarks
         {
             using (Bitmap destination = new Bitmap(800, 800))
             {
-
                 using (Graphics graphics = Graphics.FromImage(destination))
                 {
                     graphics.InterpolationMode = InterpolationMode.Default;
@@ -46,10 +43,10 @@ namespace ImageSharp.Benchmarks
         [Benchmark(Description = "ImageSharp Draw Lines")]
         public void DrawLinesCore()
         {
-            using (CoreImage image = new CoreImage(800, 800))
+            using (Image<Rgba32> image = new Image<Rgba32>(800, 800))
             {
                 image.DrawLines(
-                    CoreColor.HotPink,
+                    Rgba32.HotPink,
                     10,
                     new[] {
                         new Vector2(10, 10),

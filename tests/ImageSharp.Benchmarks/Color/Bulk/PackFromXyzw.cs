@@ -3,14 +3,15 @@ namespace ImageSharp.Benchmarks.Color.Bulk
 {
     using BenchmarkDotNet.Attributes;
 
-    using Color = ImageSharp.Color;
+    using ImageSharp.Memory;
+    using ImageSharp.PixelFormats;
 
-    public abstract class PackFromXyzw<TColor>
-        where TColor : struct, IPixel<TColor>
+    public abstract class PackFromXyzw<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
-        private PinnedBuffer<TColor> destination;
+        private Buffer<TPixel> destination;
 
-        private PinnedBuffer<byte> source;
+        private Buffer<byte> source;
 
         [Params(16, 128, 1024)]
         public int Count { get; set; }
@@ -18,8 +19,8 @@ namespace ImageSharp.Benchmarks.Color.Bulk
         [Setup]
         public void Setup()
         {
-            this.destination = new PinnedBuffer<TColor>(this.Count);
-            this.source = new PinnedBuffer<byte>(this.Count * 4);
+            this.destination = new Buffer<TPixel>(this.Count);
+            this.source = new Buffer<byte>(this.Count * 4);
         }
 
         [Cleanup]
@@ -33,12 +34,12 @@ namespace ImageSharp.Benchmarks.Color.Bulk
         public void PerElement()
         {
             byte[] s = this.source.Array;
-            TColor[] d = this.destination.Array;
+            TPixel[] d = this.destination.Array;
             
             for (int i = 0; i < this.Count; i++)
             {
                 int i4 = i * 4;
-                TColor c = default(TColor);
+                TPixel c = default(TPixel);
                 c.PackFromBytes(s[i4], s[i4 + 1], s[i4 + 2], s[i4 + 3]);
                 d[i] = c;
             }
@@ -47,17 +48,17 @@ namespace ImageSharp.Benchmarks.Color.Bulk
         [Benchmark]
         public void CommonBulk()
         {
-            new BulkPixelOperations<TColor>().PackFromXyzwBytes(this.source, this.destination, this.Count);
+            new PixelOperations<TPixel>().PackFromXyzwBytes(this.source, this.destination, this.Count);
         }
 
         [Benchmark]
         public void OptimizedBulk()
         {
-            BulkPixelOperations<TColor>.Instance.PackFromXyzwBytes(this.source, this.destination, this.Count);
+           PixelOperations<TPixel>.Instance.PackFromXyzwBytes(this.source, this.destination, this.Count);
         }
     }
 
-    public class PackFromXyzw_Color : PackFromXyzw<Color>
+    public class PackFromXyzw_Rgba32 : PackFromXyzw<Rgba32>
     {
     }
 }

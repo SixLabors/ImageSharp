@@ -235,7 +235,7 @@ namespace ImageSharp.Formats.Jpg
         /// </summary>
         /// <param name="scaleVec">Vector to multiply by</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void MultiplyAllInplace(Vector4 scaleVec)
+        public void MultiplyAllInplace(float scaleVec)
         {
             this.V0L *= scaleVec;
             this.V0R *= scaleVec;

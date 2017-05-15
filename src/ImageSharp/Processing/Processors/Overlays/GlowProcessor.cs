@@ -9,26 +9,35 @@ namespace ImageSharp.Processing.Processors
     using System.Numerics;
     using System.Threading.Tasks;
 
+    using ImageSharp.Memory;
+    using ImageSharp.PixelFormats;
+
     /// <summary>
-    /// An <see cref="IImageProcessor{TColor}"/> that applies a radial glow effect an <see cref="Image{TColor}"/>.
+    /// An <see cref="IImageProcessor{TPixel}"/> that applies a radial glow effect an <see cref="Image{TPixel}"/>.
     /// </summary>
-    /// <typeparam name="TColor">The pixel format.</typeparam>
-    internal class GlowProcessor<TColor> : ImageProcessor<TColor>
-        where TColor : struct, IPixel<TColor>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    internal class GlowProcessor<TPixel> : ImageProcessor<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
+        private readonly GraphicsOptions options;
+        private readonly PixelBlender<TPixel> blender;
+
         /// <summary>
-        /// Initializes a new instance of the <see cref="GlowProcessor{TColor}" /> class.
+        /// Initializes a new instance of the <see cref="GlowProcessor{TPixel}" /> class.
         /// </summary>
         /// <param name="color">The color or the glow.</param>
-        public GlowProcessor(TColor color)
+        /// <param name="options">The options effecting blending and composition.</param>
+        public GlowProcessor(TPixel color, GraphicsOptions options)
         {
+            this.options = options;
             this.GlowColor = color;
+            this.blender = PixelOperations<TPixel>.Instance.GetPixelBlender(this.options.BlenderMode);
         }
 
         /// <summary>
         /// Gets or sets the glow color to apply.
         /// </summary>
-        public TColor GlowColor { get; set; }
+        public TPixel GlowColor { get; set; }
 
         /// <summary>
         /// Gets or sets the the radius.
@@ -36,13 +45,13 @@ namespace ImageSharp.Processing.Processors
         public float Radius { get; set; }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
         {
             int startY = sourceRectangle.Y;
             int endY = sourceRectangle.Bottom;
             int startX = sourceRectangle.X;
             int endX = sourceRectangle.Right;
-            TColor glowColor = this.GlowColor;
+            TPixel glowColor = this.GlowColor;
             Vector2 centre = Rectangle.Center(sourceRectangle).ToVector2();
             float maxDistance = this.Radius > 0 ? MathF.Min(this.Radius, sourceRectangle.Width * .5F) : sourceRectangle.Width * .5F;
 
@@ -63,25 +72,36 @@ namespace ImageSharp.Processing.Processors
                 startY = 0;
             }
 
-            using (PixelAccessor<TColor> sourcePixels = source.Lock())
+            int width = maxX - minX;
+            using (Buffer<TPixel> rowColors = new Buffer<TPixel>(width))
+            using (PixelAccessor<TPixel> sourcePixels = source.Lock())
             {
+                for (int i = 0; i < width; i++)
+                {
+                    rowColors[i] = glowColor;
+                }
+
                 Parallel.For(
-                    minY,
-                    maxY,
-                    this.ParallelOptions,
-                    y =>
-                        {
-                            int offsetY = y - startY;
-                            for (int x = minX; x < maxX; x++)
-                            {
-                                int offsetX = x - startX;
-                                float distance = Vector2.Distance(centre, new Vector2(offsetX, offsetY));
-                                Vector4 sourceColor = sourcePixels[offsetX, offsetY].ToVector4();
-                                TColor packed = default(TColor);
-                                packed.PackFromVector4(Vector4BlendTransforms.PremultipliedLerp(sourceColor, glowColor.ToVector4(), 1 - (.95F * (distance / maxDistance))));
-                                sourcePixels[offsetX, offsetY] = packed;
-                            }
-                        });
+                         minY,
+                         maxY,
+                         this.ParallelOptions,
+                         y =>
+                         {
+                             using (Buffer<float> amounts = new Buffer<float>(width))
+                             {
+                                 int offsetY = y - startY;
+                                 int offsetX = minX - startX;
+                                 for (int i = 0; i < width; i++)
+                                 {
+                                     float distance = Vector2.Distance(centre, new Vector2(i + offsetX, offsetY));
+                                     amounts[i] = (this.options.BlendPercentage * (1 - (.95F * (distance / maxDistance)))).Clamp(0, 1);
+                                 }
+
+                                 Span<TPixel> destination = sourcePixels.GetRowSpan(offsetY).Slice(offsetX, width);
+
+                                 this.blender.Blend(destination, destination, rowColors, amounts);
+                             }
+                         });
             }
         }
     }

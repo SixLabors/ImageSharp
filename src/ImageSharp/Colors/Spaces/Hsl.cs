@@ -8,6 +8,7 @@ namespace ImageSharp.Colors.Spaces
     using System;
     using System.ComponentModel;
     using System.Numerics;
+    using ImageSharp.PixelFormats;
 
     /// <summary>
     /// Represents a Hsl (hue, saturation, lightness) color.
@@ -70,14 +71,14 @@ namespace ImageSharp.Colors.Spaces
         public bool IsEmpty => this.Equals(Empty);
 
         /// <summary>
-        /// Allows the implicit conversion of an instance of <see cref="Color"/> to a
+        /// Allows the implicit conversion of an instance of <see cref="Rgba32"/> to a
         /// <see cref="Hsl"/>.
         /// </summary>
-        /// <param name="color">The instance of <see cref="Color"/> to convert.</param>
+        /// <param name="color">The instance of <see cref="Rgba32"/> to convert.</param>
         /// <returns>
         /// An instance of <see cref="Hsl"/>.
         /// </returns>
-        public static implicit operator Hsl(Color color)
+        public static implicit operator Hsl(Rgba32 color)
         {
             float r = color.R / 255F;
             float g = color.G / 255F;

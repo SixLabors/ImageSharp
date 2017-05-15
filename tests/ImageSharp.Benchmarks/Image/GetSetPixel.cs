@@ -9,8 +9,8 @@ namespace ImageSharp.Benchmarks.Image
 
     using BenchmarkDotNet.Attributes;
 
-    using CoreColor = ImageSharp.Color;
-    using CoreImage = ImageSharp.Image;
+    using ImageSharp.PixelFormats;
+
     using SystemColor = System.Drawing.Color;
 
     public class GetSetPixel : BenchmarkBase
@@ -26,13 +26,13 @@ namespace ImageSharp.Benchmarks.Image
         }
 
         [Benchmark(Description = "ImageSharp GetSet pixel")]
-        public CoreColor ResizeCore()
+        public Rgba32 ResizeCore()
         {
-            using (CoreImage image = new CoreImage(400, 400))
+            using (Image<Rgba32> image = new Image<Rgba32>(400, 400))
             {
-                using (PixelAccessor<CoreColor> imagePixels = image.Lock())
+                using (PixelAccessor<Rgba32> imagePixels = image.Lock())
                 {
-                    imagePixels[200, 200] = CoreColor.White;
+                    imagePixels[200, 200] = Rgba32.White;
                     return imagePixels[200, 200];
                 }
             }

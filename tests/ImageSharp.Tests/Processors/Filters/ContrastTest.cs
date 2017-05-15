@@ -7,6 +7,8 @@ namespace ImageSharp.Tests
 {
     using System.IO;
 
+    using ImageSharp.PixelFormats;
+
     using Xunit;
 
     public class ContrastTest : FileTestBase
@@ -26,10 +28,27 @@ namespace ImageSharp.Tests
 
             foreach (TestFile file in Files)
             {
-                using (Image image = file.CreateImage())
+                using (Image<Rgba32> image = file.CreateImage())
                 using (FileStream output = File.OpenWrite($"{path}/{file.FileName}"))
                 {
                     image.Contrast(value).Save(output);
+                }
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(ContrastValues))]
+        public void ImageShouldApplyContrastFilterInBox(int value)
+        {
+            string path = this.CreateOutputDirectory("Contrast");
+
+            foreach (TestFile file in Files)
+            {
+                string filename = file.GetFileName(value + "-InBox");
+                using (Image<Rgba32> image = file.CreateImage())
+                using (FileStream output = File.OpenWrite($"{path}/{filename}"))
+                {
+                    image.Contrast(value, new Rectangle(10, 10, image.Width / 2, image.Height / 2)).Save(output);
                 }
             }
         }

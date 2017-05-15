@@ -9,15 +9,18 @@ namespace ImageSharp.Processing.Processors
     using System.Numerics;
     using System.Threading.Tasks;
 
+    using ImageSharp.Memory;
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// Provides methods that allow the resizing of images using various algorithms.
     /// </summary>
-    /// <typeparam name="TColor">The pixel format.</typeparam>
-    internal class ResizeProcessor<TColor> : ResamplingWeightedProcessor<TColor>
-        where TColor : struct, IPixel<TColor>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    internal class ResizeProcessor<TPixel> : ResamplingWeightedProcessor<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="ResizeProcessor{TColor}"/> class.
+        /// Initializes a new instance of the <see cref="ResizeProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="sampler">The sampler to perform the resize operation.</param>
         /// <param name="width">The target width.</param>
@@ -28,7 +31,7 @@ namespace ImageSharp.Processing.Processors
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ResizeProcessor{TColor}"/> class.
+        /// Initializes a new instance of the <see cref="ResizeProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="sampler">The sampler to perform the resize operation.</param>
         /// <param name="width">The target width.</param>
@@ -42,7 +45,7 @@ namespace ImageSharp.Processing.Processors
         }
 
         /// <inheritdoc/>
-        protected override unsafe void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
+        protected override unsafe void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
         {
             // Jump out, we'll deal with that later.
             if (source.Width == this.Width && source.Height == this.Height && sourceRectangle == this.ResizeRectangle)
@@ -70,9 +73,9 @@ namespace ImageSharp.Processing.Processors
                 float widthFactor = sourceRectangle.Width / (float)this.ResizeRectangle.Width;
                 float heightFactor = sourceRectangle.Height / (float)this.ResizeRectangle.Height;
 
-                using (PixelAccessor<TColor> targetPixels = new PixelAccessor<TColor>(width, height))
+                using (PixelAccessor<TPixel> targetPixels = new PixelAccessor<TPixel>(width, height))
                 {
-                    using (PixelAccessor<TColor> sourcePixels = source.Lock())
+                    using (PixelAccessor<TPixel> sourcePixels = source.Lock())
                     {
                         Parallel.For(
                             minY,
@@ -103,10 +106,10 @@ namespace ImageSharp.Processing.Processors
             // are the upper and lower bounds of the source rectangle.
 
             // TODO: Using a transposed variant of 'firstPassPixels' could eliminate the need for the WeightsWindow.ComputeWeightedColumnSum() method, and improve speed!
-            using (PixelAccessor<TColor> targetPixels = new PixelAccessor<TColor>(width, height))
+            using (PixelAccessor<TPixel> targetPixels = new PixelAccessor<TPixel>(width, height))
             {
-                using (PixelAccessor<TColor> sourcePixels = source.Lock())
-                using (PinnedImageBuffer<Vector4> firstPassPixels = new PinnedImageBuffer<Vector4>(width, source.Height))
+                using (PixelAccessor<TPixel> sourcePixels = source.Lock())
+                using (Buffer2D<Vector4> firstPassPixels = new Buffer2D<Vector4>(width, source.Height))
                 {
                     firstPassPixels.Clear();
 
@@ -117,11 +120,11 @@ namespace ImageSharp.Processing.Processors
                         y =>
                             {
                                 // TODO: Without Parallel.For() this buffer object could be reused:
-                                using (PinnedBuffer<Vector4> tempRowBuffer = new PinnedBuffer<Vector4>(sourcePixels.Width))
+                                using (Buffer<Vector4> tempRowBuffer = new Buffer<Vector4>(sourcePixels.Width))
                                 {
-                                    BufferSpan<TColor> sourceRow = sourcePixels.GetRowSpan(y);
+                                    Span<TPixel> sourceRow = sourcePixels.GetRowSpan(y);
 
-                                    BulkPixelOperations<TColor>.Instance.ToVector4(
+                                    PixelOperations<TPixel>.Instance.ToVector4(
                                         sourceRow,
                                         tempRowBuffer,
                                         sourceRow.Length);
@@ -131,7 +134,7 @@ namespace ImageSharp.Processing.Processors
                                         for (int x = minX; x < maxX; x++)
                                         {
                                             WeightsWindow window = this.HorizontalWeights.Weights[x - startX];
-                                            firstPassPixels[x, y] = window.ComputeExpandedWeightedRowSum(tempRowBuffer);
+                                            firstPassPixels[x, y] = window.ComputeExpandedWeightedRowSum(tempRowBuffer, sourceX);
                                         }
                                     }
                                     else
@@ -139,7 +142,7 @@ namespace ImageSharp.Processing.Processors
                                         for (int x = minX; x < maxX; x++)
                                         {
                                             WeightsWindow window = this.HorizontalWeights.Weights[x - startX];
-                                            firstPassPixels[x, y] = window.ComputeWeightedRowSum(tempRowBuffer);
+                                            firstPassPixels[x, y] = window.ComputeWeightedRowSum(tempRowBuffer, sourceX);
                                         }
                                     }
                                 }
@@ -160,9 +163,9 @@ namespace ImageSharp.Processing.Processors
                                 for (int x = 0; x < width; x++)
                                 {
                                     // Destination color components
-                                    Vector4 destination = window.ComputeWeightedColumnSum(firstPassPixels, x);
+                                    Vector4 destination = window.ComputeWeightedColumnSum(firstPassPixels, x, sourceY);
                                     destination = destination.Compress();
-                                    TColor d = default(TColor);
+                                    TPixel d = default(TPixel);
                                     d.PackFromVector4(destination);
                                     targetPixels[x, y] = d;
                                 }
@@ -172,9 +175,9 @@ namespace ImageSharp.Processing.Processors
                                 for (int x = 0; x < width; x++)
                                 {
                                     // Destination color components
-                                    Vector4 destination = window.ComputeWeightedColumnSum(firstPassPixels, x);
+                                    Vector4 destination = window.ComputeWeightedColumnSum(firstPassPixels, x, sourceY);
 
-                                    TColor d = default(TColor);
+                                    TPixel d = default(TPixel);
                                     d.PackFromVector4(destination);
                                     targetPixels[x, y] = d;
                                 }

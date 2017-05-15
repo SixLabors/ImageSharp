@@ -73,7 +73,9 @@ namespace ImageSharp
         /// </returns>
         public Collection<ExifValue> Read(byte[] data)
         {
-            Collection<ExifValue> result = new Collection<ExifValue>();
+            DebugGuard.NotNull(data, nameof(data));
+
+            var result = new Collection<ExifValue>();
 
             this.exifData = data;
 
@@ -319,6 +321,13 @@ namespace ImageSharp
 
             uint numberOfComponents = this.GetLong();
 
+            // Issue #132: ExifDataType == Undefined is treated like a byte array.
+            // If numberOfComponents == 0 this value can only be handled as an inline value and must fallback to 4 (bytes)
+            if (dataType == ExifDataType.Undefined && numberOfComponents == 0)
+            {
+                numberOfComponents = 4;
+            }
+
             uint size = numberOfComponents * ExifValue.GetSize(dataType);
             byte[] data = this.GetBytes(4);
 
@@ -348,7 +357,7 @@ namespace ImageSharp
         private TEnum ToEnum<TEnum>(int value, TEnum defaultValue)
             where TEnum : struct
         {
-            TEnum enumValue = (TEnum)(object)value;
+            var enumValue = (TEnum)(object)value;
             if (Enum.GetValues(typeof(TEnum)).Cast<TEnum>().Any(v => v.Equals(enumValue)))
             {
                 return enumValue;
@@ -383,12 +392,18 @@ namespace ImageSharp
 
         private string GetString(uint length)
         {
-            return ToString(this.GetBytes(length));
+            byte[] data = this.GetBytes(length);
+            if (data == null || data.Length == 0)
+            {
+                return null;
+            }
+
+            return ToString(data);
         }
 
         private void GetThumbnail(uint offset)
         {
-            Collection<ExifValue> values = new Collection<ExifValue>();
+            var values = new Collection<ExifValue>();
             this.AddValues(values, offset);
 
             foreach (ExifValue value in values)

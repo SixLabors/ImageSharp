@@ -8,19 +8,22 @@ namespace ImageSharp.Tests
     using System;
     using System.Collections.Generic;
     using System.Numerics;
+
+    using ImageSharp.PixelFormats;
+
     using Xunit.Abstractions;
 
-    public abstract partial class TestImageProvider<TColor>
-        where TColor : struct, IPixel<TColor>
+    public abstract partial class TestImageProvider<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
 
         /// <summary>
         /// A test image provider that produces test patterns.
         /// </summary>
-        /// <typeparam name="TColor"></typeparam>
+        /// <typeparam name="TPixel"></typeparam>
         private class TestPatternProvider : BlankProvider
         {
-            static Dictionary<string, Image<TColor>> testImages = new Dictionary<string, Image<TColor>>();
+            static Dictionary<string, Image<TPixel>> testImages = new Dictionary<string, Image<TPixel>>();
 
             public TestPatternProvider(int width, int height)
                 : base(width, height)
@@ -34,51 +37,51 @@ namespace ImageSharp.Tests
 
             public override string SourceFileOrDescription => $"TestPattern{this.Width}x{this.Height}";
 
-            public override Image<TColor> GetImage()
+            public override Image<TPixel> GetImage()
             {
                 lock (testImages)
                 {
                     if (!testImages.ContainsKey(this.SourceFileOrDescription))
                     {
-                        Image<TColor> image = new Image<TColor>(this.Width, this.Height);
+                        Image<TPixel> image = new Image<TPixel>(this.Width, this.Height);
                         DrawTestPattern(image);
                         testImages.Add(this.SourceFileOrDescription, image);
                     }
                 }
 
-                return new Image<TColor>(testImages[this.SourceFileOrDescription]);
+                return new Image<TPixel>(testImages[this.SourceFileOrDescription]);
             }
 
             /// <summary>
             /// Draws the test pattern on an image by drawing 4 other patterns in the for quadrants of the image.
             /// </summary>
             /// <param name="image"></param>
-            private static void DrawTestPattern(Image<TColor> image)
+            private static void DrawTestPattern(Image<TPixel> image)
             {
                 // first lets split the image into 4 quadrants
-                using (PixelAccessor<TColor> pixels = image.Lock())
+                using (PixelAccessor<TPixel> pixels = image.Lock())
                 {
                     BlackWhiteChecker(pixels); // top left
                     VirticalBars(pixels); // top right
                     TransparentGradients(pixels); // bottom left
-                    Rainbow(pixels); // bottom right 
+                    Rainbow(pixels); // bottom right
                 }
             }
             /// <summary>
             /// Fills the top right quadrant with alternating solid vertical bars.
             /// </summary>
             /// <param name="pixels"></param>
-            private static void VirticalBars(PixelAccessor<TColor> pixels)
+            private static void VirticalBars(PixelAccessor<TPixel> pixels)
             {
-                // topLeft 
+                // topLeft
                 int left = pixels.Width / 2;
                 int right = pixels.Width;
                 int top = 0;
                 int bottom = pixels.Height / 2;
                 int stride = pixels.Width / 12;
-                TColor[] c = {
-                        NamedColors<TColor>.HotPink,
-                        NamedColors<TColor>.Blue
+                TPixel[] c = {
+                        NamedColors<TPixel>.HotPink,
+                        NamedColors<TPixel>.Blue
                     };
                 int p = 0;
                 for (int y = top; y < bottom; y++)
@@ -99,17 +102,17 @@ namespace ImageSharp.Tests
             /// fills the top left quadrant with a black and white checker board.
             /// </summary>
             /// <param name="pixels"></param>
-            private static void BlackWhiteChecker(PixelAccessor<TColor> pixels)
+            private static void BlackWhiteChecker(PixelAccessor<TPixel> pixels)
             {
-                // topLeft 
+                // topLeft
                 int left = 0;
                 int right = pixels.Width / 2;
                 int top = 0;
                 int bottom = pixels.Height / 2;
                 int stride = pixels.Width / 6;
-                TColor[] c = {
-                        NamedColors<TColor>.Black,
-                        NamedColors<TColor>.White
+                TPixel[] c = {
+                        NamedColors<TPixel>.Black,
+                        NamedColors<TPixel>.White
                     };
 
                 int p = 0;
@@ -138,20 +141,20 @@ namespace ImageSharp.Tests
             /// Fills the bottom left quadrent with 3 horizental bars in Red, Green and Blue with a alpha gradient from left (transparent) to right (solid).
             /// </summary>
             /// <param name="pixels"></param>
-            private static void TransparentGradients(PixelAccessor<TColor> pixels)
+            private static void TransparentGradients(PixelAccessor<TPixel> pixels)
             {
-                // topLeft 
+                // topLeft
                 int left = 0;
                 int right = pixels.Width / 2;
                 int top = pixels.Height / 2;
                 int bottom = pixels.Height;
                 int height = (int)Math.Ceiling(pixels.Height / 6f);
 
-                Vector4 red = Color.Red.ToVector4(); // use real color so we can see har it translates in the test pattern
-                Vector4 green = Color.Green.ToVector4(); // use real color so we can see har it translates in the test pattern
-                Vector4 blue = Color.Blue.ToVector4(); // use real color so we can see har it translates in the test pattern
+                Vector4 red = Rgba32.Red.ToVector4(); // use real color so we can see har it translates in the test pattern
+                Vector4 green = Rgba32.Green.ToVector4(); // use real color so we can see har it translates in the test pattern
+                Vector4 blue = Rgba32.Blue.ToVector4(); // use real color so we can see har it translates in the test pattern
 
-                TColor c = default(TColor);
+                TPixel c = default(TPixel);
 
                 for (int x = left; x < right; x++)
                 {
@@ -183,7 +186,7 @@ namespace ImageSharp.Tests
             /// A better algorithm could be used but it works
             /// </summary>
             /// <param name="pixels"></param>
-            private static void Rainbow(PixelAccessor<TColor> pixels)
+            private static void Rainbow(PixelAccessor<TPixel> pixels)
             {
                 int left = pixels.Width / 2;
                 int right = pixels.Width;
@@ -192,8 +195,8 @@ namespace ImageSharp.Tests
 
                 int pixelCount = left * top;
                 uint stepsPerPixel = (uint)(uint.MaxValue / pixelCount);
-                TColor c = default(TColor);
-                Color t = new Color(0);
+                TPixel c = default(TPixel);
+                Rgba32 t = new Rgba32(0);
 
                 for (int x = left; x < right; x++)
                     for (int y = top; y < bottom; y++)

@@ -5,10 +5,12 @@ namespace ImageSharp.Benchmarks.General
 
     using BenchmarkDotNet.Attributes;
 
+    using ImageSharp.Memory;
+
     public class IterateArray
     {
         // Usual pinned stuff
-        private PinnedBuffer<Vector4> buffer;
+        private Buffer<Vector4> buffer;
 
         // An array that's not pinned by intent!
         private Vector4[] array;
@@ -19,7 +21,8 @@ namespace ImageSharp.Benchmarks.General
         [Setup]
         public void Setup()
         {
-            this.buffer = new PinnedBuffer<Vector4>(this.Length);
+            this.buffer = new Buffer<Vector4>(this.Length);
+            this.buffer.Pin();
             this.array = new Vector4[this.Length];
         }
 
@@ -41,7 +44,7 @@ namespace ImageSharp.Benchmarks.General
         {
             Vector4 sum = new Vector4();
 
-            Vector4* ptr = (Vector4*) this.buffer.Pointer;
+            Vector4* ptr = (Vector4*) this.buffer.Pin();
             Vector4* end = ptr + this.Length;
 
             for (; ptr < end; ptr++)

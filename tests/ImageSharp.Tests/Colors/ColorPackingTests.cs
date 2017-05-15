@@ -7,6 +7,9 @@ namespace ImageSharp.Tests.Colors
 {
     using System.Collections.Generic;
     using System.Numerics;
+
+    using ImageSharp.PixelFormats;
+
     using Xunit;
 
     public class ColorPackingTests
@@ -29,7 +32,7 @@ namespace ImageSharp.Tests.Colors
                 {
                     float[] vector4Components = new float[] { vector4.X, vector4.Y, vector4.Z, vector4.W };
 
-                    yield return new object[] { new Argb(), vector4Components };
+                    yield return new object[] { new Argb32(), vector4Components };
                     yield return new object[] { new Bgra4444(), vector4Components };
                     yield return new object[] { new Bgra5551(), vector4Components };
                     yield return new object[] { new Byte4(), vector4Components };
@@ -60,7 +63,7 @@ namespace ImageSharp.Tests.Colors
                 {
                     float[] vector4Components = new float[] { vector4.X, vector4.Y, vector4.Z, vector4.W };
 
-                    yield return new object[] { new Argb(), vector4Components };
+                    yield return new object[] { new Argb32(), vector4Components };
                     yield return new object[] { new Bgr565(), vector4Components };
                 }
             }

@@ -8,6 +8,8 @@ namespace ImageSharp.Tests.Colors
     using System;
     using System.Numerics;
     using ImageSharp.Colors.Spaces;
+    using ImageSharp.PixelFormats;
+
     using Xunit;
 
     /// <summary>
@@ -19,7 +21,7 @@ namespace ImageSharp.Tests.Colors
            new TheoryData<object, object, Type>()
            {
                { new Alpha8(.5F), new Alpha8(.5F), typeof(Alpha8) },
-               { new Argb(Vector4.One), new Argb(Vector4.One), typeof(Argb) },
+               { new Argb32(Vector4.One), new Argb32(Vector4.One), typeof(Argb32) },
                { new Bgr565(Vector3.One), new Bgr565(Vector3.One), typeof(Bgr565) },
                { new Bgra4444(Vector4.One), new Bgra4444(Vector4.One), typeof(Bgra4444) },
                { new Bgra5551(Vector4.One), new Bgra5551(Vector4.One), typeof(Bgra5551) },
@@ -33,6 +35,7 @@ namespace ImageSharp.Tests.Colors
                { new NormalizedShort4(Vector4.One), new NormalizedShort4(Vector4.One), typeof(NormalizedShort4) },
                { new Rg32(Vector2.One), new Rg32(Vector2.One), typeof(Rg32) },
                { new Rgba1010102(Vector4.One), new Rgba1010102(Vector4.One), typeof(Rgba1010102) },
+               { new Rgba32(Vector4.One), new Rgba32(Vector4.One), typeof(Rgba32) },
                { new Rgba64(Vector4.One), new Rgba64(Vector4.One), typeof(Rgba64) },
                { new Short2(Vector2.One * 0x7FFF), new Short2(Vector2.One * 0x7FFF), typeof(Short2) },
                { new Short4(Vector4.One * 0x7FFF), new Short4(Vector4.One * 0x7FFF), typeof(Short4) },
@@ -75,7 +78,7 @@ namespace ImageSharp.Tests.Colors
             {
                 // Valid object against null
                 { new Alpha8(.5F), null, typeof(Alpha8) },
-                { new Argb(Vector4.One), null, typeof(Argb) },
+                { new Argb32(Vector4.One), null, typeof(Argb32) },
                 { new Bgr565(Vector3.One), null, typeof(Bgr565) },
                 { new Bgra4444(Vector4.One), null, typeof(Bgra4444) },
                 { new Bgra5551(Vector4.One), null, typeof(Bgra5551) },
@@ -110,7 +113,7 @@ namespace ImageSharp.Tests.Colors
            new TheoryData<object, object, Type>()
            {
                 // Valid objects of different types but not equal
-                { new Alpha8(.5F), new Argb(Vector4.Zero), null },
+                { new Alpha8(.5F), new Argb32(Vector4.Zero), null },
                 { new HalfSingle(-1F), new NormalizedShort2(Vector2.Zero), null },
                 { new Rgba1010102(Vector4.One), new Bgra5551(Vector4.Zero), null },
            };
@@ -130,7 +133,7 @@ namespace ImageSharp.Tests.Colors
            {
                 // Valid objects of the same type but not equal
                 { new Alpha8(.5F), new Alpha8(.8F), typeof(Alpha8) },
-                { new Argb(Vector4.One), new Argb(Vector4.Zero), typeof(Argb) },
+                { new Argb32(Vector4.One), new Argb32(Vector4.Zero), typeof(Argb32) },
                 { new Bgr565(Vector3.One), new Bgr565(Vector3.Zero), typeof(Bgr565) },
                 { new Bgra4444(Vector4.One), new Bgra4444(Vector4.Zero), typeof(Bgra4444) },
                 { new Bgra5551(Vector4.One), new Bgra5551(Vector4.Zero), typeof(Bgra5551) },
@@ -144,6 +147,7 @@ namespace ImageSharp.Tests.Colors
                 { new NormalizedShort4(Vector4.One), new NormalizedShort4(Vector4.Zero), typeof(NormalizedShort4) },
                 { new Rg32(Vector2.One), new Rg32(Vector2.Zero), typeof(Rg32) },
                 { new Rgba1010102(Vector4.One), new Rgba1010102(Vector4.Zero), typeof(Rgba1010102) },
+                { new Rgba32(Vector4.One), new Rgba32(Vector4.Zero), typeof(Rgba32) },
                 { new Rgba64(Vector4.One), new Rgba64(Vector4.Zero), typeof(Rgba64) },
                 { new Short2(Vector2.One * 0x7FFF), new Short2(Vector2.Zero), typeof(Short2) },
                 { new Short4(Vector4.One * 0x7FFF), new Short4(Vector4.Zero), typeof(Short4) },
@@ -289,10 +293,10 @@ namespace ImageSharp.Tests.Colors
         [MemberData(nameof(EqualityDataColorSpaces))]
         public void EqualityObject(object first, object second, Type type)
         {
-            // Arrange 
-            // Cast to the known object types, this is so that we can hit the 
-            // equality operator on the concrete type, otherwise it goes to the 
-            // default "object" one :) 
+            // Arrange
+            // Cast to the known object types, this is so that we can hit the
+            // equality operator on the concrete type, otherwise it goes to the
+            // default "object" one :)
             dynamic firstObject = Convert.ChangeType(first, type);
             dynamic secondObject = Convert.ChangeType(second, type);
 
@@ -308,10 +312,10 @@ namespace ImageSharp.Tests.Colors
         [MemberData(nameof(NotEqualityDataColorSpaces))]
         public void NotEqualityObject(object first, object second, Type type)
         {
-            // Arrange 
-            // Cast to the known object types, this is so that we can hit the 
-            // equality operator on the concrete type, otherwise it goes to the 
-            // default "object" one :) 
+            // Arrange
+            // Cast to the known object types, this is so that we can hit the
+            // equality operator on the concrete type, otherwise it goes to the
+            // default "object" one :)
             dynamic firstObject = Convert.ChangeType(first, type);
             dynamic secondObject = Convert.ChangeType(second, type);
 
@@ -327,10 +331,10 @@ namespace ImageSharp.Tests.Colors
         [MemberData(nameof(EqualityDataColorSpaces))]
         public void EqualityOperator(object first, object second, Type type)
         {
-            // Arrange 
-            // Cast to the known object types, this is so that we can hit the 
-            // equality operator on the concrete type, otherwise it goes to the 
-            // default "object" one :) 
+            // Arrange
+            // Cast to the known object types, this is so that we can hit the
+            // equality operator on the concrete type, otherwise it goes to the
+            // default "object" one :)
             dynamic firstObject = Convert.ChangeType(first, type);
             dynamic secondObject = Convert.ChangeType(second, type);
 
@@ -346,10 +350,10 @@ namespace ImageSharp.Tests.Colors
         [MemberData(nameof(NotEqualityDataColorSpaces))]
         public void NotEqualityOperator(object first, object second, Type type)
         {
-            // Arrange 
-            // Cast to the known object types, this is so that we can hit the 
-            // equality operator on the concrete type, otherwise it goes to the 
-            // default "object" one :) 
+            // Arrange
+            // Cast to the known object types, this is so that we can hit the
+            // equality operator on the concrete type, otherwise it goes to the
+            // default "object" one :)
             dynamic firstObject = Convert.ChangeType(first, type);
             dynamic secondObject = Convert.ChangeType(second, type);
 
@@ -364,10 +368,10 @@ namespace ImageSharp.Tests.Colors
         [MemberData(nameof(AlmostEqualsData))]
         public void AlmostEquals(object first, object second, Type type, float precision)
         {
-            // Arrange 
-            // Cast to the known object types, this is so that we can hit the 
-            // equality operator on the concrete type, otherwise it goes to the 
-            // default "object" one :) 
+            // Arrange
+            // Cast to the known object types, this is so that we can hit the
+            // equality operator on the concrete type, otherwise it goes to the
+            // default "object" one :)
             dynamic firstObject = Convert.ChangeType(first, type);
             dynamic secondObject = Convert.ChangeType(second, type);
 
@@ -382,10 +386,10 @@ namespace ImageSharp.Tests.Colors
         [MemberData(nameof(AlmostNotEqualsData))]
         public void AlmostNotEquals(object first, object second, Type type, float precision)
         {
-            // Arrange 
-            // Cast to the known object types, this is so that we can hit the 
-            // equality operator on the concrete type, otherwise it goes to the 
-            // default "object" one :) 
+            // Arrange
+            // Cast to the known object types, this is so that we can hit the
+            // equality operator on the concrete type, otherwise it goes to the
+            // default "object" one :)
             dynamic firstObject = Convert.ChangeType(first, type);
             dynamic secondObject = Convert.ChangeType(second, type);
 

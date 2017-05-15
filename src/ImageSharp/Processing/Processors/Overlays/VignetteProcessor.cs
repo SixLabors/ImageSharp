@@ -9,26 +9,36 @@ namespace ImageSharp.Processing.Processors
     using System.Numerics;
     using System.Threading.Tasks;
 
+    using ImageSharp.Memory;
+    using ImageSharp.PixelFormats;
+
     /// <summary>
-    /// An <see cref="IImageProcessor{TColor}"/> that applies a radial vignette effect to an <see cref="Image{TColor}"/>.
+    /// An <see cref="IImageProcessor{TPixel}"/> that applies a radial vignette effect to an <see cref="Image{TPixel}"/>.
     /// </summary>
-    /// <typeparam name="TColor">The pixel format.</typeparam>
-    internal class VignetteProcessor<TColor> : ImageProcessor<TColor>
-        where TColor : struct, IPixel<TColor>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    internal class VignetteProcessor<TPixel> : ImageProcessor<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
+        private readonly GraphicsOptions options;
+        private readonly PixelBlender<TPixel> blender;
+
         /// <summary>
-        /// Initializes a new instance of the <see cref="VignetteProcessor{TColor}" /> class.
+        /// Initializes a new instance of the <see cref="VignetteProcessor{TPixel}" /> class.
         /// </summary>
         /// <param name="color">The color of the vignette.</param>
-        public VignetteProcessor(TColor color)
+        /// <param name="options">The options effecting blending and composition.</param>
+        public VignetteProcessor(TPixel color, GraphicsOptions options)
         {
             this.VignetteColor = color;
+
+            this.options = options;
+            this.blender = PixelOperations<TPixel>.Instance.GetPixelBlender(this.options.BlenderMode);
         }
 
         /// <summary>
         /// Gets or sets the vignette color to apply.
         /// </summary>
-        public TColor VignetteColor { get; set; }
+        public TPixel VignetteColor { get; set; }
 
         /// <summary>
         /// Gets or sets the the x-radius.
@@ -41,13 +51,13 @@ namespace ImageSharp.Processing.Processors
         public float RadiusY { get; set; }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
         {
             int startY = sourceRectangle.Y;
             int endY = sourceRectangle.Bottom;
             int startX = sourceRectangle.X;
             int endX = sourceRectangle.Right;
-            TColor vignetteColor = this.VignetteColor;
+            TPixel vignetteColor = this.VignetteColor;
             Vector2 centre = Rectangle.Center(sourceRectangle).ToVector2();
             float rX = this.RadiusX > 0 ? MathF.Min(this.RadiusX, sourceRectangle.Width * .5F) : sourceRectangle.Width * .5F;
             float rY = this.RadiusY > 0 ? MathF.Min(this.RadiusY, sourceRectangle.Height * .5F) : sourceRectangle.Height * .5F;
@@ -70,23 +80,34 @@ namespace ImageSharp.Processing.Processors
                 startY = 0;
             }
 
-            using (PixelAccessor<TColor> sourcePixels = source.Lock())
+            int width = maxX - minX;
+            using (Buffer<TPixel> rowColors = new Buffer<TPixel>(width))
+            using (PixelAccessor<TPixel> sourcePixels = source.Lock())
             {
+                for (int i = 0; i < width; i++)
+                {
+                    rowColors[i] = vignetteColor;
+                }
+
                 Parallel.For(
                     minY,
                     maxY,
                     this.ParallelOptions,
                     y =>
                         {
-                            int offsetY = y - startY;
-                            for (int x = minX; x < maxX; x++)
+                            using (Buffer<float> amounts = new Buffer<float>(width))
                             {
-                                int offsetX = x - startX;
-                                float distance = Vector2.Distance(centre, new Vector2(offsetX, offsetY));
-                                Vector4 sourceColor = sourcePixels[offsetX, offsetY].ToVector4();
-                                TColor packed = default(TColor);
-                                packed.PackFromVector4(Vector4BlendTransforms.PremultipliedLerp(sourceColor, vignetteColor.ToVector4(), .9F * (distance / maxDistance)));
-                                sourcePixels[offsetX, offsetY] = packed;
+                                int offsetY = y - startY;
+                                int offsetX = minX - startX;
+                                for (int i = 0; i < width; i++)
+                                {
+                                    float distance = Vector2.Distance(centre, new Vector2(i + offsetX, offsetY));
+                                    amounts[i] = (this.options.BlendPercentage * (.9F * (distance / maxDistance))).Clamp(0, 1);
+                                }
+
+                                Span<TPixel> destination = sourcePixels.GetRowSpan(offsetY).Slice(offsetX, width);
+
+                                this.blender.Blend(destination, destination, rowColors, amounts);
                             }
                         });
             }

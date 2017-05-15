@@ -76,7 +76,7 @@ namespace ImageSharp.PixelFormats
         }
 
         /// <inheritdoc />
-        public PixelOperations<HalfSingle> CreateBulkOperations() => new PixelOperations<HalfSingle>();
+        public PixelOperations<HalfSingle> CreatePixelOperations() => new PixelOperations<HalfSingle>();
 
         /// <summary>
         /// Expands the packed representation into a <see cref="float"/>.

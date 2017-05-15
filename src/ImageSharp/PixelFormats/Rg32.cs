@@ -76,7 +76,7 @@ namespace ImageSharp.PixelFormats
         }
 
         /// <inheritdoc />
-        public PixelOperations<Rg32> CreateBulkOperations() => new PixelOperations<Rg32>();
+        public PixelOperations<Rg32> CreatePixelOperations() => new PixelOperations<Rg32>();
 
         /// <summary>
         /// Expands the packed representation into a <see cref="Vector2"/>.

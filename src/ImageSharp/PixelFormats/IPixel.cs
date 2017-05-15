@@ -20,7 +20,7 @@ namespace ImageSharp.PixelFormats
         /// This method is not intended to be consumed directly. Use <see cref="PixelOperations{TPixel}.Instance"/> instead.
         /// </summary>
         /// <returns>The <see cref="PixelOperations{TPixel}"/> instance.</returns>
-        PixelOperations<TSelf> CreateBulkOperations();
+        PixelOperations<TSelf> CreatePixelOperations();
     }
 
     /// <summary>

@@ -7,7 +7,7 @@
     <DebugSymbols>True</DebugSymbols>
   </PropertyGroup>
   <ItemGroup>
-    <None Include="PixelFormats\PixelOperations.cs" />
+    <None Include="PixelFormats\PixelOperationsTests.Blender.cs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.0.0" />

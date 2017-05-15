@@ -15,7 +15,7 @@ namespace ImageSharp.ColorSpaces
     /// named after their responsivity (sensitivity) at long, medium and short wavelengths.
     /// <see href="https://en.wikipedia.org/wiki/LMS_color_space"/>
     /// </summary>
-    public struct Lms : IColorVector, IEquatable<Lms>, IAlmostEquatable<Lms, float>
+    internal struct Lms : IColorVector, IEquatable<Lms>, IAlmostEquatable<Lms, float>
     {
         /// <summary>
         /// Represents a <see cref="Lms"/> that has L, M, and S values set to zero.
@@ -170,7 +170,7 @@ namespace ImageSharp.ColorSpaces
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool AlmostEquals(Lms other, float precision)
         {
-            Vector3 result = Vector3.Abs(this.backingVector - other.backingVector);
+            var result = Vector3.Abs(this.backingVector - other.backingVector);
 
             return result.X <= precision
                 && result.Y <= precision

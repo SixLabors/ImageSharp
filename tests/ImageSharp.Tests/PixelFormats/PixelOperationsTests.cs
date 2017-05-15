@@ -1,6 +1,6 @@
 ﻿// ReSharper disable InconsistentNaming
 // ReSharper disable AccessToDisposedClosure
-namespace ImageSharp.Tests.Colors
+namespace ImageSharp.Tests.PixelFormats
 {
     using System;
     using System.Numerics;
@@ -11,8 +11,9 @@ namespace ImageSharp.Tests.Colors
     using Xunit;
     using Xunit.Abstractions;
 
-    public class PixelOperationsTests
+    public partial class PixelOperationsTests
     {
+
         public class Color32 : PixelOperationsTests<Rgba32>
         {
             public Color32(ITestOutputHelper output)

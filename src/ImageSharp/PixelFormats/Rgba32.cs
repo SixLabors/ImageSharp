@@ -23,31 +23,27 @@ namespace ImageSharp
     /// This struct is fully mutable. This is done (against the guidelines) for the sake of performance,
     /// as it avoids the need to create new values for modification operations.
     /// </remarks>
-    [StructLayout(LayoutKind.Explicit)]
+    [StructLayout(LayoutKind.Sequential)]
     public partial struct Rgba32 : IPixel<Rgba32>, IPackedVector<uint>
     {
         /// <summary>
         /// Gets or sets the red component.
         /// </summary>
-        [FieldOffset(0)]
         public byte R;
 
         /// <summary>
         /// Gets or sets the green component.
         /// </summary>
-        [FieldOffset(1)]
         public byte G;
 
         /// <summary>
         /// Gets or sets the blue component.
         /// </summary>
-        [FieldOffset(2)]
         public byte B;
 
         /// <summary>
         /// Gets or sets the alpha component.
         /// </summary>
-        [FieldOffset(3)]
         public byte A;
 
         /// <summary>
@@ -233,7 +229,7 @@ namespace ImageSharp
         }
 
         /// <inheritdoc />
-        public PixelOperations<Rgba32> CreateBulkOperations() => new PixelOperations();
+        public PixelOperations<Rgba32> CreatePixelOperations() => new PixelOperations();
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -5,6 +5,8 @@
 
 namespace ImageSharp.Web
 {
+    using ImageSharp.Web.Middleware;
+
     using Microsoft.Extensions.DependencyInjection;
 
     /// <summary>
@@ -18,6 +20,7 @@ namespace ImageSharp.Web
         /// <param name="services">The service contract.</param>
         public void ConfigureServices(IServiceCollection services)
         {
+            services.Configure<ImageSharpMiddlewareOptions>(options => { });
         }
     }
 }

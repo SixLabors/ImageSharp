@@ -121,6 +121,18 @@ namespace ImageSharp.Tests
 
         [Theory]
         [MemberData(nameof(Bilevel_Data))]
+        [MemberData(nameof(Grayscale4_Data))]
+        [MemberData(nameof(Grayscale8_Data))]
+        public void Decode_WritesPixelData(byte[] inputData, int bitsPerSample, int left, int top, int width, int height, Rgba32[][] expectedResult)
+        {
+            AssertDecode(expectedResult, pixels =>
+                {
+                    WhiteIsZeroTiffColor.Decode(inputData, new[] { (uint)bitsPerSample }, pixels, left, top, width, height);
+                });
+        }
+
+        [Theory]
+        [MemberData(nameof(Bilevel_Data))]
         public void Decode_WritesPixelData_Bilevel(byte[] inputData, int bitsPerSample, int left, int top, int width, int height, Rgba32[][] expectedResult)
         {
             AssertDecode(expectedResult, pixels =>

@@ -48,7 +48,8 @@ namespace ImageSharp.Drawing
         /// <summary>
         /// Begins the glyph.
         /// </summary>
-        void IGlyphRenderer.BeginGlyph()
+        /// <param name="location">The offset that the glyph will be rendered at.</param>
+        void IGlyphRenderer.BeginGlyph(Vector2 location)
         {
             this.builder.Clear();
         }

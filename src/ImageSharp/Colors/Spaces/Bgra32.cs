@@ -8,6 +8,7 @@ namespace ImageSharp.Colors.Spaces
     using System;
     using System.ComponentModel;
     using System.Numerics;
+    using ImageSharp.PixelFormats;
 
     /// <summary>
     /// Represents an BGRA (blue, green, red, alpha) color.
@@ -79,16 +80,16 @@ namespace ImageSharp.Colors.Spaces
         public bool IsEmpty => this.Equals(Empty);
 
         /// <summary>
-        /// Allows the implicit conversion of an instance of <see cref="Color"/> to a
+        /// Allows the implicit conversion of an instance of <see cref="Rgba32"/> to a
         /// <see cref="Bgra32"/>.
         /// </summary>
         /// <param name="color">
-        /// The instance of <see cref="Color"/> to convert.
+        /// The instance of <see cref="Rgba32"/> to convert.
         /// </param>
         /// <returns>
         /// An instance of <see cref="Bgra32"/>.
         /// </returns>
-        public static implicit operator Bgra32(Color color)
+        public static implicit operator Bgra32(Rgba32 color)
         {
             return new Bgra32(color.B, color.G, color.R, color.A);
         }

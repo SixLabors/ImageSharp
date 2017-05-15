@@ -9,15 +9,17 @@ namespace ImageSharp.Processing.Processors
     using System.Numerics;
     using System.Threading.Tasks;
 
+    using ImageSharp.PixelFormats;
+
     /// <summary>
-    /// An <see cref="IImageProcessor{TColor}"/> to invert the colors of an <see cref="Image{TColor}"/>.
+    /// An <see cref="IImageProcessor{TPixel}"/> to invert the colors of an <see cref="Image{TPixel}"/>.
     /// </summary>
-    /// <typeparam name="TColor">The pixel format.</typeparam>
-    internal class InvertProcessor<TColor> : ImageProcessor<TColor>
-        where TColor : struct, IPixel<TColor>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    internal class InvertProcessor<TPixel> : ImageProcessor<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
         {
             int startY = sourceRectangle.Y;
             int endY = sourceRectangle.Bottom;
@@ -42,7 +44,7 @@ namespace ImageSharp.Processing.Processors
                 startY = 0;
             }
 
-            using (PixelAccessor<TColor> sourcePixels = source.Lock())
+            using (PixelAccessor<TPixel> sourcePixels = source.Lock())
             {
                 Parallel.For(
                     minY,
@@ -57,7 +59,7 @@ namespace ImageSharp.Processing.Processors
                                 Vector4 color = sourcePixels[offsetX, offsetY].ToVector4();
                                 Vector3 vector = inverseVector - new Vector3(color.X, color.Y, color.Z);
 
-                                TColor packed = default(TColor);
+                                TPixel packed = default(TPixel);
                                 packed.PackFromVector4(new Vector4(vector, color.W));
                                 sourcePixels[offsetX, offsetY] = packed;
                             }

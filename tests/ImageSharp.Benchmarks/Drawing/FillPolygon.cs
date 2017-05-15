@@ -13,8 +13,7 @@ namespace ImageSharp.Benchmarks
 
     using BenchmarkDotNet.Attributes;
 
-    using CoreColor = ImageSharp.Color;
-    using CoreImage = ImageSharp.Image;
+    using ImageSharp.PixelFormats;
 
     public class FillPolygon : BenchmarkBase
     {
@@ -54,10 +53,10 @@ namespace ImageSharp.Benchmarks
         [Benchmark(Description = "ImageSharp Fill Polygon")]
         public void DrawSolidPolygonCore()
         {
-            using (CoreImage image = new CoreImage(800, 800))
+            using (Image<Rgba32> image = new Image<Rgba32>(800, 800))
             {
                 image.FillPolygon(
-                    CoreColor.HotPink,
+                    Rgba32.HotPink,
                     new[] {
                         new Vector2(10, 10),
                         new Vector2(550, 50),
@@ -74,10 +73,10 @@ namespace ImageSharp.Benchmarks
         [Benchmark(Description = "ImageSharp Fill Polygon - cached shape")]
         public void DrawSolidPolygonCoreCahced()
         {
-            using (CoreImage image = new CoreImage(800, 800))
+            using (Image<Rgba32> image = new Image<Rgba32>(800, 800))
             {
                 image.Fill(
-                    CoreColor.HotPink,
+                    Rgba32.HotPink,
                     this.shape);
 
                 using (MemoryStream ms = new MemoryStream())

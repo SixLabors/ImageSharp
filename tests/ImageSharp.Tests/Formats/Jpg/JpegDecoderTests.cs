@@ -10,6 +10,7 @@ namespace ImageSharp.Tests
     using System.IO;
 
     using ImageSharp.Formats;
+    using ImageSharp.PixelFormats;
 
     using Xunit;
 
@@ -25,22 +26,22 @@ namespace ImageSharp.Tests
         public static string[] ProgressiveTestJpegs = TestImages.Jpeg.Progressive.All;
 
         [Theory]
-        [WithFileCollection(nameof(BaselineTestJpegs), PixelTypes.Color | PixelTypes.StandardImageClass | PixelTypes.Argb)]
-        public void OpenBaselineJpeg_SaveBmp<TColor>(TestImageProvider<TColor> provider)
-            where TColor : struct, IPixel<TColor>
+        [WithFileCollection(nameof(BaselineTestJpegs), PixelTypes.Rgba32 | PixelTypes.StandardImageClass | PixelTypes.Argb32)]
+        public void OpenBaselineJpeg_SaveBmp<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TColor> image = provider.GetImage())
+            using (Image<TPixel> image = provider.GetImage())
             {
                 provider.Utility.SaveTestOutputFile(image, "bmp");
             }
         }
 
         [Theory]
-        [WithFileCollection(nameof(ProgressiveTestJpegs), PixelTypes.Color | PixelTypes.StandardImageClass | PixelTypes.Argb)]
-        public void OpenProgressiveJpeg_SaveBmp<TColor>(TestImageProvider<TColor> provider)
-            where TColor : struct, IPixel<TColor>
+        [WithFileCollection(nameof(ProgressiveTestJpegs), PixelTypes.Rgba32 | PixelTypes.StandardImageClass | PixelTypes.Argb32)]
+        public void OpenProgressiveJpeg_SaveBmp<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TColor> image = provider.GetImage())
+            using (Image<TPixel> image = provider.GetImage())
             {
                 provider.Utility.SaveTestOutputFile(image, "bmp");
             }
@@ -52,14 +53,14 @@ namespace ImageSharp.Tests
         [WithSolidFilledImages(16, 16, 255, 0, 0, PixelTypes.StandardImageClass, JpegSubsample.Ratio444, 75)]
         [WithSolidFilledImages(16, 16, 255, 0, 0, PixelTypes.StandardImageClass, JpegSubsample.Ratio444, 100)]
         [WithSolidFilledImages(8, 8, 255, 0, 0, PixelTypes.StandardImageClass, JpegSubsample.Ratio444, 100)]
-        public void DecodeGenerated_SaveBmp<TColor>(
-            TestImageProvider<TColor> provider,
+        public void DecodeGenerated_SaveBmp<TPixel>(
+            TestImageProvider<TPixel> provider,
             JpegSubsample subsample,
             int quality)
-            where TColor : struct, IPixel<TColor>
+            where TPixel : struct, IPixel<TPixel>
         {
             byte[] data;
-            using (Image<TColor> image = provider.GetImage())
+            using (Image<TPixel> image = provider.GetImage())
             {
                 JpegEncoder encoder = new JpegEncoder();
                 JpegEncoderOptions options = new JpegEncoderOptions { Subsample = subsample, Quality = quality };
@@ -72,18 +73,18 @@ namespace ImageSharp.Tests
             }
 
             // TODO: Automatic image comparers could help here a lot :P
-            Image<TColor> mirror = provider.Factory.CreateImage(data);
+            Image<TPixel> mirror = provider.Factory.CreateImage(data);
             provider.Utility.TestName += $"_{subsample}_Q{quality}";
             provider.Utility.SaveTestOutputFile(mirror, "bmp");
         }
 
         [Theory]
         [WithSolidFilledImages(42, 88, 255, 0, 0, PixelTypes.StandardImageClass)]
-        public void DecodeGenerated_MetadataOnly<TColor>(
-            TestImageProvider<TColor> provider)
-            where TColor : struct, IPixel<TColor>
+        public void DecodeGenerated_MetadataOnly<TPixel>(
+            TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TColor> image = provider.GetImage())
+            using (Image<TPixel> image = provider.GetImage())
             {
                 using (MemoryStream ms = new MemoryStream())
                 {
@@ -92,7 +93,7 @@ namespace ImageSharp.Tests
                     
                     using (JpegDecoderCore decoder = new JpegDecoderCore(null, null))
                     {
-                        Image<TColor> mirror = decoder.Decode<TColor>(ms);
+                        Image<TPixel> mirror = decoder.Decode<TPixel>(ms);
 
                         Assert.Equal(decoder.ImageWidth, image.Width);
                         Assert.Equal(decoder.ImageHeight, image.Height);
@@ -104,7 +105,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void Decoder_Reads_Correct_Resolution_From_Jfif()
         {
-            using (Image image = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan).CreateImage())
+            using (Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan).CreateImage())
             {
                 Assert.Equal(300, image.MetaData.HorizontalResolution);
                 Assert.Equal(300, image.MetaData.VerticalResolution);
@@ -114,7 +115,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void Decoder_Reads_Correct_Resolution_From_Exif()
         {
-            using (Image image = TestFile.Create(TestImages.Jpeg.Baseline.Jpeg420).CreateImage())
+            using (Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Baseline.Jpeg420).CreateImage())
             {
                 Assert.Equal(72, image.MetaData.HorizontalResolution);
                 Assert.Equal(72, image.MetaData.VerticalResolution);
@@ -131,7 +132,7 @@ namespace ImageSharp.Tests
 
             TestFile testFile = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan);
 
-            using (Image image = testFile.CreateImage(options))
+            using (Image<Rgba32> image = testFile.CreateImage(options))
             {
                 Assert.NotNull(image.MetaData.ExifProfile);
             }
@@ -147,7 +148,7 @@ namespace ImageSharp.Tests
 
             TestFile testFile = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan);
 
-            using (Image image = testFile.CreateImage(options))
+            using (Image<Rgba32> image = testFile.CreateImage(options))
             {
                 Assert.Null(image.MetaData.ExifProfile);
             }

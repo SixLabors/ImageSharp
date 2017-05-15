@@ -7,14 +7,17 @@ namespace ImageSharp.Processing.Processors
 {
     using System;
     using System.Numerics;
+    using System.Runtime.CompilerServices;
     using System.Threading.Tasks;
+
+    using ImageSharp.PixelFormats;
 
     /// <summary>
     /// The color matrix filter. Inherit from this class to perform operation involving color matrices.
     /// </summary>
-    /// <typeparam name="TColor">The pixel format.</typeparam>
-    internal abstract class ColorMatrixProcessor<TColor> : ImageProcessor<TColor>, IColorMatrixFilter<TColor>
-        where TColor : struct, IPixel<TColor>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    internal abstract class ColorMatrixProcessor<TPixel> : ImageProcessor<TPixel>, IColorMatrixFilter<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
         /// <inheritdoc/>
         public abstract Matrix4x4 Matrix { get; }
@@ -23,7 +26,7 @@ namespace ImageSharp.Processing.Processors
         public override bool Compand { get; set; } = true;
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
         {
             int startY = sourceRectangle.Y;
             int endY = sourceRectangle.Bottom;
@@ -50,7 +53,7 @@ namespace ImageSharp.Processing.Processors
             Matrix4x4 matrix = this.Matrix;
             bool compand = this.Compand;
 
-            using (PixelAccessor<TColor> sourcePixels = source.Lock())
+            using (PixelAccessor<TPixel> sourcePixels = source.Lock())
             {
                 Parallel.For(
                     minY,
@@ -75,9 +78,10 @@ namespace ImageSharp.Processing.Processors
         /// <param name="matrix">The matrix.</param>
         /// <param name="compand">Whether to compand the color during processing.</param>
         /// <returns>
-        /// The <see cref="Color"/>.
+        /// The <see cref="Rgba32"/>.
         /// </returns>
-        private TColor ApplyMatrix(TColor color, Matrix4x4 matrix, bool compand)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private TPixel ApplyMatrix(TPixel color, Matrix4x4 matrix, bool compand)
         {
             Vector4 vector = color.ToVector4();
 
@@ -87,7 +91,7 @@ namespace ImageSharp.Processing.Processors
             }
 
             vector = Vector4.Transform(vector, matrix);
-            TColor packed = default(TColor);
+            TPixel packed = default(TPixel);
             packed.PackFromVector4(compand ? vector.Compress() : vector);
             return packed;
         }

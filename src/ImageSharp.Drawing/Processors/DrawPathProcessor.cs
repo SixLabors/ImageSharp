@@ -9,27 +9,29 @@ namespace ImageSharp.Drawing.Processors
     using System.Numerics;
     using System.Threading.Tasks;
 
+    using ImageSharp.Memory;
+    using ImageSharp.PixelFormats;
     using ImageSharp.Processing;
     using Pens;
 
     /// <summary>
     /// Draws a path using the processor pipeline
     /// </summary>
-    /// <typeparam name="TColor">The type of the color.</typeparam>
-    /// <seealso cref="ImageSharp.Processing.ImageProcessor{TColor}" />
-    internal class DrawPathProcessor<TColor> : ImageProcessor<TColor>
-        where TColor : struct, IPixel<TColor>
+    /// <typeparam name="TPixel">The type of the color.</typeparam>
+    /// <seealso cref="ImageSharp.Processing.ImageProcessor{TPixel}" />
+    internal class DrawPathProcessor<TPixel> : ImageProcessor<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
         private const float AntialiasFactor = 1f;
         private const int PaddingFactor = 1; // needs to been the same or greater than AntialiasFactor
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="DrawPathProcessor{TColor}" /> class.
+        /// Initializes a new instance of the <see cref="DrawPathProcessor{TPixel}" /> class.
         /// </summary>
         /// <param name="pen">The details how to draw the outline/path.</param>
         /// <param name="drawable">The details of the paths and outlines to draw.</param>
         /// <param name="options">The drawing configuration options.</param>
-        public DrawPathProcessor(IPen<TColor> pen, Drawable drawable, GraphicsOptions options)
+        public DrawPathProcessor(IPen<TPixel> pen, Drawable drawable, GraphicsOptions options)
         {
             this.Path = drawable;
             this.Pen = pen;
@@ -44,7 +46,7 @@ namespace ImageSharp.Drawing.Processors
         /// <summary>
         /// Gets the pen.
         /// </summary>
-        public IPen<TColor> Pen { get; }
+        public IPen<TPixel> Pen { get; }
 
         /// <summary>
         /// Gets the path.
@@ -52,10 +54,10 @@ namespace ImageSharp.Drawing.Processors
         public Drawable Path { get; }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
         {
-            using (PixelAccessor<TColor> sourcePixels = source.Lock())
-            using (PenApplicator<TColor> applicator = this.Pen.CreateApplicator(sourcePixels, this.Path.Bounds))
+            using (PixelAccessor<TPixel> sourcePixels = source.Lock())
+            using (PenApplicator<TPixel> applicator = this.Pen.CreateApplicator(sourcePixels, this.Path.Bounds, this.Options))
             {
                 Rectangle rect = RectangleF.Ceiling(applicator.RequiredRegion);
 
@@ -86,37 +88,34 @@ namespace ImageSharp.Drawing.Processors
                     polyStartY = 0;
                 }
 
-                Parallel.For(
-                    minY,
-                    maxY,
-                    this.ParallelOptions,
-                    y =>
-                    {
-                        int offsetY = y - polyStartY;
+                int width = maxX - minX;
+                PixelBlender<TPixel> blender = PixelOperations<TPixel>.Instance.GetPixelBlender(this.Options.BlenderMode);
 
-                        for (int x = minX; x < maxX; x++)
+                Parallel.For(
+                minY,
+                maxY,
+                this.ParallelOptions,
+                y =>
+                {
+                    int offsetY = y - polyStartY;
+
+                    using (Buffer<float> amount = new Buffer<float>(width))
+                    using (Buffer<TPixel> colors = new Buffer<TPixel>(width))
+                    {
+                        for (int i = 0; i < width; i++)
                         {
-                            // TODO add find intersections code to skip and scan large regions of this.
+                            int x = i + minX;
                             int offsetX = x - startX;
                             PointInfo info = this.Path.GetPointInfo(offsetX, offsetY);
-
-                            ColoredPointInfo<TColor> color = applicator.GetColor(offsetX, offsetY, info);
-
-                            float opacity = this.Opacity(color.DistanceFromElement);
-
-                            if (opacity > Constants.Epsilon)
-                            {
-                                Vector4 backgroundVector = sourcePixels[offsetX, offsetY].ToVector4();
-                                Vector4 sourceVector = color.Color.ToVector4();
-
-                                Vector4 finalColor = Vector4BlendTransforms.PremultipliedLerp(backgroundVector, sourceVector, opacity);
-
-                                TColor packed = default(TColor);
-                                packed.PackFromVector4(finalColor);
-                                sourcePixels[offsetX, offsetY] = packed;
-                            }
+                            ColoredPointInfo<TPixel> color = applicator.GetColor(offsetX, offsetY, info);
+                            amount[i] = (this.Opacity(color.DistanceFromElement) * this.Options.BlendPercentage).Clamp(0, 1);
+                            colors[i] = color.Color;
                         }
-                    });
+
+                        Span<TPixel> destination = sourcePixels.GetRowSpan(offsetY).Slice(minX - startX, width);
+                        blender.Blend(destination, destination, colors, amount);
+                    }
+                });
             }
         }
 

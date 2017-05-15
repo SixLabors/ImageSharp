@@ -19,7 +19,7 @@ namespace ImageSharp.Tests.Drawing.Text
             GlyphBuilder fullBuilder = new GlyphBuilder(new System.Numerics.Vector2(10, 99));
             IGlyphRenderer builder = fullBuilder;
 
-            builder.BeginGlyph();
+            builder.BeginGlyph(Vector2.Zero);
             builder.BeginFigure();
             builder.MoveTo(new Vector2(0, 0));
             builder.LineTo(new Vector2(0, 10)); // becomes 0, -10
@@ -52,7 +52,7 @@ namespace ImageSharp.Tests.Drawing.Text
             IGlyphRenderer builder = fullBuilder;
             for (int i = 0; i < 10; i++)
             {
-                builder.BeginGlyph();
+                builder.BeginGlyph(Vector2.Zero);
                 builder.BeginFigure();
                 builder.MoveTo(new Vector2(0, 0));
                 builder.LineTo(new Vector2(0, 10)); // becomes 0, -10

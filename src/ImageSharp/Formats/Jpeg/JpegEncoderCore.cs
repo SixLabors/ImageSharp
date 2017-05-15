@@ -5,13 +5,12 @@
 
 namespace ImageSharp.Formats
 {
-    using System;
     using System.Buffers;
     using System.IO;
     using System.Runtime.CompilerServices;
-
     using ImageSharp.Formats.Jpg;
     using ImageSharp.Formats.Jpg.Components;
+    using ImageSharp.PixelFormats;
 
     /// <summary>
     /// Image encoder for writing an image to a stream as a jpeg.
@@ -103,9 +102,14 @@ namespace ImageSharp.Formats
             };
 
         /// <summary>
+        /// Lookup tables for converting Rgb to YCbCr
+        /// </summary>
+        private static RgbToYCbCrTables rgbToYCbCrTables = RgbToYCbCrTables.Create();
+
+        /// <summary>
         /// A scratch buffer to reduce allocations.
         /// </summary>
-        private readonly byte[] buffer = new byte[16];
+        private readonly byte[] buffer = new byte[20];
 
         /// <summary>
         /// A buffer for reducing the number of stream writes when emitting Huffman tables. 64 seems to be enough.
@@ -165,11 +169,11 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Encode writes the image to the jpeg baseline format with the given options.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="image">The image to write from.</param>
         /// <param name="stream">The stream to write to.</param>
-        public void Encode<TColor>(Image<TColor> image, Stream stream)
-            where TColor : struct, IPixel<TColor>
+        public void Encode<TPixel>(Image<TPixel> image, Stream stream)
+            where TPixel : struct, IPixel<TPixel>
         {
             Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));
@@ -225,7 +229,7 @@ namespace ImageSharp.Formats
             this.WriteDefineHuffmanTables(componentCount);
 
             // Write the image data.
-            using (PixelAccessor<TColor> pixels = image.Lock())
+            using (PixelAccessor<TPixel> pixels = image.Lock())
             {
                 this.WriteStartOfScan(pixels);
             }
@@ -282,23 +286,25 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Converts the 8x8 region of the image whose top-left corner is x,y to its YCbCr values.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="pixels">The pixel accessor.</param>
+        /// <param name="tables">The reference to the tables instance.</param>
         /// <param name="x">The x-position within the image.</param>
         /// <param name="y">The y-position within the image.</param>
         /// <param name="yBlock">The luminance block.</param>
         /// <param name="cbBlock">The red chroma block.</param>
         /// <param name="crBlock">The blue chroma block.</param>
-        /// <param name="rgbBytes">Temporal <see cref="PixelArea{TColor}"/> provided by the caller</param>
-        private static void ToYCbCr<TColor>(
-            PixelAccessor<TColor> pixels,
+        /// <param name="rgbBytes">Temporal <see cref="PixelArea{TPixel}"/> provided by the caller</param>
+        private static void ToYCbCr<TPixel>(
+            PixelAccessor<TPixel> pixels,
+            RgbToYCbCrTables* tables,
             int x,
             int y,
             Block8x8F* yBlock,
             Block8x8F* cbBlock,
             Block8x8F* crBlock,
-            PixelArea<TColor> rgbBytes)
-            where TColor : struct, IPixel<TColor>
+            PixelArea<TPixel> rgbBytes)
+            where TPixel : struct, IPixel<TPixel>
         {
             float* yBlockRaw = (float*)yBlock;
             float* cbBlockRaw = (float*)cbBlock;
@@ -307,7 +313,8 @@ namespace ImageSharp.Formats
             rgbBytes.Reset();
             pixels.CopyRGBBytesStretchedTo(rgbBytes, y, x);
 
-            byte* data = (byte*)rgbBytes.DataPointer;
+            ref byte data0 = ref rgbBytes.Bytes[0];
+            int dataIdx = 0;
 
             for (int j = 0; j < 8; j++)
             {
@@ -315,35 +322,15 @@ namespace ImageSharp.Formats
                 for (int i = 0; i < 8; i++)
                 {
                     // Convert returned bytes into the YCbCr color space. Assume RGBA
-                    int r = data[0];
-                    int g = data[1];
-                    int b = data[2];
-
-                    // Speed up the algorithm by removing floating point calculation
-                    // Scale by 65536, add .5F and truncate value. We use bit shifting to divide the result
-                    int y0 = 19595 * r; // (0.299F * 65536) + .5F
-                    int y1 = 38470 * g; // (0.587F * 65536) + .5F
-                    int y2 = 7471 * b; // (0.114F * 65536) + .5F
-
-                    int cb0 = -11057 * r; // (-0.168736F * 65536) + .5F
-                    int cb1 = 21710 * g; // (0.331264F * 65536) + .5F
-                    int cb2 = 32768 * b; // (0.5F * 65536) + .5F
-
-                    int cr0 = 32768 * r; // (0.5F * 65536) + .5F
-                    int cr1 = 27439 * g; // (0.418688F * 65536) + .5F
-                    int cr2 = 5329 * b; // (0.081312F * 65536) + .5F
-
-                    float yy = (y0 + y1 + y2) >> 16;
-                    float cb = 128 + ((cb0 - cb1 + cb2) >> 16);
-                    float cr = 128 + ((cr0 - cr1 - cr2) >> 16);
+                    int r = Unsafe.Add(ref data0, dataIdx);
+                    int g = Unsafe.Add(ref data0, dataIdx + 1);
+                    int b = Unsafe.Add(ref data0, dataIdx + 2);
 
                     int index = j8 + i;
 
-                    yBlockRaw[index] = yy;
-                    cbBlockRaw[index] = cb;
-                    crBlockRaw[index] = cr;
+                    RgbToYCbCrTables.Allocate(ref yBlockRaw, ref cbBlockRaw, ref crBlockRaw, ref tables, index, r, g, b);
 
-                    data += 3;
+                    dataIdx += 3;
                 }
             }
         }
@@ -441,12 +428,12 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Encodes the image with no subsampling.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
-        private void Encode444<TColor>(PixelAccessor<TColor> pixels)
-            where TColor : struct, IPixel<TColor>
+        private void Encode444<TPixel>(PixelAccessor<TPixel> pixels)
+            where TPixel : struct, IPixel<TPixel>
         {
-            // TODO: Need a JpegScanEncoder<TColor> class or struct that encapsulates the scan-encoding implementation. (Similar to JpegScanDecoder.)
+            // TODO: Need a JpegScanEncoder<TPixel> class or struct that encapsulates the scan-encoding implementation. (Similar to JpegScanDecoder.)
             Block8x8F b = default(Block8x8F);
             Block8x8F cb = default(Block8x8F);
             Block8x8F cr = default(Block8x8F);
@@ -462,38 +449,41 @@ namespace ImageSharp.Formats
             // ReSharper disable once InconsistentNaming
             int prevDCY = 0, prevDCCb = 0, prevDCCr = 0;
 
-            using (PixelArea<TColor> rgbBytes = new PixelArea<TColor>(8, 8, ComponentOrder.Xyz))
+            fixed (RgbToYCbCrTables* tables = &rgbToYCbCrTables)
             {
-                for (int y = 0; y < pixels.Height; y += 8)
+                using (PixelArea<TPixel> rgbBytes = new PixelArea<TPixel>(8, 8, ComponentOrder.Xyz))
                 {
-                    for (int x = 0; x < pixels.Width; x += 8)
+                    for (int y = 0; y < pixels.Height; y += 8)
                     {
-                        ToYCbCr(pixels, x, y, &b, &cb, &cr, rgbBytes);
+                        for (int x = 0; x < pixels.Width; x += 8)
+                        {
+                            ToYCbCr(pixels, tables, x, y, &b, &cb, &cr, rgbBytes);
 
-                        prevDCY = this.WriteBlock(
-                            QuantIndex.Luminance,
-                            prevDCY,
-                            &b,
-                            &temp1,
-                            &temp2,
-                            &onStackLuminanceQuantTable,
-                            unzig.Data);
-                        prevDCCb = this.WriteBlock(
-                            QuantIndex.Chrominance,
-                            prevDCCb,
-                            &cb,
-                            &temp1,
-                            &temp2,
-                            &onStackChrominanceQuantTable,
-                            unzig.Data);
-                        prevDCCr = this.WriteBlock(
-                            QuantIndex.Chrominance,
-                            prevDCCr,
-                            &cr,
-                            &temp1,
-                            &temp2,
-                            &onStackChrominanceQuantTable,
-                            unzig.Data);
+                            prevDCY = this.WriteBlock(
+                                QuantIndex.Luminance,
+                                prevDCY,
+                                &b,
+                                &temp1,
+                                &temp2,
+                                &onStackLuminanceQuantTable,
+                                unzig.Data);
+                            prevDCCb = this.WriteBlock(
+                                QuantIndex.Chrominance,
+                                prevDCCb,
+                                &cb,
+                                &temp1,
+                                &temp2,
+                                &onStackChrominanceQuantTable,
+                                unzig.Data);
+                            prevDCCr = this.WriteBlock(
+                                QuantIndex.Chrominance,
+                                prevDCCr,
+                                &cr,
+                                &temp1,
+                                &temp2,
+                                &onStackChrominanceQuantTable,
+                                unzig.Data);
+                        }
                     }
                 }
             }
@@ -524,19 +514,17 @@ namespace ImageSharp.Formats
             this.buffer[12] = 0x01; // versionlo
             this.buffer[13] = 0x01; // xyunits as dpi
 
-            // No thumbnail
-            this.buffer[14] = 0x00; // Thumbnail width
-            this.buffer[15] = 0x00; // Thumbnail height
-
-            this.outputStream.Write(this.buffer, 0, 16);
-
             // Resolution. Big Endian
-            this.buffer[0] = (byte)(horizontalResolution >> 8);
-            this.buffer[1] = (byte)horizontalResolution;
-            this.buffer[2] = (byte)(verticalResolution >> 8);
-            this.buffer[3] = (byte)verticalResolution;
+            this.buffer[14] = (byte)(horizontalResolution >> 8);
+            this.buffer[15] = (byte)horizontalResolution;
+            this.buffer[16] = (byte)(verticalResolution >> 8);
+            this.buffer[17] = (byte)verticalResolution;
 
-            this.outputStream.Write(this.buffer, 0, 4);
+            // No thumbnail
+            this.buffer[18] = 0x00; // Thumbnail width
+            this.buffer[19] = 0x00; // Thumbnail height
+
+            this.outputStream.Write(this.buffer, 0, 20);
         }
 
         /// <summary>
@@ -713,9 +701,9 @@ namespace ImageSharp.Formats
         /// Writes the metadata profiles to the image.
         /// </summary>
         /// <param name="image">The image.</param>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
-        private void WriteProfiles<TColor>(Image<TColor> image)
-            where TColor : struct, IPixel<TColor>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        private void WriteProfiles<TPixel>(Image<TPixel> image)
+            where TPixel : struct, IPixel<TPixel>
         {
             if (this.options.IgnoreMetadata)
             {
@@ -785,12 +773,12 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Writes the StartOfScan marker.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
-        private void WriteStartOfScan<TColor>(PixelAccessor<TColor> pixels)
-            where TColor : struct, IPixel<TColor>
+        private void WriteStartOfScan<TPixel>(PixelAccessor<TPixel> pixels)
+            where TPixel : struct, IPixel<TPixel>
         {
-            // TODO: Need a JpegScanEncoder<TColor> class or struct that encapsulates the scan-encoding implementation. (Similar to JpegScanDecoder.)
+            // TODO: Need a JpegScanEncoder<TPixel> class or struct that encapsulates the scan-encoding implementation. (Similar to JpegScanDecoder.)
             // TODO: We should allow grayscale writing.
             this.outputStream.Write(SosHeaderYCbCr, 0, SosHeaderYCbCr.Length);
 
@@ -812,12 +800,12 @@ namespace ImageSharp.Formats
         /// Encodes the image with subsampling. The Cb and Cr components are each subsampled
         /// at a factor of 2 both horizontally and vertically.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
-        private void Encode420<TColor>(PixelAccessor<TColor> pixels)
-            where TColor : struct, IPixel<TColor>
+        private void Encode420<TPixel>(PixelAccessor<TPixel> pixels)
+            where TPixel : struct, IPixel<TPixel>
         {
-            // TODO: Need a JpegScanEncoder<TColor> class or struct that encapsulates the scan-encoding implementation. (Similar to JpegScanDecoder.)
+            // TODO: Need a JpegScanEncoder<TPixel> class or struct that encapsulates the scan-encoding implementation. (Similar to JpegScanDecoder.)
             Block8x8F b = default(Block8x8F);
 
             BlockQuad cb = default(BlockQuad);
@@ -835,49 +823,51 @@ namespace ImageSharp.Formats
 
             // ReSharper disable once InconsistentNaming
             int prevDCY = 0, prevDCCb = 0, prevDCCr = 0;
-
-            using (PixelArea<TColor> rgbBytes = new PixelArea<TColor>(8, 8, ComponentOrder.Xyz))
+            fixed (RgbToYCbCrTables* tables = &rgbToYCbCrTables)
             {
-                for (int y = 0; y < pixels.Height; y += 16)
+                using (PixelArea<TPixel> rgbBytes = new PixelArea<TPixel>(8, 8, ComponentOrder.Xyz))
                 {
-                    for (int x = 0; x < pixels.Width; x += 16)
+                    for (int y = 0; y < pixels.Height; y += 16)
                     {
-                        for (int i = 0; i < 4; i++)
+                        for (int x = 0; x < pixels.Width; x += 16)
                         {
-                            int xOff = (i & 1) * 8;
-                            int yOff = (i & 2) * 4;
+                            for (int i = 0; i < 4; i++)
+                            {
+                                int xOff = (i & 1) * 8;
+                                int yOff = (i & 2) * 4;
 
-                            ToYCbCr(pixels, x + xOff, y + yOff, &b, cbPtr + i, crPtr + i, rgbBytes);
+                                ToYCbCr(pixels, tables, x + xOff, y + yOff, &b, cbPtr + i, crPtr + i, rgbBytes);
 
-                            prevDCY = this.WriteBlock(
-                                QuantIndex.Luminance,
-                                prevDCY,
+                                prevDCY = this.WriteBlock(
+                                    QuantIndex.Luminance,
+                                    prevDCY,
+                                    &b,
+                                    &temp1,
+                                    &temp2,
+                                    &onStackLuminanceQuantTable,
+                                    unzig.Data);
+                            }
+
+                            Block8x8F.Scale16X16To8X8(&b, cbPtr);
+                            prevDCCb = this.WriteBlock(
+                                QuantIndex.Chrominance,
+                                prevDCCb,
                                 &b,
                                 &temp1,
                                 &temp2,
-                                &onStackLuminanceQuantTable,
+                                &onStackChrominanceQuantTable,
+                                unzig.Data);
+
+                            Block8x8F.Scale16X16To8X8(&b, crPtr);
+                            prevDCCr = this.WriteBlock(
+                                QuantIndex.Chrominance,
+                                prevDCCr,
+                                &b,
+                                &temp1,
+                                &temp2,
+                                &onStackChrominanceQuantTable,
                                 unzig.Data);
                         }
-
-                        Block8x8F.Scale16X16To8X8(&b, cbPtr);
-                        prevDCCb = this.WriteBlock(
-                            QuantIndex.Chrominance,
-                            prevDCCb,
-                            &b,
-                            &temp1,
-                            &temp2,
-                            &onStackChrominanceQuantTable,
-                            unzig.Data);
-
-                        Block8x8F.Scale16X16To8X8(&b, crPtr);
-                        prevDCCr = this.WriteBlock(
-                            QuantIndex.Chrominance,
-                            prevDCCr,
-                            &b,
-                            &temp1,
-                            &temp2,
-                            &onStackChrominanceQuantTable,
-                            unzig.Data);
                     }
                 }
             }

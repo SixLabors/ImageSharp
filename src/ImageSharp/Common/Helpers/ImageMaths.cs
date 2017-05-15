@@ -10,6 +10,8 @@ namespace ImageSharp
     using System.Numerics;
     using System.Runtime.CompilerServices;
 
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// Provides common mathematical methods.
     /// </summary>
@@ -101,25 +103,6 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Gets the result of a sine cardinal function for the given value.
-        /// </summary>
-        /// <param name="x">The value to calculate the result for.</param>
-        /// <returns>
-        /// The <see cref="float"/>.
-        /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static float SinC(float x)
-        {
-            if (MathF.Abs(x) > Constants.Epsilon)
-            {
-                x *= MathF.PI;
-                return Clean(MathF.Sin(x) / x);
-            }
-
-            return 1.0f;
-        }
-
-        /// <summary>
         /// Returns the given degrees converted to radians.
         /// </summary>
         /// <param name="degrees">The angle in degrees.</param>
@@ -175,22 +158,22 @@ namespace ImageSharp
         /// Finds the bounding rectangle based on the first instance of any color component other
         /// than the given one.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <param name="bitmap">The <see cref="Image"/> to search within.</param>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="bitmap">The <see cref="Image{TPixel}"/> to search within.</param>
         /// <param name="componentValue">The color component value to remove.</param>
         /// <param name="channel">The <see cref="RgbaComponent"/> channel to test against.</param>
         /// <returns>
         /// The <see cref="Rectangle"/>.
         /// </returns>
-        public static Rectangle GetFilteredBoundingRectangle<TColor>(ImageBase<TColor> bitmap, float componentValue, RgbaComponent channel = RgbaComponent.B)
-            where TColor : struct, IPixel<TColor>
+        public static Rectangle GetFilteredBoundingRectangle<TPixel>(ImageBase<TPixel> bitmap, float componentValue, RgbaComponent channel = RgbaComponent.B)
+            where TPixel : struct, IPixel<TPixel>
         {
             int width = bitmap.Width;
             int height = bitmap.Height;
             Point topLeft = default(Point);
             Point bottomRight = default(Point);
 
-            Func<PixelAccessor<TColor>, int, int, float, bool> delegateFunc;
+            Func<PixelAccessor<TPixel>, int, int, float, bool> delegateFunc;
 
             // Determine which channel to check against
             switch (channel)
@@ -212,7 +195,7 @@ namespace ImageSharp
                     break;
             }
 
-            Func<PixelAccessor<TColor>, int> getMinY = pixels =>
+            int GetMinY(PixelAccessor<TPixel> pixels)
             {
                 for (int y = 0; y < height; y++)
                 {
@@ -226,9 +209,9 @@ namespace ImageSharp
                 }
 
                 return 0;
-            };
+            }
 
-            Func<PixelAccessor<TColor>, int> getMaxY = pixels =>
+            int GetMaxY(PixelAccessor<TPixel> pixels)
             {
                 for (int y = height - 1; y > -1; y--)
                 {
@@ -242,9 +225,9 @@ namespace ImageSharp
                 }
 
                 return height;
-            };
+            }
 
-            Func<PixelAccessor<TColor>, int> getMinX = pixels =>
+            int GetMinX(PixelAccessor<TPixel> pixels)
             {
                 for (int x = 0; x < width; x++)
                 {
@@ -258,9 +241,9 @@ namespace ImageSharp
                 }
 
                 return 0;
-            };
+            }
 
-            Func<PixelAccessor<TColor>, int> getMaxX = pixels =>
+            int GetMaxX(PixelAccessor<TPixel> pixels)
             {
                 for (int x = width - 1; x > -1; x--)
                 {
@@ -274,35 +257,17 @@ namespace ImageSharp
                 }
 
                 return height;
-            };
+            }
 
-            using (PixelAccessor<TColor> bitmapPixels = bitmap.Lock())
+            using (PixelAccessor<TPixel> bitmapPixels = bitmap.Lock())
             {
-                topLeft.Y = getMinY(bitmapPixels);
-                topLeft.X = getMinX(bitmapPixels);
-                bottomRight.Y = (getMaxY(bitmapPixels) + 1).Clamp(0, height);
-                bottomRight.X = (getMaxX(bitmapPixels) + 1).Clamp(0, width);
+                topLeft.Y = GetMinY(bitmapPixels);
+                topLeft.X = GetMinX(bitmapPixels);
+                bottomRight.Y = (GetMaxY(bitmapPixels) + 1).Clamp(0, height);
+                bottomRight.X = (GetMaxX(bitmapPixels) + 1).Clamp(0, width);
             }
 
             return GetBoundingRectangle(topLeft, bottomRight);
-        }
-
-        /// <summary>
-        /// Ensures that any passed double is correctly rounded to zero
-        /// </summary>
-        /// <param name="x">The value to clean.</param>
-        /// <returns>
-        /// The <see cref="float"/>
-        /// </returns>.
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static float Clean(float x)
-        {
-            if (MathF.Abs(x) < Constants.Epsilon)
-            {
-                return 0F;
-            }
-
-            return x;
         }
     }
 }

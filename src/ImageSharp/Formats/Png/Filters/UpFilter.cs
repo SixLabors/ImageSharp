@@ -5,6 +5,7 @@
 
 namespace ImageSharp.Formats
 {
+    using System;
     using System.Runtime.CompilerServices;
 
     /// <summary>
@@ -19,20 +20,20 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <param name="scanline">The scanline to decode</param>
         /// <param name="previousScanline">The previous scanline.</param>
-        /// <param name="bytesPerScanline">The number of bytes per scanline</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Decode(byte[] scanline, byte[] previousScanline, int bytesPerScanline)
+        public static void Decode(Span<byte> scanline, Span<byte> previousScanline)
         {
-            // Up(x) + Prior(x)
-            fixed (byte* scan = scanline)
-            fixed (byte* prev = previousScanline)
-            {
-                for (int x = 1; x < bytesPerScanline; x++)
-                {
-                    byte above = prev[x];
+            DebugGuard.MustBeSameSized(scanline, previousScanline, nameof(scanline));
 
-                    scan[x] = (byte)((scan[x] + above) % 256);
-                }
+            ref byte scanBaseRef = ref scanline.DangerousGetPinnableReference();
+            ref byte prevBaseRef = ref previousScanline.DangerousGetPinnableReference();
+
+            // Up(x) + Prior(x)
+            for (int x = 1; x < scanline.Length; x++)
+            {
+                ref byte scan = ref Unsafe.Add(ref scanBaseRef, x);
+                byte above = Unsafe.Add(ref prevBaseRef, x);
+                scan = (byte)((scan + above) % 256);
             }
         }
 
@@ -43,21 +44,24 @@ namespace ImageSharp.Formats
         /// <param name="previousScanline">The previous scanline.</param>
         /// <param name="result">The filtered scanline result.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Encode(byte[] scanline, byte[] previousScanline, byte[] result)
+        public static void Encode(Span<byte> scanline, Span<byte> previousScanline, Span<byte> result)
         {
+            DebugGuard.MustBeSameSized(scanline, previousScanline, nameof(scanline));
+            DebugGuard.MustBeSizedAtLeast(result, scanline, nameof(result));
+
+            ref byte scanBaseRef = ref scanline.DangerousGetPinnableReference();
+            ref byte prevBaseRef = ref previousScanline.DangerousGetPinnableReference();
+            ref byte resultBaseRef = ref result.DangerousGetPinnableReference();
+
             // Up(x) = Raw(x) - Prior(x)
-            fixed (byte* scan = scanline)
-            fixed (byte* prev = previousScanline)
-            fixed (byte* res = result)
+            resultBaseRef = 2;
+
+            for (int x = 0; x < scanline.Length; x++)
             {
-                res[0] = 2;
-
-                for (int x = 0; x < scanline.Length; x++)
-                {
-                    byte above = prev[x];
-
-                    res[x + 1] = (byte)((scan[x] - above) % 256);
-                }
+                byte scan = Unsafe.Add(ref scanBaseRef, x);
+                byte above = Unsafe.Add(ref prevBaseRef, x);
+                ref byte res = ref Unsafe.Add(ref resultBaseRef, x + 1);
+                res = (byte)((scan - above) % 256);
             }
         }
     }

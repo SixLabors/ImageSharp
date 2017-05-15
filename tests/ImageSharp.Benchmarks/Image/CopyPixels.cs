@@ -9,19 +9,18 @@ namespace ImageSharp.Benchmarks.Image
 
     using BenchmarkDotNet.Attributes;
 
-    using CoreColor = ImageSharp.Color;
-    using CoreImage = ImageSharp.Image;
+    using ImageSharp.PixelFormats;
 
     public class CopyPixels : BenchmarkBase
     {
         [Benchmark(Description = "Copy by Pixel")]
-        public CoreColor CopyByPixel()
+        public Rgba32 CopyByPixel()
         {
-            using (CoreImage source = new CoreImage(1024, 768))
-            using (CoreImage target = new CoreImage(1024, 768))
+            using (Image<Rgba32> source = new Image<Rgba32>(1024, 768))
+            using (Image<Rgba32> target = new Image<Rgba32>(1024, 768))
             {
-                using (PixelAccessor<CoreColor> sourcePixels = source.Lock())
-                using (PixelAccessor<CoreColor> targetPixels = target.Lock())
+                using (PixelAccessor<Rgba32> sourcePixels = source.Lock())
+                using (PixelAccessor<Rgba32> targetPixels = target.Lock())
                 {
                     Parallel.For(
                         0,

@@ -9,23 +9,25 @@ namespace ImageSharp
 
     using Formats;
 
+    using ImageSharp.PixelFormats;
+
     /// <summary>
-    /// Extension methods for the <see cref="Image{TColor}"/> type.
+    /// Extension methods for the <see cref="Image{TPixel}"/> type.
     /// </summary>
     public static partial class ImageExtensions
     {
         /// <summary>
         /// Saves the image to the given stream with the png format.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="stream">The stream to save the image to.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
         /// <returns>
-        /// The <see cref="Image{TColor}"/>.
+        /// The <see cref="Image{TPixel}"/>.
         /// </returns>
-        public static Image<TColor> SaveAsPng<TColor>(this Image<TColor> source, Stream stream)
-            where TColor : struct, IPixel<TColor>
+        public static Image<TPixel> SaveAsPng<TPixel>(this Image<TPixel> source, Stream stream)
+            where TPixel : struct, IPixel<TPixel>
         {
             return SaveAsPng(source, stream, null);
         }
@@ -33,16 +35,16 @@ namespace ImageSharp
         /// <summary>
         /// Saves the image to the given stream with the png format.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="stream">The stream to save the image to.</param>
         /// <param name="options">The options for the encoder.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
         /// <returns>
-        /// The <see cref="Image{TColor}"/>.
+        /// The <see cref="Image{TPixel}"/>.
         /// </returns>
-        public static Image<TColor> SaveAsPng<TColor>(this Image<TColor> source, Stream stream, IPngEncoderOptions options)
-            where TColor : struct, IPixel<TColor>
+        public static Image<TPixel> SaveAsPng<TPixel>(this Image<TPixel> source, Stream stream, IPngEncoderOptions options)
+            where TPixel : struct, IPixel<TPixel>
         {
             PngEncoder encoder = new PngEncoder();
             encoder.Encode(source, stream, options);

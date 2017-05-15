@@ -9,6 +9,8 @@ namespace ImageSharp.Tests.Colors
     using System.Diagnostics;
     using System.Numerics;
 
+    using ImageSharp.PixelFormats;
+
     using Xunit;
 
     /// <summary>
@@ -62,29 +64,29 @@ namespace ImageSharp.Tests.Colors
         }
 
         [Fact]
-        public void Argb()
+        public void Argb32()
         {
             // Test the limits.
-            Assert.Equal((uint)0x0, new Argb(Vector4.Zero).PackedValue);
-            Assert.Equal(0xFFFFFFFF, new Argb(Vector4.One).PackedValue);
+            Assert.Equal((uint)0x0, new Argb32(Vector4.Zero).PackedValue);
+            Assert.Equal(0xFFFFFFFF, new Argb32(Vector4.One).PackedValue);
 
             // Test ToVector4.
-            Assert.True(Equal(Vector4.One, new Argb(Vector4.One).ToVector4()));
-            Assert.True(Equal(Vector4.Zero, new Argb(Vector4.Zero).ToVector4()));
-            Assert.True(Equal(Vector4.UnitX, new Argb(Vector4.UnitX).ToVector4()));
-            Assert.True(Equal(Vector4.UnitY, new Argb(Vector4.UnitY).ToVector4()));
-            Assert.True(Equal(Vector4.UnitZ, new Argb(Vector4.UnitZ).ToVector4()));
-            Assert.True(Equal(Vector4.UnitW, new Argb(Vector4.UnitW).ToVector4()));
+            Assert.True(Equal(Vector4.One, new Argb32(Vector4.One).ToVector4()));
+            Assert.True(Equal(Vector4.Zero, new Argb32(Vector4.Zero).ToVector4()));
+            Assert.True(Equal(Vector4.UnitX, new Argb32(Vector4.UnitX).ToVector4()));
+            Assert.True(Equal(Vector4.UnitY, new Argb32(Vector4.UnitY).ToVector4()));
+            Assert.True(Equal(Vector4.UnitZ, new Argb32(Vector4.UnitZ).ToVector4()));
+            Assert.True(Equal(Vector4.UnitW, new Argb32(Vector4.UnitW).ToVector4()));
 
             // Test clamping.
-            Assert.True(Equal(Vector4.Zero, new Argb(Vector4.One * -1234.0f).ToVector4()));
-            Assert.True(Equal(Vector4.One, new Argb(Vector4.One * +1234.0f).ToVector4()));
+            Assert.True(Equal(Vector4.Zero, new Argb32(Vector4.One * -1234.0f).ToVector4()));
+            Assert.True(Equal(Vector4.One, new Argb32(Vector4.One * +1234.0f).ToVector4()));
 
             float x = +0.1f;
             float y = -0.3f;
             float z = +0.5f;
             float w = -0.7f;
-            Argb argb = new Argb(x, y, z, w);
+            Argb32 argb = new Argb32(x, y, z, w);
             Assert.Equal(0x001a0080u, argb.PackedValue);
 
             // Test ordering
@@ -709,6 +711,51 @@ namespace ImageSharp.Tests.Colors
             r.PackFromBytes(25, 0, 128, 0);
             r.ToXyzwBytes(rgba, 0);
             Assert.Equal(rgba, new byte[] { 25, 0, 128, 0 });
+        }
+
+        [Fact]
+        public void Color()
+        {
+            // Test the limits.
+            Assert.Equal((uint)0x0, new Rgba32(Vector4.Zero).PackedValue);
+            Assert.Equal(0xFFFFFFFF, new Rgba32(Vector4.One).PackedValue);
+
+            // Test ToVector4.
+            Assert.True(Equal(Vector4.One, new Rgba32(Vector4.One).ToVector4()));
+            Assert.True(Equal(Vector4.Zero, new Rgba32(Vector4.Zero).ToVector4()));
+            Assert.True(Equal(Vector4.UnitX, new Rgba32(Vector4.UnitX).ToVector4()));
+            Assert.True(Equal(Vector4.UnitY, new Rgba32(Vector4.UnitY).ToVector4()));
+            Assert.True(Equal(Vector4.UnitZ, new Rgba32(Vector4.UnitZ).ToVector4()));
+            Assert.True(Equal(Vector4.UnitW, new Rgba32(Vector4.UnitW).ToVector4()));
+
+            // Test clamping.
+            Assert.True(Equal(Vector4.Zero, new Rgba32(Vector4.One * -1234.0f).ToVector4()));
+            Assert.True(Equal(Vector4.One, new Rgba32(Vector4.One * +1234.0f).ToVector4()));
+
+            float x = +0.1f;
+            float y = -0.3f;
+            float z = +0.5f;
+            float w = -0.7f;
+            Rgba32 rgba32 = new Rgba32(x, y, z, w);
+            Assert.Equal(0x80001Au, rgba32.PackedValue);
+
+            // Test ordering
+            byte[] rgb = new byte[3];
+            byte[] rgba = new byte[4];
+            byte[] bgr = new byte[3];
+            byte[] bgra = new byte[4];
+
+            rgba32.ToXyzBytes(rgb, 0);
+            Assert.Equal(rgb, new byte[] { 0x1a, 0, 0x80 });
+
+            rgba32.ToXyzwBytes(rgba, 0);
+            Assert.Equal(rgba, new byte[] { 0x1a, 0, 0x80, 0 });
+
+            rgba32.ToZyxBytes(bgr, 0);
+            Assert.Equal(bgr, new byte[] { 0x80, 0, 0x1a });
+
+            rgba32.ToZyxwBytes(bgra, 0);
+            Assert.Equal(bgra, new byte[] { 0x80, 0, 0x1a, 0 });
         }
 
         [Fact]

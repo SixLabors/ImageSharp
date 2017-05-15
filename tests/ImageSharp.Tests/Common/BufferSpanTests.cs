@@ -1,28 +1,60 @@
 // ReSharper disable ObjectCreationAsStatement
 // ReSharper disable InconsistentNaming
+
 namespace ImageSharp.Tests.Common
 {
     using System;
+    using System.Numerics;
     using System.Runtime.CompilerServices;
+
+    using ImageSharp.Memory;
+    using ImageSharp.PixelFormats;
 
     using Xunit;
 
     using static TestStructs;
 
-    public unsafe class BufferSpanTests
+    public unsafe class SpanTests
     {
+        // ReSharper disable once ClassNeverInstantiated.Local
+        private class Assert : Xunit.Assert
+        {
+            public static void SameRefs<T1, T2>(ref T1 a, ref T2 b)
+            {
+                ref T1 bb = ref Unsafe.As<T2, T1>(ref b);
+
+                True(Unsafe.AreSame(ref a, ref bb), "References are not same!");
+            }
+        }
+
+        [Fact]
+        public void FetchVector()
+        {
+            float[] stuff = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
+
+            Span<float> span = new Span<float>(stuff);
+
+            ref Vector<float> v = ref span.FetchVector();
+
+            Assert.Equal(0, v[0]);
+            Assert.Equal(1, v[1]);
+            Assert.Equal(2, v[2]);
+            Assert.Equal(3, v[3]);
+        }
+
         [Fact]
         public void AsBytes()
         {
             Foo[] fooz = { new Foo(1, 2), new Foo(3, 4), new Foo(5, 6) };
 
-            using (PinnedBuffer<Foo> colorBuf = new PinnedBuffer<Foo>(fooz))
+            using (Buffer<Foo> colorBuf = new Buffer<Foo>(fooz))
             {
-                BufferSpan<Foo> orig = colorBuf.Slice(1);
-                BufferSpan<byte> asBytes = (BufferSpan < byte > )orig;
+                Span<Foo> orig = colorBuf.Slice(1);
+                Span<byte> asBytes = orig.AsBytes();
 
-                Assert.Equal(asBytes.Start, sizeof(Foo));
-                Assert.Equal(orig.PointerAtOffset, asBytes.PointerAtOffset);
+                //  Assert.Equal(asBytes.Start, sizeof(Foo));
+                Assert.Equal(orig.Length * Unsafe.SizeOf<Foo>(), asBytes.Length);
+                Assert.SameRefs(ref orig.DangerousGetPinnableReference(), ref asBytes.DangerousGetPinnableReference());
             }
         }
 
@@ -32,16 +64,14 @@ namespace ImageSharp.Tests.Common
             public void Basic()
             {
                 Foo[] array = Foo.CreateArray(3);
-                fixed (Foo* p = array)
-                {
-                    // Act:
-                    BufferSpan<Foo> span = new BufferSpan<Foo>(array, p);
 
-                    // Assert:
-                    Assert.Equal(array, span.Array);
-                    Assert.Equal((IntPtr)p, span.PointerAtOffset);
-                    Assert.Equal(3, span.Length);
-                }
+                // Act:
+                Span<Foo> span = new Span<Foo>(array);
+
+                // Assert:
+                Assert.Equal(array, span.ToArray());
+                Assert.Equal(3, span.Length);
+                Assert.SameRefs(ref array[0], ref span.DangerousGetPinnableReference());
             }
 
             [Fact]
@@ -49,17 +79,13 @@ namespace ImageSharp.Tests.Common
             {
                 Foo[] array = Foo.CreateArray(4);
                 int start = 2;
-                fixed (Foo* p = array)
-                {
-                    // Act:
-                    BufferSpan<Foo> span = new BufferSpan<Foo>(array, p, start);
 
-                    // Assert:
-                    Assert.Equal(array, span.Array);
-                    Assert.Equal(start, span.Start);
-                    Assert.Equal((IntPtr)(p + start), span.PointerAtOffset);
-                    Assert.Equal(array.Length - start, span.Length);
-                }
+                // Act:
+                Span<Foo> span = new Span<Foo>(array, start);
+
+                // Assert:
+                Assert.SameRefs(ref array[start], ref span.DangerousGetPinnableReference());
+                Assert.Equal(array.Length - start, span.Length);
             }
 
             [Fact]
@@ -68,17 +94,12 @@ namespace ImageSharp.Tests.Common
                 Foo[] array = Foo.CreateArray(10);
                 int start = 2;
                 int length = 3;
-                fixed (Foo* p = array)
-                {
-                    // Act:
-                    BufferSpan<Foo> span = new BufferSpan<Foo>(array, p, start, length);
+                // Act:
+                Span<Foo> span = new Span<Foo>(array, start, length);
 
-                    // Assert:
-                    Assert.Equal(array, span.Array);
-                    Assert.Equal(start, span.Start);
-                    Assert.Equal((IntPtr)(p + start), span.PointerAtOffset);
-                    Assert.Equal(length, span.Length);
-                }
+                // Assert:
+                Assert.SameRefs(ref array[start], ref span.DangerousGetPinnableReference());
+                Assert.Equal(length, span.Length);
             }
         }
 
@@ -92,19 +113,14 @@ namespace ImageSharp.Tests.Common
                 int start1 = 2;
                 int totalOffset = start0 + start1;
 
-                fixed (Foo* p = array)
-                {
-                    BufferSpan<Foo> span = new BufferSpan<Foo>(array, p, start0);
+                Span<Foo> span = new Span<Foo>(array, start0);
 
-                    // Act:
-                    span = span.Slice(start1);
+                // Act:
+                span = span.Slice(start1);
 
-                    // Assert:
-                    Assert.Equal(array, span.Array);
-                    Assert.Equal(totalOffset, span.Start);
-                    Assert.Equal((IntPtr)(p + totalOffset), span.PointerAtOffset);
-                    Assert.Equal(array.Length - totalOffset, span.Length);
-                }
+                // Assert:
+                Assert.SameRefs(ref array[totalOffset], ref span.DangerousGetPinnableReference());
+                Assert.Equal(array.Length - totalOffset, span.Length);
             }
 
             [Fact]
@@ -116,46 +132,35 @@ namespace ImageSharp.Tests.Common
                 int totalOffset = start0 + start1;
                 int sliceLength = 3;
 
-                fixed (Foo* p = array)
-                {
-                    BufferSpan<Foo> span = new BufferSpan<Foo>(array, p, start0);
-
-                    // Act:
-                    span = span.Slice(start1, sliceLength);
-
-                    // Assert:
-                    Assert.Equal(array, span.Array);
-                    Assert.Equal(totalOffset, span.Start);
-                    Assert.Equal((IntPtr)(p + totalOffset), span.PointerAtOffset);
-                    Assert.Equal(sliceLength, span.Length);
-                }
-            }
-        }
-
-
-
-        [Theory]
-        [InlineData(4)]
-        [InlineData(1500)]
-        public void Clear(int count)
-        {
-            Foo[] array = Foo.CreateArray(count + 42);
-
-            int offset = 2;
-            fixed (Foo* p = array)
-            {
-                BufferSpan<Foo> ap = new BufferSpan<Foo>(array, p, offset);
+                Span<Foo> span = new Span<Foo>(array, start0);
 
                 // Act:
-                ap.Clear(count);
+                span = span.Slice(start1, sliceLength);
 
-                Assert.NotEqual(default(Foo), array[offset-1]);
-                Assert.Equal(default(Foo), array[offset]);
-                Assert.Equal(default(Foo), array[offset + count-1]);
-                Assert.NotEqual(default(Foo), array[offset + count]);
+                // Assert:
+                Assert.SameRefs(ref array[totalOffset], ref span.DangerousGetPinnableReference());
+                Assert.Equal(sliceLength, span.Length);
             }
         }
 
+        //[Theory]
+        //[InlineData(4)]
+        //[InlineData(1500)]
+        //public void Clear(int count)
+        //{
+        //    Foo[] array = Foo.CreateArray(count + 42);
+
+        //    int offset = 2;
+        //    Span<Foo> ap = new Span<Foo>(array, offset);
+
+        //    // Act:
+        //    ap.Clear(count);
+
+        //    Assert.NotEqual(default(Foo), array[offset - 1]);
+        //    Assert.Equal(default(Foo), array[offset]);
+        //    Assert.Equal(default(Foo), array[offset + count - 1]);
+        //    Assert.NotEqual(default(Foo), array[offset + count]);
+        //}
 
         public class Indexer
         {
@@ -175,14 +180,11 @@ namespace ImageSharp.Tests.Common
             public void Read(int length, int start, int index)
             {
                 Foo[] a = Foo.CreateArray(length);
-                fixed (Foo* p = a)
-                {
-                    BufferSpan<Foo> span = new BufferSpan<Foo>(a, p, start);
+                Span<Foo> span = new Span<Foo>(a, start);
 
-                    Foo element = span[index];
+                Foo element = span[index];
 
-                    Assert.Equal(a[start + index], element);
-                }
+                Assert.Equal(a[start + index], element);
             }
 
             [Theory]
@@ -190,17 +192,46 @@ namespace ImageSharp.Tests.Common
             public void Write(int length, int start, int index)
             {
                 Foo[] a = Foo.CreateArray(length);
-                fixed (Foo* p = a)
-                {
-                    BufferSpan<Foo> span = new BufferSpan<Foo>(a, p, start);
+                Span<Foo> span = new Span<Foo>(a, start);
 
-                    span[index] = new Foo(666, 666);
+                span[index] = new Foo(666, 666);
 
-                    Assert.Equal(new Foo(666, 666), a[start + index]);
-                }
+                Assert.Equal(new Foo(666, 666), a[start + index]);
+            }
+
+            [Theory]
+            [InlineData(10, 0, 0, 5)]
+            [InlineData(10, 1, 1, 5)]
+            [InlineData(10, 1, 1, 6)]
+            [InlineData(10, 1, 1, 7)]
+            public void AsBytes_Read(int length, int start, int index, int byteOffset)
+            {
+                Foo[] a = Foo.CreateArray(length);
+                Span<Foo> span = new Span<Foo>(a, start);
+
+                Span<byte> bytes = span.AsBytes();
+
+                byte actual = bytes[index * Unsafe.SizeOf<Foo>() + byteOffset];
+
+                ref byte baseRef = ref Unsafe.As<Foo, byte>(ref a[0]);
+                byte expected = Unsafe.Add(ref baseRef, (start + index) * Unsafe.SizeOf<Foo>() + byteOffset);
+
+                Assert.Equal(expected, actual);
             }
         }
 
+        [Theory]
+        [InlineData(0, 4)]
+        [InlineData(2, 4)]
+        [InlineData(3, 4)]
+        public void DangerousGetPinnableReference(int start, int length)
+        {
+            Foo[] a = Foo.CreateArray(length);
+            Span<Foo> span = new Span<Foo>(a, start);
+            ref Foo r = ref span.DangerousGetPinnableReference();
+
+            Assert.True(Unsafe.AreSame(ref a[start], ref r));
+        }
 
         public class Copy
         {
@@ -238,14 +269,10 @@ namespace ImageSharp.Tests.Common
                 Foo[] source = Foo.CreateArray(count + 2);
                 Foo[] dest = new Foo[count + 5];
 
-                fixed (Foo* pSource = source)
-                fixed (Foo* pDest = dest)
-                {
-                    BufferSpan<Foo> apSource = new BufferSpan<Foo>(source, pSource, 1);
-                    BufferSpan<Foo> apDest = new BufferSpan<Foo>(dest, pDest, 1);
+                Span<Foo> apSource = new Span<Foo>(source, 1);
+                Span<Foo> apDest = new Span<Foo>(dest, 1);
 
-                    BufferSpan.Copy(apSource, apDest, count-1);
-                }
+                SpanHelper.Copy(apSource, apDest, count - 1);
 
                 AssertNotDefault(source, 1);
                 AssertNotDefault(dest, 1);
@@ -253,7 +280,7 @@ namespace ImageSharp.Tests.Common
                 Assert.NotEqual(source[0], dest[0]);
                 Assert.Equal(source[1], dest[1]);
                 Assert.Equal(source[2], dest[2]);
-                Assert.Equal(source[count-1], dest[count-1]);
+                Assert.Equal(source[count - 1], dest[count - 1]);
                 Assert.NotEqual(source[count], dest[count]);
             }
 
@@ -265,14 +292,10 @@ namespace ImageSharp.Tests.Common
                 AlignedFoo[] source = AlignedFoo.CreateArray(count + 2);
                 AlignedFoo[] dest = new AlignedFoo[count + 5];
 
-                fixed (AlignedFoo* pSource = source)
-                fixed (AlignedFoo* pDest = dest)
-                {
-                    BufferSpan<AlignedFoo> apSource = new BufferSpan<AlignedFoo>(source, pSource, 1);
-                    BufferSpan<AlignedFoo> apDest = new BufferSpan<AlignedFoo>(dest, pDest, 1);
+                Span<AlignedFoo> apSource = new Span<AlignedFoo>(source, 1);
+                Span<AlignedFoo> apDest = new Span<AlignedFoo>(dest, 1);
 
-                    BufferSpan.Copy(apSource, apDest, count - 1);
-                }
+                SpanHelper.Copy(apSource, apDest, count - 1);
 
                 AssertNotDefault(source, 1);
                 AssertNotDefault(dest, 1);
@@ -289,17 +312,13 @@ namespace ImageSharp.Tests.Common
             [InlineData(1500)]
             public void IntToInt(int count)
             {
-                int[] source = CreateTestInts(count+2);
+                int[] source = CreateTestInts(count + 2);
                 int[] dest = new int[count + 5];
 
-                fixed (int* pSource = source)
-                fixed (int* pDest = dest)
-                {
-                    BufferSpan<int> apSource = new BufferSpan<int>(source, pSource, 1);
-                    BufferSpan<int> apDest = new BufferSpan<int>(dest, pDest, 1);
+                Span<int> apSource = new Span<int>(source, 1);
+                Span<int> apDest = new Span<int>(dest, 1);
 
-                    BufferSpan.Copy(apSource, apDest, count -1);
-                }
+                SpanHelper.Copy(apSource, apDest, count - 1);
 
                 AssertNotDefault(source, 1);
                 AssertNotDefault(dest, 1);
@@ -317,17 +336,13 @@ namespace ImageSharp.Tests.Common
             public void GenericToBytes(int count)
             {
                 int destCount = count * sizeof(Foo);
-                Foo[] source = Foo.CreateArray(count+2);
-                byte[] dest = new byte[destCount + sizeof(Foo)*2];
+                Foo[] source = Foo.CreateArray(count + 2);
+                byte[] dest = new byte[destCount + sizeof(Foo) * 2];
 
-                fixed (Foo* pSource = source)
-                fixed (byte* pDest = dest)
-                {
-                    BufferSpan<Foo> apSource = new BufferSpan<Foo>(source, pSource, 1);
-                    BufferSpan<byte> apDest = new BufferSpan<byte>(dest, pDest, sizeof(Foo));
+                Span<Foo> apSource = new Span<Foo>(source, 1);
+                Span<byte> apDest = new Span<byte>(dest, sizeof(Foo));
 
-                    BufferSpan.Copy(apSource, apDest, count - 1);
-                }
+                SpanHelper.Copy(apSource.AsBytes(), apDest, (count - 1) * sizeof(Foo));
 
                 AssertNotDefault(source, 1);
 
@@ -347,14 +362,10 @@ namespace ImageSharp.Tests.Common
                 AlignedFoo[] source = AlignedFoo.CreateArray(count + 2);
                 byte[] dest = new byte[destCount + sizeof(AlignedFoo) * 2];
 
-                fixed (AlignedFoo* pSource = source)
-                fixed (byte* pDest = dest)
-                {
-                    BufferSpan<AlignedFoo> apSource = new BufferSpan<AlignedFoo>(source, pSource, 1);
-                    BufferSpan<byte> apDest = new BufferSpan<byte>(dest, pDest, sizeof(AlignedFoo));
+                Span<AlignedFoo> apSource = new Span<AlignedFoo>(source, 1);
+                Span<byte> apDest = new Span<byte>(dest, sizeof(AlignedFoo));
 
-                    BufferSpan.Copy(apSource, apDest, count - 1);
-                }
+                SpanHelper.Copy(apSource.AsBytes(), apDest, (count - 1) * sizeof(AlignedFoo));
 
                 AssertNotDefault(source, 1);
 
@@ -371,17 +382,13 @@ namespace ImageSharp.Tests.Common
             public void IntToBytes(int count)
             {
                 int destCount = count * sizeof(int);
-                int[] source = CreateTestInts(count+2);
+                int[] source = CreateTestInts(count + 2);
                 byte[] dest = new byte[destCount + sizeof(int) + 1];
 
-                fixed (int* pSource = source)
-                fixed (byte* pDest = dest)
-                {
-                    BufferSpan<int> apSource = new BufferSpan<int>(source, pSource);
-                    BufferSpan<byte> apDest = new BufferSpan<byte>(dest, pDest);
+                Span<int> apSource = new Span<int>(source);
+                Span<byte> apDest = new Span<byte>(dest);
 
-                    BufferSpan.Copy(apSource, apDest, count);
-                }
+                SpanHelper.Copy(apSource.AsBytes(), apDest, count * sizeof(int));
 
                 AssertNotDefault(source, 1);
 
@@ -398,15 +405,11 @@ namespace ImageSharp.Tests.Common
                 int srcCount = count * sizeof(Foo);
                 byte[] source = CreateTestBytes(srcCount);
                 Foo[] dest = new Foo[count + 2];
-                
-                fixed(byte* pSource = source)
-                fixed (Foo* pDest = dest)
-                {
-                    BufferSpan<byte> apSource = new BufferSpan<byte>(source, pSource);
-                    BufferSpan<Foo> apDest = new BufferSpan<Foo>(dest, pDest);
 
-                    BufferSpan.Copy(apSource, apDest, count);
-                }
+                Span<byte> apSource = new Span<byte>(source);
+                Span<Foo> apDest = new Span<Foo>(dest);
+
+                SpanHelper.Copy(apSource, apDest.AsBytes(), count * sizeof(Foo));
 
                 AssertNotDefault(source, sizeof(Foo) + 1);
                 AssertNotDefault(dest, 1);
@@ -418,14 +421,14 @@ namespace ImageSharp.Tests.Common
             }
 
             [Fact]
-            public void ColorToBytes()
+            public void Color32ToBytes()
             {
-                Color[] colors = { new Color(0, 1, 2, 3), new Color(4, 5, 6, 7), new Color(8, 9, 10, 11), };
+                Rgba32[] colors = { new Rgba32(0, 1, 2, 3), new Rgba32(4, 5, 6, 7), new Rgba32(8, 9, 10, 11), };
 
-                using (PinnedBuffer<Color> colorBuf = new PinnedBuffer<Color>(colors))
-                using (PinnedBuffer<byte> byteBuf = new PinnedBuffer<byte>(colors.Length*4))
+                using (Buffer<Rgba32> colorBuf = new Buffer<Rgba32>(colors))
+                using (Buffer<byte> byteBuf = new Buffer<byte>(colors.Length * 4))
                 {
-                    BufferSpan.Copy<Color>(colorBuf, byteBuf, colorBuf.Length);
+                    SpanHelper.Copy(colorBuf.Span.AsBytes(), byteBuf, colorBuf.Length * sizeof(Rgba32));
 
                     byte[] a = byteBuf.Array;
 
@@ -435,7 +438,6 @@ namespace ImageSharp.Tests.Common
                     }
                 }
             }
-
 
             internal static bool ElementsAreEqual(Foo[] array, byte[] rawArray, int index)
             {

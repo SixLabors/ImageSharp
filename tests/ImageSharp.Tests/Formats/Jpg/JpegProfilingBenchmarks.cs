@@ -11,6 +11,7 @@ namespace ImageSharp.Tests
     using System.Numerics;
 
     using ImageSharp.Formats;
+    using ImageSharp.PixelFormats;
 
     using Xunit;
     using Xunit.Abstractions;
@@ -50,7 +51,7 @@ namespace ImageSharp.Tests
                 ExecutionCount,
                 () =>
                     {
-                        Image img = Image.Load(bytes);
+                         Image<Rgba32> img = Image.Load<Rgba32>(bytes);
                     },
                 // ReSharper disable once ExplicitCallerInfoArgument
                 $"Decode {fileName}");
@@ -69,9 +70,9 @@ namespace ImageSharp.Tests
                 .Concat(new[] { TestImages.Jpeg.Baseline.Calliphora, TestImages.Jpeg.Baseline.Cmyk })
                 .ToArray();
 
-            Image<Color>[] testImages =
+            Image<Rgba32>[] testImages =
                 testFiles.Select(
-                        tf => TestImageProvider<Color>.File(tf, pixelTypeOverride: PixelTypes.StandardImageClass).GetImage())
+                        tf => TestImageProvider<Rgba32>.File(tf, pixelTypeOverride: PixelTypes.StandardImageClass).GetImage())
                     .ToArray();
 
             using (MemoryStream ms = new MemoryStream())
@@ -79,7 +80,7 @@ namespace ImageSharp.Tests
                 this.Measure(executionCount,
                     () =>
                     {
-                        foreach (Image<Color> img in testImages)
+                        foreach (Image<Rgba32> img in testImages)
                         {
                             JpegEncoder encoder = new JpegEncoder();
                             JpegEncoderOptions options = new JpegEncoderOptions { Quality = quality, Subsample = subsample };

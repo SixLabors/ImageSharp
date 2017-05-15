@@ -5,10 +5,11 @@
 
 namespace ImageSharp
 {
-    using System;
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
     using System.IO;
+
+    using ImageSharp.PixelFormats;
 
     /// <summary>
     /// Represents an EXIF profile providing access to the collection of values.
@@ -116,12 +117,12 @@ namespace ImageSharp
         /// <summary>
         /// Returns the thumbnail in the EXIF profile when available.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>
-        /// The <see cref="Image{TColor}"/>.
+        /// The <see cref="Image{TPixel}"/>.
         /// </returns>
-        public Image<TColor> CreateThumbnail<TColor>()
-            where TColor : struct, IPixel<TColor>
+        public Image<TPixel> CreateThumbnail<TPixel>()
+            where TPixel : struct, IPixel<TPixel>
         {
             this.InitializeValues();
 
@@ -135,9 +136,9 @@ namespace ImageSharp
                 return null;
             }
 
-            using (MemoryStream memStream = new MemoryStream(this.data, this.thumbnailOffset, this.thumbnailLength))
+            using (var memStream = new MemoryStream(this.data, this.thumbnailOffset, this.thumbnailLength))
             {
-                return Image.Load<TColor>(memStream);
+                return Image.Load<TPixel>(memStream);
             }
         }
 
@@ -200,7 +201,7 @@ namespace ImageSharp
                 }
             }
 
-            ExifValue newExifValue = ExifValue.Create(tag, value);
+            var newExifValue = ExifValue.Create(tag, value);
             this.values.Add(newExifValue);
         }
 
@@ -220,7 +221,7 @@ namespace ImageSharp
                 return null;
             }
 
-            ExifWriter writer = new ExifWriter(this.values, this.Parts);
+            var writer = new ExifWriter(this.values, this.Parts);
             return writer.GetData();
         }
 
@@ -237,11 +238,18 @@ namespace ImageSharp
         private void SyncResolution(ExifTag tag, double resolution)
         {
             ExifValue value = this.GetValue(tag);
-            if (value != null)
+            if (value == null)
             {
-              Rational newResolution = new Rational(resolution, false);
-              this.SetValue(tag, newResolution);
+                return;
             }
+
+            if (value.IsArray || value.DataType != ExifDataType.Rational)
+            {
+                this.RemoveValue(value.Tag);
+            }
+
+            var newResolution = new Rational(resolution, false);
+            this.SetValue(tag, newResolution);
         }
 
         private void InitializeValues()
@@ -257,7 +265,7 @@ namespace ImageSharp
                 return;
             }
 
-            ExifReader reader = new ExifReader();
+            var reader = new ExifReader();
             this.values = reader.Read(this.data);
             this.invalidTags = new List<ExifTag>(reader.InvalidTags);
             this.thumbnailOffset = (int)reader.ThumbnailOffset;

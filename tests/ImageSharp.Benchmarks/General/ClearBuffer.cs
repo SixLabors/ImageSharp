@@ -3,23 +3,22 @@ namespace ImageSharp.Benchmarks.General
 {
     using System;
     using System.Runtime.CompilerServices;
-    using System.Runtime.InteropServices;
 
     using BenchmarkDotNet.Attributes;
 
-    using Color = ImageSharp.Color;
+    using ImageSharp.Memory;
 
     public unsafe class ClearBuffer
     {
-        private PinnedBuffer<Color> buffer;
-        
+        private Buffer<Rgba32> buffer;
+
         [Params(32, 128, 512)]
         public int Count { get; set; }
 
         [Setup]
         public void Setup()
         {
-            this.buffer = new PinnedBuffer<ImageSharp.Color>(this.Count);
+            this.buffer = new Buffer<Rgba32>(this.Count);
         }
 
         [Cleanup]
@@ -37,7 +36,7 @@ namespace ImageSharp.Benchmarks.General
         [Benchmark]
         public void Unsafe_InitBlock()
         {
-            Unsafe.InitBlock((void*)this.buffer.Pointer, default(byte), (uint)this.Count*sizeof(uint));
+            Unsafe.InitBlock((void*)this.buffer.Pin(), default(byte), (uint)this.Count * sizeof(uint));
         }
     }
 }

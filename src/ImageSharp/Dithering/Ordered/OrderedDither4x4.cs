@@ -5,6 +5,9 @@
 
 namespace ImageSharp.Dithering.Ordered
 {
+    using ImageSharp.Memory;
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// The base class for performing ordered ditheroing using a 4x4 matrix.
     /// </summary>
@@ -25,8 +28,8 @@ namespace ImageSharp.Dithering.Ordered
         }
 
         /// <inheritdoc />
-        public void Dither<TColor>(PixelAccessor<TColor> pixels, TColor source, TColor upper, TColor lower, byte[] bytes, int index, int x, int y, int width, int height)
-            where TColor : struct, IPixel<TColor>
+        public void Dither<TPixel>(PixelAccessor<TPixel> pixels, TPixel source, TPixel upper, TPixel lower, byte[] bytes, int index, int x, int y, int width, int height)
+            where TPixel : struct, IPixel<TPixel>
         {
             // TODO: This doesn't really cut it for me.
             // I'd rather be using float but we need to add some sort of movalization vector methods to all IPixel implementations

@@ -10,6 +10,7 @@ namespace ImageSharp.Formats
     using System.IO;
     using System.Text;
     using ImageSharp.Formats.Tiff;
+    using ImageSharp.PixelFormats;
 
     /// <summary>
     /// Performs the tiff decoding operation.
@@ -82,17 +83,17 @@ namespace ImageSharp.Formats
         /// Decodes the image from the specified <see cref="Stream"/>  and sets
         /// the data to image.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="stream">The stream, where the image should be.</param>
         /// <returns>The decoded image.</returns>
-        public Image<TColor> Decode<TColor>(Stream stream)
-            where TColor : struct, IPixel<TColor>
+        public Image<TPixel> Decode<TPixel>(Stream stream)
+            where TPixel : struct, IPixel<TPixel>
         {
             this.InputStream = stream;
 
             uint firstIfdOffset = this.ReadHeader();
             TiffIfd firstIfd = this.ReadIfd(firstIfdOffset);
-            Image<TColor> image = this.DecodeImage<TColor>(firstIfd);
+            Image<TPixel> image = this.DecodeImage<TPixel>(firstIfd);
 
             return image;
         }
@@ -175,11 +176,11 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Decodes the image data from a specified IFD.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="ifd">The IFD to read the image from.</param>
         /// <returns>The decoded image.</returns>
-        public Image<TColor> DecodeImage<TColor>(TiffIfd ifd)
-            where TColor : struct, IPixel<TColor>
+        public Image<TPixel> DecodeImage<TPixel>(TiffIfd ifd)
+            where TPixel : struct, IPixel<TPixel>
         {
             if (!ifd.TryGetIfdEntry(TiffTags.ImageLength, out TiffIfdEntry imageLengthEntry)
                 || !ifd.TryGetIfdEntry(TiffTags.ImageWidth, out TiffIfdEntry imageWidthEntry))
@@ -190,7 +191,7 @@ namespace ImageSharp.Formats
             int width = (int)this.ReadUnsignedInteger(ref imageWidthEntry);
             int height = (int)this.ReadUnsignedInteger(ref imageLengthEntry);
 
-            Image<TColor> image = Image.Create<TColor>(width, height, this.configuration);
+            Image<TPixel> image = new Image<TPixel>(this.configuration, width, height);
 
             TiffResolutionUnit resolutionUnit = TiffResolutionUnit.Inch;
             if (ifd.TryGetIfdEntry(TiffTags.ResolutionUnit, out TiffIfdEntry resolutionUnitEntry))
@@ -224,44 +225,10 @@ namespace ImageSharp.Formats
                 int rowsPerStrip = (int)this.ReadUnsignedInteger(ref rowsPerStripEntry);
                 uint[] stripOffsets = this.ReadUnsignedIntegerArray(ref stripOffsetsEntry);
                 uint[] stripByteCounts = this.ReadUnsignedIntegerArray(ref stripByteCountsEntry);
-                DecodeImageStrips(image, rowsPerStrip, stripOffsets, stripByteCounts);
+                this.DecodeImageStrips(image, rowsPerStrip, stripOffsets, stripByteCounts);
             }
 
             return image;
-        }
-
-        /// <summary>
-        /// Decodes the image data for strip encoded data.
-        /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <param name="image">The image to decode data into.</param>
-        /// <param name="rowsPerStrip">The number of rows per strip of data.</param>
-        /// <param name="stripOffsets">An array of byte offsets to each strip in the image.</param>
-        /// <param name="stripByteCounts">An array of the size of each strip (in bytes).</param>
-        private void DecodeImageStrips<TColor>(Image<TColor> image, int rowsPerStrip, uint[] stripOffsets, uint[] stripByteCounts)
-            where TColor : struct, IPixel<TColor>
-        {
-            int uncompressedStripSize = this.CalculateImageBufferSize(image.Width, rowsPerStrip);
-
-            using (PixelAccessor<TColor> pixels = image.Lock())
-            {
-                byte[] stripBytes = ArrayPool<byte>.Shared.Rent(uncompressedStripSize);
-
-                try
-                {
-                    for (int i = 0; i < stripOffsets.Length; i++)
-                    {
-                        int stripHeight = i < stripOffsets.Length - 1 || image.Height % rowsPerStrip == 0 ? rowsPerStrip : image.Height % rowsPerStrip;
-
-                        this.DecompressImageBlock(stripOffsets[i], stripByteCounts[i], stripBytes);
-                        this.ProcessImageBlock(stripBytes, pixels, 0, rowsPerStrip * i, image.Width, stripHeight);
-                    }
-                }
-                finally
-                {
-                    ArrayPool<byte>.Shared.Return(stripBytes);
-                }
-            }
         }
 
         /// <summary>
@@ -412,15 +379,15 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Decodes pixel data using the current photometric interpretation.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="data">The buffer to read image data from.</param>
         /// <param name="pixels">The image buffer to write pixels to.</param>
         /// <param name="left">The x-coordinate of the left-hand side of the image block.</param>
         /// <param name="top">The y-coordinate of the  top of the image block.</param>
         /// <param name="width">The width of the image block.</param>
         /// <param name="height">The height of the image block.</param>
-        public void ProcessImageBlock<TColor>(byte[] data, PixelAccessor<TColor> pixels, int left, int top, int width, int height)
-            where TColor : struct, IPixel<TColor>
+        public void ProcessImageBlock<TPixel>(byte[] data, PixelAccessor<TPixel> pixels, int left, int top, int width, int height)
+            where TPixel : struct, IPixel<TPixel>
         {
             switch (this.ColorType)
             {
@@ -983,6 +950,40 @@ namespace ImageSharp.Formats
             }
 
             return BitConverter.ToDouble(buffer, 0);
+        }
+
+        /// <summary>
+        /// Decodes the image data for strip encoded data.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="image">The image to decode data into.</param>
+        /// <param name="rowsPerStrip">The number of rows per strip of data.</param>
+        /// <param name="stripOffsets">An array of byte offsets to each strip in the image.</param>
+        /// <param name="stripByteCounts">An array of the size of each strip (in bytes).</param>
+        private void DecodeImageStrips<TPixel>(Image<TPixel> image, int rowsPerStrip, uint[] stripOffsets, uint[] stripByteCounts)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            int uncompressedStripSize = this.CalculateImageBufferSize(image.Width, rowsPerStrip);
+
+            using (PixelAccessor<TPixel> pixels = image.Lock())
+            {
+                byte[] stripBytes = ArrayPool<byte>.Shared.Rent(uncompressedStripSize);
+
+                try
+                {
+                    for (int i = 0; i < stripOffsets.Length; i++)
+                    {
+                        int stripHeight = i < stripOffsets.Length - 1 || image.Height % rowsPerStrip == 0 ? rowsPerStrip : image.Height % rowsPerStrip;
+
+                        this.DecompressImageBlock(stripOffsets[i], stripByteCounts[i], stripBytes);
+                        this.ProcessImageBlock(stripBytes, pixels, 0, rowsPerStrip * i, image.Width, stripHeight);
+                    }
+                }
+                finally
+                {
+                    ArrayPool<byte>.Shared.Return(stripBytes);
+                }
+            }
         }
     }
 }

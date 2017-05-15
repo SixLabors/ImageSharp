@@ -111,7 +111,7 @@ namespace ImageSharp.Tests
         private void TestDecode(TiffDecoder decoder, Stream stream)
         {
             Configuration.Default.AddImageFormat(new TiffFormat());
-            Image<Color> image = decoder.Decode<Color>(Configuration.Default, stream, null);
+            Image<Rgba32> image = decoder.Decode<Rgba32>(Configuration.Default, stream, null);
         }
     }
 }

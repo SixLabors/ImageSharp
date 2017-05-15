@@ -6,6 +6,7 @@
 namespace ImageSharp.Formats
 {
     using System.IO;
+    using ImageSharp.PixelFormats;
 
     /// <summary>
     /// Image decoder for generating an image out of a TIFF stream.
@@ -13,14 +14,14 @@ namespace ImageSharp.Formats
     public class TiffDecoder : IImageDecoder
     {
         /// <inheritdoc/>
-        public Image<TColor> Decode<TColor>(Configuration configuration, Stream stream, IDecoderOptions options)
-            where TColor : struct, IPixel<TColor>
+        public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream, IDecoderOptions options)
+            where TPixel : struct, IPixel<TPixel>
         {
             Guard.NotNull(stream, "stream");
 
             using (TiffDecoderCore decoder = new TiffDecoderCore(options, configuration))
             {
-                return decoder.Decode<TColor>(stream);
+                return decoder.Decode<TPixel>(stream);
             }
         }
     }

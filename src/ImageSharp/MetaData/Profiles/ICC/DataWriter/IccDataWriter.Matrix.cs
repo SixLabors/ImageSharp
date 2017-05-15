@@ -7,6 +7,8 @@ namespace ImageSharp
 {
     using System.Numerics;
 
+    using ImageSharp.Memory;
+
     /// <summary>
     /// Provides methods to write ICC data types
     /// </summary>

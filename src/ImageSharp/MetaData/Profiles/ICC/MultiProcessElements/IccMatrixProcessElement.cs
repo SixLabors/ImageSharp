@@ -8,6 +8,8 @@ namespace ImageSharp
     using System;
     using System.Linq;
 
+    using ImageSharp.Memory;
+
     /// <summary>
     /// A matrix element to process data
     /// </summary>

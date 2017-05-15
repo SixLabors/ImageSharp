@@ -5,9 +5,9 @@
 
 namespace ImageSharp
 {
+    using System;
     using System.Collections.Generic;
 #if !NETSTANDARD1_1
-    using System;
     using System.Security.Cryptography;
 #endif
 
@@ -19,7 +19,7 @@ namespace ImageSharp
         /// <summary>
         /// The byte array to read the ICC profile from
         /// </summary>
-        private readonly byte[] data;
+        private byte[] data;
 
         /// <summary>
         /// The backing file for the <see cref="Entries"/> property
@@ -35,7 +35,7 @@ namespace ImageSharp
         /// Initializes a new instance of the <see cref="IccProfile"/> class.
         /// </summary>
         public IccProfile()
-            : this(null)
+            : this((byte[])null)
         {
         }
 
@@ -46,6 +46,20 @@ namespace ImageSharp
         public IccProfile(byte[] data)
         {
             this.data = data;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="IccProfile"/> class
+        /// by making a copy from another ICC profile.
+        /// </summary>
+        /// <param name="other">The other ICC profile, where the clone should be made from.</param>
+        /// <exception cref="System.ArgumentNullException"><paramref name="other"/> is null.</exception>>
+        public IccProfile(IccProfile other)
+        {
+            Guard.NotNull(other, nameof(other));
+
+            // TODO: Do we need to copy anything else?
+            this.data = other.data;
         }
 
         /// <summary>
@@ -73,10 +87,7 @@ namespace ImageSharp
                 return this.header;
             }
 
-            set
-            {
-                this.header = value;
-            }
+            set => this.header = value;
         }
 
         /// <summary>
@@ -106,7 +117,7 @@ namespace ImageSharp
             byte[] header = new byte[128];
             Buffer.BlockCopy(data, 0, header, 0, 128);
 
-            using (MD5 md5 = MD5.Create())
+            using (var md5 = MD5.Create())
             {
                 // Zero out some values
                 Array.Clear(header, 44, 4);     // Profile flags
@@ -117,7 +128,7 @@ namespace ImageSharp
                 byte[] hash = md5.ComputeHash(data);
 
                 // Read values from hash
-                IccDataReader reader = new IccDataReader(hash);
+                var reader = new IccDataReader(hash);
                 return reader.ReadProfileId();
             }
         }
@@ -125,12 +136,23 @@ namespace ImageSharp
 #endif
 
         /// <summary>
+        /// Extends the profile with additional data.
+        /// </summary>
+        /// <param name="bytes">The array containing addition profile data.</param>
+        public void Extend(byte[] bytes)
+        {
+            int currentLength = this.data.Length;
+            Array.Resize(ref this.data, currentLength + bytes.Length);
+            Buffer.BlockCopy(bytes, 0, this.data, currentLength, bytes.Length);
+        }
+
+        /// <summary>
         /// Converts this instance to a byte array.
         /// </summary>
         /// <returns>The <see cref="T:byte[]"/></returns>
         public byte[] ToByteArray()
         {
-            IccWriter writer = new IccWriter();
+            var writer = new IccWriter();
             return writer.Write(this);
         }
 
@@ -147,7 +169,7 @@ namespace ImageSharp
                 return;
             }
 
-            IccReader reader = new IccReader();
+            var reader = new IccReader();
             this.header = reader.ReadHeader(this.data);
         }
 
@@ -164,7 +186,7 @@ namespace ImageSharp
                 return;
             }
 
-            IccReader reader = new IccReader();
+            var reader = new IccReader();
             this.entries = new List<IccTagDataEntry>(reader.ReadTagData(this.data));
         }
     }

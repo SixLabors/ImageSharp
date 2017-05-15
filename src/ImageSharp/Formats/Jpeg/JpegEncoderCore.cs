@@ -700,42 +700,60 @@ namespace ImageSharp.Formats
         }
 
         /// <summary>
-        /// Writes the ICC profiles.
+        /// Writes the ICC profile.
         /// </summary>
-        /// <param name="iccProfiles">The list of ICC profiles.</param>
+        /// <param name="iccProfile">The ICC profile to write.</param>
         /// <exception cref="ImageFormatException">
         /// Thrown if any of the ICC profiles size exceeds the limit
         /// </exception>
-        private void WriteICCProfiles(IList<IccProfile> iccProfiles)
+        private void WriteIccProfile(IccProfile iccProfile)
         {
             // Just incase someone set the value to null by accident.
-            if (iccProfiles == null || !iccProfiles.Any())
+            if (iccProfile == null)
             {
                 return;
             }
 
+            const int IccOverheadLength = 14;
             const int Max = 65533;
-            int count = iccProfiles.Count;
+            const int MaxData = Max - IccOverheadLength;
 
-            for (int i = 1; i <= count; i++)
+            byte[] data = iccProfile.ToByteArray();
+
+            if (data == null || data.Length == 0)
             {
-                byte[] data = iccProfiles[i - 1]?.ToByteArray();
+                return;
+            }
 
-                if (data == null || data.Length == 0)
+            // Calculate the number of markers we'll need, rounding up of course
+            int dataLength = data.Length;
+            int count = dataLength / MaxData;
+
+            if (count * MaxData != dataLength)
+            {
+                count++;
+            }
+
+            // Per spec, counting starts at 1.
+            int current = 1;
+            int offset = 0;
+
+            while (dataLength > 0)
+            {
+                int length = dataLength; // Number of bytes to write.
+
+                if (length > MaxData)
                 {
-                    continue;
+                    length = MaxData;
                 }
 
-                if (data.Length > Max)
-                {
-                    throw new ImageFormatException($"ICC profile size exceeds limit. nameof{Max}");
-                }
+                dataLength -= length;
 
                 this.buffer[0] = JpegConstants.Markers.XFF;
                 this.buffer[1] = JpegConstants.Markers.APP2; // Application Marker
-                int length = data.Length + 16;
-                this.buffer[2] = (byte)((length >> 8) & 0xFF);
-                this.buffer[3] = (byte)(length & 0xFF);
+                int markerLength = length + 16;
+                this.buffer[2] = (byte)((markerLength >> 8) & 0xFF);
+                this.buffer[3] = (byte)(markerLength & 0xFF);
 
                 this.outputStream.Write(this.buffer, 0, 4);
 
@@ -751,11 +769,14 @@ namespace ImageSharp.Formats
                 this.buffer[9] = (byte)'L';
                 this.buffer[10] = (byte)'E';
                 this.buffer[11] = 0x00;
-                this.buffer[12] = (byte)i; // The position within the collection.
+                this.buffer[12] = (byte)current; // The position within the collection.
                 this.buffer[13] = (byte)count; // The total number of profiles.
 
-                this.outputStream.Write(this.buffer, 0, 14);
-                this.outputStream.Write(data, 0, data.Length);
+                this.outputStream.Write(this.buffer, 0, IccOverheadLength);
+                this.outputStream.Write(data, offset, length);
+
+                current++;
+                offset += length;
             }
         }
 
@@ -774,7 +795,7 @@ namespace ImageSharp.Formats
 
             image.MetaData.SyncProfiles();
             this.WriteExifProfile(image.MetaData.ExifProfile);
-            this.WriteICCProfiles(image.MetaData.IccProfiles);
+            this.WriteIccProfile(image.MetaData.IccProfile);
         }
 
         /// <summary>

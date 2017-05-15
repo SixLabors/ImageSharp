@@ -7,6 +7,8 @@ using System.Numerics;
 
 namespace ImageSharp.Tests
 {
+    using ImageSharp.Memory;
+
     internal static class IccTestDataMatrix
     {
         #region 2D

@@ -6,6 +6,9 @@
 namespace ImageSharp.Tests.Icc
 {
     using System.Numerics;
+
+    using ImageSharp.Memory;
+
     using Xunit;
 
     public class IccDataWriterMatrixTests

@@ -5,6 +5,8 @@
 
 namespace ImageSharp.PixelFormats
 {
+    using System;
+
     /// <summary>
     /// Abstract base class for calling pixel composition functions
     /// </summary>
@@ -34,6 +36,6 @@ namespace ImageSharp.PixelFormats
         /// A value between 0 and 1 indicating the weight of the second source vector.
         /// At amount = 0, "from" is returned, at amount = 1, "to" is returned.
         /// </param>
-        public abstract void Blend(BufferSpan<TPixel> destination, BufferSpan<TPixel> background, BufferSpan<TPixel> source, BufferSpan<float> amount);
+        public abstract void Blend(Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount);
     }
 }

@@ -146,7 +146,7 @@ namespace ImageSharp
         /// than the given one.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="bitmap">The <see cref="Image"/> to search within.</param>
+        /// <param name="bitmap">The <see cref="Image{TPixel}"/> to search within.</param>
         /// <param name="componentValue">The color component value to remove.</param>
         /// <param name="channel">The <see cref="RgbaComponent"/> channel to test against.</param>
         /// <returns>

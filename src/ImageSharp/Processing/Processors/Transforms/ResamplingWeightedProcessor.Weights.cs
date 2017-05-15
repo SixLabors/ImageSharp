@@ -4,6 +4,8 @@ namespace ImageSharp.Processing.Processors
     using System.Numerics;
     using System.Runtime.CompilerServices;
 
+    using ImageSharp.Memory;
+
     /// <content>
     /// Conains the definition of <see cref="WeightsWindow"/> and <see cref="WeightsBuffer"/>.
     /// </content>
@@ -12,7 +14,7 @@ namespace ImageSharp.Processing.Processors
         /// <summary>
         /// Points to a collection of of weights allocated in <see cref="WeightsBuffer"/>.
         /// </summary>
-        internal unsafe struct WeightsWindow
+        internal struct WeightsWindow
         {
             /// <summary>
             /// The local left index position
@@ -22,9 +24,7 @@ namespace ImageSharp.Processing.Processors
             /// <summary>
             /// The span of weights pointing to <see cref="WeightsBuffer"/>.
             /// </summary>
-            // TODO: In the case of switching to official System.Memory and System.Buffers.Primitives this should be System.Buffers.Buffer<T> (formerly Memory<T>), because Span<T> is stack-only!
-            // see: https://github.com/dotnet/corefxlab/blob/873d35ebed7264e2f9adb556f3b61bebc12395d6/docs/specs/memory.md
-            public BufferSpan<float> Span;
+            public Span<float> Span;
 
             /// <summary>
             /// Initializes a new instance of the <see cref="WeightsWindow"/> struct.
@@ -32,7 +32,7 @@ namespace ImageSharp.Processing.Processors
             /// <param name="left">The local left index</param>
             /// <param name="span">The span</param>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            internal WeightsWindow(int left, BufferSpan<float> span)
+            internal WeightsWindow(int left, Span<float> span)
             {
                 this.Left = left;
                 this.Span = span;
@@ -55,7 +55,7 @@ namespace ImageSharp.Processing.Processors
             /// <param name="sourceX">The source row position.</param>
             /// <returns>The weighted sum</returns>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public Vector4 ComputeWeightedRowSum(BufferSpan<Vector4> rowSpan, int sourceX)
+            public Vector4 ComputeWeightedRowSum(Span<Vector4> rowSpan, int sourceX)
             {
                 ref float horizontalValues = ref this.Ptr;
                 int left = this.Left;
@@ -82,7 +82,7 @@ namespace ImageSharp.Processing.Processors
             /// <param name="sourceX">The source row position.</param>
             /// <returns>The weighted sum</returns>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public Vector4 ComputeExpandedWeightedRowSum(BufferSpan<Vector4> rowSpan, int sourceX)
+            public Vector4 ComputeExpandedWeightedRowSum(Span<Vector4> rowSpan, int sourceX)
             {
                 ref float horizontalValues = ref this.Ptr;
                 int left = this.Left;
@@ -169,7 +169,7 @@ namespace ImageSharp.Processing.Processors
             /// <returns>The weights</returns>
             public WeightsWindow GetWeightsWindow(int destIdx, int leftIdx, int rightIdx)
             {
-                BufferSpan<float> span = this.dataBuffer.GetRowSpan(destIdx).Slice(leftIdx, rightIdx - leftIdx + 1);
+                Span<float> span = this.dataBuffer.GetRowSpan(destIdx).Slice(leftIdx, rightIdx - leftIdx + 1);
                 return new WeightsWindow(leftIdx, span);
             }
         }

@@ -7,6 +7,8 @@ namespace ImageSharp.PixelFormats.PixelBlenders
 {
     using System;
     using System.Numerics;
+
+    using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
 
     /// <summary>
@@ -28,7 +30,7 @@ namespace ImageSharp.PixelFormats.PixelBlenders
         }
 
         /// <inheritdoc />
-        public override void Blend(BufferSpan<TPixel> destination, BufferSpan<TPixel> background, BufferSpan<TPixel> source, BufferSpan<float> amount)
+        public override void Blend(Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
         {
             Guard.MustBeGreaterThanOrEqualTo(background.Length, destination.Length, nameof(background.Length));
             Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
@@ -36,9 +38,9 @@ namespace ImageSharp.PixelFormats.PixelBlenders
 
             using (Buffer<Vector4> buffer = new Buffer<Vector4>(destination.Length * 3))
             {
-                BufferSpan<Vector4> destinationSpan = buffer.Slice(0, destination.Length);
-                BufferSpan<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);
-                BufferSpan<Vector4> sourceSpan = buffer.Slice(destination.Length * 2, destination.Length);
+                Span<Vector4> destinationSpan = buffer.Slice(0, destination.Length);
+                Span<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);
+                Span<Vector4> sourceSpan = buffer.Slice(destination.Length * 2, destination.Length);
 
                 PixelOperations<TPixel>.Instance.ToVector4(background, backgroundSpan, destination.Length);
                 PixelOperations<TPixel>.Instance.ToVector4(source, sourceSpan, destination.Length);

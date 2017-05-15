@@ -23,7 +23,7 @@ namespace ImageSharp
         /// <param name="source">The image to skew.</param>
         /// <param name="degreesX">The angle in degrees to perform the rotation along the x-axis.</param>
         /// <param name="degreesY">The angle in degrees to perform the rotation along the y-axis.</param>
-        /// <returns>The <see cref="Image"/></returns>
+        /// <returns>The <see cref="Image{TPixel}"/></returns>
         public static Image<TPixel> Skew<TPixel>(this Image<TPixel> source, float degreesX, float degreesY)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -38,7 +38,7 @@ namespace ImageSharp
         /// <param name="degreesX">The angle in degrees to perform the rotation along the x-axis.</param>
         /// <param name="degreesY">The angle in degrees to perform the rotation along the y-axis.</param>
         /// <param name="expand">Whether to expand the image to fit the skewed result.</param>
-        /// <returns>The <see cref="Image"/></returns>
+        /// <returns>The <see cref="Image{TPixel}"/></returns>
         public static Image<TPixel> Skew<TPixel>(this Image<TPixel> source, float degreesX, float degreesY, bool expand)
             where TPixel : struct, IPixel<TPixel>
         {

@@ -33,8 +33,10 @@ namespace ImageSharp.Formats
         public void Encode<TPixel>(Image<TPixel> image, Stream stream, IPngEncoderOptions options)
             where TPixel : struct, IPixel<TPixel>
         {
-            PngEncoderCore encode = new PngEncoderCore(options);
-            encode.Encode(image, stream);
+            using (var encode = new PngEncoderCore(options))
+            {
+                encode.Encode(image, stream);
+            }
         }
     }
 }

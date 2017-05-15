@@ -3,12 +3,15 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.PixelFormats
+namespace ImageSharp
 {
     using System;
     using System.Numerics;
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
+
+    using ImageSharp.Memory;
+    using ImageSharp.PixelFormats;
 
     /// <content>
     /// Provides optimized overrides for bulk operations.
@@ -24,8 +27,8 @@ namespace ImageSharp.PixelFormats
             /// SIMD optimized bulk implementation of <see cref="IPixel.PackFromVector4(Vector4)"/>
             /// that works only with `count` divisible by <see cref="Vector{UInt32}.Count"/>.
             /// </summary>
-            /// <param name="sourceColors">The <see cref="BufferSpan{T}"/> to the source colors.</param>
-            /// <param name="destVectors">The <see cref="BufferSpan{T}"/> to the dstination vectors.</param>
+            /// <param name="sourceColors">The <see cref="Span{T}"/> to the source colors.</param>
+            /// <param name="destVectors">The <see cref="Span{T}"/> to the dstination vectors.</param>
             /// <param name="count">The number of pixels to convert.</param>
             /// <remarks>
             /// Implementation adapted from:
@@ -37,18 +40,16 @@ namespace ImageSharp.PixelFormats
             ///     <cref>https://github.com/dotnet/corefx/issues/15957</cref>
             /// </see>
             /// </remarks>
-            internal static unsafe void ToVector4SimdAligned(BufferSpan<Rgba32> sourceColors, BufferSpan<Vector4> destVectors, int count)
+            internal static void ToVector4SimdAligned(Span<Rgba32> sourceColors, Span<Vector4> destVectors, int count)
             {
                 if (!Vector.IsHardwareAccelerated)
                 {
                     throw new InvalidOperationException(
-                        "Rgba32.BulkOperations.ToVector4SimdAligned() should not be called when Vector.IsHardwareAccelerated == false!");
+                        "Rgba32.PixelOperations.ToVector4SimdAligned() should not be called when Vector.IsHardwareAccelerated == false!");
                 }
 
-                int vecSize = Vector<uint>.Count;
-
                 DebugGuard.IsTrue(
-                    count % vecSize == 0,
+                    count % Vector<uint>.Count == 0,
                     nameof(count),
                     "Argument 'count' should divisible by Vector<uint>.Count!");
 
@@ -59,44 +60,42 @@ namespace ImageSharp.PixelFormats
 
                 int unpackedRawCount = count * 4;
 
-                ref uint src = ref Unsafe.As<Rgba32, uint>(ref sourceColors.DangerousGetPinnableReference());
+                ref uint sourceBase = ref Unsafe.As<Rgba32, uint>(ref sourceColors.DangerousGetPinnableReference());
+                ref UnpackedRGBA destBaseAsUnpacked = ref Unsafe.As<Vector4, UnpackedRGBA>(ref destVectors.DangerousGetPinnableReference());
+                ref Vector<uint> destBaseAsUInt = ref Unsafe.As<UnpackedRGBA, Vector<uint>>(ref destBaseAsUnpacked);
+                ref Vector<float> destBaseAsFloat = ref Unsafe.As<UnpackedRGBA, Vector<float>>(ref destBaseAsUnpacked);
 
-                using (Buffer<uint> tempBuf = new Buffer<uint>(
-                    unpackedRawCount + Vector<uint>.Count))
+                for (int i = 0; i < count; i++)
                 {
-                    uint[] temp = tempBuf.Array;
-                    float[] fTemp = Unsafe.As<float[]>(temp);
+                    uint sVal = Unsafe.Add(ref sourceBase, i);
+                    ref UnpackedRGBA dst = ref Unsafe.Add(ref destBaseAsUnpacked, i);
 
-                    ref UnpackedRGBA tempBase = ref Unsafe.As<uint, UnpackedRGBA>(ref tempBuf[0]);
+                    // This call is the bottleneck now:
+                    dst.Load(sVal);
+                }
 
-                    for (int i = 0; i < count; i++)
-                    {
-                        uint sVal = Unsafe.Add(ref src, i);
-                        ref UnpackedRGBA dst = ref Unsafe.Add(ref tempBase, i);
+                int numOfVectors = unpackedRawCount / Vector<uint>.Count;
 
-                        // This call is the bottleneck now:
-                        dst.Load(sVal);
-                    }
+                for (int i = 0; i < numOfVectors; i++)
+                {
+                    Vector<uint> vi = Unsafe.Add(ref destBaseAsUInt, i);
 
-                    for (int i = 0; i < unpackedRawCount; i += vecSize)
-                    {
-                        Vector<uint> vi = new Vector<uint>(temp, i);
+                    vi &= mask;
+                    vi |= magicInt;
 
-                        vi &= mask;
-                        vi |= magicInt;
+                    Vector<float> vf = Vector.AsVectorSingle(vi);
+                    vf = (vf - magicFloat) * bVec;
 
-                        Vector<float> vf = Vector.AsVectorSingle(vi);
-                        vf = (vf - magicFloat) * bVec;
-                        vf.CopyTo(fTemp, i);
-                    }
-
-                    BufferSpan.Copy(tempBuf.Span.AsBytes(), destVectors.AsBytes(), unpackedRawCount * sizeof(uint));
+                    Unsafe.Add(ref destBaseAsFloat, i) = vf;
                 }
             }
 
             /// <inheritdoc />
-            internal override void ToVector4(BufferSpan<Rgba32> sourceColors, BufferSpan<Vector4> destVectors, int count)
+            internal override void ToVector4(Span<Rgba32> sourceColors, Span<Vector4> destVectors, int count)
             {
+                Guard.MustBeSizedAtLeast(sourceColors, count, nameof(sourceColors));
+                Guard.MustBeSizedAtLeast(destVectors, count, nameof(destVectors));
+
                 if (count < 256 || !Vector.IsHardwareAccelerated)
                 {
                     // Doesn't worth to bother with SIMD:
@@ -122,8 +121,11 @@ namespace ImageSharp.PixelFormats
             }
 
             /// <inheritdoc />
-            internal override void PackFromXyzBytes(BufferSpan<byte> sourceBytes, BufferSpan<Rgba32> destColors, int count)
+            internal override void PackFromXyzBytes(Span<byte> sourceBytes, Span<Rgba32> destColors, int count)
             {
+                Guard.MustBeSizedAtLeast(sourceBytes, count * 3, nameof(sourceBytes));
+                Guard.MustBeSizedAtLeast(destColors, count, nameof(destColors));
+
                 ref RGB24 sourceRef = ref Unsafe.As<byte, RGB24>(ref sourceBytes.DangerousGetPinnableReference());
                 ref Rgba32 destRef = ref destColors.DangerousGetPinnableReference();
 
@@ -138,8 +140,11 @@ namespace ImageSharp.PixelFormats
             }
 
             /// <inheritdoc />
-            internal override void ToXyzBytes(BufferSpan<Rgba32> sourceColors, BufferSpan<byte> destBytes, int count)
+            internal override void ToXyzBytes(Span<Rgba32> sourceColors, Span<byte> destBytes, int count)
             {
+                Guard.MustBeSizedAtLeast(sourceColors, count, nameof(sourceColors));
+                Guard.MustBeSizedAtLeast(destBytes, count * 3, nameof(destBytes));
+
                 ref Rgba32 sourceRef = ref sourceColors.DangerousGetPinnableReference();
                 ref RGB24 destRef = ref Unsafe.As<byte, RGB24>(ref destBytes.DangerousGetPinnableReference());
 
@@ -153,20 +158,29 @@ namespace ImageSharp.PixelFormats
             }
 
             /// <inheritdoc />
-            internal override unsafe void PackFromXyzwBytes(BufferSpan<byte> sourceBytes, BufferSpan<Rgba32> destColors, int count)
+            internal override unsafe void PackFromXyzwBytes(Span<byte> sourceBytes, Span<Rgba32> destColors, int count)
             {
-                BufferSpan.Copy(sourceBytes, destColors.AsBytes(), count * sizeof(Rgba32));
+                Guard.MustBeSizedAtLeast(sourceBytes, count * 4, nameof(sourceBytes));
+                Guard.MustBeSizedAtLeast(destColors, count, nameof(destColors));
+
+                SpanHelper.Copy(sourceBytes, destColors.AsBytes(), count * sizeof(Rgba32));
             }
 
             /// <inheritdoc />
-            internal override unsafe void ToXyzwBytes(BufferSpan<Rgba32> sourceColors, BufferSpan<byte> destBytes, int count)
+            internal override unsafe void ToXyzwBytes(Span<Rgba32> sourceColors, Span<byte> destBytes, int count)
             {
-                BufferSpan.Copy(sourceColors.AsBytes(), destBytes, count * sizeof(Rgba32));
+                Guard.MustBeSizedAtLeast(sourceColors, count, nameof(sourceColors));
+                Guard.MustBeSizedAtLeast(destBytes, count * 4, nameof(destBytes));
+
+                SpanHelper.Copy(sourceColors.AsBytes(), destBytes, count * sizeof(Rgba32));
             }
 
             /// <inheritdoc />
-            internal override void PackFromZyxBytes(BufferSpan<byte> sourceBytes, BufferSpan<Rgba32> destColors, int count)
+            internal override void PackFromZyxBytes(Span<byte> sourceBytes, Span<Rgba32> destColors, int count)
             {
+                Guard.MustBeSizedAtLeast(sourceBytes, count * 3, nameof(sourceBytes));
+                Guard.MustBeSizedAtLeast(destColors, count, nameof(destColors));
+
                 ref RGB24 sourceRef = ref Unsafe.As<byte, RGB24>(ref sourceBytes.DangerousGetPinnableReference());
                 ref Rgba32 destRef = ref destColors.DangerousGetPinnableReference();
 
@@ -181,8 +195,11 @@ namespace ImageSharp.PixelFormats
             }
 
             /// <inheritdoc />
-            internal override void ToZyxBytes(BufferSpan<Rgba32> sourceColors, BufferSpan<byte> destBytes, int count)
+            internal override void ToZyxBytes(Span<Rgba32> sourceColors, Span<byte> destBytes, int count)
             {
+                Guard.MustBeSizedAtLeast(sourceColors, count, nameof(sourceColors));
+                Guard.MustBeSizedAtLeast(destBytes, count * 3, nameof(destBytes));
+
                 ref Rgba32 sourceRef = ref sourceColors.DangerousGetPinnableReference();
                 ref RGB24 destRef = ref Unsafe.As<byte, RGB24>(ref destBytes.DangerousGetPinnableReference());
 
@@ -196,8 +213,11 @@ namespace ImageSharp.PixelFormats
             }
 
             /// <inheritdoc />
-            internal override void PackFromZyxwBytes(BufferSpan<byte> sourceBytes, BufferSpan<Rgba32> destColors, int count)
+            internal override void PackFromZyxwBytes(Span<byte> sourceBytes, Span<Rgba32> destColors, int count)
             {
+                Guard.MustBeSizedAtLeast(sourceBytes, count * 4, nameof(sourceBytes));
+                Guard.MustBeSizedAtLeast(destColors, count, nameof(destColors));
+
                 ref RGBA32 sourceRef = ref Unsafe.As<byte, RGBA32>(ref sourceBytes.DangerousGetPinnableReference());
                 ref Rgba32 destRef = ref destColors.DangerousGetPinnableReference();
 
@@ -211,8 +231,11 @@ namespace ImageSharp.PixelFormats
             }
 
             /// <inheritdoc />
-            internal override void ToZyxwBytes(BufferSpan<Rgba32> sourceColors, BufferSpan<byte> destBytes, int count)
+            internal override void ToZyxwBytes(Span<Rgba32> sourceColors, Span<byte> destBytes, int count)
             {
+                Guard.MustBeSizedAtLeast(sourceColors, count, nameof(sourceColors));
+                Guard.MustBeSizedAtLeast(destBytes, count * 4, nameof(destBytes));
+
                 ref Rgba32 sourceRef = ref sourceColors.DangerousGetPinnableReference();
                 ref RGBA32 destRef = ref Unsafe.As<byte, RGBA32>(ref destBytes.DangerousGetPinnableReference());
 

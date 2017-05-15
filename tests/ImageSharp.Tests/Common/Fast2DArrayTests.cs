@@ -7,6 +7,8 @@ namespace ImageSharp.Tests.Common
 {
     using System;
 
+    using ImageSharp.Memory;
+
     using Xunit;
 
     public class Fast2DArrayTests

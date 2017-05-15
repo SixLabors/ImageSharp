@@ -26,7 +26,7 @@ namespace ImageSharp
         /// The configuration providing initialization code which allows extending the library.
         /// </param>
         public ImageFrame(int width, int height, Configuration configuration = null)
-            : base(width, height, configuration)
+            : base(configuration, width, height)
         {
         }
 

@@ -9,6 +9,7 @@ namespace ImageSharp.Processing.Processors
     using System.Numerics;
     using System.Threading.Tasks;
 
+    using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
 
     /// <summary>
@@ -82,7 +83,7 @@ namespace ImageSharp.Processing.Processors
                     {
                         int offsetY = y - startY;
 
-                        BufferSpan<TPixel> destination = sourcePixels.GetRowSpan(offsetY).Slice(minX - startX, width);
+                        Span<TPixel> destination = sourcePixels.GetRowSpan(offsetY).Slice(minX - startX, width);
 
                         // this switched color & destination in the 2nd and 3rd places because we are applying the target colour under the current one
                         blender.Blend(destination, colors, destination, amount);

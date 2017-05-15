@@ -7,6 +7,8 @@ namespace ImageSharp
 {
     using System;
     using System.Diagnostics;
+
+    using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
     using Processing;
 
@@ -59,15 +61,15 @@ namespace ImageSharp
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageBase{TPixel}"/> class.
         /// </summary>
-        /// <param name="width">The width of the image in pixels.</param>
-        /// <param name="height">The height of the image in pixels.</param>
         /// <param name="configuration">
         /// The configuration providing initialization code which allows extending the library.
         /// </param>
+        /// <param name="width">The width of the image in pixels.</param>
+        /// <param name="height">The height of the image in pixels.</param>
         /// <exception cref="ArgumentOutOfRangeException">
         /// Thrown if either <paramref name="width"/> or <paramref name="height"/> are less than or equal to 0.
         /// </exception>
-        protected ImageBase(int width, int height, Configuration configuration)
+        protected ImageBase(Configuration configuration, int width, int height)
             : this(configuration)
         {
             Guard.MustBeGreaterThan(width, 0, nameof(width));

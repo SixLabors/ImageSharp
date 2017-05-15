@@ -29,13 +29,13 @@ namespace ImageSharp
         /// Initializes a new instance of the <see cref="Image{TPixel}"/> class
         /// with the height and the width of the image.
         /// </summary>
-        /// <param name="width">The width of the image in pixels.</param>
-        /// <param name="height">The height of the image in pixels.</param>
         /// <param name="configuration">
         /// The configuration providing initialization code which allows extending the library.
         /// </param>
-        public Image(int width, int height, Configuration configuration)
-            : this(width, height, new ImageMetaData(), configuration)
+        /// <param name="width">The width of the image in pixels.</param>
+        /// <param name="height">The height of the image in pixels.</param>
+        public Image(Configuration configuration, int width, int height)
+            : this(configuration, width, height, new ImageMetaData())
         {
         }
 
@@ -46,7 +46,7 @@ namespace ImageSharp
         /// <param name="width">The width of the image in pixels.</param>
         /// <param name="height">The height of the image in pixels.</param>
         public Image(int width, int height)
-            : this(width, height, null)
+            : this(null, width, height)
         {
         }
 
@@ -85,14 +85,14 @@ namespace ImageSharp
         /// Initializes a new instance of the <see cref="Image{TPixel}"/> class
         /// with the height and the width of the image.
         /// </summary>
-        /// <param name="width">The width of the image in pixels.</param>
-        /// <param name="height">The height of the image in pixels.</param>
-        /// <param name="metadata">The images metadata.</param>
         /// <param name="configuration">
         /// The configuration providing initialization code which allows extending the library.
         /// </param>
-        internal Image(int width, int height, ImageMetaData metadata, Configuration configuration)
-            : base(width, height, configuration)
+        /// <param name="width">The width of the image in pixels.</param>
+        /// <param name="height">The height of the image in pixels.</param>
+        /// <param name="metadata">The images metadata.</param>
+        internal Image(Configuration configuration, int width, int height, ImageMetaData metadata)
+            : base(configuration, width, height)
         {
             if (!this.Configuration.ImageFormats.Any())
             {
@@ -359,7 +359,7 @@ namespace ImageSharp
         {
             scaleFunc = PackedPixelConverterHelper.ComputeScaleFunction<TPixel, TPixel2>(scaleFunc);
 
-            Image<TPixel2> target = new Image<TPixel2>(this.Width, this.Height, this.Configuration);
+            Image<TPixel2> target = new Image<TPixel2>(this.Configuration, this.Width, this.Height);
             target.CopyProperties(this);
 
             using (PixelAccessor<TPixel> pixels = this.Lock())

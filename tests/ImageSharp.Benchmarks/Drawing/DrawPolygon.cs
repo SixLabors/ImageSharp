@@ -9,8 +9,7 @@ namespace ImageSharp.Benchmarks
     using System.Drawing.Drawing2D;
 
     using BenchmarkDotNet.Attributes;
-    using CoreImage = ImageSharp.Image;
-    using CorePoint = ImageSharp.Point;
+
     using System.IO;
     using System.Numerics;
 
@@ -46,7 +45,7 @@ namespace ImageSharp.Benchmarks
         [Benchmark(Description = "ImageSharp Draw Polygon")]
         public void DrawPolygonCore()
         {
-            using (CoreImage image = new CoreImage(800, 800))
+            using (Image<Rgba32> image = new Image<Rgba32>(800, 800))
             {
                 image.DrawPolygon(
                     Rgba32.HotPink,

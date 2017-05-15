@@ -25,26 +25,27 @@ namespace ImageSharp.Tests
         private static readonly Dictionary<PixelTypes, Type> PixelTypes2ClrTypes = new Dictionary<PixelTypes, Type>();
 
         private static readonly PixelTypes[] AllConcretePixelTypes = GetAllPixelTypes()
-            .Except(new [] {PixelTypes.Undefined, PixelTypes.All })
+            .Except(new[] { PixelTypes.Undefined, PixelTypes.All })
             .ToArray();
 
         static TestUtilityExtensions()
         {
-            string nameSpace = typeof(Rgba32).FullName;
-            nameSpace = nameSpace.Substring(0, nameSpace.Length - typeof(Rgba32).Name.Length - 1);
-            foreach (PixelTypes pt in AllConcretePixelTypes.Where(pt => pt != PixelTypes.StandardImageClass))
-            {
-                string typeName = $"{nameSpace}.{pt.ToString()}";
-                Type t = ImageSharpAssembly.GetType(typeName);
-                if (t == null)
-                {
-                    throw new InvalidOperationException($"Could not find: {typeName}");
-                }
+            // Add Rgba32 Our default.
+            Type defaultPixelFormatType = typeof(Rgba32);
+            PixelTypes2ClrTypes[PixelTypes.Rgba32] = defaultPixelFormatType;
+            ClrTypes2PixelTypes[defaultPixelFormatType] = PixelTypes.Rgba32;
 
-                PixelTypes2ClrTypes[pt] = t;
+            // Add PixelFormat types
+            string nameSpace = typeof(Alpha8).FullName;
+            nameSpace = nameSpace.Substring(0, nameSpace.Length - typeof(Alpha8).Name.Length - 1);
+            foreach (PixelTypes pt in AllConcretePixelTypes.Where(pt => pt != PixelTypes.StandardImageClass && pt != PixelTypes.Rgba32))
+            {
+                string typeName = $"{nameSpace}.{pt}";
+                Type t = ImageSharpAssembly.GetType(typeName);
+                PixelTypes2ClrTypes[pt] = t ?? throw new InvalidOperationException($"Could not find: {typeName}");
                 ClrTypes2PixelTypes[t] = pt;
             }
-            PixelTypes2ClrTypes[PixelTypes.StandardImageClass] = typeof(Rgba32);
+            PixelTypes2ClrTypes[PixelTypes.StandardImageClass] = defaultPixelFormatType;
         }
 
         public static bool HasFlag(this PixelTypes pixelTypes, PixelTypes flag) => (pixelTypes & flag) == flag;

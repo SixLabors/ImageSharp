@@ -22,7 +22,7 @@ namespace ImageSharp.Tests.Drawing
         {
             string path = this.CreateOutputDirectory("Drawing", "Polygons");
 
-            using (Image image = new Image(500, 500))
+            using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
                 using (FileStream output = File.OpenWrite($"{path}/Simple.png"))
                 {
@@ -62,7 +62,7 @@ namespace ImageSharp.Tests.Drawing
 
             Rgba32 color = new Rgba32(Rgba32.HotPink.R, Rgba32.HotPink.G, Rgba32.HotPink.B, 150);
 
-            using (Image image = new Image(500, 500))
+            using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
                 using (FileStream output = File.OpenWrite($"{path}/Opacity.png"))
                 {
@@ -93,7 +93,7 @@ namespace ImageSharp.Tests.Drawing
         {
             string path = this.CreateOutputDirectory("Drawing", "Polygons");
 
-            using (Image image = new Image(500, 500))
+            using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
                 using (FileStream output = File.OpenWrite($"{path}/Rectangle.png"))
                 {

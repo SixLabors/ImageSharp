@@ -5,6 +5,8 @@ namespace ImageSharp.Benchmarks.General
 
     using BenchmarkDotNet.Attributes;
 
+    using ImageSharp.Memory;
+
     public class IterateArray
     {
         // Usual pinned stuff

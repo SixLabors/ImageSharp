@@ -38,7 +38,7 @@ namespace ImageSharp
         /// <param name="cropRectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to retain.
         /// </param>
-        /// <returns>The <see cref="Image"/></returns>
+        /// <returns>The <see cref="Image{TPixel}"/></returns>
         public static Image<TPixel> Crop<TPixel>(this Image<TPixel> source, Rectangle cropRectangle)
             where TPixel : struct, IPixel<TPixel>
         {

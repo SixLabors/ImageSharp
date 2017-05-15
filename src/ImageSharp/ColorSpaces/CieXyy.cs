@@ -14,7 +14,7 @@ namespace ImageSharp.ColorSpaces
     /// Represents an CIE xyY 1931 color
     /// <see href="https://en.wikipedia.org/wiki/CIE_1931_color_space#CIE_xy_chromaticity_diagram_and_the_CIE_xyY_color_space"/>
     /// </summary>
-    public struct CieXyy : IColorVector, IEquatable<CieXyy>, IAlmostEquatable<CieXyy, float>
+    internal struct CieXyy : IColorVector, IEquatable<CieXyy>, IAlmostEquatable<CieXyy, float>
     {
         /// <summary>
         /// Represents a <see cref="CieXyy"/> that has X, Y, and Y values set to zero.
@@ -169,7 +169,7 @@ namespace ImageSharp.ColorSpaces
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool AlmostEquals(CieXyy other, float precision)
         {
-            Vector3 result = Vector3.Abs(this.backingVector - other.backingVector);
+            var result = Vector3.Abs(this.backingVector - other.backingVector);
 
             return result.X <= precision
                 && result.Y <= precision

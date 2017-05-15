@@ -10,7 +10,7 @@ namespace ImageSharp.ColorSpaces.Conversion
     /// </summary>
     /// <typeparam name="T">The input color type.</typeparam>
     /// <typeparam name="TResult">The result color type.</typeparam>
-    public interface IColorConversion<in T, out TResult>
+    internal interface IColorConversion<in T, out TResult>
     {
         /// <summary>
         /// Performs the conversion from the input to an instance of the output type.

@@ -10,7 +10,7 @@ namespace ImageSharp.ColorSpaces.Conversion
     /// <content>
     /// Allows conversion to <see cref="HunterLab"/>.
     /// </content>
-    public partial class ColorSpaceConverter
+    internal partial class ColorSpaceConverter
     {
         /// <summary>
         /// Converts a <see cref="CieLab"/> into a <see cref="HunterLab"/>
@@ -21,7 +21,7 @@ namespace ImageSharp.ColorSpaces.Conversion
         {
             Guard.NotNull(color, nameof(color));
 
-            CieXyz xyzColor = this.ToCieXyz(color);
+            var xyzColor = this.ToCieXyz(color);
             return this.ToHunterLab(xyzColor);
         }
 
@@ -34,7 +34,7 @@ namespace ImageSharp.ColorSpaces.Conversion
         {
             Guard.NotNull(color, nameof(color));
 
-            CieXyz xyzColor = this.ToCieXyz(color);
+            var xyzColor = this.ToCieXyz(color);
             return this.ToHunterLab(xyzColor);
         }
 
@@ -47,7 +47,7 @@ namespace ImageSharp.ColorSpaces.Conversion
         {
             Guard.NotNull(color, nameof(color));
 
-            CieXyz xyzColor = this.ToCieXyz(color);
+            var xyzColor = this.ToCieXyz(color);
             return this.ToHunterLab(xyzColor);
         }
 
@@ -60,7 +60,7 @@ namespace ImageSharp.ColorSpaces.Conversion
         {
             Guard.NotNull(color, nameof(color));
 
-            CieXyz xyzColor = this.ToCieXyz(color);
+            var xyzColor = this.ToCieXyz(color);
             return this.ToHunterLab(xyzColor);
         }
 
@@ -73,7 +73,7 @@ namespace ImageSharp.ColorSpaces.Conversion
         {
             Guard.NotNull(color, nameof(color));
 
-            CieXyz xyzColor = this.ToCieXyz(color);
+            var xyzColor = this.ToCieXyz(color);
             return this.ToHunterLab(xyzColor);
         }
 
@@ -104,7 +104,7 @@ namespace ImageSharp.ColorSpaces.Conversion
         {
             Guard.NotNull(color, nameof(color));
 
-            CieXyz xyzColor = this.ToCieXyz(color);
+            var xyzColor = this.ToCieXyz(color);
             return this.ToHunterLab(xyzColor);
         }
 
@@ -117,7 +117,7 @@ namespace ImageSharp.ColorSpaces.Conversion
         {
             Guard.NotNull(color, nameof(color));
 
-            CieXyz xyzColor = this.ToCieXyz(color);
+            var xyzColor = this.ToCieXyz(color);
             return this.ToHunterLab(xyzColor);
         }
 
@@ -130,7 +130,7 @@ namespace ImageSharp.ColorSpaces.Conversion
         {
             Guard.NotNull(color, nameof(color));
 
-            CieXyz xyzColor = this.ToCieXyz(color);
+            var xyzColor = this.ToCieXyz(color);
             return this.ToHunterLab(xyzColor);
         }
 
@@ -143,7 +143,7 @@ namespace ImageSharp.ColorSpaces.Conversion
         {
             Guard.NotNull(color, nameof(color));
 
-            CieXyz xyzColor = this.ToCieXyz(color);
+            var xyzColor = this.ToCieXyz(color);
             return this.ToHunterLab(xyzColor);
         }
 
@@ -156,7 +156,7 @@ namespace ImageSharp.ColorSpaces.Conversion
         {
             Guard.NotNull(color, nameof(color));
 
-            CieXyz xyzColor = this.ToCieXyz(color);
+            var xyzColor = this.ToCieXyz(color);
             return this.ToHunterLab(xyzColor);
         }
 
@@ -169,7 +169,7 @@ namespace ImageSharp.ColorSpaces.Conversion
         {
             Guard.NotNull(color, nameof(color));
 
-            CieXyz xyzColor = this.ToCieXyz(color);
+            var xyzColor = this.ToCieXyz(color);
             return this.ToHunterLab(xyzColor);
         }
 
@@ -182,7 +182,7 @@ namespace ImageSharp.ColorSpaces.Conversion
         {
             Guard.NotNull(color, nameof(color));
 
-            CieXyz xyzColor = this.ToCieXyz(color);
+            var xyzColor = this.ToCieXyz(color);
             return this.ToHunterLab(xyzColor);
         }
     }

@@ -20,15 +20,15 @@
 
 
         [Benchmark(Baseline = true, Description = "Colourful Convert")]
-        public RGBColor ColourfulConvert()
+        public double ColourfulConvert()
         {
-            return ColourfulConverter.ToRGB(XYZColor);
+            return ColourfulConverter.ToRGB(XYZColor).R;
         }
 
         [Benchmark(Description = "ImageSharp Convert")]
-        public Rgb ColorSpaceConvert()
+        public float ColorSpaceConvert()
         {
-            return ColorSpaceConverter.ToRgb(CieXyz);
+            return ColorSpaceConverter.ToRgb(CieXyz).R;
         }
     }
 }

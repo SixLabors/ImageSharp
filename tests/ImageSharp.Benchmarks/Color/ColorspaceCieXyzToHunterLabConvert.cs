@@ -20,15 +20,15 @@
 
 
         [Benchmark(Baseline = true, Description = "Colourful Convert")]
-        public HunterLabColor ColourfulConvert()
+        public double ColourfulConvert()
         {
-            return ColourfulConverter.ToHunterLab(XYZColor);
+            return ColourfulConverter.ToHunterLab(XYZColor).L;
         }
 
         [Benchmark(Description = "ImageSharp Convert")]
-        public HunterLab ColorSpaceConvert()
+        public float ColorSpaceConvert()
         {
-            return ColorSpaceConverter.ToHunterLab(CieXyz);
+            return ColorSpaceConverter.ToHunterLab(CieXyz).L;
         }
     }
 }

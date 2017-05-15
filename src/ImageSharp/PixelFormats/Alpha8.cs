@@ -62,7 +62,7 @@ namespace ImageSharp.PixelFormats
         }
 
         /// <inheritdoc />
-        public PixelOperations<Alpha8> CreateBulkOperations() => new PixelOperations<Alpha8>();
+        public PixelOperations<Alpha8> CreatePixelOperations() => new PixelOperations<Alpha8>();
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

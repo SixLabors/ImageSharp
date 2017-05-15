@@ -20,7 +20,7 @@ namespace ImageSharp.PixelFormats
         /// <summary>
         /// Gets the global <see cref="PixelOperations{TPixel}"/> instance for the pixel type <typeparamref name="TPixel"/>
         /// </summary>
-        public static PixelOperations<TPixel> Instance { get; } = default(TPixel).CreateBulkOperations();
+        public static PixelOperations<TPixel> Instance { get; } = default(TPixel).CreatePixelOperations();
 
         /// <summary>
         /// Bulk version of <see cref="IPixel.PackFromVector4(Vector4)"/>

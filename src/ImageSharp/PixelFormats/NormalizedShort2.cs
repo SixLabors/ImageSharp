@@ -91,7 +91,7 @@ namespace ImageSharp.PixelFormats
         }
 
         /// <inheritdoc />
-        public PixelOperations<NormalizedShort2> CreateBulkOperations() => new PixelOperations<NormalizedShort2>();
+        public PixelOperations<NormalizedShort2> CreatePixelOperations() => new PixelOperations<NormalizedShort2>();
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

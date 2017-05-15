@@ -53,6 +53,11 @@ namespace ImageSharp.Formats
         }
 
         /// <summary>
+        /// Gets or sets the number of bits for each sample of the pixel format used to encode the image.
+        /// </summary>
+        public uint[] BitsPerSample { get; set; }
+
+        /// <summary>
         /// Gets or sets the photometric interpretation implementation to use when decoding the image.
         /// </summary>
         public TiffColorType ColorType { get; set; }
@@ -288,11 +293,11 @@ namespace ImageSharp.Formats
                     {
                         if (ifd.TryGetIfdEntry(TiffTags.BitsPerSample, out TiffIfdEntry bitsPerSampleEntry))
                         {
-                            uint[] bitsPerSample = this.ReadUnsignedIntegerArray(ref bitsPerSampleEntry);
+                            this.BitsPerSample = this.ReadUnsignedIntegerArray(ref bitsPerSampleEntry);
 
-                            if (bitsPerSample.Length == 1)
+                            if (this.BitsPerSample.Length == 1)
                             {
-                                switch (bitsPerSample[0])
+                                switch (this.BitsPerSample[0])
                                 {
                                     case 8:
                                         {
@@ -314,7 +319,8 @@ namespace ImageSharp.Formats
 
                                     default:
                                         {
-                                            throw new NotSupportedException("The specified TIFF bit-depth is not supported.");
+                                            this.ColorType = TiffColorType.WhiteIsZero;
+                                            break;
                                         }
                                 }
                             }
@@ -322,6 +328,7 @@ namespace ImageSharp.Formats
                         else
                         {
                             this.ColorType = TiffColorType.WhiteIsZero1;
+                            this.BitsPerSample = new[] { 1u };
                         }
 
                         break;
@@ -340,17 +347,14 @@ namespace ImageSharp.Formats
         /// <returns>The size (in bytes) of the required pixel buffer.</returns>
         public int CalculateImageBufferSize(int width, int height)
         {
-            switch (this.ColorType)
+            uint bitsPerPixel = 0;
+            for (int i = 0; i < this.BitsPerSample.Length; i++)
             {
-                case TiffColorType.WhiteIsZero1:
-                    return ((width + 7) / 8) * height;
-                case TiffColorType.WhiteIsZero4:
-                    return ((width + 1) / 2) * height;
-                case TiffColorType.WhiteIsZero8:
-                    return width * height;
-                default:
-                    throw new InvalidOperationException();
+                bitsPerPixel += this.BitsPerSample[i];
             }
+
+            int bytesPerRow = ((width * (int)bitsPerPixel) + 7) / 8;
+            return bytesPerRow * height;
         }
 
         /// <summary>
@@ -391,6 +395,9 @@ namespace ImageSharp.Formats
         {
             switch (this.ColorType)
             {
+                case TiffColorType.WhiteIsZero:
+                    WhiteIsZeroTiffColor.Decode(data, this.BitsPerSample, pixels, left, top, width, height);
+                    break;
                 case TiffColorType.WhiteIsZero1:
                     WhiteIsZero1TiffColor.Decode(data, pixels, left, top, width, height);
                     break;

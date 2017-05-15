@@ -176,6 +176,8 @@ namespace ImageSharp.Tests
         }
 
         [Theory]
+        [InlineData(false, TiffPhotometricInterpretation.WhiteIsZero, new[] { 3 }, TiffColorType.WhiteIsZero)]
+        [InlineData(true, TiffPhotometricInterpretation.WhiteIsZero, new[] { 3 }, TiffColorType.WhiteIsZero)]
         [InlineData(false, TiffPhotometricInterpretation.WhiteIsZero, new[] { 8 }, TiffColorType.WhiteIsZero8)]
         [InlineData(true, TiffPhotometricInterpretation.WhiteIsZero, new[] { 8 }, TiffColorType.WhiteIsZero8)]
         [InlineData(false, TiffPhotometricInterpretation.WhiteIsZero, new[] { 4 }, TiffColorType.WhiteIsZero4)]
@@ -287,33 +289,57 @@ namespace ImageSharp.Tests
         }
 
         [Theory]
-        [InlineData(false, TiffPhotometricInterpretation.WhiteIsZero, new[] { 3 })]
-        [InlineData(true, TiffPhotometricInterpretation.WhiteIsZero, new[] { 3 })]
-        public void ReadImageFormat_ThrowsExceptionForUnsupportedBitDepth(bool isLittleEndian, ushort photometricInterpretation, int[] bitsPerSample)
+        [InlineData(false, new[] { 8u })]
+        [InlineData(true, new[] { 8u })]
+        [InlineData(false, new[] { 4u })]
+        [InlineData(true, new[] { 4u })]
+        [InlineData(false, new[] { 1u })]
+        [InlineData(true, new[] { 1u })]
+        [InlineData(false, new[] { 1u, 2u, 3u })]
+        [InlineData(true, new[] { 1u, 2u, 3u })]
+        [InlineData(false, new[] { 8u, 8u, 8u })]
+        [InlineData(true, new[] { 8u, 8u, 8u })]
+        public void ReadImageFormat_ReadsBitsPerSample(bool isLittleEndian, uint[] bitsPerSample)
         {
             Stream stream = CreateTiffGenIfd()
-                            .WithEntry(TiffGenEntry.Integer(TiffTags.PhotometricInterpretation, TiffType.Short, photometricInterpretation))
                             .WithEntry(TiffGenEntry.Integer(TiffTags.BitsPerSample, TiffType.Short, bitsPerSample))
                             .ToStream(isLittleEndian);
 
             TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null, null);
             TiffIfd ifd = decoder.ReadIfd(0);
+            decoder.ReadImageFormat(ifd);
 
-            var e = Assert.Throws<NotSupportedException>(() => decoder.ReadImageFormat(ifd));
-
-            Assert.Equal("The specified TIFF bit-depth is not supported.", e.Message);
+            Assert.Equal(bitsPerSample, decoder.BitsPerSample);
         }
 
         [Theory]
-        [InlineData(TiffColorType.WhiteIsZero8, 100, 80, 100 * 80)]
-        [InlineData(TiffColorType.WhiteIsZero4, 100, 80, 50 * 80)]
-        [InlineData(TiffColorType.WhiteIsZero4, 99, 80, 50 * 80)]
-        [InlineData(TiffColorType.WhiteIsZero1, 160, 80, 20 * 80)]
-        [InlineData(TiffColorType.WhiteIsZero1, 153, 80, 20 * 80)]
-        public void CalculateImageBufferSize_ReturnsCorrectSize(ushort colorType, int width, int height, int expectedResult)
+        [InlineData(false, TiffPhotometricInterpretation.WhiteIsZero)]
+        [InlineData(true, TiffPhotometricInterpretation.WhiteIsZero)]
+        public void ReadImageFormat_ReadsBitsPerSample_DefaultsToBilevel(bool isLittleEndian, ushort photometricInterpretation)
+        {
+            Stream stream = CreateTiffGenIfd()
+                            .WithEntry(TiffGenEntry.Integer(TiffTags.PhotometricInterpretation, TiffType.Short, photometricInterpretation))
+                            .WithoutEntry(TiffTags.BitsPerSample)
+                            .ToStream(isLittleEndian);
+
+            TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null, null);
+            TiffIfd ifd = decoder.ReadIfd(0);
+            decoder.ReadImageFormat(ifd);
+
+            Assert.Equal(new[] { 1u }, decoder.BitsPerSample);
+        }
+
+        [Theory]
+        [InlineData(new uint[] { 1 }, 160, 80, 20 * 80)]
+        [InlineData(new uint[] { 1 }, 153, 80, 20 * 80)]
+        [InlineData(new uint[] { 3 }, 100, 80, 38 * 80)]
+        [InlineData(new uint[] { 4 }, 100, 80, 50 * 80)]
+        [InlineData(new uint[] { 4 }, 99, 80, 50 * 80)]
+        [InlineData(new uint[] { 8 }, 100, 80, 100 * 80)]
+        public void CalculateImageBufferSize_ReturnsCorrectSize(uint[] bitsPerSample, int width, int height, int expectedResult)
         {
             TiffDecoderCore decoder = new TiffDecoderCore(null, null);
-            decoder.ColorType = (TiffColorType)colorType;
+            decoder.BitsPerSample = bitsPerSample;
 
             int bufferSize = decoder.CalculateImageBufferSize(width, height);
 

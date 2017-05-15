@@ -334,6 +334,51 @@ namespace ImageSharp.Formats
                         break;
                     }
 
+                case TiffPhotometricInterpretation.BlackIsZero:
+                    {
+                        if (ifd.TryGetIfdEntry(TiffTags.BitsPerSample, out TiffIfdEntry bitsPerSampleEntry))
+                        {
+                            this.BitsPerSample = this.ReadUnsignedIntegerArray(ref bitsPerSampleEntry);
+
+                            if (this.BitsPerSample.Length == 1)
+                            {
+                                switch (this.BitsPerSample[0])
+                                {
+                                    case 8:
+                                        {
+                                            this.ColorType = TiffColorType.BlackIsZero8;
+                                            break;
+                                        }
+
+                                    case 4:
+                                        {
+                                            this.ColorType = TiffColorType.BlackIsZero4;
+                                            break;
+                                        }
+
+                                    case 1:
+                                        {
+                                            this.ColorType = TiffColorType.BlackIsZero1;
+                                            break;
+                                        }
+
+                                    default:
+                                        {
+                                            this.ColorType = TiffColorType.BlackIsZero;
+                                            break;
+                                        }
+                                }
+                            }
+                        }
+                        else
+                        {
+                            this.ColorType = TiffColorType.BlackIsZero1;
+                            this.BitsPerSample = new[] { 1u };
+                        }
+
+                        break;
+                    }
+
                 default:
                     throw new NotSupportedException("The specified TIFF photometric interpretation is not supported.");
             }
@@ -406,6 +451,18 @@ namespace ImageSharp.Formats
                     break;
                 case TiffColorType.WhiteIsZero8:
                     WhiteIsZero8TiffColor.Decode(data, pixels, left, top, width, height);
+                    break;
+                case TiffColorType.BlackIsZero:
+                    BlackIsZeroTiffColor.Decode(data, this.BitsPerSample, pixels, left, top, width, height);
+                    break;
+                case TiffColorType.BlackIsZero1:
+                    BlackIsZero1TiffColor.Decode(data, pixels, left, top, width, height);
+                    break;
+                case TiffColorType.BlackIsZero4:
+                    BlackIsZero4TiffColor.Decode(data, pixels, left, top, width, height);
+                    break;
+                case TiffColorType.BlackIsZero8:
+                    BlackIsZero8TiffColor.Decode(data, pixels, left, top, width, height);
                     break;
                 default:
                     throw new InvalidOperationException();

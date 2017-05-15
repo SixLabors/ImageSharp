@@ -21,6 +21,7 @@ namespace ImageSharp.Tests
             public const string Blur = "Png/blur.png";
             public const string Indexed = "Png/indexed.png";
             public const string Splash = "Png/splash.png";
+            public const string Cross = "Png/cross.png";
             public const string Powerpoint = "Png/pp.png";
             public const string SplashInterlaced = "Png/splash-interlaced.png";
             public const string Interlaced = "Png/interlaced.png";
@@ -61,6 +62,7 @@ namespace ImageSharp.Tests
                 public static class Bad
                 {
                     public const string MissingEOF = "Jpg/baseline/badeof.jpg";
+                    public const string ExifUndefType = "Jpg/baseline/ExifUndefType.jpg";
                 }
 
                 public const string Cmyk = "Jpg/baseline/cmyk.jpg";
@@ -102,6 +104,7 @@ namespace ImageSharp.Tests
             public const string Rings = "Gif/rings.gif";
             public const string Giphy = "Gif/giphy.gif";
             public const string Cheers = "Gif/cheers.gif";
+            public const string Trans = "Gif/trans.gif";
         }
     }
 }

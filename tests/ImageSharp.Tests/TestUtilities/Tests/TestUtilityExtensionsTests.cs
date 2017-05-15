@@ -11,6 +11,8 @@ namespace ImageSharp.Tests
     using System.Numerics;
     using System.Reflection;
 
+    using ImageSharp.PixelFormats;
+
     using Xunit;
     using Xunit.Abstractions;
 
@@ -23,12 +25,12 @@ namespace ImageSharp.Tests
 
         private ITestOutputHelper Output { get; }
 
-        public static Image<TColor> CreateTestImage<TColor>(GenericFactory<TColor> factory)
-            where TColor : struct, IPixel<TColor>
+        public static Image<TPixel> CreateTestImage<TPixel>(GenericFactory<TPixel> factory)
+            where TPixel : struct, IPixel<TPixel>
         {
-            Image<TColor> image = factory.CreateImage(10, 10);
+            Image<TPixel> image = factory.CreateImage(10, 10);
 
-            using (PixelAccessor<TColor> pixels = image.Lock())
+            using (PixelAccessor<TPixel> pixels = image.Lock())
             {
                 for (int i = 0; i < 10; i++)
                 {
@@ -37,7 +39,7 @@ namespace ImageSharp.Tests
                         Vector4 v = new Vector4(i, j, 0, 1);
                         v /= 10;
 
-                        TColor color = default(TColor);
+                        TPixel color = default(TPixel);
                         color.PackFromVector4(v);
 
                         pixels[i, j] = color;
@@ -51,51 +53,51 @@ namespace ImageSharp.Tests
         [Fact]
         public void Baz()
         {
-            Type type = typeof(Color).GetTypeInfo().Assembly.GetType("ImageSharp.Color");
+            Type type = typeof(Rgba32).GetTypeInfo().Assembly.GetType("ImageSharp.Rgba32");
             this.Output.WriteLine(type.ToString());
 
-            Type fake = typeof(Color).GetTypeInfo().Assembly.GetType("ImageSharp.dsaada_DASqewrr");
+            Type fake = typeof(Rgba32).GetTypeInfo().Assembly.GetType("ImageSharp.dsaada_DASqewrr");
             Assert.Null(fake);
         }
-        
+
         [Theory]
-        [WithFile(TestImages.Bmp.Car, PixelTypes.Color, true)]
-        [WithFile(TestImages.Bmp.Car, PixelTypes.Color, false)]
-        public void IsEquivalentTo_WhenFalse<TColor>(TestImageProvider<TColor> provider, bool compareAlpha)
-            where TColor : struct, IPixel<TColor>
+        [WithFile(TestImages.Bmp.Car, PixelTypes.Rgba32, true)]
+        [WithFile(TestImages.Bmp.Car, PixelTypes.Rgba32, false)]
+        public void IsEquivalentTo_WhenFalse<TPixel>(TestImageProvider<TPixel> provider, bool compareAlpha)
+            where TPixel : struct, IPixel<TPixel>
         {
-            Image<TColor> a = provider.GetImage();
-            Image<TColor> b = provider.GetImage();
+            Image<TPixel> a = provider.GetImage();
+            Image<TPixel> b = provider.GetImage();
             b = b.OilPaint(3, 2);
 
             Assert.False(a.IsEquivalentTo(b, compareAlpha));
         }
 
         [Theory]
-        [WithMemberFactory(nameof(CreateTestImage), PixelTypes.Color | PixelTypes.Bgr565, true)]
-        [WithMemberFactory(nameof(CreateTestImage), PixelTypes.Color | PixelTypes.Bgr565, false)]
-        public void IsEquivalentTo_WhenTrue<TColor>(TestImageProvider<TColor> provider, bool compareAlpha)
-            where TColor : struct, IPixel<TColor>
+        [WithMemberFactory(nameof(CreateTestImage), PixelTypes.Rgba32 | PixelTypes.Bgr565, true)]
+        [WithMemberFactory(nameof(CreateTestImage), PixelTypes.Rgba32 | PixelTypes.Bgr565, false)]
+        public void IsEquivalentTo_WhenTrue<TPixel>(TestImageProvider<TPixel> provider, bool compareAlpha)
+            where TPixel : struct, IPixel<TPixel>
         {
-            Image<TColor> a = provider.GetImage();
-            Image<TColor> b = provider.GetImage();
+            Image<TPixel> a = provider.GetImage();
+            Image<TPixel> b = provider.GetImage();
 
             Assert.True(a.IsEquivalentTo(b, compareAlpha));
         }
 
         [Theory]
-        [InlineData(PixelTypes.Color, typeof(Color))]
-        [InlineData(PixelTypes.Argb, typeof(Argb))]
+        [InlineData(PixelTypes.Rgba32, typeof(Rgba32))]
+        [InlineData(PixelTypes.Argb32, typeof(Argb32))]
         [InlineData(PixelTypes.HalfVector4, typeof(HalfVector4))]
-        [InlineData(PixelTypes.StandardImageClass, typeof(Color))]
+        [InlineData(PixelTypes.StandardImageClass, typeof(Rgba32))]
         public void ToType(PixelTypes pt, Type expectedType)
         {
             Assert.Equal(pt.ToType(), expectedType);
         }
 
         [Theory]
-        [InlineData(typeof(Color), PixelTypes.Color)]
-        [InlineData(typeof(Argb), PixelTypes.Argb)]
+        [InlineData(typeof(Rgba32), PixelTypes.Rgba32)]
+        [InlineData(typeof(Argb32), PixelTypes.Argb32)]
         public void GetPixelType(Type clrType, PixelTypes expectedPixelType)
         {
             Assert.Equal(expectedPixelType, clrType.GetPixelType());
@@ -112,7 +114,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void ToTypes()
         {
-            PixelTypes pixelTypes = PixelTypes.Alpha8 | PixelTypes.Bgr565 | PixelTypes.Color | PixelTypes.HalfVector2 | PixelTypes.StandardImageClass;
+            PixelTypes pixelTypes = PixelTypes.Alpha8 | PixelTypes.Bgr565 | PixelTypes.Rgba32 | PixelTypes.HalfVector2 | PixelTypes.StandardImageClass;
 
             IEnumerable<KeyValuePair<PixelTypes, Type>> expanded = pixelTypes.ExpandAllTypes();
 
@@ -120,9 +122,9 @@ namespace ImageSharp.Tests
 
             AssertContainsPixelType<Alpha8>(PixelTypes.Alpha8, expanded);
             AssertContainsPixelType<Bgr565>(PixelTypes.Bgr565, expanded);
-            AssertContainsPixelType<Color>(PixelTypes.Color, expanded);
+            AssertContainsPixelType<Rgba32>(PixelTypes.Rgba32, expanded);
             AssertContainsPixelType<HalfVector2>(PixelTypes.HalfVector2, expanded);
-            AssertContainsPixelType<Color>(PixelTypes.StandardImageClass, expanded);
+            AssertContainsPixelType<Rgba32>(PixelTypes.StandardImageClass, expanded);
         }
 
         [Fact]
@@ -131,8 +133,8 @@ namespace ImageSharp.Tests
             KeyValuePair<PixelTypes, Type>[] expanded = PixelTypes.All.ExpandAllTypes().ToArray();
 
             Assert.True(expanded.Length >= TestUtilityExtensions.GetAllPixelTypes().Length - 2);
-            AssertContainsPixelType<Color>(PixelTypes.Color, expanded);
-            AssertContainsPixelType<Color>(PixelTypes.StandardImageClass, expanded);
+            AssertContainsPixelType<Rgba32>(PixelTypes.Rgba32, expanded);
+            AssertContainsPixelType<Rgba32>(PixelTypes.StandardImageClass, expanded);
         }
     }
 }

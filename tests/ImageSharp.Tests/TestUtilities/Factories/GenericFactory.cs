@@ -7,26 +7,28 @@ namespace ImageSharp.Tests
 {
     using System;
 
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// Utility class to create specialized subclasses of generic classes (eg. <see cref="Image"/>)
     /// Used as parameter for <see cref="WithMemberFactoryAttribute"/> -based factory methods
     /// </summary>
-    public class GenericFactory<TColor>
-        where TColor : struct, IPixel<TColor>
+    public class GenericFactory<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
-        public virtual Image<TColor> CreateImage(int width, int height)
+        public virtual Image<TPixel> CreateImage(int width, int height)
         {
-            return new Image<TColor>(width, height);
+            return new Image<TPixel>(width, height);
         }
 
-        public virtual Image<TColor> CreateImage(byte[] bytes)
+        public virtual Image<TPixel> CreateImage(byte[] bytes)
         {
-            return Image.Load<TColor>(bytes);
+            return Image.Load<TPixel>(bytes);
         }
 
-        public virtual Image<TColor> CreateImage(Image<TColor> other)
+        public virtual Image<TPixel> CreateImage(Image<TPixel> other)
         {
-            return new Image<TColor>(other);
+            return new Image<TPixel>(other);
         }
     }
 }

@@ -5,14 +5,14 @@
 
 namespace ImageSharp
 {
-    using System;
     using System.Numerics;
     using System.Runtime.CompilerServices;
+    using ImageSharp.PixelFormats;
 
     /// <summary>
     /// Extension methods for the <see cref="Vector4"/> struct.
     /// </summary>
-    public static class Vector4Extensions
+    internal static class Vector4Extensions
     {
         /// <summary>
         /// Compresses a linear color signal to its sRGB equivalent.
@@ -21,6 +21,7 @@ namespace ImageSharp
         /// </summary>
         /// <param name="linear">The <see cref="Vector4"/> whose signal to compress.</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 Compress(this Vector4 linear)
         {
             // TODO: Is there a faster way to do this?
@@ -32,8 +33,9 @@ namespace ImageSharp
         /// <see href="http://www.4p8.com/eric.brasseur/gamma.html#formulas"/>
         /// <see href="http://entropymine.com/imageworsener/srgbformula/"/>
         /// </summary>
-        /// <param name="gamma">The <see cref="Color"/> whose signal to expand.</param>
+        /// <param name="gamma">The <see cref="Rgba32"/> whose signal to expand.</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 Expand(this Vector4 gamma)
         {
             // TODO: Is there a faster way to do this?

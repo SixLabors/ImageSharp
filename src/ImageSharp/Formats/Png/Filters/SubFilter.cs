@@ -5,6 +5,7 @@
 
 namespace ImageSharp.Formats
 {
+    using System;
     using System.Runtime.CompilerServices;
 
     /// <summary>
@@ -18,18 +19,25 @@ namespace ImageSharp.Formats
         /// Decodes the scanline
         /// </summary>
         /// <param name="scanline">The scanline to decode</param>
-        /// <param name="bytesPerScanline">The number of bytes per scanline</param>
         /// <param name="bytesPerPixel">The bytes per pixel.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Decode(byte[] scanline, int bytesPerScanline, int bytesPerPixel)
+        public static void Decode(Span<byte> scanline, int bytesPerPixel)
         {
+            ref byte scanBaseRef = ref scanline.DangerousGetPinnableReference();
+
             // Sub(x) + Raw(x-bpp)
-            fixed (byte* scan = scanline)
+            for (int x = 1; x < scanline.Length; x++)
             {
-                for (int x = 1; x < bytesPerScanline; x++)
+                if (x - bytesPerPixel < 1)
                 {
-                    byte priorRawByte = (x - bytesPerPixel < 1) ? (byte)0 : scan[x - bytesPerPixel];
-                    scan[x] = (byte)((scan[x] + priorRawByte) % 256);
+                    ref byte scan = ref Unsafe.Add(ref scanBaseRef, x);
+                    scan = (byte)(scan % 256);
+                }
+                else
+                {
+                    ref byte scan = ref Unsafe.Add(ref scanBaseRef, x);
+                    byte prev = Unsafe.Add(ref scanBaseRef, x - bytesPerPixel);
+                    scan = (byte)((scan + prev) % 256);
                 }
             }
         }
@@ -41,19 +49,30 @@ namespace ImageSharp.Formats
         /// <param name="result">The filtered scanline result.</param>
         /// <param name="bytesPerPixel">The bytes per pixel.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Encode(byte[] scanline, byte[] result, int bytesPerPixel)
+        public static void Encode(Span<byte> scanline, Span<byte> result, int bytesPerPixel)
         {
+            DebugGuard.MustBeSizedAtLeast(result, scanline, nameof(result));
+
+            ref byte scanBaseRef = ref scanline.DangerousGetPinnableReference();
+            ref byte resultBaseRef = ref result.DangerousGetPinnableReference();
+
             // Sub(x) = Raw(x) - Raw(x-bpp)
-            fixed (byte* scan = scanline)
-            fixed (byte* res = result)
+            resultBaseRef = 1;
+
+            for (int x = 0; x < scanline.Length; x++)
             {
-                res[0] = 1;
-
-                for (int x = 0; x < scanline.Length; x++)
+                if (x - bytesPerPixel < 0)
                 {
-                    byte priorRawByte = (x - bytesPerPixel < 0) ? (byte)0 : scan[x - bytesPerPixel];
-
-                    res[x + 1] = (byte)((scan[x] - priorRawByte) % 256);
+                    byte scan = Unsafe.Add(ref scanBaseRef, x);
+                    ref byte res = ref Unsafe.Add(ref resultBaseRef, x + 1);
+                    res = (byte)(scan % 256);
+                }
+                else
+                {
+                    byte scan = Unsafe.Add(ref scanBaseRef, x);
+                    byte prev = Unsafe.Add(ref scanBaseRef, x - bytesPerPixel);
+                    ref byte res = ref Unsafe.Add(ref resultBaseRef, x + 1);
+                    res = (byte)((scan - prev) % 256);
                 }
             }
         }

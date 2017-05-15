@@ -7,6 +7,7 @@ namespace ImageSharp
 {
     using System;
     using System.Collections.Generic;
+    using ImageSharp.Formats;
 
     /// <summary>
     /// Encapsulates the metadata of an image.
@@ -52,6 +53,7 @@ namespace ImageSharp
             this.VerticalResolution = other.VerticalResolution;
             this.Quality = other.Quality;
             this.FrameDelay = other.FrameDelay;
+            this.DisposalMethod = other.DisposalMethod;
             this.RepeatCount = other.RepeatCount;
 
             foreach (ImageProperty property in other.Properties)
@@ -83,10 +85,10 @@ namespace ImageSharp
 
             set
             {
-              if (value > 0)
-              {
-                  this.horizontalResolution = value;
-              }
+                if (value > 0)
+                {
+                    this.horizontalResolution = value;
+                }
             }
         }
 
@@ -116,13 +118,11 @@ namespace ImageSharp
         /// </summary>
         public ExifProfile ExifProfile { get; set; }
 
-        /// <summary>
-        /// Gets or sets the frame delay for animated images.
-        /// If not 0, this field specifies the number of hundredths (1/100) of a second to
-        /// wait before continuing with the processing of the Data Stream.
-        /// The clock starts ticking immediately after the graphic is rendered.
-        /// </summary>
+        /// <inheritdoc/>
         public int FrameDelay { get; set; }
+
+        /// <inheritdoc/>
+        public DisposalMethod DisposalMethod { get; set; }
 
         /// <summary>
         /// Gets the list of properties for storing meta information about this image.

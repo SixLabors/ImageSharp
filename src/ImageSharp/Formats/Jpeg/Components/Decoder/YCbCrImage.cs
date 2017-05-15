@@ -7,6 +7,8 @@ namespace ImageSharp.Formats.Jpg
     using System;
     using System.Buffers;
 
+    using ImageSharp.Memory;
+
     /// <summary>
     /// Represents an image made up of three color components (luminance, blue chroma, red chroma)
     /// </summary>
@@ -17,17 +19,17 @@ namespace ImageSharp.Formats.Jpg
         /// <summary>
         /// Gets the luminance components channel as <see cref="JpegPixelArea" />.
         /// </summary>
-        public JpegPixelArea YChannel;
+        public Buffer2D<byte> YChannel;
 
         /// <summary>
         /// Gets the blue chroma components channel as <see cref="JpegPixelArea" />.
         /// </summary>
-        public JpegPixelArea CbChannel;
+        public Buffer2D<byte> CbChannel;
 
         /// <summary>
         /// Gets an offseted <see cref="JpegPixelArea" /> to the Cr channel
         /// </summary>
-        public JpegPixelArea CrChannel;
+        public Buffer2D<byte> CrChannel;
 #pragma warning restore SA1401
 
         /// <summary>
@@ -44,9 +46,9 @@ namespace ImageSharp.Formats.Jpg
             this.YStride = width;
             this.CStride = cSize.Width;
 
-            this.YChannel = JpegPixelArea.CreatePooled(width, height);
-            this.CbChannel = JpegPixelArea.CreatePooled(cSize.Width, cSize.Height);
-            this.CrChannel = JpegPixelArea.CreatePooled(cSize.Width, cSize.Height);
+            this.YChannel = Buffer2D<byte>.CreateClean(width, height);
+            this.CbChannel = Buffer2D<byte>.CreateClean(cSize.Width, cSize.Height);
+            this.CrChannel = Buffer2D<byte>.CreateClean(cSize.Width, cSize.Height);
         }
 
         /// <summary>
@@ -106,9 +108,9 @@ namespace ImageSharp.Formats.Jpg
         /// </summary>
         public void Dispose()
         {
-            this.YChannel.ReturnPooled();
-            this.CbChannel.ReturnPooled();
-            this.CrChannel.ReturnPooled();
+            this.YChannel.Dispose();
+            this.CbChannel.Dispose();
+            this.CrChannel.Dispose();
         }
 
         /// <summary>

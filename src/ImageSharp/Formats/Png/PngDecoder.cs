@@ -8,6 +8,8 @@ namespace ImageSharp.Formats
     using System;
     using System.IO;
 
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// Encoder for generating an image out of a png encoded stream.
     /// </summary>
@@ -31,27 +33,27 @@ namespace ImageSharp.Formats
     public class PngDecoder : IImageDecoder
     {
         /// <inheritdoc/>
-        public Image<TColor> Decode<TColor>(Configuration configuration, Stream stream, IDecoderOptions options)
+        public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream, IDecoderOptions options)
 
-            where TColor : struct, IPixel<TColor>
+            where TPixel : struct, IPixel<TPixel>
         {
             IPngDecoderOptions pngOptions = PngDecoderOptions.Create(options);
 
-            return this.Decode<TColor>(configuration, stream, pngOptions);
+            return this.Decode<TPixel>(configuration, stream, pngOptions);
         }
 
         /// <summary>
-        /// Decodes the image from the specified stream to the <see cref="ImageBase{TColor}"/>.
+        /// Decodes the image from the specified stream to the <see cref="ImageBase{TPixel}"/>.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="configuration">The configuration for the image.</param>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
         /// <param name="options">The options for the decoder.</param>
         /// <returns>The decoded image.</returns>
-        public Image<TColor> Decode<TColor>(Configuration configuration, Stream stream, IPngDecoderOptions options)
-            where TColor : struct, IPixel<TColor>
+        public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream, IPngDecoderOptions options)
+            where TPixel : struct, IPixel<TPixel>
         {
-            return new PngDecoderCore(options, configuration).Decode<TColor>(stream);
+            return new PngDecoderCore(options, configuration).Decode<TPixel>(stream);
         }
     }
 }

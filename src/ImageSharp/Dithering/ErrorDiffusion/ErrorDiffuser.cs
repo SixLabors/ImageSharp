@@ -8,6 +8,9 @@ namespace ImageSharp.Dithering
     using System.Numerics;
     using System.Runtime.CompilerServices;
 
+    using ImageSharp.Memory;
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// The base class for performing error diffusion based dithering.
     /// </summary>
@@ -68,11 +71,22 @@ namespace ImageSharp.Dithering
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Dither<TColor>(PixelAccessor<TColor> pixels, TColor source, TColor transformed, int x, int y, int width, int height)
-            where TColor : struct, IPixel<TColor>
+        public void Dither<TPixel>(PixelAccessor<TPixel> pixels, TPixel source, TPixel transformed, int x, int y, int width, int height)
+            where TPixel : struct, IPixel<TPixel>
         {
-            // Assign the transformed pixel to the array.
-            pixels[x, y] = transformed;
+            this.Dither(pixels, source, transformed, x, y, width, height, true);
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Dither<TPixel>(PixelAccessor<TPixel> pixels, TPixel source, TPixel transformed, int x, int y, int width, int height, bool replacePixel)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            if (replacePixel)
+            {
+                // Assign the transformed pixel to the array.
+                pixels[x, y] = transformed;
+            }
 
             // Calculate the error
             Vector4 error = source.ToVector4() - transformed.ToVector4();
@@ -102,7 +116,7 @@ namespace ImageSharp.Dithering
                         Vector4 result = ((error * coefficientVector) / this.divisorVector) + offsetColor;
                         result.W = offsetColor.W;
 
-                        TColor packed = default(TColor);
+                        TPixel packed = default(TPixel);
                         packed.PackFromVector4(result);
                         pixels[matrixX, matrixY] = packed;
                     }

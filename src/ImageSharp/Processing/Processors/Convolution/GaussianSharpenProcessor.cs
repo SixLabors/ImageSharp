@@ -7,12 +7,15 @@ namespace ImageSharp.Processing.Processors
 {
     using System;
 
+    using ImageSharp.Memory;
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// Applies a Gaussian sharpening sampler to the image.
     /// </summary>
-    /// <typeparam name="TColor">The pixel format.</typeparam>
-    internal class GaussianSharpenProcessor<TColor> : ImageProcessor<TColor>
-        where TColor : struct, IPixel<TColor>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    internal class GaussianSharpenProcessor<TPixel> : ImageProcessor<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
         /// The maximum size of the kernel in either direction.
@@ -25,7 +28,7 @@ namespace ImageSharp.Processing.Processors
         private readonly float sigma;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="GaussianSharpenProcessor{TColor}"/> class.
+        /// Initializes a new instance of the <see cref="GaussianSharpenProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="sigma">
         /// The 'sigma' value representing the weight of the sharpening.
@@ -39,7 +42,7 @@ namespace ImageSharp.Processing.Processors
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="GaussianSharpenProcessor{TColor}"/> class.
+        /// Initializes a new instance of the <see cref="GaussianSharpenProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="radius">
         /// The 'radius' value representing the size of the area to sample.
@@ -53,7 +56,7 @@ namespace ImageSharp.Processing.Processors
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="GaussianSharpenProcessor{TColor}"/> class.
+        /// Initializes a new instance of the <see cref="GaussianSharpenProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="sigma">
         /// The 'sigma' value representing the weight of the sharpen.
@@ -81,9 +84,9 @@ namespace ImageSharp.Processing.Processors
         public Fast2DArray<float> KernelY { get; }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
         {
-            new Convolution2PassProcessor<TColor>(this.KernelX, this.KernelY).Apply(source, sourceRectangle);
+            new Convolution2PassProcessor<TPixel>(this.KernelX, this.KernelY).Apply(source, sourceRectangle);
         }
 
         /// <summary>

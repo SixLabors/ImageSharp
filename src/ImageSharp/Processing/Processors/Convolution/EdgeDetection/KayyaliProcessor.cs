@@ -8,14 +8,17 @@ namespace ImageSharp.Processing.Processors
     using System;
     using System.Diagnostics.CodeAnalysis;
 
+    using ImageSharp.Memory;
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// The Kayyali operator filter.
     /// <see href="http://edgedetection.webs.com/"/>
     /// </summary>
-    /// <typeparam name="TColor">The pixel format.</typeparam>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
     [SuppressMessage("ReSharper", "StaticMemberInGenericType", Justification = "We want to use only one instance of each array field for each generic type.")]
-    internal class KayyaliProcessor<TColor> : EdgeDetector2DProcessor<TColor>
-        where TColor : struct, IPixel<TColor>
+    internal class KayyaliProcessor<TPixel> : EdgeDetector2DProcessor<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
         /// The horizontal gradient operator.
@@ -40,7 +43,7 @@ namespace ImageSharp.Processing.Processors
             };
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="KayyaliProcessor{TColor}"/> class.
+        /// Initializes a new instance of the <see cref="KayyaliProcessor{TPixel}"/> class.
         /// </summary>
         public KayyaliProcessor()
             : base(KayyaliX, KayyaliY)

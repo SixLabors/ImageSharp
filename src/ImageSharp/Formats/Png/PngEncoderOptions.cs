@@ -60,7 +60,7 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Gets or sets the transparency threshold.
         /// </summary>
-        public byte Threshold { get; set; } = 0;
+        public byte Threshold { get; set; } = 255;
 
         /// <summary>
         /// Gets or sets a value indicating whether this instance should write

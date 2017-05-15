@@ -8,14 +8,26 @@ namespace ImageSharp.Processing.Processors
     using System;
     using System.Numerics;
 
+    using ImageSharp.PixelFormats;
+
     /// <summary>
     /// Converts the colors of the image recreating an old Lomograph effect.
     /// </summary>
-    /// <typeparam name="TColor">The pixel format.</typeparam>
-    internal class LomographProcessor<TColor> : ColorMatrixProcessor<TColor>
-        where TColor : struct, IPixel<TColor>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    internal class LomographProcessor<TPixel> : ColorMatrixProcessor<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
-        private static readonly TColor VeryDarkGreen = ColorBuilder<TColor>.FromRGBA(0, 10, 0, 255);
+        private static readonly TPixel VeryDarkGreen = ColorBuilder<TPixel>.FromRGBA(0, 10, 0, 255);
+        private GraphicsOptions options;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="LomographProcessor{TPixel}" /> class.
+        /// </summary>
+        /// <param name="options">The options effecting blending and composition.</param>
+        public LomographProcessor(GraphicsOptions options)
+        {
+            this.options = options;
+        }
 
         /// <inheritdoc/>
         public override Matrix4x4 Matrix => new Matrix4x4()
@@ -30,9 +42,9 @@ namespace ImageSharp.Processing.Processors
         };
 
         /// <inheritdoc/>
-        protected override void AfterApply(ImageBase<TColor> source, Rectangle sourceRectangle)
+        protected override void AfterApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
         {
-            new VignetteProcessor<TColor>(VeryDarkGreen).Apply(source, sourceRectangle);
+            new VignetteProcessor<TPixel>(VeryDarkGreen, this.options).Apply(source, sourceRectangle);
         }
     }
 }

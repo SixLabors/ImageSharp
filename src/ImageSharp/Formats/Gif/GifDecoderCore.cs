@@ -8,14 +8,17 @@ namespace ImageSharp.Formats
     using System;
     using System.Buffers;
     using System.IO;
+    using System.Runtime.CompilerServices;
     using System.Text;
+
+    using ImageSharp.PixelFormats;
 
     /// <summary>
     /// Performs the gif decoding operation.
     /// </summary>
-    /// <typeparam name="TColor">The pixel format.</typeparam>
-    internal class GifDecoderCore<TColor>
-        where TColor : struct, IPixel<TColor>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    internal class GifDecoderCore<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
         /// The temp buffer used to reduce allocations.
@@ -50,7 +53,7 @@ namespace ImageSharp.Formats
         /// <summary>
         /// The previous frame.
         /// </summary>
-        private ImageFrame<TColor> previousFrame;
+        private ImageFrame<TPixel> previousFrame;
 
         /// <summary>
         /// The area to restore.
@@ -75,10 +78,10 @@ namespace ImageSharp.Formats
         /// <summary>
         /// The image to decode the information to.
         /// </summary>
-        private Image<TColor> image;
+        private Image<TPixel> image;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="GifDecoderCore{TColor}"/> class.
+        /// Initializes a new instance of the <see cref="GifDecoderCore{TPixel}"/> class.
         /// </summary>
         /// <param name="options">The decoder options.</param>
         /// <param name="configuration">The configuration.</param>
@@ -93,7 +96,7 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <param name="stream">The stream containing image data. </param>
         /// <returns>The decoded image</returns>
-        public Image<TColor> Decode(Stream stream)
+        public Image<TPixel> Decode(Stream stream)
         {
             try
             {
@@ -227,10 +230,10 @@ namespace ImageSharp.Formats
             }
 
             /* // No point doing this as the max width/height is always int.Max and that always bigger than the max size of a gif which is stored in a short.
-            if (this.logicalScreenDescriptor.Width > Image<TColor>.MaxWidth || this.logicalScreenDescriptor.Height > Image<TColor>.MaxHeight)
+            if (this.logicalScreenDescriptor.Width > Image<TPixel>.MaxWidth || this.logicalScreenDescriptor.Height > Image<TPixel>.MaxHeight)
             {
                 throw new ArgumentOutOfRangeException(
-                    $"The input gif '{this.logicalScreenDescriptor.Width}x{this.logicalScreenDescriptor.Height}' is bigger then the max allowed size '{Image<TColor>.MaxWidth}x{Image<TColor>.MaxHeight}'");
+                    $"The input gif '{this.logicalScreenDescriptor.Width}x{this.logicalScreenDescriptor.Height}' is bigger then the max allowed size '{Image<TPixel>.MaxWidth}x{Image<TPixel>.MaxHeight}'");
             }
             */
         }
@@ -330,6 +333,7 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <param name="imageDescriptor">The <see cref="GifImageDescriptor"/>.</param>
         /// <param name="indices">The pixel array to write to.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void ReadFrameIndices(GifImageDescriptor imageDescriptor, byte[] indices)
         {
             int dataSize = this.currentStream.ReadByte();
@@ -351,20 +355,20 @@ namespace ImageSharp.Formats
             int imageWidth = this.logicalScreenDescriptor.Width;
             int imageHeight = this.logicalScreenDescriptor.Height;
 
-            ImageFrame<TColor> previousFrame = null;
+            ImageFrame<TPixel> previousFrame = null;
 
-            ImageFrame<TColor> currentFrame = null;
+            ImageFrame<TPixel> currentFrame = null;
 
-            ImageBase<TColor> image;
+            ImageBase<TPixel> image;
 
             if (this.previousFrame == null)
             {
                 this.metaData.Quality = colorTableLength / 3;
 
                 // This initializes the image to become fully transparent because the alpha channel is zero.
-                this.image = Image.Create<TColor>(imageWidth, imageHeight, this.metaData, this.configuration);
+                this.image = new Image<TPixel>(this.configuration, imageWidth, imageHeight, this.metaData);
 
-                this.SetFrameDelay(this.metaData);
+                this.SetFrameMetaData(this.metaData);
 
                 image = this.image;
             }
@@ -378,7 +382,7 @@ namespace ImageSharp.Formats
 
                 currentFrame = this.previousFrame.Clone();
 
-                this.SetFrameDelay(currentFrame.MetaData);
+                this.SetFrameMetaData(currentFrame.MetaData);
 
                 image = currentFrame;
 
@@ -392,7 +396,7 @@ namespace ImageSharp.Formats
             int interlaceIncrement = 8; // The interlacing line increment
             int interlaceY = 0; // The current interlaced line
 
-            using (PixelAccessor<TColor> pixelAccessor = image.Lock())
+            using (PixelAccessor<TPixel> pixelAccessor = image.Lock())
             {
                 for (int y = descriptor.Top; y < descriptor.Top + descriptor.Height; y++)
                 {
@@ -441,7 +445,7 @@ namespace ImageSharp.Formats
                         {
                             int indexOffset = index * 3;
 
-                            TColor pixel = default(TColor);
+                            TPixel pixel = default(TPixel);
                             pixel.PackFromBytes(colorTable[indexOffset], colorTable[indexOffset + 1], colorTable[indexOffset + 2], 255);
                             pixelAccessor[x, writeY] = pixel;
                         }
@@ -470,7 +474,7 @@ namespace ImageSharp.Formats
         /// Restores the current frame area to the background.
         /// </summary>
         /// <param name="frame">The frame.</param>
-        private void RestoreToBackground(ImageBase<TColor> frame)
+        private void RestoreToBackground(ImageBase<TPixel> frame)
         {
             if (this.restoreArea == null)
             {
@@ -481,16 +485,16 @@ namespace ImageSharp.Formats
             if (this.restoreArea.Value.Width == this.image.Width &&
                 this.restoreArea.Value.Height == this.image.Height)
             {
-                using (PixelAccessor<TColor> pixelAccessor = frame.Lock())
+                using (PixelAccessor<TPixel> pixelAccessor = frame.Lock())
                 {
                     pixelAccessor.Reset();
                 }
             }
             else
             {
-                using (PixelArea<TColor> emptyRow = new PixelArea<TColor>(this.restoreArea.Value.Width, ComponentOrder.Xyzw))
+                using (PixelArea<TPixel> emptyRow = new PixelArea<TPixel>(this.restoreArea.Value.Width, ComponentOrder.Xyzw))
                 {
-                    using (PixelAccessor<TColor> pixelAccessor = frame.Lock())
+                    using (PixelAccessor<TPixel> pixelAccessor = frame.Lock())
                     {
                         for (int y = this.restoreArea.Value.Top; y < this.restoreArea.Value.Top + this.restoreArea.Value.Height; y++)
                         {
@@ -504,14 +508,20 @@ namespace ImageSharp.Formats
         }
 
         /// <summary>
-        /// Sets the frame delay in the metadata.
+        /// Sets the frames metadata.
         /// </summary>
         /// <param name="metaData">The meta data.</param>
-        private void SetFrameDelay(IMetaData metaData)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void SetFrameMetaData(IMetaData metaData)
         {
-            if (this.graphicsControlExtension != null && this.graphicsControlExtension.DelayTime > 0)
+            if (this.graphicsControlExtension != null)
             {
-                metaData.FrameDelay = this.graphicsControlExtension.DelayTime;
+                if (this.graphicsControlExtension.DelayTime > 0)
+                {
+                    metaData.FrameDelay = this.graphicsControlExtension.DelayTime;
+                }
+
+                metaData.DisposalMethod = this.graphicsControlExtension.DisposalMethod;
             }
         }
     }

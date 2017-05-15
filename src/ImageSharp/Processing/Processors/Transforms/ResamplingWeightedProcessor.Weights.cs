@@ -4,15 +4,17 @@ namespace ImageSharp.Processing.Processors
     using System.Numerics;
     using System.Runtime.CompilerServices;
 
+    using ImageSharp.Memory;
+
     /// <content>
     /// Conains the definition of <see cref="WeightsWindow"/> and <see cref="WeightsBuffer"/>.
     /// </content>
-    internal abstract partial class ResamplingWeightedProcessor<TColor>
+    internal abstract partial class ResamplingWeightedProcessor<TPixel>
     {
         /// <summary>
         /// Points to a collection of of weights allocated in <see cref="WeightsBuffer"/>.
         /// </summary>
-        internal unsafe struct WeightsWindow
+        internal struct WeightsWindow
         {
             /// <summary>
             /// The local left index position
@@ -22,9 +24,7 @@ namespace ImageSharp.Processing.Processors
             /// <summary>
             /// The span of weights pointing to <see cref="WeightsBuffer"/>.
             /// </summary>
-            // TODO: In the case of switching to official System.Memory and System.Buffers.Primitives this should be System.Buffers.Buffer<T> (formerly Memory<T>), because Span<T> is stack-only!
-            // see: https://github.com/dotnet/corefxlab/blob/873d35ebed7264e2f9adb556f3b61bebc12395d6/docs/specs/memory.md
-            public BufferSpan<float> Span;
+            public Span<float> Span;
 
             /// <summary>
             /// Initializes a new instance of the <see cref="WeightsWindow"/> struct.
@@ -32,7 +32,7 @@ namespace ImageSharp.Processing.Processors
             /// <param name="left">The local left index</param>
             /// <param name="span">The span</param>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            internal WeightsWindow(int left, BufferSpan<float> span)
+            internal WeightsWindow(int left, Span<float> span)
             {
                 this.Left = left;
                 this.Span = span;
@@ -41,7 +41,7 @@ namespace ImageSharp.Processing.Processors
             /// <summary>
             /// Gets an unsafe float* pointer to the beginning of <see cref="Span"/>.
             /// </summary>
-            public float* Ptr => (float*)this.Span.PointerAtOffset;
+            public ref float Ptr => ref this.Span.DangerousGetPinnableReference();
 
             /// <summary>
             /// Gets the lenghth of the weights window
@@ -52,23 +52,23 @@ namespace ImageSharp.Processing.Processors
             /// Computes the sum of vectors in 'rowSpan' weighted by weight values, pointed by this <see cref="WeightsWindow"/> instance.
             /// </summary>
             /// <param name="rowSpan">The input span of vectors</param>
+            /// <param name="sourceX">The source row position.</param>
             /// <returns>The weighted sum</returns>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public Vector4 ComputeWeightedRowSum(BufferSpan<Vector4> rowSpan)
+            public Vector4 ComputeWeightedRowSum(Span<Vector4> rowSpan, int sourceX)
             {
-                float* horizontalValues = this.Ptr;
+                ref float horizontalValues = ref this.Ptr;
                 int left = this.Left;
-                Vector4* vecPtr = (Vector4*)rowSpan.PointerAtOffset;
-                vecPtr += left;
+                ref Vector4 vecPtr = ref Unsafe.Add(ref rowSpan.DangerousGetPinnableReference(), left + sourceX);
 
                 // Destination color components
                 Vector4 result = Vector4.Zero;
 
                 for (int i = 0; i < this.Length; i++)
                 {
-                    float weight = horizontalValues[i];
-                    result += (*vecPtr) * weight;
-                    vecPtr++;
+                    float weight = Unsafe.Add(ref horizontalValues, i);
+                    Vector4 v = Unsafe.Add(ref vecPtr, i);
+                    result += v * weight;
                 }
 
                 return result;
@@ -79,39 +79,40 @@ namespace ImageSharp.Processing.Processors
             /// Applies <see cref="Vector4Extensions.Expand(float)"/> to all input vectors.
             /// </summary>
             /// <param name="rowSpan">The input span of vectors</param>
+            /// <param name="sourceX">The source row position.</param>
             /// <returns>The weighted sum</returns>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public Vector4 ComputeExpandedWeightedRowSum(BufferSpan<Vector4> rowSpan)
+            public Vector4 ComputeExpandedWeightedRowSum(Span<Vector4> rowSpan, int sourceX)
             {
-                float* horizontalValues = this.Ptr;
+                ref float horizontalValues = ref this.Ptr;
                 int left = this.Left;
-                Vector4* vecPtr = (Vector4*)rowSpan.PointerAtOffset;
-                vecPtr += left;
+                ref Vector4 vecPtr = ref Unsafe.Add(ref rowSpan.DangerousGetPinnableReference(), left + sourceX);
 
                 // Destination color components
                 Vector4 result = Vector4.Zero;
 
                 for (int i = 0; i < this.Length; i++)
                 {
-                    float weight = horizontalValues[i];
-                    result += (*vecPtr).Expand() * weight;
-                    vecPtr++;
+                    float weight = Unsafe.Add(ref horizontalValues, i);
+                    Vector4 v = Unsafe.Add(ref vecPtr, i);
+                    result += v.Expand() * weight;
                 }
 
                 return result;
             }
 
             /// <summary>
-            /// Computes the sum of vectors in 'firstPassPixels' at a column pointed by 'x',
+            /// Computes the sum of vectors in 'firstPassPixels' at a row pointed by 'x',
             /// weighted by weight values, pointed by this <see cref="WeightsWindow"/> instance.
             /// </summary>
             /// <param name="firstPassPixels">The buffer of input vectors in row first order</param>
-            /// <param name="x">The column position</param>
+            /// <param name="x">The row position</param>
+            /// <param name="sourceY">The source column position.</param>
             /// <returns>The weighted sum</returns>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public Vector4 ComputeWeightedColumnSum(PinnedImageBuffer<Vector4> firstPassPixels, int x)
+            public Vector4 ComputeWeightedColumnSum(Buffer2D<Vector4> firstPassPixels, int x, int sourceY)
             {
-                float* verticalValues = this.Ptr;
+                ref float verticalValues = ref this.Ptr;
                 int left = this.Left;
 
                 // Destination color components
@@ -119,8 +120,8 @@ namespace ImageSharp.Processing.Processors
 
                 for (int i = 0; i < this.Length; i++)
                 {
-                    float yw = verticalValues[i];
-                    int index = left + i;
+                    float yw = Unsafe.Add(ref verticalValues, i);
+                    int index = left + i + sourceY;
                     result += firstPassPixels[x, index] * yw;
                 }
 
@@ -133,7 +134,7 @@ namespace ImageSharp.Processing.Processors
         /// </summary>
         internal class WeightsBuffer : IDisposable
         {
-            private PinnedImageBuffer<float> dataBuffer;
+            private Buffer2D<float> dataBuffer;
 
             /// <summary>
             /// Initializes a new instance of the <see cref="WeightsBuffer"/> class.
@@ -142,7 +143,7 @@ namespace ImageSharp.Processing.Processors
             /// <param name="destinationSize">The size of the destination window</param>
             public WeightsBuffer(int sourceSize, int destinationSize)
             {
-                this.dataBuffer = PinnedImageBuffer<float>.CreateClean(sourceSize, destinationSize);
+                this.dataBuffer = Buffer2D<float>.CreateClean(sourceSize, destinationSize);
                 this.Weights = new WeightsWindow[destinationSize];
             }
 
@@ -168,7 +169,7 @@ namespace ImageSharp.Processing.Processors
             /// <returns>The weights</returns>
             public WeightsWindow GetWeightsWindow(int destIdx, int leftIdx, int rightIdx)
             {
-                BufferSpan<float> span = this.dataBuffer.GetRowSpan(destIdx).Slice(leftIdx, rightIdx - leftIdx + 1);
+                Span<float> span = this.dataBuffer.GetRowSpan(destIdx).Slice(leftIdx, rightIdx - leftIdx + 1);
                 return new WeightsWindow(leftIdx, span);
             }
         }

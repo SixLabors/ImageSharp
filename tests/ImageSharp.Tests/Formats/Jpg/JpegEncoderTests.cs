@@ -15,6 +15,7 @@ using Xunit.Abstractions;
 namespace ImageSharp.Tests
 {
     using ImageSharp.Formats.Jpg;
+    using ImageSharp.PixelFormats;
     using ImageSharp.Processing;
 
     public class JpegEncoderTests : MeasureFixture
@@ -31,10 +32,10 @@ namespace ImageSharp.Tests
         [WithFile(TestImages.Jpeg.Baseline.Lake, PixelTypes.StandardImageClass, 75, JpegSubsample.Ratio420)]
         [WithFile(TestImages.Jpeg.Baseline.Snake, PixelTypes.StandardImageClass, 75, JpegSubsample.Ratio444)]
         [WithFile(TestImages.Jpeg.Baseline.Lake, PixelTypes.StandardImageClass, 75, JpegSubsample.Ratio444)]
-        public void LoadResizeSave<TColor>(TestImageProvider<TColor> provider, int quality, JpegSubsample subsample)
-            where TColor : struct, IPixel<TColor>
+        public void LoadResizeSave<TPixel>(TestImageProvider<TPixel> provider, int quality, JpegSubsample subsample)
+            where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TColor> image = provider.GetImage().Resize(new ResizeOptions { Size = new Size(150, 100), Mode = ResizeMode.Max }))
+            using (Image<TPixel> image = provider.GetImage().Resize(new ResizeOptions { Size = new Size(150, 100), Mode = ResizeMode.Max }))
             {
                 image.MetaData.Quality = quality;
                 image.MetaData.ExifProfile = null; // Reduce the size of the file
@@ -48,12 +49,12 @@ namespace ImageSharp.Tests
         }
 
         [Theory]
-        [WithFileCollection(nameof(AllBmpFiles), PixelTypes.Color | PixelTypes.StandardImageClass | PixelTypes.Argb, JpegSubsample.Ratio420, 75)]
-        [WithFileCollection(nameof(AllBmpFiles), PixelTypes.Color | PixelTypes.StandardImageClass | PixelTypes.Argb, JpegSubsample.Ratio444, 75)]
-        public void OpenBmp_SaveJpeg<TColor>(TestImageProvider<TColor> provider, JpegSubsample subSample, int quality)
-           where TColor : struct, IPixel<TColor>
+        [WithFileCollection(nameof(AllBmpFiles), PixelTypes.Rgba32 | PixelTypes.StandardImageClass | PixelTypes.Argb32, JpegSubsample.Ratio420, 75)]
+        [WithFileCollection(nameof(AllBmpFiles), PixelTypes.Rgba32 | PixelTypes.StandardImageClass | PixelTypes.Argb32, JpegSubsample.Ratio444, 75)]
+        public void OpenBmp_SaveJpeg<TPixel>(TestImageProvider<TPixel> provider, JpegSubsample subSample, int quality)
+           where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TColor> image = provider.GetImage())
+            using (Image<TPixel> image = provider.GetImage())
             {
                 ImagingTestCaseUtility utility = provider.Utility;
                 utility.TestName += "_" + subSample + "_Q" + quality;
@@ -81,14 +82,14 @@ namespace ImageSharp.Tests
 
             TestFile testFile = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan);
 
-            using (Image input = testFile.CreateImage())
+            using (Image<Rgba32> input = testFile.CreateImage())
             {
                 using (MemoryStream memStream = new MemoryStream())
                 {
                     input.Save(memStream, new JpegFormat(), options);
 
                     memStream.Position = 0;
-                    using (Image output = Image.Load(memStream))
+                    using (Image<Rgba32> output = Image.Load<Rgba32>(memStream))
                     {
                         Assert.NotNull(output.MetaData.ExifProfile);
                     }
@@ -106,14 +107,14 @@ namespace ImageSharp.Tests
 
             TestFile testFile = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan);
 
-            using (Image input = testFile.CreateImage())
+            using (Image<Rgba32> input = testFile.CreateImage())
             {
                 using (MemoryStream memStream = new MemoryStream())
                 {
                     input.SaveAsJpeg(memStream, options);
 
                     memStream.Position = 0;
-                    using (Image output = Image.Load(memStream))
+                    using (Image<Rgba32> output = Image.Load<Rgba32>(memStream))
                     {
                         Assert.Null(output.MetaData.ExifProfile);
                     }

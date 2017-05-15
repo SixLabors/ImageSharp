@@ -40,7 +40,7 @@ namespace ImageSharp.Formats
         /// <summary>
         /// The stream responsible for compressing the input stream.
         /// </summary>
-        private DeflateStream deflateStream;
+        private System.IO.Compression.DeflateStream deflateStream;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ZlibDeflateStream"/> class.
@@ -102,7 +102,7 @@ namespace ImageSharp.Formats
                 level = CompressionLevel.NoCompression;
             }
 
-            this.deflateStream = new DeflateStream(this.rawStream, level, true);
+            this.deflateStream = new System.IO.Compression.DeflateStream(this.rawStream, level, true);
         }
 
         /// <inheritdoc/>

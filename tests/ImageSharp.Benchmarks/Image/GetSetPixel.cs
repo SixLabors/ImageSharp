@@ -11,7 +11,6 @@ namespace ImageSharp.Benchmarks.Image
 
     using ImageSharp.PixelFormats;
 
-    using CoreImage = ImageSharp.Image;
     using SystemColor = System.Drawing.Color;
 
     public class GetSetPixel : BenchmarkBase
@@ -29,7 +28,7 @@ namespace ImageSharp.Benchmarks.Image
         [Benchmark(Description = "ImageSharp GetSet pixel")]
         public Rgba32 ResizeCore()
         {
-            using (CoreImage image = new CoreImage(400, 400))
+            using (Image<Rgba32> image = new Image<Rgba32>(400, 400))
             {
                 using (PixelAccessor<Rgba32> imagePixels = image.Lock())
                 {

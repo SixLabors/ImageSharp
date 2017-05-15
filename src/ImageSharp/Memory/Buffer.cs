@@ -3,10 +3,9 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp
+namespace ImageSharp.Memory
 {
     using System;
-    using System.Buffers;
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
 
@@ -97,9 +96,9 @@ namespace ImageSharp
         public T[] Array { get; private set; }
 
         /// <summary>
-        /// Gets a <see cref="BufferSpan{T}"/> to the backing buffer.
+        /// Gets a <see cref="Span{T}"/> to the backing buffer.
         /// </summary>
-        public BufferSpan<T> Span => this;
+        public Span<T> Span => this;
 
         /// <summary>
         /// Returns a reference to specified element of the buffer.
@@ -117,13 +116,13 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Converts <see cref="Buffer{T}"/> to an <see cref="BufferSpan{T}"/>.
+        /// Converts <see cref="Buffer{T}"/> to an <see cref="Span{T}"/>.
         /// </summary>
         /// <param name="buffer">The <see cref="Buffer{T}"/> to convert.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static implicit operator BufferSpan<T>(Buffer<T> buffer)
+        public static implicit operator Span<T>(Buffer<T> buffer)
         {
-            return new BufferSpan<T>(buffer.Array, 0, buffer.Length);
+            return new Span<T>(buffer.Array, 0, buffer.Length);
         }
 
         /// <summary>
@@ -140,26 +139,26 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Gets a <see cref="BufferSpan{T}"/> to an offseted position inside the buffer.
+        /// Gets a <see cref="Span{T}"/> to an offseted position inside the buffer.
         /// </summary>
         /// <param name="start">The start</param>
-        /// <returns>The <see cref="BufferSpan{T}"/></returns>
+        /// <returns>The <see cref="Span{T}"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public BufferSpan<T> Slice(int start)
+        public Span<T> Slice(int start)
         {
-            return new BufferSpan<T>(this.Array, start, this.Length - start);
+            return new Span<T>(this.Array, start, this.Length - start);
         }
 
         /// <summary>
-        /// Gets a <see cref="BufferSpan{T}"/> to an offseted position inside the buffer.
+        /// Gets a <see cref="Span{T}"/> to an offsetted position inside the buffer.
         /// </summary>
         /// <param name="start">The start</param>
         /// <param name="length">The length of the slice</param>
-        /// <returns>The <see cref="BufferSpan{T}"/></returns>
+        /// <returns>The <see cref="Span{T}"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public BufferSpan<T> Slice(int start, int length)
+        public Span<T> Slice(int start, int length)
         {
-            return new BufferSpan<T>(this.Array, start, length);
+            return new Span<T>(this.Array, start, length);
         }
 
         /// <summary>
@@ -210,7 +209,7 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Clears the buffer, filling elements between 0 and <see cref="Length"/>-1 with default(T)
+        /// Clears the contents of this buffer.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Clear()

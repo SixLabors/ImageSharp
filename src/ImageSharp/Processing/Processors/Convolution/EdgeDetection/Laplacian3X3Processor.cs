@@ -8,6 +8,7 @@ namespace ImageSharp.Processing.Processors
     using System;
     using System.Diagnostics.CodeAnalysis;
 
+    using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
 
     /// <summary>

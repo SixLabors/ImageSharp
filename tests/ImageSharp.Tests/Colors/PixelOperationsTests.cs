@@ -5,6 +5,7 @@ namespace ImageSharp.Tests.Colors
     using System;
     using System.Numerics;
 
+    using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
 
     using Xunit;
@@ -12,7 +13,7 @@ namespace ImageSharp.Tests.Colors
 
     public class PixelOperationsTests
     {
-        public class Color32 : BulkPixelOperationsTests<Rgba32>
+        public class Color32 : PixelOperationsTests<Rgba32>
         {
             public Color32(ITestOutputHelper output)
                 : base(output)
@@ -20,7 +21,7 @@ namespace ImageSharp.Tests.Colors
             }
 
             // For 4.6 test runner MemberData does not work without redeclaring the public field in the derived test class:
-            //public static new TheoryData<int> ArraySizesData => new TheoryData<int> { 7, 16, 1111 };
+            public static new TheoryData<int> ArraySizesData => new TheoryData<int> { 7, 16, 1111 };
 
             [Fact]
             public void IsSpecialImplementation()
@@ -60,7 +61,7 @@ namespace ImageSharp.Tests.Colors
             }
         }
 
-        public class Argb : BulkPixelOperationsTests<Argb32>
+        public class Argb : PixelOperationsTests<Argb32>
         {
             // For 4.6 test runner MemberData does not work without redeclaring the public field in the derived test class:
             public Argb(ITestOutputHelper output)
@@ -68,7 +69,7 @@ namespace ImageSharp.Tests.Colors
             {
             }
 
-            //public static new TheoryData<int> ArraySizesData => new TheoryData<int> { 7, 16, 1111 };
+            public static new TheoryData<int> ArraySizesData => new TheoryData<int> { 7, 16, 1111 };
         }
 
         [Theory]
@@ -80,10 +81,10 @@ namespace ImageSharp.Tests.Colors
         }
     }
 
-    public abstract class BulkPixelOperationsTests<TPixel> : MeasureFixture
+    public abstract class PixelOperationsTests<TPixel> : MeasureFixture
         where TPixel : struct, IPixel<TPixel>
     {
-        protected BulkPixelOperationsTests(ITestOutputHelper output)
+        protected PixelOperationsTests(ITestOutputHelper output)
             : base(output)
         {
         }
@@ -316,8 +317,8 @@ namespace ImageSharp.Tests.Colors
             public Buffer<TDest> ActualDestBuffer { get; }
             public Buffer<TDest> ExpectedDestBuffer { get; }
 
-            public BufferSpan<TSource> Source => this.SourceBuffer;
-            public BufferSpan<TDest> ActualDest => this.ActualDestBuffer;
+            public Span<TSource> Source => this.SourceBuffer;
+            public Span<TDest> ActualDest => this.ActualDestBuffer;
 
             public TestBuffers(TSource[] source, TDest[] expectedDest)
             {
@@ -366,13 +367,13 @@ namespace ImageSharp.Tests.Colors
         internal static void TestOperation<TSource, TDest>(
             TSource[] source,
             TDest[] expected,
-            Action<BufferSpan<TSource>, BufferSpan<TDest>> action)
+            Action<Span<TSource>, Buffer<TDest>> action)
             where TSource : struct
             where TDest : struct
         {
             using (TestBuffers<TSource, TDest> buffers = new TestBuffers<TSource, TDest>(source, expected))
             {
-                action(buffers.Source, buffers.ActualDest);
+                action(buffers.Source, buffers.ActualDestBuffer);
                 buffers.Verify();
             }
         }

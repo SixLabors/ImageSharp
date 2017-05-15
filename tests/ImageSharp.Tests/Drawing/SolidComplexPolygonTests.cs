@@ -32,7 +32,7 @@ namespace ImageSharp.Tests.Drawing
                             new Vector2(65, 137)));
             IPath clipped = simplePath.Clip(hole1);
            // var clipped = new Rectangle(10, 10, 100, 100).Clip(new Rectangle(20, 0, 20, 20));
-            using (Image image = new Image(500, 500))
+            using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
                 using (FileStream output = File.OpenWrite($"{path}/Simple.png"))
                 {
@@ -67,7 +67,7 @@ namespace ImageSharp.Tests.Drawing
                             new Vector2(130, 40),
                             new Vector2(65, 137)));
 
-            using (Image image = new Image(500, 500))
+            using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
                 using (FileStream output = File.OpenWrite($"{path}/SimpleOverlapping.png"))
                 {
@@ -102,7 +102,7 @@ namespace ImageSharp.Tests.Drawing
                             new Vector2(65, 137)));
             Rgba32 color = new Rgba32(Rgba32.HotPink.R, Rgba32.HotPink.G, Rgba32.HotPink.B, 150);
 
-            using (Image image = new Image(500, 500))
+            using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
                 using (FileStream output = File.OpenWrite($"{path}/Opacity.png"))
                 {

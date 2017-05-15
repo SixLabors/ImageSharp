@@ -38,9 +38,9 @@ namespace ImageSharp.Tests.TestUtilities
             return pix;
         }
 
-        internal BufferSpan<TPixel> AsSpan()
+        internal Span<TPixel> AsSpan()
         {
-            return new BufferSpan<TPixel>(new[] { AsPixel() });
+            return new Span<TPixel>(new[] { AsPixel() });
         }
 
         public void Deserialize(IXunitSerializationInfo info)

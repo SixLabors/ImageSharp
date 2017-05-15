@@ -12,6 +12,7 @@ namespace ImageSharp.Formats
     using System.Linq;
     using System.Runtime.CompilerServices;
 
+    using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
 
     using static ComparableExtensions;
@@ -131,12 +132,12 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Previous scanline processed
         /// </summary>
-        private byte[] previousScanline;
+        private Buffer<byte> previousScanline;
 
         /// <summary>
         /// The current scanline that is being processed
         /// </summary>
-        private byte[] scanline;
+        private Buffer<byte> scanline;
 
         /// <summary>
         /// The index of the current scanline being processed
@@ -184,14 +185,14 @@ namespace ImageSharp.Formats
         public Image<TPixel> Decode<TPixel>(Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
-            ImageMetaData metadata = new ImageMetaData();
+            var metadata = new ImageMetaData();
             this.currentStream = stream;
             this.currentStream.Skip(8);
             Image<TPixel> image = null;
             PixelAccessor<TPixel> pixels = null;
             try
             {
-                using (ZlibInflateStream deframeStream = new ZlibInflateStream(this.currentStream))
+                using (var deframeStream = new ZlibInflateStream(this.currentStream))
                 {
                     PngChunk currentChunk;
                     while (!this.isEndChunkReached && (currentChunk = this.ReadChunk()) != null)
@@ -252,11 +253,8 @@ namespace ImageSharp.Formats
             finally
             {
                 pixels?.Dispose();
-                if (this.previousScanline != null)
-                {
-                    ArrayPool<byte>.Shared.Return(this.previousScanline);
-                    ArrayPool<byte>.Shared.Return(this.scanline);
-                }
+                this.scanline?.Dispose();
+                this.previousScanline?.Dispose();
             }
         }
 
@@ -335,7 +333,7 @@ namespace ImageSharp.Formats
                 throw new ArgumentOutOfRangeException($"The input png '{this.header.Width}x{this.header.Height}' is bigger than the max allowed size '{Image<TPixel>.MaxWidth}x{Image<TPixel>.MaxHeight}'");
             }
 
-            image = Image.Create<TPixel>(this.header.Width, this.header.Height, metadata, this.configuration);
+            image = new Image<TPixel>(this.configuration, this.header.Width, this.header.Height, metadata);
             pixels = image.Lock();
             this.bytesPerPixel = this.CalculateBytesPerPixel();
             this.bytesPerScanline = this.CalculateScanlineLength(this.header.Width) + 1;
@@ -345,12 +343,8 @@ namespace ImageSharp.Formats
                 this.bytesPerSample = this.header.BitDepth / 8;
             }
 
-            this.previousScanline = ArrayPool<byte>.Shared.Rent(this.bytesPerScanline);
-            this.scanline = ArrayPool<byte>.Shared.Rent(this.bytesPerScanline);
-
-            // Zero out the scanlines, because the bytes that are rented from the arraypool may not be zero.
-            Array.Clear(this.scanline, 0, this.bytesPerScanline);
-            Array.Clear(this.previousScanline, 0, this.bytesPerScanline);
+            this.previousScanline = Buffer<byte>.CreateClean(this.bytesPerScanline);
+            this.scanline = Buffer<byte>.CreateClean(this.bytesPerScanline);
         }
 
         /// <summary>
@@ -429,7 +423,7 @@ namespace ImageSharp.Formats
         {
             while (this.currentRow < this.header.Height)
             {
-                int bytesRead = compressedStream.Read(this.scanline, this.currentRowBytesRead, this.bytesPerScanline - this.currentRowBytesRead);
+                int bytesRead = compressedStream.Read(this.scanline.Array, this.currentRowBytesRead, this.bytesPerScanline - this.currentRowBytesRead);
                 this.currentRowBytesRead += bytesRead;
                 if (this.currentRowBytesRead < this.bytesPerScanline)
                 {
@@ -437,45 +431,38 @@ namespace ImageSharp.Formats
                 }
 
                 this.currentRowBytesRead = 0;
-                FilterType filterType = (FilterType)this.scanline[0];
+                var filterType = (FilterType)this.scanline[0];
 
                 switch (filterType)
                 {
                     case FilterType.None:
-
-                        NoneFilter.Decode(this.scanline);
-
                         break;
 
                     case FilterType.Sub:
 
-                        SubFilter.Decode(this.scanline, this.bytesPerScanline, this.bytesPerPixel);
-
+                        SubFilter.Decode(this.scanline, this.bytesPerPixel);
                         break;
 
                     case FilterType.Up:
 
-                        UpFilter.Decode(this.scanline, this.previousScanline, this.bytesPerScanline);
-
+                        UpFilter.Decode(this.scanline, this.previousScanline);
                         break;
 
                     case FilterType.Average:
 
-                        AverageFilter.Decode(this.scanline, this.previousScanline, this.bytesPerScanline, this.bytesPerPixel);
-
+                        AverageFilter.Decode(this.scanline, this.previousScanline, this.bytesPerPixel);
                         break;
 
                     case FilterType.Paeth:
 
-                        PaethFilter.Decode(this.scanline, this.previousScanline, this.bytesPerScanline, this.bytesPerPixel);
-
+                        PaethFilter.Decode(this.scanline, this.previousScanline, this.bytesPerPixel);
                         break;
 
                     default:
                         throw new ImageFormatException("Unknown filter type.");
                 }
 
-                this.ProcessDefilteredScanline(this.scanline, pixels);
+                this.ProcessDefilteredScanline(this.scanline.Array, pixels);
 
                 Swap(ref this.scanline, ref this.previousScanline);
                 this.currentRow++;
@@ -508,7 +495,7 @@ namespace ImageSharp.Formats
 
                 while (this.currentRow < this.header.Height)
                 {
-                    int bytesRead = compressedStream.Read(this.scanline, this.currentRowBytesRead, bytesPerInterlaceScanline - this.currentRowBytesRead);
+                    int bytesRead = compressedStream.Read(this.scanline.Array, this.currentRowBytesRead, bytesPerInterlaceScanline - this.currentRowBytesRead);
                     this.currentRowBytesRead += bytesRead;
                     if (this.currentRowBytesRead < bytesPerInterlaceScanline)
                     {
@@ -517,45 +504,40 @@ namespace ImageSharp.Formats
 
                     this.currentRowBytesRead = 0;
 
-                    FilterType filterType = (FilterType)this.scanline[0];
+                    Span<byte> scanSpan = this.scanline.Slice(0, bytesPerInterlaceScanline);
+                    Span<byte> prevSpan = this.previousScanline.Span.Slice(0, bytesPerInterlaceScanline);
+                    var filterType = (FilterType)scanSpan[0];
 
                     switch (filterType)
                     {
                         case FilterType.None:
-
-                            NoneFilter.Decode(this.scanline);
-
                             break;
 
                         case FilterType.Sub:
 
-                            SubFilter.Decode(this.scanline, bytesPerInterlaceScanline, this.bytesPerPixel);
-
+                            SubFilter.Decode(scanSpan, this.bytesPerPixel);
                             break;
 
                         case FilterType.Up:
 
-                            UpFilter.Decode(this.scanline, this.previousScanline, bytesPerInterlaceScanline);
-
+                            UpFilter.Decode(scanSpan, prevSpan);
                             break;
 
                         case FilterType.Average:
 
-                            AverageFilter.Decode(this.scanline, this.previousScanline, bytesPerInterlaceScanline, this.bytesPerPixel);
-
+                            AverageFilter.Decode(scanSpan, prevSpan, this.bytesPerPixel);
                             break;
 
                         case FilterType.Paeth:
 
-                            PaethFilter.Decode(this.scanline, this.previousScanline, bytesPerInterlaceScanline, this.bytesPerPixel);
-
+                            PaethFilter.Decode(scanSpan, prevSpan, this.bytesPerPixel);
                             break;
 
                         default:
                             throw new ImageFormatException("Unknown filter type.");
                     }
 
-                    this.ProcessInterlacedDefilteredScanline(this.scanline, this.currentRow, pixels, Adam7FirstColumn[this.pass], Adam7ColumnIncrement[this.pass]);
+                    this.ProcessInterlacedDefilteredScanline(this.scanline.Array, this.currentRow, pixels, Adam7FirstColumn[this.pass], Adam7ColumnIncrement[this.pass]);
 
                     Swap(ref this.scanline, ref this.previousScanline);
 
@@ -583,9 +565,10 @@ namespace ImageSharp.Formats
         private void ProcessDefilteredScanline<TPixel>(byte[] defilteredScanline, PixelAccessor<TPixel> pixels)
             where TPixel : struct, IPixel<TPixel>
         {
-            TPixel color = default(TPixel);
-            BufferSpan<TPixel> pixelBuffer = pixels.GetRowSpan(this.currentRow);
-            BufferSpan<byte> scanlineBuffer = new BufferSpan<byte>(defilteredScanline, 1);
+            var color = default(TPixel);
+            Span<TPixel> pixelBuffer = pixels.GetRowSpan(this.currentRow);
+            var scanlineBuffer = new Span<byte>(defilteredScanline, 1);
+
             switch (this.PngColorType)
             {
                 case PngColorType.Grayscale:
@@ -646,7 +629,7 @@ namespace ImageSharp.Formats
         {
             byte[] newScanline = ToArrayByBitsLength(defilteredScanline, this.bytesPerScanline, this.header.BitDepth);
             byte[] palette = this.palette;
-            TPixel color = default(TPixel);
+            var color = default(TPixel);
 
             if (this.paletteAlpha != null && this.paletteAlpha.Length > 0)
             {
@@ -703,7 +686,7 @@ namespace ImageSharp.Formats
         private void ProcessInterlacedDefilteredScanline<TPixel>(byte[] defilteredScanline, int row, PixelAccessor<TPixel> pixels, int pixelOffset = 0, int increment = 1)
             where TPixel : struct, IPixel<TPixel>
         {
-            TPixel color = default(TPixel);
+            var color = default(TPixel);
 
             switch (this.PngColorType)
             {
@@ -901,7 +884,7 @@ namespace ImageSharp.Formats
         /// </returns>
         private PngChunk ReadChunk()
         {
-            PngChunk chunk = new PngChunk();
+            var chunk = new PngChunk();
             this.ReadChunkLength(chunk);
             if (chunk.Length < 0)
             {

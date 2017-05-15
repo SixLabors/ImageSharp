@@ -4,6 +4,8 @@ namespace ImageSharp.Tests.Common
     using System;
     using System.Runtime.CompilerServices;
 
+    using ImageSharp.Memory;
+
     using Xunit;
 
     using static TestStructs;
@@ -13,7 +15,7 @@ namespace ImageSharp.Tests.Common
         // ReSharper disable once ClassNeverInstantiated.Local
         private class Assert : Xunit.Assert
         {
-            public static void SpanPointsTo<T>(BufferSpan<T> span, Buffer<T> buffer, int bufferOffset = 0)
+            public static void SpanPointsTo<T>(Span<T> span, Buffer<T> buffer, int bufferOffset = 0)
                 where T : struct
             {
                 ref T actual = ref span.DangerousGetPinnableReference();
@@ -75,9 +77,9 @@ namespace ImageSharp.Tests.Common
         {
             using (Buffer2D<Foo> buffer = new Buffer2D<Foo>(width, height))
             {
-                BufferSpan<Foo> span = buffer.GetRowSpan(y);
+                Span<Foo> span = buffer.GetRowSpan(y);
 
-                Assert.Equal(width * y, span.Start);
+                // Assert.Equal(width * y, span.Start);
                 Assert.Equal(width, span.Length);
                 Assert.SpanPointsTo(span, buffer, width * y);
             }
@@ -91,9 +93,9 @@ namespace ImageSharp.Tests.Common
         {
             using (Buffer2D<Foo> buffer = new Buffer2D<Foo>(width, height))
             {
-                BufferSpan<Foo> span = buffer.GetRowSpan(x, y);
+                Span<Foo> span = buffer.GetRowSpan(x, y);
 
-                Assert.Equal(width * y + x, span.Start);
+                // Assert.Equal(width * y + x, span.Start);
                 Assert.Equal(width - x, span.Length);
                 Assert.SpanPointsTo(span, buffer, width * y + x);
             }

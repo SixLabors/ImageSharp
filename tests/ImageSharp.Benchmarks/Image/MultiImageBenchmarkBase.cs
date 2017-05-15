@@ -15,13 +15,13 @@ namespace ImageSharp.Benchmarks.Image
 
     using BenchmarkDotNet.Attributes;
 
-    using Image = ImageSharp.Image;
+    using CoreImage = ImageSharp.Image;
 
     public abstract class MultiImageBenchmarkBase : BenchmarkBase
     {
         protected Dictionary<string, byte[]> FileNamesToBytes = new Dictionary<string, byte[]>();
 
-        protected Dictionary<string, Image> FileNamesToImageSharpImages = new Dictionary<string, Image>();
+        protected Dictionary<string, Image<Rgba32>> FileNamesToImageSharpImages = new Dictionary<string, Image<Rgba32>>();
         protected Dictionary<string, System.Drawing.Bitmap> FileNamesToSystemDrawingImages = new Dictionary<string, System.Drawing.Bitmap>();
 
         /// <summary>
@@ -154,7 +154,7 @@ namespace ImageSharp.Benchmarks.Image
 
                     using (MemoryStream ms1 = new MemoryStream(bytes))
                     {
-                        this.FileNamesToImageSharpImages[fn] = Image.Load(ms1);
+                        this.FileNamesToImageSharpImages[fn] = CoreImage.Load<Rgba32>(ms1);
 
                     }
 
@@ -162,7 +162,7 @@ namespace ImageSharp.Benchmarks.Image
                 }
             }
 
-            protected IEnumerable<KeyValuePair<string, ImageSharp.Image>> FileNames2ImageSharpImages
+            protected IEnumerable<KeyValuePair<string, Image<Rgba32>>> FileNames2ImageSharpImages
                 =>
                 this.EnumeratePairsByBenchmarkSettings(
                     this.FileNamesToImageSharpImages,
@@ -176,9 +176,9 @@ namespace ImageSharp.Benchmarks.Image
 
             protected virtual int LargeImageThresholdInPixels => 700000;
 
-            protected void ForEachImageSharpImage(Func<Image, object> operation)
+            protected void ForEachImageSharpImage(Func<Image<Rgba32>, object> operation)
             {
-                foreach (KeyValuePair<string, Image> kv in this.FileNames2ImageSharpImages)
+                foreach (KeyValuePair<string, Image<Rgba32>> kv in this.FileNames2ImageSharpImages)
                 {
                     try
                     {
@@ -194,7 +194,7 @@ namespace ImageSharp.Benchmarks.Image
                 }
             }
 
-            protected void ForEachImageSharpImage(Func<Image, MemoryStream, object> operation)
+            protected void ForEachImageSharpImage(Func<Image<Rgba32>, MemoryStream, object> operation)
             {
                 using (MemoryStream workStream = new MemoryStream())
                 {

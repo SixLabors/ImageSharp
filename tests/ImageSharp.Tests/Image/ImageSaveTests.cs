@@ -20,7 +20,7 @@ namespace ImageSharp.Tests
     /// </summary>
     public class ImageSaveTests : IDisposable
     {
-        private readonly Image Image;
+        private readonly Image<Rgba32> Image;
         private readonly Mock<IFileSystem> fileSystem;
         private readonly Mock<IImageFormat> format;
         private readonly Mock<IImageFormat> formatNotRegistered;
@@ -49,9 +49,10 @@ namespace ImageSharp.Tests
 
             this.fileSystem = new Mock<IFileSystem>();
             this.encoderOptions = new Mock<IEncoderOptions>().Object;
-            this.Image = new Image(1, 1, new Configuration(this.format.Object) {
+            this.Image = new Image<Rgba32>(new Configuration(this.format.Object)
+            {
                 FileSystem = this.fileSystem.Object
-            });
+            }, 1, 1);
         }
 
         [Fact]
@@ -71,7 +72,7 @@ namespace ImageSharp.Tests
             this.fileSystem.Setup(x => x.Create("path.jpg")).Returns(stream);
 
             this.Image.Save("path.jpg", this.encoderOptions);
-            
+
             this.encoder.Verify(x => x.Encode<Rgba32>(this.Image, stream, this.encoderOptions));
         }
 
@@ -126,7 +127,7 @@ namespace ImageSharp.Tests
         {
             Stream stream = new MemoryStream();
             this.Image.Save(stream);
-            
+
             this.encoder.Verify(x => x.Encode<Rgba32>(this.Image, stream, null));
         }
 

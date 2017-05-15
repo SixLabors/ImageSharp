@@ -1000,7 +1000,14 @@ namespace ImageSharp.Formats
                 byte[] profile = new byte[remaining];
                 this.InputProcessor.ReadFull(profile, 0, remaining);
 
-                metadata.IccProfiles.Add(new IccProfile(profile));
+                if (metadata.IccProfile == null)
+                {
+                    metadata.IccProfile = new IccProfile(profile);
+                }
+                else
+                {
+                    metadata.IccProfile.Extend(profile);
+                }
             }
         }
 

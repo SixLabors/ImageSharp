@@ -5,9 +5,9 @@
 
 namespace ImageSharp
 {
-    /// <summary>
+    /// <content>
     /// Provides methods to write ICC data types
-    /// </summary>
+    /// </content>
     internal sealed partial class IccDataWriter
     {
         /// <summary>
@@ -17,7 +17,7 @@ namespace ImageSharp
         /// <returns>The number of bytes written</returns>
         public int WriteLut8(IccLut value)
         {
-            foreach (double item in value.Values)
+            foreach (float item in value.Values)
             {
                 this.WriteByte((byte)((item * byte.MaxValue) + 0.5f).Clamp(0, byte.MaxValue));
             }
@@ -32,7 +32,7 @@ namespace ImageSharp
         /// <returns>The number of bytes written</returns>
         public int WriteLut16(IccLut value)
         {
-            foreach (double item in value.Values)
+            foreach (float item in value.Values)
             {
                 this.WriteUInt16((ushort)((item * ushort.MaxValue) + 0.5f).Clamp(0, ushort.MaxValue));
             }

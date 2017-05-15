@@ -123,7 +123,7 @@ namespace ImageSharp.Tests.Icc
         {
             IccDataWriter writer = CreateWriter();
 
-            writer.WriteLutAToBTagDataEntry(data);
+            writer.WriteLutAtoBTagDataEntry(data);
             byte[] output = writer.GetData();
 
             Assert.Equal(expected, output);
@@ -135,7 +135,7 @@ namespace ImageSharp.Tests.Icc
         {
             IccDataWriter writer = CreateWriter();
 
-            writer.WriteLutBToATagDataEntry(data);
+            writer.WriteLutBtoATagDataEntry(data);
             byte[] output = writer.GetData();
 
             Assert.Equal(expected, output);

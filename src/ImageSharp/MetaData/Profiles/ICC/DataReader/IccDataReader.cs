@@ -23,11 +23,14 @@ namespace ImageSharp
         private readonly byte[] data;
 
         /// <summary>
+        /// The bit converter
+        /// </summary>
+        private readonly EndianBitConverter converter = new BigEndianBitConverter();
+
+        /// <summary>
         /// The current reading position
         /// </summary>
-        private int index;
-
-        private EndianBitConverter converter = new BigEndianBitConverter();
+        private int currentIndex;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="IccDataReader"/> class.
@@ -45,27 +48,27 @@ namespace ImageSharp
         /// <param name="index">The new index position</param>
         public void SetIndex(int index)
         {
-            this.index = index.Clamp(0, this.data.Length);
+            this.currentIndex = index.Clamp(0, this.data.Length);
         }
 
         /// <summary>
-        /// Returns the current <see cref="index"/> without increment and adds the given increment
+        /// Returns the current <see cref="currentIndex"/> without increment and adds the given increment
         /// </summary>
-        /// <param name="increment">The value to increment <see cref="index"/></param>
-        /// <returns>The current <see cref="index"/> without the increment</returns>
+        /// <param name="increment">The value to increment <see cref="currentIndex"/></param>
+        /// <returns>The current <see cref="currentIndex"/> without the increment</returns>
         private int AddIndex(int increment)
         {
-            int tmp = this.index;
-            this.index += increment;
+            int tmp = this.currentIndex;
+            this.currentIndex += increment;
             return tmp;
         }
 
         /// <summary>
-        /// Calculates the 4 byte padding and adds it to the <see cref="index"/> variable
+        /// Calculates the 4 byte padding and adds it to the <see cref="currentIndex"/> variable
         /// </summary>
         private void AddPadding()
         {
-            this.index += this.CalcPadding();
+            this.currentIndex += this.CalcPadding();
         }
 
         /// <summary>
@@ -74,7 +77,7 @@ namespace ImageSharp
         /// <returns>the number of bytes to pad</returns>
         private int CalcPadding()
         {
-            int p = 4 - (this.index % 4);
+            int p = 4 - (this.currentIndex % 4);
             return p >= 4 ? 0 : p;
         }
 

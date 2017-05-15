@@ -25,7 +25,7 @@ namespace ImageSharp
         /// <summary>
         /// To detect redundant calls
         /// </summary>
-        private bool isDisposed = false;
+        private bool isDisposed;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="IccDataWriter"/> class.
@@ -38,10 +38,7 @@ namespace ImageSharp
         /// <summary>
         /// Gets the currently written length in bytes
         /// </summary>
-        public uint Length
-        {
-            get { return (uint)this.dataStream.Length; }
-        }
+        public uint Length => (uint)this.dataStream.Length;
 
         /// <summary>
         /// Gets the written data bytes

@@ -114,7 +114,7 @@ namespace ImageSharp.Tests.Icc
         {
             IccDataReader reader = CreateReader(data);
 
-            IccLutAToBTagDataEntry output = reader.ReadLutAToBTagDataEntry();
+            IccLutAToBTagDataEntry output = reader.ReadLutAtoBTagDataEntry();
 
             Assert.Equal(expected, output);
         }
@@ -125,7 +125,7 @@ namespace ImageSharp.Tests.Icc
         {
             IccDataReader reader = CreateReader(data);
 
-            IccLutBToATagDataEntry output = reader.ReadLutBToATagDataEntry();
+            IccLutBToATagDataEntry output = reader.ReadLutBtoATagDataEntry();
 
             Assert.Equal(expected, output);
         }

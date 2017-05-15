@@ -38,6 +38,8 @@ namespace ImageSharp
             int major = value.Major.Clamp(0, byte.MaxValue);
             int minor = value.Minor.Clamp(0, 15);
             int bugfix = value.Build.Clamp(0, 15);
+
+            // TODO: This is not used?
             byte mb = (byte)((minor << 4) | bugfix);
 
             int version = (major << 24) | (minor << 20) | (bugfix << 16);

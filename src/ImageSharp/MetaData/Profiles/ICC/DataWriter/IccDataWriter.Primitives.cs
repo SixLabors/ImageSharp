@@ -111,10 +111,10 @@ namespace ImageSharp
         /// <returns>the number of bytes written</returns>
         public int WriteFix16(double value)
         {
-            const double max = short.MaxValue + (65535d / 65536d);
-            const double min = short.MinValue;
+            const double Max = short.MaxValue + (65535d / 65536d);
+            const double Min = short.MinValue;
 
-            value = value.Clamp(min, max);
+            value = value.Clamp(Min, Max);
             value *= 65536d;
 
             return this.WriteInt32((int)Math.Round(value, MidpointRounding.AwayFromZero));
@@ -127,10 +127,10 @@ namespace ImageSharp
         /// <returns>the number of bytes written</returns>
         public int WriteUFix16(double value)
         {
-            const double max = ushort.MaxValue + (65535d / 65536d);
-            const double min = ushort.MinValue;
+            const double Max = ushort.MaxValue + (65535d / 65536d);
+            const double Min = ushort.MinValue;
 
-            value = value.Clamp(min, max);
+            value = value.Clamp(Min, Max);
             value *= 65536d;
 
             return this.WriteUInt32((uint)Math.Round(value, MidpointRounding.AwayFromZero));
@@ -143,10 +143,10 @@ namespace ImageSharp
         /// <returns>the number of bytes written</returns>
         public int WriteU1Fix15(double value)
         {
-            const double max = 1 + (32767d / 32768d);
-            const double min = 0;
+            const double Max = 1 + (32767d / 32768d);
+            const double Min = 0;
 
-            value = value.Clamp(min, max);
+            value = value.Clamp(Min, Max);
             value *= 32768d;
 
             return this.WriteUInt16((ushort)Math.Round(value, MidpointRounding.AwayFromZero));
@@ -159,10 +159,10 @@ namespace ImageSharp
         /// <returns>the number of bytes written</returns>
         public int WriteUFix8(double value)
         {
-            const double max = byte.MaxValue + (255d / 256d);
-            const double min = byte.MinValue;
+            const double Max = byte.MaxValue + (255d / 256d);
+            const double Min = byte.MinValue;
 
-            value = value.Clamp(min, max);
+            value = value.Clamp(Min, Max);
             value *= 256d;
 
             return this.WriteUInt16((ushort)Math.Round(value, MidpointRounding.AwayFromZero));

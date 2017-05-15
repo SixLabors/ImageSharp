@@ -12,8 +12,6 @@ namespace ImageSharp
     /// </summary>
     public abstract class IccTagDataEntry : IEquatable<IccTagDataEntry>
     {
-        private IccProfileTag tagSignature = IccProfileTag.Unknown;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="IccTagDataEntry"/> class.
         /// TagSignature will be <see cref="IccProfileTag.Unknown"/>
@@ -32,7 +30,7 @@ namespace ImageSharp
         protected IccTagDataEntry(IccTypeSignature signature, IccProfileTag tagSignature)
         {
             this.Signature = signature;
-            this.tagSignature = tagSignature;
+            this.TagSignature = tagSignature;
         }
 
         /// <summary>
@@ -43,11 +41,7 @@ namespace ImageSharp
         /// <summary>
         /// Gets or sets the tag Signature
         /// </summary>
-        public IccProfileTag TagSignature
-        {
-            get => this.tagSignature;
-            set => this.tagSignature = value;
-        }
+        public IccProfileTag TagSignature { get; set; }
 
         /// <inheritdoc/>
         public virtual bool Equals(IccTagDataEntry other)

@@ -42,7 +42,7 @@ namespace ImageSharp
         /// <returns>The read curve</returns>
         public IccResponseCurve ReadResponseCurve(int channelCount)
         {
-            IccCurveMeasurementEncodings type = (IccCurveMeasurementEncodings)this.ReadUInt32();
+            var type = (IccCurveMeasurementEncodings)this.ReadUInt32();
             uint[] measurment = new uint[channelCount];
             for (int i = 0; i < channelCount; i++)
             {
@@ -79,7 +79,7 @@ namespace ImageSharp
             float gamma, a, b, c, d, e, f;
             gamma = a = b = c = d = e = f = 0;
 
-            if (type >= 0 && type <= 4)
+            if (type <= 4)
             {
                 gamma = this.ReadFix16();
             }
@@ -123,7 +123,7 @@ namespace ImageSharp
         /// <returns>The read segment</returns>
         public IccCurveSegment ReadCurveSegment()
         {
-            IccCurveSegmentSignature signature = (IccCurveSegmentSignature)this.ReadUInt32();
+            var signature = (IccCurveSegmentSignature)this.ReadUInt32();
             this.AddIndex(4);   // 4 bytes reserved
 
             switch (signature)
@@ -143,10 +143,10 @@ namespace ImageSharp
         /// <returns>The read segment</returns>
         public IccFormulaCurveElement ReadFormulaCurveElement()
         {
-            IccFormulaCurveType type = (IccFormulaCurveType)this.ReadUInt16();
+            var type = (IccFormulaCurveType)this.ReadUInt16();
             this.AddIndex(2);   // 2 bytes reserved
             float gamma, a, b, c, d, e;
-            gamma = a = b = c = d = e = 0;
+            gamma = d = e = 0;
 
             if (type == IccFormulaCurveType.Type1 || type == IccFormulaCurveType.Type2)
             {

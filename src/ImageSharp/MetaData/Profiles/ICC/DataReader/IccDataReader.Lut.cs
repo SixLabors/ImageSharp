@@ -58,19 +58,16 @@ namespace ImageSharp
                 {
                     return this.ReadClut8(inChannelCount, outChannelCount, gridPointCount);
                 }
-                else if (size == 2)
+
+                if (size == 2)
                 {
                     return this.ReadClut16(inChannelCount, outChannelCount, gridPointCount);
                 }
-                else
-                {
-                    throw new InvalidIccProfileException($"Invalid CLUT size of {size}");
-                }
+
+                throw new InvalidIccProfileException($"Invalid CLUT size of {size}");
             }
-            else
-            {
-                return this.ReadClutF32(inChannelCount, outChannelCount, gridPointCount);
-            }
+
+            return this.ReadClutF32(inChannelCount, outChannelCount, gridPointCount);
         }
 
         /// <summary>
@@ -82,7 +79,7 @@ namespace ImageSharp
         /// <returns>The read CLUT8</returns>
         public IccClut ReadClut8(int inChannelCount, int outChannelCount, byte[] gridPointCount)
         {
-            int start = this.index;
+            int start = this.currentIndex;
             int length = 0;
             for (int i = 0; i < inChannelCount; i++)
             {
@@ -91,7 +88,7 @@ namespace ImageSharp
 
             length /= inChannelCount;
 
-            const float max = byte.MaxValue;
+            const float Max = byte.MaxValue;
 
             float[][] values = new float[length][];
             for (int i = 0; i < length; i++)
@@ -99,11 +96,11 @@ namespace ImageSharp
                 values[i] = new float[outChannelCount];
                 for (int j = 0; j < outChannelCount; j++)
                 {
-                    values[i][j] = this.data[this.index++] / max;
+                    values[i][j] = this.data[this.currentIndex++] / Max;
                 }
             }
 
-            this.index = start + (length * outChannelCount);
+            this.currentIndex = start + (length * outChannelCount);
             return new IccClut(values, gridPointCount, IccClutDataType.UInt8);
         }
 
@@ -116,7 +113,7 @@ namespace ImageSharp
         /// <returns>The read CLUT16</returns>
         public IccClut ReadClut16(int inChannelCount, int outChannelCount, byte[] gridPointCount)
         {
-            int start = this.index;
+            int start = this.currentIndex;
             int length = 0;
             for (int i = 0; i < inChannelCount; i++)
             {
@@ -125,7 +122,7 @@ namespace ImageSharp
 
             length /= inChannelCount;
 
-            const float max = ushort.MaxValue;
+            const float Max = ushort.MaxValue;
 
             float[][] values = new float[length][];
             for (int i = 0; i < length; i++)
@@ -133,11 +130,11 @@ namespace ImageSharp
                 values[i] = new float[outChannelCount];
                 for (int j = 0; j < outChannelCount; j++)
                 {
-                    values[i][j] = this.ReadUInt16() / max;
+                    values[i][j] = this.ReadUInt16() / Max;
                 }
             }
 
-            this.index = start + (length * outChannelCount * 2);
+            this.currentIndex = start + (length * outChannelCount * 2);
             return new IccClut(values, gridPointCount, IccClutDataType.UInt16);
         }
 
@@ -150,7 +147,7 @@ namespace ImageSharp
         /// <returns>The read CLUTf32</returns>
         public IccClut ReadClutF32(int inChCount, int outChCount, byte[] gridPointCount)
         {
-            int start = this.index;
+            int start = this.currentIndex;
             int length = 0;
             for (int i = 0; i < inChCount; i++)
             {
@@ -169,7 +166,7 @@ namespace ImageSharp
                 }
             }
 
-            this.index = start + (length * outChCount * 4);
+            this.currentIndex = start + (length * outChCount * 4);
             return new IccClut(values, gridPointCount, IccClutDataType.Float);
         }
     }

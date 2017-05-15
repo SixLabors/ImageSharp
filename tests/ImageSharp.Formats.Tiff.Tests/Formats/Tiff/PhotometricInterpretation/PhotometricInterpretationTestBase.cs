@@ -10,16 +10,16 @@ namespace ImageSharp.Tests
 
     public abstract class PhotometricInterpretationTestBase
     {
-        public static Color[][] Offset(Color[][] input, int xOffset, int yOffset, int width, int height)
+        public static Rgba32[][] Offset(Rgba32[][] input, int xOffset, int yOffset, int width, int height)
         {
             int inputHeight = input.Length;
             int inputWidth = input[0].Length;
 
-            Color[][] output = new Color[height][];
+            Rgba32[][] output = new Rgba32[height][];
 
             for (int y = 0; y < output.Length; y++)
             {
-                output[y] = new Color[width];
+                output[y] = new Rgba32[width];
             }
 
             for (int y = 0; y < inputHeight; y++)
@@ -33,18 +33,18 @@ namespace ImageSharp.Tests
             return output;
         }
 
-        public static void AssertDecode(Color[][] expectedResult, Action<PixelAccessor<Color>> decodeAction)
+        public static void AssertDecode(Rgba32[][] expectedResult, Action<PixelAccessor<Rgba32>> decodeAction)
         {
             int resultWidth = expectedResult[0].Length;
             int resultHeight = expectedResult.Length;
-            Image image = new Image(resultWidth, resultHeight);
+            Image<Rgba32> image = new Image<Rgba32>(resultWidth, resultHeight);
 
-            using (PixelAccessor<Color> pixels = image.Lock())
+            using (PixelAccessor<Rgba32> pixels = image.Lock())
             {
                 decodeAction(pixels);
             }
 
-            using (PixelAccessor<Color> pixels = image.Lock())
+            using (PixelAccessor<Rgba32> pixels = image.Lock())
             {
                 for (int y = 0; y < resultHeight; y++)
                 {

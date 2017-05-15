@@ -14,7 +14,7 @@ namespace ImageSharp.ColorSpaces
     /// Represents a CIE L*a*b* 1976 color.
     /// <see href="https://en.wikipedia.org/wiki/Lab_color_space"/>
     /// </summary>
-    public struct CieLab : IColorVector, IEquatable<CieLab>, IAlmostEquatable<CieLab, float>
+    internal struct CieLab : IColorVector, IEquatable<CieLab>, IAlmostEquatable<CieLab, float>
     {
         /// <summary>
         /// D50 standard illuminant.
@@ -216,7 +216,7 @@ namespace ImageSharp.ColorSpaces
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool AlmostEquals(CieLab other, float precision)
         {
-            Vector3 result = Vector3.Abs(this.backingVector - other.backingVector);
+            var result = Vector3.Abs(this.backingVector - other.backingVector);
 
             return this.WhitePoint.Equals(other.WhitePoint)
                 && result.X <= precision

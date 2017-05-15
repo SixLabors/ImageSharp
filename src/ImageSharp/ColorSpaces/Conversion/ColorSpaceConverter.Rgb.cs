@@ -10,7 +10,7 @@ namespace ImageSharp.ColorSpaces.Conversion
     /// <content>
     /// Allows conversion to <see cref="Rgb"/>.
     /// </content>
-    public partial class ColorSpaceConverter
+    internal partial class ColorSpaceConverter
     {
         private static readonly LinearRgbToRgbConverter LinearRgbToRgbConverter = new LinearRgbToRgbConverter();
 
@@ -23,7 +23,7 @@ namespace ImageSharp.ColorSpaces.Conversion
         {
             Guard.NotNull(color, nameof(color));
 
-            CieXyz xyzColor = this.ToCieXyz(color);
+            var xyzColor = this.ToCieXyz(color);
             return this.ToRgb(xyzColor);
         }
 
@@ -36,7 +36,7 @@ namespace ImageSharp.ColorSpaces.Conversion
         {
             Guard.NotNull(color, nameof(color));
 
-            CieXyz xyzColor = this.ToCieXyz(color);
+            var xyzColor = this.ToCieXyz(color);
             return this.ToRgb(xyzColor);
         }
 
@@ -49,7 +49,7 @@ namespace ImageSharp.ColorSpaces.Conversion
         {
             Guard.NotNull(color, nameof(color));
 
-            CieXyz xyzColor = this.ToCieXyz(color);
+            var xyzColor = this.ToCieXyz(color);
             return this.ToRgb(xyzColor);
         }
 
@@ -62,7 +62,7 @@ namespace ImageSharp.ColorSpaces.Conversion
         {
             Guard.NotNull(color, nameof(color));
 
-            CieXyz xyzColor = this.ToCieXyz(color);
+            var xyzColor = this.ToCieXyz(color);
             return this.ToRgb(xyzColor);
         }
 
@@ -75,7 +75,7 @@ namespace ImageSharp.ColorSpaces.Conversion
         {
             Guard.NotNull(color, nameof(color));
 
-            CieXyz xyzColor = this.ToCieXyz(color);
+            var xyzColor = this.ToCieXyz(color);
             return this.ToRgb(xyzColor);
         }
 
@@ -89,7 +89,7 @@ namespace ImageSharp.ColorSpaces.Conversion
             Guard.NotNull(color, nameof(color));
 
             // Conversion
-            LinearRgb linear = this.ToLinearRgb(color);
+            var linear = this.ToLinearRgb(color);
 
             // Compand
             return this.ToRgb(linear);
@@ -143,7 +143,7 @@ namespace ImageSharp.ColorSpaces.Conversion
         {
             Guard.NotNull(color, nameof(color));
 
-            CieXyz xyzColor = this.ToCieXyz(color);
+            var xyzColor = this.ToCieXyz(color);
             return this.ToRgb(xyzColor);
         }
 
@@ -169,7 +169,7 @@ namespace ImageSharp.ColorSpaces.Conversion
         {
             Guard.NotNull(color, nameof(color));
 
-            CieXyz xyzColor = this.ToCieXyz(color);
+            var xyzColor = this.ToCieXyz(color);
             return this.ToRgb(xyzColor);
         }
 

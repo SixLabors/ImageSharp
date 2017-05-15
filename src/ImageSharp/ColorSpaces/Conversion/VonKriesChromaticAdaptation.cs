@@ -17,7 +17,7 @@ namespace ImageSharp.ColorSpaces.Conversion
     /// Transformation described here:
     /// http://www.brucelindbloom.com/index.html?Eqn_ChromAdapt.html
     /// </remarks>
-    public class VonKriesChromaticAdaptation : IChromaticAdaptation
+    internal class VonKriesChromaticAdaptation : IChromaticAdaptation
     {
         private readonly IColorConversion<CieXyz, Lms> conversionToLms;
 
@@ -82,9 +82,9 @@ namespace ImageSharp.ColorSpaces.Conversion
             Lms sourceWhitePointLms = this.conversionToLms.Convert(sourceWhitePoint);
             Lms targetWhitePointLms = this.conversionToLms.Convert(targetWhitePoint);
 
-            Vector3 vector = new Vector3(targetWhitePointLms.L / sourceWhitePointLms.L, targetWhitePointLms.M / sourceWhitePointLms.M, targetWhitePointLms.S / sourceWhitePointLms.S);
+            var vector = new Vector3(targetWhitePointLms.L / sourceWhitePointLms.L, targetWhitePointLms.M / sourceWhitePointLms.M, targetWhitePointLms.S / sourceWhitePointLms.S);
+            var targetColorLms = new Lms(Vector3.Multiply(vector, sourceColorLms.Vector));
 
-            Lms targetColorLms = new Lms(Vector3.Multiply(vector, sourceColorLms.Vector));
             return this.conversionToXyz.Convert(targetColorLms);
         }
     }

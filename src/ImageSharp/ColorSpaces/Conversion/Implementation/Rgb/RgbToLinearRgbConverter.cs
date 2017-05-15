@@ -7,12 +7,12 @@ namespace ImageSharp.ColorSpaces.Conversion.Implementation.Rgb
 {
     using System.Numerics;
 
-    using Rgb = ImageSharp.ColorSpaces.Rgb;
+    using Rgb = ColorSpaces.Rgb;
 
     /// <summary>
     /// Color converter between Rgb and LinearRgb
     /// </summary>
-    public class RgbToLinearRgbConverter : IColorConversion<Rgb, LinearRgb>
+    internal class RgbToLinearRgbConverter : IColorConversion<Rgb, LinearRgb>
     {
         /// <inheritdoc/>
         public LinearRgb Convert(Rgb input)

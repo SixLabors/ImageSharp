@@ -16,7 +16,7 @@ namespace ImageSharp.ColorSpaces
     /// attempted perceptual uniformity
     /// <see href="https://en.wikipedia.org/wiki/CIELUV"/>
     /// </summary>
-    public struct CieLuv : IColorVector, IEquatable<CieLuv>, IAlmostEquatable<CieLuv, float>
+    internal struct CieLuv : IColorVector, IEquatable<CieLuv>, IAlmostEquatable<CieLuv, float>
     {
         /// <summary>
         /// D65 standard illuminant.
@@ -218,7 +218,7 @@ namespace ImageSharp.ColorSpaces
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool AlmostEquals(CieLuv other, float precision)
         {
-            Vector3 result = Vector3.Abs(this.backingVector - other.backingVector);
+            var result = Vector3.Abs(this.backingVector - other.backingVector);
 
             return this.WhitePoint.Equals(other.WhitePoint)
                    && result.X <= precision

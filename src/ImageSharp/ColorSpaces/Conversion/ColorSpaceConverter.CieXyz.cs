@@ -14,7 +14,7 @@ namespace ImageSharp.ColorSpaces.Conversion
     /// <content>
     /// Allows conversion to <see cref="CieXyz"/>.
     /// </content>
-    public partial class ColorSpaceConverter
+    internal partial class ColorSpaceConverter
     {
         private static readonly CieLabToCieXyzConverter CieLabToCieXyzConverter = new CieLabToCieXyzConverter();
 
@@ -73,8 +73,7 @@ namespace ImageSharp.ColorSpaces.Conversion
             CieLuv luvColor = CieLchuvToCieLuvConverter.Convert(color);
 
             // Conversion to XYZ (incl. adaptation)
-            CieXyz result = this.ToCieXyz(luvColor);
-            return result;
+            return this.ToCieXyz(luvColor);
         }
 
         /// <summary>
@@ -120,7 +119,7 @@ namespace ImageSharp.ColorSpaces.Conversion
             Guard.NotNull(color, nameof(color));
 
             // Conversion
-            Rgb rgb = this.ToRgb(color);
+            var rgb = this.ToRgb(color);
 
             return this.ToCieXyz(rgb);
         }
@@ -135,7 +134,7 @@ namespace ImageSharp.ColorSpaces.Conversion
             Guard.NotNull(color, nameof(color));
 
             // Conversion
-            Rgb rgb = this.ToRgb(color);
+            var rgb = this.ToRgb(color);
 
             return this.ToCieXyz(rgb);
         }
@@ -150,7 +149,7 @@ namespace ImageSharp.ColorSpaces.Conversion
             Guard.NotNull(color, nameof(color));
 
             // Conversion
-            Rgb rgb = this.ToRgb(color);
+            var rgb = this.ToRgb(color);
 
             return this.ToCieXyz(rgb);
         }
@@ -231,7 +230,7 @@ namespace ImageSharp.ColorSpaces.Conversion
             Guard.NotNull(color, nameof(color));
 
             // Conversion
-            Rgb rgb = this.ToRgb(color);
+            var rgb = this.ToRgb(color);
 
             return this.ToCieXyz(rgb);
         }

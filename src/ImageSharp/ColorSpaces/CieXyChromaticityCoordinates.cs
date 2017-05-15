@@ -13,7 +13,7 @@ namespace ImageSharp.ColorSpaces
     /// <summary>
     /// Represents the coordinates of CIEXY chromaticity space
     /// </summary>
-    public struct CieXyChromaticityCoordinates : IEquatable<CieXyChromaticityCoordinates>, IAlmostEquatable<CieXyChromaticityCoordinates, float>
+    internal struct CieXyChromaticityCoordinates : IEquatable<CieXyChromaticityCoordinates>, IAlmostEquatable<CieXyChromaticityCoordinates, float>
     {
         /// <summary>
         /// Represents a <see cref="CieXyChromaticityCoordinates"/> that has X, Y values set to zero.
@@ -152,7 +152,7 @@ namespace ImageSharp.ColorSpaces
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool AlmostEquals(CieXyChromaticityCoordinates other, float precision)
         {
-            Vector2 result = Vector2.Abs(this.backingVector - other.backingVector);
+            var result = Vector2.Abs(this.backingVector - other.backingVector);
 
             return result.X <= precision
                 && result.Y <= precision;

@@ -10,7 +10,7 @@ namespace ImageSharp.ColorSpaces
     /// Used for conversion to <see cref="CieXyz"/> and backwards.
     /// See also: <seealso cref="IRgbWorkingSpace.Companding"/>
     /// </summary>
-    public interface ICompanding
+    internal interface ICompanding
     {
         /// <summary>
         /// Expands a companded channel to its linear equivalent with respect to the energy.

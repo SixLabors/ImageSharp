@@ -7,13 +7,12 @@ namespace ImageSharp.ColorSpaces
 {
     using System;
 
-    using ImageSharp.ColorSpaces.Conversion.Implementation;
     using ImageSharp.ColorSpaces.Conversion.Implementation.Rgb;
 
     /// <summary>
     /// Encasulates the RGB working color space
     /// </summary>
-    public interface IRgbWorkingSpace : IEquatable<IRgbWorkingSpace>
+    internal interface IRgbWorkingSpace : IEquatable<IRgbWorkingSpace>
     {
         /// <summary>
         /// Gets the reference white of the color space

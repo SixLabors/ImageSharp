@@ -103,19 +103,6 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Returns the given degrees converted to radians.
-        /// </summary>
-        /// <param name="degrees">The angle in degrees.</param>
-        /// <returns>
-        /// The <see cref="float"/> representing the degree as radians.
-        /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static float DegreesToRadians(float degrees)
-        {
-            return degrees * (MathF.PI / 180);
-        }
-
-        /// <summary>
         /// Gets the bounding <see cref="Rectangle"/> from the given points.
         /// </summary>
         /// <param name="topLeft">

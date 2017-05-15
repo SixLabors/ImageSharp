@@ -170,6 +170,7 @@ namespace ImageSharp
         /// <exception cref="ArgumentException">
         /// <paramref name="target"/> is true
         /// </exception>
+        [Conditional("DEBUG")]
         public static void MustBeSameSized<T>(Span<T> target, Span<T> other, string parameterName)
             where T : struct
         {
@@ -189,6 +190,7 @@ namespace ImageSharp
         /// <exception cref="ArgumentException">
         /// <paramref name="target"/> is true
         /// </exception>
+        [Conditional("DEBUG")]
         public static void MustBeSizedAtLeast<T>(Span<T> target, Span<T> minSpan, string parameterName)
             where T : struct
         {

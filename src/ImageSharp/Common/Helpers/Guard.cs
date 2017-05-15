@@ -230,5 +230,24 @@ namespace ImageSharp
                 throw new ArgumentException(message, parameterName);
             }
         }
+
+        /// <summary>
+        /// Verifies, that the `target` span has the length of 'minSpan', or longer.
+        /// </summary>
+        /// <typeparam name="T">The element type of the spans</typeparam>
+        /// <param name="target">The target span.</param>
+        /// <param name="minLength">The minimum length.</param>
+        /// <param name="parameterName">The name of the parameter that is to be checked.</param>
+        /// <exception cref="ArgumentException">
+        /// <paramref name="target"/> is true
+        /// </exception>
+        public static void MustBeSizedAtLeast<T>(Span<T> target, int minLength, string parameterName)
+            where T : struct
+        {
+            if (target.Length < minLength)
+            {
+                throw new ArgumentException($"Span-s must be at least of length {minLength}!", parameterName);
+            }
+        }
     }
 }

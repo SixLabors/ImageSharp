@@ -7,9 +7,9 @@ namespace ImageSharp
 {
     using System.Numerics;
 
-    /// <summary>
+    /// <content>
     /// Provides methods to write ICC data types
-    /// </summary>
+    /// </content>
     internal sealed partial class IccDataWriter
     {
         /// <summary>
@@ -22,9 +22,9 @@ namespace ImageSharp
             int count = this.WriteUInt16((ushort)value.Segments.Length);
             count += this.WriteEmpty(2);
 
-            foreach (double point in value.BreakPoints)
+            foreach (float point in value.BreakPoints)
             {
-                count += this.WriteSingle((float)point);
+                count += this.WriteSingle(point);
             }
 
             foreach (IccCurveSegment segment in value.Segments)
@@ -77,7 +77,7 @@ namespace ImageSharp
             int count = this.WriteUInt16(typeValue);
             count += this.WriteEmpty(2);
 
-            if (typeValue >= 0 && typeValue <= 4)
+            if (typeValue <= 4)
             {
                 count += this.WriteFix16(value.G);
             }
@@ -140,21 +140,21 @@ namespace ImageSharp
 
             if (value.Type == IccFormulaCurveType.Type1 || value.Type == IccFormulaCurveType.Type2)
             {
-                count += this.WriteSingle((float)value.Gamma);
+                count += this.WriteSingle(value.Gamma);
             }
 
-            count += this.WriteSingle((float)value.A);
-            count += this.WriteSingle((float)value.B);
-            count += this.WriteSingle((float)value.C);
+            count += this.WriteSingle(value.A);
+            count += this.WriteSingle(value.B);
+            count += this.WriteSingle(value.C);
 
             if (value.Type == IccFormulaCurveType.Type2 || value.Type == IccFormulaCurveType.Type3)
             {
-                count += this.WriteSingle((float)value.D);
+                count += this.WriteSingle(value.D);
             }
 
             if (value.Type == IccFormulaCurveType.Type3)
             {
-                count += this.WriteSingle((float)value.E);
+                count += this.WriteSingle(value.E);
             }
 
             return count;
@@ -168,9 +168,9 @@ namespace ImageSharp
         public int WriteSampledCurveElement(IccSampledCurveElement value)
         {
             int count = this.WriteUInt32((uint)value.CurveEntries.Length);
-            foreach (double entry in value.CurveEntries)
+            foreach (float entry in value.CurveEntries)
             {
-                count += this.WriteSingle((float)entry);
+                count += this.WriteSingle(entry);
             }
 
             return count;

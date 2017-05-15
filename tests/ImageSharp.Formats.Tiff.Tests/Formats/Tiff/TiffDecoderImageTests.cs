@@ -184,6 +184,14 @@ namespace ImageSharp.Tests
         [InlineData(true, TiffPhotometricInterpretation.WhiteIsZero, new[] { 4 }, TiffColorType.WhiteIsZero4)]
         [InlineData(false, TiffPhotometricInterpretation.WhiteIsZero, new[] { 1 }, TiffColorType.WhiteIsZero1)]
         [InlineData(true, TiffPhotometricInterpretation.WhiteIsZero, new[] { 1 }, TiffColorType.WhiteIsZero1)]
+        [InlineData(false, TiffPhotometricInterpretation.BlackIsZero, new[] { 3 }, TiffColorType.BlackIsZero)]
+        [InlineData(true, TiffPhotometricInterpretation.BlackIsZero, new[] { 3 }, TiffColorType.BlackIsZero)]
+        [InlineData(false, TiffPhotometricInterpretation.BlackIsZero, new[] { 8 }, TiffColorType.BlackIsZero8)]
+        [InlineData(true, TiffPhotometricInterpretation.BlackIsZero, new[] { 8 }, TiffColorType.BlackIsZero8)]
+        [InlineData(false, TiffPhotometricInterpretation.BlackIsZero, new[] { 4 }, TiffColorType.BlackIsZero4)]
+        [InlineData(true, TiffPhotometricInterpretation.BlackIsZero, new[] { 4 }, TiffColorType.BlackIsZero4)]
+        [InlineData(false, TiffPhotometricInterpretation.BlackIsZero, new[] { 1 }, TiffColorType.BlackIsZero1)]
+        [InlineData(true, TiffPhotometricInterpretation.BlackIsZero, new[] { 1 }, TiffColorType.BlackIsZero1)]
         public void ReadImageFormat_DeterminesCorrectColorImplementation(bool isLittleEndian, ushort photometricInterpretation, int[] bitsPerSample, int colorType)
         {
             Stream stream = CreateTiffGenIfd()
@@ -201,6 +209,8 @@ namespace ImageSharp.Tests
         [Theory]
         [InlineData(false, TiffPhotometricInterpretation.WhiteIsZero, TiffColorType.WhiteIsZero1)]
         [InlineData(true, TiffPhotometricInterpretation.WhiteIsZero, TiffColorType.WhiteIsZero1)]
+        [InlineData(false, TiffPhotometricInterpretation.BlackIsZero, TiffColorType.BlackIsZero1)]
+        [InlineData(true, TiffPhotometricInterpretation.BlackIsZero, TiffColorType.BlackIsZero1)]
         public void ReadImageFormat_DeterminesCorrectColorImplementation_DefaultsToBilevel(bool isLittleEndian, ushort photometricInterpretation, int colorType)
         {
             Stream stream = CreateTiffGenIfd()
@@ -250,7 +260,6 @@ namespace ImageSharp.Tests
         }
 
         [Theory]
-        [InlineData(false, TiffPhotometricInterpretation.BlackIsZero)]
         [InlineData(false, TiffPhotometricInterpretation.CieLab)]
         [InlineData(false, TiffPhotometricInterpretation.ColorFilterArray)]
         [InlineData(false, TiffPhotometricInterpretation.IccLab)]
@@ -262,7 +271,6 @@ namespace ImageSharp.Tests
         [InlineData(false, TiffPhotometricInterpretation.TransparencyMask)]
         [InlineData(false, TiffPhotometricInterpretation.YCbCr)]
         [InlineData(false, 999)]
-        [InlineData(true, TiffPhotometricInterpretation.BlackIsZero)]
         [InlineData(true, TiffPhotometricInterpretation.CieLab)]
         [InlineData(true, TiffPhotometricInterpretation.ColorFilterArray)]
         [InlineData(true, TiffPhotometricInterpretation.IccLab)]
@@ -315,6 +323,8 @@ namespace ImageSharp.Tests
         [Theory]
         [InlineData(false, TiffPhotometricInterpretation.WhiteIsZero)]
         [InlineData(true, TiffPhotometricInterpretation.WhiteIsZero)]
+        [InlineData(false, TiffPhotometricInterpretation.BlackIsZero)]
+        [InlineData(true, TiffPhotometricInterpretation.BlackIsZero)]
         public void ReadImageFormat_ReadsBitsPerSample_DefaultsToBilevel(bool isLittleEndian, ushort photometricInterpretation)
         {
             Stream stream = CreateTiffGenIfd()

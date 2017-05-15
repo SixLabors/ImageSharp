@@ -10,6 +10,8 @@ namespace ImageSharp.Web.Caching
 
     /// <summary>
     /// Creates hashed keys for the given inputs.
+    /// Hashed keys are the result of Base32 encoding the SHA256 computation of the input value.
+    /// This helps ensure compressable values with low collision rates.
     /// </summary>
     internal static class CacheHash
     {
@@ -58,58 +60,69 @@ namespace ImageSharp.Web.Caching
         private static string Encode(byte[] hash)
         {
             // TODO: Write unit tests for this using http://www.simplycalc.com/base32-encode.php as a basis.
+            const char Pad = '=';
             char[] b32 = Base32Table;
-            var sb = new StringBuilder();
             int length = hash.Length;
+            char[] result = new char[length + 8];
             int i;
 
             for (i = 0; i <= length - 5; i += 5)
             {
-                sb.Append(b32[hash[i] >> 3]);
-                sb.Append(b32[((hash[i] & 0x07) << 2) | (hash[i + 1] >> 6)]);
-                sb.Append(b32[(hash[i + 1] & 0x3E) >> 1]);
-                sb.Append(b32[((hash[i + 1] & 0x01) << 4) | (hash[i + 2] >> 4)]);
-                sb.Append(b32[((hash[i + 2] & 0x0F) << 1) | (hash[i + 3] >> 7)]);
-                sb.Append(b32[(hash[i + 3] & 0x7C) >> 2]);
-                sb.Append(b32[((hash[i + 3] & 0x03) << 3) | ((hash[i + 4] & 0xE0) >> 5)]);
-                sb.Append(b32[hash[i + 4] & 0x1F]);
+                result[i] = b32[hash[i] >> 3];
+                result[i + 1] = b32[((hash[i] & 0x07) << 2) | (hash[i + 1] >> 6)];
+                result[i + 2] = b32[(hash[i + 1] & 0x3E) >> 1];
+                result[i + 3] = b32[((hash[i + 1] & 0x01) << 4) | (hash[i + 2] >> 4)];
+                result[i + 4] = b32[((hash[i + 2] & 0x0F) << 1) | (hash[i + 3] >> 7)];
+                result[i + 5] = b32[(hash[i + 3] & 0x7C) >> 2];
+                result[i + 6] = b32[((hash[i + 3] & 0x03) << 3) | ((hash[i + 4] & 0xE0) >> 5)];
+                result[i + 7] = b32[hash[i + 4] & 0x1F];
             }
 
             switch (length % 5)
             {
                 case 4:
-                    sb.Append(b32[hash[i] >> 3]);
-                    sb.Append(b32[((hash[i] & 0x07) << 2) | (hash[i + 1] >> 6)]);
-                    sb.Append(b32[(hash[i + 1] & 0x3E) >> 1]);
-                    sb.Append(b32[((hash[i + 1] & 0x01) << 4) | (hash[i + 2] >> 4)]);
-                    sb.Append(b32[((hash[i + 2] & 0x0F) << 1) | (hash[i + 3] >> 7)]);
-                    sb.Append(b32[(hash[i + 3] & 0x7C) >> 2]);
-                    sb.Append(b32[(hash[i + 3] & 0x03) << 3]);
-                    sb.Append('=');
+                    result[i + 1] = b32[hash[i] >> 3];
+                    result[i + 2] = b32[((hash[i] & 0x07) << 2) | (hash[i + 1] >> 6)];
+                    result[i + 3] = b32[(hash[i + 1] & 0x3E) >> 1];
+                    result[i + 4] = b32[((hash[i + 1] & 0x01) << 4) | (hash[i + 2] >> 4)];
+                    result[i + 5] = b32[((hash[i + 2] & 0x0F) << 1) | (hash[i + 3] >> 7)];
+                    result[i + 6] = b32[(hash[i + 3] & 0x7C) >> 2];
+                    result[i + 7] = b32[(hash[i + 3] & 0x03) << 3];
+                    result[i + 8] = Pad;
                     break;
                 case 3:
-                    sb.Append(b32[hash[i] >> 3]);
-                    sb.Append(b32[((hash[i] & 0x07) << 2) | (hash[i + 1] >> 6)]);
-                    sb.Append(b32[(hash[i + 1] & 0x3E) >> 1]);
-                    sb.Append(b32[((hash[i + 1] & 0x01) << 4) | (hash[i + 2] >> 4)]);
-                    sb.Append(b32[(hash[i + 2] & 0x0F) << 1]);
-                    sb.Append("===");
+                    result[i + 1] = b32[hash[i] >> 3];
+                    result[i + 2] = b32[((hash[i] & 0x07) << 2) | (hash[i + 1] >> 6)];
+                    result[i + 3] = b32[(hash[i + 1] & 0x3E) >> 1];
+                    result[i + 4] = b32[((hash[i + 1] & 0x01) << 4) | (hash[i + 2] >> 4)];
+                    result[i + 5] = b32[(hash[i + 2] & 0x0F) << 1];
+                    result[i + 6] = Pad;
+                    result[i + 7] = Pad;
+                    result[i + 8] = Pad;
                     break;
                 case 2:
-                    sb.Append(b32[hash[i] >> 3]);
-                    sb.Append(b32[((hash[i] & 0x07) << 2) | (hash[i + 1] >> 6)]);
-                    sb.Append(b32[(hash[i + 1] & 0x3E) >> 1]);
-                    sb.Append(b32[(hash[i + 1] & 0x01) << 4]);
-                    sb.Append("====");
+                    result[i + 1] = b32[hash[i] >> 3];
+                    result[i + 2] = b32[((hash[i] & 0x07) << 2) | (hash[i + 1] >> 6)];
+                    result[i + 3] = b32[(hash[i + 1] & 0x3E) >> 1];
+                    result[i + 4] = b32[(hash[i + 1] & 0x01) << 4];
+                    result[i + 5] = Pad;
+                    result[i + 6] = Pad;
+                    result[i + 7] = Pad;
+                    result[i + 8] = Pad;
                     break;
                 case 1:
-                    sb.Append(b32[hash[i] >> 3]);
-                    sb.Append(b32[(hash[i] & 7) << 2]);
-                    sb.Append("======");
+                    result[i + 1] = b32[hash[i] >> 3];
+                    result[i + 2] = b32[(hash[i] & 7) << 2];
+                    result[i + 3] = Pad;
+                    result[i + 4] = Pad;
+                    result[i + 5] = Pad;
+                    result[i + 6] = Pad;
+                    result[i + 7] = Pad;
+                    result[i + 8] = Pad;
                     break;
             }
 
-            return sb.ToString();
+            return new string(result);
         }
     }
 }

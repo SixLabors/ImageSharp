@@ -19,9 +19,7 @@ namespace ImageSharp.ColorSpaces.Conversion
     /// </remarks>
     internal class VonKriesChromaticAdaptation : IChromaticAdaptation
     {
-        private readonly IColorConversion<CieXyz, Lms> conversionToLms;
-
-        private readonly IColorConversion<Lms, CieXyz> conversionToXyz;
+        private readonly CieXyzAndLmsConverter converter;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="VonKriesChromaticAdaptation"/> class.
@@ -46,24 +44,10 @@ namespace ImageSharp.ColorSpaces.Conversion
         /// <summary>
         /// Initializes a new instance of the <see cref="VonKriesChromaticAdaptation"/> class.
         /// </summary>
-        /// <param name="conversionToLms">The <see cref="Lms"/> color converter.</param>
-        /// <param name="conversionToCieXyz">The <see cref="CieXyz"/> color converter.</param>
-        public VonKriesChromaticAdaptation(IColorConversion<CieXyz, Lms> conversionToLms, IColorConversion<Lms, CieXyz> conversionToCieXyz)
-        {
-            Guard.NotNull(conversionToLms, nameof(conversionToLms));
-            Guard.NotNull(conversionToCieXyz, nameof(conversionToCieXyz));
-
-            this.conversionToLms = conversionToLms;
-            this.conversionToXyz = conversionToCieXyz;
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="VonKriesChromaticAdaptation"/> class.
-        /// </summary>
         /// <param name="converter">The color converter</param>
-        private VonKriesChromaticAdaptation(CieXyzAndLmsConverter converter)
-            : this(converter, converter)
+        public VonKriesChromaticAdaptation(CieXyzAndLmsConverter converter)
         {
+            this.converter = converter;
         }
 
         /// <inheritdoc/>
@@ -78,14 +62,14 @@ namespace ImageSharp.ColorSpaces.Conversion
                 return sourceColor;
             }
 
-            Lms sourceColorLms = this.conversionToLms.Convert(sourceColor);
-            Lms sourceWhitePointLms = this.conversionToLms.Convert(sourceWhitePoint);
-            Lms targetWhitePointLms = this.conversionToLms.Convert(targetWhitePoint);
+            Lms sourceColorLms = this.converter.Convert(sourceColor);
+            Lms sourceWhitePointLms = this.converter.Convert(sourceWhitePoint);
+            Lms targetWhitePointLms = this.converter.Convert(targetWhitePoint);
 
             var vector = new Vector3(targetWhitePointLms.L / sourceWhitePointLms.L, targetWhitePointLms.M / sourceWhitePointLms.M, targetWhitePointLms.S / sourceWhitePointLms.S);
             var targetColorLms = new Lms(Vector3.Multiply(vector, sourceColorLms.Vector));
 
-            return this.conversionToXyz.Convert(targetColorLms);
+            return this.converter.Convert(targetColorLms);
         }
     }
 }

@@ -32,7 +32,7 @@ namespace ImageSharp.ColorSpaces.Conversion
             // Note the order here this is important.
             this.WhitePoint = DefaultWhitePoint;
             this.LmsAdaptationMatrix = CieXyzAndLmsConverter.DefaultTransformationMatrix;
-            this.ChromaticAdaptation = new VonKriesChromaticAdaptation(this.cachedCieXyzAndLmsConverter, this.cachedCieXyzAndLmsConverter);
+            this.ChromaticAdaptation = new VonKriesChromaticAdaptation(this.cachedCieXyzAndLmsConverter);
             this.TargetLuvWhitePoint = CieLuv.DefaultWhitePoint;
             this.TargetLabWhitePoint = CieLab.DefaultWhitePoint;
             this.TargetHunterLabWhitePoint = HunterLab.DefaultWhitePoint;

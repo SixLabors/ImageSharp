@@ -48,6 +48,11 @@ namespace ImageSharp.Formats.Tiff
         /// <summary>
         /// Grayscale:  0 is imaged as white. The maximum value is imaged as black. Optimised implementation for 8-bit images.
         /// </summary>
-        WhiteIsZero8
+        WhiteIsZero8,
+
+        /// <summary>
+        /// Palette-color.
+        /// </summary>
+        PaletteColor
     }
 }

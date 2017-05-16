@@ -51,7 +51,7 @@ namespace ImageSharp
         /// <inheritdoc/>
         public bool Equals(IccResponseCurve other)
         {
-            if (other == null)
+            if (ReferenceEquals(null, other))
             {
                 return false;
             }
@@ -64,6 +64,34 @@ namespace ImageSharp
             return this.CurveType == other.CurveType
                 && this.XyzValues.SequenceEqual(other.XyzValues)
                 && this.EqualsResponseArray(other);
+        }
+
+        /// <inheritdoc />
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, obj))
+            {
+                return true;
+            }
+
+            return obj is IccResponseCurve && this.Equals((IccResponseCurve)obj);
+        }
+
+        /// <inheritdoc />
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hashCode = (int)this.CurveType;
+                hashCode = (hashCode * 397) ^ (this.XyzValues != null ? this.XyzValues.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (this.ResponseArrays != null ? this.ResponseArrays.GetHashCode() : 0);
+                return hashCode;
+            }
         }
 
         private bool EqualsResponseArray(IccResponseCurve other)

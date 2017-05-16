@@ -37,21 +37,52 @@ namespace ImageSharp
         /// </summary>
         public DateTime Value { get; }
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         public override bool Equals(IccTagDataEntry other)
         {
-            if (base.Equals(other) && other is IccDateTimeTagDataEntry entry)
-            {
-                return this.Value == entry.Value;
-            }
-
-            return false;
+            var entry = other as IccDateTimeTagDataEntry;
+            return entry != null && this.Equals(entry);
         }
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         public bool Equals(IccDateTimeTagDataEntry other)
         {
-            return this.Equals((IccTagDataEntry)other);
+            if (ReferenceEquals(null, other))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, other))
+            {
+                return true;
+            }
+
+            return base.Equals(other) && this.Value.Equals(other.Value);
+        }
+
+        /// <inheritdoc/>
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, obj))
+            {
+                return true;
+            }
+
+            return obj is IccDateTimeTagDataEntry && this.Equals((IccDateTimeTagDataEntry)obj);
+        }
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                return (base.GetHashCode() * 397) ^ this.Value.GetHashCode();
+            }
         }
     }
 }

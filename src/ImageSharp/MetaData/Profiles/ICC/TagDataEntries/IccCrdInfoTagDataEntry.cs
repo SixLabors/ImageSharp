@@ -87,25 +87,63 @@ namespace ImageSharp
         /// </summary>
         public string RenderingIntent3Crd { get; }
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         public override bool Equals(IccTagDataEntry other)
         {
-            if (base.Equals(other) && other is IccCrdInfoTagDataEntry entry)
-            {
-                return this.PostScriptProductName == entry.PostScriptProductName
-                    && this.RenderingIntent0Crd == entry.RenderingIntent0Crd
-                    && this.RenderingIntent1Crd == entry.RenderingIntent1Crd
-                    && this.RenderingIntent2Crd == entry.RenderingIntent2Crd
-                    && this.RenderingIntent3Crd == entry.RenderingIntent3Crd;
-            }
-
-            return false;
+            var entry = other as IccCrdInfoTagDataEntry;
+            return entry != null && this.Equals(entry);
         }
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         public bool Equals(IccCrdInfoTagDataEntry other)
         {
-            return this.Equals((IccTagDataEntry)other);
+            if (ReferenceEquals(null, other))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, other))
+            {
+                return true;
+            }
+
+            return base.Equals(other)
+                && string.Equals(this.PostScriptProductName, other.PostScriptProductName)
+                && string.Equals(this.RenderingIntent0Crd, other.RenderingIntent0Crd)
+                && string.Equals(this.RenderingIntent1Crd, other.RenderingIntent1Crd)
+                && string.Equals(this.RenderingIntent2Crd, other.RenderingIntent2Crd)
+                && string.Equals(this.RenderingIntent3Crd, other.RenderingIntent3Crd);
+        }
+
+        /// <inheritdoc/>
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, obj))
+            {
+                return true;
+            }
+
+            return obj is IccCrdInfoTagDataEntry && this.Equals((IccCrdInfoTagDataEntry)obj);
+        }
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hashCode = base.GetHashCode();
+                hashCode = (hashCode * 397) ^ (this.PostScriptProductName != null ? this.PostScriptProductName.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (this.RenderingIntent0Crd != null ? this.RenderingIntent0Crd.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (this.RenderingIntent1Crd != null ? this.RenderingIntent1Crd.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (this.RenderingIntent2Crd != null ? this.RenderingIntent2Crd.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (this.RenderingIntent3Crd != null ? this.RenderingIntent3Crd.GetHashCode() : 0);
+                return hashCode;
+            }
         }
     }
 }

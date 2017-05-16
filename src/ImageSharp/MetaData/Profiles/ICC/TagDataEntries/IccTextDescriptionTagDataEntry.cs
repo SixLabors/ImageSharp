@@ -87,14 +87,9 @@ namespace ImageSharp
             if (!string.IsNullOrEmpty(textEntry.Unicode))
             {
                 CultureInfo culture = GetCulture(textEntry.UnicodeLanguageCode);
-                if (culture != null)
-                {
-                    localString = new IccLocalizedString(culture, textEntry.Unicode);
-                }
-                else
-                {
-                    localString = new IccLocalizedString(textEntry.Unicode);
-                }
+                localString = culture != null
+                    ? new IccLocalizedString(culture, textEntry.Unicode)
+                    : new IccLocalizedString(textEntry.Unicode);
             }
             else if (!string.IsNullOrEmpty(textEntry.Ascii))
             {
@@ -109,7 +104,7 @@ namespace ImageSharp
                 localString = new IccLocalizedString(string.Empty);
             }
 
-            return new IccMultiLocalizedUnicodeTagDataEntry(new IccLocalizedString[] { localString }, textEntry.TagSignature);
+            return new IccMultiLocalizedUnicodeTagDataEntry(new[] { localString }, textEntry.TagSignature);
 
             CultureInfo GetCulture(uint value)
             {
@@ -129,35 +124,71 @@ namespace ImageSharp
                     && p3 >= 0x41 && p3 <= 0x5A
                     && p4 >= 0x41 && p4 <= 0x5A)
                 {
-                    string culture = new string(new char[] { (char)p1, (char)p2, '-', (char)p3, (char)p4 });
+                    string culture = new string(new[] { (char)p1, (char)p2, '-', (char)p3, (char)p4 });
                     return new CultureInfo(culture);
                 }
-                else
-                {
-                    return null;
-                }
+
+                return null;
             }
         }
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         public override bool Equals(IccTagDataEntry other)
         {
-            if (base.Equals(other) && other is IccTextDescriptionTagDataEntry entry)
-            {
-                return this.Ascii == entry.Ascii
-                    && this.Unicode == entry.Unicode
-                    && this.ScriptCode == entry.ScriptCode
-                    && this.UnicodeLanguageCode == entry.UnicodeLanguageCode
-                    && this.ScriptCodeCode == entry.ScriptCodeCode;
-            }
-
-            return false;
+            var entry = other as IccTextDescriptionTagDataEntry;
+            return entry != null && this.Equals(entry);
         }
 
         /// <inheritdoc />
         public bool Equals(IccTextDescriptionTagDataEntry other)
         {
-            return this.Equals((IccTagDataEntry)other);
+            if (ReferenceEquals(null, other))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, other))
+            {
+                return true;
+            }
+
+            return base.Equals(other)
+                && string.Equals(this.Ascii, other.Ascii)
+                && string.Equals(this.Unicode, other.Unicode)
+                && string.Equals(this.ScriptCode, other.ScriptCode)
+                && this.UnicodeLanguageCode == other.UnicodeLanguageCode
+                && this.ScriptCodeCode == other.ScriptCodeCode;
+        }
+
+        /// <inheritdoc />
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, obj))
+            {
+                return true;
+            }
+
+            return obj is IccTextDescriptionTagDataEntry && this.Equals((IccTextDescriptionTagDataEntry)obj);
+        }
+
+        /// <inheritdoc />
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hashCode = base.GetHashCode();
+                hashCode = (hashCode * 397) ^ (this.Ascii != null ? this.Ascii.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (this.Unicode != null ? this.Unicode.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (this.ScriptCode != null ? this.ScriptCode.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (int)this.UnicodeLanguageCode;
+                hashCode = (hashCode * 397) ^ this.ScriptCodeCode.GetHashCode();
+                return hashCode;
+            }
         }
     }
 }

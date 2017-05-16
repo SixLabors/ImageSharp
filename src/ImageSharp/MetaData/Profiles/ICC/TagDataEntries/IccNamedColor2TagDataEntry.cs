@@ -120,25 +120,63 @@ namespace ImageSharp
         /// </summary>
         public IccNamedColor[] Colors { get; }
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         public override bool Equals(IccTagDataEntry other)
         {
-            if (base.Equals(other) && other is IccNamedColor2TagDataEntry entry)
-            {
-                return this.CoordinateCount == entry.CoordinateCount
-                && this.Prefix == entry.Prefix
-                && this.Suffix == entry.Suffix
-                && this.VendorFlags == entry.VendorFlags
-                && this.Colors.SequenceEqual(entry.Colors);
-            }
-
-            return false;
+            var entry = other as IccNamedColor2TagDataEntry;
+            return entry != null && this.Equals(entry);
         }
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         public bool Equals(IccNamedColor2TagDataEntry other)
         {
-            return this.Equals((IccTagDataEntry)other);
+            if (ReferenceEquals(null, other))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, other))
+            {
+                return true;
+            }
+
+            return base.Equals(other)
+                && this.CoordinateCount == other.CoordinateCount
+                && string.Equals(this.Prefix, other.Prefix)
+                && string.Equals(this.Suffix, other.Suffix)
+                && this.VendorFlags == other.VendorFlags
+                && this.Colors.SequenceEqual(other.Colors);
+        }
+
+        /// <inheritdoc/>
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, obj))
+            {
+                return true;
+            }
+
+            return obj is IccNamedColor2TagDataEntry && this.Equals((IccNamedColor2TagDataEntry)obj);
+        }
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hashCode = base.GetHashCode();
+                hashCode = (hashCode * 397) ^ this.CoordinateCount;
+                hashCode = (hashCode * 397) ^ (this.Prefix != null ? this.Prefix.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (this.Suffix != null ? this.Suffix.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ this.VendorFlags;
+                hashCode = (hashCode * 397) ^ (this.Colors != null ? this.Colors.GetHashCode() : 0);
+                return hashCode;
+            }
         }
     }
 }

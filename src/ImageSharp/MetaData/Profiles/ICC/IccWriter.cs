@@ -79,7 +79,6 @@ namespace ImageSharp
             var inData = new List<IccTagDataEntry>(entries);
             var dupData = new List<IccTagDataEntry[]>();
 
-            // Filter out duplicate entries. They only need to be defined once but can be used multiple times
             while (inData.Count > 0)
             {
                 IccTagDataEntry[] items = inData.Where(t => inData[0].Equals(t)).ToArray();

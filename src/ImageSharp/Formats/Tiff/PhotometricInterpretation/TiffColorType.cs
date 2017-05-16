@@ -53,6 +53,11 @@ namespace ImageSharp.Formats.Tiff
         /// <summary>
         /// Palette-color.
         /// </summary>
-        PaletteColor
+        PaletteColor,
+
+        /// <summary>
+        /// RGB Full Color.
+        /// </summary>
+        Rgb,
     }
 }

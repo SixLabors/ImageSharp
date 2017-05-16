@@ -5,16 +5,14 @@
 
 namespace ImageSharp.Tests
 {
-    using System;
     using System.Collections.Generic;
-    using System.Diagnostics.CodeAnalysis;
     using System.Linq;
     using System.Reflection;
 
-    using ImageSharp.Colors.Spaces;
     using ImageSharp.PixelFormats;
 
     using Xunit;
+
     public class ColorDefinitionTests
     {
         public static IEnumerable<string[]> ColorNames => typeof(NamedColors<Rgba32>).GetTypeInfo().GetFields().Select(x => new[] { x.Name });

@@ -389,6 +389,27 @@ namespace ImageSharp.Formats
                         break;
                     }
 
+                case TiffPhotometricInterpretation.Rgb:
+                    {
+                        if (this.BitsPerSample.Length == 3)
+                        {
+                            if (this.BitsPerSample[0] == 8 && this.BitsPerSample[1] == 8 && this.BitsPerSample[2] == 8)
+                            {
+                                this.ColorType = TiffColorType.Rgb;
+                            }
+                            else
+                            {
+                                this.ColorType = TiffColorType.Rgb;
+                            }
+                        }
+                        else
+                        {
+                            throw new NotSupportedException("The number of samples in the TIFF BitsPerSample entry is not supported.");
+                        }
+
+                        break;
+                    }
+
                 case TiffPhotometricInterpretation.PaletteColor:
                     {
                         if (ifd.TryGetIfdEntry(TiffTags.ColorMap, out TiffIfdEntry colorMapEntry))
@@ -504,6 +525,9 @@ namespace ImageSharp.Formats
                     break;
                 case TiffColorType.BlackIsZero8:
                     BlackIsZero8TiffColor.Decode(data, pixels, left, top, width, height);
+                    break;
+                case TiffColorType.Rgb:
+                    RgbTiffColor.Decode(data, this.BitsPerSample, pixels, left, top, width, height);
                     break;
                 case TiffColorType.PaletteColor:
                     PaletteTiffColor.Decode(data, this.BitsPerSample, this.ColorMap, pixels, left, top, width, height);

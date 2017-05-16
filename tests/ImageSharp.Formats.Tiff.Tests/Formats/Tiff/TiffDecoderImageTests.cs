@@ -200,6 +200,10 @@ namespace ImageSharp.Tests
         [InlineData(true, TiffPhotometricInterpretation.PaletteColor, new[] { 4 }, TiffColorType.PaletteColor)]
         [InlineData(false, TiffPhotometricInterpretation.PaletteColor, new[] { 1 }, TiffColorType.PaletteColor)]
         [InlineData(true, TiffPhotometricInterpretation.PaletteColor, new[] { 1 }, TiffColorType.PaletteColor)]
+        [InlineData(false, TiffPhotometricInterpretation.Rgb, new[] { 4, 4, 4 }, TiffColorType.Rgb)]
+        [InlineData(true, TiffPhotometricInterpretation.Rgb, new[] { 4, 4, 4 }, TiffColorType.Rgb)]
+        [InlineData(false, TiffPhotometricInterpretation.Rgb, new[] { 8, 8, 8 }, TiffColorType.Rgb)]
+        [InlineData(true, TiffPhotometricInterpretation.Rgb, new[] { 8, 8, 8 }, TiffColorType.Rgb)]
         public void ReadImageFormat_DeterminesCorrectColorImplementation(bool isLittleEndian, ushort photometricInterpretation, int[] bitsPerSample, int colorType)
         {
             Stream stream = CreateTiffGenIfd()
@@ -273,7 +277,6 @@ namespace ImageSharp.Tests
         [InlineData(false, TiffPhotometricInterpretation.IccLab)]
         [InlineData(false, TiffPhotometricInterpretation.ItuLab)]
         [InlineData(false, TiffPhotometricInterpretation.LinearRaw)]
-        [InlineData(false, TiffPhotometricInterpretation.Rgb)]
         [InlineData(false, TiffPhotometricInterpretation.Separated)]
         [InlineData(false, TiffPhotometricInterpretation.TransparencyMask)]
         [InlineData(false, TiffPhotometricInterpretation.YCbCr)]
@@ -283,7 +286,6 @@ namespace ImageSharp.Tests
         [InlineData(true, TiffPhotometricInterpretation.IccLab)]
         [InlineData(true, TiffPhotometricInterpretation.ItuLab)]
         [InlineData(true, TiffPhotometricInterpretation.LinearRaw)]
-        [InlineData(true, TiffPhotometricInterpretation.Rgb)]
         [InlineData(true, TiffPhotometricInterpretation.Separated)]
         [InlineData(true, TiffPhotometricInterpretation.TransparencyMask)]
         [InlineData(true, TiffPhotometricInterpretation.YCbCr)]
@@ -369,12 +371,18 @@ namespace ImageSharp.Tests
         [InlineData(true, TiffPhotometricInterpretation.BlackIsZero, new int[] { })]
         [InlineData(false, TiffPhotometricInterpretation.PaletteColor, new int[] { })]
         [InlineData(true, TiffPhotometricInterpretation.PaletteColor, new int[] { })]
+        [InlineData(false, TiffPhotometricInterpretation.Rgb, new int[] { })]
+        [InlineData(true, TiffPhotometricInterpretation.Rgb, new int[] { })]
         [InlineData(false, TiffPhotometricInterpretation.WhiteIsZero, new[] { 8, 8 })]
         [InlineData(true, TiffPhotometricInterpretation.WhiteIsZero, new[] { 8, 8 })]
         [InlineData(false, TiffPhotometricInterpretation.BlackIsZero, new[] { 8, 8 })]
         [InlineData(true, TiffPhotometricInterpretation.BlackIsZero, new[] { 8, 8 })]
         [InlineData(false, TiffPhotometricInterpretation.PaletteColor, new[] { 8, 8 })]
         [InlineData(true, TiffPhotometricInterpretation.PaletteColor, new[] { 8, 8 })]
+        [InlineData(false, TiffPhotometricInterpretation.Rgb, new[] { 8 })]
+        [InlineData(true, TiffPhotometricInterpretation.Rgb, new[] { 8 })]
+        [InlineData(false, TiffPhotometricInterpretation.Rgb, new[] { 8, 8 })]
+        [InlineData(true, TiffPhotometricInterpretation.Rgb, new[] { 8, 8 })]
         public void ReadImageFormat_ThrowsExceptionForUnsupportedNumberOfSamples(bool isLittleEndian, ushort photometricInterpretation, int[] bitsPerSample)
         {
             Stream stream = CreateTiffGenIfd()
@@ -424,34 +432,25 @@ namespace ImageSharp.Tests
         }
 
         [Theory]
-        [InlineData(new uint[] { 1 }, 160, 80, 20 * 80)]
-        [InlineData(new uint[] { 1 }, 153, 80, 20 * 80)]
-        [InlineData(new uint[] { 3 }, 100, 80, 38 * 80)]
-        [InlineData(new uint[] { 4 }, 100, 80, 50 * 80)]
-        [InlineData(new uint[] { 4 }, 99, 80, 50 * 80)]
-        [InlineData(new uint[] { 8 }, 100, 80, 100 * 80)]
-        public void CalculateImageBufferSize_ReturnsCorrectSize(uint[] bitsPerSample, int width, int height, int expectedResult)
+        [InlineData(TiffColorType.WhiteIsZero, new uint[] { 1 }, 160, 80, 20 * 80)]
+        [InlineData(TiffColorType.WhiteIsZero, new uint[] { 1 }, 153, 80, 20 * 80)]
+        [InlineData(TiffColorType.WhiteIsZero, new uint[] { 3 }, 100, 80, 38 * 80)]
+        [InlineData(TiffColorType.WhiteIsZero, new uint[] { 4 }, 100, 80, 50 * 80)]
+        [InlineData(TiffColorType.WhiteIsZero, new uint[] { 4 }, 99, 80, 50 * 80)]
+        [InlineData(TiffColorType.WhiteIsZero, new uint[] { 8 }, 100, 80, 100 * 80)]
+        [InlineData(TiffColorType.PaletteColor, new uint[] { 1 }, 160, 80, 60 * 80)]
+        [InlineData(TiffColorType.PaletteColor, new uint[] { 1 }, 153, 80, 58 * 80)]
+        [InlineData(TiffColorType.PaletteColor, new uint[] { 3 }, 100, 80, 113 * 80)]
+        [InlineData(TiffColorType.PaletteColor, new uint[] { 4 }, 100, 80, 150 * 80)]
+        [InlineData(TiffColorType.PaletteColor, new uint[] { 4 }, 99, 80, 149 * 80)]
+        [InlineData(TiffColorType.PaletteColor, new uint[] { 8 }, 100, 80, 300 * 80)]
+        [InlineData(TiffColorType.Rgb, new uint[] { 8, 8, 8 }, 100, 80, 300 * 80)]
+        [InlineData(TiffColorType.Rgb, new uint[] { 4, 4, 4 }, 100, 80, 150 * 80)]
+        [InlineData(TiffColorType.Rgb, new uint[] { 4, 8, 4 }, 100, 80, 200 * 80)]
+        public void CalculateImageBufferSize_ReturnsCorrectSize(ushort colorType, uint[] bitsPerSample, int width, int height, int expectedResult)
         {
             TiffDecoderCore decoder = new TiffDecoderCore(null, null);
-            decoder.ColorType = TiffColorType.WhiteIsZero;
-            decoder.BitsPerSample = bitsPerSample;
-
-            int bufferSize = decoder.CalculateImageBufferSize(width, height);
-
-            Assert.Equal(expectedResult, bufferSize);
-        }
-
-        [Theory]
-        [InlineData(new uint[] { 1 }, 160, 80, 60 * 80)]
-        [InlineData(new uint[] { 1 }, 153, 80, 58 * 80)]
-        [InlineData(new uint[] { 3 }, 100, 80, 113 * 80)]
-        [InlineData(new uint[] { 4 }, 100, 80, 150 * 80)]
-        [InlineData(new uint[] { 4 }, 99, 80, 149 * 80)]
-        [InlineData(new uint[] { 8 }, 100, 80, 300 * 80)]
-        public void CalculateImageBufferSize_ReturnsCorrectSize_ForPaletteColor(uint[] bitsPerSample, int width, int height, int expectedResult)
-        {
-            TiffDecoderCore decoder = new TiffDecoderCore(null, null);
-            decoder.ColorType = TiffColorType.PaletteColor;
+            decoder.ColorType = (TiffColorType)colorType;
             decoder.BitsPerSample = bitsPerSample;
 
             int bufferSize = decoder.CalculateImageBufferSize(width, height);

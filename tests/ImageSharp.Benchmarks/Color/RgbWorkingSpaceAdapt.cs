@@ -26,7 +26,7 @@
         }
 
         [Benchmark(Description = "ImageSharp Adapt")]
-        public Rgb ColorSpaceConvert()
+        internal Rgb ColorSpaceConvert()
         {
             return ColorSpaceConverter.Adapt(Rgb);
         }

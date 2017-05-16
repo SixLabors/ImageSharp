@@ -14,7 +14,7 @@ namespace ImageSharp.ColorSpaces
     /// Represents the CIE L*C*h°, cylindrical form of the CIE L*a*b* 1976 color.
     /// <see href="https://en.wikipedia.org/wiki/Lab_color_space#Cylindrical_representation:_CIELCh_or_CIEHLC"/>
     /// </summary>
-    public struct CieLch : IColorVector, IEquatable<CieLch>, IAlmostEquatable<CieLch, float>
+    internal struct CieLch : IColorVector, IEquatable<CieLch>, IAlmostEquatable<CieLch, float>
     {
         /// <summary>
         /// D50 standard illuminant.
@@ -216,7 +216,7 @@ namespace ImageSharp.ColorSpaces
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool AlmostEquals(CieLch other, float precision)
         {
-            Vector3 result = Vector3.Abs(this.backingVector - other.backingVector);
+            var result = Vector3.Abs(this.backingVector - other.backingVector);
 
             return this.WhitePoint.Equals(other.WhitePoint)
                    && result.X <= precision

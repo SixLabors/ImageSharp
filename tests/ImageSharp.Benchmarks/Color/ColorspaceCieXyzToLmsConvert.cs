@@ -20,15 +20,15 @@
 
 
         [Benchmark(Baseline = true, Description = "Colourful Convert")]
-        public LMSColor ColourfulConvert()
+        public double ColourfulConvert()
         {
-            return ColourfulConverter.ToLMS(XYZColor);
+            return ColourfulConverter.ToLMS(XYZColor).L;
         }
 
         [Benchmark(Description = "ImageSharp Convert")]
-        public Lms ColorSpaceConvert()
+        public float ColorSpaceConvert()
         {
-            return ColorSpaceConverter.ToLms(CieXyz);
+            return ColorSpaceConverter.ToLms(CieXyz).L;
         }
     }
 }

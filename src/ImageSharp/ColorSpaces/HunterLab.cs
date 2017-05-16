@@ -14,7 +14,7 @@ namespace ImageSharp.ColorSpaces
     /// Represents an Hunter LAB color.
     /// <see href="https://en.wikipedia.org/wiki/Lab_color_space"/>
     /// </summary>
-    public struct HunterLab : IColorVector, IEquatable<HunterLab>, IAlmostEquatable<HunterLab, float>
+    internal struct HunterLab : IColorVector, IEquatable<HunterLab>, IAlmostEquatable<HunterLab, float>
     {
         /// <summary>
         /// D50 standard illuminant.
@@ -212,7 +212,7 @@ namespace ImageSharp.ColorSpaces
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool AlmostEquals(HunterLab other, float precision)
         {
-            Vector3 result = Vector3.Abs(this.backingVector - other.backingVector);
+            var result = Vector3.Abs(this.backingVector - other.backingVector);
 
             return this.WhitePoint.Equals(other.WhitePoint)
                    && result.X <= precision

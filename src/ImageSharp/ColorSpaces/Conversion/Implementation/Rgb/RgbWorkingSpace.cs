@@ -8,7 +8,7 @@ namespace ImageSharp.ColorSpaces.Conversion.Implementation.Rgb
     /// <summary>
     /// Trivial implementation of <see cref="IRgbWorkingSpace"/>
     /// </summary>
-    public struct RgbWorkingSpace : IRgbWorkingSpace
+    internal struct RgbWorkingSpace : IRgbWorkingSpace
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="RgbWorkingSpace"/> struct.

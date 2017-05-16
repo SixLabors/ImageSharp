@@ -13,7 +13,7 @@ namespace ImageSharp.ColorSpaces
     /// <summary>
     /// Represents an linear Rgb color with specified <see cref="IRgbWorkingSpace"/> working space
     /// </summary>
-    public struct LinearRgb : IColorVector, IEquatable<LinearRgb>, IAlmostEquatable<LinearRgb, float>
+    internal struct LinearRgb : IColorVector, IEquatable<LinearRgb>, IAlmostEquatable<LinearRgb, float>
     {
         /// <summary>
         /// Represents a <see cref="LinearRgb"/> that has R, G, and B values set to zero.
@@ -203,7 +203,7 @@ namespace ImageSharp.ColorSpaces
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool AlmostEquals(LinearRgb other, float precision)
         {
-            Vector3 result = Vector3.Abs(this.backingVector - other.backingVector);
+            var result = Vector3.Abs(this.backingVector - other.backingVector);
 
             return result.X <= precision
                 && result.Y <= precision

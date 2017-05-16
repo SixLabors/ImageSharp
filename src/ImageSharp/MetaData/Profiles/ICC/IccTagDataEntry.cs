@@ -56,7 +56,8 @@ namespace ImageSharp
                 return true;
             }
 
-            return this.Signature == other.Signature;
+            return this.Signature == other.Signature
+                && this.TagSignature == other.TagSignature;
         }
     }
 }

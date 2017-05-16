@@ -11,7 +11,7 @@ namespace ImageSharp.ColorSpaces.Conversion.Implementation.Rgb
     /// Represents the chromaticity coordinates of RGB primaries.
     /// One of the specifiers of <see cref="IRgbWorkingSpace"/>.
     /// </summary>
-    public struct RgbPrimariesChromaticityCoordinates : IEquatable<RgbPrimariesChromaticityCoordinates>
+    internal struct RgbPrimariesChromaticityCoordinates : IEquatable<RgbPrimariesChromaticityCoordinates>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="RgbPrimariesChromaticityCoordinates"/> struct.

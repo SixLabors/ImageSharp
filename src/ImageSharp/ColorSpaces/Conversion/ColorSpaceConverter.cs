@@ -13,7 +13,7 @@ namespace ImageSharp.ColorSpaces.Conversion
     /// <summary>
     /// Converts between color spaces ensuring that the color is adapted using chromatic adaptation.
     /// </summary>
-    public partial class ColorSpaceConverter
+    internal partial class ColorSpaceConverter
     {
         /// <summary>
         /// The default whitepoint used for converting to CieLab
@@ -32,7 +32,7 @@ namespace ImageSharp.ColorSpaces.Conversion
             // Note the order here this is important.
             this.WhitePoint = DefaultWhitePoint;
             this.LmsAdaptationMatrix = CieXyzAndLmsConverter.DefaultTransformationMatrix;
-            this.ChromaticAdaptation = new VonKriesChromaticAdaptation(this.cachedCieXyzAndLmsConverter, this.cachedCieXyzAndLmsConverter);
+            this.ChromaticAdaptation = new VonKriesChromaticAdaptation(this.cachedCieXyzAndLmsConverter);
             this.TargetLuvWhitePoint = CieLuv.DefaultWhitePoint;
             this.TargetLabWhitePoint = CieLab.DefaultWhitePoint;
             this.TargetHunterLabWhitePoint = HunterLab.DefaultWhitePoint;

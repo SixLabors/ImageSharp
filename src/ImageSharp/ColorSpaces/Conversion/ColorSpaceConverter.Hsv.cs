@@ -11,7 +11,7 @@ namespace ImageSharp.ColorSpaces.Conversion
     /// <content>
     /// Allows conversion to <see cref="Hsv"/>.
     /// </content>
-    public partial class ColorSpaceConverter
+    internal partial class ColorSpaceConverter
     {
         private static readonly HsvAndRgbConverter HsvAndRgbConverter = new HsvAndRgbConverter();
 
@@ -24,7 +24,7 @@ namespace ImageSharp.ColorSpaces.Conversion
         {
             Guard.NotNull(color, nameof(color));
 
-            CieXyz xyzColor = this.ToCieXyz(color);
+            var xyzColor = this.ToCieXyz(color);
 
             return this.ToHsv(xyzColor);
         }
@@ -38,7 +38,7 @@ namespace ImageSharp.ColorSpaces.Conversion
         {
             Guard.NotNull(color, nameof(color));
 
-            CieXyz xyzColor = this.ToCieXyz(color);
+            var xyzColor = this.ToCieXyz(color);
 
             return this.ToHsv(xyzColor);
         }
@@ -52,7 +52,7 @@ namespace ImageSharp.ColorSpaces.Conversion
         {
             Guard.NotNull(color, nameof(color));
 
-            CieXyz xyzColor = this.ToCieXyz(color);
+            var xyzColor = this.ToCieXyz(color);
 
             return this.ToHsv(xyzColor);
         }
@@ -66,7 +66,7 @@ namespace ImageSharp.ColorSpaces.Conversion
         {
             Guard.NotNull(color, nameof(color));
 
-            CieXyz xyzColor = this.ToCieXyz(color);
+            var xyzColor = this.ToCieXyz(color);
 
             return this.ToHsv(xyzColor);
         }
@@ -80,7 +80,7 @@ namespace ImageSharp.ColorSpaces.Conversion
         {
             Guard.NotNull(color, nameof(color));
 
-            CieXyz xyzColor = this.ToCieXyz(color);
+            var xyzColor = this.ToCieXyz(color);
 
             return this.ToHsv(xyzColor);
         }
@@ -94,7 +94,7 @@ namespace ImageSharp.ColorSpaces.Conversion
         {
             Guard.NotNull(color, nameof(color));
 
-            Rgb rgb = this.ToRgb(color);
+            var rgb = this.ToRgb(color);
 
             return HsvAndRgbConverter.Convert(rgb);
         }
@@ -108,7 +108,7 @@ namespace ImageSharp.ColorSpaces.Conversion
         {
             Guard.NotNull(color, nameof(color));
 
-            Rgb rgb = this.ToRgb(color);
+            var rgb = this.ToRgb(color);
 
             return HsvAndRgbConverter.Convert(rgb);
         }
@@ -122,7 +122,7 @@ namespace ImageSharp.ColorSpaces.Conversion
         {
             Guard.NotNull(color, nameof(color));
 
-            Rgb rgb = this.ToRgb(color);
+            var rgb = this.ToRgb(color);
 
             return HsvAndRgbConverter.Convert(rgb);
         }
@@ -136,7 +136,7 @@ namespace ImageSharp.ColorSpaces.Conversion
         {
             Guard.NotNull(color, nameof(color));
 
-            CieXyz xyzColor = this.ToCieXyz(color);
+            var xyzColor = this.ToCieXyz(color);
 
             return this.ToHsv(xyzColor);
         }
@@ -150,7 +150,7 @@ namespace ImageSharp.ColorSpaces.Conversion
         {
             Guard.NotNull(color, nameof(color));
 
-            Rgb rgb = this.ToRgb(color);
+            var rgb = this.ToRgb(color);
 
             return HsvAndRgbConverter.Convert(rgb);
         }
@@ -164,7 +164,7 @@ namespace ImageSharp.ColorSpaces.Conversion
         {
             Guard.NotNull(color, nameof(color));
 
-            CieXyz xyzColor = this.ToCieXyz(color);
+            var xyzColor = this.ToCieXyz(color);
 
             return this.ToHsv(xyzColor);
         }
@@ -190,7 +190,7 @@ namespace ImageSharp.ColorSpaces.Conversion
         {
             Guard.NotNull(color, nameof(color));
 
-            Rgb rgb = this.ToRgb(color);
+            var rgb = this.ToRgb(color);
 
             return HsvAndRgbConverter.Convert(rgb);
         }

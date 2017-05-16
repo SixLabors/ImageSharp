@@ -11,7 +11,7 @@
     /// Descriptions taken from:
     /// http://en.wikipedia.org/wiki/Standard_illuminant
     /// </remarks>
-    public static class Illuminants
+    internal static class Illuminants
     {
         /// <summary>
         /// Incandescent / Tungsten

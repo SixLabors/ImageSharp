@@ -13,7 +13,7 @@ namespace ImageSharp.ColorSpaces
     /// <summary>
     /// Represents a Hsl (hue, saturation, lightness) color.
     /// </summary>
-    public struct Hsl : IColorVector, IEquatable<Hsl>, IAlmostEquatable<Hsl, float>
+    internal struct Hsl : IColorVector, IEquatable<Hsl>, IAlmostEquatable<Hsl, float>
     {
         /// <summary>
         /// Represents a <see cref="Hsl"/> that has H, S, and L values set to zero.
@@ -171,7 +171,7 @@ namespace ImageSharp.ColorSpaces
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool AlmostEquals(Hsl other, float precision)
         {
-            Vector3 result = Vector3.Abs(this.backingVector - other.backingVector);
+            var result = Vector3.Abs(this.backingVector - other.backingVector);
 
             return result.X <= precision
                 && result.Y <= precision

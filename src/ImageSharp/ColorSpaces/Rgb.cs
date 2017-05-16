@@ -10,12 +10,10 @@ namespace ImageSharp.ColorSpaces
     using System.Numerics;
     using System.Runtime.CompilerServices;
 
-    using ImageSharp.PixelFormats;
-
     /// <summary>
     /// Represents an RGB color with specified <see cref="IRgbWorkingSpace"/> working space
     /// </summary>
-    public struct Rgb : IColorVector, IEquatable<Rgb>, IAlmostEquatable<Rgb, float>
+    internal struct Rgb : IColorVector, IEquatable<Rgb>, IAlmostEquatable<Rgb, float>
     {
         /// <summary>
         /// Represents a <see cref="Rgb"/> that has R, G, and B values set to zero.
@@ -225,7 +223,7 @@ namespace ImageSharp.ColorSpaces
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool AlmostEquals(Rgb other, float precision)
         {
-            Vector3 result = Vector3.Abs(this.backingVector - other.backingVector);
+            var result = Vector3.Abs(this.backingVector - other.backingVector);
 
             return result.X <= precision
                 && result.Y <= precision

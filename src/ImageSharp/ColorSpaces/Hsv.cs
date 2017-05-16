@@ -10,12 +10,10 @@ namespace ImageSharp.ColorSpaces
     using System.Numerics;
     using System.Runtime.CompilerServices;
 
-    using ImageSharp.PixelFormats;
-
     /// <summary>
     /// Represents a HSV (hue, saturation, value) color. Also known as HSB (hue, saturation, brightness).
     /// </summary>
-    public struct Hsv : IColorVector, IEquatable<Hsv>, IAlmostEquatable<Hsv, float>
+    internal struct Hsv : IColorVector, IEquatable<Hsv>, IAlmostEquatable<Hsv, float>
     {
         /// <summary>
         /// Represents a <see cref="Hsv"/> that has H, S, and V values set to zero.
@@ -223,7 +221,7 @@ namespace ImageSharp.ColorSpaces
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool AlmostEquals(Hsv other, float precision)
         {
-            Vector3 result = Vector3.Abs(this.backingVector - other.backingVector);
+            var result = Vector3.Abs(this.backingVector - other.backingVector);
 
             return result.X <= precision
                 && result.Y <= precision

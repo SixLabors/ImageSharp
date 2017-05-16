@@ -192,6 +192,14 @@ namespace ImageSharp.Tests
         [InlineData(true, TiffPhotometricInterpretation.BlackIsZero, new[] { 4 }, TiffColorType.BlackIsZero4)]
         [InlineData(false, TiffPhotometricInterpretation.BlackIsZero, new[] { 1 }, TiffColorType.BlackIsZero1)]
         [InlineData(true, TiffPhotometricInterpretation.BlackIsZero, new[] { 1 }, TiffColorType.BlackIsZero1)]
+        [InlineData(false, TiffPhotometricInterpretation.PaletteColor, new[] { 3 }, TiffColorType.PaletteColor)]
+        [InlineData(true, TiffPhotometricInterpretation.PaletteColor, new[] { 3 }, TiffColorType.PaletteColor)]
+        [InlineData(false, TiffPhotometricInterpretation.PaletteColor, new[] { 8 }, TiffColorType.PaletteColor)]
+        [InlineData(true, TiffPhotometricInterpretation.PaletteColor, new[] { 8 }, TiffColorType.PaletteColor)]
+        [InlineData(false, TiffPhotometricInterpretation.PaletteColor, new[] { 4 }, TiffColorType.PaletteColor)]
+        [InlineData(true, TiffPhotometricInterpretation.PaletteColor, new[] { 4 }, TiffColorType.PaletteColor)]
+        [InlineData(false, TiffPhotometricInterpretation.PaletteColor, new[] { 1 }, TiffColorType.PaletteColor)]
+        [InlineData(true, TiffPhotometricInterpretation.PaletteColor, new[] { 1 }, TiffColorType.PaletteColor)]
         public void ReadImageFormat_DeterminesCorrectColorImplementation(bool isLittleEndian, ushort photometricInterpretation, int[] bitsPerSample, int colorType)
         {
             Stream stream = CreateTiffGenIfd()
@@ -265,7 +273,6 @@ namespace ImageSharp.Tests
         [InlineData(false, TiffPhotometricInterpretation.IccLab)]
         [InlineData(false, TiffPhotometricInterpretation.ItuLab)]
         [InlineData(false, TiffPhotometricInterpretation.LinearRaw)]
-        [InlineData(false, TiffPhotometricInterpretation.PaletteColor)]
         [InlineData(false, TiffPhotometricInterpretation.Rgb)]
         [InlineData(false, TiffPhotometricInterpretation.Separated)]
         [InlineData(false, TiffPhotometricInterpretation.TransparencyMask)]
@@ -276,7 +283,6 @@ namespace ImageSharp.Tests
         [InlineData(true, TiffPhotometricInterpretation.IccLab)]
         [InlineData(true, TiffPhotometricInterpretation.ItuLab)]
         [InlineData(true, TiffPhotometricInterpretation.LinearRaw)]
-        [InlineData(true, TiffPhotometricInterpretation.PaletteColor)]
         [InlineData(true, TiffPhotometricInterpretation.Rgb)]
         [InlineData(true, TiffPhotometricInterpretation.Separated)]
         [InlineData(true, TiffPhotometricInterpretation.TransparencyMask)]
@@ -303,10 +309,10 @@ namespace ImageSharp.Tests
         [InlineData(true, new[] { 4u })]
         [InlineData(false, new[] { 1u })]
         [InlineData(true, new[] { 1u })]
-        [InlineData(false, new[] { 1u, 2u, 3u })]
-        [InlineData(true, new[] { 1u, 2u, 3u })]
-        [InlineData(false, new[] { 8u, 8u, 8u })]
-        [InlineData(true, new[] { 8u, 8u, 8u })]
+        // [InlineData(false, new[] { 1u, 2u, 3u })]
+        // [InlineData(true, new[] { 1u, 2u, 3u })]
+        // [InlineData(false, new[] { 8u, 8u, 8u })]
+        // [InlineData(true, new[] { 8u, 8u, 8u })]
         public void ReadImageFormat_ReadsBitsPerSample(bool isLittleEndian, uint[] bitsPerSample)
         {
             Stream stream = CreateTiffGenIfd()
@@ -340,6 +346,84 @@ namespace ImageSharp.Tests
         }
 
         [Theory]
+        [MemberData(nameof(IsLittleEndianValues))]
+        public void ReadImageFormat_ThrowsExceptionForMissingBitsPerSample(bool isLittleEndian)
+        {
+            Stream stream = CreateTiffGenIfd()
+                            .WithEntry(TiffGenEntry.Integer(TiffTags.PhotometricInterpretation, TiffType.Short, (int)TiffPhotometricInterpretation.PaletteColor))
+                            .WithoutEntry(TiffTags.BitsPerSample)
+                            .ToStream(isLittleEndian);
+
+            TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null, null);
+            TiffIfd ifd = decoder.ReadIfd(0);
+
+            var e = Assert.Throws<ImageFormatException>(() => decoder.ReadImageFormat(ifd));
+
+            Assert.Equal("The TIFF BitsPerSample entry is missing.", e.Message);
+        }
+
+        [Theory]
+        [InlineData(false, TiffPhotometricInterpretation.WhiteIsZero, new int[] { })]
+        [InlineData(true, TiffPhotometricInterpretation.WhiteIsZero, new int[] { })]
+        [InlineData(false, TiffPhotometricInterpretation.BlackIsZero, new int[] { })]
+        [InlineData(true, TiffPhotometricInterpretation.BlackIsZero, new int[] { })]
+        [InlineData(false, TiffPhotometricInterpretation.PaletteColor, new int[] { })]
+        [InlineData(true, TiffPhotometricInterpretation.PaletteColor, new int[] { })]
+        [InlineData(false, TiffPhotometricInterpretation.WhiteIsZero, new[] { 8, 8 })]
+        [InlineData(true, TiffPhotometricInterpretation.WhiteIsZero, new[] { 8, 8 })]
+        [InlineData(false, TiffPhotometricInterpretation.BlackIsZero, new[] { 8, 8 })]
+        [InlineData(true, TiffPhotometricInterpretation.BlackIsZero, new[] { 8, 8 })]
+        [InlineData(false, TiffPhotometricInterpretation.PaletteColor, new[] { 8, 8 })]
+        [InlineData(true, TiffPhotometricInterpretation.PaletteColor, new[] { 8, 8 })]
+        public void ReadImageFormat_ThrowsExceptionForUnsupportedNumberOfSamples(bool isLittleEndian, ushort photometricInterpretation, int[] bitsPerSample)
+        {
+            Stream stream = CreateTiffGenIfd()
+                            .WithEntry(TiffGenEntry.Integer(TiffTags.PhotometricInterpretation, TiffType.Short, photometricInterpretation))
+                            .WithEntry(TiffGenEntry.Integer(TiffTags.BitsPerSample, TiffType.Short, bitsPerSample))
+                            .ToStream(isLittleEndian);
+
+            TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null, null);
+            TiffIfd ifd = decoder.ReadIfd(0);
+
+            var e = Assert.Throws<NotSupportedException>(() => decoder.ReadImageFormat(ifd));
+
+            Assert.Equal("The number of samples in the TIFF BitsPerSample entry is not supported.", e.Message);
+        }
+
+        [Theory]
+        [MemberData(nameof(IsLittleEndianValues))]
+        public void ReadImageFormat_ReadsColorMap(bool isLittleEndian)
+        {
+            Stream stream = CreateTiffGenIfd()
+                            .WithEntry(TiffGenEntry.Integer(TiffTags.PhotometricInterpretation, TiffType.Short, (int)TiffPhotometricInterpretation.PaletteColor))
+                            .WithEntry(TiffGenEntry.Integer(TiffTags.ColorMap, TiffType.Short, new int[] { 10, 20, 30, 40, 50, 60 }))
+                            .ToStream(isLittleEndian);
+
+            TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null, null);
+            TiffIfd ifd = decoder.ReadIfd(0);
+            decoder.ReadImageFormat(ifd);
+
+            Assert.Equal(new uint[] { 10, 20, 30, 40, 50, 60 }, decoder.ColorMap);
+        }
+
+        [Theory]
+        [MemberData(nameof(IsLittleEndianValues))]
+        public void ReadImageFormat_ThrowsExceptionForMissingColorMap(bool isLittleEndian)
+        {
+            Stream stream = CreateTiffGenIfd()
+                            .WithEntry(TiffGenEntry.Integer(TiffTags.PhotometricInterpretation, TiffType.Short, (int)TiffPhotometricInterpretation.PaletteColor))
+                            .WithoutEntry(TiffTags.ColorMap)
+                            .ToStream(isLittleEndian);
+
+            TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null, null);
+            TiffIfd ifd = decoder.ReadIfd(0);
+
+            var e = Assert.Throws<ImageFormatException>(() => decoder.ReadImageFormat(ifd));
+
+            Assert.Equal("The TIFF ColorMap entry is missing for a pallete color image.", e.Message);
+        }
+
+        [Theory]
         [InlineData(new uint[] { 1 }, 160, 80, 20 * 80)]
         [InlineData(new uint[] { 1 }, 153, 80, 20 * 80)]
         [InlineData(new uint[] { 3 }, 100, 80, 38 * 80)]
@@ -349,6 +433,25 @@ namespace ImageSharp.Tests
         public void CalculateImageBufferSize_ReturnsCorrectSize(uint[] bitsPerSample, int width, int height, int expectedResult)
         {
             TiffDecoderCore decoder = new TiffDecoderCore(null, null);
+            decoder.ColorType = TiffColorType.WhiteIsZero;
+            decoder.BitsPerSample = bitsPerSample;
+
+            int bufferSize = decoder.CalculateImageBufferSize(width, height);
+
+            Assert.Equal(expectedResult, bufferSize);
+        }
+
+        [Theory]
+        [InlineData(new uint[] { 1 }, 160, 80, 60 * 80)]
+        [InlineData(new uint[] { 1 }, 153, 80, 58 * 80)]
+        [InlineData(new uint[] { 3 }, 100, 80, 113 * 80)]
+        [InlineData(new uint[] { 4 }, 100, 80, 150 * 80)]
+        [InlineData(new uint[] { 4 }, 99, 80, 149 * 80)]
+        [InlineData(new uint[] { 8 }, 100, 80, 300 * 80)]
+        public void CalculateImageBufferSize_ReturnsCorrectSize_ForPaletteColor(uint[] bitsPerSample, int width, int height, int expectedResult)
+        {
+            TiffDecoderCore decoder = new TiffDecoderCore(null, null);
+            decoder.ColorType = TiffColorType.PaletteColor;
             decoder.BitsPerSample = bitsPerSample;
 
             int bufferSize = decoder.CalculateImageBufferSize(width, height);
@@ -369,7 +472,8 @@ namespace ImageSharp.Tests
                             TiffGenEntry.Integer(TiffTags.ResolutionUnit, TiffType.Short, 2),
                             TiffGenEntry.Integer(TiffTags.PhotometricInterpretation, TiffType.Short, (int)TiffPhotometricInterpretation.WhiteIsZero),
                             TiffGenEntry.Integer(TiffTags.BitsPerSample, TiffType.Short, new int[] { 8 }),
-                            TiffGenEntry.Integer(TiffTags.Compression, TiffType.Short, (int)TiffCompression.None)
+                            TiffGenEntry.Integer(TiffTags.Compression, TiffType.Short, (int)TiffCompression.None),
+                            TiffGenEntry.Integer(TiffTags.ColorMap, TiffType.Short, new int[256])
                         }
             };
         }

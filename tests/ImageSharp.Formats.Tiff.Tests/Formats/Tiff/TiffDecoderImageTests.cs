@@ -202,8 +202,8 @@ namespace ImageSharp.Tests
         [InlineData(true, TiffPhotometricInterpretation.PaletteColor, new[] { 1 }, TiffColorType.PaletteColor)]
         [InlineData(false, TiffPhotometricInterpretation.Rgb, new[] { 4, 4, 4 }, TiffColorType.Rgb)]
         [InlineData(true, TiffPhotometricInterpretation.Rgb, new[] { 4, 4, 4 }, TiffColorType.Rgb)]
-        [InlineData(false, TiffPhotometricInterpretation.Rgb, new[] { 8, 8, 8 }, TiffColorType.Rgb)]
-        [InlineData(true, TiffPhotometricInterpretation.Rgb, new[] { 8, 8, 8 }, TiffColorType.Rgb)]
+        [InlineData(false, TiffPhotometricInterpretation.Rgb, new[] { 8, 8, 8 }, TiffColorType.Rgb888)]
+        [InlineData(true, TiffPhotometricInterpretation.Rgb, new[] { 8, 8, 8 }, TiffColorType.Rgb888)]
         public void ReadImageFormat_DeterminesCorrectColorImplementation(bool isLittleEndian, ushort photometricInterpretation, int[] bitsPerSample, int colorType)
         {
             Stream stream = CreateTiffGenIfd()

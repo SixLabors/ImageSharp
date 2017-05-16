@@ -93,7 +93,7 @@ namespace ImageSharp.PixelFormats
         }
 
         /// <summary>
-        /// Bulk version of <see cref="IPixel.ToXyzBytes(Span{byte}, int)"/>.
+        /// Bulk version of <see cref="PixelConversionExtensions.ToXyzBytes{TPixel}(TPixel, Span{byte}, int)"/>.
         /// </summary>
         /// <param name="sourceColors">The <see cref="Span{T}"/> to the source colors.</param>
         /// <param name="destBytes">The <see cref="Span{T}"/> to the destination bytes.</param>
@@ -139,7 +139,7 @@ namespace ImageSharp.PixelFormats
         }
 
         /// <summary>
-        /// Bulk version of <see cref="IPixel.ToXyzwBytes(Span{byte}, int)"/>
+        /// Bulk version of <see cref="PixelConversionExtensions.ToXyzwBytes{TPixel}(TPixel, Span{byte}, int)"/>
         /// </summary>
         /// <param name="sourceColors">The <see cref="Span{T}"/> to the source colors.</param>
         /// <param name="destBytes">The <see cref="Span{T}"/> to the destination bytes.</param>
@@ -185,7 +185,7 @@ namespace ImageSharp.PixelFormats
         }
 
         /// <summary>
-        /// Bulk version of <see cref="IPixel.ToZyxBytes(Span{byte}, int)"/>.
+        /// Bulk version of <see cref="PixelConversionExtensions.ToZyxBytes{TPixel}(TPixel, Span{byte}, int)"/>.
         /// </summary>
         /// <param name="sourceColors">The <see cref="Span{T}"/> to the source colors.</param>
         /// <param name="destBytes">The <see cref="Span{T}"/> to the destination bytes.</param>
@@ -231,7 +231,7 @@ namespace ImageSharp.PixelFormats
         }
 
         /// <summary>
-        /// Bulk version of <see cref="IPixel.ToZyxwBytes(Span{byte}, int)"/>.
+        /// Bulk version of <see cref="PixelConversionExtensions.ToZyxwBytes{TPixel}(TPixel, Span{byte}, int)"/>.
         /// </summary>
         /// <param name="sourceColors">The <see cref="Span{T}"/> to the source colors.</param>
         /// <param name="destBytes">The <see cref="Span{T}"/> to the destination bytes.</param>

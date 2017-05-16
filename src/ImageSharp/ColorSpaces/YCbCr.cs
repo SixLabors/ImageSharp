@@ -15,7 +15,7 @@ namespace ImageSharp.ColorSpaces
     /// <see href="http://en.wikipedia.org/wiki/YCbCr"/>
     /// <see href="http://www.ijg.org/files/T-REC-T.871-201105-I!!PDF-E.pdf"/>
     /// </summary>
-    public struct YCbCr : IColorVector, IEquatable<YCbCr>, IAlmostEquatable<YCbCr, float>
+    internal struct YCbCr : IColorVector, IEquatable<YCbCr>, IAlmostEquatable<YCbCr, float>
     {
         /// <summary>
         /// Represents a <see cref="YCbCr"/> that has Y, Cb, and Cr values set to zero.
@@ -173,7 +173,7 @@ namespace ImageSharp.ColorSpaces
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool AlmostEquals(YCbCr other, float precision)
         {
-            Vector3 result = Vector3.Abs(this.backingVector - other.backingVector);
+            var result = Vector3.Abs(this.backingVector - other.backingVector);
 
             return result.X <= precision
                    && result.Y <= precision

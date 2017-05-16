@@ -13,7 +13,7 @@ namespace ImageSharp.ColorSpaces
     /// <summary>
     /// Represents an CMYK (cyan, magenta, yellow, keyline) color.
     /// </summary>
-    public struct Cmyk : IEquatable<Cmyk>, IAlmostEquatable<Cmyk, float>
+    internal struct Cmyk : IEquatable<Cmyk>, IAlmostEquatable<Cmyk, float>
     {
         /// <summary>
         /// Represents a <see cref="Cmyk"/> that has C, M, Y, and K values set to zero.
@@ -171,7 +171,7 @@ namespace ImageSharp.ColorSpaces
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool AlmostEquals(Cmyk other, float precision)
         {
-            Vector4 result = Vector4.Abs(this.backingVector - other.backingVector);
+            var result = Vector4.Abs(this.backingVector - other.backingVector);
 
             return result.X <= precision
                 && result.Y <= precision

@@ -13,7 +13,7 @@ namespace ImageSharp.ColorSpaces.Conversion
     /// <content>
     /// Performs chromatic adaptation on the various color spaces.
     /// </content>
-    public partial class ColorSpaceConverter
+    internal partial class ColorSpaceConverter
     {
         /// <summary>
         /// Performs chromatic adaptation of given <see cref="CieXyz"/> color.

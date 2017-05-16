@@ -44,42 +44,37 @@ namespace ImageSharp.PixelFormats
         /// <summary>
         /// Sets the packed representation from the given byte array.
         /// </summary>
+        /// <remarks>
+        /// TODO: Consider defining multiple PackFrom***() methods instead. (Similar to the opposite direction API.)
+        /// </remarks>
         /// <param name="x">The x-component.</param>
         /// <param name="y">The y-component.</param>
         /// <param name="z">The z-component.</param>
         /// <param name="w">The w-component.</param>
         void PackFromBytes(byte x, byte y, byte z, byte w);
-        
-        /// <summary>
-        /// Expands the packed representation into a given byte array.
-        /// Output is expanded to X-> Y-> Z order. Equivalent to R-> G-> B in <see cref="Rgba32"/>
-        /// </summary>
-        /// <param name="bytes">The bytes to set the color in.</param>
-        /// <param name="startIndex">The starting index of the <paramref name="bytes"/>.</param>
-        void ToXyzBytes(Span<byte> bytes, int startIndex);
 
         /// <summary>
-        /// Expands the packed representation into a given byte array.
-        /// Output is expanded to X-> Y-> Z-> W order. Equivalent to R-> G-> B-> A in <see cref="Rgba32"/>
+        /// Converts the pixel to <see cref="Rgb24"/> format.
         /// </summary>
-        /// <param name="bytes">The bytes to set the color in.</param>
-        /// <param name="startIndex">The starting index of the <paramref name="bytes"/>.</param>
-        void ToXyzwBytes(Span<byte> bytes, int startIndex);
+        /// <param name="dest">The destination pixel to write to</param>
+        void ToRgb24(ref Rgb24 dest);
 
         /// <summary>
-        /// Expands the packed representation into a given byte array.
-        /// Output is expanded to Z-> Y-> X order. Equivalent to B-> G-> R in <see cref="Rgba32"/>
+        /// Converts the pixel to <see cref="Rgba32"/> format.
         /// </summary>
-        /// <param name="bytes">The bytes to set the color in.</param>
-        /// <param name="startIndex">The starting index of the <paramref name="bytes"/>.</param>
-        void ToZyxBytes(Span<byte> bytes, int startIndex);
+        /// <param name="dest">The destination pixel to write to</param>
+        void ToRgba32(ref Rgba32 dest);
 
         /// <summary>
-        /// Expands the packed representation into a given byte array.
-        /// Output is expanded to Z-> Y-> X-> W order. Equivalent to B-> G-> R-> A in <see cref="Rgba32"/>
+        /// Converts the pixel to <see cref="Bgr24"/> format.
         /// </summary>
-        /// <param name="bytes">The bytes to set the color in.</param>
-        /// <param name="startIndex">The starting index of the <paramref name="bytes"/>.</param>
-        void ToZyxwBytes(Span<byte> bytes, int startIndex);
+        /// <param name="dest">The destination pixel to write to</param>
+        void ToBgr24(ref Bgr24 dest);
+
+        /// <summary>
+        /// Converts the pixel to <see cref="Bgra32"/> format.
+        /// </summary>
+        /// <param name="dest">The destination pixel to write to</param>
+        void ToBgra32(ref Bgra32 dest);
     }
 }

@@ -5,7 +5,6 @@
 
 namespace ImageSharp
 {
-    using System;
     using System.Collections.Generic;
     using ImageSharp.Formats;
 
@@ -61,27 +60,23 @@ namespace ImageSharp
                 this.Properties.Add(new ImageProperty(property));
             }
 
-            if (other.ExifProfile != null)
-            {
-                this.ExifProfile = new ExifProfile(other.ExifProfile);
-            }
-            else
-            {
-                this.ExifProfile = null;
-            }
+            this.ExifProfile = other.ExifProfile != null
+                ? new ExifProfile(other.ExifProfile)
+                : null;
+
+            this.IccProfile = other.IccProfile != null
+                ? new IccProfile(other.IccProfile)
+                : null;
         }
 
         /// <summary>
-        /// Gets or sets the resolution of the image in x- direction. It is defined as
-        ///  number of dots per inch and should be an positive value.
+        /// Gets or sets the resolution of the image in x- direction.
+        /// It is defined as the number of dots per inch and should be an positive value.
         /// </summary>
         /// <value>The density of the image in x- direction.</value>
         public double HorizontalResolution
         {
-            get
-            {
-                return this.horizontalResolution;
-            }
+            get => this.horizontalResolution;
 
             set
             {
@@ -93,16 +88,13 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Gets or sets the resolution of the image in y- direction. It is defined as
-        /// number of dots per inch and should be an positive value.
+        /// Gets or sets the resolution of the image in y- direction.
+        /// It is defined as the number of dots per inch and should be an positive value.
         /// </summary>
         /// <value>The density of the image in y- direction.</value>
         public double VerticalResolution
         {
-            get
-            {
-                return this.verticalResolution;
-            }
+            get => this.verticalResolution;
 
             set
             {
@@ -117,6 +109,11 @@ namespace ImageSharp
         /// Gets or sets the Exif profile.
         /// </summary>
         public ExifProfile ExifProfile { get; set; }
+
+        /// <summary>
+        /// Gets or sets the list of ICC profiles.
+        /// </summary>
+        public IccProfile IccProfile { get; set; }
 
         /// <inheritdoc/>
         public int FrameDelay { get; set; }

@@ -87,40 +87,36 @@ namespace ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToXyzBytes(Span<byte> bytes, int startIndex)
+        public void ToRgb24(ref Rgb24 dest)
         {
-            bytes[startIndex] = 0;
-            bytes[startIndex + 1] = 0;
-            bytes[startIndex + 2] = 0;
+            dest = default(Rgb24);
         }
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToXyzwBytes(Span<byte> bytes, int startIndex)
+        public void ToRgba32(ref Rgba32 dest)
         {
-            bytes[startIndex] = 0;
-            bytes[startIndex + 1] = 0;
-            bytes[startIndex + 2] = 0;
-            bytes[startIndex + 3] = this.PackedValue;
+            dest.R = 0;
+            dest.G = 0;
+            dest.B = 0;
+            dest.A = this.PackedValue;
         }
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToZyxBytes(Span<byte> bytes, int startIndex)
+        public void ToBgr24(ref Bgr24 dest)
         {
-            bytes[startIndex] = 0;
-            bytes[startIndex + 1] = 0;
-            bytes[startIndex + 2] = 0;
+            dest = default(Bgr24);
         }
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToZyxwBytes(Span<byte> bytes, int startIndex)
+        public void ToBgra32(ref Bgra32 dest)
         {
-            bytes[startIndex] = 0;
-            bytes[startIndex + 1] = 0;
-            bytes[startIndex + 2] = 0;
-            bytes[startIndex + 3] = this.PackedValue;
+            dest.R = 0;
+            dest.G = 0;
+            dest.B = 0;
+            dest.A = this.PackedValue;
         }
 
         /// <summary>

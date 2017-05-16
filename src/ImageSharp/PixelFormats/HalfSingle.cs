@@ -111,60 +111,44 @@ namespace ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToXyzBytes(Span<byte> bytes, int startIndex)
+        public void ToRgb24(ref Rgb24 dest)
         {
-            Vector4 vector = this.ToVector4();
-            vector *= MaxBytes;
-            vector += Half;
-            vector = Vector4.Clamp(vector, Vector4.Zero, MaxBytes);
-
-            bytes[startIndex] = (byte)vector.X;
-            bytes[startIndex + 1] = (byte)vector.Y;
-            bytes[startIndex + 2] = (byte)vector.Z;
+            Vector4 vector = this.ToScaledVector4();
+            dest.R = (byte)MathF.Round(vector.X);
+            dest.G = (byte)MathF.Round(vector.Y);
+            dest.B = (byte)MathF.Round(vector.Z);
         }
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToXyzwBytes(Span<byte> bytes, int startIndex)
+        public void ToRgba32(ref Rgba32 dest)
         {
-            Vector4 vector = this.ToVector4();
-            vector *= MaxBytes;
-            vector += Half;
-            vector = Vector4.Clamp(vector, Vector4.Zero, MaxBytes);
-
-            bytes[startIndex] = (byte)vector.X;
-            bytes[startIndex + 1] = (byte)vector.Y;
-            bytes[startIndex + 2] = (byte)vector.Z;
-            bytes[startIndex + 3] = (byte)vector.W;
+            Vector4 vector = this.ToScaledVector4();
+            dest.R = (byte)MathF.Round(vector.X);
+            dest.G = (byte)MathF.Round(vector.Y);
+            dest.B = (byte)MathF.Round(vector.Z);
+            dest.A = (byte)MathF.Round(vector.W);
         }
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToZyxBytes(Span<byte> bytes, int startIndex)
+        public void ToBgr24(ref Bgr24 dest)
         {
-            Vector4 vector = this.ToVector4();
-            vector *= MaxBytes;
-            vector += Half;
-            vector = Vector4.Clamp(vector, Vector4.Zero, MaxBytes);
-
-            bytes[startIndex] = (byte)vector.Z;
-            bytes[startIndex + 1] = (byte)vector.Y;
-            bytes[startIndex + 2] = (byte)vector.X;
+            Vector4 vector = this.ToScaledVector4();
+            dest.R = (byte)MathF.Round(vector.X);
+            dest.G = (byte)MathF.Round(vector.Y);
+            dest.B = (byte)MathF.Round(vector.Z);
         }
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToZyxwBytes(Span<byte> bytes, int startIndex)
+        public void ToBgra32(ref Bgra32 dest)
         {
-            Vector4 vector = this.ToVector4();
-            vector *= MaxBytes;
-            vector += Half;
-            vector = Vector4.Clamp(vector, Vector4.Zero, MaxBytes);
-
-            bytes[startIndex] = (byte)vector.Z;
-            bytes[startIndex + 1] = (byte)vector.Y;
-            bytes[startIndex + 2] = (byte)vector.X;
-            bytes[startIndex + 3] = (byte)vector.W;
+            Vector4 vector = this.ToScaledVector4();
+            dest.R = (byte)MathF.Round(vector.X);
+            dest.G = (byte)MathF.Round(vector.Y);
+            dest.B = (byte)MathF.Round(vector.Z);
+            dest.A = (byte)MathF.Round(vector.W);
         }
 
         /// <inheritdoc />
@@ -191,6 +175,16 @@ namespace ImageSharp.PixelFormats
         public override int GetHashCode()
         {
             return this.PackedValue.GetHashCode();
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private Vector4 ToScaledVector4()
+        {
+            Vector4 vector = this.ToVector4();
+            vector *= MaxBytes;
+            vector += Half;
+            vector = Vector4.Clamp(vector, Vector4.Zero, MaxBytes);
+            return vector;
         }
     }
 }

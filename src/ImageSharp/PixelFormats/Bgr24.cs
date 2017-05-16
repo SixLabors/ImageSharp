@@ -5,24 +5,34 @@
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
 
+    /// <summary>
+    /// Pixel type containing three 8-bit unsigned normalized values ranging from 0 to 255.
+    /// The color components are stored in blue, green, red order.
+    /// </summary>
     [StructLayout(LayoutKind.Sequential)]
     public struct Bgr24 : IPixel<Bgr24>
     {
         /// <summary>
-        /// Gets or sets the blue component.
+        /// The blue component.
         /// </summary>
         public byte B;
 
         /// <summary>
-        /// Gets or sets the green component.
+        /// The green component.
         /// </summary>
         public byte G;
 
         /// <summary>
-        /// Gets or sets the red component.
+        /// The red component.
         /// </summary>
         public byte R;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Bgr24"/> struct.
+        /// </summary>
+        /// <param name="r">The red component.</param>
+        /// <param name="g">The green component.</param>
+        /// <param name="b">The blue component.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Bgr24(byte r, byte g, byte b)
         {
@@ -31,19 +41,23 @@
             this.B = b;
         }
 
+        /// <inheritdoc/>
         public PixelOperations<Bgr24> CreatePixelOperations() => new PixelOperations<Bgr24>();
 
+        /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Equals(Bgr24 other)
         {
             return this.R == other.R && this.G == other.G && this.B == other.B;
         }
 
+        /// <inheritdoc/>
         public override bool Equals(object obj)
         {
             return obj?.GetType() == typeof(Bgr24) && this.Equals((Bgr24)obj);
         }
 
+        /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override int GetHashCode()
         {
@@ -56,37 +70,44 @@
             }
         }
 
+        /// <inheritdoc/>
         public void PackFromBytes(byte x, byte y, byte z, byte w)
         {
             throw new NotImplementedException();
         }
 
+        /// <inheritdoc/>
         public void PackFromVector4(Vector4 vector)
         {
             throw new NotImplementedException();
         }
 
+        /// <inheritdoc/>
         public Vector4 ToVector4()
         {
             throw new NotImplementedException();
         }
 
-        public void ToXyzBytes(Span<byte> bytes, int startIndex)
+        /// <inheritdoc/>
+        public void ToRgb24(ref Rgb24 dest)
         {
             throw new NotImplementedException();
         }
 
-        public void ToXyzwBytes(Span<byte> bytes, int startIndex)
+        /// <inheritdoc/>
+        public void ToRgba32(ref Rgba32 dest)
         {
             throw new NotImplementedException();
         }
 
-        public void ToZyxBytes(Span<byte> bytes, int startIndex)
+        /// <inheritdoc/>
+        public void ToBgr24(ref Bgr24 dest)
         {
             throw new NotImplementedException();
         }
 
-        public void ToZyxwBytes(Span<byte> bytes, int startIndex)
+        /// <inheritdoc/>
+        public void ToBgra32(ref Bgra32 dest)
         {
             throw new NotImplementedException();
         }

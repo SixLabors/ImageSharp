@@ -7,6 +7,10 @@
 
     using ImageSharp.PixelFormats;
 
+    /// <summary>
+    /// Packed pixel type containing four 8-bit unsigned normalized values ranging from 0 to 255.
+    /// The color components are stored in blue, green, red, and alpha order.
+    /// </summary>
     [StructLayout(LayoutKind.Sequential)]
     public struct Bgra32 : IPixel<Bgra32>, IPackedVector<uint>
     {
@@ -45,7 +49,6 @@
             this.A = 255;
         }
 
-
         /// <summary>
         /// Initializes a new instance of the <see cref="Bgra32"/> struct.
         /// </summary>
@@ -60,62 +63,6 @@
             this.G = g;
             this.B = b;
             this.A = a;
-        }
-
-        public PixelOperations<Bgra32> CreatePixelOperations() => new PixelOperations<Bgra32>();
-
-        public bool Equals(Bgra32 other)
-        {
-            return this.R == other.R && this.G == other.G && this.B == other.B && this.A == other.A;
-        }
-
-        public override bool Equals(object obj) => obj?.GetType() == typeof(Bgra32) && this.Equals((Bgra32)obj);
-
-        public override int GetHashCode()
-        {
-            unchecked
-            {
-                int hashCode = this.B;
-                hashCode = (hashCode * 397) ^ this.G;
-                hashCode = (hashCode * 397) ^ this.R;
-                hashCode = (hashCode * 397) ^ this.A;
-                return hashCode;
-            }
-        }
-
-        public void PackFromVector4(Vector4 vector)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Vector4 ToVector4()
-        {
-            throw new NotImplementedException();
-        }
-
-        public void PackFromBytes(byte x, byte y, byte z, byte w)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void ToXyzBytes(Span<byte> bytes, int startIndex)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void ToXyzwBytes(Span<byte> bytes, int startIndex)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void ToZyxBytes(Span<byte> bytes, int startIndex)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void ToZyxwBytes(Span<byte> bytes, int startIndex)
-        {
-            throw new NotImplementedException();
         }
 
         /// <summary>
@@ -141,6 +88,73 @@
         {
             get => this.Bgra;
             set => this.Bgra = value;
+        }
+
+        /// <inheritdoc/>
+        public PixelOperations<Bgra32> CreatePixelOperations() => new PixelOperations<Bgra32>();
+
+        /// <inheritdoc/>
+        public bool Equals(Bgra32 other)
+        {
+            return this.R == other.R && this.G == other.G && this.B == other.B && this.A == other.A;
+        }
+
+        /// <inheritdoc/>
+        public override bool Equals(object obj) => obj?.GetType() == typeof(Bgra32) && this.Equals((Bgra32)obj);
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hashCode = this.B;
+                hashCode = (hashCode * 397) ^ this.G;
+                hashCode = (hashCode * 397) ^ this.R;
+                hashCode = (hashCode * 397) ^ this.A;
+                return hashCode;
+            }
+        }
+
+        /// <inheritdoc/>
+        public void PackFromVector4(Vector4 vector)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <inheritdoc/>
+        public Vector4 ToVector4()
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <inheritdoc/>
+        public void PackFromBytes(byte x, byte y, byte z, byte w)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <inheritdoc/>
+        public void ToRgb24(ref Rgb24 dest)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <inheritdoc/>
+        public void ToRgba32(ref Rgba32 dest)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <inheritdoc/>
+        public void ToBgr24(ref Bgr24 dest)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <inheritdoc/>
+        public void ToBgra32(ref Bgra32 dest)
+        {
+            throw new NotImplementedException();
         }
     }
 }

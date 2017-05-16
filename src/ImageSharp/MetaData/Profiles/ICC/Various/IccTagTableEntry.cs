@@ -73,7 +73,7 @@ namespace ImageSharp
         /// <inheritdoc/>
         public override bool Equals(object other)
         {
-            return (other is IccProfileId) && this.Equals((IccProfileId)other);
+            return (other is IccTagTableEntry) && this.Equals((IccTagTableEntry)other);
         }
 
         /// <inheritdoc/>

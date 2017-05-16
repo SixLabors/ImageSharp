@@ -59,5 +59,10 @@ namespace ImageSharp.Formats.Tiff
         /// RGB Full Color.
         /// </summary>
         Rgb,
+
+        /// <summary>
+        /// RGB Full Color. Optimised implementation for 8-bit images.
+        /// </summary>
+        Rgb888
     }
 }

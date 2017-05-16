@@ -395,7 +395,7 @@ namespace ImageSharp.Formats
                         {
                             if (this.BitsPerSample[0] == 8 && this.BitsPerSample[1] == 8 && this.BitsPerSample[2] == 8)
                             {
-                                this.ColorType = TiffColorType.Rgb;
+                                this.ColorType = TiffColorType.Rgb888;
                             }
                             else
                             {
@@ -528,6 +528,9 @@ namespace ImageSharp.Formats
                     break;
                 case TiffColorType.Rgb:
                     RgbTiffColor.Decode(data, this.BitsPerSample, pixels, left, top, width, height);
+                    break;
+                case TiffColorType.Rgb888:
+                    Rgb888TiffColor.Decode(data, pixels, left, top, width, height);
                     break;
                 case TiffColorType.PaletteColor:
                     PaletteTiffColor.Decode(data, this.BitsPerSample, this.ColorMap, pixels, left, top, width, height);

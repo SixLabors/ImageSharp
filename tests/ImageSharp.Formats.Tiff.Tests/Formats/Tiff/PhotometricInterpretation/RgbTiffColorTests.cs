@@ -147,5 +147,15 @@ namespace ImageSharp.Tests
                     RgbTiffColor.Decode(inputData, bitsPerSample, pixels, left, top, width, height);
                 });
         }
+
+        [Theory]
+        [MemberData(nameof(Rgb8_Data))]
+        public void Decode_WritesPixelData_8Bit(byte[] inputData, uint[] bitsPerSample, int left, int top, int width, int height, Rgba32[][] expectedResult)
+        {
+            AssertDecode(expectedResult, pixels =>
+                {
+                    Rgb888TiffColor.Decode(inputData, pixels, left, top, width, height);
+                });
+        }
     }
 }

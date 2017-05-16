@@ -45,7 +45,7 @@ namespace ImageSharp.PixelFormats
         /// Sets the packed representation from the given byte array.
         /// </summary>
         /// <remarks>
-        /// TODO: Consider defining multiple PackFrom***() methods instead. (Similar to the opposite direction API.)
+        /// TODO: Refactor this, defining multiple PackFromAsdf42(ref Asdf42 source) methods instead. Should be faster on many execution paths!
         /// </remarks>
         /// <param name="x">The x-component.</param>
         /// <param name="y">The y-component.</param>

@@ -41,7 +41,7 @@ namespace ImageSharp.PixelFormats
 
         public override bool Equals(object obj)
         {
-            return obj.GetType() == typeof(Rgb24) && this.Equals((Rgb24)obj);
+            return obj?.GetType() == typeof(Rgb24) && this.Equals((Rgb24)obj);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

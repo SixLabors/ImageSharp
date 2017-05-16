@@ -52,8 +52,8 @@ namespace ImageSharp.Tests
             [InlineData(1, 255, 0, 0, 255, 0)]
             public void WhenFalse(byte r1, byte g1, byte b1, byte r2, byte g2, byte b2)
             {
-                var a = new Rgb24(1, 2, 3);
-                var b = new Rgb24(1, 2, 4);
+                var a = new Rgb24(r1, g1, b1);
+                var b = new Rgb24(r2, g2, b2);
 
                 Assert.False(a.Equals(b));
                 Assert.False(a.Equals((object)b));

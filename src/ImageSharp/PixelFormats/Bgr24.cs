@@ -41,7 +41,7 @@
 
         public override bool Equals(object obj)
         {
-            return obj.GetType() == typeof(Bgr24) && this.Equals((Bgr24)obj);
+            return obj?.GetType() == typeof(Bgr24) && this.Equals((Bgr24)obj);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

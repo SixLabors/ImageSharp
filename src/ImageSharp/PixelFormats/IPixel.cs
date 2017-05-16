@@ -49,7 +49,7 @@ namespace ImageSharp.PixelFormats
         /// <param name="z">The z-component.</param>
         /// <param name="w">The w-component.</param>
         void PackFromBytes(byte x, byte y, byte z, byte w);
-
+        
         /// <summary>
         /// Expands the packed representation into a given byte array.
         /// Output is expanded to X-> Y-> Z order. Equivalent to R-> G-> B in <see cref="Rgba32"/>

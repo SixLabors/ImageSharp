@@ -179,7 +179,11 @@ namespace ImageSharp
         }
 
         /// <inheritdoc/>
-        public uint PackedValue { get => this.Rgba; set => this.Rgba = value; }
+        public uint PackedValue
+        {
+            get => this.Rgba;
+            set => this.Rgba = value;
+        }
 
         /// <summary>
         /// Compares two <see cref="Rgba32"/> objects for equality.
@@ -330,10 +334,10 @@ namespace ImageSharp
         {
             unchecked
             {
-                int hashCode = this.R.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.G.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.B.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.A.GetHashCode();
+                int hashCode = this.R;
+                hashCode = (hashCode * 397) ^ this.G;
+                hashCode = (hashCode * 397) ^ this.B;
+                hashCode = (hashCode * 397) ^ this.A;
                 return hashCode;
             }
         }

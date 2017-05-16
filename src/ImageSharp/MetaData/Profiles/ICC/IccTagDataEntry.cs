@@ -65,7 +65,7 @@ namespace ImageSharp
         {
             unchecked
             {
-                return ((int)this.Signature * 397) ^ (int)this.TagSignature;
+                return (int)this.Signature * 397;
             }
         }
 
@@ -82,8 +82,7 @@ namespace ImageSharp
                 return true;
             }
 
-            return this.Signature == other.Signature
-                && this.TagSignature == other.TagSignature;
+            return this.Signature == other.Signature;
         }
     }
 }

@@ -69,10 +69,7 @@ namespace ImageSharp
         /// <summary>
         /// Gets the number of channels
         /// </summary>
-        public int ChannelCount
-        {
-            get { return this.ChannelValues.Length; }
-        }
+        public int ChannelCount => this.ChannelValues.Length;
 
         /// <summary>
         /// Gets the colorant type
@@ -84,22 +81,55 @@ namespace ImageSharp
         /// </summary>
         public double[][] ChannelValues { get; }
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         public override bool Equals(IccTagDataEntry other)
         {
-            if (base.Equals(other) && other is IccChromaticityTagDataEntry entry)
-            {
-                return this.ColorantType == entry.ColorantType
-                    && this.EqualsChannelValues(entry);
-            }
-
-            return false;
+            var entry = other as IccChromaticityTagDataEntry;
+            return entry != null && this.Equals(entry);
         }
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         public bool Equals(IccChromaticityTagDataEntry other)
         {
-            return this.Equals((IccTagDataEntry)other);
+            if (ReferenceEquals(null, other))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, other))
+            {
+                return true;
+            }
+
+            return base.Equals(other) && this.ColorantType == other.ColorantType && this.EqualsChannelValues(other);
+        }
+
+        /// <inheritdoc/>
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, obj))
+            {
+                return true;
+            }
+
+            return obj is IccChromaticityTagDataEntry && this.Equals((IccChromaticityTagDataEntry)obj);
+        }
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hashCode = base.GetHashCode();
+                hashCode = (hashCode * 397) ^ (int)this.ColorantType;
+                hashCode = (hashCode * 397) ^ (this.ChannelValues != null ? this.ChannelValues.GetHashCode() : 0);
+                return hashCode;
+            }
         }
 
         private static double[][] GetColorantArray(IccColorantEncoding colorantType)
@@ -107,32 +137,32 @@ namespace ImageSharp
             switch (colorantType)
             {
                 case IccColorantEncoding.EbuTech3213E:
-                    return new double[][]
+                    return new[]
                     {
-                        new double[] { 0.640, 0.330 },
-                        new double[] { 0.290, 0.600 },
-                        new double[] { 0.150, 0.060 },
+                        new[] { 0.640, 0.330 },
+                        new[] { 0.290, 0.600 },
+                        new[] { 0.150, 0.060 },
                     };
                 case IccColorantEncoding.ItuRBt709_2:
-                    return new double[][]
+                    return new[]
                     {
-                        new double[] { 0.640, 0.330 },
-                        new double[] { 0.300, 0.600 },
-                        new double[] { 0.150, 0.060 },
+                        new[] { 0.640, 0.330 },
+                        new[] { 0.300, 0.600 },
+                        new[] { 0.150, 0.060 },
                     };
                 case IccColorantEncoding.P22:
-                    return new double[][]
+                    return new[]
                     {
-                        new double[] { 0.625, 0.340 },
-                        new double[] { 0.280, 0.605 },
-                        new double[] { 0.155, 0.070 },
+                        new[] { 0.625, 0.340 },
+                        new[] { 0.280, 0.605 },
+                        new[] { 0.155, 0.070 },
                     };
                 case IccColorantEncoding.SmpteRp145:
-                    return new double[][]
+                    return new[]
                     {
-                        new double[] { 0.630, 0.340 },
-                        new double[] { 0.310, 0.595 },
-                        new double[] { 0.155, 0.070 },
+                        new[] { 0.630, 0.340 },
+                        new[] { 0.310, 0.595 },
+                        new[] { 0.155, 0.070 },
                     };
                 default:
                     throw new ArgumentException("Unrecognized colorant encoding");

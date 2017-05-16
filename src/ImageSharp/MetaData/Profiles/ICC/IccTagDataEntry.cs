@@ -44,9 +44,35 @@ namespace ImageSharp
         public IccProfileTag TagSignature { get; set; }
 
         /// <inheritdoc/>
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, obj))
+            {
+                return true;
+            }
+
+            var entry = obj as IccTagDataEntry;
+            return entry != null && this.Equals(entry);
+        }
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                return ((int)this.Signature * 397) ^ (int)this.TagSignature;
+            }
+        }
+
+        /// <inheritdoc/>
         public virtual bool Equals(IccTagDataEntry other)
         {
-            if (other == null)
+            if (ReferenceEquals(null, other))
             {
                 return false;
             }

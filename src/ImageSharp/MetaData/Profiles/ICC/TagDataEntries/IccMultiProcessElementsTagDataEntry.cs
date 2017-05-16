@@ -57,23 +57,59 @@ namespace ImageSharp
         /// </summary>
         public IccMultiProcessElement[] Data { get; }
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         public override bool Equals(IccTagDataEntry other)
         {
-            if (base.Equals(other) && other is IccMultiProcessElementsTagDataEntry entry)
-            {
-                return this.InputChannelCount == entry.InputChannelCount
-                    && this.OutputChannelCount == entry.OutputChannelCount
-                    && this.Data.SequenceEqual(entry.Data);
-            }
-
-            return false;
+            var entry = other as IccMultiProcessElementsTagDataEntry;
+            return entry != null && this.Equals(entry);
         }
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         public bool Equals(IccMultiProcessElementsTagDataEntry other)
         {
-            return this.Equals((IccTagDataEntry)other);
+            if (ReferenceEquals(null, other))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, other))
+            {
+                return true;
+            }
+
+            return base.Equals(other)
+                && this.InputChannelCount == other.InputChannelCount
+                && this.OutputChannelCount == other.OutputChannelCount
+                && this.Data.SequenceEqual(other.Data);
+        }
+
+        /// <inheritdoc/>
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, obj))
+            {
+                return true;
+            }
+
+            return obj is IccMultiProcessElementsTagDataEntry && this.Equals((IccMultiProcessElementsTagDataEntry)obj);
+        }
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hashCode = base.GetHashCode();
+                hashCode = (hashCode * 397) ^ this.InputChannelCount;
+                hashCode = (hashCode * 397) ^ this.OutputChannelCount;
+                hashCode = (hashCode * 397) ^ (this.Data != null ? this.Data.GetHashCode() : 0);
+                return hashCode;
+            }
         }
     }
 }

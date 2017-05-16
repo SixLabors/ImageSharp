@@ -38,21 +38,52 @@ namespace ImageSharp
         /// </summary>
         public string Text { get; }
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         public override bool Equals(IccTagDataEntry other)
         {
-            if (base.Equals(other) && other is IccTextTagDataEntry entry)
-            {
-                return this.Text == entry.Text;
-            }
-
-            return false;
+            var entry = other as IccTextTagDataEntry;
+            return entry != null && this.Equals(entry);
         }
 
         /// <inheritdoc />
         public bool Equals(IccTextTagDataEntry other)
         {
-            return this.Equals((IccTagDataEntry)other);
+            if (ReferenceEquals(null, other))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, other))
+            {
+                return true;
+            }
+
+            return base.Equals(other) && string.Equals(this.Text, other.Text);
+        }
+
+        /// <inheritdoc />
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, obj))
+            {
+                return true;
+            }
+
+            return obj is IccTextTagDataEntry && this.Equals((IccTextTagDataEntry)obj);
+        }
+
+        /// <inheritdoc />
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                return (base.GetHashCode() * 397) ^ (this.Text != null ? this.Text.GetHashCode() : 0);
+            }
         }
     }
 }

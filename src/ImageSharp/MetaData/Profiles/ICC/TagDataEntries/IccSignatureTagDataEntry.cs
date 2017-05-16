@@ -39,21 +39,52 @@ namespace ImageSharp
         /// </summary>
         public string SignatureData { get; }
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         public override bool Equals(IccTagDataEntry other)
         {
-            if (base.Equals(other) && other is IccSignatureTagDataEntry entry)
-            {
-                return this.SignatureData == entry.SignatureData;
-            }
-
-            return false;
+            var entry = other as IccSignatureTagDataEntry;
+            return entry != null && this.Equals(entry);
         }
 
         /// <inheritdoc />
         public bool Equals(IccSignatureTagDataEntry other)
         {
-            return this.Equals((IccTagDataEntry)other);
+            if (ReferenceEquals(null, other))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, other))
+            {
+                return true;
+            }
+
+            return base.Equals(other) && string.Equals(this.SignatureData, other.SignatureData);
+        }
+
+        /// <inheritdoc />
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, obj))
+            {
+                return true;
+            }
+
+            return obj is IccSignatureTagDataEntry && this.Equals((IccSignatureTagDataEntry)obj);
+        }
+
+        /// <inheritdoc />
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                return (base.GetHashCode() * 397) ^ (this.SignatureData != null ? this.SignatureData.GetHashCode() : 0);
+            }
         }
     }
 }

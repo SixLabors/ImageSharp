@@ -40,21 +40,52 @@ namespace ImageSharp
         /// </summary>
         public IccLocalizedString[] Texts { get; }
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         public override bool Equals(IccTagDataEntry other)
         {
-            if (base.Equals(other) && other is IccMultiLocalizedUnicodeTagDataEntry entry)
+            var entry = other as IccMultiLocalizedUnicodeTagDataEntry;
+            return entry != null && this.Equals(entry);
+        }
+
+        /// <inheritdoc/>
+        public bool Equals(IccMultiLocalizedUnicodeTagDataEntry other)
+        {
+            if (ReferenceEquals(null, other))
             {
-                return this.Texts.SequenceEqual(entry.Texts);
+                return false;
             }
 
-            return false;
+            if (ReferenceEquals(this, other))
+            {
+                return true;
+            }
+
+            return base.Equals(other) && this.Texts.SequenceEqual(other.Texts);
+        }
+
+        /// <inheritdoc/>
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, obj))
+            {
+                return true;
+            }
+
+            return obj is IccMultiLocalizedUnicodeTagDataEntry && this.Equals((IccMultiLocalizedUnicodeTagDataEntry)obj);
         }
 
         /// <inheritdoc />
-        public bool Equals(IccMultiLocalizedUnicodeTagDataEntry other)
+        public override int GetHashCode()
         {
-            return this.Equals((IccTagDataEntry)other);
+            unchecked
+            {
+                return (base.GetHashCode() * 397) ^ (this.Texts != null ? this.Texts.GetHashCode() : 0);
+            }
         }
     }
 }

@@ -83,18 +83,12 @@ namespace ImageSharp
         /// <summary>
         /// Gets the number of input channels
         /// </summary>
-        public int InputChannelCount
-        {
-            get { return this.InputValues.Length; }
-        }
+        public int InputChannelCount => this.InputValues.Length;
 
         /// <summary>
         /// Gets the number of output channels
         /// </summary>
-        public int OutputChannelCount
-        {
-            get { return this.OutputValues.Length; }
-        }
+        public int OutputChannelCount => this.OutputValues.Length;
 
         /// <summary>
         ///  Gets the conversion matrix
@@ -116,24 +110,61 @@ namespace ImageSharp
         /// </summary>
         public IccLut[] OutputValues { get; }
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         public override bool Equals(IccTagDataEntry other)
         {
-            if (base.Equals(other) && other is IccLut16TagDataEntry entry)
-            {
-                return this.ClutValues.Equals(entry.ClutValues)
-                    && this.Matrix == entry.Matrix
-                    && this.InputValues.SequenceEqual(entry.InputValues)
-                    && this.OutputValues.SequenceEqual(entry.OutputValues);
-            }
-
-            return false;
+            var entry = other as IccLut16TagDataEntry;
+            return entry != null && this.Equals(entry);
         }
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         public bool Equals(IccLut16TagDataEntry other)
         {
-            return this.Equals((IccTagDataEntry)other);
+            if (ReferenceEquals(null, other))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, other))
+            {
+                return true;
+            }
+
+            return base.Equals(other)
+                && this.Matrix.Equals(other.Matrix)
+                && this.InputValues.SequenceEqual(other.InputValues)
+                && this.ClutValues.Equals(other.ClutValues)
+                && this.OutputValues.SequenceEqual(other.OutputValues);
+        }
+
+        /// <inheritdoc/>
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, obj))
+            {
+                return true;
+            }
+
+            return obj is IccLut16TagDataEntry && this.Equals((IccLut16TagDataEntry)obj);
+        }
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hashCode = base.GetHashCode();
+                hashCode = (hashCode * 397) ^ this.Matrix.GetHashCode();
+                hashCode = (hashCode * 397) ^ (this.InputValues != null ? this.InputValues.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (this.ClutValues != null ? this.ClutValues.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (this.OutputValues != null ? this.OutputValues.GetHashCode() : 0);
+                return hashCode;
+            }
         }
 
         private Matrix4x4 CreateMatrix(float[,] matrix)

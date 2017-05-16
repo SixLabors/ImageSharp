@@ -49,22 +49,57 @@ namespace ImageSharp
         /// </summary>
         public IccScreeningChannel[] Channels { get; }
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         public override bool Equals(IccTagDataEntry other)
         {
-            if (base.Equals(other) && other is IccScreeningTagDataEntry entry)
-            {
-                return this.Flags == entry.Flags
-                    && this.Channels.SequenceEqual(entry.Channels);
-            }
-
-            return false;
+            var entry = other as IccScreeningTagDataEntry;
+            return entry != null && this.Equals(entry);
         }
 
         /// <inheritdoc />
         public bool Equals(IccScreeningTagDataEntry other)
         {
-            return this.Equals((IccTagDataEntry)other);
+            if (ReferenceEquals(null, other))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, other))
+            {
+                return true;
+            }
+
+            return base.Equals(other)
+                && this.Flags == other.Flags
+                && this.Channels.SequenceEqual(other.Channels);
+        }
+
+        /// <inheritdoc />
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, obj))
+            {
+                return true;
+            }
+
+            return obj is IccScreeningTagDataEntry && this.Equals((IccScreeningTagDataEntry)obj);
+        }
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hashCode = base.GetHashCode();
+                hashCode = (hashCode * 397) ^ (int)this.Flags;
+                hashCode = (hashCode * 397) ^ (this.Channels != null ? this.Channels.GetHashCode() : 0);
+                return hashCode;
+            }
         }
     }
 }

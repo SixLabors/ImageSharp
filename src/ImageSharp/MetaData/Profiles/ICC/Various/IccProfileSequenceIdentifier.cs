@@ -39,13 +39,42 @@ namespace ImageSharp
         /// <inheritdoc />
         public bool Equals(IccProfileSequenceIdentifier other)
         {
+            if (ReferenceEquals(null, other))
+            {
+                return false;
+            }
+
             if (ReferenceEquals(this, other))
             {
                 return true;
             }
 
-            return this.Id.Equals(other.Id)
-                && this.Description.SequenceEqual(other.Description);
+            return this.Id.Equals(other.Id) && this.Description.SequenceEqual(other.Description);
+        }
+
+        /// <inheritdoc />
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, obj))
+            {
+                return true;
+            }
+
+            return obj is IccProfileSequenceIdentifier && this.Equals((IccProfileSequenceIdentifier)obj);
+        }
+
+        /// <inheritdoc />
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                return (this.Id.GetHashCode() * 397) ^ (this.Description != null ? this.Description.GetHashCode() : 0);
+            }
         }
     }
 }

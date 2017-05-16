@@ -71,9 +71,14 @@ namespace ImageSharp
         /// </summary>
         public IccLocalizedString[] DeviceModelInfo { get; }
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         public bool Equals(IccProfileDescription other)
         {
+            if (ReferenceEquals(null, other))
+            {
+                return false;
+            }
+
             if (ReferenceEquals(this, other))
             {
                 return true;
@@ -85,6 +90,37 @@ namespace ImageSharp
                 && this.TechnologyInformation == other.TechnologyInformation
                 && this.DeviceManufacturerInfo.SequenceEqual(other.DeviceManufacturerInfo)
                 && this.DeviceModelInfo.SequenceEqual(other.DeviceModelInfo);
+        }
+
+        /// <inheritdoc />
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, obj))
+            {
+                return true;
+            }
+
+            return obj is IccProfileDescription && this.Equals((IccProfileDescription)obj);
+        }
+
+        /// <inheritdoc />
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hashCode = (int)this.DeviceManufacturer;
+                hashCode = (hashCode * 397) ^ (int)this.DeviceModel;
+                hashCode = (hashCode * 397) ^ this.DeviceAttributes.GetHashCode();
+                hashCode = (hashCode * 397) ^ (int)this.TechnologyInformation;
+                hashCode = (hashCode * 397) ^ (this.DeviceManufacturerInfo != null ? this.DeviceManufacturerInfo.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (this.DeviceModelInfo != null ? this.DeviceModelInfo.GetHashCode() : 0);
+                return hashCode;
+            }
         }
     }
 }

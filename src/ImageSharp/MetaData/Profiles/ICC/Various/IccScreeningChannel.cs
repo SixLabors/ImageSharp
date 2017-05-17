@@ -1,0 +1,105 @@
+﻿// <copyright file="IccScreeningChannel.cs" company="James Jackson-South">
+// Copyright (c) James Jackson-South and contributors.
+// Licensed under the Apache License, Version 2.0.
+// </copyright>
+
+namespace ImageSharp
+{
+    using System;
+
+    /// <summary>
+    /// A single channel of a <see cref="IccScreeningTagDataEntry"/>
+    /// </summary>
+    internal struct IccScreeningChannel : IEquatable<IccScreeningChannel>
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="IccScreeningChannel"/> struct.
+        /// </summary>
+        /// <param name="frequency">Screen frequency</param>
+        /// <param name="angle">Angle in degrees</param>
+        /// <param name="spotShape">Spot shape</param>
+        public IccScreeningChannel(float frequency, float angle, IccScreeningSpotType spotShape)
+        {
+            this.Frequency = frequency;
+            this.Angle = angle;
+            this.SpotShape = spotShape;
+        }
+
+        /// <summary>
+        /// Gets the screen frequency
+        /// </summary>
+        public float Frequency { get; }
+
+        /// <summary>
+        /// Gets the angle in degrees
+        /// </summary>
+        public float Angle { get; }
+
+        /// <summary>
+        /// Gets the spot shape
+        /// </summary>
+        public IccScreeningSpotType SpotShape { get; }
+
+        /// <summary>
+        /// Compares two <see cref="IccScreeningChannel"/> objects for equality.
+        /// </summary>
+        /// <param name="left">
+        /// The <see cref="IccScreeningChannel"/> on the left side of the operand.
+        /// </param>
+        /// <param name="right">
+        /// The <see cref="IccScreeningChannel"/> on the right side of the operand.
+        /// </param>
+        /// <returns>
+        /// True if the <paramref name="left"/> parameter is equal to the <paramref name="right"/> parameter; otherwise, false.
+        /// </returns>
+        public static bool operator ==(IccScreeningChannel left, IccScreeningChannel right)
+        {
+            return left.Equals(right);
+        }
+
+        /// <summary>
+        /// Compares two <see cref="IccScreeningChannel"/> objects for equality.
+        /// </summary>
+        /// <param name="left">The <see cref="IccScreeningChannel"/> on the left side of the operand.</param>
+        /// <param name="right">The <see cref="IccScreeningChannel"/> on the right side of the operand.</param>
+        /// <returns>
+        /// True if the <paramref name="left"/> parameter is not equal to the <paramref name="right"/> parameter; otherwise, false.
+        /// </returns>
+        public static bool operator !=(IccScreeningChannel left, IccScreeningChannel right)
+        {
+            return !left.Equals(right);
+        }
+
+        /// <inheritdoc />
+        public bool Equals(IccScreeningChannel other)
+        {
+            return this.Frequency.Equals(other.Frequency)
+                && this.Angle.Equals(other.Angle)
+                && this.SpotShape == other.SpotShape;
+        }
+
+        /// <inheritdoc/>
+        public override bool Equals(object obj)
+        {
+            return obj is IccScreeningChannel && this.Equals((IccScreeningChannel)obj);
+        }
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hashCode = this.Frequency.GetHashCode();
+                hashCode = (hashCode * 397) ^ this.Angle.GetHashCode();
+                hashCode = (hashCode * 397) ^ (int)this.SpotShape;
+                return hashCode;
+            }
+        }
+
+        /// <inheritdoc/>
+        public override string ToString()
+        {
+            return $"{this.Frequency}Hz; {this.Angle}°; {this.SpotShape}";
+        }
+    }
+}

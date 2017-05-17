@@ -7,6 +7,7 @@ namespace ImageSharp.Web.Middleware
 {
     using System.Collections.Generic;
 
+    using ImageSharp.Web.Processors;
     using ImageSharp.Web.Services;
 
     /// <summary>
@@ -18,5 +19,10 @@ namespace ImageSharp.Web.Middleware
         /// Gets or sets the collecion of image services.
         /// </summary>
         public IList<IImageService> Services { get; set; } = new List<IImageService>();
+
+        /// <summary>
+        /// Gets or sets the collecion of image processors.
+        /// </summary>
+        public IList<IImageWebProcessor> Processors { get; set; } = new List<IImageWebProcessor>();
     }
 }

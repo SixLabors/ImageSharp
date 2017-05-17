@@ -6,11 +6,15 @@
 namespace ImageSharp.Web.Middleware
 {
     using System;
+    using System.Collections.Generic;
+    using System.Diagnostics;
     using System.IO;
+    using System.Linq;
     using System.Threading.Tasks;
 
     using ImageSharp.Memory;
     using ImageSharp.Web.Caching;
+    using ImageSharp.Web.Helpers;
     using ImageSharp.Web.Services;
 
     using Microsoft.AspNetCore.Hosting;
@@ -39,7 +43,7 @@ namespace ImageSharp.Web.Middleware
         private readonly IHostingEnvironment environment;
 
         /// <summary>
-        /// The logger for logging errors.
+        /// The type used for performing logging.
         /// </summary>
         private readonly ILogger logger;
 
@@ -66,24 +70,29 @@ namespace ImageSharp.Web.Middleware
         /// <summary>
         /// Performs operations upon the current request.
         /// </summary>
-        /// <param name="context">The current cHTTP request context</param>
+        /// <param name="context">The current HTTP request context</param>
         /// <returns>The <see cref="Task"/></returns>
         public async Task Invoke(HttpContext context)
         {
             // TODO: Parse the request path and application path.
-            string path = string.Empty;
-
-            // TODO: Is this correct?
+            PathString path = context.Request.Path;
             PathString applicationPath = context.Request.PathBase;
-            string query = string.Empty;
+            QueryString query = context.Request.QueryString;
 
-            // Get the correct service for the request.
-            IImageService service = this.AssignService(path, applicationPath);
-
-            if (service == null || !await service.IsValidRequestAsync(context, this.environment, this.logger, path))
+            if (!query.HasValue)
             {
                 // Nothing to do. call the next delegate/middleware in the pipeline
-                await this.next.Invoke(context);
+                await this.next(context);
+                return;
+            }
+
+            // Get the correct service for the request.
+            IImageService service = await this.AssignServiceAsync(context, path, applicationPath);
+
+            if (service == null)
+            {
+                // Nothing to do. call the next delegate/middleware in the pipeline
+                await this.next(context);
                 return;
             }
 
@@ -91,15 +100,18 @@ namespace ImageSharp.Web.Middleware
             // TODO: Check cache and return correct response if already exists.
             IImageCache cache = this.options.Cache;
 
-            // TODO: Add event hendler to allow augmenting the querystring value.
-            string key = CacheHash.Create(path + query);
+            // TODO: Add event handler to allow augmenting the querystring value.
+            string uri = path + query;
+            string key = $"{CacheHash.Create(uri)}.{FormatHelpers.GetExtension(this.options.Configuration, uri)}";
 
-            if (!await cache.IsExpiredAsync(this.environment, key, DateTime.UtcNow.AddDays(-this.options.MaxCacheDays)))
+            ImageCacheInfo info = await cache.IsExpiredAsync(this.environment, key, DateTime.UtcNow.AddDays(-this.options.MaxCacheDays));
+
+            var imageContext = new ImageContext(context);
+
+            if (!info.Expired)
             {
-                // TODO: Do something with this value. We should be able to copy something from the StaticFileMiddleware to
-                // check for a 304 response and do the right thing.
-                // https://github.com/aspnet/StaticFiles/blob/dev/src/Microsoft.AspNetCore.StaticFiles/StaticFileMiddleware.cs#L95
-                byte[] cachedBuffer = await cache.GetAsync(this.environment, key);
+                await this.SendResponse(imageContext, info, cache, key, info.LastModified, null);
+                return;
             }
 
             // Not cached? Let's get it from the image service.
@@ -111,7 +123,7 @@ namespace ImageSharp.Web.Middleware
                 // No allocations here for inStream since we are passing the buffer.
                 inStream = new MemoryStream(buffer);
                 outStream = new MemoryStream();
-                using (var image = Image.Load(inStream))
+                using (var image = Image.Load(this.options.Configuration, inStream))
                 {
                     // TODO: Process.
                     image.Save(outStream);
@@ -119,9 +131,10 @@ namespace ImageSharp.Web.Middleware
 
                 // TODO: Add an event for post processing the image.
                 byte[] outBuffer = outStream.ToArray();
-                await cache.SetAsync(this.environment, key, outBuffer, DateTime.UtcNow);
 
-                // TODO: Response headers.
+                DateTime cachedDate = DateTime.UtcNow;
+                await cache.SetAsync(this.environment, key, outBuffer, cachedDate);
+                await this.SendResponse(imageContext, info, cache, key, cachedDate, outBuffer);
             }
             catch (Exception ex)
             {
@@ -136,9 +149,92 @@ namespace ImageSharp.Web.Middleware
             }
         }
 
-        private IImageService AssignService(string uri, PathString applicationPath)
+        private async Task SendResponse(ImageContext imageContext, ImageCacheInfo info, IImageCache cache, string key, DateTimeOffset lastModified, byte[] buffer)
         {
-            throw new NotImplementedException();
+            // If info length is zero it means that the image has only just been cached so the buffer has value.
+            long len = info.Length > 0 ? info.Length : buffer.Length;
+            DateTimeOffset lm = info.LastModified > DateTimeOffset.MinValue ? info.LastModified : lastModified;
+
+            imageContext.ComprehendRequestHeaders(lm, len);
+
+            string contentType = FormatHelpers.GetContentType(this.options.Configuration, key);
+
+            switch (imageContext.GetPreconditionState())
+            {
+                case ImageContext.PreconditionState.Unspecified:
+                case ImageContext.PreconditionState.ShouldProcess:
+                    if (imageContext.IsHeadRequest())
+                    {
+                        await imageContext.SendStatusAsync(ResponseConstants.Status200Ok, contentType);
+                    }
+
+                    // logger.LogFileServed(fileContext.SubPath, fileContext.PhysicalPath);
+                    if (buffer == null)
+                    {
+                        buffer = await cache.GetAsync(this.environment, key);
+                    }
+
+                    await imageContext.SendAsync(contentType, buffer);
+                    break;
+
+                case ImageContext.PreconditionState.NotModified:
+                    // _logger.LogPathNotModified(fileContext.SubPath);
+                    await imageContext.SendStatusAsync(ResponseConstants.Status304NotModified, contentType);
+                    break;
+                case ImageContext.PreconditionState.PreconditionFailed:
+                    // _logger.LogPreconditionFailed(fileContext.SubPath);
+                    await imageContext.SendStatusAsync(ResponseConstants.Status412PreconditionFailed, contentType);
+                    break;
+                default:
+                    var exception = new NotImplementedException(imageContext.GetPreconditionState().ToString());
+                    Debug.Fail(exception.ToString());
+                    throw exception;
+            }
+        }
+
+        private async Task<IImageService> AssignServiceAsync(HttpContext context, string uri, string applicationPath)
+        {
+            IList<IImageService> services = this.options.Services;
+
+            // Remove the Application Path from the Request.Path.
+            // This allows applications running on localhost as sub applications to work.
+            string path = uri.TrimStart(applicationPath.ToCharArray());
+            foreach (IImageService service in services)
+            {
+                string key = service.Key;
+                if (string.IsNullOrWhiteSpace(key) || !path.StartsWith(key, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                if (await service.IsValidRequestAsync(context, this.environment, this.logger, path))
+                {
+                    return service;
+                }
+            }
+
+            // Return the file based service.
+            Type physicalType = typeof(PhysicalFileImageService);
+
+            IImageService physicalService = services.FirstOrDefault(s => s.GetType() == physicalType);
+            if (physicalService != null)
+            {
+                if (await physicalService.IsValidRequestAsync(context, this.environment, this.logger, path))
+                {
+                    return physicalService;
+                }
+            }
+
+            // Return the next unprefixed service.
+            foreach (IImageService service in services.Where(s => string.IsNullOrEmpty(s.Key) && s.GetType() != physicalType))
+            {
+                if (await service.IsValidRequestAsync(context, this.environment, this.logger, path))
+                {
+                    return service;
+                }
+            }
+
+            return null;
         }
     }
 }

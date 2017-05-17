@@ -33,7 +33,7 @@ namespace ImageSharp.Web.Services
         /// </summary>
         /// <param name="context">The current HTTP request context</param>
         /// <param name="environment">The hosting environment the application is running in.</param>
-        /// <param name="logger">The logger for logging errors.</param>
+        /// <param name="logger">The type used for performing logging.</param>
         /// <param name="path">The path to the image.</param>
         /// <returns>
         /// <returns>The <see cref="Task{Boolean}"/></returns>
@@ -45,7 +45,7 @@ namespace ImageSharp.Web.Services
         /// </summary>
         /// <param name="context">The current HTTP request context</param>
         /// <param name="environment">The hosting environment the application is running in.</param>
-        /// <param name="logger">The logger for logging errors.</param>
+        /// <param name="logger">The type used for performing logging.</param>
         /// <param name="path">The path to the image.</param>
         /// <returns>The <see cref="T:Task{Byte[]}"/></returns>
         Task<byte[]> ResolveImageAsync(HttpContext context, IHostingEnvironment environment, ILogger logger, string path);

@@ -51,15 +51,20 @@ namespace ImageSharp.Web.Caching
         }
 
         /// <inheritdoc/>
-        public async Task<bool> IsExpiredAsync(IHostingEnvironment environment, string key, DateTime maxDateUtc)
+        public async Task<ImageCacheInfo> IsExpiredAsync(IHostingEnvironment environment, string key, DateTime minDateUtc)
         {
             // TODO do we use an in memory cache to reduce IO?
             IFileProvider fileProvider = environment.WebRootFileProvider;
             IFileInfo fileInfo = fileProvider.GetFileInfo(this.ToFilePath(key));
 
-            // Check if the file exists and whether the last modified date is greater than the max date.
+            // Check if the file exists and whether the last modified date is less than the min date.
+            bool exists = fileInfo.Exists;
+            DateTimeOffset lastModified = exists ? fileInfo.LastModified : DateTimeOffset.MinValue;
+            long length = exists ? fileInfo.Length : 0;
+            bool expired = !exists || fileInfo.LastModified.UtcDateTime < minDateUtc;
+
             // TODO: Task.FromResult ok?
-            return await Task.FromResult(!fileInfo.Exists || fileInfo.LastModified.UtcDateTime < maxDateUtc);
+            return await Task.FromResult(new ImageCacheInfo(expired, lastModified, length));
         }
 
         /// <inheritdoc/>

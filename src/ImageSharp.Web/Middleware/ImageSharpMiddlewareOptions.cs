@@ -17,6 +17,11 @@ namespace ImageSharp.Web.Middleware
     public class ImageSharpMiddlewareOptions
     {
         /// <summary>
+        /// Gets or sets the configuration
+        /// </summary>
+        public Configuration Configuration { get; set; } = Configuration.Default;
+
+        /// <summary>
         /// Gets or sets the collecion of image services.
         /// </summary>
         public IList<IImageService> Services { get; set; } = new List<IImageService>();
@@ -34,6 +39,6 @@ namespace ImageSharp.Web.Middleware
         /// <summary>
         /// Gets or sets the number of days to store images in the cache.
         /// </summary>
-        public int MaxCacheDays { get; set; } = 365
+        public int MaxCacheDays { get; set; } = 365;
     }
 }

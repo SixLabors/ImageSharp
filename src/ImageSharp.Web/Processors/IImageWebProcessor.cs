@@ -29,7 +29,7 @@ namespace ImageSharp.Web.Processors
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="context">The current HTTP request context</param>
         /// <param name="environment">The hosting environment the application is running in.</param>
-        /// <param name="logger">The logger for logging errors.</param>
+        /// <param name="logger">The type used for performing logging.</param>
         /// <param name="commands">The querystring containing the processing commands.</param>
         /// <returns>The <see cref="Image{TPixel}"/></returns>
         Image<TPixel> Process<TPixel>(HttpContext context, IHostingEnvironment environment, ILogger logger, QueryString commands)

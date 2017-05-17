@@ -10,6 +10,7 @@ namespace ImageSharp.Web.Middleware
     using System.Threading.Tasks;
 
     using ImageSharp.Memory;
+    using ImageSharp.Web.Caching;
     using ImageSharp.Web.Services;
 
     using Microsoft.AspNetCore.Hosting;
@@ -71,7 +72,10 @@ namespace ImageSharp.Web.Middleware
         {
             // TODO: Parse the request path and application path.
             string path = string.Empty;
-            string applicationPath = string.Empty;
+
+            // TODO: Is this correct?
+            PathString applicationPath = context.Request.PathBase;
+            string query = string.Empty;
 
             // Get the correct service for the request.
             IImageService service = this.AssignService(path, applicationPath);
@@ -79,40 +83,60 @@ namespace ImageSharp.Web.Middleware
             if (service == null || !await service.IsValidRequestAsync(context, this.environment, this.logger, path))
             {
                 // Nothing to do. call the next delegate/middleware in the pipeline
-                await this.next(context);
+                await this.next.Invoke(context);
                 return;
             }
 
             // TODO: Check querystring against list of known parameters. Only continue if valid.
             // TODO: Check cache and return correct response if already exists.
+            IImageCache cache = this.options.Cache;
+
+            // TODO: Add event hendler to allow augmenting the querystring value.
+            string key = CacheHash.Create(path + query);
+
+            if (!await cache.IsExpiredAsync(this.environment, key, DateTime.UtcNow.AddDays(-this.options.MaxCacheDays)))
+            {
+                // TODO: Do something with this value. We should be able to copy something from the StaticFileMiddleware to
+                // check for a 304 response and do the right thing.
+                // https://github.com/aspnet/StaticFiles/blob/dev/src/Microsoft.AspNetCore.StaticFiles/StaticFileMiddleware.cs#L95
+                byte[] cachedBuffer = await cache.GetAsync(this.environment, key);
+            }
+
+            // Not cached? Let's get it from the image service.
             byte[] buffer = await service.ResolveImageAsync(context, this.environment, this.logger, path);
-            MemoryStream stream = null;
+            MemoryStream inStream = null;
+            MemoryStream outStream = null;
             try
             {
-                // No allocations here since we are passing the buffer.
-                stream = new MemoryStream(buffer);
-                using (var image = Image.Load(stream))
+                // No allocations here for inStream since we are passing the buffer.
+                inStream = new MemoryStream(buffer);
+                outStream = new MemoryStream();
+                using (var image = Image.Load(inStream))
                 {
-                    // TODO: Process and save.
+                    // TODO: Process.
+                    image.Save(outStream);
                 }
+
+                // TODO: Add an event for post processing the image.
+                byte[] outBuffer = outStream.ToArray();
+                await cache.SetAsync(this.environment, key, outBuffer, DateTime.UtcNow);
+
+                // TODO: Response headers.
             }
             catch (Exception ex)
             {
+                // TODO: Create an extension that does this interpolation globally.
                 this.logger.LogCritical($"{ex.Message}{Environment.NewLine}StackTrace:{ex.StackTrace}");
             }
             finally
             {
-                stream?.Dispose();
+                inStream?.Dispose();
+                outStream?.Dispose();
                 BufferDataPool.Return(buffer);
             }
-
-            // TODO: Caching and Response.
-
-            // Call the next delegate/middleware in the pipeline
-            await this.next(context);
         }
 
-        private IImageService AssignService(string uri, string applicationPath)
+        private IImageService AssignService(string uri, PathString applicationPath)
         {
             throw new NotImplementedException();
         }

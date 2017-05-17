@@ -5,7 +5,6 @@
 
 namespace ImageSharp.Memory
 {
-    using System;
     using System.Buffers;
 
     /// <summary>
@@ -40,7 +39,8 @@ namespace ImageSharp.Memory
             }
             catch
             {
-                // Do nothing. Someone didn't use the Bufferpool in their IImageService and they only have themselves to bame.
+                // Do nothing. Someone didn't use the Bufferpool in their IImageService
+                // and they only have themselves to blame for the performance hit.
             }
         }
 
@@ -50,7 +50,6 @@ namespace ImageSharp.Memory
         /// <returns>The maxArrayLength value</returns>
         internal static int CalculateMaxArrayLength()
         {
-            // ReSharper disable once SuspiciousTypeConversion.Global
             const int MaximumExpectedImageSize = 16384;
             return MaximumExpectedImageSize * MaximumExpectedImageSize;
         }

@@ -6,60 +6,89 @@
 namespace ImageSharp.Web.Caching
 {
     using System;
+    using System.Collections.Generic;
+    using System.IO;
     using System.Threading.Tasks;
-    using Microsoft.Extensions.Caching.Distributed;
+    using Microsoft.AspNetCore.Hosting;
+    using Microsoft.Extensions.FileProviders;
 
     /// <summary>
     /// Implements a physical file system based cache.
     /// </summary>
-    public class PhysicalFileSystemCache : IDistributedCache
+    public class PhysicalFileSystemCache : IImageCache
     {
+        private const string Folder = "CachedFolder";
+
         /// <inheritdoc/>
-        public byte[] Get(string key)
+        public IDictionary<string, string> Settings { get; set; }
+            = new Dictionary<string, string>
+            {
+                { Folder, "iscache" }
+            };
+
+        /// <inheritdoc/>
+        public async Task<byte[]> GetAsync(IHostingEnvironment environment, string key)
         {
-            throw new NotImplementedException();
+            IFileProvider fileProvider = environment.WebRootFileProvider;
+            IFileInfo fileInfo = fileProvider.GetFileInfo(this.ToFilePath(key));
+
+            byte[] buffer;
+
+            // Check to see if the file exists.
+            if (!fileInfo.Exists)
+            {
+                return null;
+            }
+
+            using (Stream stream = fileInfo.CreateReadStream())
+            {
+                // TODO: There's no way for us to pool this is there :(
+                buffer = new byte[stream.Length];
+                await stream.ReadAsync(buffer, 0, (int)stream.Length);
+            }
+
+            return buffer;
         }
 
         /// <inheritdoc/>
-        public Task<byte[]> GetAsync(string key)
+        public async Task<bool> IsExpiredAsync(IHostingEnvironment environment, string key, DateTime maxDateUtc)
         {
-            throw new NotImplementedException();
+            // TODO do we use an in memory cache to reduce IO?
+            IFileProvider fileProvider = environment.WebRootFileProvider;
+            IFileInfo fileInfo = fileProvider.GetFileInfo(this.ToFilePath(key));
+
+            // Check if the file exists and whether the last modified date is greater than the max date.
+            // TODO: Task.FromResult ok?
+            return await Task.FromResult(!fileInfo.Exists || fileInfo.LastModified.UtcDateTime < maxDateUtc);
         }
 
         /// <inheritdoc/>
-        public void Refresh(string key)
+        public async Task SetAsync(IHostingEnvironment environment, string key, byte[] value, DateTime creationDateUtc)
         {
-            throw new NotImplementedException();
+            IFileProvider fileProvider = environment.WebRootFileProvider;
+            IFileInfo fileInfo = fileProvider.GetFileInfo(this.ToFilePath(key));
+            string path = fileInfo.PhysicalPath;
+            string directory = Path.GetDirectoryName(path);
+
+            if (!Directory.Exists(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
+
+            using (FileStream fileStream = File.Create(path))
+            {
+                await fileStream.WriteAsync(value, 0, value.Length);
+            }
         }
 
-        /// <inheritdoc/>
-        public Task RefreshAsync(string key)
+        /// <summary>
+        /// Converts the key into a nested file path.
+        /// </summary>
+        /// <param name="key">The cache key.</param>
+        /// <returns>The <see cref="string"/></returns>
+        private string ToFilePath(string key)
         {
-            throw new NotImplementedException();
-        }
-
-        /// <inheritdoc/>
-        public void Remove(string key)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <inheritdoc/>
-        public Task RemoveAsync(string key)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <inheritdoc/>
-        public void Set(string key, byte[] value, DistributedCacheEntryOptions options)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <inheritdoc/>
-        public Task SetAsync(string key, byte[] value, DistributedCacheEntryOptions options)
-        {
-            throw new NotImplementedException();
+            return $"/{this.Settings[Folder]}/{string.Join("/", key.Substring(0, 8).ToCharArray())}/{key}";
         }
     }
 }

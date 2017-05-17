@@ -27,6 +27,16 @@ namespace ImageSharp.Web.Services
         IDictionary<string, string> Settings { get; set; }
 
         /// <summary>
+        /// Gets a value indicating whether the current request passes sanitizing rules.
+        /// </summary>
+        /// <param name="context">The current HTTP request context</param>
+        /// <param name="path">The to the image.</param>
+        /// <returns>
+        /// <returns>The <see cref="Task{Boolean}"/></returns>
+        /// </returns>
+        bool IsValidRequestAsync(HttpContext context, string path);
+
+        /// <summary>
         /// Resolves the image in an asynchronous manner.
         /// </summary>
         /// <param name="context">The current HTTP request context</param>

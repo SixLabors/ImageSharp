@@ -38,21 +38,52 @@ namespace ImageSharp
         /// </summary>
         public IccParametricCurve Curve { get; }
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         public override bool Equals(IccTagDataEntry other)
         {
-            if (base.Equals(other) && other is IccParametricCurveTagDataEntry entry)
+            var entry = other as IccParametricCurveTagDataEntry;
+            return entry != null && this.Equals(entry);
+        }
+
+        /// <inheritdoc/>
+        public bool Equals(IccParametricCurveTagDataEntry other)
+        {
+            if (ReferenceEquals(null, other))
             {
-                return this.Curve.Equals(entry.Curve);
+                return false;
             }
 
-            return false;
+            if (ReferenceEquals(this, other))
+            {
+                return true;
+            }
+
+            return base.Equals(other) && this.Curve.Equals(other.Curve);
+        }
+
+        /// <inheritdoc/>
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, obj))
+            {
+                return true;
+            }
+
+            return obj is IccParametricCurveTagDataEntry && this.Equals((IccParametricCurveTagDataEntry)obj);
         }
 
         /// <inheritdoc />
-        public bool Equals(IccParametricCurveTagDataEntry other)
+        public override int GetHashCode()
         {
-            return this.Equals((IccTagDataEntry)other);
+            unchecked
+            {
+                return (base.GetHashCode() * 397) ^ (this.Curve != null ? this.Curve.GetHashCode() : 0);
+            }
         }
     }
 }

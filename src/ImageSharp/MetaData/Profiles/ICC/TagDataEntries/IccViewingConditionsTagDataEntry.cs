@@ -54,23 +54,59 @@ namespace ImageSharp
         /// </summary>
         public IccStandardIlluminant Illuminant { get; }
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         public override bool Equals(IccTagDataEntry other)
         {
-            if (base.Equals(other) && other is IccViewingConditionsTagDataEntry entry)
-            {
-                return this.IlluminantXyz == entry.IlluminantXyz
-                    && this.SurroundXyz == entry.SurroundXyz
-                    && this.Illuminant == entry.Illuminant;
-            }
-
-            return false;
+            var entry = other as IccViewingConditionsTagDataEntry;
+            return entry != null && this.Equals(entry);
         }
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         public bool Equals(IccViewingConditionsTagDataEntry other)
         {
-            return this.Equals((IccTagDataEntry)other);
+            if (ReferenceEquals(null, other))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, other))
+            {
+                return true;
+            }
+
+            return base.Equals(other)
+                && this.IlluminantXyz.Equals(other.IlluminantXyz)
+                && this.SurroundXyz.Equals(other.SurroundXyz)
+                && this.Illuminant == other.Illuminant;
+        }
+
+        /// <inheritdoc/>
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, obj))
+            {
+                return true;
+            }
+
+            return obj is IccViewingConditionsTagDataEntry && this.Equals((IccViewingConditionsTagDataEntry)obj);
+        }
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hashCode = base.GetHashCode();
+                hashCode = (hashCode * 397) ^ this.IlluminantXyz.GetHashCode();
+                hashCode = (hashCode * 397) ^ this.SurroundXyz.GetHashCode();
+                hashCode = (hashCode * 397) ^ (int)this.Illuminant;
+                return hashCode;
+            }
         }
     }
 }

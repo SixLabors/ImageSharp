@@ -64,37 +64,57 @@ namespace ImageSharp
         /// Gets the <see cref="Data"/> decoded as 7bit ASCII.
         /// If <see cref="IsAscii"/> is false, returns null
         /// </summary>
-        public string AsciiString
-        {
-            get
-            {
-                if (this.IsAscii)
-                {
-                    return AsciiEncoding.GetString(this.Data, 0, this.Data.Length);
-                }
-                else
-                {
-                    return null;
-                }
-            }
-        }
+        public string AsciiString => this.IsAscii ? AsciiEncoding.GetString(this.Data, 0, this.Data.Length) : null;
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         public override bool Equals(IccTagDataEntry other)
         {
-            if (base.Equals(other) && other is IccDataTagDataEntry entry)
-            {
-                return this.IsAscii == entry.IsAscii
-                    && this.Data.SequenceEqual(entry.Data);
-            }
-
-            return false;
+            var entry = other as IccDataTagDataEntry;
+            return entry != null && this.Equals(entry);
         }
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         public bool Equals(IccDataTagDataEntry other)
         {
-            return this.Equals((IccTagDataEntry)other);
+            if (ReferenceEquals(null, other))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, other))
+            {
+                return true;
+            }
+
+            return base.Equals(other) && this.Data.SequenceEqual(other.Data) && this.IsAscii == other.IsAscii;
+        }
+
+        /// <inheritdoc/>
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, obj))
+            {
+                return true;
+            }
+
+            return obj is IccDataTagDataEntry && this.Equals((IccDataTagDataEntry)obj);
+        }
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hashCode = base.GetHashCode();
+                hashCode = (hashCode * 397) ^ (this.Data != null ? this.Data.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ this.IsAscii.GetHashCode();
+                return hashCode;
+            }
         }
     }
 }

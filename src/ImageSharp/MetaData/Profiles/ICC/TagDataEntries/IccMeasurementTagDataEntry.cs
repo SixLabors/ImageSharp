@@ -72,25 +72,63 @@ namespace ImageSharp
         /// </summary>
         public IccStandardIlluminant Illuminant { get; }
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         public override bool Equals(IccTagDataEntry other)
         {
-            if (base.Equals(other) && other is IccMeasurementTagDataEntry entry)
-            {
-                return this.Observer == entry.Observer
-                    && this.XyzBacking == entry.XyzBacking
-                    && this.Geometry == entry.Geometry
-                    && this.Flare == entry.Flare
-                    && this.Illuminant == entry.Illuminant;
-            }
-
-            return false;
+            var entry = other as IccMeasurementTagDataEntry;
+            return entry != null && this.Equals(entry);
         }
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         public bool Equals(IccMeasurementTagDataEntry other)
         {
-            return this.Equals((IccTagDataEntry)other);
+            if (ReferenceEquals(null, other))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, other))
+            {
+                return true;
+            }
+
+            return base.Equals(other)
+                && this.Observer == other.Observer
+                && this.XyzBacking.Equals(other.XyzBacking)
+                && this.Geometry == other.Geometry
+                && this.Flare.Equals(other.Flare)
+                && this.Illuminant == other.Illuminant;
+        }
+
+        /// <inheritdoc/>
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, obj))
+            {
+                return true;
+            }
+
+            return obj is IccMeasurementTagDataEntry && this.Equals((IccMeasurementTagDataEntry)obj);
+        }
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hashCode = base.GetHashCode();
+                hashCode = (hashCode * 397) ^ (int)this.Observer;
+                hashCode = (hashCode * 397) ^ this.XyzBacking.GetHashCode();
+                hashCode = (hashCode * 397) ^ (int)this.Geometry;
+                hashCode = (hashCode * 397) ^ this.Flare.GetHashCode();
+                hashCode = (hashCode * 397) ^ (int)this.Illuminant;
+                return hashCode;
+            }
         }
     }
 }

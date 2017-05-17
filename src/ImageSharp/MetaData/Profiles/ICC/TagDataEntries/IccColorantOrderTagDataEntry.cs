@@ -42,21 +42,52 @@ namespace ImageSharp
         /// </summary>
         public byte[] ColorantNumber { get; }
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         public override bool Equals(IccTagDataEntry other)
         {
-            if (base.Equals(other) && other is IccColorantOrderTagDataEntry entry)
-            {
-                return this.ColorantNumber.SequenceEqual(entry.ColorantNumber);
-            }
-
-            return false;
+            var entry = other as IccColorantOrderTagDataEntry;
+            return entry != null && this.Equals(entry);
         }
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         public bool Equals(IccColorantOrderTagDataEntry other)
         {
-            return this.Equals((IccTagDataEntry)other);
+            if (ReferenceEquals(null, other))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, other))
+            {
+                return true;
+            }
+
+            return base.Equals(other) && this.ColorantNumber.SequenceEqual(other.ColorantNumber);
+        }
+
+        /// <inheritdoc/>
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, obj))
+            {
+                return true;
+            }
+
+            return obj is IccColorantOrderTagDataEntry && this.Equals((IccColorantOrderTagDataEntry)obj);
+        }
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                return (base.GetHashCode() * 397) ^ (this.ColorantNumber != null ? this.ColorantNumber.GetHashCode() : 0);
+            }
         }
     }
 }

@@ -41,21 +41,52 @@ namespace ImageSharp
         /// </summary>
         public IccProfileDescription[] Descriptions { get; }
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         public override bool Equals(IccTagDataEntry other)
         {
-            if (base.Equals(other) && other is IccProfileSequenceDescTagDataEntry entry)
-            {
-                return this.Descriptions.SequenceEqual(entry.Descriptions);
-            }
-
-            return false;
+            var entry = other as IccProfileSequenceDescTagDataEntry;
+            return entry != null && this.Equals(entry);
         }
 
         /// <inheritdoc />
         public bool Equals(IccProfileSequenceDescTagDataEntry other)
         {
-            return this.Equals((IccTagDataEntry)other);
+            if (ReferenceEquals(null, other))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, other))
+            {
+                return true;
+            }
+
+            return base.Equals(other) && this.Descriptions.SequenceEqual(other.Descriptions);
+        }
+
+        /// <inheritdoc/>
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, obj))
+            {
+                return true;
+            }
+
+            return obj is IccProfileSequenceDescTagDataEntry && this.Equals((IccProfileSequenceDescTagDataEntry)obj);
+        }
+
+        /// <inheritdoc />
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                return (base.GetHashCode() * 397) ^ (this.Descriptions != null ? this.Descriptions.GetHashCode() : 0);
+            }
         }
     }
 }

@@ -42,7 +42,7 @@ namespace ImageSharp
             Guard.NotNull(values, nameof(values));
             Guard.NotNull(gridPointCount, nameof(gridPointCount));
 
-            const float max = ushort.MaxValue;
+            const float Max = ushort.MaxValue;
 
             this.Values = new float[values.Length][];
             for (int i = 0; i < values.Length; i++)
@@ -50,7 +50,7 @@ namespace ImageSharp
                 this.Values[i] = new float[values[i].Length];
                 for (int j = 0; j < values[i].Length; j++)
                 {
-                    this.Values[i][j] = values[i][j] / max;
+                    this.Values[i][j] = values[i][j] / Max;
                 }
             }
 
@@ -71,7 +71,7 @@ namespace ImageSharp
             Guard.NotNull(values, nameof(values));
             Guard.NotNull(gridPointCount, nameof(gridPointCount));
 
-            const float max = byte.MaxValue;
+            const float Max = byte.MaxValue;
 
             this.Values = new float[values.Length][];
             for (int i = 0; i < values.Length; i++)
@@ -79,7 +79,7 @@ namespace ImageSharp
                 this.Values[i] = new float[values[i].Length];
                 for (int j = 0; j < values[i].Length; j++)
                 {
-                    this.Values[i][j] = values[i][j] / max;
+                    this.Values[i][j] = values[i][j] / Max;
                 }
             }
 
@@ -118,7 +118,7 @@ namespace ImageSharp
         /// <inheritdoc/>
         public bool Equals(IccClut other)
         {
-            if (other == null)
+            if (ReferenceEquals(null, other))
             {
                 return false;
             }
@@ -128,11 +128,41 @@ namespace ImageSharp
                 return true;
             }
 
-            return this.DataType == other.DataType
+            return this.EqualsValuesArray(other)
+                && this.DataType == other.DataType
                 && this.InputChannelCount == other.InputChannelCount
                 && this.OutputChannelCount == other.OutputChannelCount
-                && this.GridPointCount.SequenceEqual(other.GridPointCount)
-                && this.EqualsValuesArray(other);
+                && this.GridPointCount.SequenceEqual(other.GridPointCount);
+        }
+
+        /// <inheritdoc/>
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, obj))
+            {
+                return true;
+            }
+
+            return obj is IccClut && this.Equals((IccClut)obj);
+        }
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hashCode = this.Values != null ? this.Values.GetHashCode() : 0;
+                hashCode = (hashCode * 397) ^ (int)this.DataType;
+                hashCode = (hashCode * 397) ^ this.InputChannelCount;
+                hashCode = (hashCode * 397) ^ this.OutputChannelCount;
+                hashCode = (hashCode * 397) ^ (this.GridPointCount != null ? this.GridPointCount.GetHashCode() : 0);
+                return hashCode;
+            }
         }
 
         private bool EqualsValuesArray(IccClut other)

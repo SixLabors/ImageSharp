@@ -9,7 +9,9 @@ namespace ImageSharp.Web.Processors
 
     using ImageSharp.PixelFormats;
 
+    using Microsoft.AspNetCore.Hosting;
     using Microsoft.AspNetCore.Http;
+    using Microsoft.Extensions.Logging;
 
     /// <summary>
     /// Specifies the contract for processing images using a querystring URI API.
@@ -25,9 +27,12 @@ namespace ImageSharp.Web.Processors
         /// Processes the image based on the querystring commands.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="context">The current HTTP request context</param>
+        /// <param name="environment">The hosting environment the application is running in.</param>
+        /// <param name="logger">The logger for logging errors.</param>
         /// <param name="commands">The querystring containing the processing commands.</param>
         /// <returns>The <see cref="Image{TPixel}"/></returns>
-        Image<TPixel> Process<TPixel>(QueryString commands)
+        Image<TPixel> Process<TPixel>(HttpContext context, IHostingEnvironment environment, ILogger logger, QueryString commands)
             where TPixel : struct, IPixel<TPixel>;
     }
 }

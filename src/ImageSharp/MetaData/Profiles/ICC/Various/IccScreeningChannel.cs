@@ -70,18 +70,18 @@ namespace ImageSharp
             return !left.Equals(right);
         }
 
-        /// <inheritdoc/>
-        public override bool Equals(object other)
+        /// <inheritdoc />
+        public bool Equals(IccScreeningChannel other)
         {
-            return (other is IccScreeningChannel) && this.Equals((IccScreeningChannel)other);
+            return this.Frequency.Equals(other.Frequency)
+                && this.Angle.Equals(other.Angle)
+                && this.SpotShape == other.SpotShape;
         }
 
         /// <inheritdoc/>
-        public bool Equals(IccScreeningChannel other)
+        public override bool Equals(object obj)
         {
-            return this.Frequency == other.Frequency
-                && this.Angle == other.Angle
-                && this.SpotShape == other.SpotShape;
+            return obj is IccScreeningChannel && this.Equals((IccScreeningChannel)obj);
         }
 
         /// <inheritdoc/>
@@ -91,7 +91,7 @@ namespace ImageSharp
             {
                 int hashCode = this.Frequency.GetHashCode();
                 hashCode = (hashCode * 397) ^ this.Angle.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.SpotShape.GetHashCode();
+                hashCode = (hashCode * 397) ^ (int)this.SpotShape;
                 return hashCode;
             }
         }

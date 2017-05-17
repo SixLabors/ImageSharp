@@ -127,7 +127,7 @@ namespace ImageSharp
         /// <inheritdoc/>
         public bool Equals(IccParametricCurve other)
         {
-            if (other == null)
+            if (ReferenceEquals(null, other))
             {
                 return false;
             }
@@ -138,13 +138,46 @@ namespace ImageSharp
             }
 
             return this.Type == other.Type
-                && this.G == other.G
-                && this.A == other.A
-                && this.B == other.B
-                && this.C == other.C
-                && this.D == other.D
-                && this.E == other.E
-                && this.F == other.F;
+                && this.G.Equals(other.G)
+                && this.A.Equals(other.A)
+                && this.B.Equals(other.B)
+                && this.C.Equals(other.C)
+                && this.D.Equals(other.D)
+                && this.E.Equals(other.E)
+                && this.F.Equals(other.F);
+        }
+
+        /// <inheritdoc/>
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, obj))
+            {
+                return true;
+            }
+
+            return obj is IccParametricCurve && this.Equals((IccParametricCurve)obj);
+        }
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hashCode = (int)this.Type;
+                hashCode = (hashCode * 397) ^ this.G.GetHashCode();
+                hashCode = (hashCode * 397) ^ this.A.GetHashCode();
+                hashCode = (hashCode * 397) ^ this.B.GetHashCode();
+                hashCode = (hashCode * 397) ^ this.C.GetHashCode();
+                hashCode = (hashCode * 397) ^ this.D.GetHashCode();
+                hashCode = (hashCode * 397) ^ this.E.GetHashCode();
+                hashCode = (hashCode * 397) ^ this.F.GetHashCode();
+                return hashCode;
+            }
         }
     }
 }

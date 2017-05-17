@@ -26,7 +26,7 @@ namespace ImageSharp
         /// </summary>
         /// <param name="gamma">Gamma value</param>
         public IccCurveTagDataEntry(float gamma)
-            : this(new float[] { gamma }, IccProfileTag.Unknown)
+            : this(new[] { gamma }, IccProfileTag.Unknown)
         {
         }
 
@@ -54,7 +54,7 @@ namespace ImageSharp
         /// <param name="gamma">Gamma value</param>
         /// <param name="tagSignature">Tag Signature</param>
         public IccCurveTagDataEntry(float gamma, IccProfileTag tagSignature)
-            : this(new float[] { gamma }, tagSignature)
+            : this(new[] { gamma }, tagSignature)
         {
         }
 
@@ -78,52 +78,64 @@ namespace ImageSharp
         /// Gets the gamma value.
         /// Only valid if <see cref="IsGamma"/> is true
         /// </summary>
-        public float Gamma
-        {
-            get
-            {
-                if (this.IsGamma)
-                {
-                    return this.CurveData[0];
-                }
-                else
-                {
-                    return 0;
-                }
-            }
-        }
+        public float Gamma => this.IsGamma ? this.CurveData[0] : 0;
 
         /// <summary>
         /// Gets a value indicating whether the curve maps input directly to output
         /// </summary>
-        public bool IsIdentityResponse
-        {
-            get { return this.CurveData.Length == 0; }
-        }
+        public bool IsIdentityResponse => this.CurveData.Length == 0;
 
         /// <summary>
         /// Gets a value indicating whether the curve is a gamma curve
         /// </summary>
-        public bool IsGamma
-        {
-            get { return this.CurveData.Length == 1; }
-        }
+        public bool IsGamma => this.CurveData.Length == 1;
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         public override bool Equals(IccTagDataEntry other)
         {
-            if (base.Equals(other) && other is IccCurveTagDataEntry entry)
-            {
-                return this.CurveData.SequenceEqual(entry.CurveData);
-            }
-
-            return false;
+            var entry = other as IccCurveTagDataEntry;
+            return entry != null && this.Equals(entry);
         }
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         public bool Equals(IccCurveTagDataEntry other)
         {
-            return this.Equals((IccTagDataEntry)other);
+            if (ReferenceEquals(null, other))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, other))
+            {
+                return true;
+            }
+
+            return base.Equals(other) && this.CurveData.SequenceEqual(other.CurveData);
+        }
+
+        /// <inheritdoc/>
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, obj))
+            {
+                return true;
+            }
+
+            return obj is IccCurveTagDataEntry && this.Equals((IccCurveTagDataEntry)obj);
+        }
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                return (base.GetHashCode() * 397) ^ (this.CurveData != null ? this.CurveData.GetHashCode() : 0);
+            }
         }
     }
 }

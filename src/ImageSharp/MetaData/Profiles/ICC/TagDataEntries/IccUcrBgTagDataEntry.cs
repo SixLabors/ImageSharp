@@ -59,23 +59,59 @@ namespace ImageSharp
         /// </summary>
         public string Description { get; }
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         public override bool Equals(IccTagDataEntry other)
         {
-            if (base.Equals(other) && other is IccUcrBgTagDataEntry entry)
-            {
-                return this.Description == entry.Description
-                    && this.UcrCurve.SequenceEqual(entry.UcrCurve)
-                    && this.BgCurve.SequenceEqual(entry.BgCurve);
-            }
-
-            return false;
+            var entry = other as IccUcrBgTagDataEntry;
+            return entry != null && this.Equals(entry);
         }
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         public bool Equals(IccUcrBgTagDataEntry other)
         {
-            return this.Equals((IccTagDataEntry)other);
+            if (ReferenceEquals(null, other))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, other))
+            {
+                return true;
+            }
+
+            return base.Equals(other)
+                && this.UcrCurve.SequenceEqual(other.UcrCurve)
+                && this.BgCurve.SequenceEqual(other.BgCurve)
+                && string.Equals(this.Description, other.Description);
+        }
+
+        /// <inheritdoc/>
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, obj))
+            {
+                return true;
+            }
+
+            return obj is IccUcrBgTagDataEntry && this.Equals((IccUcrBgTagDataEntry)obj);
+        }
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hashCode = base.GetHashCode();
+                hashCode = (hashCode * 397) ^ (this.UcrCurve != null ? this.UcrCurve.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (this.BgCurve != null ? this.BgCurve.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (this.Description != null ? this.Description.GetHashCode() : 0);
+                return hashCode;
+            }
         }
     }
 }

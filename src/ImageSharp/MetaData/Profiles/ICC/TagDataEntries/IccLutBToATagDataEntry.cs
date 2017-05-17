@@ -146,28 +146,69 @@ namespace ImageSharp
         /// </summary>
         public IccTagDataEntry[] CurveA { get; }
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         public override bool Equals(IccTagDataEntry other)
         {
-            if (base.Equals(other) && other is IccLutBToATagDataEntry entry)
-            {
-                return this.InputChannelCount == entry.InputChannelCount
-                    && this.OutputChannelCount == entry.OutputChannelCount
-                    && this.Matrix3x1 == entry.Matrix3x1
-                    && this.Matrix3x3 == entry.Matrix3x3
-                    && this.ClutValues.Equals(entry.ClutValues)
-                    && this.EqualsCurve(this.CurveA, entry.CurveA)
-                    && this.EqualsCurve(this.CurveB, entry.CurveB)
-                    && this.EqualsCurve(this.CurveM, entry.CurveM);
-            }
-
-            return false;
+            var entry = other as IccLutBToATagDataEntry;
+            return entry != null && this.Equals(entry);
         }
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         public bool Equals(IccLutBToATagDataEntry other)
         {
-            return this.Equals((IccTagDataEntry)other);
+            if (ReferenceEquals(null, other))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, other))
+            {
+                return true;
+            }
+
+            return base.Equals(other)
+                && this.InputChannelCount == other.InputChannelCount
+                && this.OutputChannelCount == other.OutputChannelCount
+                && this.Matrix3x3.Equals(other.Matrix3x3)
+                && this.Matrix3x1.Equals(other.Matrix3x1)
+                && this.ClutValues.Equals(other.ClutValues)
+                && this.EqualsCurve(this.CurveB, other.CurveB)
+                && this.EqualsCurve(this.CurveM, other.CurveM)
+                && this.EqualsCurve(this.CurveA, other.CurveA);
+        }
+
+        /// <inheritdoc/>
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, obj))
+            {
+                return true;
+            }
+
+            return obj is IccLutBToATagDataEntry && this.Equals((IccLutBToATagDataEntry)obj);
+        }
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hashCode = base.GetHashCode();
+                hashCode = (hashCode * 397) ^ this.InputChannelCount;
+                hashCode = (hashCode * 397) ^ this.OutputChannelCount;
+                hashCode = (hashCode * 397) ^ this.Matrix3x3.GetHashCode();
+                hashCode = (hashCode * 397) ^ this.Matrix3x1.GetHashCode();
+                hashCode = (hashCode * 397) ^ (this.ClutValues != null ? this.ClutValues.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (this.CurveB != null ? this.CurveB.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (this.CurveM != null ? this.CurveM.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (this.CurveA != null ? this.CurveA.GetHashCode() : 0);
+                return hashCode;
+            }
         }
 
         private bool EqualsCurve(IccTagDataEntry[] thisCurves, IccTagDataEntry[] entryCurves)

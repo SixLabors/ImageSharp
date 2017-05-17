@@ -1,4 +1,4 @@
-﻿// <copyright file="ImageCacheInfo.cs" company="James Jackson-South">
+﻿// <copyright file="CachedInfo.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -10,18 +10,18 @@ namespace ImageSharp.Web.Caching
     /// <summary>
     /// Contains information about a cached image instance
     /// </summary>
-    public struct ImageCacheInfo : IEquatable<ImageCacheInfo>
+    public struct CachedInfo : IEquatable<CachedInfo>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="ImageCacheInfo"/> struct.
+        /// Initializes a new instance of the <see cref="CachedInfo"/> struct.
         /// </summary>
         /// <param name="expired">Whether the cached image is expired</param>
-        /// <param name="lastModified">The last modified date of the cached image</param>
+        /// <param name="lastModified">The date and time, in coordinated universal time (UTC), the cached image was last written to</param>
         /// <param name="length">The length, in bytes, of the cached image</param>
-        public ImageCacheInfo(bool expired, DateTimeOffset lastModified, long length)
+        public CachedInfo(bool expired, DateTimeOffset lastModified, long length)
         {
             this.Expired = expired;
-            this.LastModified = lastModified;
+            this.LastModifiedUtc = lastModified;
             this.Length = length;
         }
 
@@ -31,9 +31,9 @@ namespace ImageSharp.Web.Caching
         public bool Expired { get; }
 
         /// <summary>
-        /// Gets the last modified date of the cached image
+        /// Gets the date and time, in coordinated universal time (UTC), the cached image was last written to
         /// </summary>
-        public DateTimeOffset LastModified { get; }
+        public DateTimeOffset LastModifiedUtc { get; }
 
         /// <summary>
         /// Gets the length, in bytes, of the cached image
@@ -41,15 +41,15 @@ namespace ImageSharp.Web.Caching
         public long Length { get; }
 
         /// <inheritdoc/>
-        public bool Equals(ImageCacheInfo other)
+        public bool Equals(CachedInfo other)
         {
-            return this.Expired == other.Expired && this.LastModified.Equals(other.LastModified) && this.Length == other.Length;
+            return this.Expired == other.Expired && this.LastModifiedUtc.Equals(other.LastModifiedUtc) && this.Length == other.Length;
         }
 
         /// <inheritdoc/>
         public override bool Equals(object obj)
         {
-            return obj is ImageCacheInfo && this.Equals((ImageCacheInfo)obj);
+            return obj is CachedInfo && this.Equals((CachedInfo)obj);
         }
 
         /// <inheritdoc/>
@@ -58,7 +58,7 @@ namespace ImageSharp.Web.Caching
             unchecked
             {
                 int hashCode = this.Expired.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.LastModified.GetHashCode();
+                hashCode = (hashCode * 397) ^ this.LastModifiedUtc.GetHashCode();
                 hashCode = (hashCode * 397) ^ this.Length.GetHashCode();
                 return hashCode;
             }

@@ -8,6 +8,8 @@ namespace ImageSharp.Web.Caching
     using System.Security.Cryptography;
     using System.Text;
 
+    using ImageSharp.Web.Helpers;
+
     /// <summary>
     /// Creates hashed keys for the given inputs.
     /// Hashed keys are the result of Base32 encoding the SHA256 computation of the input value.
@@ -25,29 +27,24 @@ namespace ImageSharp.Web.Caching
         };
 
         /// <summary>
-        /// Create a cache key based on the given byte array.
-        /// </summary>
-        /// <param name="data">The data to create a key for.</param>
-        /// <returns>The hashed <see cref="string"/></returns>
-        public static string Create(byte[] data) => ComputeHash(data);
-
-        /// <summary>
         /// Create a cache key based on the given string.
         /// </summary>
         /// <param name="data">The data to create a key for.</param>
+        /// <param name="configuration">The library configuration.</param>
         /// <returns>The hashed <see cref="string"/></returns>
-        public static string Create(string data) => Create(Encoding.UTF8.GetBytes(data));
+        public static string Create(string data, Configuration configuration) => ComputeHash(data, configuration);
 
         /// <summary>
-        /// Computes a hashed value for the given byte array.
+        /// Computes a hashed value for the given uri string.
         /// </summary>
-        /// <param name="data">The data to hash.</param>
+        /// <param name="uri">The uri to hash.</param>
+        /// <param name="configuration">The library configuration.</param>
         /// <returns>The hashed <see cref="string"/></returns>
-        private static string ComputeHash(byte[] data)
+        public static string ComputeHash(string uri, Configuration configuration)
         {
             using (var hashAlgorithm = SHA256.Create())
             {
-                return Encode(hashAlgorithm.ComputeHash(data));
+                return $"{Encode(hashAlgorithm.ComputeHash(Encoding.UTF8.GetBytes(uri)))}.{FormatHelpers.GetExtension(configuration, uri)}";
             }
         }
 

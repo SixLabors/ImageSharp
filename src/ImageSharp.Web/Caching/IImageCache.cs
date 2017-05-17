@@ -27,8 +27,8 @@ namespace ImageSharp.Web.Caching
         /// </summary>
         /// <param name="environment">The hosting environment the application is running in</param>
         /// <param name="key">The cache key</param>
-        /// <returns>The <see cref="Task{Byte}"/></returns>
-        Task<byte[]> GetAsync(IHostingEnvironment environment, string key);
+        /// <returns>The <see cref="Task{CachedBuffer}"/></returns>
+        Task<CachedBuffer> GetAsync(IHostingEnvironment environment, string key);
 
         /// <summary>
         /// Returns a value indicating whether the current cached item is expired.
@@ -36,19 +36,20 @@ namespace ImageSharp.Web.Caching
         /// <param name="environment">The hosting environment the application is running in</param>
         /// <param name="key">The cache key</param>
         /// <param name="minDateUtc">
-        /// The minimum allowable Utc date since the file was last modified. Calculated as the current datetime minus the maximum allowable cached days.
+        /// The minimum allowable date and time in coordinated universal time (UTC) since the file was last modified.
+        /// Calculated as the current datetime minus the maximum allowable cached days.
         /// </param>
         /// <returns>The <see cref="Task{ImageCacheInfo}"/></returns>
-        Task<ImageCacheInfo> IsExpiredAsync(IHostingEnvironment environment, string key, DateTime minDateUtc);
+        Task<CachedInfo> IsExpiredAsync(IHostingEnvironment environment, string key, DateTime minDateUtc);
 
         /// <summary>
         /// Sets the value associated with the specified key.
+        /// Returns the date and time, in coordinated universal time (UTC), that the value was last written to.
         /// </summary>
         /// <param name="environment">The hosting environment the application is running in</param>
         /// <param name="key">The cache key</param>
         /// <param name="value">The value to store</param>
-        /// <param name="creationDateUtc">The Utc creation date to apply to the cached item</param>
-        /// <returns>The <see cref="Task"/></returns>
-        Task SetAsync(IHostingEnvironment environment, string key, byte[] value, DateTime creationDateUtc);
+        /// <returns>The <see cref="Task{DateTimeOffset}"/></returns>
+        Task<DateTimeOffset> SetAsync(IHostingEnvironment environment, string key, byte[] value);
     }
 }

@@ -97,20 +97,20 @@ namespace ImageSharp.Web.Middleware
             }
 
             // TODO: Check querystring against list of known parameters. Only continue if valid.
-            // TODO: Check cache and return correct response if already exists.
             IImageCache cache = this.options.Cache;
 
             // TODO: Add event handler to allow augmenting the querystring value.
             string uri = path + query;
-            string key = $"{CacheHash.Create(uri)}.{FormatHelpers.GetExtension(this.options.Configuration, uri)}";
+            string key = CacheHash.Create(uri, this.options.Configuration);
 
-            ImageCacheInfo info = await cache.IsExpiredAsync(this.environment, key, DateTime.UtcNow.AddDays(-this.options.MaxCacheDays));
+            CachedInfo info = await cache.IsExpiredAsync(this.environment, key, DateTime.UtcNow.AddDays(-this.options.MaxCacheDays));
 
             var imageContext = new ImageContext(context);
 
             if (!info.Expired)
             {
-                await this.SendResponse(imageContext, info, cache, key, info.LastModified, null);
+                // Image is a cached image. Return the correct response now.
+                await this.SendResponse(imageContext, info, cache, key, info.LastModifiedUtc, null);
                 return;
             }
 
@@ -132,8 +132,7 @@ namespace ImageSharp.Web.Middleware
                 // TODO: Add an event for post processing the image.
                 byte[] outBuffer = outStream.ToArray();
 
-                DateTime cachedDate = DateTime.UtcNow;
-                await cache.SetAsync(this.environment, key, outBuffer, cachedDate);
+                DateTimeOffset cachedDate = await cache.SetAsync(this.environment, key, outBuffer);
                 await this.SendResponse(imageContext, info, cache, key, cachedDate, outBuffer);
             }
             catch (Exception ex)
@@ -145,17 +144,20 @@ namespace ImageSharp.Web.Middleware
             {
                 inStream?.Dispose();
                 outStream?.Dispose();
+
+                // Buffer should have been rented in IImageService
                 BufferDataPool.Return(buffer);
             }
         }
 
-        private async Task SendResponse(ImageContext imageContext, ImageCacheInfo info, IImageCache cache, string key, DateTimeOffset lastModified, byte[] buffer)
+        private async Task SendResponse(ImageContext imageContext, CachedInfo info, IImageCache cache, string key, DateTimeOffset lastModified, byte[] buffer)
         {
-            // If info length is zero it means that the image has only just been cached so the buffer has value.
-            long len = info.Length > 0 ? info.Length : buffer.Length;
-            DateTimeOffset lm = info.LastModified > DateTimeOffset.MinValue ? info.LastModified : lastModified;
+            // If info length is zero it means that the image has only just been processed so the buffer has value
+            // We can use it's length as it's not pooled.
+            long length = info.Length > 0 ? info.Length : buffer.Length;
+            DateTimeOffset modified = info.LastModifiedUtc > DateTimeOffset.MinValue ? info.LastModifiedUtc : lastModified;
 
-            imageContext.ComprehendRequestHeaders(lm, len);
+            imageContext.ComprehendRequestHeaders(modified, length);
 
             string contentType = FormatHelpers.GetContentType(this.options.Configuration, key);
 
@@ -171,10 +173,16 @@ namespace ImageSharp.Web.Middleware
                     // logger.LogFileServed(fileContext.SubPath, fileContext.PhysicalPath);
                     if (buffer == null)
                     {
-                        buffer = await cache.GetAsync(this.environment, key);
+                        // We're pulling the buffer from the cache. This should be pooled.
+                        CachedBuffer cachedBuffer = await cache.GetAsync(this.environment, key);
+                        await imageContext.SendAsync(contentType, cachedBuffer.Buffer, cachedBuffer.Length);
+                        BufferDataPool.Return(cachedBuffer.Buffer);
+                    }
+                    else
+                    {
+                        await imageContext.SendAsync(contentType, buffer, length);
                     }
 
-                    await imageContext.SendAsync(contentType, buffer);
                     break;
 
                 case ImageContext.PreconditionState.NotModified:

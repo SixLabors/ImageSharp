@@ -12,9 +12,7 @@ namespace ImageSharp.Web.Middleware
     using System.Threading.Tasks;
 
     using Microsoft.AspNetCore.Http;
-    using Microsoft.AspNetCore.Http.Features;
     using Microsoft.AspNetCore.Http.Headers;
-    using Microsoft.Extensions.Logging;
     using Microsoft.Net.Http.Headers;
 
     /// <summary>
@@ -26,13 +24,13 @@ namespace ImageSharp.Web.Middleware
 
         private readonly HttpResponse response;
 
-        private RequestHeaders requestHeaders;
+        private readonly RequestHeaders requestHeaders;
 
-        private ResponseHeaders responseHeaders;
+        private readonly ResponseHeaders responseHeaders;
 
         private DateTimeOffset fileLastModified;
-        private long bytesLength;
-        private EntityTagHeaderValue etag;
+        private long fileLength;
+        private EntityTagHeaderValue fileEtag;
 
         private PreconditionState ifMatchState;
         private PreconditionState ifNoneMatchState;
@@ -52,8 +50,8 @@ namespace ImageSharp.Web.Middleware
             this.responseHeaders = context.Response.GetTypedHeaders();
 
             this.fileLastModified = DateTimeOffset.MinValue;
-            this.bytesLength = 0;
-            this.etag = null;
+            this.fileLength = 0;
+            this.fileEtag = null;
 
             this.ifMatchState = PreconditionState.Unspecified;
             this.ifNoneMatchState = PreconditionState.Unspecified;
@@ -95,7 +93,7 @@ namespace ImageSharp.Web.Middleware
         public void ComprehendRequestHeaders(DateTimeOffset lastModified, long length)
         {
             this.fileLastModified = lastModified;
-            this.bytesLength = length;
+            this.fileLength = length;
             this.ComputeLastModified();
 
             this.ComputeIfMatch();
@@ -140,13 +138,14 @@ namespace ImageSharp.Web.Middleware
         /// </summary>
         /// <param name="contentType">The content type</param>
         /// <param name="buffer">The cached image buffer</param>
+        /// <param name="length">The The length, in bytes, of the cached image buffer</param>
         /// <returns>The <see cref="Task"/></returns>
-        public async Task SendAsync(string contentType, byte[] buffer)
+        public async Task SendAsync(string contentType, byte[] buffer, long length)
         {
             this.ApplyResponseHeaders(ResponseConstants.Status200Ok, contentType);
 
             // We don't need to directly cancel this, if the client disconnects it will fail silently.
-            await this.response.Body.WriteAsync(buffer, 0, buffer.Length, CancellationToken.None);
+            await this.response.Body.WriteAsync(buffer, 0, (int)length, CancellationToken.None);
             if (this.response.Body.CanSeek)
             {
                 this.response.Body.Position = 0;
@@ -180,7 +179,7 @@ namespace ImageSharp.Web.Middleware
                 }
 
                 this.responseHeaders.LastModified = this.fileLastModified;
-                this.responseHeaders.ETag = this.etag;
+                this.responseHeaders.ETag = this.fileEtag;
                 this.responseHeaders.Headers[HeaderNames.AcceptRanges] = "bytes";
 
                 // TODO: Expires
@@ -189,7 +188,7 @@ namespace ImageSharp.Web.Middleware
             if (statusCode == ResponseConstants.Status200Ok)
             {
                 // This header is only returned here for 200. It is not returned for 304, and 412
-                this.response.ContentLength = this.bytesLength;
+                this.response.ContentLength = this.fileLength;
             }
         }
 
@@ -198,8 +197,8 @@ namespace ImageSharp.Web.Middleware
             // Truncate to the second.
             this.fileLastModified = new DateTimeOffset(this.fileLastModified.Year, this.fileLastModified.Month, this.fileLastModified.Day, this.fileLastModified.Hour, this.fileLastModified.Minute, this.fileLastModified.Second, this.fileLastModified.Offset).ToUniversalTime();
 
-            long etagHash = this.fileLastModified.ToFileTime() ^ this.bytesLength;
-            this.etag = new EntityTagHeaderValue($"{'\"'}{Convert.ToString(etagHash, 16)}{'\"'}");
+            long etagHash = this.fileLastModified.ToFileTime() ^ this.fileLength;
+            this.fileEtag = new EntityTagHeaderValue($"{'\"'}{Convert.ToString(etagHash, 16)}{'\"'}");
         }
 
         private void ComputeIfMatch()
@@ -212,7 +211,7 @@ namespace ImageSharp.Web.Middleware
                 this.ifMatchState = PreconditionState.PreconditionFailed;
                 foreach (EntityTagHeaderValue etag in ifMatch)
                 {
-                    if (etag.Equals(EntityTagHeaderValue.Any) || etag.Compare(this.etag, true))
+                    if (etag.Equals(EntityTagHeaderValue.Any) || etag.Compare(this.fileEtag, true))
                     {
                         this.ifMatchState = PreconditionState.ShouldProcess;
                         break;
@@ -228,7 +227,7 @@ namespace ImageSharp.Web.Middleware
                 this.ifNoneMatchState = PreconditionState.ShouldProcess;
                 foreach (EntityTagHeaderValue etag in ifNoneMatch)
                 {
-                    if (etag.Equals(EntityTagHeaderValue.Any) || etag.Compare(this.etag, true))
+                    if (etag.Equals(EntityTagHeaderValue.Any) || etag.Compare(this.fileEtag, true))
                     {
                         this.ifNoneMatchState = PreconditionState.NotModified;
                         break;

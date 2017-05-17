@@ -9,6 +9,9 @@ namespace ImageSharp.Web.Caching
     using System.Collections.Generic;
     using System.IO;
     using System.Threading.Tasks;
+
+    using ImageSharp.Memory;
+
     using Microsoft.AspNetCore.Hosting;
     using Microsoft.Extensions.FileProviders;
 
@@ -23,11 +26,11 @@ namespace ImageSharp.Web.Caching
         public IDictionary<string, string> Settings { get; set; }
             = new Dictionary<string, string>
             {
-                { Folder, "iscache" }
+                { Folder, "is-cache" }
             };
 
         /// <inheritdoc/>
-        public async Task<byte[]> GetAsync(IHostingEnvironment environment, string key)
+        public async Task<CachedBuffer> GetAsync(IHostingEnvironment environment, string key)
         {
             IFileProvider fileProvider = environment.WebRootFileProvider;
             IFileInfo fileInfo = fileProvider.GetFileInfo(this.ToFilePath(key));
@@ -37,21 +40,24 @@ namespace ImageSharp.Web.Caching
             // Check to see if the file exists.
             if (!fileInfo.Exists)
             {
-                return null;
+                return default(CachedBuffer);
             }
 
+            long length;
             using (Stream stream = fileInfo.CreateReadStream())
             {
-                // TODO: There's no way for us to pool this is there :(
-                buffer = new byte[stream.Length];
-                await stream.ReadAsync(buffer, 0, (int)stream.Length);
+                length = stream.Length;
+
+                // Buffer is returned to the pool in the middleware
+                buffer = BufferDataPool.Rent((int)length);
+                await stream.ReadAsync(buffer, 0, (int)length);
             }
 
-            return buffer;
+            return new CachedBuffer(buffer, length);
         }
 
         /// <inheritdoc/>
-        public async Task<ImageCacheInfo> IsExpiredAsync(IHostingEnvironment environment, string key, DateTime minDateUtc)
+        public async Task<CachedInfo> IsExpiredAsync(IHostingEnvironment environment, string key, DateTime minDateUtc)
         {
             // TODO do we use an in memory cache to reduce IO?
             IFileProvider fileProvider = environment.WebRootFileProvider;
@@ -64,11 +70,11 @@ namespace ImageSharp.Web.Caching
             bool expired = !exists || fileInfo.LastModified.UtcDateTime < minDateUtc;
 
             // TODO: Task.FromResult ok?
-            return await Task.FromResult(new ImageCacheInfo(expired, lastModified, length));
+            return await Task.FromResult(new CachedInfo(expired, lastModified, length));
         }
 
         /// <inheritdoc/>
-        public async Task SetAsync(IHostingEnvironment environment, string key, byte[] value, DateTime creationDateUtc)
+        public async Task<DateTimeOffset> SetAsync(IHostingEnvironment environment, string key, byte[] value)
         {
             IFileProvider fileProvider = environment.WebRootFileProvider;
             IFileInfo fileInfo = fileProvider.GetFileInfo(this.ToFilePath(key));
@@ -84,6 +90,8 @@ namespace ImageSharp.Web.Caching
             {
                 await fileStream.WriteAsync(value, 0, value.Length);
             }
+
+            return File.GetLastWriteTimeUtc(path);
         }
 
         /// <summary>

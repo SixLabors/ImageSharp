@@ -74,7 +74,7 @@ namespace ImageSharp.Web.Caching
         }
 
         /// <inheritdoc/>
-        public async Task<DateTimeOffset> SetAsync(IHostingEnvironment environment, string key, byte[] value)
+        public async Task<DateTimeOffset> SetAsync(IHostingEnvironment environment, string key, byte[] value, int length)
         {
             string path = Path.Combine(environment.WebRootPath, this.ToFilePath(key));
             string directory = Path.GetDirectoryName(path);
@@ -86,7 +86,7 @@ namespace ImageSharp.Web.Caching
 
             using (FileStream fileStream = File.Create(path))
             {
-                await fileStream.WriteAsync(value, 0, value.Length);
+                await fileStream.WriteAsync(value, 0, length);
             }
 
             return File.GetLastWriteTimeUtc(path);

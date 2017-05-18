@@ -49,7 +49,8 @@ namespace ImageSharp.Web.Caching
         /// <param name="environment">The hosting environment the application is running in</param>
         /// <param name="key">The cache key</param>
         /// <param name="value">The value to store</param>
+        /// <param name="length">The length, in bytes, of the data within the buffer.</param>
         /// <returns>The <see cref="Task{DateTimeOffset}"/></returns>
-        Task<DateTimeOffset> SetAsync(IHostingEnvironment environment, string key, byte[] value);
+        Task<DateTimeOffset> SetAsync(IHostingEnvironment environment, string key, byte[] value, int length);
     }
 }

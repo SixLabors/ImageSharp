@@ -35,7 +35,10 @@ namespace ImageSharp.Memory
         {
             try
             {
-                ArrayPool.Return(array);
+                if (array != null)
+                {
+                    ArrayPool.Return(array);
+                }
             }
             catch
             {

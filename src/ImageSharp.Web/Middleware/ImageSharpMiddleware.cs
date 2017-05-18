@@ -111,18 +111,20 @@ namespace ImageSharp.Web.Middleware
             if (!info.Expired)
             {
                 // Image is a cached image. Return the correct response now.
-                await this.SendResponse(imageContext, info, cache, key, info.LastModifiedUtc, null);
+                await this.SendResponse(imageContext, cache, key, info.LastModifiedUtc, null, (int)info.Length);
                 return;
             }
 
             // Not cached? Let's get it from the image service.
-            byte[] buffer = await service.ResolveImageAsync(context, this.environment, this.logger, path);
+            byte[] inBuffer = await service.ResolveImageAsync(context, this.environment, this.logger, path);
+            byte[] outBuffer = null;
             MemoryStream inStream = null;
             MemoryStream outStream = null;
             try
             {
                 // No allocations here for inStream since we are passing the buffer.
-                inStream = new MemoryStream(buffer);
+                // TODO: How to prevent the allocation in outStream? Passing a pooled buffer won't let stream grow if needed.
+                inStream = new MemoryStream(inBuffer);
                 outStream = new MemoryStream();
                 using (var image = Image.Load(this.options.Configuration, inStream))
                 {
@@ -131,10 +133,14 @@ namespace ImageSharp.Web.Middleware
                 }
 
                 // TODO: Add an event for post processing the image.
-                byte[] outBuffer = outStream.ToArray();
+                // Copy the outstream to the pooled buffer.
+                int outLength = (int)outStream.Position + 1;
+                outStream.Position = 0;
+                outBuffer = BufferDataPool.Rent(outLength);
+                await outStream.ReadAsync(outBuffer, 0, outLength);
 
-                DateTimeOffset cachedDate = await cache.SetAsync(this.environment, key, outBuffer);
-                await this.SendResponse(imageContext, info, cache, key, cachedDate, outBuffer);
+                DateTimeOffset cachedDate = await cache.SetAsync(this.environment, key, outBuffer, outLength);
+                await this.SendResponse(imageContext, cache, key, cachedDate, outBuffer, outLength);
             }
             catch (Exception ex)
             {
@@ -147,18 +153,14 @@ namespace ImageSharp.Web.Middleware
                 outStream?.Dispose();
 
                 // Buffer should have been rented in IImageService
-                BufferDataPool.Return(buffer);
+                BufferDataPool.Return(inBuffer);
+                BufferDataPool.Return(outBuffer);
             }
         }
 
-        private async Task SendResponse(ImageContext imageContext, CachedInfo info, IImageCache cache, string key, DateTimeOffset lastModified, byte[] buffer)
+        private async Task SendResponse(ImageContext imageContext, IImageCache cache, string key, DateTimeOffset lastModified, byte[] buffer, int length)
         {
-            // If info length is zero it means that the image has only just been processed so the buffer has value
-            // We can use it's length as it's not pooled.
-            long length = info.Length > 0 ? info.Length : buffer.Length;
-            DateTimeOffset modified = info.LastModifiedUtc > DateTimeOffset.MinValue ? info.LastModifiedUtc : lastModified;
-
-            imageContext.ComprehendRequestHeaders(modified, length);
+            imageContext.ComprehendRequestHeaders(lastModified, length);
 
             string contentType = FormatHelpers.GetContentType(this.options.Configuration, key);
 

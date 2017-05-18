@@ -217,3 +217,5 @@ artifacts/
 #CodeCoverage
 **/CodeCoverage/*
 docs/
+
+**/is-cache/

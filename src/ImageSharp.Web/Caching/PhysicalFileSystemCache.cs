@@ -76,9 +76,7 @@ namespace ImageSharp.Web.Caching
         /// <inheritdoc/>
         public async Task<DateTimeOffset> SetAsync(IHostingEnvironment environment, string key, byte[] value)
         {
-            IFileProvider fileProvider = environment.WebRootFileProvider;
-            IFileInfo fileInfo = fileProvider.GetFileInfo(this.ToFilePath(key));
-            string path = fileInfo.PhysicalPath;
+            string path = Path.Combine(environment.WebRootPath, this.ToFilePath(key));
             string directory = Path.GetDirectoryName(path);
 
             if (!Directory.Exists(directory))
@@ -101,7 +99,7 @@ namespace ImageSharp.Web.Caching
         /// <returns>The <see cref="string"/></returns>
         private string ToFilePath(string key)
         {
-            return $"/{this.Settings[Folder]}/{string.Join("/", key.Substring(0, 8).ToCharArray())}/{key}";
+            return $"{this.Settings[Folder]}/{string.Join("/", key.Substring(0, 8).ToCharArray())}/{key}";
         }
     }
 }

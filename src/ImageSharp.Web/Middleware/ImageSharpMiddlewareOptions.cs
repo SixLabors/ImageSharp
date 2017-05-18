@@ -17,24 +17,30 @@ namespace ImageSharp.Web.Middleware
     public class ImageSharpMiddlewareOptions
     {
         /// <summary>
-        /// Gets or sets the configuration
+        /// Gets or sets the base library configuration
         /// </summary>
         public Configuration Configuration { get; set; } = Configuration.Default;
 
         /// <summary>
         /// Gets or sets the collecion of image services.
         /// </summary>
-        public IList<IImageService> Services { get; set; } = new List<IImageService>();
+        public IList<IImageService> Services { get; set; } = new List<IImageService>
+        {
+            new PhysicalFileImageService()
+        };
 
         /// <summary>
         /// Gets or sets the collecion of image processors.
         /// </summary>
-        public IList<IImageWebProcessor> Processors { get; set; } = new List<IImageWebProcessor>();
+        public IList<IImageWebProcessor> Processors { get; set; } = new List<IImageWebProcessor>
+        {
+            new ResizeWebProcessor()
+        };
 
         /// <summary>
         /// Gets or sets the cache.
         /// </summary>
-        public IImageCache Cache { get; set; }
+        public IImageCache Cache { get; set; } = new PhysicalFileSystemCache();
 
         /// <summary>
         /// Gets or sets the number of days to store images in the cache.

@@ -15,6 +15,7 @@ namespace ImageSharp.Web.Middleware
     using ImageSharp.Memory;
     using ImageSharp.Web.Caching;
     using ImageSharp.Web.Helpers;
+    using ImageSharp.Web.Processors;
     using ImageSharp.Web.Services;
 
     using Microsoft.AspNetCore.Hosting;
@@ -74,12 +75,12 @@ namespace ImageSharp.Web.Middleware
         /// <returns>The <see cref="Task"/></returns>
         public async Task Invoke(HttpContext context)
         {
-            // TODO: Parse the request path and application path.
+            // TODO: Parse the request path and application path?
             PathString path = context.Request.Path;
             PathString applicationPath = context.Request.PathBase;
-            QueryString query = context.Request.QueryString;
+            IQueryCollection query = context.Request.Query;
 
-            if (!query.HasValue)
+            if (!query.Any())
             {
                 // Nothing to do. call the next delegate/middleware in the pipeline
                 await this.next(context);
@@ -100,7 +101,7 @@ namespace ImageSharp.Web.Middleware
             IImageCache cache = this.options.Cache;
 
             // TODO: Add event handler to allow augmenting the querystring value.
-            string uri = path + query;
+            string uri = path + QueryString.Create(query);
             string key = CacheHash.Create(uri, this.options.Configuration);
 
             CachedInfo info = await cache.IsExpiredAsync(this.environment, key, DateTime.UtcNow.AddDays(-this.options.MaxCacheDays));
@@ -125,8 +126,8 @@ namespace ImageSharp.Web.Middleware
                 outStream = new MemoryStream();
                 using (var image = Image.Load(this.options.Configuration, inStream))
                 {
-                    // TODO: Process.
-                    image.Save(outStream);
+                    image.Process(context, this.environment, this.logger, this.options, query)
+                         .Save(outStream);
                 }
 
                 // TODO: Add an event for post processing the image.

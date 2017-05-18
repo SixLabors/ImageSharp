@@ -44,7 +44,7 @@ namespace ImageSharp.Web.Caching
         {
             using (var hashAlgorithm = SHA256.Create())
             {
-                return $"{Encode(hashAlgorithm.ComputeHash(Encoding.UTF8.GetBytes(uri)))}.{FormatHelpers.GetExtension(configuration, uri)}";
+                return $"{Encode(hashAlgorithm.ComputeHash(Encoding.ASCII.GetBytes(uri)))}.{FormatHelpers.GetExtension(configuration, uri)}";
             }
         }
 
@@ -60,7 +60,7 @@ namespace ImageSharp.Web.Caching
             const char Pad = '=';
             char[] b32 = Base32Table;
             int length = hash.Length;
-            char[] result = new char[length + 8];
+            char[] result = new char[length + 7];
             int i;
 
             for (i = 0; i <= length - 5; i += 5)

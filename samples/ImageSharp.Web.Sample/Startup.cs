@@ -10,6 +10,8 @@ using Microsoft.Extensions.Logging;
 
 namespace ImageSharp.Web.Sample
 {
+    using ImageSharp.Web.DependencyInjection;
+
     public class Startup
     {
         // This method gets called by the runtime. Use this method to add services to the container.
@@ -23,15 +25,19 @@ namespace ImageSharp.Web.Sample
         {
             loggerFactory.AddConsole();
 
+            // Add static file handling
+            app.UseImageSharp();
+            app.UseStaticFiles();
+
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
             }
 
-            app.Run(async (context) =>
-            {
-                await context.Response.WriteAsync("Hello World!");
-            });
+            //app.Run(async (context) =>
+            //{
+            //    await context.Response.WriteAsync("Hello World!");
+            //});
         }
     }
 }

@@ -26,13 +26,14 @@ namespace ImageSharp.Web.Processors
         /// <summary>
         /// Processes the image based on the querystring commands.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <typeparam name="TPixel">The pixel format</typeparam>
+        /// <param name="image">The image to process</param>
         /// <param name="context">The current HTTP request context</param>
-        /// <param name="environment">The hosting environment the application is running in.</param>
-        /// <param name="logger">The type used for performing logging.</param>
-        /// <param name="commands">The querystring containing the processing commands.</param>
+        /// <param name="environment">The hosting environment the application is running in</param>
+        /// <param name="logger">The type used for performing logging</param>
+        /// <param name="commands">The querystring collection containing the processing commands</param>
         /// <returns>The <see cref="Image{TPixel}"/></returns>
-        Image<TPixel> Process<TPixel>(HttpContext context, IHostingEnvironment environment, ILogger logger, QueryString commands)
+        Image<TPixel> Process<TPixel>(Image<TPixel> image, HttpContext context, IHostingEnvironment environment, ILogger logger, IQueryCollection commands)
             where TPixel : struct, IPixel<TPixel>;
     }
 }

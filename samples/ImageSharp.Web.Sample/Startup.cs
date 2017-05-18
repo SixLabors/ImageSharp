@@ -26,6 +26,7 @@ namespace ImageSharp.Web.Sample
             loggerFactory.AddConsole();
 
             // Add static file handling
+            app.UseDefaultFiles();
             app.UseImageSharp();
             app.UseStaticFiles();
 

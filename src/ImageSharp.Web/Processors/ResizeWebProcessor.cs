@@ -53,7 +53,7 @@ namespace ImageSharp.Web.Processors
 
         private static ResizeOptions GetResizeOptions(IQueryCollection commands)
         {
-            if (!commands.ContainsKey(Width) && commands.ContainsKey(Height))
+            if (!commands.ContainsKey(Width) && !commands.ContainsKey(Height))
             {
                 return null;
             }

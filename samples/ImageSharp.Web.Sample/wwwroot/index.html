@@ -7,13 +7,56 @@
     <style>
         body {
             text-align: center;
+            font-family: BlinkMacSystemFont, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        code {
+            background-color: #f7f7f7;
+            padding: .2rem;
+            box-shadow: 0px 2px 1px -1px rgba(0, 0, 0, 0.1), 0px 1px 1px 0px rgba(0, 0, 0, 0.07), 0px 1px 3px 0px rgba(0, 0, 0, 0.06);
+        }
+
+        main {
+            display: flex;
+            flex-wrap: wrap;
+        }
+
+        section {
+            flex: 0 0 50%;
+        }
+
+        img {
+            border: 1px solid #e3e3e3;
         }
     </style>
 </head>
 <body>
     <h1>ImageSharp URI API Samples</h1>
-    <p>
-        <img src="imagesharp-logo.png?width=300" />
-    </p>
+    <main>
+        <section>
+            <p><code>imagesharp-logo.png?width=300</code></p>
+            <p><img src="imagesharp-logo.png?width=300" /></p>
+        </section>
+        <section>
+            <p><code>imagesharp-logo.png?width=300&height=200</code></p>
+            <p><img src="imagesharp-logo.png?width=300&height=200" /></p>
+        </section>
+        <section>
+            <p><code>imagesharp-logo.png?width=300&height=200&rmode=stretch</code></p>
+            <p><img src="imagesharp-logo.png?width=300&height=200&rmode=stretch" /></p>
+        </section>
+        <section>
+            <p><code>imagesharp-logo.png?width=300&height=200&rmode=pad</code></p>
+            <p><img src="imagesharp-logo.png?width=300&height=200&rmode=pad" /></p>
+        </section>
+        <section>
+            <p><code>imagesharp-logo.png?width=300&rsampler=lanczos3</code></p>
+            <p><img src="imagesharp-logo.png?width=300&rsampler=lanczos3" /></p>
+        </section>
+        <section>
+            <p><code>imagesharp-logo.png?width=300&rsampler=nearest</code></p>
+            <p><img src="imagesharp-logo.png?width=300&rsampler=nearest" /></p>
+        </section>
+    </main>
 </body>
 </html>

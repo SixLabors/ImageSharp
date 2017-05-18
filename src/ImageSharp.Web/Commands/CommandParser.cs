@@ -43,6 +43,16 @@ namespace ImageSharp.Web.Commands
         public static CommandParser Instance => Lazy.Value;
 
         /// <summary>
+        /// Adds a command converter to the parser.
+        /// </summary>
+        /// <param name="type">The <see cref="Type"/> to add a converter for. </param>
+        /// <param name="converterType">The type of <see cref="CommandConverter"/> to add.</param>
+        public void AddConverter(Type type, Type converterType)
+        {
+            CommandDescriptor.AddConverter(type, converterType);
+        }
+
+        /// <summary>
         /// Parses the given string value converting it to the given using the invariant culture.
         /// </summary>
         /// <param name="value">The string value to parse.</param>
@@ -85,7 +95,7 @@ namespace ImageSharp.Web.Commands
         /// <returns>
         /// The <see cref="object"/>.
         /// </returns>
-        public object ParseValue(Type type, string value, CultureInfo culture)
+        internal object ParseValue(Type type, string value, CultureInfo culture)
         {
             if (culture == null)
             {
@@ -105,31 +115,21 @@ namespace ImageSharp.Web.Commands
         }
 
         /// <summary>
-        /// Adds a command converter to the parser.
-        /// </summary>
-        /// <param name="type">The <see cref="Type"/> to add a converter for. </param>
-        /// <param name="converterType">The type of <see cref="CommandConverter"/> to add.</param>
-        public void AddConverter(Type type, Type converterType)
-        {
-            CommandDescriptor.AddConverter(type, converterType);
-        }
-
-        /// <summary>
         /// Add the generic converters
         /// </summary>
         private void AddSimpleConverters()
         {
-            this.AddConverter(typeof(sbyte), typeof(SimpleCommandConverter<sbyte>));
-            this.AddConverter(typeof(byte), typeof(SimpleCommandConverter<byte>));
+            this.AddConverter(typeof(sbyte), typeof(IntegralNumberConverter<sbyte>));
+            this.AddConverter(typeof(byte), typeof(IntegralNumberConverter<byte>));
 
-            this.AddConverter(typeof(short), typeof(SimpleCommandConverter<short>));
-            this.AddConverter(typeof(ushort), typeof(SimpleCommandConverter<ushort>));
+            this.AddConverter(typeof(short), typeof(IntegralNumberConverter<short>));
+            this.AddConverter(typeof(ushort), typeof(IntegralNumberConverter<ushort>));
 
-            this.AddConverter(typeof(int), typeof(SimpleCommandConverter<int>));
-            this.AddConverter(typeof(uint), typeof(SimpleCommandConverter<uint>));
+            this.AddConverter(typeof(int), typeof(IntegralNumberConverter<int>));
+            this.AddConverter(typeof(uint), typeof(IntegralNumberConverter<uint>));
 
-            this.AddConverter(typeof(long), typeof(SimpleCommandConverter<long>));
-            this.AddConverter(typeof(ulong), typeof(SimpleCommandConverter<ulong>));
+            this.AddConverter(typeof(long), typeof(IntegralNumberConverter<long>));
+            this.AddConverter(typeof(ulong), typeof(IntegralNumberConverter<ulong>));
 
             this.AddConverter(typeof(decimal), typeof(SimpleCommandConverter<decimal>));
             this.AddConverter(typeof(float), typeof(SimpleCommandConverter<float>));

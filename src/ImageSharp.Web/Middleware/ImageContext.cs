@@ -20,6 +20,8 @@ namespace ImageSharp.Web.Middleware
     /// </summary>
     internal struct ImageContext
     {
+        private readonly ImageSharpMiddlewareOptions options;
+
         private readonly HttpRequest request;
 
         private readonly HttpResponse response;
@@ -41,13 +43,16 @@ namespace ImageSharp.Web.Middleware
         /// Initializes a new instance of the <see cref="ImageContext"/> struct.
         /// </summary>
         /// <param name="context">The current HTTP request context</param>
-        public ImageContext(HttpContext context)
+        /// <param name="options">The middleware options</param>
+        public ImageContext(HttpContext context, ImageSharpMiddlewareOptions options)
         {
             this.request = context.Request;
             this.response = context.Response;
 
             this.requestHeaders = context.Request.GetTypedHeaders();
             this.responseHeaders = context.Response.GetTypedHeaders();
+
+            this.options = options;
 
             this.fileLastModified = DateTimeOffset.MinValue;
             this.fileLength = 0;
@@ -182,7 +187,14 @@ namespace ImageSharp.Web.Middleware
                 this.responseHeaders.ETag = this.fileEtag;
                 this.responseHeaders.Headers[HeaderNames.AcceptRanges] = "bytes";
 
-                // TODO: Expires
+                this.responseHeaders.CacheControl = new CacheControlHeaderValue
+                {
+                    Public = true,
+                    MaxAge = new TimeSpan(this.options.MaxCacheDays, 0, 0, 0),
+                    MustRevalidate = true
+                };
+
+                // TODO: Cors
             }
 
             if (statusCode == ResponseConstants.Status200Ok)

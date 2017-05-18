@@ -106,7 +106,7 @@ namespace ImageSharp.Web.Middleware
 
             CachedInfo info = await cache.IsExpiredAsync(this.environment, key, DateTime.UtcNow.AddDays(-this.options.MaxCacheDays));
 
-            var imageContext = new ImageContext(context);
+            var imageContext = new ImageContext(context, this.options);
 
             if (!info.Expired)
             {

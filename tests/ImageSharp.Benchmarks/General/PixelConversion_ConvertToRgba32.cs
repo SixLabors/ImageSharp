@@ -1,4 +1,5 @@
-﻿namespace ImageSharp.Benchmarks.General
+﻿// ReSharper disable InconsistentNaming
+namespace ImageSharp.Benchmarks.General
 {
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
@@ -12,7 +13,7 @@
     /// 2. void CopyToRgba32(ref Rgba32 dest);
     /// ?
     /// </summary>
-    public class PixelConversion
+    public class PixelConversion_ConvertToRgba32
     {
         interface ITestPixel<T>
             where T : struct, ITestPixel<T>
@@ -103,7 +104,7 @@
             }
         }
 
-        private ConversionRunner<TestRgba> inOrderRunner;
+        private ConversionRunner<TestRgba> compatibleMemoryLayoutRunner;
 
         private ConversionRunner<TestArgb> permutedRunner;
 
@@ -113,20 +114,20 @@
         [Setup]
         public void Setup()
         {
-            this.inOrderRunner = new ConversionRunner<TestRgba>(this.Count);
+            this.compatibleMemoryLayoutRunner = new ConversionRunner<TestRgba>(this.Count);
             this.permutedRunner = new ConversionRunner<TestArgb>(this.Count);
         }
 
         [Benchmark(Baseline = true)]
-        public void InOrderRetval()
+        public void CompatibleRetval()
         {
-            this.inOrderRunner.RunRetvalConversion();
+            this.compatibleMemoryLayoutRunner.RunRetvalConversion();
         }
 
         [Benchmark]
-        public void InOrderCopyTo()
+        public void CompatibleCopyTo()
         {
-            this.inOrderRunner.RunCopyToConversion();
+            this.compatibleMemoryLayoutRunner.RunCopyToConversion();
         }
 
         [Benchmark]
@@ -147,10 +148,9 @@
      * 
      *            Method | Count |        Mean |    StdDev | Scaled | Scaled-StdDev |
      *   --------------- |------ |------------ |---------- |------- |-------------- |
-     *     InOrderRetval |   128 |  89.7358 ns | 2.2389 ns |   1.00 |          0.00 |
-     *     InOrderCopyTo |   128 |  89.4112 ns | 2.2901 ns |   1.00 |          0.03 |
+     *  CompatibleRetval |   128 |  89.7358 ns | 2.2389 ns |   1.00 |          0.00 |
+     *  CompatibleCopyTo |   128 |  89.4112 ns | 2.2901 ns |   1.00 |          0.03 |
      *    PermutedRetval |   128 | 845.4038 ns | 5.6154 ns |   9.43 |          0.23 |
      *    PermutedCopyTo |   128 | 155.6004 ns | 3.8870 ns |   1.73 |          0.06 |
-     *  
      */
 }

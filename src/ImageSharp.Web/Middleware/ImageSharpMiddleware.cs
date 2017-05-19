@@ -126,7 +126,7 @@ namespace ImageSharp.Web.Middleware
                 outStream = new MemoryStream();
                 using (var image = Image.Load(this.options.Configuration, inStream))
                 {
-                    image.Process(context, this.environment, this.logger, this.options.Processors, commands)
+                    image.Process(this.logger, this.options.Processors, commands)
                          .Save(outStream);
                 }
 

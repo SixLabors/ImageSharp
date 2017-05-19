@@ -9,8 +9,6 @@ namespace ImageSharp.Web.Processors
 
     using ImageSharp.PixelFormats;
 
-    using Microsoft.AspNetCore.Hosting;
-    using Microsoft.AspNetCore.Http;
     using Microsoft.Extensions.Logging;
 
     /// <summary>
@@ -28,12 +26,10 @@ namespace ImageSharp.Web.Processors
         /// </summary>
         /// <typeparam name="TPixel">The pixel format</typeparam>
         /// <param name="image">The image to process</param>
-        /// <param name="context">The current HTTP request context</param>
-        /// <param name="environment">The hosting environment the application is running in</param>
         /// <param name="logger">The type used for performing logging</param>
         /// <param name="commands">The querystring collection containing the processing commands</param>
         /// <returns>The <see cref="Image{TPixel}"/></returns>
-        Image<TPixel> Process<TPixel>(Image<TPixel> image, HttpContext context, IHostingEnvironment environment, ILogger logger, IDictionary<string, string> commands)
+        Image<TPixel> Process<TPixel>(Image<TPixel> image, ILogger logger, IDictionary<string, string> commands)
             where TPixel : struct, IPixel<TPixel>;
     }
 }

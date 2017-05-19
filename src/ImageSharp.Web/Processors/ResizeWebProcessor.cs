@@ -9,9 +9,6 @@ namespace ImageSharp.Web.Processors
     using ImageSharp.PixelFormats;
     using ImageSharp.Processing;
     using ImageSharp.Web.Commands;
-
-    using Microsoft.AspNetCore.Hosting;
-    using Microsoft.AspNetCore.Http;
     using Microsoft.Extensions.Logging;
 
     /// <summary>
@@ -43,7 +40,7 @@ namespace ImageSharp.Web.Processors
         public IEnumerable<string> Commands => ResizeCommands;
 
         /// <inheritdoc/>
-        public Image<TPixel> Process<TPixel>(Image<TPixel> image, HttpContext context, IHostingEnvironment environment, ILogger logger, IDictionary<string, string> commands)
+        public Image<TPixel> Process<TPixel>(Image<TPixel> image, ILogger logger, IDictionary<string, string> commands)
             where TPixel : struct, IPixel<TPixel>
         {
             ResizeOptions options = GetResizeOptions(commands);

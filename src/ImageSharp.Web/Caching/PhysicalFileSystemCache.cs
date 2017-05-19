@@ -22,6 +22,26 @@ namespace ImageSharp.Web.Caching
     {
         private const string Folder = "CachedFolder";
 
+        /// <summary>
+        /// The hosting environment the application is running in.
+        /// </summary>
+        private readonly IHostingEnvironment environment;
+
+        /// <summary>
+        /// The file provider abstraction.
+        /// </summary>
+        private readonly IFileProvider fileProvider;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PhysicalFileSystemCache"/> class.
+        /// </summary>
+        /// <param name="environment">The hosting environment the application is running in</param>
+        public PhysicalFileSystemCache(IHostingEnvironment environment)
+        {
+            this.environment = environment;
+            this.fileProvider = this.environment.WebRootFileProvider;
+        }
+
         /// <inheritdoc/>
         public IDictionary<string, string> Settings { get; set; }
             = new Dictionary<string, string>
@@ -30,10 +50,9 @@ namespace ImageSharp.Web.Caching
             };
 
         /// <inheritdoc/>
-        public async Task<CachedBuffer> GetAsync(IHostingEnvironment environment, string key)
+        public async Task<CachedBuffer> GetAsync(string key)
         {
-            IFileProvider fileProvider = environment.WebRootFileProvider;
-            IFileInfo fileInfo = fileProvider.GetFileInfo(this.ToFilePath(key));
+            IFileInfo fileInfo = this.fileProvider.GetFileInfo(this.ToFilePath(key));
 
             byte[] buffer;
 
@@ -57,11 +76,10 @@ namespace ImageSharp.Web.Caching
         }
 
         /// <inheritdoc/>
-        public async Task<CachedInfo> IsExpiredAsync(IHostingEnvironment environment, string key, DateTime minDateUtc)
+        public async Task<CachedInfo> IsExpiredAsync(string key, DateTime minDateUtc)
         {
             // TODO do we use an in memory cache to reduce IO?
-            IFileProvider fileProvider = environment.WebRootFileProvider;
-            IFileInfo fileInfo = fileProvider.GetFileInfo(this.ToFilePath(key));
+            IFileInfo fileInfo = this.fileProvider.GetFileInfo(this.ToFilePath(key));
 
             // Check if the file exists and whether the last modified date is less than the min date.
             bool exists = fileInfo.Exists;
@@ -74,9 +92,9 @@ namespace ImageSharp.Web.Caching
         }
 
         /// <inheritdoc/>
-        public async Task<DateTimeOffset> SetAsync(IHostingEnvironment environment, string key, byte[] value, int length)
+        public async Task<DateTimeOffset> SetAsync(string key, byte[] value, int length)
         {
-            string path = Path.Combine(environment.WebRootPath, this.ToFilePath(key));
+            string path = Path.Combine(this.environment.WebRootPath, this.ToFilePath(key));
             string directory = Path.GetDirectoryName(path);
 
             if (!Directory.Exists(directory))

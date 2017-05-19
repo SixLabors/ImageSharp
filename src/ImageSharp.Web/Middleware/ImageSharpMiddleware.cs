@@ -13,7 +13,6 @@ namespace ImageSharp.Web.Middleware
     using System.Threading.Tasks;
     using ImageSharp.Memory;
     using ImageSharp.Web.Caching;
-    using ImageSharp.Web.Commands;
     using ImageSharp.Web.Helpers;
     using ImageSharp.Web.Processors;
     using ImageSharp.Web.Services;
@@ -43,16 +42,6 @@ namespace ImageSharp.Web.Middleware
         private readonly IHostingEnvironment environment;
 
         /// <summary>
-        /// The uri parser from extracting image processing commands.
-        /// </summary>
-        private readonly IUriParser uriParser;
-
-        /// <summary>
-        /// The collection of avilable processors.
-        /// </summary>
-        private readonly IEnumerable<IImageWebProcessor> processors;
-
-        /// <summary>
         /// The type used for performing logging.
         /// </summary>
         private readonly ILogger logger;
@@ -62,11 +51,9 @@ namespace ImageSharp.Web.Middleware
         /// </summary>
         /// <param name="next">The next middleware in the pipeline</param>
         /// <param name="environment">The <see cref="IHostingEnvironment"/> used by this middleware</param>
-        /// <param name="uriParser">The uri parser for extracting commands</param>
-        /// <param name="processors">The collection of available processors</param>
         /// <param name="options">The configuration options</param>
         /// <param name="loggerFactory">An <see cref="ILoggerFactory"/> instance used to create loggers</param>
-        public ImageSharpMiddleware(RequestDelegate next, IHostingEnvironment environment, IUriParser uriParser, IEnumerable<IImageWebProcessor> processors, IOptions<ImageSharpMiddlewareOptions> options, ILoggerFactory loggerFactory)
+        public ImageSharpMiddleware(RequestDelegate next, IHostingEnvironment environment, IOptions<ImageSharpMiddlewareOptions> options, ILoggerFactory loggerFactory)
         {
             Guard.NotNull(next, nameof(next));
             Guard.NotNull(environment, nameof(environment));
@@ -75,8 +62,6 @@ namespace ImageSharp.Web.Middleware
 
             this.next = next;
             this.environment = environment;
-            this.uriParser = uriParser;
-            this.processors = processors;
             this.options = options.Value;
             this.logger = loggerFactory.CreateLogger<ImageSharpMiddleware>();
         }
@@ -91,7 +76,7 @@ namespace ImageSharp.Web.Middleware
             // TODO: Parse the request path and application path?
             PathString path = context.Request.Path;
             PathString applicationPath = context.Request.PathBase;
-            IDictionary<string, string> commands = this.uriParser.ParseUriCommands(context);
+            IDictionary<string, string> commands = this.options.UriParser.ParseUriCommands(context);
 
             if (!commands.Any())
             {
@@ -117,7 +102,7 @@ namespace ImageSharp.Web.Middleware
             string uri = path + QueryString.Create(commands);
             string key = CacheHash.Create(uri, this.options.Configuration);
 
-            CachedInfo info = await cache.IsExpiredAsync(this.environment, key, DateTime.UtcNow.AddDays(-this.options.MaxCacheDays));
+            CachedInfo info = await cache.IsExpiredAsync(key, DateTime.UtcNow.AddDays(-this.options.MaxCacheDays));
 
             var imageContext = new ImageContext(context, this.options);
 
@@ -129,7 +114,7 @@ namespace ImageSharp.Web.Middleware
             }
 
             // Not cached? Let's get it from the image service.
-            byte[] inBuffer = await service.ResolveImageAsync(context, this.environment, this.logger, path);
+            byte[] inBuffer = await service.ResolveImageAsync(context, this.logger, path);
             byte[] outBuffer = null;
             MemoryStream inStream = null;
             MemoryStream outStream = null;
@@ -141,7 +126,7 @@ namespace ImageSharp.Web.Middleware
                 outStream = new MemoryStream();
                 using (var image = Image.Load(this.options.Configuration, inStream))
                 {
-                    image.Process(context, this.environment, this.logger, this.processors, commands)
+                    image.Process(context, this.environment, this.logger, this.options.Processors, commands)
                          .Save(outStream);
                 }
 
@@ -152,7 +137,7 @@ namespace ImageSharp.Web.Middleware
                 outBuffer = BufferDataPool.Rent(outLength);
                 await outStream.ReadAsync(outBuffer, 0, outLength);
 
-                DateTimeOffset cachedDate = await cache.SetAsync(this.environment, key, outBuffer, outLength);
+                DateTimeOffset cachedDate = await cache.SetAsync(key, outBuffer, outLength);
                 await this.SendResponse(imageContext, cache, key, cachedDate, outBuffer, outLength);
             }
             catch (Exception ex)
@@ -190,7 +175,7 @@ namespace ImageSharp.Web.Middleware
                     if (buffer == null)
                     {
                         // We're pulling the buffer from the cache. This should be pooled.
-                        CachedBuffer cachedBuffer = await cache.GetAsync(this.environment, key);
+                        CachedBuffer cachedBuffer = await cache.GetAsync(key);
                         await imageContext.SendAsync(contentType, cachedBuffer.Buffer, cachedBuffer.Length);
                         BufferDataPool.Return(cachedBuffer.Buffer);
                     }
@@ -231,7 +216,7 @@ namespace ImageSharp.Web.Middleware
                     continue;
                 }
 
-                if (await service.IsValidRequestAsync(context, this.environment, this.logger, path))
+                if (await service.IsValidRequestAsync(context, this.logger, path))
                 {
                     return service;
                 }
@@ -243,7 +228,7 @@ namespace ImageSharp.Web.Middleware
             IImageService physicalService = services.FirstOrDefault(s => s.GetType() == physicalType);
             if (physicalService != null)
             {
-                if (await physicalService.IsValidRequestAsync(context, this.environment, this.logger, path))
+                if (await physicalService.IsValidRequestAsync(context, this.logger, path))
                 {
                     return physicalService;
                 }
@@ -252,7 +237,7 @@ namespace ImageSharp.Web.Middleware
             // Return the next unprefixed service.
             foreach (IImageService service in services.Where(s => string.IsNullOrEmpty(s.Key) && s.GetType() != physicalType))
             {
-                if (await service.IsValidRequestAsync(context, this.environment, this.logger, path))
+                if (await service.IsValidRequestAsync(context, this.logger, path))
                 {
                     return service;
                 }

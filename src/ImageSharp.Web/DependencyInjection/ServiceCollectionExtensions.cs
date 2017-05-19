@@ -5,10 +5,9 @@
 
 namespace ImageSharp.Web.DependencyInjection
 {
-    using System.Collections.Generic;
-    using ImageSharp.Web.Commands;
-    using ImageSharp.Web.Processors;
+    using ImageSharp.Web.Middleware;
     using Microsoft.Extensions.DependencyInjection;
+    using Microsoft.Extensions.Options;
 
     /// <summary>
     /// Extension methods for <see cref="IServiceCollection"/> to simplify middleware service registration.
@@ -20,20 +19,25 @@ namespace ImageSharp.Web.DependencyInjection
         /// </summary>
         /// <param name="services">The contract for the collection of service descriptors</param>
         /// <returns><see cref="IServiceCollection"/></returns>
-        public static IServiceCollection UseImageSharp(this IServiceCollection services)
+        public static IServiceCollection UseImageSharpServices(this IServiceCollection services)
         {
             Guard.NotNull(services, nameof(services));
 
-            services.AddSingleton<IUriParser>(new QueryCollectionUriParser());
+            return services.AddSingleton<IConfigureOptions<ImageSharpMiddlewareOptions>, ImageSharpConfiguration>();
+        }
 
-            var processors = new List<IImageWebProcessor>
-            {
-                new ResizeWebProcessor()
-            };
+        /// <summary>
+        /// Registers ImageSharp with the configured services
+        /// </summary>
+        /// <param name="services">The contract for the collection of service descriptors</param>
+        /// <typeparam name="TOptions">The configuration options.</typeparam>
+        /// <returns><see cref="IServiceCollection"/></returns>
+        public static IServiceCollection UseImageSharpServices<TOptions>(this IServiceCollection services)
+            where TOptions : class, IConfigureOptions<ImageSharpMiddlewareOptions>
+        {
+            Guard.NotNull(services, nameof(services));
 
-            services.AddSingleton<IEnumerable<IImageWebProcessor>>(processors);
-
-            return services;
+            return services.AddSingleton<IConfigureOptions<ImageSharpMiddlewareOptions>, TOptions>();
         }
     }
 }

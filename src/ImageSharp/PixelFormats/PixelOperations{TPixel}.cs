@@ -249,27 +249,5 @@ namespace ImageSharp.PixelFormats
                 sp.ToZyxwBytes(destBytes, i * 4);
             }
         }
-
-        /// <summary>
-        /// Bulk conversion of data from series bytes to a series of Pixels.
-        /// </summary>
-        /// <param name="sourceBytes">The <see cref="Span{T}"/> to the source bytes.</param>
-        /// <param name="destColors">The <see cref="Span{T}"/> to the destination colors.</param>
-        /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void PackFromRawBytes(Span<byte> sourceBytes, Span<TPixel> destColors, int count)
-        {
-            Guard.MustBeSizedAtLeast(sourceBytes, count * Unsafe.SizeOf<TPixel>(), nameof(sourceBytes));
-            Guard.MustBeSizedAtLeast(destColors, count, nameof(destColors));
-
-            ref TPixel sourceRef = ref Unsafe.As<byte, TPixel>(ref sourceBytes.DangerousGetPinnableReference());
-            ref TPixel destRef = ref destColors.DangerousGetPinnableReference();
-
-            for (int i = 0; i < count; i++)
-            {
-                ref TPixel sp = ref Unsafe.Add(ref sourceRef, i);
-                ref TPixel dp = ref Unsafe.Add(ref destRef, i);
-                dp = sp;
-            }
-        }
     }
 }

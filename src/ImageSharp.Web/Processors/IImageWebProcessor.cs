@@ -33,7 +33,7 @@ namespace ImageSharp.Web.Processors
         /// <param name="logger">The type used for performing logging</param>
         /// <param name="commands">The querystring collection containing the processing commands</param>
         /// <returns>The <see cref="Image{TPixel}"/></returns>
-        Image<TPixel> Process<TPixel>(Image<TPixel> image, HttpContext context, IHostingEnvironment environment, ILogger logger, IQueryCollection commands)
+        Image<TPixel> Process<TPixel>(Image<TPixel> image, HttpContext context, IHostingEnvironment environment, ILogger logger, IDictionary<string, string> commands)
             where TPixel : struct, IPixel<TPixel>;
     }
 }

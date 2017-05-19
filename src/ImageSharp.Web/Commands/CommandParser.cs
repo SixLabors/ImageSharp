@@ -11,6 +11,7 @@ namespace ImageSharp.Web.Commands
     using System.Globalization;
     using System.Linq.Expressions;
     using System.Net;
+    using ImageSharp.Web.Commands.Converters;
 
     /// <summary>
     /// Parses querystring values into usable commands for processors.

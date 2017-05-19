@@ -11,13 +11,12 @@ namespace ImageSharp.Web.Middleware
     using System.IO;
     using System.Linq;
     using System.Threading.Tasks;
-
     using ImageSharp.Memory;
     using ImageSharp.Web.Caching;
+    using ImageSharp.Web.Commands;
     using ImageSharp.Web.Helpers;
     using ImageSharp.Web.Processors;
     using ImageSharp.Web.Services;
-
     using Microsoft.AspNetCore.Hosting;
     using Microsoft.AspNetCore.Http;
     using Microsoft.Extensions.Logging;
@@ -44,6 +43,16 @@ namespace ImageSharp.Web.Middleware
         private readonly IHostingEnvironment environment;
 
         /// <summary>
+        /// The uri parser from extracting image processing commands.
+        /// </summary>
+        private readonly IUriParser uriParser;
+
+        /// <summary>
+        /// The collection of avilable processors.
+        /// </summary>
+        private readonly IEnumerable<IImageWebProcessor> processors;
+
+        /// <summary>
         /// The type used for performing logging.
         /// </summary>
         private readonly ILogger logger;
@@ -51,11 +60,13 @@ namespace ImageSharp.Web.Middleware
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageSharpMiddleware"/> class.
         /// </summary>
-        /// <param name="next">The next middleware in the pipeline.</param>
-        /// <param name="environment">The <see cref="IHostingEnvironment"/> used by this middleware.</param>
-        /// <param name="options">The configuration options.</param>
-        /// <param name="loggerFactory">An <see cref="ILoggerFactory"/> instance used to create loggers.</param>
-        public ImageSharpMiddleware(RequestDelegate next, IHostingEnvironment environment, IOptions<ImageSharpMiddlewareOptions> options, ILoggerFactory loggerFactory)
+        /// <param name="next">The next middleware in the pipeline</param>
+        /// <param name="environment">The <see cref="IHostingEnvironment"/> used by this middleware</param>
+        /// <param name="uriParser">The uri parser for extracting commands</param>
+        /// <param name="processors">The collection of available processors</param>
+        /// <param name="options">The configuration options</param>
+        /// <param name="loggerFactory">An <see cref="ILoggerFactory"/> instance used to create loggers</param>
+        public ImageSharpMiddleware(RequestDelegate next, IHostingEnvironment environment, IUriParser uriParser, IEnumerable<IImageWebProcessor> processors, IOptions<ImageSharpMiddlewareOptions> options, ILoggerFactory loggerFactory)
         {
             Guard.NotNull(next, nameof(next));
             Guard.NotNull(environment, nameof(environment));
@@ -64,6 +75,8 @@ namespace ImageSharp.Web.Middleware
 
             this.next = next;
             this.environment = environment;
+            this.uriParser = uriParser;
+            this.processors = processors;
             this.options = options.Value;
             this.logger = loggerFactory.CreateLogger<ImageSharpMiddleware>();
         }
@@ -78,9 +91,9 @@ namespace ImageSharp.Web.Middleware
             // TODO: Parse the request path and application path?
             PathString path = context.Request.Path;
             PathString applicationPath = context.Request.PathBase;
-            IQueryCollection query = context.Request.Query;
+            IDictionary<string, string> commands = this.uriParser.ParseUriCommands(context);
 
-            if (!query.Any())
+            if (!commands.Any())
             {
                 // Nothing to do. call the next delegate/middleware in the pipeline
                 await this.next(context);
@@ -101,7 +114,7 @@ namespace ImageSharp.Web.Middleware
             IImageCache cache = this.options.Cache;
 
             // TODO: Add event handler to allow augmenting the querystring value.
-            string uri = path + QueryString.Create(query);
+            string uri = path + QueryString.Create(commands);
             string key = CacheHash.Create(uri, this.options.Configuration);
 
             CachedInfo info = await cache.IsExpiredAsync(this.environment, key, DateTime.UtcNow.AddDays(-this.options.MaxCacheDays));
@@ -128,7 +141,7 @@ namespace ImageSharp.Web.Middleware
                 outStream = new MemoryStream();
                 using (var image = Image.Load(this.options.Configuration, inStream))
                 {
-                    image.Process(context, this.environment, this.logger, this.options, query)
+                    image.Process(context, this.environment, this.logger, this.processors, commands)
                          .Save(outStream);
                 }
 

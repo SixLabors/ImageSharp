@@ -16,7 +16,7 @@ namespace ImageSharp.Web.DependencyInjection
     public static class ApplicationBuilderExtensions
     {
         /// <summary>
-        /// Enables URI API image serving with the default options
+        /// Registers the ImageSharp middleware with the default options
         /// </summary>
         /// <param name="app">The application with the mechanism to configure a request pipeline</param>
         /// <returns><see cref="IApplicationBuilder"/></returns>
@@ -28,7 +28,7 @@ namespace ImageSharp.Web.DependencyInjection
         }
 
         /// <summary>
-        /// Enables URI API image serving with the given options
+        /// Registers the ImageSharp middleware with the given options
         /// </summary>
         /// <param name="app">The application with the mechanism to configure a request pipeline</param>
         /// <param name="options">The middleware options.</param>

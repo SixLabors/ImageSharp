@@ -30,14 +30,6 @@ namespace ImageSharp.Web.Middleware
         };
 
         /// <summary>
-        /// Gets or sets the collecion of image processors.
-        /// </summary>
-        public IList<IImageWebProcessor> Processors { get; set; } = new List<IImageWebProcessor>
-        {
-            new ResizeWebProcessor()
-        };
-
-        /// <summary>
         /// Gets or sets the cache.
         /// </summary>
         public IImageCache Cache { get; set; } = new PhysicalFileSystemCache();

@@ -5,6 +5,7 @@
 
 namespace ImageSharp.Web.Processors
 {
+    using System.Collections.Generic;
     using ImageSharp.PixelFormats;
     using ImageSharp.Web.Middleware;
 
@@ -25,14 +26,14 @@ namespace ImageSharp.Web.Processors
         /// <param name="context">The current HTTP request context</param>
         /// <param name="environment">The <see cref="IHostingEnvironment"/> used by this middleware</param>
         /// <param name="logger">The type used for performing logging</param>
-        /// <param name="options">The middleware options</param>
+        /// <param name="processors">The collection of available processors</param>
         /// <param name="commands">The querystring collection containing the processing commands</param>
         /// <returns>The <see cref="Image{TPixel}"/></returns>
         /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image</remarks>
-        public static Image<TPixel> Process<TPixel>(this Image<TPixel> source, HttpContext context, IHostingEnvironment environment, ILogger logger, ImageSharpMiddlewareOptions options, IQueryCollection commands)
+        public static Image<TPixel> Process<TPixel>(this Image<TPixel> source, HttpContext context, IHostingEnvironment environment, ILogger logger, IEnumerable<IImageWebProcessor> processors, IDictionary<string, string> commands)
             where TPixel : struct, IPixel<TPixel>
         {
-            foreach (IImageWebProcessor processor in options.Processors)
+            foreach (IImageWebProcessor processor in processors)
             {
                 source = processor.Process(source, context, environment, logger, commands);
             }

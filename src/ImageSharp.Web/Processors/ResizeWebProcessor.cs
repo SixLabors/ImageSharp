@@ -43,7 +43,7 @@ namespace ImageSharp.Web.Processors
         public IEnumerable<string> Commands => ResizeCommands;
 
         /// <inheritdoc/>
-        public Image<TPixel> Process<TPixel>(Image<TPixel> image, HttpContext context, IHostingEnvironment environment, ILogger logger, IQueryCollection commands)
+        public Image<TPixel> Process<TPixel>(Image<TPixel> image, HttpContext context, IHostingEnvironment environment, ILogger logger, IDictionary<string, string> commands)
             where TPixel : struct, IPixel<TPixel>
         {
             ResizeOptions options = GetResizeOptions(commands);
@@ -51,7 +51,7 @@ namespace ImageSharp.Web.Processors
             return options == null ? image : image.Resize(options);
         }
 
-        private static ResizeOptions GetResizeOptions(IQueryCollection commands)
+        private static ResizeOptions GetResizeOptions(IDictionary<string, string> commands)
         {
             if (!commands.ContainsKey(Width) && !commands.ContainsKey(Height))
             {
@@ -77,32 +77,32 @@ namespace ImageSharp.Web.Processors
             return options;
         }
 
-        private static Size ParseSize(IQueryCollection commands, CommandParser parser)
+        private static Size ParseSize(IDictionary<string, string> commands, CommandParser parser)
         {
-            int width = parser.ParseValue<int>(commands[Width]);
-            int height = parser.ParseValue<int>(commands[Height]);
+            int width = parser.ParseValue<int>(commands.GetValueOrDefault(Width));
+            int height = parser.ParseValue<int>(commands.GetValueOrDefault(Height));
 
             return new Size(width, height);
         }
 
-        private static float[] GetCenter(IQueryCollection commands, CommandParser parser)
+        private static float[] GetCenter(IDictionary<string, string> commands, CommandParser parser)
         {
-            return parser.ParseValue<float[]>(commands[Xy]);
+            return parser.ParseValue<float[]>(commands.GetValueOrDefault(Xy));
         }
 
-        private static ResizeMode GetMode(IQueryCollection commands, CommandParser parser)
+        private static ResizeMode GetMode(IDictionary<string, string> commands, CommandParser parser)
         {
-            return parser.ParseValue<ResizeMode>(commands[Mode]);
+            return parser.ParseValue<ResizeMode>(commands.GetValueOrDefault(Mode));
         }
 
-        private static bool GetCompandMode(IQueryCollection commands, CommandParser parser)
+        private static bool GetCompandMode(IDictionary<string, string> commands, CommandParser parser)
         {
-            return parser.ParseValue<bool>(commands[Compand]);
+            return parser.ParseValue<bool>(commands.GetValueOrDefault(Compand));
         }
 
-        private static IResampler GetSampler(IQueryCollection commands)
+        private static IResampler GetSampler(IDictionary<string, string> commands)
         {
-            string sampler = commands[Sampler];
+            string sampler = commands.GetValueOrDefault(Sampler);
 
             if (sampler != null)
             {

@@ -19,7 +19,7 @@ namespace ImageSharp.Web.DependencyInjection
         /// </summary>
         /// <param name="services">The contract for the collection of service descriptors</param>
         /// <returns><see cref="IServiceCollection"/></returns>
-        public static IServiceCollection UseImageSharpServices(this IServiceCollection services)
+        public static IServiceCollection AddImageSharp(this IServiceCollection services)
         {
             Guard.NotNull(services, nameof(services));
 
@@ -32,7 +32,7 @@ namespace ImageSharp.Web.DependencyInjection
         /// <param name="services">The contract for the collection of service descriptors</param>
         /// <typeparam name="TOptions">The configuration options.</typeparam>
         /// <returns><see cref="IServiceCollection"/></returns>
-        public static IServiceCollection UseImageSharpServices<TOptions>(this IServiceCollection services)
+        public static IServiceCollection AddImageSharp<TOptions>(this IServiceCollection services)
             where TOptions : class, IConfigureOptions<ImageSharpMiddlewareOptions>
         {
             Guard.NotNull(services, nameof(services));

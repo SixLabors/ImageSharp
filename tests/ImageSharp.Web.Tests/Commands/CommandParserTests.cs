@@ -36,7 +36,7 @@
             Assert.Equal(1, i);
 
             uint ui = CommandParser.Instance.ParseValue<uint>(param);
-            Assert.NotNull(i);
+            Assert.NotNull(ui);
             Assert.Equal(1u, ui);
 
             long l = CommandParser.Instance.ParseValue<long>(param);

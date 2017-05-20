@@ -5,6 +5,7 @@
 
 namespace ImageSharp.Web.Processors
 {
+    using System;
     using System.Collections.Generic;
     using ImageSharp.PixelFormats;
     using ImageSharp.Processing;
@@ -56,9 +57,16 @@ namespace ImageSharp.Web.Processors
             }
 
             CommandParser parser = CommandParser.Instance;
+            Size size = ParseSize(commands, parser);
+
+            if (size.Width <= 0 && size.Height <= 0)
+            {
+                return null;
+            }
+
             var options = new ResizeOptions
             {
-                Size = ParseSize(commands, parser),
+                Size = size,
                 CenterCoordinates = GetCenter(commands, parser),
                 Mode = GetMode(commands, parser),
                 Compand = GetCompandMode(commands, parser)
@@ -76,10 +84,11 @@ namespace ImageSharp.Web.Processors
 
         private static Size ParseSize(IDictionary<string, string> commands, CommandParser parser)
         {
-            int width = parser.ParseValue<int>(commands.GetValueOrDefault(Width));
-            int height = parser.ParseValue<int>(commands.GetValueOrDefault(Height));
+            // The command parser will reject negative numbers as it clamps values to ranges.
+            uint width = parser.ParseValue<uint>(commands.GetValueOrDefault(Width));
+            uint height = parser.ParseValue<uint>(commands.GetValueOrDefault(Height));
 
-            return new Size(width, height);
+            return new Size((int)width, (int)height);
         }
 
         private static float[] GetCenter(IDictionary<string, string> commands, CommandParser parser)

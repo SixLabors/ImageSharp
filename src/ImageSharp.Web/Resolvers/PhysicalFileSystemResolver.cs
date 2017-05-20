@@ -1,9 +1,9 @@
-﻿// <copyright file="PhysicalFileImageService.cs" company="James Jackson-South">
+﻿// <copyright file="PhysicalFileSystemResolver.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.Web.Services
+namespace ImageSharp.Web.Resolvers
 {
     using System.Collections.Generic;
     using System.IO;
@@ -19,7 +19,7 @@ namespace ImageSharp.Web.Services
     /// <summary>
     /// Returns images stored in the local physical file system.
     /// </summary>
-    public class PhysicalFileImageService : IImageService
+    public class PhysicalFileSystemResolver : IImageResolver
     {
         /// <summary>
         /// The hosting environment the application is running in.
@@ -27,10 +27,10 @@ namespace ImageSharp.Web.Services
         private readonly IHostingEnvironment environment;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="PhysicalFileImageService"/> class.
+        /// Initializes a new instance of the <see cref="PhysicalFileSystemResolver"/> class.
         /// </summary>
         /// <param name="environment">The <see cref="IHostingEnvironment"/> used by this middleware</param>
-        public PhysicalFileImageService(IHostingEnvironment environment)
+        public PhysicalFileSystemResolver(IHostingEnvironment environment)
         {
             this.environment = environment;
         }

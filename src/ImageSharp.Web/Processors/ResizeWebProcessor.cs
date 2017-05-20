@@ -5,7 +5,6 @@
 
 namespace ImageSharp.Web.Processors
 {
-    using System;
     using System.Collections.Generic;
     using ImageSharp.PixelFormats;
     using ImageSharp.Processing;

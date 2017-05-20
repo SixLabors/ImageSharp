@@ -15,7 +15,7 @@ namespace ImageSharp.Web.Middleware
     using ImageSharp.Web.Caching;
     using ImageSharp.Web.Helpers;
     using ImageSharp.Web.Processors;
-    using ImageSharp.Web.Services;
+    using ImageSharp.Web.Resolvers;
     using Microsoft.AspNetCore.Hosting;
     using Microsoft.AspNetCore.Http;
     using Microsoft.Extensions.Logging;
@@ -86,7 +86,7 @@ namespace ImageSharp.Web.Middleware
             }
 
             // Get the correct service for the request.
-            IImageService service = await this.AssignServiceAsync(context, path, applicationPath);
+            IImageResolver service = await this.AssignServiceAsync(context, path, applicationPath);
 
             if (service == null)
             {
@@ -201,14 +201,14 @@ namespace ImageSharp.Web.Middleware
             }
         }
 
-        private async Task<IImageService> AssignServiceAsync(HttpContext context, string uri, string applicationPath)
+        private async Task<IImageResolver> AssignServiceAsync(HttpContext context, string uri, string applicationPath)
         {
-            IList<IImageService> services = this.options.Services;
+            IList<IImageResolver> services = this.options.Services;
 
             // Remove the Application Path from the Request.Path.
             // This allows applications running on localhost as sub applications to work.
             string path = uri.TrimStart(applicationPath.ToCharArray());
-            foreach (IImageService service in services)
+            foreach (IImageResolver service in services)
             {
                 string key = service.Key;
                 if (string.IsNullOrWhiteSpace(key) || !path.StartsWith(key, StringComparison.OrdinalIgnoreCase))
@@ -223,9 +223,9 @@ namespace ImageSharp.Web.Middleware
             }
 
             // Return the file based service.
-            Type physicalType = typeof(PhysicalFileImageService);
+            Type physicalType = typeof(PhysicalFileSystemResolver);
 
-            IImageService physicalService = services.FirstOrDefault(s => s.GetType() == physicalType);
+            IImageResolver physicalService = services.FirstOrDefault(s => s.GetType() == physicalType);
             if (physicalService != null)
             {
                 if (await physicalService.IsValidRequestAsync(context, this.logger, path))
@@ -235,7 +235,7 @@ namespace ImageSharp.Web.Middleware
             }
 
             // Return the next unprefixed service.
-            foreach (IImageService service in services.Where(s => string.IsNullOrEmpty(s.Key) && s.GetType() != physicalType))
+            foreach (IImageResolver service in services.Where(s => string.IsNullOrEmpty(s.Key) && s.GetType() != physicalType))
             {
                 if (await service.IsValidRequestAsync(context, this.logger, path))
                 {

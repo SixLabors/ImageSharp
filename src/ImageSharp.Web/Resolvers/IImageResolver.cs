@@ -1,9 +1,9 @@
-﻿// <copyright file="IImageService.cs" company="James Jackson-South">
+﻿// <copyright file="IImageResolver.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.Web.Services
+namespace ImageSharp.Web.Resolvers
 {
     using System.Collections.Generic;
     using System.Threading.Tasks;
@@ -13,7 +13,7 @@ namespace ImageSharp.Web.Services
     /// <summary>
     /// Specifies the contract for returning images from different locations.
     /// </summary>
-    public interface IImageService
+    public interface IImageResolver
     {
         /// <summary>
         /// Gets or sets the service key.

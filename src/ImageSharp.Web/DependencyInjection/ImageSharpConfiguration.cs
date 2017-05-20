@@ -11,7 +11,7 @@ namespace ImageSharp.Web.DependencyInjection
     using ImageSharp.Web.Commands;
     using ImageSharp.Web.Middleware;
     using ImageSharp.Web.Processors;
-    using ImageSharp.Web.Services;
+    using ImageSharp.Web.Resolvers;
 
     using Microsoft.AspNetCore.Hosting;
     using Microsoft.Extensions.Options;
@@ -42,7 +42,7 @@ namespace ImageSharp.Web.DependencyInjection
             options.Cache = new PhysicalFileSystemCache(this.environment);
             options.MaxCacheDays = 365;
             options.UriParser = new QueryCollectionUriParser();
-            options.Services = new List<IImageService> { new PhysicalFileImageService(this.environment) };
+            options.Services = new List<IImageResolver> { new PhysicalFileSystemResolver(this.environment) };
             options.Processors = new List<IImageWebProcessor> { new ResizeWebProcessor() };
         }
     }

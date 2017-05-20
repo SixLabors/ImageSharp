@@ -30,7 +30,7 @@ namespace ImageSharp.Web.Middleware
         /// <summary>
         /// Gets or sets the collecion of image services.
         /// </summary>
-        public IList<IImageService> Services { get; set; } = new List<IImageService>();
+        public IList<IImageResolver> Services { get; set; } = new List<IImageResolver>();
 
         /// <summary>
         /// Gets or sets the collecion of image processors.

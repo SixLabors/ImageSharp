@@ -16,13 +16,40 @@ namespace ImageSharp.Web.Processors
     /// </summary>
     public class ResizeWebProcessor : IImageWebProcessor
     {
-        private const string Width = "width";
-        private const string Height = "height";
-        private const string Xy = "rxy";
-        private const string Mode = "rmode";
-        private const string Sampler = "rsampler";
-        private const string Anchor = "ranchor";
-        private const string Compand = "compand";
+        /// <summary>
+        /// The command constant for the resize width
+        /// </summary>
+        public const string Width = "width";
+
+        /// <summary>
+        /// The command constant for the resize height
+        /// </summary>
+        public const string Height = "height";
+
+        /// <summary>
+        /// The command constant for the resize focal point coordinates
+        /// </summary>
+        public const string Xy = "rxy";
+
+        /// <summary>
+        /// The command constant for the resize mode
+        /// </summary>
+        public const string Mode = "rmode";
+
+        /// <summary>
+        /// The command constant for the resize sampler
+        /// </summary>
+        public const string Sampler = "rsampler";
+
+        /// <summary>
+        /// The command constant for the resize sampler
+        /// </summary>
+        public const string Anchor = "ranchor";
+
+        /// <summary>
+        /// The command constant for the resize compand mode
+        /// </summary>
+        public const string Compand = "compand";
 
         private static readonly IEnumerable<string> ResizeCommands
             = new[]
@@ -67,8 +94,9 @@ namespace ImageSharp.Web.Processors
             {
                 Size = size,
                 CenterCoordinates = GetCenter(commands, parser),
+                Position = GetAnchor(commands, parser),
                 Mode = GetMode(commands, parser),
-                Compand = GetCompandMode(commands, parser)
+                Compand = GetCompandMode(commands, parser),
             };
 
             // Defaults to Bicubic if not set.
@@ -98,6 +126,11 @@ namespace ImageSharp.Web.Processors
         private static ResizeMode GetMode(IDictionary<string, string> commands, CommandParser parser)
         {
             return parser.ParseValue<ResizeMode>(commands.GetValueOrDefault(Mode));
+        }
+
+        private static AnchorPosition GetAnchor(IDictionary<string, string> commands, CommandParser parser)
+        {
+            return parser.ParseValue<AnchorPosition>(commands.GetValueOrDefault(Anchor));
         }
 
         private static bool GetCompandMode(IDictionary<string, string> commands, CommandParser parser)

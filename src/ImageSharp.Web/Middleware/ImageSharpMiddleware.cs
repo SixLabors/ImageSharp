@@ -47,6 +47,11 @@ namespace ImageSharp.Web.Middleware
         private readonly ILogger logger;
 
         /// <summary>
+        /// The collection of known commands gathered from the processors.
+        /// </summary>
+        private readonly IEnumerable<string> knownCommands;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="ImageSharpMiddleware"/> class.
         /// </summary>
         /// <param name="next">The next middleware in the pipeline</param>
@@ -63,6 +68,15 @@ namespace ImageSharp.Web.Middleware
             this.next = next;
             this.environment = environment;
             this.options = options.Value;
+
+            var commands = new List<string>();
+            foreach (IImageWebProcessor processor in this.options.Processors)
+            {
+                commands.AddRange(processor.Commands);
+            }
+
+            this.knownCommands = commands;
+
             this.logger = loggerFactory.CreateLogger<ImageSharpMiddleware>();
         }
 
@@ -75,8 +89,9 @@ namespace ImageSharp.Web.Middleware
         {
             IDictionary<string, string> commands = this.options.UriParser.ParseUriCommands(context);
 
-            // TODO: Add event handler to allow augmenting the querystring value.
-            if (!commands.Any())
+            this.options.OnValidate(commands);
+
+            if (!commands.Any() || !commands.Keys.Intersect(this.knownCommands).Any())
             {
                 // Nothing to do. call the next delegate/middleware in the pipeline
                 await this.next(context);

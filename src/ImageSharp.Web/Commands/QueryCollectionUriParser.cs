@@ -5,6 +5,7 @@
 
 namespace ImageSharp.Web.Commands
 {
+    using System;
     using System.Collections.Generic;
     using System.Linq;
 
@@ -21,7 +22,7 @@ namespace ImageSharp.Web.Commands
         {
             if (!context.Request.Query.Any())
             {
-                return new Dictionary<string, string>();
+                return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             }
 
             return QueryHelpers.ParseQuery(context.Request.QueryString.ToUriComponent())

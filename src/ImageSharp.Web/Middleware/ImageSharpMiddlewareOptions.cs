@@ -5,6 +5,7 @@
 
 namespace ImageSharp.Web.Middleware
 {
+    using System;
     using System.Collections.Generic;
 
     using ImageSharp.Web.Caching;
@@ -46,5 +47,23 @@ namespace ImageSharp.Web.Middleware
         /// Gets or sets the number of days to store images in the cache.
         /// </summary>
         public int MaxCacheDays { get; set; }
+
+        /// <summary>
+        /// Gets or sets the additional validation method used to augment commands.
+        /// This is called once the commands have been gathered and before an <see cref="IImageResolver"/> has been assigned.
+        /// Emptying the dictionary will ensure that the middleware will ignore the request.
+        /// </summary>
+        public Action<IDictionary<string, string>> OnValidate { get; set; } = (commands) =>
+        {
+            CommandParser parser = CommandParser.Instance;
+            uint width = parser.ParseValue<uint>(commands.GetValueOrDefault(ResizeWebProcessor.Width));
+            uint height = parser.ParseValue<uint>(commands.GetValueOrDefault(ResizeWebProcessor.Height));
+
+            if (width > 4000 && height > 4000)
+            {
+                commands.Remove(ResizeWebProcessor.Width);
+                commands.Remove(ResizeWebProcessor.Height);
+            }
+        };
     }
 }

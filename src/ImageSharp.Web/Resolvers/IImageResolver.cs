@@ -41,7 +41,6 @@ namespace ImageSharp.Web.Resolvers
         /// </summary>
         /// <param name="context">The current HTTP request context</param>
         /// <param name="logger">The type used for performing logging.</param>
-        /// <param name="path">The path to the image.</param>
         /// <returns>The <see cref="T:Task{Byte[]}"/></returns>
         Task<byte[]> ResolveImageAsync(HttpContext context, ILogger logger);
     }

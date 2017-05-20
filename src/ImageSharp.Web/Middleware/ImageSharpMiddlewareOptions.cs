@@ -10,7 +10,7 @@ namespace ImageSharp.Web.Middleware
     using ImageSharp.Web.Caching;
     using ImageSharp.Web.Commands;
     using ImageSharp.Web.Processors;
-    using ImageSharp.Web.Services;
+    using ImageSharp.Web.Resolvers;
 
     /// <summary>
     /// Configuration options for the ImageSharp middleware.
@@ -28,9 +28,9 @@ namespace ImageSharp.Web.Middleware
         public IUriParser UriParser { get; set; }
 
         /// <summary>
-        /// Gets or sets the collecion of image services.
+        /// Gets or sets the collecion of image resolvers.
         /// </summary>
-        public IList<IImageResolver> Services { get; set; } = new List<IImageResolver>();
+        public IList<IImageResolver> Resolvers { get; set; } = new List<IImageResolver>();
 
         /// <summary>
         /// Gets or sets the collecion of image processors.

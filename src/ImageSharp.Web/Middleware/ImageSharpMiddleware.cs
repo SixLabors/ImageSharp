@@ -73,11 +73,9 @@ namespace ImageSharp.Web.Middleware
         /// <returns>The <see cref="Task"/></returns>
         public async Task Invoke(HttpContext context)
         {
-            // TODO: Parse the request path and application path?
-            PathString path = context.Request.Path;
-            PathString applicationPath = context.Request.PathBase;
             IDictionary<string, string> commands = this.options.UriParser.ParseUriCommands(context);
 
+            // TODO: Add event handler to allow augmenting the querystring value.
             if (!commands.Any())
             {
                 // Nothing to do. call the next delegate/middleware in the pipeline
@@ -85,21 +83,19 @@ namespace ImageSharp.Web.Middleware
                 return;
             }
 
+            // TODO: Check querystring against list of known parameters. Only continue if valid.
             // Get the correct service for the request.
-            IImageResolver service = await this.AssignServiceAsync(context, path, applicationPath);
+            IImageResolver resolver = this.options.Resolvers.FirstOrDefault(r => r.Key(context));
 
-            if (service == null)
+            if (resolver == null || !await resolver.IsValidRequestAsync(context, this.logger))
             {
                 // Nothing to do. call the next delegate/middleware in the pipeline
                 await this.next(context);
                 return;
             }
 
-            // TODO: Check querystring against list of known parameters. Only continue if valid.
+            string uri = context.Request.Path + QueryString.Create(commands);
             IImageCache cache = this.options.Cache;
-
-            // TODO: Add event handler to allow augmenting the querystring value.
-            string uri = path + QueryString.Create(commands);
             string key = CacheHash.Create(uri, this.options.Configuration);
 
             CachedInfo info = await cache.IsExpiredAsync(key, DateTime.UtcNow.AddDays(-this.options.MaxCacheDays));
@@ -114,7 +110,9 @@ namespace ImageSharp.Web.Middleware
             }
 
             // Not cached? Let's get it from the image service.
-            byte[] inBuffer = await service.ResolveImageAsync(context, this.logger, path);
+            byte[] inBuffer = await resolver.ResolveImageAsync(context, this.logger);
+
+            // TODO: Empty buffer = 404?
             byte[] outBuffer = null;
             MemoryStream inStream = null;
             MemoryStream outStream = null;
@@ -199,51 +197,6 @@ namespace ImageSharp.Web.Middleware
                     Debug.Fail(exception.ToString());
                     throw exception;
             }
-        }
-
-        private async Task<IImageResolver> AssignServiceAsync(HttpContext context, string uri, string applicationPath)
-        {
-            IList<IImageResolver> services = this.options.Services;
-
-            // Remove the Application Path from the Request.Path.
-            // This allows applications running on localhost as sub applications to work.
-            string path = uri.TrimStart(applicationPath.ToCharArray());
-            foreach (IImageResolver service in services)
-            {
-                string key = service.Key;
-                if (string.IsNullOrWhiteSpace(key) || !path.StartsWith(key, StringComparison.OrdinalIgnoreCase))
-                {
-                    continue;
-                }
-
-                if (await service.IsValidRequestAsync(context, this.logger, path))
-                {
-                    return service;
-                }
-            }
-
-            // Return the file based service.
-            Type physicalType = typeof(PhysicalFileSystemResolver);
-
-            IImageResolver physicalService = services.FirstOrDefault(s => s.GetType() == physicalType);
-            if (physicalService != null)
-            {
-                if (await physicalService.IsValidRequestAsync(context, this.logger, path))
-                {
-                    return physicalService;
-                }
-            }
-
-            // Return the next unprefixed service.
-            foreach (IImageResolver service in services.Where(s => string.IsNullOrEmpty(s.Key) && s.GetType() != physicalType))
-            {
-                if (await service.IsValidRequestAsync(context, this.logger, path))
-                {
-                    return service;
-                }
-            }
-
-            return null;
         }
     }
 }

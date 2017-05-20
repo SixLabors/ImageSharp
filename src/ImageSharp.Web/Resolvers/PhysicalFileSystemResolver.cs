@@ -5,6 +5,7 @@
 
 namespace ImageSharp.Web.Resolvers
 {
+    using System;
     using System.Collections.Generic;
     using System.IO;
     using System.Threading.Tasks;
@@ -36,13 +37,13 @@ namespace ImageSharp.Web.Resolvers
         }
 
         /// <inheritdoc/>
-        public string Key { get; set; }
+        public Func<HttpContext, bool> Key { get; set; } = (c) => true;
 
         /// <inheritdoc/>
         public IDictionary<string, string> Settings { get; set; } = new Dictionary<string, string>();
 
         /// <inheritdoc/>
-        public async Task<bool> IsValidRequestAsync(HttpContext context, ILogger logger, string path)
+        public async Task<bool> IsValidRequestAsync(HttpContext context, ILogger logger)
         {
             // TODO: Either Write proper validation based on static FormatHelper (not written) in base library
             // Or can we get this from the request header (preferred here)?
@@ -50,11 +51,11 @@ namespace ImageSharp.Web.Resolvers
         }
 
         /// <inheritdoc/>
-        public async Task<byte[]> ResolveImageAsync(HttpContext context, ILogger logger, string path)
+        public async Task<byte[]> ResolveImageAsync(HttpContext context, ILogger logger)
         {
             // Path has already been correctly parsed before here.
             IFileProvider fileProvider = this.environment.WebRootFileProvider;
-            IFileInfo fileInfo = fileProvider.GetFileInfo(path);
+            IFileInfo fileInfo = fileProvider.GetFileInfo(context.Request.Path);
             byte[] buffer;
 
             // Check to see if the file exists.

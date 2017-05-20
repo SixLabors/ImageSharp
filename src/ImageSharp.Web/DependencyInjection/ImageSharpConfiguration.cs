@@ -42,7 +42,7 @@ namespace ImageSharp.Web.DependencyInjection
             options.Cache = new PhysicalFileSystemCache(this.environment);
             options.MaxCacheDays = 365;
             options.UriParser = new QueryCollectionUriParser();
-            options.Services = new List<IImageResolver> { new PhysicalFileSystemResolver(this.environment) };
+            options.Resolvers = new List<IImageResolver> { new PhysicalFileSystemResolver(this.environment) };
             options.Processors = new List<IImageWebProcessor> { new ResizeWebProcessor() };
         }
     }

@@ -5,6 +5,7 @@
 
 namespace ImageSharp.Web.Resolvers
 {
+    using System;
     using System.Collections.Generic;
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.Http;
@@ -16,9 +17,9 @@ namespace ImageSharp.Web.Resolvers
     public interface IImageResolver
     {
         /// <summary>
-        /// Gets or sets the service key.
+        /// Gets or sets the method used by the resolver to identify itself as the correct resolver to use.
         /// </summary>
-        string Key { get; set; }
+        Func<HttpContext, bool> Key { get; set; }
 
         /// <summary>
         /// Gets or sets any additional settings.
@@ -30,11 +31,10 @@ namespace ImageSharp.Web.Resolvers
         /// </summary>
         /// <param name="context">The current HTTP request context</param>
         /// <param name="logger">The type used for performing logging.</param>
-        /// <param name="path">The path to the image.</param>
         /// <returns>
         /// <returns>The <see cref="Task{Boolean}"/></returns>
         /// </returns>
-        Task<bool> IsValidRequestAsync(HttpContext context, ILogger logger, string path);
+        Task<bool> IsValidRequestAsync(HttpContext context, ILogger logger);
 
         /// <summary>
         /// Resolves the image in an asynchronous manner.
@@ -43,6 +43,6 @@ namespace ImageSharp.Web.Resolvers
         /// <param name="logger">The type used for performing logging.</param>
         /// <param name="path">The path to the image.</param>
         /// <returns>The <see cref="T:Task{Byte[]}"/></returns>
-        Task<byte[]> ResolveImageAsync(HttpContext context, ILogger logger, string path);
+        Task<byte[]> ResolveImageAsync(HttpContext context, ILogger logger);
     }
 }

@@ -526,6 +526,48 @@ namespace ImageSharp.Tests
             this.localDecoder.Verify(x => x.Decode<Rgba32>(Configuration.Default, this.DataStream, this.decoderOptions));
         }
 
+        [Fact]
+        public void LoadFromPixelData_Pixels()
+        {
+            var img = Image.LoadPixelData<Rgba32>(new Rgba32[] {
+                Rgba32.Black, Rgba32.White,
+                Rgba32.White, Rgba32.Black,
+            }, 2, 2);
+
+            Assert.NotNull(img);
+            using (var px = img.Lock())
+            {
+                Assert.Equal(Rgba32.Black, px[0, 0]);
+                Assert.Equal(Rgba32.White, px[0, 1]);
+
+                Assert.Equal(Rgba32.White, px[1, 0]);
+                Assert.Equal(Rgba32.Black, px[1, 1]);
+
+            }
+        }
+
+        [Fact]
+        public void LoadFromPixelData_Bytes()
+        {
+            var img = Image.LoadPixelData<Rgba32>(new byte[] {
+                0,0,0,255, // 0,0
+                255,255,255,255, // 0,1
+                255,255,255,255, // 1,0
+                0,0,0,255, // 1,1
+            }, 2, 2);
+
+            Assert.NotNull(img);
+            using (var px = img.Lock())
+            {
+                Assert.Equal(Rgba32.Black, px[0, 0]);
+                Assert.Equal(Rgba32.White, px[0, 1]);
+
+                Assert.Equal(Rgba32.White, px[1, 0]);
+                Assert.Equal(Rgba32.Black, px[1, 1]);
+
+            }
+        }
+
         public void Dispose()
         {
             // clean up the global object;

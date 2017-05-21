@@ -22,6 +22,8 @@ namespace ImageSharp.Web.Middleware
     {
         private readonly ImageSharpMiddlewareOptions options;
 
+        private readonly HttpContext context;
+
         private readonly HttpRequest request;
 
         private readonly HttpResponse response;
@@ -46,6 +48,7 @@ namespace ImageSharp.Web.Middleware
         /// <param name="options">The middleware options</param>
         public ImageContext(HttpContext context, ImageSharpMiddlewareOptions options)
         {
+            this.context = context;
             this.request = context.Request;
             this.response = context.Response;
 
@@ -194,7 +197,7 @@ namespace ImageSharp.Web.Middleware
                     MustRevalidate = true
                 };
 
-                // TODO: Cors
+                this.options.OnPrepareResponse(this.context);
             }
 
             if (statusCode == ResponseConstants.Status200Ok)

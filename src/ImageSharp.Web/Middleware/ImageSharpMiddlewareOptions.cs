@@ -51,12 +51,21 @@ namespace ImageSharp.Web.Middleware
         public int MaxCacheDays { get; set; }
 
         /// <summary>
+        /// Gets or sets the additional response method.
+        /// This is called after the status code and headers have been set, but before the body has been written.
+        /// This can be used to add or change the response headers.
+        /// </summary>
+        public Action<HttpContext> OnPrepareResponse { get; set; } = context => { };
+
+        /// <summary>
         /// Gets or sets the additional validation method used to augment commands.
         /// This is called once the commands have been gathered and before an <see cref="IImageResolver"/> has been assigned.
         /// Emptying the dictionary will ensure that the middleware will ignore the request.
         /// </summary>
         public Action<HttpContext, IDictionary<string, string>> OnValidate { get; set; } = (context, commands) =>
          {
+             // It's a good idea to have this to provide very basic security. We can safely use the static
+             // resize processor properties and the validation method will pass even if not installed.
              CommandParser parser = CommandParser.Instance;
              uint width = parser.ParseValue<uint>(commands.GetValueOrDefault(ResizeWebProcessor.Width));
              uint height = parser.ParseValue<uint>(commands.GetValueOrDefault(ResizeWebProcessor.Height));

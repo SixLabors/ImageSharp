@@ -13,6 +13,8 @@ namespace ImageSharp.Web.Middleware
     using ImageSharp.Web.Processors;
     using ImageSharp.Web.Resolvers;
 
+    using Microsoft.AspNetCore.Http;
+
     /// <summary>
     /// Configuration options for the ImageSharp middleware.
     /// </summary>
@@ -53,17 +55,17 @@ namespace ImageSharp.Web.Middleware
         /// This is called once the commands have been gathered and before an <see cref="IImageResolver"/> has been assigned.
         /// Emptying the dictionary will ensure that the middleware will ignore the request.
         /// </summary>
-        public Action<IDictionary<string, string>> OnValidate { get; set; } = (commands) =>
-        {
-            CommandParser parser = CommandParser.Instance;
-            uint width = parser.ParseValue<uint>(commands.GetValueOrDefault(ResizeWebProcessor.Width));
-            uint height = parser.ParseValue<uint>(commands.GetValueOrDefault(ResizeWebProcessor.Height));
+        public Action<HttpContext, IDictionary<string, string>> OnValidate { get; set; } = (context, commands) =>
+         {
+             CommandParser parser = CommandParser.Instance;
+             uint width = parser.ParseValue<uint>(commands.GetValueOrDefault(ResizeWebProcessor.Width));
+             uint height = parser.ParseValue<uint>(commands.GetValueOrDefault(ResizeWebProcessor.Height));
 
-            if (width > 4000 && height > 4000)
-            {
-                commands.Remove(ResizeWebProcessor.Width);
-                commands.Remove(ResizeWebProcessor.Height);
-            }
-        };
+             if (width > 4000 && height > 4000)
+             {
+                 commands.Remove(ResizeWebProcessor.Width);
+                 commands.Remove(ResizeWebProcessor.Height);
+             }
+         };
     }
 }

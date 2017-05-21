@@ -89,7 +89,7 @@ namespace ImageSharp.Web.Middleware
         {
             IDictionary<string, string> commands = this.options.UriParser.ParseUriCommands(context);
 
-            this.options.OnValidate(commands);
+            this.options.OnValidate(context, commands);
 
             if (!commands.Any() || !commands.Keys.Intersect(this.knownCommands).Any())
             {

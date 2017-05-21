@@ -101,7 +101,7 @@ namespace ImageSharp.Web.Middleware
             this.cache = cache;
 
             var commands = new List<string>();
-            foreach (IImageWebProcessor processor in processors)
+            foreach (IImageWebProcessor processor in this.processors)
             {
                 commands.AddRange(processor.Commands);
             }

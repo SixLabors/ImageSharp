@@ -19,5 +19,10 @@ namespace ImageSharp.Formats.Tiff
         /// Image data is compressed using PackBits compression.
         /// </summary>
         PackBits = 1,
+
+        /// <summary>
+        /// Image data is compressed using Deflate compression.
+        /// </summary>
+        Deflate = 2,
     }
 }

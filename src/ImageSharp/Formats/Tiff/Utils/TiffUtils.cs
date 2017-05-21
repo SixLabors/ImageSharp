@@ -34,5 +34,15 @@ namespace ImageSharp.Formats.Tiff
                 count -= bytesRead;
             }
         }
+
+        /// <summary>
+        /// Reads all bytes from the input stream into a buffer until the end of stream or the buffer is full.
+        /// </summary>
+        /// <param name="stream">The stream to read from.</param>
+        /// <param name="buffer">A buffer to store the retrieved data.</param>
+        public static void ReadFull(this Stream stream, byte[] buffer)
+        {
+            ReadFull(stream, buffer, buffer.Length);
+        }
     }
 }

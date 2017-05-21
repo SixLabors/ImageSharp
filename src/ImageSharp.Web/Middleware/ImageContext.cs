@@ -193,7 +193,7 @@ namespace ImageSharp.Web.Middleware
                 this.responseHeaders.CacheControl = new CacheControlHeaderValue
                 {
                     Public = true,
-                    MaxAge = new TimeSpan(this.options.MaxCacheDays, 0, 0, 0),
+                    MaxAge = new TimeSpan(this.options.MaxBrowserCacheDays, 0, 0, 0),
                     MustRevalidate = true
                 };
 

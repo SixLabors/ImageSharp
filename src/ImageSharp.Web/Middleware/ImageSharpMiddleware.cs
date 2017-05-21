@@ -13,10 +13,10 @@ namespace ImageSharp.Web.Middleware
     using System.Threading.Tasks;
     using ImageSharp.Memory;
     using ImageSharp.Web.Caching;
+    using ImageSharp.Web.Commands;
     using ImageSharp.Web.Helpers;
     using ImageSharp.Web.Processors;
     using ImageSharp.Web.Resolvers;
-    using Microsoft.AspNetCore.Hosting;
     using Microsoft.AspNetCore.Http;
     using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.Options;
@@ -37,14 +37,29 @@ namespace ImageSharp.Web.Middleware
         private readonly ImageSharpMiddlewareOptions options;
 
         /// <summary>
-        /// The hosting environment the application is running in.
-        /// </summary>
-        private readonly IHostingEnvironment environment;
-
-        /// <summary>
         /// The type used for performing logging.
         /// </summary>
         private readonly ILogger logger;
+
+        /// <summary>
+        /// The URI parser for parsing commands from the current request.
+        /// </summary>
+        private readonly IUriParser uriParser;
+
+        /// <summary>
+        /// The collection of image resolvers.
+        /// </summary>
+        private readonly IEnumerable<IImageResolver> resolvers;
+
+        /// <summary>
+        /// The collection of image processors.
+        /// </summary>
+        private readonly IEnumerable<IImageWebProcessor> processors;
+
+        /// <summary>
+        /// The image cache.
+        /// </summary>
+        private readonly IImageCache cache;
 
         /// <summary>
         /// The collection of known commands gathered from the processors.
@@ -55,22 +70,38 @@ namespace ImageSharp.Web.Middleware
         /// Initializes a new instance of the <see cref="ImageSharpMiddleware"/> class.
         /// </summary>
         /// <param name="next">The next middleware in the pipeline</param>
-        /// <param name="environment">The <see cref="IHostingEnvironment"/> used by this middleware</param>
         /// <param name="options">The configuration options</param>
         /// <param name="loggerFactory">An <see cref="ILoggerFactory"/> instance used to create loggers</param>
-        public ImageSharpMiddleware(RequestDelegate next, IHostingEnvironment environment, IOptions<ImageSharpMiddlewareOptions> options, ILoggerFactory loggerFactory)
+        /// <param name="uriParser">An <see cref="IUriParser"/> instance used to parse URI's for commands</param>
+        /// <param name="resolvers">A collection of <see cref="IImageResolver"/> instances used to resolve images</param>
+        /// <param name="processors">A collection of <see cref="IImageWebProcessor"/> instances used to process images</param>
+        /// <param name="cache">An <see cref="IImageCache"/> instance used for caching images</param>
+        public ImageSharpMiddleware(
+            RequestDelegate next,
+            IOptions<ImageSharpMiddlewareOptions> options,
+            ILoggerFactory loggerFactory,
+            IUriParser uriParser,
+            IEnumerable<IImageResolver> resolvers,
+            IEnumerable<IImageWebProcessor> processors,
+            IImageCache cache)
         {
             Guard.NotNull(next, nameof(next));
-            Guard.NotNull(environment, nameof(environment));
             Guard.NotNull(options, nameof(options));
             Guard.NotNull(loggerFactory, nameof(loggerFactory));
+            Guard.NotNull(uriParser, nameof(uriParser));
+            Guard.NotNull(resolvers, nameof(resolvers));
+            Guard.NotNull(processors, nameof(processors));
+            Guard.NotNull(cache, nameof(cache));
 
             this.next = next;
-            this.environment = environment;
             this.options = options.Value;
+            this.uriParser = uriParser;
+            this.resolvers = resolvers;
+            this.processors = processors;
+            this.cache = cache;
 
             var commands = new List<string>();
-            foreach (IImageWebProcessor processor in this.options.Processors)
+            foreach (IImageWebProcessor processor in processors)
             {
                 commands.AddRange(processor.Commands);
             }
@@ -87,7 +118,7 @@ namespace ImageSharp.Web.Middleware
         /// <returns>The <see cref="Task"/></returns>
         public async Task Invoke(HttpContext context)
         {
-            IDictionary<string, string> commands = this.options.UriParser.ParseUriCommands(context);
+            IDictionary<string, string> commands = this.uriParser.ParseUriCommands(context);
 
             this.options.OnValidate(context, commands);
 
@@ -98,9 +129,8 @@ namespace ImageSharp.Web.Middleware
                 return;
             }
 
-            // TODO: Check querystring against list of known parameters. Only continue if valid.
             // Get the correct service for the request.
-            IImageResolver resolver = this.options.Resolvers.FirstOrDefault(r => r.Key(context));
+            IImageResolver resolver = this.resolvers.FirstOrDefault(r => r.Key(context));
 
             if (resolver == null || !await resolver.IsValidRequestAsync(context, this.logger))
             {
@@ -110,17 +140,16 @@ namespace ImageSharp.Web.Middleware
             }
 
             string uri = context.Request.Path + QueryString.Create(commands);
-            IImageCache cache = this.options.Cache;
             string key = CacheHash.Create(uri, this.options.Configuration);
 
-            CachedInfo info = await cache.IsExpiredAsync(key, DateTime.UtcNow.AddDays(-this.options.MaxCacheDays));
+            CachedInfo info = await this.cache.IsExpiredAsync(key, DateTime.UtcNow.AddDays(-this.options.MaxCacheDays));
 
             var imageContext = new ImageContext(context, this.options);
 
             if (!info.Expired)
             {
                 // Image is a cached image. Return the correct response now.
-                await this.SendResponse(imageContext, cache, key, info.LastModifiedUtc, null, (int)info.Length);
+                await this.SendResponse(imageContext, key, info.LastModifiedUtc, null, (int)info.Length);
                 return;
             }
 
@@ -139,7 +168,7 @@ namespace ImageSharp.Web.Middleware
                 outStream = new MemoryStream();
                 using (var image = Image.Load(this.options.Configuration, inStream))
                 {
-                    image.Process(this.logger, this.options.Processors, commands)
+                    image.Process(this.logger, this.processors, commands)
                          .Save(outStream);
                 }
 
@@ -150,8 +179,8 @@ namespace ImageSharp.Web.Middleware
                 outBuffer = BufferDataPool.Rent(outLength);
                 await outStream.ReadAsync(outBuffer, 0, outLength);
 
-                DateTimeOffset cachedDate = await cache.SetAsync(key, outBuffer, outLength);
-                await this.SendResponse(imageContext, cache, key, cachedDate, outBuffer, outLength);
+                DateTimeOffset cachedDate = await this.cache.SetAsync(key, outBuffer, outLength);
+                await this.SendResponse(imageContext, key, cachedDate, outBuffer, outLength);
             }
             catch (Exception ex)
             {
@@ -169,7 +198,7 @@ namespace ImageSharp.Web.Middleware
             }
         }
 
-        private async Task SendResponse(ImageContext imageContext, IImageCache cache, string key, DateTimeOffset lastModified, byte[] buffer, int length)
+        private async Task SendResponse(ImageContext imageContext, string key, DateTimeOffset lastModified, byte[] buffer, int length)
         {
             imageContext.ComprehendRequestHeaders(lastModified, length);
 
@@ -188,7 +217,7 @@ namespace ImageSharp.Web.Middleware
                     if (buffer == null)
                     {
                         // We're pulling the buffer from the cache. This should be pooled.
-                        CachedBuffer cachedBuffer = await cache.GetAsync(key);
+                        CachedBuffer cachedBuffer = await this.cache.GetAsync(key);
                         await imageContext.SendAsync(contentType, cachedBuffer.Buffer, cachedBuffer.Length);
                         BufferDataPool.Return(cachedBuffer.Buffer);
                     }

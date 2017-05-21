@@ -10,7 +10,11 @@ using Microsoft.Extensions.Logging;
 
 namespace ImageSharp.Web.Sample
 {
+    using ImageSharp.Web.Caching;
+    using ImageSharp.Web.Commands;
     using ImageSharp.Web.DependencyInjection;
+    using ImageSharp.Web.Processors;
+    using ImageSharp.Web.Resolvers;
 
     public class Startup
     {
@@ -18,7 +22,42 @@ namespace ImageSharp.Web.Sample
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
         {
+            // Add the default service and options.
             services.AddImageSharp();
+
+            //// Or add the default service and custom options.
+            //services.AddImageSharp(
+            //    options =>
+            //        {
+            //            options.MaxBrowserCacheDays = 7;
+            //            options.MaxCacheDays = 365;
+            //            options.OnValidate = (context, dictionary) => { };
+            //            options.OnPrepareResponse = context => { };
+            //        });
+
+            //// Or we can fine-grain control adding the default options and configure all other services.
+            //services.AddImageSharpCore()
+            //        .SetCache<PhysicalFileSystemCache>()
+            //        .SetUriParser<QueryCollectionUriParser>()
+            //        .AddResolver<PhysicalFileSystemResolver>()
+            //        .AddProcessor<ResizeWebProcessor>();
+
+
+            //// Or we can fine-grain control adding the default options and configure all other services.
+            //services.AddImageSharpCore(
+            //        options =>
+            //            {
+            //                options.MaxBrowserCacheDays = 7;
+            //                options.MaxCacheDays = 365;
+            //                options.OnValidate = (context, dictionary) => { };
+            //                options.OnPrepareResponse = context => { };
+            //            })
+            //        .SetCache<PhysicalFileSystemCache>()
+            //        .SetUriParser<QueryCollectionUriParser>()
+            //        .AddResolver<PhysicalFileSystemResolver>()
+            //        .AddProcessor<ResizeWebProcessor>();
+
+            // There are also factory methods for each builder that will allow building from configuration files.
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

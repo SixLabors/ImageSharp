@@ -29,7 +29,7 @@ namespace ImageSharp.Web.DependencyInjection
         public static IImageSharpCoreBuilder SetUriParser<TParser>(this IImageSharpCoreBuilder builder)
             where TParser : class, IUriParser
         {
-            builder.Services.TryAddSingleton<IUriParser, TParser>();
+            builder.Services.AddSingleton<IUriParser, TParser>();
             return builder;
         }
 
@@ -43,7 +43,7 @@ namespace ImageSharp.Web.DependencyInjection
         public static IImageSharpCoreBuilder SetUriParser<TParser>(this IImageSharpCoreBuilder builder, Func<IServiceProvider, TParser> implementationFactory)
             where TParser : class, IUriParser
         {
-            builder.Services.TryAddSingleton(implementationFactory);
+            builder.Services.AddSingleton(implementationFactory);
             return builder;
         }
 
@@ -56,7 +56,7 @@ namespace ImageSharp.Web.DependencyInjection
         public static IImageSharpCoreBuilder SetCache<TCache>(this IImageSharpCoreBuilder builder)
             where TCache : class, IImageCache
         {
-            builder.Services.TryAddSingleton<IImageCache, TCache>();
+            builder.Services.AddSingleton<IImageCache, TCache>();
             return builder;
         }
 
@@ -70,7 +70,7 @@ namespace ImageSharp.Web.DependencyInjection
         public static IImageSharpCoreBuilder SetCache<TCache>(this IImageSharpCoreBuilder builder, Func<IServiceProvider, TCache> implementationFactory)
             where TCache : class, IImageCache
         {
-            builder.Services.TryAddSingleton(implementationFactory);
+            builder.Services.AddSingleton(implementationFactory);
             return builder;
         }
 

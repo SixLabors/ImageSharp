@@ -29,31 +29,35 @@ namespace ImageSharp.Web.Sample
             //services.AddImageSharp(
             //    options =>
             //        {
+            //            options.Configuration = Configuration.Default;
             //            options.MaxBrowserCacheDays = 7;
             //            options.MaxCacheDays = 365;
-            //            options.OnValidate = (context, dictionary) => { };
-            //            options.OnPrepareResponse = context => { };
+            //            options.OnValidate = _ => { };
+            //            options.OnProcessed = _ => { };
+            //            options.OnPrepareResponse = _ => { };
             //        });
 
             //// Or we can fine-grain control adding the default options and configure all other services.
             //services.AddImageSharpCore()
-            //        .SetCache<PhysicalFileSystemCache>()
             //        .SetUriParser<QueryCollectionUriParser>()
+            //        .SetCache<PhysicalFileSystemCache>()
             //        .AddResolver<PhysicalFileSystemResolver>()
             //        .AddProcessor<ResizeWebProcessor>();
 
 
-            //// Or we can fine-grain control adding the default options and configure all other services.
+            //// Or we can fine-grain control adding custom options and configure all other services.
             //services.AddImageSharpCore(
             //        options =>
             //            {
+            //                options.Configuration = Configuration.Default;
             //                options.MaxBrowserCacheDays = 7;
             //                options.MaxCacheDays = 365;
-            //                options.OnValidate = (context, dictionary) => { };
-            //                options.OnPrepareResponse = context => { };
+            //                options.OnValidate = _ => { };
+            //                options.OnProcessed = _ => { };
+            //                options.OnPrepareResponse = _ => { };
             //            })
-            //        .SetCache<PhysicalFileSystemCache>()
             //        .SetUriParser<QueryCollectionUriParser>()
+            //        .SetCache<PhysicalFileSystemCache>()
             //        .AddResolver<PhysicalFileSystemResolver>()
             //        .AddProcessor<ResizeWebProcessor>();
 

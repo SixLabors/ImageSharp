@@ -14,7 +14,7 @@ namespace ImageSharp.Web.Commands
     using ImageSharp.Web.Commands.Converters;
 
     /// <summary>
-    /// Parses querystring values into usable commands for processors.
+    /// Parses URI derived command values into usable commands for processors.
     /// </summary>
     public class CommandParser
     {

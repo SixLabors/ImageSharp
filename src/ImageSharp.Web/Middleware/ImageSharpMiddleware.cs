@@ -11,12 +11,14 @@ namespace ImageSharp.Web.Middleware
     using System.IO;
     using System.Linq;
     using System.Threading.Tasks;
+
     using ImageSharp.Memory;
     using ImageSharp.Web.Caching;
     using ImageSharp.Web.Commands;
     using ImageSharp.Web.Helpers;
     using ImageSharp.Web.Processors;
     using ImageSharp.Web.Resolvers;
+
     using Microsoft.AspNetCore.Http;
     using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.Options;
@@ -119,8 +121,7 @@ namespace ImageSharp.Web.Middleware
         public async Task Invoke(HttpContext context)
         {
             IDictionary<string, string> commands = this.uriParser.ParseUriCommands(context);
-
-            this.options.OnValidate(context, commands);
+            this.options.OnValidate(new ImageValidationContext(context, commands, CommandParser.Instance));
 
             if (!commands.Any() || !commands.Keys.Intersect(this.knownCommands).Any())
             {
@@ -153,15 +154,21 @@ namespace ImageSharp.Web.Middleware
                 return;
             }
 
-            // Not cached? Let's get it from the image service.
-            byte[] inBuffer = await resolver.ResolveImageAsync(context, this.logger);
-
-            // TODO: Empty buffer = 404?
+            // Not cached? Let's get it from the image resolver.
+            byte[] inBuffer = null;
             byte[] outBuffer = null;
             MemoryStream inStream = null;
             MemoryStream outStream = null;
             try
             {
+                inBuffer = await resolver.ResolveImageAsync(context, this.logger);
+                if (inBuffer == null || inBuffer.Length == 0)
+                {
+                    // Nothing to do. Let the pipeline handle the 404
+                    await this.next(context);
+                    return;
+                }
+
                 // No allocations here for inStream since we are passing the buffer.
                 // TODO: How to prevent the allocation in outStream? Passing a pooled buffer won't let stream grow if needed.
                 inStream = new MemoryStream(inBuffer);
@@ -172,10 +179,13 @@ namespace ImageSharp.Web.Middleware
                          .Save(outStream);
                 }
 
-                // TODO: Add an event for post processing the image.
-                // Copy the outstream to the pooled buffer.
-                int outLength = (int)outStream.Position + 1;
+                // Allow for any further optimization of the image. ALways reset the position just in case.
                 outStream.Position = 0;
+                this.options.OnProcessed(new ImageProcessingContext(context, outStream, Path.GetExtension(key)));
+                outStream.Position = 0;
+                int outLength = (int)outStream.Length;
+
+                // Copy the outstream to the pooled buffer.
                 outBuffer = BufferDataPool.Rent(outLength);
                 await outStream.ReadAsync(outBuffer, 0, outLength);
 

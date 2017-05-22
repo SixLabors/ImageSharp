@@ -1,7 +1,9 @@
 ﻿namespace ImageSharp.Web.Tests.Commands
 {
     using System;
+    using System.Collections.Generic;
     using System.Globalization;
+    using System.Runtime.CompilerServices;
 
     using ImageSharp.Processing;
     using ImageSharp.Web.Commands;
@@ -129,6 +131,50 @@
 
             Assert.NotNull(mode);
             Assert.Equal(ResizeMode.Crop, mode);
+        }
+
+        [Fact]
+        public void CommandParsesIntegralArrays()
+        {
+            string param = "1,2,3,4";
+
+            int[] actual = CommandParser.Instance.ParseValue<int[]>(param);
+
+            Assert.NotNull(actual);
+            Assert.Equal(new[] { 1, 2, 3, 4 }, actual);
+        }
+
+        [Fact]
+        public void CommandParsesRealArrays()
+        {
+            string param = "1.667,2.667,3.667,4.667";
+
+            float[] actual = CommandParser.Instance.ParseValue<float[]>(param);
+
+            Assert.NotNull(actual);
+            Assert.Equal(new[] { 1.667F, 2.667F, 3.667F, 4.667F }, actual);
+        }
+
+        [Fact]
+        public void CommandParsesIntegralLists()
+        {
+            string param = "1,2,3,4";
+
+            List<int> actual = CommandParser.Instance.ParseValue<List<int>>(param);
+
+            Assert.NotNull(actual);
+            Assert.Equal(new List<int> { 1, 2, 3, 4 }, actual);
+        }
+
+        [Fact]
+        public void CommandParsesRealLists()
+        {
+            string param = "1.667,2.667,3.667,4.667";
+
+            List<float> actual = CommandParser.Instance.ParseValue<List<float>>(param);
+
+            Assert.NotNull(actual);
+            Assert.Equal(new List<float> { 1.667F, 2.667F, 3.667F, 4.667F }, actual);
         }
     }
 }

@@ -35,7 +35,7 @@ namespace ImageSharp.Web.Commands.Converters
 
                 foreach (string s in items)
                 {
-                    object item = paramConverter.ConvertFromInvariantString(s, propertyType);
+                    object item = paramConverter.ConvertFromInvariantString(s, type);
                     if (item != null)
                     {
                         result.Add((T)item);

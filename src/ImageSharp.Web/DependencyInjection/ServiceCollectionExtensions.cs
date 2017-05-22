@@ -34,13 +34,7 @@ namespace ImageSharp.Web.DependencyInjection
 
             IImageSharpCoreBuilder builder = AddImageSharpCore(services);
 
-            builder.SetUriParser<QueryCollectionUriParser>();
-
-            builder.SetCache<PhysicalFileSystemCache>();
-
-            builder.AddResolver<PhysicalFileSystemResolver>();
-
-            builder.AddProcessor<ResizeWebProcessor>();
+            AddDefaultServices(builder);
 
             return new ImageSharpBuilder(builder.Services);
         }
@@ -59,13 +53,7 @@ namespace ImageSharp.Web.DependencyInjection
 
             builder.Services.Configure(setupAction);
 
-            builder.SetUriParser<QueryCollectionUriParser>();
-
-            builder.SetCache<PhysicalFileSystemCache>();
-
-            builder.AddResolver<PhysicalFileSystemResolver>();
-
-            builder.AddProcessor<ResizeWebProcessor>();
+            AddDefaultServices(builder);
 
             return new ImageSharpBuilder(builder.Services);
         }
@@ -99,6 +87,22 @@ namespace ImageSharp.Web.DependencyInjection
             services.Configure(setupAction);
 
             return new ImageSharpCoreBuilder(services);
+        }
+
+        /// <summary>
+        /// Adds the default service to the service collection
+        /// </summary>
+        /// <param name="builder">The <see cref="IImageSharpCoreBuilder"/> that can be used to further configure the ImageSharp services</param>
+        private static void AddDefaultServices(IImageSharpCoreBuilder builder)
+        {
+            builder.SetUriParser<QueryCollectionUriParser>();
+
+            builder.SetCache<PhysicalFileSystemCache>();
+
+            builder.AddResolver<PhysicalFileSystemResolver>();
+
+            builder.AddProcessor<ResizeWebProcessor>()
+                   .AddProcessor<FormatWebProcessor>();
         }
     }
 }

@@ -1,5 +1,4 @@
 ﻿<!DOCTYPE html>
-
 <html>
 <head>
     <meta charset="utf-8" />
@@ -10,20 +9,24 @@
             font-family: BlinkMacSystemFont, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
 
+        h1, h2, h3 {
+            width: 100%;
+        }
+
         code {
             background-color: #f7f7f7;
             padding: .2rem;
-            box-shadow: 0px 2px 1px -1px rgba(0, 0, 0, 0.1), 0px 1px 1px 0px rgba(0, 0, 0, 0.07), 0px 1px 3px 0px rgba(0, 0, 0, 0.06);
+            box-shadow: 0 2px 1px -1px rgba(0, 0, 0, 0.1), 0 1px 1px 0 rgba(0, 0, 0, 0.07), 0 1px 3px 0 rgba(0, 0, 0, 0.06);
         }
 
-        main {
+        section {
             display: flex;
             flex-wrap: wrap;
         }
 
-        section {
-            flex: 0 0 50%;
-        }
+            section > div {
+                flex: 0 0 50%;
+            }
 
         img {
             border: 1px solid #e3e3e3;
@@ -34,28 +37,83 @@
     <h1>ImageSharp URI API Samples</h1>
     <main>
         <section>
-            <p><code>imagesharp-logo.png?width=300</code></p>
-            <p><img src="imagesharp-logo.png?width=300" /></p>
+            <h2>Resize</h2>
+            <div>
+                <p>
+                    <code>imagesharp-logo.png?width=300</code>
+                </p>
+                <p>
+                    <img src="imagesharp-logo.png?width=300" />
+                </p>
+            </div>
+            <div>
+                <p>
+                    <code>imagesharp-logo.png?width=300&height=200</code>
+                </p>
+                <p>
+                    <img src="imagesharp-logo.png?width=300&height=200" />
+                </p>
+            </div>
+            <div>
+                <p>
+                    <code>imagesharp-logo.png?width=300&height=200&rmode=stretch</code>
+                </p>
+                <p>
+                    <img src="imagesharp-logo.png?width=300&height=200&rmode=stretch" />
+                </p>
+            </div>
+            <div>
+                <p>
+                    <code>imagesharp-logo.png?width=300&height=200&rmode=pad</code>
+                </p>
+                <p>
+                    <img src="imagesharp-logo.png?width=300&height=200&rmode=pad" />
+                </p>
+            </div>
+            <div>
+                <p>
+                    <code>imagesharp-logo.png?width=300&rsampler=lanczos3</code>
+                </p>
+                <p>
+                    <img src="imagesharp-logo.png?width=300&rsampler=lanczos3" />
+                </p>
+            </div>
+            <div>
+                <p>
+                    <code>imagesharp-logo.png?width=300&rsampler=nearest</code>
+                </p>
+                <p>
+                    <img src="imagesharp-logo.png?width=300&rsampler=nearest" />
+                </p>
+            </div>
         </section>
+        <hr/>
         <section>
-            <p><code>imagesharp-logo.png?width=300&height=200</code></p>
-            <p><img src="imagesharp-logo.png?width=300&height=200" /></p>
-        </section>
-        <section>
-            <p><code>imagesharp-logo.png?width=300&height=200&rmode=stretch</code></p>
-            <p><img src="imagesharp-logo.png?width=300&height=200&rmode=stretch" /></p>
-        </section>
-        <section>
-            <p><code>imagesharp-logo.png?width=300&height=200&rmode=pad</code></p>
-            <p><img src="imagesharp-logo.png?width=300&height=200&rmode=pad" /></p>
-        </section>
-        <section>
-            <p><code>imagesharp-logo.png?width=300&rsampler=lanczos3</code></p>
-            <p><img src="imagesharp-logo.png?width=300&rsampler=lanczos3" /></p>
-        </section>
-        <section>
-            <p><code>imagesharp-logo.png?width=300&rsampler=nearest</code></p>
-            <p><img src="imagesharp-logo.png?width=300&rsampler=nearest" /></p>
+            <h2>Format</h2>
+            <div>
+                <p>
+                    <code>imagesharp-logo.png?width=300&format=jpg</code>
+                </p>
+                <p>
+                    <img src="imagesharp-logo.png?width=300&format=jpg" />
+                </p>
+            </div>
+            <div>
+                <p>
+                    <code>imagesharp-logo.png?width=300&format=bmp</code>
+                </p>
+                <p>
+                    <img src="imagesharp-logo.png?width=300&format=bmp" />
+                </p>
+            </div>
+            <div>
+                <p>
+                    <code>imagesharp-logo.png?width=300&format=gif</code>
+                </p>
+                <p>
+                    <img src="imagesharp-logo.png?width=300&format=gif" />
+                </p>
+            </div>
         </section>
     </main>
 </body>

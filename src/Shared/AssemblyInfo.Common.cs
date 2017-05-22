@@ -39,3 +39,4 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("ImageSharp.Tests")]
 [assembly: InternalsVisibleTo("ImageSharp.Sandbox46")]
 [assembly: InternalsVisibleTo("ImageSharp.Web")]
+[assembly: InternalsVisibleTo("ImageSharp.Web.Tests")]

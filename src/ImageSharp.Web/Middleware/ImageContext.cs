@@ -12,6 +12,7 @@ namespace ImageSharp.Web.Middleware
     using System.Threading.Tasks;
 
     using Microsoft.AspNetCore.Http;
+    using Microsoft.AspNetCore.Http.Extensions;
     using Microsoft.AspNetCore.Http.Headers;
     using Microsoft.Net.Http.Headers;
 
@@ -21,15 +22,10 @@ namespace ImageSharp.Web.Middleware
     internal struct ImageContext
     {
         private readonly ImageSharpMiddlewareOptions options;
-
         private readonly HttpContext context;
-
         private readonly HttpRequest request;
-
         private readonly HttpResponse response;
-
         private readonly RequestHeaders requestHeaders;
-
         private readonly ResponseHeaders responseHeaders;
 
         private DateTimeOffset fileLastModified;
@@ -92,6 +88,12 @@ namespace ImageSharp.Web.Middleware
             /// </summary>
             PreconditionFailed,
         }
+
+        /// <summary>
+        /// Returns the current HTTP request display url
+        /// </summary>
+        /// <returns>The </returns>
+        public string GetDisplayUrl() => this.request.GetDisplayUrl();
 
         /// <summary>
         /// Analyzes the headers for the current request.

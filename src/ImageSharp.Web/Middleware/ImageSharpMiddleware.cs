@@ -164,7 +164,8 @@ namespace ImageSharp.Web.Middleware
                 inBuffer = await resolver.ResolveImageAsync(context, this.logger);
                 if (inBuffer == null || inBuffer.Length == 0)
                 {
-                    // Nothing to do. Let the pipeline handle the 404
+                    // Log the error but let the pipeline handle the 404
+                    this.logger.LogImageResolveFailed(imageContext.GetDisplayUrl());
                     await this.next(context);
                     return;
                 }
@@ -179,7 +180,7 @@ namespace ImageSharp.Web.Middleware
                          .Save(outStream);
                 }
 
-                // Allow for any further optimization of the image. ALways reset the position just in case.
+                // Allow for any further optimization of the image. Always reset the position just in case.
                 outStream.Position = 0;
                 this.options.OnProcessed(new ImageProcessingContext(context, outStream, Path.GetExtension(key)));
                 outStream.Position = 0;
@@ -194,15 +195,14 @@ namespace ImageSharp.Web.Middleware
             }
             catch (Exception ex)
             {
-                // TODO: Create an extension that does this interpolation globally.
-                this.logger.LogCritical($"{ex.Message}{Environment.NewLine}StackTrace:{ex.StackTrace}");
+                this.logger.LogImageProcessingFailed(imageContext.GetDisplayUrl(), ex);
             }
             finally
             {
                 inStream?.Dispose();
                 outStream?.Dispose();
 
-                // Buffer should have been rented in IImageService
+                // Buffer should have been rented in IImageResolver
                 BufferDataPool.Return(inBuffer);
                 BufferDataPool.Return(outBuffer);
             }
@@ -223,7 +223,7 @@ namespace ImageSharp.Web.Middleware
                         await imageContext.SendStatusAsync(ResponseConstants.Status200Ok, contentType);
                     }
 
-                    // logger.LogFileServed(fileContext.SubPath, fileContext.PhysicalPath);
+                    this.logger.LogImageServed(imageContext.GetDisplayUrl(), key);
                     if (buffer == null)
                     {
                         // We're pulling the buffer from the cache. This should be pooled.
@@ -239,11 +239,11 @@ namespace ImageSharp.Web.Middleware
                     break;
 
                 case ImageContext.PreconditionState.NotModified:
-                    // _logger.LogPathNotModified(fileContext.SubPath);
+                    this.logger.LogImageNotModified(imageContext.GetDisplayUrl());
                     await imageContext.SendStatusAsync(ResponseConstants.Status304NotModified, contentType);
                     break;
                 case ImageContext.PreconditionState.PreconditionFailed:
-                    // _logger.LogPreconditionFailed(fileContext.SubPath);
+                    this.logger.LogImagePreconditionFailed(imageContext.GetDisplayUrl());
                     await imageContext.SendStatusAsync(ResponseConstants.Status412PreconditionFailed, contentType);
                     break;
                 default:

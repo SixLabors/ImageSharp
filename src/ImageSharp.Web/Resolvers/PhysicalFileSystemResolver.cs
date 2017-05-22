@@ -11,11 +11,15 @@ namespace ImageSharp.Web.Resolvers
     using System.Threading.Tasks;
 
     using ImageSharp.Memory;
+    using ImageSharp.Web.Helpers;
+    using ImageSharp.Web.Middleware;
 
     using Microsoft.AspNetCore.Hosting;
     using Microsoft.AspNetCore.Http;
+    using Microsoft.AspNetCore.Http.Extensions;
     using Microsoft.Extensions.FileProviders;
     using Microsoft.Extensions.Logging;
+    using Microsoft.Extensions.Options;
 
     /// <summary>
     /// Returns images stored in the local physical file system.
@@ -28,16 +32,23 @@ namespace ImageSharp.Web.Resolvers
         private readonly IHostingEnvironment environment;
 
         /// <summary>
+        /// The middleware configuration options.
+        /// </summary>
+        private readonly ImageSharpMiddlewareOptions options;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="PhysicalFileSystemResolver"/> class.
         /// </summary>
         /// <param name="environment">The <see cref="IHostingEnvironment"/> used by this middleware</param>
-        public PhysicalFileSystemResolver(IHostingEnvironment environment)
+        /// <param name="options">The middleware configuration options</param>
+        public PhysicalFileSystemResolver(IHostingEnvironment environment, IOptions<ImageSharpMiddlewareOptions> options)
         {
             this.environment = environment;
+            this.options = options.Value;
         }
 
         /// <inheritdoc/>
-        public Func<HttpContext, bool> Key { get; set; } = (c) => true;
+        public Func<HttpContext, bool> Match { get; set; } = _ => true;
 
         /// <inheritdoc/>
         public IDictionary<string, string> Settings { get; set; } = new Dictionary<string, string>();
@@ -45,9 +56,7 @@ namespace ImageSharp.Web.Resolvers
         /// <inheritdoc/>
         public async Task<bool> IsValidRequestAsync(HttpContext context, ILogger logger)
         {
-            // TODO: Either Write proper validation based on static FormatHelper (not written) in base library
-            // Or can we get this from the request header (preferred here)?
-            return await Task.FromResult(true);
+            return await Task.FromResult(FormatHelpers.GetExtension(this.options.Configuration, context.Request.GetDisplayUrl()) != null);
         }
 
         /// <inheritdoc/>

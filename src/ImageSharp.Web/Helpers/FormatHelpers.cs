@@ -36,7 +36,7 @@ namespace ImageSharp.Web.Helpers
         /// <returns>The <see cref="string"/></returns>
         public static string GetExtension(Configuration configuration, string uri)
         {
-            string extension = "jpg";
+            string extension = null;
             int index = 0;
             foreach (IImageFormat format in configuration.ImageFormats)
             {
@@ -54,6 +54,17 @@ namespace ImageSharp.Web.Helpers
             }
 
             return extension;
+        }
+
+        /// <summary>
+        /// Gets the file extension for the given image uri or a default extension from the first available format.
+        /// </summary>
+        /// <param name="configuration">The library configuration</param>
+        /// <param name="uri">The full request uri</param>
+        /// <returns>The <see cref="string"/></returns>
+        public static string GetExtensionOrDefault(Configuration configuration, string uri)
+        {
+            return GetExtension(configuration, uri) ?? configuration.ImageFormats.First().Extension;
         }
     }
 }

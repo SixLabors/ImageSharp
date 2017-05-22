@@ -44,7 +44,7 @@ namespace ImageSharp.Web.Caching
         {
             using (var hashAlgorithm = SHA256.Create())
             {
-                return $"{Encode(hashAlgorithm.ComputeHash(Encoding.ASCII.GetBytes(uri)))}.{FormatHelpers.GetExtension(configuration, uri)}";
+                return $"{Encode(hashAlgorithm.ComputeHash(Encoding.ASCII.GetBytes(uri)))}.{FormatHelpers.GetExtensionOrDefault(configuration, uri)}";
             }
         }
 

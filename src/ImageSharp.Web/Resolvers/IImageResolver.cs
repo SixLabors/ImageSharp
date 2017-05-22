@@ -19,7 +19,7 @@ namespace ImageSharp.Web.Resolvers
         /// <summary>
         /// Gets or sets the method used by the resolver to identify itself as the correct resolver to use.
         /// </summary>
-        Func<HttpContext, bool> Key { get; set; }
+        Func<HttpContext, bool> Match { get; set; }
 
         /// <summary>
         /// Gets or sets any additional settings.

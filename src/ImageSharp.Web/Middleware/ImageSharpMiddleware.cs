@@ -72,7 +72,7 @@ namespace ImageSharp.Web.Middleware
         /// Initializes a new instance of the <see cref="ImageSharpMiddleware"/> class.
         /// </summary>
         /// <param name="next">The next middleware in the pipeline</param>
-        /// <param name="options">The configuration options</param>
+        /// <param name="options">The middleware configuration options</param>
         /// <param name="loggerFactory">An <see cref="ILoggerFactory"/> instance used to create loggers</param>
         /// <param name="uriParser">An <see cref="IUriParser"/> instance used to parse URI's for commands</param>
         /// <param name="resolvers">A collection of <see cref="IImageResolver"/> instances used to resolve images</param>
@@ -131,7 +131,7 @@ namespace ImageSharp.Web.Middleware
             }
 
             // Get the correct service for the request.
-            IImageResolver resolver = this.resolvers.FirstOrDefault(r => r.Key(context));
+            IImageResolver resolver = this.resolvers.FirstOrDefault(r => r.Match(context));
 
             if (resolver == null || !await resolver.IsValidRequestAsync(context, this.logger))
             {

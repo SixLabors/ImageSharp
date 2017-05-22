@@ -20,7 +20,10 @@ namespace ImageSharp.Web.Caching
     /// </summary>
     public class PhysicalFileSystemCache : IImageCache
     {
-        private const string Folder = "CachedFolder";
+        /// <summary>
+        /// The configuration key for determining the cache folder.
+        /// </summary>
+        public const string Folder = "CacheFolder";
 
         /// <summary>
         /// The hosting environment the application is running in.

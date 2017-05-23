@@ -36,6 +36,7 @@ namespace ImageSharp.Web.Commands
             this.AddSimpleConverters();
             this.AddListConverters();
             this.AddArrayConverters();
+            this.AddColorConverters();
         }
 
         /// <summary>
@@ -120,17 +121,17 @@ namespace ImageSharp.Web.Commands
         /// </summary>
         private void AddSimpleConverters()
         {
-            this.AddConverter(typeof(sbyte), typeof(IntegralNumberConverter<sbyte>));
-            this.AddConverter(typeof(byte), typeof(IntegralNumberConverter<byte>));
+            this.AddConverter(TypeConstants.Sbyte, typeof(IntegralNumberConverter<sbyte>));
+            this.AddConverter(TypeConstants.Byte, typeof(IntegralNumberConverter<byte>));
 
-            this.AddConverter(typeof(short), typeof(IntegralNumberConverter<short>));
-            this.AddConverter(typeof(ushort), typeof(IntegralNumberConverter<ushort>));
+            this.AddConverter(TypeConstants.Short, typeof(IntegralNumberConverter<short>));
+            this.AddConverter(TypeConstants.UShort, typeof(IntegralNumberConverter<ushort>));
 
-            this.AddConverter(typeof(int), typeof(IntegralNumberConverter<int>));
-            this.AddConverter(typeof(uint), typeof(IntegralNumberConverter<uint>));
+            this.AddConverter(TypeConstants.Int, typeof(IntegralNumberConverter<int>));
+            this.AddConverter(TypeConstants.UInt, typeof(IntegralNumberConverter<uint>));
 
-            this.AddConverter(typeof(long), typeof(IntegralNumberConverter<long>));
-            this.AddConverter(typeof(ulong), typeof(IntegralNumberConverter<ulong>));
+            this.AddConverter(TypeConstants.Long, typeof(IntegralNumberConverter<long>));
+            this.AddConverter(TypeConstants.ULong, typeof(IntegralNumberConverter<ulong>));
 
             this.AddConverter(typeof(decimal), typeof(SimpleCommandConverter<decimal>));
             this.AddConverter(typeof(float), typeof(SimpleCommandConverter<float>));
@@ -187,6 +188,14 @@ namespace ImageSharp.Web.Commands
             this.AddConverter(typeof(double[]), typeof(ArrayConverter<double>));
 
             this.AddConverter(typeof(string[]), typeof(ArrayConverter<string>));
+        }
+
+        /// <summary>
+        /// Adds the default color converters
+        /// </summary>
+        private void AddColorConverters()
+        {
+            this.AddConverter(TypeConstants.Rgba32, typeof(Rgba32Converter));
         }
 
         /// <summary>

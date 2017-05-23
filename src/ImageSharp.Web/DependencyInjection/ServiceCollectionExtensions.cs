@@ -9,6 +9,7 @@ namespace ImageSharp.Web.DependencyInjection
 
     using ImageSharp.Web.Caching;
     using ImageSharp.Web.Commands;
+    using ImageSharp.Web.Commands.Converters;
     using ImageSharp.Web.Middleware;
     using ImageSharp.Web.Processors;
     using ImageSharp.Web.Resolvers;
@@ -102,7 +103,8 @@ namespace ImageSharp.Web.DependencyInjection
             builder.AddResolver<PhysicalFileSystemResolver>();
 
             builder.AddProcessor<ResizeWebProcessor>()
-                   .AddProcessor<FormatWebProcessor>();
+                   .AddProcessor<FormatWebProcessor>()
+                   .AddProcessor<BackgroundColorWebProcessor>();
         }
     }
 }

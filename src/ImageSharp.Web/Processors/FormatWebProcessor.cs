@@ -9,7 +9,7 @@ namespace ImageSharp.Web.Processors
     using System.Linq;
 
     using ImageSharp.Formats;
-    using ImageSharp.PixelFormats;
+
     using ImageSharp.Web.Commands;
     using ImageSharp.Web.Middleware;
 
@@ -27,6 +27,12 @@ namespace ImageSharp.Web.Processors
         public const string Format = "format";
 
         /// <summary>
+        /// The reusable collection of commands
+        /// </summary>
+        private static readonly IEnumerable<string> FormatCommands
+            = new[] { Format };
+
+        /// <summary>
         /// The middleware configuration options
         /// </summary>
         private readonly ImageSharpMiddlewareOptions options;
@@ -41,11 +47,10 @@ namespace ImageSharp.Web.Processors
         }
 
         /// <inheritdoc/>
-        public IEnumerable<string> Commands => new[] { Format };
+        public IEnumerable<string> Commands { get; } = FormatCommands;
 
         /// <inheritdoc/>
-        public Image<TPixel> Process<TPixel>(Image<TPixel> image, ILogger logger, IDictionary<string, string> commands)
-            where TPixel : struct, IPixel<TPixel>
+        public Image<Rgba32> Process(Image<Rgba32> image, ILogger logger, IDictionary<string, string> commands)
         {
             string extension = commands.GetValueOrDefault(Format);
 

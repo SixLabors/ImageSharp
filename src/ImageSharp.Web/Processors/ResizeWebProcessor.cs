@@ -6,9 +6,10 @@
 namespace ImageSharp.Web.Processors
 {
     using System.Collections.Generic;
-    using ImageSharp.PixelFormats;
+
     using ImageSharp.Processing;
     using ImageSharp.Web.Commands;
+
     using Microsoft.Extensions.Logging;
 
     /// <summary>
@@ -64,11 +65,10 @@ namespace ImageSharp.Web.Processors
             };
 
         /// <inheritdoc/>
-        public IEnumerable<string> Commands => ResizeCommands;
+        public IEnumerable<string> Commands { get; } = ResizeCommands;
 
         /// <inheritdoc/>
-        public Image<TPixel> Process<TPixel>(Image<TPixel> image, ILogger logger, IDictionary<string, string> commands)
-            where TPixel : struct, IPixel<TPixel>
+        public Image<Rgba32> Process(Image<Rgba32> image, ILogger logger, IDictionary<string, string> commands)
         {
             ResizeOptions options = GetResizeOptions(commands);
 

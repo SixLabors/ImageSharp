@@ -66,5 +66,10 @@ namespace ImageSharp.Web.Commands
             Long,
             ULong
         };
+
+        /// <summary>
+        /// The <see cref="ImageSharp.Rgba32"/> type
+        /// </summary>
+        public static readonly Type Rgba32 = typeof(Rgba32);
     }
 }

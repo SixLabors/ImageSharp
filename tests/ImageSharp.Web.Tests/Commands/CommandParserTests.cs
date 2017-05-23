@@ -175,5 +175,33 @@
             Assert.NotNull(actual);
             Assert.Equal(new List<float> { 1.667F, 2.667F, 3.667F, 4.667F }, actual);
         }
+
+        [Fact]
+        public void CommandParsesRgba32()
+        {
+            string param = "255,255,255";
+            Rgba32 actual = CommandParser.Instance.ParseValue<Rgba32>(param);
+
+            Assert.NotNull(actual);
+            Assert.Equal(Rgba32.White, actual);
+
+            string param2 = "255,255,255,0";
+            Rgba32 actual2 = CommandParser.Instance.ParseValue<Rgba32>(param2);
+
+            Assert.NotNull(actual2);
+            Assert.Equal(Rgba32.Transparent, actual2);
+
+            string param3 = "orange";
+            Rgba32 actual3 = CommandParser.Instance.ParseValue<Rgba32>(param3);
+
+            Assert.NotNull(actual3);
+            Assert.Equal(Rgba32.Orange, actual3);
+
+            string param4 = "00FF00";
+            Rgba32 actual4 = CommandParser.Instance.ParseValue<Rgba32>(param4);
+
+            Assert.NotNull(actual4);
+            Assert.Equal(Rgba32.Lime, actual4);
+        }
     }
 }

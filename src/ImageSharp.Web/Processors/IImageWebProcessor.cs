@@ -7,8 +7,6 @@ namespace ImageSharp.Web.Processors
 {
     using System.Collections.Generic;
 
-    using ImageSharp.PixelFormats;
-
     using Microsoft.Extensions.Logging;
 
     /// <summary>
@@ -24,12 +22,10 @@ namespace ImageSharp.Web.Processors
         /// <summary>
         /// Processes the image based on the querystring commands.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel format</typeparam>
         /// <param name="image">The image to process</param>
         /// <param name="logger">The type used for performing logging</param>
         /// <param name="commands">The querystring collection containing the processing commands</param>
-        /// <returns>The <see cref="Image{TPixel}"/></returns>
-        Image<TPixel> Process<TPixel>(Image<TPixel> image, ILogger logger, IDictionary<string, string> commands)
-            where TPixel : struct, IPixel<TPixel>;
+        /// <returns>The <see cref="Image{Rgba32}"/></returns>
+        Image<Rgba32> Process(Image<Rgba32> image, ILogger logger, IDictionary<string, string> commands);
     }
 }

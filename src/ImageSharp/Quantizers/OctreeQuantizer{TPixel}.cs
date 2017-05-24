@@ -66,7 +66,7 @@ namespace ImageSharp.Quantizers
         }
 
         /// <inheritdoc/>
-        protected override void SecondPass(PixelAccessor<TPixel> source, byte[] output, int width, int height)
+        protected override void SecondPass(ImageBase<TPixel> source, byte[] output, int width, int height)
         {
             // Load up the values for the first pixel. We can use these to speed up the second
             // pass of the algorithm by avoiding transforming rows of identical color.
@@ -490,7 +490,7 @@ namespace ImageSharp.Quantizers
                         byte b = (this.blue / this.pixelCount).ToByte();
 
                         // And set the color of the palette entry
-                        TPixel pixel = default(TPixel);
+                        var pixel = default(TPixel);
                         pixel.PackFromBytes(r, g, b, 255);
                         palette[index] = pixel;
 

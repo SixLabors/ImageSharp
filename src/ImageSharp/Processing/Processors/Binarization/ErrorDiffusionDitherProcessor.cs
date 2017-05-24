@@ -85,18 +85,15 @@ namespace ImageSharp.Processing.Processors
                 startY = 0;
             }
 
-            using (PixelAccessor<TPixel> sourcePixels = source.Lock())
+            for (int y = minY; y < maxY; y++)
             {
-                for (int y = minY; y < maxY; y++)
+                int offsetY = y - startY;
+                for (int x = minX; x < maxX; x++)
                 {
-                    int offsetY = y - startY;
-                    for (int x = minX; x < maxX; x++)
-                    {
-                        int offsetX = x - startX;
-                        TPixel sourceColor = sourcePixels[offsetX, offsetY];
-                        TPixel transformedColor = sourceColor.ToVector4().X >= this.Threshold ? this.UpperColor : this.LowerColor;
-                        this.Diffuser.Dither(sourcePixels, sourceColor, transformedColor, offsetX, offsetY, maxX, maxY);
-                    }
+                    int offsetX = x - startX;
+                    TPixel sourceColor = source[offsetX, offsetY];
+                    TPixel transformedColor = sourceColor.ToVector4().X >= this.Threshold ? this.UpperColor : this.LowerColor;
+                    this.Diffuser.Dither(source, sourceColor, transformedColor, offsetX, offsetY, maxX, maxY);
                 }
             }
         }

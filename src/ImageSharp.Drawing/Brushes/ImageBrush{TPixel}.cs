@@ -6,7 +6,6 @@
 namespace ImageSharp.Drawing.Brushes
 {
     using System;
-    using System.Numerics;
 
     using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
@@ -22,21 +21,21 @@ namespace ImageSharp.Drawing.Brushes
         /// <summary>
         /// The image to paint.
         /// </summary>
-        private readonly IImageBase<TPixel> image;
+        private readonly ImageBase<TPixel> image;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageBrush{TPixel}"/> class.
         /// </summary>
         /// <param name="image">The image.</param>
-        public ImageBrush(IImageBase<TPixel> image)
+        public ImageBrush(ImageBase<TPixel> image)
         {
             this.image = image;
         }
 
         /// <inheritdoc />
-        public BrushApplicator<TPixel> CreateApplicator(PixelAccessor<TPixel> sourcePixels, RectangleF region, GraphicsOptions options)
+        public BrushApplicator<TPixel> CreateApplicator(ImageBase<TPixel> source, RectangleF region, GraphicsOptions options)
         {
-            return new ImageBrushApplicator(sourcePixels, this.image, region, options);
+            return new ImageBrushApplicator(source, this.image, region, options);
         }
 
         /// <summary>
@@ -45,9 +44,9 @@ namespace ImageSharp.Drawing.Brushes
         private class ImageBrushApplicator : BrushApplicator<TPixel>
         {
             /// <summary>
-            /// The source pixel accessor.
+            /// The source image.
             /// </summary>
-            private readonly PixelAccessor<TPixel> source;
+            private readonly ImageBase<TPixel> source;
 
             /// <summary>
             /// The y-length.
@@ -72,20 +71,14 @@ namespace ImageSharp.Drawing.Brushes
             /// <summary>
             /// Initializes a new instance of the <see cref="ImageBrushApplicator"/> class.
             /// </summary>
-            /// <param name="image">
-            /// The image.
-            /// </param>
-            /// <param name="region">
-            /// The region.
-            /// </param>
+            /// <param name="target">The target image.</param>
+            /// <param name="image">The image.</param>
+            /// <param name="region">The region.</param>
             /// <param name="options">The options</param>
-            /// <param name="sourcePixels">
-            /// The sourcePixels.
-            /// </param>
-            public ImageBrushApplicator(PixelAccessor<TPixel> sourcePixels, IImageBase<TPixel> image, RectangleF region, GraphicsOptions options)
-                : base(sourcePixels, options)
+            public ImageBrushApplicator(ImageBase<TPixel> target, ImageBase<TPixel> image, RectangleF region, GraphicsOptions options)
+                : base(target, options)
             {
-                this.source = image.Lock();
+                this.source = image;
                 this.xLength = image.Width;
                 this.yLength = image.Height;
                 this.offsetY = (int)MathF.Max(MathF.Floor(region.Top), 0);
@@ -119,9 +112,9 @@ namespace ImageSharp.Drawing.Brushes
             /// <inheritdoc />
             internal override void Apply(Span<float> scanline, int x, int y)
             {
-                // create a span for colors
-                using (Buffer<float> amountBuffer = new Buffer<float>(scanline.Length))
-                using (Buffer<TPixel> overlay = new Buffer<TPixel>(scanline.Length))
+                // Create a span for colors
+                using (var amountBuffer = new Buffer<float>(scanline.Length))
+                using (var overlay = new Buffer<TPixel>(scanline.Length))
                 {
                     int sourceY = (y - this.offsetY) % this.yLength;
                     int offsetX = x - this.offsetX;

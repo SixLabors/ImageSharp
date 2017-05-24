@@ -21,14 +21,5 @@ namespace ImageSharp
         /// of the array for calculations. Use Width * Height.
         /// </summary>
         TPixel[] Pixels { get; }
-
-        /// <summary>
-        /// Locks the image providing access to the pixels.
-        /// <remarks>
-        /// It is imperative that the accessor is correctly disposed off after use.
-        /// </remarks>
-        /// </summary>
-        /// <returns>The <see cref="PixelAccessor{TPixel}"/></returns>
-        PixelAccessor<TPixel> Lock();
     }
 }

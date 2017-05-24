@@ -88,10 +88,12 @@ namespace ImageSharp.Processing.Processors
             for (int y = minY; y < maxY; y++)
             {
                 int offsetY = y - startY;
+                Span<TPixel> row = source.GetRowSpan(offsetY);
+
                 for (int x = minX; x < maxX; x++)
                 {
                     int offsetX = x - startX;
-                    TPixel sourceColor = source[offsetX, offsetY];
+                    TPixel sourceColor = row[offsetX];
                     TPixel transformedColor = sourceColor.ToVector4().X >= this.Threshold ? this.UpperColor : this.LowerColor;
                     this.Diffuser.Dither(source, sourceColor, transformedColor, offsetX, offsetY, maxX, maxY);
                 }

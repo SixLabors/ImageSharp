@@ -84,11 +84,13 @@ namespace ImageSharp.Quantizers
 
             for (int y = 0; y < height; y++)
             {
+                Span<TPixel> row = source.GetRowSpan(y);
+
                 // And loop through each column
                 for (int x = 0; x < width; x++)
                 {
                     // Get the pixel.
-                    sourcePixel = source[x, y];
+                    sourcePixel = row[x];
 
                     // Check if this is the same as the last pixel. If so use that value
                     // rather than calculating it again. This is an inexpensive optimization.

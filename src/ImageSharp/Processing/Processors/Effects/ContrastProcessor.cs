@@ -71,12 +71,10 @@ namespace ImageSharp.Processing.Processors
                 this.ParallelOptions,
                 y =>
                     {
-                        int offsetY = y - startY;
                         Span<TPixel> row = source.GetRowSpan(y - startY);
 
                         for (int x = minX; x < maxX; x++)
                         {
-                            int offsetX = x - startX;
                             ref TPixel pixel = ref row[x - startX];
 
                             Vector4 vector = pixel.ToVector4().Expand();

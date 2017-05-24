@@ -5,6 +5,7 @@
 
 namespace ImageSharp.Dithering
 {
+    using System;
     using System.Numerics;
     using System.Runtime.CompilerServices;
 
@@ -95,30 +96,33 @@ namespace ImageSharp.Dithering
             for (int row = 0; row < this.matrixHeight; row++)
             {
                 int matrixY = y + row;
-
-                for (int col = 0; col < this.matrixWidth; col++)
+                if (matrixY > 0 && matrixY < height)
                 {
-                    int matrixX = x + (col - this.startingOffset);
+                    Span<TPixel> rowSpan = image.GetRowSpan(matrixY);
 
-                    if (matrixX > 0 && matrixX < width && matrixY > 0 && matrixY < height)
+                    for (int col = 0; col < this.matrixWidth; col++)
                     {
-                        float coefficient = this.matrix[row, col];
+                        int matrixX = x + (col - this.startingOffset);
 
-                        // Good to disable here as we are not comparing mathematical output.
-                        // ReSharper disable once CompareOfFloatsByEqualityOperator
-                        if (coefficient == 0)
+                        if (matrixX > 0 && matrixX < width)
                         {
-                            continue;
+                            float coefficient = this.matrix[row, col];
+
+                            // Good to disable here as we are not comparing mathematical output.
+                            // ReSharper disable once CompareOfFloatsByEqualityOperator
+                            if (coefficient == 0)
+                            {
+                                continue;
+                            }
+
+                            ref TPixel pixel = ref rowSpan[matrixX];
+                            var offsetColor = pixel.ToVector4();
+                            var coefficientVector = new Vector4(coefficient);
+
+                            Vector4 result = ((error * coefficientVector) / this.divisorVector) + offsetColor;
+                            result.W = offsetColor.W;
+                            pixel.PackFromVector4(result);
                         }
-
-                        var coefficientVector = new Vector4(coefficient);
-                        var offsetColor = image[matrixX, matrixY].ToVector4();
-                        Vector4 result = ((error * coefficientVector) / this.divisorVector) + offsetColor;
-                        result.W = offsetColor.W;
-
-                        var packed = default(TPixel);
-                        packed.PackFromVector4(result);
-                        image[matrixX, matrixY] = packed;
                     }
                 }
             }

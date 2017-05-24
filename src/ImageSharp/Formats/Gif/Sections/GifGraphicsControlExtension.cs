@@ -29,7 +29,7 @@ namespace ImageSharp.Formats
         /// The Transparency Index is such that when encountered, the corresponding pixel
         /// of the display device is not modified and processing goes on to the next pixel.
         /// </summary>
-        public int TransparencyIndex { get; set; }
+        public byte TransparencyIndex { get; set; }
 
         /// <summary>
         /// Gets or sets the delay time.

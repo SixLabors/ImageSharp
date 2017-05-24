@@ -106,7 +106,7 @@ using (Image<Rgba32> image = Image.Load<Rgba32>(stream))
 }
 ```
 
-Setting individual pixel values can perfomed as follows:
+Setting individual pixel values can be perfomed as follows:
 
 ```csharp
 // Individual pixels

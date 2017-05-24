@@ -309,7 +309,6 @@ namespace ImageSharp
         {
             PixelDataPool<TPixel>.Return(this.pixelBuffer);
             this.pixelBuffer = null;
-            this.span = null;
         }
 
         /// <summary>

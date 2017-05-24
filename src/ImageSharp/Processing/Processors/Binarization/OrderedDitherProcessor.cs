@@ -97,11 +97,12 @@ namespace ImageSharp.Processing.Processors
             for (int y = minY; y < maxY; y++)
             {
                 int offsetY = y - startY;
+                Span<TPixel> row = source.GetRowSpan(offsetY);
 
                 for (int x = minX; x < maxX; x++)
                 {
                     int offsetX = x - startX;
-                    TPixel sourceColor = source[offsetX, offsetY];
+                    TPixel sourceColor = row[offsetX];
                     this.Dither.Dither(source, sourceColor, this.UpperColor, this.LowerColor, bytes, this.Index, offsetX, offsetY, maxX, maxY);
                 }
             }

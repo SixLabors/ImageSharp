@@ -119,7 +119,7 @@ using (Image<Rgba32> image = new Image<Rgba32>(400, 400)
 For optimized access within a loop it is recommended that the following methods are used.
 
 1. `image.GetRowSpan(y)`
-2. `image.GetRowSPan(x, y)`
+2. `image.GetRowSpan(x, y)`
 
 For advanced pixel format usage there are multiple [PixelFormat implementations](https://github.com/JimBobSquarePants/ImageSharp/tree/master/src/ImageSharp/PixelFormats) available allowing developers to implement their own color models in the same manner as Microsoft XNA Game Studio and MonoGame. 
 

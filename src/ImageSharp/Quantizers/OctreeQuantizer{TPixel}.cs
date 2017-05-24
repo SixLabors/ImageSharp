@@ -36,7 +36,7 @@ namespace ImageSharp.Quantizers
         /// <summary>
         /// Maximum allowed color depth
         /// </summary>
-        private int colors;
+        private byte colors;
 
         /// <summary>
         /// The reduced image palette
@@ -58,7 +58,7 @@ namespace ImageSharp.Quantizers
         /// <inheritdoc/>
         public override QuantizedImage<TPixel> Quantize(ImageBase<TPixel> image, int maxColors)
         {
-            this.colors = maxColors.Clamp(1, 255);
+            this.colors = (byte)maxColors.Clamp(1, 255);
             this.octree = new Octree(this.GetBitsNeededForColorDepth(this.colors));
             this.palette = null;
 
@@ -123,7 +123,7 @@ namespace ImageSharp.Quantizers
         /// <inheritdoc/>
         protected override TPixel[] GetPalette()
         {
-            return this.palette ?? (this.palette = this.octree.Palletize(Math.Max(this.colors, 1)));
+            return this.palette ?? (this.palette = this.octree.Palletize(Math.Max(this.colors, (byte)1)));
         }
 
         /// <summary>
@@ -141,6 +141,12 @@ namespace ImageSharp.Quantizers
                 // The colors have changed so we need to use Euclidean distance caclulation to find the closest value.
                 // This palette can never be null here.
                 return this.GetClosestPixel(pixel, this.palette, this.colorMap);
+            }
+
+            pixel.ToXyzwBytes(this.pixelBuffer, 0);
+            if (this.pixelBuffer[3] == 0)
+            {
+                return this.colors;
             }
 
             return (byte)this.octree.GetPaletteIndex(pixel, this.pixelBuffer);

@@ -20,6 +20,13 @@ namespace ImageSharp
     internal sealed class PixelAccessor<TPixel> : IDisposable, IBuffer2D<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
+#pragma warning disable SA1401 // Fields must be private
+        /// <summary>
+        /// The <see cref="Buffer{T}"/> containing the pixel data.
+        /// </summary>
+        internal Buffer2D<TPixel> PixelBuffer;
+#pragma warning restore SA1401 // Fields must be private
+
         /// <summary>
         /// A value indicating whether this instance of the given entity has been disposed.
         /// </summary>
@@ -30,11 +37,6 @@ namespace ImageSharp
         /// life in the Garbage Collector.
         /// </remarks>
         private bool isDisposed;
-
-        /// <summary>
-        /// The <see cref="Buffer{T}"/> containing the pixel data.
-        /// </summary>
-        private Buffer2D<TPixel> pixelBuffer;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PixelAccessor{TPixel}"/> class.
@@ -88,7 +90,7 @@ namespace ImageSharp
         /// <summary>
         /// Gets the pixel buffer array.
         /// </summary>
-        public TPixel[] PixelArray => this.pixelBuffer.Array;
+        public TPixel[] PixelArray => this.PixelBuffer.Array;
 
         /// <summary>
         /// Gets the size of a single pixel in the number of bytes.
@@ -116,7 +118,7 @@ namespace ImageSharp
         public ParallelOptions ParallelOptions { get; }
 
         /// <inheritdoc />
-        Span<TPixel> IBuffer2D<TPixel>.Span => this.pixelBuffer;
+        Span<TPixel> IBuffer2D<TPixel>.Span => this.PixelBuffer;
 
         private static PixelOperations<TPixel> Operations => PixelOperations<TPixel>.Instance;
 
@@ -156,7 +158,7 @@ namespace ImageSharp
             // Note disposing is done.
             this.isDisposed = true;
 
-            this.pixelBuffer.Dispose();
+            this.PixelBuffer.Dispose();
 
             // This object will be cleaned up by the Dispose method.
             // Therefore, you should call GC.SuppressFinalize to
@@ -171,7 +173,7 @@ namespace ImageSharp
         /// </summary>
         public void Reset()
         {
-            this.pixelBuffer.Clear();
+            this.PixelBuffer.Clear();
         }
 
         /// <summary>
@@ -243,7 +245,7 @@ namespace ImageSharp
         /// <remarks>If <see cref="M:PixelAccessor.PooledMemory"/> is true then caller is responsible for ensuring <see cref="M:PixelDataPool.Return()"/> is called.</remarks>
         internal TPixel[] ReturnCurrentColorsAndReplaceThemInternally(int width, int height, TPixel[] pixels)
         {
-            TPixel[] oldPixels = this.pixelBuffer.TakeArrayOwnership();
+            TPixel[] oldPixels = this.PixelBuffer.TakeArrayOwnership();
             this.SetPixelBufferUnsafe(width, height, pixels);
             return oldPixels;
         }
@@ -254,7 +256,7 @@ namespace ImageSharp
         /// <param name="target">The target pixel buffer accessor.</param>
         internal void CopyTo(PixelAccessor<TPixel> target)
         {
-            SpanHelper.Copy(this.pixelBuffer.Span, target.pixelBuffer.Span);
+            SpanHelper.Copy(this.PixelBuffer.Span, target.PixelBuffer.Span);
         }
 
         /// <summary>
@@ -425,7 +427,7 @@ namespace ImageSharp
         /// <param name="pixels">The pixel buffer</param>
         private void SetPixelBufferUnsafe(int width, int height, Buffer2D<TPixel> pixels)
         {
-            this.pixelBuffer = pixels;
+            this.PixelBuffer = pixels;
 
             this.Width = width;
             this.Height = height;

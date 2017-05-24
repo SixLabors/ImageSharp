@@ -232,6 +232,15 @@ namespace ImageSharp
         }
 
         /// <summary>
+        /// Copies the pixels to another <see cref="PixelAccessor{TPixel}"/> of the same size.
+        /// </summary>
+        /// <param name="target">The target pixel buffer accessor.</param>
+        internal void CopyTo(PixelAccessor<TPixel> target)
+        {
+            SpanHelper.Copy(this.span, target.PixelBuffer.Span);
+        }
+
+        /// <summary>
         /// Switches the buffers used by the image and the PixelAccessor meaning that the Image will "own" the buffer from the PixelAccessor and the PixelAccessor will now own the Images buffer.
         /// </summary>
         /// <param name="pixelSource">The pixel source.</param>

@@ -70,7 +70,7 @@ namespace ImageSharp.Memory
         public static void Copy<T>(Span<T> source, Span<T> destination)
             where T : struct
         {
-            Copy(source, destination, source.Length);
+            Copy(source, destination, Math.Min(source.Length, destination.Length));
         }
 
         /// <summary>

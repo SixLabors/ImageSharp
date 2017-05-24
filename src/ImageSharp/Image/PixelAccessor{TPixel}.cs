@@ -17,7 +17,7 @@ namespace ImageSharp
     /// Provides per-pixel access to generic <see cref="Image{TPixel}"/> pixels.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    public sealed class PixelAccessor<TPixel> : IDisposable, IBuffer2D<TPixel>
+    internal sealed class PixelAccessor<TPixel> : IDisposable, IBuffer2D<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
@@ -128,12 +128,14 @@ namespace ImageSharp
         /// <returns>The <see typeparam="TPixel"/> at the specified position.</returns>
         public TPixel this[int x, int y]
         {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
                 this.CheckCoordinates(x, y);
                 return this.PixelArray[(y * this.Width) + x];
             }
 
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set
             {
                 this.CheckCoordinates(x, y);

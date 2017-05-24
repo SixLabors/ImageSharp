@@ -28,14 +28,14 @@ namespace ImageSharp.Dithering.Ordered
         }
 
         /// <inheritdoc />
-        public void Dither<TPixel>(PixelAccessor<TPixel> pixels, TPixel source, TPixel upper, TPixel lower, byte[] bytes, int index, int x, int y, int width, int height)
+        public void Dither<TPixel>(ImageBase<TPixel> image, TPixel source, TPixel upper, TPixel lower, byte[] bytes, int index, int x, int y, int width, int height)
             where TPixel : struct, IPixel<TPixel>
         {
             // TODO: This doesn't really cut it for me.
-            // I'd rather be using float but we need to add some sort of movalization vector methods to all IPixel implementations
+            // I'd rather be using float but we need to add some sort of normalization vector methods to all IPixel implementations
             // before we can do that as the vectors all cover different ranges.
             source.ToXyzwBytes(bytes, 0);
-            pixels[x, y] = this.matrix[y % 3, x % 3] >= bytes[index] ? lower : upper;
+            image[x, y] = this.matrix[y % 3, x % 3] >= bytes[index] ? lower : upper;
         }
     }
 }

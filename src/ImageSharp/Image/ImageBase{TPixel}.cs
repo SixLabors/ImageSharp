@@ -7,6 +7,7 @@ namespace ImageSharp
 {
     using System;
     using System.Diagnostics;
+    using System.Runtime.CompilerServices;
 
     using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
@@ -35,6 +36,11 @@ namespace ImageSharp
         /// The image pixels
         /// </summary>
         private TPixel[] pixelBuffer;
+
+        /// <summary>
+        /// The span representing the pixel buffer
+        /// </summary>
+        private Span<TPixel> span;
 
         /// <summary>
         /// A value indicating whether this instance of the given entity has been disposed.
@@ -130,6 +136,67 @@ namespace ImageSharp
         public Configuration Configuration { get; private set; }
 
         /// <summary>
+        /// Gets or sets the pixel at the specified position.
+        /// </summary>
+        /// <param name="x">The x-coordinate of the pixel. Must be greater than or equal to zero and less than the width of the image.</param>
+        /// <param name="y">The y-coordinate of the pixel. Must be greater than or equal to zero and less than the height of the image.</param>
+        /// <returns>The <see typeparam="TPixel"/> at the specified position.</returns>
+        public TPixel this[int x, int y]
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                this.CheckCoordinates(x, y);
+                return this.pixelBuffer[(y * this.Width) + x];
+            }
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            set
+            {
+                this.CheckCoordinates(x, y);
+                this.pixelBuffer[(y * this.Width) + x] = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets a reference to the pixel at the specified position.
+        /// </summary>
+        /// <param name="x">The x-coordinate of the pixel. Must be greater than or equal to zero and less than the width of the image.</param>
+        /// <param name="y">The y-coordinate of the pixel. Must be greater than or equal to zero and less than the height of the image.</param>
+        /// <returns>The <see typeparam="TPixel"/> at the specified position.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public ref TPixel GetPixelReference(int x, int y)
+        {
+            this.CheckCoordinates(x, y);
+            return ref this.pixelBuffer[(y * this.Width) + x];
+        }
+
+        /// <summary>
+        /// Gets a <see cref="Span{TPixal}"/> representing the row 'y' beginning from the the first pixel on that row.
+        /// </summary>
+        /// <param name="y">The y-coordinate of the pixel row. Must be greater than or equal to zero and less than the height of the image.</param>
+        /// <returns>The <see cref="Span{TPixel}"/></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Span<TPixel> GetRowSpan(int y)
+        {
+            this.CheckCoordinates(y);
+            return this.span.Slice(y * this.Width, this.Width);
+        }
+
+        /// <summary>
+        /// Gets a <see cref="Span{T}"/> to the row 'y' beginning from the pixel at 'x'.
+        /// </summary>
+        /// <param name="x">The x coordinate (position in the row)</param>
+        /// <param name="y">The y (row) coordinate</param>
+        /// <returns>The <see cref="Span{TPixel}"/></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Span<TPixel> GetRowSpan(int x, int y)
+        {
+            this.CheckCoordinates(x, y);
+            return this.span.Slice((y * this.Width) + x, this.Width - x);
+        }
+
+        /// <summary>
         /// Applies the processor.
         /// </summary>
         /// <param name="processor">The processor.</param>
@@ -152,8 +219,14 @@ namespace ImageSharp
             GC.SuppressFinalize(this);
         }
 
-        /// <inheritdoc/>
-        public PixelAccessor<TPixel> Lock()
+        /// <summary>
+        /// Locks the image providing access to the pixels.
+        /// <remarks>
+        /// It is imperative that the accessor is correctly disposed off after use.
+        /// </remarks>
+        /// </summary>
+        /// <returns>The <see cref="PixelAccessor{TPixel}"/></returns>
+        internal PixelAccessor<TPixel> Lock()
         {
             return new PixelAccessor<TPixel>(this);
         }
@@ -174,6 +247,7 @@ namespace ImageSharp
             this.Width = newWidth;
             this.Height = newHeight;
             this.pixelBuffer = newPixels;
+            this.span = new Span<TPixel>(this.pixelBuffer);
         }
 
         /// <summary>
@@ -225,6 +299,7 @@ namespace ImageSharp
         private void RentPixels()
         {
             this.pixelBuffer = PixelDataPool<TPixel>.Rent(this.Width * this.Height);
+            this.span = new Span<TPixel>(this.pixelBuffer);
         }
 
         /// <summary>
@@ -234,6 +309,7 @@ namespace ImageSharp
         {
             PixelDataPool<TPixel>.Return(this.pixelBuffer);
             this.pixelBuffer = null;
+            this.span = null;
         }
 
         /// <summary>
@@ -242,6 +318,44 @@ namespace ImageSharp
         private void ClearPixels()
         {
             Array.Clear(this.pixelBuffer, 0, this.Width * this.Height);
+        }
+
+        /// <summary>
+        /// Checks the coordinates to ensure they are within bounds.
+        /// </summary>
+        /// <param name="y">The y-coordinate of the pixel. Must be greater than zero and less than the height of the image.</param>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// Thrown if the coordinates are not within the bounds of the image.
+        /// </exception>
+        [Conditional("DEBUG")]
+        private void CheckCoordinates(int y)
+        {
+            if (y < 0 || y >= this.Height)
+            {
+                throw new ArgumentOutOfRangeException(nameof(y), y, $"{y} is outwith the image bounds.");
+            }
+        }
+
+        /// <summary>
+        /// Checks the coordinates to ensure they are within bounds.
+        /// </summary>
+        /// <param name="x">The x-coordinate of the pixel. Must be greater than zero and less than the width of the image.</param>
+        /// <param name="y">The y-coordinate of the pixel. Must be greater than zero and less than the height of the image.</param>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// Thrown if the coordinates are not within the bounds of the image.
+        /// </exception>
+        [Conditional("DEBUG")]
+        private void CheckCoordinates(int x, int y)
+        {
+            if (x < 0 || x >= this.Width)
+            {
+                throw new ArgumentOutOfRangeException(nameof(x), x, $"{x} is outwith the image bounds.");
+            }
+
+            if (y < 0 || y >= this.Height)
+            {
+                throw new ArgumentOutOfRangeException(nameof(y), y, $"{y} is outwith the image bounds.");
+            }
         }
     }
 }

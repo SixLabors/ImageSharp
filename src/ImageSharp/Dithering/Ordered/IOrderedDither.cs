@@ -15,7 +15,7 @@ namespace ImageSharp.Dithering
         /// <summary>
         /// Transforms the image applying the dither matrix. This method alters the input pixels array
         /// </summary>
-        /// <param name="pixels">The pixel accessor </param>
+        /// <param name="image">The image</param>
         /// <param name="source">The source pixel</param>
         /// <param name="upper">The color to apply to the pixels above the threshold.</param>
         /// <param name="lower">The color to apply to the pixels below the threshold.</param>
@@ -26,7 +26,7 @@ namespace ImageSharp.Dithering
         /// <param name="width">The image width.</param>
         /// <param name="height">The image height.</param>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        void Dither<TPixel>(PixelAccessor<TPixel> pixels, TPixel source, TPixel upper, TPixel lower, byte[] bytes, int index, int x, int y, int width, int height)
+        void Dither<TPixel>(ImageBase<TPixel> image, TPixel source, TPixel upper, TPixel lower, byte[] bytes, int index, int x, int y, int width, int height)
             where TPixel : struct, IPixel<TPixel>;
     }
 }

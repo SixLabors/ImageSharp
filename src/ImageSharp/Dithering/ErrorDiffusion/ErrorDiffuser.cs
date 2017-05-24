@@ -71,7 +71,7 @@ namespace ImageSharp.Dithering
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Dither<TPixel>(PixelAccessor<TPixel> pixels, TPixel source, TPixel transformed, int x, int y, int width, int height)
+        public void Dither<TPixel>(ImageBase<TPixel> pixels, TPixel source, TPixel transformed, int x, int y, int width, int height)
             where TPixel : struct, IPixel<TPixel>
         {
             this.Dither(pixels, source, transformed, x, y, width, height, true);
@@ -79,13 +79,13 @@ namespace ImageSharp.Dithering
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Dither<TPixel>(PixelAccessor<TPixel> pixels, TPixel source, TPixel transformed, int x, int y, int width, int height, bool replacePixel)
+        public void Dither<TPixel>(ImageBase<TPixel> image, TPixel source, TPixel transformed, int x, int y, int width, int height, bool replacePixel)
             where TPixel : struct, IPixel<TPixel>
         {
             if (replacePixel)
             {
                 // Assign the transformed pixel to the array.
-                pixels[x, y] = transformed;
+                image[x, y] = transformed;
             }
 
             // Calculate the error
@@ -111,14 +111,14 @@ namespace ImageSharp.Dithering
                             continue;
                         }
 
-                        Vector4 coefficientVector = new Vector4(coefficient);
-                        Vector4 offsetColor = pixels[matrixX, matrixY].ToVector4();
+                        var coefficientVector = new Vector4(coefficient);
+                        var offsetColor = image[matrixX, matrixY].ToVector4();
                         Vector4 result = ((error * coefficientVector) / this.divisorVector) + offsetColor;
                         result.W = offsetColor.W;
 
-                        TPixel packed = default(TPixel);
+                        var packed = default(TPixel);
                         packed.PackFromVector4(result);
-                        pixels[matrixX, matrixY] = packed;
+                        image[matrixX, matrixY] = packed;
                     }
                 }
             }

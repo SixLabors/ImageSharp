@@ -106,17 +106,22 @@ using (Image<Rgba32> image = Image.Load<Rgba32>(stream))
 }
 ```
 
-Setting individual pixel values is perfomed as follows:
+Setting individual pixel values can perfomed as follows:
 
 ```csharp
+// Individual pixels
 using (Image<Rgba32> image = new Image<Rgba32>(400, 400)
-using (PixelAccessor<Rgba32> pixels = image.Lock())
 {
-    pixels[200, 200] = Rgba32.White;
+    image[200, 200] = Rgba32.White;
 }
 ```
 
-For advanced usage there are multiple [PixelFormat implementations](https://github.com/JimBobSquarePants/ImageSharp/tree/master/src/ImageSharp/PixelFormats) available allowing developers to implement their own color models in the same manner as Microsoft XNA Game Studio and MonoGame. 
+For optimized access within a loop it is recommended that the following methods are used.
+
+1. `image.GetRowSpan(y)`
+2. `image.GetRowSPan(x, y)`
+
+For advanced pixel format usage there are multiple [PixelFormat implementations](https://github.com/JimBobSquarePants/ImageSharp/tree/master/src/ImageSharp/PixelFormats) available allowing developers to implement their own color models in the same manner as Microsoft XNA Game Studio and MonoGame. 
 
 All in all this should allow image processing to be much more accessible to developers which has always been my goal from the start.
 

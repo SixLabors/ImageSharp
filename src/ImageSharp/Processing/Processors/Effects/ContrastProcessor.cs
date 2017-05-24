@@ -45,8 +45,8 @@ namespace ImageSharp.Processing.Processors
             int endY = sourceRectangle.Bottom;
             int startX = sourceRectangle.X;
             int endX = sourceRectangle.Right;
-            Vector4 contrastVector = new Vector4(contrast, contrast, contrast, 1);
-            Vector4 shiftVector = new Vector4(.5F, .5F, .5F, 1);
+            var contrastVector = new Vector4(contrast, contrast, contrast, 1);
+            var shiftVector = new Vector4(.5F, .5F, .5F, 1);
 
             // Align start/end positions.
             int minX = Math.Max(0, startX);
@@ -65,29 +65,28 @@ namespace ImageSharp.Processing.Processors
                 startY = 0;
             }
 
-            using (PixelAccessor<TPixel> sourcePixels = source.Lock())
-            {
-                Parallel.For(
-                    minY,
-                    maxY,
-                    this.ParallelOptions,
-                    y =>
-                        {
-                            int offsetY = y - startY;
-                            for (int x = minX; x < maxX; x++)
-                            {
-                                int offsetX = x - startX;
+            Parallel.For(
+                minY,
+                maxY,
+                this.ParallelOptions,
+                y =>
+                    {
+                        int offsetY = y - startY;
+                        Span<TPixel> row = source.GetRowSpan(y - startY);
 
-                                Vector4 vector = sourcePixels[offsetX, offsetY].ToVector4().Expand();
-                                vector -= shiftVector;
-                                vector *= contrastVector;
-                                vector += shiftVector;
-                                TPixel packed = default(TPixel);
-                                packed.PackFromVector4(vector.Compress());
-                                sourcePixels[offsetX, offsetY] = packed;
-                            }
-                        });
-            }
+                        for (int x = minX; x < maxX; x++)
+                        {
+                            int offsetX = x - startX;
+                            ref TPixel pixel = ref row[x - startX];
+
+                            Vector4 vector = pixel.ToVector4().Expand();
+                            vector -= shiftVector;
+                            vector *= contrastVector;
+                            vector += shiftVector;
+
+                            pixel.PackFromVector4(vector.Compress());
+                        }
+                    });
         }
     }
 }

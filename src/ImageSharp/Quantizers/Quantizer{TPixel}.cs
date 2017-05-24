@@ -5,6 +5,7 @@
 
 namespace ImageSharp.Quantizers
 {
+    using System;
     using System.Collections.Generic;
     using System.Numerics;
     using System.Runtime.CompilerServices;
@@ -93,11 +94,13 @@ namespace ImageSharp.Quantizers
             // Loop through each row
             for (int y = 0; y < height; y++)
             {
+                Span<TPixel> row = source.GetRowSpan(y);
+
                 // And loop through each column
                 for (int x = 0; x < width; x++)
                 {
                     // Now I have the pixel, call the FirstPassQuantize function...
-                    this.InitialQuantizePixel(source[x, y]);
+                    this.InitialQuantizePixel(row[x]);
                 }
             }
         }

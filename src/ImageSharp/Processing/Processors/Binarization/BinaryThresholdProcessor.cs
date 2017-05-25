@@ -83,25 +83,22 @@ namespace ImageSharp.Processing.Processors
                 startY = 0;
             }
 
-            using (PixelAccessor<TPixel> sourcePixels = source.Lock())
-            {
-                Parallel.For(
-                    minY,
-                    maxY,
-                    this.ParallelOptions,
-                    y =>
-                    {
-                        int offsetY = y - startY;
-                        for (int x = minX; x < maxX; x++)
-                        {
-                            int offsetX = x - startX;
-                            TPixel color = sourcePixels[offsetX, offsetY];
+            Parallel.For(
+                minY,
+                maxY,
+                this.ParallelOptions,
+                y =>
+                {
+                    Span<TPixel> row = source.GetRowSpan(y - startY);
 
-                            // Any channel will do since it's Grayscale.
-                            sourcePixels[offsetX, offsetY] = color.ToVector4().X >= threshold ? upper : lower;
-                        }
-                    });
-            }
+                    for (int x = minX; x < maxX; x++)
+                    {
+                        ref TPixel color = ref row[x - startX];
+
+                        // Any channel will do since it's Grayscale.
+                        color = color.ToVector4().X >= threshold ? upper : lower;
+                    }
+                });
         }
     }
 }

@@ -63,31 +63,26 @@ namespace ImageSharp.Processing.Processors
                 startY = 0;
             }
 
-            using (PixelAccessor<TPixel> sourcePixels = source.Lock())
-            {
-                Parallel.For(
-                    minY,
-                    maxY,
-                    this.ParallelOptions,
-                    y =>
+            Parallel.For(
+                minY,
+                maxY,
+                this.ParallelOptions,
+                y =>
+                    {
+                        Span<TPixel> row = source.GetRowSpan(y - startY);
+
+                        for (int x = minX; x < maxX; x++)
                         {
-                            int offsetY = y - startY;
-                            for (int x = minX; x < maxX; x++)
-                            {
-                                int offsetX = x - startX;
+                            ref TPixel pixel = ref row[x - startX];
 
-                                // TODO: Check this with other formats.
-                                Vector4 vector = sourcePixels[offsetX, offsetY].ToVector4().Expand();
-                                Vector3 transformed = new Vector3(vector.X, vector.Y, vector.Z) + new Vector3(brightness);
-                                vector = new Vector4(transformed, vector.W);
+                            // TODO: Check this with other formats.
+                            Vector4 vector = pixel.ToVector4().Expand();
+                            Vector3 transformed = new Vector3(vector.X, vector.Y, vector.Z) + new Vector3(brightness);
+                            vector = new Vector4(transformed, vector.W);
 
-                                TPixel packed = default(TPixel);
-                                packed.PackFromVector4(vector.Compress());
-
-                                sourcePixels[offsetX, offsetY] = packed;
-                            }
-                        });
-            }
+                            pixel.PackFromVector4(vector.Compress());
+                        }
+                    });
         }
     }
 }

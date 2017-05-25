@@ -101,7 +101,7 @@ namespace ImageSharp.Drawing.Pens
         /// <summary>
         /// Creates the applicator for applying this pen to an Image
         /// </summary>
-        /// <param name="sourcePixels">The source pixels.</param>
+        /// <param name="source">The source image.</param>
         /// <param name="region">The region the pen will be applied to.</param>
         /// <param name="options">The Graphics options</param>
         /// <returns>
@@ -111,16 +111,16 @@ namespace ImageSharp.Drawing.Pens
         /// The <paramref name="region" /> when being applied to things like shapes would ussually be the
         /// bounding box of the shape not necorserrally the shape of the whole image
         /// </remarks>
-        public PenApplicator<TPixel> CreateApplicator(PixelAccessor<TPixel> sourcePixels, RectangleF region, GraphicsOptions options)
+        public PenApplicator<TPixel> CreateApplicator(ImageBase<TPixel> source, RectangleF region, GraphicsOptions options)
         {
             if (this.pattern == null || this.pattern.Length < 2)
             {
                 // if there is only one item in the pattern then 100% of it will
                 // be solid so use the quicker applicator
-                return new SolidPenApplicator(sourcePixels, this.Brush, region, this.Width, options);
+                return new SolidPenApplicator(source, this.Brush, region, this.Width, options);
             }
 
-            return new PatternPenApplicator(sourcePixels, this.Brush, region, this.Width, this.pattern, options);
+            return new PatternPenApplicator(source, this.Brush, region, this.Width, this.pattern, options);
         }
 
         private class SolidPenApplicator : PenApplicator<TPixel>
@@ -128,7 +128,7 @@ namespace ImageSharp.Drawing.Pens
             private readonly BrushApplicator<TPixel> brush;
             private readonly float halfWidth;
 
-            public SolidPenApplicator(PixelAccessor<TPixel> sourcePixels, IBrush<TPixel> brush, RectangleF region, float width, GraphicsOptions options)
+            public SolidPenApplicator(ImageBase<TPixel> sourcePixels, IBrush<TPixel> brush, RectangleF region, float width, GraphicsOptions options)
             {
                 this.brush = brush.CreateApplicator(sourcePixels, region, options);
                 this.halfWidth = width / 2;
@@ -147,7 +147,7 @@ namespace ImageSharp.Drawing.Pens
 
             public override ColoredPointInfo<TPixel> GetColor(int x, int y, PointInfo info)
             {
-                ColoredPointInfo<TPixel> result = default(ColoredPointInfo<TPixel>);
+                var result = default(ColoredPointInfo<TPixel>);
                 result.Color = this.brush[x, y];
 
                 if (info.DistanceFromPath < this.halfWidth)
@@ -171,9 +171,9 @@ namespace ImageSharp.Drawing.Pens
             private readonly float[] pattern;
             private readonly float totalLength;
 
-            public PatternPenApplicator(PixelAccessor<TPixel> sourcePixels, IBrush<TPixel> brush, RectangleF region, float width, float[] pattern, GraphicsOptions options)
+            public PatternPenApplicator(ImageBase<TPixel> source, IBrush<TPixel> brush, RectangleF region, float width, float[] pattern, GraphicsOptions options)
             {
-                this.brush = brush.CreateApplicator(sourcePixels, region, options);
+                this.brush = brush.CreateApplicator(source, region, options);
                 this.halfWidth = width / 2;
                 this.totalLength = 0;
 
@@ -200,7 +200,7 @@ namespace ImageSharp.Drawing.Pens
 
             public override ColoredPointInfo<TPixel> GetColor(int x, int y, PointInfo info)
             {
-                ColoredPointInfo<TPixel> infoResult = default(ColoredPointInfo<TPixel>);
+                var infoResult = default(ColoredPointInfo<TPixel>);
                 infoResult.DistanceFromElement = float.MaxValue; // is really outside the element
 
                 float length = info.DistanceAlongPath % this.totalLength;

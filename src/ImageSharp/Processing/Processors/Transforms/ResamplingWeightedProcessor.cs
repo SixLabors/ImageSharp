@@ -6,9 +6,7 @@
 namespace ImageSharp.Processing.Processors
 {
     using System;
-    using System.Buffers;
     using System.Runtime.CompilerServices;
-    using System.Runtime.InteropServices;
 
     using ImageSharp.PixelFormats;
 
@@ -90,7 +88,7 @@ namespace ImageSharp.Processing.Processors
 
             IResampler sampler = this.Sampler;
             float radius = MathF.Ceiling(scale * sampler.Radius);
-            WeightsBuffer result = new WeightsBuffer(sourceSize, destinationSize);
+            var result = new WeightsBuffer(sourceSize, destinationSize);
 
             for (int i = 0; i < destinationSize; i++)
             {

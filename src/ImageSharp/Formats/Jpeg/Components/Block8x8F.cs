@@ -57,6 +57,9 @@ namespace ImageSharp.Formats.Jpg
         public Vector4 V7R;
 #pragma warning restore SA1600 // ElementsMustBeDocumented
 
+        private static readonly Vector4 NegativeOne = new Vector4(-1);
+        private static readonly Vector4 Offset = new Vector4(.5F);
+
         /// <summary>
         /// Get/Set scalar elements at a given index
         /// </summary>
@@ -402,12 +405,11 @@ namespace ImageSharp.Formats.Jpg
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Vector4 DivideRound(Vector4 dividend, Vector4 divisor)
         {
-            // sign(v) = max(min(v, 1), -1)
-            Vector4 sign = Vector4.Min(dividend, Vector4.One);
-            sign = Vector4.Max(sign, new Vector4(-1));
+            // sign(dividend) = max(min(dividend, 1), -1)
+            var sign = Vector4.Clamp(dividend, NegativeOne, Vector4.One);
 
             // AlmostRound(dividend/divisor) = dividend/divisior + 0.5*sign(dividend)
-            return (dividend / divisor) + (sign * new Vector4(0.5f));
+            return (dividend / divisor) + (sign * Offset);
         }
     }
 }

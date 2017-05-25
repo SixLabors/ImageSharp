@@ -68,11 +68,10 @@ namespace ImageSharp
             where TPixel : struct, IPixel<TPixel>
         {
             int count = width * height;
-            Guard.MustBeGreaterThanOrEqualTo(data.Length, width * height, nameof(data));
-            var image = new Image<TPixel>(config, width, height);
-            var dest = new Span<TPixel>(image.Pixels, 0, count);
+            Guard.MustBeGreaterThanOrEqualTo(data.Length, count, nameof(data));
 
-            SpanHelper.Copy(data, dest, count);
+            var image = new Image<TPixel>(config, width, height);
+            SpanHelper.Copy(data, image.Pixels, count);
 
             return image;
         }

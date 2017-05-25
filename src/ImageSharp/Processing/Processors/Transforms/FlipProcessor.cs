@@ -8,6 +8,7 @@ namespace ImageSharp.Processing.Processors
     using System;
     using System.Threading.Tasks;
 
+    using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
 
     /// <summary>
@@ -57,24 +58,23 @@ namespace ImageSharp.Processing.Processors
             int height = source.Height;
             int halfHeight = (int)Math.Ceiling(source.Height * .5F);
 
-            using (PixelAccessor<TPixel> targetPixels = new PixelAccessor<TPixel>(width, height))
+            using (var targetPixels = new PixelAccessor<TPixel>(width, height))
             {
-                using (PixelAccessor<TPixel> sourcePixels = source.Lock())
-                {
-                    Parallel.For(
-                        0,
-                        halfHeight,
-                        this.ParallelOptions,
-                        y =>
-                            {
-                                for (int x = 0; x < width; x++)
-                                {
-                                    int newY = height - y - 1;
-                                    targetPixels[x, y] = sourcePixels[x, newY];
-                                    targetPixels[x, newY] = sourcePixels[x, y];
-                                }
-                            });
-                }
+                Parallel.For(
+                    0,
+                    halfHeight,
+                    this.ParallelOptions,
+                    y =>
+                        {
+                            int newY = height - y - 1;
+                            Span<TPixel> sourceRow = source.GetRowSpan(y);
+                            Span<TPixel> altSourceRow = source.GetRowSpan(newY);
+                            Span<TPixel> targetRow = targetPixels.GetRowSpan(y);
+                            Span<TPixel> altTargetRow = targetPixels.GetRowSpan(newY);
+
+                            sourceRow.CopyTo(altTargetRow);
+                            altSourceRow.CopyTo(targetRow);
+                        });
 
                 source.SwapPixelsBuffers(targetPixels);
             }
@@ -91,24 +91,24 @@ namespace ImageSharp.Processing.Processors
             int height = source.Height;
             int halfWidth = (int)Math.Ceiling(width * .5F);
 
-            using (PixelAccessor<TPixel> targetPixels = new PixelAccessor<TPixel>(width, height))
+            using (var targetPixels = new PixelAccessor<TPixel>(width, height))
             {
-                using (PixelAccessor<TPixel> sourcePixels = source.Lock())
-                {
-                    Parallel.For(
-                        0,
-                        height,
-                        this.ParallelOptions,
-                        y =>
+                Parallel.For(
+                    0,
+                    height,
+                    this.ParallelOptions,
+                    y =>
+                        {
+                            Span<TPixel> sourceRow = source.GetRowSpan(y);
+                            Span<TPixel> targetRow = targetPixels.GetRowSpan(y);
+
+                            for (int x = 0; x < halfWidth; x++)
                             {
-                                for (int x = 0; x < halfWidth; x++)
-                                {
-                                    int newX = width - x - 1;
-                                    targetPixels[x, y] = sourcePixels[newX, y];
-                                    targetPixels[newX, y] = sourcePixels[x, y];
-                                }
-                            });
-                }
+                                int newX = width - x - 1;
+                                targetRow[x] = sourceRow[newX];
+                                targetRow[newX] = sourceRow[x];
+                            }
+                        });
 
                 source.SwapPixelsBuffers(targetPixels);
             }

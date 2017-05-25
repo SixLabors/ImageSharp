@@ -191,7 +191,7 @@ namespace ImageSharp.Formats
 
             byte packed = this.buffer[8];
 
-            GifImageDescriptor imageDescriptor = new GifImageDescriptor
+            var imageDescriptor = new GifImageDescriptor
             {
                 Left = BitConverter.ToInt16(this.buffer, 0),
                 Top = BitConverter.ToInt16(this.buffer, 2),
@@ -337,7 +337,7 @@ namespace ImageSharp.Formats
         private void ReadFrameIndices(GifImageDescriptor imageDescriptor, byte[] indices)
         {
             int dataSize = this.currentStream.ReadByte();
-            using (LzwDecoder lzwDecoder = new LzwDecoder(this.currentStream))
+            using (var lzwDecoder = new LzwDecoder(this.currentStream))
             {
                 lzwDecoder.DecodePixels(imageDescriptor.Width, imageDescriptor.Height, dataSize, indices);
             }
@@ -396,62 +396,60 @@ namespace ImageSharp.Formats
             int interlaceIncrement = 8; // The interlacing line increment
             int interlaceY = 0; // The current interlaced line
 
-            using (PixelAccessor<TPixel> pixelAccessor = image.Lock())
+            for (int y = descriptor.Top; y < descriptor.Top + descriptor.Height; y++)
             {
-                for (int y = descriptor.Top; y < descriptor.Top + descriptor.Height; y++)
+                // Check if this image is interlaced.
+                int writeY; // the target y offset to write to
+                if (descriptor.InterlaceFlag)
                 {
-                    // Check if this image is interlaced.
-                    int writeY; // the target y offset to write to
-                    if (descriptor.InterlaceFlag)
+                    // If so then we read lines at predetermined offsets.
+                    // When an entire image height worth of offset lines has been read we consider this a pass.
+                    // With each pass the number of offset lines changes and the starting line changes.
+                    if (interlaceY >= descriptor.Height)
                     {
-                        // If so then we read lines at predetermined offsets.
-                        // When an entire image height worth of offset lines has been read we consider this a pass.
-                        // With each pass the number of offset lines changes and the starting line changes.
-                        if (interlaceY >= descriptor.Height)
+                        interlacePass++;
+                        switch (interlacePass)
                         {
-                            interlacePass++;
-                            switch (interlacePass)
-                            {
-                                case 1:
-                                    interlaceY = 4;
-                                    break;
-                                case 2:
-                                    interlaceY = 2;
-                                    interlaceIncrement = 4;
-                                    break;
-                                case 3:
-                                    interlaceY = 1;
-                                    interlaceIncrement = 2;
-                                    break;
-                            }
+                            case 1:
+                                interlaceY = 4;
+                                break;
+                            case 2:
+                                interlaceY = 2;
+                                interlaceIncrement = 4;
+                                break;
+                            case 3:
+                                interlaceY = 1;
+                                interlaceIncrement = 2;
+                                break;
                         }
-
-                        writeY = interlaceY + descriptor.Top;
-
-                        interlaceY += interlaceIncrement;
                     }
-                    else
+
+                    writeY = interlaceY + descriptor.Top;
+
+                    interlaceY += interlaceIncrement;
+                }
+                else
+                {
+                    writeY = y;
+                }
+
+                Span<TPixel> rowSpan = image.GetRowSpan(writeY);
+
+                for (int x = descriptor.Left; x < descriptor.Left + descriptor.Width; x++)
+                {
+                    int index = indices[i];
+
+                    if (this.graphicsControlExtension == null ||
+                        this.graphicsControlExtension.TransparencyFlag == false ||
+                        this.graphicsControlExtension.TransparencyIndex != index)
                     {
-                        writeY = y;
+                        int indexOffset = index * 3;
+
+                        ref TPixel pixel = ref rowSpan[x];
+                        pixel.PackFromBytes(colorTable[indexOffset], colorTable[indexOffset + 1], colorTable[indexOffset + 2], 255);
                     }
 
-                    for (int x = descriptor.Left; x < descriptor.Left + descriptor.Width; x++)
-                    {
-                        int index = indices[i];
-
-                        if (this.graphicsControlExtension == null ||
-                            this.graphicsControlExtension.TransparencyFlag == false ||
-                            this.graphicsControlExtension.TransparencyIndex != index)
-                        {
-                            int indexOffset = index * 3;
-
-                            TPixel pixel = default(TPixel);
-                            pixel.PackFromBytes(colorTable[indexOffset], colorTable[indexOffset + 1], colorTable[indexOffset + 2], 255);
-                            pixelAccessor[x, writeY] = pixel;
-                        }
-
-                        i++;
-                    }
+                    i++;
                 }
             }
 
@@ -492,7 +490,7 @@ namespace ImageSharp.Formats
             }
             else
             {
-                using (PixelArea<TPixel> emptyRow = new PixelArea<TPixel>(this.restoreArea.Value.Width, ComponentOrder.Xyzw))
+                using (var emptyRow = new PixelArea<TPixel>(this.restoreArea.Value.Width, ComponentOrder.Xyzw))
                 {
                     using (PixelAccessor<TPixel> pixelAccessor = frame.Lock())
                     {

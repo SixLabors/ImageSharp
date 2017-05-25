@@ -7,6 +7,7 @@ namespace ImageSharp.Drawing.Processors
 {
     using System;
     using System.Buffers;
+    using System.Runtime.CompilerServices;
     using Drawing;
 
     using ImageSharp.Memory;
@@ -89,12 +90,11 @@ namespace ImageSharp.Drawing.Processors
                 }
             }
 
-            using (PixelAccessor<TPixel> sourcePixels = source.Lock())
-            using (BrushApplicator<TPixel> applicator = this.Brush.CreateApplicator(sourcePixels, rect, this.Options))
+            using (BrushApplicator<TPixel> applicator = this.Brush.CreateApplicator(source, rect, this.Options))
             {
                 float[] buffer = arrayPool.Rent(maxIntersections);
                 int scanlineWidth = maxX - minX;
-                using (Buffer<float> scanline = new Buffer<float>(scanlineWidth))
+                using (var scanline = new Buffer<float>(scanlineWidth))
                 {
                     try
                     {
@@ -193,6 +193,7 @@ namespace ImageSharp.Drawing.Processors
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void Swap(float[] data, int left, int right)
         {
             float tmp = data[left];

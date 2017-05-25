@@ -56,8 +56,7 @@ namespace ImageSharp.Drawing.Processors
         /// <inheritdoc/>
         protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
         {
-            using (PixelAccessor<TPixel> sourcePixels = source.Lock())
-            using (PenApplicator<TPixel> applicator = this.Pen.CreateApplicator(sourcePixels, this.Path.Bounds, this.Options))
+            using (PenApplicator<TPixel> applicator = this.Pen.CreateApplicator(source, this.Path.Bounds, this.Options))
             {
                 Rectangle rect = RectangleF.Ceiling(applicator.RequiredRegion);
 
@@ -99,8 +98,8 @@ namespace ImageSharp.Drawing.Processors
                 {
                     int offsetY = y - polyStartY;
 
-                    using (Buffer<float> amount = new Buffer<float>(width))
-                    using (Buffer<TPixel> colors = new Buffer<TPixel>(width))
+                    using (var amount = new Buffer<float>(width))
+                    using (var colors = new Buffer<TPixel>(width))
                     {
                         for (int i = 0; i < width; i++)
                         {
@@ -112,7 +111,7 @@ namespace ImageSharp.Drawing.Processors
                             colors[i] = color.Color;
                         }
 
-                        Span<TPixel> destination = sourcePixels.GetRowSpan(offsetY).Slice(minX - startX, width);
+                        Span<TPixel> destination = source.GetRowSpan(offsetY).Slice(minX - startX, width);
                         blender.Blend(destination, destination, colors, amount);
                     }
                 });

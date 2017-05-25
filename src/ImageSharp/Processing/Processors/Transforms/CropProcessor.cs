@@ -7,7 +7,7 @@ namespace ImageSharp.Processing.Processors
 {
     using System;
     using System.Threading.Tasks;
-
+    using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
 
     /// <summary>
@@ -44,22 +44,18 @@ namespace ImageSharp.Processing.Processors
             int minX = Math.Max(this.CropRectangle.X, sourceRectangle.X);
             int maxX = Math.Min(this.CropRectangle.Right, sourceRectangle.Right);
 
-            using (PixelAccessor<TPixel> targetPixels = new PixelAccessor<TPixel>(this.CropRectangle.Width, this.CropRectangle.Height))
+            using (var targetPixels = new PixelAccessor<TPixel>(this.CropRectangle.Width, this.CropRectangle.Height))
             {
-                using (PixelAccessor<TPixel> sourcePixels = source.Lock())
-                {
-                    Parallel.For(
-                        minY,
-                        maxY,
-                        this.ParallelOptions,
-                        y =>
-                        {
-                            for (int x = minX; x < maxX; x++)
-                            {
-                                targetPixels[x - minX, y - minY] = sourcePixels[x, y];
-                            }
-                        });
-                }
+                Parallel.For(
+                    minY,
+                    maxY,
+                    this.ParallelOptions,
+                    y =>
+                    {
+                        Span<TPixel> sourceRow = source.GetRowSpan(minX, y);
+                        Span<TPixel> targetRow = targetPixels.GetRowSpan(y - minY);
+                        SpanHelper.Copy(sourceRow, targetRow, maxX - minX);
+                    });
 
                 source.SwapPixelsBuffers(targetPixels);
             }

@@ -42,9 +42,9 @@ namespace ImageSharp.Drawing.Brushes
         public TPixel Color => this.color;
 
         /// <inheritdoc />
-        public BrushApplicator<TPixel> CreateApplicator(PixelAccessor<TPixel> sourcePixels, RectangleF region, GraphicsOptions options)
+        public BrushApplicator<TPixel> CreateApplicator(ImageBase<TPixel> source, RectangleF region, GraphicsOptions options)
         {
-            return new SolidBrushApplicator(sourcePixels, this.color, options);
+            return new SolidBrushApplicator(source, this.color, options);
         }
 
         /// <summary>
@@ -55,13 +55,13 @@ namespace ImageSharp.Drawing.Brushes
             /// <summary>
             /// Initializes a new instance of the <see cref="SolidBrushApplicator"/> class.
             /// </summary>
+            /// <param name="source">The source image.</param>
             /// <param name="color">The color.</param>
             /// <param name="options">The options</param>
-            /// <param name="sourcePixels">The sourcePixels.</param>
-            public SolidBrushApplicator(PixelAccessor<TPixel> sourcePixels, TPixel color, GraphicsOptions options)
-                : base(sourcePixels, options)
+            public SolidBrushApplicator(ImageBase<TPixel> source, TPixel color, GraphicsOptions options)
+                : base(source, options)
             {
-                this.Colors = new Buffer<TPixel>(sourcePixels.Width);
+                this.Colors = new Buffer<TPixel>(source.Width);
                 for (int i = 0; i < this.Colors.Length; i++)
                 {
                     this.Colors[i] = color;
@@ -94,7 +94,7 @@ namespace ImageSharp.Drawing.Brushes
             {
                 Span<TPixel> destinationRow = this.Target.GetRowSpan(x, y).Slice(0, scanline.Length);
 
-                using (Buffer<float> amountBuffer = new Buffer<float>(scanline.Length))
+                using (var amountBuffer = new Buffer<float>(scanline.Length))
                 {
                     for (int i = 0; i < scanline.Length; i++)
                     {

@@ -63,6 +63,11 @@ namespace ImageSharp.Formats.Tiff
         /// <summary>
         /// RGB Full Color. Optimised implementation for 8-bit images.
         /// </summary>
-        Rgb888
+        Rgb888,
+
+        /// <summary>
+        /// RGB Full Color. Planar configuration of data.
+        /// </summary>
+        RgbPlanar,
     }
 }

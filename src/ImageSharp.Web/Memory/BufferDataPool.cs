@@ -13,9 +13,14 @@ namespace ImageSharp.Memory
     public class BufferDataPool
     {
         /// <summary>
-        /// The <see cref="ArrayPool{Byte}"/> which is not kept clean.
+        /// The maximum length of each array in the pool (2^21).
         /// </summary>
-        private static readonly ArrayPool<byte> ArrayPool = ArrayPool<byte>.Create(CalculateMaxArrayLength(), 50);
+        private const int MaxLength = 1024 * 1024 * 2;
+
+        /// <summary>
+        /// The <see cref="ArrayPool{Byte}"/> which is not kept clean. This gives us a pool of up to 100MB.
+        /// </summary>
+        private static readonly ArrayPool<byte> ArrayPool = ArrayPool<byte>.Create(MaxLength, 50);
 
         /// <summary>
         /// Rents the pixel array from the pool.
@@ -42,19 +47,9 @@ namespace ImageSharp.Memory
             }
             catch
             {
-                // Do nothing. Someone didn't use the Bufferpool in their IImageService
+                // Do nothing. Someone didn't use the Bufferpool in their IImageResolver
                 // and they only have themselves to blame for the performance hit.
             }
-        }
-
-        /// <summary>
-        /// Heuristically calculates a reasonable maxArrayLength value for the backing <see cref="ArrayPool{Byte}"/>.
-        /// </summary>
-        /// <returns>The maxArrayLength value</returns>
-        internal static int CalculateMaxArrayLength()
-        {
-            const int MaximumExpectedImageSize = 16384;
-            return MaximumExpectedImageSize * MaximumExpectedImageSize;
         }
     }
 }

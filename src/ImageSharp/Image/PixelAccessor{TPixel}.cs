@@ -48,7 +48,7 @@ namespace ImageSharp
             Guard.MustBeGreaterThan(image.Width, 0, "image width");
             Guard.MustBeGreaterThan(image.Height, 0, "image height");
 
-            this.SetPixelBufferUnsafe(image.Width, image.Height, image.Pixels);
+            this.SetPixelBufferUnsafe(image.Width, image.Height, image.PixelBuffer);
             this.ParallelOptions = image.Configuration.ParallelOptions;
         }
 

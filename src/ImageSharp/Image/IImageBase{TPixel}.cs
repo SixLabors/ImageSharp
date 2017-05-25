@@ -16,10 +16,8 @@ namespace ImageSharp
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
-        /// Gets the pixels as an array of the given packed pixel format.
-        /// Important. Due to the nature in the way this is constructed do not rely on the length
-        /// of the array for calculations. Use Width * Height.
+        /// Gets the representation of the pixels as an area of contiguous memory in the given pixel format.
         /// </summary>
-        TPixel[] Pixels { get; }
+        Span<TPixel> Pixels { get; }
     }
 }

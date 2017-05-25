@@ -83,6 +83,11 @@ namespace ImageSharp.Formats
         public bool IsLittleEndian { get; private set; }
 
         /// <summary>
+        /// Gets or sets the planar configuration type to use when decoding the image.
+        /// </summary>
+        public TiffPlanarConfiguration PlanarConfiguration { get; set; }
+
+        /// <summary>
         /// Calculates the size (in bytes) of the data contained within an IFD entry.
         /// </summary>
         /// <param name="entry">The IFD entry to calculate the size for.</param>
@@ -281,6 +286,15 @@ namespace ImageSharp.Formats
                     }
             }
 
+            if (ifd.TryGetIfdEntry(TiffTags.PlanarConfiguration, out TiffIfdEntry planarConfigurationEntry))
+            {
+                this.PlanarConfiguration = (TiffPlanarConfiguration)this.ReadUnsignedInteger(ref planarConfigurationEntry);
+            }
+            else
+            {
+                this.PlanarConfiguration = TiffPlanarConfiguration.Chunky;
+            }
+
             TiffPhotometricInterpretation photometricInterpretation;
 
             if (ifd.TryGetIfdEntry(TiffTags.PhotometricInterpretation, out TiffIfdEntry photometricInterpretationEntry))
@@ -400,13 +414,20 @@ namespace ImageSharp.Formats
                     {
                         if (this.BitsPerSample.Length == 3)
                         {
-                            if (this.BitsPerSample[0] == 8 && this.BitsPerSample[1] == 8 && this.BitsPerSample[2] == 8)
+                            if (this.PlanarConfiguration == TiffPlanarConfiguration.Chunky)
                             {
-                                this.ColorType = TiffColorType.Rgb888;
+                                if (this.BitsPerSample[0] == 8 && this.BitsPerSample[1] == 8 && this.BitsPerSample[2] == 8)
+                                {
+                                    this.ColorType = TiffColorType.Rgb888;
+                                }
+                                else
+                                {
+                                    this.ColorType = TiffColorType.Rgb;
+                                }
                             }
                             else
                             {
-                                this.ColorType = TiffColorType.Rgb;
+                                this.ColorType = TiffColorType.RgbPlanar;
                             }
                         }
                         else
@@ -457,17 +478,25 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <param name="width">The width for the desired pixel buffer.</param>
         /// <param name="height">The height for the desired pixel buffer.</param>
+        /// <param name="plane">The index of the plane for planar image configuration (or zero for chunky).</param>
         /// <returns>The size (in bytes) of the required pixel buffer.</returns>
-        public int CalculateImageBufferSize(int width, int height)
+        public int CalculateImageBufferSize(int width, int height, int plane)
         {
             uint bitsPerPixel = 0;
-            for (int i = 0; i < this.BitsPerSample.Length; i++)
+
+            if (this.PlanarConfiguration == TiffPlanarConfiguration.Chunky)
             {
-                bitsPerPixel += this.BitsPerSample[i];
+                for (int i = 0; i < this.BitsPerSample.Length; i++)
+                {
+                    bitsPerPixel += this.BitsPerSample[i];
+                }
+            }
+            else
+            {
+                bitsPerPixel = this.BitsPerSample[plane];
             }
 
-            int sampleMultiplier = this.ColorType == TiffColorType.PaletteColor ? 3 : 1;
-            int bytesPerRow = ((width * (int)bitsPerPixel * sampleMultiplier) + 7) / 8;
+            int bytesPerRow = ((width * (int)bitsPerPixel) + 7) / 8;
             return bytesPerRow * height;
         }
 
@@ -498,7 +527,7 @@ namespace ImageSharp.Formats
         }
 
         /// <summary>
-        /// Decodes pixel data using the current photometric interpretation.
+        /// Decodes pixel data using the current photometric interpretation (chunky configuration).
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="data">The buffer to read image data from.</param>
@@ -507,7 +536,7 @@ namespace ImageSharp.Formats
         /// <param name="top">The y-coordinate of the  top of the image block.</param>
         /// <param name="width">The width of the image block.</param>
         /// <param name="height">The height of the image block.</param>
-        public void ProcessImageBlock<TPixel>(byte[] data, PixelAccessor<TPixel> pixels, int left, int top, int width, int height)
+        public void ProcessImageBlockChunky<TPixel>(byte[] data, PixelAccessor<TPixel> pixels, int left, int top, int width, int height)
             where TPixel : struct, IPixel<TPixel>
         {
             switch (this.ColorType)
@@ -544,6 +573,29 @@ namespace ImageSharp.Formats
                     break;
                 case TiffColorType.PaletteColor:
                     PaletteTiffColor.Decode(data, this.BitsPerSample, this.ColorMap, pixels, left, top, width, height);
+                    break;
+                default:
+                    throw new InvalidOperationException();
+            }
+        }
+
+        /// <summary>
+        /// Decodes pixel data using the current photometric interpretation (planar configuration).
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="data">The buffer to read image data from.</param>
+        /// <param name="pixels">The image buffer to write pixels to.</param>
+        /// <param name="left">The x-coordinate of the left-hand side of the image block.</param>
+        /// <param name="top">The y-coordinate of the  top of the image block.</param>
+        /// <param name="width">The width of the image block.</param>
+        /// <param name="height">The height of the image block.</param>
+        public void ProcessImageBlockPlanar<TPixel>(byte[][] data, PixelAccessor<TPixel> pixels, int left, int top, int width, int height)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            switch (this.ColorType)
+            {
+                case TiffColorType.RgbPlanar:
+                    RgbPlanarTiffColor.Decode(data, this.BitsPerSample, pixels, left, top, width, height);
                     break;
                 default:
                     throw new InvalidOperationException();
@@ -1108,25 +1160,47 @@ namespace ImageSharp.Formats
         private void DecodeImageStrips<TPixel>(Image<TPixel> image, int rowsPerStrip, uint[] stripOffsets, uint[] stripByteCounts)
             where TPixel : struct, IPixel<TPixel>
         {
-            int uncompressedStripSize = this.CalculateImageBufferSize(image.Width, rowsPerStrip);
+            int stripsPerPixel = this.PlanarConfiguration == TiffPlanarConfiguration.Chunky ? 1 : this.BitsPerSample.Length;
+            int stripsPerPlane = stripOffsets.Length / stripsPerPixel;
 
             using (PixelAccessor<TPixel> pixels = image.Lock())
             {
-                byte[] stripBytes = ArrayPool<byte>.Shared.Rent(uncompressedStripSize);
+                byte[][] stripBytes = new byte[stripsPerPixel][];
+
+                for (int stripIndex = 0; stripIndex < stripBytes.Length; stripIndex++)
+                {
+                    int uncompressedStripSize = this.CalculateImageBufferSize(image.Width, rowsPerStrip, stripIndex);
+                    stripBytes[stripIndex] = ArrayPool<byte>.Shared.Rent(uncompressedStripSize);
+                }
 
                 try
                 {
-                    for (int i = 0; i < stripOffsets.Length; i++)
+                    for (int i = 0; i < stripsPerPlane; i++)
                     {
-                        int stripHeight = i < stripOffsets.Length - 1 || image.Height % rowsPerStrip == 0 ? rowsPerStrip : image.Height % rowsPerStrip;
+                        int stripHeight = i < stripsPerPlane - 1 || image.Height % rowsPerStrip == 0 ? rowsPerStrip : image.Height % rowsPerStrip;
 
-                        this.DecompressImageBlock(stripOffsets[i], stripByteCounts[i], stripBytes);
-                        this.ProcessImageBlock(stripBytes, pixels, 0, rowsPerStrip * i, image.Width, stripHeight);
+                        for (int planeIndex = 0; planeIndex < stripsPerPixel; planeIndex++)
+                        {
+                            int stripIndex = i * stripsPerPixel + planeIndex;
+                            this.DecompressImageBlock(stripOffsets[stripIndex], stripByteCounts[stripIndex], stripBytes[planeIndex]);
+                        }
+
+                        if (this.PlanarConfiguration == TiffPlanarConfiguration.Chunky)
+                        {
+                            this.ProcessImageBlockChunky(stripBytes[0], pixels, 0, rowsPerStrip * i, image.Width, stripHeight);
+                        }
+                        else
+                        {
+                            this.ProcessImageBlockPlanar(stripBytes, pixels, 0, rowsPerStrip * i, image.Width, stripHeight);
+                        }
                     }
                 }
                 finally
                 {
-                    ArrayPool<byte>.Shared.Return(stripBytes);
+                    for (int stripIndex = 0; stripIndex < stripBytes.Length; stripIndex++)
+                    {
+                        ArrayPool<byte>.Shared.Return(stripBytes[stripIndex]);
+                    }
                 }
             }
         }

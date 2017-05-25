@@ -208,11 +208,7 @@ namespace ImageSharp.Formats
 
             Image<TPixel> image = new Image<TPixel>(this.configuration, width, height);
 
-            TiffResolutionUnit resolutionUnit = TiffResolutionUnit.Inch;
-            if (ifd.TryGetIfdEntry(TiffTags.ResolutionUnit, out TiffIfdEntry resolutionUnitEntry))
-            {
-                resolutionUnit = (TiffResolutionUnit)this.ReadUnsignedInteger(ref resolutionUnitEntry);
-            }
+            TiffResolutionUnit resolutionUnit = (TiffResolutionUnit)this.ReadUnsignedInteger(ifd, TiffTags.ResolutionUnit, (uint)TiffResolutionUnit.Inch);
 
             if (resolutionUnit != TiffResolutionUnit.None)
             {
@@ -252,12 +248,7 @@ namespace ImageSharp.Formats
         /// <param name="ifd">The IFD to read the image format information for.</param>
         public void ReadImageFormat(TiffIfd ifd)
         {
-            TiffCompression compression = TiffCompression.None;
-
-            if (ifd.TryGetIfdEntry(TiffTags.Compression, out TiffIfdEntry compressionEntry))
-            {
-                compression = (TiffCompression)this.ReadUnsignedInteger(ref compressionEntry);
-            }
+            TiffCompression compression = (TiffCompression)this.ReadUnsignedInteger(ifd, TiffTags.Compression, (uint)TiffCompression.None);
 
             switch (compression)
             {
@@ -286,14 +277,7 @@ namespace ImageSharp.Formats
                     }
             }
 
-            if (ifd.TryGetIfdEntry(TiffTags.PlanarConfiguration, out TiffIfdEntry planarConfigurationEntry))
-            {
-                this.PlanarConfiguration = (TiffPlanarConfiguration)this.ReadUnsignedInteger(ref planarConfigurationEntry);
-            }
-            else
-            {
-                this.PlanarConfiguration = TiffPlanarConfiguration.Chunky;
-            }
+            this.PlanarConfiguration = (TiffPlanarConfiguration)this.ReadUnsignedInteger(ifd, TiffTags.PlanarConfiguration, (uint)TiffPlanarConfiguration.Chunky);
 
             TiffPhotometricInterpretation photometricInterpretation;
 
@@ -650,6 +634,29 @@ namespace ImageSharp.Formats
                     return this.ToUInt32(entry.Value, 0);
                 default:
                     throw new ImageFormatException($"A value of type '{entry.Type}' cannot be converted to an unsigned integer.");
+            }
+        }
+
+        /// <summary>
+        /// Reads the data for a specified tag of a <see cref="TiffIfd"/> as an unsigned integer value.
+        /// </summary>
+        /// <param name="ifd">The <see cref="TiffIfd"/> to read from.</param>
+        /// <param name="tag">The tag ID to search for.</param>
+        /// <param name="defaultValue">The default value if the entry is missing</param>
+        /// <returns>The data.</returns>
+        /// <exception cref="ImageFormatException">
+        /// Thrown if the data-type specified by the file cannot be converted to a <see cref="uint"/>, or if
+        /// there is an array of items.
+        /// </exception>
+        public uint ReadUnsignedInteger(TiffIfd ifd, ushort tag, uint defaultValue)
+        {
+            if (ifd.TryGetIfdEntry(tag, out TiffIfdEntry entry))
+            {
+                return this.ReadUnsignedInteger(ref entry);
+            }
+            else
+            {
+                return defaultValue;
             }
         }
 
@@ -1181,7 +1188,7 @@ namespace ImageSharp.Formats
 
                         for (int planeIndex = 0; planeIndex < stripsPerPixel; planeIndex++)
                         {
-                            int stripIndex = i * stripsPerPixel + planeIndex;
+                            int stripIndex = (i * stripsPerPixel) + planeIndex;
                             this.DecompressImageBlock(stripOffsets[stripIndex], stripByteCounts[stripIndex], stripBytes[planeIndex]);
                         }
 

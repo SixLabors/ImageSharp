@@ -58,7 +58,7 @@ namespace ImageSharp.Processing.Processors
             int startX = sourceRectangle.X;
             int endX = sourceRectangle.Right;
             TPixel vignetteColor = this.VignetteColor;
-            Vector2 centre = Rectangle.Center(sourceRectangle).ToVector2();
+            var centre = Rectangle.Center(sourceRectangle).ToVector2();
             float rX = this.RadiusX > 0 ? MathF.Min(this.RadiusX, sourceRectangle.Width * .5F) : sourceRectangle.Width * .5F;
             float rY = this.RadiusY > 0 ? MathF.Min(this.RadiusY, sourceRectangle.Height * .5F) : sourceRectangle.Height * .5F;
             float maxDistance = MathF.Sqrt((rX * rX) + (rY * rY));
@@ -81,8 +81,7 @@ namespace ImageSharp.Processing.Processors
             }
 
             int width = maxX - minX;
-            using (Buffer<TPixel> rowColors = new Buffer<TPixel>(width))
-            using (PixelAccessor<TPixel> sourcePixels = source.Lock())
+            using (var rowColors = new Buffer<TPixel>(width))
             {
                 for (int i = 0; i < width; i++)
                 {
@@ -95,7 +94,7 @@ namespace ImageSharp.Processing.Processors
                     this.ParallelOptions,
                     y =>
                         {
-                            using (Buffer<float> amounts = new Buffer<float>(width))
+                            using (var amounts = new Buffer<float>(width))
                             {
                                 int offsetY = y - startY;
                                 int offsetX = minX - startX;
@@ -105,7 +104,7 @@ namespace ImageSharp.Processing.Processors
                                     amounts[i] = (this.options.BlendPercentage * (.9F * (distance / maxDistance))).Clamp(0, 1);
                                 }
 
-                                Span<TPixel> destination = sourcePixels.GetRowSpan(offsetY).Slice(offsetX, width);
+                                Span<TPixel> destination = source.GetRowSpan(offsetY).Slice(offsetX, width);
 
                                 this.blender.Blend(destination, destination, rowColors, amounts);
                             }

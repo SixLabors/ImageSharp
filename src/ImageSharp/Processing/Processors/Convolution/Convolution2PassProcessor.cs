@@ -46,7 +46,7 @@ namespace ImageSharp.Processing.Processors
             int width = source.Width;
             int height = source.Height;
 
-            using (PixelAccessor<TPixel> firstPassPixels = new PixelAccessor<TPixel>(width, height))
+            using (var firstPassPixels = new PixelAccessor<TPixel>(width, height))
             using (PixelAccessor<TPixel> sourcePixels = source.Lock())
             {
                 this.ApplyConvolution(firstPassPixels, sourcePixels, source.Bounds, this.KernelX);
@@ -84,9 +84,11 @@ namespace ImageSharp.Processing.Processors
                 this.ParallelOptions,
                 y =>
                 {
+                    Span<TPixel> targetRow = targetPixels.GetRowSpan(y);
+
                     for (int x = startX; x < endX; x++)
                     {
-                        Vector4 destination = default(Vector4);
+                        var destination = default(Vector4);
 
                         // Apply each matrix multiplier to the color components for each pixel.
                         for (int fy = 0; fy < kernelHeight; fy++)
@@ -95,6 +97,7 @@ namespace ImageSharp.Processing.Processors
                             int offsetY = y + fyr;
 
                             offsetY = offsetY.Clamp(0, maxY);
+                            Span<TPixel> row = sourcePixels.GetRowSpan(offsetY);
 
                             for (int fx = 0; fx < kernelWidth; fx++)
                             {
@@ -103,14 +106,13 @@ namespace ImageSharp.Processing.Processors
 
                                 offsetX = offsetX.Clamp(0, maxX);
 
-                                Vector4 currentColor = sourcePixels[offsetX, offsetY].ToVector4();
+                                var currentColor = row[offsetX].ToVector4();
                                 destination += kernel[fy, fx] * currentColor;
                             }
                         }
 
-                        TPixel packed = default(TPixel);
-                        packed.PackFromVector4(destination);
-                        targetPixels[x, y] = packed;
+                        ref TPixel pixel = ref targetRow[x];
+                        pixel.PackFromVector4(destination);
                     }
                 });
         }

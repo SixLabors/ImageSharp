@@ -137,31 +137,20 @@ namespace ImageSharp.Formats
         private int GetTransparentIndex<TPixel>(QuantizedImage<TPixel> quantized)
             where TPixel : struct, IPixel<TPixel>
         {
-            // Find the lowest alpha value and make it the transparent index.
-            int index = 255;
-            byte alpha = 255;
-            bool hasEmpty = false;
-
-            // Some images may have more than one quantized pixel returned with an alpha value of zero
-            // so we should always ignore if we have empty pixels present.
-            for (int i = 0; i < quantized.Palette.Length; i++)
+            // Transparent pixels are much more likely to be found at the end of a palette
+            int index = -1;
+            for (int i = quantized.Palette.Length - 1; i >= 0; i--)
             {
                 quantized.Palette[i].ToXyzwBytes(this.buffer, 0);
 
-                if (!hasEmpty)
+                if (this.buffer[3] > 0)
                 {
-                    if (this.buffer[0] == 0 && this.buffer[1] == 0 && this.buffer[2] == 0 && this.buffer[3] == 0)
-                    {
-                        alpha = this.buffer[3];
-                        index = i;
-                        hasEmpty = true;
-                    }
-
-                    if (this.buffer[3] < alpha)
-                    {
-                        alpha = this.buffer[3];
-                        index = i;
-                    }
+                    continue;
+                }
+                else
+                {
+                    index = i;
+                    break;
                 }
             }
 
@@ -183,8 +172,8 @@ namespace ImageSharp.Formats
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="image">The image to encode.</param>
         /// <param name="writer">The writer to write to the stream with.</param>
-        /// <param name="tranparencyIndex">The transparency index to set the default background index to.</param>
-        private void WriteLogicalScreenDescriptor<TPixel>(Image<TPixel> image, EndianBinaryWriter writer, int tranparencyIndex)
+        /// <param name="transparencyIndex">The transparency index to set the default background index to.</param>
+        private void WriteLogicalScreenDescriptor<TPixel>(Image<TPixel> image, EndianBinaryWriter writer, int transparencyIndex)
             where TPixel : struct, IPixel<TPixel>
         {
             var descriptor = new GifLogicalScreenDescriptor
@@ -193,7 +182,7 @@ namespace ImageSharp.Formats
                 Height = (short)image.Height,
                 GlobalColorTableFlag = false, // TODO: Always false for now.
                 GlobalColorTableSize = this.bitDepth - 1,
-                BackgroundColorIndex = (byte)tranparencyIndex
+                BackgroundColorIndex = unchecked((byte)transparencyIndex)
             };
 
             writer.Write((ushort)descriptor.Width);
@@ -286,8 +275,8 @@ namespace ImageSharp.Formats
             var extension = new GifGraphicsControlExtension
             {
                 DisposalMethod = metaData.DisposalMethod,
-                TransparencyFlag = true, // TODO: The spec here is unclear. Can we get away with this?
-                TransparencyIndex = transparencyIndex,
+                TransparencyFlag = transparencyIndex > -1,
+                TransparencyIndex = unchecked((byte)transparencyIndex),
                 DelayTime = metaData.FrameDelay
             };
 
@@ -306,7 +295,7 @@ namespace ImageSharp.Formats
 
             writer.Write(field.Byte);
             writer.Write((ushort)extension.DelayTime);
-            writer.Write((byte)extension.TransparencyIndex);
+            writer.Write(extension.TransparencyIndex);
             writer.Write(GifConstants.Terminator);
         }
 

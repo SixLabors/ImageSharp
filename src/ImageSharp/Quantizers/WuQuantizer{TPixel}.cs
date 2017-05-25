@@ -183,7 +183,7 @@ namespace ImageSharp.Quantizers
                         float b = Volume(this.colorCube[k], this.vmb) / weight;
                         float a = Volume(this.colorCube[k], this.vma) / weight;
 
-                        TPixel color = default(TPixel);
+                        var color = default(TPixel);
                         color.PackFromVector4(new Vector4(r, g, b, a) / 255F);
                         this.palette[k] = color;
                     }
@@ -221,7 +221,7 @@ namespace ImageSharp.Quantizers
         }
 
         /// <inheritdoc/>
-        protected override void FirstPass(PixelAccessor<TPixel> source, int width, int height)
+        protected override void FirstPass(ImageBase<TPixel> source, int width, int height)
         {
             // Build up the 3-D color histogram
             // Loop through each row
@@ -240,7 +240,7 @@ namespace ImageSharp.Quantizers
         }
 
         /// <inheritdoc/>
-        protected override void SecondPass(PixelAccessor<TPixel> source, byte[] output, int width, int height)
+        protected override void SecondPass(ImageBase<TPixel> source, byte[] output, int width, int height)
         {
             // Load up the values for the first pixel. We can use these to speed up the second
             // pass of the algorithm by avoiding transforming rows of identical color.
@@ -252,11 +252,13 @@ namespace ImageSharp.Quantizers
 
             for (int y = 0; y < height; y++)
             {
+                Span<TPixel> row = source.GetRowSpan(y);
+
                 // And loop through each column
                 for (int x = 0; x < width; x++)
                 {
                     // Get the pixel.
-                    sourcePixel = source[x, y];
+                    sourcePixel = row[x];
 
                     // Check if this is the same as the last pixel. If so use that value
                     // rather than calculating it again. This is an inexpensive optimization.

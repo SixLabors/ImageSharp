@@ -25,9 +25,9 @@ namespace ImageSharp.Tests
             {
                 image.Grayscale(value);
                 byte[] data = new byte[3];
-                foreach (TPixel p in image.Pixels)
+                for (int i = 0; i < image.Pixels.Length; i++)
                 {
-                    p.ToXyzBytes(data, 0);
+                    image.Pixels[i].ToXyzBytes(data, 0);
                     Assert.Equal(data[0], data[1]);
                     Assert.Equal(data[1], data[2]);
                 }

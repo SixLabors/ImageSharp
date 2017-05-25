@@ -204,10 +204,31 @@ namespace ImageSharp.Tests
         [InlineData(true, TiffPhotometricInterpretation.Rgb, new[] { 4, 4, 4 }, TiffColorType.Rgb)]
         [InlineData(false, TiffPhotometricInterpretation.Rgb, new[] { 8, 8, 8 }, TiffColorType.Rgb888)]
         [InlineData(true, TiffPhotometricInterpretation.Rgb, new[] { 8, 8, 8 }, TiffColorType.Rgb888)]
-        public void ReadImageFormat_DeterminesCorrectColorImplementation(bool isLittleEndian, ushort photometricInterpretation, int[] bitsPerSample, int colorType)
+        public void ReadImageFormat_DeterminesCorrectColorImplementation_Chunky(bool isLittleEndian, ushort photometricInterpretation, int[] bitsPerSample, int colorType)
         {
             Stream stream = CreateTiffGenIfd()
                             .WithEntry(TiffGenEntry.Integer(TiffTags.PhotometricInterpretation, TiffType.Short, photometricInterpretation))
+                            .WithEntry(TiffGenEntry.Integer(TiffTags.PlanarConfiguration, TiffType.Short, (int)TiffPlanarConfiguration.Chunky))
+                            .WithEntry(TiffGenEntry.Integer(TiffTags.BitsPerSample, TiffType.Short, bitsPerSample))
+                            .ToStream(isLittleEndian);
+
+            TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null, null);
+            TiffIfd ifd = decoder.ReadIfd(0);
+            decoder.ReadImageFormat(ifd);
+
+            Assert.Equal((TiffColorType)colorType, decoder.ColorType);
+        }
+
+        [Theory]
+        [InlineData(false, TiffPhotometricInterpretation.Rgb, new[] { 4, 4, 4 }, TiffColorType.RgbPlanar)]
+        [InlineData(true, TiffPhotometricInterpretation.Rgb, new[] { 4, 4, 4 }, TiffColorType.RgbPlanar)]
+        [InlineData(false, TiffPhotometricInterpretation.Rgb, new[] { 8, 8, 8 }, TiffColorType.RgbPlanar)]
+        [InlineData(true, TiffPhotometricInterpretation.Rgb, new[] { 8, 8, 8 }, TiffColorType.RgbPlanar)]
+        public void ReadImageFormat_DeterminesCorrectColorImplementation_Planar(bool isLittleEndian, ushort photometricInterpretation, int[] bitsPerSample, int colorType)
+        {
+            Stream stream = CreateTiffGenIfd()
+                            .WithEntry(TiffGenEntry.Integer(TiffTags.PhotometricInterpretation, TiffType.Short, photometricInterpretation))
+                            .WithEntry(TiffGenEntry.Integer(TiffTags.PlanarConfiguration, TiffType.Short, (int)TiffPlanarConfiguration.Planar))
                             .WithEntry(TiffGenEntry.Integer(TiffTags.BitsPerSample, TiffType.Short, bitsPerSample))
                             .ToStream(isLittleEndian);
 
@@ -432,28 +453,92 @@ namespace ImageSharp.Tests
         }
 
         [Theory]
+        [InlineData(false, TiffPlanarConfiguration.Chunky)]
+        [InlineData(true, TiffPlanarConfiguration.Chunky)]
+        [InlineData(false, TiffPlanarConfiguration.Planar)]
+        [InlineData(true, TiffPlanarConfiguration.Planar)]
+        public void ReadImageFormat_ReadsPlanarConfiguration(bool isLittleEndian, int planarConfiguration)
+        {
+            Stream stream = CreateTiffGenIfd()
+                            .WithEntry(TiffGenEntry.Integer(TiffTags.PhotometricInterpretation, TiffType.Short, (int)TiffPhotometricInterpretation.Rgb))
+                            .WithEntry(TiffGenEntry.Integer(TiffTags.BitsPerSample, TiffType.Short, new int[] { 8, 8, 8 }))
+                            .WithEntry(TiffGenEntry.Integer(TiffTags.PlanarConfiguration, TiffType.Short, (int)planarConfiguration))
+                            .ToStream(isLittleEndian);
+
+            TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null, null);
+            TiffIfd ifd = decoder.ReadIfd(0);
+            decoder.ReadImageFormat(ifd);
+
+            Assert.Equal((TiffPlanarConfiguration)planarConfiguration, decoder.PlanarConfiguration);
+        }
+
+        [Theory]
+        [MemberData(nameof(IsLittleEndianValues))]
+        public void ReadImageFormat_DefaultsPlanarConfigurationToChunky(bool isLittleEndian)
+        {
+            Stream stream = CreateTiffGenIfd()
+                            .WithEntry(TiffGenEntry.Integer(TiffTags.PhotometricInterpretation, TiffType.Short, (int)TiffPhotometricInterpretation.Rgb))
+                            .WithEntry(TiffGenEntry.Integer(TiffTags.BitsPerSample, TiffType.Short, new int[] { 8, 8, 8 }))
+                            .WithoutEntry(TiffTags.PlanarConfiguration)
+                            .ToStream(isLittleEndian);
+
+            TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null, null);
+            TiffIfd ifd = decoder.ReadIfd(0);
+            decoder.ReadImageFormat(ifd);
+
+            Assert.Equal(TiffPlanarConfiguration.Chunky, decoder.PlanarConfiguration);
+        }
+
+        [Theory]
         [InlineData(TiffColorType.WhiteIsZero, new uint[] { 1 }, 160, 80, 20 * 80)]
         [InlineData(TiffColorType.WhiteIsZero, new uint[] { 1 }, 153, 80, 20 * 80)]
         [InlineData(TiffColorType.WhiteIsZero, new uint[] { 3 }, 100, 80, 38 * 80)]
         [InlineData(TiffColorType.WhiteIsZero, new uint[] { 4 }, 100, 80, 50 * 80)]
         [InlineData(TiffColorType.WhiteIsZero, new uint[] { 4 }, 99, 80, 50 * 80)]
         [InlineData(TiffColorType.WhiteIsZero, new uint[] { 8 }, 100, 80, 100 * 80)]
-        [InlineData(TiffColorType.PaletteColor, new uint[] { 1 }, 160, 80, 60 * 80)]
-        [InlineData(TiffColorType.PaletteColor, new uint[] { 1 }, 153, 80, 58 * 80)]
-        [InlineData(TiffColorType.PaletteColor, new uint[] { 3 }, 100, 80, 113 * 80)]
-        [InlineData(TiffColorType.PaletteColor, new uint[] { 4 }, 100, 80, 150 * 80)]
-        [InlineData(TiffColorType.PaletteColor, new uint[] { 4 }, 99, 80, 149 * 80)]
-        [InlineData(TiffColorType.PaletteColor, new uint[] { 8 }, 100, 80, 300 * 80)]
+        [InlineData(TiffColorType.PaletteColor, new uint[] { 1 }, 160, 80, 20 * 80)]
+        [InlineData(TiffColorType.PaletteColor, new uint[] { 1 }, 153, 80, 20 * 80)]
+        [InlineData(TiffColorType.PaletteColor, new uint[] { 3 }, 100, 80, 38 * 80)]
+        [InlineData(TiffColorType.PaletteColor, new uint[] { 4 }, 100, 80, 50 * 80)]
+        [InlineData(TiffColorType.PaletteColor, new uint[] { 4 }, 99, 80, 50 * 80)]
+        [InlineData(TiffColorType.PaletteColor, new uint[] { 8 }, 100, 80, 100 * 80)]
         [InlineData(TiffColorType.Rgb, new uint[] { 8, 8, 8 }, 100, 80, 300 * 80)]
         [InlineData(TiffColorType.Rgb, new uint[] { 4, 4, 4 }, 100, 80, 150 * 80)]
         [InlineData(TiffColorType.Rgb, new uint[] { 4, 8, 4 }, 100, 80, 200 * 80)]
-        public void CalculateImageBufferSize_ReturnsCorrectSize(ushort colorType, uint[] bitsPerSample, int width, int height, int expectedResult)
+        public void CalculateImageBufferSize_ReturnsCorrectSize_Chunky(ushort colorType, uint[] bitsPerSample, int width, int height, int expectedResult)
         {
             TiffDecoderCore decoder = new TiffDecoderCore(null, null);
             decoder.ColorType = (TiffColorType)colorType;
+            decoder.PlanarConfiguration = TiffPlanarConfiguration.Chunky;
             decoder.BitsPerSample = bitsPerSample;
 
-            int bufferSize = decoder.CalculateImageBufferSize(width, height);
+            int bufferSize = decoder.CalculateImageBufferSize(width, height, 0);
+
+            Assert.Equal(expectedResult, bufferSize);
+        }
+
+        [Theory]
+        [InlineData(TiffColorType.Rgb, new uint[] { 8, 8, 8 }, 100, 80, 0, 100 * 80)]
+        [InlineData(TiffColorType.Rgb, new uint[] { 8, 8, 8 }, 100, 80, 1, 100 * 80)]
+        [InlineData(TiffColorType.Rgb, new uint[] { 8, 8, 8 }, 100, 80, 2, 100 * 80)]
+        [InlineData(TiffColorType.Rgb, new uint[] { 4, 4, 4 }, 100, 80, 0, 50 * 80)]
+        [InlineData(TiffColorType.Rgb, new uint[] { 4, 4, 4 }, 100, 80, 1, 50 * 80)]
+        [InlineData(TiffColorType.Rgb, new uint[] { 4, 4, 4 }, 100, 80, 2, 50 * 80)]
+        [InlineData(TiffColorType.Rgb, new uint[] { 4, 8, 4 }, 100, 80, 0, 50 * 80)]
+        [InlineData(TiffColorType.Rgb, new uint[] { 4, 8, 4 }, 100, 80, 1, 100 * 80)]
+        [InlineData(TiffColorType.Rgb, new uint[] { 4, 8, 4 }, 100, 80, 2, 50 * 80)]
+        [InlineData(TiffColorType.Rgb, new uint[] { 4, 8, 4 }, 99, 80, 0, 50 * 80)]
+        [InlineData(TiffColorType.Rgb, new uint[] { 4, 8, 4 }, 99, 80, 1, 99 * 80)]
+        [InlineData(TiffColorType.Rgb, new uint[] { 4, 8, 4 }, 99, 80, 2, 50 * 80)]
+
+        public void CalculateImageBufferSize_ReturnsCorrectSize_Planar(ushort colorType, uint[] bitsPerSample, int width, int height, int plane, int expectedResult)
+        {
+            TiffDecoderCore decoder = new TiffDecoderCore(null, null);
+            decoder.ColorType = (TiffColorType)colorType;
+            decoder.PlanarConfiguration = TiffPlanarConfiguration.Planar;
+            decoder.BitsPerSample = bitsPerSample;
+
+            int bufferSize = decoder.CalculateImageBufferSize(width, height, plane);
 
             Assert.Equal(expectedResult, bufferSize);
         }

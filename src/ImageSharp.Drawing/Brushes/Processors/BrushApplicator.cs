@@ -6,7 +6,6 @@
 namespace ImageSharp.Drawing.Processors
 {
     using System;
-    using System.Numerics;
 
     using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
@@ -24,7 +23,7 @@ namespace ImageSharp.Drawing.Processors
         /// </summary>
         /// <param name="target">The target.</param>
         /// <param name="options">The options.</param>
-        internal BrushApplicator(PixelAccessor<TPixel> target, GraphicsOptions options)
+        internal BrushApplicator(ImageBase<TPixel> target, GraphicsOptions options)
         {
             this.Target = target;
 
@@ -41,7 +40,7 @@ namespace ImageSharp.Drawing.Processors
         /// <summary>
         /// Gets the destinaion
         /// </summary>
-        protected PixelAccessor<TPixel> Target { get; }
+        protected ImageBase<TPixel> Target { get; }
 
         /// <summary>
         /// Gets the blend percentage
@@ -68,8 +67,8 @@ namespace ImageSharp.Drawing.Processors
         /// <remarks>scanlineBuffer will be > scanlineWidth but provide and offset in case we want to share a larger buffer across runs.</remarks>
         internal virtual void Apply(Span<float> scanline, int x, int y)
         {
-            using (Buffer<float> amountBuffer = new Buffer<float>(scanline.Length))
-            using (Buffer<TPixel> overlay = new Buffer<TPixel>(scanline.Length))
+            using (var amountBuffer = new Buffer<float>(scanline.Length))
+            using (var overlay = new Buffer<TPixel>(scanline.Length))
             {
                 for (int i = 0; i < scanline.Length; i++)
                 {

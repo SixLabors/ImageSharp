@@ -69,7 +69,7 @@ namespace ImageSharp.Memory
         /// <returns>The <see cref="Buffer{T}"/> instance</returns>
         public static Buffer2D<T> CreateClean(int width, int height)
         {
-            Buffer2D<T> buffer = new Buffer2D<T>(width, height);
+            var buffer = new Buffer2D<T>(width, height);
             buffer.Clear();
             return buffer;
         }

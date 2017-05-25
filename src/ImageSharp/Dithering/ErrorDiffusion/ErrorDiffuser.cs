@@ -5,6 +5,7 @@
 
 namespace ImageSharp.Dithering
 {
+    using System;
     using System.Numerics;
     using System.Runtime.CompilerServices;
 
@@ -71,7 +72,7 @@ namespace ImageSharp.Dithering
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Dither<TPixel>(PixelAccessor<TPixel> pixels, TPixel source, TPixel transformed, int x, int y, int width, int height)
+        public void Dither<TPixel>(ImageBase<TPixel> pixels, TPixel source, TPixel transformed, int x, int y, int width, int height)
             where TPixel : struct, IPixel<TPixel>
         {
             this.Dither(pixels, source, transformed, x, y, width, height, true);
@@ -79,13 +80,13 @@ namespace ImageSharp.Dithering
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Dither<TPixel>(PixelAccessor<TPixel> pixels, TPixel source, TPixel transformed, int x, int y, int width, int height, bool replacePixel)
+        public void Dither<TPixel>(ImageBase<TPixel> image, TPixel source, TPixel transformed, int x, int y, int width, int height, bool replacePixel)
             where TPixel : struct, IPixel<TPixel>
         {
             if (replacePixel)
             {
                 // Assign the transformed pixel to the array.
-                pixels[x, y] = transformed;
+                image[x, y] = transformed;
             }
 
             // Calculate the error
@@ -95,30 +96,33 @@ namespace ImageSharp.Dithering
             for (int row = 0; row < this.matrixHeight; row++)
             {
                 int matrixY = y + row;
-
-                for (int col = 0; col < this.matrixWidth; col++)
+                if (matrixY > 0 && matrixY < height)
                 {
-                    int matrixX = x + (col - this.startingOffset);
+                    Span<TPixel> rowSpan = image.GetRowSpan(matrixY);
 
-                    if (matrixX > 0 && matrixX < width && matrixY > 0 && matrixY < height)
+                    for (int col = 0; col < this.matrixWidth; col++)
                     {
-                        float coefficient = this.matrix[row, col];
+                        int matrixX = x + (col - this.startingOffset);
 
-                        // Good to disable here as we are not comparing mathematical output.
-                        // ReSharper disable once CompareOfFloatsByEqualityOperator
-                        if (coefficient == 0)
+                        if (matrixX > 0 && matrixX < width)
                         {
-                            continue;
+                            float coefficient = this.matrix[row, col];
+
+                            // Good to disable here as we are not comparing mathematical output.
+                            // ReSharper disable once CompareOfFloatsByEqualityOperator
+                            if (coefficient == 0)
+                            {
+                                continue;
+                            }
+
+                            ref TPixel pixel = ref rowSpan[matrixX];
+                            var offsetColor = pixel.ToVector4();
+                            var coefficientVector = new Vector4(coefficient);
+
+                            Vector4 result = ((error * coefficientVector) / this.divisorVector) + offsetColor;
+                            result.W = offsetColor.W;
+                            pixel.PackFromVector4(result);
                         }
-
-                        Vector4 coefficientVector = new Vector4(coefficient);
-                        Vector4 offsetColor = pixels[matrixX, matrixY].ToVector4();
-                        Vector4 result = ((error * coefficientVector) / this.divisorVector) + offsetColor;
-                        result.W = offsetColor.W;
-
-                        TPixel packed = default(TPixel);
-                        packed.PackFromVector4(result);
-                        pixels[matrixX, matrixY] = packed;
                     }
                 }
             }

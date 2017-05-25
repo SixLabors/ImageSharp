@@ -5,6 +5,7 @@
 
 namespace ImageSharp.Processing.Processors
 {
+    using System;
     using System.Numerics;
     using System.Threading.Tasks;
 
@@ -56,10 +57,9 @@ namespace ImageSharp.Processing.Processors
             int maxY = endY - 1;
             int maxX = endX - 1;
 
-            using (PixelAccessor<TPixel> targetPixels = new PixelAccessor<TPixel>(source.Width, source.Height))
-            using (PixelAccessor<TPixel> sourcePixels = source.Lock())
+            using (var targetPixels = new PixelAccessor<TPixel>(source.Width, source.Height))
             {
-                sourcePixels.CopyTo(targetPixels);
+                source.CopyTo(targetPixels);
 
                 Parallel.For(
                     startY,
@@ -67,6 +67,9 @@ namespace ImageSharp.Processing.Processors
                     this.ParallelOptions,
                     y =>
                     {
+                        Span<TPixel> sourceRow = source.GetRowSpan(y);
+                        Span<TPixel> targetRow = targetPixels.GetRowSpan(y);
+
                         for (int x = startX; x < endX; x++)
                         {
                             float rX = 0;
@@ -83,6 +86,7 @@ namespace ImageSharp.Processing.Processors
                                 int offsetY = y + fyr;
 
                                 offsetY = offsetY.Clamp(0, maxY);
+                                Span<TPixel> sourceOffsetRow = source.GetRowSpan(offsetY);
 
                                 for (int fx = 0; fx < kernelXWidth; fx++)
                                 {
@@ -90,8 +94,7 @@ namespace ImageSharp.Processing.Processors
                                     int offsetX = x + fxr;
 
                                     offsetX = offsetX.Clamp(0, maxX);
-
-                                    Vector4 currentColor = sourcePixels[offsetX, offsetY].ToVector4();
+                                    var currentColor = sourceOffsetRow[offsetX].ToVector4();
 
                                     if (fy < kernelXHeight)
                                     {
@@ -115,9 +118,8 @@ namespace ImageSharp.Processing.Processors
                             float green = MathF.Sqrt((gX * gX) + (gY * gY));
                             float blue = MathF.Sqrt((bX * bX) + (bY * bY));
 
-                            TPixel packed = default(TPixel);
-                            packed.PackFromVector4(new Vector4(red, green, blue, sourcePixels[x, y].ToVector4().W));
-                            targetPixels[x, y] = packed;
+                            ref TPixel pixel = ref targetRow[x];
+                            pixel.PackFromVector4(new Vector4(red, green, blue, sourceRow[x].ToVector4().W));
                         }
                     });
 

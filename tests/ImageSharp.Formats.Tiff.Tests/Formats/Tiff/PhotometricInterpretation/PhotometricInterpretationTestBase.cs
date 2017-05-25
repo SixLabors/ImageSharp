@@ -41,7 +41,7 @@ namespace ImageSharp.Tests
             return output;
         }
 
-        public static void AssertDecode(Rgba32[][] expectedResult, Action<PixelAccessor<Rgba32>> decodeAction)
+        internal static void AssertDecode(Rgba32[][] expectedResult, Action<PixelAccessor<Rgba32>> decodeAction)
         {
             int resultWidth = expectedResult[0].Length;
             int resultHeight = expectedResult.Length;

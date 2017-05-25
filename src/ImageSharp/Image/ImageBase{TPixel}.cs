@@ -32,15 +32,12 @@ namespace ImageSharp
         /// </summary>
         public const int MaxHeight = int.MaxValue;
 
+#pragma warning disable SA1401 // Fields must be private
         /// <summary>
-        /// The image pixels
+        /// The image pixels. Not private as Buffer2D requires an array in its constructor.
         /// </summary>
-        private TPixel[] pixelBuffer;
-
-        /// <summary>
-        /// The span representing the pixel buffer
-        /// </summary>
-        private Span<TPixel> span;
+        internal TPixel[] PixelBuffer;
+#pragma warning restore SA1401 // Fields must be private
 
         /// <summary>
         /// A value indicating whether this instance of the given entity has been disposed.
@@ -116,7 +113,7 @@ namespace ImageSharp
         }
 
         /// <inheritdoc/>
-        public TPixel[] Pixels => this.pixelBuffer;
+        public Span<TPixel> Pixels => new Span<TPixel>(this.PixelBuffer, 0, this.Width * this.Height);
 
         /// <inheritdoc/>
         public int Width { get; private set; }
@@ -147,14 +144,14 @@ namespace ImageSharp
             get
             {
                 this.CheckCoordinates(x, y);
-                return this.pixelBuffer[(y * this.Width) + x];
+                return this.PixelBuffer[(y * this.Width) + x];
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set
             {
                 this.CheckCoordinates(x, y);
-                this.pixelBuffer[(y * this.Width) + x] = value;
+                this.PixelBuffer[(y * this.Width) + x] = value;
             }
         }
 
@@ -168,7 +165,7 @@ namespace ImageSharp
         public ref TPixel GetPixelReference(int x, int y)
         {
             this.CheckCoordinates(x, y);
-            return ref this.pixelBuffer[(y * this.Width) + x];
+            return ref this.PixelBuffer[(y * this.Width) + x];
         }
 
         /// <summary>
@@ -180,7 +177,7 @@ namespace ImageSharp
         public Span<TPixel> GetRowSpan(int y)
         {
             this.CheckCoordinates(y);
-            return this.span.Slice(y * this.Width, this.Width);
+            return this.Pixels.Slice(y * this.Width, this.Width);
         }
 
         /// <summary>
@@ -193,7 +190,7 @@ namespace ImageSharp
         public Span<TPixel> GetRowSpan(int x, int y)
         {
             this.CheckCoordinates(x, y);
-            return this.span.Slice((y * this.Width) + x, this.Width - x);
+            return this.Pixels.Slice((y * this.Width) + x, this.Width - x);
         }
 
         /// <summary>
@@ -237,7 +234,7 @@ namespace ImageSharp
         /// <param name="target">The target pixel buffer accessor.</param>
         internal void CopyTo(PixelAccessor<TPixel> target)
         {
-            SpanHelper.Copy(this.span, target.PixelBuffer.Span);
+            SpanHelper.Copy(this.Pixels, target.PixelBuffer.Span);
         }
 
         /// <summary>
@@ -251,12 +248,11 @@ namespace ImageSharp
             int newWidth = pixelSource.Width;
             int newHeight = pixelSource.Height;
 
-            // Push my memory into the accessor (which in turn unpins the old puffer ready for the images use)
-            TPixel[] newPixels = pixelSource.ReturnCurrentColorsAndReplaceThemInternally(this.Width, this.Height, this.pixelBuffer);
+            // Push my memory into the accessor (which in turn unpins the old buffer ready for the images use)
+            TPixel[] newPixels = pixelSource.ReturnCurrentColorsAndReplaceThemInternally(this.Width, this.Height, this.PixelBuffer);
             this.Width = newWidth;
             this.Height = newHeight;
-            this.pixelBuffer = newPixels;
-            this.span = new Span<TPixel>(this.pixelBuffer);
+            this.PixelBuffer = newPixels;
         }
 
         /// <summary>
@@ -307,8 +303,7 @@ namespace ImageSharp
         /// </summary>
         private void RentPixels()
         {
-            this.pixelBuffer = PixelDataPool<TPixel>.Rent(this.Width * this.Height);
-            this.span = new Span<TPixel>(this.pixelBuffer);
+            this.PixelBuffer = PixelDataPool<TPixel>.Rent(this.Width * this.Height);
         }
 
         /// <summary>
@@ -316,8 +311,8 @@ namespace ImageSharp
         /// </summary>
         private void ReturnPixels()
         {
-            PixelDataPool<TPixel>.Return(this.pixelBuffer);
-            this.pixelBuffer = null;
+            PixelDataPool<TPixel>.Return(this.PixelBuffer);
+            this.PixelBuffer = null;
         }
 
         /// <summary>
@@ -325,7 +320,7 @@ namespace ImageSharp
         /// </summary>
         private void ClearPixels()
         {
-            Array.Clear(this.pixelBuffer, 0, this.Width * this.Height);
+            Array.Clear(this.PixelBuffer, 0, this.Width * this.Height);
         }
 
         /// <summary>

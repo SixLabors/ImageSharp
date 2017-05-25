@@ -22,7 +22,7 @@ namespace ImageSharp.Tests
 
         [Theory]
         [MemberData(nameof(AlphaValues))]
-        public void ImageShouldApplyAlphaFilter(int value)
+        public void ImageShouldApplyAlphaFilter(float value)
         {
             string path = this.CreateOutputDirectory("Alpha");
 
@@ -39,7 +39,7 @@ namespace ImageSharp.Tests
 
         [Theory]
         [MemberData(nameof(AlphaValues))]
-        public void ImageShouldApplyAlphaFilterInBox(int value)
+        public void ImageShouldApplyAlphaFilterInBox(float value)
         {
             string path = this.CreateOutputDirectory("Alpha");
 

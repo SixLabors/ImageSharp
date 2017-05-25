@@ -16,19 +16,8 @@ namespace ImageSharp
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
-        /// Gets the pixels as an array of the given packed pixel format.
-        /// Important. Due to the nature in the way this is constructed do not rely on the length
-        /// of the array for calculations. Use Width * Height.
+        /// Gets the representation of the pixels as an area of contiguous memory in the given pixel format.
         /// </summary>
-        TPixel[] Pixels { get; }
-
-        /// <summary>
-        /// Locks the image providing access to the pixels.
-        /// <remarks>
-        /// It is imperative that the accessor is correctly disposed off after use.
-        /// </remarks>
-        /// </summary>
-        /// <returns>The <see cref="PixelAccessor{TPixel}"/></returns>
-        PixelAccessor<TPixel> Lock();
+        Span<TPixel> Pixels { get; }
     }
 }

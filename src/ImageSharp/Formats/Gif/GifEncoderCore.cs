@@ -69,7 +69,7 @@ namespace ImageSharp.Formats
             this.Quantizer = this.options.Quantizer ?? new OctreeQuantizer<TPixel>();
 
             // Do not use IDisposable pattern here as we want to preserve the stream.
-            EndianBinaryWriter writer = new EndianBinaryWriter(Endianness.LittleEndian, stream);
+            var writer = new EndianBinaryWriter(Endianness.LittleEndian, stream);
 
             // Ensure that quality can be set but has a fallback.
             int quality = this.options.Quality > 0 ? this.options.Quality : image.MetaData.Quality;
@@ -82,7 +82,7 @@ namespace ImageSharp.Formats
             this.hasFrames = image.Frames.Any();
 
             // Dithering when animating gifs is a bad idea as we introduce pixel tearing across frames.
-            IQuantizer<TPixel> ditheredQuantizer = (IQuantizer<TPixel>)this.Quantizer;
+            var ditheredQuantizer = (IQuantizer<TPixel>)this.Quantizer;
             ditheredQuantizer.Dither = !this.hasFrames;
 
             QuantizedImage<TPixel> quantized = ditheredQuantizer.Quantize(image, quality);
@@ -96,7 +96,7 @@ namespace ImageSharp.Formats
             this.WriteLogicalScreenDescriptor(image, writer, index);
 
             // Write the first frame.
-            this.WriteGraphicalControlExtension(image, writer, index);
+            this.WriteGraphicalControlExtension(image.MetaData, writer, index);
             this.WriteComments(image, writer);
             this.WriteImageDescriptor(image, writer);
             this.WriteColorTable(quantized, writer);
@@ -113,7 +113,7 @@ namespace ImageSharp.Formats
                     ImageFrame<TPixel> frame = image.Frames[i];
                     QuantizedImage<TPixel> quantizedFrame = ditheredQuantizer.Quantize(frame, quality);
 
-                    this.WriteGraphicalControlExtension(frame, writer, this.GetTransparentIndex(quantizedFrame));
+                    this.WriteGraphicalControlExtension(frame.MetaData, writer, this.GetTransparentIndex(quantizedFrame));
                     this.WriteImageDescriptor(frame, writer);
                     this.WriteColorTable(quantizedFrame, writer);
                     this.WriteImageData(quantizedFrame, writer);
@@ -137,31 +137,20 @@ namespace ImageSharp.Formats
         private int GetTransparentIndex<TPixel>(QuantizedImage<TPixel> quantized)
             where TPixel : struct, IPixel<TPixel>
         {
-            // Find the lowest alpha value and make it the transparent index.
-            int index = 255;
-            byte alpha = 255;
-            bool hasEmpty = false;
-
-            // Some images may have more than one quantized pixel returned with an alpha value of zero
-            // so we should always ignore if we have empty pixels present.
-            for (int i = 0; i < quantized.Palette.Length; i++)
+            // Transparent pixels are much more likely to be found at the end of a palette
+            int index = -1;
+            for (int i = quantized.Palette.Length - 1; i >= 0; i--)
             {
                 quantized.Palette[i].ToXyzwBytes(this.buffer, 0);
 
-                if (!hasEmpty)
+                if (this.buffer[3] > 0)
                 {
-                    if (this.buffer[0] == 0 && this.buffer[1] == 0 && this.buffer[2] == 0 && this.buffer[3] == 0)
-                    {
-                        alpha = this.buffer[3];
-                        index = i;
-                        hasEmpty = true;
-                    }
-
-                    if (this.buffer[3] < alpha)
-                    {
-                        alpha = this.buffer[3];
-                        index = i;
-                    }
+                    continue;
+                }
+                else
+                {
+                    index = i;
+                    break;
                 }
             }
 
@@ -183,23 +172,23 @@ namespace ImageSharp.Formats
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="image">The image to encode.</param>
         /// <param name="writer">The writer to write to the stream with.</param>
-        /// <param name="tranparencyIndex">The transparency index to set the default background index to.</param>
-        private void WriteLogicalScreenDescriptor<TPixel>(Image<TPixel> image, EndianBinaryWriter writer, int tranparencyIndex)
+        /// <param name="transparencyIndex">The transparency index to set the default background index to.</param>
+        private void WriteLogicalScreenDescriptor<TPixel>(Image<TPixel> image, EndianBinaryWriter writer, int transparencyIndex)
             where TPixel : struct, IPixel<TPixel>
         {
-            GifLogicalScreenDescriptor descriptor = new GifLogicalScreenDescriptor
+            var descriptor = new GifLogicalScreenDescriptor
             {
                 Width = (short)image.Width,
                 Height = (short)image.Height,
                 GlobalColorTableFlag = false, // TODO: Always false for now.
                 GlobalColorTableSize = this.bitDepth - 1,
-                BackgroundColorIndex = (byte)tranparencyIndex
+                BackgroundColorIndex = unchecked((byte)transparencyIndex)
             };
 
             writer.Write((ushort)descriptor.Width);
             writer.Write((ushort)descriptor.Height);
 
-            PackedField field = default(PackedField);
+            var field = default(PackedField);
             field.SetBit(0, descriptor.GlobalColorTableFlag);  // 1   : Global color table flag = 1 || 0 (GCT used/ not used)
             field.SetBits(1, 3, descriptor.GlobalColorTableSize); // 2-4 : color resolution
             field.SetBit(4, false); // 5   : GCT sort flag = 0
@@ -251,7 +240,7 @@ namespace ImageSharp.Formats
         private void WriteComments<TPixel>(Image<TPixel> image, EndianBinaryWriter writer)
             where TPixel : struct, IPixel<TPixel>
         {
-            if (this.options.IgnoreMetadata == true)
+            if (this.options.IgnoreMetadata)
             {
                 return;
             }
@@ -278,45 +267,16 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Writes the graphics control extension to the stream.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="image">The <see cref="Image{TPixel}"/> to encode.</param>
-        /// <param name="writer">The stream to write to.</param>
-        /// <param name="transparencyIndex">The index of the color in the color palette to make transparent.</param>
-        private void WriteGraphicalControlExtension<TPixel>(Image<TPixel> image, EndianBinaryWriter writer, int transparencyIndex)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            this.WriteGraphicalControlExtension(image, image.MetaData, writer, transparencyIndex);
-        }
-
-        /// <summary>
-        /// Writes the graphics control extension to the stream.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="imageFrame">The <see cref="ImageFrame{TPixel}"/> to encode.</param>
-        /// <param name="writer">The stream to write to.</param>
-        /// <param name="transparencyIndex">The index of the color in the color palette to make transparent.</param>
-        private void WriteGraphicalControlExtension<TPixel>(ImageFrame<TPixel> imageFrame, EndianBinaryWriter writer, int transparencyIndex)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            this.WriteGraphicalControlExtension(imageFrame, imageFrame.MetaData, writer, transparencyIndex);
-        }
-
-        /// <summary>
-        /// Writes the graphics control extension to the stream.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="image">The <see cref="ImageBase{TPixel}"/> to encode.</param>
         /// <param name="metaData">The metadata of the image or frame.</param>
         /// <param name="writer">The stream to write to.</param>
         /// <param name="transparencyIndex">The index of the color in the color palette to make transparent.</param>
-        private void WriteGraphicalControlExtension<TPixel>(ImageBase<TPixel> image, IMetaData metaData, EndianBinaryWriter writer, int transparencyIndex)
-            where TPixel : struct, IPixel<TPixel>
+        private void WriteGraphicalControlExtension(IMetaData metaData, EndianBinaryWriter writer, int transparencyIndex)
         {
-            GifGraphicsControlExtension extension = new GifGraphicsControlExtension()
+            var extension = new GifGraphicsControlExtension
             {
                 DisposalMethod = metaData.DisposalMethod,
-                TransparencyFlag = transparencyIndex < 255,
-                TransparencyIndex = transparencyIndex,
+                TransparencyFlag = transparencyIndex > -1,
+                TransparencyIndex = unchecked((byte)transparencyIndex),
                 DelayTime = metaData.FrameDelay
             };
 
@@ -326,7 +286,7 @@ namespace ImageSharp.Formats
             this.buffer[2] = 4;
             writer.Write(this.buffer, 0, 3);
 
-            PackedField field = default(PackedField);
+            var field = default(PackedField);
             field.SetBits(3, 3, (int)extension.DisposalMethod); // 1-3 : Reserved, 4-6 : Disposal
 
             // TODO: Allow this as an option.
@@ -335,7 +295,7 @@ namespace ImageSharp.Formats
 
             writer.Write(field.Byte);
             writer.Write((ushort)extension.DelayTime);
-            writer.Write((byte)extension.TransparencyIndex);
+            writer.Write(extension.TransparencyIndex);
             writer.Write(GifConstants.Terminator);
         }
 
@@ -356,7 +316,7 @@ namespace ImageSharp.Formats
             writer.Write((ushort)image.Width);
             writer.Write((ushort)image.Height);
 
-            PackedField field = default(PackedField);
+            var field = default(PackedField);
             field.SetBit(0, true); // 1: Local color table flag = 1 (LCT used)
             field.SetBit(1, false); // 2: Interlace flag 0
             field.SetBit(2, false); // 3: Sort flag 0
@@ -409,7 +369,7 @@ namespace ImageSharp.Formats
         private void WriteImageData<TPixel>(QuantizedImage<TPixel> image, EndianBinaryWriter writer)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (LzwEncoder encoder = new LzwEncoder(image.Pixels, (byte)this.bitDepth))
+            using (var encoder = new LzwEncoder(image.Pixels, (byte)this.bitDepth))
             {
                 encoder.Encode(writer.BaseStream);
             }

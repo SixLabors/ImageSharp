@@ -44,7 +44,7 @@ namespace ImageSharp.Tests
             int max = isRawData ? PixelDataPool<int>.CalculateMaxArrayLength()
                           : PixelDataPool<Rgba32>.CalculateMaxArrayLength();
 
-            Assert.Equal(max < int.MaxValue, !isRawData);
+            Assert.Equal(max > 1024 * 1024, !isRawData);
         }
 
         [Fact]

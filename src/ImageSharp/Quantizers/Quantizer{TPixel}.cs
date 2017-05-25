@@ -5,6 +5,7 @@
 
 namespace ImageSharp.Quantizers
 {
+    using System;
     using System.Collections.Generic;
     using System.Numerics;
     using System.Runtime.CompilerServices;
@@ -54,34 +55,29 @@ namespace ImageSharp.Quantizers
             int height = image.Height;
             int width = image.Width;
             byte[] quantizedPixels = new byte[width * height];
-            TPixel[] colorPalette;
 
-            using (PixelAccessor<TPixel> pixels = image.Lock())
+            // Call the FirstPass function if not a single pass algorithm.
+            // For something like an Octree quantizer, this will run through
+            // all image pixels, build a data structure, and create a palette.
+            if (!this.singlePass)
             {
-                // Call the FirstPass function if not a single pass algorithm.
-                // For something like an Octree quantizer, this will run through
-                // all image pixels, build a data structure, and create a palette.
-                if (!this.singlePass)
-                {
-                    this.FirstPass(pixels, width, height);
-                }
+                this.FirstPass(image, width, height);
+            }
 
-                // Collect the palette. Required before the second pass runs.
-                colorPalette = this.GetPalette();
+            // Collect the palette. Required before the second pass runs.
+            TPixel[] colorPalette = this.GetPalette();
 
-                if (this.Dither)
+            if (this.Dither)
+            {
+                // We clone the image as we don't want to alter the original.
+                using (var clone = new Image<TPixel>(image))
                 {
-                    // We clone the image as we don't want to alter the original.
-                    using (Image<TPixel> clone = new Image<TPixel>(image))
-                    using (PixelAccessor<TPixel> clonedPixels = clone.Lock())
-                    {
-                        this.SecondPass(clonedPixels, quantizedPixels, width, height);
-                    }
+                    this.SecondPass(clone, quantizedPixels, width, height);
                 }
-                else
-                {
-                    this.SecondPass(pixels, quantizedPixels, width, height);
-                }
+            }
+            else
+            {
+                this.SecondPass(image, quantizedPixels, width, height);
             }
 
             return new QuantizedImage<TPixel>(width, height, colorPalette, quantizedPixels);
@@ -93,16 +89,18 @@ namespace ImageSharp.Quantizers
         /// <param name="source">The source data</param>
         /// <param name="width">The width in pixels of the image.</param>
         /// <param name="height">The height in pixels of the image.</param>
-        protected virtual void FirstPass(PixelAccessor<TPixel> source, int width, int height)
+        protected virtual void FirstPass(ImageBase<TPixel> source, int width, int height)
         {
             // Loop through each row
             for (int y = 0; y < height; y++)
             {
+                Span<TPixel> row = source.GetRowSpan(y);
+
                 // And loop through each column
                 for (int x = 0; x < width; x++)
                 {
                     // Now I have the pixel, call the FirstPassQuantize function...
-                    this.InitialQuantizePixel(source[x, y]);
+                    this.InitialQuantizePixel(row[x]);
                 }
             }
         }
@@ -114,7 +112,7 @@ namespace ImageSharp.Quantizers
         /// <param name="output">The output pixel array</param>
         /// <param name="width">The width in pixels of the image</param>
         /// <param name="height">The height in pixels of the image</param>
-        protected abstract void SecondPass(PixelAccessor<TPixel> source, byte[] output, int width, int height);
+        protected abstract void SecondPass(ImageBase<TPixel> source, byte[] output, int width, int height);
 
         /// <summary>
         /// Override this to process the pixel in the first pass of the algorithm
@@ -155,7 +153,7 @@ namespace ImageSharp.Quantizers
             // Not found - loop through the palette and find the nearest match.
             byte colorIndex = 0;
             float leastDistance = int.MaxValue;
-            Vector4 vector = pixel.ToVector4();
+            var vector = pixel.ToVector4();
 
             for (int index = 0; index < colorPalette.Length; index++)
             {

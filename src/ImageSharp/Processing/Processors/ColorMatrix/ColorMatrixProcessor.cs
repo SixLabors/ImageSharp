@@ -7,7 +7,6 @@ namespace ImageSharp.Processing.Processors
 {
     using System;
     using System.Numerics;
-    using System.Runtime.CompilerServices;
     using System.Threading.Tasks;
 
     using ImageSharp.PixelFormats;
@@ -61,39 +60,23 @@ namespace ImageSharp.Processing.Processors
                     this.ParallelOptions,
                     y =>
                         {
-                            int offsetY = y - startY;
+                            Span<TPixel> row = source.GetRowSpan(y - startY);
+
                             for (int x = minX; x < maxX; x++)
                             {
-                                int offsetX = x - startX;
-                                sourcePixels[offsetX, offsetY] = this.ApplyMatrix(sourcePixels[offsetX, offsetY], matrix, compand);
+                                ref TPixel pixel = ref row[x - startX];
+                                var vector = pixel.ToVector4();
+
+                                if (compand)
+                                {
+                                    vector = vector.Expand();
+                                }
+
+                                vector = Vector4.Transform(vector, matrix);
+                                pixel.PackFromVector4(compand ? vector.Compress() : vector);
                             }
                         });
             }
-        }
-
-        /// <summary>
-        /// Applies the color matrix against the given color.
-        /// </summary>
-        /// <param name="color">The source color.</param>
-        /// <param name="matrix">The matrix.</param>
-        /// <param name="compand">Whether to compand the color during processing.</param>
-        /// <returns>
-        /// The <see cref="Rgba32"/>.
-        /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private TPixel ApplyMatrix(TPixel color, Matrix4x4 matrix, bool compand)
-        {
-            Vector4 vector = color.ToVector4();
-
-            if (compand)
-            {
-                vector = vector.Expand();
-            }
-
-            vector = Vector4.Transform(vector, matrix);
-            TPixel packed = default(TPixel);
-            packed.PackFromVector4(compand ? vector.Compress() : vector);
-            return packed;
         }
     }
 }

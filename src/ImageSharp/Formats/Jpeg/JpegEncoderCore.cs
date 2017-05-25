@@ -6,7 +6,9 @@
 namespace ImageSharp.Formats
 {
     using System.Buffers;
+    using System.Collections.Generic;
     using System.IO;
+    using System.Linq;
     using System.Runtime.CompilerServices;
     using ImageSharp.Formats.Jpg;
     using ImageSharp.Formats.Jpg.Components;
@@ -672,7 +674,7 @@ namespace ImageSharp.Formats
         /// <exception cref="ImageFormatException">
         /// Thrown if the EXIF profile size exceeds the limit
         /// </exception>
-        private void WriteProfile(ExifProfile exifProfile)
+        private void WriteExifProfile(ExifProfile exifProfile)
         {
             const int Max = 65533;
             byte[] data = exifProfile?.ToByteArray();
@@ -698,6 +700,87 @@ namespace ImageSharp.Formats
         }
 
         /// <summary>
+        /// Writes the ICC profile.
+        /// </summary>
+        /// <param name="iccProfile">The ICC profile to write.</param>
+        /// <exception cref="ImageFormatException">
+        /// Thrown if any of the ICC profiles size exceeds the limit
+        /// </exception>
+        private void WriteIccProfile(IccProfile iccProfile)
+        {
+            // Just incase someone set the value to null by accident.
+            if (iccProfile == null)
+            {
+                return;
+            }
+
+            const int IccOverheadLength = 14;
+            const int Max = 65533;
+            const int MaxData = Max - IccOverheadLength;
+
+            byte[] data = iccProfile.ToByteArray();
+
+            if (data == null || data.Length == 0)
+            {
+                return;
+            }
+
+            // Calculate the number of markers we'll need, rounding up of course
+            int dataLength = data.Length;
+            int count = dataLength / MaxData;
+
+            if (count * MaxData != dataLength)
+            {
+                count++;
+            }
+
+            // Per spec, counting starts at 1.
+            int current = 1;
+            int offset = 0;
+
+            while (dataLength > 0)
+            {
+                int length = dataLength; // Number of bytes to write.
+
+                if (length > MaxData)
+                {
+                    length = MaxData;
+                }
+
+                dataLength -= length;
+
+                this.buffer[0] = JpegConstants.Markers.XFF;
+                this.buffer[1] = JpegConstants.Markers.APP2; // Application Marker
+                int markerLength = length + 16;
+                this.buffer[2] = (byte)((markerLength >> 8) & 0xFF);
+                this.buffer[3] = (byte)(markerLength & 0xFF);
+
+                this.outputStream.Write(this.buffer, 0, 4);
+
+                this.buffer[0] = (byte)'I';
+                this.buffer[1] = (byte)'C';
+                this.buffer[2] = (byte)'C';
+                this.buffer[3] = (byte)'_';
+                this.buffer[4] = (byte)'P';
+                this.buffer[5] = (byte)'R';
+                this.buffer[6] = (byte)'O';
+                this.buffer[7] = (byte)'F';
+                this.buffer[8] = (byte)'I';
+                this.buffer[9] = (byte)'L';
+                this.buffer[10] = (byte)'E';
+                this.buffer[11] = 0x00;
+                this.buffer[12] = (byte)current; // The position within the collection.
+                this.buffer[13] = (byte)count; // The total number of profiles.
+
+                this.outputStream.Write(this.buffer, 0, IccOverheadLength);
+                this.outputStream.Write(data, offset, length);
+
+                current++;
+                offset += length;
+            }
+        }
+
+        /// <summary>
         /// Writes the metadata profiles to the image.
         /// </summary>
         /// <param name="image">The image.</param>
@@ -711,7 +794,8 @@ namespace ImageSharp.Formats
             }
 
             image.MetaData.SyncProfiles();
-            this.WriteProfile(image.MetaData.ExifProfile);
+            this.WriteExifProfile(image.MetaData.ExifProfile);
+            this.WriteIccProfile(image.MetaData.IccProfile);
         }
 
         /// <summary>

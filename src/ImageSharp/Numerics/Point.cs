@@ -137,7 +137,7 @@ namespace ImageSharp
         /// <returns>The rotation <see cref="Matrix3x2"/></returns>
         public static Matrix3x2 CreateRotation(Point origin, float degrees)
         {
-            float radians = ImageMaths.DegreesToRadians(degrees);
+            float radians = MathF.DegreeToRadian(degrees);
             return Matrix3x2.CreateRotation(radians, new Vector2(origin.X, origin.Y));
         }
 
@@ -173,8 +173,8 @@ namespace ImageSharp
         /// <returns>The rotation <see cref="Matrix3x2"/></returns>
         public static Matrix3x2 CreateSkew(Point origin, float degreesX, float degreesY)
         {
-            float radiansX = ImageMaths.DegreesToRadians(degreesX);
-            float radiansY = ImageMaths.DegreesToRadians(degreesY);
+            float radiansX = MathF.DegreeToRadian(degreesX);
+            float radiansY = MathF.DegreeToRadian(degreesY);
             return Matrix3x2.CreateSkew(radiansX, radiansY, new Vector2(origin.X, origin.Y));
         }
 

@@ -6,7 +6,6 @@
 namespace ImageSharp.Drawing.Processors
 {
     using System;
-    using System.Numerics;
     using System.Threading.Tasks;
 
     using ImageSharp.Memory;
@@ -58,7 +57,7 @@ namespace ImageSharp.Drawing.Processors
         {
             using (PenApplicator<TPixel> applicator = this.Pen.CreateApplicator(source, this.Path.Bounds, this.Options))
             {
-                Rectangle rect = RectangleF.Ceiling(applicator.RequiredRegion);
+                var rect = Rectangle.Ceiling(applicator.RequiredRegion);
 
                 int polyStartY = rect.Y - PaddingFactor;
                 int polyEndY = rect.Bottom + PaddingFactor;

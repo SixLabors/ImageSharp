@@ -71,10 +71,7 @@ namespace ImageSharp
         /// The <see cref="Vector2"/>.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static implicit operator PointF(Vector2 vector)
-        {
-            return new PointF(vector.X, vector.Y);
-        }
+        public static implicit operator PointF(Vector2 vector) => new PointF(vector.X, vector.Y);
 
         /// <summary>
         /// Creates a <see cref="Vector2"/> with the coordinates of the specified <see cref="PointF"/>.
@@ -84,10 +81,7 @@ namespace ImageSharp
         /// The <see cref="Vector2"/>.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static implicit operator Vector2(PointF point)
-        {
-            return new Vector2(point.X, point.Y);
-        }
+        public static implicit operator Vector2(PointF point) => new Vector2(point.X, point.Y);
 
         /// <summary>
         /// Creates a <see cref="Point"/> with the coordinates of the specified <see cref="PointF"/> by truncating each of the coordinates.
@@ -97,10 +91,7 @@ namespace ImageSharp
         /// The <see cref="Point"/>.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static explicit operator Point(PointF point)
-        {
-            return new Point(unchecked((int)MathF.Round(point.X)), unchecked((int)MathF.Round(point.Y)));
-        }
+        public static explicit operator Point(PointF point) => Point.Truncate(point);
 
         /// <summary>
         /// Translates a <see cref="PointF"/> by a given <see cref="SizeF"/>.
@@ -111,10 +102,7 @@ namespace ImageSharp
         /// The <see cref="PointF"/>
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static PointF operator +(PointF point, SizeF size)
-        {
-            return Add(point, size);
-        }
+        public static PointF operator +(PointF point, SizeF size) => Add(point, size);
 
         /// <summary>
         /// Translates a <see cref="PointF"/> by the negative of a given <see cref="SizeF"/>.
@@ -123,10 +111,7 @@ namespace ImageSharp
         /// <param name="size">The size on the right hand of the operand.</param>
         /// <returns>The <see cref="PointF"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static PointF operator -(PointF point, SizeF size)
-        {
-            return Subtract(point, size);
-        }
+        public static PointF operator -(PointF point, SizeF size) => Subtract(point, size);
 
         /// <summary>
         /// Compares two <see cref="PointF"/> objects for equality.
@@ -141,10 +126,7 @@ namespace ImageSharp
         /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool operator ==(PointF left, PointF right)
-        {
-            return left.Equals(right);
-        }
+        public static bool operator ==(PointF left, PointF right) => left.Equals(right);
 
         /// <summary>
         /// Compares two <see cref="PointF"/> objects for inequality.
@@ -159,10 +141,7 @@ namespace ImageSharp
         /// True if the current left is unequal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool operator !=(PointF left, PointF right)
-        {
-            return !left.Equals(right);
-        }
+        public static bool operator !=(PointF left, PointF right) => !left.Equals(right);
 
         /// <summary>
         /// Translates a <see cref="PointF"/> by the negative of a given <see cref="SizeF"/>.
@@ -171,10 +150,7 @@ namespace ImageSharp
         /// <param name="size">The size on the right hand of the operand.</param>
         /// <returns>The <see cref="PointF"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static PointF Add(PointF point, SizeF size)
-        {
-            return new PointF(point.X + size.Width, point.Y + size.Height);
-        }
+        public static PointF Add(PointF point, SizeF size) => new PointF(point.X + size.Width, point.Y + size.Height);
 
         /// <summary>
         /// Translates a <see cref="PointF"/> by the negative of a given <see cref="SizeF"/>.
@@ -183,10 +159,7 @@ namespace ImageSharp
         /// <param name="size">The size on the right hand of the operand.</param>
         /// <returns>The <see cref="PointF"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static PointF Subtract(PointF point, SizeF size)
-        {
-            return new PointF(point.X - size.Width, point.Y - size.Height);
-        }
+        public static PointF Subtract(PointF point, SizeF size) => new PointF(point.X - size.Width, point.Y - size.Height);
 
         /// <summary>
         /// Rotates a point around the given rotation matrix.
@@ -195,10 +168,7 @@ namespace ImageSharp
         /// <param name="rotation">Rotation matrix used</param>
         /// <returns>The rotated <see cref="PointF"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static PointF Rotate(PointF point, Matrix3x2 rotation)
-        {
-            return Vector2.Transform(new Vector2(point.X, point.Y), rotation);
-        }
+        public static PointF Rotate(PointF point, Matrix3x2 rotation) => Vector2.Transform(new Vector2(point.X, point.Y), rotation);
 
         /// <summary>
         /// Skews a point using the given skew matrix.
@@ -207,10 +177,7 @@ namespace ImageSharp
         /// <param name="skew">Rotation matrix used</param>
         /// <returns>The rotated <see cref="PointF"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static PointF Skew(PointF point, Matrix3x2 skew)
-        {
-            return Vector2.Transform(new Vector2(point.X, point.Y), skew);
-        }
+        public static PointF Skew(PointF point, Matrix3x2 skew) => Vector2.Transform(new Vector2(point.X, point.Y), skew);
 
         /// <summary>
         /// Translates this <see cref="PointF"/> by the specified amount.
@@ -229,16 +196,10 @@ namespace ImageSharp
         /// </summary>
         /// <param name="point">The <see cref="PointF"/> used offset this <see cref="PointF"/>.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Offset(PointF point)
-        {
-            this.Offset(point.X, point.Y);
-        }
+        public void Offset(PointF point) => this.Offset(point.X, point.Y);
 
         /// <inheritdoc/>
-        public override int GetHashCode()
-        {
-            return this.GetHashCode(this);
-        }
+        public override int GetHashCode() => this.GetHashCode(this);
 
         /// <inheritdoc/>
         public override string ToString()
@@ -252,22 +213,11 @@ namespace ImageSharp
         }
 
         /// <inheritdoc/>
-        public override bool Equals(object obj)
-        {
-            if (obj is PointF)
-            {
-                return this.Equals((PointF)obj);
-            }
-
-            return false;
-        }
+        public override bool Equals(object obj) => obj is PointF && this.Equals((PointF)obj);
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool Equals(PointF other)
-        {
-            return this.X.Equals(other.X) && this.Y.Equals(other.Y);
-        }
+        public bool Equals(PointF other) => this.X.Equals(other.X) && this.Y.Equals(other.Y);
 
         /// <summary>
         /// Returns the hash code for this instance.
@@ -278,12 +228,6 @@ namespace ImageSharp
         /// <returns>
         /// A 32-bit signed integer that is the hash code for this instance.
         /// </returns>
-        private int GetHashCode(PointF point)
-        {
-            unchecked
-            {
-                return point.X.GetHashCode() ^ point.Y.GetHashCode();
-            }
-        }
+        private int GetHashCode(PointF point) => point.X.GetHashCode() ^ point.Y.GetHashCode();
     }
 }

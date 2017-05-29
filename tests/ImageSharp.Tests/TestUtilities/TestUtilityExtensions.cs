@@ -106,6 +106,11 @@ namespace ImageSharp.Tests
 
         public static Type ToType(this PixelTypes pixelType) => PixelTypes2ClrTypes[pixelType];
 
+        /// <summary>
+        /// Returns the <see cref="PixelTypes"/> enumerations for the given type.
+        /// </summary>
+        /// <param name="colorStructClrType"></param>
+        /// <returns></returns>
         public static PixelTypes GetPixelType(this Type colorStructClrType) => ClrTypes2PixelTypes[colorStructClrType];
 
         public static IEnumerable<KeyValuePair<PixelTypes, Type>> ExpandAllTypes(this PixelTypes pixelTypes)

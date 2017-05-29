@@ -9,7 +9,7 @@ namespace ImageSharp.Tests
 
     using ImageSharp.PixelFormats;
 
-    using Processing;
+    using ImageSharp.Processing;
     using Xunit;
 
     public class AutoOrientTests : FileTestBase

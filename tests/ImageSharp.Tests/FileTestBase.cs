@@ -13,6 +13,42 @@ namespace ImageSharp.Tests
     public abstract class FileTestBase : TestBase
     {
         /// <summary>
+        /// A collection of all the bmp test images
+        /// </summary>
+        public static IEnumerable<string> AllBmpFiles => TestImages.Bmp.All;
+
+        /// <summary>
+        /// A collection of all the jpeg test images
+        /// </summary>
+        public static IEnumerable<string> AllJpegFiles => TestImages.Jpeg.All;
+
+        /// <summary>
+        /// A collection of all the png test images
+        /// </summary>
+        public static IEnumerable<string> AllPngFiles => TestImages.Png.All;
+
+        /// <summary>
+        /// A collection of all the gif test images
+        /// </summary>
+        public static IEnumerable<string> AllGifFiles => TestImages.Gif.All;
+
+        /// <summary>
+        /// The standard pixel formats enumerations
+        /// </summary>
+        public const PixelTypes StandardPixelTypes = PixelTypes.StandardImageClass | PixelTypes.Rgba32 | PixelTypes.Argb32;
+
+        public static class Extensions
+        {
+            public const string Bmp = "bmp";
+
+            public const string Jpeg = "jpg";
+
+            public const string Png = "png";
+
+            public const string Gif = "gif";
+        }
+
+        /// <summary>
         /// The collection of image files to test against.
         /// </summary>
         protected static readonly List<TestFile> Files = new List<TestFile>

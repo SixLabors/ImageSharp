@@ -5,7 +5,7 @@
 
 namespace ImageSharp.Tests
 {
-    using Processing;
+    using ImageSharp.Processing;
     using System.IO;
 
     using ImageSharp.PixelFormats;

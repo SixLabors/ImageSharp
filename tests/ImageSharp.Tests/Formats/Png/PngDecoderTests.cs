@@ -18,7 +18,7 @@ namespace ImageSharp.Tests
         public static readonly string[] TestFiles =
             {
                 TestImages.Png.Splash, TestImages.Png.Indexed, TestImages.Png.Interlaced, TestImages.Png.FilterVar,
-                TestImages.Png.ChunkLength1, TestImages.Png.ChunkLength2
+                TestImages.Png.Bad.ChunkLength1, TestImages.Png.Bad.ChunkLength2
             };
 
         [Theory]

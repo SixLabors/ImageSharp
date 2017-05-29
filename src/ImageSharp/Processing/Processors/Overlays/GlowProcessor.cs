@@ -52,7 +52,7 @@ namespace ImageSharp.Processing.Processors
             int startX = sourceRectangle.X;
             int endX = sourceRectangle.Right;
             TPixel glowColor = this.GlowColor;
-            var centre = Rectangle.Center(sourceRectangle).ToVector2();
+            Vector2 centre = Rectangle.Center(sourceRectangle);
             float maxDistance = this.Radius > 0 ? MathF.Min(this.Radius, sourceRectangle.Width * .5F) : sourceRectangle.Width * .5F;
 
             // Align start/end positions.

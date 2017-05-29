@@ -252,14 +252,15 @@ namespace ImageSharp.Tests
         [Fact]
         public void ToStringTest()
         {
-            var r = new RectangleF(5, -5, 0, 1);
+            var r = new RectangleF(5, 5.1F, 1.3F, 1);
             Assert.Equal(string.Format(CultureInfo.CurrentCulture, "RectangleF [ X={0}, Y={1}, Width={2}, Height={3} ]", r.X, r.Y, r.Width, r.Height), r.ToString());
         }
 
-        [Fact]
-        public void ToStringTestEmpty()
+        [InlineData(0, 0, 0, 0)]
+        [InlineData(5, -5, 0.2, -1.3)]
+        public void ToStringTestEmpty(float x, float y, float width, float height)
         {
-            var r = new RectangleF(0, 0, 0, 0);
+            var r = new RectangleF(x, y, width, height);
             Assert.Equal("RectangleF [ Empty ]", r.ToString());
         }
     }

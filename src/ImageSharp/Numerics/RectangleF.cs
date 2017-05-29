@@ -165,20 +165,6 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Creates a <see cref="RectangleF"/> with the coordinates of the specified <see cref="Vector4"/>.
-        /// </summary>
-        /// <param name="vector">The rectangle</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static implicit operator RectangleF(Vector4 vector) => new RectangleF(vector.X, vector.Y, vector.Z, vector.W);
-
-        /// <summary>
-        /// Creates a <see cref="Vector4"/> with the coordinates of the specified <see cref="RectangleF"/>.
-        /// </summary>
-        /// <param name="rectangle">The rectangle</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static implicit operator Vector4(RectangleF rectangle) => new Vector4(rectangle.X, rectangle.Y, rectangle.Width, rectangle.Height);
-
-        /// <summary>
         /// Creates a <see cref="Rectangle"/> with the coordinates of the specified <see cref="RectangleF"/> by truncating each coordinate.
         /// </summary>
         /// <param name="rectangle">The rectangle</param>

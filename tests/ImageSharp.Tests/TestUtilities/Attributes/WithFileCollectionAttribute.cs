@@ -16,22 +16,22 @@ namespace ImageSharp.Tests
     /// </summary>
     public class WithFileCollectionAttribute : ImageDataAttributeBase
     {
-        private readonly string enumeratorMemberName;
+        private readonly string fileEnumeratorMemberName;
 
         /// <summary>
         /// Triggers passing <see cref="TestImageProvider{TPixel}"/> instances which read an image for each file being enumerated by the (static) test class field/property defined by enumeratorMemberName
         /// <see cref="TestImageProvider{TPixel}"/> instances will be passed for each the pixel format defined by the pixelTypes parameter
         /// </summary>
-        /// <param name="enumeratorMemberName">The name of the static test class field/property enumerating the files</param>
+        /// <param name="fileEnumeratorMemberName">The name of the static test class field/property enumerating the files</param>
         /// <param name="pixelTypes">The requested pixel types</param>
         /// <param name="additionalParameters">Additional theory parameter values</param>
         public WithFileCollectionAttribute(
-            string enumeratorMemberName,
+            string fileEnumeratorMemberName,
             PixelTypes pixelTypes,
             params object[] additionalParameters)
             : base(null, pixelTypes, additionalParameters)
         {
-            this.enumeratorMemberName = enumeratorMemberName;
+            this.fileEnumeratorMemberName = fileEnumeratorMemberName;
         }
 
         /// <summary>
@@ -39,7 +39,7 @@ namespace ImageSharp.Tests
         /// <see cref="TestImageProvider{TPixel}"/> instances will be passed for each the pixel format defined by the pixelTypes parameter
         /// </summary>
         /// <param name="enumeratorMemberName">The name of the static test class field/property enumerating the files</param>
-        /// <param name="memberName">The member name</param>
+        /// <param name="memberName">The member name for enumerating method parameters</param>
         /// <param name="pixelTypes">The requested pixel types</param>
         /// <param name="additionalParameters">Additional theory parameter values</param>
         public WithFileCollectionAttribute(
@@ -49,7 +49,7 @@ namespace ImageSharp.Tests
             params object[] additionalParameters)
             : base(memberName, pixelTypes, additionalParameters)
         {
-            this.enumeratorMemberName = enumeratorMemberName;
+            this.fileEnumeratorMemberName = enumeratorMemberName;
         }
 
         /// <summary>
@@ -67,6 +67,7 @@ namespace ImageSharp.Tests
             return files.Select(f => new object[] { f });
         }
 
+        /// <inheritdoc/>
         protected override string GetFactoryMethodName(MethodInfo testMethod) => "File";
 
         /// <summary>
@@ -79,7 +80,7 @@ namespace ImageSharp.Tests
                  reflectionType != null;
                  reflectionType = reflectionType.GetTypeInfo().BaseType)
             {
-                fieldInfo = reflectionType.GetRuntimeField(this.enumeratorMemberName);
+                fieldInfo = reflectionType.GetRuntimeField(this.fileEnumeratorMemberName);
                 if (fieldInfo != null)
                 {
                     break;
@@ -104,7 +105,7 @@ namespace ImageSharp.Tests
                  reflectionType != null;
                  reflectionType = reflectionType.GetTypeInfo().BaseType)
             {
-                propInfo = reflectionType.GetRuntimeProperty(this.enumeratorMemberName);
+                propInfo = reflectionType.GetRuntimeProperty(this.fileEnumeratorMemberName);
                 if (propInfo != null) break;
             }
 

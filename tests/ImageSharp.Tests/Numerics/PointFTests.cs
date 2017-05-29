@@ -7,6 +7,7 @@ namespace ImageSharp.Tests.Numerics
 {
     using System;
     using System.Globalization;
+    using System.Numerics;
     using System.Reflection;
     using Xunit;
 
@@ -99,6 +100,27 @@ namespace ImageSharp.Tests.Numerics
             Assert.Equal(subExpected, p - s);
             Assert.Equal(addExpected, PointF.Add(p, s));
             Assert.Equal(subExpected, PointF.Subtract(p, s));
+        }
+
+        [Fact]
+        public void RotateTest()
+        {
+            var p = new PointF(13, 17);
+            Matrix3x2 matrix = Matrix3x2Extensions.CreateRotation(45, PointF.Empty);
+
+            var pout = PointF.Rotate(p, matrix);
+
+            Assert.Equal(new PointF(-2.82842732F, 21.2132034F), pout);
+        }
+
+        [Fact]
+        public void SkewTest()
+        {
+            var p = new PointF(13, 17);
+            Matrix3x2 matrix = Matrix3x2Extensions.CreateSkew(45, 45, PointF.Empty);
+
+            var pout = PointF.Skew(p, matrix);
+            Assert.Equal(new PointF(30, 30), pout);
         }
 
         [Theory]

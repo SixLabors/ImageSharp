@@ -6,6 +6,8 @@
 namespace ImageSharp.Tests
 {
     using System.Globalization;
+    using System.Numerics;
+
     using Xunit;
 
     public class PointTests
@@ -153,6 +155,27 @@ namespace ImageSharp.Tests
 
             p2.Offset(x, y);
             Assert.Equal(p1, p2);
+        }
+
+        [Fact]
+        public void RotateTest()
+        {
+            var p = new Point(13, 17);
+            Matrix3x2 matrix = Matrix3x2Extensions.CreateRotation(45, Point.Empty);
+
+            var pout = Point.Rotate(p, matrix);
+
+            Assert.Equal(new Point(-3, 21), pout);
+        }
+
+        [Fact]
+        public void SkewTest()
+        {
+            var p = new Point(13, 17);
+            Matrix3x2 matrix = Matrix3x2Extensions.CreateSkew(45, 45, Point.Empty);
+
+            var pout = Point.Skew(p, matrix);
+            Assert.Equal(new Point(30, 30), pout);
         }
 
         [Theory]

@@ -132,7 +132,7 @@ namespace ImageSharp.Drawing.Pens
             {
                 this.brush = brush.CreateApplicator(sourcePixels, region, options);
                 this.halfWidth = width / 2;
-                this.RequiredRegion = RectangleF.Outset(region, width);
+                this.RequiredRegion = RectangleF.Inflate(region, width, width);
             }
 
             public override RectangleF RequiredRegion
@@ -185,7 +185,7 @@ namespace ImageSharp.Drawing.Pens
                     this.pattern[i + 1] = this.totalLength;
                 }
 
-                this.RequiredRegion = RectangleF.Outset(region, width);
+                this.RequiredRegion = RectangleF.Inflate(region, width, width);
             }
 
             public override RectangleF RequiredRegion

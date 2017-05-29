@@ -8,9 +8,10 @@ namespace ImageSharp
     using System;
     using System.ComponentModel;
     using System.Numerics;
+    using System.Runtime.CompilerServices;
 
     /// <summary>
-    /// Stores a set of four integers that represent the location and size of a rectangle.
+    /// Stores a set of four single precision floating points that represent the location and size of a rectangle.
     /// </summary>
     /// <remarks>
     /// This struct is fully mutable. This is done (against the guidelines) for the sake of performance,
@@ -19,14 +20,9 @@ namespace ImageSharp
     public struct RectangleF : IEquatable<RectangleF>
     {
         /// <summary>
-        /// Represents a <see cref="Rectangle"/> that has X, Y, Width, and Height values set to zero.
+        /// Represents a <see cref="RectangleF"/> that has X, Y, Width, and Height values set to zero.
         /// </summary>
         public static readonly RectangleF Empty = default(RectangleF);
-
-        /// <summary>
-        /// The backing vector for SIMD support.
-        /// </summary>
-        private Vector4 backingVector;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="RectangleF"/> struct.
@@ -37,79 +33,80 @@ namespace ImageSharp
         /// <param name="height">The height of the rectangle.</param>
         public RectangleF(float x, float y, float width, float height)
         {
-            this.backingVector = new Vector4(x, y, width, height);
+            this.X = x;
+            this.Y = y;
+            this.Width = width;
+            this.Height = height;
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="RectangleF"/> struct.
         /// </summary>
-        /// <param name="vector">The vector.</param>
-        public RectangleF(Vector4 vector)
+        /// <param name="point">
+        /// The <see cref="Point"/> which specifies the rectangles point in a two-dimensional plane.
+        /// </param>
+        /// <param name="size">
+        /// The <see cref="Size"/> which specifies the rectangles height and width.
+        /// </param>
+        public RectangleF(PointF point, SizeF size)
         {
-            this.backingVector = vector;
+            this.X = point.X;
+            this.Y = point.Y;
+            this.Width = size.Width;
+            this.Height = size.Height;
         }
 
         /// <summary>
         /// Gets or sets the x-coordinate of this <see cref="RectangleF"/>.
         /// </summary>
-        public float X
-        {
-            get
-            {
-                return this.backingVector.X;
-            }
-
-            set
-            {
-                this.backingVector.X = value;
-            }
-        }
+        public float X { get; set; }
 
         /// <summary>
         /// Gets or sets the y-coordinate of this <see cref="RectangleF"/>.
         /// </summary>
-        public float Y
-        {
-            get
-            {
-                return this.backingVector.Y;
-            }
-
-            set
-            {
-                this.backingVector.Y = value;
-            }
-        }
+        public float Y { get; set; }
 
         /// <summary>
         /// Gets or sets the width of this <see cref="RectangleF"/>.
         /// </summary>
-        public float Width
-        {
-            get
-            {
-                return this.backingVector.Z;
-            }
-
-            set
-            {
-                this.backingVector.Z = value;
-            }
-        }
+        public float Width { get; set; }
 
         /// <summary>
         /// Gets or sets the height of this <see cref="RectangleF"/>.
         /// </summary>
-        public float Height
-        {
-            get
-            {
-                return this.backingVector.W;
-            }
+        public float Height { get; set; }
 
+        /// <summary>
+        /// Gets or sets the coordinates of the upper-left corner of the rectangular region represented by this <see cref="RectangleF"/>.
+        /// </summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public PointF Location
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => new PointF(this.X, this.Y);
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set
             {
-                this.backingVector.W = value;
+                this.X = value.X;
+                this.Y = value.Y;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the size of this <see cref="RectangleF"/>.
+        /// </summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public SizeF Size
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => new SizeF(this.Width, this.Height);
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            set
+            {
+                this.Width = value.Width;
+                this.Height = value.Height;
             }
         }
 
@@ -117,141 +114,210 @@ namespace ImageSharp
         /// Gets a value indicating whether this <see cref="RectangleF"/> is empty.
         /// </summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public bool IsEmpty => this.Equals(Empty);
+        public bool IsEmpty => (this.Width <= 0) || (this.Height <= 0);
 
         /// <summary>
         /// Gets the y-coordinate of the top edge of this <see cref="RectangleF"/>.
         /// </summary>
-        public float Top => this.Y;
+        public float Top
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return this.Y;
+            }
+        }
 
         /// <summary>
         /// Gets the x-coordinate of the right edge of this <see cref="RectangleF"/>.
         /// </summary>
-        public float Right => this.X + this.Width;
+        public float Right
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return this.X + this.Width;
+            }
+        }
 
         /// <summary>
         /// Gets the y-coordinate of the bottom edge of this <see cref="RectangleF"/>.
         /// </summary>
-        public float Bottom => this.Y + this.Height;
+        public float Bottom
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return this.Y + this.Height;
+            }
+        }
 
         /// <summary>
         /// Gets the x-coordinate of the left edge of this <see cref="RectangleF"/>.
         /// </summary>
-        public float Left => this.X;
-
-        /// <summary>
-        /// Performs an implicit conversion from <see cref="Rectangle"/> to <see cref="RectangleF"/>.
-        /// </summary>
-        /// <param name="d">The d.</param>
-        /// <returns>
-        /// The result of the conversion.
-        /// </returns>
-        public static implicit operator RectangleF(Rectangle d)
+        public float Left
         {
-            return new RectangleF(d.Left, d.Top, d.Width, d.Height);
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return this.X;
+            }
         }
 
         /// <summary>
-        /// Computes the sum of adding two rectangles.
+        /// Creates a <see cref="RectangleF"/> with the coordinates of the specified <see cref="Vector4"/>.
         /// </summary>
-        /// <param name="left">The rectangle on the left hand of the operand.</param>
-        /// <param name="right">The rectangle on the right hand of the operand.</param>
-        /// <returns>
-        /// The <see cref="RectangleF"/>
-        /// </returns>
-        public static RectangleF operator +(RectangleF left, RectangleF right)
-        {
-            return new RectangleF(left.backingVector + right.backingVector);
-        }
+        /// <param name="vector">The rectangle</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static implicit operator RectangleF(Vector4 vector) => new RectangleF(vector.X, vector.Y, vector.Z, vector.W);
 
         /// <summary>
-        /// Computes the difference left by subtracting one rectangle from another.
+        /// Creates a <see cref="Vector4"/> with the coordinates of the specified <see cref="RectangleF"/>.
         /// </summary>
-        /// <param name="left">The rectangle on the left hand of the operand.</param>
-        /// <param name="right">The rectangle on the right hand of the operand.</param>
-        /// <returns>
-        /// The <see cref="RectangleF"/>
-        /// </returns>
-        public static RectangleF operator -(RectangleF left, RectangleF right)
-        {
-            return new RectangleF(left.backingVector - right.backingVector);
-        }
+        /// <param name="rectangle">The rectangle</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static implicit operator Vector4(RectangleF rectangle) => new Vector4(rectangle.X, rectangle.Y, rectangle.Width, rectangle.Height);
+
+        /// <summary>
+        /// Creates a <see cref="Rectangle"/> with the coordinates of the specified <see cref="RectangleF"/> by truncating each coordinate.
+        /// </summary>
+        /// <param name="rectangle">The rectangle</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static explicit operator Rectangle(RectangleF rectangle) => Rectangle.Truncate(rectangle);
 
         /// <summary>
         /// Compares two <see cref="RectangleF"/> objects for equality.
         /// </summary>
-        /// <param name="left">
-        /// The <see cref="RectangleF"/> on the left side of the operand.
-        /// </param>
-        /// <param name="right">
-        /// The <see cref="RectangleF"/> on the right side of the operand.
-        /// </param>
+        /// <param name="left">The <see cref="RectangleF"/> on the left side of the operand.</param>
+        /// <param name="right">The <see cref="RectangleF"/> on the right side of the operand.</param>
         /// <returns>
         /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        public static bool operator ==(RectangleF left, RectangleF right)
-        {
-            return left.Equals(right);
-        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool operator ==(RectangleF left, RectangleF right) => left.Equals(right);
 
         /// <summary>
         /// Compares two <see cref="RectangleF"/> objects for inequality.
         /// </summary>
-        /// <param name="left">
-        /// The <see cref="RectangleF"/> on the left side of the operand.
-        /// </param>
-        /// <param name="right">
-        /// The <see cref="RectangleF"/> on the right side of the operand.
-        /// </param>
+        /// <param name="left">The <see cref="RectangleF"/> on the left side of the operand.</param>
+        /// <param name="right">The <see cref="RectangleF"/> on the right side of the operand.</param>
         /// <returns>
         /// True if the current left is unequal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        public static bool operator !=(RectangleF left, RectangleF right)
-        {
-            return !left.Equals(right);
-        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool operator !=(RectangleF left, RectangleF right) => !left.Equals(right);
+
+        /// <summary>
+        /// Creates a new <see cref="RectangleF"/> with the specified location and size. </summary>
+        /// <param name="left">The left coordinate of the rectangle</param>
+        /// <param name="top">The top coordinate of the rectangle</param>
+        /// <param name="right">The right coordinate of the rectangle</param>
+        /// <param name="bottom">The bottom coordinate of the rectangle</param>
+        /// <returns>The <see cref="RectangleF"/></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+
+        // ReSharper disable once InconsistentNaming
+        public static RectangleF FromLTRB(float left, float top, float right, float bottom) => new RectangleF(left, top, right - left, bottom - top);
 
         /// <summary>
         /// Returns the center point of the given <see cref="RectangleF"/>
         /// </summary>
         /// <param name="rectangle">The rectangle</param>
-        /// <returns><see cref="Point"/></returns>
-        public static Vector2 Center(RectangleF rectangle)
+        /// <returns>The <see cref="Point"/></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static PointF Center(RectangleF rectangle) => new PointF(rectangle.Left + (rectangle.Width / 2), rectangle.Top + (rectangle.Height / 2));
+
+        /// <summary>
+        /// Creates a rectangle that represents the intersection between <paramref name="a"/> and
+        /// <paramref name="b"/>. If there is no intersection, an empty rectangle is returned.
+        /// </summary>
+        /// <param name="a">The first rectangle</param>
+        /// <param name="b">The second rectangle</param>
+        /// <returns>The <see cref="RectangleF"/></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static RectangleF Intersect(RectangleF a, RectangleF b)
         {
-            return new Vector2(rectangle.Left + (rectangle.Width / 2), rectangle.Top + (rectangle.Height / 2));
+            float x1 = MathF.Max(a.X, b.X);
+            float x2 = MathF.Min(a.Right, b.Right);
+            float y1 = MathF.Max(a.Y, b.Y);
+            float y2 = MathF.Min(a.Bottom, b.Bottom);
+
+            if (x2 >= x1 && y2 >= y1)
+            {
+                return new RectangleF(x1, y1, x2 - x1, y2 - y1);
+            }
+
+            return Empty;
         }
 
         /// <summary>
-        /// Rounds the points away from the center this into a <see cref="Rectangle"/>
-        /// by rounding the dimensions to the nerent integer ensuring that the new rectangle is
-        /// never smaller than the source <see cref="RectangleF"/>
+        /// Creates a <see cref="RectangleF"/> that is inflated by the specified amount.
         /// </summary>
-        /// <param name="source">The source area to round out</param>
-        /// <returns>
-        ///     The smallest <see cref="Rectangle"/> that the <see cref="RectangleF"/> will fit inside.
-        /// </returns>
-        public static Rectangle Ceiling(RectangleF source)
+        /// <param name="rectangle">The rectangle</param>
+        /// <param name="x">The amount to inflate the width by</param>
+        /// <param name="y">The amount to inflate the height by</param>
+        /// <returns>A new <see cref="RectangleF"/></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static RectangleF Inflate(RectangleF rectangle, float x, float y)
         {
-            int y = (int)Math.Floor(source.Y);
-            int width = (int)Math.Ceiling(source.Width);
-            int x = (int)Math.Floor(source.X);
-            int height = (int)Math.Ceiling(source.Height);
-            return new Rectangle(x, y, width, height);
+            RectangleF r = rectangle;
+            r.Inflate(x, y);
+            return r;
         }
 
         /// <summary>
-        /// Outsets the specified region.
+        /// Creates a rectangle that represents the union between <paramref name="a"/> and <paramref name="b"/>.
         /// </summary>
-        /// <param name="region">The region.</param>
-        /// <param name="width">The width.</param>
-        /// <returns>
-        /// The <see cref="RectangleF"/> with all dimensions move away from the center by the offset.
-        /// </returns>
-        public static RectangleF Outset(RectangleF region, float width)
+        /// <param name="a">The first rectangle</param>
+        /// <param name="b">The second rectangle</param>
+        /// <returns>The <see cref="RectangleF"/></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static RectangleF Union(RectangleF a, RectangleF b)
         {
-            float dblWidth = width * 2;
-            return new RectangleF(region.X - width, region.Y - width, region.Width + dblWidth, region.Height + dblWidth);
+            float x1 = MathF.Min(a.X, b.X);
+            float x2 = MathF.Max(a.Right, b.Right);
+            float y1 = MathF.Min(a.Y, b.Y);
+            float y2 = MathF.Max(a.Bottom, b.Bottom);
+
+            return new RectangleF(x1, y1, x2 - x1, y2 - y1);
         }
+
+        /// <summary>
+        /// Creates a RectangleF that represents the intersection between this RectangleF and the <paramref name="rectangle"/>.
+        /// </summary>
+        /// <param name="rectangle">The rectangle</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Intersect(RectangleF rectangle)
+        {
+            RectangleF result = Intersect(rectangle, this);
+
+            this.X = result.X;
+            this.Y = result.Y;
+            this.Width = result.Width;
+            this.Height = result.Height;
+        }
+
+        /// <summary>
+        /// Inflates this <see cref="RectangleF"/> by the specified amount.
+        /// </summary>
+        /// <param name="width">The width</param>
+        /// <param name="height">The height</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Inflate(float width, float height)
+        {
+            this.X -= width;
+            this.Y -= height;
+
+            this.Width += 2 * width;
+            this.Height += 2 * height;
+        }
+
+        /// <summary>
+        /// Inflates this <see cref="RectangleF"/> by the specified amount.
+        /// </summary>
+        /// <param name="size">The size</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Inflate(SizeF size) => this.Inflate(size.Width, size.Height);
 
         /// <summary>
         /// Determines if the specfied point is contained within the rectangular region defined by
@@ -260,75 +326,89 @@ namespace ImageSharp
         /// <param name="x">The x-coordinate of the given point.</param>
         /// <param name="y">The y-coordinate of the given point.</param>
         /// <returns>The <see cref="bool"/></returns>
-        public bool Contains(float x, float y)
-        {
-            // TODO: SIMD?
-            return this.X <= x
-                   && x < this.Right
-                   && this.Y <= y
-                   && y < this.Bottom;
-        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool Contains(float x, float y) => this.X <= x && x < this.Right && this.Y <= y && y < this.Bottom;
 
         /// <summary>
-        /// Determines if the specfied <see cref="Rectangle"/> intersects the rectangular region defined by
-        /// this <see cref="Rectangle"/>.
+        /// Determines if the specified point is contained within the rectangular region defined by this <see cref="RectangleF"/> .
         /// </summary>
-        /// <param name="rect">The other Rectange </param>
+        /// <param name="point">The point</param>
         /// <returns>The <see cref="bool"/></returns>
-        public bool Intersects(RectangleF rect)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool Contains(PointF point) => this.Contains(point.X, point.Y);
+
+        /// <summary>
+        /// Determines if the rectangular region represented by <paramref name="rectangle"/> is entirely contained
+        /// within the rectangular region represented by this <see cref="RectangleF"/> .
+        /// </summary>
+        /// <param name="rectangle">The rectangle</param>
+        /// <returns>The <see cref="bool"/></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool Contains(RectangleF rectangle) =>
+            (this.X <= rectangle.X) && (rectangle.Right <= this.Right) &&
+            (this.Y <= rectangle.Y) && (rectangle.Bottom <= this.Bottom);
+
+        /// <summary>
+        /// Determines if the specfied <see cref="RectangleF"/> intersects the rectangular region defined by
+        /// this <see cref="RectangleF"/>.
+        /// </summary>
+        /// <param name="rectangle">The other Rectange </param>
+        /// <returns>The <see cref="bool"/></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool IntersectsWith(RectangleF rectangle) =>
+            (rectangle.X < this.Right) && (this.X < rectangle.Right) &&
+            (rectangle.Y < this.Bottom) && (this.Y < rectangle.Bottom);
+
+        /// <summary>
+        /// Adjusts the location of this rectangle by the specified amount.
+        /// </summary>
+        /// <param name="point">The point</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Offset(PointF point) => this.Offset(point.X, point.Y);
+
+        /// <summary>
+        /// Adjusts the location of this rectangle by the specified amount.
+        /// </summary>
+        /// <param name="dx">The amount to offset the x-coordinate.</param>
+        /// <param name="dy">The amount to offset the y-coordinate.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Offset(float dx, float dy)
         {
-            return rect.Left <= this.Right && rect.Right >= this.Left
-                &&
-                rect.Top <= this.Bottom && rect.Bottom >= this.Top;
+            this.X += dx;
+            this.Y += dy;
         }
 
         /// <inheritdoc/>
-        public override int GetHashCode()
-        {
-            return this.GetHashCode(this);
-        }
+        public override int GetHashCode() => this.GetHashCode(this);
 
         /// <inheritdoc/>
         public override string ToString()
         {
             if (this.IsEmpty)
             {
-                return "Rectangle [ Empty ]";
+                return "RectangleF [ Empty ]";
             }
 
-            return
-                $"Rectangle [ X={this.X}, Y={this.Y}, Width={this.Width}, Height={this.Height} ]";
+            return $"RectangleF [ X={this.X}, Y={this.Y}, Width={this.Width}, Height={this.Height} ]";
         }
 
         /// <inheritdoc/>
-        public override bool Equals(object obj)
-        {
-            if (obj is RectangleF)
-            {
-                return this.Equals((RectangleF)obj);
-            }
-
-            return false;
-        }
+        public override bool Equals(object obj) => obj is RectangleF && this.Equals((RectangleF)obj);
 
         /// <inheritdoc/>
-        public bool Equals(RectangleF other)
-        {
-            return this.backingVector.Equals(other.backingVector);
-        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool Equals(RectangleF other) => this.X.Equals(other.X) && this.Y.Equals(other.Y) && this.Width.Equals(other.Width) && this.Height.Equals(other.Height);
 
-        /// <summary>
-        /// Returns the hash code for this instance.
-        /// </summary>
-        /// <param name="rectangle">
-        /// The instance of <see cref="RectangleF"/> to return the hash code for.
-        /// </param>
-        /// <returns>
-        /// A 32-bit signed integer that is the hash code for this instance.
-        /// </returns>
         private int GetHashCode(RectangleF rectangle)
         {
-            return rectangle.backingVector.GetHashCode();
+            unchecked
+            {
+                int hashCode = rectangle.X.GetHashCode();
+                hashCode = (hashCode * 397) ^ rectangle.Y.GetHashCode();
+                hashCode = (hashCode * 397) ^ rectangle.Width.GetHashCode();
+                hashCode = (hashCode * 397) ^ rectangle.Height.GetHashCode();
+                return hashCode;
+            }
         }
     }
 }

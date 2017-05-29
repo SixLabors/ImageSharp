@@ -213,8 +213,11 @@ namespace ImageSharp
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Offset(int dx, int dy)
         {
-            this.X += dx;
-            this.Y += dy;
+            unchecked
+            {
+                this.X += dx;
+                this.Y += dy;
+            }
         }
 
         /// <summary>

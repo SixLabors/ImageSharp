@@ -7,7 +7,7 @@ namespace ImageSharp
 {
     using ImageSharp.PixelFormats;
 
-    using Processing;
+    using ImageSharp.Processing;
 
     /// <summary>
     /// Extension methods for the <see cref="Image{TPixel}"/> type.

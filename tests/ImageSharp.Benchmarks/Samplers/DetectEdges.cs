@@ -9,7 +9,7 @@ namespace ImageSharp.Benchmarks
 
     using BenchmarkDotNet.Attributes;
 
-    using Processing;
+    using ImageSharp.Processing;
 
     using CoreImage = ImageSharp.Image;
 

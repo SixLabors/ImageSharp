@@ -1,38 +1,33 @@
-﻿// <copyright file="HueTest.cs" company="James Jackson-South">
+﻿// <copyright file="LomographTest.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.Tests.Processing.ColorMatrix
+namespace ImageSharp.Tests
 {
+    using System.IO;
+
     using ImageSharp.PixelFormats;
 
     using Xunit;
 
-    public class HueTest : FileTestBase
+    public class LomographTest : FileTestBase
     {
-        public static readonly TheoryData<int> HueValues
-        = new TheoryData<int>
-        {
-            180,
-           -180
-        };
-
         [Theory]
-        [WithFileCollection(nameof(AllBmpFiles), nameof(HueValues), StandardPixelTypes)]
-        public void ImageShouldApplyHueFilter<TPixel>(TestImageProvider<TPixel> provider, int value)
+        [WithFileCollection(nameof(AllBmpFiles), StandardPixelTypes)]
+        public void ImageShouldApplyLomographFilter<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                image.Hue(value)
-                    .DebugSave(provider, value, Extensions.Bmp);
+                image.Lomograph()
+                    .DebugSave(provider, null, Extensions.Bmp);
             }
         }
 
         [Theory]
-        [WithFileCollection(nameof(AllBmpFiles), nameof(HueValues), StandardPixelTypes)]
-        public void ImageShouldApplyHueFilterInBox<TPixel>(TestImageProvider<TPixel> provider, int value)
+        [WithFileCollection(nameof(AllBmpFiles), StandardPixelTypes)]
+        public void ImageShouldApplyLomographFilterInBox<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> source = provider.GetImage())
@@ -40,8 +35,8 @@ namespace ImageSharp.Tests.Processing.ColorMatrix
             {
                 var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
 
-                image.Hue(value, bounds)
-                    .DebugSave(provider, value, Extensions.Bmp);
+                image.Lomograph(bounds)
+                    .DebugSave(provider, null, Extensions.Bmp);
 
                 // Draw identical shapes over the bounded and compare to ensure changes are constrained.
                 image.Fill(NamedColors<TPixel>.HotPink, bounds);

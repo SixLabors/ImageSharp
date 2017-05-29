@@ -1,4 +1,8 @@
-﻿
+﻿// <copyright file="TestImageExtensions.cs" company="James Jackson-South">
+// Copyright (c) James Jackson-South and contributors.
+// Licensed under the Apache License, Version 2.0.
+// </copyright>
+
 namespace ImageSharp.Tests
 {
     using System;
@@ -21,8 +25,15 @@ namespace ImageSharp.Tests
         public static void DebugSave<TPixel>(this Image<TPixel> image, ITestImageProvider provider, object settings = null, string extension = "png")
             where TPixel : struct, IPixel<TPixel>
         {
+            if (bool.TryParse(Environment.GetEnvironmentVariable("CI"), out bool isCi) && isCi)
+            {
+                return;
+            }
+
+            // We are running locally then we want to save it out
             string tag = null;
             string s = settings as string;
+
             if (s != null)
             {
                 tag = s;
@@ -40,11 +51,8 @@ namespace ImageSharp.Tests
                     tag = string.Join("_", properties.ToDictionary(x => x.Name, x => x.GetValue(settings)).Select(x => $"{x.Key}-{x.Value}"));
                 }
             }
-            if (!bool.TryParse(Environment.GetEnvironmentVariable("CI"), out bool isCi) || !isCi)
-            {
-                // We are running locally then we want to save it out
-                provider.Utility.SaveTestOutputFile(image, extension, tag: tag);
-            }
+
+            provider.Utility.SaveTestOutputFile(image, extension, tag: tag);
         }
     }
 }

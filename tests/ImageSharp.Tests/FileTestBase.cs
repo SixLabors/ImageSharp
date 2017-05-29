@@ -35,7 +35,7 @@ namespace ImageSharp.Tests
         /// <summary>
         /// The standard pixel formats enumerations
         /// </summary>
-        public const PixelTypes StandardPixelTypes = PixelTypes.StandardImageClass | PixelTypes.Rgba32 | PixelTypes.Argb32;
+        public const PixelTypes StandardPixelTypes = PixelTypes.StandardImageClass | PixelTypes.Rgba32;
 
         public static class Extensions
         {

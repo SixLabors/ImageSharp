@@ -29,6 +29,7 @@ namespace ImageSharp.Tests
         /// <summary>
         /// Triggers passing an <see cref="TestImageProvider{TPixel}"/> that produces a test pattern image of size width * height
         /// </summary>
+        /// <param name="memberData">The member data to apply to theories</param>
         /// <param name="width">The required width</param>
         /// <param name="height">The required height</param>
         /// <param name="pixelTypes">The requested parameter</param>
@@ -40,7 +41,14 @@ namespace ImageSharp.Tests
             this.Height = height;
         }
 
+        /// <summary>
+        /// Gets the width
+        /// </summary>
         public int Width { get; }
+
+        /// <summary>
+        /// Gets the height
+        /// </summary>
         public int Height { get; }
 
         protected override string GetFactoryMethodName(MethodInfo testMethod) => "TestPattern";

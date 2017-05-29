@@ -79,20 +79,14 @@ namespace ImageSharp
         /// The <see cref="Size"/>.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static explicit operator Size(SizeF size)
-        {
-            return new Size(unchecked((int)size.Width), unchecked((int)size.Height));
-        }
+        public static explicit operator Size(SizeF size) => new Size(unchecked((int)size.Width), unchecked((int)size.Height));
 
         /// <summary>
         /// Converts the given <see cref="SizeF"/> into a <see cref="PointF"/>.
         /// </summary>
         /// <param name="size">The size</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static explicit operator PointF(SizeF size)
-        {
-            return new PointF(size.Width, size.Height);
-        }
+        public static explicit operator PointF(SizeF size) => new PointF(size.Width, size.Height);
 
         /// <summary>
         /// Computes the sum of adding two sizes.
@@ -103,10 +97,7 @@ namespace ImageSharp
         /// The <see cref="SizeF"/>
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static SizeF operator +(SizeF left, SizeF right)
-        {
-            return Add(left, right);
-        }
+        public static SizeF operator +(SizeF left, SizeF right) => Add(left, right);
 
         /// <summary>
         /// Computes the difference left by subtracting one size from another.
@@ -117,10 +108,7 @@ namespace ImageSharp
         /// The <see cref="SizeF"/>
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static SizeF operator -(SizeF left, SizeF right)
-        {
-            return Subtract(left, right);
-        }
+        public static SizeF operator -(SizeF left, SizeF right) => Subtract(left, right);
 
         /// <summary>
         /// Compares two <see cref="SizeF"/> objects for equality.
@@ -131,10 +119,7 @@ namespace ImageSharp
         /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool operator ==(SizeF left, SizeF right)
-        {
-            return left.Equals(right);
-        }
+        public static bool operator ==(SizeF left, SizeF right) => left.Equals(right);
 
         /// <summary>
         /// Compares two <see cref="SizeF"/> objects for inequality.
@@ -145,10 +130,7 @@ namespace ImageSharp
         /// True if the current left is unequal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool operator !=(SizeF left, SizeF right)
-        {
-            return !left.Equals(right);
-        }
+        public static bool operator !=(SizeF left, SizeF right) => !left.Equals(right);
 
         /// <summary>
         /// Performs vector addition of two <see cref="SizeF"/> objects.
@@ -157,10 +139,7 @@ namespace ImageSharp
         /// <param name="right">The size on the right hand of the operand.</param>
         /// <returns>The <see cref="SizeF"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static SizeF Add(SizeF left, SizeF right)
-        {
-            return new SizeF(left.Width + right.Width, left.Height + right.Height);
-        }
+        public static SizeF Add(SizeF left, SizeF right) => new SizeF(left.Width + right.Width, left.Height + right.Height);
 
         /// <summary>
         /// Contracts a <see cref="SizeF"/> by another <see cref="SizeF"/>
@@ -169,10 +148,7 @@ namespace ImageSharp
         /// <param name="right">The size on the right hand of the operand.</param>
         /// <returns>The <see cref="SizeF"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static SizeF Subtract(SizeF left, SizeF right)
-        {
-            return new SizeF(left.Width - right.Width, left.Height - right.Height);
-        }
+        public static SizeF Subtract(SizeF left, SizeF right) => new SizeF(left.Width - right.Width, left.Height - right.Height);
 
         /// <inheritdoc/>
         public override int GetHashCode()
@@ -192,38 +168,12 @@ namespace ImageSharp
         }
 
         /// <inheritdoc/>
-        public override bool Equals(object obj)
-        {
-            if (obj is SizeF)
-            {
-                return this.Equals((SizeF)obj);
-            }
-
-            return false;
-        }
+        public override bool Equals(object obj) => obj is SizeF && this.Equals((SizeF)obj);
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool Equals(SizeF other)
-        {
-            return this.Width.Equals(other.Width) && this.Height.Equals(other.Height);
-        }
+        public bool Equals(SizeF other) => this.Width.Equals(other.Width) && this.Height.Equals(other.Height);
 
-        /// <summary>
-        /// Returns the hash code for this instance.
-        /// </summary>
-        /// <param name="size">
-        /// The instance of <see cref="SizeF"/> to return the hash code for.
-        /// </param>
-        /// <returns>
-        /// A 32-bit signed integer that is the hash code for this instance.
-        /// </returns>
-        private int GetHashCode(SizeF size)
-        {
-            unchecked
-            {
-                return size.Width.GetHashCode() ^ size.Height.GetHashCode();
-            }
-        }
+        private int GetHashCode(SizeF size) => size.Width.GetHashCode() ^ size.Height.GetHashCode();
     }
 }

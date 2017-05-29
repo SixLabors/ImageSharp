@@ -51,7 +51,7 @@ namespace ImageSharp.Tests.Processing.ColorMatrix
             using (var image = new Image<TPixel>(source))
             {
                 var bounds = new Rectangle(image.Width / 4, image.Height / 4, image.Width / 2, image.Height / 2);
-                image.Grayscale(bounds, value)
+                image.Grayscale(value, bounds)
                      .DebugSave(provider, value.ToString());
 
                 // Draw identical shapes over the bounded and compare to ensure changes are constrained.

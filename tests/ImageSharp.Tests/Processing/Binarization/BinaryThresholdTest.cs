@@ -11,20 +11,27 @@ namespace ImageSharp.Tests.Processing.Binarization
 
     public class BinaryThresholdTest : FileTestBase
     {
+        public static readonly TheoryData<float> BinaryThresholdValues
+        = new TheoryData<float>
+        {
+            .25F,
+            .75F
+        };
+
         [Theory]
-        [WithFileCollection(nameof(AllBmpFiles), StandardPixelTypes, .75F)]
+        [WithFileCollection(nameof(AllBmpFiles), nameof(BinaryThresholdValues), StandardPixelTypes)]
         public void ImageShouldApplyBinaryThresholdFilter<TPixel>(TestImageProvider<TPixel> provider, float value)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {
                 image.BinaryThreshold(value)
-                     .DebugSave(provider, null, Extensions.Bmp);
+                     .DebugSave(provider, value, Extensions.Bmp);
             }
         }
 
         [Theory]
-        [WithFileCollection(nameof(AllBmpFiles), StandardPixelTypes, .75F)]
+        [WithFileCollection(nameof(AllBmpFiles), nameof(BinaryThresholdValues), StandardPixelTypes)]
         public void ImageShouldApplyBinaryThresholdInBox<TPixel>(TestImageProvider<TPixel> provider, float value)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -35,7 +42,7 @@ namespace ImageSharp.Tests.Processing.Binarization
                 var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
 
                 image.BinaryThreshold(value, bounds)
-                     .DebugSave(provider, null, Extensions.Bmp);
+                     .DebugSave(provider, value, Extensions.Bmp);
 
                 // Draw identical shapes over the bounded and compare to ensure changes are constrained.
                 image.Fill(NamedColors<TPixel>.HotPink, bounds);

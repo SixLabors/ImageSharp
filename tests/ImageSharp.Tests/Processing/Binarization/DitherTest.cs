@@ -5,8 +5,6 @@
 
 namespace ImageSharp.Tests
 {
-    using System.IO;
-
     using ImageSharp.Dithering;
     using ImageSharp.Dithering.Ordered;
     using ImageSharp.PixelFormats;
@@ -34,70 +32,66 @@ namespace ImageSharp.Tests
         };
 
         [Theory]
-        [MemberData(nameof(Ditherers))]
-        public void ImageShouldApplyDitherFilter(string name, IOrderedDither ditherer)
+        [WithFileCollection(nameof(AllBmpFiles), nameof(Ditherers), StandardPixelTypes)]
+        public void ImageShouldApplyDitherFilter<TPixel>(TestImageProvider<TPixel> provider, string name, IOrderedDither ditherer)
+            where TPixel : struct, IPixel<TPixel>
         {
-            string path = this.CreateOutputDirectory("Dither", "Dither");
-
-            foreach (TestFile file in Files)
+            using (Image<TPixel> image = provider.GetImage())
             {
-                string filename = file.GetFileName(name);
-                using (Image<Rgba32> image = file.CreateImage())
-                using (FileStream output = File.OpenWrite($"{path}/{filename}"))
-                {
-                    image.Dither(ditherer).Save(output);
-                }
+                image.Dither(ditherer)
+                     .DebugSave(provider, name, Extensions.Bmp);
             }
         }
 
         [Theory]
-        [MemberData(nameof(Ditherers))]
-        public void ImageShouldApplyDitherFilterInBox(string name, IOrderedDither ditherer)
+        [WithFileCollection(nameof(AllBmpFiles), nameof(Ditherers), StandardPixelTypes)]
+        public void ImageShouldApplyDitherFilterInBox<TPixel>(TestImageProvider<TPixel> provider, string name, IOrderedDither ditherer)
+            where TPixel : struct, IPixel<TPixel>
         {
-            string path = this.CreateOutputDirectory("Dither", "Dither");
-
-            foreach (TestFile file in Files)
+            using (Image<TPixel> source = provider.GetImage())
+            using (var image = new Image<TPixel>(source))
             {
-                string filename = file.GetFileName($"{name}-InBox");
-                using (Image<Rgba32> image = file.CreateImage())
-                using (FileStream output = File.OpenWrite($"{path}/{filename}"))
-                {
-                    image.Dither(ditherer, new Rectangle(10, 10, image.Width / 2, image.Height / 2)).Save(output);
-                }
+                var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
+
+                image.Dither(ditherer, bounds)
+                     .DebugSave(provider, name, Extensions.Bmp);
+
+                // Draw identical shapes over the bounded and compare to ensure changes are constrained.
+                image.Fill(NamedColors<TPixel>.HotPink, bounds);
+                source.Fill(NamedColors<TPixel>.HotPink, bounds);
+                ImageComparer.CheckSimilarity(image, source);
             }
         }
 
         [Theory]
-        [MemberData(nameof(ErrorDiffusers))]
-        public void ImageShouldApplyDiffusionFilter(string name, IErrorDiffuser diffuser)
+        [WithFileCollection(nameof(AllBmpFiles), nameof(ErrorDiffusers), StandardPixelTypes)]
+        public void ImageShouldApplyDiffusionFilter<TPixel>(TestImageProvider<TPixel> provider, string name, IErrorDiffuser diffuser)
+            where TPixel : struct, IPixel<TPixel>
         {
-            string path = this.CreateOutputDirectory("Dither", "Diffusion");
-
-            foreach (TestFile file in Files)
+            using (Image<TPixel> image = provider.GetImage())
             {
-                string filename = file.GetFileName(name);
-                using (Image<Rgba32> image = file.CreateImage())
-                using (FileStream output = File.OpenWrite($"{path}/{filename}"))
-                {
-                    image.Dither(diffuser, .5F).Save(output);
-                }
+                image.Dither(diffuser, .5F)
+                     .DebugSave(provider, name, Extensions.Bmp);
             }
         }
 
         [Theory]
-        [MemberData(nameof(ErrorDiffusers))]
-        public void ImageShouldApplyDiffusionFilterInBox(string name, IErrorDiffuser diffuser)
+        [WithFileCollection(nameof(AllBmpFiles), nameof(ErrorDiffusers), StandardPixelTypes)]
+        public void ImageShouldApplyDiffusionFilterInBox<TPixel>(TestImageProvider<TPixel> provider, string name, IErrorDiffuser diffuser)
+            where TPixel : struct, IPixel<TPixel>
         {
-            string path = this.CreateOutputDirectory("Dither", "Diffusion");
-
-            foreach (TestFile file in Files)
+            using (Image<TPixel> source = provider.GetImage())
+            using (var image = new Image<TPixel>(source))
             {
-                string filename = file.GetFileName($"{name}-InBox");
-                using (Image<Rgba32> image = file.CreateImage())
-                using (FileStream output = File.OpenWrite($"{path}/{filename}"))
-                {
-                    image.Dither(diffuser, .5F, new Rectangle(10, 10, image.Width / 2, image.Height / 2)).Save(output);
-                }
+                var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
+
+                image.Dither(diffuser,.5F, bounds)
+                    .DebugSave(provider, name, Extensions.Bmp);
+
+                // Draw identical shapes over the bounded and compare to ensure changes are constrained.
+                image.Fill(NamedColors<TPixel>.HotPink, bounds);
+                source.Fill(NamedColors<TPixel>.HotPink, bounds);
+                ImageComparer.CheckSimilarity(image, source);
             }
         }
     }

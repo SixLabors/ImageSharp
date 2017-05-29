@@ -2,6 +2,7 @@
 namespace ImageSharp.Tests
 {
     using System;
+    using System.Collections.Generic;
     using System.Linq;
     using System.Reflection;
 
@@ -28,9 +29,16 @@ namespace ImageSharp.Tests
             }
             else if (settings != null)
             {
-                System.Collections.Generic.IEnumerable<PropertyInfo> properties = settings.GetType().GetRuntimeProperties();
+                if (settings.GetType().GetTypeInfo().IsPrimitive)
+                {
+                    tag = settings.ToString();
+                }
+                else
+                {
+                    IEnumerable<PropertyInfo> properties = settings.GetType().GetRuntimeProperties();
 
-                tag = string.Join("_", properties.ToDictionary(x => x.Name, x => x.GetValue(settings)).Select(x => $"{x.Key}-{x.Value}"));
+                    tag = string.Join("_", properties.ToDictionary(x => x.Name, x => x.GetValue(settings)).Select(x => $"{x.Key}-{x.Value}"));
+                }
             }
             if (!bool.TryParse(Environment.GetEnvironmentVariable("CI"), out bool isCi) || !isCi)
             {

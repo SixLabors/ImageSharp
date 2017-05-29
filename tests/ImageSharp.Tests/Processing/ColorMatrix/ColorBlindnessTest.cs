@@ -33,7 +33,7 @@ namespace ImageSharp.Tests.Processing.ColorMatrix
             using (Image<TPixel> image = provider.GetImage())
             {
                 image.ColorBlindness(colorBlindness)
-                    .DebugSave(provider, null, Extensions.Bmp);
+                    .DebugSave(provider, colorBlindness.ToString(), Extensions.Bmp);
             }
         }
 
@@ -48,7 +48,7 @@ namespace ImageSharp.Tests.Processing.ColorMatrix
                 var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
 
                 image.ColorBlindness(colorBlindness, bounds)
-                    .DebugSave(provider, null, Extensions.Bmp);
+                    .DebugSave(provider, colorBlindness.ToString(), Extensions.Bmp);
 
                 // Draw identical shapes over the bounded and compare to ensure changes are constrained.
                 image.Fill(NamedColors<TPixel>.HotPink, bounds);

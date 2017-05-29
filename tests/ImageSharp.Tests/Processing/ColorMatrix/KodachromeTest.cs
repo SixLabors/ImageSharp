@@ -1,4 +1,4 @@
-﻿// <copyright file="BlackWhiteTest.cs" company="James Jackson-South">
+﻿// <copyright file="KodachromeTest.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -9,23 +9,23 @@ namespace ImageSharp.Tests.Processing.ColorMatrix
 
     using Xunit;
 
-    public class BlackWhiteTest : FileTestBase
+    public class KodachromeTest : FileTestBase
     {
         [Theory]
         [WithFileCollection(nameof(AllBmpFiles), StandardPixelTypes)]
-        public void ImageShouldApplyBlackWhiteFilter<TPixel>(TestImageProvider<TPixel> provider)
+        public void ImageShouldApplyKodachromeFilter<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                image.BlackWhite()
+                image.Kodachrome()
                     .DebugSave(provider, null, Extensions.Bmp);
             }
         }
 
         [Theory]
         [WithFileCollection(nameof(AllBmpFiles), StandardPixelTypes)]
-        public void ImageShouldApplyBlackWhiteFilterInBox<TPixel>(TestImageProvider<TPixel> provider)
+        public void ImageShouldApplyKodachromeFilterInBox<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> source = provider.GetImage())
@@ -33,7 +33,7 @@ namespace ImageSharp.Tests.Processing.ColorMatrix
             {
                 var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
 
-                image.BlackWhite(bounds)
+                image.Kodachrome(bounds)
                     .DebugSave(provider, null, Extensions.Bmp);
 
                 // Draw identical shapes over the bounded and compare to ensure changes are constrained.

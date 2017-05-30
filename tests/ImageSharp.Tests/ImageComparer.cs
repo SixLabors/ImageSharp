@@ -22,6 +22,38 @@ namespace ImageSharp.Tests
         const float DefaultImageThreshold = 0.000F; // After segment thresholds the images must have no differences
 
         /// <summary>
+        /// Fills the bounded area with a solid color and does a visual comparison between 2 images asserting the difference outwith
+        /// that area is less then a configurable threshold.
+        /// </summary>
+        /// <typeparam name="TPixelA">The color of the expected image</typeparam>
+        /// <typeparam name="TPixelB">The color type fo the the actual image</typeparam>
+        /// <param name="expected">The expected image</param>
+        /// <param name="actual">The actual image</param>
+        /// <param name="bounds">The bounds within the image has been altered</param>
+        /// <param name="imageTheshold">
+        /// The threshold for the percentage difference where the images are asumed to be the same.
+        /// The default/undefined value is <see cref="DefaultImageThreshold"/>
+        /// </param>
+        /// <param name="segmentThreshold">
+        /// The threshold of the individual segments before it acumulates towards the overall difference.
+        /// The default undefined value is <see cref="DefaultSegmentThreshold"/>
+        /// </param>
+        /// <param name="scalingFactor">
+        /// This is a sampling factor we sample a grid of average pixels <paramref name="scalingFactor"/> width by <paramref name="scalingFactor"/> high
+        /// The default undefined value is <see cref="DefaultScalingFactor"/>
+        /// </param>
+        public static void EnsureProcessorChangesAreConstrained<TPixelA, TPixelB>(Image<TPixelA> expected, Image<TPixelB> actual, Rectangle bounds, float imageTheshold = DefaultImageThreshold, byte segmentThreshold = DefaultSegmentThreshold, int scalingFactor = DefaultScalingFactor)
+            where TPixelA : struct, IPixel<TPixelA>
+            where TPixelB : struct, IPixel<TPixelB>
+        {
+            // Draw identical shapes over the bounded and compare to ensure changes are constrained.
+            expected.Fill(NamedColors<TPixelA>.HotPink, bounds);
+            actual.Fill(NamedColors<TPixelB>.HotPink, bounds);
+
+            CheckSimilarity(expected, actual, imageTheshold, segmentThreshold, scalingFactor);
+        }
+
+        /// <summary>
         /// Does a visual comparison between 2 images and then asserts the difference is less then a configurable threshold
         /// </summary>
         /// <typeparam name="TPixelA">The color of the expected image</typeparam>
@@ -64,7 +96,7 @@ namespace ImageSharp.Tests
         /// This is a sampling factor we sample a grid of average pixels <paramref name="scalingFactor"/> width by <paramref name="scalingFactor"/> high
         /// The default undefined value is <see cref="ImageComparer.DefaultScalingFactor"/>
         /// </param>
-        /// <returns>Returns a number from 0 - 1 which represents the diference focter between the images.</returns>
+        /// <returns>Returns a number from 0 - 1 which represents the difference focter between the images.</returns>
         public static float PercentageDifference<TPixelA, TPixelB>(this Image<TPixelA> source, Image<TPixelB> target, byte segmentThreshold = DefaultSegmentThreshold, int scalingFactor = DefaultScalingFactor)
             where TPixelA : struct, IPixel<TPixelA>
             where TPixelB : struct, IPixel<TPixelB>

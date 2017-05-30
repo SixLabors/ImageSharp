@@ -12,7 +12,7 @@ namespace ImageSharp.Tests.Processing.ColorMatrix
     public class BlackWhiteTest : FileTestBase
     {
         [Theory]
-        [WithFileCollection(nameof(AllBmpFiles), StandardPixelTypes)]
+        [WithFileCollection(nameof(AllBmpFiles), StandardPixelType)]
         public void ImageShouldApplyBlackWhiteFilter<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -24,7 +24,7 @@ namespace ImageSharp.Tests.Processing.ColorMatrix
         }
 
         [Theory]
-        [WithFileCollection(nameof(AllBmpFiles), StandardPixelTypes)]
+        [WithFileCollection(nameof(AllBmpFiles), StandardPixelType)]
         public void ImageShouldApplyBlackWhiteFilterInBox<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {

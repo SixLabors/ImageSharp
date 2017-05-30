@@ -1,0 +1,53 @@
+﻿// <copyright file="AlphaTest.cs" company="James Jackson-South">
+// Copyright (c) James Jackson-South and contributors.
+// Licensed under the Apache License, Version 2.0.
+// </copyright>
+
+namespace ImageSharp.Tests.Processing.Effects
+{
+    using ImageSharp.PixelFormats;
+
+    using Xunit;
+
+    public class AlphaTest : FileTestBase
+    {
+        public static readonly TheoryData<float> AlphaValues
+        = new TheoryData<float>
+        {
+            20/100F,
+            80/100F
+        };
+
+        [Theory]
+        [WithFileCollection(nameof(DefaultFiles), nameof(AlphaValues), StandardPixelType)]
+        public void ImageShouldApplyAlphaFilter<TPixel>(TestImageProvider<TPixel> provider, float value)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                image.Alpha(value)
+                    .DebugSave(provider, value, Extensions.Png);
+            }
+        }
+
+        [Theory]
+        [WithFileCollection(nameof(DefaultFiles), nameof(AlphaValues), StandardPixelType)]
+        public void ImageShouldApplyAlphaFilterInBox<TPixel>(TestImageProvider<TPixel> provider, float value)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> source = provider.GetImage())
+            using (var image = new Image<TPixel>(source))
+            {
+                var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
+
+                image.Alpha(value, bounds)
+                    .DebugSave(provider, value, Extensions.Png);
+
+                // Draw identical shapes over the bounded and compare to ensure changes are constrained.
+                image.Fill(NamedColors<TPixel>.HotPink, bounds);
+                source.Fill(NamedColors<TPixel>.HotPink, bounds);
+                ImageComparer.CheckSimilarity(image, source);
+            }
+        }
+    }
+}

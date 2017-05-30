@@ -16,9 +16,9 @@ namespace ImageSharp.Drawing.Pens
             where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
-        /// Gets the stoke fill.
+        /// Gets the stroke fill.
         /// </summary>
-        IBrush<TPixel> StokeFill { get; }
+        IBrush<TPixel> StrokeFill { get; }
     }
 
     /// <summary>

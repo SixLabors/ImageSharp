@@ -24,5 +24,10 @@ namespace ImageSharp.Formats.Tiff
         /// Image data is compressed using Deflate compression.
         /// </summary>
         Deflate = 2,
+
+        /// <summary>
+        /// Image data is compressed using LZW compression.
+        /// </summary>
+        Lzw = 3,
     }
 }

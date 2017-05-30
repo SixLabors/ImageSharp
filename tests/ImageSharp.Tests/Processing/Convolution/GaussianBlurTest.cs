@@ -19,7 +19,7 @@ namespace ImageSharp.Tests.Processing.Convolution
         };
 
         [Theory]
-        [WithFileCollection(nameof(AllBmpFiles), nameof(GaussianBlurValues), StandardPixelTypes)]
+        [WithFileCollection(nameof(AllBmpFiles), nameof(GaussianBlurValues), StandardPixelType)]
         public void ImageShouldApplyGaussianBlurFilter<TPixel>(TestImageProvider<TPixel> provider, int value)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -31,7 +31,7 @@ namespace ImageSharp.Tests.Processing.Convolution
         }
 
         [Theory]
-        [WithFileCollection(nameof(AllBmpFiles), nameof(GaussianBlurValues), StandardPixelTypes)]
+        [WithFileCollection(nameof(AllBmpFiles), nameof(GaussianBlurValues), StandardPixelType)]
         public void ImageShouldApplyGaussianBlurFilterInBox<TPixel>(TestImageProvider<TPixel> provider, int value)
             where TPixel : struct, IPixel<TPixel>
         {

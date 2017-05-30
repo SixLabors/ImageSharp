@@ -28,7 +28,7 @@ namespace ImageSharp
         public static Image<TPixel> Draw<TPixel>(this Image<TPixel> source, IPen<TPixel> pen, IPath path, GraphicsOptions options)
            where TPixel : struct, IPixel<TPixel>
         {
-            return source.Draw(pen, new ShapePath(path), options);
+            return source.Fill(pen.StokeFill, new ShapePath(path, pen), options);
         }
 
         /// <summary>

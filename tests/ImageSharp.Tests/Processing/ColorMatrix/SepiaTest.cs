@@ -12,7 +12,7 @@ namespace ImageSharp.Tests.Processing.ColorMatrix
     public class SepiaTest : FileTestBase
     {
         [Theory]
-        [WithFileCollection(nameof(AllBmpFiles), StandardPixelType)]
+        [WithFileCollection(nameof(DefaultFiles), StandardPixelType)]
         public void ImageShouldApplySepiaFilter<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -24,7 +24,7 @@ namespace ImageSharp.Tests.Processing.ColorMatrix
         }
 
         [Theory]
-        [WithFileCollection(nameof(AllBmpFiles), StandardPixelType)]
+        [WithFileCollection(nameof(DefaultFiles), StandardPixelType)]
         public void ImageShouldApplySepiaFilterInBox<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {

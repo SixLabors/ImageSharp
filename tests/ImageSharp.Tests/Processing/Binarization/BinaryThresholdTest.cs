@@ -19,7 +19,7 @@ namespace ImageSharp.Tests.Processing.Binarization
         };
 
         [Theory]
-        [WithFileCollection(nameof(AllBmpFiles), nameof(BinaryThresholdValues), StandardPixelType)]
+        [WithFileCollection(nameof(DefaultFiles), nameof(BinaryThresholdValues), StandardPixelType)]
         public void ImageShouldApplyBinaryThresholdFilter<TPixel>(TestImageProvider<TPixel> provider, float value)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -31,7 +31,7 @@ namespace ImageSharp.Tests.Processing.Binarization
         }
 
         [Theory]
-        [WithFileCollection(nameof(AllBmpFiles), nameof(BinaryThresholdValues), StandardPixelType)]
+        [WithFileCollection(nameof(DefaultFiles), nameof(BinaryThresholdValues), StandardPixelType)]
         public void ImageShouldApplyBinaryThresholdInBox<TPixel>(TestImageProvider<TPixel> provider, float value)
             where TPixel : struct, IPixel<TPixel>
         {

@@ -26,7 +26,7 @@ namespace ImageSharp.Tests.Processing.ColorMatrix
         };
 
         [Theory]
-        [WithFileCollection(nameof(AllBmpFiles), nameof(ColorBlindnessFilters), StandardPixelType)]
+        [WithFileCollection(nameof(DefaultFiles), nameof(ColorBlindnessFilters), StandardPixelType)]
         public void ImageShouldApplyColorBlindnessFilter<TPixel>(TestImageProvider<TPixel> provider, ColorBlindness colorBlindness)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -38,7 +38,7 @@ namespace ImageSharp.Tests.Processing.ColorMatrix
         }
 
         [Theory]
-        [WithFileCollection(nameof(AllBmpFiles), nameof(ColorBlindnessFilters), StandardPixelType)]
+        [WithFileCollection(nameof(DefaultFiles), nameof(ColorBlindnessFilters), StandardPixelType)]
         public void ImageShouldApplyColorBlindnessFilterInBox<TPixel>(TestImageProvider<TPixel> provider, ColorBlindness colorBlindness)
             where TPixel : struct, IPixel<TPixel>
         {

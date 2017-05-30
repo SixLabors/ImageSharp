@@ -14,7 +14,7 @@ namespace ImageSharp.Tests
     public class LomographTest : FileTestBase
     {
         [Theory]
-        [WithFileCollection(nameof(AllBmpFiles), StandardPixelType)]
+        [WithFileCollection(nameof(DefaultFiles), StandardPixelType)]
         public void ImageShouldApplyLomographFilter<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -26,7 +26,7 @@ namespace ImageSharp.Tests
         }
 
         [Theory]
-        [WithFileCollection(nameof(AllBmpFiles), StandardPixelType)]
+        [WithFileCollection(nameof(DefaultFiles), StandardPixelType)]
         public void ImageShouldApplyLomographFilterInBox<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {

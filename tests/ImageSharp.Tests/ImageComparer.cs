@@ -1,4 +1,9 @@
-﻿namespace ImageSharp.Tests
+﻿// <copyright file="ImageComparer.cs" company="James Jackson-South">
+// Copyright (c) James Jackson-South and contributors.
+// Licensed under the Apache License, Version 2.0.
+// </copyright>
+
+namespace ImageSharp.Tests
 {
     using System;
     using ImageSharp;
@@ -12,9 +17,9 @@
     /// </summary>
     public static class ImageComparer
     {
-        const int DefaultScalingFactor = 32; // this is means the images get scaled into a 32x32 image to sample pixels
-        const int DefaultSegmentThreshold = 3; // the greyscale difference between 2 segements my be > 3 before it influances the overall difference
-        const float DefaultImageThreshold = 0.000f; // after segment threasholds the images must have no differences
+        const int DefaultScalingFactor = 32; // This is means the images get scaled into a 32x32 image to sample pixels
+        const int DefaultSegmentThreshold = 3; // The greyscale difference between 2 segements my be > 3 before it influences the overall difference
+        const float DefaultImageThreshold = 0.000F; // After segment thresholds the images must have no differences
 
         /// <summary>
         /// Does a visual comparison between 2 images and then asserts the difference is less then a configurable threshold
@@ -25,15 +30,15 @@
         /// <param name="actual">The actual image</param>
         /// <param name="imageTheshold">
         /// The threshold for the percentage difference where the images are asumed to be the same.
-        /// The default/undefined value is <see cref="ImageComparer.DefaultImageThreshold"/>
+        /// The default/undefined value is <see cref="DefaultImageThreshold"/>
         /// </param>
         /// <param name="segmentThreshold">
-        /// The threashold of the individual segments before it acumulates towards the overall difference.
-        /// The default undefined value is <see cref="ImageComparer.DefaultSegmentThreshold"/>
+        /// The threshold of the individual segments before it acumulates towards the overall difference.
+        /// The default undefined value is <see cref="DefaultSegmentThreshold"/>
         /// </param>
         /// <param name="scalingFactor">
         /// This is a sampling factor we sample a grid of average pixels <paramref name="scalingFactor"/> width by <paramref name="scalingFactor"/> high
-        /// The default undefined value is <see cref="ImageComparer.DefaultScalingFactor"/>
+        /// The default undefined value is <see cref="DefaultScalingFactor"/>
         /// </param>
         public static void CheckSimilarity<TPixelA, TPixelB>(Image<TPixelA> expected, Image<TPixelB> actual, float imageTheshold = DefaultImageThreshold, byte segmentThreshold = DefaultSegmentThreshold, int scalingFactor = DefaultScalingFactor)
            where TPixelA : struct, IPixel<TPixelA>
@@ -52,8 +57,8 @@
         /// <param name="source">The source image</param>
         /// <param name="target">The target image</param>
         /// <param name="segmentThreshold">
-        /// The threashold of the individual segments before it acumulates towards the overall difference.
-        /// The default undefined value is <see cref="ImageComparer.DefaultSegmentThreshold"/>
+        /// The threshold of the individual segments before it acumulates towards the overall difference.
+        /// The default undefined value is <see cref="DefaultSegmentThreshold"/>
         /// </param>
         /// <param name="scalingFactor">
         /// This is a sampling factor we sample a grid of average pixels <paramref name="scalingFactor"/> width by <paramref name="scalingFactor"/> high
@@ -74,14 +79,14 @@
                 if (b > segmentThreshold) { diffPixels++; }
             }
 
-            return (float)diffPixels / (float)(scalingFactor * scalingFactor);
+            return diffPixels / (float)(scalingFactor * scalingFactor);
         }
 
         private static Fast2DArray<byte> GetDifferences<TPixelA, TPixelB>(Image<TPixelA> source, Image<TPixelB> target, int scalingFactor)
             where TPixelA : struct, IPixel<TPixelA>
             where TPixelB : struct, IPixel<TPixelB>
         {
-            Fast2DArray<byte> differences = new Fast2DArray<byte>(scalingFactor, scalingFactor);
+            var differences = new Fast2DArray<byte>(scalingFactor, scalingFactor);
             Fast2DArray<byte> firstGray = source.GetGrayScaleValues(scalingFactor);
             Fast2DArray<byte> secondGray = target.GetGrayScaleValues(scalingFactor);
 
@@ -89,7 +94,7 @@
             {
                 for (int x = 0; x < scalingFactor; x++)
                 {
-                    var diff = firstGray[x, y] - secondGray[x, y];
+                    int diff = firstGray[x, y] - secondGray[x, y];
                     differences[x, y] = (byte)Math.Abs(diff);
                 }
             }
@@ -100,18 +105,18 @@
         private static Fast2DArray<byte> GetGrayScaleValues<TPixelA>(this Image<TPixelA> source, int scalingFactor)
             where TPixelA : struct, IPixel<TPixelA>
         {
-            byte[] buffer = new byte[4];
+            byte[] buffer = new byte[3];
             using (Image<TPixelA> img = new Image<TPixelA>(source).Resize(scalingFactor, scalingFactor).Grayscale())
             {
                 using (PixelAccessor<TPixelA> pixels = img.Lock())
                 {
-                    Fast2DArray<byte> grayScale = new Fast2DArray<byte>(scalingFactor, scalingFactor);
+                    var grayScale = new Fast2DArray<byte>(scalingFactor, scalingFactor);
                     for (int y = 0; y < scalingFactor; y++)
                     {
                         for (int x = 0; x < scalingFactor; x++)
                         {
                             pixels[x, y].ToXyzBytes(buffer, 0);
-                            grayScale[x, y] = buffer[1];
+                            grayScale[x, y] = buffer[0];
                         }
                     }
 

@@ -40,7 +40,9 @@ namespace ImageSharp.Tests
             }
             else if (settings != null)
             {
-                if (settings.GetType().GetTypeInfo().IsPrimitive)
+                Type type = settings.GetType();
+                TypeInfo info = type.GetTypeInfo();
+                if (info.IsPrimitive || info.IsEnum || type == typeof(decimal))
                 {
                     tag = settings.ToString();
                 }

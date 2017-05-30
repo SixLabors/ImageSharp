@@ -5,12 +5,10 @@
 
 namespace ImageSharp
 {
-    using System;
 
     using ImageSharp.PixelFormats;
 
     using ImageSharp.Processing;
-    using Processing.Processors;
 
     /// <summary>
     /// Extension methods for the <see cref="Image{TPixel}"/> type.
@@ -80,7 +78,7 @@ namespace ImageSharp
                 return Orientation.Unknown;
             }
 
-            Orientation orientation = (Orientation)value.Value;
+            var orientation = (Orientation)value.Value;
 
             source.MetaData.ExifProfile.SetValue(ExifTag.Orientation, (ushort)Orientation.TopLeft);
 

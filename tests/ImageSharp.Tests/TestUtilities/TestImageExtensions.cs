@@ -22,12 +22,12 @@ namespace ImageSharp.Tests
         /// <param name="provider">The image provider</param>
         /// <param name="settings">The settings</param>
         /// <param name="extension">The extension</param>
-        public static void DebugSave<TPixel>(this Image<TPixel> image, ITestImageProvider provider, object settings = null, string extension = "png")
+        public static Image<TPixel> DebugSave<TPixel>(this Image<TPixel> image, ITestImageProvider provider, object settings = null, string extension = "png")
             where TPixel : struct, IPixel<TPixel>
         {
             if (bool.TryParse(Environment.GetEnvironmentVariable("CI"), out bool isCi) && isCi)
             {
-                return;
+                return image;
             }
 
             // We are running locally then we want to save it out
@@ -55,6 +55,7 @@ namespace ImageSharp.Tests
             }
 
             provider.Utility.SaveTestOutputFile(image, extension, tag: tag);
+            return image;
         }
     }
 }

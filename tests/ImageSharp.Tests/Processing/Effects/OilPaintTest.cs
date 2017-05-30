@@ -43,12 +43,7 @@ namespace ImageSharp.Tests
                 image.OilPaint(levels, brushSize, bounds)
                     .DebugSave(provider, string.Join("-", levels, brushSize), Extensions.Bmp);
 
-                // Draw identical shapes over the bounded and compare to ensure changes are constrained.
-                image.Fill(NamedColors<TPixel>.HotPink, bounds);
-                source.Fill(NamedColors<TPixel>.HotPink, bounds);
-
-                // TODO: Why does the png box fail without the additional parameter.
-                ImageComparer.CheckSimilarity(source, image, 0.001F);
+                ImageComparer.EnsureProcessorChangesAreConstrained(source, image, bounds, 0.001F);
             }
         }
     }

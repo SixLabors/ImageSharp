@@ -19,7 +19,7 @@ namespace ImageSharp.Tests.Processing.ColorMatrix
         };
 
         [Theory]
-        [WithFileCollection(nameof(AllBmpFiles), nameof(HueValues), StandardPixelType)]
+        [WithFileCollection(nameof(DefaultFiles), nameof(HueValues), StandardPixelType)]
         public void ImageShouldApplyHueFilter<TPixel>(TestImageProvider<TPixel> provider, int value)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -31,7 +31,7 @@ namespace ImageSharp.Tests.Processing.ColorMatrix
         }
 
         [Theory]
-        [WithFileCollection(nameof(AllBmpFiles), nameof(HueValues), StandardPixelType)]
+        [WithFileCollection(nameof(DefaultFiles), nameof(HueValues), StandardPixelType)]
         public void ImageShouldApplyHueFilterInBox<TPixel>(TestImageProvider<TPixel> provider, int value)
             where TPixel : struct, IPixel<TPixel>
         {

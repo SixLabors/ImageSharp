@@ -1,4 +1,4 @@
-// <copyright file="DeflateTiffCompressionTests.cs" company="James Jackson-South">
+// <copyright file="LzwTiffCompressionTests.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -11,7 +11,7 @@ namespace ImageSharp.Tests
     using ImageSharp.Formats;
     using ImageSharp.Formats.Tiff;
 
-    public class DeflateTiffCompressionTests
+    public class LzwTiffCompressionTests
     {
         [Theory]
         [InlineData(new byte[] { })]
@@ -25,7 +25,7 @@ namespace ImageSharp.Tests
             {
                 byte[] buffer = new byte[data.Length];
 
-                DeflateTiffCompression.Decompress(stream, (int)stream.Length, buffer);
+                LzwTiffCompression.Decompress(stream, (int)stream.Length, buffer);
 
                 Assert.Equal(data, buffer);
             }
@@ -35,10 +35,9 @@ namespace ImageSharp.Tests
         {
             Stream compressedStream = new MemoryStream();
 
-            using (Stream uncompressedStream = new MemoryStream(data),
-                          deflateStream = new ZlibDeflateStream(compressedStream, 6))
+            using (var encoder = new TiffLzwEncoder(data, 8))
             {
-                uncompressedStream.CopyTo(deflateStream);
+                encoder.Encode(compressedStream);
             }
 
             compressedStream.Seek(0, SeekOrigin.Begin);

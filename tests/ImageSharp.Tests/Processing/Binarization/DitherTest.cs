@@ -32,7 +32,7 @@ namespace ImageSharp.Tests
         };
 
         [Theory]
-        [WithFileCollection(nameof(AllBmpFiles), nameof(Ditherers), StandardPixelType)]
+        [WithFileCollection(nameof(DefaultFiles), nameof(Ditherers), StandardPixelType)]
         public void ImageShouldApplyDitherFilter<TPixel>(TestImageProvider<TPixel> provider, string name, IOrderedDither ditherer)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -44,7 +44,7 @@ namespace ImageSharp.Tests
         }
 
         [Theory]
-        [WithFileCollection(nameof(AllBmpFiles), nameof(Ditherers), StandardPixelType)]
+        [WithFileCollection(nameof(DefaultFiles), nameof(Ditherers), StandardPixelType)]
         public void ImageShouldApplyDitherFilterInBox<TPixel>(TestImageProvider<TPixel> provider, string name, IOrderedDither ditherer)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -64,7 +64,7 @@ namespace ImageSharp.Tests
         }
 
         [Theory]
-        [WithFileCollection(nameof(AllBmpFiles), nameof(ErrorDiffusers), StandardPixelType)]
+        [WithFileCollection(nameof(DefaultFiles), nameof(ErrorDiffusers), StandardPixelType)]
         public void ImageShouldApplyDiffusionFilter<TPixel>(TestImageProvider<TPixel> provider, string name, IErrorDiffuser diffuser)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -76,7 +76,7 @@ namespace ImageSharp.Tests
         }
 
         [Theory]
-        [WithFileCollection(nameof(AllBmpFiles), nameof(ErrorDiffusers), StandardPixelType)]
+        [WithFileCollection(nameof(DefaultFiles), nameof(ErrorDiffusers), StandardPixelType)]
         public void ImageShouldApplyDiffusionFilterInBox<TPixel>(TestImageProvider<TPixel> provider, string name, IErrorDiffuser diffuser)
             where TPixel : struct, IPixel<TPixel>
         {

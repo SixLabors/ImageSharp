@@ -12,7 +12,7 @@ namespace ImageSharp.Tests.Processing.ColorMatrix
     public class PolaroidTest : FileTestBase
     {
         [Theory]
-        [WithFileCollection(nameof(AllBmpFiles), StandardPixelType)]
+        [WithFileCollection(nameof(DefaultFiles), StandardPixelType)]
         public void ImageShouldApplyPolaroidFilter<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -24,7 +24,7 @@ namespace ImageSharp.Tests.Processing.ColorMatrix
         }
 
         [Theory]
-        [WithFileCollection(nameof(AllBmpFiles), StandardPixelType)]
+        [WithFileCollection(nameof(DefaultFiles), StandardPixelType)]
         public void ImageShouldApplyPolaroidFilterInBox<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {

@@ -19,7 +19,7 @@ namespace ImageSharp.Tests.Processing.ColorMatrix
         };
 
         [Theory]
-        [WithFileCollection(nameof(AllBmpFiles), nameof(SaturationValues), StandardPixelType)]
+        [WithFileCollection(nameof(DefaultFiles), nameof(SaturationValues), StandardPixelType)]
         public void ImageShouldApplySaturationFilter<TPixel>(TestImageProvider<TPixel> provider, int value)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -31,7 +31,7 @@ namespace ImageSharp.Tests.Processing.ColorMatrix
         }
 
         [Theory]
-        [WithFileCollection(nameof(AllBmpFiles), nameof(SaturationValues), StandardPixelType)]
+        [WithFileCollection(nameof(DefaultFiles), nameof(SaturationValues), StandardPixelType)]
         public void ImageShouldApplySaturationFilterInBox<TPixel>(TestImageProvider<TPixel> provider, int value)
             where TPixel : struct, IPixel<TPixel>
         {

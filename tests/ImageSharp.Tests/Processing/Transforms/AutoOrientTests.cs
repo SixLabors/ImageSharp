@@ -29,7 +29,7 @@ namespace ImageSharp.Tests.Processing.Transforms
         };
 
         [Theory]
-        [WithFileCollection(nameof(FlipFiles), nameof(OrientationValues), StandardPixelType)]
+        [WithFileCollection(nameof(FlipFiles), nameof(OrientationValues), DefaultPixelType)]
         public void ImageShouldAutoRotate<TPixel>(TestImageProvider<TPixel> provider, RotateType rotateType, FlipType flipType, ushort orientation)
             where TPixel : struct, IPixel<TPixel>
         {

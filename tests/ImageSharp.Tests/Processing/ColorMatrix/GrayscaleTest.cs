@@ -23,7 +23,7 @@ namespace ImageSharp.Tests.Processing.ColorMatrix
         /// Use test patterns over loaded images to save decode time.
         /// </summary>
         [Theory]
-        [WithTestPatternImages(nameof(GrayscaleModeTypes), 50, 50, StandardPixelType)]
+        [WithTestPatternImages(nameof(GrayscaleModeTypes), 50, 50, DefaultPixelType)]
         public void ImageShouldApplyGrayscaleFilterAll<TPixel>(TestImageProvider<TPixel> provider, GrayscaleMode value)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -43,7 +43,7 @@ namespace ImageSharp.Tests.Processing.ColorMatrix
         }
 
         [Theory]
-        [WithTestPatternImages(nameof(GrayscaleModeTypes), 50, 50, StandardPixelType)]
+        [WithTestPatternImages(nameof(GrayscaleModeTypes), 50, 50, DefaultPixelType)]
         public void ImageShouldApplyGrayscaleFilterInBox<TPixel>(TestImageProvider<TPixel> provider, GrayscaleMode value)
             where TPixel : struct, IPixel<TPixel>
         {

@@ -19,7 +19,7 @@ namespace ImageSharp.Tests.Processing.Convolution
         };
 
         [Theory]
-        [WithFileCollection(nameof(DefaultFiles), nameof(BoxBlurValues), StandardPixelType)]
+        [WithFileCollection(nameof(DefaultFiles), nameof(BoxBlurValues), DefaultPixelType)]
         public void ImageShouldApplyBoxBlurFilter<TPixel>(TestImageProvider<TPixel> provider, int value)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -31,7 +31,7 @@ namespace ImageSharp.Tests.Processing.Convolution
         }
 
         [Theory]
-        [WithFileCollection(nameof(DefaultFiles), nameof(BoxBlurValues), StandardPixelType)]
+        [WithFileCollection(nameof(DefaultFiles), nameof(BoxBlurValues), DefaultPixelType)]
         public void ImageShouldApplyBoxBlurFilterInBox<TPixel>(TestImageProvider<TPixel> provider, int value)
             where TPixel : struct, IPixel<TPixel>
         {

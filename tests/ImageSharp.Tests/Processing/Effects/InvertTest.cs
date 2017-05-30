@@ -12,7 +12,7 @@ namespace ImageSharp.Tests.Processing.Effects
     public class InvertTest : FileTestBase
     {
         [Theory]
-        [WithFileCollection(nameof(DefaultFiles), StandardPixelType)]
+        [WithFileCollection(nameof(DefaultFiles), DefaultPixelType)]
         public void ImageShouldApplyInvertFilter<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -24,7 +24,7 @@ namespace ImageSharp.Tests.Processing.Effects
         }
 
         [Theory]
-        [WithFileCollection(nameof(DefaultFiles), StandardPixelType)]
+        [WithFileCollection(nameof(DefaultFiles), DefaultPixelType)]
         public void ImageShouldApplyInvertFilterInBox<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {

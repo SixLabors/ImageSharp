@@ -12,7 +12,7 @@ namespace ImageSharp.Tests.Processing.Transforms
     public class PadTest : FileTestBase
     {
         [Theory]
-        [WithFileCollection(nameof(DefaultFiles), StandardPixelType)]
+        [WithFileCollection(nameof(DefaultFiles), DefaultPixelType)]
         public void ImageShouldPad<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {

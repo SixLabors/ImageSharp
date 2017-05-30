@@ -12,7 +12,7 @@ namespace ImageSharp.Tests.Processing.Overlays
     public class VignetteTest : FileTestBase
     {
         [Theory]
-        [WithFileCollection(nameof(DefaultFiles), StandardPixelType)]
+        [WithFileCollection(nameof(DefaultFiles), DefaultPixelType)]
         public void ImageShouldApplyVignetteFilter<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -24,7 +24,7 @@ namespace ImageSharp.Tests.Processing.Overlays
         }
 
         [Theory]
-        [WithFileCollection(nameof(DefaultFiles), StandardPixelType)]
+        [WithFileCollection(nameof(DefaultFiles), DefaultPixelType)]
         public void ImageShouldApplyVignetteFilterColor<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -36,7 +36,7 @@ namespace ImageSharp.Tests.Processing.Overlays
         }
 
         [Theory]
-        [WithFileCollection(nameof(DefaultFiles), StandardPixelType)]
+        [WithFileCollection(nameof(DefaultFiles), DefaultPixelType)]
         public void ImageShouldApplyVignetteFilterRadius<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -48,7 +48,7 @@ namespace ImageSharp.Tests.Processing.Overlays
         }
 
         [Theory]
-        [WithFileCollection(nameof(DefaultFiles), StandardPixelType)]
+        [WithFileCollection(nameof(DefaultFiles), DefaultPixelType)]
         public void ImageShouldApplyVignetteFilterInBox<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {

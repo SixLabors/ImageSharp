@@ -28,7 +28,7 @@ namespace ImageSharp.Tests.Processing.Convolution
         };
 
         [Theory]
-        [WithFileCollection(nameof(DefaultFiles), nameof(DetectEdgesFilters), StandardPixelType)]
+        [WithFileCollection(nameof(DefaultFiles), nameof(DetectEdgesFilters), DefaultPixelType)]
         public void ImageShouldApplyDetectEdgesFilter<TPixel>(TestImageProvider<TPixel> provider, EdgeDetection detector)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -40,7 +40,7 @@ namespace ImageSharp.Tests.Processing.Convolution
         }
 
         [Theory]
-        [WithFileCollection(nameof(DefaultFiles), nameof(DetectEdgesFilters), StandardPixelType)]
+        [WithFileCollection(nameof(DefaultFiles), nameof(DetectEdgesFilters), DefaultPixelType)]
         public void ImageShouldApplyDetectEdgesFilterInBox<TPixel>(TestImageProvider<TPixel> provider, EdgeDetection detector)
             where TPixel : struct, IPixel<TPixel>
         {

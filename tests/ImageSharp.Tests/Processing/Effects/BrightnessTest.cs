@@ -19,7 +19,7 @@ namespace ImageSharp.Tests.Processing.Effects
         };
 
         [Theory]
-        [WithFileCollection(nameof(DefaultFiles), nameof(BrightnessValues), StandardPixelType)]
+        [WithFileCollection(nameof(DefaultFiles), nameof(BrightnessValues), DefaultPixelType)]
         public void ImageShouldApplyBrightnessFilter<TPixel>(TestImageProvider<TPixel> provider, int value)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -31,7 +31,7 @@ namespace ImageSharp.Tests.Processing.Effects
         }
 
         [Theory]
-        [WithFileCollection(nameof(DefaultFiles), nameof(BrightnessValues), StandardPixelType)]
+        [WithFileCollection(nameof(DefaultFiles), nameof(BrightnessValues), DefaultPixelType)]
         public void ImageShouldApplyBrightnessFilterInBox<TPixel>(TestImageProvider<TPixel> provider, int value)
             where TPixel : struct, IPixel<TPixel>
         {

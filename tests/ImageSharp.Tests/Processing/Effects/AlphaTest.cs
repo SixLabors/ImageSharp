@@ -19,7 +19,7 @@ namespace ImageSharp.Tests.Processing.Effects
         };
 
         [Theory]
-        [WithFileCollection(nameof(DefaultFiles), nameof(AlphaValues), StandardPixelType)]
+        [WithFileCollection(nameof(DefaultFiles), nameof(AlphaValues), DefaultPixelType)]
         public void ImageShouldApplyAlphaFilter<TPixel>(TestImageProvider<TPixel> provider, float value)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -31,7 +31,7 @@ namespace ImageSharp.Tests.Processing.Effects
         }
 
         [Theory]
-        [WithFileCollection(nameof(DefaultFiles), nameof(AlphaValues), StandardPixelType)]
+        [WithFileCollection(nameof(DefaultFiles), nameof(AlphaValues), DefaultPixelType)]
         public void ImageShouldApplyAlphaFilterInBox<TPixel>(TestImageProvider<TPixel> provider, float value)
             where TPixel : struct, IPixel<TPixel>
         {

@@ -33,7 +33,7 @@ namespace ImageSharp.Tests.Processing.Transforms
             };
 
         [Theory]
-        [WithFileCollection(nameof(ResizeFiles), nameof(ReSamplers), StandardPixelType)]
+        [WithFileCollection(nameof(ResizeFiles), nameof(ReSamplers), DefaultPixelType)]
         public void ImageShouldResize<TPixel>(TestImageProvider<TPixel> provider, string name, IResampler sampler)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -45,7 +45,7 @@ namespace ImageSharp.Tests.Processing.Transforms
         }
 
         [Theory]
-        [WithFileCollection(nameof(ResizeFiles), nameof(ReSamplers), StandardPixelType)]
+        [WithFileCollection(nameof(ResizeFiles), nameof(ReSamplers), DefaultPixelType)]
         public void ImageShouldResizeFromSourceRectangle<TPixel>(TestImageProvider<TPixel> provider, string name, IResampler sampler)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -60,7 +60,7 @@ namespace ImageSharp.Tests.Processing.Transforms
         }
 
         [Theory]
-        [WithFileCollection(nameof(ResizeFiles), nameof(ReSamplers), StandardPixelType)]
+        [WithFileCollection(nameof(ResizeFiles), nameof(ReSamplers), DefaultPixelType)]
         public void ImageShouldResizeWidthAndKeepAspect<TPixel>(TestImageProvider<TPixel> provider, string name, IResampler sampler)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -72,7 +72,7 @@ namespace ImageSharp.Tests.Processing.Transforms
         }
 
         [Theory]
-        [WithFileCollection(nameof(ResizeFiles), nameof(ReSamplers), StandardPixelType)]
+        [WithFileCollection(nameof(ResizeFiles), nameof(ReSamplers), DefaultPixelType)]
         public void ImageShouldResizeHeightAndKeepAspect<TPixel>(TestImageProvider<TPixel> provider, string name, IResampler sampler)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -84,7 +84,7 @@ namespace ImageSharp.Tests.Processing.Transforms
         }
 
         [Theory]
-        [WithFileCollection(nameof(ResizeFiles), nameof(ReSamplers), StandardPixelType)]
+        [WithFileCollection(nameof(ResizeFiles), nameof(ReSamplers), DefaultPixelType)]
         public void ImageShouldResizeWithCropWidthMode<TPixel>(TestImageProvider<TPixel> provider, string name, IResampler sampler)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -102,7 +102,7 @@ namespace ImageSharp.Tests.Processing.Transforms
         }
 
         [Theory]
-        [WithFileCollection(nameof(ResizeFiles), nameof(ReSamplers), StandardPixelType)]
+        [WithFileCollection(nameof(ResizeFiles), nameof(ReSamplers), DefaultPixelType)]
         public void ImageShouldResizeWithCropHeightMode<TPixel>(TestImageProvider<TPixel> provider, string name, IResampler sampler)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -120,7 +120,7 @@ namespace ImageSharp.Tests.Processing.Transforms
         }
 
         [Theory]
-        [WithFileCollection(nameof(ResizeFiles), nameof(ReSamplers), StandardPixelType)]
+        [WithFileCollection(nameof(ResizeFiles), nameof(ReSamplers), DefaultPixelType)]
         public void ImageShouldResizeWithPadMode<TPixel>(TestImageProvider<TPixel> provider, string name, IResampler sampler)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -139,7 +139,7 @@ namespace ImageSharp.Tests.Processing.Transforms
         }
 
         [Theory]
-        [WithFileCollection(nameof(ResizeFiles), nameof(ReSamplers), StandardPixelType)]
+        [WithFileCollection(nameof(ResizeFiles), nameof(ReSamplers), DefaultPixelType)]
         public void ImageShouldResizeWithBoxPadMode<TPixel>(TestImageProvider<TPixel> provider, string name, IResampler sampler)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -158,7 +158,7 @@ namespace ImageSharp.Tests.Processing.Transforms
         }
 
         [Theory]
-        [WithFileCollection(nameof(ResizeFiles), nameof(ReSamplers), StandardPixelType)]
+        [WithFileCollection(nameof(ResizeFiles), nameof(ReSamplers), DefaultPixelType)]
         public void ImageShouldResizeWithMaxMode<TPixel>(TestImageProvider<TPixel> provider, string name, IResampler sampler)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -177,7 +177,7 @@ namespace ImageSharp.Tests.Processing.Transforms
         }
 
         [Theory]
-        [WithFileCollection(nameof(ResizeFiles), nameof(ReSamplers), StandardPixelType)]
+        [WithFileCollection(nameof(ResizeFiles), nameof(ReSamplers), DefaultPixelType)]
         public void ImageShouldResizeWithMinMode<TPixel>(TestImageProvider<TPixel> provider, string name, IResampler sampler)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -196,7 +196,7 @@ namespace ImageSharp.Tests.Processing.Transforms
         }
 
         [Theory]
-        [WithFileCollection(nameof(ResizeFiles), nameof(ReSamplers), StandardPixelType)]
+        [WithFileCollection(nameof(ResizeFiles), nameof(ReSamplers), DefaultPixelType)]
         public void ImageShouldResizeWithStretchMode<TPixel>(TestImageProvider<TPixel> provider, string name, IResampler sampler)
             where TPixel : struct, IPixel<TPixel>
         {

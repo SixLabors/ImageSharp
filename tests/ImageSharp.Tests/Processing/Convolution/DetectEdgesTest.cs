@@ -52,10 +52,7 @@ namespace ImageSharp.Tests.Processing.Convolution
                 image.DetectEdges(detector, bounds)
                     .DebugSave(provider, detector.ToString(), Extensions.Bmp);
 
-                // Draw identical shapes over the bounded and compare to ensure changes are constrained.
-                image.Fill(NamedColors<TPixel>.HotPink, bounds);
-                source.Fill(NamedColors<TPixel>.HotPink, bounds);
-                ImageComparer.CheckSimilarity(image, source);
+                ImageComparer.EnsureProcessorChangesAreConstrained(source, image, bounds);
             }
         }
     }

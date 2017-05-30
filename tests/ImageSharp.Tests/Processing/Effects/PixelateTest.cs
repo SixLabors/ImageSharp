@@ -76,6 +76,8 @@ namespace ImageSharp.Tests.Processing.Effects
                         Assert.Equal(sourceColor, image[tx, ty]);
                     }
                 }
+
+                ImageComparer.EnsureProcessorChangesAreConstrained(source, image, bounds);
             }
         }
     }

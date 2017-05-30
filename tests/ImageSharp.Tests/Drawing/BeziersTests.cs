@@ -43,8 +43,8 @@ namespace ImageSharp.Tests.Drawing
                     Assert.Equal(Rgba32.HotPink, sourcePixels[138, 115]);
 
                     //start points
-                    Assert.Equal(Rgba32.HotPink, sourcePixels[10, 400]);
-                    Assert.Equal(Rgba32.HotPink, sourcePixels[300, 400]);
+                    Assert.Equal(Rgba32.HotPink, sourcePixels[10, 395]);
+                    Assert.Equal(Rgba32.HotPink, sourcePixels[300, 395]);
 
                     //curve points should not be never be set
                     Assert.Equal(Rgba32.Blue, sourcePixels[30, 10]);
@@ -85,14 +85,14 @@ namespace ImageSharp.Tests.Drawing
 
                 using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
                 {
-                    //top of curve
+                    // top of curve
                     Assert.Equal(mergedColor, sourcePixels[138, 115]);
 
-                    //start points
-                    Assert.Equal(mergedColor, sourcePixels[10, 400]);
-                    Assert.Equal(mergedColor, sourcePixels[300, 400]);
+                    // start points
+                    Assert.Equal(mergedColor, sourcePixels[10, 395]);
+                    Assert.Equal(mergedColor, sourcePixels[300, 395]);
 
-                    //curve points should not be never be set
+                    // curve points should not be never be set
                     Assert.Equal(Rgba32.Blue, sourcePixels[30, 10]);
                     Assert.Equal(Rgba32.Blue, sourcePixels[240, 30]);
 

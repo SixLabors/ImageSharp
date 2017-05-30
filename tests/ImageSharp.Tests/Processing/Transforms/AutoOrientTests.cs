@@ -3,17 +3,17 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.Tests
+namespace ImageSharp.Tests.Processing.Transforms
 {
-    using System.IO;
-
     using ImageSharp.PixelFormats;
-
     using ImageSharp.Processing;
+
     using Xunit;
 
     public class AutoOrientTests : FileTestBase
     {
+        public static readonly string[] FlipFiles = { TestImages.Bmp.F };
+
         public static readonly TheoryData<RotateType, FlipType, ushort> OrientationValues
             = new TheoryData<RotateType, FlipType, ushort>
         {
@@ -29,23 +29,19 @@ namespace ImageSharp.Tests
         };
 
         [Theory]
-        [MemberData(nameof(OrientationValues))]
-        public void ImageShouldFlip(RotateType rotateType, FlipType flipType, ushort orientation)
+        [WithFileCollection(nameof(FlipFiles), nameof(OrientationValues), StandardPixelType)]
+        public void ImageShouldAutoRotate<TPixel>(TestImageProvider<TPixel> provider, RotateType rotateType, FlipType flipType, ushort orientation)
+            where TPixel : struct, IPixel<TPixel>
         {
-            string path = this.CreateOutputDirectory("AutoOrient");
-
-            TestFile file = TestFile.Create(TestImages.Bmp.F);
-
-            using (Image<Rgba32> image = file.CreateImage())
+            using (Image<TPixel> image = provider.GetImage())
             {
                 image.MetaData.ExifProfile = new ExifProfile();
                 image.MetaData.ExifProfile.SetValue(ExifTag.Orientation, orientation);
 
-                using (FileStream before = File.OpenWrite($"{path}/before-{file.FileName}"))
-                using (FileStream after = File.OpenWrite($"{path}/after-{file.FileName}"))
-                {
-                    image.RotateFlip(rotateType, flipType).Save(before).AutoOrient().Save(after);
-                }
+                image.RotateFlip(rotateType, flipType)
+                    .DebugSave(provider, "before", Extensions.Bmp)
+                    .AutoOrient()
+                    .DebugSave(provider, "after", Extensions.Bmp);
             }
         }
     }

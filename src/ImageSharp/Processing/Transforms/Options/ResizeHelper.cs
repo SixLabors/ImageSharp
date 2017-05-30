@@ -399,6 +399,10 @@ namespace ImageSharp.Processing
                 return new Rectangle(0, 0, source.Width, source.Height);
             }
 
+            // Fractional variants for preserving aspect ratio.
+            float percentHeight = MathF.Abs(height / (float)source.Height);
+            float percentWidth = MathF.Abs(width / (float)source.Width);
+
             float sourceRatio = (float)source.Height / source.Width;
 
             // Find the shortest distance to go.
@@ -419,8 +423,18 @@ namespace ImageSharp.Processing
             }
             else
             {
-                destinationWidth = width;
-                destinationHeight = height;
+                if (height > width)
+                {
+                    destinationWidth = width;
+                    destinationHeight = Convert.ToInt32(source.Height * percentWidth);
+                    height = destinationHeight;
+                }
+                else
+                {
+                    destinationHeight = height;
+                    destinationWidth = Convert.ToInt32(source.Width * percentHeight);
+                    width = destinationWidth;
+                }
             }
 
             // Replace the size to match the rectangle.

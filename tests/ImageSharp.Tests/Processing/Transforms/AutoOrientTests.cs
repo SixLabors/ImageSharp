@@ -1,4 +1,4 @@
-﻿// <copyright file="RotateFlipTest.cs" company="James Jackson-South">
+﻿// <copyright file="AutoOrientTests.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -39,9 +39,9 @@ namespace ImageSharp.Tests.Processing.Transforms
                 image.MetaData.ExifProfile.SetValue(ExifTag.Orientation, orientation);
 
                 image.RotateFlip(rotateType, flipType)
-                    .DebugSave(provider, "before", Extensions.Bmp)
+                    .DebugSave(provider, string.Join("_", rotateType, flipType, orientation, "1_before"), Extensions.Bmp)
                     .AutoOrient()
-                    .DebugSave(provider, "after", Extensions.Bmp);
+                    .DebugSave(provider, string.Join("_", rotateType, flipType, orientation, "2_after"), Extensions.Bmp);
             }
         }
     }

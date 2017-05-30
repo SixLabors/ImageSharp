@@ -129,6 +129,8 @@ namespace ImageSharp.Tests
         [InlineData(true, TiffCompression.Deflate, TiffCompressionType.Deflate)]
         [InlineData(false, TiffCompression.OldDeflate, TiffCompressionType.Deflate)]
         [InlineData(true, TiffCompression.OldDeflate, TiffCompressionType.Deflate)]
+        [InlineData(false, TiffCompression.Lzw, TiffCompressionType.Lzw)]
+        [InlineData(true, TiffCompression.Lzw, TiffCompressionType.Lzw)]
         public void ReadImageFormat_DeterminesCorrectCompressionImplementation(bool isLittleEndian, ushort compression, int compressionType)
         {
             Stream stream = CreateTiffGenIfd()
@@ -149,7 +151,6 @@ namespace ImageSharp.Tests
         [InlineData(false, TiffCompression.ItuTRecT43)]
         [InlineData(false, TiffCompression.ItuTRecT82)]
         [InlineData(false, TiffCompression.Jpeg)]
-        [InlineData(false, TiffCompression.Lzw)]
         [InlineData(false, TiffCompression.OldJpeg)]
         [InlineData(false, 999)]
         [InlineData(true, TiffCompression.Ccitt1D)]
@@ -158,7 +159,6 @@ namespace ImageSharp.Tests
         [InlineData(true, TiffCompression.ItuTRecT43)]
         [InlineData(true, TiffCompression.ItuTRecT82)]
         [InlineData(true, TiffCompression.Jpeg)]
-        [InlineData(true, TiffCompression.Lzw)]
         [InlineData(true, TiffCompression.OldJpeg)]
         [InlineData(true, 999)]
         public void ReadImageFormat_ThrowsExceptionForUnsupportedCompression(bool isLittleEndian, ushort compression)

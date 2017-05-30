@@ -271,6 +271,12 @@ namespace ImageSharp.Formats
                         break;
                     }
 
+                case TiffCompression.Lzw:
+                    {
+                        this.CompressionType = TiffCompressionType.Lzw;
+                        break;
+                    }
+
                 default:
                     {
                         throw new NotSupportedException("The specified TIFF compression format is not supported.");
@@ -504,6 +510,9 @@ namespace ImageSharp.Formats
                     break;
                 case TiffCompressionType.Deflate:
                     DeflateTiffCompression.Decompress(this.InputStream, (int)byteCount, buffer);
+                    break;
+                case TiffCompressionType.Lzw:
+                    LzwTiffCompression.Decompress(this.InputStream, (int)byteCount, buffer);
                     break;
                 default:
                     throw new InvalidOperationException();

@@ -12,7 +12,7 @@ namespace ImageSharp.Tests.Processing.Overlays
     public class GlowTest : FileTestBase
     {
         [Theory]
-        [WithFileCollection(nameof(DefaultFiles), StandardPixelType)]
+        [WithFileCollection(nameof(DefaultFiles), DefaultPixelType)]
         public void ImageShouldApplyGlowFilter<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -24,7 +24,7 @@ namespace ImageSharp.Tests.Processing.Overlays
         }
 
         [Theory]
-        [WithFileCollection(nameof(DefaultFiles), StandardPixelType)]
+        [WithFileCollection(nameof(DefaultFiles), DefaultPixelType)]
         public void ImageShouldApplyGlowFilterColor<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -36,7 +36,7 @@ namespace ImageSharp.Tests.Processing.Overlays
         }
 
         [Theory]
-        [WithFileCollection(nameof(DefaultFiles), StandardPixelType)]
+        [WithFileCollection(nameof(DefaultFiles), DefaultPixelType)]
         public void ImageShouldApplyGlowFilterRadius<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -48,7 +48,7 @@ namespace ImageSharp.Tests.Processing.Overlays
         }
 
         [Theory]
-        [WithFileCollection(nameof(DefaultFiles), StandardPixelType)]
+        [WithFileCollection(nameof(DefaultFiles), DefaultPixelType)]
         public void ImageShouldApplyGlowFilterInBox<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {

@@ -19,7 +19,7 @@ namespace ImageSharp.Tests.Processing.Transforms
         };
 
         [Theory]
-        [WithFileCollection(nameof(DefaultFiles), nameof(SkewValues), StandardPixelType)]
+        [WithFileCollection(nameof(DefaultFiles), nameof(SkewValues), DefaultPixelType)]
         public void ImageShouldSkew<TPixel>(TestImageProvider<TPixel> provider, float x, float y)
             where TPixel : struct, IPixel<TPixel>
         {

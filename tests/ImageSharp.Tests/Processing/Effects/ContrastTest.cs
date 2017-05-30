@@ -19,7 +19,7 @@ namespace ImageSharp.Tests.Processing.Effects
         };
 
         [Theory]
-        [WithFileCollection(nameof(DefaultFiles), nameof(ContrastValues), StandardPixelType)]
+        [WithFileCollection(nameof(DefaultFiles), nameof(ContrastValues), DefaultPixelType)]
         public void ImageShouldApplyContrastFilter<TPixel>(TestImageProvider<TPixel> provider, int value)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -31,7 +31,7 @@ namespace ImageSharp.Tests.Processing.Effects
         }
 
         [Theory]
-        [WithFileCollection(nameof(DefaultFiles), nameof(ContrastValues), StandardPixelType)]
+        [WithFileCollection(nameof(DefaultFiles), nameof(ContrastValues), DefaultPixelType)]
         public void ImageShouldApplyContrastFilterInBox<TPixel>(TestImageProvider<TPixel> provider, int value)
             where TPixel : struct, IPixel<TPixel>
         {

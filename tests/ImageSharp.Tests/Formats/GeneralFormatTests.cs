@@ -14,7 +14,7 @@ namespace ImageSharp.Tests
     public class GeneralFormatTests : FileTestBase
     {
         [Theory]
-        [WithFileCollection(nameof(DefaultFiles), StandardPixelType)]
+        [WithFileCollection(nameof(DefaultFiles), DefaultPixelType)]
         public void ResolutionShouldChange<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {

@@ -19,7 +19,7 @@ namespace ImageSharp.Tests.Processing.Transforms
         };
 
         [Theory]
-        [WithFileCollection(nameof(DefaultFiles), nameof(EntropyCropValues), StandardPixelType)]
+        [WithFileCollection(nameof(DefaultFiles), nameof(EntropyCropValues), DefaultPixelType)]
         public void ImageShouldEntropyCrop<TPixel>(TestImageProvider<TPixel> provider, float value)
             where TPixel : struct, IPixel<TPixel>
         {

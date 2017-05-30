@@ -29,7 +29,7 @@ namespace ImageSharp.Tests.Processing.Transforms
         };
 
         [Theory]
-        [WithFileCollection(nameof(DefaultFiles), nameof(RotateFloatValues), StandardPixelType)]
+        [WithFileCollection(nameof(DefaultFiles), nameof(RotateFloatValues), DefaultPixelType)]
         public void ImageShouldRotate<TPixel>(TestImageProvider<TPixel> provider, float value)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -41,7 +41,7 @@ namespace ImageSharp.Tests.Processing.Transforms
         }
 
         [Theory]
-        [WithFileCollection(nameof(DefaultFiles), nameof(RotateEnumValues), StandardPixelType)]
+        [WithFileCollection(nameof(DefaultFiles), nameof(RotateEnumValues), DefaultPixelType)]
         public void ImageShouldRotateEnum<TPixel>(TestImageProvider<TPixel> provider, RotateType value)
             where TPixel : struct, IPixel<TPixel>
         {

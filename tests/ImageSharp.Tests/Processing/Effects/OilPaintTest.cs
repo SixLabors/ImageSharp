@@ -19,7 +19,7 @@ namespace ImageSharp.Tests
             };
 
         [Theory]
-        [WithFileCollection(nameof(DefaultFiles), nameof(OilPaintValues), StandardPixelType)]
+        [WithFileCollection(nameof(DefaultFiles), nameof(OilPaintValues), DefaultPixelType)]
         public void ImageShouldApplyOilPaintFilter<TPixel>(TestImageProvider<TPixel> provider, int levels, int brushSize)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -31,7 +31,7 @@ namespace ImageSharp.Tests
         }
 
         [Theory]
-        [WithFileCollection(nameof(DefaultFiles), nameof(OilPaintValues), StandardPixelType)]
+        [WithFileCollection(nameof(DefaultFiles), nameof(OilPaintValues), DefaultPixelType)]
         public void ImageShouldApplyOilPaintFilterInBox<TPixel>(TestImageProvider<TPixel> provider, int levels, int brushSize)
             where TPixel : struct, IPixel<TPixel>
         {

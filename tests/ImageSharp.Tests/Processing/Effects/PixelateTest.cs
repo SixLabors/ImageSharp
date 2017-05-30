@@ -19,7 +19,7 @@ namespace ImageSharp.Tests.Processing.Effects
         };
 
         [Theory]
-        [WithTestPatternImages(nameof(PixelateValues), 320, 240, PixelTypes.StandardImageClass)]
+        [WithTestPatternImages(nameof(PixelateValues), 320, 240, PixelTypes.Rgba32)]
         public void ImageShouldApplyPixelateFilter<TPixel>(TestImageProvider<TPixel> provider, int value)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -47,7 +47,7 @@ namespace ImageSharp.Tests.Processing.Effects
         }
 
         [Theory]
-        [WithTestPatternImages(nameof(PixelateValues), 320, 240, PixelTypes.StandardImageClass)]
+        [WithTestPatternImages(nameof(PixelateValues), 320, 240, PixelTypes.Rgba32)]
         public void ImageShouldApplyPixelateFilterInBox<TPixel>(TestImageProvider<TPixel> provider, int value)
             where TPixel : struct, IPixel<TPixel>
         {

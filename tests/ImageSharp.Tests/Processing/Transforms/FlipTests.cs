@@ -23,7 +23,7 @@ namespace ImageSharp.Tests.Processing.Transforms
         };
 
         [Theory]
-        [WithFileCollection(nameof(FlipFiles), nameof(FlipValues), StandardPixelType)]
+        [WithFileCollection(nameof(FlipFiles), nameof(FlipValues), DefaultPixelType)]
         public void ImageShouldFlip<TPixel>(TestImageProvider<TPixel> provider, FlipType flipType)
             where TPixel : struct, IPixel<TPixel>
         {

@@ -12,6 +12,7 @@ namespace ImageSharp
     using Drawing.Pens;
     using ImageSharp.PixelFormats;
     using SixLabors.Fonts;
+    using SixLabors.Shapes;
 
     /// <summary>
     /// Extension methods for the <see cref="Image{TPixel}"/> type.
@@ -167,43 +168,32 @@ namespace ImageSharp
         public static Image<TPixel> DrawText<TPixel>(this Image<TPixel> source, string text, Font font, IBrush<TPixel> brush, IPen<TPixel> pen, Vector2 location, TextGraphicsOptions options)
            where TPixel : struct, IPixel<TPixel>
         {
-            GlyphBuilder glyphBuilder = new GlyphBuilder(location);
-
-            TextRenderer renderer = new TextRenderer(glyphBuilder);
-
             Vector2 dpi = DefaultTextDpi;
             if (options.UseImageResolution)
             {
                 dpi = new Vector2((float)source.MetaData.HorizontalResolution, (float)source.MetaData.VerticalResolution);
             }
 
-            FontSpan style = new FontSpan(font, dpi)
+            var style = new FontSpan(font, dpi)
             {
                 ApplyKerning = options.ApplyKerning,
                 TabWidth = options.TabWidth,
                 WrappingWidth = options.WrapTextWidth,
-                Alignment = options.TextAlignment
+                HorizontalAlignment = options.HorizontalAlignment,
+                VerticalAlignment = options.VerticalAlignment
             };
 
-            renderer.RenderText(text, style);
+            IPathCollection glyphs = TextBuilder.GenerateGlyphs(text, style).Translate(location); // todo move to better API
 
-            System.Collections.Generic.IEnumerable<SixLabors.Shapes.IPath> shapesToDraw = glyphBuilder.Paths;
-
-            GraphicsOptions pathOptions = (GraphicsOptions)options;
+            var pathOptions = (GraphicsOptions)options;
             if (brush != null)
             {
-                foreach (SixLabors.Shapes.IPath s in shapesToDraw)
-                {
-                    source.Fill(brush, s, pathOptions);
-                }
+                source.Fill(brush, glyphs, pathOptions);
             }
 
             if (pen != null)
             {
-                foreach (SixLabors.Shapes.IPath s in shapesToDraw)
-                {
-                    source.Draw(pen, s, pathOptions);
-                }
+                source.Draw(pen, glyphs, pathOptions);
             }
 
             return source;

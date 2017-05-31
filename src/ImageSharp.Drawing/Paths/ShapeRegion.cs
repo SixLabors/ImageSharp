@@ -40,18 +40,18 @@ namespace ImageSharp.Drawing
         public override Rectangle Bounds { get; }
 
         /// <inheritdoc/>
-        public override int Scan(float y, float[] buffer, int length, int offset)
+        public override int Scan(float y, Span<float> buffer)
         {
             Vector2 start = new Vector2(this.Bounds.Left - 1, y);
             Vector2 end = new Vector2(this.Bounds.Right + 1, y);
-            Vector2[] innerbuffer = ArrayPool<Vector2>.Shared.Rent(length);
+            Vector2[] innerbuffer = ArrayPool<Vector2>.Shared.Rent(buffer.Length);
             try
             {
-                int count = this.Shape.FindIntersections(start, end, innerbuffer, length, 0);
+                int count = this.Shape.FindIntersections(start, end, innerbuffer, buffer.Length, 0);
 
                 for (int i = 0; i < count; i++)
                 {
-                    buffer[i + offset] = innerbuffer[i].X;
+                    buffer[i] = innerbuffer[i].X;
                 }
 
                 return count;

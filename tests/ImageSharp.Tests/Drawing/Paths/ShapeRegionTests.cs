@@ -5,7 +5,7 @@ namespace ImageSharp.Tests.Drawing.Paths
     using System.IO;
     using ImageSharp;
     using ImageSharp.Drawing.Brushes;
-    using Processing;
+    using ImageSharp.Processing;
     using System.Collections.Generic;
     using Xunit;
     using ImageSharp.Drawing;

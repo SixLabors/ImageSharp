@@ -136,7 +136,7 @@ namespace ImageSharp.Tests.Drawing.Text
 
             Assert.NotEmpty(this.img.ProcessorApplications);
             Assert.Equal(3, this.img.ProcessorApplications.Count); // 3 fills where applied
-            Assert.IsType<DrawPathProcessor<Rgba32>>(this.img.ProcessorApplications[0].processor);
+            Assert.IsType<FillRegionProcessor<Rgba32>>(this.img.ProcessorApplications[0].processor);
         }
 
         [Fact]
@@ -146,7 +146,7 @@ namespace ImageSharp.Tests.Drawing.Text
 
             Assert.NotEmpty(this.img.ProcessorApplications);
             Assert.Equal(3, this.img.ProcessorApplications.Count); // 3 fills where applied
-            Assert.IsType<DrawPathProcessor<Rgba32>>(this.img.ProcessorApplications[0].processor);
+            Assert.IsType<FillRegionProcessor<Rgba32>>(this.img.ProcessorApplications[0].processor);
         }
 
         [Fact]
@@ -156,7 +156,7 @@ namespace ImageSharp.Tests.Drawing.Text
 
             Assert.NotEmpty(this.img.ProcessorApplications);
             Assert.Equal(3, this.img.ProcessorApplications.Count); // 3 fills where applied
-            Assert.IsType<DrawPathProcessor<Rgba32>>(this.img.ProcessorApplications[0].processor);
+            Assert.IsType<FillRegionProcessor<Rgba32>>(this.img.ProcessorApplications[0].processor);
         }
 
         [Fact]
@@ -166,7 +166,7 @@ namespace ImageSharp.Tests.Drawing.Text
 
             Assert.NotEmpty(this.img.ProcessorApplications);
             Assert.Equal(3, this.img.ProcessorApplications.Count); // 3 fills where applied
-            Assert.IsType<DrawPathProcessor<Rgba32>>(this.img.ProcessorApplications[0].processor);
+            Assert.IsType<FillRegionProcessor<Rgba32>>(this.img.ProcessorApplications[0].processor);
         }
 
         [Fact]
@@ -207,7 +207,7 @@ namespace ImageSharp.Tests.Drawing.Text
             Assert.NotEmpty(this.img.ProcessorApplications);
             Assert.Equal(2, this.img.ProcessorApplications.Count);
             Assert.IsType<FillRegionProcessor<Rgba32>>(this.img.ProcessorApplications[0].processor);
-            Assert.IsType<DrawPathProcessor<Rgba32>>(this.img.ProcessorApplications[1].processor);
+            Assert.IsType<FillRegionProcessor<Rgba32>>(this.img.ProcessorApplications[1].processor);
         }
 
         [Fact]
@@ -218,7 +218,7 @@ namespace ImageSharp.Tests.Drawing.Text
             Assert.NotEmpty(this.img.ProcessorApplications);
             Assert.Equal(2, this.img.ProcessorApplications.Count);
             Assert.IsType<FillRegionProcessor<Rgba32>>(this.img.ProcessorApplications[0].processor);
-            Assert.IsType<DrawPathProcessor<Rgba32>>(this.img.ProcessorApplications[1].processor);
+            Assert.IsType<FillRegionProcessor<Rgba32>>(this.img.ProcessorApplications[1].processor);
         }
 
         [Fact]

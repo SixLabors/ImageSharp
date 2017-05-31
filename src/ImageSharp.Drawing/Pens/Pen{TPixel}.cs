@@ -27,8 +27,8 @@ namespace ImageSharp.Drawing.Pens
     public class Pen<TPixel> : IPen<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        private static readonly ReadOnlySpan<float> EmptyPattern = new float[0];
-        private readonly ReadOnlySpan<float> pattern;
+        private static readonly float[] EmptyPattern = new float[0];
+        private readonly float[] pattern;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageSharp.Drawing.Pens.Pen{TPixel}"/> class.
@@ -36,7 +36,7 @@ namespace ImageSharp.Drawing.Pens
         /// <param name="color">The color.</param>
         /// <param name="width">The width.</param>
         /// <param name="pattern">The pattern.</param>
-        public Pen(TPixel color, float width, ReadOnlySpan<float> pattern)
+        public Pen(TPixel color, float width, float[] pattern)
             : this(new SolidBrush<TPixel>(color), width, pattern)
         {
         }
@@ -47,7 +47,7 @@ namespace ImageSharp.Drawing.Pens
         /// <param name="brush">The brush.</param>
         /// <param name="width">The width.</param>
         /// <param name="pattern">The pattern.</param>
-        public Pen(IBrush<TPixel> brush, float width, ReadOnlySpan<float> pattern)
+        public Pen(IBrush<TPixel> brush, float width, float[] pattern)
         {
             this.StrokeFill = brush;
             this.StrokeWidth = width;

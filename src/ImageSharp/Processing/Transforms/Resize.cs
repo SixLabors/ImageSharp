@@ -29,12 +29,12 @@ namespace ImageSharp
             // Ensure size is populated across both dimensions.
             if (options.Size.Width == 0 && options.Size.Height > 0)
             {
-                options.Size = new Size(source.Width * options.Size.Height / source.Height, options.Size.Height);
+                options.Size = new Size((int)MathF.Round(source.Width * options.Size.Height / (float)source.Height), options.Size.Height);
             }
 
             if (options.Size.Height == 0 && options.Size.Width > 0)
             {
-                options.Size = new Size(options.Size.Width, source.Height * options.Size.Width / source.Width);
+                options.Size = new Size(options.Size.Width, (int)MathF.Round(source.Height * options.Size.Width / (float)source.Width));
             }
 
             Rectangle targetRectangle = ResizeHelper.CalculateTargetLocationAndBounds(source, options);
@@ -158,13 +158,13 @@ namespace ImageSharp
         {
             if (width == 0 && height > 0)
             {
-                width = source.Width * height / source.Height;
+                width = (int)MathF.Round(source.Width * height / (float)source.Height);
                 targetRectangle.Width = width;
             }
 
             if (height == 0 && width > 0)
             {
-                height = source.Height * width / source.Width;
+                height = (int)MathF.Round(source.Height * width / (float)source.Width);
                 targetRectangle.Height = height;
             }
 

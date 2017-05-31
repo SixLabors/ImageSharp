@@ -5,11 +5,9 @@
 
 namespace ImageSharp
 {
-    using System;
-
     using ImageSharp.PixelFormats;
 
-    using Processing;
+    using ImageSharp.Processing;
     using Processing.Processors;
 
     /// <summary>
@@ -56,6 +54,21 @@ namespace ImageSharp
             where TPixel : struct, IPixel<TPixel>
         {
             return Resize(source, size.Width, size.Height, new BicubicResampler(), false);
+        }
+
+        /// <summary>
+        /// Resizes an image to the given <see cref="Size"/>.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="source">The image to resize.</param>
+        /// <param name="size">The target image size.</param>
+        /// <param name="compand">Whether to compress and expand the image color-space to gamma correct the image during processing.</param>
+        /// <returns>The <see cref="Image{TPixel}"/></returns>
+        /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image</remarks>
+        public static Image<TPixel> Resize<TPixel>(this Image<TPixel> source, Size size, bool compand)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            return Resize(source, size.Width, size.Height, new BicubicResampler(), compand);
         }
 
         /// <summary>
@@ -140,7 +153,7 @@ namespace ImageSharp
         /// <param name="compand">Whether to compress and expand the image color-space to gamma correct the image during processing.</param>
         /// <returns>The <see cref="Image{TPixel}"/></returns>
         /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image</remarks>
-        public static Image<TPixel> Resize<TPixel>(this Image<TPixel> source, int width, int height, IResampler sampler, Rectangle sourceRectangle, Rectangle targetRectangle, bool compand = false)
+        public static Image<TPixel> Resize<TPixel>(this Image<TPixel> source, int width, int height, IResampler sampler, Rectangle sourceRectangle, Rectangle targetRectangle, bool compand)
             where TPixel : struct, IPixel<TPixel>
         {
             if (width == 0 && height > 0)
@@ -158,8 +171,7 @@ namespace ImageSharp
             Guard.MustBeGreaterThan(width, 0, nameof(width));
             Guard.MustBeGreaterThan(height, 0, nameof(height));
 
-            ResizeProcessor<TPixel> processor =
-                new ResizeProcessor<TPixel>(sampler, width, height, targetRectangle) { Compand = compand };
+            var processor = new ResizeProcessor<TPixel>(sampler, width, height, targetRectangle) { Compand = compand };
 
             source.ApplyProcessor(processor, sourceRectangle);
             return source;

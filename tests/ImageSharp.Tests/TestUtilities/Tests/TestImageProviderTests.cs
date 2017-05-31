@@ -50,7 +50,7 @@ namespace ImageSharp.Tests
         [Theory]
         [WithBlankImages(1, 1, PixelTypes.Rgba32, PixelTypes.Rgba32)]
         [WithBlankImages(1, 1, PixelTypes.Alpha8, PixelTypes.Alpha8)]
-        [WithBlankImages(1, 1, PixelTypes.StandardImageClass, PixelTypes.StandardImageClass)]
+        [WithBlankImages(1, 1, PixelTypes.Rgba32, PixelTypes.Rgba32)]
         public void PixelType_PropertyValueIsCorrect<TPixel>(TestImageProvider<TPixel> provider, PixelTypes expected)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -58,8 +58,8 @@ namespace ImageSharp.Tests
         }
 
         [Theory]
-        [WithBlankImages(1, 1, PixelTypes.StandardImageClass)]
-        [WithFile(TestImages.Bmp.F, PixelTypes.StandardImageClass)]
+        [WithBlankImages(1, 1, PixelTypes.Rgba32)]
+        [WithFile(TestImages.Bmp.F, PixelTypes.Rgba32)]
         public void PixelTypes_ColorWithDefaultImageClass_TriggersCreatingTheNonGenericDerivedImageClass<TPixel>(
             TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
@@ -144,7 +144,7 @@ namespace ImageSharp.Tests
         {
             Image<TPixel> img = provider.GetImage();
             Assert.Equal(img.Width, 3);
-            if (provider.PixelType == PixelTypes.StandardImageClass)
+            if (provider.PixelType == PixelTypes.Rgba32)
             {
                 Assert.IsType<Image<Rgba32>>(img);
             }

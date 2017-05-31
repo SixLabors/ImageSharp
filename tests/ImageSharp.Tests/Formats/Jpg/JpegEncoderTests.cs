@@ -28,10 +28,10 @@ namespace ImageSharp.Tests
         }
 
         [Theory]
-        [WithFile(TestImages.Jpeg.Baseline.Snake, PixelTypes.StandardImageClass, 75, JpegSubsample.Ratio420)]
-        [WithFile(TestImages.Jpeg.Baseline.Lake, PixelTypes.StandardImageClass, 75, JpegSubsample.Ratio420)]
-        [WithFile(TestImages.Jpeg.Baseline.Snake, PixelTypes.StandardImageClass, 75, JpegSubsample.Ratio444)]
-        [WithFile(TestImages.Jpeg.Baseline.Lake, PixelTypes.StandardImageClass, 75, JpegSubsample.Ratio444)]
+        [WithFile(TestImages.Jpeg.Baseline.Snake, PixelTypes.Rgba32, 75, JpegSubsample.Ratio420)]
+        [WithFile(TestImages.Jpeg.Baseline.Lake, PixelTypes.Rgba32, 75, JpegSubsample.Ratio420)]
+        [WithFile(TestImages.Jpeg.Baseline.Snake, PixelTypes.Rgba32, 75, JpegSubsample.Ratio444)]
+        [WithFile(TestImages.Jpeg.Baseline.Lake, PixelTypes.Rgba32, 75, JpegSubsample.Ratio444)]
         public void LoadResizeSave<TPixel>(TestImageProvider<TPixel> provider, int quality, JpegSubsample subsample)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -49,8 +49,8 @@ namespace ImageSharp.Tests
         }
 
         [Theory]
-        [WithFileCollection(nameof(AllBmpFiles), PixelTypes.Rgba32 | PixelTypes.StandardImageClass | PixelTypes.Argb32, JpegSubsample.Ratio420, 75)]
-        [WithFileCollection(nameof(AllBmpFiles), PixelTypes.Rgba32 | PixelTypes.StandardImageClass | PixelTypes.Argb32, JpegSubsample.Ratio444, 75)]
+        [WithFileCollection(nameof(AllBmpFiles), PixelTypes.Rgba32 | PixelTypes.Rgba32 | PixelTypes.Argb32, JpegSubsample.Ratio420, 75)]
+        [WithFileCollection(nameof(AllBmpFiles), PixelTypes.Rgba32 | PixelTypes.Rgba32 | PixelTypes.Argb32, JpegSubsample.Ratio444, 75)]
         public void OpenBmp_SaveJpeg<TPixel>(TestImageProvider<TPixel> provider, JpegSubsample subSample, int quality)
            where TPixel : struct, IPixel<TPixel>
         {

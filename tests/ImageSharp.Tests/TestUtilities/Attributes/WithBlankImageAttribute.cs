@@ -31,6 +31,7 @@ namespace ImageSharp.Tests
         /// <summary>
         /// Triggers passing an <see cref="TestImageProvider{TPixel}"/> that produces a blank image of size width * height
         /// </summary>
+        /// <param name="memberData">The member data</param>
         /// <param name="width">The required width</param>
         /// <param name="height">The required height</param>
         /// <param name="pixelTypes">The requested parameter</param>

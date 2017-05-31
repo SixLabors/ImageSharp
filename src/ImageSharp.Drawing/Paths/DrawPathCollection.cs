@@ -30,7 +30,7 @@ namespace ImageSharp
         {
             foreach (IPath path in paths)
             {
-                source.Draw(pen, new ShapePath(path), options);
+                source.Draw(pen, path, options);
             }
 
             return source;

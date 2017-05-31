@@ -13,22 +13,16 @@ namespace ImageSharp.Tests
 
     public class GeneralFormatTests : FileTestBase
     {
-        [Fact]
-        public void ResolutionShouldChange()
+        [Theory]
+        [WithFileCollection(nameof(DefaultFiles), DefaultPixelType)]
+        public void ResolutionShouldChange<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
         {
-            string path = this.CreateOutputDirectory("Resolution");
-
-            foreach (TestFile file in Files)
+            using (Image<TPixel> image = provider.GetImage())
             {
-                using (Image<Rgba32> image = file.CreateImage())
-                {
-                    using (FileStream output = File.OpenWrite($"{path}/{file.FileName}"))
-                    {
-                        image.MetaData.VerticalResolution = 150;
-                        image.MetaData.HorizontalResolution = 150;
-                        image.Save(output);
-                    }
-                }
+                image.MetaData.VerticalResolution = 150;
+                image.MetaData.HorizontalResolution = 150;
+                image.DebugSave(provider, null, Extensions.Bmp);
             }
         }
 

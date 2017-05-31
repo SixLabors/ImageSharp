@@ -11,7 +11,7 @@ namespace ImageSharp
 
     using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
-    using Processing;
+    using ImageSharp.Processing;
 
     /// <summary>
     /// The base class of all images. Encapsulates the basic properties and methods required to manipulate

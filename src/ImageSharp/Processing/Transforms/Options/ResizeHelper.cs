@@ -5,7 +5,6 @@
 
 namespace ImageSharp.Processing
 {
-    using System;
     using System.Linq;
 
     using ImageSharp.PixelFormats;
@@ -86,17 +85,17 @@ namespace ImageSharp.Processing
 
                 if (options.CenterCoordinates.Any())
                 {
-                    float center = -(ratio * sourceHeight) * options.CenterCoordinates.First();
-                    destinationY = (int)center + (height / 2);
+                    float center = -(ratio * sourceHeight) * options.CenterCoordinates.ToArray()[1];
+                    destinationY = (int)MathF.Round(center + (height / 2F));
 
                     if (destinationY > 0)
                     {
                         destinationY = 0;
                     }
 
-                    if (destinationY < (int)(height - (sourceHeight * ratio)))
+                    if (destinationY < (int)MathF.Round(height - (sourceHeight * ratio)))
                     {
-                        destinationY = (int)(height - (sourceHeight * ratio));
+                        destinationY = (int)MathF.Round(height - (sourceHeight * ratio));
                     }
                 }
                 else
@@ -111,10 +110,10 @@ namespace ImageSharp.Processing
                         case AnchorPosition.Bottom:
                         case AnchorPosition.BottomLeft:
                         case AnchorPosition.BottomRight:
-                            destinationY = (int)(height - (sourceHeight * ratio));
+                            destinationY = (int)MathF.Round(height - (sourceHeight * ratio));
                             break;
                         default:
-                            destinationY = (int)((height - (sourceHeight * ratio)) / 2);
+                            destinationY = (int)MathF.Round((height - (sourceHeight * ratio)) / 2F);
                             break;
                     }
                 }
@@ -127,17 +126,17 @@ namespace ImageSharp.Processing
 
                 if (options.CenterCoordinates.Any())
                 {
-                    float center = -(ratio * sourceWidth) * options.CenterCoordinates.ToArray()[1];
-                    destinationX = (int)center + (width / 2);
+                    float center = -(ratio * sourceWidth) * options.CenterCoordinates.First();
+                    destinationX = (int)MathF.Round(center + (width / 2F));
 
                     if (destinationX > 0)
                     {
                         destinationX = 0;
                     }
 
-                    if (destinationX < (int)(width - (sourceWidth * ratio)))
+                    if (destinationX < (int)MathF.Round(width - (sourceWidth * ratio)))
                     {
-                        destinationX = (int)(width - (sourceWidth * ratio));
+                        destinationX = (int)MathF.Round(width - (sourceWidth * ratio));
                     }
                 }
                 else
@@ -152,10 +151,10 @@ namespace ImageSharp.Processing
                         case AnchorPosition.Right:
                         case AnchorPosition.TopRight:
                         case AnchorPosition.BottomRight:
-                            destinationX = (int)(width - (sourceWidth * ratio));
+                            destinationX = (int)MathF.Round(width - (sourceWidth * ratio));
                             break;
                         default:
-                            destinationX = (int)((width - (sourceWidth * ratio)) / 2);
+                            destinationX = (int)MathF.Round((width - (sourceWidth * ratio)) / 2F);
                             break;
                     }
                 }
@@ -202,7 +201,7 @@ namespace ImageSharp.Processing
             if (percentHeight < percentWidth)
             {
                 ratio = percentHeight;
-                destinationWidth = Convert.ToInt32(sourceWidth * percentHeight);
+                destinationWidth = (int)MathF.Round(sourceWidth * percentHeight);
 
                 switch (options.Position)
                 {
@@ -214,17 +213,17 @@ namespace ImageSharp.Processing
                     case AnchorPosition.Right:
                     case AnchorPosition.TopRight:
                     case AnchorPosition.BottomRight:
-                        destinationX = (int)(width - (sourceWidth * ratio));
+                        destinationX = (int)MathF.Round(width - (sourceWidth * ratio));
                         break;
                     default:
-                        destinationX = Convert.ToInt32((width - (sourceWidth * ratio)) / 2);
+                        destinationX = (int)MathF.Round((width - (sourceWidth * ratio)) / 2F);
                         break;
                 }
             }
             else
             {
                 ratio = percentWidth;
-                destinationHeight = Convert.ToInt32(sourceHeight * percentWidth);
+                destinationHeight = (int)MathF.Round(sourceHeight * percentWidth);
 
                 switch (options.Position)
                 {
@@ -236,10 +235,10 @@ namespace ImageSharp.Processing
                     case AnchorPosition.Bottom:
                     case AnchorPosition.BottomLeft:
                     case AnchorPosition.BottomRight:
-                        destinationY = (int)(height - (sourceHeight * ratio));
+                        destinationY = (int)MathF.Round(height - (sourceHeight * ratio));
                         break;
                     default:
-                        destinationY = (int)((height - (sourceHeight * ratio)) / 2);
+                        destinationY = (int)MathF.Round((height - (sourceHeight * ratio)) / 2F);
                         break;
                 }
             }
@@ -274,8 +273,8 @@ namespace ImageSharp.Processing
             float percentHeight = MathF.Abs(height / (float)sourceHeight);
             float percentWidth = MathF.Abs(width / (float)sourceWidth);
 
-            int boxPadHeight = height > 0 ? height : Convert.ToInt32(sourceHeight * percentWidth);
-            int boxPadWidth = width > 0 ? width : Convert.ToInt32(sourceWidth * percentHeight);
+            int boxPadHeight = height > 0 ? height : (int)MathF.Round(sourceHeight * percentWidth);
+            int boxPadWidth = width > 0 ? width : (int)MathF.Round(sourceWidth * percentHeight);
 
             // Only calculate if upscaling.
             if (sourceWidth < boxPadWidth && sourceHeight < boxPadHeight)
@@ -356,17 +355,17 @@ namespace ImageSharp.Processing
             float percentWidth = MathF.Abs(width / (float)source.Width);
 
             // Integers must be cast to floats to get needed precision
-            float ratio = (float)options.Size.Height / options.Size.Width;
-            float sourceRatio = (float)source.Height / source.Width;
+            float ratio = options.Size.Height / (float)options.Size.Width;
+            float sourceRatio = source.Height / (float)source.Width;
 
             if (sourceRatio < ratio)
             {
-                destinationHeight = Convert.ToInt32(source.Height * percentWidth);
+                destinationHeight = (int)MathF.Round(source.Height * percentWidth);
                 height = destinationHeight;
             }
             else
             {
-                destinationWidth = Convert.ToInt32(source.Width * percentHeight);
+                destinationWidth = (int)MathF.Round(source.Width * percentHeight);
                 width = destinationWidth;
             }
 
@@ -389,38 +388,54 @@ namespace ImageSharp.Processing
         {
             int width = options.Size.Width;
             int height = options.Size.Height;
+            int sourceWidth = source.Width;
+            int sourceHeight = source.Height;
             int destinationWidth;
             int destinationHeight;
 
             // Don't upscale
-            if (width > source.Width || height > source.Height)
+            if (width > sourceWidth || height > sourceHeight)
             {
-                options.Size = new Size(source.Width, source.Height);
-                return new Rectangle(0, 0, source.Width, source.Height);
+                options.Size = new Size(sourceWidth, sourceHeight);
+                return new Rectangle(0, 0, sourceWidth, sourceHeight);
             }
 
-            float sourceRatio = (float)source.Height / source.Width;
+            // Fractional variants for preserving aspect ratio.
+            float percentHeight = MathF.Abs(height / (float)sourceHeight);
+            float percentWidth = MathF.Abs(width / (float)sourceWidth);
+
+            float sourceRatio = (float)sourceHeight / sourceWidth;
 
             // Find the shortest distance to go.
-            int widthDiff = source.Width - width;
-            int heightDiff = source.Height - height;
+            int widthDiff = sourceWidth - width;
+            int heightDiff = sourceHeight - height;
 
             if (widthDiff < heightDiff)
             {
-                destinationHeight = Convert.ToInt32(width * sourceRatio);
+                destinationHeight = (int)MathF.Round(width * sourceRatio);
                 height = destinationHeight;
                 destinationWidth = width;
             }
             else if (widthDiff > heightDiff)
             {
-                destinationWidth = Convert.ToInt32(height / sourceRatio);
+                destinationWidth = (int)MathF.Round(height / sourceRatio);
                 destinationHeight = height;
                 width = destinationWidth;
             }
             else
             {
-                destinationWidth = width;
-                destinationHeight = height;
+                if (height > width)
+                {
+                    destinationWidth = width;
+                    destinationHeight = (int)MathF.Round(sourceHeight * percentWidth);
+                    height = destinationHeight;
+                }
+                else
+                {
+                    destinationHeight = height;
+                    destinationWidth = (int)MathF.Round(sourceWidth * percentHeight);
+                    width = destinationWidth;
+                }
             }
 
             // Replace the size to match the rectangle.

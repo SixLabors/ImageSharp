@@ -5,11 +5,9 @@
 
 namespace ImageSharp
 {
-    using System;
-
     using ImageSharp.PixelFormats;
 
-    using Processing;
+    using ImageSharp.Processing;
     using Processing.Processors;
 
     /// <summary>
@@ -31,12 +29,12 @@ namespace ImageSharp
             // Ensure size is populated across both dimensions.
             if (options.Size.Width == 0 && options.Size.Height > 0)
             {
-                options.Size = new Size(source.Width * options.Size.Height / source.Height, options.Size.Height);
+                options.Size = new Size((int)MathF.Round(source.Width * options.Size.Height / (float)source.Height), options.Size.Height);
             }
 
             if (options.Size.Height == 0 && options.Size.Width > 0)
             {
-                options.Size = new Size(options.Size.Width, source.Height * options.Size.Width / source.Width);
+                options.Size = new Size(options.Size.Width, (int)MathF.Round(source.Height * options.Size.Width / (float)source.Width));
             }
 
             Rectangle targetRectangle = ResizeHelper.CalculateTargetLocationAndBounds(source, options);
@@ -56,6 +54,21 @@ namespace ImageSharp
             where TPixel : struct, IPixel<TPixel>
         {
             return Resize(source, size.Width, size.Height, new BicubicResampler(), false);
+        }
+
+        /// <summary>
+        /// Resizes an image to the given <see cref="Size"/>.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="source">The image to resize.</param>
+        /// <param name="size">The target image size.</param>
+        /// <param name="compand">Whether to compress and expand the image color-space to gamma correct the image during processing.</param>
+        /// <returns>The <see cref="Image{TPixel}"/></returns>
+        /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image</remarks>
+        public static Image<TPixel> Resize<TPixel>(this Image<TPixel> source, Size size, bool compand)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            return Resize(source, size.Width, size.Height, new BicubicResampler(), compand);
         }
 
         /// <summary>
@@ -140,26 +153,25 @@ namespace ImageSharp
         /// <param name="compand">Whether to compress and expand the image color-space to gamma correct the image during processing.</param>
         /// <returns>The <see cref="Image{TPixel}"/></returns>
         /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image</remarks>
-        public static Image<TPixel> Resize<TPixel>(this Image<TPixel> source, int width, int height, IResampler sampler, Rectangle sourceRectangle, Rectangle targetRectangle, bool compand = false)
+        public static Image<TPixel> Resize<TPixel>(this Image<TPixel> source, int width, int height, IResampler sampler, Rectangle sourceRectangle, Rectangle targetRectangle, bool compand)
             where TPixel : struct, IPixel<TPixel>
         {
             if (width == 0 && height > 0)
             {
-                width = source.Width * height / source.Height;
+                width = (int)MathF.Round(source.Width * height / (float)source.Height);
                 targetRectangle.Width = width;
             }
 
             if (height == 0 && width > 0)
             {
-                height = source.Height * width / source.Width;
+                height = (int)MathF.Round(source.Height * width / (float)source.Width);
                 targetRectangle.Height = height;
             }
 
             Guard.MustBeGreaterThan(width, 0, nameof(width));
             Guard.MustBeGreaterThan(height, 0, nameof(height));
 
-            ResizeProcessor<TPixel> processor =
-                new ResizeProcessor<TPixel>(sampler, width, height, targetRectangle) { Compand = compand };
+            var processor = new ResizeProcessor<TPixel>(sampler, width, height, targetRectangle) { Compand = compand };
 
             source.ApplyProcessor(processor, sourceRectangle);
             return source;

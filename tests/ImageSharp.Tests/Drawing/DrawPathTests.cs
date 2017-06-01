@@ -13,6 +13,7 @@ namespace ImageSharp.Tests.Drawing
     using ImageSharp.PixelFormats;
 
     using Xunit;
+    using ImageSharp.Drawing.Pens;
 
     public class DrawPathTests : FileTestBase
     {
@@ -98,5 +99,32 @@ namespace ImageSharp.Tests.Drawing
             }
         }
 
+
+        [Fact]
+        public void PathExtendingOffEdgeOfImageShouldNotBeCropped()
+        {
+
+            string path = this.CreateOutputDirectory("Drawing", "Path");
+            using (var image = new Image<Rgba32>(256, 256))
+            {
+                image.Fill(Rgba32.Black);
+                var pen = Pens.Solid(Rgba32.White, 5f);
+
+                for (int i = 0; i < 300; i += 20)
+                {
+                    image.DrawLines(pen, new Vector2[] { new Vector2(100, 2), new Vector2(-10, i) });
+                }
+
+                using (FileStream output = File.OpenWrite($"{path}/ClippedLines.png"))
+                {
+                    image
+                        .Save(output);
+                }
+                using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
+                {
+                    Assert.Equal(Rgba32.White, sourcePixels[0, 90]);
+                }
+            }
+        }
     }
 }

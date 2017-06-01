@@ -15,7 +15,7 @@ namespace ImageSharp
 
     using Formats;
     using ImageSharp.PixelFormats;
-    using Processing;
+    using ImageSharp.Processing;
 
     /// <summary>
     /// Encapsulates an image, which consists of the pixel data for a graphics image and its attributes.

@@ -1,4 +1,9 @@
-﻿namespace ImageSharp.Tests
+﻿// <copyright file="MeasureFixture.cs" company="James Jackson-South">
+// Copyright (c) James Jackson-South and contributors.
+// Licensed under the Apache License, Version 2.0.
+// </copyright>
+
+namespace ImageSharp.Tests
 {
     using System;
     using System.Diagnostics;
@@ -24,8 +29,12 @@
         /// <param name="operationName">The name of the operation to print to the output</param>
         public void Measure(int times, Action action, [CallerMemberName] string operationName = null)
         {
-            if (this.EnablePrinting) this.Output?.WriteLine($"{operationName} X {times} ...");
-            Stopwatch sw = Stopwatch.StartNew();
+            if (this.EnablePrinting)
+            {
+                this.Output?.WriteLine($"{operationName} X {times} ...");
+            }
+
+            var sw = Stopwatch.StartNew();
 
             for (int i = 0; i < times; i++)
             {
@@ -33,7 +42,10 @@
             }
 
             sw.Stop();
-            if (this.EnablePrinting) this.Output?.WriteLine($"{operationName} finished in {sw.ElapsedMilliseconds} ms");
+            if (this.EnablePrinting)
+            {
+                this.Output?.WriteLine($"{operationName} finished in {sw.ElapsedMilliseconds} ms");
+            }
         }
 
         /// <summary>

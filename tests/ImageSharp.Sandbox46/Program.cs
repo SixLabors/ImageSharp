@@ -10,6 +10,7 @@ namespace ImageSharp.Sandbox46
 
     using ImageSharp.Tests;
     using ImageSharp.Tests.Colors;
+    using ImageSharp.Tests.Processing.Transforms;
 
     using Xunit.Abstractions;
 

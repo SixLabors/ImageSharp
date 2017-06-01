@@ -1,35 +1,61 @@
-﻿
+﻿// <copyright file="TestImageExtensions.cs" company="James Jackson-South">
+// Copyright (c) James Jackson-South and contributors.
+// Licensed under the Apache License, Version 2.0.
+// </copyright>
+
 namespace ImageSharp.Tests
 {
     using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Reflection;
-    using System.Text;
 
     using ImageSharp.PixelFormats;
 
     public static class TestImageExtensions
     {
-        public static void DebugSave<TPixel>(this Image<TPixel> img, ITestImageProvider provider, object settings = null, string extension = "png")
-                        where TPixel : struct, IPixel<TPixel>
+        /// <summary>
+        /// Saves the image only when not running in the CI server.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format</typeparam>
+        /// <param name="image">The image</param>
+        /// <param name="provider">The image provider</param>
+        /// <param name="settings">The settings</param>
+        /// <param name="extension">The extension</param>
+        public static Image<TPixel> DebugSave<TPixel>(this Image<TPixel> image, ITestImageProvider provider, object settings = null, string extension = "png")
+            where TPixel : struct, IPixel<TPixel>
         {
-            string tag = null;
-            if (settings is string)
+            if (bool.TryParse(Environment.GetEnvironmentVariable("CI"), out bool isCi) && isCi)
             {
-                tag = (string)settings;
+                return image;
+            }
+
+            // We are running locally then we want to save it out
+            string tag = null;
+            string s = settings as string;
+
+            if (s != null)
+            {
+                tag = s;
             }
             else if (settings != null)
             {
-                var properties = settings.GetType().GetRuntimeProperties();
+                Type type = settings.GetType();
+                TypeInfo info = type.GetTypeInfo();
+                if (info.IsPrimitive || info.IsEnum || type == typeof(decimal))
+                {
+                    tag = settings.ToString();
+                }
+                else
+                {
+                    IEnumerable<PropertyInfo> properties = settings.GetType().GetRuntimeProperties();
 
-                tag = string.Join("_", properties.ToDictionary(x => x.Name, x => x.GetValue(settings)).Select(x => $"{x.Key}-{x.Value}"));
+                    tag = string.Join("_", properties.ToDictionary(x => x.Name, x => x.GetValue(settings)).Select(x => $"{x.Key}-{x.Value}"));
+                }
             }
-            if(!bool.TryParse(Environment.GetEnvironmentVariable("CI"), out bool isCI) || !isCI)
-            {
-                // we are running locally then we want to save it out
-                provider.Utility.SaveTestOutputFile(img, extension, tag: tag);
-            }
+
+            provider.Utility.SaveTestOutputFile(image, extension, tag: tag);
+            return image;
         }
     }
 }

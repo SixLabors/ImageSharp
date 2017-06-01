@@ -13,12 +13,12 @@ namespace ImageSharp.Tests
 
     public class PngDecoderTests
     {
-        private const PixelTypes PixelTypes = Tests.PixelTypes.StandardImageClass | Tests.PixelTypes.RgbaVector | Tests.PixelTypes.Argb32;
+        private const PixelTypes PixelTypes = Tests.PixelTypes.Rgba32 | Tests.PixelTypes.RgbaVector | Tests.PixelTypes.Argb32;
 
         public static readonly string[] TestFiles =
             {
                 TestImages.Png.Splash, TestImages.Png.Indexed, TestImages.Png.Interlaced, TestImages.Png.FilterVar,
-                TestImages.Png.ChunkLength1, TestImages.Png.ChunkLength2
+                TestImages.Png.Bad.ChunkLength1, TestImages.Png.Bad.ChunkLength2
             };
 
         [Theory]

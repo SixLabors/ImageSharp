@@ -4,7 +4,7 @@ namespace ImageSharp.Tests.Drawing.Paths
     using System;
     using System.IO;
     using ImageSharp;
-    using Processing;
+    using ImageSharp.Processing;
     using System.Collections.Generic;
    using ImageSharp.PixelFormats;
 

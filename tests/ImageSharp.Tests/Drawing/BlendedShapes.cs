@@ -18,7 +18,7 @@ namespace ImageSharp.Tests.Drawing
                                                                     .Select(x=> new object[] { x });
 
         [Theory]
-        [WithBlankImages(nameof(modes), 100, 100, PixelTypes.StandardImageClass)]
+        [WithBlankImages(nameof(modes), 100, 100, PixelTypes.Rgba32)]
         public void DrawBlendedValues<TPixel>(TestImageProvider<TPixel> provider, PixelBlenderMode mode)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -34,7 +34,7 @@ namespace ImageSharp.Tests.Drawing
         }
 
         [Theory]
-        [WithBlankImages(nameof(modes), 100, 100, PixelTypes.StandardImageClass)]
+        [WithBlankImages(nameof(modes), 100, 100, PixelTypes.Rgba32)]
         public void DrawBlendedValues_transparent<TPixel>(TestImageProvider<TPixel> provider, PixelBlenderMode mode)
             where TPixel : struct, IPixel<TPixel>
         {

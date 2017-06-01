@@ -27,31 +27,54 @@ namespace ImageSharp.Processing.Processors
             public int Left;
 
             /// <summary>
-            /// The span of weights pointing to <see cref="WeightsBuffer"/>.
+            /// The length of the weights window
             /// </summary>
-            public Span<float> Span;
+            public int Length;
+
+            /// <summary>
+            /// The index in the destination buffer
+            /// </summary>
+            private readonly int destIndex;
+
+            /// <summary>
+            /// The weights buffer <see cref="WeightsBuffer"/>.
+            /// </summary>
+            private readonly Buffer2D<float> buffer;
 
             /// <summary>
             /// Initializes a new instance of the <see cref="WeightsWindow"/> struct.
             /// </summary>
+            /// <param name="index">The destination index in the buffer</param>
             /// <param name="left">The local left index</param>
-            /// <param name="span">The span</param>
+            /// <param name="buffer">The span</param>
+            /// <param name="length">The length of the window</param>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            internal WeightsWindow(int left, Span<float> span)
+            internal WeightsWindow(int index, int left, Buffer2D<float> buffer, int length)
             {
+                this.destIndex = index;
                 this.Left = left;
-                this.Span = span;
+                this.buffer = buffer;
+                this.Length = length;
             }
 
             /// <summary>
-            /// Gets an unsafe float* pointer to the beginning of <see cref="Span"/>.
+            /// Gets an unsafe float* pointer to the beginning of <see cref="buffer"/>.
             /// </summary>
-            public ref float Ptr => ref this.Span.DangerousGetPinnableReference();
+            public ref float Ptr
+            {
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                get
+                {
+                    return ref this.GetWindowSpan().DangerousGetPinnableReference();
+                }
+            }
 
             /// <summary>
-            /// Gets the lenghth of the weights window
+            /// Gets the span representing the portion of the <see cref="WeightsBuffer"/> that this window covers
             /// </summary>
-            public int Length => this.Span.Length;
+            /// <returns>The <see cref="Span{T}"/></returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public Span<float> GetWindowSpan() => this.buffer.GetRowSpan(this.destIndex).Slice(this.Left, this.Length);
 
             /// <summary>
             /// Computes the sum of vectors in 'rowSpan' weighted by weight values, pointed by this <see cref="WeightsWindow"/> instance.
@@ -139,7 +162,7 @@ namespace ImageSharp.Processing.Processors
         /// </summary>
         internal class WeightsBuffer : IDisposable
         {
-            private Buffer2D<float> dataBuffer;
+            private readonly Buffer2D<float> dataBuffer;
 
             /// <summary>
             /// Initializes a new instance of the <see cref="WeightsBuffer"/> class.
@@ -174,8 +197,7 @@ namespace ImageSharp.Processing.Processors
             /// <returns>The weights</returns>
             public WeightsWindow GetWeightsWindow(int destIdx, int leftIdx, int rightIdx)
             {
-                Span<float> span = this.dataBuffer.GetRowSpan(destIdx).Slice(leftIdx, rightIdx - leftIdx + 1);
-                return new WeightsWindow(leftIdx, span);
+                return new WeightsWindow(destIdx, leftIdx, this.dataBuffer, rightIdx - leftIdx + 1);
             }
         }
     }

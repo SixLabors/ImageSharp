@@ -154,13 +154,11 @@ namespace ImageSharp.Drawing.Processors
 
                                     int nextX = startX + 1;
                                     endX = Math.Min(endX, scanline.Length); // reduce to end to the right edge
-                                    if (nextX >= 0)
+                                    nextX = Math.Max(nextX, 0);
+                                    for (int x = nextX; x < endX; x++)
                                     {
-                                        for (int x = nextX; x < endX; x++)
-                                        {
-                                            scanline[x] += subpixelFraction;
-                                            scanlineDirty = true;
-                                        }
+                                        scanline[x] += subpixelFraction;
+                                        scanlineDirty = true;
                                     }
                                 }
                             }

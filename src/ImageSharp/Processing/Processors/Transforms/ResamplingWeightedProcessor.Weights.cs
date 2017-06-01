@@ -61,6 +61,7 @@ namespace ImageSharp.Processing.Processors
             /// Gets a reference to the first item of the window.
             /// </summary>
             /// <returns>The reference to the first item of the window</returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public ref float GetStartReference()
             {
                 return ref this.buffer[this.flatStartIndex];

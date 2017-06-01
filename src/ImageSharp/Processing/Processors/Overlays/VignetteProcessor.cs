@@ -58,7 +58,7 @@ namespace ImageSharp.Processing.Processors
             int startX = sourceRectangle.X;
             int endX = sourceRectangle.Right;
             TPixel vignetteColor = this.VignetteColor;
-            var centre = Rectangle.Center(sourceRectangle).ToVector2();
+            Vector2 centre = Rectangle.Center(sourceRectangle);
             float rX = this.RadiusX > 0 ? MathF.Min(this.RadiusX, sourceRectangle.Width * .5F) : sourceRectangle.Width * .5F;
             float rY = this.RadiusY > 0 ? MathF.Min(this.RadiusY, sourceRectangle.Height * .5F) : sourceRectangle.Height * .5F;
             float maxDistance = MathF.Sqrt((rX * rX) + (rY * rY));

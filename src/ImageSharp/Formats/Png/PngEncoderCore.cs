@@ -220,11 +220,7 @@ namespace ImageSharp.Formats
 
             this.WritePhysicalChunk(stream, image);
             this.WriteGammaChunk(stream);
-            using (PixelAccessor<TPixel> pixels = image.Lock())
-            {
-                this.WriteDataChunks(pixels, stream);
-            }
-
+            this.WriteDataChunks(image, stream);
             this.WriteEndChunk(stream);
             stream.Flush();
         }
@@ -302,9 +298,8 @@ namespace ImageSharp.Formats
         /// Collects a row of grayscale pixels.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="pixels">The image pixels accessor.</param>
-        /// <param name="row">The row index.</param>
-        private void CollectGrayscaleBytes<TPixel>(PixelAccessor<TPixel> pixels, int row)
+        /// <param name="rowSpan">The image row span.</param>
+        private void CollectGrayscaleBytes<TPixel>(Span<TPixel> rowSpan)
             where TPixel : struct, IPixel<TPixel>
         {
             byte[] rawScanlineArray = this.rawScanline.Array;
@@ -316,7 +311,7 @@ namespace ImageSharp.Formats
                 // Convert the color to YCbCr and store the luminance
                 // Optionally store the original color alpha.
                 int offset = x * this.bytesPerPixel;
-                pixels[x, row].ToXyzwBytes(this.chunkTypeBuffer, 0);
+                rowSpan[x].ToXyzwBytes(this.chunkTypeBuffer, 0);
                 byte luminance = (byte)((0.299F * this.chunkTypeBuffer[0]) + (0.587F * this.chunkTypeBuffer[1]) + (0.114F * this.chunkTypeBuffer[2]));
 
                 for (int i = 0; i < this.bytesPerPixel; i++)
@@ -337,13 +332,10 @@ namespace ImageSharp.Formats
         /// Collects a row of true color pixel data.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="pixels">The image pixel accessor.</param>
-        /// <param name="row">The row index.</param>
-        private void CollecTPixelBytes<TPixel>(PixelAccessor<TPixel> pixels, int row)
+        /// <param name="rowSpan">The row span.</param>
+        private void CollecTPixelBytes<TPixel>(Span<TPixel> rowSpan)
             where TPixel : struct, IPixel<TPixel>
         {
-            Span<TPixel> rowSpan = pixels.GetRowSpan(row);
-
             if (this.bytesPerPixel == 4)
             {
                 PixelOperations<TPixel>.Instance.ToXyzwBytes(rowSpan, this.rawScanline, this.width);
@@ -359,10 +351,10 @@ namespace ImageSharp.Formats
         /// Each scanline is encoded in the most optimal manner to improve compression.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="pixels">The image pixel accessor.</param>
+        /// <param name="rowSpan">The row span.</param>
         /// <param name="row">The row.</param>
         /// <returns>The <see cref="T:byte[]"/></returns>
-        private Buffer<byte> EncodePixelRow<TPixel>(PixelAccessor<TPixel> pixels, int row)
+        private Buffer<byte> EncodePixelRow<TPixel>(Span<TPixel> rowSpan, int row)
             where TPixel : struct, IPixel<TPixel>
         {
             switch (this.pngColorType)
@@ -372,10 +364,10 @@ namespace ImageSharp.Formats
                     break;
                 case PngColorType.Grayscale:
                 case PngColorType.GrayscaleWithAlpha:
-                    this.CollectGrayscaleBytes(pixels, row);
+                    this.CollectGrayscaleBytes(rowSpan);
                     break;
                 default:
-                    this.CollecTPixelBytes(pixels, row);
+                    this.CollecTPixelBytes(rowSpan);
                     break;
             }
 
@@ -637,17 +629,17 @@ namespace ImageSharp.Formats
         /// Writes the pixel information to the stream.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="pixels">The pixel accessor.</param>
+        /// <param name="pixels">The image.</param>
         /// <param name="stream">The stream.</param>
-        private void WriteDataChunks<TPixel>(PixelAccessor<TPixel> pixels, Stream stream)
+        private void WriteDataChunks<TPixel>(Image<TPixel> pixels, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
             this.bytesPerScanline = this.width * this.bytesPerPixel;
             int resultLength = this.bytesPerScanline + 1;
 
-            this.previousScanline = new Buffer<byte>(this.bytesPerScanline);
-            this.rawScanline = new Buffer<byte>(this.bytesPerScanline);
-            this.result = new Buffer<byte>(resultLength);
+            this.previousScanline = Buffer<byte>.CreateClean(this.bytesPerScanline);
+            this.rawScanline = Buffer<byte>.CreateClean(this.bytesPerScanline);
+            this.result = Buffer<byte>.CreateClean(resultLength);
 
             if (this.pngColorType != PngColorType.Palette)
             {
@@ -667,7 +659,7 @@ namespace ImageSharp.Formats
                 {
                     for (int y = 0; y < this.height; y++)
                     {
-                        Buffer<byte> r = this.EncodePixelRow(pixels, y);
+                        Buffer<byte> r = this.EncodePixelRow(pixels.GetRowSpan(y), y);
                         deflateStream.Write(r.Array, 0, resultLength);
 
                         Swap(ref this.rawScanline, ref this.previousScanline);

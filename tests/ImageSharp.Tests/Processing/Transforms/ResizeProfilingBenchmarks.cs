@@ -5,6 +5,7 @@
 
 namespace ImageSharp.Tests.Processing.Transforms
 {
+    using System;
     using System.IO;
     using System.Text;
 
@@ -49,9 +50,10 @@ namespace ImageSharp.Tests.Processing.Transforms
 
             foreach (ResamplingWeightedProcessor<Rgba32>.WeightsWindow window in weights.Weights)
             {
+                Span<float> span = window.GetWindowSpan();
                 for (int i = 0; i < window.Length; i++)
                 {
-                    float value = window.Span[i];
+                    float value = span[i];
                     bld.Append(value);
                     bld.Append("| ");
                 }

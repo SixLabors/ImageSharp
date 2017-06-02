@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26430.6
+VisualStudioVersion = 15.0.26430.12
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SolutionItems", "SolutionItems", "{C317F1B1-D75E-4C6D-83EB-80367343E0D7}"
 	ProjectSection(SolutionItems) = preProject
@@ -21,8 +21,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Shared", "Shared", "{9E574A
 		src\Shared\stylecop.json = src\Shared\stylecop.json
 	EndProjectSection
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Samples", "Samples", "{9F33164A-9EA9-4CB4-A384-A8A0A6DCA35D}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SixLabors.Primitives", "src\SixLabors.Primitives\SixLabors.Primitives.csproj", "{09E744EC-4852-4FC7-BE78-C1B399F17967}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SixLabors.Primitives.Tests", "tests\SixLabors.Primitives.Tests\SixLabors.Primitives.Tests.csproj", "{F836E8E6-B4D9-4208-8346-140C74678B91}"
@@ -41,18 +39,6 @@ Global
 		{F836E8E6-B4D9-4208-8346-140C74678B91}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F836E8E6-B4D9-4208-8346-140C74678B91}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F836E8E6-B4D9-4208-8346-140C74678B91}.Release|Any CPU.Build.0 = Release|Any CPU
-		{999EDFB3-9FE4-4E09-B669-CB02E597EC20}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{999EDFB3-9FE4-4E09-B669-CB02E597EC20}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{999EDFB3-9FE4-4E09-B669-CB02E597EC20}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{999EDFB3-9FE4-4E09-B669-CB02E597EC20}.Release|Any CPU.Build.0 = Release|Any CPU
-		{87E262FA-57FE-4AA7-853C-9DD91E769D4B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{87E262FA-57FE-4AA7-853C-9DD91E769D4B}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{87E262FA-57FE-4AA7-853C-9DD91E769D4B}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{87E262FA-57FE-4AA7-853C-9DD91E769D4B}.Release|Any CPU.Build.0 = Release|Any CPU
-		{32D7A12E-B392-42CE-8EFB-1B685680F5B8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{32D7A12E-B392-42CE-8EFB-1B685680F5B8}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{32D7A12E-B392-42CE-8EFB-1B685680F5B8}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{32D7A12E-B392-42CE-8EFB-1B685680F5B8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -61,9 +47,6 @@ Global
 		{9E574A07-F879-4811-9C41-5CBDC6BAFDB7} = {815C0625-CD3D-440F-9F80-2D83856AB7AE}
 		{09E744EC-4852-4FC7-BE78-C1B399F17967} = {815C0625-CD3D-440F-9F80-2D83856AB7AE}
 		{F836E8E6-B4D9-4208-8346-140C74678B91} = {56801022-D71A-4FBE-BC5B-CBA08E2284EC}
-		{999EDFB3-9FE4-4E09-B669-CB02E597EC20} = {9F33164A-9EA9-4CB4-A384-A8A0A6DCA35D}
-		{87E262FA-57FE-4AA7-853C-9DD91E769D4B} = {56801022-D71A-4FBE-BC5B-CBA08E2284EC}
-		{32D7A12E-B392-42CE-8EFB-1B685680F5B8} = {815C0625-CD3D-440F-9F80-2D83856AB7AE}
 	EndGlobalSection
 	GlobalSection(Performance) = preSolution
 		HasPerformanceSessions = true

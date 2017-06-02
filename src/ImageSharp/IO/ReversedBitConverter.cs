@@ -5,21 +5,23 @@
 
 namespace ImageSharp.IO
 {
+    using System;
+
     /// <summary>
     /// Implementation of EndianBitConverter which converts to/from big-endian byte arrays.
     /// </summary>
-    internal sealed class BigEndianBitConverter : EndianBitConverter
+    internal sealed class ReversedBitConverter : EndianBitConverter
     {
         /// <inheritdoc/>
         public override Endianness Endianness
         {
-            get { return Endianness.BigEndian; }
+            get { return BitConverter.IsLittleEndian ? Endianness.BigEndian : Endianness.LittleEndian; }
         }
 
         /// <inheritdoc/>
         public override bool IsLittleEndian
         {
-            get { return false; }
+            get { return !BitConverter.IsLittleEndian; }
         }
 
         /// <inheritdoc/>

@@ -1,0 +1,13 @@
+# to create a new package you create a new release/tag 
+# in github appveyor will build it without the -cixxx tag 
+# it will then be deployable cleanly to nuget.org
+
+branches:  
+  master:
+    tag: ci
+    mode: ContinuousDeployment
+    increment: Minor
+    prevent-increment-of-merged-branch-version: false
+    track-merge-target: true
+ignore:
+  sha: []

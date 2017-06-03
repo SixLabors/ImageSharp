@@ -347,9 +347,6 @@ namespace SixLabors.Primitives
         /// <returns>
         /// A 32-bit signed integer that is the hash code for this instance.
         /// </returns>
-        private int GetHashCode(LongRational rational)
-        {
-            return ((rational.Numerator * 397) ^ rational.Denominator).GetHashCode();
-        }
+        private int GetHashCode(LongRational rational) => HashHelpers.Combine(rational.Numerator.GetHashCode(), rational.Denominator.GetHashCode());
     }
 }

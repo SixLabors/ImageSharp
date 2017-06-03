@@ -171,13 +171,10 @@ namespace SixLabors.Primitives
         /// </returns>
         private int GetHashCode(Ellipse ellipse)
         {
-            unchecked
-            {
-                int hashCode = ellipse.center.GetHashCode();
-                hashCode = (hashCode * 397) ^ ellipse.RadiusX.GetHashCode();
-                hashCode = (hashCode * 397) ^ ellipse.RadiusY.GetHashCode();
-                return hashCode;
-            }
+            int hashCode = ellipse.center.GetHashCode();
+            hashCode = HashHelpers.Combine(hashCode, ellipse.RadiusX.GetHashCode());
+            hashCode = HashHelpers.Combine(hashCode, ellipse.RadiusY.GetHashCode());
+            return hashCode;
         }
     }
 }

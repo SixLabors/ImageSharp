@@ -8,7 +8,7 @@ namespace ImageSharp.Processing.Processors
     using System;
     using System.Numerics;
     using System.Threading.Tasks;
-
+    using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
 
     /// <summary>
@@ -45,26 +45,26 @@ namespace ImageSharp.Processing.Processors
             int width = this.CanvasRectangle.Width;
             Matrix3x2 matrix = this.GetCenteredMatrix(source, this.processMatrix);
 
-            using (PixelAccessor<TPixel> targetPixels = new PixelAccessor<TPixel>(width, height))
+            using (var targetPixels = new PixelAccessor<TPixel>(width, height))
             {
-                using (PixelAccessor<TPixel> sourcePixels = source.Lock())
-                {
-                    Parallel.For(
-                        0,
-                        height,
-                        this.ParallelOptions,
-                        y =>
+                Parallel.For(
+                    0,
+                    height,
+                    this.ParallelOptions,
+                    y =>
+                    {
+                        Span<TPixel> targetRow = targetPixels.GetRowSpan(y);
+
+                        for (int x = 0; x < width; x++)
                         {
-                            for (int x = 0; x < width; x++)
+                            var transformedPoint = Point.Rotate(new Point(x, y), matrix);
+
+                            if (source.Bounds.Contains(transformedPoint.X, transformedPoint.Y))
                             {
-                                Point transformedPoint = Point.Rotate(new Point(x, y), matrix);
-                                if (source.Bounds.Contains(transformedPoint.X, transformedPoint.Y))
-                                {
-                                    targetPixels[x, y] = sourcePixels[transformedPoint.X, transformedPoint.Y];
-                                }
+                                targetRow[x] = source[transformedPoint.X, transformedPoint.Y];
                             }
-                        });
-                }
+                        }
+                    });
 
                 source.SwapPixelsBuffers(targetPixels);
             }
@@ -78,7 +78,7 @@ namespace ImageSharp.Processing.Processors
                 return;
             }
 
-            this.processMatrix = Point.CreateRotation(new Point(0, 0), -this.Angle);
+            this.processMatrix = Matrix3x2Extensions.CreateRotation(-this.Angle, new Point(0, 0));
             if (this.Expand)
             {
                 this.CreateNewCanvas(sourceRectangle, this.processMatrix);
@@ -128,7 +128,7 @@ namespace ImageSharp.Processing.Processors
             int width = source.Width;
             int height = source.Height;
 
-            using (PixelAccessor<TPixel> targetPixels = new PixelAccessor<TPixel>(height, width))
+            using (var targetPixels = new PixelAccessor<TPixel>(height, width))
             {
                 using (PixelAccessor<TPixel> sourcePixels = source.Lock())
                 {
@@ -161,24 +161,22 @@ namespace ImageSharp.Processing.Processors
             int width = source.Width;
             int height = source.Height;
 
-            using (PixelAccessor<TPixel> targetPixels = new PixelAccessor<TPixel>(width, height))
+            using (var targetPixels = new PixelAccessor<TPixel>(width, height))
             {
-                using (PixelAccessor<TPixel> sourcePixels = source.Lock())
-                {
-                    Parallel.For(
-                        0,
-                        height,
-                        this.ParallelOptions,
-                        y =>
+                Parallel.For(
+                    0,
+                    height,
+                    this.ParallelOptions,
+                    y =>
+                    {
+                        Span<TPixel> sourceRow = source.GetRowSpan(y);
+                        Span<TPixel> targetRow = targetPixels.GetRowSpan(height - y - 1);
+
+                        for (int x = 0; x < width; x++)
                         {
-                            for (int x = 0; x < width; x++)
-                            {
-                                int newX = width - x - 1;
-                                int newY = height - y - 1;
-                                targetPixels[newX, newY] = sourcePixels[x, y];
-                            }
-                        });
-                }
+                            targetRow[width - x - 1] = sourceRow[x];
+                        }
+                    });
 
                 source.SwapPixelsBuffers(targetPixels);
             }
@@ -193,23 +191,21 @@ namespace ImageSharp.Processing.Processors
             int width = source.Width;
             int height = source.Height;
 
-            using (PixelAccessor<TPixel> targetPixels = new PixelAccessor<TPixel>(height, width))
+            using (var targetPixels = new PixelAccessor<TPixel>(height, width))
             {
-                using (PixelAccessor<TPixel> sourcePixels = source.Lock())
-                {
-                    Parallel.For(
-                        0,
-                        height,
-                        this.ParallelOptions,
-                        y =>
+                Parallel.For(
+                    0,
+                    height,
+                    this.ParallelOptions,
+                    y =>
+                    {
+                        Span<TPixel> sourceRow = source.GetRowSpan(y);
+                        int newX = height - y - 1;
+                        for (int x = 0; x < width; x++)
                         {
-                            for (int x = 0; x < width; x++)
-                            {
-                                int newX = height - y - 1;
-                                targetPixels[newX, x] = sourcePixels[x, y];
-                            }
-                        });
-                }
+                            targetPixels[newX, x] = sourceRow[x];
+                        }
+                    });
 
                 source.SwapPixelsBuffers(targetPixels);
             }

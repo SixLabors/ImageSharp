@@ -57,9 +57,9 @@ namespace ImageSharp.Drawing.Brushes
         public TPixel TargeTPixel { get; }
 
         /// <inheritdoc />
-        public BrushApplicator<TPixel> CreateApplicator(PixelAccessor<TPixel> sourcePixels, RectangleF region, GraphicsOptions options)
+        public BrushApplicator<TPixel> CreateApplicator(ImageBase<TPixel> source, RectangleF region, GraphicsOptions options)
         {
-            return new RecolorBrushApplicator(sourcePixels, this.SourceColor, this.TargeTPixel, this.Threshold, options);
+            return new RecolorBrushApplicator(source, this.SourceColor, this.TargeTPixel, this.Threshold, options);
         }
 
         /// <summary>
@@ -87,22 +87,22 @@ namespace ImageSharp.Drawing.Brushes
             /// <summary>
             /// Initializes a new instance of the <see cref="RecolorBrushApplicator" /> class.
             /// </summary>
-            /// <param name="sourcePixels">The source pixels.</param>
+            /// <param name="source">The source image.</param>
             /// <param name="sourceColor">Color of the source.</param>
             /// <param name="targetColor">Color of the target.</param>
             /// <param name="threshold">The threshold .</param>
             /// <param name="options">The options</param>
-            public RecolorBrushApplicator(PixelAccessor<TPixel> sourcePixels, TPixel sourceColor, TPixel targetColor, float threshold, GraphicsOptions options)
-                : base(sourcePixels, options)
+            public RecolorBrushApplicator(ImageBase<TPixel> source, TPixel sourceColor, TPixel targetColor, float threshold, GraphicsOptions options)
+                : base(source, options)
             {
                 this.sourceColor = sourceColor.ToVector4();
                 this.targetColor = targetColor.ToVector4();
                 this.targetColorPixel = targetColor;
 
-                // Lets hack a min max extreams for a color space by letteing the IPackedPixel clamp our values to something in the correct spaces :)
-                TPixel maxColor = default(TPixel);
+                // Lets hack a min max extreams for a color space by letting the IPackedPixel clamp our values to something in the correct spaces :)
+                var maxColor = default(TPixel);
                 maxColor.PackFromVector4(new Vector4(float.MaxValue));
-                TPixel minColor = default(TPixel);
+                var minColor = default(TPixel);
                 minColor.PackFromVector4(new Vector4(float.MinValue));
                 this.threshold = Vector4.DistanceSquared(maxColor.ToVector4(), minColor.ToVector4()) * threshold;
             }
@@ -121,7 +121,7 @@ namespace ImageSharp.Drawing.Brushes
                 {
                     // Offset the requested pixel by the value in the rectangle (the shapes position)
                     TPixel result = this.Target[x, y];
-                    Vector4 background = result.ToVector4();
+                    var background = result.ToVector4();
                     float distance = Vector4.DistanceSquared(background, this.sourceColor);
                     if (distance <= this.threshold)
                     {
@@ -144,8 +144,8 @@ namespace ImageSharp.Drawing.Brushes
             /// <inheritdoc />
             internal override void Apply(Span<float> scanline, int x, int y)
             {
-                using (Buffer<float> amountBuffer = new Buffer<float>(scanline.Length))
-                using (Buffer<TPixel> overlay = new Buffer<TPixel>(scanline.Length))
+                using (var amountBuffer = new Buffer<float>(scanline.Length))
+                using (var overlay = new Buffer<TPixel>(scanline.Length))
                 {
                     for (int i = 0; i < scanline.Length; i++)
                     {

@@ -66,12 +66,11 @@ namespace ImageSharp.Drawing.Processors
 
             int width = maxX - minX;
 
-            // we could possibly do some optermising by having knowledge about the individual brushes operate
+            // We could possibly do some optimization by having knowledge about the individual brushes operate
             // for example If brush is SolidBrush<TPixel> then we could just get the color upfront
             // and skip using the IBrushApplicator<TPixel>?.
-            using (PixelAccessor<TPixel> sourcePixels = source.Lock())
-            using (Buffer<float> amount = new Buffer<float>(width))
-            using (BrushApplicator<TPixel> applicator = this.brush.CreateApplicator(sourcePixels, sourceRectangle, this.options))
+            using (var amount = new Buffer<float>(width))
+            using (BrushApplicator<TPixel> applicator = this.brush.CreateApplicator(source, sourceRectangle, this.options))
             {
                     for (int i = 0; i < width; i++)
                     {

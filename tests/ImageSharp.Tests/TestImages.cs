@@ -36,9 +36,20 @@ namespace ImageSharp.Tests
             // Filter changing per scanline
             public const string FilterVar = "Png/filterVar.png";
 
-            // Odd chunk lengths
-            public const string ChunkLength1 = "Png/chunklength1.png";
-            public const string ChunkLength2 = "Png/chunklength2.png";
+            public static class Bad
+            {
+                // Odd chunk lengths
+                public const string ChunkLength1 = "Png/chunklength1.png";
+                public const string ChunkLength2 = "Png/chunklength2.png";
+            }
+
+            public static readonly string[] All =
+            {
+                P1, Pd, Blur, Splash, Cross,
+                Powerpoint, SplashInterlaced, Interlaced,
+                Filter0, Filter1, Filter2, Filter3, Filter4,
+                FilterVar
+            };
         }
 
         public static class Jpeg
@@ -105,6 +116,8 @@ namespace ImageSharp.Tests
             public const string Giphy = "Gif/giphy.gif";
             public const string Cheers = "Gif/cheers.gif";
             public const string Trans = "Gif/trans.gif";
+
+            public static readonly string[] All = { Rings, Giphy, Cheers, Trans };
         }
     }
 }

@@ -29,7 +29,7 @@ namespace ImageSharp.Memory
         }
 
         /// <summary>
-        /// Gets a <see cref="Span{T}"/> to the row 'y' beginning from the pixel at 'x'.
+        /// Gets a <see cref="Span{T}"/> to the row 'y' beginning from the pixel at the first pixel on that row.
         /// </summary>
         /// <param name="buffer">The buffer</param>
         /// <param name="y">The y (row) coordinate</param>

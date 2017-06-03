@@ -21,25 +21,40 @@ namespace ImageSharp.Tests
 
         protected readonly PixelTypes PixelTypes;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ImageDataAttributeBase"/> class.
+        /// </summary>
+        /// <param name="memberName"></param>
+        /// <param name="pixelTypes"></param>
+        /// <param name="additionalParameters"></param>
         protected ImageDataAttributeBase(string memberName, PixelTypes pixelTypes, object[] additionalParameters)
         {
             this.PixelTypes = pixelTypes;
             this.AdditionalParameters = additionalParameters;
             this.MemberName = memberName;
-
         }
 
-        public string MemberName { get; private set; }
+        /// <summary>
+        /// Gets the member name
+        /// </summary>
+        public string MemberName { get; }
 
+        /// <summary>
+        /// Gets the member type
+        /// </summary>
         public Type MemberType { get; set; }
 
+        /// <summary>Returns the data to be used to test the theory.</summary>
+        /// <param name="testMethod">The method that is being tested</param>
+        /// <returns>One or more sets of theory data. Each invocation of the test method
+        /// is represented by a single object array.</returns>
         public override IEnumerable<object[]> GetData(MethodInfo testMethod)
         {
-            IEnumerable<object[]> addedRows = Enumerable.Empty<object[]>();
+            IEnumerable<object[]> addedRows = Enumerable.Empty<object[]>().ToArray();
             if (!string.IsNullOrWhiteSpace(this.MemberName))
             {
                 Type type = this.MemberType ?? testMethod.DeclaringType;
-                Func<object> accessor = GetPropertyAccessor(type) ?? GetFieldAccessor(type);// ?? GetMethodAccessor(type);
+                Func<object> accessor = this.GetPropertyAccessor(type) ?? this.GetFieldAccessor(type);
 
                 if (accessor != null)
                 {
@@ -49,7 +64,7 @@ namespace ImageSharp.Tests
                         addedRows = memberItems.Select(x => x as object[]);
                         if (addedRows.Any(x => x == null))
                         {
-                            throw new ArgumentException($"Property {MemberName} on {MemberType ?? testMethod.DeclaringType} yielded an item that is not an object[]");
+                            throw new ArgumentException($"Property {this.MemberName} on {this.MemberType ?? testMethod.DeclaringType} yielded an item that is not an object[]");
                         }
                     }
                 }
@@ -60,18 +75,20 @@ namespace ImageSharp.Tests
                 addedRows = new[] { new object[0] };
             }
 
-            bool firstIsprovider = FirstIsProvider(testMethod);
-            IEnumerable<object[]> dataItems = Enumerable.Empty<object[]>();
+            bool firstIsprovider = this.FirstIsProvider(testMethod);
             if (firstIsprovider)
             {
-                return InnerGetData(testMethod, addedRows);
+                return this.InnerGetData(testMethod, addedRows);
             }
-            else
-            {
-                return addedRows.Select(x => x.Concat(this.AdditionalParameters).ToArray());
-            }
+
+            return addedRows.Select(x => x.Concat(this.AdditionalParameters).ToArray());
         }
 
+        /// <summary>
+        /// Returns a value indicating whether the first parameter of the method is a test provider.
+        /// </summary>
+        /// <param name="testMethod"></param>
+        /// <returns></returns>
         private bool FirstIsProvider(MethodInfo testMethod)
         {
             TypeInfo dataType = testMethod.GetParameters().First().ParameterType.GetTypeInfo();
@@ -106,25 +123,45 @@ namespace ImageSharp.Tests
             }
         }
 
+        /// <summary>
+        /// Generates the collection of method arguments from the given test as a generic enumerable.
+        /// </summary>
+        /// <param name="testMethod">The test method</param>
+        /// <param name="factoryType">The test image provider factory type</param>
+        /// <returns>The <see cref="IEnumerable{T}"/></returns>
         protected virtual IEnumerable<object[]> GetAllFactoryMethodArgs(MethodInfo testMethod, Type factoryType)
         {
             object[] args = this.GetFactoryMethodArgs(testMethod, factoryType);
             return Enumerable.Repeat(args, 1);
         }
 
+        /// <summary>
+        /// Generates the collection of method arguments from the given test.
+        /// </summary>
+        /// <param name="testMethod">The test method</param>
+        /// <param name="factoryType">The test image provider factory type</param>
+        /// <returns>The <see cref="T:object[]"/></returns>
         protected virtual object[] GetFactoryMethodArgs(MethodInfo testMethod, Type factoryType)
         {
             throw new InvalidOperationException("Semi-abstract method");
         }
 
+        /// <summary>
+        /// Generates the method name from the given test method.
+        /// </summary>
+        /// <param name="testMethod">The test method</param>
+        /// <returns>The <see cref="string"/></returns>
         protected abstract string GetFactoryMethodName(MethodInfo testMethod);
 
+        /// <summary>
+        /// Gets the field accessor for the given type.
+        /// </summary>
         Func<object> GetFieldAccessor(Type type)
         {
             FieldInfo fieldInfo = null;
             for (Type reflectionType = type; reflectionType != null; reflectionType = reflectionType.GetTypeInfo().BaseType)
             {
-                fieldInfo = reflectionType.GetRuntimeField(MemberName);
+                fieldInfo = reflectionType.GetRuntimeField(this.MemberName);
                 if (fieldInfo != null)
                     break;
             }
@@ -135,39 +172,27 @@ namespace ImageSharp.Tests
             return () => fieldInfo.GetValue(null);
         }
 
-        //Func<object> GetMethodAccessor(Type type)
-        //{
-        //    MethodInfo methodInfo = null;
-        //    var parameterTypes = Parameters == null ? new Type[0] : Parameters.Select(p => p?.GetType()).ToArray();
-        //    for (var reflectionType = type; reflectionType != null; reflectionType = reflectionType.GetTypeInfo().BaseType)
-        //    {
-        //        methodInfo = reflectionType.GetRuntimeMethods()
-        //                                   .FirstOrDefault(m => m.Name == MemberName && ParameterTypesCompatible(m.GetParameters(), parameterTypes));
-        //        if (methodInfo != null)
-        //            break;
-        //    }
-
-        //    if (methodInfo == null || !methodInfo.IsStatic)
-        //        return null;
-
-        //    return () => methodInfo.Invoke(null, Parameters);
-        //}
-
+        /// <summary>
+        /// Gets the property accessor for the given type.
+        /// </summary>
         Func<object> GetPropertyAccessor(Type type)
         {
             PropertyInfo propInfo = null;
             for (Type reflectionType = type; reflectionType != null; reflectionType = reflectionType.GetTypeInfo().BaseType)
             {
-                propInfo = reflectionType.GetRuntimeProperty(MemberName);
+                propInfo = reflectionType.GetRuntimeProperty(this.MemberName);
                 if (propInfo != null)
+                {
                     break;
+                }
             }
 
-            if (propInfo == null || propInfo.GetMethod == null || !propInfo.GetMethod.IsStatic)
+            if (propInfo?.GetMethod == null || !propInfo.GetMethod.IsStatic)
+            {
                 return null;
+            }
 
             return () => propInfo.GetValue(null, null);
         }
-
     }
 }

@@ -49,12 +49,13 @@ namespace ImageSharp.Memory
             // ReSharper disable once SuspiciousTypeConversion.Global
             if (default(T) is IPixel)
             {
-                const int MaximumExpectedImageSize = 16384;
-                return MaximumExpectedImageSize * MaximumExpectedImageSize;
+                const int MaximumExpectedImageSize = 16384 * 16384;
+                return MaximumExpectedImageSize;
             }
             else
             {
-                return int.MaxValue;
+                const int MaxArrayLength = 1024 * 1024; // Match default pool.
+                return MaxArrayLength;
             }
         }
     }

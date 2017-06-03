@@ -36,7 +36,7 @@ namespace ImageSharp.Quantizers
         /// <summary>
         /// Maximum allowed color depth
         /// </summary>
-        private int colors;
+        private byte colors;
 
         /// <summary>
         /// The reduced image palette
@@ -58,7 +58,7 @@ namespace ImageSharp.Quantizers
         /// <inheritdoc/>
         public override QuantizedImage<TPixel> Quantize(ImageBase<TPixel> image, int maxColors)
         {
-            this.colors = maxColors.Clamp(1, 255);
+            this.colors = (byte)maxColors.Clamp(1, 255);
             this.octree = new Octree(this.GetBitsNeededForColorDepth(this.colors));
             this.palette = null;
 
@@ -66,7 +66,7 @@ namespace ImageSharp.Quantizers
         }
 
         /// <inheritdoc/>
-        protected override void SecondPass(PixelAccessor<TPixel> source, byte[] output, int width, int height)
+        protected override void SecondPass(ImageBase<TPixel> source, byte[] output, int width, int height)
         {
             // Load up the values for the first pixel. We can use these to speed up the second
             // pass of the algorithm by avoiding transforming rows of identical color.
@@ -78,11 +78,13 @@ namespace ImageSharp.Quantizers
 
             for (int y = 0; y < height; y++)
             {
+                Span<TPixel> row = source.GetRowSpan(y);
+
                 // And loop through each column
                 for (int x = 0; x < width; x++)
                 {
                     // Get the pixel.
-                    sourcePixel = source[x, y];
+                    sourcePixel = row[x];
 
                     // Check if this is the same as the last pixel. If so use that value
                     // rather than calculating it again. This is an inexpensive optimization.
@@ -121,7 +123,7 @@ namespace ImageSharp.Quantizers
         /// <inheritdoc/>
         protected override TPixel[] GetPalette()
         {
-            return this.palette ?? (this.palette = this.octree.Palletize(Math.Max(this.colors, 1)));
+            return this.palette ?? (this.palette = this.octree.Palletize(Math.Max(this.colors, (byte)1)));
         }
 
         /// <summary>
@@ -139,6 +141,12 @@ namespace ImageSharp.Quantizers
                 // The colors have changed so we need to use Euclidean distance caclulation to find the closest value.
                 // This palette can never be null here.
                 return this.GetClosestPixel(pixel, this.palette, this.colorMap);
+            }
+
+            pixel.ToXyzwBytes(this.pixelBuffer, 0);
+            if (this.pixelBuffer[3] == 0)
+            {
+                return this.colors;
             }
 
             return (byte)this.octree.GetPaletteIndex(pixel, this.pixelBuffer);
@@ -490,7 +498,7 @@ namespace ImageSharp.Quantizers
                         byte b = (this.blue / this.pixelCount).ToByte();
 
                         // And set the color of the palette entry
-                        TPixel pixel = default(TPixel);
+                        var pixel = default(TPixel);
                         pixel.PackFromBytes(r, g, b, 255);
                         palette[index] = pixel;
 

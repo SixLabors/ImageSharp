@@ -26,6 +26,11 @@ namespace SixLabors.Primitives
         public static readonly Point Empty = default(Point);
 
         /// <summary>
+        /// Represents a <see cref="Point"/> that has X and Y values set to zero.
+        /// </summary>
+        public static readonly Point Zero = new Point(0, 0);
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="Point"/> struct.
         /// </summary>
         /// <param name="value">The horizontal and vertical position of the point.</param>
@@ -94,6 +99,13 @@ namespace SixLabors.Primitives
         /// <param name="point">The point</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static explicit operator Size(Point point) => new Size(point.X, point.Y);
+
+        /// <summary>
+        /// Negates the given point by multiplying all values by -1.
+        /// </summary>
+        /// <param name="value">The source point.</param>
+        /// <returns>The negated point.</returns>
+        public static Point operator -(Point value) => new Point(-value.X, -value.Y);
 
         /// <summary>
         /// Translates a <see cref="Point"/> by a given <see cref="Size"/>.
@@ -252,6 +264,17 @@ namespace SixLabors.Primitives
 
         private static short LowInt16(int n) => unchecked((short)(n & 0xffff));
 
-        private int GetHashCode(Point point) => point.X ^ point.Y;
+        private int GetHashCode(Point point) => HashHelpers.Combine(point.X.GetHashCode(), point.Y.GetHashCode());
+
+        /// <summary>
+        /// Transforms a point by the given matrix.
+        /// </summary>
+        /// <param name="position"> The source point</param>
+        /// <param name="matrix">The transformation matrix.</param>
+        /// <returns></returns>
+        public static PointF Transform(Point position, Matrix matrix)
+        {
+            return Vector2.Transform(position, matrix);
+        }
     }
 }

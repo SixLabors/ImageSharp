@@ -3,7 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace SixLabors.Primitives.Tests.Numerics
+namespace SixLabors.Primitives.Tests
 {
     using System;
     using System.Globalization;

@@ -26,6 +26,11 @@ namespace SixLabors.Primitives
         public static readonly PointF Empty = default(PointF);
 
         /// <summary>
+        /// Represents a <see cref="PointF"/> that has X and Y values set to zero.
+        /// </summary>
+        public static readonly PointF Zero = new PointF(0, 0);
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="PointF"/> struct.
         /// </summary>
         /// <param name="x">The horizontal position of the point.</param>
@@ -94,6 +99,13 @@ namespace SixLabors.Primitives
         public static explicit operator Point(PointF point) => Point.Truncate(point);
 
         /// <summary>
+        /// Negates the given point by multiplying all values by -1.
+        /// </summary>
+        /// <param name="value">The source point.</param>
+        /// <returns>The negated point.</returns>
+        public static PointF operator -(PointF value) => new PointF(-value.X, -value.Y);
+
+        /// <summary>
         /// Translates a <see cref="PointF"/> by a given <see cref="SizeF"/>.
         /// </summary>
         /// <param name="point">The point on the left hand of the operand.</param>
@@ -103,6 +115,26 @@ namespace SixLabors.Primitives
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static PointF operator +(PointF point, SizeF size) => Add(point, size);
+
+        /// <summary>
+        /// Translates a <see cref="PointF"/> by the negative of a given <see cref="SizeF"/>.
+        /// </summary>
+        /// <param name="point">The point on the left hand of the operand.</param>
+        /// <param name="size">The size on the right hand of the operand.</param>
+        /// <returns>The <see cref="PointF"/></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static PointF operator -(PointF point, PointF size) => Subtract(point, size);
+
+        /// <summary>
+        /// Translates a <see cref="PointF"/> by a given <see cref="SizeF"/>.
+        /// </summary>
+        /// <param name="point">The point on the left hand of the operand.</param>
+        /// <param name="size">The size on the right hand of the operand.</param>
+        /// <returns>
+        /// The <see cref="PointF"/>
+        /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static PointF operator +(PointF point, PointF size) => Add(point, size);
 
         /// <summary>
         /// Translates a <see cref="PointF"/> by the negative of a given <see cref="SizeF"/>.
@@ -144,13 +176,22 @@ namespace SixLabors.Primitives
         public static bool operator !=(PointF left, PointF right) => !left.Equals(right);
 
         /// <summary>
-        /// Translates a <see cref="PointF"/> by the negative of a given <see cref="SizeF"/>.
+        /// Translates a <see cref="PointF"/> by the given <see cref="SizeF"/>.
         /// </summary>
         /// <param name="point">The point on the left hand of the operand.</param>
         /// <param name="size">The size on the right hand of the operand.</param>
         /// <returns>The <see cref="PointF"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static PointF Add(PointF point, SizeF size) => new PointF(point.X + size.Width, point.Y + size.Height);
+
+        /// <summary>
+        /// Translates a <see cref="PointF"/> by the given <see cref="PointF"/>.
+        /// </summary>
+        /// <param name="point">The point on the left hand of the operand.</param>
+        /// <param name="pointb">The point on the right hand of the operand.</param>
+        /// <returns>The <see cref="PointF"/></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static PointF Add(PointF point, PointF pointb) => new PointF(point.X + pointb.X, point.Y + pointb.Y);
 
         /// <summary>
         /// Translates a <see cref="PointF"/> by the negative of a given <see cref="SizeF"/>.
@@ -160,6 +201,15 @@ namespace SixLabors.Primitives
         /// <returns>The <see cref="PointF"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static PointF Subtract(PointF point, SizeF size) => new PointF(point.X - size.Width, point.Y - size.Height);
+
+        /// <summary>
+        /// Translates a <see cref="PointF"/> by the negative of a given <see cref="PointF"/>.
+        /// </summary>
+        /// <param name="point">The point on the left hand of the operand.</param>
+        /// <param name="pointb">The point on the right hand of the operand.</param>
+        /// <returns>The <see cref="PointF"/></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static PointF Subtract(PointF point, PointF pointb) => new PointF(point.X - pointb.X, point.Y - pointb.Y);
 
         /// <summary>
         /// Rotates a point around the given rotation matrix.
@@ -228,6 +278,17 @@ namespace SixLabors.Primitives
         /// <returns>
         /// A 32-bit signed integer that is the hash code for this instance.
         /// </returns>
-        private int GetHashCode(PointF point) => point.X.GetHashCode() ^ point.Y.GetHashCode();
+        private int GetHashCode(PointF point) => HashHelpers.Combine(point.X.GetHashCode(), point.Y.GetHashCode());
+
+        /// <summary>
+        /// Transforms a point by the given matrix.
+        /// </summary>
+        /// <param name="position"> The source point</param>
+        /// <param name="matrix">The transformation matrix.</param>
+        /// <returns></returns>
+        public static PointF Transform(PointF position, Matrix matrix)
+        {
+            return Vector2.Transform(position, matrix);
+        }
     }
 }

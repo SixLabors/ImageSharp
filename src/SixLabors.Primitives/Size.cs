@@ -7,6 +7,7 @@ namespace SixLabors.Primitives
 {
     using System;
     using System.ComponentModel;
+    using System.Numerics;
     using System.Runtime.CompilerServices;
 
     /// <summary>
@@ -22,6 +23,11 @@ namespace SixLabors.Primitives
         /// Represents a <see cref="Size"/> that has Width and Height values set to zero.
         /// </summary>
         public static readonly Size Empty = default(Size);
+        /// <summary>
+        /// Represents a <see cref="Size"/> that has Width and Height values set to zero.
+        /// </summary>
+        public static readonly Size Zero = new Size(0, 0);
+
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Size"/> struct.
@@ -220,6 +226,19 @@ namespace SixLabors.Primitives
         /// <returns>
         /// A 32-bit signed integer that is the hash code for this instance.
         /// </returns>
-        private int GetHashCode(Size size) => size.Width ^ size.Height;
+        private int GetHashCode(Size size) => HashHelpers.Combine(size.Width.GetHashCode(), size.Height.GetHashCode());
+
+        /// <summary>
+        /// Transforms a size by the given matrix.
+        /// </summary>
+        /// <param name="size">The source size</param>
+        /// <param name="matrix">The transformation matrix.</param>
+        /// <returns></returns>
+        public static SizeF Transform(Size size, Matrix matrix)
+        {
+            var v = Vector2.Transform(new Vector2(size.Width, size.Height), matrix);
+
+            return new SizeF(v.X, v.Y);
+        }
     }
 }

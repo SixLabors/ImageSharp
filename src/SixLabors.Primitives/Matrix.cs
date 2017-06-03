@@ -32,9 +32,43 @@ namespace SixLabors.Primitives
         public bool IsIdentity => this.backingMatrix.IsIdentity;
 
         /// <summary>
-        /// Gets or sets the translation component of this matrix.
+        /// Gets or Sets the translation component of this matrix.
         /// </summary>
-        public Vector2 Translation => this.backingMatrix.Translation;
+        public PointF Translation
+        {
+            get => this.backingMatrix.Translation;
+            set => this.backingMatrix.Translation = value;
+        }
+
+        /// <summary>
+        /// The first element of the first row
+        /// </summary>
+        public float M11 { get => this.backingMatrix.M11; set => this.backingMatrix.M11 = value; }
+
+        /// <summary>
+        /// The second element of the first row
+        /// </summary>
+        public float M12 { get => this.backingMatrix.M12; set => this.backingMatrix.M12 = value; }
+
+        /// <summary>
+        /// The first element of the second row
+        /// </summary>
+        public float M21 { get => this.backingMatrix.M21; set => this.backingMatrix.M21 = value; }
+
+        /// <summary>
+        /// The second element of the second row
+        /// </summary>
+        public float M22 { get => this.backingMatrix.M22; set => this.backingMatrix.M22 = value; }
+
+        /// <summary>
+        /// The first element of the third row
+        /// </summary>
+        public float M31 { get => this.backingMatrix.M31; set => this.backingMatrix.M31 = value; }
+
+        /// <summary>
+        /// The second element of the third row
+        /// </summary>
+        public float M32 { get => this.backingMatrix.M32; set => this.backingMatrix.M32 = value; }
 
         /// <summary>
         /// Constructs a Matrix3x2 from the given components.
@@ -122,7 +156,7 @@ namespace SixLabors.Primitives
         /// <param name="degreesX">The X angle, in degrees.</param>
         /// <param name="degreesY">The Y angle, in degrees.</param>
         /// <returns>A skew matrix.</returns>
-        public static Matrix CreateSkewDegrees(float degreesX, float degreesY) => Matrix3x2.CreateSkew(MathF.DegreeToRadian(degreesX), MathF.DegreeToRadian(degreesY));
+        public static Matrix CreateSkewDegrees(float degreesX, float degreesY) => Matrix3x2.CreateSkew(MathF.ToRadians(degreesX), MathF.ToRadians(degreesY));
 
         /// <summary>
         /// Creates a skew matrix from the given angles in radians and a center point.
@@ -140,7 +174,7 @@ namespace SixLabors.Primitives
         /// <param name="degreesY">The Y angle, in degrees.</param>
         /// <param name="centerPoint">The center point.</param>
         /// <returns>A skew matrix.</returns>
-        public static Matrix CreateSkewDegrees(float degreesX, float degreesY, PointF centerPoint) => Matrix3x2.CreateSkew(MathF.DegreeToRadian(degreesX), MathF.DegreeToRadian(degreesY), centerPoint);
+        public static Matrix CreateSkewDegrees(float degreesX, float degreesY, PointF centerPoint) => Matrix3x2.CreateSkew(MathF.ToRadians(degreesX), MathF.ToRadians(degreesY), centerPoint);
 
         /// <summary>
         /// Creates a rotation matrix using the given rotation in radians.
@@ -154,7 +188,7 @@ namespace SixLabors.Primitives
         /// </summary>
         /// <param name="degrees">The amount of rotation, in degrees.</param>
         /// <returns>A rotation matrix.</returns>
-        public static Matrix CreateRotationDegrees(float degrees) => System.Numerics.Matrix3x2.CreateRotation(MathF.DegreeToRadian(degrees));
+        public static Matrix CreateRotationDegrees(float degrees) => System.Numerics.Matrix3x2.CreateRotation(MathF.ToRadians(degrees));
 
         /// <summary>
         /// Creates a rotation matrix using the given rotation in radians and a center point.
@@ -170,7 +204,7 @@ namespace SixLabors.Primitives
         /// <param name="degrees">The amount of rotation, in degrees.</param>
         /// <param name="centerPoint">The center point.</param>
         /// <returns>A rotation matrix.</returns>
-        public static Matrix CreateRotationDegrees(float degrees, PointF centerPoint) => Matrix3x2.CreateRotation(MathF.DegreeToRadian(degrees), centerPoint);
+        public static Matrix CreateRotationDegrees(float degrees, PointF centerPoint) => Matrix3x2.CreateRotation(MathF.ToRadians(degrees), centerPoint);
 
         /// <summary>
         /// Calculates the determinant for this matrix. 
@@ -356,5 +390,10 @@ namespace SixLabors.Primitives
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static implicit operator Matrix(Matrix3x2 matrix) => new Matrix { backingMatrix = matrix };
+
+        internal static Matrix CreateScale(Vector2 scale, object zero)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

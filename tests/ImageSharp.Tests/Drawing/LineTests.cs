@@ -38,7 +38,7 @@ namespace ImageSharp.Tests.Drawing
 
                 using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
                 {
-                    Assert.Equal(Rgba32.HotPink, sourcePixels[9, 9]);
+                    Assert.Equal(Rgba32.HotPink, sourcePixels[11, 11]);
 
                     Assert.Equal(Rgba32.HotPink, sourcePixels[199, 149]);
 
@@ -69,7 +69,7 @@ namespace ImageSharp.Tests.Drawing
 
                 using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
                 {
-                    Assert.Equal(Rgba32.HotPink, sourcePixels[9, 9]);
+                    Assert.Equal(Rgba32.HotPink, sourcePixels[11, 11]);
 
                     Assert.Equal(Rgba32.HotPink, sourcePixels[199, 149]);
 
@@ -187,7 +187,7 @@ namespace ImageSharp.Tests.Drawing
 
             using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
             {
-                Assert.Equal(mergedColor, sourcePixels[9, 9]);
+                Assert.Equal(mergedColor, sourcePixels[11, 11]);
 
                 Assert.Equal(mergedColor, sourcePixels[199, 149]);
 
@@ -217,7 +217,7 @@ namespace ImageSharp.Tests.Drawing
 
             using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
             {
-                Assert.Equal(Rgba32.HotPink, sourcePixels[8, 8]);
+                Assert.Equal(Rgba32.HotPink, sourcePixels[11, 11]);
 
                 Assert.Equal(Rgba32.HotPink, sourcePixels[198, 10]);
 

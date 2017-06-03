@@ -89,7 +89,7 @@ namespace ImageSharp.Tests
         [InlineData(PixelTypes.Rgba32, typeof(Rgba32))]
         [InlineData(PixelTypes.Argb32, typeof(Argb32))]
         [InlineData(PixelTypes.HalfVector4, typeof(HalfVector4))]
-        [InlineData(PixelTypes.StandardImageClass, typeof(Rgba32))]
+        [InlineData(PixelTypes.Rgba32, typeof(Rgba32))]
         public void ToType(PixelTypes pt, Type expectedType)
         {
             Assert.Equal(pt.ToType(), expectedType);
@@ -114,17 +114,16 @@ namespace ImageSharp.Tests
         [Fact]
         public void ToTypes()
         {
-            PixelTypes pixelTypes = PixelTypes.Alpha8 | PixelTypes.Bgr565 | PixelTypes.Rgba32 | PixelTypes.HalfVector2 | PixelTypes.StandardImageClass;
+            PixelTypes pixelTypes = PixelTypes.Alpha8 | PixelTypes.Bgr565 | PixelTypes.HalfVector2 | PixelTypes.Rgba32;
 
             IEnumerable<KeyValuePair<PixelTypes, Type>> expanded = pixelTypes.ExpandAllTypes();
 
-            Assert.Equal(expanded.Count(), 5);
+            Assert.Equal(expanded.Count(), 4);
 
             AssertContainsPixelType<Alpha8>(PixelTypes.Alpha8, expanded);
             AssertContainsPixelType<Bgr565>(PixelTypes.Bgr565, expanded);
-            AssertContainsPixelType<Rgba32>(PixelTypes.Rgba32, expanded);
             AssertContainsPixelType<HalfVector2>(PixelTypes.HalfVector2, expanded);
-            AssertContainsPixelType<Rgba32>(PixelTypes.StandardImageClass, expanded);
+            AssertContainsPixelType<Rgba32>(PixelTypes.Rgba32, expanded);
         }
 
         [Fact]
@@ -134,7 +133,7 @@ namespace ImageSharp.Tests
 
             Assert.True(expanded.Length >= TestUtilityExtensions.GetAllPixelTypes().Length - 2);
             AssertContainsPixelType<Rgba32>(PixelTypes.Rgba32, expanded);
-            AssertContainsPixelType<Rgba32>(PixelTypes.StandardImageClass, expanded);
+            AssertContainsPixelType<Rgba32>(PixelTypes.Rgba32, expanded);
         }
     }
 }

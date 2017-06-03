@@ -73,26 +73,24 @@ namespace ImageSharp.Processing.Processors
                 float widthFactor = sourceRectangle.Width / (float)this.ResizeRectangle.Width;
                 float heightFactor = sourceRectangle.Height / (float)this.ResizeRectangle.Height;
 
-                using (PixelAccessor<TPixel> targetPixels = new PixelAccessor<TPixel>(width, height))
+                using (var targetPixels = new PixelAccessor<TPixel>(width, height))
                 {
-                    using (PixelAccessor<TPixel> sourcePixels = source.Lock())
-                    {
-                        Parallel.For(
-                            minY,
-                            maxY,
-                            this.ParallelOptions,
-                            y =>
-                            {
-                                // Y coordinates of source points
-                                int originY = (int)(((y - startY) * heightFactor) + sourceY);
+                    Parallel.For(
+                        minY,
+                        maxY,
+                        this.ParallelOptions,
+                        y =>
+                        {
+                            // Y coordinates of source points
+                            Span<TPixel> sourceRow = source.GetRowSpan((int)(((y - startY) * heightFactor) + sourceY));
+                            Span<TPixel> targetRow = targetPixels.GetRowSpan(y);
 
-                                for (int x = minX; x < maxX; x++)
-                                {
-                                    // X coordinates of source points
-                                    targetPixels[x, y] = sourcePixels[(int)(((x - startX) * widthFactor) + sourceX), originY];
-                                }
-                            });
-                    }
+                            for (int x = minX; x < maxX; x++)
+                            {
+                                // X coordinates of source points
+                                targetRow[x] = sourceRow[(int)(((x - startX) * widthFactor) + sourceX)];
+                            }
+                        });
 
                     // Break out now.
                     source.SwapPixelsBuffers(targetPixels);
@@ -106,10 +104,9 @@ namespace ImageSharp.Processing.Processors
             // are the upper and lower bounds of the source rectangle.
 
             // TODO: Using a transposed variant of 'firstPassPixels' could eliminate the need for the WeightsWindow.ComputeWeightedColumnSum() method, and improve speed!
-            using (PixelAccessor<TPixel> targetPixels = new PixelAccessor<TPixel>(width, height))
+            using (var targetPixels = new PixelAccessor<TPixel>(width, height))
             {
-                using (PixelAccessor<TPixel> sourcePixels = source.Lock())
-                using (Buffer2D<Vector4> firstPassPixels = new Buffer2D<Vector4>(width, source.Height))
+                using (var firstPassPixels = new Buffer2D<Vector4>(width, source.Height))
                 {
                     firstPassPixels.Clear();
 
@@ -120,21 +117,18 @@ namespace ImageSharp.Processing.Processors
                         y =>
                             {
                                 // TODO: Without Parallel.For() this buffer object could be reused:
-                                using (Buffer<Vector4> tempRowBuffer = new Buffer<Vector4>(sourcePixels.Width))
+                                using (var tempRowBuffer = new Buffer<Vector4>(source.Width))
                                 {
-                                    Span<TPixel> sourceRow = sourcePixels.GetRowSpan(y);
-
-                                    PixelOperations<TPixel>.Instance.ToVector4(
-                                        sourceRow,
-                                        tempRowBuffer,
-                                        sourceRow.Length);
+                                    Span<Vector4> firstPassRow = firstPassPixels.GetRowSpan(y);
+                                    Span<TPixel> sourceRow = source.GetRowSpan(y);
+                                    PixelOperations<TPixel>.Instance.ToVector4(sourceRow, tempRowBuffer, sourceRow.Length);
 
                                     if (this.Compand)
                                     {
                                         for (int x = minX; x < maxX; x++)
                                         {
                                             WeightsWindow window = this.HorizontalWeights.Weights[x - startX];
-                                            firstPassPixels[x, y] = window.ComputeExpandedWeightedRowSum(tempRowBuffer, sourceX);
+                                            firstPassRow[x] = window.ComputeExpandedWeightedRowSum(tempRowBuffer, sourceX);
                                         }
                                     }
                                     else
@@ -142,7 +136,7 @@ namespace ImageSharp.Processing.Processors
                                         for (int x = minX; x < maxX; x++)
                                         {
                                             WeightsWindow window = this.HorizontalWeights.Weights[x - startX];
-                                            firstPassPixels[x, y] = window.ComputeWeightedRowSum(tempRowBuffer, sourceX);
+                                            firstPassRow[x] = window.ComputeWeightedRowSum(tempRowBuffer, sourceX);
                                         }
                                     }
                                 }
@@ -157,6 +151,7 @@ namespace ImageSharp.Processing.Processors
                         {
                             // Ensure offsets are normalised for cropping and padding.
                             WeightsWindow window = this.VerticalWeights.Weights[y - startY];
+                            Span<TPixel> targetRow = targetPixels.GetRowSpan(y);
 
                             if (this.Compand)
                             {
@@ -165,9 +160,9 @@ namespace ImageSharp.Processing.Processors
                                     // Destination color components
                                     Vector4 destination = window.ComputeWeightedColumnSum(firstPassPixels, x, sourceY);
                                     destination = destination.Compress();
-                                    TPixel d = default(TPixel);
-                                    d.PackFromVector4(destination);
-                                    targetPixels[x, y] = d;
+
+                                    ref TPixel pixel = ref targetRow[x];
+                                    pixel.PackFromVector4(destination);
                                 }
                             }
                             else
@@ -177,9 +172,8 @@ namespace ImageSharp.Processing.Processors
                                     // Destination color components
                                     Vector4 destination = window.ComputeWeightedColumnSum(firstPassPixels, x, sourceY);
 
-                                    TPixel d = default(TPixel);
-                                    d.PackFromVector4(destination);
-                                    targetPixels[x, y] = d;
+                                    ref TPixel pixel = ref targetRow[x];
+                                    pixel.PackFromVector4(destination);
                                 }
                             }
                         });

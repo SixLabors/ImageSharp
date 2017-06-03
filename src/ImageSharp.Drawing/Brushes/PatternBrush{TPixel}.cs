@@ -62,8 +62,8 @@ namespace ImageSharp.Drawing.Brushes
         /// <param name="pattern">The pattern.</param>
         internal PatternBrush(TPixel foreColor, TPixel backColor, Fast2DArray<bool> pattern)
         {
-            Vector4 foreColorVector = foreColor.ToVector4();
-            Vector4 backColorVector = backColor.ToVector4();
+            var foreColorVector = foreColor.ToVector4();
+            var backColorVector = backColor.ToVector4();
             this.pattern = new Fast2DArray<TPixel>(pattern.Width, pattern.Height);
             this.patternVector = new Fast2DArray<Vector4>(pattern.Width, pattern.Height);
             for (int i = 0; i < pattern.Data.Length; i++)
@@ -92,9 +92,9 @@ namespace ImageSharp.Drawing.Brushes
         }
 
         /// <inheritdoc />
-        public BrushApplicator<TPixel> CreateApplicator(PixelAccessor<TPixel> sourcePixels, RectangleF region, GraphicsOptions options)
+        public BrushApplicator<TPixel> CreateApplicator(ImageBase<TPixel> source, RectangleF region, GraphicsOptions options)
         {
-            return new PatternBrushApplicator(sourcePixels, this.pattern, this.patternVector, options);
+            return new PatternBrushApplicator(source, this.pattern, this.patternVector, options);
         }
 
         /// <summary>
@@ -111,12 +111,12 @@ namespace ImageSharp.Drawing.Brushes
             /// <summary>
             /// Initializes a new instance of the <see cref="PatternBrushApplicator" /> class.
             /// </summary>
-            /// <param name="sourcePixels">The sourcePixels.</param>
+            /// <param name="source">The source image.</param>
             /// <param name="pattern">The pattern.</param>
             /// <param name="patternVector">The patternVector.</param>
             /// <param name="options">The options</param>
-            public PatternBrushApplicator(PixelAccessor<TPixel> sourcePixels, Fast2DArray<TPixel> pattern, Fast2DArray<Vector4> patternVector, GraphicsOptions options)
-                : base(sourcePixels, options)
+            public PatternBrushApplicator(ImageBase<TPixel> source, Fast2DArray<TPixel> pattern, Fast2DArray<Vector4> patternVector, GraphicsOptions options)
+                : base(source, options)
             {
                 this.pattern = pattern;
                 this.patternVector = patternVector;
@@ -152,8 +152,8 @@ namespace ImageSharp.Drawing.Brushes
             internal override void Apply(Span<float> scanline, int x, int y)
             {
                 int patternY = y % this.pattern.Height;
-                using (Buffer<float> amountBuffer = new Buffer<float>(scanline.Length))
-                using (Buffer<TPixel> overlay = new Buffer<TPixel>(scanline.Length))
+                using (var amountBuffer = new Buffer<float>(scanline.Length))
+                using (var overlay = new Buffer<TPixel>(scanline.Length))
                 {
                     for (int i = 0; i < scanline.Length; i++)
                     {

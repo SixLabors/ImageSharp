@@ -72,7 +72,7 @@ namespace ImageSharp.Tests
 
             Image<Rgba32>[] testImages =
                 testFiles.Select(
-                        tf => TestImageProvider<Rgba32>.File(tf, pixelTypeOverride: PixelTypes.StandardImageClass).GetImage())
+                        tf => TestImageProvider<Rgba32>.File(tf, pixelTypeOverride: PixelTypes.Rgba32).GetImage())
                     .ToArray();
 
             using (MemoryStream ms = new MemoryStream())

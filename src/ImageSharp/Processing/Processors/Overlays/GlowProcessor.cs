@@ -52,7 +52,7 @@ namespace ImageSharp.Processing.Processors
             int startX = sourceRectangle.X;
             int endX = sourceRectangle.Right;
             TPixel glowColor = this.GlowColor;
-            Vector2 centre = Rectangle.Center(sourceRectangle).ToVector2();
+            Vector2 centre = Rectangle.Center(sourceRectangle);
             float maxDistance = this.Radius > 0 ? MathF.Min(this.Radius, sourceRectangle.Width * .5F) : sourceRectangle.Width * .5F;
 
             // Align start/end positions.
@@ -73,8 +73,7 @@ namespace ImageSharp.Processing.Processors
             }
 
             int width = maxX - minX;
-            using (Buffer<TPixel> rowColors = new Buffer<TPixel>(width))
-            using (PixelAccessor<TPixel> sourcePixels = source.Lock())
+            using (var rowColors = new Buffer<TPixel>(width))
             {
                 for (int i = 0; i < width; i++)
                 {
@@ -82,26 +81,26 @@ namespace ImageSharp.Processing.Processors
                 }
 
                 Parallel.For(
-                         minY,
-                         maxY,
-                         this.ParallelOptions,
-                         y =>
-                         {
-                             using (Buffer<float> amounts = new Buffer<float>(width))
-                             {
-                                 int offsetY = y - startY;
-                                 int offsetX = minX - startX;
-                                 for (int i = 0; i < width; i++)
-                                 {
-                                     float distance = Vector2.Distance(centre, new Vector2(i + offsetX, offsetY));
-                                     amounts[i] = (this.options.BlendPercentage * (1 - (.95F * (distance / maxDistance)))).Clamp(0, 1);
-                                 }
+                    minY,
+                    maxY,
+                    this.ParallelOptions,
+                    y =>
+                    {
+                        using (var amounts = new Buffer<float>(width))
+                        {
+                            int offsetY = y - startY;
+                            int offsetX = minX - startX;
+                            for (int i = 0; i < width; i++)
+                            {
+                                float distance = Vector2.Distance(centre, new Vector2(i + offsetX, offsetY));
+                                amounts[i] = (this.options.BlendPercentage * (1 - (.95F * (distance / maxDistance)))).Clamp(0, 1);
+                            }
 
-                                 Span<TPixel> destination = sourcePixels.GetRowSpan(offsetY).Slice(offsetX, width);
+                            Span<TPixel> destination = source.GetRowSpan(offsetY).Slice(offsetX, width);
 
-                                 this.blender.Blend(destination, destination, rowColors, amounts);
-                             }
-                         });
+                            this.blender.Blend(destination, destination, rowColors, amounts);
+                        }
+                    });
             }
         }
     }

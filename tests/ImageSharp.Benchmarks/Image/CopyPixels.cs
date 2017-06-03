@@ -5,19 +5,20 @@
 
 namespace ImageSharp.Benchmarks.Image
 {
+    using System;
     using System.Threading.Tasks;
 
     using BenchmarkDotNet.Attributes;
 
-    using ImageSharp.PixelFormats;
+    using ImageSharp.Memory;
 
     public class CopyPixels : BenchmarkBase
     {
-        [Benchmark(Description = "Copy by Pixel")]
-        public Rgba32 CopyByPixel()
+        [Benchmark(Baseline = true, Description = "PixelAccessor Copy by indexer")]
+        public Rgba32 CopyByPixelAccesor()
         {
-            using (Image<Rgba32> source = new Image<Rgba32>(1024, 768))
-            using (Image<Rgba32> target = new Image<Rgba32>(1024, 768))
+            using (var source = new Image<Rgba32>(1024, 768))
+            using (var target = new Image<Rgba32>(1024, 768))
             {
                 using (PixelAccessor<Rgba32> sourcePixels = source.Lock())
                 using (PixelAccessor<Rgba32> targetPixels = target.Lock())
@@ -36,6 +37,82 @@ namespace ImageSharp.Benchmarks.Image
 
                     return targetPixels[0, 0];
                 }
+            }
+        }
+
+        [Benchmark(Description = "PixelAccessor Copy by Span")]
+        public Rgba32 CopyByPixelAccesorSpan()
+        {
+            using (var source = new Image<Rgba32>(1024, 768))
+            using (var target = new Image<Rgba32>(1024, 768))
+            {
+                using (PixelAccessor<Rgba32> sourcePixels = source.Lock())
+                using (PixelAccessor<Rgba32> targetPixels = target.Lock())
+                {
+                    Parallel.For(
+                        0,
+                        source.Height,
+                        Configuration.Default.ParallelOptions,
+                        y =>
+                        {
+                            Span<Rgba32> sourceRow = sourcePixels.GetRowSpan(y);
+                            Span<Rgba32> targetRow = targetPixels.GetRowSpan(y);
+
+                            for (int x = 0; x < source.Width; x++)
+                            {
+                                targetRow[x] = sourceRow[x];
+                            }
+                        });
+
+                    return targetPixels[0, 0];
+                }
+            }
+        }
+
+        [Benchmark(Description = "Copy by indexer")]
+        public Rgba32 Copy()
+        {
+            using (var source = new Image<Rgba32>(1024, 768))
+            using (var target = new Image<Rgba32>(1024, 768))
+            {
+                Parallel.For(
+                    0,
+                    source.Height,
+                    Configuration.Default.ParallelOptions,
+                    y =>
+                    {
+                        for (int x = 0; x < source.Width; x++)
+                        {
+                            target[x, y] = source[x, y];
+                        }
+                    });
+
+                return target[0, 0];
+            }
+        }
+
+        [Benchmark(Description = "Copy by Span")]
+        public Rgba32 CopySpan()
+        {
+            using (var source = new Image<Rgba32>(1024, 768))
+            using (var target = new Image<Rgba32>(1024, 768))
+            {
+                Parallel.For(
+                    0,
+                    source.Height,
+                    Configuration.Default.ParallelOptions,
+                    y =>
+                    {
+                        Span<Rgba32> sourceRow = source.GetRowSpan(y);
+                        Span<Rgba32> targetRow = target.GetRowSpan(y);
+
+                        for (int x = 0; x < source.Width; x++)
+                        {
+                            targetRow[x] = sourceRow[x];
+                        }
+                    });
+
+                return target[0, 0];
             }
         }
     }

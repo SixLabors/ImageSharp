@@ -6,7 +6,6 @@
 namespace ImageSharp.Processing.Processors
 {
     using System;
-    using System.Numerics;
     using System.Threading.Tasks;
 
     using ImageSharp.Memory;
@@ -64,9 +63,8 @@ namespace ImageSharp.Processing.Processors
 
             int width = maxX - minX;
 
-            using (Buffer<TPixel> colors = new Buffer<TPixel>(width))
-            using (Buffer<float> amount = new Buffer<float>(width))
-            using (PixelAccessor<TPixel> sourcePixels = source.Lock())
+            using (var colors = new Buffer<TPixel>(width))
+            using (var amount = new Buffer<float>(width))
             {
                 for (int i = 0; i < width; i++)
                 {
@@ -81,11 +79,9 @@ namespace ImageSharp.Processing.Processors
                     this.ParallelOptions,
                     y =>
                     {
-                        int offsetY = y - startY;
+                        Span<TPixel> destination = source.GetRowSpan(y - startY).Slice(minX - startX, width);
 
-                        Span<TPixel> destination = sourcePixels.GetRowSpan(offsetY).Slice(minX - startX, width);
-
-                        // this switched color & destination in the 2nd and 3rd places because we are applying the target colour under the current one
+                        // This switched color & destination in the 2nd and 3rd places because we are applying the target colour under the current one
                         blender.Blend(destination, colors, destination, amount);
                     });
             }

@@ -25,6 +25,11 @@ namespace SixLabors.Primitives
         public static readonly SizeF Empty = default(SizeF);
 
         /// <summary>
+        /// Represents a <see cref="SizeF"/> that has Width and Height values set to zero.
+        /// </summary>
+        public static readonly SizeF Zero = new SizeF(0, 0);
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="SizeF"/> struct.
         /// </summary>
         /// <param name="width">The width of the size.</param>
@@ -175,7 +180,7 @@ namespace SixLabors.Primitives
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Equals(SizeF other) => this.Width.Equals(other.Width) && this.Height.Equals(other.Height);
 
-        private int GetHashCode(SizeF size) => size.Width.GetHashCode() ^ size.Height.GetHashCode();
+        private int GetHashCode(SizeF size) => HashHelpers.Combine(size.Width.GetHashCode(), size.Height.GetHashCode());
 
         /// <summary>
         /// Creates a <see cref="Vector2"/> with the coordinates of the specified <see cref="PointF"/>.
@@ -186,5 +191,18 @@ namespace SixLabors.Primitives
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static implicit operator Vector2(SizeF point) => new Vector2(point.Width, point.Height);
+
+        /// <summary>
+        /// Transforms a size by the given matrix.
+        /// </summary>
+        /// <param name="size">The source size</param>
+        /// <param name="matrix">The transformation matrix.</param>
+        /// <returns></returns>
+        public static SizeF Transform(SizeF size, Matrix matrix)
+        {
+            var v = Vector2.Transform(new Vector2(size.Width, size.Height), matrix);
+
+            return new SizeF(v.X, v.Y);
+        }
     }
 }

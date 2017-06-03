@@ -454,14 +454,24 @@ namespace SixLabors.Primitives
 
         private int GetHashCode(Rectangle rectangle)
         {
-            unchecked
-            {
-                int hashCode = rectangle.X;
-                hashCode = (hashCode * 397) ^ rectangle.Y;
-                hashCode = (hashCode * 397) ^ rectangle.Width;
-                hashCode = (hashCode * 397) ^ rectangle.Height;
-                return hashCode;
-            }
+            int hashCode = rectangle.X.GetHashCode();
+            hashCode = HashHelpers.Combine(hashCode, rectangle.Y.GetHashCode());
+            hashCode = HashHelpers.Combine(hashCode, rectangle.Width.GetHashCode());
+            hashCode = HashHelpers.Combine(hashCode, rectangle.Height.GetHashCode());
+            return hashCode;
+        }
+
+        /// <summary>
+        /// Transforms a rectangle by the given matrix.
+        /// </summary>
+        /// <param name="rectangle">The source rectangle</param>
+        /// <param name="matrix">The transformation matrix.</param>
+        /// <returns></returns>
+        public static RectangleF Transform(Rectangle rectangle, Matrix matrix)
+        {
+            PointF bottomRight = Point.Transform(new Point(rectangle.Right, rectangle.Bottom), matrix);
+            PointF topLeft = Point.Transform(rectangle.Location, matrix);
+            return new RectangleF(topLeft, new SizeF(bottomRight - topLeft));
         }
     }
 }

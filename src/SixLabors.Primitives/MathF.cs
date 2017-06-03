@@ -94,7 +94,7 @@ namespace SixLabors.Primitives
         /// The <see cref="float"/> representing the degree as radians.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static float DegreeToRadian(float degree)
+        public static float ToRadians(float degree)
         {
             return degree * (PI / 180F);
         }
@@ -181,7 +181,7 @@ namespace SixLabors.Primitives
         /// The <see cref="float"/> representing the degree as radians.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static float RadianToDegree(float radian)
+        public static float ToDegree(float radian)
         {
             return radian / (PI / 180F);
         }

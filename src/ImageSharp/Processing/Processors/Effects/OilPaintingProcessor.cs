@@ -8,7 +8,7 @@ namespace ImageSharp.Processing.Processors
     using System;
     using System.Numerics;
     using System.Threading.Tasks;
-
+    using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
 
     /// <summary>
@@ -69,10 +69,9 @@ namespace ImageSharp.Processing.Processors
                 startX = 0;
             }
 
-            using (PixelAccessor<TPixel> targetPixels = new PixelAccessor<TPixel>(source.Width, source.Height))
-            using (PixelAccessor<TPixel> sourcePixels = source.Lock())
+            using (var targetPixels = new PixelAccessor<TPixel>(source.Width, source.Height))
             {
-                sourcePixels.CopyTo(targetPixels);
+                source.CopyTo(targetPixels);
 
                 Parallel.For(
                     minY,
@@ -80,6 +79,9 @@ namespace ImageSharp.Processing.Processors
                     this.ParallelOptions,
                     y =>
                     {
+                        Span<TPixel> sourceRow = source.GetRowSpan(y);
+                        Span<TPixel> targetRow = targetPixels.GetRowSpan(y);
+
                         for (int x = startX; x < endX; x++)
                         {
                             int maxIntensity = 0;
@@ -95,50 +97,33 @@ namespace ImageSharp.Processing.Processors
                                 int fyr = fy - radius;
                                 int offsetY = y + fyr;
 
-                                // Skip the current row
-                                if (offsetY < minY)
-                                {
-                                    continue;
-                                }
+                                offsetY = offsetY.Clamp(0, maxY);
 
-                                // Outwith the current bounds so break.
-                                if (offsetY >= maxY)
-                                {
-                                    break;
-                                }
+                                Span<TPixel> sourceOffsetRow = source.GetRowSpan(offsetY);
 
                                 for (int fx = 0; fx <= radius; fx++)
                                 {
                                     int fxr = fx - radius;
                                     int offsetX = x + fxr;
+                                    offsetX = offsetX.Clamp(0, maxX);
 
-                                    // Skip the column
-                                    if (offsetX < 0)
+                                    var vector = sourceOffsetRow[offsetX].ToVector4();
+
+                                    float sourceRed = vector.X;
+                                    float sourceBlue = vector.Z;
+                                    float sourceGreen = vector.Y;
+
+                                    int currentIntensity = (int)MathF.Round((sourceBlue + sourceGreen + sourceRed) / 3F * (levels - 1));
+
+                                    intensityBin[currentIntensity] += 1;
+                                    blueBin[currentIntensity] += sourceBlue;
+                                    greenBin[currentIntensity] += sourceGreen;
+                                    redBin[currentIntensity] += sourceRed;
+
+                                    if (intensityBin[currentIntensity] > maxIntensity)
                                     {
-                                        continue;
-                                    }
-
-                                    if (offsetX < maxX)
-                                    {
-                                        // ReSharper disable once AccessToDisposedClosure
-                                        Vector4 color = sourcePixels[offsetX, offsetY].ToVector4();
-
-                                        float sourceRed = color.X;
-                                        float sourceBlue = color.Z;
-                                        float sourceGreen = color.Y;
-
-                                        int currentIntensity = (int)Math.Round((sourceBlue + sourceGreen + sourceRed) / 3.0 * (levels - 1));
-
-                                        intensityBin[currentIntensity] += 1;
-                                        blueBin[currentIntensity] += sourceBlue;
-                                        greenBin[currentIntensity] += sourceGreen;
-                                        redBin[currentIntensity] += sourceRed;
-
-                                        if (intensityBin[currentIntensity] > maxIntensity)
-                                        {
-                                            maxIntensity = intensityBin[currentIntensity];
-                                            maxIndex = currentIntensity;
-                                        }
+                                        maxIntensity = intensityBin[currentIntensity];
+                                        maxIndex = currentIntensity;
                                     }
                                 }
 
@@ -146,9 +131,8 @@ namespace ImageSharp.Processing.Processors
                                 float green = MathF.Abs(greenBin[maxIndex] / maxIntensity);
                                 float blue = MathF.Abs(blueBin[maxIndex] / maxIntensity);
 
-                                TPixel packed = default(TPixel);
-                                packed.PackFromVector4(new Vector4(red, green, blue, sourcePixels[x, y].ToVector4().W));
-                                targetPixels[x, y] = packed;
+                                ref TPixel pixel = ref targetRow[x];
+                                pixel.PackFromVector4(new Vector4(red, green, blue, sourceRow[x].ToVector4().W));
                             }
                         }
                     });

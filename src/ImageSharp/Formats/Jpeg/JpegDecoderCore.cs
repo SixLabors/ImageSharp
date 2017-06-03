@@ -982,6 +982,7 @@ namespace ImageSharp.Formats
 
             byte[] identifier = new byte[Icclength];
             this.InputProcessor.ReadFull(identifier, 0, Icclength);
+            remaining -= Icclength; // we have read it by this point
 
             if (identifier[0] == 'I' &&
                 identifier[1] == 'C' &&
@@ -996,7 +997,6 @@ namespace ImageSharp.Formats
                 identifier[10] == 'E' &&
                 identifier[11] == '\0')
             {
-                remaining -= Icclength;
                 byte[] profile = new byte[remaining];
                 this.InputProcessor.ReadFull(profile, 0, remaining);
 
@@ -1008,6 +1008,11 @@ namespace ImageSharp.Formats
                 {
                     metadata.IccProfile.Extend(profile);
                 }
+            }
+            else
+            {
+                // not an ICC profile we can handle read the remaining so we can carry on and ignore this.
+                this.InputProcessor.Skip(remaining);
             }
         }
 

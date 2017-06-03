@@ -5,8 +5,6 @@
 
 namespace ImageSharp
 {
-    using System;
-
     using ImageSharp.PixelFormats;
 
     using Processing.Processors;
@@ -162,7 +160,7 @@ namespace ImageSharp
         public static Image<TPixel> Vignette<TPixel>(this Image<TPixel> source, TPixel color, float radiusX, float radiusY, Rectangle rectangle, GraphicsOptions options)
             where TPixel : struct, IPixel<TPixel>
         {
-            VignetteProcessor<TPixel> processor = new VignetteProcessor<TPixel>(color, options) { RadiusX = radiusX, RadiusY = radiusY };
+            var processor = new VignetteProcessor<TPixel>(color, options) { RadiusX = radiusX, RadiusY = radiusY };
             source.ApplyProcessor(processor, rectangle);
             return source;
         }

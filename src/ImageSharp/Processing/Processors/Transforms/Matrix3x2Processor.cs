@@ -5,7 +5,6 @@
 
 namespace ImageSharp.Processing.Processors
 {
-    using System;
     using System.Numerics;
 
     using ImageSharp.PixelFormats;
@@ -45,8 +44,8 @@ namespace ImageSharp.Processing.Processors
         /// </returns>
         protected Matrix3x2 GetCenteredMatrix(ImageBase<TPixel> source, Matrix3x2 matrix)
         {
-            Matrix3x2 translationToTargetCenter = Matrix3x2.CreateTranslation(-this.CanvasRectangle.Width * .5F, -this.CanvasRectangle.Height * .5F);
-            Matrix3x2 translateToSourceCenter = Matrix3x2.CreateTranslation(source.Width * .5F, source.Height * .5F);
+            var translationToTargetCenter = Matrix3x2.CreateTranslation(-this.CanvasRectangle.Width * .5F, -this.CanvasRectangle.Height * .5F);
+            var translateToSourceCenter = Matrix3x2.CreateTranslation(source.Width * .5F, source.Height * .5F);
             return (translationToTargetCenter * matrix) * translateToSourceCenter;
         }
     }

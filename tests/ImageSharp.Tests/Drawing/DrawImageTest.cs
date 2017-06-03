@@ -12,7 +12,7 @@ namespace ImageSharp.Tests
 
     public class DrawImageTest : FileTestBase
     {
-        private const PixelTypes PixelTypes = Tests.PixelTypes.StandardImageClass;
+        private const PixelTypes PixelTypes = Tests.PixelTypes.Rgba32;
 
         public static readonly string[] TestFiles = {
                TestImages.Jpeg.Baseline.Calliphora,

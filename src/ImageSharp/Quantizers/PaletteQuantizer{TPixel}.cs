@@ -51,7 +51,7 @@ namespace ImageSharp.Quantizers
                 for (int i = 0; i < constants.Length; i++)
                 {
                     constants[i].ToXyzwBytes(this.pixelBuffer, 0);
-                    TPixel packed = default(TPixel);
+                    var packed = default(TPixel);
                     packed.PackFromBytes(this.pixelBuffer[0], this.pixelBuffer[1], this.pixelBuffer[2], this.pixelBuffer[3]);
                     safe[i] = packed;
                 }
@@ -72,7 +72,7 @@ namespace ImageSharp.Quantizers
         }
 
         /// <inheritdoc/>
-        protected override void SecondPass(PixelAccessor<TPixel> source, byte[] output, int width, int height)
+        protected override void SecondPass(ImageBase<TPixel> source, byte[] output, int width, int height)
         {
             // Load up the values for the first pixel. We can use these to speed up the second
             // pass of the algorithm by avoiding transforming rows of identical color.
@@ -84,11 +84,13 @@ namespace ImageSharp.Quantizers
 
             for (int y = 0; y < height; y++)
             {
+                Span<TPixel> row = source.GetRowSpan(y);
+
                 // And loop through each column
                 for (int x = 0; x < width; x++)
                 {
                     // Get the pixel.
-                    sourcePixel = source[x, y];
+                    sourcePixel = row[x];
 
                     // Check if this is the same as the last pixel. If so use that value
                     // rather than calculating it again. This is an inexpensive optimization.

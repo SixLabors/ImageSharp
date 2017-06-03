@@ -15,7 +15,7 @@ namespace ImageSharp.Dithering
         /// <summary>
         /// Transforms the image applying the dither matrix. This method alters the input pixels array
         /// </summary>
-        /// <param name="pixels">The pixel accessor </param>
+        /// <param name="image">The image</param>
         /// <param name="source">The source pixel</param>
         /// <param name="transformed">The transformed pixel</param>
         /// <param name="x">The column index.</param>
@@ -23,13 +23,13 @@ namespace ImageSharp.Dithering
         /// <param name="width">The image width.</param>
         /// <param name="height">The image height.</param>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        void Dither<TPixel>(PixelAccessor<TPixel> pixels, TPixel source, TPixel transformed, int x, int y, int width, int height)
+        void Dither<TPixel>(ImageBase<TPixel> image, TPixel source, TPixel transformed, int x, int y, int width, int height)
             where TPixel : struct, IPixel<TPixel>;
 
         /// <summary>
         /// Transforms the image applying the dither matrix. This method alters the input pixels array
         /// </summary>
-        /// <param name="pixels">The pixel accessor </param>
+        /// <param name="image">The image</param>
         /// <param name="source">The source pixel</param>
         /// <param name="transformed">The transformed pixel</param>
         /// <param name="x">The column index.</param>
@@ -41,7 +41,7 @@ namespace ImageSharp.Dithering
         /// Generally this would be true for standard two-color dithering but when used in conjunction with color quantization this should be false.
         /// </param>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        void Dither<TPixel>(PixelAccessor<TPixel> pixels, TPixel source, TPixel transformed, int x, int y, int width, int height, bool replacePixel)
+        void Dither<TPixel>(ImageBase<TPixel> image, TPixel source, TPixel transformed, int x, int y, int width, int height, bool replacePixel)
             where TPixel : struct, IPixel<TPixel>;
     }
 }

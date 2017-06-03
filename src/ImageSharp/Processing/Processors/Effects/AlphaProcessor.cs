@@ -61,26 +61,22 @@ namespace ImageSharp.Processing.Processors
                 startY = 0;
             }
 
-            Vector4 alphaVector = new Vector4(1, 1, 1, this.Value);
+            var alphaVector = new Vector4(1, 1, 1, this.Value);
 
-            using (PixelAccessor<TPixel> sourcePixels = source.Lock())
-            {
-                Parallel.For(
-                    minY,
-                    maxY,
-                    this.ParallelOptions,
-                    y =>
+            Parallel.For(
+                minY,
+                maxY,
+                this.ParallelOptions,
+                y =>
+                {
+                    Span<TPixel> row = source.GetRowSpan(y - startY);
+
+                    for (int x = minX; x < maxX; x++)
                     {
-                        int offsetY = y - startY;
-                        for (int x = minX; x < maxX; x++)
-                        {
-                            int offsetX = x - startX;
-                            TPixel packed = default(TPixel);
-                            packed.PackFromVector4(sourcePixels[offsetX, offsetY].ToVector4() * alphaVector);
-                            sourcePixels[offsetX, offsetY] = packed;
-                        }
-                    });
-            }
+                        ref TPixel pixel = ref row[x - startX];
+                        pixel.PackFromVector4(pixel.ToVector4() * alphaVector);
+                    }
+                });
         }
     }
 }

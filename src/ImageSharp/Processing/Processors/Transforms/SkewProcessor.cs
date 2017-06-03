@@ -8,7 +8,7 @@ namespace ImageSharp.Processing.Processors
     using System;
     using System.Numerics;
     using System.Threading.Tasks;
-
+    using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
 
     /// <summary>
@@ -45,26 +45,26 @@ namespace ImageSharp.Processing.Processors
             int width = this.CanvasRectangle.Width;
             Matrix3x2 matrix = this.GetCenteredMatrix(source, this.processMatrix);
 
-            using (PixelAccessor<TPixel> targetPixels = new PixelAccessor<TPixel>(width, height))
+            using (var targetPixels = new PixelAccessor<TPixel>(width, height))
             {
-                using (PixelAccessor<TPixel> sourcePixels = source.Lock())
-                {
-                    Parallel.For(
-                        0,
-                        height,
-                        this.ParallelOptions,
-                        y =>
+                Parallel.For(
+                    0,
+                    height,
+                    this.ParallelOptions,
+                    y =>
+                        {
+                            Span<TPixel> targetRow = targetPixels.GetRowSpan(y);
+
+                            for (int x = 0; x < width; x++)
                             {
-                                for (int x = 0; x < width; x++)
+                                var transformedPoint = Point.Skew(new Point(x, y), matrix);
+
+                                if (source.Bounds.Contains(transformedPoint.X, transformedPoint.Y))
                                 {
-                                    Point transformedPoint = Point.Skew(new Point(x, y), matrix);
-                                    if (source.Bounds.Contains(transformedPoint.X, transformedPoint.Y))
-                                    {
-                                        targetPixels[x, y] = sourcePixels[transformedPoint.X, transformedPoint.Y];
-                                    }
+                                    targetRow[x] = source[transformedPoint.X, transformedPoint.Y];
                                 }
-                            });
-                }
+                            }
+                        });
 
                 source.SwapPixelsBuffers(targetPixels);
             }
@@ -73,7 +73,7 @@ namespace ImageSharp.Processing.Processors
         /// <inheritdoc/>
         protected override void BeforeApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
         {
-            this.processMatrix = Point.CreateSkew(new Point(0, 0), -this.AngleX, -this.AngleY);
+            this.processMatrix = Matrix3x2Extensions.CreateSkew(-this.AngleX, -this.AngleY, new Point(0, 0));
             if (this.Expand)
             {
                 this.CreateNewCanvas(sourceRectangle, this.processMatrix);

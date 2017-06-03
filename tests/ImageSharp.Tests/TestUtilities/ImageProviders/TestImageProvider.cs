@@ -107,12 +107,12 @@ namespace ImageSharp.Tests
             this.TypeName = typeName;
             this.MethodName = methodName;
 
-            if (pixelTypeOverride == PixelTypes.StandardImageClass)
+            if (pixelTypeOverride == PixelTypes.Rgba32)
             {
                 this.Factory = new ImageFactory() as GenericFactory<TPixel>;
             }
 
-            this.Utility = new ImagingTestCaseUtility()
+            this.Utility = new ImagingTestCaseUtility
             {
                 SourceFileOrDescription = this.SourceFileOrDescription,
                 PixelTypeName = this.PixelType.ToString()

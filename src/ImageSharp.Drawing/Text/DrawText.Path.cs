@@ -19,8 +19,6 @@ namespace ImageSharp
     /// </summary>
     public static partial class ImageExtensions
     {
-        private static readonly Vector2 DefaultTextDpi = new Vector2(72);
-
         /// <summary>
         /// Draws the text onto the the image filled via the brush.
         /// </summary>
@@ -29,14 +27,14 @@ namespace ImageSharp
         /// <param name="text">The text.</param>
         /// <param name="font">The font.</param>
         /// <param name="color">The color.</param>
-        /// <param name="location">The location.</param>
+        /// <param name="path">The path.</param>
         /// <returns>
         /// The <see cref="Image{TPixel}" />.
         /// </returns>
-        public static Image<TPixel> DrawText<TPixel>(this Image<TPixel> source, string text, Font font, TPixel color, Vector2 location)
+        public static Image<TPixel> DrawText<TPixel>(this Image<TPixel> source, string text, Font font, TPixel color, IPath path)
            where TPixel : struct, IPixel<TPixel>
         {
-            return source.DrawText(text, font, color, location, TextGraphicsOptions.Default);
+            return source.DrawText(text, font, color, path, TextGraphicsOptions.Default);
         }
 
         /// <summary>
@@ -47,15 +45,15 @@ namespace ImageSharp
         /// <param name="text">The text.</param>
         /// <param name="font">The font.</param>
         /// <param name="color">The color.</param>
-        /// <param name="location">The location.</param>
+        /// <param name="path">The path.</param>
         /// <param name="options">The options.</param>
         /// <returns>
         /// The <see cref="Image{TPixel}" />.
         /// </returns>
-        public static Image<TPixel> DrawText<TPixel>(this Image<TPixel> source, string text, Font font, TPixel color, Vector2 location, TextGraphicsOptions options)
+        public static Image<TPixel> DrawText<TPixel>(this Image<TPixel> source, string text, Font font, TPixel color, IPath path, TextGraphicsOptions options)
            where TPixel : struct, IPixel<TPixel>
         {
-            return source.DrawText(text, font, Brushes.Solid(color), null, location, options);
+            return source.DrawText(text, font, Brushes.Solid(color), null, path, options);
         }
 
         /// <summary>
@@ -66,14 +64,14 @@ namespace ImageSharp
         /// <param name="text">The text.</param>
         /// <param name="font">The font.</param>
         /// <param name="brush">The brush.</param>
-        /// <param name="location">The location.</param>
+        /// <param name="path">The location.</param>
         /// <returns>
         /// The <see cref="Image{TPixel}" />.
         /// </returns>
-        public static Image<TPixel> DrawText<TPixel>(this Image<TPixel> source, string text, Font font, IBrush<TPixel> brush, Vector2 location)
+        public static Image<TPixel> DrawText<TPixel>(this Image<TPixel> source, string text, Font font, IBrush<TPixel> brush, IPath path)
            where TPixel : struct, IPixel<TPixel>
         {
-            return source.DrawText(text, font, brush, location, TextGraphicsOptions.Default);
+            return source.DrawText(text, font, brush, path, TextGraphicsOptions.Default);
         }
 
         /// <summary>
@@ -84,15 +82,15 @@ namespace ImageSharp
         /// <param name="text">The text.</param>
         /// <param name="font">The font.</param>
         /// <param name="brush">The brush.</param>
-        /// <param name="location">The location.</param>
+        /// <param name="path">The path.</param>
         /// <param name="options">The options.</param>
         /// <returns>
         /// The <see cref="Image{TPixel}" />.
         /// </returns>
-        public static Image<TPixel> DrawText<TPixel>(this Image<TPixel> source, string text, Font font, IBrush<TPixel> brush, Vector2 location, TextGraphicsOptions options)
+        public static Image<TPixel> DrawText<TPixel>(this Image<TPixel> source, string text, Font font, IBrush<TPixel> brush, IPath path, TextGraphicsOptions options)
            where TPixel : struct, IPixel<TPixel>
         {
-            return source.DrawText(text, font, brush, null, location, options);
+            return source.DrawText(text, font, brush, null, path, options);
         }
 
         /// <summary>
@@ -103,14 +101,14 @@ namespace ImageSharp
         /// <param name="text">The text.</param>
         /// <param name="font">The font.</param>
         /// <param name="pen">The pen.</param>
-        /// <param name="location">The location.</param>
+        /// <param name="path">The path.</param>
         /// <returns>
         /// The <see cref="Image{TPixel}" />.
         /// </returns>
-        public static Image<TPixel> DrawText<TPixel>(this Image<TPixel> source, string text, Font font, IPen<TPixel> pen, Vector2 location)
+        public static Image<TPixel> DrawText<TPixel>(this Image<TPixel> source, string text, Font font, IPen<TPixel> pen, IPath path)
            where TPixel : struct, IPixel<TPixel>
         {
-            return source.DrawText(text, font, pen, location, TextGraphicsOptions.Default);
+            return source.DrawText(text, font, pen, path, TextGraphicsOptions.Default);
         }
 
         /// <summary>
@@ -121,15 +119,15 @@ namespace ImageSharp
         /// <param name="text">The text.</param>
         /// <param name="font">The font.</param>
         /// <param name="pen">The pen.</param>
-        /// <param name="location">The location.</param>
+        /// <param name="path">The path.</param>
         /// <param name="options">The options.</param>
         /// <returns>
         /// The <see cref="Image{TPixel}" />.
         /// </returns>
-        public static Image<TPixel> DrawText<TPixel>(this Image<TPixel> source, string text, Font font, IPen<TPixel> pen, Vector2 location, TextGraphicsOptions options)
+        public static Image<TPixel> DrawText<TPixel>(this Image<TPixel> source, string text, Font font, IPen<TPixel> pen, IPath path, TextGraphicsOptions options)
            where TPixel : struct, IPixel<TPixel>
         {
-            return source.DrawText(text, font, null, pen, location, options);
+            return source.DrawText(text, font, null, pen, path, options);
         }
 
         /// <summary>
@@ -141,14 +139,14 @@ namespace ImageSharp
         /// <param name="font">The font.</param>
         /// <param name="brush">The brush.</param>
         /// <param name="pen">The pen.</param>
-        /// <param name="location">The location.</param>
+        /// <param name="path">The path.</param>
         /// <returns>
         /// The <see cref="Image{TPixel}" />.
         /// </returns>
-        public static Image<TPixel> DrawText<TPixel>(this Image<TPixel> source, string text, Font font, IBrush<TPixel> brush, IPen<TPixel> pen, Vector2 location)
+        public static Image<TPixel> DrawText<TPixel>(this Image<TPixel> source, string text, Font font, IBrush<TPixel> brush, IPen<TPixel> pen, IPath path)
            where TPixel : struct, IPixel<TPixel>
         {
-            return source.DrawText(text, font, brush, pen, location, TextGraphicsOptions.Default);
+            return source.DrawText(text, font, brush, pen, path, TextGraphicsOptions.Default);
         }
 
         /// <summary>
@@ -160,12 +158,12 @@ namespace ImageSharp
         /// <param name="font">The font.</param>
         /// <param name="brush">The brush.</param>
         /// <param name="pen">The pen.</param>
-        /// <param name="location">The location.</param>
+        /// <param name="path">The path.</param>
         /// <param name="options">The options.</param>
         /// <returns>
         /// The <see cref="Image{TPixel}" />.
         /// </returns>
-        public static Image<TPixel> DrawText<TPixel>(this Image<TPixel> source, string text, Font font, IBrush<TPixel> brush, IPen<TPixel> pen, Vector2 location, TextGraphicsOptions options)
+        public static Image<TPixel> DrawText<TPixel>(this Image<TPixel> source, string text, Font font, IBrush<TPixel> brush, IPen<TPixel> pen, IPath path, TextGraphicsOptions options)
            where TPixel : struct, IPixel<TPixel>
         {
             Vector2 dpi = DefaultTextDpi;
@@ -183,7 +181,7 @@ namespace ImageSharp
                 VerticalAlignment = options.VerticalAlignment
             };
 
-            IPathCollection glyphs = TextBuilder.GenerateGlyphs(text, location, style);
+            IPathCollection glyphs = TextBuilder.GenerateGlyphs(text, path, style);
 
             var pathOptions = (GraphicsOptions)options;
             if (brush != null)

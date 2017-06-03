@@ -3,7 +3,7 @@
   <PropertyGroup>
     <VersionPrefix>0.0.0</VersionPrefix>
     <TargetFrameworks>netcoreapp1.1</TargetFrameworks>
-    <AssemblyName>SixLabors.Shapes.Tests</AssemblyName>
+    <AssemblyName>SixLabors.Primitives.Tests</AssemblyName>
     <PackageId>SixLabors.Shapes.Tests</PackageId>
     <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
     <GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
@@ -17,7 +17,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\SixLabors.Primitives\SixLabors.Primitives.csproj" />
-    <ProjectReference Include="..\..\src\SixLabors.Shapes\SixLabors.Shapes.csproj" />
   </ItemGroup>
 
   <ItemGroup>

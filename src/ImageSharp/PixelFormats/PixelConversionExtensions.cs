@@ -21,7 +21,7 @@
         public static void ToXyzBytes<TPixel>(this TPixel pixel, Span<byte> bytes, int startIndex)
             where TPixel : struct, IPixel<TPixel>
         {
-            ref Rgb24 dest = ref Rgb24.AsRgb24(bytes, startIndex);
+            ref Rgb24 dest = ref bytes.GetRgb24(startIndex);
             pixel.ToRgb24(ref dest);
         }
 

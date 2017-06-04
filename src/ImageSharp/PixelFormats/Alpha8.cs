@@ -80,9 +80,9 @@ namespace ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void PackFromBytes(byte x, byte y, byte z, byte w)
+        public void PackFromRgba32(Rgba32 source)
         {
-            this.PackedValue = w;
+            this.PackedValue = source.A;
         }
 
         /// <inheritdoc />

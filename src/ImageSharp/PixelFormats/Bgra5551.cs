@@ -94,9 +94,9 @@ namespace ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void PackFromBytes(byte x, byte y, byte z, byte w)
+        public void PackFromRgba32(Rgba32 source)
         {
-            this.PackFromVector4(new Vector4(x, y, z, w) / 255F);
+            this.PackFromVector4(source.ToVector4());
         }
 
         /// <inheritdoc />

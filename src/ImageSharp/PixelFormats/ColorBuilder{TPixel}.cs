@@ -35,12 +35,13 @@ namespace ImageSharp.PixelFormats
             }
 
             TPixel result = default(TPixel);
-
-            result.PackFromBytes(
+            Rgba32 rgba = new Rgba32(
                 (byte)(packedValue >> 24),
                 (byte)(packedValue >> 16),
                 (byte)(packedValue >> 8),
                 (byte)(packedValue >> 0));
+
+            result.PackFromRgba32(rgba);
             return result;
         }
 
@@ -51,12 +52,7 @@ namespace ImageSharp.PixelFormats
         /// <param name="green">The green intensity.</param>
         /// <param name="blue">The blue intensity.</param>
         /// <returns>Returns a <typeparamref name="TPixel"/> that represents the color defined by the provided RGB values with 100% opacity.</returns>
-        public static TPixel FromRGB(byte red, byte green, byte blue)
-        {
-            TPixel color = default(TPixel);
-            color.PackFromBytes(red, green, blue, 255);
-            return color;
-        }
+        public static TPixel FromRGB(byte red, byte green, byte blue) => FromRGBA(red, green, blue, 255);
 
         /// <summary>
         /// Creates a new <typeparamref name="TPixel"/> representation from standard RGBA bytes.
@@ -69,7 +65,7 @@ namespace ImageSharp.PixelFormats
         public static TPixel FromRGBA(byte red, byte green, byte blue, byte alpha)
         {
             TPixel color = default(TPixel);
-            color.PackFromBytes(red, green, blue, alpha);
+            color.PackFromRgba32(new Rgba32(red, green, blue, alpha));
             return color;
         }
 

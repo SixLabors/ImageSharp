@@ -71,7 +71,7 @@ namespace ImageSharp.PixelFormats
         }
 
         /// <inheritdoc/>
-        public void PackFromBytes(byte x, byte y, byte z, byte w)
+        public void PackFromRgba32(Rgba32 source)
         {
             throw new NotImplementedException();
         }
@@ -110,6 +110,24 @@ namespace ImageSharp.PixelFormats
         public void ToBgra32(ref Bgra32 dest)
         {
             throw new NotImplementedException();
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static ref Rgb24 AsRgb24(byte[] bytes, int offset)
+        {
+            return ref Unsafe.As<byte, Rgb24>(ref bytes[offset]);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static ref Rgb24 AsRgb24(ref byte baseRef, int offset)
+        {
+            return ref Unsafe.As<byte, Rgb24>(ref Unsafe.Add(ref baseRef, offset));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static ref Rgb24 AsRgb24(Span<byte> bytes, int offset)
+        {
+            return ref Unsafe.As<byte, Rgb24>(ref bytes[offset]);
         }
     }
 }

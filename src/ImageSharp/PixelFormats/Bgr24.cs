@@ -71,7 +71,7 @@
         }
 
         /// <inheritdoc/>
-        public void PackFromBytes(byte x, byte y, byte z, byte w)
+        public void PackFromRgba32(Rgba32 source)
         {
             throw new NotImplementedException();
         }
@@ -95,9 +95,13 @@
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ToRgba32(ref Rgba32 dest)
         {
-            throw new NotImplementedException();
+            dest.R = this.R;
+            dest.G = this.G;
+            dest.B = this.B;
+            dest.A = 255;
         }
 
         /// <inheritdoc/>

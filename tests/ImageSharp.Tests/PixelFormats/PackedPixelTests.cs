@@ -40,10 +40,10 @@ namespace ImageSharp.Tests.Colors
             // Test ordering
             Vector4 vector = new Alpha8(.5F).ToVector4();
 
-            Assert.Equal(vector.X, 0);
-            Assert.Equal(vector.Y, 0);
-            Assert.Equal(vector.Z, 0);
-            Assert.Equal(vector.W, .5F, 2);
+            Assert.Equal(0, vector.X);
+            Assert.Equal(0, vector.Y);
+            Assert.Equal(0, vector.Z);
+            Assert.Equal(.5F, vector.W, 2);
 
             byte[] rgb = new byte[3];
             byte[] rgba = new byte[4];

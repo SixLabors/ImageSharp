@@ -19,11 +19,6 @@ namespace ImageSharp.Tests
 
         private ITestOutputHelper Output { get; }
 
-        private void PrintChannel(string name, JpegPixelArea channel)
-        {
-            this.Output.WriteLine($"{name}: Stride={channel.Stride}");
-        }
-
         [Theory]
         [InlineData(YCbCrImage.YCbCrSubsampleRatio.YCbCrSubsampleRatio410, 4, 2)]
         [InlineData(YCbCrImage.YCbCrSubsampleRatio.YCbCrSubsampleRatio411, 4, 1)]
@@ -31,7 +26,10 @@ namespace ImageSharp.Tests
         [InlineData(YCbCrImage.YCbCrSubsampleRatio.YCbCrSubsampleRatio422, 2, 1)]
         [InlineData(YCbCrImage.YCbCrSubsampleRatio.YCbCrSubsampleRatio440, 1, 2)]
         [InlineData(YCbCrImage.YCbCrSubsampleRatio.YCbCrSubsampleRatio444, 1, 1)]
-        internal void CalculateChrominanceSize(YCbCrImage.YCbCrSubsampleRatio ratioValue, int expectedDivX, int expectedDivY)
+        internal void CalculateChrominanceSize(
+            YCbCrImage.YCbCrSubsampleRatio ratioValue,
+            int expectedDivX,
+            int expectedDivY)
         {
             YCbCrImage.YCbCrSubsampleRatio ratio = (YCbCrImage.YCbCrSubsampleRatio)ratioValue;
 
@@ -39,7 +37,7 @@ namespace ImageSharp.Tests
             Size size = YCbCrImage.CalculateChrominanceSize(400, 400, ratio);
             //this.Output.WriteLine($"Ch Size: {size}");
 
-            Assert.Equal(new Size(400/expectedDivX, 400/expectedDivY), size);
+            Assert.Equal(new Size(400 / expectedDivX, 400 / expectedDivY), size);
         }
 
         [Theory]
@@ -61,10 +59,14 @@ namespace ImageSharp.Tests
             //this.PrintChannel("Cb", img.CbChannel);
             //this.PrintChannel("Cr", img.CrChannel);
 
-            Assert.Equal(img.YChannel.Width, 400);
+            Assert.Equal(400, img.YChannel.Width);
             Assert.Equal(img.CbChannel.Width, 400 / expectedCStrideDiv);
             Assert.Equal(img.CrChannel.Width, 400 / expectedCStrideDiv);
         }
 
+        private void PrintChannel(string name, JpegPixelArea channel)
+        {
+            this.Output.WriteLine($"{name}: Stride={channel.Stride}");
+        }
     }
 }

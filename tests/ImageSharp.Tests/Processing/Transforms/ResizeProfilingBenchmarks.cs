@@ -25,8 +25,8 @@ namespace ImageSharp.Tests.Processing.Transforms
         public int ExecutionCount { get; set; } = 50;
 
         // [Theory] // Benchmark, enable manually!
-        [InlineData(100, 100)]
-        [InlineData(2000, 2000)]
+        // [InlineData(100, 100)]
+        // [InlineData(2000, 2000)]
         public void ResizeBicubic(int width, int height)
         {
             this.Measure(this.ExecutionCount,

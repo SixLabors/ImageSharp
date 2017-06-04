@@ -118,7 +118,7 @@ namespace ImageSharp.Tests
 
             IEnumerable<KeyValuePair<PixelTypes, Type>> expanded = pixelTypes.ExpandAllTypes();
 
-            Assert.Equal(expanded.Count(), 4);
+            Assert.Equal(4, expanded.Count());
 
             AssertContainsPixelType<Alpha8>(PixelTypes.Alpha8, expanded);
             AssertContainsPixelType<Bgr565>(PixelTypes.Bgr565, expanded);

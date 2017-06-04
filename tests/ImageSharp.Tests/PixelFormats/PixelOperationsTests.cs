@@ -43,8 +43,11 @@ namespace ImageSharp.Tests.PixelFormats
                 );
             }
 
+
             // [Fact] // Profiling benchmark - enable manually!
+#pragma warning disable xUnit1013 // Public method should be marked as test
             public void Benchmark_ToVector4()
+#pragma warning restore xUnit1013 // Public method should be marked as test
             {
                 int times = 200000;
                 int count = 1024;

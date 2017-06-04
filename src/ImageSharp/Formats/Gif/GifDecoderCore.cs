@@ -448,7 +448,7 @@ namespace ImageSharp.Formats
                         int indexOffset = index * 3;
 
                         ref TPixel pixel = ref rowSpan[x];
-                        rgba.Rgb = Rgb24.AsRgb24(colorTable, indexOffset);
+                        rgba.Rgb = colorTable.GetRgb24(indexOffset);
 
                         pixel.PackFromRgba32(rgba);
                     }

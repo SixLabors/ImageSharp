@@ -31,7 +31,7 @@ namespace ImageSharp.Tests
         [InlineData(YCbCrImage.YCbCrSubsampleRatio.YCbCrSubsampleRatio422, 2, 1)]
         [InlineData(YCbCrImage.YCbCrSubsampleRatio.YCbCrSubsampleRatio440, 1, 2)]
         [InlineData(YCbCrImage.YCbCrSubsampleRatio.YCbCrSubsampleRatio444, 1, 1)]
-        public void CalculateChrominanceSize(int ratioValue, int expectedDivX, int expectedDivY)
+        internal void CalculateChrominanceSize(YCbCrImage.YCbCrSubsampleRatio ratioValue, int expectedDivX, int expectedDivY)
         {
             YCbCrImage.YCbCrSubsampleRatio ratio = (YCbCrImage.YCbCrSubsampleRatio)ratioValue;
 
@@ -49,7 +49,7 @@ namespace ImageSharp.Tests
         [InlineData(YCbCrImage.YCbCrSubsampleRatio.YCbCrSubsampleRatio422, 2)]
         [InlineData(YCbCrImage.YCbCrSubsampleRatio.YCbCrSubsampleRatio440, 1)]
         [InlineData(YCbCrImage.YCbCrSubsampleRatio.YCbCrSubsampleRatio444, 1)]
-        public void Create(int ratioValue, int expectedCStrideDiv)
+        internal void Create(YCbCrImage.YCbCrSubsampleRatio ratioValue, int expectedCStrideDiv)
         {
             YCbCrImage.YCbCrSubsampleRatio ratio = (YCbCrImage.YCbCrSubsampleRatio)ratioValue;
 

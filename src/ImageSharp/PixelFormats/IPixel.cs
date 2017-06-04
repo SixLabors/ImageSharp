@@ -42,13 +42,10 @@ namespace ImageSharp.PixelFormats
         Vector4 ToVector4();
 
         /// <summary>
-        /// Sets the packed representation from the given byte array.
+        /// Packs the pixel from an <see cref="Rgba32"/> value.
         /// </summary>
-        /// <param name="x">The x-component.</param>
-        /// <param name="y">The y-component.</param>
-        /// <param name="z">The z-component.</param>
-        /// <param name="w">The w-component.</param>
-        void PackFromBytes(byte x, byte y, byte z, byte w);
+        /// <param name="source">The <see cref="Rgba32"/> value.</param>
+        void PackFromRgba32(Rgba32 source);
 
         /// <summary>
         /// Converts the pixel to <see cref="Rgb24"/> format.

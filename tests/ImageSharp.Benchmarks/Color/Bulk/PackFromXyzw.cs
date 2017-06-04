@@ -40,7 +40,7 @@ namespace ImageSharp.Benchmarks.Color.Bulk
             {
                 int i4 = i * 4;
                 TPixel c = default(TPixel);
-                c.PackFromBytes(s[i4], s[i4 + 1], s[i4 + 2], s[i4 + 3]);
+                c.PackFromRgba32(new Rgba32(s[i4], s[i4 + 1], s[i4 + 2], s[i4 + 3]));
                 d[i] = c;
             }
         }

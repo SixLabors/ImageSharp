@@ -122,9 +122,9 @@ namespace ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void PackFromBytes(byte x, byte y, byte z, byte w)
+        public void PackFromRgba32(Rgba32 source)
         {
-            Vector4 vector = new Vector4(x, y, z, w);
+            Vector4 vector = source.ToUnscaledVector4();
             vector -= Round;
             vector -= Half;
             vector -= Round;

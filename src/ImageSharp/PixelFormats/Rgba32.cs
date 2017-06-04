@@ -178,6 +178,44 @@ namespace ImageSharp
             }
         }
 
+        /// <summary>
+        /// Gets or sets the RGB components of this struct as <see cref="Rgb24"/>
+        /// </summary>
+        public Rgb24 Rgb
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return Unsafe.As<Rgba32, Rgb24>(ref this);
+            }
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            set
+            {
+                Unsafe.As<Rgba32, Rgb24>(ref this) = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the RGB components of this struct as <see cref="Bgr24"/> reverting the component order.
+        /// </summary>
+        public Bgr24 Bgr
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return new Bgr24(this.R, this.G, this.B);
+            }
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            set
+            {
+                this.R = value.R;
+                this.G = value.G;
+                this.B = value.B;
+            }
+        }
+
         /// <inheritdoc/>
         public uint PackedValue
         {
@@ -237,12 +275,9 @@ namespace ImageSharp
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void PackFromBytes(byte x, byte y, byte z, byte w)
+        public void PackFromRgba32(Rgba32 source)
         {
-            this.R = x;
-            this.G = y;
-            this.B = z;
-            this.A = w;
+            this = source;
         }
 
         /// <summary>
@@ -335,6 +370,16 @@ namespace ImageSharp
                 hashCode = (hashCode * 397) ^ this.A;
                 return hashCode;
             }
+        }
+
+        /// <summary>
+        /// Gets the <see cref="Vector4"/> representation without normalizing to [0, 1]
+        /// </summary>
+        /// <returns>A <see cref="Vector4"/> of values in [0, 255] </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal Vector4 ToUnscaledVector4()
+        {
+            return new Vector4(this.R, this.G, this.B, this.A);
         }
 
         /// <summary>

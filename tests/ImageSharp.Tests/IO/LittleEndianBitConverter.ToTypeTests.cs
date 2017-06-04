@@ -56,11 +56,11 @@ namespace ImageSharp.Tests.IO
         [Fact]
         public void ToBoolean()
         {
-            Assert.Equal(false, EndianBitConverter.LittleEndianConverter.ToBoolean(new byte[] { 0 }, 0));
-            Assert.Equal(true, EndianBitConverter.LittleEndianConverter.ToBoolean(new byte[] { 1 }, 0));
+            Assert.False(EndianBitConverter.LittleEndianConverter.ToBoolean(new byte[] { 0 }, 0));
+            Assert.True(EndianBitConverter.LittleEndianConverter.ToBoolean(new byte[] { 1 }, 0));
 
-            Assert.Equal(false, EndianBitConverter.LittleEndianConverter.ToBoolean(new byte[] { 1, 0 }, 1));
-            Assert.Equal(true, EndianBitConverter.LittleEndianConverter.ToBoolean(new byte[] { 0, 1 }, 1));
+            Assert.False(EndianBitConverter.LittleEndianConverter.ToBoolean(new byte[] { 1, 0 }, 1));
+            Assert.True(EndianBitConverter.LittleEndianConverter.ToBoolean(new byte[] { 0, 1 }, 1));
         }
 
         /// <summary>

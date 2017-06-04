@@ -1,3 +1,4 @@
+// ReSharper disable InconsistentNaming
 namespace ImageSharp.Tests
 {
     using ImageSharp.PixelFormats;
@@ -36,35 +37,30 @@ namespace ImageSharp.Tests
             Assert.Equal(4, ptr[3]);
         }
 
-        public class Equality
+        [Theory]
+        [MemberData(nameof(ColorData))]
+        public void Equality_WhenTrue(byte b, byte g, byte r, byte a)
         {
-            public static TheoryData<byte, byte, byte, byte> ColorData = Bgra32Tests.ColorData;
+            var x = new Bgra32(r, g, b, a);
+            var y = new Bgra32(r, g, b, a);
 
-            [Theory]
-            [MemberData(nameof(ColorData))]
-            public void WhenTrue(byte b, byte g, byte r, byte a)
-            {
-                var x = new Bgra32(r, g, b, a);
-                var y = new Bgra32(r, g, b, a);
+            Assert.True(x.Equals(y));
+            Assert.True(x.Equals((object)y));
+            Assert.Equal(x.GetHashCode(), y.GetHashCode());
+        }
 
-                Assert.True(x.Equals(y));
-                Assert.True(x.Equals((object)y));
-                Assert.Equal(x.GetHashCode(), y.GetHashCode());
-            }
+        [Theory]
+        [InlineData(1, 2, 3, 4, 1, 2, 3, 5)]
+        [InlineData(0, 0, 255, 0, 0, 0, 244, 0)]
+        [InlineData(0, 255, 0, 0, 0, 244, 0, 0)]
+        [InlineData(1, 255, 0, 0, 0, 255, 0, 0)]
+        public void Equality_WhenFalse(byte b1, byte g1, byte r1, byte a1, byte b2, byte g2, byte r2, byte a2)
+        {
+            var x = new Bgra32(r1, g1, b1, a1);
+            var y = new Bgra32(r2, g2, b2, a2);
 
-            [Theory]
-            [InlineData(1, 2, 3, 4, 1, 2, 3, 5)]
-            [InlineData(0, 0, 255, 0, 0, 0, 244, 0)]
-            [InlineData(0, 255, 0, 0,  0, 244, 0, 0)]
-            [InlineData(1, 255, 0, 0, 0, 255, 0, 0)]
-            public void WhenFalse(byte b1, byte g1, byte r1, byte a1, byte b2, byte g2, byte r2, byte a2)
-            {
-                var x = new Bgra32(r1, g1, b1, a1);
-                var y = new Bgra32(r2, g2, b2, a2);
-
-                Assert.False(x.Equals(y));
-                Assert.False(x.Equals((object)y));
-            }
+            Assert.False(x.Equals(y));
+            Assert.False(x.Equals((object)y));
         }
     }
 }

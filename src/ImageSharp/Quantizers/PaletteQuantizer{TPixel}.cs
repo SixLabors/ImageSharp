@@ -45,7 +45,7 @@ namespace ImageSharp.Quantizers
 
                 Span<byte> constantsBytes = constants.AsSpan().NonPortableCast<Rgba32, byte>();
 
-                PixelOperations<TPixel>.Instance.PackFromXyzwBytes(constantsBytes, safe, constants.Length);
+                PixelOperations<TPixel>.Instance.PackFromRgba32Bytes(constantsBytes, safe, constants.Length);
                 this.colors = safe;
             }
             else

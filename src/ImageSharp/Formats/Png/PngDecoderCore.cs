@@ -603,13 +603,13 @@ namespace ImageSharp.Formats
 
                 case PngColorType.Rgb:
 
-                    PixelOperations<TPixel>.Instance.PackFromXyzBytes(scanlineBuffer, rowSpan, this.header.Width);
+                    PixelOperations<TPixel>.Instance.PackFromRgb24Bytes(scanlineBuffer, rowSpan, this.header.Width);
 
                     break;
 
                 case PngColorType.RgbWithAlpha:
 
-                    PixelOperations<TPixel>.Instance.PackFromXyzwBytes(scanlineBuffer, rowSpan, this.header.Width);
+                    PixelOperations<TPixel>.Instance.PackFromRgba32Bytes(scanlineBuffer, rowSpan, this.header.Width);
 
                     break;
             }

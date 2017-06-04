@@ -3,9 +3,9 @@
   "settings": {
     "documentationRules": {
       "companyName": "James Jackson-South",
-      "copyrightText": "Copyright (c) James Jackson-South and contributors.\nLicensed under the Apache License, Version 2.0.",
+      "copyrightText": "Copyright (c) James Jackson-South and contributors.\nLicensed under the Apache License, Version 2.0."
+      ,
       "documentInterfaces": false,
-
       "documentInternalElements": false,
       "documentExposedElements": false,
       "documentPrivateElements": false,

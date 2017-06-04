@@ -342,7 +342,7 @@ namespace ImageSharp.Formats
             }
             else
             {
-                PixelOperations<TPixel>.Instance.ToXyzBytes(rowSpan, this.rawScanline, this.width);
+                PixelOperations<TPixel>.Instance.ToRgb24Bytes(rowSpan, this.rawScanline, this.width);
             }
         }
 

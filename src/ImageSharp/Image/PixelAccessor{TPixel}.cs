@@ -315,7 +315,7 @@ namespace ImageSharp
                 Span<byte> source = area.GetRowSpan(y);
                 Span<TPixel> destination = this.GetRowSpan(targetX, targetY + y);
 
-                Operations.PackFromXyzBytes(source, destination, width);
+                Operations.PackFromRgb24Bytes(source, destination, width);
             }
         }
 
@@ -334,7 +334,7 @@ namespace ImageSharp
             {
                 Span<byte> source = area.GetRowSpan(y);
                 Span<TPixel> destination = this.GetRowSpan(targetX, targetY + y);
-                Operations.PackFromXyzwBytes(source, destination, width);
+                Operations.PackFromRgba32Bytes(source, destination, width);
             }
         }
 
@@ -391,7 +391,7 @@ namespace ImageSharp
             {
                 Span<TPixel> source = this.GetRowSpan(sourceX, sourceY + y);
                 Span<byte> destination = area.GetRowSpan(y);
-                Operations.ToXyzBytes(source, destination, width);
+                Operations.ToRgb24Bytes(source, destination, width);
             }
         }
 

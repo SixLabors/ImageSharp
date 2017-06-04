@@ -165,7 +165,7 @@ namespace ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.PackFromXyzBytes(s, d, count)
+                (s, d) => Operations.PackFromRgb24Bytes(s, d, count)
             );
         }
 
@@ -185,7 +185,7 @@ namespace ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.ToXyzBytes(s, d, count)
+                (s, d) => Operations.ToRgb24Bytes(s, d, count)
             );
         }
 
@@ -206,7 +206,7 @@ namespace ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.PackFromXyzwBytes(s, d, count)
+                (s, d) => Operations.PackFromRgba32Bytes(s, d, count)
             );
         }
 

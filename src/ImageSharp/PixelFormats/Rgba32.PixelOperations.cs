@@ -120,45 +120,43 @@ namespace ImageSharp
                 }
             }
 
-            /// <inheritdoc />
-            internal override void PackFromXyzBytes(Span<byte> sourceBytes, Span<Rgba32> destColors, int count)
+            internal override void PackFromRgb24(Span<Rgb24> source, Span<Rgba32> destPixels, int count)
             {
-                Guard.MustBeSizedAtLeast(sourceBytes, count * 3, nameof(sourceBytes));
-                Guard.MustBeSizedAtLeast(destColors, count, nameof(destColors));
+                Guard.MustBeSizedAtLeast(source, count, nameof(source));
+                Guard.MustBeSizedAtLeast(destPixels, count, nameof(destPixels));
 
-                ref RGB24 sourceRef = ref Unsafe.As<byte, RGB24>(ref sourceBytes.DangerousGetPinnableReference());
-                ref Rgba32 destRef = ref destColors.DangerousGetPinnableReference();
+                ref Rgb24 sourceRef = ref source.DangerousGetPinnableReference();
+                ref Rgba32 destRef = ref destPixels.DangerousGetPinnableReference();
 
                 for (int i = 0; i < count; i++)
                 {
-                    ref RGB24 sp = ref Unsafe.Add(ref sourceRef, i);
+                    ref Rgb24 sp = ref Unsafe.Add(ref sourceRef, i);
                     ref Rgba32 dp = ref Unsafe.Add(ref destRef, i);
 
-                    Unsafe.As<Rgba32, RGB24>(ref dp) = sp;
+                    Unsafe.As<Rgba32, Rgb24>(ref dp) = sp;
                     dp.A = 255;
                 }
             }
 
-            /// <inheritdoc />
-            internal override void ToXyzBytes(Span<Rgba32> sourceColors, Span<byte> destBytes, int count)
+            internal override void ToRgb24(Span<Rgba32> sourcePixels, Span<Rgb24> dest, int count)
             {
-                Guard.MustBeSizedAtLeast(sourceColors, count, nameof(sourceColors));
-                Guard.MustBeSizedAtLeast(destBytes, count * 3, nameof(destBytes));
+                Guard.MustBeSizedAtLeast(sourcePixels, count, nameof(sourcePixels));
+                Guard.MustBeSizedAtLeast(dest, count, nameof(dest));
 
-                ref Rgba32 sourceRef = ref sourceColors.DangerousGetPinnableReference();
-                ref RGB24 destRef = ref Unsafe.As<byte, RGB24>(ref destBytes.DangerousGetPinnableReference());
+                ref Rgba32 sourceRef = ref sourcePixels.DangerousGetPinnableReference();
+                ref Rgb24 destRef = ref dest.DangerousGetPinnableReference();
 
                 for (int i = 0; i < count; i++)
                 {
                     ref Rgba32 sp = ref Unsafe.Add(ref sourceRef, i);
-                    ref RGB24 dp = ref Unsafe.Add(ref destRef, i);
+                    ref Rgb24 dp = ref Unsafe.Add(ref destRef, i);
 
-                    dp = Unsafe.As<Rgba32, RGB24>(ref sp);
+                    dp = Unsafe.As<Rgba32, Rgb24>(ref sp);
                 }
             }
 
             /// <inheritdoc />
-            internal override unsafe void PackFromXyzwBytes(Span<byte> sourceBytes, Span<Rgba32> destColors, int count)
+            internal override unsafe void PackFromRgba32Bytes(Span<byte> sourceBytes, Span<Rgba32> destColors, int count)
             {
                 Guard.MustBeSizedAtLeast(sourceBytes, count * 4, nameof(sourceBytes));
                 Guard.MustBeSizedAtLeast(destColors, count, nameof(destColors));

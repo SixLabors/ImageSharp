@@ -48,13 +48,13 @@ namespace ImageSharp.Benchmarks.Color.Bulk
         [Benchmark]
         public void CommonBulk()
         {
-            new PixelOperations<TPixel>().PackFromXyzwBytes(this.source, this.destination, this.Count);
+            new PixelOperations<TPixel>().PackFromRgba32Bytes(this.source, this.destination, this.Count);
         }
 
         [Benchmark]
         public void OptimizedBulk()
         {
-           PixelOperations<TPixel>.Instance.PackFromXyzwBytes(this.source, this.destination, this.Count);
+           PixelOperations<TPixel>.Instance.PackFromRgba32Bytes(this.source, this.destination, this.Count);
         }
     }
 

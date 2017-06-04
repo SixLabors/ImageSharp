@@ -249,15 +249,11 @@ namespace ImageSharp.Formats
             for (int y = 0; y < height; y++)
             {
                 int newY = Invert(y, height, inverted);
-
-                // TODO: Could use PixelOperations here!
-
                 this.currentStream.Read(row, 0, row.Length);
-
                 int offset = 0;
-
                 Span<TPixel> pixelRow = pixels.GetRowSpan(y);
 
+                // TODO: Could use PixelOperations here!
                 for (int x = 0; x < arrayWidth; x++)
                 {
                     int colOffset = x * ppb;

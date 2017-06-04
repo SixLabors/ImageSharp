@@ -643,7 +643,7 @@ namespace ImageSharp.Formats
 
                     if (rgba.A > 0)
                     {
-                        rgba.Rgb = Rgb24.AsRgb24(palette, pixelOffset);
+                        rgba.Rgb = palette.GetRgb24(pixelOffset);
                     }
                     else
                     {
@@ -663,7 +663,7 @@ namespace ImageSharp.Formats
                     int index = newScanline[x + 1];
                     int pixelOffset = index * 3;
 
-                    rgba.Rgb = Rgb24.AsRgb24(palette, pixelOffset);
+                    rgba.Rgb = palette.GetRgb24(pixelOffset);
 
                     color.PackFromRgba32(rgba);
                     row[x] = color;
@@ -728,7 +728,7 @@ namespace ImageSharp.Formats
 
                             if (rgba.A > 0)
                             {
-                                rgba.Rgb = Rgb24.AsRgb24(this.palette, offset);
+                                rgba.Rgb = this.palette.GetRgb24(offset);
                             }
                             else
                             {
@@ -748,7 +748,7 @@ namespace ImageSharp.Formats
                             int index = newScanline[o];
                             int offset = index * 3;
 
-                            rgba.Rgb = Rgb24.AsRgb24(this.palette, offset);
+                            rgba.Rgb = this.palette.GetRgb24(offset);
 
                             color.PackFromRgba32(rgba);
                             rowSpan[x] = color;

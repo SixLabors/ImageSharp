@@ -156,7 +156,7 @@ namespace ImageSharp.Tests.PixelFormats
             {
                 int i3 = i * 3;
 
-                expected[i].PackFromBytes(source[i3 + 0], source[i3 + 1], source[i3 + 2], 255);
+                expected[i].PackFromRgba32(new Rgba32(source[i3 + 0], source[i3 + 1], source[i3 + 2], 255));
             }
 
             TestOperation(
@@ -197,7 +197,7 @@ namespace ImageSharp.Tests.PixelFormats
             {
                 int i4 = i * 4;
 
-                expected[i].PackFromBytes(source[i4 + 0], source[i4 + 1], source[i4 + 2], source[i4 + 3]);
+                expected[i].PackFromRgba32(new Rgba32(source[i4 + 0], source[i4 + 1], source[i4 + 2], source[i4 + 3]));
             }
 
             TestOperation(
@@ -238,7 +238,7 @@ namespace ImageSharp.Tests.PixelFormats
             {
                 int i3 = i * 3;
 
-                expected[i].PackFromBytes(source[i3 + 2], source[i3 + 1], source[i3 + 0], 255);
+                expected[i].PackFromRgba32(new Rgba32(source[i3 + 2], source[i3 + 1], source[i3 + 0], 255));
             }
 
             TestOperation(
@@ -279,7 +279,7 @@ namespace ImageSharp.Tests.PixelFormats
             {
                 int i4 = i * 4;
 
-                expected[i].PackFromBytes(source[i4 + 2], source[i4 + 1], source[i4 + 0], source[i4 + 3]);
+                expected[i].PackFromRgba32(new Rgba32(source[i4 + 2], source[i4 + 1], source[i4 + 0], source[i4 + 3]));
             }
 
             TestOperation(

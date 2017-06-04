@@ -6,7 +6,8 @@ namespace ImageSharp.Formats
 {
     using System;
     using System.IO;
-
+    using System.Runtime.CompilerServices;
+    using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
 
     /// <summary>
@@ -243,13 +244,20 @@ namespace ImageSharp.Formats
             byte[] row = new byte[arrayWidth + padding];
             TPixel color = default(TPixel);
 
+            Rgba32 rgba = default(Rgba32);
+
             for (int y = 0; y < height; y++)
             {
                 int newY = Invert(y, height, inverted);
 
+                // TODO: Could use PixelOperations here!
+
                 this.currentStream.Read(row, 0, row.Length);
 
                 int offset = 0;
+
+                Span<TPixel> pixelRow = pixels.GetRowSpan(y);
+
                 for (int x = 0; x < arrayWidth; x++)
                 {
                     int colOffset = x * ppb;
@@ -260,8 +268,9 @@ namespace ImageSharp.Formats
                         int newX = colOffset + shift;
 
                         // Stored in b-> g-> r order.
-                        color.PackFromBytes(colors[colorIndex + 2], colors[colorIndex + 1], colors[colorIndex], 255);
-                        pixels[newX, newY] = color;
+                        rgba.Bgr = Unsafe.As<byte, Bgr24>(ref colors[colorIndex]);
+                        color.PackFromRgba32(rgba);
+                        pixelRow[newX] = color;
                     }
 
                     offset++;
@@ -286,6 +295,8 @@ namespace ImageSharp.Formats
             const int ComponentCount = 2;
 
             TPixel color = default(TPixel);
+            Rgba32 rgba = new Rgba32(0, 0, 0, 255);
+
             using (PixelArea<TPixel> row = new PixelArea<TPixel>(width, ComponentOrder.Xyz))
             {
                 for (int y = 0; y < height; y++)
@@ -294,17 +305,19 @@ namespace ImageSharp.Formats
 
                     int newY = Invert(y, height, inverted);
 
+                    Span<TPixel> pixelRow = pixels.GetRowSpan(newY);
+
                     int offset = 0;
                     for (int x = 0; x < width; x++)
                     {
                         short temp = BitConverter.ToInt16(row.Bytes, offset);
 
-                        byte r = (byte)(((temp & Rgb16RMask) >> 11) * ScaleR);
-                        byte g = (byte)(((temp & Rgb16GMask) >> 5) * ScaleG);
-                        byte b = (byte)((temp & Rgb16BMask) * ScaleR);
+                        rgba.R = (byte)(((temp & Rgb16RMask) >> 11) * ScaleR);
+                        rgba.G = (byte)(((temp & Rgb16GMask) >> 5) * ScaleG);
+                        rgba.B = (byte)((temp & Rgb16BMask) * ScaleR);
 
-                        color.PackFromBytes(r, g, b, 255);
-                        pixels[x, newY] = color;
+                        color.PackFromRgba32(rgba);
+                        pixelRow[x] = color;
                         offset += ComponentCount;
                     }
                 }

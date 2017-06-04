@@ -67,28 +67,31 @@ namespace ImageSharp.PixelFormats
         }
 
         /// <summary>
-        /// Bulk version of <see cref="IPixel.PackFromBytes(byte, byte, byte, byte)"/> that converts data in <see cref="ComponentOrder.Xyz"/>.
+        /// Bulk version of <see cref="IPixel.PackFromRgba32(Rgba32)"/> that converts data in <see cref="ComponentOrder.Xyz"/>.
         /// </summary>
         /// <param name="sourceBytes">The <see cref="Span{T}"/> to the source bytes.</param>
         /// <param name="destColors">The <see cref="Span{T}"/> to the destination colors.</param>
         /// <param name="count">The number of pixels to convert.</param>
         internal virtual void PackFromXyzBytes(Span<byte> sourceBytes, Span<TPixel> destColors, int count)
         {
-            Guard.MustBeSizedAtLeast(sourceBytes, count * 3, nameof(sourceBytes));
-            Guard.MustBeSizedAtLeast(destColors, count, nameof(destColors));
+            this.PackFromRgb24(sourceBytes.NonPortableCast<byte, Rgb24>(), destColors, count);
+        }
 
-            ref byte sourceRef = ref sourceBytes.DangerousGetPinnableReference();
-            ref TPixel destRef = ref destColors.DangerousGetPinnableReference();
+        internal virtual void PackFromRgb24(Span<Rgb24> source, Span<TPixel> destPixels, int count)
+        {
+            Guard.MustBeSizedAtLeast(source, count, nameof(source));
+            Guard.MustBeSizedAtLeast(destPixels, count, nameof(destPixels));
+
+            ref Rgb24 sourceRef = ref source.DangerousGetPinnableReference();
+            ref TPixel destRef = ref destPixels.DangerousGetPinnableReference();
+
+            Rgba32 rgba = new Rgba32(0, 0, 0, 255);
 
             for (int i = 0; i < count; i++)
             {
-                int i3 = i * 3;
                 ref TPixel dp = ref Unsafe.Add(ref destRef, i);
-                dp.PackFromBytes(
-                    Unsafe.Add(ref sourceRef, i3),
-                    Unsafe.Add(ref sourceRef, i3 + 1),
-                    Unsafe.Add(ref sourceRef, i3 + 2),
-                    255);
+                rgba.Rgb = Unsafe.Add(ref sourceRef, i);
+                dp.PackFromRgba32(rgba);
             }
         }
 
@@ -113,28 +116,31 @@ namespace ImageSharp.PixelFormats
         }
 
         /// <summary>
-        /// Bulk version of <see cref="IPixel.PackFromBytes(byte, byte, byte, byte)"/> that converts data in <see cref="ComponentOrder.Xyzw"/>.
+        /// Bulk version of <see cref="IPixel.PackFromRgba32(Rgba32)"/> that converts data in <see cref="ComponentOrder.Xyzw"/>.
         /// </summary>
         /// <param name="sourceBytes">The <see cref="Span{T}"/> to the source bytes.</param>
         /// <param name="destColors">The <see cref="Span{T}"/> to the destination colors.</param>
         /// <param name="count">The number of pixels to convert.</param>
         internal virtual void PackFromXyzwBytes(Span<byte> sourceBytes, Span<TPixel> destColors, int count)
         {
-            Guard.MustBeSizedAtLeast(sourceBytes, count * 4, nameof(sourceBytes));
-            Guard.MustBeSizedAtLeast(destColors, count, nameof(destColors));
+            this.PackFromRgba32(sourceBytes.NonPortableCast<byte, Rgba32>(), destColors, count);
+        }
 
-            ref byte sourceRef = ref sourceBytes.DangerousGetPinnableReference();
-            ref TPixel destRef = ref destColors.DangerousGetPinnableReference();
+        internal virtual void PackFromRgba32(Span<Rgba32> source, Span<TPixel> destPixels, int count)
+        {
+            Guard.MustBeSizedAtLeast(source, count, nameof(source));
+            Guard.MustBeSizedAtLeast(destPixels, count, nameof(destPixels));
+
+            ref Rgba32 sourceRef = ref source.DangerousGetPinnableReference();
+            ref TPixel destRef = ref destPixels.DangerousGetPinnableReference();
+
+            Rgba32 rgba = new Rgba32(0, 0, 0, 255);
 
             for (int i = 0; i < count; i++)
             {
-                int i4 = i * 4;
                 ref TPixel dp = ref Unsafe.Add(ref destRef, i);
-                dp.PackFromBytes(
-                    Unsafe.Add(ref sourceRef, i4),
-                    Unsafe.Add(ref sourceRef, i4 + 1),
-                    Unsafe.Add(ref sourceRef, i4 + 2),
-                    Unsafe.Add(ref sourceRef, i4 + 3));
+                rgba = Unsafe.Add(ref sourceRef, i);
+                dp.PackFromRgba32(rgba);
             }
         }
 
@@ -159,28 +165,31 @@ namespace ImageSharp.PixelFormats
         }
 
         /// <summary>
-        /// Bulk version of <see cref="IPixel.PackFromBytes(byte, byte, byte, byte)"/> that converts data in <see cref="ComponentOrder.Zyx"/>.
+        /// Bulk version of <see cref="IPixel.PackFromRgba32(Rgba32)"/> that converts data in <see cref="ComponentOrder.Zyx"/>.
         /// </summary>
         /// <param name="sourceBytes">The <see cref="Span{T}"/> to the source bytes.</param>
         /// <param name="destColors">The <see cref="Span{T}"/> to the destination colors.</param>
         /// <param name="count">The number of pixels to convert.</param>
         internal virtual void PackFromZyxBytes(Span<byte> sourceBytes, Span<TPixel> destColors, int count)
         {
-            Guard.MustBeSizedAtLeast(sourceBytes, count * 3, nameof(sourceBytes));
-            Guard.MustBeSizedAtLeast(destColors, count, nameof(destColors));
+            this.PackFromBgr24(sourceBytes.NonPortableCast<byte, Bgr24>(), destColors, count);
+        }
 
-            ref byte sourceRef = ref sourceBytes.DangerousGetPinnableReference();
-            ref TPixel destRef = ref destColors.DangerousGetPinnableReference();
+        internal virtual void PackFromBgr24(Span<Bgr24> source, Span<TPixel> destPixels, int count)
+        {
+            Guard.MustBeSizedAtLeast(source, count, nameof(source));
+            Guard.MustBeSizedAtLeast(destPixels, count, nameof(destPixels));
+
+            ref Bgr24 sourceRef = ref source.DangerousGetPinnableReference();
+            ref TPixel destRef = ref destPixels.DangerousGetPinnableReference();
+
+            Rgba32 rgba = new Rgba32(0, 0, 0, 255);
 
             for (int i = 0; i < count; i++)
             {
-                int i3 = i * 3;
                 ref TPixel dp = ref Unsafe.Add(ref destRef, i);
-                dp.PackFromBytes(
-                    Unsafe.Add(ref sourceRef, i3 + 2),
-                    Unsafe.Add(ref sourceRef, i3 + 1),
-                    Unsafe.Add(ref sourceRef, i3),
-                    255);
+                rgba.Bgr = Unsafe.Add(ref sourceRef, i);
+                dp.PackFromRgba32(rgba);
             }
         }
 
@@ -205,28 +214,30 @@ namespace ImageSharp.PixelFormats
         }
 
         /// <summary>
-        /// Bulk version of <see cref="IPixel.PackFromBytes(byte, byte, byte, byte)"/> that converts data in <see cref="ComponentOrder.Zyxw"/>.
+        /// Bulk version of <see cref="IPixel.PackFromRgba32(Rgba32)"/> that converts data in <see cref="ComponentOrder.Zyxw"/>.
         /// </summary>
         /// <param name="sourceBytes">The <see cref="Span{T}"/> to the source bytes.</param>
         /// <param name="destColors">The <see cref="Span{T}"/> to the destination colors.</param>
         /// <param name="count">The number of pixels to convert.</param>
         internal virtual void PackFromZyxwBytes(Span<byte> sourceBytes, Span<TPixel> destColors, int count)
         {
-            Guard.MustBeSizedAtLeast(sourceBytes, count * 4, nameof(sourceBytes));
-            Guard.MustBeSizedAtLeast(destColors, count, nameof(destColors));
+            this.PackFromBgra32(sourceBytes.NonPortableCast<byte, Bgra32>(), destColors, count);
+        }
 
-            ref byte sourceRef = ref sourceBytes.DangerousGetPinnableReference();
-            ref TPixel destRef = ref destColors.DangerousGetPinnableReference();
+        internal virtual void PackFromBgra32(Span<Bgra32> source, Span<TPixel> destPixels, int count)
+        {
+            Guard.MustBeSizedAtLeast(source, count, nameof(source));
+            Guard.MustBeSizedAtLeast(destPixels, count, nameof(destPixels));
+
+            ref Bgra32 sourceRef = ref source.DangerousGetPinnableReference();
+            ref TPixel destRef = ref destPixels.DangerousGetPinnableReference();
+            Rgba32 rgba = new Rgba32(0, 0, 0, 255);
 
             for (int i = 0; i < count; i++)
             {
-                int i4 = i * 4;
                 ref TPixel dp = ref Unsafe.Add(ref destRef, i);
-                dp.PackFromBytes(
-                    Unsafe.Add(ref sourceRef, i4 + 2),
-                    Unsafe.Add(ref sourceRef, i4 + 1),
-                    Unsafe.Add(ref sourceRef, i4),
-                    Unsafe.Add(ref sourceRef, i4 + 3));
+                rgba = Unsafe.Add(ref sourceRef, i).ToRgba32();
+                dp.PackFromRgba32(rgba);
             }
         }
 

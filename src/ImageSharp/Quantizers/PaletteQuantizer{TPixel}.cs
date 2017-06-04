@@ -19,11 +19,6 @@ namespace ImageSharp.Quantizers
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
-        /// The pixel buffer, used to reduce allocations.
-        /// </summary>
-        private readonly byte[] pixelBuffer = new byte[4];
-
-        /// <summary>
         /// A lookup table for colors
         /// </summary>
         private readonly Dictionary<TPixel, byte> colorMap = new Dictionary<TPixel, byte>();
@@ -48,14 +43,9 @@ namespace ImageSharp.Quantizers
                 Rgba32[] constants = ColorConstants.WebSafeColors;
                 TPixel[] safe = new TPixel[constants.Length + 1];
 
-                for (int i = 0; i < constants.Length; i++)
-                {
-                    constants[i].ToXyzwBytes(this.pixelBuffer, 0);
-                    var packed = default(TPixel);
-                    packed.PackFromBytes(this.pixelBuffer[0], this.pixelBuffer[1], this.pixelBuffer[2], this.pixelBuffer[3]);
-                    safe[i] = packed;
-                }
+                Span<byte> constantsBytes = constants.AsSpan().NonPortableCast<Rgba32, byte>();
 
+                PixelOperations<TPixel>.Instance.PackFromXyzwBytes(constantsBytes, safe, constants.Length);
                 this.colors = safe;
             }
             else

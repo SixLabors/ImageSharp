@@ -574,7 +574,7 @@ namespace ImageSharp.Formats
                     for (int x = 0; x < this.header.Width; x++)
                     {
                         byte intensity = (byte)(newScanline1[x] * factor);
-                        color.PackFromBytes(intensity, intensity, intensity, 255);
+                        color.PackFromRgba32(new Rgba32(intensity, intensity, intensity));
                         rowSpan[x] = color;
                     }
 
@@ -589,7 +589,7 @@ namespace ImageSharp.Formats
                         byte intensity = defilteredScanline[offset];
                         byte alpha = defilteredScanline[offset + this.bytesPerSample];
 
-                        color.PackFromBytes(intensity, intensity, intensity, alpha);
+                        color.PackFromRgba32(new Rgba32(intensity, intensity, intensity));
                         rowSpan[x] = color;
                     }
 
@@ -628,6 +628,8 @@ namespace ImageSharp.Formats
             byte[] palette = this.palette;
             var color = default(TPixel);
 
+            Rgba32 rgba = default(Rgba32);
+
             if (this.paletteAlpha != null && this.paletteAlpha.Length > 0)
             {
                 // If the alpha palette is not null and has one or more entries, this means, that the image contains an alpha
@@ -637,35 +639,33 @@ namespace ImageSharp.Formats
                     int index = newScanline[x + 1];
                     int pixelOffset = index * 3;
 
-                    byte a = this.paletteAlpha.Length > index ? this.paletteAlpha[index] : (byte)255;
+                    rgba.A = this.paletteAlpha.Length > index ? this.paletteAlpha[index] : (byte)255;
 
-                    if (a > 0)
+                    if (rgba.A > 0)
                     {
-                        byte r = palette[pixelOffset];
-                        byte g = palette[pixelOffset + 1];
-                        byte b = palette[pixelOffset + 2];
-                        color.PackFromBytes(r, g, b, a);
+                        rgba.Rgb = Rgb24.AsRgb24(palette, pixelOffset);
                     }
                     else
                     {
-                        color.PackFromBytes(0, 0, 0, 0);
+                        rgba = default(Rgba32);
                     }
 
+                    color.PackFromRgba32(rgba);
                     row[x] = color;
                 }
             }
             else
             {
+                rgba.A = 255;
+
                 for (int x = 0; x < this.header.Width; x++)
                 {
                     int index = newScanline[x + 1];
                     int pixelOffset = index * 3;
 
-                    byte r = palette[pixelOffset];
-                    byte g = palette[pixelOffset + 1];
-                    byte b = palette[pixelOffset + 2];
+                    rgba.Rgb = Rgb24.AsRgb24(palette, pixelOffset);
 
-                    color.PackFromBytes(r, g, b, 255);
+                    color.PackFromRgba32(rgba);
                     row[x] = color;
                 }
             }
@@ -692,7 +692,7 @@ namespace ImageSharp.Formats
                     for (int x = pixelOffset, o = 1; x < this.header.Width; x += increment, o++)
                     {
                         byte intensity = (byte)(newScanline1[o] * factor);
-                        color.PackFromBytes(intensity, intensity, intensity, 255);
+                        color.PackFromRgba32(new Rgba32(intensity, intensity, intensity));
                         rowSpan[x] = color;
                     }
 
@@ -704,8 +704,7 @@ namespace ImageSharp.Formats
                     {
                         byte intensity = defilteredScanline[o];
                         byte alpha = defilteredScanline[o + this.bytesPerSample];
-
-                        color.PackFromBytes(intensity, intensity, intensity, alpha);
+                        color.PackFromRgba32(new Rgba32(intensity, intensity, intensity, alpha));
                         rowSpan[x] = color;
                     }
 
@@ -714,6 +713,7 @@ namespace ImageSharp.Formats
                 case PngColorType.Palette:
 
                     byte[] newScanline = ToArrayByBitsLength(defilteredScanline, this.bytesPerScanline, this.header.BitDepth);
+                    Rgba32 rgba = default(Rgba32);
 
                     if (this.paletteAlpha != null && this.paletteAlpha.Length > 0)
                     {
@@ -724,35 +724,33 @@ namespace ImageSharp.Formats
                             int index = newScanline[o];
                             int offset = index * 3;
 
-                            byte a = this.paletteAlpha.Length > index ? this.paletteAlpha[index] : (byte)255;
+                            rgba.A = this.paletteAlpha.Length > index ? this.paletteAlpha[index] : (byte)255;
 
-                            if (a > 0)
+                            if (rgba.A > 0)
                             {
-                                byte r = this.palette[offset];
-                                byte g = this.palette[offset + 1];
-                                byte b = this.palette[offset + 2];
-                                color.PackFromBytes(r, g, b, a);
+                                rgba.Rgb = Rgb24.AsRgb24(this.palette, offset);
                             }
                             else
                             {
-                                color.PackFromBytes(0, 0, 0, 0);
+                                rgba = default(Rgba32);
                             }
 
+                            color.PackFromRgba32(rgba);
                             rowSpan[x] = color;
                         }
                     }
                     else
                     {
+                        rgba.A = 255;
+
                         for (int x = pixelOffset, o = 1; x < this.header.Width; x += increment, o++)
                         {
                             int index = newScanline[o];
                             int offset = index * 3;
 
-                            byte r = this.palette[offset];
-                            byte g = this.palette[offset + 1];
-                            byte b = this.palette[offset + 2];
+                            rgba.Rgb = Rgb24.AsRgb24(this.palette, offset);
 
-                            color.PackFromBytes(r, g, b, 255);
+                            color.PackFromRgba32(rgba);
                             rowSpan[x] = color;
                         }
                     }
@@ -761,13 +759,14 @@ namespace ImageSharp.Formats
 
                 case PngColorType.Rgb:
 
+                    rgba.A = 255;
                     for (int x = pixelOffset, o = 1; x < this.header.Width; x += increment, o += this.bytesPerPixel)
                     {
-                        byte r = defilteredScanline[o];
-                        byte g = defilteredScanline[o + this.bytesPerSample];
-                        byte b = defilteredScanline[o + (2 * this.bytesPerSample)];
+                        rgba.R = defilteredScanline[o];
+                        rgba.G = defilteredScanline[o + this.bytesPerSample];
+                        rgba.B = defilteredScanline[o + (2 * this.bytesPerSample)];
 
-                        color.PackFromBytes(r, g, b, 255);
+                        color.PackFromRgba32(rgba);
                         rowSpan[x] = color;
                     }
 
@@ -777,12 +776,12 @@ namespace ImageSharp.Formats
 
                     for (int x = pixelOffset, o = 1; x < this.header.Width; x += increment, o += this.bytesPerPixel)
                     {
-                        byte r = defilteredScanline[o];
-                        byte g = defilteredScanline[o + this.bytesPerSample];
-                        byte b = defilteredScanline[o + (2 * this.bytesPerSample)];
-                        byte a = defilteredScanline[o + (3 * this.bytesPerSample)];
+                        rgba.R = defilteredScanline[o];
+                        rgba.G = defilteredScanline[o + this.bytesPerSample];
+                        rgba.B = defilteredScanline[o + (2 * this.bytesPerSample)];
+                        rgba.A = defilteredScanline[o + (3 * this.bytesPerSample)];
 
-                        color.PackFromBytes(r, g, b, a);
+                        color.PackFromRgba32(rgba);
                         rowSpan[x] = color;
                     }
 

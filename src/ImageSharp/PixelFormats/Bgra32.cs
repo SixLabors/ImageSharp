@@ -128,7 +128,7 @@
         }
 
         /// <inheritdoc/>
-        public void PackFromBytes(byte x, byte y, byte z, byte w)
+        public void PackFromRgba32(Rgba32 source)
         {
             throw new NotImplementedException();
         }
@@ -156,5 +156,12 @@
         {
             throw new NotImplementedException();
         }
+
+        /// <summary>
+        /// Converts the pixel to <see cref="Rgba32"/> format.
+        /// </summary>
+        /// <returns>The RGBA value</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Rgba32 ToRgba32() => new Rgba32(this.R, this.G, this.B, this.A);
     }
 }

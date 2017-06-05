@@ -23,30 +23,41 @@
 
 ## Implementation Status
 
+### Deviations from the TIFF spec (to be fixed)
+
+- Decoder
+  - A Baseline TIFF reader must skip over extra components (e.g. RGB with 4 samples per pixels)
+    - NB: Need to handle this for both planar and chunky data
+  - If the SampleFormat field is present and not 1 - fail gracefully if you cannot handle this
+  - Compression=None should treat 16/32-BitsPerSample for all samples as SHORT/LONG (for byte order and padding rows)
+  - RowsPerStrip should default to 2^32-1 (effectively infinity) to store the image as a single strip
+  - Check Planar format data - is this encoded as strips in order RGBRGBRGB or RRRGGGBBB?
+  - Make sure we ignore any strips that are not needed for the image (if too many are present)
+
 ### Compression Formats
 
 |                           |Encoder|Decoder|Comments                  |
 |---------------------------|:-----:|:-----:|--------------------------|
-|None                       |       |       |                          |
+|None                       |       |   Y   |                          |
 |Ccitt1D                    |       |       |                          |
-|PackBits                   |       |       |                          |
+|PackBits                   |       |   Y   |                          |
 |CcittGroup3Fax             |       |       |                          |
 |CcittGroup4Fax             |       |       |                          |
-|Lzw                        |       |       |                          |
+|Lzw                        |       |   Y   | Based on ImageSharp GIF LZW implementation - this code could be modified to be (i) shared, or (ii) optimised for each case |
 |Old Jpeg                   |       |       |                          |
 |Jpeg (Technote 2)          |       |       |                          |
-|Deflate (Technote 2)       |       |       |                          |
-|Old Deflate (Technote 2)   |       |       |                          |
+|Deflate (Technote 2)       |       |   Y   |                          |
+|Old Deflate (Technote 2)   |       |   Y   |                          |
 
 ### Photometric Interpretation Formats
 
 |                           |Encoder|Decoder|Comments                  |
 |---------------------------|:-----:|:-----:|--------------------------|
-|WhiteIsZero                |       |       |                          |
-|BlackIsZero                |       |       |                          |
-|Rgb (Chunky)               |       |       |                          |
-|Rgb (Planar)               |       |       |                          |
-|PaletteColor               |       |       |                          |
+|WhiteIsZero                |       |   Y   | General + 1/4/8-bit optimised implementations |
+|BlackIsZero                |       |   Y   | General + 1/4/8-bit optimised implementations |
+|Rgb (Chunky)               |       |   Y   | General + Rgb888 optimised implementation |
+|Rgb (Planar)               |       |   Y   | General implementation only |
+|PaletteColor               |       |   Y   | General implementation only |
 |TransparencyMask           |       |       |                          |
 |Separated (TIFF Extension) |       |       |                          |
 |YCbCr (TIFF Extension)     |       |       |                          |
@@ -59,11 +70,11 @@
 |---------------------------|:-----:|:-----:|--------------------------|
 |NewSubfileType             |       |       |                          |
 |SubfileType                |       |       |                          |
-|ImageWidth                 |       |       |                          |
-|ImageLength                |       |       |                          |
-|BitsPerSample              |       |       |                          |
-|Compression                |       |       |                          |
-|PhotometricInterpretation  |       |       |                          |
+|ImageWidth                 |       |   Y   |                          |
+|ImageLength                |       |   Y   |                          |
+|BitsPerSample              |       |   Y   |                          |
+|Compression                |       |   Y   |                          |
+|PhotometricInterpretation  |       |   Y   |                          |
 |Threshholding              |       |       |                          |
 |CellWidth                  |       |       |                          |
 |CellLength                 |       |       |                          |
@@ -71,26 +82,26 @@
 |ImageDescription           |       |       |                          |
 |Make                       |       |       |                          |
 |Model                      |       |       |                          |
-|StripOffsets               |       |       |                          |
+|StripOffsets               |       |   Y   |                          |
 |Orientation                |       |       |                          |
-|SamplesPerPixel            |       |       |                          |
-|RowsPerStrip               |       |       |                          |
-|StripByteCounts            |       |       |                          |
+|SamplesPerPixel            |       |       | Currently ignored, as can be inferred from count of BitsPerSample |
+|RowsPerStrip               |       |   Y   |                          |
+|StripByteCounts            |       |   Y   |                          |
 |MinSampleValue             |       |       |                          |
 |MaxSampleValue             |       |       |                          |
-|XResolution                |       |       |                          |
-|YResolution                |       |       |                          |
-|PlanarConfiguration        |       |       |                          |
+|XResolution                |       |   Y   |                          |
+|YResolution                |       |   Y   |                          |
+|PlanarConfiguration        |       |   Y   |                          |
 |FreeOffsets                |       |       |                          |
 |FreeByteCounts             |       |       |                          |
 |GrayResponseUnit           |       |       |                          |
 |GrayResponseCurve          |       |       |                          |
-|ResolutionUnit             |       |       |                          |
+|ResolutionUnit             |       |   Y   |                          |
 |Software                   |       |       |                          |
 |DateTime                   |       |       |                          |
 |Artist                     |       |       |                          |
 |HostComputer               |       |       |                          |
-|ColorMap                   |       |       |                          |
+|ColorMap                   |       |   Y   |                          |
 |ExtraSamples               |       |       |                          |
 |Copyright                  |       |       |                          |
 

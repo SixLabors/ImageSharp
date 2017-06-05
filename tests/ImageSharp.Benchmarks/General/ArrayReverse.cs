@@ -18,7 +18,7 @@ namespace ImageSharp.Benchmarks.General
 
         byte[] destination;
 
-        [Setup]
+        [GlobalSetup]
         public void SetUp()
         {
             this.source = new byte[this.Count];

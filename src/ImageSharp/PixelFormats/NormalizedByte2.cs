@@ -137,8 +137,8 @@ namespace ImageSharp.PixelFormats
         public void ToRgb24(ref Rgb24 dest)
         {
             Vector4 vector = this.ToScaledVector4();
-            dest.R = (byte)MathF.Round(vector.X);
-            dest.G = (byte)MathF.Round(vector.Y);
+            dest.R = (byte)vector.X;
+            dest.G = (byte)vector.Y;
             dest.B = 0;
         }
 
@@ -147,8 +147,8 @@ namespace ImageSharp.PixelFormats
         public void ToRgba32(ref Rgba32 dest)
         {
             Vector4 vector = this.ToScaledVector4();
-            dest.R = (byte)MathF.Round(vector.X);
-            dest.G = (byte)MathF.Round(vector.Y);
+            dest.R = (byte)vector.X;
+            dest.G = (byte)vector.Y;
             dest.B = 0;
             dest.A = 255;
         }
@@ -158,8 +158,8 @@ namespace ImageSharp.PixelFormats
         public void ToBgr24(ref Bgr24 dest)
         {
             Vector4 vector = this.ToScaledVector4();
-            dest.R = (byte)MathF.Round(vector.X);
-            dest.G = (byte)MathF.Round(vector.Y);
+            dest.R = (byte)vector.X;
+            dest.G = (byte)vector.Y;
             dest.B = 0;
         }
 
@@ -168,8 +168,8 @@ namespace ImageSharp.PixelFormats
         public void ToBgra32(ref Bgra32 dest)
         {
             Vector4 vector = this.ToScaledVector4();
-            dest.R = (byte)MathF.Round(vector.X);
-            dest.G = (byte)MathF.Round(vector.Y);
+            dest.R = (byte)vector.X;
+            dest.G = (byte)vector.Y;
             dest.B = 0;
             dest.A = 255;
         }

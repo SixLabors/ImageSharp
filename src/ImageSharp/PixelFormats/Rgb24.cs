@@ -71,45 +71,57 @@ namespace ImageSharp.PixelFormats
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void PackFromRgba32(Rgba32 source)
         {
-            throw new NotImplementedException();
+            this = Unsafe.As<Rgba32, Rgb24>(ref source);
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void PackFromVector4(Vector4 vector)
         {
-            throw new NotImplementedException();
+            var rgba = default(Rgba32);
+            rgba.PackFromVector4(vector);
+            this.PackFromRgba32(rgba);
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vector4 ToVector4()
         {
-            throw new NotImplementedException();
+            return new Rgba32(this.R, this.G, this.B, 255).ToVector4();
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ToRgb24(ref Rgb24 dest)
         {
-            throw new NotImplementedException();
+            dest = this;
         }
 
         /// <inheritdoc/>
         public void ToRgba32(ref Rgba32 dest)
         {
-            throw new NotImplementedException();
+            dest.Rgb = this;
+            dest.A = 255;
         }
 
         /// <inheritdoc/>
         public void ToBgr24(ref Bgr24 dest)
         {
-            throw new NotImplementedException();
+            dest.R = this.R;
+            dest.G = this.G;
+            dest.B = this.B;
         }
 
         /// <inheritdoc/>
         public void ToBgra32(ref Bgra32 dest)
         {
-            throw new NotImplementedException();
+            dest.R = this.R;
+            dest.G = this.G;
+            dest.B = this.B;
+            dest.A = 255;
         }
     }
 }

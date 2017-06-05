@@ -1,11 +1,9 @@
-﻿namespace ImageSharp
+﻿namespace ImageSharp.PixelFormats
 {
     using System;
     using System.Numerics;
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
-
-    using ImageSharp.PixelFormats;
 
     /// <summary>
     /// Packed pixel type containing four 8-bit unsigned normalized values ranging from 0 to 255.
@@ -116,45 +114,62 @@
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void PackFromVector4(Vector4 vector)
         {
-            throw new NotImplementedException();
+            var rgba = default(Rgba32);
+            rgba.PackFromVector4(vector);
+            this.PackFromRgba32(rgba);
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vector4 ToVector4()
         {
-            throw new NotImplementedException();
+            return this.ToRgba32().ToVector4();
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void PackFromRgba32(Rgba32 source)
         {
-            throw new NotImplementedException();
+            this.R = source.R;
+            this.G = source.G;
+            this.B = source.B;
+            this.A = source.A;
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ToRgb24(ref Rgb24 dest)
         {
-            throw new NotImplementedException();
+            dest.R = this.R;
+            dest.G = this.G;
+            dest.B = this.B;
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ToRgba32(ref Rgba32 dest)
         {
-            throw new NotImplementedException();
+            dest.R = this.R;
+            dest.G = this.G;
+            dest.B = this.B;
+            dest.A = this.A;
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ToBgr24(ref Bgr24 dest)
         {
-            throw new NotImplementedException();
+            dest = Unsafe.As<Bgra32, Bgr24>(ref this);
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ToBgra32(ref Bgra32 dest)
         {
-            throw new NotImplementedException();
+            dest = this;
         }
 
         /// <summary>

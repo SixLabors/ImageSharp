@@ -22,7 +22,7 @@
         [Params(16, 128, 1024)]
         public int Count { get; set; }
 
-        [Setup]
+        [GlobalSetup]
         public void Setup()
         {
             this.destination = new Buffer<Rgba32>(this.Count);
@@ -31,7 +31,7 @@
             this.destination.Pin();
         }
 
-        [Cleanup]
+        [GlobalCleanup]
         public void Cleanup()
         {
             this.source.Dispose();

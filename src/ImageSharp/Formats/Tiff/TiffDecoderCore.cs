@@ -208,6 +208,25 @@ namespace ImageSharp.Formats
 
             Image<TPixel> image = new Image<TPixel>(this.configuration, width, height);
 
+            this.ReadMetadata(ifd, image);
+            this.ReadImageFormat(ifd);
+
+            if (ifd.TryGetIfdEntry(TiffTags.RowsPerStrip, out TiffIfdEntry rowsPerStripEntry)
+                && ifd.TryGetIfdEntry(TiffTags.StripOffsets, out TiffIfdEntry stripOffsetsEntry)
+                && ifd.TryGetIfdEntry(TiffTags.StripByteCounts, out TiffIfdEntry stripByteCountsEntry))
+            {
+                int rowsPerStrip = (int)this.ReadUnsignedInteger(ref rowsPerStripEntry);
+                uint[] stripOffsets = this.ReadUnsignedIntegerArray(ref stripOffsetsEntry);
+                uint[] stripByteCounts = this.ReadUnsignedIntegerArray(ref stripByteCountsEntry);
+                this.DecodeImageStrips(image, rowsPerStrip, stripOffsets, stripByteCounts);
+            }
+
+            return image;
+        }
+
+        public void ReadMetadata<TPixel>(TiffIfd ifd, Image<TPixel> image)
+            where TPixel : struct, IPixel<TPixel>
+        {
             TiffResolutionUnit resolutionUnit = (TiffResolutionUnit)this.ReadUnsignedInteger(ifd, TiffTags.ResolutionUnit, (uint)TiffResolutionUnit.Inch);
 
             if (resolutionUnit != TiffResolutionUnit.None)
@@ -226,20 +245,6 @@ namespace ImageSharp.Formats
                     image.MetaData.VerticalResolution = yResolution.ToDouble() * resolutionUnitFactor;
                 }
             }
-
-            this.ReadImageFormat(ifd);
-
-            if (ifd.TryGetIfdEntry(TiffTags.RowsPerStrip, out TiffIfdEntry rowsPerStripEntry)
-                && ifd.TryGetIfdEntry(TiffTags.StripOffsets, out TiffIfdEntry stripOffsetsEntry)
-                && ifd.TryGetIfdEntry(TiffTags.StripByteCounts, out TiffIfdEntry stripByteCountsEntry))
-            {
-                int rowsPerStrip = (int)this.ReadUnsignedInteger(ref rowsPerStripEntry);
-                uint[] stripOffsets = this.ReadUnsignedIntegerArray(ref stripOffsetsEntry);
-                uint[] stripByteCounts = this.ReadUnsignedIntegerArray(ref stripByteCountsEntry);
-                this.DecodeImageStrips(image, rowsPerStrip, stripOffsets, stripByteCounts);
-            }
-
-            return image;
         }
 
         /// <summary>

@@ -16,8 +16,6 @@ namespace ImageSharp.Tests
     {
         public const int ImageWidth = 200;
         public const int ImageHeight = 150;
-        public const int XResolution = 100;
-        public const int YResolution = 200;
 
         public static object[][] IsLittleEndianValues = new[] { new object[] { false },
                                                                 new object[] { true } };
@@ -35,57 +33,6 @@ namespace ImageSharp.Tests
 
             Assert.Equal(ImageWidth, image.Width);
             Assert.Equal(ImageHeight, image.Height);
-        }
-
-        [Theory]
-        [InlineData(false, 150u, 1u, 200u, 1u, 2u /* Inch */, 150.0, 200.0)]
-        [InlineData(false, 150u, 1u, 200u, 1u, 3u /* Cm */, 150.0 * 2.54, 200.0 * 2.54)]
-        [InlineData(false, 150u, 1u, 200u, 1u, 1u /* None */, 96.0, 96.0)]
-        [InlineData(false, 150u, 1u, 200u, 1u, null /* Inch */, 150.0, 200.0)]
-        [InlineData(false, 5u, 2u, 9u, 4u, 2u /* Inch */, 2.5, 2.25)]
-        [InlineData(false, null, null, null, null, null /* Inch */, 96.0, 96.0)]
-        [InlineData(false, 150u, 1u, null, null, 2u /* Inch */, 150.0, 96.0)]
-        [InlineData(false, null, null, 200u, 1u, 2u /* Inch */, 96.0, 200.0)]
-        [InlineData(true, 150u, 1u, 200u, 1u, 2u /* Inch */, 150.0, 200.0)]
-        [InlineData(true, 150u, 1u, 200u, 1u, 3u /* Cm */, 150.0 * 2.54, 200.0 * 2.54)]
-        [InlineData(true, 150u, 1u, 200u, 1u, 1u /* None */, 96.0, 96.0)]
-        [InlineData(true, 5u, 2u, 9u, 4u, 2u /* Inch */, 2.5, 2.25)]
-        [InlineData(true, 150u, 1u, 200u, 1u, null /* Inch */, 150.0, 200.0)]
-        [InlineData(true, null, null, null, null, null /* Inch */, 96.0, 96.0)]
-        [InlineData(true, 150u, 1u, null, null, 2u /* Inch */, 150.0, 96.0)]
-        [InlineData(true, null, null, 200u, 1u, 2u /* Inch */, 96.0, 200.0)]
-        public void DecodeImage_SetsImageResolution(bool isLittleEndian, uint? xResolutionNumerator, uint? xResolutionDenominator,
-            uint? yResolutionNumerator, uint? yResolutionDenominator, uint? resolutionUnit,
-            double expectedHorizonalResolution, double expectedVerticalResolution)
-        {
-            TiffGenIfd ifdGen = CreateTiffGenIfd()
-                                .WithoutEntry(TiffTags.XResolution)
-                                .WithoutEntry(TiffTags.YResolution)
-                                .WithoutEntry(TiffTags.ResolutionUnit);
-
-            if (xResolutionNumerator != null)
-            {
-                ifdGen.WithEntry(TiffGenEntry.Rational(TiffTags.XResolution, xResolutionNumerator.Value, xResolutionDenominator.Value));
-            }
-
-            if (yResolutionNumerator != null)
-            {
-                ifdGen.WithEntry(TiffGenEntry.Rational(TiffTags.YResolution, yResolutionNumerator.Value, yResolutionDenominator.Value));
-            }
-
-            if (resolutionUnit != null)
-            {
-                ifdGen.WithEntry(TiffGenEntry.Integer(TiffTags.ResolutionUnit, TiffType.Short, resolutionUnit.Value));
-            }
-
-            Stream stream = ifdGen.ToStream(isLittleEndian);
-
-            TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null, null);
-            TiffIfd ifd = decoder.ReadIfd(0);
-            Image<Rgba32> image = decoder.DecodeImage<Rgba32>(ifd);
-
-            Assert.Equal(expectedHorizonalResolution, image.MetaData.HorizontalResolution, 10);
-            Assert.Equal(expectedVerticalResolution, image.MetaData.VerticalResolution, 10);
         }
 
         [Theory]
@@ -551,8 +498,8 @@ namespace ImageSharp.Tests
                         {
                             TiffGenEntry.Integer(TiffTags.ImageWidth, TiffType.Long, ImageWidth),
                             TiffGenEntry.Integer(TiffTags.ImageLength, TiffType.Long, ImageHeight),
-                            TiffGenEntry.Rational(TiffTags.XResolution, XResolution, 1),
-                            TiffGenEntry.Rational(TiffTags.YResolution, YResolution, 1),
+                            TiffGenEntry.Rational(TiffTags.XResolution, 100, 1),
+                            TiffGenEntry.Rational(TiffTags.YResolution, 200, 1),
                             TiffGenEntry.Integer(TiffTags.ResolutionUnit, TiffType.Short, 2),
                             TiffGenEntry.Integer(TiffTags.PhotometricInterpretation, TiffType.Short, (int)TiffPhotometricInterpretation.WhiteIsZero),
                             TiffGenEntry.Integer(TiffTags.BitsPerSample, TiffType.Short, new int[] { 8 }),

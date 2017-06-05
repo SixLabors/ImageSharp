@@ -120,6 +120,7 @@ namespace ImageSharp
                 }
             }
 
+            /// <inheritdoc />
             internal override void PackFromRgb24(Span<Rgb24> source, Span<Rgba32> destPixels, int count)
             {
                 Guard.MustBeSizedAtLeast(source, count, nameof(source));
@@ -138,6 +139,7 @@ namespace ImageSharp
                 }
             }
 
+            /// <inheritdoc />
             internal override void ToRgb24(Span<Rgba32> sourcePixels, Span<Rgb24> dest, int count)
             {
                 Guard.MustBeSizedAtLeast(sourcePixels, count, nameof(sourcePixels));
@@ -156,127 +158,84 @@ namespace ImageSharp
             }
 
             /// <inheritdoc />
-            internal override unsafe void PackFromRgba32Bytes(Span<byte> sourceBytes, Span<Rgba32> destColors, int count)
+            internal override void PackFromRgba32(Span<Rgba32> source, Span<Rgba32> destPixels, int count)
             {
-                Guard.MustBeSizedAtLeast(sourceBytes, count * 4, nameof(sourceBytes));
-                Guard.MustBeSizedAtLeast(destColors, count, nameof(destColors));
+                GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
 
-                SpanHelper.Copy(sourceBytes, destColors.AsBytes(), count * sizeof(Rgba32));
+                SpanHelper.Copy(source, destPixels, count);
             }
 
             /// <inheritdoc />
-            internal override unsafe void ToXyzwBytes(Span<Rgba32> sourceColors, Span<byte> destBytes, int count)
+            internal override void ToRgba32(Span<Rgba32> sourcePixels, Span<Rgba32> dest, int count)
             {
-                Guard.MustBeSizedAtLeast(sourceColors, count, nameof(sourceColors));
-                Guard.MustBeSizedAtLeast(destBytes, count * 4, nameof(destBytes));
+                GuardSpans(sourcePixels, nameof(sourcePixels), dest, nameof(dest), count);
 
-                SpanHelper.Copy(sourceColors.AsBytes(), destBytes, count * sizeof(Rgba32));
+                SpanHelper.Copy(sourcePixels, dest, count);
             }
 
             /// <inheritdoc />
-            internal override void PackFromZyxBytes(Span<byte> sourceBytes, Span<Rgba32> destColors, int count)
+            internal override void PackFromBgr24(Span<Bgr24> source, Span<Rgba32> destPixels, int count)
             {
-                Guard.MustBeSizedAtLeast(sourceBytes, count * 3, nameof(sourceBytes));
-                Guard.MustBeSizedAtLeast(destColors, count, nameof(destColors));
+                GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
 
-                ref RGB24 sourceRef = ref Unsafe.As<byte, RGB24>(ref sourceBytes.DangerousGetPinnableReference());
-                ref Rgba32 destRef = ref destColors.DangerousGetPinnableReference();
+                ref Bgr24 sourceRef = ref source.DangerousGetPinnableReference();
+                ref Rgba32 destRef = ref destPixels.DangerousGetPinnableReference();
 
                 for (int i = 0; i < count; i++)
                 {
-                    ref RGB24 sp = ref Unsafe.Add(ref sourceRef, i);
+                    ref Bgr24 sp = ref Unsafe.Add(ref sourceRef, i);
                     ref Rgba32 dp = ref Unsafe.Add(ref destRef, i);
-
-                    Unsafe.As<Rgba32, RGB24>(ref dp) = sp.ToZyx();
+                    dp.Bgr = sp;
                     dp.A = 255;
                 }
             }
 
             /// <inheritdoc />
-            internal override void ToZyxBytes(Span<Rgba32> sourceColors, Span<byte> destBytes, int count)
+            internal override void ToBgr24(Span<Rgba32> sourcePixels, Span<Bgr24> dest, int count)
             {
-                Guard.MustBeSizedAtLeast(sourceColors, count, nameof(sourceColors));
-                Guard.MustBeSizedAtLeast(destBytes, count * 3, nameof(destBytes));
+                GuardSpans(sourcePixels, nameof(sourcePixels), dest, nameof(dest), count);
 
-                ref Rgba32 sourceRef = ref sourceColors.DangerousGetPinnableReference();
-                ref RGB24 destRef = ref Unsafe.As<byte, RGB24>(ref destBytes.DangerousGetPinnableReference());
+                ref Rgba32 sourceRef = ref sourcePixels.DangerousGetPinnableReference();
+                ref Bgr24 destRef = ref dest.DangerousGetPinnableReference();
 
                 for (int i = 0; i < count; i++)
                 {
                     ref Rgba32 sp = ref Unsafe.Add(ref sourceRef, i);
-                    ref RGB24 dp = ref Unsafe.Add(ref destRef, i);
-
-                    dp = Unsafe.As<Rgba32, RGB24>(ref sp).ToZyx();
+                    ref Bgr24 dp = ref Unsafe.Add(ref destRef, i);
+                    dp = sp.Bgr;
                 }
             }
 
             /// <inheritdoc />
-            internal override void PackFromZyxwBytes(Span<byte> sourceBytes, Span<Rgba32> destColors, int count)
+            internal override void PackFromBgra32(Span<Bgra32> source, Span<Rgba32> destPixels, int count)
             {
-                Guard.MustBeSizedAtLeast(sourceBytes, count * 4, nameof(sourceBytes));
-                Guard.MustBeSizedAtLeast(destColors, count, nameof(destColors));
+                GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
 
-                ref RGBA32 sourceRef = ref Unsafe.As<byte, RGBA32>(ref sourceBytes.DangerousGetPinnableReference());
-                ref Rgba32 destRef = ref destColors.DangerousGetPinnableReference();
+                ref Bgra32 sourceRef = ref source.DangerousGetPinnableReference();
+                ref Rgba32 destRef = ref destPixels.DangerousGetPinnableReference();
 
                 for (int i = 0; i < count; i++)
                 {
-                    ref RGBA32 sp = ref Unsafe.Add(ref sourceRef, i);
+                    ref Bgra32 sp = ref Unsafe.Add(ref sourceRef, i);
                     ref Rgba32 dp = ref Unsafe.Add(ref destRef, i);
-                    RGBA32 zyxw = sp.ToZyxw();
-                    dp = Unsafe.As<RGBA32, Rgba32>(ref zyxw);
+                    dp = sp.ToRgba32();
                 }
             }
 
             /// <inheritdoc />
-            internal override void ToZyxwBytes(Span<Rgba32> sourceColors, Span<byte> destBytes, int count)
+            internal override void ToBgra32(Span<Rgba32> sourcePixels, Span<Bgra32> dest, int count)
             {
-                Guard.MustBeSizedAtLeast(sourceColors, count, nameof(sourceColors));
-                Guard.MustBeSizedAtLeast(destBytes, count * 4, nameof(destBytes));
+                GuardSpans(sourcePixels, nameof(sourcePixels), dest, nameof(dest), count);
 
-                ref Rgba32 sourceRef = ref sourceColors.DangerousGetPinnableReference();
-                ref RGBA32 destRef = ref Unsafe.As<byte, RGBA32>(ref destBytes.DangerousGetPinnableReference());
+                ref Rgba32 sourceRef = ref sourcePixels.DangerousGetPinnableReference();
+                ref Bgra32 destRef = ref dest.DangerousGetPinnableReference();
 
                 for (int i = 0; i < count; i++)
                 {
-                    ref RGBA32 sp = ref Unsafe.As<Rgba32, RGBA32>(ref Unsafe.Add(ref sourceRef, i));
-                    ref RGBA32 dp = ref Unsafe.Add(ref destRef, i);
-                    dp = sp.ToZyxw();
+                    ref Rgba32 sp = ref Unsafe.Add(ref sourceRef, i);
+                    ref Bgra32 dp = ref Unsafe.Add(ref destRef, i);
+                    dp = sp.ToBgra32();
                 }
-            }
-
-            /// <summary>
-            /// Helper struct to manipulate 3-byte RGB data.
-            /// </summary>
-            [StructLayout(LayoutKind.Sequential)]
-            private struct RGB24
-            {
-                private byte x;
-
-                private byte y;
-
-                private byte z;
-
-                [MethodImpl(MethodImplOptions.AggressiveInlining)]
-                public RGB24 ToZyx() => new RGB24 { x = this.z, y = this.y, z = this.x };
-            }
-
-            /// <summary>
-            /// Helper struct to manipulate 4-byte RGBA data.
-            /// </summary>
-            [StructLayout(LayoutKind.Sequential)]
-            private struct RGBA32
-            {
-                private byte x;
-
-                private byte y;
-
-                private byte z;
-
-                private byte w;
-
-                [MethodImpl(MethodImplOptions.AggressiveInlining)]
-                public RGBA32 ToZyxw() => new RGBA32 { x = this.z, y = this.y, z = this.x, w = this.w };
             }
 
             /// <summary>

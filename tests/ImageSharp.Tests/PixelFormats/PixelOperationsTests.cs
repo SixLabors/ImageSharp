@@ -226,7 +226,7 @@ namespace ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.ToXyzwBytes(s, d, count)
+                (s, d) => Operations.ToRgba32Bytes(s, d, count)
             );
         }
 
@@ -247,7 +247,7 @@ namespace ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.PackFromZyxBytes(s, d, count)
+                (s, d) => Operations.PackFromBgr24Bytes(s, d, count)
             );
         }
 
@@ -267,7 +267,7 @@ namespace ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.ToZyxBytes(s, d, count)
+                (s, d) => Operations.ToBgr24Bytes(s, d, count)
             );
         }
 
@@ -288,7 +288,7 @@ namespace ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.PackFromZyxwBytes(s, d, count)
+                (s, d) => Operations.PackFromBgra32Bytes(s, d, count)
             );
         }
 
@@ -308,7 +308,7 @@ namespace ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.ToZyxwBytes(s, d, count)
+                (s, d) => Operations.ToBgra32Bytes(s, d, count)
             );
         }
 

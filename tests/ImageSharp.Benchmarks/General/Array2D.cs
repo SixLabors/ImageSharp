@@ -27,7 +27,7 @@ namespace ImageSharp.Benchmarks.General
         public int Min { get; private set; }
         public int Max { get; private set; }
 
-        [Setup]
+        [GlobalSetup]
         public void SetUp()
         {
             this.flatArray = new float[this.Count * this.Count];

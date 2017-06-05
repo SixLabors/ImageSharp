@@ -16,7 +16,7 @@
     {
       "taskName": "build benchmark",
       "suppressTaskName": true,
-      "args": [ "build", "tests/ImageSharp.Benchmarks/project.json", "-f", "netcoreapp1.1", "-c", "Release" ],
+      "args": [ "build", "tests/ImageSharp.Benchmarks/ImageSharp.Benchmarks.csproj", "-f", "netcoreapp1.1", "-c", "Release" ],
       "showOutput": "always",
       "problemMatcher": "$msCompile"
     },

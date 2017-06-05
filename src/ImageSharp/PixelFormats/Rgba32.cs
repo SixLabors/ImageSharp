@@ -337,6 +337,17 @@ namespace ImageSharp
             return new Vector4(this.R, this.G, this.B, this.A) / MaxBytes;
         }
 
+        /// <summary>
+        /// Gets the value of this struct as <see cref="Bgra32"/>.
+        /// Useful for changing the component order.
+        /// </summary>
+        /// <returns>A <see cref="Bgra32"/> value.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Bgra32 ToBgra32()
+        {
+            return new Bgra32(this.R, this.G, this.B, this.A);
+        }
+
         /// <inheritdoc/>
         public override bool Equals(object obj)
         {

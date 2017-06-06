@@ -103,8 +103,8 @@ namespace ImageSharp.Tests
             where TPixel : struct, IPixel<TPixel>
         {
             Image<TPixel> img = provider.GetImage();
-            Assert.Equal(img.Width, 10);
-            Assert.Equal(img.Height, 20);
+            Assert.Equal(10, img.Width);
+            Assert.Equal(20, img.Height);
 
             byte[] colors = new byte[4];
 
@@ -116,10 +116,10 @@ namespace ImageSharp.Tests
                     {
                         pixels[x, y].ToXyzwBytes(colors, 0);
 
-                        Assert.Equal(colors[0], 255);
-                        Assert.Equal(colors[1], 100);
-                        Assert.Equal(colors[2], 50);
-                        Assert.Equal(colors[3], 200);
+                        Assert.Equal(255, colors[0]);
+                        Assert.Equal(100, colors[1]);
+                        Assert.Equal(50, colors[2]);
+                        Assert.Equal(200, colors[3]);
                     }
                 }
             }
@@ -143,7 +143,7 @@ namespace ImageSharp.Tests
             where TPixel : struct, IPixel<TPixel>
         {
             Image<TPixel> img = provider.GetImage();
-            Assert.Equal(img.Width, 3);
+            Assert.Equal(3, img.Width);
             if (provider.PixelType == PixelTypes.Rgba32)
             {
                 Assert.IsType<Image<Rgba32>>(img);

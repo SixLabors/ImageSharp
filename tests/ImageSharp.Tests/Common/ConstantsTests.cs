@@ -12,7 +12,7 @@ namespace ImageSharp.Tests.Common
         [Fact]
         public void Epsilon()
         {
-            Assert.Equal(Constants.Epsilon, 0.001f);
+            Assert.Equal(0.001f, Constants.Epsilon);
         }
     }
 }

@@ -26,7 +26,7 @@ namespace ImageSharp.Tests
         public static string[] ProgressiveTestJpegs = TestImages.Jpeg.Progressive.All;
 
         [Theory]
-        [WithFileCollection(nameof(BaselineTestJpegs), PixelTypes.Rgba32 | PixelTypes.StandardImageClass | PixelTypes.Argb32)]
+        [WithFileCollection(nameof(BaselineTestJpegs), PixelTypes.Rgba32 | PixelTypes.Rgba32 | PixelTypes.Argb32)]
         public void OpenBaselineJpeg_SaveBmp<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -37,7 +37,7 @@ namespace ImageSharp.Tests
         }
 
         [Theory]
-        [WithFileCollection(nameof(ProgressiveTestJpegs), PixelTypes.Rgba32 | PixelTypes.StandardImageClass | PixelTypes.Argb32)]
+        [WithFileCollection(nameof(ProgressiveTestJpegs), PixelTypes.Rgba32 | PixelTypes.Rgba32 | PixelTypes.Argb32)]
         public void OpenProgressiveJpeg_SaveBmp<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -48,11 +48,11 @@ namespace ImageSharp.Tests
         }
 
         [Theory]
-        [WithSolidFilledImages(16, 16, 255, 0, 0, PixelTypes.StandardImageClass, JpegSubsample.Ratio420, 75)]
-        [WithSolidFilledImages(16, 16, 255, 0, 0, PixelTypes.StandardImageClass, JpegSubsample.Ratio420, 100)]
-        [WithSolidFilledImages(16, 16, 255, 0, 0, PixelTypes.StandardImageClass, JpegSubsample.Ratio444, 75)]
-        [WithSolidFilledImages(16, 16, 255, 0, 0, PixelTypes.StandardImageClass, JpegSubsample.Ratio444, 100)]
-        [WithSolidFilledImages(8, 8, 255, 0, 0, PixelTypes.StandardImageClass, JpegSubsample.Ratio444, 100)]
+        [WithSolidFilledImages(16, 16, 255, 0, 0, PixelTypes.Rgba32, JpegSubsample.Ratio420, 75)]
+        [WithSolidFilledImages(16, 16, 255, 0, 0, PixelTypes.Rgba32, JpegSubsample.Ratio420, 100)]
+        [WithSolidFilledImages(16, 16, 255, 0, 0, PixelTypes.Rgba32, JpegSubsample.Ratio444, 75)]
+        [WithSolidFilledImages(16, 16, 255, 0, 0, PixelTypes.Rgba32, JpegSubsample.Ratio444, 100)]
+        [WithSolidFilledImages(8, 8, 255, 0, 0, PixelTypes.Rgba32, JpegSubsample.Ratio444, 100)]
         public void DecodeGenerated_SaveBmp<TPixel>(
             TestImageProvider<TPixel> provider,
             JpegSubsample subsample,
@@ -79,7 +79,7 @@ namespace ImageSharp.Tests
         }
 
         [Theory]
-        [WithSolidFilledImages(42, 88, 255, 0, 0, PixelTypes.StandardImageClass)]
+        [WithSolidFilledImages(42, 88, 255, 0, 0, PixelTypes.Rgba32)]
         public void DecodeGenerated_MetadataOnly<TPixel>(
             TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>

@@ -70,7 +70,7 @@ namespace ImageSharp.PixelFormats
         }
 
         /// <inheritdoc />
-        public PixelOperations<Bgra4444> CreateBulkOperations() => new PixelOperations<Bgra4444>();
+        public PixelOperations<Bgra4444> CreatePixelOperations() => new PixelOperations<Bgra4444>();
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -79,10 +79,10 @@ namespace ImageSharp.PixelFormats
             const float Max = 1 / 15F;
 
             return new Vector4(
-                       ((this.PackedValue >> 8) & 0x0F) * Max,
-                       ((this.PackedValue >> 4) & 0x0F) * Max,
-                       (this.PackedValue & 0x0F) * Max,
-                       ((this.PackedValue >> 12) & 0x0F) * Max);
+                ((this.PackedValue >> 8) & 0x0F) * Max,
+                ((this.PackedValue >> 4) & 0x0F) * Max,
+                (this.PackedValue & 0x0F) * Max,
+                ((this.PackedValue >> 12) & 0x0F) * Max);
         }
 
         /// <inheritdoc />
@@ -94,51 +94,51 @@ namespace ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void PackFromBytes(byte x, byte y, byte z, byte w)
+        public void PackFromRgba32(Rgba32 source)
         {
-            this.PackFromVector4(new Vector4(x, y, z, w) / 255F);
+            this.PackFromVector4(source.ToVector4());
         }
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToXyzBytes(Span<byte> bytes, int startIndex)
+        public void ToRgb24(ref Rgb24 dest)
         {
             Vector4 vector = this.ToVector4() * 255F;
-            bytes[startIndex] = (byte)vector.X;
-            bytes[startIndex + 1] = (byte)vector.Y;
-            bytes[startIndex + 2] = (byte)vector.Z;
+            dest.R = (byte)vector.X;
+            dest.G = (byte)vector.Y;
+            dest.B = (byte)vector.Z;
         }
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToXyzwBytes(Span<byte> bytes, int startIndex)
+        public void ToRgba32(ref Rgba32 dest)
         {
             Vector4 vector = this.ToVector4() * 255F;
-            bytes[startIndex] = (byte)vector.X;
-            bytes[startIndex + 1] = (byte)vector.Y;
-            bytes[startIndex + 2] = (byte)vector.Z;
-            bytes[startIndex + 3] = (byte)vector.W;
+            dest.R = (byte)vector.X;
+            dest.G = (byte)vector.Y;
+            dest.B = (byte)vector.Z;
+            dest.A = (byte)vector.W;
         }
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToZyxBytes(Span<byte> bytes, int startIndex)
+        public void ToBgr24(ref Bgr24 dest)
         {
             Vector4 vector = this.ToVector4() * 255F;
-            bytes[startIndex] = (byte)vector.Z;
-            bytes[startIndex + 1] = (byte)vector.Y;
-            bytes[startIndex + 2] = (byte)vector.X;
+            dest.R = (byte)vector.X;
+            dest.G = (byte)vector.Y;
+            dest.B = (byte)vector.Z;
         }
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToZyxwBytes(Span<byte> bytes, int startIndex)
+        public void ToBgra32(ref Bgra32 dest)
         {
             Vector4 vector = this.ToVector4() * 255F;
-            bytes[startIndex] = (byte)vector.Z;
-            bytes[startIndex + 1] = (byte)vector.Y;
-            bytes[startIndex + 2] = (byte)vector.X;
-            bytes[startIndex + 3] = (byte)vector.W;
+            dest.R = (byte)vector.X;
+            dest.G = (byte)vector.Y;
+            dest.B = (byte)vector.Z;
+            dest.A = (byte)vector.W;
         }
 
         /// <inheritdoc />
@@ -179,9 +179,9 @@ namespace ImageSharp.PixelFormats
         private static ushort Pack(float x, float y, float z, float w)
         {
             return (ushort)((((int)Math.Round(w.Clamp(0, 1) * 15F) & 0x0F) << 12) |
-                (((int)Math.Round(x.Clamp(0, 1) * 15F) & 0x0F) << 8) |
-                (((int)Math.Round(y.Clamp(0, 1) * 15F) & 0x0F) << 4) |
-                ((int)Math.Round(z.Clamp(0, 1) * 15F) & 0x0F));
+                            (((int)Math.Round(x.Clamp(0, 1) * 15F) & 0x0F) << 8) |
+                            (((int)Math.Round(y.Clamp(0, 1) * 15F) & 0x0F) << 4) |
+                            ((int)Math.Round(z.Clamp(0, 1) * 15F) & 0x0F));
         }
     }
 }

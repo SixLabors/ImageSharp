@@ -73,7 +73,7 @@ namespace ImageSharp.PixelFormats
         }
 
         /// <inheritdoc />
-        public PixelOperations<Byte4> CreateBulkOperations() => new PixelOperations<Byte4>();
+        public PixelOperations<Byte4> CreatePixelOperations() => new PixelOperations<Byte4>();
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -95,51 +95,51 @@ namespace ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void PackFromBytes(byte x, byte y, byte z, byte w)
+        public void PackFromRgba32(Rgba32 source)
         {
-            this.PackFromVector4(new Vector4(x, y, z, w));
+            this.PackFromVector4(source.ToUnscaledVector4());
         }
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToXyzBytes(Span<byte> bytes, int startIndex)
+        public void ToRgb24(ref Rgb24 dest)
         {
             Vector4 vector = this.ToVector4();
-            bytes[startIndex] = (byte)vector.X;
-            bytes[startIndex + 1] = (byte)vector.Y;
-            bytes[startIndex + 2] = (byte)vector.Z;
+            dest.R = (byte)vector.X;
+            dest.G = (byte)vector.Y;
+            dest.B = (byte)vector.Z;
         }
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToXyzwBytes(Span<byte> bytes, int startIndex)
+        public void ToRgba32(ref Rgba32 dest)
         {
             Vector4 vector = this.ToVector4();
-            bytes[startIndex] = (byte)vector.X;
-            bytes[startIndex + 1] = (byte)vector.Y;
-            bytes[startIndex + 2] = (byte)vector.Z;
-            bytes[startIndex + 3] = (byte)vector.W;
+            dest.R = (byte)vector.X;
+            dest.G = (byte)vector.Y;
+            dest.B = (byte)vector.Z;
+            dest.A = (byte)vector.W;
         }
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToZyxBytes(Span<byte> bytes, int startIndex)
+        public void ToBgr24(ref Bgr24 dest)
         {
             Vector4 vector = this.ToVector4();
-            bytes[startIndex] = (byte)vector.Z;
-            bytes[startIndex + 1] = (byte)vector.Y;
-            bytes[startIndex + 2] = (byte)vector.X;
+            dest.R = (byte)vector.X;
+            dest.G = (byte)vector.Y;
+            dest.B = (byte)vector.Z;
         }
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToZyxwBytes(Span<byte> bytes, int startIndex)
+        public void ToBgra32(ref Bgra32 dest)
         {
             Vector4 vector = this.ToVector4();
-            bytes[startIndex] = (byte)vector.Z;
-            bytes[startIndex + 1] = (byte)vector.Y;
-            bytes[startIndex + 2] = (byte)vector.X;
-            bytes[startIndex + 3] = (byte)vector.W;
+            dest.R = (byte)vector.X;
+            dest.G = (byte)vector.Y;
+            dest.B = (byte)vector.Z;
+            dest.A = (byte)vector.W;
         }
 
         /// <inheritdoc />

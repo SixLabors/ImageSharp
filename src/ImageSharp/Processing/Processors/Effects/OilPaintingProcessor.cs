@@ -97,17 +97,7 @@ namespace ImageSharp.Processing.Processors
                                 int fyr = fy - radius;
                                 int offsetY = y + fyr;
 
-                                // Skip the current row
-                                if (offsetY < minY)
-                                {
-                                    continue;
-                                }
-
-                                // Outwith the current bounds so break.
-                                if (offsetY >= maxY)
-                                {
-                                    break;
-                                }
+                                offsetY = offsetY.Clamp(0, maxY);
 
                                 Span<TPixel> sourceOffsetRow = source.GetRowSpan(offsetY);
 
@@ -115,34 +105,25 @@ namespace ImageSharp.Processing.Processors
                                 {
                                     int fxr = fx - radius;
                                     int offsetX = x + fxr;
+                                    offsetX = offsetX.Clamp(0, maxX);
 
-                                    // Skip the column
-                                    if (offsetX < 0)
+                                    var vector = sourceOffsetRow[offsetX].ToVector4();
+
+                                    float sourceRed = vector.X;
+                                    float sourceBlue = vector.Z;
+                                    float sourceGreen = vector.Y;
+
+                                    int currentIntensity = (int)MathF.Round((sourceBlue + sourceGreen + sourceRed) / 3F * (levels - 1));
+
+                                    intensityBin[currentIntensity] += 1;
+                                    blueBin[currentIntensity] += sourceBlue;
+                                    greenBin[currentIntensity] += sourceGreen;
+                                    redBin[currentIntensity] += sourceRed;
+
+                                    if (intensityBin[currentIntensity] > maxIntensity)
                                     {
-                                        continue;
-                                    }
-
-                                    if (offsetX < maxX)
-                                    {
-                                        // ReSharper disable once AccessToDisposedClosure
-                                        var vector = sourceOffsetRow[offsetX].ToVector4();
-
-                                        float sourceRed = vector.X;
-                                        float sourceBlue = vector.Z;
-                                        float sourceGreen = vector.Y;
-
-                                        int currentIntensity = (int)MathF.Round((sourceBlue + sourceGreen + sourceRed) / 3F * (levels - 1));
-
-                                        intensityBin[currentIntensity] += 1;
-                                        blueBin[currentIntensity] += sourceBlue;
-                                        greenBin[currentIntensity] += sourceGreen;
-                                        redBin[currentIntensity] += sourceRed;
-
-                                        if (intensityBin[currentIntensity] > maxIntensity)
-                                        {
-                                            maxIntensity = intensityBin[currentIntensity];
-                                            maxIndex = currentIntensity;
-                                        }
+                                        maxIntensity = intensityBin[currentIntensity];
+                                        maxIndex = currentIntensity;
                                     }
                                 }
 

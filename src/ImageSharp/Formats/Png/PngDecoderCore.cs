@@ -178,7 +178,7 @@ namespace ImageSharp.Formats
         /// <exception cref="ImageFormatException">
         /// Thrown if the stream does not contain and end chunk.
         /// </exception>
-        /// <exception cref="System.ArgumentOutOfRangeException">
+        /// <exception cref="ArgumentOutOfRangeException">
         /// Thrown if the image is larger than the maximum allowable size.
         /// </exception>
         /// <returns>The decoded image</returns>
@@ -189,7 +189,6 @@ namespace ImageSharp.Formats
             this.currentStream = stream;
             this.currentStream.Skip(8);
             Image<TPixel> image = null;
-            PixelAccessor<TPixel> pixels = null;
             try
             {
                 using (var deframeStream = new ZlibInflateStream(this.currentStream))
@@ -211,11 +210,11 @@ namespace ImageSharp.Formats
                                 case PngChunkTypes.Data:
                                     if (image == null)
                                     {
-                                        this.InitializeImage(metadata, out image, out pixels);
+                                        this.InitializeImage(metadata, out image);
                                     }
 
                                     deframeStream.AllocateNewBytes(currentChunk.Length);
-                                    this.ReadScanlines(deframeStream.CompressedStream, pixels);
+                                    this.ReadScanlines(deframeStream.CompressedStream, image);
                                     stream.Read(this.crcBuffer, 0, 4);
                                     break;
                                 case PngChunkTypes.Palette:
@@ -252,7 +251,6 @@ namespace ImageSharp.Formats
             }
             finally
             {
-                pixels?.Dispose();
                 this.scanline?.Dispose();
                 this.previousScanline?.Dispose();
             }
@@ -324,8 +322,7 @@ namespace ImageSharp.Formats
         /// <typeparam name="TPixel">The type the pixels will be</typeparam>
         /// <param name="metadata">The metadata information for the image</param>
         /// <param name="image">The image that we will populate</param>
-        /// <param name="pixels">The pixel accessor</param>
-        private void InitializeImage<TPixel>(ImageMetaData metadata, out Image<TPixel> image, out PixelAccessor<TPixel> pixels)
+        private void InitializeImage<TPixel>(ImageMetaData metadata, out Image<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
             if (this.header.Width > Image<TPixel>.MaxWidth || this.header.Height > Image<TPixel>.MaxHeight)
@@ -334,7 +331,6 @@ namespace ImageSharp.Formats
             }
 
             image = new Image<TPixel>(this.configuration, this.header.Width, this.header.Height, metadata);
-            pixels = image.Lock();
             this.bytesPerPixel = this.CalculateBytesPerPixel();
             this.bytesPerScanline = this.CalculateScanlineLength(this.header.Width) + 1;
             this.bytesPerSample = 1;
@@ -398,17 +394,17 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="dataStream">The <see cref="MemoryStream"/> containing data.</param>
-        /// <param name="pixels"> The pixel data.</param>
-        private void ReadScanlines<TPixel>(Stream dataStream, PixelAccessor<TPixel> pixels)
+        /// <param name="image"> The pixel data.</param>
+        private void ReadScanlines<TPixel>(Stream dataStream, Image<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
             if (this.header.InterlaceMethod == PngInterlaceMode.Adam7)
             {
-                this.DecodeInterlacedPixelData(dataStream, pixels);
+                this.DecodeInterlacedPixelData(dataStream, image);
             }
             else
             {
-                this.DecodePixelData(dataStream, pixels);
+                this.DecodePixelData(dataStream, image);
             }
         }
 
@@ -417,8 +413,8 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="compressedStream">The compressed pixel data stream.</param>
-        /// <param name="pixels">The image pixel accessor.</param>
-        private void DecodePixelData<TPixel>(Stream compressedStream, PixelAccessor<TPixel> pixels)
+        /// <param name="image">The image to decode to.</param>
+        private void DecodePixelData<TPixel>(Stream compressedStream, Image<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
             while (this.currentRow < this.header.Height)
@@ -462,7 +458,7 @@ namespace ImageSharp.Formats
                         throw new ImageFormatException("Unknown filter type.");
                 }
 
-                this.ProcessDefilteredScanline(this.scanline.Array, pixels);
+                this.ProcessDefilteredScanline(this.scanline.Array, image);
 
                 Swap(ref this.scanline, ref this.previousScanline);
                 this.currentRow++;
@@ -475,8 +471,8 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="compressedStream">The compressed pixel data stream.</param>
-        /// <param name="pixels">The image pixel accessor.</param>
-        private void DecodeInterlacedPixelData<TPixel>(Stream compressedStream, PixelAccessor<TPixel> pixels)
+        /// <param name="image">The current image.</param>
+        private void DecodeInterlacedPixelData<TPixel>(Stream compressedStream, Image<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
             while (true)
@@ -537,7 +533,8 @@ namespace ImageSharp.Formats
                             throw new ImageFormatException("Unknown filter type.");
                     }
 
-                    this.ProcessInterlacedDefilteredScanline(this.scanline.Array, this.currentRow, pixels, Adam7FirstColumn[this.pass], Adam7ColumnIncrement[this.pass]);
+                    Span<TPixel> rowSpan = image.GetRowSpan(this.currentRow);
+                    this.ProcessInterlacedDefilteredScanline(this.scanline.Array, rowSpan, Adam7FirstColumn[this.pass], Adam7ColumnIncrement[this.pass]);
 
                     Swap(ref this.scanline, ref this.previousScanline);
 
@@ -561,12 +558,12 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="defilteredScanline">The de-filtered scanline</param>
-        /// <param name="pixels">The image pixels</param>
-        private void ProcessDefilteredScanline<TPixel>(byte[] defilteredScanline, PixelAccessor<TPixel> pixels)
+        /// <param name="pixels">The image</param>
+        private void ProcessDefilteredScanline<TPixel>(byte[] defilteredScanline, Image<TPixel> pixels)
             where TPixel : struct, IPixel<TPixel>
         {
             var color = default(TPixel);
-            Span<TPixel> pixelBuffer = pixels.GetRowSpan(this.currentRow);
+            Span<TPixel> rowSpan = pixels.GetRowSpan(this.currentRow);
             var scanlineBuffer = new Span<byte>(defilteredScanline, 1);
 
             switch (this.PngColorType)
@@ -577,8 +574,8 @@ namespace ImageSharp.Formats
                     for (int x = 0; x < this.header.Width; x++)
                     {
                         byte intensity = (byte)(newScanline1[x] * factor);
-                        color.PackFromBytes(intensity, intensity, intensity, 255);
-                        pixels[x, this.currentRow] = color;
+                        color.PackFromRgba32(new Rgba32(intensity, intensity, intensity));
+                        rowSpan[x] = color;
                     }
 
                     break;
@@ -592,27 +589,27 @@ namespace ImageSharp.Formats
                         byte intensity = defilteredScanline[offset];
                         byte alpha = defilteredScanline[offset + this.bytesPerSample];
 
-                        color.PackFromBytes(intensity, intensity, intensity, alpha);
-                        pixels[x, this.currentRow] = color;
+                        color.PackFromRgba32(new Rgba32(intensity, intensity, intensity));
+                        rowSpan[x] = color;
                     }
 
                     break;
 
                 case PngColorType.Palette:
 
-                    this.ProcessScanlineFromPalette(defilteredScanline, pixels);
+                    this.ProcessScanlineFromPalette(defilteredScanline, rowSpan);
 
                     break;
 
                 case PngColorType.Rgb:
 
-                    PixelOperations<TPixel>.Instance.PackFromXyzBytes(scanlineBuffer, pixelBuffer, this.header.Width);
+                    PixelOperations<TPixel>.Instance.PackFromRgb24Bytes(scanlineBuffer, rowSpan, this.header.Width);
 
                     break;
 
                 case PngColorType.RgbWithAlpha:
 
-                    PixelOperations<TPixel>.Instance.PackFromXyzwBytes(scanlineBuffer, pixelBuffer, this.header.Width);
+                    PixelOperations<TPixel>.Instance.PackFromRgba32Bytes(scanlineBuffer, rowSpan, this.header.Width);
 
                     break;
             }
@@ -623,13 +620,15 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <typeparam name="TPixel">The type of pixel we are expanding to</typeparam>
         /// <param name="defilteredScanline">The scanline</param>
-        /// <param name="pixels">The output pixels</param>
-        private void ProcessScanlineFromPalette<TPixel>(byte[] defilteredScanline, PixelAccessor<TPixel> pixels)
+        /// <param name="row">Thecurrent  output image row</param>
+        private void ProcessScanlineFromPalette<TPixel>(byte[] defilteredScanline, Span<TPixel> row)
             where TPixel : struct, IPixel<TPixel>
         {
             byte[] newScanline = ToArrayByBitsLength(defilteredScanline, this.bytesPerScanline, this.header.BitDepth);
             byte[] palette = this.palette;
             var color = default(TPixel);
+
+            Rgba32 rgba = default(Rgba32);
 
             if (this.paletteAlpha != null && this.paletteAlpha.Length > 0)
             {
@@ -640,36 +639,34 @@ namespace ImageSharp.Formats
                     int index = newScanline[x + 1];
                     int pixelOffset = index * 3;
 
-                    byte a = this.paletteAlpha.Length > index ? this.paletteAlpha[index] : (byte)255;
+                    rgba.A = this.paletteAlpha.Length > index ? this.paletteAlpha[index] : (byte)255;
 
-                    if (a > 0)
+                    if (rgba.A > 0)
                     {
-                        byte r = palette[pixelOffset];
-                        byte g = palette[pixelOffset + 1];
-                        byte b = palette[pixelOffset + 2];
-                        color.PackFromBytes(r, g, b, a);
+                        rgba.Rgb = palette.GetRgb24(pixelOffset);
                     }
                     else
                     {
-                        color.PackFromBytes(0, 0, 0, 0);
+                        rgba = default(Rgba32);
                     }
 
-                    pixels[x, this.currentRow] = color;
+                    color.PackFromRgba32(rgba);
+                    row[x] = color;
                 }
             }
             else
             {
+                rgba.A = 255;
+
                 for (int x = 0; x < this.header.Width; x++)
                 {
                     int index = newScanline[x + 1];
                     int pixelOffset = index * 3;
 
-                    byte r = palette[pixelOffset];
-                    byte g = palette[pixelOffset + 1];
-                    byte b = palette[pixelOffset + 2];
+                    rgba.Rgb = palette.GetRgb24(pixelOffset);
 
-                    color.PackFromBytes(r, g, b, 255);
-                    pixels[x, this.currentRow] = color;
+                    color.PackFromRgba32(rgba);
+                    row[x] = color;
                 }
             }
         }
@@ -679,11 +676,10 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="defilteredScanline">The de-filtered scanline</param>
-        /// <param name="row">The current image row.</param>
-        /// <param name="pixels">The image pixels</param>
+        /// <param name="rowSpan">The current image row.</param>
         /// <param name="pixelOffset">The column start index. Always 0 for none interlaced images.</param>
         /// <param name="increment">The column increment. Always 1 for none interlaced images.</param>
-        private void ProcessInterlacedDefilteredScanline<TPixel>(byte[] defilteredScanline, int row, PixelAccessor<TPixel> pixels, int pixelOffset = 0, int increment = 1)
+        private void ProcessInterlacedDefilteredScanline<TPixel>(byte[] defilteredScanline, Span<TPixel> rowSpan, int pixelOffset = 0, int increment = 1)
             where TPixel : struct, IPixel<TPixel>
         {
             var color = default(TPixel);
@@ -696,8 +692,8 @@ namespace ImageSharp.Formats
                     for (int x = pixelOffset, o = 1; x < this.header.Width; x += increment, o++)
                     {
                         byte intensity = (byte)(newScanline1[o] * factor);
-                        color.PackFromBytes(intensity, intensity, intensity, 255);
-                        pixels[x, row] = color;
+                        color.PackFromRgba32(new Rgba32(intensity, intensity, intensity));
+                        rowSpan[x] = color;
                     }
 
                     break;
@@ -708,9 +704,8 @@ namespace ImageSharp.Formats
                     {
                         byte intensity = defilteredScanline[o];
                         byte alpha = defilteredScanline[o + this.bytesPerSample];
-
-                        color.PackFromBytes(intensity, intensity, intensity, alpha);
-                        pixels[x, row] = color;
+                        color.PackFromRgba32(new Rgba32(intensity, intensity, intensity, alpha));
+                        rowSpan[x] = color;
                     }
 
                     break;
@@ -718,6 +713,7 @@ namespace ImageSharp.Formats
                 case PngColorType.Palette:
 
                     byte[] newScanline = ToArrayByBitsLength(defilteredScanline, this.bytesPerScanline, this.header.BitDepth);
+                    Rgba32 rgba = default(Rgba32);
 
                     if (this.paletteAlpha != null && this.paletteAlpha.Length > 0)
                     {
@@ -728,36 +724,34 @@ namespace ImageSharp.Formats
                             int index = newScanline[o];
                             int offset = index * 3;
 
-                            byte a = this.paletteAlpha.Length > index ? this.paletteAlpha[index] : (byte)255;
+                            rgba.A = this.paletteAlpha.Length > index ? this.paletteAlpha[index] : (byte)255;
 
-                            if (a > 0)
+                            if (rgba.A > 0)
                             {
-                                byte r = this.palette[offset];
-                                byte g = this.palette[offset + 1];
-                                byte b = this.palette[offset + 2];
-                                color.PackFromBytes(r, g, b, a);
+                                rgba.Rgb = this.palette.GetRgb24(offset);
                             }
                             else
                             {
-                                color.PackFromBytes(0, 0, 0, 0);
+                                rgba = default(Rgba32);
                             }
 
-                            pixels[x, row] = color;
+                            color.PackFromRgba32(rgba);
+                            rowSpan[x] = color;
                         }
                     }
                     else
                     {
+                        rgba.A = 255;
+
                         for (int x = pixelOffset, o = 1; x < this.header.Width; x += increment, o++)
                         {
                             int index = newScanline[o];
                             int offset = index * 3;
 
-                            byte r = this.palette[offset];
-                            byte g = this.palette[offset + 1];
-                            byte b = this.palette[offset + 2];
+                            rgba.Rgb = this.palette.GetRgb24(offset);
 
-                            color.PackFromBytes(r, g, b, 255);
-                            pixels[x, row] = color;
+                            color.PackFromRgba32(rgba);
+                            rowSpan[x] = color;
                         }
                     }
 
@@ -765,14 +759,15 @@ namespace ImageSharp.Formats
 
                 case PngColorType.Rgb:
 
+                    rgba.A = 255;
                     for (int x = pixelOffset, o = 1; x < this.header.Width; x += increment, o += this.bytesPerPixel)
                     {
-                        byte r = defilteredScanline[o];
-                        byte g = defilteredScanline[o + this.bytesPerSample];
-                        byte b = defilteredScanline[o + (2 * this.bytesPerSample)];
+                        rgba.R = defilteredScanline[o];
+                        rgba.G = defilteredScanline[o + this.bytesPerSample];
+                        rgba.B = defilteredScanline[o + (2 * this.bytesPerSample)];
 
-                        color.PackFromBytes(r, g, b, 255);
-                        pixels[x, row] = color;
+                        color.PackFromRgba32(rgba);
+                        rowSpan[x] = color;
                     }
 
                     break;
@@ -781,13 +776,13 @@ namespace ImageSharp.Formats
 
                     for (int x = pixelOffset, o = 1; x < this.header.Width; x += increment, o += this.bytesPerPixel)
                     {
-                        byte r = defilteredScanline[o];
-                        byte g = defilteredScanline[o + this.bytesPerSample];
-                        byte b = defilteredScanline[o + (2 * this.bytesPerSample)];
-                        byte a = defilteredScanline[o + (3 * this.bytesPerSample)];
+                        rgba.R = defilteredScanline[o];
+                        rgba.G = defilteredScanline[o + this.bytesPerSample];
+                        rgba.B = defilteredScanline[o + (2 * this.bytesPerSample)];
+                        rgba.A = defilteredScanline[o + (3 * this.bytesPerSample)];
 
-                        color.PackFromBytes(r, g, b, a);
-                        pixels[x, row] = color;
+                        color.PackFromRgba32(rgba);
+                        rowSpan[x] = color;
                     }
 
                     break;

@@ -34,7 +34,7 @@ namespace ImageSharp.Tests
         };
 
         // [Theory] // Benchmark, enable manually
-        [MemberData(nameof(DecodeJpegData))]
+        // [MemberData(nameof(DecodeJpegData))]
         public void DecodeJpeg(string fileName)
         {
             const int ExecutionCount = 30;
@@ -60,10 +60,10 @@ namespace ImageSharp.Tests
 
         // Benchmark, enable manually!
         // [Theory]
-        [InlineData(1, 75, JpegSubsample.Ratio420)]
-        [InlineData(30, 75, JpegSubsample.Ratio420)]
-        [InlineData(30, 75, JpegSubsample.Ratio444)]
-        [InlineData(30, 100, JpegSubsample.Ratio444)]
+        // [InlineData(1, 75, JpegSubsample.Ratio420)]
+        // [InlineData(30, 75, JpegSubsample.Ratio420)]
+        // [InlineData(30, 75, JpegSubsample.Ratio444)]
+        // [InlineData(30, 100, JpegSubsample.Ratio444)]
         public void EncodeJpeg(int executionCount, int quality, JpegSubsample subsample)
         {
             string[] testFiles = TestImages.Bmp.All
@@ -72,7 +72,7 @@ namespace ImageSharp.Tests
 
             Image<Rgba32>[] testImages =
                 testFiles.Select(
-                        tf => TestImageProvider<Rgba32>.File(tf, pixelTypeOverride: PixelTypes.StandardImageClass).GetImage())
+                        tf => TestImageProvider<Rgba32>.File(tf, pixelTypeOverride: PixelTypes.Rgba32).GetImage())
                     .ToArray();
 
             using (MemoryStream ms = new MemoryStream())

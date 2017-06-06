@@ -40,11 +40,11 @@ namespace ImageSharp.Formats.Tiff
                     byte byteData = data[offset++];
 
                     byte intensity1 = (byte)((15 - ((byteData & 0xF0) >> 4)) * 17);
-                    color.PackFromBytes(intensity1, intensity1, intensity1, 255);
+                    color.PackFromRgba32(new Rgba32(intensity1, intensity1, intensity1, 255));
                     pixels[x, y] = color;
 
                     byte intensity2 = (byte)((15 - (byteData & 0x0F)) * 17);
-                    color.PackFromBytes(intensity2, intensity2, intensity2, 255);
+                    color.PackFromRgba32(new Rgba32(intensity2, intensity2, intensity2, 255));
                     pixels[x + 1, y] = color;
                 }
 
@@ -53,7 +53,7 @@ namespace ImageSharp.Formats.Tiff
                     byte byteData = data[offset++];
 
                     byte intensity1 = (byte)((15 - ((byteData & 0xF0) >> 4)) * 17);
-                    color.PackFromBytes(intensity1, intensity1, intensity1, 255);
+                    color.PackFromRgba32(new Rgba32(intensity1, intensity1, intensity1, 255));
                     pixels[left + width - 1, y] = color;
                 }
             }

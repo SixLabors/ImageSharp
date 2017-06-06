@@ -37,7 +37,7 @@ namespace ImageSharp.Formats.Tiff
                 for (int x = left; x < left + width; x++)
                 {
                     byte intensity = data[offset++];
-                    color.PackFromBytes(intensity, intensity, intensity, 255);
+                    color.PackFromRgba32(new Rgba32(intensity, intensity, intensity, 255));
                     pixels[x, y] = color;
                 }
             }

@@ -79,9 +79,9 @@
 |CellWidth                  |       |       |                          |
 |CellLength                 |       |       |                          |
 |FillOrder                  |       |       |                          |
-|ImageDescription           |       |       |                          |
-|Make                       |       |       |                          |
-|Model                      |       |       |                          |
+|ImageDescription           |       |   Y   |                          |
+|Make                       |       |   Y   |                          |
+|Model                      |       |   Y   |                          |
 |StripOffsets               |       |   Y   |                          |
 |Orientation                |       |       |                          |
 |SamplesPerPixel            |       |       | Currently ignored, as can be inferred from count of BitsPerSample |
@@ -97,13 +97,13 @@
 |GrayResponseUnit           |       |       |                          |
 |GrayResponseCurve          |       |       |                          |
 |ResolutionUnit             |       |   Y   |                          |
-|Software                   |       |       |                          |
-|DateTime                   |       |       |                          |
-|Artist                     |       |       |                          |
-|HostComputer               |       |       |                          |
+|Software                   |       |   Y   |                          |
+|DateTime                   |       |   Y   |                          |
+|Artist                     |       |   Y   |                          |
+|HostComputer               |       |   Y   |                          |
 |ColorMap                   |       |   Y   |                          |
 |ExtraSamples               |       |       |                          |
-|Copyright                  |       |       |                          |
+|Copyright                  |       |   Y   |                          |
 
 ### Extension TIFF Tags
 

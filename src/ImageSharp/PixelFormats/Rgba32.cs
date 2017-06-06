@@ -23,38 +23,28 @@ namespace ImageSharp
     /// This struct is fully mutable. This is done (against the guidelines) for the sake of performance,
     /// as it avoids the need to create new values for modification operations.
     /// </remarks>
-    [StructLayout(LayoutKind.Explicit)]
+    [StructLayout(LayoutKind.Sequential)]
     public partial struct Rgba32 : IPixel<Rgba32>, IPackedVector<uint>
     {
         /// <summary>
         /// Gets or sets the red component.
         /// </summary>
-        [FieldOffset(0)]
         public byte R;
 
         /// <summary>
         /// Gets or sets the green component.
         /// </summary>
-        [FieldOffset(1)]
         public byte G;
 
         /// <summary>
         /// Gets or sets the blue component.
         /// </summary>
-        [FieldOffset(2)]
         public byte B;
 
         /// <summary>
         /// Gets or sets the alpha component.
         /// </summary>
-        [FieldOffset(3)]
         public byte A;
-
-        /// <summary>
-        /// The packed representation of the value.
-        /// </summary>
-        [FieldOffset(0)]
-        public uint Rgba;
 
         /// <summary>
         /// The shift count for the red component
@@ -92,10 +82,24 @@ namespace ImageSharp
         /// <param name="r">The red component.</param>
         /// <param name="g">The green component.</param>
         /// <param name="b">The blue component.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Rgba32(byte r, byte g, byte b)
+        {
+            this.R = r;
+            this.G = g;
+            this.B = b;
+            this.A = 255;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Rgba32"/> struct.
+        /// </summary>
+        /// <param name="r">The red component.</param>
+        /// <param name="g">The green component.</param>
+        /// <param name="b">The blue component.</param>
         /// <param name="a">The alpha component.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Rgba32(byte r, byte g, byte b, byte a = 255)
-            : this()
+        public Rgba32(byte r, byte g, byte b, byte a)
         {
             this.R = r;
             this.G = g;
@@ -156,8 +160,68 @@ namespace ImageSharp
             this.Rgba = packed;
         }
 
+        /// <summary>
+        /// Gets or sets the packed representation of the Rgba32 struct.
+        /// </summary>
+        public uint Rgba
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return Unsafe.As<Rgba32, uint>(ref this);
+            }
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            set
+            {
+                Unsafe.As<Rgba32, uint>(ref this) = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the RGB components of this struct as <see cref="Rgb24"/>
+        /// </summary>
+        public Rgb24 Rgb
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return Unsafe.As<Rgba32, Rgb24>(ref this);
+            }
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            set
+            {
+                Unsafe.As<Rgba32, Rgb24>(ref this) = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the RGB components of this struct as <see cref="Bgr24"/> reverting the component order.
+        /// </summary>
+        public Bgr24 Bgr
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return new Bgr24(this.R, this.G, this.B);
+            }
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            set
+            {
+                this.R = value.R;
+                this.G = value.G;
+                this.B = value.B;
+            }
+        }
+
         /// <inheritdoc/>
-        public uint PackedValue { get => this.Rgba; set => this.Rgba = value; }
+        public uint PackedValue
+        {
+            get => this.Rgba;
+            set => this.Rgba = value;
+        }
 
         /// <summary>
         /// Compares two <see cref="Rgba32"/> objects for equality.
@@ -207,16 +271,13 @@ namespace ImageSharp
         }
 
         /// <inheritdoc />
-        public PixelOperations<Rgba32> CreateBulkOperations() => new PixelOperations();
+        public PixelOperations<Rgba32> CreatePixelOperations() => new PixelOperations();
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void PackFromBytes(byte x, byte y, byte z, byte w)
+        public void PackFromRgba32(Rgba32 source)
         {
-            this.R = x;
-            this.G = y;
-            this.B = z;
-            this.A = w;
+            this = source;
         }
 
         /// <summary>
@@ -229,42 +290,37 @@ namespace ImageSharp
             return hexOrder.ToString("X8");
         }
 
-        /// <inheritdoc/>
+        /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToXyzBytes(Span<byte> bytes, int startIndex)
+        public void ToRgb24(ref Rgb24 dest)
         {
-            bytes[startIndex] = this.R;
-            bytes[startIndex + 1] = this.G;
-            bytes[startIndex + 2] = this.B;
+            dest = Unsafe.As<Rgba32, Rgb24>(ref this);
         }
 
-        /// <inheritdoc/>
+        /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToXyzwBytes(Span<byte> bytes, int startIndex)
+        public void ToRgba32(ref Rgba32 dest)
         {
-            bytes[startIndex] = this.R;
-            bytes[startIndex + 1] = this.G;
-            bytes[startIndex + 2] = this.B;
-            bytes[startIndex + 3] = this.A;
+            dest = this;
         }
 
-        /// <inheritdoc/>
+        /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToZyxBytes(Span<byte> bytes, int startIndex)
+        public void ToBgr24(ref Bgr24 dest)
         {
-            bytes[startIndex] = this.B;
-            bytes[startIndex + 1] = this.G;
-            bytes[startIndex + 2] = this.R;
+            dest.R = this.R;
+            dest.G = this.G;
+            dest.B = this.B;
         }
 
-        /// <inheritdoc/>
+        /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToZyxwBytes(Span<byte> bytes, int startIndex)
+        public void ToBgra32(ref Bgra32 dest)
         {
-            bytes[startIndex] = this.B;
-            bytes[startIndex + 1] = this.G;
-            bytes[startIndex + 2] = this.R;
-            bytes[startIndex + 3] = this.A;
+            dest.R = this.R;
+            dest.G = this.G;
+            dest.B = this.B;
+            dest.A = this.A;
         }
 
         /// <inheritdoc/>
@@ -279,6 +335,17 @@ namespace ImageSharp
         public Vector4 ToVector4()
         {
             return new Vector4(this.R, this.G, this.B, this.A) / MaxBytes;
+        }
+
+        /// <summary>
+        /// Gets the value of this struct as <see cref="Bgra32"/>.
+        /// Useful for changing the component order.
+        /// </summary>
+        /// <returns>A <see cref="Bgra32"/> value.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Bgra32 ToBgra32()
+        {
+            return new Bgra32(this.R, this.G, this.B, this.A);
         }
 
         /// <inheritdoc/>
@@ -308,12 +375,22 @@ namespace ImageSharp
         {
             unchecked
             {
-                int hashCode = this.R.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.G.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.B.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.A.GetHashCode();
+                int hashCode = this.R;
+                hashCode = (hashCode * 397) ^ this.G;
+                hashCode = (hashCode * 397) ^ this.B;
+                hashCode = (hashCode * 397) ^ this.A;
                 return hashCode;
             }
+        }
+
+        /// <summary>
+        /// Gets the <see cref="Vector4"/> representation without normalizing to [0, 1]
+        /// </summary>
+        /// <returns>A <see cref="Vector4"/> of values in [0, 255] </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal Vector4 ToUnscaledVector4()
+        {
+            return new Vector4(this.R, this.G, this.B, this.A);
         }
 
         /// <summary>

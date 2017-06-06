@@ -52,6 +52,12 @@ namespace ImageSharp.Tests
 
         Short4 = 1 << 17,
 
+        Rgb24 = 18,
+
+        Bgr24 = 19,
+
+        Bgra32 = 20,
+
         // TODO: Add multi-flag entries by rules defined in PackedPixelConverterHelper
 
         // "All" is handled as a separate, individual case instead of using bitwise OR

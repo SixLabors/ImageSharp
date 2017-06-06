@@ -1,6 +1,6 @@
 ﻿// ReSharper disable InconsistentNaming
 // ReSharper disable AccessToDisposedClosure
-namespace ImageSharp.Tests.Colors
+namespace ImageSharp.Tests.PixelFormats
 {
     using System;
     using System.Numerics;
@@ -11,8 +11,9 @@ namespace ImageSharp.Tests.Colors
     using Xunit;
     using Xunit.Abstractions;
 
-    public class PixelOperationsTests
+    public partial class PixelOperationsTests
     {
+
         public class Color32 : PixelOperationsTests<Rgba32>
         {
             public Color32(ITestOutputHelper output)
@@ -42,8 +43,11 @@ namespace ImageSharp.Tests.Colors
                 );
             }
 
+
             // [Fact] // Profiling benchmark - enable manually!
+#pragma warning disable xUnit1013 // Public method should be marked as test
             public void Benchmark_ToVector4()
+#pragma warning restore xUnit1013 // Public method should be marked as test
             {
                 int times = 200000;
                 int count = 1024;
@@ -155,13 +159,13 @@ namespace ImageSharp.Tests.Colors
             {
                 int i3 = i * 3;
 
-                expected[i].PackFromBytes(source[i3 + 0], source[i3 + 1], source[i3 + 2], 255);
+                expected[i].PackFromRgba32(new Rgba32(source[i3 + 0], source[i3 + 1], source[i3 + 2], 255));
             }
 
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.PackFromXyzBytes(s, d, count)
+                (s, d) => Operations.PackFromRgb24Bytes(s, d, count)
             );
         }
 
@@ -181,7 +185,7 @@ namespace ImageSharp.Tests.Colors
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.ToXyzBytes(s, d, count)
+                (s, d) => Operations.ToRgb24Bytes(s, d, count)
             );
         }
 
@@ -196,13 +200,13 @@ namespace ImageSharp.Tests.Colors
             {
                 int i4 = i * 4;
 
-                expected[i].PackFromBytes(source[i4 + 0], source[i4 + 1], source[i4 + 2], source[i4 + 3]);
+                expected[i].PackFromRgba32(new Rgba32(source[i4 + 0], source[i4 + 1], source[i4 + 2], source[i4 + 3]));
             }
 
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.PackFromXyzwBytes(s, d, count)
+                (s, d) => Operations.PackFromRgba32Bytes(s, d, count)
             );
         }
 
@@ -222,7 +226,7 @@ namespace ImageSharp.Tests.Colors
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.ToXyzwBytes(s, d, count)
+                (s, d) => Operations.ToRgba32Bytes(s, d, count)
             );
         }
 
@@ -237,13 +241,13 @@ namespace ImageSharp.Tests.Colors
             {
                 int i3 = i * 3;
 
-                expected[i].PackFromBytes(source[i3 + 2], source[i3 + 1], source[i3 + 0], 255);
+                expected[i].PackFromRgba32(new Rgba32(source[i3 + 2], source[i3 + 1], source[i3 + 0], 255));
             }
 
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.PackFromZyxBytes(s, d, count)
+                (s, d) => Operations.PackFromBgr24Bytes(s, d, count)
             );
         }
 
@@ -263,7 +267,7 @@ namespace ImageSharp.Tests.Colors
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.ToZyxBytes(s, d, count)
+                (s, d) => Operations.ToBgr24Bytes(s, d, count)
             );
         }
 
@@ -278,13 +282,13 @@ namespace ImageSharp.Tests.Colors
             {
                 int i4 = i * 4;
 
-                expected[i].PackFromBytes(source[i4 + 2], source[i4 + 1], source[i4 + 0], source[i4 + 3]);
+                expected[i].PackFromRgba32(new Rgba32(source[i4 + 2], source[i4 + 1], source[i4 + 0], source[i4 + 3]));
             }
 
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.PackFromZyxwBytes(s, d, count)
+                (s, d) => Operations.PackFromBgra32Bytes(s, d, count)
             );
         }
 
@@ -304,7 +308,7 @@ namespace ImageSharp.Tests.Colors
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.ToZyxwBytes(s, d, count)
+                (s, d) => Operations.ToBgra32Bytes(s, d, count)
             );
         }
 

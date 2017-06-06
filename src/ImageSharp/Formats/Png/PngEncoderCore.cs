@@ -338,11 +338,11 @@ namespace ImageSharp.Formats
         {
             if (this.bytesPerPixel == 4)
             {
-                PixelOperations<TPixel>.Instance.ToXyzwBytes(rowSpan, this.rawScanline, this.width);
+                PixelOperations<TPixel>.Instance.ToRgba32Bytes(rowSpan, this.rawScanline, this.width);
             }
             else
             {
-                PixelOperations<TPixel>.Instance.ToXyzBytes(rowSpan, this.rawScanline, this.width);
+                PixelOperations<TPixel>.Instance.ToRgb24Bytes(rowSpan, this.rawScanline, this.width);
             }
         }
 

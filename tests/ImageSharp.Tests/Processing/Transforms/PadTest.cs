@@ -26,7 +26,7 @@ namespace ImageSharp.Tests.Processing.Transforms
                 {
                     for (int x = 0; x < 25; x++)
                     {
-                        Assert.Equal(image[x, y], default(TPixel));
+                        Assert.Equal(default(TPixel), image[x, y]);
                     }
                 }
             }

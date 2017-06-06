@@ -44,7 +44,7 @@ namespace ImageSharp.Tests
 
             Assert.Equal(ExifDataType.Ascii, value.DataType);
             Assert.Equal(ExifTag.GPSDOP, value.Tag);
-            Assert.Equal(false, value.IsArray);
+            Assert.False(value.IsArray);
             Assert.Equal("Windows Photo Editor 10.0.10011.16384", value.ToString());
             Assert.Equal("Windows Photo Editor 10.0.10011.16384", value.Value);
         }

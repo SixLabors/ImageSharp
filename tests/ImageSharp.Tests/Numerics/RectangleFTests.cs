@@ -256,6 +256,7 @@ namespace ImageSharp.Tests
             Assert.Equal(string.Format(CultureInfo.CurrentCulture, "RectangleF [ X={0}, Y={1}, Width={2}, Height={3} ]", r.X, r.Y, r.Width, r.Height), r.ToString());
         }
 
+        [Theory]
         [InlineData(0, 0, 0, 0)]
         [InlineData(5, -5, 0.2, -1.3)]
         public void ToStringTestEmpty(float x, float y, float width, float height)

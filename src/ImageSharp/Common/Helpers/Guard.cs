@@ -242,7 +242,6 @@ namespace ImageSharp
         /// <paramref name="target"/> is true
         /// </exception>
         public static void MustBeSizedAtLeast<T>(Span<T> target, int minLength, string parameterName)
-            where T : struct
         {
             if (target.Length < minLength)
             {

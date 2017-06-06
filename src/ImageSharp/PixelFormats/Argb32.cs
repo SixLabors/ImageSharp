@@ -59,9 +59,22 @@ namespace ImageSharp.PixelFormats
         /// <param name="g">The green component.</param>
         /// <param name="b">The blue component.</param>
         /// <param name="a">The alpha component.</param>
-        public Argb32(byte r, byte g, byte b, byte a = 255)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Argb32(byte r, byte g, byte b, byte a)
         {
             this.PackedValue = Pack(r, g, b, a);
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Argb32"/> struct.
+        /// </summary>
+        /// <param name="r">The red component.</param>
+        /// <param name="g">The green component.</param>
+        /// <param name="b">The blue component.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Argb32(byte r, byte g, byte b)
+        {
+            this.PackedValue = Pack(r, g, b, 255);
         }
 
         /// <summary>
@@ -224,7 +237,7 @@ namespace ImageSharp.PixelFormats
         }
 
         /// <inheritdoc />
-        public PixelOperations<Argb32> CreateBulkOperations() => new PixelOperations<Argb32>();
+        public PixelOperations<Argb32> CreatePixelOperations() => new PixelOperations<Argb32>();
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -235,47 +248,47 @@ namespace ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void PackFromBytes(byte x, byte y, byte z, byte w)
+        public void PackFromRgba32(Rgba32 source)
         {
-            this.PackedValue = Pack(x, y, z, w);
+            this.PackedValue = Pack(source.R, source.G, source.B, source.A);
         }
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToXyzBytes(Span<byte> bytes, int startIndex)
+        public void ToRgb24(ref Rgb24 dest)
         {
-            bytes[startIndex] = this.R;
-            bytes[startIndex + 1] = this.G;
-            bytes[startIndex + 2] = this.B;
+            dest.R = this.R;
+            dest.G = this.G;
+            dest.B = this.B;
         }
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToXyzwBytes(Span<byte> bytes, int startIndex)
+        public void ToRgba32(ref Rgba32 dest)
         {
-            bytes[startIndex] = this.R;
-            bytes[startIndex + 1] = this.G;
-            bytes[startIndex + 2] = this.B;
-            bytes[startIndex + 3] = this.A;
+            dest.R = this.R;
+            dest.G = this.G;
+            dest.B = this.B;
+            dest.A = this.A;
         }
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToZyxBytes(Span<byte> bytes, int startIndex)
+        public void ToBgr24(ref Bgr24 dest)
         {
-            bytes[startIndex] = this.B;
-            bytes[startIndex + 1] = this.G;
-            bytes[startIndex + 2] = this.R;
+            dest.R = this.R;
+            dest.G = this.G;
+            dest.B = this.B;
         }
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToZyxwBytes(Span<byte> bytes, int startIndex)
+        public void ToBgra32(ref Bgra32 dest)
         {
-            bytes[startIndex] = this.B;
-            bytes[startIndex + 1] = this.G;
-            bytes[startIndex + 2] = this.R;
-            bytes[startIndex + 3] = this.A;
+            dest.R = this.R;
+            dest.G = this.G;
+            dest.B = this.B;
+            dest.A = this.A;
         }
 
         /// <inheritdoc/>

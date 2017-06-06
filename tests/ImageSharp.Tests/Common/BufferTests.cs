@@ -163,7 +163,7 @@ namespace ImageSharp.Tests.Common
                 // Assert.Equal(buffer.Array, span.ToArray());
                 // Assert.Equal(0, span.Start);
                 Assert.SpanPointsTo(span, buffer);
-                Assert.Equal(span.Length, 42);
+                Assert.Equal(42, span.Length);
             }
         }
 

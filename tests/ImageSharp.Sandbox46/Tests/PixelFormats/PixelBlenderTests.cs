@@ -15,7 +15,7 @@ namespace ImageSharp.Tests.PixelFormats
 
     public class PixelOperations
     {
-        public static TheoryData<object, Type, PixelBlenderMode> blenderMappings = new TheoryData<object, Type, PixelBlenderMode>()
+        public static TheoryData<object, Type, PixelBlenderMode> BlenderMappings = new TheoryData<object, Type, PixelBlenderMode>()
         {
             { new TestPixel<Rgba32>(), typeof(DefaultNormalPixelBlender<Rgba32>), PixelBlenderMode.Normal },
             { new TestPixel<Rgba32>(), typeof(DefaultScreenPixelBlender<Rgba32>), PixelBlenderMode.Screen },
@@ -39,7 +39,7 @@ namespace ImageSharp.Tests.PixelFormats
         };
 
         [Theory]
-        [MemberData(nameof(blenderMappings))]
+        [MemberData(nameof(BlenderMappings))]
         public void ReturnsCorrectBlender<TPixel>(TestPixel<TPixel> pixel, Type type, PixelBlenderMode mode)
             where TPixel : struct, IPixel<TPixel>
         {

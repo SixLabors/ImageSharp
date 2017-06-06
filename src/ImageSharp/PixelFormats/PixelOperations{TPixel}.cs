@@ -20,7 +20,7 @@ namespace ImageSharp.PixelFormats
         /// <summary>
         /// Gets the global <see cref="PixelOperations{TPixel}"/> instance for the pixel type <typeparamref name="TPixel"/>
         /// </summary>
-        public static PixelOperations<TPixel> Instance { get; } = default(TPixel).CreateBulkOperations();
+        public static PixelOperations<TPixel> Instance { get; } = default(TPixel).CreatePixelOperations();
 
         /// <summary>
         /// Bulk version of <see cref="IPixel.PackFromVector4(Vector4)"/>
@@ -30,8 +30,7 @@ namespace ImageSharp.PixelFormats
         /// <param name="count">The number of pixels to convert.</param>
         internal virtual void PackFromVector4(Span<Vector4> sourceVectors, Span<TPixel> destColors, int count)
         {
-            Guard.MustBeSizedAtLeast(sourceVectors, count, nameof(sourceVectors));
-            Guard.MustBeSizedAtLeast(destColors, count, nameof(destColors));
+            GuardSpans(sourceVectors, nameof(sourceVectors), destColors, nameof(destColors), count);
 
             ref Vector4 sourceRef = ref sourceVectors.DangerousGetPinnableReference();
             ref TPixel destRef = ref destColors.DangerousGetPinnableReference();
@@ -52,8 +51,7 @@ namespace ImageSharp.PixelFormats
         /// <param name="count">The number of pixels to convert.</param>
         internal virtual void ToVector4(Span<TPixel> sourceColors, Span<Vector4> destVectors, int count)
         {
-            Guard.MustBeSizedAtLeast(sourceColors, count, nameof(sourceColors));
-            Guard.MustBeSizedAtLeast(destVectors, count, nameof(destVectors));
+            GuardSpans(sourceColors, nameof(sourceColors), destVectors, nameof(destVectors), count);
 
             ref TPixel sourceRef = ref sourceColors.DangerousGetPinnableReference();
             ref Vector4 destRef = ref destVectors.DangerousGetPinnableReference();
@@ -67,187 +65,25 @@ namespace ImageSharp.PixelFormats
         }
 
         /// <summary>
-        /// Bulk version of <see cref="IPixel.PackFromBytes(byte, byte, byte, byte)"/> that converts data in <see cref="ComponentOrder.Xyz"/>.
+        /// Verifies that the given 'source' and 'dest' spans are at least of 'minLength' size.
+        /// Throwing an <see cref="ArgumentException"/> if the condition is not met.
         /// </summary>
-        /// <param name="sourceBytes">The <see cref="Span{T}"/> to the source bytes.</param>
-        /// <param name="destColors">The <see cref="Span{T}"/> to the destination colors.</param>
-        /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void PackFromXyzBytes(Span<byte> sourceBytes, Span<TPixel> destColors, int count)
+        /// <typeparam name="TSource">The source element type</typeparam>
+        /// <typeparam name="TDest">The destination element type</typeparam>
+        /// <param name="source">The source span</param>
+        /// <param name="sourceParamName">The source parameter name</param>
+        /// <param name="dest">The destination span</param>
+        /// <param name="destParamName">The destination parameter name</param>
+        /// <param name="minLength">The minimum length</param>
+        protected internal static void GuardSpans<TSource, TDest>(
+            Span<TSource> source,
+            string sourceParamName,
+            Span<TDest> dest,
+            string destParamName,
+            int minLength)
         {
-            Guard.MustBeSizedAtLeast(sourceBytes, count * 3, nameof(sourceBytes));
-            Guard.MustBeSizedAtLeast(destColors, count, nameof(destColors));
-
-            ref byte sourceRef = ref sourceBytes.DangerousGetPinnableReference();
-            ref TPixel destRef = ref destColors.DangerousGetPinnableReference();
-
-            for (int i = 0; i < count; i++)
-            {
-                int i3 = i * 3;
-                ref TPixel dp = ref Unsafe.Add(ref destRef, i);
-                dp.PackFromBytes(
-                    Unsafe.Add(ref sourceRef, i3),
-                    Unsafe.Add(ref sourceRef, i3 + 1),
-                    Unsafe.Add(ref sourceRef, i3 + 2),
-                    255);
-            }
-        }
-
-        /// <summary>
-        /// Bulk version of <see cref="IPixel.ToXyzBytes(Span{byte}, int)"/>.
-        /// </summary>
-        /// <param name="sourceColors">The <see cref="Span{T}"/> to the source colors.</param>
-        /// <param name="destBytes">The <see cref="Span{T}"/> to the destination bytes.</param>
-        /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void ToXyzBytes(Span<TPixel> sourceColors, Span<byte> destBytes, int count)
-        {
-            Guard.MustBeSizedAtLeast(sourceColors, count, nameof(sourceColors));
-            Guard.MustBeSizedAtLeast(destBytes, count * 3, nameof(destBytes));
-
-            ref TPixel sourceRef = ref sourceColors.DangerousGetPinnableReference();
-
-            for (int i = 0; i < count; i++)
-            {
-                ref TPixel sp = ref Unsafe.Add(ref sourceRef, i);
-                sp.ToXyzBytes(destBytes, i * 3);
-            }
-        }
-
-        /// <summary>
-        /// Bulk version of <see cref="IPixel.PackFromBytes(byte, byte, byte, byte)"/> that converts data in <see cref="ComponentOrder.Xyzw"/>.
-        /// </summary>
-        /// <param name="sourceBytes">The <see cref="Span{T}"/> to the source bytes.</param>
-        /// <param name="destColors">The <see cref="Span{T}"/> to the destination colors.</param>
-        /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void PackFromXyzwBytes(Span<byte> sourceBytes, Span<TPixel> destColors, int count)
-        {
-            Guard.MustBeSizedAtLeast(sourceBytes, count * 4, nameof(sourceBytes));
-            Guard.MustBeSizedAtLeast(destColors, count, nameof(destColors));
-
-            ref byte sourceRef = ref sourceBytes.DangerousGetPinnableReference();
-            ref TPixel destRef = ref destColors.DangerousGetPinnableReference();
-
-            for (int i = 0; i < count; i++)
-            {
-                int i4 = i * 4;
-                ref TPixel dp = ref Unsafe.Add(ref destRef, i);
-                dp.PackFromBytes(
-                    Unsafe.Add(ref sourceRef, i4),
-                    Unsafe.Add(ref sourceRef, i4 + 1),
-                    Unsafe.Add(ref sourceRef, i4 + 2),
-                    Unsafe.Add(ref sourceRef, i4 + 3));
-            }
-        }
-
-        /// <summary>
-        /// Bulk version of <see cref="IPixel.ToXyzwBytes(Span{byte}, int)"/>
-        /// </summary>
-        /// <param name="sourceColors">The <see cref="Span{T}"/> to the source colors.</param>
-        /// <param name="destBytes">The <see cref="Span{T}"/> to the destination bytes.</param>
-        /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void ToXyzwBytes(Span<TPixel> sourceColors, Span<byte> destBytes, int count)
-        {
-            Guard.MustBeSizedAtLeast(sourceColors, count, nameof(sourceColors));
-            Guard.MustBeSizedAtLeast(destBytes, count * 4, nameof(destBytes));
-
-            ref TPixel sourceRef = ref sourceColors.DangerousGetPinnableReference();
-
-            for (int i = 0; i < count; i++)
-            {
-                ref TPixel sp = ref Unsafe.Add(ref sourceRef, i);
-                sp.ToXyzwBytes(destBytes, i * 4);
-            }
-        }
-
-        /// <summary>
-        /// Bulk version of <see cref="IPixel.PackFromBytes(byte, byte, byte, byte)"/> that converts data in <see cref="ComponentOrder.Zyx"/>.
-        /// </summary>
-        /// <param name="sourceBytes">The <see cref="Span{T}"/> to the source bytes.</param>
-        /// <param name="destColors">The <see cref="Span{T}"/> to the destination colors.</param>
-        /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void PackFromZyxBytes(Span<byte> sourceBytes, Span<TPixel> destColors, int count)
-        {
-            Guard.MustBeSizedAtLeast(sourceBytes, count * 3, nameof(sourceBytes));
-            Guard.MustBeSizedAtLeast(destColors, count, nameof(destColors));
-
-            ref byte sourceRef = ref sourceBytes.DangerousGetPinnableReference();
-            ref TPixel destRef = ref destColors.DangerousGetPinnableReference();
-
-            for (int i = 0; i < count; i++)
-            {
-                int i3 = i * 3;
-                ref TPixel dp = ref Unsafe.Add(ref destRef, i);
-                dp.PackFromBytes(
-                    Unsafe.Add(ref sourceRef, i3 + 2),
-                    Unsafe.Add(ref sourceRef, i3 + 1),
-                    Unsafe.Add(ref sourceRef, i3),
-                    255);
-            }
-        }
-
-        /// <summary>
-        /// Bulk version of <see cref="IPixel.ToZyxBytes(Span{byte}, int)"/>.
-        /// </summary>
-        /// <param name="sourceColors">The <see cref="Span{T}"/> to the source colors.</param>
-        /// <param name="destBytes">The <see cref="Span{T}"/> to the destination bytes.</param>
-        /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void ToZyxBytes(Span<TPixel> sourceColors, Span<byte> destBytes, int count)
-        {
-            Guard.MustBeSizedAtLeast(sourceColors, count, nameof(sourceColors));
-            Guard.MustBeSizedAtLeast(destBytes, count * 3, nameof(destBytes));
-
-            ref TPixel sourceRef = ref sourceColors.DangerousGetPinnableReference();
-
-            for (int i = 0; i < count; i++)
-            {
-                ref TPixel sp = ref Unsafe.Add(ref sourceRef, i);
-                sp.ToZyxBytes(destBytes, i * 3);
-            }
-        }
-
-        /// <summary>
-        /// Bulk version of <see cref="IPixel.PackFromBytes(byte, byte, byte, byte)"/> that converts data in <see cref="ComponentOrder.Zyxw"/>.
-        /// </summary>
-        /// <param name="sourceBytes">The <see cref="Span{T}"/> to the source bytes.</param>
-        /// <param name="destColors">The <see cref="Span{T}"/> to the destination colors.</param>
-        /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void PackFromZyxwBytes(Span<byte> sourceBytes, Span<TPixel> destColors, int count)
-        {
-            Guard.MustBeSizedAtLeast(sourceBytes, count * 4, nameof(sourceBytes));
-            Guard.MustBeSizedAtLeast(destColors, count, nameof(destColors));
-
-            ref byte sourceRef = ref sourceBytes.DangerousGetPinnableReference();
-            ref TPixel destRef = ref destColors.DangerousGetPinnableReference();
-
-            for (int i = 0; i < count; i++)
-            {
-                int i4 = i * 4;
-                ref TPixel dp = ref Unsafe.Add(ref destRef, i);
-                dp.PackFromBytes(
-                    Unsafe.Add(ref sourceRef, i4 + 2),
-                    Unsafe.Add(ref sourceRef, i4 + 1),
-                    Unsafe.Add(ref sourceRef, i4),
-                    Unsafe.Add(ref sourceRef, i4 + 3));
-            }
-        }
-
-        /// <summary>
-        /// Bulk version of <see cref="IPixel.ToZyxwBytes(Span{byte}, int)"/>.
-        /// </summary>
-        /// <param name="sourceColors">The <see cref="Span{T}"/> to the source colors.</param>
-        /// <param name="destBytes">The <see cref="Span{T}"/> to the destination bytes.</param>
-        /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void ToZyxwBytes(Span<TPixel> sourceColors, Span<byte> destBytes, int count)
-        {
-            Guard.MustBeSizedAtLeast(sourceColors, count, nameof(sourceColors));
-            Guard.MustBeSizedAtLeast(destBytes, count * 4, nameof(destBytes));
-
-            ref TPixel sourceRef = ref sourceColors.DangerousGetPinnableReference();
-
-            for (int i = 0; i < count; i++)
-            {
-                ref TPixel sp = ref Unsafe.Add(ref sourceRef, i);
-                sp.ToZyxwBytes(destBytes, i * 4);
-            }
+            Guard.MustBeSizedAtLeast(source, minLength, sourceParamName);
+            Guard.MustBeSizedAtLeast(dest, minLength, destParamName);
         }
     }
 }

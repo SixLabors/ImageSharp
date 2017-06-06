@@ -91,7 +91,7 @@ namespace ImageSharp.Formats.Jpg
             // float b = MathF.Round(y + (1.772F * cb), MidpointRounding.AwayFromZero);
             byte b = (byte)(y + tables->CbBTable[cb]).Clamp(0, 255);
 
-            packed.PackFromBytes(r, g, b, byte.MaxValue);
+            packed.PackFromRgba32(new Rgba32(r, g, b, 255));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

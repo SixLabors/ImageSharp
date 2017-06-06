@@ -41,7 +41,7 @@ namespace ImageSharp.Formats.Tiff
                     byte r = data[offset++];
                     byte g = data[offset++];
                     byte b = data[offset++];
-                    color.PackFromBytes(r, g, b, 255);
+                    color.PackFromRgba32(new Rgba32(r, g, b, 255));
                     pixels[x, y] = color;
                 }
             }

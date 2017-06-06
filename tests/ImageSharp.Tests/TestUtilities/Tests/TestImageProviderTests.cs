@@ -50,7 +50,7 @@ namespace ImageSharp.Tests
         [Theory]
         [WithBlankImages(1, 1, PixelTypes.Rgba32, PixelTypes.Rgba32)]
         [WithBlankImages(1, 1, PixelTypes.Alpha8, PixelTypes.Alpha8)]
-        [WithBlankImages(1, 1, PixelTypes.StandardImageClass, PixelTypes.StandardImageClass)]
+        [WithBlankImages(1, 1, PixelTypes.Rgba32, PixelTypes.Rgba32)]
         public void PixelType_PropertyValueIsCorrect<TPixel>(TestImageProvider<TPixel> provider, PixelTypes expected)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -58,8 +58,8 @@ namespace ImageSharp.Tests
         }
 
         [Theory]
-        [WithBlankImages(1, 1, PixelTypes.StandardImageClass)]
-        [WithFile(TestImages.Bmp.F, PixelTypes.StandardImageClass)]
+        [WithBlankImages(1, 1, PixelTypes.Rgba32)]
+        [WithFile(TestImages.Bmp.F, PixelTypes.Rgba32)]
         public void PixelTypes_ColorWithDefaultImageClass_TriggersCreatingTheNonGenericDerivedImageClass<TPixel>(
             TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
@@ -103,8 +103,8 @@ namespace ImageSharp.Tests
             where TPixel : struct, IPixel<TPixel>
         {
             Image<TPixel> img = provider.GetImage();
-            Assert.Equal(img.Width, 10);
-            Assert.Equal(img.Height, 20);
+            Assert.Equal(10, img.Width);
+            Assert.Equal(20, img.Height);
 
             byte[] colors = new byte[4];
 
@@ -116,10 +116,10 @@ namespace ImageSharp.Tests
                     {
                         pixels[x, y].ToXyzwBytes(colors, 0);
 
-                        Assert.Equal(colors[0], 255);
-                        Assert.Equal(colors[1], 100);
-                        Assert.Equal(colors[2], 50);
-                        Assert.Equal(colors[3], 200);
+                        Assert.Equal(255, colors[0]);
+                        Assert.Equal(100, colors[1]);
+                        Assert.Equal(50, colors[2]);
+                        Assert.Equal(200, colors[3]);
                     }
                 }
             }
@@ -143,8 +143,8 @@ namespace ImageSharp.Tests
             where TPixel : struct, IPixel<TPixel>
         {
             Image<TPixel> img = provider.GetImage();
-            Assert.Equal(img.Width, 3);
-            if (provider.PixelType == PixelTypes.StandardImageClass)
+            Assert.Equal(3, img.Width);
+            if (provider.PixelType == PixelTypes.Rgba32)
             {
                 Assert.IsType<Image<Rgba32>>(img);
             }

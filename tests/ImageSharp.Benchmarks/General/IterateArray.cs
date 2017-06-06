@@ -18,7 +18,7 @@ namespace ImageSharp.Benchmarks.General
         [Params(64, 1024)]
         public int Length { get; set; }
 
-        [Setup]
+        [GlobalSetup]
         public void Setup()
         {
             this.buffer = new Buffer<Vector4>(this.Length);

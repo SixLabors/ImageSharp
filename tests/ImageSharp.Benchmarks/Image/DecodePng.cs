@@ -18,7 +18,7 @@ namespace ImageSharp.Benchmarks.Image
     {
         private byte[] pngBytes;
 
-        [Setup]
+        [GlobalSetup]
         public void ReadImages()
         {
             if (this.pngBytes == null)

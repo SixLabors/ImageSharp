@@ -499,7 +499,7 @@ namespace ImageSharp.Quantizers
 
                         // And set the color of the palette entry
                         var pixel = default(TPixel);
-                        pixel.PackFromBytes(r, g, b, 255);
+                        pixel.PackFromRgba32(new Rgba32(r, g, b, 255));
                         palette[index] = pixel;
 
                         // Consume the next palette index

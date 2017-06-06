@@ -15,13 +15,13 @@ namespace ImageSharp.Benchmarks.General
         [Params(32, 128, 512)]
         public int Count { get; set; }
 
-        [Setup]
+        [GlobalSetup]
         public void Setup()
         {
             this.buffer = new Buffer<Rgba32>(this.Count);
         }
 
-        [Cleanup]
+        [GlobalCleanup]
         public void Cleanup()
         {
             this.buffer.Dispose();

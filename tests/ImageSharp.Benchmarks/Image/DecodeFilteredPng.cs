@@ -20,7 +20,7 @@ namespace ImageSharp.Benchmarks.Image
         private MemoryStream filter3;
         private MemoryStream filter4;
 
-        [Setup]
+        [GlobalSetup]
         public void ReadImages()
         {
             this.filter0 = new MemoryStream(File.ReadAllBytes("../ImageSharp.Tests/TestImages/Formats/Png/filter0.png"));

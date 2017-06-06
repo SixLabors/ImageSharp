@@ -25,7 +25,7 @@ namespace ImageSharp.Tests
 
             Assert.Equal(property1, property2);
             Assert.True(property1 == property2);
-            Assert.Equal(property3, null);
+            Assert.Null(property3);
         }
 
         /// <summary>
@@ -41,7 +41,7 @@ namespace ImageSharp.Tests
 
             Assert.False(property1.Equals("Foo"));
 
-            Assert.NotEqual(property1, null);
+            Assert.NotNull(property1);
 
             Assert.NotEqual(property1, property2);
             Assert.True(property1 != property2);
@@ -69,7 +69,7 @@ namespace ImageSharp.Tests
         {
             ImageProperty property = new ImageProperty("Foo", null);
             Assert.Equal("Foo", property.Name);
-            Assert.Equal(null, property.Value);
+            Assert.Null(property.Value);
 
             property = new ImageProperty("Foo", string.Empty);
             Assert.Equal(string.Empty, property.Value);

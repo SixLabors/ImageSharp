@@ -5,8 +5,6 @@
 
 namespace ImageSharp
 {
-    using System;
-
     using ImageSharp.PixelFormats;
 
     using Processing.Processors;
@@ -158,7 +156,7 @@ namespace ImageSharp
         public static Image<TPixel> Glow<TPixel>(this Image<TPixel> source, TPixel color, float radius, Rectangle rectangle, GraphicsOptions options)
             where TPixel : struct, IPixel<TPixel>
         {
-            GlowProcessor<TPixel> processor = new GlowProcessor<TPixel>(color, options) { Radius = radius, };
+            var processor = new GlowProcessor<TPixel>(color, options) { Radius = radius, };
             source.ApplyProcessor(processor, rectangle);
             return source;
         }

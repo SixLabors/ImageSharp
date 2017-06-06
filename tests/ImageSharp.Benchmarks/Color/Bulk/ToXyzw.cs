@@ -21,14 +21,14 @@ namespace ImageSharp.Benchmarks.Color.Bulk
         [Params(16, 128, 1024)]
         public int Count { get; set; }
 
-        [Setup]
+        [GlobalSetup]
         public void Setup()
         {
             this.source = new Buffer<TPixel>(this.Count);
             this.destination = new Buffer<byte>(this.Count * 4);
         }
 
-        [Cleanup]
+        [GlobalCleanup]
         public void Cleanup()
         {
             this.source.Dispose();

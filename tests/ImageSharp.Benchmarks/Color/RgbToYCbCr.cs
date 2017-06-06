@@ -116,7 +116,7 @@
 
         private int[] inputSourceRGBAsInteger = null;
 
-        [Setup]
+        [GlobalSetup]
         public void Setup()
         {
             // Console.WriteLine("Vector<int>.Count: " + Vector<int>.Count);

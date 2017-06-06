@@ -20,7 +20,7 @@ namespace ImageSharp.Benchmarks.Image
         private Image bmpDrawing;
         private Image<Rgba32> bmpCore;
 
-        [Setup]
+        [GlobalSetup]
         public void ReadImages()
         {
             if (this.bmpStream == null)
@@ -32,7 +32,7 @@ namespace ImageSharp.Benchmarks.Image
             }
         }
 
-        [Cleanup]
+        [GlobalCleanup]
         public void Cleanup()
         {
             this.bmpStream.Dispose();

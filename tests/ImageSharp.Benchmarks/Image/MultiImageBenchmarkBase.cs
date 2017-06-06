@@ -83,7 +83,7 @@ namespace ImageSharp.Benchmarks.Image
 
         protected abstract IEnumerable<string> InputImageSubfoldersOrFiles { get; }
 
-        [Setup]
+        [GlobalSetup]
         public void ReadImages()
         {
             if (!Vector.IsHardwareAccelerated)

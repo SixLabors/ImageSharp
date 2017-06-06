@@ -109,6 +109,7 @@ namespace ImageSharp
             config.AddImageFormat(new Formats.JpegFormat());
             config.AddImageFormat(new Formats.GifFormat());
             config.AddImageFormat(new Formats.BmpFormat());
+            config.AddImageFormat(new Formats.TiffFormat());
             return config;
         }
 

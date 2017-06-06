@@ -68,7 +68,7 @@ namespace ImageSharp.Tests
 
             TiffDecoder decoder = new TiffDecoder();
 
-            ImageFormatException e = Assert.Throws<ImageFormatException>(() => { TestDecode(decoder, stream); });
+            ImageFormatException e = Assert.Throws<ImageFormatException>(() => { decoder.Decode<Rgba32>(Configuration.Default, stream, null); });
 
             Assert.Equal("Invalid TIFF file header.", e.Message);
         }
@@ -86,7 +86,7 @@ namespace ImageSharp.Tests
 
             TiffDecoder decoder = new TiffDecoder();
 
-            ImageFormatException e = Assert.Throws<ImageFormatException>(() => { TestDecode(decoder, stream); });
+            ImageFormatException e = Assert.Throws<ImageFormatException>(() => { decoder.Decode<Rgba32>(Configuration.Default, stream, null); });
 
             Assert.Equal("Invalid TIFF file header.", e.Message);
         }
@@ -103,15 +103,9 @@ namespace ImageSharp.Tests
 
             TiffDecoder decoder = new TiffDecoder();
 
-            ImageFormatException e = Assert.Throws<ImageFormatException>(() => { TestDecode(decoder, stream); });
+            ImageFormatException e = Assert.Throws<ImageFormatException>(() => { decoder.Decode<Rgba32>(Configuration.Default, stream, null); });
 
             Assert.Equal("Invalid TIFF file header.", e.Message);
-        }
-
-        private void TestDecode(TiffDecoder decoder, Stream stream)
-        {
-            Configuration.Default.AddImageFormat(new TiffFormat());
-            Image<Rgba32> image = decoder.Decode<Rgba32>(Configuration.Default, stream, null);
         }
     }
 }

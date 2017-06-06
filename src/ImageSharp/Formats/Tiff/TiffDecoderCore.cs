@@ -224,6 +224,12 @@ namespace ImageSharp.Formats
             return image;
         }
 
+        /// <summary>
+        /// Reads the image metadata from a specified IFD.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="ifd">The IFD to read the image from.</param>
+        /// <param name="image">The image to write the metadata to.</param>
         public void ReadMetadata<TPixel>(TiffIfd ifd, Image<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -243,6 +249,49 @@ namespace ImageSharp.Formats
                 {
                     Rational yResolution = this.ReadUnsignedRational(ref yResolutionEntry);
                     image.MetaData.VerticalResolution = yResolution.ToDouble() * resolutionUnitFactor;
+                }
+            }
+
+            if (!this.options.IgnoreMetadata)
+            {
+                if (ifd.TryGetIfdEntry(TiffTags.Artist, out TiffIfdEntry artistEntry))
+                {
+                    image.MetaData.Properties.Add(new ImageProperty(TiffMetadataNames.Artist, this.ReadString(ref artistEntry)));
+                }
+
+                if (ifd.TryGetIfdEntry(TiffTags.Copyright, out TiffIfdEntry copyrightEntry))
+                {
+                    image.MetaData.Properties.Add(new ImageProperty(TiffMetadataNames.Copyright, this.ReadString(ref copyrightEntry)));
+                }
+
+                if (ifd.TryGetIfdEntry(TiffTags.DateTime, out TiffIfdEntry dateTimeEntry))
+                {
+                    image.MetaData.Properties.Add(new ImageProperty(TiffMetadataNames.DateTime, this.ReadString(ref dateTimeEntry)));
+                }
+
+                if (ifd.TryGetIfdEntry(TiffTags.HostComputer, out TiffIfdEntry hostComputerEntry))
+                {
+                    image.MetaData.Properties.Add(new ImageProperty(TiffMetadataNames.HostComputer, this.ReadString(ref hostComputerEntry)));
+                }
+
+                if (ifd.TryGetIfdEntry(TiffTags.ImageDescription, out TiffIfdEntry imageDescriptionEntry))
+                {
+                    image.MetaData.Properties.Add(new ImageProperty(TiffMetadataNames.ImageDescription, this.ReadString(ref imageDescriptionEntry)));
+                }
+
+                if (ifd.TryGetIfdEntry(TiffTags.Make, out TiffIfdEntry makeEntry))
+                {
+                    image.MetaData.Properties.Add(new ImageProperty(TiffMetadataNames.Make, this.ReadString(ref makeEntry)));
+                }
+
+                if (ifd.TryGetIfdEntry(TiffTags.Model, out TiffIfdEntry modelEntry))
+                {
+                    image.MetaData.Properties.Add(new ImageProperty(TiffMetadataNames.Model, this.ReadString(ref modelEntry)));
+                }
+
+                if (ifd.TryGetIfdEntry(TiffTags.Software, out TiffIfdEntry softwareEntry))
+                {
+                    image.MetaData.Properties.Add(new ImageProperty(TiffMetadataNames.Software, this.ReadString(ref softwareEntry)));
                 }
             }
         }

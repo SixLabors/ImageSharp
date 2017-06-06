@@ -20,7 +20,7 @@ namespace ImageSharp.Benchmarks.General.Vectorization
         [Params(64)]
         public int InputSize { get; set; }
         
-        [Setup]
+        [GlobalSetup]
         public void Setup()
         {
             this.data = new float[this.InputSize];

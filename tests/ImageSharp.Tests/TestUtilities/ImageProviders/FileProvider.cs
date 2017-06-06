@@ -17,8 +17,8 @@ namespace ImageSharp.Tests
     {
         private class FileProvider : TestImageProvider<TPixel>, IXunitSerializable
         {
-            // Need PixelTypes in the dictionary key, because result images of TestImageProvider<TPixel>.FileProvider 
-            // are shared between PixelTypes.Color & PixelTypes.StandardImageClass
+            // Need PixelTypes in the dictionary key, because result images of TestImageProvider<TPixel>.FileProvider
+            // are shared between PixelTypes.Color & PixelTypes.Rgba32
             private class Key : Tuple<PixelTypes, string>
             {
                 public Key(PixelTypes item1, string item2)
@@ -27,8 +27,7 @@ namespace ImageSharp.Tests
                 }
             }
 
-            private static ConcurrentDictionary<Key, Image<TPixel>> cache =
-                new ConcurrentDictionary<Key, Image<TPixel>>();
+            private static readonly ConcurrentDictionary<Key, Image<TPixel>> cache = new ConcurrentDictionary<Key, Image<TPixel>>();
 
             private string filePath;
 

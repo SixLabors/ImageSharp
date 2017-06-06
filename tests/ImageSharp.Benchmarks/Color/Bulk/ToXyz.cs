@@ -16,14 +16,14 @@ namespace ImageSharp.Benchmarks.Color.Bulk
         [Params(16, 128, 1024)]
         public int Count { get; set; }
 
-        [Setup]
+        [GlobalSetup]
         public void Setup()
         {
             this.source = new Buffer<TPixel>(this.Count);
             this.destination = new Buffer<byte>(this.Count * 3);
         }
 
-        [Cleanup]
+        [GlobalCleanup]
         public void Cleanup()
         {
             this.source.Dispose();
@@ -46,13 +46,13 @@ namespace ImageSharp.Benchmarks.Color.Bulk
         [Benchmark]
         public void CommonBulk()
         {
-            new PixelOperations<TPixel>().ToXyzBytes(this.source, this.destination, this.Count);
+            new PixelOperations<TPixel>().ToRgb24Bytes(this.source, this.destination, this.Count);
         }
 
         [Benchmark]
         public void OptimizedBulk()
         {
-            PixelOperations<TPixel>.Instance.ToXyzBytes(this.source, this.destination, this.Count);
+            PixelOperations<TPixel>.Instance.ToRgb24Bytes(this.source, this.destination, this.Count);
         }
     }
 

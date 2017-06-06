@@ -52,10 +52,11 @@ namespace ImageSharp.Tests
 
         Short4 = 1 << 17,
 
-        /// <summary>
-        /// Triggers instantiating the <see cref="Image{Rgba32}"/> subclass of <see cref="Image{TPixel}"/>
-        /// </summary>
-        StandardImageClass = 1 << 29,
+        Rgb24 = 18,
+
+        Bgr24 = 19,
+
+        Bgra32 = 20,
 
         // TODO: Add multi-flag entries by rules defined in PackedPixelConverterHelper
 

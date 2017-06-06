@@ -33,7 +33,8 @@ namespace ImageSharp.Drawing
 
         private float wrapTextWidth;
 
-        private SixLabors.Fonts.TextAlignment? textAlignment;
+        private SixLabors.Fonts.HorizontalAlignment? horizontalAlignment;
+        private SixLabors.Fonts.VerticalAlignment? verticalAlignment;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="TextGraphicsOptions" /> struct.
@@ -45,7 +46,8 @@ namespace ImageSharp.Drawing
             this.tabWidth = 4;
             this.useImageResolution = false;
             this.wrapTextWidth = 0;
-            this.textAlignment = SixLabors.Fonts.TextAlignment.Left;
+            this.horizontalAlignment = HorizontalAlignment.Left;
+            this.verticalAlignment = VerticalAlignment.Top;
 
             this.antialiasSubpixelDepth = 16;
             this.blenderMode = PixelBlenderMode.Normal;
@@ -104,7 +106,12 @@ namespace ImageSharp.Drawing
         /// defined by the location and width, if <see cref="WrapTextWidth"/> equals zero, and thus
         /// wrapping disabled, then the alignment is relative to the drawing location.
         /// </summary>
-        public TextAlignment TextAlignment { get => this.textAlignment ?? TextAlignment.Left; set => this.textAlignment = value; }
+        public HorizontalAlignment HorizontalAlignment { get => this.horizontalAlignment ?? HorizontalAlignment.Left; set => this.horizontalAlignment = value; }
+
+        /// <summary>
+        /// Gets or sets a value indicating how to align the text relative to the rendering space.
+        /// </summary>
+        public VerticalAlignment VerticalAlignment { get => this.verticalAlignment ?? VerticalAlignment.Top; set => this.verticalAlignment = value; }
 
         /// <summary>
         /// Performs an implicit conversion from <see cref="GraphicsOptions"/> to <see cref="TextGraphicsOptions"/>.

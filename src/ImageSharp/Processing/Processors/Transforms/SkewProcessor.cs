@@ -73,7 +73,7 @@ namespace ImageSharp.Processing.Processors
         /// <inheritdoc/>
         protected override void BeforeApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
         {
-            this.processMatrix = Point.CreateSkew(new Point(0, 0), -this.AngleX, -this.AngleY);
+            this.processMatrix = Matrix3x2Extensions.CreateSkew(-this.AngleX, -this.AngleY, new Point(0, 0));
             if (this.Expand)
             {
                 this.CreateNewCanvas(sourceRectangle, this.processMatrix);

@@ -435,6 +435,8 @@ namespace ImageSharp.Formats
 
                 Span<TPixel> rowSpan = image.GetRowSpan(writeY);
 
+                Rgba32 rgba = new Rgba32(0, 0, 0, 255);
+
                 for (int x = descriptor.Left; x < descriptor.Left + descriptor.Width; x++)
                 {
                     int index = indices[i];
@@ -446,7 +448,9 @@ namespace ImageSharp.Formats
                         int indexOffset = index * 3;
 
                         ref TPixel pixel = ref rowSpan[x];
-                        pixel.PackFromBytes(colorTable[indexOffset], colorTable[indexOffset + 1], colorTable[indexOffset + 2], 255);
+                        rgba.Rgb = colorTable.GetRgb24(indexOffset);
+
+                        pixel.PackFromRgba32(rgba);
                     }
 
                     i++;

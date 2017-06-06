@@ -18,7 +18,7 @@ namespace ImageSharp.Tests
 
     public class PngEncoderTests : FileTestBase
     {
-        private const PixelTypes PixelTypes = Tests.PixelTypes.StandardImageClass | Tests.PixelTypes.RgbaVector | Tests.PixelTypes.Argb32;
+        private const PixelTypes PixelTypes = Tests.PixelTypes.Rgba32 | Tests.PixelTypes.RgbaVector | Tests.PixelTypes.Argb32;
 
         [Theory]
         [WithTestPatternImages(100, 100, PixelTypes, PngColorType.RgbWithAlpha)]

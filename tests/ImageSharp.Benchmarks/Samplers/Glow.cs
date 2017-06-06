@@ -22,7 +22,7 @@ namespace ImageSharp.Benchmarks
         private GlowProcessor<Rgba32> bulk;
         private GlowProcessorParallel<Rgba32> parallel;
 
-        [Setup]
+        [GlobalSetup]
         public void Setup()
         {
             this.bulk = new GlowProcessor<Rgba32>(NamedColors<Rgba32>.Beige, GraphicsOptions.Default) { Radius = 800 * .5f, };
@@ -79,7 +79,7 @@ namespace ImageSharp.Benchmarks
                 int startX = sourceRectangle.X;
                 int endX = sourceRectangle.Right;
                 TPixel glowColor = this.GlowColor;
-                Vector2 centre = Rectangle.Center(sourceRectangle).ToVector2();
+                Vector2 centre = Rectangle.Center(sourceRectangle);
                 float maxDistance = this.Radius > 0 ? MathF.Min(this.Radius, sourceRectangle.Width * .5F) : sourceRectangle.Width * .5F;
 
                 // Align start/end positions.

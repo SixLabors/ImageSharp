@@ -38,14 +38,13 @@ namespace ImageSharp.Tests
             // Add PixelFormat types
             string nameSpace = typeof(Alpha8).FullName;
             nameSpace = nameSpace.Substring(0, nameSpace.Length - typeof(Alpha8).Name.Length - 1);
-            foreach (PixelTypes pt in AllConcretePixelTypes.Where(pt => pt != PixelTypes.StandardImageClass && pt != PixelTypes.Rgba32))
+            foreach (PixelTypes pt in AllConcretePixelTypes.Where(pt => pt != PixelTypes.Rgba32))
             {
                 string typeName = $"{nameSpace}.{pt}";
                 Type t = ImageSharpAssembly.GetType(typeName);
                 PixelTypes2ClrTypes[pt] = t ?? throw new InvalidOperationException($"Could not find: {typeName}");
                 ClrTypes2PixelTypes[t] = pt;
             }
-            PixelTypes2ClrTypes[PixelTypes.StandardImageClass] = defaultPixelFormatType;
         }
 
         public static bool HasFlag(this PixelTypes pixelTypes, PixelTypes flag) => (pixelTypes & flag) == flag;
@@ -106,6 +105,11 @@ namespace ImageSharp.Tests
 
         public static Type ToType(this PixelTypes pixelType) => PixelTypes2ClrTypes[pixelType];
 
+        /// <summary>
+        /// Returns the <see cref="PixelTypes"/> enumerations for the given type.
+        /// </summary>
+        /// <param name="colorStructClrType"></param>
+        /// <returns></returns>
         public static PixelTypes GetPixelType(this Type colorStructClrType) => ClrTypes2PixelTypes[colorStructClrType];
 
         public static IEnumerable<KeyValuePair<PixelTypes, Type>> ExpandAllTypes(this PixelTypes pixelTypes)

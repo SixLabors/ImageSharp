@@ -25,7 +25,7 @@ namespace ImageSharp.Benchmarks.General.Vectorization
         }
 
 
-        [Setup]
+        [GlobalSetup]
         public void Setup()
         {
             this.input = new uint[this.InputSize];

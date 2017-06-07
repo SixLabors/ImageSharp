@@ -14,10 +14,9 @@ namespace SixLabors.Primitives
             IEqualityComparer<Vector4>,
             IEqualityComparer<Vector2>,
             IEqualityComparer<Vector3>,
-            IEqualityComparer<Matrix3x2>,
+            IEqualityComparer<System.Numerics.Matrix3x2>,
             IEqualityComparer<Matrix4x4>,
             IEqualityComparer<PointF>
-
     {
         private readonly float tolerance;
         const float defaultTolerance = 1e-5f;
@@ -89,7 +88,7 @@ namespace SixLabors.Primitives
             return hash;
         }
 
-        public static bool Equal(Matrix3x2 a, Matrix3x2 b, float tolerance)
+        public static bool Equal(System.Numerics.Matrix3x2 a, System.Numerics.Matrix3x2 b, float tolerance)
         {
             return Equal(a.M11, b.M11, tolerance) &&
                   Equal(a.M12, b.M12, tolerance) &&
@@ -99,17 +98,17 @@ namespace SixLabors.Primitives
                   Equal(a.M32, b.M32, tolerance);
         }
 
-        public static bool Equal(Matrix3x2 a, Matrix3x2 b)
+        public static bool Equal(System.Numerics.Matrix3x2 a, System.Numerics.Matrix3x2 b)
         {
             return Equal(a, b, defaultTolerance);
         }
 
-        public bool Equals(Matrix3x2 a, Matrix3x2 b)
+        public bool Equals(System.Numerics.Matrix3x2 a, System.Numerics.Matrix3x2 b)
         {
             return Equal(a, b, this.tolerance);
         }
 
-        public int GetHashCode(Matrix3x2 obj)
+        public int GetHashCode(System.Numerics.Matrix3x2 obj)
         {
             int hash = GetHashCode(obj.M11);
             hash = HashHelpers.Combine(hash, GetHashCode(obj.M11));

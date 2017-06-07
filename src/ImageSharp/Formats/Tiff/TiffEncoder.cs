@@ -33,7 +33,8 @@ namespace ImageSharp.Formats
         public void Encode<TPixel>(Image<TPixel> image, Stream stream, ITiffEncoderOptions options)
             where TPixel : struct, IPixel<TPixel>
         {
-            throw new NotImplementedException();
+            var encode = new TiffEncoderCore(options);
+            encode.Encode(image, stream);
         }
     }
 }

@@ -198,7 +198,7 @@ namespace SixLabors.Primitives
         /// <param name="size">The source size</param>
         /// <param name="matrix">The transformation matrix.</param>
         /// <returns></returns>
-        public static SizeF Transform(SizeF size, Matrix matrix)
+        public static SizeF Transform(SizeF size, Matrix3x2 matrix)
         {
             var v = Vector2.Transform(new Vector2(size.Width, size.Height), matrix);
 

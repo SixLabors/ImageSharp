@@ -21,6 +21,16 @@ namespace ImageSharp.Formats.Tiff
         public const byte ByteOrderBigEndian = 0x4D;
 
         /// <summary>
+        /// Byte order markers for indicating little endian encoding.
+        /// </summary>
+        public const ushort ByteOrderLittleEndianShort = 0x4949;
+
+        /// <summary>
+        /// Byte order markers for indicating big endian encoding.
+        /// </summary>
+        public const ushort ByteOrderBigEndianShort = 0x4D4D;
+
+        /// <summary>
         /// Magic number used within the image file header to identify a TIFF format file.
         /// </summary>
         public const ushort HeaderMagicNumber = 42;
@@ -59,5 +69,10 @@ namespace ImageSharp.Formats.Tiff
         /// Size (in bytes) of the Double data type
         /// </summary>
         public const int SizeOfDouble = 8;
+
+        /// <summary>
+        /// Size (in bytes) of the word boundary to allign data to when required
+        /// </summary>
+        public const int SizeOfWordBoundary = 4;
     }
 }

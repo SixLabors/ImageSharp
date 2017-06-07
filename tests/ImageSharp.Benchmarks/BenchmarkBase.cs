@@ -17,6 +17,7 @@
             Configuration.Default.AddImageFormat(new PngFormat());
             Configuration.Default.AddImageFormat(new BmpFormat());
             Configuration.Default.AddImageFormat(new GifFormat());
+            Configuration.Default.AddImageFormat(new TiffFormat());
         }
     }
 }

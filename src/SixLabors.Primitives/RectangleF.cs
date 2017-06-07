@@ -400,7 +400,7 @@ namespace SixLabors.Primitives
         /// <param name="rectangle">The source rectangle</param>
         /// <param name="matrix">The transformation matrix.</param>
         /// <returns></returns>
-        public static RectangleF Transform(RectangleF rectangle, Matrix matrix)
+        public static RectangleF Transform(RectangleF rectangle, Matrix3x2 matrix)
         {
             PointF bottomRight = PointF.Transform(new PointF(rectangle.Right, rectangle.Bottom), matrix);
             PointF topLeft = PointF.Transform(rectangle.Location, matrix);

@@ -218,7 +218,7 @@ namespace SixLabors.Primitives
         /// <param name="rotation">Rotation matrix used</param>
         /// <returns>The rotated <see cref="PointF"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static PointF Rotate(PointF point, Matrix rotation) => Vector2.Transform(new Vector2(point.X, point.Y), rotation);
+        public static PointF Rotate(PointF point, Matrix3x2 rotation) => Vector2.Transform(new Vector2(point.X, point.Y), rotation);
 
         /// <summary>
         /// Skews a point using the given skew matrix.
@@ -227,7 +227,7 @@ namespace SixLabors.Primitives
         /// <param name="skew">Rotation matrix used</param>
         /// <returns>The rotated <see cref="PointF"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static PointF Skew(PointF point, Matrix skew) => Vector2.Transform(new Vector2(point.X, point.Y), skew);
+        public static PointF Skew(PointF point, Matrix3x2 skew) => Vector2.Transform(new Vector2(point.X, point.Y), skew);
 
         /// <summary>
         /// Translates this <see cref="PointF"/> by the specified amount.
@@ -286,7 +286,7 @@ namespace SixLabors.Primitives
         /// <param name="position"> The source point</param>
         /// <param name="matrix">The transformation matrix.</param>
         /// <returns></returns>
-        public static PointF Transform(PointF position, Matrix matrix)
+        public static PointF Transform(PointF position, Matrix3x2 matrix)
         {
             return Vector2.Transform(position, matrix);
         }

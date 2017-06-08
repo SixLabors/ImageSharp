@@ -3,7 +3,7 @@
   <PropertyGroup>
     <VersionPrefix>0.0.0</VersionPrefix>
     <TargetFrameworks>netcoreapp1.1</TargetFrameworks>
-    <AssemblyName>SixLabors.Primitives.Tests</AssemblyName>
+    <AssemblyName>SixLabors.Core.Tests</AssemblyName>
     <PackageId>SixLabors.Shapes.Tests</PackageId>
     <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
     <GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
@@ -13,17 +13,18 @@
     <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
     <GenerateAssemblyCopyrightAttribute>false</GenerateAssemblyCopyrightAttribute>
     <DebugType Condition="$(codecov) != ''">full</DebugType>
+    <RootNamespace>SixLabors.Tests</RootNamespace>
   </PropertyGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\..\src\SixLabors.Primitives\SixLabors.Primitives.csproj" />
-  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.0.0" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.2.0" />
     <PackageReference Include="xunit" Version="2.2.0" />
     <PackageReference Include="Moq" Version="4.7.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\SixLabors.Core\SixLabors.Core.csproj" />
   </ItemGroup>
 
   <ItemGroup>

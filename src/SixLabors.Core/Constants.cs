@@ -3,7 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace SixLabors.Primitives
+namespace SixLabors
 {
     /// <summary>
     /// Common constants used throughout the project

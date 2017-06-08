@@ -12,8 +12,8 @@ using System.Runtime.CompilerServices;
 // associated with an assembly.
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("Scott Williams")]
-[assembly: AssemblyProduct("SixLabors.Primitives")]
+[assembly: AssemblyCompany("Six Labors")]
+[assembly: AssemblyProduct("SixLabors.Core")]
 [assembly: AssemblyCopyright("Copyright (c) Six Labors and contributors.")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
@@ -34,4 +34,4 @@ using System.Runtime.CompilerServices;
 [assembly: AssemblyInformationalVersion("1.0.0.0")]
 
 // Ensure the internals can be tested.
-[assembly: InternalsVisibleTo("SixLabors.Primitives.Tests")]
+[assembly: InternalsVisibleTo("SixLabors.Core.Tests")]

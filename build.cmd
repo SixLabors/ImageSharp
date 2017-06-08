@@ -14,13 +14,13 @@ if not "%GitVersion_NuGetVersion%" == "" (
 )
 if not "%errorlevel%"=="0" goto failure
 
-dotnet test ./tests/SixLabors.Primitives.Tests/SixLabors.Primitives.Tests.csproj
+dotnet test ./tests/SixLabors.Core.Tests/SixLabors.Primitives.Tests.csproj
 
 
 if not "%GitVersion_NuGetVersion%" == "" (
-    dotnet pack ./src/SixLabors.Primitives/ -c Release --output ../../artifacts --no-build /p:packageversion=%GitVersion_NuGetVersion%
+    dotnet pack ./src/SixLabors.Core/ -c Release --output ../../artifacts --no-build /p:packageversion=%GitVersion_NuGetVersion%
 )ELSE ( 
-    dotnet pack ./src/SixLabors.Primitives/ -c Release --output ../../artifacts --no-build
+    dotnet pack ./src/SixLabors.Core/ -c Release --output ../../artifacts --no-build
 )
 
 if not "%errorlevel%"=="0" goto failure

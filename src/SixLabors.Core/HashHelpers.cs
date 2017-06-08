@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace SixLabors.Primitives
+namespace SixLabors
 {
     // lifted from coreFX repo
     internal static class HashHelpers

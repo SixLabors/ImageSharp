@@ -9,14 +9,14 @@
     <TargetFramework>netstandard1.1</TargetFramework>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <AssemblyName>SixLabors.Primitives</AssemblyName>
-    <PackageId>SixLabors.Primitives</PackageId>
+    <AssemblyName>SixLabors.Core</AssemblyName>
+    <PackageId>SixLabors.Core</PackageId>
     <PackageTags>rectangle;point;size,primitives</PackageTags>
     <PackageIconUrl>https://raw.githubusercontent.com/SixLabors/Home/master/logo.png</PackageIconUrl>
-    <PackageProjectUrl>https://github.com/SixLabors/Primitives</PackageProjectUrl>
+    <PackageProjectUrl>https://github.com/SixLabors/Core</PackageProjectUrl>
     <PackageLicenseUrl>http://www.apache.org/licenses/LICENSE-2.0</PackageLicenseUrl>
     <RepositoryType>git</RepositoryType>
-    <RepositoryUrl>https://github.com/SixLabors/Primitives</RepositoryUrl>
+    <RepositoryUrl>https://github.com/SixLabors/Core</RepositoryUrl>
     <GenerateAssemblyDescriptionAttribute>false</GenerateAssemblyDescriptionAttribute>
     <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
     <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
@@ -27,6 +27,7 @@
     <GenerateAssemblyFileVersionAttribute>false</GenerateAssemblyFileVersionAttribute>
     <GenerateAssemblyInformationalVersionAttribute>false</GenerateAssemblyInformationalVersionAttribute>
     <DebugType Condition="$(codecov) == 'true'">full</DebugType>
+    <RootNamespace>SixLabors</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>

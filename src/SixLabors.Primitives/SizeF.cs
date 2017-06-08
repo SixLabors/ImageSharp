@@ -117,6 +117,31 @@ namespace SixLabors.Primitives
         public static SizeF operator -(SizeF left, SizeF right) => Subtract(left, right);
 
         /// <summary>
+        /// Multiplies <see cref="SizeF"/> by a <see cref="float"/> producing <see cref="SizeF"/>.
+        /// </summary>
+        /// <param name="left">Multiplier of type <see cref="float"/>.</param>
+        /// <param name="right">Multiplicand of type <see cref="SizeF"/>.</param>
+        /// <returns>Product of type <see cref="SizeF"/>.</returns>
+        public static SizeF operator *(float left, SizeF right) => Multiply(right, left);
+
+        /// <summary>
+        /// Multiplies <see cref="SizeF"/> by a <see cref="float"/> producing <see cref="SizeF"/>.
+        /// </summary>
+        /// <param name="left">Multiplicand of type <see cref="SizeF"/>.</param>
+        /// <param name="right">Multiplier of type <see cref="float"/>.</param>
+        /// <returns>Product of type <see cref="SizeF"/>.</returns>
+        public static SizeF operator *(SizeF left, float right) => Multiply(left, right);
+
+        /// <summary>
+        /// Divides <see cref="SizeF"/> by a <see cref="float"/> producing <see cref="SizeF"/>.
+        /// </summary>
+        /// <param name="left">Dividend of type <see cref="SizeF"/>.</param>
+        /// <param name="right">Divisor of type <see cref="int"/>.</param>
+        /// <returns>Result of type <see cref="SizeF"/>.</returns>
+        public static SizeF operator /(SizeF left, float right)
+            => new SizeF(left.Width / right, left.Height / right);
+
+        /// <summary>
         /// Compares two <see cref="SizeF"/> objects for equality.
         /// </summary>
         /// <param name="left">The size on the left hand of the operand.</param>
@@ -155,6 +180,15 @@ namespace SixLabors.Primitives
         /// <returns>The <see cref="SizeF"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static SizeF Subtract(SizeF left, SizeF right) => new SizeF(left.Width - right.Width, left.Height - right.Height);
+
+        /// <summary>
+        /// Multiplies <see cref="SizeF"/> by a <see cref="float"/> producing <see cref="SizeF"/>.
+        /// </summary>
+        /// <param name="size">Multiplicand of type <see cref="SizeF"/>.</param>
+        /// <param name="multiplier">Multiplier of type <see cref="float"/>.</param>
+        /// <returns>Product of type SizeF.</returns>
+        private static SizeF Multiply(SizeF size, float multiplier) =>
+            new SizeF(size.Width * multiplier, size.Height * multiplier);
 
         /// <inheritdoc/>
         public override int GetHashCode()

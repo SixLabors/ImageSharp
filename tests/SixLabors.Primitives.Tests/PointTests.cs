@@ -161,7 +161,7 @@ namespace SixLabors.Primitives.Tests
         public void RotateTest()
         {
             var p = new Point(13, 17);
-            Matrix3x2 matrix = Matrix3x2Extentions.CreateRotationDegrees(45, Point.Empty);
+            Matrix3x2 matrix = Matrix3x2Extensions.CreateRotationDegrees(45, Point.Empty);
 
             var pout = Point.Rotate(p, matrix);
 
@@ -172,7 +172,7 @@ namespace SixLabors.Primitives.Tests
         public void SkewTest()
         {
             var p = new Point(13, 17);
-            Matrix3x2 matrix = Matrix3x2Extentions.CreateSkewDegrees(45, 45, Point.Empty);
+            Matrix3x2 matrix = Matrix3x2Extensions.CreateSkewDegrees(45, 45, Point.Empty);
 
             var pout = Point.Skew(p, matrix);
             Assert.Equal(new Point(30, 30), pout);

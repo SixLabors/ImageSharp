@@ -128,6 +128,31 @@ namespace SixLabors.Primitives
         public static Point operator -(Point point, Size size) => Subtract(point, size);
 
         /// <summary>
+        /// Multiplies <see cref="Point"/> by a <see cref="int"/> producing <see cref="Point"/>.
+        /// </summary>
+        /// <param name="left">Multiplier of type <see cref="int"/>.</param>
+        /// <param name="right">Multiplicand of type <see cref="Point"/>.</param>
+        /// <returns>Product of type <see cref="Point"/>.</returns>
+        public static Point operator *(int left, Point right) => Multiply(right, left);
+
+        /// <summary>
+        /// Multiplies <see cref="Point"/> by a <see cref="int"/> producing <see cref="Point"/>.
+        /// </summary>
+        /// <param name="left">Multiplicand of type <see cref="Point"/>.</param>
+        /// <param name="right">Multiplier of type <see cref="int"/>.</param>
+        /// <returns>Product of type <see cref="Point"/>.</returns>
+        public static Point operator *(Point left, int right) => Multiply(left, right);
+
+        /// <summary>
+        /// Divides <see cref="Point"/> by a <see cref="int"/> producing <see cref="Point"/>.
+        /// </summary>
+        /// <param name="left">Dividend of type <see cref="Point"/>.</param>
+        /// <param name="right">Divisor of type <see cref="int"/>.</param>
+        /// <returns>Result of type <see cref="Point"/>.</returns>
+        public static Point operator /(Point left, int right)
+            => new Point(left.X / right, left.Y / right);
+
+        /// <summary>
         /// Compares two <see cref="Point"/> objects for equality.
         /// </summary>
         /// <param name="left">The <see cref="Point"/> on the left side of the operand.</param>
@@ -157,6 +182,15 @@ namespace SixLabors.Primitives
         /// <returns>The <see cref="Point"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Point Add(Point point, Size size) => new Point(unchecked(point.X + size.Width), unchecked(point.Y + size.Height));
+
+        /// <summary>
+        /// Translates a <see cref="Point"/> by the negative of a given value
+        /// </summary>
+        /// <param name="point">The point on the left hand of the operand.</param>
+        /// <param name="size">The size on the right hand of the operand.</param>
+        /// <returns>The <see cref="Point"/></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Point Multiply(Point point, int value) => new Point(unchecked(point.X * value), unchecked(point.Y * value));
 
         /// <summary>
         /// Translates a <see cref="Point"/> by the negative of a given <see cref="Size"/>.

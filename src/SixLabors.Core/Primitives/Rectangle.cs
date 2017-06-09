@@ -111,16 +111,6 @@ namespace SixLabors.Primitives
         }
 
         /// <summary>
-        /// Gets the coordinates of the center of the rectangular region represented by this <see cref="RectangleF"/>.
-        /// </summary>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public Point Center
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => new Point(this.X + (this.Width / 2), this.Y + (this.Height / 2));
-        }
-
-        /// <summary>
         /// Gets a value indicating whether this <see cref="Rectangle"/> is empty.
         /// </summary>
         [EditorBrowsable(EditorBrowsableState.Never)]

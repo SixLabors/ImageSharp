@@ -146,6 +146,31 @@ namespace SixLabors.Primitives
         public static PointF operator -(PointF point, SizeF size) => Subtract(point, size);
 
         /// <summary>
+        /// Multiplies <see cref="PointF"/> by a <see cref="float"/> producing <see cref="SizeF"/>.
+        /// </summary>
+        /// <param name="left">Multiplier of type <see cref="float"/>.</param>
+        /// <param name="right">Multiplicand of type <see cref="SizeF"/>.</param>
+        /// <returns>Product of type <see cref="SizeF"/>.</returns>
+        public static PointF operator *(float left, PointF right) => Multiply(right, left);
+
+        /// <summary>
+        /// Multiplies <see cref="PointF"/> by a <see cref="float"/> producing <see cref="SizeF"/>.
+        /// </summary>
+        /// <param name="left">Multiplicand of type <see cref="PointF"/>.</param>
+        /// <param name="right">Multiplier of type <see cref="float"/>.</param>
+        /// <returns>Product of type <see cref="SizeF"/>.</returns>
+        public static PointF operator *(PointF left, float right) => Multiply(left, right);
+
+        /// <summary>
+        /// Divides <see cref="PointF"/> by a <see cref="float"/> producing <see cref="SizeF"/>.
+        /// </summary>
+        /// <param name="left">Dividend of type <see cref="PointF"/>.</param>
+        /// <param name="right">Divisor of type <see cref="int"/>.</param>
+        /// <returns>Result of type <see cref="PointF"/>.</returns>
+        public static PointF operator /(PointF left, float right)
+            => new PointF(left.X / right, left.Y / right);
+
+        /// <summary>
         /// Compares two <see cref="PointF"/> objects for equality.
         /// </summary>
         /// <param name="left">
@@ -212,6 +237,15 @@ namespace SixLabors.Primitives
         public static PointF Subtract(PointF point, PointF pointb) => new PointF(point.X - pointb.X, point.Y - pointb.Y);
 
         /// <summary>
+        /// Translates a <see cref="PointF"/> by the multiplying the X and Y by the given value.
+        /// </summary>
+        /// <param name="point">The point on the left hand of the operand.</param>
+        /// <param name="right">The value on the right hand of the operand.</param>
+        /// <returns>The <see cref="PointF"/></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static PointF Multiply(PointF point, float right) => new PointF(point.X * right, point.Y * right);
+
+        /// <summary>PointF
         /// Rotates a point around the given rotation matrix.
         /// </summary>
         /// <param name="point">The point to rotate</param>

@@ -25,11 +25,6 @@ namespace SixLabors.Primitives
         public static readonly SizeF Empty = default(SizeF);
 
         /// <summary>
-        /// Represents a <see cref="SizeF"/> that has Width and Height values set to zero.
-        /// </summary>
-        public static readonly SizeF Zero = new SizeF(0, 0);
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="SizeF"/> struct.
         /// </summary>
         /// <param name="width">The width of the size.</param>

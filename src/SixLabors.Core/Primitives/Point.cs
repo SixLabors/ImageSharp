@@ -26,11 +26,6 @@ namespace SixLabors.Primitives
         public static readonly Point Empty = default(Point);
 
         /// <summary>
-        /// Represents a <see cref="Point"/> that has X and Y values set to zero.
-        /// </summary>
-        public static readonly Point Zero = new Point(0, 0);
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="Point"/> struct.
         /// </summary>
         /// <param name="value">The horizontal and vertical position of the point.</param>

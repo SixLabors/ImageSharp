@@ -23,11 +23,6 @@ namespace SixLabors.Primitives
         /// Represents a <see cref="Size"/> that has Width and Height values set to zero.
         /// </summary>
         public static readonly Size Empty = default(Size);
-        /// <summary>
-        /// Represents a <see cref="Size"/> that has Width and Height values set to zero.
-        /// </summary>
-        public static readonly Size Zero = new Size(0, 0);
-
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Size"/> struct.

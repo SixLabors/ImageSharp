@@ -370,11 +370,6 @@ namespace SixLabors.Primitives
         /// <inheritdoc/>
         public override string ToString()
         {
-            if (this.IsEmpty)
-            {
-                return "RectangleF [ Empty ]";
-            }
-
             return $"RectangleF [ X={this.X}, Y={this.Y}, Width={this.Width}, Height={this.Height} ]";
         }
 

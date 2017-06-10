@@ -274,11 +274,6 @@ namespace SixLabors.Primitives
         /// <inheritdoc/>
         public override string ToString()
         {
-            if (this.IsEmpty)
-            {
-                return "Point [ Empty ]";
-            }
-
             return $"Point [ X={this.X}, Y={this.Y} ]";
         }
 

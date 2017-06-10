@@ -186,13 +186,6 @@ namespace SixLabors.Primitives.Tests
             Assert.Equal(string.Format(CultureInfo.CurrentCulture, "Size [ Width={0}, Height={1} ]", sz.Width, sz.Height), sz.ToString());
         }
 
-        [Fact]
-        public void ToStringTestEmpty()
-        {
-            var sz = new Size(0, 0);
-            Assert.Equal("Size [ Empty ]", sz.ToString());
-        }
-
         [Theory]
         [InlineData(1000, 0)]
         [InlineData(1000, 1)]

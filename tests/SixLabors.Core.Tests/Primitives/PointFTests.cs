@@ -181,12 +181,5 @@ namespace SixLabors.Primitives.Tests
             var p = new PointF(5.1F, -5.123F);
             Assert.Equal(string.Format(CultureInfo.CurrentCulture, "PointF [ X={0}, Y={1} ]", p.X, p.Y), p.ToString());
         }
-
-        [Fact]
-        public void ToStringEmptyTest()
-        {
-            var p = new PointF(0, 0);
-            Assert.Equal("PointF [ Empty ]", p.ToString());
-        }
     }
 }

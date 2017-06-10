@@ -297,12 +297,5 @@ namespace SixLabors.Primitives.Tests
             var r = new Rectangle(5, -5, 0, 1);
             Assert.Equal(string.Format(CultureInfo.CurrentCulture, "Rectangle [ X={0}, Y={1}, Width={2}, Height={3} ]", r.X, r.Y, r.Width, r.Height), r.ToString());
         }
-
-        [Fact]
-        public void ToStringTestEmpty()
-        {
-            var r = new Rectangle(0, 0, 0, 0);
-            Assert.Equal("Rectangle [ Empty ]", r.ToString());
-        }
     }
 }

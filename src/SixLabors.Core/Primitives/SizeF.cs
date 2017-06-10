@@ -194,11 +194,6 @@ namespace SixLabors.Primitives
         /// <inheritdoc/>
         public override string ToString()
         {
-            if (this.IsEmpty)
-            {
-                return "SizeF [ Empty ]";
-            }
-
             return $"SizeF [ Width={this.Width}, Height={this.Height} ]";
         }
 

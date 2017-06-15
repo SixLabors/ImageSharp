@@ -8,6 +8,7 @@ namespace ImageSharp.Formats.Jpg
     using System.Buffers;
 
     using ImageSharp.Memory;
+    using SixLabors.Primitives;
 
     /// <summary>
     /// Represents an image made up of three color components (luminance, blue chroma, red chroma)

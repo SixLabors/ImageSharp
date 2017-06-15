@@ -11,6 +11,7 @@ namespace ImageSharp.Tests.Drawing
     using System.Text;
     using ImageSharp.PixelFormats;
     using Xunit;
+    using SixLabors.Primitives;
 
     public class BlendedShapes
     {

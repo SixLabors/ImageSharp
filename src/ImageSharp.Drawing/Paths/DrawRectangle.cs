@@ -9,6 +9,7 @@ namespace ImageSharp
     using Drawing.Brushes;
     using Drawing.Pens;
     using ImageSharp.PixelFormats;
+    using SixLabors.Primitives;
 
     /// <summary>
     /// Extension methods for the <see cref="Image{TPixel}"/> type.
@@ -24,10 +25,10 @@ namespace ImageSharp
         /// <param name="shape">The shape.</param>
         /// <param name="options">The options.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> Draw<TPixel>(this Image<TPixel> source, IPen<TPixel> pen, Rectangle shape, GraphicsOptions options)
+        public static Image<TPixel> Draw<TPixel>(this Image<TPixel> source, IPen<TPixel> pen, RectangleF shape, GraphicsOptions options)
            where TPixel : struct, IPixel<TPixel>
         {
-            return source.Draw(pen, new SixLabors.Shapes.Rectangle(shape.X, shape.Y, shape.Width, shape.Height), options);
+            return source.Draw(pen, new SixLabors.Shapes.RectangularePolygon(shape.X, shape.Y, shape.Width, shape.Height), options);
         }
 
         /// <summary>
@@ -38,7 +39,7 @@ namespace ImageSharp
         /// <param name="pen">The pen.</param>
         /// <param name="shape">The shape.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> Draw<TPixel>(this Image<TPixel> source, IPen<TPixel> pen, Rectangle shape)
+        public static Image<TPixel> Draw<TPixel>(this Image<TPixel> source, IPen<TPixel> pen, RectangleF shape)
            where TPixel : struct, IPixel<TPixel>
         {
             return source.Draw(pen, shape, GraphicsOptions.Default);
@@ -54,7 +55,7 @@ namespace ImageSharp
         /// <param name="shape">The shape.</param>
         /// <param name="options">The options.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> Draw<TPixel>(this Image<TPixel> source, IBrush<TPixel> brush, float thickness, Rectangle shape, GraphicsOptions options)
+        public static Image<TPixel> Draw<TPixel>(this Image<TPixel> source, IBrush<TPixel> brush, float thickness, RectangleF shape, GraphicsOptions options)
            where TPixel : struct, IPixel<TPixel>
         {
             return source.Draw(new Pen<TPixel>(brush, thickness), shape, options);
@@ -69,7 +70,7 @@ namespace ImageSharp
         /// <param name="thickness">The thickness.</param>
         /// <param name="shape">The shape.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> Draw<TPixel>(this Image<TPixel> source, IBrush<TPixel> brush, float thickness, Rectangle shape)
+        public static Image<TPixel> Draw<TPixel>(this Image<TPixel> source, IBrush<TPixel> brush, float thickness, RectangleF shape)
            where TPixel : struct, IPixel<TPixel>
         {
             return source.Draw(new Pen<TPixel>(brush, thickness), shape);
@@ -85,7 +86,7 @@ namespace ImageSharp
         /// <param name="shape">The shape.</param>
         /// <param name="options">The options.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> Draw<TPixel>(this Image<TPixel> source, TPixel color, float thickness, Rectangle shape, GraphicsOptions options)
+        public static Image<TPixel> Draw<TPixel>(this Image<TPixel> source, TPixel color, float thickness, RectangleF shape, GraphicsOptions options)
            where TPixel : struct, IPixel<TPixel>
         {
             return source.Draw(new SolidBrush<TPixel>(color), thickness, shape, options);
@@ -100,7 +101,7 @@ namespace ImageSharp
         /// <param name="thickness">The thickness.</param>
         /// <param name="shape">The shape.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> Draw<TPixel>(this Image<TPixel> source, TPixel color, float thickness, Rectangle shape)
+        public static Image<TPixel> Draw<TPixel>(this Image<TPixel> source, TPixel color, float thickness, RectangleF shape)
            where TPixel : struct, IPixel<TPixel>
         {
             return source.Draw(new SolidBrush<TPixel>(color), thickness, shape);

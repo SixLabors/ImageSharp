@@ -9,7 +9,7 @@ namespace ImageSharp.Tests
     using ImageSharp;
     using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
-
+    using SixLabors.Primitives;
     using Xunit;
 
     /// <summary>

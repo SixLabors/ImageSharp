@@ -9,7 +9,7 @@ namespace ImageSharp.Benchmarks
 
     using BenchmarkDotNet.Attributes;
     using ImageSharp.PixelFormats;
-    using CoreSize = ImageSharp.Size;
+    using CoreSize = SixLabors.Primitives.Size;
     using System.Numerics;
 
     using ImageSharp.Memory;

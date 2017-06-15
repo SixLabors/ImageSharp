@@ -8,10 +8,8 @@ namespace ImageSharp.Drawing
     using System;
     using System.Buffers;
     using System.Numerics;
-
+    using SixLabors.Primitives;
     using SixLabors.Shapes;
-
-    using Rectangle = ImageSharp.Rectangle;
 
     /// <summary>
     /// A mapping between a <see cref="IPath"/> and a region.
@@ -25,7 +23,12 @@ namespace ImageSharp.Drawing
         public ShapeRegion(IPath shape)
         {
             this.Shape = shape.AsClosedPath();
-            this.Bounds = shape.Bounds.Convert();
+            int left = (int)MathF.Floor(shape.Bounds.Left);
+            int top = (int)MathF.Floor(shape.Bounds.Top);
+
+            int right = (int)MathF.Ceiling(shape.Bounds.Right);
+            int bottom = (int)MathF.Ceiling(shape.Bounds.Bottom);
+            this.Bounds = Rectangle.FromLTRB(left, top, right, bottom);
         }
 
         /// <summary>
@@ -42,12 +45,12 @@ namespace ImageSharp.Drawing
         /// <inheritdoc/>
         public override int Scan(float y, Span<float> buffer)
         {
-            Vector2 start = new Vector2(this.Bounds.Left - 1, y);
-            Vector2 end = new Vector2(this.Bounds.Right + 1, y);
-            Vector2[] innerbuffer = ArrayPool<Vector2>.Shared.Rent(buffer.Length);
+            PointF start = new PointF(this.Bounds.Left - 1, y);
+            PointF end = new PointF(this.Bounds.Right + 1, y);
+            PointF[] innerbuffer = ArrayPool<PointF>.Shared.Rent(buffer.Length);
             try
             {
-                int count = this.Shape.FindIntersections(start, end, innerbuffer, buffer.Length, 0);
+                int count = this.Shape.FindIntersections(start, end, innerbuffer);
 
                 for (int i = 0; i < count; i++)
                 {
@@ -58,7 +61,7 @@ namespace ImageSharp.Drawing
             }
             finally
             {
-                ArrayPool<Vector2>.Shared.Return(innerbuffer);
+                ArrayPool<PointF>.Shared.Return(innerbuffer);
             }
         }
     }

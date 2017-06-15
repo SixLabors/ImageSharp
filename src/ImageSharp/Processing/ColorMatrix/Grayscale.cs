@@ -9,6 +9,7 @@ namespace ImageSharp
 
     using ImageSharp.Processing;
     using Processing.Processors;
+    using SixLabors.Primitives;
 
     /// <summary>
     /// Extension methods for the <see cref="Image{TPixel}"/> type.

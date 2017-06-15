@@ -9,6 +9,7 @@ namespace ImageSharp.Processing.Processors
 
     using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
+    using SixLabors.Primitives;
 
     /// <summary>
     /// Applies a Box blur sampler to the image.

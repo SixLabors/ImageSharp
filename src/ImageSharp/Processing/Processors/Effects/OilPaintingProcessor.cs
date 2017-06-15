@@ -10,6 +10,7 @@ namespace ImageSharp.Processing.Processors
     using System.Threading.Tasks;
     using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
+    using SixLabors.Primitives;
 
     /// <summary>
     /// An <see cref="IImageProcessor{TPixel}"/> to apply an oil painting effect to an <see cref="Image{TPixel}"/>.

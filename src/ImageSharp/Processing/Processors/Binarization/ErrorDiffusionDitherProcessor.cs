@@ -9,6 +9,7 @@ namespace ImageSharp.Processing.Processors
 
     using ImageSharp.Dithering;
     using ImageSharp.PixelFormats;
+    using SixLabors.Primitives;
 
     /// <summary>
     /// An <see cref="IImageProcessor{TPixel}"/> that dithers an image using error diffusion.

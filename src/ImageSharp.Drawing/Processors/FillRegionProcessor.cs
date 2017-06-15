@@ -13,6 +13,7 @@ namespace ImageSharp.Drawing.Processors
     using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
     using ImageSharp.Processing;
+    using SixLabors.Primitives;
 
     /// <summary>
     /// Usinf a brsuh and a shape fills shape with contents of brush the

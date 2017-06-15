@@ -7,6 +7,7 @@ namespace ImageSharp.Processing
 {
     using System.Collections.Generic;
     using System.Linq;
+    using SixLabors.Primitives;
 
     /// <summary>
     /// The resize options for resizing images against certain modes.

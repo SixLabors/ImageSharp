@@ -28,7 +28,7 @@ namespace ImageSharp.Tests.Drawing.Text
 
         IPath path = new SixLabors.Shapes.Path(
             new LinearLineSegment(
-                new Vector2[] { new Vector2(10, 10), new Vector2(20, 10), new Vector2(20, 10), new Vector2(30, 10), }));
+                new SixLabors.Primitives.PointF[] { new Vector2(10, 10), new Vector2(20, 10), new Vector2(20, 10), new Vector2(30, 10), }));
 
         private ProcessorWatchingImage img;
 
@@ -39,7 +39,7 @@ namespace ImageSharp.Tests.Drawing.Text
         public DrawText_Path()
         {
             this.FontCollection = new FontCollection();
-            this.Font = this.FontCollection.Install(TestFontUtilities.GetPath("SixLaborsSampleAB.woff"));
+            this.Font = this.FontCollection.Install(TestFontUtilities.GetPath("SixLaborsSampleAB.woff")).CreateFont(12);
             this.img = new ProcessorWatchingImage(10, 10);
         }
 

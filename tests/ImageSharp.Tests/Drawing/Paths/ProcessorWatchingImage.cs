@@ -7,6 +7,7 @@ namespace ImageSharp.Tests.Drawing.Paths
     using ImageSharp.Processing;
     using System.Collections.Generic;
    using ImageSharp.PixelFormats;
+    using SixLabors.Primitives;
 
     /// <summary>
     /// Watches but does not actually run the processors against the image.

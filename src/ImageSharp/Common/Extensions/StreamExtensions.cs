@@ -27,7 +27,7 @@ namespace ImageSharp
 
             if (stream.CanSeek)
             {
-                stream.Position += count;
+                stream.Seek(count, SeekOrigin.Current); // Position += count;
             }
             else
             {

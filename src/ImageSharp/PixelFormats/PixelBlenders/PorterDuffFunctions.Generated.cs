@@ -14,110 +14,80 @@ namespace ImageSharp.PixelFormats.PixelBlenders
     {
     
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector4 Src(Vector4 backdrop, Vector4 source, float amount)
+        public static Vector4 Src(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= amount;
-            if (source.W == 0)
-            {
-                return Vector4.Zero;
-            }
-           
+            source.W *= opacity;
             return Compose(Vector4.Zero, source, source);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector4 Atop(Vector4 backdrop, Vector4 source, float amount)
+        public static Vector4 Atop(Vector4 backdrop, Vector4 source, float opacity)
         {
-            return backdrop;
+            return Compose(backdrop, Vector4.Zero, source);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector4 Over(Vector4 backdrop, Vector4 source, float amount)
+        public static Vector4 Over(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= amount;
-            if (source.W == 0)
-            {
-                return backdrop;
-            }
-           
+            source.W *= opacity;
             return Compose(backdrop, source, source);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector4 In(Vector4 backdrop, Vector4 source, float amount)
+        public static Vector4 In(Vector4 backdrop, Vector4 source, float opacity)
         {
-            return Vector4.Zero;
+            return Compose(Vector4.Zero, Vector4.Zero, source);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector4 Out(Vector4 backdrop, Vector4 source, float amount)
+        public static Vector4 Out(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= amount;
-            if (source.W == 0)
-            {
-                return Vector4.Zero;
-            }
-           
+            source.W *= opacity;
             return Compose(Vector4.Zero, source, Vector4.Zero);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector4 Dest(Vector4 backdrop, Vector4 source, float amount)
+        public static Vector4 Dest(Vector4 backdrop, Vector4 source, float opacity)
         {
-            return backdrop;
+            return Compose(backdrop, Vector4.Zero, backdrop);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector4 DestAtop(Vector4 backdrop, Vector4 source, float amount)
+        public static Vector4 DestAtop(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= amount;
-            if (source.W == 0)
-            {
-                return Vector4.Zero;
-            }
-           
+            source.W *= opacity;
             return Compose(Vector4.Zero, source, backdrop);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector4 DestOver(Vector4 backdrop, Vector4 source, float amount)
+        public static Vector4 DestOver(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= amount;
-            if (source.W == 0)
-            {
-                return backdrop;
-            }
-           
+            source.W *= opacity;
             return Compose(backdrop, source, backdrop);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector4 DestIn(Vector4 backdrop, Vector4 source, float amount)
+        public static Vector4 DestIn(Vector4 backdrop, Vector4 source, float opacity)
         {
-            return Vector4.Zero;
+            return Compose(Vector4.Zero, Vector4.Zero, backdrop);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector4 DestOut(Vector4 backdrop, Vector4 source, float amount)
+        public static Vector4 DestOut(Vector4 backdrop, Vector4 source, float opacity)
         {
-            return backdrop;
+            return Compose(backdrop, Vector4.Zero, Vector4.Zero);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector4 Clear(Vector4 backdrop, Vector4 source, float amount)
+        public static Vector4 Clear(Vector4 backdrop, Vector4 source, float opacity)
         {
-            return Vector4.Zero;
+            return Compose(Vector4.Zero, Vector4.Zero, Vector4.Zero);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector4 Xor(Vector4 backdrop, Vector4 source, float amount)
+        public static Vector4 Xor(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= amount;
-            if (source.W == 0)
-            {
-                return backdrop;
-            }
-           
+            source.W *= opacity;
             return Compose(backdrop, source, Vector4.Zero);
         }
 

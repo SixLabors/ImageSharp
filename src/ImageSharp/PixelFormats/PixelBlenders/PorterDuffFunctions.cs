@@ -32,11 +32,6 @@ namespace ImageSharp.PixelFormats.PixelBlenders
         public static Vector4 Normal(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
-            if (source.W == 0)
-            {
-                return backdrop;
-            }
-
             return Compose(backdrop, source, source);
         }
 
@@ -51,11 +46,6 @@ namespace ImageSharp.PixelFormats.PixelBlenders
         public static Vector4 Multiply(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
-            if (source.W == 0)
-            {
-                return backdrop;
-            }
-
             return Compose(backdrop, source, backdrop * source);
         }
 
@@ -70,11 +60,6 @@ namespace ImageSharp.PixelFormats.PixelBlenders
         public static Vector4 Add(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
-            if (source.W == 0)
-            {
-                return backdrop;
-            }
-
             return Compose(backdrop, source, Vector4.Min(Vector4.One, backdrop + source));
         }
 
@@ -89,11 +74,6 @@ namespace ImageSharp.PixelFormats.PixelBlenders
         public static Vector4 Substract(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
-            if (source.W == 0)
-            {
-                return backdrop;
-            }
-
             return Compose(backdrop, source, Vector4.Max(Vector4.Zero, backdrop - source));
         }
 
@@ -108,11 +88,6 @@ namespace ImageSharp.PixelFormats.PixelBlenders
         public static Vector4 Screen(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
-            if (source.W == 0)
-            {
-                return backdrop;
-            }
-
             return Compose(backdrop, source, Vector4.One - ((Vector4.One - backdrop) * (Vector4.One - source)));
         }
 
@@ -127,11 +102,6 @@ namespace ImageSharp.PixelFormats.PixelBlenders
         public static Vector4 Darken(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
-            if (source.W == 0)
-            {
-                return backdrop;
-            }
-
             return Compose(backdrop, source, Vector4.Min(backdrop, source));
         }
 
@@ -146,11 +116,6 @@ namespace ImageSharp.PixelFormats.PixelBlenders
         public static Vector4 Lighten(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
-            if (source.W == 0)
-            {
-                return backdrop;
-            }
-
             return Compose(backdrop, source, Vector4.Max(backdrop, source));
         }
 
@@ -165,11 +130,6 @@ namespace ImageSharp.PixelFormats.PixelBlenders
         public static Vector4 Overlay(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
-            if (source.W == 0)
-            {
-                return backdrop;
-            }
-
             float cr = OverlayValueFunction(backdrop.X, source.X);
             float cg = OverlayValueFunction(backdrop.Y, source.Y);
             float cb = OverlayValueFunction(backdrop.Z, source.Z);
@@ -188,11 +148,6 @@ namespace ImageSharp.PixelFormats.PixelBlenders
         public static Vector4 HardLight(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
-            if (source.W == 0)
-            {
-                return backdrop;
-            }
-
             float cr = OverlayValueFunction(source.X, backdrop.X);
             float cg = OverlayValueFunction(source.Y, backdrop.Y);
             float cb = OverlayValueFunction(source.Z, backdrop.Z);
@@ -222,8 +177,6 @@ namespace ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Vector4 Compose(Vector4 backdrop, Vector4 source, Vector4 xform)
         {
-            //DebugGuard.MustBeGreaterThan(source.W, 0, nameof(source.W));
-
             // calculate weights
             float xw = backdrop.W * source.W;
             float bw = backdrop.W - xw;

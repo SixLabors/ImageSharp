@@ -44,57 +44,37 @@ namespace ImageSharp.PixelFormats.PixelBlenders
 
     void GenerateVectorCompositor(string name, string sourceVar, string destVar, string blendVar)
     {
-        if(sourceVar == "0") sourceVar= "Vector4.Zero";
-        if(destVar == "0") destVar= "Vector4.Zero";
-        if(blendVar == "0") blendVar= "Vector4.Zero";
-        
-        if(sourceVar == "s") sourceVar= "source";
-        if(destVar == "s") destVar= "source";
-        if(blendVar == "s") blendVar= "source";
-
-        if(sourceVar == "d") sourceVar= "backdrop";
-        if(destVar == "d") destVar= "backdrop";
-        if(blendVar == "d") blendVar= "backdrop";
 #>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector4 <#=name#>(Vector4 backdrop, Vector4 source, float amount)
+        public static Vector4 <#=name#>(Vector4 backdrop, Vector4 source, float opacity)
         {
 <#
-        if(sourceVar == "Vector4.Zero")
+        if(sourceVar != "Vector4.Zero")
         {
 #>
-            return <#=destVar#>;
-<#
-        }else{ 
-#>
-            <#=sourceVar#>.W *= amount;
-            if (<#=sourceVar#>.W == 0)
-            {
-                return <#=destVar#>;
-            }
-           
-            return Compose(<#=destVar#>, <#=sourceVar#>, <#=blendVar#>);
+            <#=sourceVar#>.W *= opacity;
 <#
         }
 #>
+            return Compose(<#=destVar#>, <#=sourceVar#>, <#=blendVar#>);
         }
 
 <#
     }
 
     
-        GenerateVectorCompositor("Src", "s", "0", "s");
-        GenerateVectorCompositor("Atop", "0", "d", "s");
-        GenerateVectorCompositor("Over", "s", "d", "s");
-        GenerateVectorCompositor("In", "0", "0", "s");
-        GenerateVectorCompositor("Out", "s", "0", "0");
-        GenerateVectorCompositor("Dest", "0", "d", "d");
-        GenerateVectorCompositor("DestAtop", "s", "0", "d");
-        GenerateVectorCompositor("DestOver", "s", "d", "d");
-        GenerateVectorCompositor("DestIn", "0", "0", "d");
-        GenerateVectorCompositor("DestOut", "0", "d", "0");
-        GenerateVectorCompositor("Clear", "0", "0", "0");
-        GenerateVectorCompositor("Xor", "s", "d", "0");
+        GenerateVectorCompositor("Src",      "source",       "Vector4.Zero", "source");
+        GenerateVectorCompositor("Atop",     "Vector4.Zero", "backdrop",     "source");
+        GenerateVectorCompositor("Over",     "source",       "backdrop",     "source");
+        GenerateVectorCompositor("In",       "Vector4.Zero", "Vector4.Zero", "source");
+        GenerateVectorCompositor("Out",      "source",       "Vector4.Zero", "Vector4.Zero");
+        GenerateVectorCompositor("Dest",     "Vector4.Zero", "backdrop",     "backdrop");
+        GenerateVectorCompositor("DestAtop", "source",       "Vector4.Zero", "backdrop");
+        GenerateVectorCompositor("DestOver", "source",       "backdrop",     "backdrop");
+        GenerateVectorCompositor("DestIn",   "Vector4.Zero", "Vector4.Zero", "backdrop");
+        GenerateVectorCompositor("DestOut",  "Vector4.Zero", "backdrop",     "Vector4.Zero");
+        GenerateVectorCompositor("Clear",    "Vector4.Zero", "Vector4.Zero", "Vector4.Zero");
+        GenerateVectorCompositor("Xor",      "source",       "backdrop",     "Vector4.Zero");
 
         
         GeneratePixelBlender("Normal");

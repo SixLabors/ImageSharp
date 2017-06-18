@@ -54,8 +54,6 @@ namespace ImageSharp.Formats.Jpeg.Port
         /// </summary>
         private bool isExif;
 
-        private int offset;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="JpegDecoderCore" /> class.
         /// </summary>
@@ -481,7 +479,6 @@ namespace ImageSharp.Formats.Jpeg.Port
         {
             this.InputStream.Read(this.uint16Buffer, 0, 2);
             ushort value = (ushort)((this.uint16Buffer[0] << 8) | this.uint16Buffer[1]);
-            this.offset += 2;
             return value;
         }
 

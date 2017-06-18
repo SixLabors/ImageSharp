@@ -362,24 +362,15 @@ namespace ImageSharp.Formats.Jpeg.Port
                         codeLengthSum += codeLengths[j] = huffmanData[o++];
                     }
 
+                    // TODO: Pooling?
                     short[] huffmanValues = new short[codeLengthSum];
-
-                    byte[] values = null;
-                    try
+                    using (var values = new Buffer<byte>(256))
                     {
-                        values = ArrayPool<byte>.Shared.Rent(256);
-                        this.InputStream.Read(values, 0, codeLengthSum);
+                        this.InputStream.Read(values.Array, 0, codeLengthSum);
 
                         for (int j = 0; j < codeLengthSum; j++)
                         {
                             huffmanValues[j] = values[o++];
-                        }
-                    }
-                    finally
-                    {
-                        if (values != null)
-                        {
-                            ArrayPool<byte>.Shared.Return(values);
                         }
                     }
 

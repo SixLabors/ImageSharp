@@ -10,6 +10,7 @@ namespace ImageSharp.Formats.Jpeg.Port
     using System.IO;
 
     using ImageSharp.Formats.Jpeg.Port.Components;
+    using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
 
     /// <summary>
@@ -99,6 +100,8 @@ namespace ImageSharp.Formats.Jpeg.Port
             fileMarker = this.ReadUint16();
 
             this.quantizationTables = new QuantizationTables();
+            this.dcHuffmanTables = new HuffmanTables();
+            this.acHuffmanTables = new HuffmanTables();
 
             while (fileMarker != JpegConstants.Markers.EOI)
             {
@@ -342,55 +345,62 @@ namespace ImageSharp.Formats.Jpeg.Port
                 throw new ImageFormatException("DHT has wrong length");
             }
 
-            // TODO: Pool this
-            byte[] huffmanData = new byte[remaining];
-            this.InputStream.Read(huffmanData, 0, remaining);
-
-            int o = 0;
-            for (int i = 0; i < remaining;)
+            using (var huffmanData = new Buffer<byte>(remaining))
             {
-                byte huffmanTableSpec = huffmanData[i];
-                byte[] codeLengths = new byte[16];
-                int codeLengthSum = 0;
+                this.InputStream.Read(huffmanData.Array, 1, remaining);
 
-                for (int j = 0; j < 16; j++)
+                int o = 0;
+                for (int i = 0; i < remaining;)
                 {
-                    codeLengthSum += codeLengths[j] = huffmanData[o++];
-                }
+                    byte huffmanTableSpec = huffmanData[i];
+                    byte[] codeLengths = new byte[16];
+                    int codeLengthSum = 0;
 
-                short[] huffmanValues = new short[codeLengthSum];
-
-                byte[] values = null;
-                try
-                {
-                    values = ArrayPool<byte>.Shared.Rent(256);
-                    this.InputStream.Read(values, 0, codeLengthSum);
-
-                    for (int j = 0; j < codeLengthSum; j++)
+                    for (int j = 0; j < 16; j++)
                     {
-                        huffmanValues[j] = values[o++];
+                        codeLengthSum += codeLengths[j] = huffmanData[o++];
                     }
-                }
-                finally
-                {
-                    if (values != null)
+
+                    short[] huffmanValues = new short[codeLengthSum];
+
+                    byte[] values = null;
+                    try
                     {
-                        ArrayPool<byte>.Shared.Return(values);
+                        values = ArrayPool<byte>.Shared.Rent(256);
+                        this.InputStream.Read(values, 0, codeLengthSum);
+
+                        for (int j = 0; j < codeLengthSum; j++)
+                        {
+                            huffmanValues[j] = values[o++];
+                        }
                     }
+                    finally
+                    {
+                        if (values != null)
+                        {
+                            ArrayPool<byte>.Shared.Return(values);
+                        }
+                    }
+
+                    i += 17 + codeLengthSum;
+
+                    this.BuildHuffmanTable(
+                        huffmanTableSpec >> 4 == 0 ? this.dcHuffmanTables : this.acHuffmanTables,
+                        huffmanTableSpec & 15,
+                        codeLengths,
+                        huffmanValues);
                 }
-
-                i += 17 + codeLengthSum;
-
-                this.BuildHuffmanTable(
-                    huffmanTableSpec >> 4 == 0 ? this.dcHuffmanTables : this.acHuffmanTables,
-                    huffmanTableSpec & 15,
-                    codeLengths,
-                    huffmanValues);
             }
         }
 
         private void BuildHuffmanTable(HuffmanTables tables, int index, byte[] codeLengths, short[] values)
         {
+            int length = 16;
+            while (length > 0 && codeLengths[length - 1] == 0)
+            {
+                length--;
+            }
+
             Span<short> tableSpan = tables.Tables.GetRowSpan(index);
         }
 
@@ -432,7 +442,7 @@ namespace ImageSharp.Formats.Jpeg.Port
             {
                 int value = this.InputStream.Read(this.uint16Buffer, 0, 2);
 
-                if (value <= 0)
+                if (value == 0)
                 {
                     return JpegConstants.Markers.EOI;
                 }
@@ -459,7 +469,7 @@ namespace ImageSharp.Formats.Jpeg.Port
                     this.uint16Buffer[0] = this.uint16Buffer[1];
 
                     value = this.InputStream.ReadByte();
-                    if (value <= 0)
+                    if (value == -1)
                     {
                         return JpegConstants.Markers.EOI;
                     }

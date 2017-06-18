@@ -15,6 +15,7 @@ namespace ImageSharp.Formats.Jpeg.Port
 
     /// <summary>
     /// Performs the jpeg decoding operation.
+    /// Ported from <see href="https://github.com/mozilla/pdf.js/blob/master/src/core/jpg.js"/>
     /// </summary>
     internal class JpegDecoderCore
     {

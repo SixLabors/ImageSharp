@@ -12,83 +12,250 @@ namespace ImageSharp.PixelFormats.PixelBlenders
 
     internal static partial class PorterDuffFunctions
     {
-    
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 Src(Vector4 backdrop, Vector4 source, float opacity)
         {
-                            source.W *= opacity;
-                        return Compose(Vector4.Zero, source, source).Blend(backdrop, opacity);
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;            
+            Vector4 xform = source;
+
+            // calculate weights
+            float xw = Vector4.Zero.W * source.W;
+            float bw = Vector4.Zero.W - xw;
+            float sw = source.W - xw;
+
+            // calculate final alpha
+            float a = xw + bw + sw;
+
+            // calculate final value
+            xform = ((xform * xw) + (Vector4.Zero * bw) + (source * sw)) / MathF.Max(a, Constants.Epsilon);
+
+            return Vector4.Lerp(backdrop, xform, opacity);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 Atop(Vector4 backdrop, Vector4 source, float opacity)
         {
-                        return Compose(backdrop, Vector4.Zero, source).Blend(backdrop, opacity);
+            opacity = opacity.Clamp(0, 1);
+            Vector4 xform = source;
+
+            // calculate weights
+            float xw = backdrop.W * Vector4.Zero.W;
+            float bw = backdrop.W - xw;
+            float sw = Vector4.Zero.W - xw;
+
+            // calculate final alpha
+            float a = xw + bw + sw;
+
+            // calculate final value
+            xform = ((xform * xw) + (backdrop * bw) + (Vector4.Zero * sw)) / MathF.Max(a, Constants.Epsilon);
+
+            return Vector4.Lerp(backdrop, xform, opacity);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 Over(Vector4 backdrop, Vector4 source, float opacity)
         {
-                            source.W *= opacity;
-                        return Compose(backdrop, source, source).Blend(backdrop, opacity);
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;            
+            Vector4 xform = source;
+
+            // calculate weights
+            float xw = backdrop.W * source.W;
+            float bw = backdrop.W - xw;
+            float sw = source.W - xw;
+
+            // calculate final alpha
+            float a = xw + bw + sw;
+
+            // calculate final value
+            xform = ((xform * xw) + (backdrop * bw) + (source * sw)) / MathF.Max(a, Constants.Epsilon);
+
+            return Vector4.Lerp(backdrop, xform, opacity);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 In(Vector4 backdrop, Vector4 source, float opacity)
         {
-                        return Compose(Vector4.Zero, Vector4.Zero, source).Blend(backdrop, opacity);
+            opacity = opacity.Clamp(0, 1);
+            Vector4 xform = source;
+
+            // calculate weights
+            float xw = Vector4.Zero.W * Vector4.Zero.W;
+            float bw = Vector4.Zero.W - xw;
+            float sw = Vector4.Zero.W - xw;
+
+            // calculate final alpha
+            float a = xw + bw + sw;
+
+            // calculate final value
+            xform = ((xform * xw) + (Vector4.Zero * bw) + (Vector4.Zero * sw)) / MathF.Max(a, Constants.Epsilon);
+
+            return Vector4.Lerp(backdrop, xform, opacity);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 Out(Vector4 backdrop, Vector4 source, float opacity)
         {
-                            source.W *= opacity;
-                        return Compose(Vector4.Zero, source, Vector4.Zero).Blend(backdrop, opacity);
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;            
+            Vector4 xform = Vector4.Zero;
+
+            // calculate weights
+            float xw = Vector4.Zero.W * source.W;
+            float bw = Vector4.Zero.W - xw;
+            float sw = source.W - xw;
+
+            // calculate final alpha
+            float a = xw + bw + sw;
+
+            // calculate final value
+            xform = ((xform * xw) + (Vector4.Zero * bw) + (source * sw)) / MathF.Max(a, Constants.Epsilon);
+
+            return Vector4.Lerp(backdrop, xform, opacity);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 Dest(Vector4 backdrop, Vector4 source, float opacity)
         {
-                        return Compose(backdrop, Vector4.Zero, backdrop).Blend(backdrop, opacity);
+            opacity = opacity.Clamp(0, 1);
+            Vector4 xform = backdrop;
+
+            // calculate weights
+            float xw = backdrop.W * Vector4.Zero.W;
+            float bw = backdrop.W - xw;
+            float sw = Vector4.Zero.W - xw;
+
+            // calculate final alpha
+            float a = xw + bw + sw;
+
+            // calculate final value
+            xform = ((xform * xw) + (backdrop * bw) + (Vector4.Zero * sw)) / MathF.Max(a, Constants.Epsilon);
+
+            return Vector4.Lerp(backdrop, xform, opacity);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 DestAtop(Vector4 backdrop, Vector4 source, float opacity)
         {
-                            source.W *= opacity;
-                        return Compose(Vector4.Zero, source, backdrop).Blend(backdrop, opacity);
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;            
+            Vector4 xform = backdrop;
+
+            // calculate weights
+            float xw = Vector4.Zero.W * source.W;
+            float bw = Vector4.Zero.W - xw;
+            float sw = source.W - xw;
+
+            // calculate final alpha
+            float a = xw + bw + sw;
+
+            // calculate final value
+            xform = ((xform * xw) + (Vector4.Zero * bw) + (source * sw)) / MathF.Max(a, Constants.Epsilon);
+
+            return Vector4.Lerp(backdrop, xform, opacity);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 DestOver(Vector4 backdrop, Vector4 source, float opacity)
         {
-                            source.W *= opacity;
-                        return Compose(backdrop, source, backdrop).Blend(backdrop, opacity);
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;            
+            Vector4 xform = backdrop;
+
+            // calculate weights
+            float xw = backdrop.W * source.W;
+            float bw = backdrop.W - xw;
+            float sw = source.W - xw;
+
+            // calculate final alpha
+            float a = xw + bw + sw;
+
+            // calculate final value
+            xform = ((xform * xw) + (backdrop * bw) + (source * sw)) / MathF.Max(a, Constants.Epsilon);
+
+            return Vector4.Lerp(backdrop, xform, opacity);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 DestIn(Vector4 backdrop, Vector4 source, float opacity)
         {
-                        return Compose(Vector4.Zero, Vector4.Zero, backdrop).Blend(backdrop, opacity);
+            opacity = opacity.Clamp(0, 1);
+            Vector4 xform = backdrop;
+
+            // calculate weights
+            float xw = Vector4.Zero.W * Vector4.Zero.W;
+            float bw = Vector4.Zero.W - xw;
+            float sw = Vector4.Zero.W - xw;
+
+            // calculate final alpha
+            float a = xw + bw + sw;
+
+            // calculate final value
+            xform = ((xform * xw) + (Vector4.Zero * bw) + (Vector4.Zero * sw)) / MathF.Max(a, Constants.Epsilon);
+
+            return Vector4.Lerp(backdrop, xform, opacity);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 DestOut(Vector4 backdrop, Vector4 source, float opacity)
         {
-                        return Compose(backdrop, Vector4.Zero, Vector4.Zero).Blend(backdrop, opacity);
+            opacity = opacity.Clamp(0, 1);
+            Vector4 xform = Vector4.Zero;
+
+            // calculate weights
+            float xw = backdrop.W * Vector4.Zero.W;
+            float bw = backdrop.W - xw;
+            float sw = Vector4.Zero.W - xw;
+
+            // calculate final alpha
+            float a = xw + bw + sw;
+
+            // calculate final value
+            xform = ((xform * xw) + (backdrop * bw) + (Vector4.Zero * sw)) / MathF.Max(a, Constants.Epsilon);
+
+            return Vector4.Lerp(backdrop, xform, opacity);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 Clear(Vector4 backdrop, Vector4 source, float opacity)
         {
-                        return Compose(Vector4.Zero, Vector4.Zero, Vector4.Zero).Blend(backdrop, opacity);
+            opacity = opacity.Clamp(0, 1);
+            Vector4 xform = Vector4.Zero;
+
+            // calculate weights
+            float xw = Vector4.Zero.W * Vector4.Zero.W;
+            float bw = Vector4.Zero.W - xw;
+            float sw = Vector4.Zero.W - xw;
+
+            // calculate final alpha
+            float a = xw + bw + sw;
+
+            // calculate final value
+            xform = ((xform * xw) + (Vector4.Zero * bw) + (Vector4.Zero * sw)) / MathF.Max(a, Constants.Epsilon);
+
+            return Vector4.Lerp(backdrop, xform, opacity);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 Xor(Vector4 backdrop, Vector4 source, float opacity)
         {
-                            source.W *= opacity;
-                        return Compose(backdrop, source, Vector4.Zero).Blend(backdrop, opacity);
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;            
+            Vector4 xform = Vector4.Zero;
+
+            // calculate weights
+            float xw = backdrop.W * source.W;
+            float bw = backdrop.W - xw;
+            float sw = source.W - xw;
+
+            // calculate final alpha
+            float a = xw + bw + sw;
+
+            // calculate final value
+            xform = ((xform * xw) + (backdrop * bw) + (source * sw)) / MathF.Max(a, Constants.Epsilon);
+
+            return Vector4.Lerp(backdrop, xform, opacity);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

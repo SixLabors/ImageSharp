@@ -11,18 +11,25 @@ namespace AvatarWithRoundedCorner
     {
         static void Main(string[] args)
         {
-           
-            using (var image = Image.Load("fb.jpg"))
+            System.IO.Directory.CreateDirectory("output");
+
+            GenerateAvatar("fb.jpg", "output/fb.png", new ImageSharp.Size(200, 200), 20);
+            GenerateAvatar("fb.jpg", "output/fb-round.png", new ImageSharp.Size(200, 200), 100);
+            GenerateAvatar("fb.jpg", "output/fb-rounder.png", new ImageSharp.Size(200, 200), 150);
+        }
+
+        private static void GenerateAvatar(string source, string destination, ImageSharp.Size size, float cornerRadius)
+        {
+            using (var image = Image.Load(source))
             {
                 image.Resize(new ImageSharp.Processing.ResizeOptions
                 {
-                    Size = new ImageSharp.Size(200, 200),
+                    Size = size,
                     Mode = ImageSharp.Processing.ResizeMode.Crop
                 });
 
-                ApplyRoundedCourners(image, 30);
-                System.IO.Directory.CreateDirectory("output");
-                image.Save("output/fb.png");
+                ApplyRoundedCourners(image, cornerRadius);
+                image.Save(destination);
             }
         }
 

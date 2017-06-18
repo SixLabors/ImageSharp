@@ -5,6 +5,7 @@
 
 namespace ImageSharp
 {
+    using System;
     using System.Collections.Generic;
     using System.Linq;
 
@@ -76,30 +77,18 @@ namespace ImageSharp
 
         private IccTagTableEntry[] WriteTagData(IccDataWriter writer, List<IccTagDataEntry> entries)
         {
-            var inData = new List<IccTagDataEntry>(entries);
-            var dupData = new List<IccTagDataEntry[]>();
-
-            while (inData.Count > 0)
-            {
-                IccTagDataEntry[] items = inData.Where(t => inData[0].Equals(t)).ToArray();
-                dupData.Add(items);
-                foreach (IccTagDataEntry item in items)
-                {
-                    inData.Remove(item);
-                }
-            }
-
-            var table = new List<IccTagTableEntry>();
+            IEnumerable<IGrouping<IccTagDataEntry, IccTagDataEntry>> grouped = entries.GroupBy(t => t);
 
             // (Header size) + (entry count) + (nr of entries) * (size of table entry)
             writer.SetIndex(128 + 4 + (entries.Count * 12));
 
-            foreach (IccTagDataEntry[] entry in dupData)
+            var table = new List<IccTagTableEntry>();
+            foreach (IGrouping<IccTagDataEntry, IccTagDataEntry> group in grouped)
             {
-                writer.WriteTagDataEntry(entry[0], out IccTagTableEntry tentry);
-                foreach (IccTagDataEntry item in entry)
+                writer.WriteTagDataEntry(group.Key, out IccTagTableEntry tableEntry);
+                foreach (IccTagDataEntry item in group)
                 {
-                    table.Add(new IccTagTableEntry(item.TagSignature, tentry.Offset, tentry.DataSize));
+                    table.Add(new IccTagTableEntry(item.TagSignature, tableEntry.Offset, tableEntry.DataSize));
                 }
             }
 

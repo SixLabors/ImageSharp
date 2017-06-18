@@ -16,79 +16,79 @@ namespace ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 Src(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity;
-            return Compose(Vector4.Zero, source, source);
+                            source.W *= opacity;
+                        return Compose(Vector4.Zero, source, source).Blend(backdrop, opacity);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 Atop(Vector4 backdrop, Vector4 source, float opacity)
         {
-            return Compose(backdrop, Vector4.Zero, source);
+                        return Compose(backdrop, Vector4.Zero, source).Blend(backdrop, opacity);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 Over(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity;
-            return Compose(backdrop, source, source);
+                            source.W *= opacity;
+                        return Compose(backdrop, source, source).Blend(backdrop, opacity);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 In(Vector4 backdrop, Vector4 source, float opacity)
         {
-            return Compose(Vector4.Zero, Vector4.Zero, source);
+                        return Compose(Vector4.Zero, Vector4.Zero, source).Blend(backdrop, opacity);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 Out(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity;
-            return Compose(Vector4.Zero, source, Vector4.Zero);
+                            source.W *= opacity;
+                        return Compose(Vector4.Zero, source, Vector4.Zero).Blend(backdrop, opacity);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 Dest(Vector4 backdrop, Vector4 source, float opacity)
         {
-            return Compose(backdrop, Vector4.Zero, backdrop);
+                        return Compose(backdrop, Vector4.Zero, backdrop).Blend(backdrop, opacity);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 DestAtop(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity;
-            return Compose(Vector4.Zero, source, backdrop);
+                            source.W *= opacity;
+                        return Compose(Vector4.Zero, source, backdrop).Blend(backdrop, opacity);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 DestOver(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity;
-            return Compose(backdrop, source, backdrop);
+                            source.W *= opacity;
+                        return Compose(backdrop, source, backdrop).Blend(backdrop, opacity);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 DestIn(Vector4 backdrop, Vector4 source, float opacity)
         {
-            return Compose(Vector4.Zero, Vector4.Zero, backdrop);
+                        return Compose(Vector4.Zero, Vector4.Zero, backdrop).Blend(backdrop, opacity);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 DestOut(Vector4 backdrop, Vector4 source, float opacity)
         {
-            return Compose(backdrop, Vector4.Zero, Vector4.Zero);
+                        return Compose(backdrop, Vector4.Zero, Vector4.Zero).Blend(backdrop, opacity);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 Clear(Vector4 backdrop, Vector4 source, float opacity)
         {
-            return Compose(Vector4.Zero, Vector4.Zero, Vector4.Zero);
+                        return Compose(Vector4.Zero, Vector4.Zero, Vector4.Zero).Blend(backdrop, opacity);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 Xor(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity;
-            return Compose(backdrop, source, Vector4.Zero);
+                            source.W *= opacity;
+                        return Compose(backdrop, source, Vector4.Zero).Blend(backdrop, opacity);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

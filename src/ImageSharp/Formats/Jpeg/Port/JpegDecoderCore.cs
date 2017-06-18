@@ -287,7 +287,7 @@ namespace ImageSharp.Formats.Jpeg.Port
             this.frame = new Frame
             {
                 Extended = frameMarker == JpegConstants.Markers.SOF1,
-                Progressive = frameMarker == JpegConstants.Markers.SOF1,
+                Progressive = frameMarker == JpegConstants.Markers.SOF2,
                 Precision = this.temp[0],
                 Scanlines = (short)((this.temp[1] << 8) | this.temp[2]),
                 SamplesPerLine = (short)((this.temp[3] << 8) | this.temp[4]),

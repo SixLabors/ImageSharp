@@ -48,15 +48,12 @@ namespace ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 <#=name#>(Vector4 backdrop, Vector4 source, float opacity)
         {
-<#
-        if(sourceVar != "Vector4.Zero")
-        {
-#>
-            <#=sourceVar#>.W *= opacity;
-<#
-        }
-#>
-            return Compose(<#=destVar#>, <#=sourceVar#>, <#=blendVar#>);
+            <# if(sourceVar != "Vector4.Zero") {
+            #>
+                <#=sourceVar#>.W *= opacity;
+            <#
+            } #>
+            return Compose(<#=destVar#>, <#=sourceVar#>, <#=blendVar#>).Blend(backdrop, opacity);
         }
 
 <#

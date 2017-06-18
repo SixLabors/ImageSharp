@@ -24,7 +24,6 @@ namespace ImageSharp.PixelFormats.PixelBlenders
 
     internal static partial class PorterDuffFunctions
     {
-    
 <#
     
     void GeneratePixelBlender (string blender)
@@ -48,18 +47,28 @@ namespace ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 <#=name#>(Vector4 backdrop, Vector4 source, float opacity)
         {
-            <# if(sourceVar != "Vector4.Zero") {
-            #>
-                <#=sourceVar#>.W *= opacity;
-            <#
-            } #>
-            return Compose(<#=destVar#>, <#=sourceVar#>, <#=blendVar#>).Blend(backdrop, opacity);
+            opacity = opacity.Clamp(0, 1);
+<# if(sourceVar != "Vector4.Zero" ) { #>
+            source.W *= opacity;            
+<# } #>
+            Vector4 xform = <#=blendVar#>;
+
+            // calculate weights
+            float xw = <#=destVar#>.W * <#=sourceVar#>.W;
+            float bw = <#=destVar#>.W - xw;
+            float sw = <#=sourceVar#>.W - xw;
+
+            // calculate final alpha
+            float a = xw + bw + sw;
+
+            // calculate final value
+            xform = ((xform * xw) + (<#=destVar#> * bw) + (<#=sourceVar#> * sw)) / MathF.Max(a, Constants.Epsilon);
+
+            return Vector4.Lerp(backdrop, xform, opacity);
         }
 
 <#
     }
-
-    
         GenerateVectorCompositor("Src",      "source",       "Vector4.Zero", "source");
         GenerateVectorCompositor("Atop",     "Vector4.Zero", "backdrop",     "source");
         GenerateVectorCompositor("Over",     "source",       "backdrop",     "source");

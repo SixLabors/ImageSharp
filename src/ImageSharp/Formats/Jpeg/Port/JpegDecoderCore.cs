@@ -6,8 +6,9 @@
 namespace ImageSharp.Formats.Jpeg.Port
 {
     using System;
-    using System.Buffers;
+    using System.Collections.Generic;
     using System.IO;
+    using System.Linq;
 
     using ImageSharp.Formats.Jpeg.Port.Components;
     using ImageSharp.Memory;
@@ -346,9 +347,9 @@ namespace ImageSharp.Formats.Jpeg.Port
 
             using (var huffmanData = new Buffer<byte>(remaining))
             {
-                this.InputStream.Read(huffmanData.Array, 1, remaining);
+                this.InputStream.Skip(1);
+                this.InputStream.Read(huffmanData.Array, 0, remaining);
 
-                int o = 0;
                 for (int i = 0; i < remaining;)
                 {
                     byte huffmanTableSpec = huffmanData[i];
@@ -357,41 +358,95 @@ namespace ImageSharp.Formats.Jpeg.Port
 
                     for (int j = 0; j < 16; j++)
                     {
-                        codeLengthSum += codeLengths[j] = huffmanData[o++];
+                        codeLengthSum += codeLengths[j] = huffmanData[j];
                     }
 
                     // TODO: Pooling?
                     short[] huffmanValues = new short[codeLengthSum];
-                    using (var values = new Buffer<byte>(256))
+                    using (var values = new Buffer<byte>(codeLengthSum))
                     {
                         this.InputStream.Read(values.Array, 0, codeLengthSum);
 
                         for (int j = 0; j < codeLengthSum; j++)
                         {
-                            huffmanValues[j] = values[o++];
+                            huffmanValues[j] = values[j];
                         }
+
+                        i += 17 + codeLengthSum;
+
+                        this.BuildHuffmanTable(
+                            huffmanTableSpec >> 4 == 0 ? this.dcHuffmanTables : this.acHuffmanTables,
+                            huffmanTableSpec & 15,
+                            codeLengths,
+                            huffmanValues);
                     }
-
-                    i += 17 + codeLengthSum;
-
-                    this.BuildHuffmanTable(
-                        huffmanTableSpec >> 4 == 0 ? this.dcHuffmanTables : this.acHuffmanTables,
-                        huffmanTableSpec & 15,
-                        codeLengths,
-                        huffmanValues);
                 }
             }
         }
 
         private void BuildHuffmanTable(HuffmanTables tables, int index, byte[] codeLengths, short[] values)
         {
+            // (╯°□°）╯︵ ┻━┻ Everything up to here is going well. I can't match the JavaScript now though.
             int length = 16;
             while (length > 0 && codeLengths[length - 1] == 0)
             {
                 length--;
             }
 
-            Span<short> tableSpan = tables.Tables.GetRowSpan(index);
+            var code = new Queue<HuffmanBranch>();
+            code.Enqueue(new HuffmanBranch(new List<HuffmanBranch>()));
+            HuffmanBranch p = code.Peek();
+            p.Children = new List<HuffmanBranch>();
+            HuffmanBranch q;
+            int k = 0;
+            try
+            {
+                for (int i = 0; i < length; i++)
+                {
+                    for (int j = 0; j < codeLengths[i]; j++)
+                    {
+                        p = code.Dequeue();
+                        p.Children.Add(new HuffmanBranch(values[k]));
+                        while (p.Index > 0)
+                        {
+                            p = code.Dequeue();
+                        }
+
+                        p.Index++;
+                        code.Enqueue(p);
+                        while (code.Count <= i)
+                        {
+                            q = new HuffmanBranch(new List<HuffmanBranch>());
+                            code.Enqueue(q);
+                            p.Children.Add(new HuffmanBranch(q.Children));
+                            p = q;
+                        }
+
+                        k++;
+                    }
+
+                    if (i + 1 < length)
+                    {
+                        // p here points to last code
+                        q = new HuffmanBranch(new List<HuffmanBranch>());
+                        code.Enqueue(q);
+                        p.Children.Add(new HuffmanBranch(q.Children));
+                        p = q;
+                    }
+                }
+
+                Span<HuffmanBranch> tableSpan = tables.Tables.GetRowSpan(index);
+
+                List<HuffmanBranch> result = code.Peek().Children;
+                for (int i = 0; i < result.Count; i++)
+                {
+                    tableSpan[i] = result[i];
+                }
+            }
+            catch (Exception e)
+            {
+                throw;
+            }
         }
 
         /// <summary>

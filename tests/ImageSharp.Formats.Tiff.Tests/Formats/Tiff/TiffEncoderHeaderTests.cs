@@ -7,9 +7,11 @@ namespace ImageSharp.Tests
 {
     using System;
     using System.IO;
+    using System.Linq;
     using Xunit;
 
     using ImageSharp.Formats;
+    using ImageSharp.Formats.Tiff;
     using System.Text;
 
     public class TiffEncoderHeaderTests
@@ -20,41 +22,24 @@ namespace ImageSharp.Tests
             MemoryStream stream = new MemoryStream();
             TiffEncoderCore encoder = new TiffEncoderCore(null);
 
-            using (BinaryWriter writer = new BinaryWriter(stream, Encoding.UTF8, true))
+            using (TiffWriter writer = new TiffWriter(stream))
             {
-                encoder.WriteHeader(writer, 1232);
+                long firstIfdMarker = encoder.WriteHeader(writer);
             }
 
-            stream.Position = 0;
-            Assert.Equal(8, stream.Length);
-            Assert.Equal(new byte[] { 0x49, 0x49, 42, 0, 0xD0, 0x04, 0x00, 0x00 }, stream.ToArray());
+            Assert.Equal(new byte[] { 0x49, 0x49, 42, 0, 0x00, 0x00, 0x00, 0x00 }, stream.ToArray());
         }
 
         [Fact]
-        public void WriteHeader_ThrowsExceptionIfFirstIfdOffsetIsZero()
+        public void WriteHeader_ReturnsFirstIfdMarker()
         {
             MemoryStream stream = new MemoryStream();
             TiffEncoderCore encoder = new TiffEncoderCore(null);
 
-            using (BinaryWriter writer = new BinaryWriter(stream, Encoding.UTF8, true))
+            using (TiffWriter writer = new TiffWriter(stream))
             {
-                ArgumentException e = Assert.Throws<ArgumentException>(() => { encoder.WriteHeader(writer, 0); });
-                Assert.Equal("IFD offsets must be non-zero and on a word boundary.\r\nParameter name: firstIfdOffset", e.Message);
-                Assert.Equal("firstIfdOffset", e.ParamName);
-            }
-        }
-
-        [Fact]
-        public void WriteHeader_ThrowsExceptionIfIfdOffsetIsNotOnAWordBoundary()
-        {
-            MemoryStream stream = new MemoryStream();
-            TiffEncoderCore encoder = new TiffEncoderCore(null);
-
-            using (BinaryWriter writer = new BinaryWriter(stream, Encoding.UTF8, true))
-            {
-                ArgumentException e = Assert.Throws<ArgumentException>(() => { encoder.WriteHeader(writer, 1234); });
-                Assert.Equal("IFD offsets must be non-zero and on a word boundary.\r\nParameter name: firstIfdOffset", e.Message);
-                Assert.Equal("firstIfdOffset", e.ParamName);
+                long firstIfdMarker = encoder.WriteHeader(writer);
+                Assert.Equal(4, firstIfdMarker);
             }
         }
     }

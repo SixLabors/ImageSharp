@@ -7,6 +7,7 @@ namespace ImageSharp.Formats
 {
     using System;
     using System.Buffers;
+    using System.Collections.Generic;
     using System.IO;
     using System.Linq;
     using System.Runtime.CompilerServices;
@@ -50,30 +51,95 @@ namespace ImageSharp.Formats
             Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));
 
-            using (BinaryWriter writer = new BinaryWriter(stream, Encoding.UTF8, true))
+            using (TiffWriter writer = new TiffWriter(stream))
             {
-                this.WriteHeader(writer, 0);
+                long firstIfdMarker = this.WriteHeader(writer);
+                long nextIfdMarker = this.WriteImage(writer, image, firstIfdMarker);
             }
         }
 
         /// <summary>
         /// Writes the TIFF file header.
         /// </summary>
-        /// <param name="writer">The <see cref="BinaryWriter"/> to write data to.</param>
-        /// <param name="firstIfdOffset">The byte offset to the first IFD in the file.</param>
-        public void WriteHeader(BinaryWriter writer, uint firstIfdOffset)
+        /// <param name="writer">The <see cref="TiffWriter"/> to write data to.</param>
+        /// <returns>The marker to write the first IFD offset.</returns>
+        public long WriteHeader(TiffWriter writer)
         {
-            if (firstIfdOffset == 0 || firstIfdOffset % TiffConstants.SizeOfWordBoundary != 0)
-            {
-                throw new ArgumentException("IFD offsets must be non-zero and on a word boundary.", nameof(firstIfdOffset));
-            }
-
             ushort byteOrderMarker = BitConverter.IsLittleEndian ? TiffConstants.ByteOrderLittleEndianShort
                                                                  : TiffConstants.ByteOrderBigEndianShort;
 
             writer.Write(byteOrderMarker);
             writer.Write((ushort)42);
-            writer.Write(firstIfdOffset);
+            long firstIfdMarker = writer.PlaceMarker();
+
+            return firstIfdMarker;
+        }
+
+        /// <summary>
+        /// Writes a TIFF IFD block.
+        /// </summary>
+        /// <param name="writer">The <see cref="BinaryWriter"/> to write data to.</param>
+        /// <param name="entries">The IFD entries to write to the file.</param>
+        /// <returns>The marker to write the next IFD offset (if present).</returns>
+        public long WriteIfd(TiffWriter writer, List<TiffIfdEntry> entries)
+        {
+            if (entries.Count == 0)
+            {
+                throw new ArgumentException("There must be at least one entry per IFD.", nameof(entries));
+            }
+
+            uint dataOffset = (uint)writer.Position + (uint)(6 + (entries.Count * 12));
+            List<byte[]> largeDataBlocks = new List<byte[]>();
+
+            entries.Sort((a, b) => a.Tag - b.Tag);
+
+            writer.Write((ushort)entries.Count);
+
+            foreach (TiffIfdEntry entry in entries)
+            {
+                writer.Write(entry.Tag);
+                writer.Write((ushort)entry.Type);
+                writer.Write(entry.Count);
+
+                if (entry.Value.Length <= 4)
+                {
+                    writer.WritePadded(entry.Value);
+                }
+                else
+                {
+                    largeDataBlocks.Add(entry.Value);
+                    writer.Write(dataOffset);
+                    dataOffset += (uint)(entry.Value.Length + (entry.Value.Length % 2));
+                }
+            }
+
+            long nextIfdMarker = writer.PlaceMarker();
+
+            foreach (byte[] dataBlock in largeDataBlocks)
+            {
+                writer.Write(dataBlock);
+
+                if (dataBlock.Length % 2 == 1)
+                {
+                    writer.Write((byte)0);
+                }
+            }
+
+            return nextIfdMarker;
+        }
+
+        /// <summary>
+        /// Writes all data required to define an image
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="writer">The <see cref="BinaryWriter"/> to write data to.</param>
+        /// <param name="image">The <see cref="ImageBase{TPixel}"/> to encode from.</param>
+        /// <param name="ifdOffset">The marker to write this IFD offset.</param>
+        /// <returns>The marker to write the next IFD offset (if present).</returns>
+        public long WriteImage<TPixel>(TiffWriter writer, Image<TPixel> image, long ifdOffset)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            throw new NotImplementedException();
         }
     }
 }

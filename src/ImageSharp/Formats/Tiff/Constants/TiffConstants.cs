@@ -69,10 +69,5 @@ namespace ImageSharp.Formats.Tiff
         /// Size (in bytes) of the Double data type
         /// </summary>
         public const int SizeOfDouble = 8;
-
-        /// <summary>
-        /// Size (in bytes) of the word boundary to allign data to when required
-        /// </summary>
-        public const int SizeOfWordBoundary = 4;
     }
 }

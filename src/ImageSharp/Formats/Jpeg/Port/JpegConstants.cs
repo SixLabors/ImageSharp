@@ -156,6 +156,24 @@ namespace ImageSharp.Formats.Jpeg.Port
             public const ushort DHT = 0xFFC4;
 
             /// <summary>
+            /// Define Restart Interval
+            /// <remarks>
+            /// Specifies the interval between RSTn markers, in macroblocks.This marker is followed by two bytes indicating the fixed size so it can be treated like any other variable size segment.
+            /// </remarks>
+            /// </summary>
+            public const ushort DRI = 0xFFDD;
+
+            /// <summary>
+            /// Start of Scan
+            /// <remarks>
+            /// Begins a top-to-bottom scan of the image. In baseline DCT JPEG images, there is generally a single scan.
+            /// Progressive DCT JPEG images usually contain multiple scans. This marker specifies which slice of data it
+            /// will contain, and is immediately followed by entropy-coded data.
+            /// </remarks>
+            /// </summary>
+            public const ushort SOS = 0xFFDA;
+
+            /// <summary>
             /// Contains JFIF specific markers
             /// </summary>
             public static class JFif

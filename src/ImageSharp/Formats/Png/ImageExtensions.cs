@@ -46,7 +46,7 @@ namespace ImageSharp
         public static Image<TPixel> SaveAsPng<TPixel>(this Image<TPixel> source, Stream stream, IPngEncoderOptions options)
             where TPixel : struct, IPixel<TPixel>
         {
-            PngEncoder encoder = new PngEncoder();
+            var encoder = new PngEncoder();
             encoder.Encode(source, stream, options);
 
             return source;

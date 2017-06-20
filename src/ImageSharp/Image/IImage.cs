@@ -13,11 +13,6 @@ namespace ImageSharp
     internal interface IImage : IImageBase
     {
         /// <summary>
-        /// Gets the currently loaded image format.
-        /// </summary>
-        IImageFormat CurrentImageFormat { get; }
-
-        /// <summary>
         /// Gets the meta data of the image.
         /// </summary>
         ImageMetaData MetaData { get; }

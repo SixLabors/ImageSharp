@@ -71,7 +71,7 @@ namespace ImageSharp.Benchmarks.Image
                 new OctreeQuantizer<Rgba32>()
                 : new PaletteQuantizer<Rgba32>();
 
-                PngEncoderOptions options = new PngEncoderOptions() { Quantizer = quantizer };
+                PngEncoder options = new PngEncoder() { Quantizer = quantizer };
                 this.bmpCore.SaveAsPng(memoryStream, options);
             }
         }

@@ -11,7 +11,7 @@ namespace ImageSharp.Tests
     using System.IO;
     using System.Linq;
     using System.Reflection;
-
+    using ImageSharp.Formats;
     using ImageSharp.PixelFormats;
 
     /// <summary>
@@ -135,13 +135,12 @@ namespace ImageSharp.Tests
         /// <summary>
         /// Creates a new image.
         /// </summary>
-        /// <param name="options">The options for the decoder.</param>
         /// <returns>
         /// The <see cref="Image"/>.
         /// </returns>
-        public Image<Rgba32> CreateImage(IDecoderOptions options)
+        public Image<Rgba32> CreateImage(IImageDecoder decoder)
         {
-            return Image.Load<Rgba32>(this.Bytes, options);
+            return Image.Load(this.image.Configuration, this.Bytes, decoder);
         }
 
         /// <summary>

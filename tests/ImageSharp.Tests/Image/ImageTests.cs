@@ -74,10 +74,9 @@ namespace ImageSharp.Tests
                 image.Save(file);
             }
 
-            TestFile c = TestFile.Create("../../TestOutput/Save_DetecedEncoding.png");
-            using (Image<Rgba32> img = c.CreateImage())
+            using (Image<Rgba32> img = Image.Load(file, out var mime))
             {
-                Assert.IsType<PngFormat>(img.CurrentImageFormat);
+                Assert.Equal("image/png", mime);
             }
         }
 
@@ -85,7 +84,7 @@ namespace ImageSharp.Tests
         public void Save_UnknownExtensionsEncoding()
         {
             string file = TestFile.GetPath("../../TestOutput/Save_DetecedEncoding.tmp");
-            InvalidOperationException ex = Assert.Throws<InvalidOperationException>(
+            NotSupportedException ex = Assert.Throws<NotSupportedException>(
                 () =>
                     {
                         using (Image<Rgba32> image = new Image<Rgba32>(10, 10))
@@ -93,23 +92,6 @@ namespace ImageSharp.Tests
                             image.Save(file);
                         }
                     });
-        }
-
-        [Fact]
-        public void Save_SetFormat()
-        {
-            string file = TestFile.GetPath("../../TestOutput/Save_SetFormat.dat");
-            System.IO.DirectoryInfo dir = System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(file));
-            using (Image<Rgba32> image = new Image<Rgba32>(10, 10))
-            {
-                image.Save(file, new PngFormat());
-            }
-
-            TestFile c = TestFile.Create("../../TestOutput/Save_SetFormat.dat");
-            using (Image<Rgba32> img = c.CreateImage())
-            {
-                Assert.IsType<PngFormat>(img.CurrentImageFormat);
-            }
         }
 
         [Fact]
@@ -121,11 +103,9 @@ namespace ImageSharp.Tests
             {
                 image.Save(file, new PngEncoder());
             }
-
-            TestFile c = TestFile.Create("../../TestOutput/Save_SetEncoding.dat");
-            using (Image<Rgba32> img = c.CreateImage())
+            using (Image<Rgba32> img = Image.Load(file, out var mime))
             {
-                Assert.IsType<PngFormat>(img.CurrentImageFormat);
+                Assert.Equal("image/png", mime);
             }
         }
     }

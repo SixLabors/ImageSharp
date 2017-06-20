@@ -11,6 +11,7 @@ namespace ImageSharp
     using System.IO;
     using System.Linq;
     using System.Numerics;
+    using System.Text;
     using System.Threading.Tasks;
 
     using Formats;
@@ -94,13 +95,7 @@ namespace ImageSharp
         internal Image(Configuration configuration, int width, int height, ImageMetaData metadata)
             : base(configuration, width, height)
         {
-            if (!this.Configuration.ImageFormats.Any())
-            {
-                throw new InvalidOperationException("No image formats have been configured.");
-            }
-
             this.MetaData = metadata ?? new ImageMetaData();
-            this.CurrentImageFormat = this.Configuration.ImageFormats.First();
         }
 
         /// <summary>
@@ -139,11 +134,6 @@ namespace ImageSharp
         public IList<ImageFrame<TPixel>> Frames { get; } = new List<ImageFrame<TPixel>>();
 
         /// <summary>
-        /// Gets the currently loaded image format.
-        /// </summary>
-        public IImageFormat CurrentImageFormat { get; internal set; }
-
-        /// <summary>
         /// Applies the processor to the image.
         /// </summary>
         /// <param name="processor">The processor to apply to the image.</param>
@@ -162,48 +152,28 @@ namespace ImageSharp
         /// Saves the image to the given stream using the currently loaded image format.
         /// </summary>
         /// <param name="stream">The stream to save the image to.</param>
+        /// <param name="mimeType">The mime type to save the image to.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
         /// <returns>The <see cref="Image{TPixel}"/></returns>
-        public Image<TPixel> Save(Stream stream)
+        public Image<TPixel> Save(Stream stream, string mimeType)
         {
-            return this.Save(stream, (IEncoderOptions)null);
-        }
+            Guard.NotNullOrEmpty(mimeType, nameof(mimeType));
+            IImageEncoder encoder = this.Configuration.ImageEncoders?.LastOrDefault(x => x?.MimeTypes?.Contains(mimeType, StringComparer.OrdinalIgnoreCase) == true);
 
-        /// <summary>
-        /// Saves the image to the given stream using the currently loaded image format.
-        /// </summary>
-        /// <param name="stream">The stream to save the image to.</param>
-        /// <param name="options">The options for the encoder.</param>
-        /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
-        /// <returns>The <see cref="Image{TPixel}"/></returns>
-        public Image<TPixel> Save(Stream stream, IEncoderOptions options)
-        {
-            return this.Save(stream, this.CurrentImageFormat?.Encoder, options);
-        }
+            if (encoder == null)
+            {
+                StringBuilder stringBuilder = new StringBuilder();
+                stringBuilder.AppendLine("Can't find encoder for provided mime type. Available encoded:");
 
-        /// <summary>
-        /// Saves the image to the given stream using the given image format.
-        /// </summary>
-        /// <param name="stream">The stream to save the image to.</param>
-        /// <param name="format">The format to save the image as.</param>
-        /// <returns>The <see cref="Image{TPixel}"/></returns>
-        public Image<TPixel> Save(Stream stream, IImageFormat format)
-        {
-            return this.Save(stream, format, null);
-        }
+                foreach (IImageEncoder format in this.Configuration.ImageEncoders)
+                {
+                    stringBuilder.AppendLine("-" + format);
+                }
 
-        /// <summary>
-        /// Saves the image to the given stream using the given image format.
-        /// </summary>
-        /// <param name="stream">The stream to save the image to.</param>
-        /// <param name="format">The format to save the image as.</param>
-        /// <param name="options">The options for the encoder.</param>
-        /// <returns>The <see cref="Image{TPixel}"/></returns>
-        public Image<TPixel> Save(Stream stream, IImageFormat format, IEncoderOptions options)
-        {
-            Guard.NotNull(format, nameof(format));
+                throw new NotSupportedException(stringBuilder.ToString());
+            }
 
-            return this.Save(stream, format.Encoder, options);
+            return this.Save(stream, encoder);
         }
 
         /// <summary>
@@ -217,25 +187,10 @@ namespace ImageSharp
         /// </returns>
         public Image<TPixel> Save(Stream stream, IImageEncoder encoder)
         {
-            return this.Save(stream, encoder, null);
-        }
-
-        /// <summary>
-        /// Saves the image to the given stream using the given image encoder.
-        /// </summary>
-        /// <param name="stream">The stream to save the image to.</param>
-        /// <param name="encoder">The encoder to save the image with.</param>
-        /// <param name="options">The options for the encoder.</param>
-        /// <exception cref="System.ArgumentNullException">Thrown if the stream or encoder is null.</exception>
-        /// <returns>
-        /// The <see cref="Image{TPixel}"/>.
-        /// </returns>
-        public Image<TPixel> Save(Stream stream, IImageEncoder encoder, IEncoderOptions options)
-        {
             Guard.NotNull(stream, nameof(stream));
             Guard.NotNull(encoder, nameof(encoder));
 
-            encoder.Encode(this, stream, options);
+            encoder.Encode(this, stream);
 
             return this;
         }
@@ -249,52 +204,24 @@ namespace ImageSharp
         /// <returns>The <see cref="Image{TPixel}"/></returns>
         public Image<TPixel> Save(string filePath)
         {
-            return this.Save(filePath, (IEncoderOptions)null);
-        }
+            Guard.NotNullOrEmpty(filePath, nameof(filePath));
 
-        /// <summary>
-        /// Saves the image to the given stream using the currently loaded image format.
-        /// </summary>
-        /// <param name="filePath">The file path to save the image to.</param>
-        /// <param name="options">The options for the encoder.</param>
-        /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
-        /// <returns>The <see cref="Image{TPixel}"/></returns>
-        public Image<TPixel> Save(string filePath, IEncoderOptions options)
-        {
             string ext = Path.GetExtension(filePath).Trim('.');
-            IImageFormat format = this.Configuration.ImageFormats.SingleOrDefault(f => f.SupportedExtensions.Contains(ext, StringComparer.OrdinalIgnoreCase));
-            if (format == null)
+            IImageEncoder encoder = this.Configuration.ImageEncoders?.LastOrDefault(x => x?.FileExtensions?.Contains(ext, StringComparer.OrdinalIgnoreCase) == true);
+            if (encoder == null)
             {
-                throw new InvalidOperationException($"No image formats have been registered for the file extension '{ext}'.");
+                StringBuilder stringBuilder = new StringBuilder();
+                stringBuilder.AppendLine($"Can't find encoder for file extention '{ext}'. Available encoded:");
+
+                foreach (IImageEncoder format in this.Configuration.ImageEncoders)
+                {
+                    stringBuilder.AppendLine("-" + format);
+                }
+
+                throw new NotSupportedException(stringBuilder.ToString());
             }
 
-            return this.Save(filePath, format, options);
-        }
-
-        /// <summary>
-        /// Saves the image to the given stream using the currently loaded image format.
-        /// </summary>
-        /// <param name="filePath">The file path to save the image to.</param>
-        /// <param name="format">The format to save the image as.</param>
-        /// <exception cref="System.ArgumentNullException">Thrown if the format is null.</exception>
-        /// <returns>The <see cref="Image{TPixel}"/></returns>
-        public Image<TPixel> Save(string filePath, IImageFormat format)
-        {
-            return this.Save(filePath, format, null);
-        }
-
-        /// <summary>
-        /// Saves the image to the given stream using the currently loaded image format.
-        /// </summary>
-        /// <param name="filePath">The file path to save the image to.</param>
-        /// <param name="format">The format to save the image as.</param>
-        /// <param name="options">The options for the encoder.</param>
-        /// <exception cref="System.ArgumentNullException">Thrown if the format is null.</exception>
-        /// <returns>The <see cref="Image{TPixel}"/></returns>
-        public Image<TPixel> Save(string filePath, IImageFormat format, IEncoderOptions options)
-        {
-            Guard.NotNull(format, nameof(format));
-            return this.Save(filePath, format.Encoder, options);
+            return this.Save(filePath, encoder);
         }
 
         /// <summary>
@@ -306,23 +233,10 @@ namespace ImageSharp
         /// <returns>The <see cref="Image{TPixel}"/></returns>
         public Image<TPixel> Save(string filePath, IImageEncoder encoder)
         {
-            return this.Save(filePath, encoder, null);
-        }
-
-        /// <summary>
-        /// Saves the image to the given stream using the currently loaded image format.
-        /// </summary>
-        /// <param name="filePath">The file path to save the image to.</param>
-        /// <param name="encoder">The encoder to save the image with.</param>
-        /// <param name="options">The options for the encoder.</param>
-        /// <exception cref="System.ArgumentNullException">Thrown if the encoder is null.</exception>
-        /// <returns>The <see cref="Image{TPixel}"/></returns>
-        public Image<TPixel> Save(string filePath, IImageEncoder encoder, IEncoderOptions options)
-        {
             Guard.NotNull(encoder, nameof(encoder));
             using (Stream fs = this.Configuration.FileSystem.Create(filePath))
             {
-                return this.Save(fs, encoder, options);
+                return this.Save(fs, encoder);
             }
         }
 #endif
@@ -330,21 +244,22 @@ namespace ImageSharp
         /// <inheritdoc/>
         public override string ToString()
         {
-            return $"Image: {this.Width}x{this.Height}";
+            return $"Image<{typeof(TPixel).Name}>: {this.Width}x{this.Height}";
         }
 
         /// <summary>
         /// Returns a Base64 encoded string from the given image.
         /// </summary>
         /// <example><see href="data:image/gif;base64,R0lGODlhAQABAIABAEdJRgAAACwAAAAAAQABAAACAkQBAA=="/></example>
+        /// <param name="mimeType">The mimeType.</param>
         /// <returns>The <see cref="string"/></returns>
-        public string ToBase64String()
+        public string ToBase64String(string mimeType)
         {
             using (MemoryStream stream = new MemoryStream())
             {
-                this.Save(stream);
+                this.Save(stream, mimeType);
                 stream.Flush();
-                return $"data:{this.CurrentImageFormat.MimeType};base64,{Convert.ToBase64String(stream.ToArray())}";
+                return $"data:{mimeType};base64,{Convert.ToBase64String(stream.ToArray())}";
             }
         }
 
@@ -417,7 +332,6 @@ namespace ImageSharp
         /// </param>
         private void CopyProperties(IImage other)
         {
-            this.CurrentImageFormat = other.CurrentImageFormat;
             this.MetaData = new ImageMetaData(other.MetaData);
         }
     }

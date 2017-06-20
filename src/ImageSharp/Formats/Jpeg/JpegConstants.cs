@@ -5,6 +5,8 @@
 
 namespace ImageSharp.Formats
 {
+    using System.Collections.Generic;
+
     /// <summary>
     /// Defines jpeg constants defined in the specification.
     /// </summary>
@@ -14,6 +16,16 @@ namespace ImageSharp.Formats
         /// The maximum allowable length in each dimension of a jpeg image.
         /// </summary>
         public const ushort MaxLength = 65535;
+
+        /// <summary>
+        /// The list of mimetypes that equate to a jpeg
+        /// </summary>
+        public static readonly IEnumerable<string> MimeTypes = new[] { "image/jpeg", "image/pjpeg" };
+
+        /// <summary>
+        /// The list of mimetypes that equate to a jpeg
+        /// </summary>
+        public static readonly IEnumerable<string> FileExtensions = new[] { "jpg", "jpeg", "jfif" };
 
         /// <summary>
         /// Represents high detail chroma horizontal subsampling.

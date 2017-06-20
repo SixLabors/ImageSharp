@@ -6,6 +6,7 @@
 namespace ImageSharp.Formats
 {
     using System;
+    using System.Collections.Generic;
     using System.IO;
 
     using ImageSharp.PixelFormats;
@@ -16,13 +17,22 @@ namespace ImageSharp.Formats
     public interface IImageEncoder
     {
         /// <summary>
+        /// Gets the collection of mime types that this decoder supports encoding for.
+        /// </summary>
+        IEnumerable<string> MimeTypes { get; }
+
+        /// <summary>
+        /// Gets the collection of file extensionsthis decoder supports encoding for.
+        /// </summary>
+        IEnumerable<string> FileExtensions { get; }
+
+        /// <summary>
         /// Encodes the image to the specified stream from the <see cref="Image{TPixel}"/>.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="image">The <see cref="Image{TPixel}"/> to encode from.</param>
         /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
-        /// <param name="options">The options for the encoder.</param>
-        void Encode<TPixel>(Image<TPixel> image, Stream stream, IEncoderOptions options)
+        void Encode<TPixel>(Image<TPixel> image, Stream stream)
             where TPixel : struct, IPixel<TPixel>;
     }
 }

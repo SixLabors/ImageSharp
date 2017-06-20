@@ -11,7 +11,7 @@ namespace ImageSharp.Formats
     using System.IO;
     using System.Linq;
     using System.Runtime.CompilerServices;
-
+    using System.Text;
     using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
 
@@ -73,11 +73,6 @@ namespace ImageSharp.Formats
         /// Reusable buffer for reading char arrays.
         /// </summary>
         private readonly char[] chars = new char[4];
-
-        /// <summary>
-        /// The decoder options.
-        /// </summary>
-        private readonly IPngDecoderOptions options;
 
         /// <summary>
         /// Reusable crc for validating chunks.
@@ -155,20 +150,30 @@ namespace ImageSharp.Formats
         private int currentRowBytesRead;
 
         /// <summary>
+        /// Gets or sets the png color type
+        /// </summary>
+        private PngColorType pngColorType;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="PngDecoderCore"/> class.
         /// </summary>
-        /// <param name="options">The decoder options.</param>
         /// <param name="configuration">The configuration.</param>
-        public PngDecoderCore(IPngDecoderOptions options, Configuration configuration)
+        /// <param name="encoding">The text encoding.</param>
+        public PngDecoderCore(Configuration configuration, Encoding encoding)
         {
             this.configuration = configuration ?? Configuration.Default;
-            this.options = options ?? new PngDecoderOptions();
+            this.TextEncoding = encoding ?? PngConstants.DefaultEncoding;
         }
 
         /// <summary>
-        /// Gets or sets the png color type
+        /// Gets the encoding to use
         /// </summary>
-        public PngColorType PngColorType { get; set; }
+        public Encoding TextEncoding { get; private set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the metadata should be ignored when the image is being decoded.
+        /// </summary>
+        public bool IgnoreMetadata { get; internal set; }
 
         /// <summary>
         /// Decodes the stream to the image.
@@ -221,7 +226,6 @@ namespace ImageSharp.Formats
                                     byte[] pal = new byte[currentChunk.Length];
                                     Buffer.BlockCopy(currentChunk.Data, 0, pal, 0, currentChunk.Length);
                                     this.palette = pal;
-                                    metadata.Quality = pal.Length / 3;
                                     break;
                                 case PngChunkTypes.PaletteAlpha:
                                     byte[] alpha = new byte[currentChunk.Length];
@@ -344,7 +348,7 @@ namespace ImageSharp.Formats
         /// <returns>The <see cref="int"/></returns>
         private int CalculateBytesPerPixel()
         {
-            switch (this.PngColorType)
+            switch (this.pngColorType)
             {
                 case PngColorType.Grayscale:
                     return 1;
@@ -572,7 +576,7 @@ namespace ImageSharp.Formats
             Span<TPixel> rowSpan = pixels.GetRowSpan(this.currentRow);
             var scanlineBuffer = new Span<byte>(defilteredScanline, 1);
 
-            switch (this.PngColorType)
+            switch (this.pngColorType)
             {
                 case PngColorType.Grayscale:
                     int factor = 255 / ((int)Math.Pow(2, this.header.BitDepth) - 1);
@@ -731,7 +735,7 @@ namespace ImageSharp.Formats
         {
             var color = default(TPixel);
 
-            switch (this.PngColorType)
+            switch (this.pngColorType)
             {
                 case PngColorType.Grayscale:
                     int factor = 255 / ((int)Math.Pow(2, this.header.BitDepth) - 1);
@@ -896,7 +900,7 @@ namespace ImageSharp.Formats
         /// <param name="length">The maximum length to read.</param>
         private void ReadTextChunk(ImageMetaData metadata, byte[] data, int length)
         {
-            if (this.options.IgnoreMetadata)
+            if (this.IgnoreMetadata)
             {
                 return;
             }
@@ -912,8 +916,8 @@ namespace ImageSharp.Formats
                 }
             }
 
-            string name = this.options.TextEncoding.GetString(data, 0, zeroIndex);
-            string value = this.options.TextEncoding.GetString(data, zeroIndex + 1, length - zeroIndex - 1);
+            string name = this.TextEncoding.GetString(data, 0, zeroIndex);
+            string value = this.TextEncoding.GetString(data, zeroIndex + 1, length - zeroIndex - 1);
 
             metadata.Properties.Add(new ImageProperty(name, value));
         }
@@ -967,7 +971,7 @@ namespace ImageSharp.Formats
                 throw new NotSupportedException("The png specification only defines 'None' and 'Adam7' as interlaced methods.");
             }
 
-            this.PngColorType = this.header.ColorType;
+            this.pngColorType = this.header.ColorType;
         }
 
         /// <summary>

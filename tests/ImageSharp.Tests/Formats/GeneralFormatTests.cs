@@ -36,7 +36,7 @@ namespace ImageSharp.Tests
                 using (Image<Rgba32> image = file.CreateImage())
                 {
                     string filename = path + "/" + file.FileNameWithoutExtension + ".txt";
-                    File.WriteAllText(filename, image.ToBase64String());
+                    File.WriteAllText(filename, image.ToBase64String("image/png"));
                 }
             }
         }
@@ -50,10 +50,7 @@ namespace ImageSharp.Tests
             {
                 using (Image<Rgba32> image = file.CreateImage())
                 {
-                    using (FileStream output = File.OpenWrite($"{path}/{file.FileName}"))
-                    {
-                        image.Save(output);
-                    }
+                        image.Save($"{path}/{file.FileName}");
                 }
             }
         }
@@ -65,14 +62,14 @@ namespace ImageSharp.Tests
 
             foreach (TestFile file in Files)
             {
-                using (Image<Rgba32> srcImage = file.CreateImage())
+                using (Image<Rgba32> srcImage = Image.Load<Rgba32>(file.Bytes, out var mimeType))
                 {
                     using (Image<Rgba32> image = new Image<Rgba32>(srcImage))
                     {
                         using (FileStream output = File.OpenWrite($"{path}/Octree-{file.FileName}"))
                         {
                             image.Quantize(Quantization.Octree)
-                                .Save(output, image.CurrentImageFormat);
+                                .Save(output, mimeType);
 
                         }
                     }
@@ -82,7 +79,7 @@ namespace ImageSharp.Tests
                         using (FileStream output = File.OpenWrite($"{path}/Wu-{file.FileName}"))
                         {
                             image.Quantize(Quantization.Wu)
-                                .Save(output, image.CurrentImageFormat);
+                                .Save(output, mimeType);
                         }
                     }
 
@@ -91,7 +88,7 @@ namespace ImageSharp.Tests
                         using (FileStream output = File.OpenWrite($"{path}/Palette-{file.FileName}"))
                         {
                             image.Quantize(Quantization.Palette)
-                                .Save(output, image.CurrentImageFormat);
+                                .Save(output, mimeType);
                         }
                     }
                 }
@@ -138,18 +135,17 @@ namespace ImageSharp.Tests
             foreach (TestFile file in Files)
             {
                 byte[] serialized;
-                using (Image<Rgba32> image = file.CreateImage())
+                using (Image<Rgba32> image = Image.Load(file.Bytes, out string mimeType))
                 using (MemoryStream memoryStream = new MemoryStream())
                 {
-                    image.Save(memoryStream);
+                    image.Save(memoryStream, mimeType);
                     memoryStream.Flush();
                     serialized = memoryStream.ToArray();
                 }
 
                 using (Image<Rgba32> image2 = Image.Load<Rgba32>(serialized))
-                using (FileStream output = File.OpenWrite($"{path}/{file.FileName}"))
                 {
-                    image2.Save(output);
+                    image2.Save($"{path}/{file.FileName}");
                 }
             }
         }

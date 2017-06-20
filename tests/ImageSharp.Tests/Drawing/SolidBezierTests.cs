@@ -28,13 +28,10 @@ namespace ImageSharp.Tests.Drawing
             };
             using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
-                using (FileStream output = File.OpenWrite($"{path}/Simple.png"))
-                {
                     image
                         .BackgroundColor(Rgba32.Blue)
                         .Fill(Rgba32.HotPink, new Polygon(new BezierLineSegment(simplePath)))
-                        .Save(output);
-                }
+                        .Save($"{path}/Simple.png");
 
                 using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
                 {
@@ -63,13 +60,10 @@ namespace ImageSharp.Tests.Drawing
 
             using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
-                using (FileStream output = File.OpenWrite($"{path}/Opacity.png"))
-                {
                     image
                         .BackgroundColor(Rgba32.Blue)
                         .Fill(color, new Polygon(new BezierLineSegment(simplePath)))
-                        .Save(output);
-                }
+                        .Save($"{path}/Opacity.png");
 
                 //shift background color towards forground color by the opacity amount
                 Rgba32 mergedColor = new Rgba32(Vector4.Lerp(Rgba32.Blue.ToVector4(), Rgba32.HotPink.ToVector4(), 150f / 255f));

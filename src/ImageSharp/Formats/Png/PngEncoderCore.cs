@@ -44,11 +44,6 @@ namespace ImageSharp.Formats
         private readonly Crc32 crc = new Crc32();
 
         /// <summary>
-        /// The options for the encoder.
-        /// </summary>
-        private readonly IPngEncoderOptions options;
-
-        /// <summary>
         /// Contains the raw pixel data from an indexed image.
         /// </summary>
         private byte[] palettePixelData;
@@ -114,11 +109,6 @@ namespace ImageSharp.Formats
         private Buffer<byte> paeth;
 
         /// <summary>
-        /// The quality of output for images.
-        /// </summary>
-        private int quality;
-
-        /// <summary>
         /// The png color type.
         /// </summary>
         private PngColorType pngColorType;
@@ -131,11 +121,49 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Initializes a new instance of the <see cref="PngEncoderCore"/> class.
         /// </summary>
-        /// <param name="options">The options for the encoder.</param>
-        public PngEncoderCore(IPngEncoderOptions options)
+        public PngEncoderCore()
         {
-            this.options = options ?? new PngEncoderOptions();
         }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether to ignore metadata
+        /// </summary>
+        public bool IgnoreMetadata { get; internal set; }
+
+        /// <summary>
+        /// Gets or sets the Quality value
+        /// </summary>
+        public int Quality { get; internal set; }
+
+        /// <summary>
+        /// Gets or sets the Quality value
+        /// </summary>
+        public PngColorType PngColorType { get; internal set; }
+
+        /// <summary>
+        /// Gets or sets the CompressionLevel value
+        /// </summary>
+        public int CompressionLevel { get; internal set; }
+
+        /// <summary>
+        /// Gets or sets the Gamma value
+        /// </summary>
+        public float Gamma { get; internal set; }
+
+        /// <summary>
+        /// Gets or sets the Quantizer value
+        /// </summary>
+        public IQuantizer Quantizer { get; internal set; }
+
+        /// <summary>
+        /// Gets or sets the Threshold value
+        /// </summary>
+        public byte Threshold { get; internal set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether to Write Gamma
+        /// </summary>
+        public bool WriteGamma { get; internal set; }
 
         /// <summary>
         /// Encodes the image to the specified stream from the <see cref="Image{TPixel}"/>.
@@ -164,27 +192,23 @@ namespace ImageSharp.Formats
 
             stream.Write(this.chunkDataBuffer, 0, 8);
 
-            // Ensure that quality can be set but has a fallback.
-            this.quality = this.options.Quality > 0 ? this.options.Quality : image.MetaData.Quality;
-            this.quality = this.quality > 0 ? this.quality.Clamp(1, int.MaxValue) : int.MaxValue;
-
-            this.pngColorType = this.options.PngColorType;
-            this.quantizer = this.options.Quantizer;
+            this.pngColorType = this.PngColorType;
+            this.quantizer = this.Quantizer;
 
             // Set correct color type if the color count is 256 or less.
-            if (this.quality <= 256)
+            if (this.Quality <= 256)
             {
                 this.pngColorType = PngColorType.Palette;
             }
 
-            if (this.pngColorType == PngColorType.Palette && this.quality > 256)
+            if (this.pngColorType == PngColorType.Palette && this.Quality > 256)
             {
-                this.quality = 256;
+                this.Quality = 256;
             }
 
             // Set correct bit depth.
-            this.bitDepth = this.quality <= 256
-                               ? (byte)ImageMaths.GetBitsNeededForColorDepth(this.quality).Clamp(1, 8)
+            this.bitDepth = this.Quality <= 256
+                               ? (byte)ImageMaths.GetBitsNeededForColorDepth(this.Quality).Clamp(1, 8)
                                : (byte)8;
 
             // Png only supports in four pixel depths: 1, 2, 4, and 8 bits when using the PLTE chunk
@@ -514,7 +538,7 @@ namespace ImageSharp.Formats
         private QuantizedImage<TPixel> WritePaletteChunk<TPixel>(Stream stream, PngHeader header, ImageBase<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
-            if (this.quality > 256)
+            if (this.Quality > 256)
             {
                 return null;
             }
@@ -525,7 +549,7 @@ namespace ImageSharp.Formats
             }
 
             // Quantize the image returning a palette. This boxing is icky.
-            QuantizedImage<TPixel> quantized = ((IQuantizer<TPixel>)this.quantizer).Quantize(image, this.quality);
+            QuantizedImage<TPixel> quantized = ((IQuantizer<TPixel>)this.quantizer).Quantize(image, this.Quality);
 
             // Grab the palette and write it to the stream.
             TPixel[] palette = quantized.Palette;
@@ -552,7 +576,7 @@ namespace ImageSharp.Formats
                         colorTable[offset + 1] = bytes[1];
                         colorTable[offset + 2] = bytes[2];
 
-                        if (alpha > this.options.Threshold)
+                        if (alpha > this.Threshold)
                         {
                             alpha = 255;
                         }
@@ -610,9 +634,9 @@ namespace ImageSharp.Formats
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
         private void WriteGammaChunk(Stream stream)
         {
-            if (this.options.WriteGamma)
+            if (this.WriteGamma)
             {
-                int gammaValue = (int)(this.options.Gamma * 100000F);
+                int gammaValue = (int)(this.Gamma * 100000F);
 
                 byte[] size = BitConverter.GetBytes(gammaValue);
 
@@ -655,7 +679,7 @@ namespace ImageSharp.Formats
             try
             {
                 memoryStream = new MemoryStream();
-                using (var deflateStream = new ZlibDeflateStream(memoryStream, this.options.CompressionLevel))
+                using (var deflateStream = new ZlibDeflateStream(memoryStream, this.CompressionLevel))
                 {
                     for (int y = 0; y < this.height; y++)
                     {

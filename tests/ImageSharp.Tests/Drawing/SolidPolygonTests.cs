@@ -31,12 +31,9 @@ namespace ImageSharp.Tests.Drawing
 
             using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
-                using (FileStream output = File.OpenWrite($"{path}/Simple.png"))
-                {
-                    image
-                        .FillPolygon(Rgba32.HotPink, simplePath, new GraphicsOptions(true))
-                        .Save(output);
-                }
+                image
+                    .FillPolygon(Rgba32.HotPink, simplePath, new GraphicsOptions(true))
+                    .Save($"{path}/Simple.png");
 
                 using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
                 {
@@ -57,12 +54,9 @@ namespace ImageSharp.Tests.Drawing
 
             using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
-                using (FileStream output = File.OpenWrite($"{path}/Pattern.png"))
-                {
-                    image
-                        .FillPolygon(Brushes.Horizontal(Rgba32.HotPink), simplePath, new GraphicsOptions(true))
-                        .Save(output);
-                }
+                image
+                    .FillPolygon(Brushes.Horizontal(Rgba32.HotPink), simplePath, new GraphicsOptions(true))
+                    .Save($"{path}/Pattern.png");
 
                 using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
                 {
@@ -82,12 +76,11 @@ namespace ImageSharp.Tests.Drawing
             };
 
             using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
-            using (FileStream output = File.OpenWrite($"{path}/Simple_NoAntialias.png"))
             {
                 image
                     .BackgroundColor(Rgba32.Blue)
                     .FillPolygon(Rgba32.HotPink, simplePath, new GraphicsOptions(false))
-                    .Save(output);
+                    .Save($"{path}/Simple_NoAntialias.png");
 
                 using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
                 {
@@ -114,14 +107,13 @@ namespace ImageSharp.Tests.Drawing
 
             using (Image<Rgba32> brushImage = TestFile.Create(TestImages.Bmp.Car).CreateImage())
             using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
-            using (FileStream output = File.OpenWrite($"{path}/Image.png"))
             {
                 ImageBrush<Rgba32> brush = new ImageBrush<Rgba32>(brushImage);
 
                 image
                 .BackgroundColor(Rgba32.Blue)
                 .FillPolygon(brush, simplePath)
-                .Save(output);
+                .Save($"{path}/Image.png");
             }
         }
 
@@ -138,13 +130,10 @@ namespace ImageSharp.Tests.Drawing
 
             using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
-                using (FileStream output = File.OpenWrite($"{path}/Opacity.png"))
-                {
-                    image
-                        .BackgroundColor(Rgba32.Blue)
-                        .FillPolygon(color, simplePath)
-                        .Save(output);
-                }
+                image
+                    .BackgroundColor(Rgba32.Blue)
+                    .FillPolygon(color, simplePath)
+                    .Save($"{path}/Opacity.png");
 
                 //shift background color towards forground color by the opacity amount
                 Rgba32 mergedColor = new Rgba32(Vector4.Lerp(Rgba32.Blue.ToVector4(), Rgba32.HotPink.ToVector4(), 150f / 255f));
@@ -163,13 +152,10 @@ namespace ImageSharp.Tests.Drawing
 
             using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
-                using (FileStream output = File.OpenWrite($"{path}/Rectangle.png"))
-                {
-                    image
-                        .BackgroundColor(Rgba32.Blue)
-                        .Fill(Rgba32.HotPink, new SixLabors.Shapes.Rectangle(10, 10, 190, 140))
-                         .Save(output);
-                }
+                image
+                    .BackgroundColor(Rgba32.Blue)
+                    .Fill(Rgba32.HotPink, new SixLabors.Shapes.Rectangle(10, 10, 190, 140))
+                     .Save($"{path}/Rectangle.png");
 
                 using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
                 {
@@ -193,13 +179,10 @@ namespace ImageSharp.Tests.Drawing
 
             using (Image<Rgba32> image = new Image<Rgba32>(100, 100))
             {
-                using (FileStream output = File.OpenWrite($"{path}/Triangle.png"))
-                {
-                    image
-                        .BackgroundColor(Rgba32.Blue)
-                        .Fill(Rgba32.HotPink, new RegularPolygon(50, 50, 3, 30))
-                         .Save(output);
-                }
+                image
+                    .BackgroundColor(Rgba32.Blue)
+                    .Fill(Rgba32.HotPink, new RegularPolygon(50, 50, 3, 30))
+                     .Save($"{path}/Triangle.png");
 
                 using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
                 {
@@ -219,13 +202,10 @@ namespace ImageSharp.Tests.Drawing
             config.ParallelOptions.MaxDegreeOfParallelism = 1;
             using (Image<Rgba32> image = new Image<Rgba32>(config, 100, 100))
             {
-                using (FileStream output = File.OpenWrite($"{path}/Septagon.png"))
-                {
-                    image
-                        .BackgroundColor(Rgba32.Blue)
-                        .Fill(Rgba32.HotPink, new RegularPolygon(50, 50, 7, 30, -(float)Math.PI))
-                         .Save(output);
-                }
+                image
+                    .BackgroundColor(Rgba32.Blue)
+                    .Fill(Rgba32.HotPink, new RegularPolygon(50, 50, 7, 30, -(float)Math.PI))
+                     .Save($"{path}/Septagon.png");
             }
         }
 
@@ -238,14 +218,11 @@ namespace ImageSharp.Tests.Drawing
             config.ParallelOptions.MaxDegreeOfParallelism = 1;
             using (Image<Rgba32> image = new Image<Rgba32>(config, 100, 100))
             {
-                using (FileStream output = File.OpenWrite($"{path}/ellipse.png"))
-                {
-                    image
-                        .BackgroundColor(Rgba32.Blue)
-                        .Fill(Rgba32.HotPink, new Ellipse(50, 50, 30, 50)
-                                                .Rotate((float)(Math.PI / 3)))
-                         .Save(output);
-                }
+                image
+                    .BackgroundColor(Rgba32.Blue)
+                    .Fill(Rgba32.HotPink, new Ellipse(50, 50, 30, 50)
+                    .Rotate((float)(Math.PI / 3)))
+                    .Save($"{path}/ellipse.png");
             }
         }
 
@@ -258,21 +235,18 @@ namespace ImageSharp.Tests.Drawing
             config.ParallelOptions.MaxDegreeOfParallelism = 1;
             using (Image<Rgba32> image = new Image<Rgba32>(config, 200, 200))
             {
-                using (FileStream output = File.OpenWrite($"{path}/clipped-corner.png"))
-                {
-                    image
-                        .Fill(Rgba32.Blue)
-                        .FillPolygon(Rgba32.HotPink, new[]
-                        {
+                image
+                    .Fill(Rgba32.Blue)
+                    .FillPolygon(Rgba32.HotPink, new[]
+                    {
                             new Vector2( 8, 8 ),
                             new Vector2( 64, 8 ),
                             new Vector2( 64, 64 ),
                             new Vector2( 120, 64 ),
                             new Vector2( 120, 120 ),
                             new Vector2( 8, 120 )
-                        } )
-                         .Save(output);
-                }
+                    })
+                     .Save($"{path}/clipped-corner.png");
             }
         }
     }

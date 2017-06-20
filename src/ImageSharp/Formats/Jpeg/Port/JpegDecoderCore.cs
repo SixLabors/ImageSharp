@@ -8,8 +8,8 @@ namespace ImageSharp.Formats.Jpeg.Port
     using System;
     using System.Collections.Generic;
     using System.IO;
-    using System.Linq;
 
+    using ImageSharp.Common.Extensions;
     using ImageSharp.Formats.Jpeg.Port.Components;
     using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
@@ -49,11 +49,6 @@ namespace ImageSharp.Formats.Jpeg.Port
         /// COntains information about the jFIF marker
         /// </summary>
         private JFif jFif;
-
-        /// <summary>
-        /// Whether the image has a EXIF header
-        /// </summary>
-        private bool isExif;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="JpegDecoderCore" /> class.
@@ -345,108 +340,96 @@ namespace ImageSharp.Formats.Jpeg.Port
                 throw new ImageFormatException("DHT has wrong length");
             }
 
-            using (var huffmanData = new Buffer<byte>(remaining))
+            using (var huffmanData = new Buffer<byte>(16))
             {
-                this.InputStream.Skip(1);
-                this.InputStream.Read(huffmanData.Array, 0, remaining);
-
-                for (int i = 0; i < remaining;)
+                for (int i = 2; i < remaining;)
                 {
-                    byte huffmanTableSpec = huffmanData[i];
-                    byte[] codeLengths = new byte[16];
-                    int codeLengthSum = 0;
+                    byte huffmanTableSpec = (byte)this.InputStream.ReadByte();
+                    this.InputStream.Read(huffmanData.Array, 0, 16);
 
-                    for (int j = 0; j < 16; j++)
+                    using (var codeLengths = new Buffer<byte>(16))
                     {
-                        codeLengthSum += codeLengths[j] = huffmanData[j];
-                    }
+                        int codeLengthSum = 0;
 
-                    // TODO: Pooling?
-                    short[] huffmanValues = new short[codeLengthSum];
-                    using (var values = new Buffer<byte>(codeLengthSum))
-                    {
-                        this.InputStream.Read(values.Array, 0, codeLengthSum);
-
-                        for (int j = 0; j < codeLengthSum; j++)
+                        for (int j = 0; j < 16; j++)
                         {
-                            huffmanValues[j] = values[j];
+                            codeLengthSum += codeLengths[j] = huffmanData[j];
                         }
 
-                        i += 17 + codeLengthSum;
+                        using (var huffmanValues = new Buffer<byte>(codeLengthSum))
+                        {
+                            this.InputStream.Read(huffmanValues.Array, 0, codeLengthSum);
 
-                        this.BuildHuffmanTable(
-                            huffmanTableSpec >> 4 == 0 ? this.dcHuffmanTables : this.acHuffmanTables,
-                            huffmanTableSpec & 15,
-                            codeLengths,
-                            huffmanValues);
+                            i += 17 + codeLengthSum;
+
+                            // Everything I can discover indicates there's a max of two table per DC AC pair though this limits the index to 16?
+                            this.BuildHuffmanTable(
+                                huffmanTableSpec >> 4 == 0 ? this.dcHuffmanTables : this.acHuffmanTables,
+                                huffmanTableSpec & 15,
+                                codeLengths.Array,
+                                huffmanValues.Array);
+                        }
                     }
                 }
             }
         }
 
-        private void BuildHuffmanTable(HuffmanTables tables, int index, byte[] codeLengths, short[] values)
+        /// <summary>
+        /// Builds the huffman tables
+        /// </summary>
+        /// <param name="tables">The tables</param>
+        /// <param name="index">The table index</param>
+        /// <param name="codeLengths">The codelengths</param>
+        /// <param name="values">The values</param>
+        private void BuildHuffmanTable(HuffmanTables tables, int index, byte[] codeLengths, byte[] values)
         {
-            // (╯°□°）╯︵ ┻━┻ Everything up to here is going well. I can't match the JavaScript now though.
             int length = 16;
             while (length > 0 && codeLengths[length - 1] == 0)
             {
                 length--;
             }
 
-            var code = new Queue<HuffmanBranch>();
-            code.Enqueue(new HuffmanBranch(new List<HuffmanBranch>()));
-            HuffmanBranch p = code.Peek();
-            p.Children = new List<HuffmanBranch>();
-            HuffmanBranch q;
+            // TODO: Check the capacity here. Seems to max at 2
+            var code = new List<HuffmanBranch> { new HuffmanBranch(new List<HuffmanBranch>()) };
+            HuffmanBranch p = code[0];
             int k = 0;
-            try
+
+            for (int i = 0; i < length; i++)
             {
-                for (int i = 0; i < length; i++)
+                HuffmanBranch q;
+                for (int j = 0; j < codeLengths[i]; j++)
                 {
-                    for (int j = 0; j < codeLengths[i]; j++)
+                    p = code.Pop();
+                    p.Children.SafeInsert(p.Index, new HuffmanBranch(values[k]));
+                    while (p.Index > 0)
                     {
-                        p = code.Dequeue();
-                        p.Children.Add(new HuffmanBranch(values[k]));
-                        while (p.Index > 0)
-                        {
-                            p = code.Dequeue();
-                        }
-
-                        p.Index++;
-                        code.Enqueue(p);
-                        while (code.Count <= i)
-                        {
-                            q = new HuffmanBranch(new List<HuffmanBranch>());
-                            code.Enqueue(q);
-                            p.Children.Add(new HuffmanBranch(q.Children));
-                            p = q;
-                        }
-
-                        k++;
+                        p = code.Pop();
                     }
 
-                    if (i + 1 < length)
+                    p.Index++;
+                    code.Add(p);
+                    while (code.Count <= i)
                     {
-                        // p here points to last code
                         q = new HuffmanBranch(new List<HuffmanBranch>());
-                        code.Enqueue(q);
-                        p.Children.Add(new HuffmanBranch(q.Children));
+                        code.Add(q);
+                        p.Children.SafeInsert(p.Index, new HuffmanBranch(q.Children));
                         p = q;
                     }
+
+                    k++;
                 }
 
-                Span<HuffmanBranch> tableSpan = tables.Tables.GetRowSpan(index);
-
-                List<HuffmanBranch> result = code.Peek().Children;
-                for (int i = 0; i < result.Count; i++)
+                if (i + 1 < length)
                 {
-                    tableSpan[i] = result[i];
+                    // p here points to last code
+                    q = new HuffmanBranch(new List<HuffmanBranch>());
+                    code.Add(q);
+                    p.Children.SafeInsert(p.Index, new HuffmanBranch(q.Children));
+                    p = q;
                 }
             }
-            catch (Exception e)
-            {
-                throw;
-            }
+
+            tables[index] = code[0].Children;
         }
 
         /// <summary>
@@ -533,8 +516,7 @@ namespace ImageSharp.Formats.Jpeg.Port
         private ushort ReadUint16()
         {
             this.InputStream.Read(this.uint16Buffer, 0, 2);
-            ushort value = (ushort)((this.uint16Buffer[0] << 8) | this.uint16Buffer[1]);
-            return value;
+            return (ushort)((this.uint16Buffer[0] << 8) | this.uint16Buffer[1]);
         }
 
         /// <summary>

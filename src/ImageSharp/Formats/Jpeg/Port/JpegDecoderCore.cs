@@ -45,6 +45,8 @@ namespace ImageSharp.Formats.Jpeg.Port
 
         private Frame frame;
 
+        private ushort resetInterval;
+
         /// <summary>
         /// COntains information about the jFIF marker
         /// </summary>
@@ -139,6 +141,14 @@ namespace ImageSharp.Formats.Jpeg.Port
 
                     case JpegConstants.Markers.DHT:
                         this.ProcessDefineHuffmanTablesMarker(remaining);
+                        break;
+
+                    case JpegConstants.Markers.DRI:
+                        this.resetInterval = this.ReadUint16();
+                        break;
+
+                    case JpegConstants.Markers.SOS:
+                        this.ProcessStartOfScan();
                         break;
                 }
 
@@ -319,6 +329,8 @@ namespace ImageSharp.Formats.Jpeg.Port
                 component.VerticalFactor = v;
                 component.QuantizationIdentifier = this.temp[index + 2];
 
+                this.frame.ComponentIds[i] = (byte)i;
+
                 // Don't assign the table yet.
                 index += 3;
             }
@@ -372,6 +384,35 @@ namespace ImageSharp.Formats.Jpeg.Port
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// Processes the SOS (Start of scan marker).
+        /// </summary>
+        private void ProcessStartOfScan()
+        {
+            int selectorsCount = this.InputStream.ReadByte();
+            var components = new List<Component>();
+
+            for (int i = 0; i < selectorsCount; i++)
+            {
+                byte componentIndex = this.frame.ComponentIds[this.InputStream.ReadByte() - 1];
+                Component component = this.frame.Components[componentIndex];
+                int tableSpec = this.InputStream.ReadByte();
+                component.DCHuffmanTableId = tableSpec >> 4;
+                component.ACHuffmanTableId = tableSpec & 15;
+                components.Add(component);
+            }
+
+            this.InputStream.Read(this.temp, 0, 3);
+            int spectralStart = this.temp[0];
+            int spectralEnd = this.temp[1];
+            int successiveApproximation = this.temp[2];
+        }
+
+        private int DecodeScan(List<Component> components, int spectralStart, int spectralEnd, int successivePrev, int successive)
+        {
+            return 0;
         }
 
         /// <summary>

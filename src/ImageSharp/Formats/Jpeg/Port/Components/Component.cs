@@ -49,5 +49,15 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
         /// Gets or sets the number of blocks per column
         /// </summary>
         public int BlocksPerColumn;
+
+        /// <summary>
+        /// Gets the index for the DC Huffman table
+        /// </summary>
+        public int DCHuffmanTableId;
+
+        /// <summary>
+        /// Gets the index for the AC Huffman table
+        /// </summary>
+        public int ACHuffmanTableId;
     }
 }

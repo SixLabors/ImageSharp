@@ -9,7 +9,7 @@ namespace ImageSharp.Formats
     using System.Buffers;
     using System.IO;
     using System.Linq;
-
+    using System.Text;
     using ImageSharp.PixelFormats;
 
     using IO;
@@ -26,11 +26,6 @@ namespace ImageSharp.Formats
         private readonly byte[] buffer = new byte[16];
 
         /// <summary>
-        /// The options for the encoder.
-        /// </summary>
-        private readonly IGifEncoderOptions options;
-
-        /// <summary>
         /// The number of bits requires to store the image palette.
         /// </summary>
         private int bitDepth;
@@ -43,16 +38,36 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Initializes a new instance of the <see cref="GifEncoderCore"/> class.
         /// </summary>
-        /// <param name="options">The options for the encoder.</param>
-        public GifEncoderCore(IGifEncoderOptions options)
+        /// <param name="encoding">The encoding for the encoder.</param>
+        public GifEncoderCore(Encoding encoding)
         {
-            this.options = options ?? new GifEncoderOptions();
+            this.TextEncoding = encoding ?? GifConstants.DefaultEncoding;
         }
+
+        /// <summary>
+        /// Gets the TextEncoding
+        /// </summary>
+        public Encoding TextEncoding { get; private set; }
 
         /// <summary>
         /// Gets or sets the quantizer for reducing the color count.
         /// </summary>
         public IQuantizer Quantizer { get; set; }
+
+        /// <summary>
+        /// Gets or sets the threshold.
+        /// </summary>
+        public byte Threshold { get; internal set; }
+
+        /// <summary>
+        /// Gets or sets the quality of output for images.
+        /// </summary>
+        public int Quality { get; internal set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the metadata should be ignored when the image is being decoded.
+        /// </summary>
+        public bool IgnoreMetadata { get; internal set; }
 
         /// <summary>
         /// Encodes the image to the specified stream from the <see cref="Image{TPixel}"/>.
@@ -66,13 +81,13 @@ namespace ImageSharp.Formats
             Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));
 
-            this.Quantizer = this.options.Quantizer ?? new OctreeQuantizer<TPixel>();
+            this.Quantizer = this.Quantizer ?? new OctreeQuantizer<TPixel>();
 
             // Do not use IDisposable pattern here as we want to preserve the stream.
             var writer = new EndianBinaryWriter(Endianness.LittleEndian, stream);
 
             // Ensure that quality can be set but has a fallback.
-            int quality = this.options.Quality > 0 ? this.options.Quality : image.MetaData.Quality;
+            int quality = this.Quality;
             quality = quality > 0 ? quality.Clamp(1, 256) : 256;
 
             // Get the number of bits.
@@ -240,7 +255,7 @@ namespace ImageSharp.Formats
         private void WriteComments<TPixel>(Image<TPixel> image, EndianBinaryWriter writer)
             where TPixel : struct, IPixel<TPixel>
         {
-            if (this.options.IgnoreMetadata)
+            if (this.IgnoreMetadata)
             {
                 return;
             }
@@ -251,7 +266,7 @@ namespace ImageSharp.Formats
                 return;
             }
 
-            byte[] comments = this.options.TextEncoding.GetBytes(property.Value);
+            byte[] comments = this.TextEncoding.GetBytes(property.Value);
 
             int count = Math.Min(comments.Length, 255);
 

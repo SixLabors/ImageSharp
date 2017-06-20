@@ -19,13 +19,14 @@ namespace ImageSharp.Tests
     /// <summary>
     /// A test image file.
     /// </summary>
-    public class TestFormat : ImageSharp.Formats.IImageFormat
+    public class TestFormat
     {
         public static TestFormat GlobalTestFormat { get; } = new TestFormat();
 
         public static void RegisterGloablTestFormat()
         {
-            Configuration.Default.AddImageFormat(GlobalTestFormat);
+            Configuration.Default.AddImageFormat(GlobalTestFormat.Encoder);
+            Configuration.Default.AddImageFormat(GlobalTestFormat.Decoder);
         }
 
         public TestFormat()
@@ -58,9 +59,9 @@ namespace ImageSharp.Tests
         Dictionary<Type, object> _sampleImages = new Dictionary<Type, object>();
 
 
-        public void VerifyDecodeCall(byte[] marker, IDecoderOptions options, Configuration config)
+        public void VerifyDecodeCall(byte[] marker, Configuration config)
         {
-            DecodeOperation[] discovered = this.DecodeCalls.Where(x => x.IsMatch(marker, options, config)).ToArray();
+            DecodeOperation[] discovered = this.DecodeCalls.Where(x => x.IsMatch(marker, config)).ToArray();
 
 
             Assert.True(discovered.Any(), "No calls to decode on this formate with the proveded options happend");
@@ -92,7 +93,7 @@ namespace ImageSharp.Tests
 
         public int HeaderSize => this.header.Length;
 
-        public bool IsSupportedFileFormat(byte[] header)
+        public bool IsSupportedFileFormat(Span<byte> header)
         {
             if (header.Length < this.header.Length)
             {
@@ -110,15 +111,10 @@ namespace ImageSharp.Tests
         public struct DecodeOperation
         {
             public byte[] marker;
-            public IDecoderOptions options;
             internal Configuration config;
 
-             public bool IsMatch(byte[] testMarker, IDecoderOptions testOptions, Configuration config)
+             public bool IsMatch(byte[] testMarker, Configuration config)
             {
-                if (this.options != testOptions)
-                {
-                    return false;
-                }
 
                 if (this.config != config)
                 {
@@ -150,8 +146,13 @@ namespace ImageSharp.Tests
                 this.testFormat = testFormat;
             }
 
+            public IEnumerable<string> MimeTypes => new[] { testFormat.MimeType };
 
-            public Image<TPixel> Decode<TPixel>(Configuration config, Stream stream, IDecoderOptions options) where TPixel : struct, IPixel<TPixel>
+            public IEnumerable<string> FileExtensions => testFormat.SupportedExtensions;
+
+            public int HeaderSize => testFormat.HeaderSize;
+
+            public Image<TPixel> Decode<TPixel>(Configuration config, Stream stream) where TPixel : struct, IPixel<TPixel>
 
             {
                 var ms = new MemoryStream();
@@ -160,13 +161,14 @@ namespace ImageSharp.Tests
                 this.testFormat.DecodeCalls.Add(new DecodeOperation
                 {
                     marker = marker,
-                    options = options,
                     config = config
                 });
 
                 // TODO record this happend so we an verify it.
                 return this.testFormat.Sample<TPixel>();
             }
+
+            public bool IsSupportedFileFormat(Span<byte> header) => testFormat.IsSupportedFileFormat(header);
         }
 
         public class TestEncoder : ImageSharp.Formats.IImageEncoder
@@ -178,7 +180,11 @@ namespace ImageSharp.Tests
                 this.testFormat = testFormat;
             }
 
-            public void Encode<TPixel>(Image<TPixel> image, Stream stream, IEncoderOptions options) where TPixel : struct, IPixel<TPixel>
+            public IEnumerable<string> MimeTypes => new[] { testFormat.MimeType };
+
+            public IEnumerable<string> FileExtensions => testFormat.SupportedExtensions;
+
+            public void Encode<TPixel>(Image<TPixel> image, Stream stream) where TPixel : struct, IPixel<TPixel>
             {
                 // TODO record this happend so we an verify it.
             }

@@ -34,13 +34,10 @@ namespace ImageSharp.Tests.Drawing
 
                 ShapePath p = new ShapePath(linerSegemnt, bazierSegment);
 
-                using (FileStream output = File.OpenWrite($"{path}/Simple.png"))
-                {
-                    image
-                        .BackgroundColor(Rgba32.Blue)
-                        .Draw(Rgba32.HotPink, 5, p)
-                        .Save(output);
-                }
+                image
+                    .BackgroundColor(Rgba32.Blue)
+                    .Draw(Rgba32.HotPink, 5, p)
+                    .Save($"{path}/Simple.png");
 
                 using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
                 {
@@ -77,13 +74,10 @@ namespace ImageSharp.Tests.Drawing
 
             using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
-                using (FileStream output = File.OpenWrite($"{path}/Opacity.png"))
-                {
-                    image
-                        .BackgroundColor(Rgba32.Blue)
-                        .Draw(color, 10, p)
-                        .Save(output);
-                }
+                image
+                    .BackgroundColor(Rgba32.Blue)
+                    .Draw(color, 10, p)
+                    .Save($"{path}/Opacity.png");
 
                 //shift background color towards forground color by the opacity amount
                 Rgba32 mergedColor = new Rgba32(Vector4.Lerp(Rgba32.Blue.ToVector4(), Rgba32.HotPink.ToVector4(), 150f / 255f));
@@ -115,11 +109,8 @@ namespace ImageSharp.Tests.Drawing
                     image.DrawLines(pen, new Vector2[] { new Vector2(100, 2), new Vector2(-10, i) });
                 }
 
-                using (FileStream output = File.OpenWrite($"{path}/ClippedLines.png"))
-                {
-                    image
-                        .Save(output);
-                }
+                image
+                    .Save($"{path}/ClippedLines.png");
                 using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
                 {
                     Assert.Equal(Rgba32.White, sourcePixels[0, 90]);

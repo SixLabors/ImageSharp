@@ -23,7 +23,7 @@ namespace ImageSharp
         /// <param name="stream">The image stream to read the header from.</param>
         /// <param name="config">The configuration.</param>
         /// <returns>The image format or null if none found.</returns>
-        private static IImageFormat DiscoverFormat(Stream stream, Configuration config)
+        private static IImageDecoder DiscoverDecoder(Stream stream, Configuration config)
         {
             // This is probably a candidate for making into a public API in the future!
             int maxHeaderSize = config.MaxHeaderSize;
@@ -32,14 +32,14 @@ namespace ImageSharp
                 return null;
             }
 
-            IImageFormat format;
+            IImageDecoder format;
             byte[] header = ArrayPool<byte>.Shared.Rent(maxHeaderSize);
             try
             {
                 long startPosition = stream.Position;
                 stream.Read(header, 0, maxHeaderSize);
                 stream.Position = startPosition;
-                format = config.ImageFormats.FirstOrDefault(x => x.IsSupportedFileFormat(header));
+                format = config.ImageDecoders.LastOrDefault(x => x.IsSupportedFileFormat(header)); // we should use last in case user has registerd a new one with their own settings
             }
             finally
             {
@@ -49,28 +49,28 @@ namespace ImageSharp
             return format;
         }
 
+#pragma warning disable SA1008 // Opening parenthesis must be spaced correctly
         /// <summary>
         /// Decodes the image stream to the current image.
         /// </summary>
         /// <param name="stream">The stream.</param>
-        /// <param name="options">The options for the decoder.</param>
         /// <param name="config">the configuration.</param>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>
         /// A new <see cref="Image{TPixel}"/>.
         /// </returns>
-        private static Image<TPixel> Decode<TPixel>(Stream stream, IDecoderOptions options, Configuration config)
+        private static (Image<TPixel> img, IImageDecoder decoder) Decode<TPixel>(Stream stream, Configuration config)
+#pragma warning restore SA1008 // Opening parenthesis must be spaced correctly
             where TPixel : struct, IPixel<TPixel>
         {
-            IImageFormat format = DiscoverFormat(stream, config);
-            if (format == null)
+            IImageDecoder decoder = DiscoverDecoder(stream, config);
+            if (decoder == null)
             {
-                return null;
+                return (null, null);
             }
 
-            Image<TPixel> img = format.Decoder.Decode<TPixel>(config, stream, options);
-            img.CurrentImageFormat = format;
-            return img;
+            Image<TPixel> img = decoder.Decode<TPixel>(config, stream);
+            return (img, decoder);
         }
     }
 }

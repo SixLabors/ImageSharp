@@ -22,37 +22,27 @@ namespace ImageSharp.Tests
     {
         private readonly Image<Rgba32> Image;
         private readonly Mock<IFileSystem> fileSystem;
-        private readonly Mock<IImageFormat> format;
-        private readonly Mock<IImageFormat> formatNotRegistered;
         private readonly Mock<IImageEncoder> encoder;
         private readonly Mock<IImageEncoder> encoderNotInFormat;
-        private readonly IEncoderOptions encoderOptions;
 
         public ImageSaveTests()
         {
             this.encoder = new Mock<IImageEncoder>();
-            this.format = new Mock<IImageFormat>();
-            this.format.Setup(x => x.Encoder).Returns(this.encoder.Object);
-            this.format.Setup(x => x.Decoder).Returns(new Mock<IImageDecoder>().Object);
-            this.format.Setup(x => x.MimeType).Returns("img/test");
-            this.format.Setup(x => x.Extension).Returns("png");
-            this.format.Setup(x => x.SupportedExtensions).Returns(new string[] { "png", "jpg" });
+            this.encoder.Setup(x => x.MimeTypes).Returns(new[] { "img/test" });
+            this.encoder.Setup(x => x.FileExtensions).Returns(new string[] { "png", "jpg" });
 
 
             this.encoderNotInFormat = new Mock<IImageEncoder>();
-            this.formatNotRegistered = new Mock<IImageFormat>();
-            this.formatNotRegistered.Setup(x => x.Encoder).Returns(this.encoderNotInFormat.Object);
-            this.formatNotRegistered.Setup(x => x.Decoder).Returns(new Mock<IImageDecoder>().Object);
-            this.formatNotRegistered.Setup(x => x.MimeType).Returns("img/test");
-            this.formatNotRegistered.Setup(x => x.Extension).Returns("png");
-            this.formatNotRegistered.Setup(x => x.SupportedExtensions).Returns(new string[] { "png", "jpg" });
+            this.encoderNotInFormat.Setup(x => x.MimeTypes).Returns(new[] { "img/test" });
+            this.encoderNotInFormat.Setup(x => x.FileExtensions).Returns(new string[] { "png", "jpg" });
 
             this.fileSystem = new Mock<IFileSystem>();
-            this.encoderOptions = new Mock<IEncoderOptions>().Object;
-            this.Image = new Image<Rgba32>(new Configuration(this.format.Object)
+            var config = new Configuration()
             {
                 FileSystem = this.fileSystem.Object
-            }, 1, 1);
+            };
+            config.AddImageFormat(this.encoder.Object);
+            this.Image = new Image<Rgba32>(config, 1, 1);
         }
 
         [Fact]
@@ -62,19 +52,9 @@ namespace ImageSharp.Tests
             this.fileSystem.Setup(x => x.Create("path.png")).Returns(stream);
             this.Image.Save("path.png");
 
-            this.encoder.Verify(x => x.Encode<Rgba32>(this.Image, stream, null));
+            this.encoder.Verify(x => x.Encode<Rgba32>(this.Image, stream));
         }
 
-        [Fact]
-        public void SavePathWithOptions()
-        {
-            Stream stream = new MemoryStream();
-            this.fileSystem.Setup(x => x.Create("path.jpg")).Returns(stream);
-
-            this.Image.Save("path.jpg", this.encoderOptions);
-
-            this.encoder.Verify(x => x.Encode<Rgba32>(this.Image, stream, this.encoderOptions));
-        }
 
         [Fact]
         public void SavePathWithEncoder()
@@ -84,61 +64,24 @@ namespace ImageSharp.Tests
 
             this.Image.Save("path.jpg", this.encoderNotInFormat.Object);
 
-            this.encoderNotInFormat.Verify(x => x.Encode<Rgba32>(this.Image, stream, null));
+            this.encoderNotInFormat.Verify(x => x.Encode<Rgba32>(this.Image, stream));
         }
 
         [Fact]
-        public void SavePathWithEncoderAndOptions()
+        public void ToBase64String()
         {
-            Stream stream = new MemoryStream();
-            this.fileSystem.Setup(x => x.Create("path.jpg")).Returns(stream);
+            var str = this.Image.ToBase64String("img/test");
 
-            this.Image.Save("path.jpg", this.encoderNotInFormat.Object, this.encoderOptions);
-
-            this.encoderNotInFormat.Verify(x => x.Encode<Rgba32>(this.Image, stream, this.encoderOptions));
-        }
-
-
-
-        [Fact]
-        public void SavePathWithFormat()
-        {
-            Stream stream = new MemoryStream();
-            this.fileSystem.Setup(x => x.Create("path.jpg")).Returns(stream);
-
-            this.Image.Save("path.jpg", this.encoderNotInFormat.Object);
-
-            this.encoderNotInFormat.Verify(x => x.Encode<Rgba32>(this.Image, stream, null));
+            this.encoder.Verify(x => x.Encode<Rgba32>(this.Image, It.IsAny<Stream>()));
         }
 
         [Fact]
-        public void SavePathWithFormatAndOptions()
+        public void SaveStreamWithMime()
         {
             Stream stream = new MemoryStream();
-            this.fileSystem.Setup(x => x.Create("path.jpg")).Returns(stream);
+            this.Image.Save(stream, "img/test");
 
-            this.Image.Save("path.jpg", this.encoderNotInFormat.Object, this.encoderOptions);
-
-            this.encoderNotInFormat.Verify(x => x.Encode<Rgba32>(this.Image, stream, this.encoderOptions));
-        }
-
-        [Fact]
-        public void SaveStream()
-        {
-            Stream stream = new MemoryStream();
-            this.Image.Save(stream);
-
-            this.encoder.Verify(x => x.Encode<Rgba32>(this.Image, stream, null));
-        }
-
-        [Fact]
-        public void SaveStreamWithOptions()
-        {
-            Stream stream = new MemoryStream();
-
-            this.Image.Save(stream, this.encoderOptions);
-
-            this.encoder.Verify(x => x.Encode<Rgba32>(this.Image, stream, this.encoderOptions));
+            this.encoder.Verify(x => x.Encode<Rgba32>(this.Image, stream));
         }
 
         [Fact]
@@ -148,37 +91,7 @@ namespace ImageSharp.Tests
 
             this.Image.Save(stream, this.encoderNotInFormat.Object);
 
-            this.encoderNotInFormat.Verify(x => x.Encode<Rgba32>(this.Image, stream, null));
-        }
-
-        [Fact]
-        public void SaveStreamWithEncoderAndOptions()
-        {
-            Stream stream = new MemoryStream();
-
-            this.Image.Save(stream, this.encoderNotInFormat.Object, this.encoderOptions);
-
-            this.encoderNotInFormat.Verify(x => x.Encode<Rgba32>(this.Image, stream, this.encoderOptions));
-        }
-
-        [Fact]
-        public void SaveStreamWithFormat()
-        {
-            Stream stream = new MemoryStream();
-
-            this.Image.Save(stream, this.formatNotRegistered.Object);
-
-            this.encoderNotInFormat.Verify(x => x.Encode<Rgba32>(this.Image, stream, null));
-        }
-
-        [Fact]
-        public void SaveStreamWithFormatAndOptions()
-        {
-            Stream stream = new MemoryStream();
-
-            this.Image.Save(stream, this.formatNotRegistered.Object, this.encoderOptions);
-
-            this.encoderNotInFormat.Verify(x => x.Encode<Rgba32>(this.Image, stream, this.encoderOptions));
+            this.encoderNotInFormat.Verify(x => x.Encode<Rgba32>(this.Image, stream));
         }
 
         public void Dispose()

@@ -125,11 +125,6 @@ namespace ImageSharp.Formats
         private readonly byte[] huffmanBuffer = new byte[179];
 
         /// <summary>
-        /// The options for the encoder.
-        /// </summary>
-        private readonly IJpegEncoderOptions options;
-
-        /// <summary>
         /// The accumulated bits to write to the stream.
         /// </summary>
         private uint accumulatedBits;
@@ -155,18 +150,28 @@ namespace ImageSharp.Formats
         private Stream outputStream;
 
         /// <summary>
-        /// The subsampling method to use.
-        /// </summary>
-        private JpegSubsample subsample;
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="JpegEncoderCore"/> class.
         /// </summary>
-        /// <param name="options">The options for the encoder.</param>
-        public JpegEncoderCore(IJpegEncoderOptions options)
+        public JpegEncoderCore()
         {
-            this.options = options ?? new JpegEncoderOptions();
         }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the metadata should be ignored when the image is being decoded.
+        /// </summary>
+        public bool IgnoreMetadata { get; internal set; } = false;
+
+        /// <summary>
+        /// Gets or sets the quality, that will be used to encode the image. Quality
+        /// index must be between 0 and 100 (compression from max to min).
+        /// </summary>
+        /// <value>The quality of the jpg image from 0 to 100.</value>
+        public int Quality { get; internal set; }
+
+        /// <summary>
+        /// Gets or sets the subsampling method to use.
+        /// </summary>
+        public JpegSubsample? Subsample { get; internal set; }
 
         /// <summary>
         /// Encode writes the image to the jpeg baseline format with the given options.
@@ -186,21 +191,13 @@ namespace ImageSharp.Formats
                 throw new ImageFormatException($"Image is too large to encode at {image.Width}x{image.Height}.");
             }
 
-            // Ensure that quality can be set but has a fallback.
-            int quality = this.options.Quality > 0 ? this.options.Quality : image.MetaData.Quality;
-            if (quality == 0)
-            {
-                quality = 75;
-            }
-
-            quality = quality.Clamp(1, 100);
-
             this.outputStream = stream;
-            this.subsample = this.options.Subsample ?? (quality >= 91 ? JpegSubsample.Ratio444 : JpegSubsample.Ratio420);
+
+            int quality = this.Quality.Clamp(1, 100);
 
             // Convert from a quality rating to a scaling factor.
             int scale;
-            if (quality < 50)
+            if (this.Quality < 50)
             {
                 scale = 5000 / quality;
             }
@@ -788,7 +785,7 @@ namespace ImageSharp.Formats
         private void WriteProfiles<TPixel>(Image<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
-            if (this.options.IgnoreMetadata)
+            if (this.IgnoreMetadata)
             {
                 return;
             }
@@ -810,7 +807,7 @@ namespace ImageSharp.Formats
             byte[] subsamples = { 0x22, 0x11, 0x11 };
             byte[] chroma = { 0x00, 0x01, 0x01 };
 
-            switch (this.subsample)
+            switch (this.Subsample)
             {
                 case JpegSubsample.Ratio444:
                     subsamples = new byte[] { 0x11, 0x11, 0x11 };
@@ -866,7 +863,7 @@ namespace ImageSharp.Formats
             // TODO: We should allow grayscale writing.
             this.outputStream.Write(SosHeaderYCbCr, 0, SosHeaderYCbCr.Length);
 
-            switch (this.subsample)
+            switch (this.Subsample)
             {
                 case JpegSubsample.Ratio444:
                     this.Encode444(pixels);

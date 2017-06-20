@@ -25,10 +25,7 @@ namespace ImageSharp.Tests.Drawing
                     .Fill(background)
                     .Fill(brush);
 
-                using (FileStream output = File.OpenWrite($"{path}/{name}.png"))
-                {
-                    image.Save(output);
-                }
+                image.Save($"{path}/{name}.png");
 
                 using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
                 {
@@ -54,10 +51,7 @@ namespace ImageSharp.Tests.Drawing
                         }
                     }
                 }
-                using (FileStream output = File.OpenWrite($"{path}/{name}x4.png"))
-                {
-                    image.Resize(80, 80).Save(output);
-                }
+                image.Resize(80, 80).Save($"{path}/{name}x4.png");
             }
         }
 

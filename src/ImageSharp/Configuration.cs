@@ -30,9 +30,14 @@ namespace ImageSharp
         private readonly object syncRoot = new object();
 
         /// <summary>
-        /// The list of supported <see cref="IImageFormat"/>.
+        /// The list of supported <see cref="IImageEncoder"/>.
         /// </summary>
-        private readonly List<IImageFormat> imageFormatsList = new List<IImageFormat>();
+        private readonly List<IImageEncoder> encoders = new List<IImageEncoder>();
+
+        /// <summary>
+        /// The list of supported <see cref="IImageDecoder"/>.
+        /// </summary>
+        private readonly List<IImageDecoder> decoders = new List<IImageDecoder>();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Configuration" /> class.
@@ -42,26 +47,19 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Configuration" /> class.
-        /// </summary>
-        /// <param name="providers">The inital set of image formats.</param>
-        public Configuration(params IImageFormat[] providers)
-        {
-            foreach (IImageFormat p in providers)
-            {
-                this.AddImageFormat(p);
-            }
-        }
-
-        /// <summary>
         /// Gets the default <see cref="Configuration"/> instance.
         /// </summary>
         public static Configuration Default { get; } = Lazy.Value;
 
         /// <summary>
-        /// Gets the collection of supported <see cref="IImageFormat"/>
+        /// Gets the collection of supported <see cref="IImageEncoder"/>
         /// </summary>
-        public IReadOnlyCollection<IImageFormat> ImageFormats => new ReadOnlyCollection<IImageFormat>(this.imageFormatsList);
+        public IReadOnlyCollection<IImageEncoder> ImageEncoders => new ReadOnlyCollection<IImageEncoder>(this.encoders);
+
+        /// <summary>
+        /// Gets the collection of supported <see cref="IImageDecoder"/>
+        /// </summary>
+        public IReadOnlyCollection<IImageDecoder> ImageDecoders => new ReadOnlyCollection<IImageDecoder>(this.decoders);
 
         /// <summary>
         /// Gets the global parallel options for processing tasks in parallel.
@@ -81,19 +79,36 @@ namespace ImageSharp
 #endif
 
         /// <summary>
-        /// Adds a new <see cref="IImageFormat"/> to the collection of supported image formats.
+        /// Adds a new <see cref="IImageEncoder"/> to the collection of supported image formats.
         /// </summary>
-        /// <param name="format">The new format to add.</param>
-        public void AddImageFormat(IImageFormat format)
+        /// <param name="decoder">The new format to add.</param>
+        public void AddImageFormat(IImageDecoder decoder)
         {
-            Guard.NotNull(format, nameof(format));
-            Guard.NotNull(format.Encoder, nameof(format), "The encoder should not be null.");
-            Guard.NotNull(format.Decoder, nameof(format), "The decoder should not be null.");
-            Guard.NotNullOrEmpty(format.MimeType, nameof(format), "The mime type should not be null or empty.");
-            Guard.NotNullOrEmpty(format.Extension, nameof(format), "The extension should not be null or empty.");
-            Guard.NotNullOrEmpty(format.SupportedExtensions, nameof(format), "The supported extensions not be null or empty.");
+            Guard.NotNull(decoder, nameof(decoder));
+            Guard.NotNullOrEmpty(decoder.FileExtensions, nameof(decoder.FileExtensions));
+            Guard.NotNullOrEmpty(decoder.MimeTypes, nameof(decoder.MimeTypes));
 
-            this.AddImageFormatLocked(format);
+            lock (this.syncRoot)
+            {
+                this.decoders.Add(decoder);
+
+                this.SetMaxHeaderSize();
+            }
+        }
+
+        /// <summary>
+        /// Adds a new <see cref="IImageDecoder"/> to the collection of supported image formats.
+        /// </summary>
+        /// <param name="encoder">The new format to add.</param>
+        public void AddImageFormat(IImageEncoder encoder)
+        {
+            Guard.NotNull(encoder, nameof(encoder));
+            Guard.NotNullOrEmpty(encoder.FileExtensions, nameof(encoder.FileExtensions));
+            Guard.NotNullOrEmpty(encoder.MimeTypes, nameof(encoder.MimeTypes));
+            lock (this.syncRoot)
+            {
+                this.encoders.Add(encoder);
+            }
         }
 
         /// <summary>
@@ -105,94 +120,16 @@ namespace ImageSharp
             Configuration config = new Configuration();
 
             // lets try auto loading the known image formats
-            config.AddImageFormat(new Formats.PngFormat());
-            config.AddImageFormat(new Formats.JpegFormat());
-            config.AddImageFormat(new Formats.GifFormat());
-            config.AddImageFormat(new Formats.BmpFormat());
+            config.AddImageFormat(new Formats.PngEncoder());
+            config.AddImageFormat(new Formats.JpegEncoder());
+            config.AddImageFormat(new Formats.GifEncoder());
+            config.AddImageFormat(new Formats.BmpEncoder());
+
+            config.AddImageFormat(new Formats.PngDecoder());
+            config.AddImageFormat(new Formats.JpegDecoder());
+            config.AddImageFormat(new Formats.GifDecoder());
+            config.AddImageFormat(new Formats.BmpDecoder());
             return config;
-        }
-
-        /// <summary>
-        /// Tries the add image format.
-        /// </summary>
-        /// <param name="typeName">Name of the type.</param>
-        /// <returns>True if type discoverd and is a valid <see cref="IImageFormat"/></returns>
-        internal bool TryAddImageFormat(string typeName)
-        {
-            Type type = Type.GetType(typeName, false);
-            if (type != null)
-            {
-                IImageFormat format = Activator.CreateInstance(type) as IImageFormat;
-                if (format != null
-                    && format.Encoder != null
-                    && format.Decoder != null
-                    && !string.IsNullOrEmpty(format.MimeType)
-                    && format.SupportedExtensions?.Any() == true)
-                {
-                    // we can use the locked version as we have already validated in the if.
-                    this.AddImageFormatLocked(format);
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        /// <summary>
-        /// Adds image format. The class is locked to make it thread safe.
-        /// </summary>
-        /// <param name="format">The image format.</param>
-        private void AddImageFormatLocked(IImageFormat format)
-        {
-            lock (this.syncRoot)
-            {
-                if (this.GuardDuplicate(format))
-                {
-                    this.imageFormatsList.Add(format);
-
-                    this.SetMaxHeaderSize();
-                }
-            }
-        }
-
-        /// <summary>
-        /// Checks to ensure duplicate image formats are not added.
-        /// </summary>
-        /// <param name="format">The image format.</param>
-        /// <exception cref="ArgumentException">Thrown if a duplicate is added.</exception>
-        /// <returns>
-        /// The <see cref="bool"/>.
-        /// </returns>
-        private bool GuardDuplicate(IImageFormat format)
-        {
-            if (!format.SupportedExtensions.Contains(format.Extension, StringComparer.OrdinalIgnoreCase))
-            {
-                throw new ArgumentException("The supported extensions should contain the default extension.", nameof(format));
-            }
-
-            // ReSharper disable once ConvertClosureToMethodGroup
-            // Prevents method group allocation
-            if (format.SupportedExtensions.Any(e => string.IsNullOrWhiteSpace(e)))
-            {
-                throw new ArgumentException("The supported extensions should not contain empty values.", nameof(format));
-            }
-
-            // If there is already a format with the same extension or a format that supports that
-            // extension return false.
-            foreach (IImageFormat imageFormat in this.imageFormatsList)
-            {
-                if (imageFormat.Extension.Equals(format.Extension, StringComparison.OrdinalIgnoreCase))
-                {
-                    return false;
-                }
-
-                if (imageFormat.SupportedExtensions.Intersect(format.SupportedExtensions, StringComparer.OrdinalIgnoreCase).Any())
-                {
-                    return false;
-                }
-            }
-
-            return true;
         }
 
         /// <summary>
@@ -200,7 +137,7 @@ namespace ImageSharp
         /// </summary>
         private void SetMaxHeaderSize()
         {
-            this.MaxHeaderSize = this.imageFormatsList.Max(x => x.HeaderSize);
+            this.MaxHeaderSize = this.decoders.Max(x => x.HeaderSize);
         }
     }
 }

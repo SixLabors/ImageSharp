@@ -10,10 +10,10 @@ namespace ImageSharp.Tests.Icc
     public class IccReaderTests
     {
         [Fact]
-        public void ReadProfile()
+        public void ReadProfile_NoEntries()
         {
             IccReader reader = CreateReader();
-            
+
             IccProfile output = reader.Read(IccTestDataProfiles.Header_Random_Array);
 
             Assert.Equal(0, output.Entries.Count);
@@ -39,6 +39,18 @@ namespace ImageSharp.Tests.Icc
             Assert.Equal(header.Size, expected.Size);
             Assert.Equal(header.Version, expected.Version);
         }
+
+        [Fact]
+        public void ReadProfile_DuplicateEntry()
+        {
+            IccReader reader = CreateReader();
+
+            IccProfile output = reader.Read(IccTestDataProfiles.Profile_Random_Array);
+
+            Assert.Equal(2, output.Entries.Count);
+            Assert.True(ReferenceEquals(output.Entries[0], output.Entries[1]));
+        }
+
 
         private IccReader CreateReader()
         {

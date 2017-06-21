@@ -57,6 +57,66 @@ namespace ImageSharp.PixelFormats
         /// <summary>
         /// Multiplies or screens the colors, depending on the source value.
         /// </summary>
-        HardLight
+        HardLight,
+
+        /// <summary>
+        /// returns the source colors
+        /// </summary>
+        Src,
+
+        /// <summary>
+        /// returns the source over the destination
+        /// </summary>
+        Atop,
+
+        /// <summary>
+        /// returns the detination over the source
+        /// </summary>
+        Over,
+
+        /// <summary>
+        /// the source where the desitnation and source overlap
+        /// </summary>
+        In,
+
+        /// <summary>
+        /// the destination where the desitnation and source overlap
+        /// </summary>
+        Out,
+
+        /// <summary>
+        /// the destination where the source does not overlap it
+        /// </summary>
+        Dest,
+
+        /// <summary>
+        /// the source where they dont overlap othersie dest in overlapping parts
+        /// </summary>
+        DestAtop,
+
+        /// <summary>
+        /// the destnation over the source
+        /// </summary>
+        DestOver,
+
+        /// <summary>
+        /// the destination where the desitnation and source overlap
+        /// </summary>
+        DestIn,
+
+        /// <summary>
+        /// the source where the desitnation and source overlap
+        /// </summary>
+        DestOut,
+
+        /// <summary>
+        /// the clear.
+        /// </summary>
+        Clear,
+
+        /// <summary>
+        /// clear where they overlap
+        /// </summary>
+        Xor
     }
 }

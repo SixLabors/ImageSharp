@@ -15,27 +15,55 @@ namespace ImageSharp.Tests.PixelFormats
 
     public partial class PixelOperationsTests
     {
+
+
         public static TheoryData<object, Type, PixelBlenderMode> BlenderMappings = new TheoryData<object, Type, PixelBlenderMode>()
                                                                                        {
-                                                                                           { new TestPixel<Rgba32>(), typeof(DefaultNormalPixelBlender<Rgba32>), PixelBlenderMode.Normal },
-                                                                                           { new TestPixel<Rgba32>(), typeof(DefaultScreenPixelBlender<Rgba32>), PixelBlenderMode.Screen },
-                                                                                           { new TestPixel<Rgba32>(), typeof(DefaultHardLightPixelBlender<Rgba32>), PixelBlenderMode.HardLight },
-                                                                                           { new TestPixel<Rgba32>(), typeof(DefaultOverlayPixelBlender<Rgba32>), PixelBlenderMode.Overlay },
-                                                                                           { new TestPixel<Rgba32>(), typeof(DefaultDarkenPixelBlender<Rgba32>), PixelBlenderMode.Darken },
-                                                                                           { new TestPixel<Rgba32>(), typeof(DefaultLightenPixelBlender<Rgba32>), PixelBlenderMode.Lighten },
-                                                                                           { new TestPixel<Rgba32>(), typeof(DefaultAddPixelBlender<Rgba32>), PixelBlenderMode.Add },
-                                                                                           { new TestPixel<Rgba32>(), typeof(DefaultSubstractPixelBlender<Rgba32>), PixelBlenderMode.Substract },
-                                                                                           { new TestPixel<Rgba32>(), typeof(DefaultMultiplyPixelBlender<Rgba32>), PixelBlenderMode.Multiply },
+                                                                                           { new TestPixel<Rgba32>(), typeof(DefaultPixelBlenders<Rgba32>.Normal), PixelBlenderMode.Normal },
+                                                                                           { new TestPixel<Rgba32>(), typeof(DefaultPixelBlenders<Rgba32>.Screen), PixelBlenderMode.Screen },
+                                                                                           { new TestPixel<Rgba32>(), typeof(DefaultPixelBlenders<Rgba32>.HardLight), PixelBlenderMode.HardLight },
+                                                                                           { new TestPixel<Rgba32>(), typeof(DefaultPixelBlenders<Rgba32>.Overlay), PixelBlenderMode.Overlay },
+                                                                                           { new TestPixel<Rgba32>(), typeof(DefaultPixelBlenders<Rgba32>.Darken), PixelBlenderMode.Darken },
+                                                                                           { new TestPixel<Rgba32>(), typeof(DefaultPixelBlenders<Rgba32>.Lighten), PixelBlenderMode.Lighten },
+                                                                                           { new TestPixel<Rgba32>(), typeof(DefaultPixelBlenders<Rgba32>.Add), PixelBlenderMode.Add },
+                                                                                           { new TestPixel<Rgba32>(), typeof(DefaultPixelBlenders<Rgba32>.Substract), PixelBlenderMode.Substract },
+                                                                                           { new TestPixel<Rgba32>(), typeof(DefaultPixelBlenders<Rgba32>.Multiply), PixelBlenderMode.Multiply },
 
-                                                                                           { new TestPixel<RgbaVector>(), typeof(DefaultNormalPixelBlender<RgbaVector>), PixelBlenderMode.Normal },
-                                                                                           { new TestPixel<RgbaVector>(), typeof(DefaultScreenPixelBlender<RgbaVector>), PixelBlenderMode.Screen },
-                                                                                           { new TestPixel<RgbaVector>(), typeof(DefaultHardLightPixelBlender<RgbaVector>), PixelBlenderMode.HardLight },
-                                                                                           { new TestPixel<RgbaVector>(), typeof(DefaultOverlayPixelBlender<RgbaVector>), PixelBlenderMode.Overlay },
-                                                                                           { new TestPixel<RgbaVector>(), typeof(DefaultDarkenPixelBlender<RgbaVector>), PixelBlenderMode.Darken },
-                                                                                           { new TestPixel<RgbaVector>(), typeof(DefaultLightenPixelBlender<RgbaVector>), PixelBlenderMode.Lighten },
-                                                                                           { new TestPixel<RgbaVector>(), typeof(DefaultAddPixelBlender<RgbaVector>), PixelBlenderMode.Add },
-                                                                                           { new TestPixel<RgbaVector>(), typeof(DefaultSubstractPixelBlender<RgbaVector>), PixelBlenderMode.Substract },
-                                                                                           { new TestPixel<RgbaVector>(), typeof(DefaultMultiplyPixelBlender<RgbaVector>), PixelBlenderMode.Multiply },
+                                                                                           { new TestPixel<Rgba32>(), typeof(DefaultPixelBlenders<Rgba32>.Src), PixelBlenderMode.Src },
+                                                                                           { new TestPixel<Rgba32>(), typeof(DefaultPixelBlenders<Rgba32>.Atop), PixelBlenderMode.Atop },
+                                                                                           { new TestPixel<Rgba32>(), typeof(DefaultPixelBlenders<Rgba32>.Over), PixelBlenderMode.Over },
+                                                                                           { new TestPixel<Rgba32>(), typeof(DefaultPixelBlenders<Rgba32>.In), PixelBlenderMode.In },
+                                                                                           { new TestPixel<Rgba32>(), typeof(DefaultPixelBlenders<Rgba32>.Out), PixelBlenderMode.Out },
+                                                                                           { new TestPixel<Rgba32>(), typeof(DefaultPixelBlenders<Rgba32>.Dest), PixelBlenderMode.Dest },
+                                                                                           { new TestPixel<Rgba32>(), typeof(DefaultPixelBlenders<Rgba32>.DestAtop), PixelBlenderMode.DestAtop },
+                                                                                           { new TestPixel<Rgba32>(), typeof(DefaultPixelBlenders<Rgba32>.DestOver), PixelBlenderMode.DestOver },
+                                                                                           { new TestPixel<Rgba32>(), typeof(DefaultPixelBlenders<Rgba32>.DestIn), PixelBlenderMode.DestIn },
+                                                                                           { new TestPixel<Rgba32>(), typeof(DefaultPixelBlenders<Rgba32>.DestOut), PixelBlenderMode.DestOut },
+                                                                                           { new TestPixel<Rgba32>(), typeof(DefaultPixelBlenders<Rgba32>.Clear), PixelBlenderMode.Clear },
+                                                                                           { new TestPixel<Rgba32>(), typeof(DefaultPixelBlenders<Rgba32>.Xor), PixelBlenderMode.Xor },
+
+                                                                                           { new TestPixel<RgbaVector>(), typeof(DefaultPixelBlenders<RgbaVector>.Normal), PixelBlenderMode.Normal },
+                                                                                           { new TestPixel<RgbaVector>(), typeof(DefaultPixelBlenders<RgbaVector>.Screen), PixelBlenderMode.Screen },
+                                                                                           { new TestPixel<RgbaVector>(), typeof(DefaultPixelBlenders<RgbaVector>.HardLight), PixelBlenderMode.HardLight },
+                                                                                           { new TestPixel<RgbaVector>(), typeof(DefaultPixelBlenders<RgbaVector>.Overlay), PixelBlenderMode.Overlay },
+                                                                                           { new TestPixel<RgbaVector>(), typeof(DefaultPixelBlenders<RgbaVector>.Darken), PixelBlenderMode.Darken },
+                                                                                           { new TestPixel<RgbaVector>(), typeof(DefaultPixelBlenders<RgbaVector>.Lighten), PixelBlenderMode.Lighten },
+                                                                                           { new TestPixel<RgbaVector>(), typeof(DefaultPixelBlenders<RgbaVector>.Add), PixelBlenderMode.Add },
+                                                                                           { new TestPixel<RgbaVector>(), typeof(DefaultPixelBlenders<RgbaVector>.Substract), PixelBlenderMode.Substract },
+                                                                                           { new TestPixel<RgbaVector>(), typeof(DefaultPixelBlenders<RgbaVector>.Multiply), PixelBlenderMode.Multiply },
+                                                                                           { new TestPixel<RgbaVector>(), typeof(DefaultPixelBlenders<RgbaVector>.Src), PixelBlenderMode.Src },
+                                                                                           { new TestPixel<RgbaVector>(), typeof(DefaultPixelBlenders<RgbaVector>.Atop), PixelBlenderMode.Atop },
+                                                                                           { new TestPixel<RgbaVector>(), typeof(DefaultPixelBlenders<RgbaVector>.Over), PixelBlenderMode.Over },
+                                                                                           { new TestPixel<RgbaVector>(), typeof(DefaultPixelBlenders<RgbaVector>.In), PixelBlenderMode.In },
+                                                                                           { new TestPixel<RgbaVector>(), typeof(DefaultPixelBlenders<RgbaVector>.Out), PixelBlenderMode.Out },
+                                                                                           { new TestPixel<RgbaVector>(), typeof(DefaultPixelBlenders<RgbaVector>.Dest), PixelBlenderMode.Dest },
+                                                                                           { new TestPixel<RgbaVector>(), typeof(DefaultPixelBlenders<RgbaVector>.DestAtop), PixelBlenderMode.DestAtop },
+                                                                                           { new TestPixel<RgbaVector>(), typeof(DefaultPixelBlenders<RgbaVector>.DestOver), PixelBlenderMode.DestOver },
+                                                                                           { new TestPixel<RgbaVector>(), typeof(DefaultPixelBlenders<RgbaVector>.DestIn), PixelBlenderMode.DestIn },
+                                                                                           { new TestPixel<RgbaVector>(), typeof(DefaultPixelBlenders<RgbaVector>.DestOut), PixelBlenderMode.DestOut },
+                                                                                           { new TestPixel<RgbaVector>(), typeof(DefaultPixelBlenders<RgbaVector>.Clear), PixelBlenderMode.Clear },
+                                                                                           { new TestPixel<RgbaVector>(), typeof(DefaultPixelBlenders<RgbaVector>.Xor), PixelBlenderMode.Xor },
+
                                                                                        };
 
         [Theory]

@@ -22,25 +22,30 @@ namespace ImageSharp.PixelFormats
         {
             switch (mode)
             {
-                case PixelBlenderMode.Multiply:
-                    return DefaultMultiplyPixelBlender<TPixel>.Instance;
-                case PixelBlenderMode.Add:
-                    return DefaultAddPixelBlender<TPixel>.Instance;
-                case PixelBlenderMode.Substract:
-                    return DefaultSubstractPixelBlender<TPixel>.Instance;
-                case PixelBlenderMode.Screen:
-                    return DefaultScreenPixelBlender<TPixel>.Instance;
-                case PixelBlenderMode.Darken:
-                    return DefaultDarkenPixelBlender<TPixel>.Instance;
-                case PixelBlenderMode.Lighten:
-                    return DefaultLightenPixelBlender<TPixel>.Instance;
-                case PixelBlenderMode.Overlay:
-                    return DefaultOverlayPixelBlender<TPixel>.Instance;
-                case PixelBlenderMode.HardLight:
-                    return DefaultHardLightPixelBlender<TPixel>.Instance;
+                case PixelBlenderMode.Multiply: return DefaultPixelBlenders<TPixel>.Multiply.Instance;
+                case PixelBlenderMode.Add: return DefaultPixelBlenders<TPixel>.Add.Instance;
+                case PixelBlenderMode.Substract: return DefaultPixelBlenders<TPixel>.Substract.Instance;
+                case PixelBlenderMode.Screen: return DefaultPixelBlenders<TPixel>.Screen.Instance;
+                case PixelBlenderMode.Darken: return DefaultPixelBlenders<TPixel>.Darken.Instance;
+                case PixelBlenderMode.Lighten: return DefaultPixelBlenders<TPixel>.Lighten.Instance;
+                case PixelBlenderMode.Overlay: return DefaultPixelBlenders<TPixel>.Overlay.Instance;
+                case PixelBlenderMode.HardLight: return DefaultPixelBlenders<TPixel>.HardLight.Instance;
+                case PixelBlenderMode.Src: return DefaultPixelBlenders<TPixel>.Src.Instance;
+                case PixelBlenderMode.Atop: return DefaultPixelBlenders<TPixel>.Atop.Instance;
+                case PixelBlenderMode.Over: return DefaultPixelBlenders<TPixel>.Over.Instance;
+                case PixelBlenderMode.In: return DefaultPixelBlenders<TPixel>.In.Instance;
+                case PixelBlenderMode.Out: return DefaultPixelBlenders<TPixel>.Out.Instance;
+                case PixelBlenderMode.Dest: return DefaultPixelBlenders<TPixel>.Dest.Instance;
+                case PixelBlenderMode.DestAtop: return DefaultPixelBlenders<TPixel>.DestAtop.Instance;
+                case PixelBlenderMode.DestOver: return DefaultPixelBlenders<TPixel>.DestOver.Instance;
+                case PixelBlenderMode.DestIn: return DefaultPixelBlenders<TPixel>.DestIn.Instance;
+                case PixelBlenderMode.DestOut: return DefaultPixelBlenders<TPixel>.DestOut.Instance;
+                case PixelBlenderMode.Clear: return DefaultPixelBlenders<TPixel>.Clear.Instance;
+                case PixelBlenderMode.Xor: return DefaultPixelBlenders<TPixel>.Xor.Instance;
+
                 case PixelBlenderMode.Normal:
                 default:
-                    return DefaultNormalPixelBlender<TPixel>.Instance;
+                    return DefaultPixelBlenders<TPixel>.Normal.Instance;
             }
         }
     }

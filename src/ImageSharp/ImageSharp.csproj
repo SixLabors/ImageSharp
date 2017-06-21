@@ -63,6 +63,14 @@
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>Rgba32.PixelOperations.Generated.cs</LastGenOutput>
     </None>
+    <None Update="PixelFormats\PixelBlenders\PorterDuffFunctions.Generated.tt">
+      <LastGenOutput>PorterDuffFunctions.Generated.cs</LastGenOutput>
+      <Generator>TextTemplatingFileGenerator</Generator>
+    </None>
+    <None Update="PixelFormats\PixelBlenders\DefaultPixelBlenders.Generated.tt">
+      <LastGenOutput>DefaultPixelBlenders.Generated.cs</LastGenOutput>
+      <Generator>TextTemplatingFileGenerator</Generator>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
@@ -82,6 +90,16 @@
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>Rgba32.PixelOperations.Generated.tt</DependentUpon>
+    </Compile>
+    <Compile Update="PixelFormats\PixelBlenders\DefaultPixelBlenders.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>DefaultPixelBlenders.Generated.tt</DependentUpon>
+    </Compile>
+    <Compile Update="PixelFormats\PixelBlenders\PorterDuffFunctions.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>PorterDuffFunctions.Generated.tt</DependentUpon>
     </Compile>
   </ItemGroup>
 </Project>

@@ -40,6 +40,16 @@ namespace ImageSharp.Formats
         }
 
         /// <summary>
+        /// Gets or sets the photometric interpretation implementation to use when encoding the image.
+        /// </summary>
+        public TiffColorType ColorType { get; set; }
+
+        /// <summary>
+        /// Gets or sets the compression implementation to use when encoding the image.
+        /// </summary>
+        public TiffCompressionType CompressionType { get; set; }
+
+        /// <summary>
         /// Encodes the image to the specified stream from the <see cref="Image{TPixel}"/>.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
@@ -137,6 +147,94 @@ namespace ImageSharp.Formats
         /// <param name="ifdOffset">The marker to write this IFD offset.</param>
         /// <returns>The marker to write the next IFD offset (if present).</returns>
         public long WriteImage<TPixel>(TiffWriter writer, Image<TPixel> image, long ifdOffset)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            List<TiffIfdEntry> ifdEntries = new List<TiffIfdEntry>();
+
+            this.AddImageFormat(image, ifdEntries);
+            this.AddMetadata(image, ifdEntries);
+
+            writer.WriteMarker(ifdOffset, (uint)writer.Position);
+            long nextIfdMarker = this.WriteIfd(writer, ifdEntries);
+
+            return nextIfdMarker;
+        }
+
+        /// <summary>
+        /// Adds image metadata to the specified IFD.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="image">The <see cref="ImageBase{TPixel}"/> to encode from.</param>
+        /// <param name="ifdEntries">The metadata entries to add to the IFD.</param>
+        public void AddMetadata<TPixel>(Image<TPixel> image, List<TiffIfdEntry> ifdEntries)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            ifdEntries.AddUnsignedRational(TiffTags.XResolution, new Rational(image.MetaData.HorizontalResolution));
+            ifdEntries.AddUnsignedRational(TiffTags.YResolution, new Rational(image.MetaData.VerticalResolution));
+            ifdEntries.AddUnsignedShort(TiffTags.ResolutionUnit, (uint)TiffResolutionUnit.Inch);
+
+            foreach (ImageProperty metadata in image.MetaData.Properties)
+            {
+                switch (metadata.Name)
+                {
+                    case TiffMetadataNames.Artist:
+                        {
+                            ifdEntries.AddAscii(TiffTags.Artist, metadata.Value);
+                            break;
+                        }
+
+                    case TiffMetadataNames.Copyright:
+                        {
+                            ifdEntries.AddAscii(TiffTags.Copyright, metadata.Value);
+                            break;
+                        }
+
+                    case TiffMetadataNames.DateTime:
+                        {
+                            ifdEntries.AddAscii(TiffTags.DateTime, metadata.Value);
+                            break;
+                        }
+
+                    case TiffMetadataNames.HostComputer:
+                        {
+                            ifdEntries.AddAscii(TiffTags.HostComputer, metadata.Value);
+                            break;
+                        }
+
+                    case TiffMetadataNames.ImageDescription:
+                        {
+                            ifdEntries.AddAscii(TiffTags.ImageDescription, metadata.Value);
+                            break;
+                        }
+
+                    case TiffMetadataNames.Make:
+                        {
+                            ifdEntries.AddAscii(TiffTags.Make, metadata.Value);
+                            break;
+                        }
+
+                    case TiffMetadataNames.Model:
+                        {
+                            ifdEntries.AddAscii(TiffTags.Model, metadata.Value);
+                            break;
+                        }
+
+                    case TiffMetadataNames.Software:
+                        {
+                            ifdEntries.AddAscii(TiffTags.Software, metadata.Value);
+                            break;
+                        }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Adds image format information to the specified IFD.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="image">The <see cref="ImageBase{TPixel}"/> to encode from.</param>
+        /// <param name="ifdEntries">The image format entries to add to the IFD.</param>
+        public void AddImageFormat<TPixel>(Image<TPixel> image, List<TiffIfdEntry> ifdEntries)
             where TPixel : struct, IPixel<TPixel>
         {
             throw new NotImplementedException();

@@ -5,7 +5,7 @@
 
 namespace ImageSharp.Formats.Jpeg.Port.Components
 {
-    using System.Collections.Generic;
+    using System.Runtime.CompilerServices;
 
     /// <summary>
     /// Represents a branch in the huffman tree
@@ -23,32 +23,31 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
         public short Value;
 
         /// <summary>
-        /// The children
+        /// The children.
         /// </summary>
-        public List<HuffmanBranch> Children;
+        public HuffmanBranch[] Children;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="HuffmanBranch"/> struct.
         /// </summary>
         /// <param name="value">The value</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public HuffmanBranch(short value)
-            : this(value, new List<HuffmanBranch>())
         {
+            this.Index = 0;
+            this.Value = value;
+            this.Children = new HuffmanBranch[2];
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="HuffmanBranch"/> struct.
         /// </summary>
         /// <param name="children">The branch children</param>
-        public HuffmanBranch(List<HuffmanBranch> children)
-            : this((short)0, children)
-        {
-        }
-
-        private HuffmanBranch(short value, List<HuffmanBranch> children)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public HuffmanBranch(HuffmanBranch[] children)
         {
             this.Index = 0;
-            this.Value = value;
+            this.Value = -1;
             this.Children = children;
         }
     }

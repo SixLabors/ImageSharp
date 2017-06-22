@@ -5,11 +5,15 @@
 
 namespace ImageSharp.Formats.Jpeg.Port.Components
 {
+    using System;
+
     /// <summary>
     /// Represent a single jpeg frame
     /// </summary>
-    internal class Frame
+    internal class Frame : IDisposable
     {
+        private bool isDisposed;
+
         /// <summary>
         /// Gets or sets a value indicating whether the frame uses the extended specification
         /// </summary>
@@ -48,7 +52,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
         /// <summary>
         /// Gets or sets the frame component collection
         /// </summary>
-        public Component[] Components { get; set; }
+        public FrameComponent[] Components { get; set; }
 
         /// <summary>
         /// Gets or sets the maximum horizontal sampling factor
@@ -69,5 +73,36 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
         /// Gets or sets the number of MCU's per column
         /// </summary>
         public int McusPerColumn { get; set; }
+
+        /// <inheritdoc/>
+        public void Dispose()
+        {
+            this.Dispose(true);
+        }
+
+        /// <summary>
+        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+        /// </summary>
+        /// <param name="disposing">Whether to dispose of managed objects</param>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (this.isDisposed)
+            {
+                return;
+            }
+
+            if (disposing)
+            {
+                foreach (FrameComponent component in this.Components)
+                {
+                    component.Dispose();
+                }
+            }
+
+            // Set large fields to null.
+            this.Components = null;
+
+            this.isDisposed = true;
+        }
     }
 }

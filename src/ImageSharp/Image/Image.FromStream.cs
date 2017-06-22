@@ -19,6 +19,27 @@ namespace ImageSharp
     public static partial class Image
     {
         /// <summary>
+        /// By reading the header on the provided stream this calculates the images mimetype.
+        /// </summary>
+        /// <param name="stream">The image stream to read the header from.</param>
+        /// <returns>The mimetype or null if none found.</returns>
+        public static string DiscoverMimeType(Stream stream)
+        {
+            return DiscoverMimeType(null, stream);
+        }
+
+        /// <summary>
+        /// By reading the header on the provided stream this calculates the images mimetype.
+        /// </summary>
+        /// <param name="config">The configuration.</param>
+        /// <param name="stream">The image stream to read the header from.</param>
+        /// <returns>The mimetype or null if none found.</returns>
+        public static string DiscoverMimeType(Configuration config, Stream stream)
+        {
+            return WithSeekableStream(stream, s => InternalDiscoverMimeType(s, config ?? Configuration.Default));
+        }
+
+        /// <summary>
         /// Create a new instance of the <see cref="Image{Rgba32}"/> class from the given stream.
         /// </summary>
         /// <param name="stream">The stream containing image information.</param>
@@ -169,21 +190,21 @@ namespace ImageSharp
         {
             config = config ?? Configuration.Default;
             mimeType = null;
-            (Image<TPixel> img, IImageDecoder decoder) data = WithSeekableStream(stream, s => Decode<TPixel>(s, config));
+            (Image<TPixel> img, string mimeType) data = WithSeekableStream(stream, s => Decode<TPixel>(s, config));
 
-            mimeType = data.decoder?.MimeTypes.FirstOrDefault();
+            mimeType = data.mimeType;
 
             if (data.img != null)
             {
                 return data.img;
             }
 
-            StringBuilder stringBuilder = new StringBuilder();
+            var stringBuilder = new StringBuilder();
             stringBuilder.AppendLine("Image cannot be loaded. Available decoders:");
 
-            foreach (IImageDecoder format in config.ImageDecoders)
+            foreach (Type format in config.AllMimeImageDecoders)
             {
-                stringBuilder.AppendLine("-" + format);
+                stringBuilder.AppendLine(" - " + format.Name);
             }
 
             throw new NotSupportedException(stringBuilder.ToString());
@@ -202,7 +223,7 @@ namespace ImageSharp
             }
 
             // We want to be able to load images from things like HttpContext.Request.Body
-            using (MemoryStream ms = new MemoryStream())
+            using (var ms = new MemoryStream())
             {
                 stream.CopyTo(ms);
                 ms.Position = 0;

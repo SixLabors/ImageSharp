@@ -16,6 +16,30 @@ namespace ImageSharp
     public static partial class Image
     {
         /// <summary>
+        /// By reading the header on the provided byte array this calculates the images mimetype.
+        /// </summary>
+        /// <param name="data">The byte array containing image data to read the header from.</param>
+        /// <returns>The mimetype or null if none found.</returns>
+        public static string DiscoverMimeType(byte[] data)
+        {
+            return DiscoverMimeType(null, data);
+        }
+
+        /// <summary>
+        /// By reading the header on the provided byte array this calculates the images mimetype.
+        /// </summary>
+        /// <param name="config">The configuration.</param>
+        /// <param name="data">The byte array containing image data to read the header from.</param>
+        /// <returns>The mimetype or null if none found.</returns>
+        public static string DiscoverMimeType(Configuration config, byte[] data)
+        {
+            using (Stream stream = new MemoryStream(data))
+            {
+                return DiscoverMimeType(config, stream);
+            }
+        }
+
+        /// <summary>
         /// Create a new instance of the <see cref="Image{Rgba32}"/> class from the given byte array.
         /// </summary>
         /// <param name="data">The byte array containing image data.</param>

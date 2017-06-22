@@ -13,7 +13,7 @@ namespace ImageSharp.Tests
     using ImageSharp.Formats;
     using ImageSharp.IO;
     using ImageSharp.PixelFormats;
-
+    using Moq;
     using Xunit;
 
     /// <summary>
@@ -21,23 +21,27 @@ namespace ImageSharp.Tests
     /// </summary>
     public class ConfigurationTests
     {
+        public Configuration ConfigurationEmpty { get; private set; }
+        public Configuration DefaultConfiguration { get; private set; }
+
+        public ConfigurationTests()
+        {
+            this.DefaultConfiguration = Configuration.CreateDefaultInstance();
+            this.ConfigurationEmpty = Configuration.CreateDefaultInstance();
+        }
+
         [Fact]
         public void DefaultsToLocalFileSystem()
         {
-            var configuration = Configuration.CreateDefaultInstance();
-
-            ImageSharp.IO.IFileSystem fs = configuration.FileSystem;
-
-            Assert.IsType<LocalFileSystem>(fs);
+            Assert.IsType<LocalFileSystem>(DefaultConfiguration.FileSystem);
+            Assert.IsType<LocalFileSystem>(ConfigurationEmpty.FileSystem);
         }
 
         [Fact]
         public void IfAutoloadWellknwonFormatesIsTrueAllFormateAreLoaded()
         {
-            var configuration = Configuration.CreateDefaultInstance();
-
-            Assert.Equal(4, configuration.ImageDecoders.Count);
-            Assert.Equal(4, configuration.ImageDecoders.Count);
+            Assert.Equal(4, DefaultConfiguration.AllMimeImageDecoders.Count());
+            Assert.Equal(4, DefaultConfiguration.AllMimeImageDecoders.Count());
         }
 
         /// <summary>
@@ -68,58 +72,129 @@ namespace ImageSharp.Tests
             Assert.True(Configuration.Default.ParallelOptions.MaxDegreeOfParallelism == Environment.ProcessorCount);
         }
 
-        /// <summary>
-        /// Test that the default configuration parallel options is not null.
-        /// </summary>
         [Fact]
-        public void TestDefultConfigurationImageFormatsIsNotNull()
-        {
-            Assert.True(Configuration.Default.ImageDecoders != null);
-            Assert.True(Configuration.Default.ImageEncoders != null);
-        }
-
-        /// <summary>
-        /// Tests the <see cref="M:Configuration.AddImageFormat"/> method throws an exception
-        /// when the format is null.
-        /// </summary>
-        [Fact]
-        public void TestAddImageFormatThrowsWithNullFormat()
+        public void AddMimeTypeDetectorNullthrows()
         {
             Assert.Throws<ArgumentNullException>(() =>
             {
-                Configuration.Default.AddImageFormat((IImageEncoder)null);
+                DefaultConfiguration.AddMimeTypeDetector(null);
+            });
+        }
+
+        [Fact]
+        public void RegisterNullMimeTypeEncoder()
+        {
+            Assert.Throws<ArgumentNullException>(() =>
+            {
+                DefaultConfiguration.SetMimeTypeEncoder(null, new Mock<IImageEncoder>().Object);
             });
             Assert.Throws<ArgumentNullException>(() =>
             {
-                Configuration.Default.AddImageFormat((IImageDecoder)null);
+                DefaultConfiguration.SetMimeTypeEncoder("sdsdsd", null);
+            });
+            Assert.Throws<ArgumentNullException>(() =>
+            {
+                DefaultConfiguration.SetMimeTypeEncoder(null, null);
             });
         }
 
-        /// <summary>
-        /// Test that the default image constructors use default configuration.
-        /// </summary>
         [Fact]
-        public void TestImageUsesDefaultConfiguration()
+        public void RegisterNullFileExtEncoder()
         {
-            Configuration.Default.AddImageFormat(new PngDecoder());
-
-            var image = new Image<Rgba32>(1, 1);
-            Assert.Equal(image.Configuration.ParallelOptions, Configuration.Default.ParallelOptions);
-            Assert.Equal(image.Configuration.ImageDecoders, Configuration.Default.ImageDecoders);
+            Assert.Throws<ArgumentNullException>(() =>
+            {
+                DefaultConfiguration.SetFileExtensionEncoder(null, new Mock<IImageEncoder>().Object);
+            });
+            Assert.Throws<ArgumentNullException>(() =>
+            {
+                DefaultConfiguration.SetFileExtensionEncoder("sdsdsd", null);
+            });
+            Assert.Throws<ArgumentNullException>(() =>
+            {
+                DefaultConfiguration.SetFileExtensionEncoder(null, null);
+            });
         }
 
-        /// <summary>
-        /// Test that the default image constructor copies the configuration.
-        /// </summary>
         [Fact]
-        public void TestImageCopiesConfiguration()
+        public void RegisterNullMimeTypeDecoder()
         {
-            Configuration.Default.AddImageFormat(new PngDecoder());
+            Assert.Throws<ArgumentNullException>(() =>
+            {
+                DefaultConfiguration.SetMimeTypeDecoder(null, new Mock<IImageDecoder>().Object);
+            });
+            Assert.Throws<ArgumentNullException>(() =>
+            {
+                DefaultConfiguration.SetMimeTypeDecoder("sdsdsd", null);
+            });
+            Assert.Throws<ArgumentNullException>(() =>
+            {
+                DefaultConfiguration.SetMimeTypeDecoder(null, null);
+            });
+        }
 
-            var image = new Image<Rgba32>(1, 1);
-            var image2 = new Image<Rgba32>(image);
-            Assert.Equal(image2.Configuration.ParallelOptions, image.Configuration.ParallelOptions);
-            Assert.True(image2.Configuration.ImageDecoders.SequenceEqual(image.Configuration.ImageDecoders));
+        [Fact]
+        public void RegisterMimeTypeEncoderReplacesLast()
+        {
+            var encoder1 = new Mock<IImageEncoder>().Object;
+            ConfigurationEmpty.SetMimeTypeEncoder("test", encoder1);
+            var found = ConfigurationEmpty.FindMimeTypeEncoder("TEST");
+            Assert.Equal(encoder1, found);
+
+            var encoder2 = new Mock<IImageEncoder>().Object;
+            ConfigurationEmpty.SetMimeTypeEncoder("TEST", encoder2);
+            var found2 = ConfigurationEmpty.FindMimeTypeEncoder("test");
+            Assert.Equal(encoder2, found2);
+            Assert.NotEqual(found, found2);
+        }
+
+        [Fact]
+        public void RegisterFileExtEnecoderReplacesLast()
+        {
+            var encoder1 = new Mock<IImageEncoder>().Object;
+            ConfigurationEmpty.SetFileExtensionEncoder("TEST", encoder1);
+            var found = ConfigurationEmpty.FindFileExtensionsEncoder("test");
+            Assert.Equal(encoder1, found);
+
+            var encoder2 = new Mock<IImageEncoder>().Object;
+            ConfigurationEmpty.SetFileExtensionEncoder("test", encoder2);
+            var found2 = ConfigurationEmpty.FindFileExtensionsEncoder("TEST");
+            Assert.Equal(encoder2, found2);
+            Assert.NotEqual(found, found2);
+        }
+
+        [Fact]
+        public void RegisterMimeTypeDecoderReplacesLast()
+        {
+            var decoder1 = new Mock<IImageDecoder>().Object;
+            ConfigurationEmpty.SetMimeTypeDecoder("test", decoder1);
+            var found = ConfigurationEmpty.FindMimeTypeDecoder("TEST");
+            Assert.Equal(decoder1, found);
+
+            var decoder2 = new Mock<IImageDecoder>().Object;
+            ConfigurationEmpty.SetMimeTypeDecoder("TEST", decoder2);
+            var found2 = ConfigurationEmpty.FindMimeTypeDecoder("test");
+            Assert.Equal(decoder2, found2);
+            Assert.NotEqual(found, found2);
+        }
+
+
+        [Fact]
+        public void ConstructorCallConfigureOnFormatProvider()
+        {
+            var provider = new Mock<IImageFormatProvider>();
+            var config = new Configuration(provider.Object);
+
+            provider.Verify(x => x.Configure(config));
+        }
+
+        [Fact]
+        public void AddFormatCallsConfig()
+        {
+            var provider = new Mock<IImageFormatProvider>();
+            var config = new Configuration();
+            config.AddImageFormat(provider.Object);
+
+            provider.Verify(x => x.Configure(config));
         }
     }
 }

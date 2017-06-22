@@ -124,7 +124,7 @@ namespace ImageSharp.Tests
         private static IImageEncoder GetImageFormatByExtension(string extension)
         {
             extension = extension?.TrimStart('.');
-            return Configuration.Default.ImageEncoders.Last(f => f.FileExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase));
+            return Configuration.Default.FindFileExtensionsEncoder(extension);
         }
 
         private string GetTestOutputDir()

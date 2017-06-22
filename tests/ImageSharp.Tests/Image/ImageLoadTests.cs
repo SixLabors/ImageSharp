@@ -23,6 +23,7 @@ namespace ImageSharp.Tests
         private Image<Rgba32> returnImage;
         private Mock<IImageDecoder> localDecoder;
         private readonly string FilePath;
+        private readonly Mock<IMimeTypeDetector> localMimeTypeDetector;
 
         public Configuration LocalConfiguration { get; private set; }
         public byte[] Marker { get; private set; }
@@ -34,10 +35,9 @@ namespace ImageSharp.Tests
             this.returnImage = new Image<Rgba32>(1, 1);
 
             this.localDecoder = new Mock<IImageDecoder>();
-            this.localDecoder.Setup(x => x.MimeTypes).Returns(new[] { "img/test" });
-            this.localDecoder.Setup(x => x.FileExtensions).Returns(new[] { "png", "jpg" });
-            this.localDecoder.Setup(x => x.HeaderSize).Returns(1);
-            this.localDecoder.Setup(x => x.IsSupportedFileFormat(It.IsAny<Span<byte>>())).Returns(true);
+            this.localMimeTypeDetector = new Mock<IMimeTypeDetector>();
+            this.localMimeTypeDetector.Setup(x => x.HeaderSize).Returns(1);
+            this.localMimeTypeDetector.Setup(x => x.DetectMimeType(It.IsAny<Span<byte>>())).Returns("test");
 
             this.localDecoder.Setup(x => x.Decode<Rgba32>(It.IsAny<Configuration>(), It.IsAny<Stream>()))
 
@@ -56,8 +56,8 @@ namespace ImageSharp.Tests
             {
                 FileSystem = this.fileSystem.Object
             };
-
-            this.LocalConfiguration.AddImageFormat(this.localDecoder.Object);
+            this.LocalConfiguration.AddMimeTypeDetector(this.localMimeTypeDetector.Object);
+            this.LocalConfiguration.SetMimeTypeDecoder("test", this.localDecoder.Object);
 
             TestFormat.RegisterGloablTestFormat();
             this.Marker = Guid.NewGuid().ToByteArray();

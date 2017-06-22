@@ -1,4 +1,9 @@
-﻿// ReSharper disable InconsistentNaming
+﻿// <copyright file="JpegConstants.cs" company="James Jackson-South">
+// Copyright (c) James Jackson-South and contributors.
+// Licensed under the Apache License, Version 2.0.
+// </copyright>
+
+// ReSharper disable InconsistentNaming
 namespace ImageSharp.Formats.Jpeg.Port
 {
     /// <summary>
@@ -192,6 +197,11 @@ namespace ImageSharp.Formats.Jpeg.Port
             public const ushort RST7 = 0xFFD7;
 
             /// <summary>
+            /// Marker prefix. Next byte is a marker.
+            /// </summary>
+            public const ushort XFF = 0xFFFF;
+
+            /// <summary>
             /// Contains JFIF specific markers
             /// </summary>
             public static class JFif
@@ -215,6 +225,52 @@ namespace ImageSharp.Formats.Jpeg.Port
                 /// Represents the null "0" marker
                 /// </summary>
                 public const byte Null = 0;
+            }
+
+            /// <summary>
+            /// Contains Adobe specific markers
+            /// </summary>
+            public static class Adobe
+            {
+                /// <summary>
+                /// Represents A in ASCII
+                /// </summary>
+                public const byte A = 0x41;
+
+                /// <summary>
+                /// Represents d in ASCII
+                /// </summary>
+                public const byte D = 0x64;
+
+                /// <summary>
+                /// Represents b in ASCII
+                /// </summary>
+                public const byte O = 0x6F;
+
+                /// <summary>
+                /// Represents b in ASCII
+                /// </summary>
+                public const byte B = 0x62;
+
+                /// <summary>
+                /// Represents e in ASCII
+                /// </summary>
+                public const byte E = 0x65;
+
+                /// <summary>
+                /// The color transform is unknown.(RGB or CMYK)
+                /// </summary>
+                public const byte ColorTransformUnknown = 0;
+
+                /// <summary>
+                /// The color transform is YCbCr (luminance, red chroma, blue chroma)
+                /// </summary>
+                public const byte ColorTransformYCbCr = 1;
+
+                /// <summary>
+                /// The color transform is YCCK (luminance, red chroma, blue chroma, keyline)
+                /// </summary>
+                public const byte ColorTransformYcck = 2;
             }
         }
     }

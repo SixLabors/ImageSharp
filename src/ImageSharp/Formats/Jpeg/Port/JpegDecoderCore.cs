@@ -46,13 +46,29 @@ namespace ImageSharp.Formats.Jpeg.Port
 
         private Frame frame;
 
+        private ComponentBlocks components;
+
         private ushort resetInterval;
 
+        private int width;
+
+        private int height;
+
+        private int numComponents;
+
         /// <summary>
-        /// Contains information about the jFIF marker
+        /// Contains information about the JFIF marker
         /// </summary>
         private JFif jFif;
 
+        /// <summary>
+        /// Contains information about the Adobe marker
+        /// </summary>
+        private Adobe adobe;
+
+        /// <summary>
+        /// A value indicating whether the decoder has been disposed
+        /// </summary>
         private bool isDisposed;
 
         /// <summary>
@@ -208,9 +224,12 @@ namespace ImageSharp.Formats.Jpeg.Port
                 if (disposing)
                 {
                     this.frame.Dispose();
+                    this.components.Dispose();
                 }
 
-                // TODO: set large fields to null.
+                // Set large fields to null.
+                this.frame = null;
+                this.components = null;
                 this.isDisposed = true;
             }
         }
@@ -255,9 +274,16 @@ namespace ImageSharp.Formats.Jpeg.Port
                     case JpegConstants.Markers.APP11:
                     case JpegConstants.Markers.APP12:
                     case JpegConstants.Markers.APP13:
+                        break;
+
                     case JpegConstants.Markers.APP14:
+                        this.ProcessApp14Marker(remaining);
+                        break;
+
                     case JpegConstants.Markers.APP15:
                     case JpegConstants.Markers.COM:
+
+                        // TODO: Read data block
                         break;
 
                     case JpegConstants.Markers.DQT:
@@ -275,17 +301,66 @@ namespace ImageSharp.Formats.Jpeg.Port
                         break;
 
                     case JpegConstants.Markers.DRI:
-                        this.resetInterval = this.ReadUint16();
+                        this.ProcessDefineRestartIntervalMarker(remaining);
                         break;
 
                     case JpegConstants.Markers.SOS:
                         this.ProcessStartOfScanMarker();
                         break;
+
+                    case JpegConstants.Markers.XFF:
+                        if ((byte)this.InputStream.ReadByte() != 0xFF)
+                        {
+                            // Avoid skipping a valid marker
+                            this.InputStream.Position -= 2;
+                        }
+                        else
+                        {
+                            // Rewind that last byte we read
+                            this.InputStream.Position -= 1;
+                        }
+
+                        break;
+
+                    default:
+
+                        // Skip back as it could be incorrect encoding -- last 0xFF byte of the previous
+                        // block was eaten by the encoder
+                        this.InputStream.Position -= 3;
+                        this.InputStream.Read(this.temp, 0, 2);
+                        if (this.temp[0] == 0xFF && this.temp[1] >= 0xC0 && this.temp[1] <= 0xFE)
+                        {
+                            // Rewind that last bytes we read
+                            this.InputStream.Position -= 2;
+                        }
+
+                        break;
                 }
 
-                // Read on
+                // Read on. TODO: Test this on damaged images.
                 fileMarker = FindNextFileMarker(this.InputStream);
             }
+
+            this.width = this.frame.SamplesPerLine;
+            this.height = this.frame.Scanlines;
+            this.components = new ComponentBlocks { Components = new Component[this.frame.ComponentCount] };
+
+            for (int i = 0; i < this.components.Components.Length; i++)
+            {
+                ref var frameComponent = ref this.frame.Components[i];
+                var component = new Component
+                {
+                    ScaleX = frameComponent.HorizontalFactor / this.frame.MaxHorizontalFactor,
+                    ScaleY = frameComponent.VerticalFactor / this.frame.MaxVerticalFactor,
+                    BlocksPerLine = frameComponent.BlocksPerLine,
+                    BlocksPerColumn = frameComponent.BlocksPerColumn
+                };
+
+                this.BuildComponentData(ref component);
+                this.components.Components[i] = component;
+            }
+
+            this.numComponents = this.components.Components.Length;
         }
 
         /// <summary>
@@ -322,7 +397,47 @@ namespace ImageSharp.Formats.Jpeg.Port
                 };
             }
 
-            // Skip thumbnails for now.
+            // TODO: thumbnail
+            if (remaining > 0)
+            {
+                this.InputStream.Skip(remaining);
+            }
+        }
+
+        /// <summary>
+        /// Processes the application header containing the Adobe identifier
+        /// which stores image encoding information for DCT filters.
+        /// </summary>
+        /// <param name="remaining">The remaining bytes in the segment block.</param>
+        private void ProcessApp14Marker(int remaining)
+        {
+            if (remaining < 12)
+            {
+                // Skip the application header length
+                this.InputStream.Skip(remaining);
+                return;
+            }
+
+            this.InputStream.Read(this.temp, 0, 12);
+            remaining -= 12;
+
+            bool isAdobe = this.temp[0] == JpegConstants.Markers.Adobe.A &&
+                          this.temp[1] == JpegConstants.Markers.Adobe.D &&
+                          this.temp[2] == JpegConstants.Markers.Adobe.O &&
+                          this.temp[3] == JpegConstants.Markers.Adobe.B &&
+                          this.temp[4] == JpegConstants.Markers.Adobe.E;
+
+            if (isAdobe)
+            {
+                this.adobe = new Adobe
+                {
+                    DCTEncodeVersion = (short)((this.temp[5] << 8) | this.temp[6]),
+                    APP14Flags0 = (short)((this.temp[7] << 8) | this.temp[8]),
+                    APP14Flags1 = (short)((this.temp[9] << 8) | this.temp[10]),
+                    ColorTransform = this.temp[11]
+                };
+            }
+
             if (remaining > 0)
             {
                 this.InputStream.Skip(remaining);
@@ -439,7 +554,7 @@ namespace ImageSharp.Formats.Jpeg.Port
             this.frame.ComponentIds = new byte[this.frame.ComponentCount];
             this.frame.Components = new FrameComponent[this.frame.ComponentCount];
 
-            for (int i = 0; i < this.frame.ComponentCount; i++)
+            for (int i = 0; i < this.frame.Components.Length; i++)
             {
                 int h = this.temp[index + 1] >> 4;
                 int v = this.temp[index + 1] & 15;
@@ -462,7 +577,6 @@ namespace ImageSharp.Formats.Jpeg.Port
 
                 this.frame.ComponentIds[i] = (byte)i;
 
-                // Don't assign the table yet.
                 index += 3;
             }
 
@@ -518,6 +632,21 @@ namespace ImageSharp.Formats.Jpeg.Port
         }
 
         /// <summary>
+        /// Processes the DRI (Define Restart Interval Marker) Which specifies the interval between RSTn markers, in
+        /// macroblocks
+        /// </summary>
+        /// <param name="remaining">The remaining bytes in the segment block.</param>
+        private void ProcessDefineRestartIntervalMarker(int remaining)
+        {
+            if (remaining != 2)
+            {
+                throw new ImageFormatException("DRI has wrong length");
+            }
+
+            this.resetInterval = this.ReadUint16();
+        }
+
+        /// <summary>
         /// Processes the SOS (Start of scan marker).
         /// </summary>
         private void ProcessStartOfScanMarker()
@@ -550,6 +679,15 @@ namespace ImageSharp.Formats.Jpeg.Port
                spectralEnd,
                successiveApproximation >> 4,
                successiveApproximation & 15);
+        }
+
+        /// <summary>
+        /// Build the data for the given component
+        /// </summary>
+        /// <param name="component">The component</param>
+        private void BuildComponentData(ref Component component)
+        {
+            // TODO: Write this
         }
 
         /// <summary>
@@ -647,42 +785,6 @@ namespace ImageSharp.Formats.Jpeg.Port
         {
             this.InputStream.Read(this.uint16Buffer, 0, 2);
             return (ushort)((this.uint16Buffer[0] << 8) | this.uint16Buffer[1]);
-        }
-
-        /// <summary>
-        /// Provides information about the JFIF marker segment
-        /// </summary>
-        internal struct JFif
-        {
-            /// <summary>
-            /// The major version
-            /// </summary>
-            public byte MajorVersion;
-
-            /// <summary>
-            /// The minor version
-            /// </summary>
-            public byte MinorVersion;
-
-            /// <summary>
-            /// Units for the following pixel density fields
-            ///  00 : No units; width:height pixel aspect ratio = Ydensity:Xdensity
-            ///  01 : Pixels per inch (2.54 cm)
-            ///  02 : Pixels per centimeter
-            /// </summary>
-            public byte DensityUnits;
-
-            /// <summary>
-            /// Horizontal pixel density. Must not be zero.
-            /// </summary>
-            public short XDensity;
-
-            /// <summary>
-            /// Vertical pixel density. Must not be zero.
-            /// </summary>
-            public short YDensity;
-
-            // TODO: Thumbnail?
         }
     }
 }

@@ -93,15 +93,17 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
 
             if (disposing)
             {
-                foreach (FrameComponent component in this.Components)
+                if (this.Components != null)
                 {
-                    component.Dispose();
+                    for (int i = 0; i < this.Components.Length; i++)
+                    {
+                        this.Components[i].Dispose();
+                    }
                 }
             }
 
             // Set large fields to null.
             this.Components = null;
-
             this.isDisposed = true;
         }
     }

@@ -25,8 +25,10 @@ namespace ImageSharp.Formats
             // {
             //    return decoder.Decode<TPixel>(stream);
             // }
-            var decoder = new Jpeg.Port.JpegDecoderCore(options, configuration);
-            return decoder.Decode<TPixel>(stream);
+            using (var decoder = new Jpeg.Port.JpegDecoderCore(options, configuration))
+            {
+                return decoder.Decode<TPixel>(stream);
+            }
         }
     }
 }

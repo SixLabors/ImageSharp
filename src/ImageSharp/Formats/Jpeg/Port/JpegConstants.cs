@@ -174,6 +174,24 @@ namespace ImageSharp.Formats.Jpeg.Port
             public const ushort SOS = 0xFFDA;
 
             /// <summary>
+            /// Define First Restart
+            /// <remarks>
+            /// Inserted every r macroblocks, where r is the restart interval set by a DRI marker.
+            /// Not used if there was no DRI marker. The low three bits of the marker code cycle in value from 0 to 7.
+            /// </remarks>
+            /// </summary>
+            public const ushort RST0 = 0xFFD0;
+
+            /// <summary>
+            /// Define Eigth Restart
+            /// <remarks>
+            /// Inserted every r macroblocks, where r is the restart interval set by a DRI marker.
+            /// Not used if there was no DRI marker. The low three bits of the marker code cycle in value from 0 to 7.
+            /// </remarks>
+            /// </summary>
+            public const ushort RST7 = 0xFFD7;
+
+            /// <summary>
             /// Contains JFIF specific markers
             /// </summary>
             public static class JFif

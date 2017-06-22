@@ -24,24 +24,26 @@ namespace ImageSharp.Tests
         private readonly Mock<IFileSystem> fileSystem;
         private readonly Mock<IImageEncoder> encoder;
         private readonly Mock<IImageEncoder> encoderNotInFormat;
+        private Mock<IMimeTypeDetector> localMimeTypeDetector;
 
         public ImageSaveTests()
         {
-            this.encoder = new Mock<IImageEncoder>();
-            this.encoder.Setup(x => x.MimeTypes).Returns(new[] { "img/test" });
-            this.encoder.Setup(x => x.FileExtensions).Returns(new string[] { "png", "jpg" });
+            this.localMimeTypeDetector = new Mock<IMimeTypeDetector>();
+            this.localMimeTypeDetector.Setup(x => x.HeaderSize).Returns(1);
+            this.localMimeTypeDetector.Setup(x => x.DetectMimeType(It.IsAny<Span<byte>>())).Returns("img/test");
 
+            this.encoder = new Mock<IImageEncoder>();
 
             this.encoderNotInFormat = new Mock<IImageEncoder>();
-            this.encoderNotInFormat.Setup(x => x.MimeTypes).Returns(new[] { "img/test" });
-            this.encoderNotInFormat.Setup(x => x.FileExtensions).Returns(new string[] { "png", "jpg" });
 
             this.fileSystem = new Mock<IFileSystem>();
             var config = new Configuration()
             {
                 FileSystem = this.fileSystem.Object
             };
-            config.AddImageFormat(this.encoder.Object);
+            config.AddMimeTypeDetector(this.localMimeTypeDetector.Object);
+            config.SetMimeTypeEncoder("img/test", this.encoder.Object);
+            config.SetFileExtensionEncoder("png", this.encoder.Object);
             this.Image = new Image<Rgba32>(config, 1, 1);
         }
 

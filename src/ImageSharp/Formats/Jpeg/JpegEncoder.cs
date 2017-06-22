@@ -34,12 +34,6 @@ namespace ImageSharp.Formats
         /// <value>The subsample ratio of the jpg image.</value>
         public JpegSubsample? Subsample { get; set; }
 
-        /// <inheritdoc/>
-        public IEnumerable<string> MimeTypes => JpegConstants.MimeTypes;
-
-        /// <inheritdoc/>
-        public IEnumerable<string> FileExtensions => JpegConstants.FileExtensions;
-
         /// <summary>
         /// Encodes the image to the specified stream from the <see cref="Image{TPixel}"/>.
         /// </summary>

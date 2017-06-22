@@ -38,33 +38,10 @@ namespace ImageSharp.Formats
         /// </summary>
         public bool IgnoreMetadata { get; set; }
 
-        /// <inheritdoc/>
-        public IEnumerable<string> MimeTypes => PngConstants.MimeTypes;
-
-        /// <inheritdoc/>
-        public IEnumerable<string> FileExtensions => PngConstants.FileExtensions;
-
-        /// <inheritdoc/>
-        public int HeaderSize => 8;
-
         /// <summary>
         /// Gets or sets the encoding that should be used when reading text chunks.
         /// </summary>
         public Encoding TextEncoding { get; set; } = PngConstants.DefaultEncoding;
-
-        /// <inheritdoc/>
-        public bool IsSupportedFileFormat(Span<byte> header)
-        {
-            return header.Length >= this.HeaderSize &&
-                   header[0] == 0x89 &&
-                   header[1] == 0x50 && // P
-                   header[2] == 0x4E && // N
-                   header[3] == 0x47 && // G
-                   header[4] == 0x0D && // CR
-                   header[5] == 0x0A && // LF
-                   header[6] == 0x1A && // EOF
-                   header[7] == 0x0A;   // LF
-        }
 
         /// <summary>
         /// Decodes the image from the specified stream to the <see cref="ImageBase{TPixel}"/>.

@@ -19,14 +19,13 @@ namespace ImageSharp.Tests
     /// <summary>
     /// A test image file.
     /// </summary>
-    public class TestFormat
+    public class TestFormat : IImageFormatProvider
     {
         public static TestFormat GlobalTestFormat { get; } = new TestFormat();
 
         public static void RegisterGloablTestFormat()
         {
-            Configuration.Default.AddImageFormat(GlobalTestFormat.Encoder);
-            Configuration.Default.AddImageFormat(GlobalTestFormat.Decoder);
+            Configuration.Default.AddImageFormat(GlobalTestFormat);
         }
 
         public TestFormat()
@@ -66,7 +65,8 @@ namespace ImageSharp.Tests
 
             Assert.True(discovered.Any(), "No calls to decode on this formate with the proveded options happend");
 
-            foreach (DecodeOperation d in discovered) {
+            foreach (DecodeOperation d in discovered)
+            {
                 this.DecodeCalls.Remove(d);
             }
         }
@@ -80,7 +80,7 @@ namespace ImageSharp.Tests
                 {
                     this._sampleImages.Add(typeof(TPixel), new Image<TPixel>(1, 1));
                 }
-            
+
                 return (Image<TPixel>)this._sampleImages[typeof(TPixel)];
             }
         }
@@ -108,12 +108,25 @@ namespace ImageSharp.Tests
             }
             return true;
         }
+
+        public void Configure(IImageFormatHost host)
+        {
+            host.AddMimeTypeDetector(new TestHeader(this));
+            foreach (var ext in this.SupportedExtensions)
+            {
+                host.SetFileExtensionEncoder(ext, new TestEncoder(this));
+            }
+
+            host.SetMimeTypeEncoder(this.MimeType, new TestEncoder(this));
+            host.SetMimeTypeDecoder(this.MimeType, new TestDecoder(this));
+        }
+
         public struct DecodeOperation
         {
             public byte[] marker;
             internal Configuration config;
 
-             public bool IsMatch(byte[] testMarker, Configuration config)
+            public bool IsMatch(byte[] testMarker, Configuration config)
             {
 
                 if (this.config != config)
@@ -137,6 +150,26 @@ namespace ImageSharp.Tests
             }
         }
 
+        public class TestHeader : IMimeTypeDetector
+        {
+
+            private TestFormat testFormat;
+
+            public int HeaderSize => testFormat.HeaderSize;
+
+            public string DetectMimeType(Span<byte> header)
+            {
+                if (testFormat.IsSupportedFileFormat(header))
+                    return testFormat.MimeType;
+
+                return null;
+            }
+
+            public TestHeader(TestFormat testFormat)
+            {
+                this.testFormat = testFormat;
+            }
+        }
         public class TestDecoder : ImageSharp.Formats.IImageDecoder
         {
             private TestFormat testFormat;

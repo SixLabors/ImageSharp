@@ -13,16 +13,16 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
     /// </summary>
     internal class HuffmanTables
     {
-        private List<HuffmanBranch> first = new List<HuffmanBranch>();
+        private HuffmanBranch[] first;
 
-        private List<HuffmanBranch> second = new List<HuffmanBranch>();
+        private HuffmanBranch[] second;
 
         /// <summary>
         /// Gets or sets the table at the given index.
         /// </summary>
         /// <param name="index">The index</param>
         /// <returns>The <see cref="List{HuffmanBranch}"/></returns>
-        public List<HuffmanBranch> this[int index]
+        public HuffmanBranch[] this[int index]
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get

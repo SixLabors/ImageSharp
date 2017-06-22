@@ -8,6 +8,7 @@ namespace ImageSharp.Formats.Jpeg.Port
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Runtime.CompilerServices;
 
     using ImageSharp.Common.Extensions;
     using ImageSharp.Formats.Jpeg.Port.Components;
@@ -18,7 +19,7 @@ namespace ImageSharp.Formats.Jpeg.Port
     /// Performs the jpeg decoding operation.
     /// Ported from <see href="https://github.com/mozilla/pdf.js/blob/master/src/core/jpg.js"/>
     /// </summary>
-    internal class JpegDecoderCore
+    internal class JpegDecoderCore : IDisposable
     {
         /// <summary>
         /// The decoder options.
@@ -48,9 +49,11 @@ namespace ImageSharp.Formats.Jpeg.Port
         private ushort resetInterval;
 
         /// <summary>
-        /// COntains information about the jFIF marker
+        /// Contains information about the jFIF marker
         /// </summary>
         private JFif jFif;
+
+        private bool isDisposed;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="JpegDecoderCore" /> class.
@@ -69,6 +72,109 @@ namespace ImageSharp.Formats.Jpeg.Port
         public Stream InputStream { get; private set; }
 
         /// <summary>
+        /// Finds the next file marker within the byte stream. Not used but I'm keeping it for now for testing
+        /// </summary>
+        /// <param name="stream">The input stream</param>
+        /// <returns>The <see cref="FileMarker"/></returns>
+        public static FileMarker FindNextFileMarkerOld(Stream stream)
+        {
+            byte[] buffer = new byte[2];
+            while (true)
+            {
+                int value = stream.Read(buffer, 0, 2);
+
+                if (value == 0)
+                {
+                    return new FileMarker(JpegConstants.Markers.EOI, (int)stream.Length, true);
+                }
+
+                while (buffer[0] != JpegConstants.Markers.Prefix)
+                {
+                    // Strictly speaking, this is a format error. However, libjpeg is
+                    // liberal in what it accepts. As of version 9, next_marker in
+                    // jdmarker.c treats this as a warning (JWRN_EXTRANEOUS_DATA) and
+                    // continues to decode the stream. Even before next_marker sees
+                    // extraneous data, jpeg_fill_bit_buffer in jdhuff.c reads as many
+                    // bytes as it can, possibly past the end of a scan's data. It
+                    // effectively puts back any markers that it overscanned (e.g. an
+                    // "\xff\xd9" EOI marker), but it does not put back non-marker data,
+                    // and thus it can silently ignore a small number of extraneous
+                    // non-marker bytes before next_marker has a chance to see them (and
+                    // print a warning).
+                    // We are therefore also liberal in what we accept. Extraneous data
+                    // is silently ignore
+                    // This is similar to, but not exactly the same as, the restart
+                    // mechanism within a scan (the RST[0-7] markers).
+                    // Note that extraneous 0xff bytes in e.g. SOS data are escaped as
+                    // "\xff\x00", and so are detected a little further down below.
+                    buffer[0] = buffer[1];
+
+                    value = stream.ReadByte();
+                    if (value == -1)
+                    {
+                        return new FileMarker(JpegConstants.Markers.EOI, (int)stream.Length, true);
+                    }
+
+                    buffer[1] = (byte)value;
+                }
+
+                return new FileMarker((ushort)((buffer[0] << 8) | buffer[1]), (int)(stream.Position - 2));
+            }
+        }
+
+        /// <summary>
+        /// Finds the next file marker within the byte stream
+        /// </summary>
+        /// <param name="stream">The input stream</param>
+        /// <returns>The <see cref="FileMarker"/></returns>
+        public static FileMarker FindNextFileMarker(Stream stream)
+        {
+            byte[] buffer = new byte[2];
+            long maxPos = stream.Length - 1;
+            long currentPos = stream.Position;
+            long newPos = currentPos;
+
+            if (currentPos >= maxPos)
+            {
+                return new FileMarker(JpegConstants.Markers.EOI, (int)stream.Length, true);
+            }
+
+            int value = stream.Read(buffer, 0, 2);
+
+            if (value == 0)
+            {
+                return new FileMarker(JpegConstants.Markers.EOI, (int)stream.Length, true);
+            }
+
+            ushort currentMarker = (ushort)((buffer[0] << 8) | buffer[1]);
+            if (currentMarker >= JpegConstants.Markers.SOF0 && currentMarker <= JpegConstants.Markers.COM)
+            {
+                return new FileMarker(currentMarker, stream.Position - 2);
+            }
+
+            value = stream.Read(buffer, 0, 2);
+
+            if (value == 0)
+            {
+                return new FileMarker(JpegConstants.Markers.EOI, (int)stream.Length, true);
+            }
+
+            ushort newMarker = (ushort)((buffer[0] << 8) | buffer[1]);
+            while (!(newMarker >= JpegConstants.Markers.SOF0 && newMarker <= JpegConstants.Markers.COM))
+            {
+                if (++newPos >= maxPos)
+                {
+                    return new FileMarker(JpegConstants.Markers.EOI, (int)stream.Length, true);
+                }
+
+                stream.Read(buffer, 0, 2);
+                newMarker = (ushort)((buffer[0] << 8) | buffer[1]);
+            }
+
+            return new FileMarker(newMarker, newPos, true);
+        }
+
+        /// <summary>
         /// Decodes the image from the specified <see cref="Stream"/>  and sets
         /// the data to image.
         /// </summary>
@@ -85,27 +191,52 @@ namespace ImageSharp.Formats.Jpeg.Port
             return image;
         }
 
+        /// <inheritdoc/>
+        public void Dispose()
+        {
+            this.Dispose(true);
+        }
+
+        /// <summary>
+        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+        /// </summary>
+        /// <param name="disposing">Whether to dispose of managed objects</param>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!this.isDisposed)
+            {
+                if (disposing)
+                {
+                    this.frame.Dispose();
+                }
+
+                // TODO: set large fields to null.
+                this.isDisposed = true;
+            }
+        }
+
         private void ParseStream()
         {
             // Check for the Start Of Image marker.
-            ushort fileMarker = this.ReadUint16();
-            if (fileMarker != JpegConstants.Markers.SOI)
+            var fileMarker = new FileMarker(this.ReadUint16(), 0);
+            if (fileMarker.Marker != JpegConstants.Markers.SOI)
             {
                 throw new ImageFormatException("Missing SOI marker.");
             }
 
-            fileMarker = this.ReadUint16();
+            ushort marker = this.ReadUint16();
+            fileMarker = new FileMarker(marker, (int)this.InputStream.Position - 2);
 
             this.quantizationTables = new QuantizationTables();
             this.dcHuffmanTables = new HuffmanTables();
             this.acHuffmanTables = new HuffmanTables();
 
-            while (fileMarker != JpegConstants.Markers.EOI)
+            while (fileMarker.Marker != JpegConstants.Markers.EOI)
             {
                 // Get the marker length
                 int remaining = this.ReadUint16() - 2;
 
-                switch (fileMarker)
+                switch (fileMarker.Marker)
                 {
                     case JpegConstants.Markers.APP0:
                         this.ProcessApplicationHeaderMarker(remaining);
@@ -148,12 +279,12 @@ namespace ImageSharp.Formats.Jpeg.Port
                         break;
 
                     case JpegConstants.Markers.SOS:
-                        this.ProcessStartOfScan();
+                        this.ProcessStartOfScanMarker();
                         break;
                 }
 
                 // Read on
-                fileMarker = this.FindNextFileMarker();
+                fileMarker = FindNextFileMarker(this.InputStream);
             }
         }
 
@@ -281,7 +412,7 @@ namespace ImageSharp.Formats.Jpeg.Port
         /// </summary>
         /// <param name="remaining">The remaining bytes in the segment block.</param>
         /// <param name="frameMarker">The current frame marker.</param>
-        private void ProcessStartOfFrameMarker(int remaining, ushort frameMarker)
+        private void ProcessStartOfFrameMarker(int remaining, FileMarker frameMarker)
         {
             if (this.frame != null)
             {
@@ -292,8 +423,8 @@ namespace ImageSharp.Formats.Jpeg.Port
 
             this.frame = new Frame
             {
-                Extended = frameMarker == JpegConstants.Markers.SOF1,
-                Progressive = frameMarker == JpegConstants.Markers.SOF2,
+                Extended = frameMarker.Marker == JpegConstants.Markers.SOF1,
+                Progressive = frameMarker.Marker == JpegConstants.Markers.SOF2,
                 Precision = this.temp[0],
                 Scanlines = (short)((this.temp[1] << 8) | this.temp[2]),
                 SamplesPerLine = (short)((this.temp[3] << 8) | this.temp[4]),
@@ -304,9 +435,9 @@ namespace ImageSharp.Formats.Jpeg.Port
             int maxV = 0;
             int index = 6;
 
-            // TODO: Pool this.
+            // No need to pool this. They max out at 4
             this.frame.ComponentIds = new byte[this.frame.ComponentCount];
-            this.frame.Components = new Component[this.frame.ComponentCount];
+            this.frame.Components = new FrameComponent[this.frame.ComponentCount];
 
             for (int i = 0; i < this.frame.ComponentCount; i++)
             {
@@ -389,30 +520,36 @@ namespace ImageSharp.Formats.Jpeg.Port
         /// <summary>
         /// Processes the SOS (Start of scan marker).
         /// </summary>
-        private void ProcessStartOfScan()
+        private void ProcessStartOfScanMarker()
         {
             int selectorsCount = this.InputStream.ReadByte();
-            var components = new List<Component>();
-
             for (int i = 0; i < selectorsCount; i++)
             {
                 byte componentIndex = this.frame.ComponentIds[this.InputStream.ReadByte() - 1];
-                Component component = this.frame.Components[componentIndex];
+                ref FrameComponent component = ref this.frame.Components[componentIndex];
                 int tableSpec = this.InputStream.ReadByte();
                 component.DCHuffmanTableId = tableSpec >> 4;
                 component.ACHuffmanTableId = tableSpec & 15;
-                components.Add(component);
             }
 
             this.InputStream.Read(this.temp, 0, 3);
+
             int spectralStart = this.temp[0];
             int spectralEnd = this.temp[1];
             int successiveApproximation = this.temp[2];
-        }
+            var scanDecoder = default(ScanDecoder);
 
-        private int DecodeScan(List<Component> components, int spectralStart, int spectralEnd, int successivePrev, int successive)
-        {
-            return 0;
+            scanDecoder.DecodeScan(
+               this.frame,
+               this.InputStream,
+               this.dcHuffmanTables,
+               this.acHuffmanTables,
+               this.frame.Components,
+               this.resetInterval,
+               spectralStart,
+               spectralEnd,
+               successiveApproximation >> 4,
+               successiveApproximation & 15);
         }
 
         /// <summary>
@@ -430,8 +567,8 @@ namespace ImageSharp.Formats.Jpeg.Port
                 length--;
             }
 
-            // TODO: Check the capacity here. Seems to max at 2
-            var code = new List<HuffmanBranch> { new HuffmanBranch(new List<HuffmanBranch>()) };
+            // TODO: Check the branch children capacity here. Seems to max at 2
+            var code = new List<HuffmanBranch> { new HuffmanBranch(-1) };
             HuffmanBranch p = code[0];
             int k = 0;
 
@@ -441,7 +578,7 @@ namespace ImageSharp.Formats.Jpeg.Port
                 for (int j = 0; j < codeLengths[i]; j++)
                 {
                     p = code.Pop();
-                    p.Children.SafeInsert(p.Index, new HuffmanBranch(values[k]));
+                    p.Children[p.Index] = new HuffmanBranch(values[k]);
                     while (p.Index > 0)
                     {
                         p = code.Pop();
@@ -451,9 +588,9 @@ namespace ImageSharp.Formats.Jpeg.Port
                     code.Add(p);
                     while (code.Count <= i)
                     {
-                        q = new HuffmanBranch(new List<HuffmanBranch>());
+                        q = new HuffmanBranch(-1);
                         code.Add(q);
-                        p.Children.SafeInsert(p.Index, new HuffmanBranch(q.Children));
+                        p.Children[p.Index] = new HuffmanBranch(q.Children);
                         p = q;
                     }
 
@@ -463,9 +600,9 @@ namespace ImageSharp.Formats.Jpeg.Port
                 if (i + 1 < length)
                 {
                     // p here points to last code
-                    q = new HuffmanBranch(new List<HuffmanBranch>());
+                    q = new HuffmanBranch(-1);
                     code.Add(q);
-                    p.Children.SafeInsert(p.Index, new HuffmanBranch(q.Children));
+                    p.Children[p.Index] = new HuffmanBranch(q.Children);
                     p = q;
                 }
             }
@@ -478,21 +615,21 @@ namespace ImageSharp.Formats.Jpeg.Port
         /// </summary>
         private void PrepareComponents()
         {
-            int mcusPerLine = this.frame.SamplesPerLine / 8 / this.frame.MaxHorizontalFactor;
-            int mcusPerColumn = this.frame.Scanlines / 8 / this.frame.MaxVerticalFactor;
+            int mcusPerLine = (int)Math.Ceiling(this.frame.SamplesPerLine / 8D / this.frame.MaxHorizontalFactor);
+            int mcusPerColumn = (int)Math.Ceiling(this.frame.Scanlines / 8D / this.frame.MaxVerticalFactor);
 
             for (int i = 0; i < this.frame.ComponentCount; i++)
             {
                 ref var component = ref this.frame.Components[i];
-                int blocksPerLine = this.frame.SamplesPerLine / 8 * component.HorizontalFactor / this.frame.MaxHorizontalFactor;
-                int blocksPerColumn = this.frame.Scanlines / 8 * component.VerticalFactor / this.frame.MaxVerticalFactor;
+                int blocksPerLine = (int)Math.Ceiling(Math.Ceiling(this.frame.SamplesPerLine / 8D) * component.HorizontalFactor / this.frame.MaxHorizontalFactor);
+                int blocksPerColumn = (int)Math.Ceiling(Math.Ceiling(this.frame.Scanlines / 8D) * component.VerticalFactor / this.frame.MaxVerticalFactor);
                 int blocksPerLineForMcu = mcusPerLine * component.HorizontalFactor;
                 int blocksPerColumnForMcu = mcusPerColumn * component.VerticalFactor;
 
                 int blocksBufferSize = 64 * blocksPerColumnForMcu * (blocksPerLineForMcu + 1);
 
-                // TODO: Pool this
-                component.BlockData = new short[blocksBufferSize];
+                // Pooled. Disposed via frame siposal
+                component.BlockData = new Buffer<short>(blocksBufferSize);
                 component.BlocksPerLine = blocksPerLine;
                 component.BlocksPerColumn = blocksPerColumn;
             }
@@ -502,58 +639,10 @@ namespace ImageSharp.Formats.Jpeg.Port
         }
 
         /// <summary>
-        /// Finds the next file marker within the byte stream
-        /// </summary>
-        /// <returns>The <see cref="ushort"/></returns>
-        private ushort FindNextFileMarker()
-        {
-            while (true)
-            {
-                int value = this.InputStream.Read(this.uint16Buffer, 0, 2);
-
-                if (value == 0)
-                {
-                    return JpegConstants.Markers.EOI;
-                }
-
-                while (this.uint16Buffer[0] != JpegConstants.Markers.Prefix)
-                {
-                    // Strictly speaking, this is a format error. However, libjpeg is
-                    // liberal in what it accepts. As of version 9, next_marker in
-                    // jdmarker.c treats this as a warning (JWRN_EXTRANEOUS_DATA) and
-                    // continues to decode the stream. Even before next_marker sees
-                    // extraneous data, jpeg_fill_bit_buffer in jdhuff.c reads as many
-                    // bytes as it can, possibly past the end of a scan's data. It
-                    // effectively puts back any markers that it overscanned (e.g. an
-                    // "\xff\xd9" EOI marker), but it does not put back non-marker data,
-                    // and thus it can silently ignore a small number of extraneous
-                    // non-marker bytes before next_marker has a chance to see them (and
-                    // print a warning).
-                    // We are therefore also liberal in what we accept. Extraneous data
-                    // is silently ignore
-                    // This is similar to, but not exactly the same as, the restart
-                    // mechanism within a scan (the RST[0-7] markers).
-                    // Note that extraneous 0xff bytes in e.g. SOS data are escaped as
-                    // "\xff\x00", and so are detected a little further down below.
-                    this.uint16Buffer[0] = this.uint16Buffer[1];
-
-                    value = this.InputStream.ReadByte();
-                    if (value == -1)
-                    {
-                        return JpegConstants.Markers.EOI;
-                    }
-
-                    this.uint16Buffer[1] = (byte)value;
-                }
-
-                return (ushort)((this.uint16Buffer[0] << 8) | this.uint16Buffer[1]);
-            }
-        }
-
-        /// <summary>
         /// Reads a <see cref="ushort"/> from the stream advancing it by two bytes
         /// </summary>
         /// <returns>The <see cref="ushort"/></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private ushort ReadUint16()
         {
             this.InputStream.Read(this.uint16Buffer, 0, 2);

@@ -17,12 +17,6 @@ namespace ImageSharp.Formats
     /// </summary>
     public class GifEncoder : IImageEncoder
     {
-        /// <inheritdoc/>
-        public IEnumerable<string> MimeTypes => GifConstants.MimeTypes;
-
-        /// <inheritdoc/>
-        public IEnumerable<string> FileExtensions => GifConstants.FileExtensions;
-
         /// <summary>
         /// Gets or sets a value indicating whether the metadata should be ignored when the image is being encoded.
         /// </summary>

@@ -29,23 +29,6 @@ namespace ImageSharp.Formats
     public class BmpDecoder : IImageDecoder
     {
         /// <inheritdoc/>
-        public IEnumerable<string> MimeTypes => BmpConstants.MimeTypes;
-
-        /// <inheritdoc/>
-        public IEnumerable<string> FileExtensions => BmpConstants.FileExtensions;
-
-        /// <inheritdoc/>
-        public int HeaderSize => 2;
-
-        /// <inheritdoc/>
-        public bool IsSupportedFileFormat(Span<byte> header)
-        {
-            return header.Length >= this.HeaderSize &&
-                   header[0] == 0x42 && // B
-                   header[1] == 0x4D;   // M
-        }
-
-        /// <inheritdoc/>
         public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream)
 
             where TPixel : struct, IPixel<TPixel>

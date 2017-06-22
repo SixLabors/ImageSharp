@@ -17,6 +17,31 @@ namespace ImageSharp
     public static partial class Image
     {
         /// <summary>
+        /// By reading the header on the provided file this calculates the images mimetype.
+        /// </summary>
+        /// <param name="filePath">The image file to open and to read the header from.</param>
+        /// <returns>The mimetype or null if none found.</returns>
+        public static string DiscoverMimeType(string filePath)
+        {
+            return DiscoverMimeType(null, filePath);
+        }
+
+        /// <summary>
+        /// By reading the header on the provided file this calculates the images mimetype.
+        /// </summary>
+        /// <param name="config">The configuration.</param>
+        /// <param name="filePath">The image file to open and to read the header from.</param>
+        /// <returns>The mimetype or null if none found.</returns>
+        public static string DiscoverMimeType(Configuration config, string filePath)
+        {
+            config = config ?? Configuration.Default;
+            using (Stream file = config.FileSystem.OpenRead(filePath))
+            {
+                return DiscoverMimeType(config, file);
+            }
+        }
+
+        /// <summary>
         /// Create a new instance of the <see cref="Image{Rgba32}"/> class from the given file.
         /// </summary>
         /// <param name="path">The file path to the image.</param>

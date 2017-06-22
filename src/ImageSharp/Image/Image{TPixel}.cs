@@ -158,16 +158,16 @@ namespace ImageSharp
         public Image<TPixel> Save(Stream stream, string mimeType)
         {
             Guard.NotNullOrEmpty(mimeType, nameof(mimeType));
-            IImageEncoder encoder = this.Configuration.ImageEncoders?.LastOrDefault(x => x?.MimeTypes?.Contains(mimeType, StringComparer.OrdinalIgnoreCase) == true);
+            IImageEncoder encoder = this.Configuration.FindMimeTypeEncoder(mimeType);
 
             if (encoder == null)
             {
-                StringBuilder stringBuilder = new StringBuilder();
+                var stringBuilder = new StringBuilder();
                 stringBuilder.AppendLine("Can't find encoder for provided mime type. Available encoded:");
 
-                foreach (IImageEncoder format in this.Configuration.ImageEncoders)
+                foreach (Type format in this.Configuration.AllMimeImageEncoders)
                 {
-                    stringBuilder.AppendLine("-" + format);
+                    stringBuilder.AppendLine(" - " + format);
                 }
 
                 throw new NotSupportedException(stringBuilder.ToString());
@@ -207,15 +207,15 @@ namespace ImageSharp
             Guard.NotNullOrEmpty(filePath, nameof(filePath));
 
             string ext = Path.GetExtension(filePath).Trim('.');
-            IImageEncoder encoder = this.Configuration.ImageEncoders?.LastOrDefault(x => x?.FileExtensions?.Contains(ext, StringComparer.OrdinalIgnoreCase) == true);
+            IImageEncoder encoder = this.Configuration.FindFileExtensionsEncoder(ext);
             if (encoder == null)
             {
-                StringBuilder stringBuilder = new StringBuilder();
+                var stringBuilder = new StringBuilder();
                 stringBuilder.AppendLine($"Can't find encoder for file extention '{ext}'. Available encoded:");
 
-                foreach (IImageEncoder format in this.Configuration.ImageEncoders)
+                foreach (Type format in this.Configuration.AllExtImageEncoders)
                 {
-                    stringBuilder.AppendLine("-" + format);
+                    stringBuilder.AppendLine(" - " + format);
                 }
 
                 throw new NotSupportedException(stringBuilder.ToString());
@@ -255,7 +255,7 @@ namespace ImageSharp
         /// <returns>The <see cref="string"/></returns>
         public string ToBase64String(string mimeType)
         {
-            using (MemoryStream stream = new MemoryStream())
+            using (var stream = new MemoryStream())
             {
                 this.Save(stream, mimeType);
                 stream.Flush();
@@ -274,7 +274,7 @@ namespace ImageSharp
         {
             scaleFunc = PackedPixelConverterHelper.ComputeScaleFunction<TPixel, TPixel2>(scaleFunc);
 
-            Image<TPixel2> target = new Image<TPixel2>(this.Configuration, this.Width, this.Height);
+            var target = new Image<TPixel2>(this.Configuration, this.Width, this.Height);
             target.CopyProperties(this);
 
             using (PixelAccessor<TPixel> pixels = this.Lock())
@@ -288,7 +288,7 @@ namespace ImageSharp
                         {
                             for (int x = 0; x < target.Width; x++)
                             {
-                                TPixel2 color = default(TPixel2);
+                                var color = default(TPixel2);
                                 color.PackFromVector4(scaleFunc(pixels[x, y].ToVector4()));
                                 targetPixels[x, y] = color;
                             }

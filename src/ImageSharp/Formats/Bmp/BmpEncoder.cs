@@ -23,12 +23,6 @@ namespace ImageSharp.Formats
         public BmpBitsPerPixel BitsPerPixel { get; set; } = BmpBitsPerPixel.Pixel24;
 
         /// <inheritdoc/>
-        public IEnumerable<string> MimeTypes => BmpConstants.MimeTypes;
-
-        /// <inheritdoc/>
-        public IEnumerable<string> FileExtensions => BmpConstants.FileExtensions;
-
-        /// <inheritdoc/>
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {

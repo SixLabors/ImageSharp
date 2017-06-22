@@ -16,12 +16,6 @@ namespace ImageSharp.Formats
     /// </summary>
     public class PngEncoder : IImageEncoder
     {
-        /// <inheritdoc/>
-        public IEnumerable<string> MimeTypes => PngConstants.MimeTypes;
-
-        /// <inheritdoc/>
-        public IEnumerable<string> FileExtensions => PngConstants.FileExtensions;
-
         /// <summary>
         /// Gets or sets a value indicating whether the metadata should be ignored when the image is being decoded.
         /// </summary>

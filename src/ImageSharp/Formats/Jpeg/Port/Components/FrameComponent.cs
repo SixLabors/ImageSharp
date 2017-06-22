@@ -40,11 +40,6 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
         public byte QuantizationIdentifier;
 
         /// <summary>
-        /// Gets or sets the quantization table
-        /// </summary>
-        public short[] QuantizationTable;
-
-        /// <summary>
         /// Gets or sets the block data
         /// </summary>
         public Buffer<short> BlockData;

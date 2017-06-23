@@ -21,7 +21,7 @@ namespace ImageSharp.Formats
         {
             Guard.NotNull(stream, "stream");
 
-            // using (JpegDecoderCore decoder = new JpegDecoderCore(options, configuration))
+            // using (var decoder = new JpegDecoderCore(options, configuration))
             // {
             //    return decoder.Decode<TPixel>(stream);
             // }

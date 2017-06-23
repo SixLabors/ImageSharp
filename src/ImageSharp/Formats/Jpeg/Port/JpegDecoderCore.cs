@@ -186,6 +186,45 @@ namespace ImageSharp.Formats.Jpeg.Port
         }
 
         /// <summary>
+        /// Finds the next file marker within the byte stream. Used for testing. Slower as it only reads on byte at a time
+        /// </summary>
+        /// <param name="stream">The input stream</param>
+        /// <returns>The <see cref="FileMarker"/></returns>
+        public static FileMarker FindNextFileMarkerNew(Stream stream)
+        {
+            while (true)
+            {
+                int value = stream.ReadByte();
+
+                if (value == -1)
+                {
+                    // We've reached the end of the stream
+                    return new FileMarker(JpegConstants.Markers.EOI, (int)stream.Length, true);
+                }
+
+                byte prefix = (byte)value;
+                byte suffix = JpegConstants.Markers.Prefix;
+
+                // According to Section B.1.1.2:
+                // "Any marker may optionally be preceded by any number of fill bytes, which are bytes assigned code 0xFF."
+                while (prefix == JpegConstants.Markers.Prefix && suffix == JpegConstants.Markers.Prefix)
+                {
+                    value = stream.ReadByte();
+
+                    if (value == -1)
+                    {
+                        // We've reached the end of the stream
+                        return new FileMarker(JpegConstants.Markers.EOI, (int)stream.Length, true);
+                    }
+
+                    suffix = (byte)value;
+                }
+
+                return new FileMarker((ushort)((prefix << 8) | suffix), (int)(stream.Position - 2));
+            }
+        }
+
+        /// <summary>
         /// Decodes the image from the specified <see cref="Stream"/>  and sets
         /// the data to image.
         /// </summary>
@@ -205,9 +244,9 @@ namespace ImageSharp.Formats.Jpeg.Port
         /// <inheritdoc/>
         public void Dispose()
         {
-            this.frame.Dispose();
-            this.components.Dispose();
-            this.quantizationTables.Dispose();
+            this.frame?.Dispose();
+            this.components?.Dispose();
+            this.quantizationTables?.Dispose();
 
             // Set large fields to null.
             this.frame = null;
@@ -315,13 +354,14 @@ namespace ImageSharp.Formats.Jpeg.Port
                         {
                             // Rewind that last bytes we read
                             this.InputStream.Position -= 2;
+                            break;
                         }
 
-                        break;
+                        throw new ImageFormatException($"Unknown Marker {fileMarker.Marker} at {fileMarker.Position}");
                 }
 
                 // Read on. TODO: Test this on damaged images.
-                fileMarker = FindNextFileMarker(this.InputStream);
+                fileMarker = FindNextFileMarkerNew(this.InputStream);
             }
 
             this.width = this.frame.SamplesPerLine;

@@ -5,15 +5,15 @@
 
 namespace ImageSharp.Formats.Jpeg.Port.Components
 {
+    using System;
     using System.Runtime.CompilerServices;
 
     using ImageSharp.Memory;
 
     /// <summary>
     /// Contains the quantization tables.
-    /// TODO: This all needs optimizing for memory. I'm just stubbing out functionality for now.
     /// </summary>
-    internal class QuantizationTables
+    internal sealed class QuantizationTables : IDisposable
     {
         /// <summary>
         /// Gets the ZigZag scan table
@@ -46,6 +46,16 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
         /// <summary>
         /// Gets or sets the quantization tables.
         /// </summary>
-        public Fast2DArray<short> Tables { get; set; } = new Fast2DArray<short>(64, 4);
+        public Buffer2D<short> Tables { get; set; }
+
+        /// <inheritdoc/>
+        public void Dispose()
+        {
+            if (this.Tables != null)
+            {
+                this.Tables.Dispose();
+                this.Tables = null;
+            }
+        }
     }
 }

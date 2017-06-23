@@ -10,10 +10,8 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
     /// <summary>
     /// Contains all the decoded component blocks
     /// </summary>
-    internal class ComponentBlocks : IDisposable
+    internal sealed class ComponentBlocks : IDisposable
     {
-        private bool isDisposed;
-
         /// <summary>
         /// Gets or sets the component blocks
         /// </summary>
@@ -22,31 +20,14 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
         /// <inheritdoc/>
         public void Dispose()
         {
-            this.Dispose(true);
-        }
-
-        /// <summary>
-        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
-        /// </summary>
-        /// <param name="disposing">Whether to dispose of managed objects</param>
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!this.isDisposed)
+            if (this.Components != null)
             {
-                if (disposing)
+                for (int i = 0; i < this.Components.Length; i++)
                 {
-                    if (this.Components != null)
-                    {
-                        for (int i = 0; i < this.Components.Length; i++)
-                        {
-                            this.Components[i].Dispose();
-                        }
-                    }
+                    this.Components[i].Dispose();
                 }
 
-                // Set large fields to null.
                 this.Components = null;
-                this.isDisposed = true;
             }
         }
     }

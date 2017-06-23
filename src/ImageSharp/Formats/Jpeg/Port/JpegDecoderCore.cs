@@ -19,7 +19,7 @@ namespace ImageSharp.Formats.Jpeg.Port
     /// Performs the jpeg decoding operation.
     /// Ported from <see href="https://github.com/mozilla/pdf.js/blob/master/src/core/jpg.js"/>
     /// </summary>
-    internal class JpegDecoderCore : IDisposable
+    internal sealed class JpegDecoderCore : IDisposable
     {
         /// <summary>
         /// The decoder options.
@@ -65,11 +65,6 @@ namespace ImageSharp.Formats.Jpeg.Port
         /// Contains information about the Adobe marker
         /// </summary>
         private Adobe adobe;
-
-        /// <summary>
-        /// A value indicating whether the decoder has been disposed
-        /// </summary>
-        private bool isDisposed;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="JpegDecoderCore" /> class.
@@ -210,28 +205,14 @@ namespace ImageSharp.Formats.Jpeg.Port
         /// <inheritdoc/>
         public void Dispose()
         {
-            this.Dispose(true);
-        }
+            this.frame.Dispose();
+            this.components.Dispose();
+            this.quantizationTables.Dispose();
 
-        /// <summary>
-        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
-        /// </summary>
-        /// <param name="disposing">Whether to dispose of managed objects</param>
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!this.isDisposed)
-            {
-                if (disposing)
-                {
-                    this.frame.Dispose();
-                    this.components.Dispose();
-                }
-
-                // Set large fields to null.
-                this.frame = null;
-                this.components = null;
-                this.isDisposed = true;
-            }
+            // Set large fields to null.
+            this.frame = null;
+            this.components = null;
+            this.quantizationTables = null;
         }
 
         private void ParseStream()
@@ -253,11 +234,12 @@ namespace ImageSharp.Formats.Jpeg.Port
             while (fileMarker.Marker != JpegConstants.Markers.EOI)
             {
                 // Get the marker length
-                int remaining = this.ReadUint16() - 2;
+                int remaining;
 
                 switch (fileMarker.Marker)
                 {
                     case JpegConstants.Markers.APP0:
+                        remaining = this.ReadUint16() - 2;
                         this.ProcessApplicationHeaderMarker(remaining);
                         break;
 
@@ -277,6 +259,7 @@ namespace ImageSharp.Formats.Jpeg.Port
                         break;
 
                     case JpegConstants.Markers.APP14:
+                        remaining = this.ReadUint16() - 2;
                         this.ProcessApp14Marker(remaining);
                         break;
 
@@ -287,24 +270,29 @@ namespace ImageSharp.Formats.Jpeg.Port
                         break;
 
                     case JpegConstants.Markers.DQT:
+                        remaining = this.ReadUint16() - 2;
                         this.ProcessDqtMarker(remaining);
                         break;
 
                     case JpegConstants.Markers.SOF0:
                     case JpegConstants.Markers.SOF1:
                     case JpegConstants.Markers.SOF2:
+                        remaining = this.ReadUint16() - 2;
                         this.ProcessStartOfFrameMarker(remaining, fileMarker);
                         break;
 
                     case JpegConstants.Markers.DHT:
+                        remaining = this.ReadUint16() - 2;
                         this.ProcessDefineHuffmanTablesMarker(remaining);
                         break;
 
                     case JpegConstants.Markers.DRI:
+                        remaining = this.ReadUint16() - 2;
                         this.ProcessDefineRestartIntervalMarker(remaining);
                         break;
 
                     case JpegConstants.Markers.SOS:
+                        this.InputStream.Skip(2);
                         this.ProcessStartOfScanMarker();
                         break;
 
@@ -312,11 +300,6 @@ namespace ImageSharp.Formats.Jpeg.Port
                         if ((byte)this.InputStream.ReadByte() != 0xFF)
                         {
                             // Avoid skipping a valid marker
-                            this.InputStream.Position -= 2;
-                        }
-                        else
-                        {
-                            // Rewind that last byte we read
                             this.InputStream.Position -= 1;
                         }
 
@@ -453,6 +436,8 @@ namespace ImageSharp.Formats.Jpeg.Port
         /// </exception>
         private void ProcessDqtMarker(int remaining)
         {
+            // Pooled. Disposed on disposal of decoder
+            this.quantizationTables.Tables = new Buffer2D<short>(64, 4);
             while (remaining > 0)
             {
                 bool done = false;

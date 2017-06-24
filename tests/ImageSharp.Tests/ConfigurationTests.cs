@@ -27,7 +27,7 @@ namespace ImageSharp.Tests
         public ConfigurationTests()
         {
             this.DefaultConfiguration = Configuration.CreateDefaultInstance();
-            this.ConfigurationEmpty = Configuration.CreateDefaultInstance();
+            this.ConfigurationEmpty = new Configuration();
         }
 
         [Fact]

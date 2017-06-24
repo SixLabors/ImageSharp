@@ -62,12 +62,17 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Gets or sets the quality of output for images.
         /// </summary>
-        public int Quality { get; internal set; }
+        public int PaletteSize { get; internal set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether the metadata should be ignored when the image is being decoded.
         /// </summary>
         public bool IgnoreMetadata { get; internal set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the additional frames should be ignored when the image is being encoded.
+        /// </summary>
+        public bool IgnoreFrames { get; internal set; }
 
         /// <summary>
         /// Encodes the image to the specified stream from the <see cref="Image{TPixel}"/>.
@@ -87,20 +92,20 @@ namespace ImageSharp.Formats
             var writer = new EndianBinaryWriter(Endianness.LittleEndian, stream);
 
             // Ensure that quality can be set but has a fallback.
-            int quality = this.Quality;
-            quality = quality > 0 ? quality.Clamp(1, 256) : 256;
+            int paletteSize = this.PaletteSize;
+            paletteSize = paletteSize > 0 ? paletteSize.Clamp(1, 256) : 256;
 
             // Get the number of bits.
-            this.bitDepth = ImageMaths.GetBitsNeededForColorDepth(quality);
+            this.bitDepth = ImageMaths.GetBitsNeededForColorDepth(paletteSize);
 
-            // Quantize the image returning a palette.
-            this.hasFrames = image.Frames.Any();
+            this.hasFrames = !this.IgnoreFrames && image.Frames.Any();
 
             // Dithering when animating gifs is a bad idea as we introduce pixel tearing across frames.
             var ditheredQuantizer = (IQuantizer<TPixel>)this.Quantizer;
             ditheredQuantizer.Dither = !this.hasFrames;
 
-            QuantizedImage<TPixel> quantized = ditheredQuantizer.Quantize(image, quality);
+            // Quantize the image returning a palette.
+            QuantizedImage<TPixel> quantized = ditheredQuantizer.Quantize(image, paletteSize);
 
             int index = this.GetTransparentIndex(quantized);
 
@@ -126,7 +131,7 @@ namespace ImageSharp.Formats
                 for (int i = 0; i < image.Frames.Count; i++)
                 {
                     ImageFrame<TPixel> frame = image.Frames[i];
-                    QuantizedImage<TPixel> quantizedFrame = ditheredQuantizer.Quantize(frame, quality);
+                    QuantizedImage<TPixel> quantizedFrame = ditheredQuantizer.Quantize(frame, paletteSize);
 
                     this.WriteGraphicalControlExtension(frame.MetaData, writer, this.GetTransparentIndex(quantizedFrame));
                     this.WriteImageDescriptor(frame, writer);

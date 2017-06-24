@@ -25,9 +25,12 @@ namespace ImageSharp.Formats
                 host.SetMimeTypeEncoder(mimeType, encoder);
             }
 
-            foreach (string mimeType in BmpConstants.FileExtensions)
+            foreach (string ext in BmpConstants.FileExtensions)
             {
-                host.SetFileExtensionEncoder(mimeType, encoder);
+                foreach (string mimeType in BmpConstants.MimeTypes)
+                {
+                    host.SetFileExtensionToMimeTypeMapping(ext, mimeType);
+                }
             }
 
             var decoder = new BmpDecoder();

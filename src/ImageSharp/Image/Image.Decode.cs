@@ -55,10 +55,13 @@ namespace ImageSharp
         /// <returns>The image format or null if none found.</returns>
         private static IImageDecoder DiscoverDecoder(Stream stream, Configuration config, out string mimeType)
         {
-            
-            format = config.FindMimeTypeDecoder(mimeType);
+            mimeType = InternalDiscoverMimeType(stream, config);
+            if (mimeType != null)
+            {
+                return config.FindMimeTypeDecoder(mimeType);
+            }
 
-            return format;
+            return null;
         }
 
 #pragma warning disable SA1008 // Opening parenthesis must be spaced correctly

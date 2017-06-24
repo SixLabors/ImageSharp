@@ -23,15 +23,19 @@ namespace ImageSharp.Formats
         public bool IgnoreMetadata { get; set; } = false;
 
         /// <summary>
+        /// Gets or sets a value indicating whether the additional frames should be ignored when the image is being encoded.
+        /// </summary>
+        public bool IgnoreFrames { get; set; } = false;
+
+        /// <summary>
         /// Gets or sets the encoding that should be used when writing comments.
         /// </summary>
         public Encoding TextEncoding { get; set; } = GifConstants.DefaultEncoding;
 
         /// <summary>
-        /// Gets or sets the quality of output for images.
+        /// Gets or sets the size of the color palette to use.  For gifs the value ranges from 1 to 256. Leave as zero for default size.
         /// </summary>
-        /// <remarks>For gifs the value ranges from 1 to 256.</remarks>
-        public int Quality { get; set; }
+        public int PaletteSize { get; set; } = 0;
 
         /// <summary>
         /// Gets or sets the transparency threshold.
@@ -50,8 +54,9 @@ namespace ImageSharp.Formats
             GifEncoderCore encoder = new GifEncoderCore(this.TextEncoding);
             encoder.Quantizer = this.Quantizer;
             encoder.Threshold = this.Threshold;
-            encoder.Quality = this.Quality;
+            encoder.PaletteSize = this.PaletteSize;
             encoder.IgnoreMetadata = this.IgnoreMetadata;
+            encoder.IgnoreFrames = this.IgnoreFrames;
             encoder.Encode(image, stream);
         }
     }

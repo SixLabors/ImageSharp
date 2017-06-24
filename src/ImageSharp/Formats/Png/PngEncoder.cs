@@ -17,14 +17,14 @@ namespace ImageSharp.Formats
     public class PngEncoder : IImageEncoder
     {
         /// <summary>
-        /// Gets or sets a value indicating whether the metadata should be ignored when the image is being decoded.
+        /// Gets or sets a value indicating whether the metadata should be ignored when the image is being encoded.
         /// </summary>
         public bool IgnoreMetadata { get; set; }
 
         /// <summary>
-        /// Gets or sets the quality of output for images.
+        /// Gets or sets the size of the color palette to use. Set to zero to leav png encoding to use pixel data.
         /// </summary>
-        public int Quality { get; set; }
+        public int PaletteSize { get; set; } = 0;
 
         /// <summary>
         /// Gets or sets the png color type
@@ -74,7 +74,7 @@ namespace ImageSharp.Formats
             {
                 encode.IgnoreMetadata = this.IgnoreMetadata;
 
-                encode.Quality = this.Quality > 0 ? this.Quality.Clamp(1, int.MaxValue) : int.MaxValue;
+                encode.PaletteSize = this.PaletteSize > 0 ? this.PaletteSize.Clamp(1, int.MaxValue) : int.MaxValue;
                 encode.PngColorType = this.PngColorType;
                 encode.CompressionLevel = this.CompressionLevel;
                 encode.Gamma = this.Gamma;

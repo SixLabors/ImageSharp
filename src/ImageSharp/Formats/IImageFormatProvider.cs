@@ -34,7 +34,7 @@ namespace ImageSharp.Formats
         void SetMimeTypeEncoder(string mimeType, IImageEncoder encoder); // could/should this be an Action<IImageEncoder>???
 
         /// <summary>
-        /// Sets a specific image encoder as the encoder for a specific mimetype
+        /// Sets a mapping value between a file extension and a mimetype
         /// </summary>
         /// <param name="extension">the target mimetype</param>
         /// <param name="mimetype">the mimetype this extenion equates to</param>

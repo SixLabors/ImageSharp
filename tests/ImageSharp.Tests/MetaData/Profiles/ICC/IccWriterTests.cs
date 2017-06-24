@@ -10,7 +10,7 @@ namespace ImageSharp.Tests.Icc
     public class IccWriterTests
     {
         [Fact]
-        public void WriteProfile()
+        public void WriteProfile_NoEntries()
         {
             IccWriter writer = CreateWriter();
 
@@ -21,6 +21,16 @@ namespace ImageSharp.Tests.Icc
             byte[] output = writer.Write(profile);
             
             Assert.Equal(IccTestDataProfiles.Header_Random_Array, output);
+        }
+
+        [Fact]
+        public void WriteProfile_DuplicateEntry()
+        {
+            IccWriter writer = CreateWriter();
+
+            byte[] output = writer.Write(IccTestDataProfiles.Profile_Random_Val);
+            
+            Assert.Equal(IccTestDataProfiles.Profile_Random_Array, output);
         }
 
         private IccWriter CreateWriter()

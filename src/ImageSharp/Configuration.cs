@@ -38,7 +38,7 @@ namespace ImageSharp
         /// <summary>
         /// The list of supported <see cref="IImageEncoder"/> keyed to fiel extensions.
         /// </summary>
-        private readonly ConcurrentDictionary<string, IImageEncoder> extensionsEncoders = new ConcurrentDictionary<string, IImageEncoder>(StringComparer.OrdinalIgnoreCase);
+        private readonly ConcurrentDictionary<string, string> extensionsMap = new ConcurrentDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
         /// The list of supported <see cref="IImageEncoder"/> keyed to mimestypes.
@@ -95,17 +95,17 @@ namespace ImageSharp
         /// <summary>
         /// Gets the typeof of all the current image decoders
         /// </summary>
-        internal IEnumerable<Type> AllMimeImageDecoders => this.mimeTypeDecoders.Select(x => x.Value.GetType()).Distinct().ToList();
+        internal IEnumerable<KeyValuePair<string, IImageDecoder>> ImageDecoders => this.mimeTypeDecoders;
 
         /// <summary>
         /// Gets the typeof of all the current image decoders
         /// </summary>
-        internal IEnumerable<Type> AllMimeImageEncoders => this.mimeTypeEncoders.Select(x => x.Value.GetType()).Distinct().ToList();
+        internal IEnumerable<KeyValuePair<string, IImageEncoder>> ImageEncoders => this.mimeTypeEncoders;
 
         /// <summary>
         /// Gets the typeof of all the current image decoders
         /// </summary>
-        internal IEnumerable<Type> AllExtImageEncoders => this.mimeTypeEncoders.Select(x => x.Value.GetType()).Distinct().ToList();
+        internal IEnumerable<KeyValuePair<string, string>> ImageExtensionToMimeTypeMapping => this.extensionsMap;
 
 #if !NETSTANDARD1_1
         /// <summary>
@@ -133,11 +133,11 @@ namespace ImageSharp
         }
 
         /// <inheritdoc />
-        public void SetFileExtensionEncoder(string extension, IImageEncoder encoder)
+        public void SetFileExtensionToMimeTypeMapping(string extension, string mimetype)
         {
             Guard.NotNullOrEmpty(extension, nameof(extension));
-            Guard.NotNull(encoder, nameof(encoder));
-            this.extensionsEncoders.AddOrUpdate(extension?.Trim(), encoder, (s, e) => encoder);
+            Guard.NotNullOrEmpty(mimetype, nameof(mimetype));
+            this.extensionsMap.AddOrUpdate(extension?.Trim(), mimetype, (s, e) => mimetype);
         }
 
         /// <inheritdoc />
@@ -151,7 +151,7 @@ namespace ImageSharp
         /// <summary>
         /// Removes all the registerd detectors
         /// </summary>
-        public void ClearMimeTypeDetector()
+        public void ClearMimeTypeDetectors()
         {
             this.mimeTypeDetectors.Clear();
         }
@@ -165,11 +165,24 @@ namespace ImageSharp
         }
 
         /// <summary>
+        /// Creates the default instance, with Png, Jpeg, Gif and Bmp preregisterd (if they have been referenced)
+        /// </summary>
+        /// <returns>The default configuration of <see cref="Configuration"/> </returns>
+        internal static Configuration CreateDefaultInstance()
+        {
+            return new Configuration(
+                new PngImageFormatProvider(),
+                new JpegImageFormatProvider(),
+                new GifImageFormatProvider(),
+                new BmpImageFormatProvider());
+        }
+
+        /// <summary>
         /// For the specified mimetype find the decoder.
         /// </summary>
         /// <param name="mimeType">the mimetype to discover</param>
         /// <returns>the IImageDecoder if found othersize null </returns>
-        public IImageDecoder FindMimeTypeDecoder(string mimeType)
+        internal IImageDecoder FindMimeTypeDecoder(string mimeType)
         {
             Guard.NotNullOrEmpty(mimeType, nameof(mimeType));
             if (this.mimeTypeDecoders.TryGetValue(mimeType, out IImageDecoder dec))
@@ -185,7 +198,7 @@ namespace ImageSharp
         /// </summary>
         /// <param name="mimeType">the mimetype to discover</param>
         /// <returns>the IImageEncoder if found othersize null </returns>
-        public IImageEncoder FindMimeTypeEncoder(string mimeType)
+        internal IImageEncoder FindMimeTypeEncoder(string mimeType)
         {
             Guard.NotNullOrEmpty(mimeType, nameof(mimeType));
             if (this.mimeTypeEncoders.TryGetValue(mimeType, out IImageEncoder dec))
@@ -201,29 +214,33 @@ namespace ImageSharp
         /// </summary>
         /// <param name="extensions">the extensions to discover</param>
         /// <returns>the IImageEncoder if found othersize null </returns>
-        public IImageEncoder FindFileExtensionsEncoder(string extensions)
+        internal IImageEncoder FindFileExtensionsEncoder(string extensions)
         {
             extensions = extensions?.TrimStart('.');
             Guard.NotNullOrEmpty(extensions, nameof(extensions));
-            if (this.extensionsEncoders.TryGetValue(extensions, out IImageEncoder dec))
+            if (this.extensionsMap.TryGetValue(extensions, out string mime))
             {
-                return dec;
+                return this.FindMimeTypeEncoder(mime);
             }
 
             return null;
         }
 
         /// <summary>
-        /// Creates the default instance, with Png, Jpeg, Gif and Bmp preregisterd (if they have been referenced)
+        /// For the specified mimetype find the encoder.
         /// </summary>
-        /// <returns>The default configuration of <see cref="Configuration"/> </returns>
-        internal static Configuration CreateDefaultInstance()
+        /// <param name="extensions">the extensions to discover</param>
+        /// <returns>the IImageEncoder if found othersize null </returns>
+        internal string FindFileExtensionsMimeType(string extensions)
         {
-            return new Configuration(
-                new PngImageFormatProvider(),
-                new JpegImageFormatProvider(),
-                new GifImageFormatProvider(),
-                new BmpImageFormatProvider());
+            extensions = extensions?.TrimStart('.');
+            Guard.NotNullOrEmpty(extensions, nameof(extensions));
+            if (this.extensionsMap.TryGetValue(extensions, out string mime))
+            {
+                return mime;
+            }
+
+            return null;
         }
 
         /// <summary>

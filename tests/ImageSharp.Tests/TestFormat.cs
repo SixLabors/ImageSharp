@@ -114,7 +114,7 @@ namespace ImageSharp.Tests
             host.AddMimeTypeDetector(new TestHeader(this));
             foreach (var ext in this.SupportedExtensions)
             {
-                host.SetFileExtensionEncoder(ext, new TestEncoder(this));
+                host.SetFileExtensionToMimeTypeMapping(ext, this.MimeType);
             }
 
             host.SetMimeTypeEncoder(this.MimeType, new TestEncoder(this));

@@ -37,8 +37,8 @@ namespace ImageSharp.Formats
         /// Sets a specific image encoder as the encoder for a specific mimetype
         /// </summary>
         /// <param name="extension">the target mimetype</param>
-        /// <param name="encoder">the encoder to use</param>
-        void SetFileExtensionEncoder(string extension, IImageEncoder encoder);
+        /// <param name="mimetype">the mimetype this extenion equates to</param>
+        void SetFileExtensionToMimeTypeMapping(string extension, string mimetype);
 
         /// <summary>
         /// Sets a specific image decoder as the decoder for a specific mimetype

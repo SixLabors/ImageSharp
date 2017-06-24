@@ -133,7 +133,7 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Gets or sets the Quality value
         /// </summary>
-        public int Quality { get; internal set; }
+        public int PaletteSize { get; internal set; }
 
         /// <summary>
         /// Gets or sets the Quality value
@@ -196,19 +196,19 @@ namespace ImageSharp.Formats
             this.quantizer = this.Quantizer;
 
             // Set correct color type if the color count is 256 or less.
-            if (this.Quality <= 256)
+            if (this.PaletteSize <= 256)
             {
                 this.pngColorType = PngColorType.Palette;
             }
 
-            if (this.pngColorType == PngColorType.Palette && this.Quality > 256)
+            if (this.pngColorType == PngColorType.Palette && this.PaletteSize > 256)
             {
-                this.Quality = 256;
+                this.PaletteSize = 256;
             }
 
             // Set correct bit depth.
-            this.bitDepth = this.Quality <= 256
-                               ? (byte)ImageMaths.GetBitsNeededForColorDepth(this.Quality).Clamp(1, 8)
+            this.bitDepth = this.PaletteSize <= 256
+                               ? (byte)ImageMaths.GetBitsNeededForColorDepth(this.PaletteSize).Clamp(1, 8)
                                : (byte)8;
 
             // Png only supports in four pixel depths: 1, 2, 4, and 8 bits when using the PLTE chunk
@@ -538,7 +538,7 @@ namespace ImageSharp.Formats
         private QuantizedImage<TPixel> WritePaletteChunk<TPixel>(Stream stream, PngHeader header, ImageBase<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
-            if (this.Quality > 256)
+            if (this.PaletteSize > 256)
             {
                 return null;
             }
@@ -549,7 +549,7 @@ namespace ImageSharp.Formats
             }
 
             // Quantize the image returning a palette. This boxing is icky.
-            QuantizedImage<TPixel> quantized = ((IQuantizer<TPixel>)this.quantizer).Quantize(image, this.Quality);
+            QuantizedImage<TPixel> quantized = ((IQuantizer<TPixel>)this.quantizer).Quantize(image, this.PaletteSize);
 
             // Grab the palette and write it to the stream.
             TPixel[] palette = quantized.Palette;

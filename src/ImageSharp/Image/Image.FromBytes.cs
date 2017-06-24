@@ -156,7 +156,7 @@ namespace ImageSharp
         public static Image<TPixel> Load<TPixel>(byte[] data, IImageDecoder decoder)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (MemoryStream ms = new MemoryStream(data))
+            using (var ms = new MemoryStream(data))
             {
                 return Load<TPixel>(ms, decoder);
             }
@@ -173,7 +173,7 @@ namespace ImageSharp
         public static Image<TPixel> Load<TPixel>(Configuration config, byte[] data, IImageDecoder decoder)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (MemoryStream ms = new MemoryStream(data))
+            using (var ms = new MemoryStream(data))
             {
                 return Load<TPixel>(config, ms, decoder);
             }

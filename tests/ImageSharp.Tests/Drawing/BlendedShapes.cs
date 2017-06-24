@@ -18,14 +18,16 @@ namespace ImageSharp.Tests.Drawing
                                                                     .Select(x=> new object[] { x });
 
         [Theory]
-        [WithBlankImages(nameof(modes), 100, 100, PixelTypes.Rgba32)]
+        [WithBlankImages(nameof(modes), 250, 250, PixelTypes.Rgba32)]
         public void DrawBlendedValues<TPixel>(TestImageProvider<TPixel> provider, PixelBlenderMode mode)
             where TPixel : struct, IPixel<TPixel>
         {
             using (var img = provider.GetImage())
             {
-                img.Fill(NamedColors<TPixel>.DarkBlue, new Rectangle(0, 40, 100, 20));
-                img.Fill(NamedColors<TPixel>.HotPink, new Rectangle(40, 0, 20, 100), new ImageSharp.GraphicsOptions(true)
+                var scaleX = (img.Width / 100);
+                var scaleY = (img.Height / 100);
+                img.Fill(NamedColors<TPixel>.DarkBlue, new Rectangle(0 * scaleX, 40 * scaleY, 100 * scaleX, 20 * scaleY));
+                img.Fill(NamedColors<TPixel>.HotPink, new Rectangle(20 * scaleX, 0 * scaleY, 30 * scaleX, 100 * scaleY), new ImageSharp.GraphicsOptions(true)
                 {
                     BlenderMode = mode
                 });
@@ -34,18 +36,72 @@ namespace ImageSharp.Tests.Drawing
         }
 
         [Theory]
-        [WithBlankImages(nameof(modes), 100, 100, PixelTypes.Rgba32)]
+        [WithBlankImages(nameof(modes), 250, 250, PixelTypes.Rgba32)]
         public void DrawBlendedValues_transparent<TPixel>(TestImageProvider<TPixel> provider, PixelBlenderMode mode)
             where TPixel : struct, IPixel<TPixel>
         {
             using (var img = provider.GetImage())
             {
-                img.Fill(NamedColors<TPixel>.DarkBlue, new Rectangle(0, 40, 100, 20));
-                img.Fill(NamedColors<TPixel>.HotPink, new Rectangle(20, 0, 40, 100), new ImageSharp.GraphicsOptions(true)
+                var scaleX = (img.Width / 100);
+                var scaleY = (img.Height / 100);
+                img.Fill(NamedColors<TPixel>.DarkBlue, new Rectangle(0* scaleX, 40 * scaleY, 100 * scaleX, 20 * scaleY));
+                img.Fill(NamedColors<TPixel>.HotPink, new Rectangle(20 * scaleX, 0 * scaleY, 30 * scaleX, 100 * scaleY), new ImageSharp.GraphicsOptions(true)
                 {
                     BlenderMode = mode
                 });
-                img.Fill(NamedColors<TPixel>.Transparent, new Rectangle(40, 0, 20, 100), new ImageSharp.GraphicsOptions(true)
+                img.Fill(NamedColors<TPixel>.Transparent, new SixLabors.Shapes.Ellipse(40 * scaleX, 50 * scaleY, 50 * scaleX, 50 * scaleY), new ImageSharp.GraphicsOptions(true)
+                {
+                    BlenderMode = mode
+                });
+                img.DebugSave(provider, new { mode });
+            }
+        }
+
+        [Theory]
+        [WithBlankImages(nameof(modes), 250, 250, PixelTypes.Rgba32)]
+        public void DrawBlendedValues_transparent50Percent<TPixel>(TestImageProvider<TPixel> provider, PixelBlenderMode mode)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (var img = provider.GetImage())
+            {
+                var scaleX = (img.Width / 100);
+                var scaleY = (img.Height / 100);
+                img.Fill(NamedColors<TPixel>.DarkBlue, new Rectangle(0 * scaleX, 40, 100 * scaleX, 20* scaleY));
+                img.Fill(NamedColors<TPixel>.HotPink, new Rectangle(20 * scaleX, 0, 30 * scaleX, 100 * scaleY), new ImageSharp.GraphicsOptions(true)
+                {
+                    BlenderMode = mode
+                });
+                var c = NamedColors<TPixel>.Red.ToVector4();
+                c.W *= 0.5f;
+                TPixel pixel = default(TPixel);
+                pixel.PackFromVector4(c);
+
+                img.Fill(pixel, new SixLabors.Shapes.Ellipse(40 * scaleX, 50 * scaleY, 50 * scaleX, 50 * scaleY), new ImageSharp.GraphicsOptions(true)
+                {
+                    BlenderMode = mode
+                });
+                img.DebugSave(provider, new { mode });
+            }
+        }
+
+
+
+        [Theory]
+        [WithBlankImages(nameof(modes), 250, 250, PixelTypes.Rgba32)]
+        public void DrawBlendedValues_doldidEllips<TPixel>(TestImageProvider<TPixel> provider, PixelBlenderMode mode)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (var img = provider.GetImage())
+            {
+                var scaleX = (img.Width / 100);
+                var scaleY = (img.Height / 100);
+                img.Fill(NamedColors<TPixel>.DarkBlue, new Rectangle(0 * scaleX, 40* scaleY, 100 * scaleX, 20 * scaleY));
+                //img.Fill(NamedColors<TPixel>.HotPink, new Rectangle(20 * scaleX, 0 * scaleY, 30 * scaleX, 100 * scaleY), new ImageSharp.GraphicsOptions(true)
+                //{
+                //    BlenderMode = mode
+                //});
+                
+                img.Fill(NamedColors<TPixel>.Black, new SixLabors.Shapes.Ellipse(40 * scaleX, 50 * scaleY, 50 * scaleX, 50 * scaleY), new ImageSharp.GraphicsOptions(true)
                 {
                     BlenderMode = mode
                 });

@@ -6,6 +6,7 @@
 namespace ImageSharp
 {
     using System;
+    using System.Collections.Generic;
     using System.IO;
     using System.Linq;
     using System.Text;
@@ -202,9 +203,9 @@ namespace ImageSharp
             var stringBuilder = new StringBuilder();
             stringBuilder.AppendLine("Image cannot be loaded. Available decoders:");
 
-            foreach (Type format in config.AllMimeImageDecoders)
+            foreach (KeyValuePair<string, IImageDecoder> val in config.ImageDecoders)
             {
-                stringBuilder.AppendLine(" - " + format.Name);
+                stringBuilder.AppendLine($" - {val.Key} : {val.Value.GetType().Name}");
             }
 
             throw new NotSupportedException(stringBuilder.ToString());

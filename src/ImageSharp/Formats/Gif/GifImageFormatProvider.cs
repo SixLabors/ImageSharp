@@ -25,9 +25,12 @@ namespace ImageSharp.Formats
                 host.SetMimeTypeEncoder(mimeType, encoder);
             }
 
-            foreach (string mimeType in GifConstants.FileExtensions)
+            foreach (string ext in GifConstants.FileExtensions)
             {
-                host.SetFileExtensionEncoder(mimeType, encoder);
+                foreach (string mimeType in GifConstants.MimeTypes)
+                {
+                    host.SetFileExtensionToMimeTypeMapping(ext, mimeType);
+                }
             }
 
             var decoder = new GifDecoder();

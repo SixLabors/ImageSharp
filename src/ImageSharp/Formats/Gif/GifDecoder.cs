@@ -22,6 +22,11 @@ namespace ImageSharp.Formats
         public bool IgnoreMetadata { get; set; } = false;
 
         /// <summary>
+        /// Gets or sets a value indicating whether the additional frames should be ignored when the image is being decoded.
+        /// </summary>
+        public bool IgnoreFrames { get; set; } = false;
+
+        /// <summary>
         /// Gets or sets the encoding that should be used when reading comments.
         /// </summary>
         public Encoding TextEncoding { get; set; } = GifConstants.DefaultEncoding;
@@ -32,6 +37,7 @@ namespace ImageSharp.Formats
         {
             var decoder = new GifDecoderCore<TPixel>(this.TextEncoding, configuration);
             decoder.IgnoreMetadata = this.IgnoreMetadata;
+            decoder.IgnoreFrames = this.IgnoreFrames;
             return decoder.Decode(stream);
         }
     }

@@ -43,7 +43,7 @@ namespace ImageSharp.Tests
             };
             config.AddMimeTypeDetector(this.localMimeTypeDetector.Object);
             config.SetMimeTypeEncoder("img/test", this.encoder.Object);
-            config.SetFileExtensionEncoder("png", this.encoder.Object);
+            config.SetFileExtensionToMimeTypeMapping("png", "img/test");
             this.Image = new Image<Rgba32>(config, 1, 1);
         }
 

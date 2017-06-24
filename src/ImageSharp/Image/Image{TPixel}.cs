@@ -165,9 +165,9 @@ namespace ImageSharp
                 var stringBuilder = new StringBuilder();
                 stringBuilder.AppendLine("Can't find encoder for provided mime type. Available encoded:");
 
-                foreach (Type format in this.Configuration.AllMimeImageEncoders)
+                foreach (KeyValuePair<string, IImageEncoder> val in this.Configuration.ImageEncoders)
                 {
-                    stringBuilder.AppendLine(" - " + format);
+                    stringBuilder.AppendLine($" - {val.Key} : {val.Value.GetType().Name}");
                 }
 
                 throw new NotSupportedException(stringBuilder.ToString());
@@ -211,11 +211,22 @@ namespace ImageSharp
             if (encoder == null)
             {
                 var stringBuilder = new StringBuilder();
-                stringBuilder.AppendLine($"Can't find encoder for file extention '{ext}'. Available encoded:");
-
-                foreach (Type format in this.Configuration.AllExtImageEncoders)
+                string mime = this.Configuration.FindFileExtensionsMimeType(ext);
+                if (mime == null)
                 {
-                    stringBuilder.AppendLine(" - " + format);
+                    stringBuilder.AppendLine($"Can't find a mime type for the file extention '{ext}'. Registerd File extension maps include:");
+                    foreach (KeyValuePair<string, string> map in this.Configuration.ImageExtensionToMimeTypeMapping)
+                    {
+                        stringBuilder.AppendLine($" - {map.Key} : {map.Value}");
+                    }
+                }
+                else
+                {
+                    stringBuilder.AppendLine($"Can't find encoder for file extention '{ext}' using mime type '{mime}'. Registerd encoders include:");
+                    foreach (KeyValuePair<string, IImageEncoder> enc in this.Configuration.ImageEncoders)
+                    {
+                        stringBuilder.AppendLine($" - {enc.Key} : {enc.Value.GetType().Name}");
+                    }
                 }
 
                 throw new NotSupportedException(stringBuilder.ToString());

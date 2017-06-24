@@ -97,6 +97,11 @@ namespace ImageSharp.Formats
         public Encoding TextEncoding { get; private set; }
 
         /// <summary>
+        /// Gets or sets a value indicating whether the additional frames should be ignored when the image is being decoded.
+        /// </summary>
+        public bool IgnoreFrames { get; internal set; }
+
+        /// <summary>
         /// Decodes the stream to the image.
         /// </summary>
         /// <param name="stream">The stream containing image data. </param>
@@ -357,6 +362,13 @@ namespace ImageSharp.Formats
         /// <param name="descriptor">The <see cref="GifImageDescriptor"/></param>
         private unsafe void ReadFrameColors(byte[] indices, byte[] colorTable, int colorTableLength, GifImageDescriptor descriptor)
         {
+            if (this.IgnoreFrames && this.image != null)
+            {
+                // we already have our images skip this
+                // TODO move this higher up the stack to prevent some of the data loading higher up.
+                return;
+            }
+
             int imageWidth = this.logicalScreenDescriptor.Width;
             int imageHeight = this.logicalScreenDescriptor.Height;
 

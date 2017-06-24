@@ -40,8 +40,8 @@ namespace ImageSharp.Tests
         [Fact]
         public void IfAutoloadWellknwonFormatesIsTrueAllFormateAreLoaded()
         {
-            Assert.Equal(4, DefaultConfiguration.AllMimeImageDecoders.Count());
-            Assert.Equal(4, DefaultConfiguration.AllMimeImageDecoders.Count());
+            Assert.Equal(6, DefaultConfiguration.ImageEncoders.Count());
+            Assert.Equal(6, DefaultConfiguration.ImageDecoders.Count());
         }
 
         /// <summary>
@@ -103,15 +103,15 @@ namespace ImageSharp.Tests
         {
             Assert.Throws<ArgumentNullException>(() =>
             {
-                DefaultConfiguration.SetFileExtensionEncoder(null, new Mock<IImageEncoder>().Object);
+                DefaultConfiguration.SetFileExtensionToMimeTypeMapping(null, "str");
             });
             Assert.Throws<ArgumentNullException>(() =>
             {
-                DefaultConfiguration.SetFileExtensionEncoder("sdsdsd", null);
+                DefaultConfiguration.SetFileExtensionToMimeTypeMapping("sdsdsd", null);
             });
             Assert.Throws<ArgumentNullException>(() =>
             {
-                DefaultConfiguration.SetFileExtensionEncoder(null, null);
+                DefaultConfiguration.SetFileExtensionToMimeTypeMapping(null, null);
             });
         }
 
@@ -150,14 +150,14 @@ namespace ImageSharp.Tests
         [Fact]
         public void RegisterFileExtEnecoderReplacesLast()
         {
-            var encoder1 = new Mock<IImageEncoder>().Object;
-            ConfigurationEmpty.SetFileExtensionEncoder("TEST", encoder1);
-            var found = ConfigurationEmpty.FindFileExtensionsEncoder("test");
+            var encoder1 = "mime1";
+            ConfigurationEmpty.SetFileExtensionToMimeTypeMapping("TEST", encoder1);
+            var found = ConfigurationEmpty.FindFileExtensionsMimeType("test");
             Assert.Equal(encoder1, found);
 
-            var encoder2 = new Mock<IImageEncoder>().Object;
-            ConfigurationEmpty.SetFileExtensionEncoder("test", encoder2);
-            var found2 = ConfigurationEmpty.FindFileExtensionsEncoder("TEST");
+            var encoder2 = "mime2";
+            ConfigurationEmpty.SetFileExtensionToMimeTypeMapping("test", encoder2);
+            var found2 = ConfigurationEmpty.FindFileExtensionsMimeType("TEST");
             Assert.Equal(encoder2, found2);
             Assert.NotEqual(found, found2);
         }

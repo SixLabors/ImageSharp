@@ -25,9 +25,12 @@ namespace ImageSharp.Formats
                 host.SetMimeTypeEncoder(mimeType, pngEncoder);
             }
 
-            foreach (string mimeType in JpegConstants.FileExtensions)
+            foreach (string ext in JpegConstants.FileExtensions)
             {
-                host.SetFileExtensionEncoder(mimeType, pngEncoder);
+                foreach (string mimeType in JpegConstants.MimeTypes)
+                {
+                    host.SetFileExtensionToMimeTypeMapping(ext, mimeType);
+                }
             }
 
             var pngDecoder = new JpegDecoder();

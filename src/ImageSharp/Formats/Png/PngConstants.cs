@@ -23,7 +23,7 @@ namespace ImageSharp.Formats
         public static readonly IEnumerable<string> MimeTypes = new[] { "image/png" };
 
         /// <summary>
-        /// The list of mimetypes that equate to a jpeg
+        /// The list of file extensions that equate to a jpeg
         /// </summary>
         public static readonly IEnumerable<string> FileExtensions = new[] { "png" };
     }

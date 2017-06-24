@@ -99,7 +99,7 @@ namespace ImageSharp.Formats
         public static readonly IEnumerable<string> MimeTypes = new[] { "image/gif" };
 
         /// <summary>
-        /// The list of mimetypes that equate to a bmp
+        /// The list of file extensions that equate to a bmp
         /// </summary>
         public static readonly IEnumerable<string> FileExtensions = new[] { "gif" };
     }

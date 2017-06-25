@@ -8,7 +8,7 @@
         },
         "documentationRules":
         {
-            "companyName": "Six Labors",
+            "xmlHeader": false,
             "copyrightText": "Copyright (c) Six Labors and contributors.\nLicensed under the Apache License, Version 2.0."
         }
     }

@@ -60,7 +60,7 @@ namespace ImageSharp.Formats
         public byte Threshold { get; internal set; }
 
         /// <summary>
-        /// Gets or sets the quality of output for images.
+        /// Gets or sets the size of the color palette to use.
         /// </summary>
         public int PaletteSize { get; internal set; }
 
@@ -91,7 +91,7 @@ namespace ImageSharp.Formats
             // Do not use IDisposable pattern here as we want to preserve the stream.
             var writer = new EndianBinaryWriter(Endianness.LittleEndian, stream);
 
-            // Ensure that quality can be set but has a fallback.
+            // Ensure that pallete size  can be set but has a fallback.
             int paletteSize = this.PaletteSize;
             paletteSize = paletteSize > 0 ? paletteSize.Clamp(1, 256) : 256;
 

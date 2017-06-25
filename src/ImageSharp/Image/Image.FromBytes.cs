@@ -16,21 +16,21 @@ namespace ImageSharp
     public static partial class Image
     {
         /// <summary>
-        /// By reading the header on the provided byte array this calculates the images mimetype.
+        /// By reading the header on the provided byte array this calculates the images mime type.
         /// </summary>
         /// <param name="data">The byte array containing image data to read the header from.</param>
-        /// <returns>The mimetype or null if none found.</returns>
+        /// <returns>The mime type or null if none found.</returns>
         public static string DiscoverMimeType(byte[] data)
         {
             return DiscoverMimeType(null, data);
         }
 
         /// <summary>
-        /// By reading the header on the provided byte array this calculates the images mimetype.
+        /// By reading the header on the provided byte array this calculates the images mime type.
         /// </summary>
         /// <param name="config">The configuration.</param>
         /// <param name="data">The byte array containing image data to read the header from.</param>
-        /// <returns>The mimetype or null if none found.</returns>
+        /// <returns>The mime type or null if none found.</returns>
         public static string DiscoverMimeType(Configuration config, byte[] data)
         {
             using (Stream stream = new MemoryStream(data))
@@ -50,12 +50,12 @@ namespace ImageSharp
         /// Create a new instance of the <see cref="Image{Rgba32}"/> class from the given byte array.
         /// </summary>
         /// <param name="data">The byte array containing image data.</param>
-        /// <param name="mimeType">the mime type of the decoded image.</param>
+        /// <param name="mimeType">The mime type of the decoded image.</param>
         /// <returns>A new <see cref="Image{Rgba32}"/>.</returns>
         public static Image<Rgba32> Load(byte[] data, out string mimeType) => Load<Rgba32>(null, data, out mimeType);
 
         /// <summary>
-        /// Create a new instance of the <see cref="Image{TPixel}"/> class from the given byte array.
+        /// Create a new instance of the <see cref="Image{Rgba32}"/> class from the given byte array.
         /// </summary>
         /// <param name="config">The config for the decoder.</param>
         /// <param name="data">The byte array containing image data.</param>
@@ -63,11 +63,11 @@ namespace ImageSharp
         public static Image<Rgba32> Load(Configuration config, byte[] data) => Load<Rgba32>(config, data);
 
         /// <summary>
-        /// Create a new instance of the <see cref="Image{TPixel}"/> class from the given byte array.
+        /// Create a new instance of the <see cref="Image{Rgba32}"/> class from the given byte array.
         /// </summary>
         /// <param name="config">The config for the decoder.</param>
         /// <param name="data">The byte array containing image data.</param>
-        /// <param name="mimeType">the mime type of the decoded image.</param>
+        /// <param name="mimeType">The mime type of the decoded image.</param>
         /// <returns>A new <see cref="Image{Rgba32}"/>.</returns>
         public static Image<Rgba32> Load(Configuration config, byte[] data, out string mimeType) => Load<Rgba32>(config, data, out mimeType);
 
@@ -104,7 +104,7 @@ namespace ImageSharp
         /// Create a new instance of the <see cref="Image{TPixel}"/> class from the given byte array.
         /// </summary>
         /// <param name="data">The byte array containing image data.</param>
-        /// <param name="mimeType">the mime type of the decoded image.</param>
+        /// <param name="mimeType">The mime type of the decoded image.</param>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
         public static Image<TPixel> Load<TPixel>(byte[] data, out string mimeType)
@@ -123,9 +123,9 @@ namespace ImageSharp
         public static Image<TPixel> Load<TPixel>(Configuration config, byte[] data)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (MemoryStream ms = new MemoryStream(data))
+            using (var memoryStream = new MemoryStream(data))
             {
-                return Load<TPixel>(config, ms);
+                return Load<TPixel>(config, memoryStream);
             }
         }
 
@@ -134,15 +134,15 @@ namespace ImageSharp
         /// </summary>
         /// <param name="config">The configuration options.</param>
         /// <param name="data">The byte array containing image data.</param>
-        /// <param name="mimeType">the mime type of the decoded image.</param>
+        /// <param name="mimeType">The mime type of the decoded image.</param>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
         public static Image<TPixel> Load<TPixel>(Configuration config, byte[] data, out string mimeType)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (MemoryStream ms = new MemoryStream(data))
+            using (var memoryStream = new MemoryStream(data))
             {
-                return Load<TPixel>(config, ms, out mimeType);
+                return Load<TPixel>(config, memoryStream, out mimeType);
             }
         }
 
@@ -156,9 +156,9 @@ namespace ImageSharp
         public static Image<TPixel> Load<TPixel>(byte[] data, IImageDecoder decoder)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (var ms = new MemoryStream(data))
+            using (var memoryStream = new MemoryStream(data))
             {
-                return Load<TPixel>(ms, decoder);
+                return Load<TPixel>(memoryStream, decoder);
             }
         }
 
@@ -173,9 +173,9 @@ namespace ImageSharp
         public static Image<TPixel> Load<TPixel>(Configuration config, byte[] data, IImageDecoder decoder)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (var ms = new MemoryStream(data))
+            using (var memoryStream = new MemoryStream(data))
             {
-                return Load<TPixel>(config, ms, decoder);
+                return Load<TPixel>(config, memoryStream, decoder);
             }
         }
     }

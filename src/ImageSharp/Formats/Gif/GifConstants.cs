@@ -94,12 +94,12 @@ namespace ImageSharp.Formats
         public static readonly Encoding DefaultEncoding = Encoding.GetEncoding("ASCII");
 
         /// <summary>
-        /// The list of mimetypes that equate to a bmp
+        /// The list of mimetypes that equate to a gif.
         /// </summary>
         public static readonly IEnumerable<string> MimeTypes = new[] { "image/gif" };
 
         /// <summary>
-        /// The list of file extensions that equate to a bmp
+        /// The list of file extensions that equate to a gif.
         /// </summary>
         public static readonly IEnumerable<string> FileExtensions = new[] { "gif" };
     }

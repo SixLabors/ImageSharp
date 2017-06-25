@@ -70,19 +70,19 @@ namespace ImageSharp.Formats
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (var encode = new PngEncoderCore())
+            using (var encoder = new PngEncoderCore())
             {
-                encode.IgnoreMetadata = this.IgnoreMetadata;
+                encoder.IgnoreMetadata = this.IgnoreMetadata;
 
-                encode.PaletteSize = this.PaletteSize > 0 ? this.PaletteSize.Clamp(1, int.MaxValue) : int.MaxValue;
-                encode.PngColorType = this.PngColorType;
-                encode.CompressionLevel = this.CompressionLevel;
-                encode.Gamma = this.Gamma;
-                encode.Quantizer = this.Quantizer;
-                encode.Threshold = this.Threshold;
-                encode.WriteGamma = this.WriteGamma;
+                encoder.PaletteSize = this.PaletteSize > 0 ? this.PaletteSize.Clamp(1, int.MaxValue) : int.MaxValue;
+                encoder.PngColorType = this.PngColorType;
+                encoder.CompressionLevel = this.CompressionLevel;
+                encoder.Gamma = this.Gamma;
+                encoder.Quantizer = this.Quantizer;
+                encoder.Threshold = this.Threshold;
+                encoder.WriteGamma = this.WriteGamma;
 
-                encode.Encode(image, stream);
+                encoder.Encode(image, stream);
             }
         }
     }

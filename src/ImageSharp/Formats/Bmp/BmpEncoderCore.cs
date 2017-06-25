@@ -30,7 +30,7 @@ namespace ImageSharp.Formats
         }
 
         /// <summary>
-        /// Gets or sets the BitsPerPixel
+        /// Gets or sets the number of bits per pixel.
         /// </summary>
         public BmpBitsPerPixel BitsPerPixel { get; internal set; } = BmpBitsPerPixel.Pixel24;
 

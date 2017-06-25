@@ -23,16 +23,18 @@ namespace ImageSharp.Formats
         private int padding;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="BmpEncoderCore"/> class.
-        /// </summary>
-        public BmpEncoderCore()
-        {
-        }
-
-        /// <summary>
         /// Gets or sets the number of bits per pixel.
         /// </summary>
-        public BmpBitsPerPixel BitsPerPixel { get; internal set; } = BmpBitsPerPixel.Pixel24;
+        private BmpBitsPerPixel bitsPerPixel;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="BmpEncoderCore"/> class.
+        /// </summary>
+        /// <param name="options">The encoder options</param>
+        public BmpEncoderCore(IBmpEncoderOptions options)
+        {
+            this.bitsPerPixel = options.BitsPerPixel;
+        }
 
         /// <summary>
         /// Encodes the image to the specified stream from the <see cref="ImageBase{TPixel}"/>.
@@ -47,9 +49,9 @@ namespace ImageSharp.Formats
             Guard.NotNull(stream, nameof(stream));
 
             // Cast to int will get the bytes per pixel
-            short bpp = (short)(8 * (int)this.BitsPerPixel);
+            short bpp = (short)(8 * (int)this.bitsPerPixel);
             int bytesPerLine = 4 * (((image.Width * bpp) + 31) / 32);
-            this.padding = bytesPerLine - (image.Width * (int)this.BitsPerPixel);
+            this.padding = bytesPerLine - (image.Width * (int)this.bitsPerPixel);
 
             // Do not use IDisposable pattern here as we want to preserve the stream.
             EndianBinaryWriter writer = new EndianBinaryWriter(Endianness.LittleEndian, stream);
@@ -134,7 +136,7 @@ namespace ImageSharp.Formats
         {
             using (PixelAccessor<TPixel> pixels = image.Lock())
             {
-                switch (this.BitsPerPixel)
+                switch (this.bitsPerPixel)
                 {
                     case BmpBitsPerPixel.Pixel32:
                         this.Write32Bit(writer, pixels);

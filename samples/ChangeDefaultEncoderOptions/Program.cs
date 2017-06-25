@@ -1,5 +1,6 @@
 ﻿using System;
 using ImageSharp;
+using ImageSharp.Formats;
 
 namespace ChangeDefaultEncoderOptions
 {
@@ -14,22 +15,6 @@ namespace ChangeDefaultEncoderOptions
                 Quality = 90,
                 IgnoreMetadata = true
             });
-
-            // now lets say we don't want animated gifs, lets skip decoding the alternative frames
-            Configuration.Default.SetMimeTypeDecoder("image/gif", new ImageSharp.Formats.GifDecoder()
-            {
-                IgnoreFrames = true,
-                IgnoreMetadata = true
-            });
-
-            // and just to be douple sure we don't want animations lets disable them on encode too.
-            Configuration.Default.SetMimeTypeEncoder("image/gif", new ImageSharp.Formats.GifEncoder()
-            {
-                IgnoreFrames = true,
-                IgnoreMetadata = true
-            });
-
-
         }
     }
 }

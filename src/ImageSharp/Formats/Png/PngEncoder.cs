@@ -14,7 +14,7 @@ namespace ImageSharp.Formats
     /// <summary>
     /// Image encoder for writing image data to a stream in png format.
     /// </summary>
-    public class PngEncoder : IImageEncoder
+    public class PngEncoder : IImageEncoder, IPngEncoderOptions
     {
         /// <summary>
         /// Gets or sets a value indicating whether the metadata should be ignored when the image is being encoded.
@@ -70,18 +70,8 @@ namespace ImageSharp.Formats
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (var encoder = new PngEncoderCore())
+            using (var encoder = new PngEncoderCore(this))
             {
-                encoder.IgnoreMetadata = this.IgnoreMetadata;
-
-                encoder.PaletteSize = this.PaletteSize > 0 ? this.PaletteSize.Clamp(1, int.MaxValue) : int.MaxValue;
-                encoder.PngColorType = this.PngColorType;
-                encoder.CompressionLevel = this.CompressionLevel;
-                encoder.Gamma = this.Gamma;
-                encoder.Quantizer = this.Quantizer;
-                encoder.Threshold = this.Threshold;
-                encoder.WriteGamma = this.WriteGamma;
-
                 encoder.Encode(image, stream);
             }
         }

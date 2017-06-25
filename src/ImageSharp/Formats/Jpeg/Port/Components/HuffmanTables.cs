@@ -13,9 +13,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
     /// </summary>
     internal class HuffmanTables
     {
-        private HuffmanBranch[] first;
-
-        private HuffmanBranch[] second;
+        private readonly HuffmanBranch[][] tables = new HuffmanBranch[4][];
 
         /// <summary>
         /// Gets or sets the table at the given index.
@@ -27,23 +25,13 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
-                if (index == 0)
-                {
-                    return this.first;
-                }
-
-                return this.second;
+                return this.tables[index];
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set
             {
-                if (index == 0)
-                {
-                    this.first = value;
-                }
-
-                this.second = value;
+                this.tables[index] = value;
             }
         }
     }

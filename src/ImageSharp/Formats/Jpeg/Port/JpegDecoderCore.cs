@@ -90,47 +90,32 @@ namespace ImageSharp.Formats.Jpeg.Port
         public static FileMarker FindNextFileMarkerOld(Stream stream)
         {
             byte[] buffer = new byte[2];
-            while (true)
-            {
-                int value = stream.Read(buffer, 0, 2);
+            int value = stream.Read(buffer, 0, 2);
 
-                if (value == 0)
+            if (value == 0)
+            {
+                return new FileMarker(JpegConstants.Markers.EOI, (int)stream.Length, true);
+            }
+
+            // According to Section B.1.1.2:
+            // "Any marker may optionally be preceded by any number of fill bytes, which are bytes assigned code 0xFF."
+            if (buffer[1] != JpegConstants.Markers.Prefix)
+            {
+                return new FileMarker((ushort)((buffer[0] << 8) | buffer[1]), (int)(stream.Position - 2));
+            }
+
+            while (buffer[1] == JpegConstants.Markers.Prefix)
+            {
+                int suffix = stream.ReadByte();
+                if (suffix == -1)
                 {
                     return new FileMarker(JpegConstants.Markers.EOI, (int)stream.Length, true);
                 }
 
-                while (buffer[0] != JpegConstants.Markers.Prefix)
-                {
-                    // Strictly speaking, this is a format error. However, libjpeg is
-                    // liberal in what it accepts. As of version 9, next_marker in
-                    // jdmarker.c treats this as a warning (JWRN_EXTRANEOUS_DATA) and
-                    // continues to decode the stream. Even before next_marker sees
-                    // extraneous data, jpeg_fill_bit_buffer in jdhuff.c reads as many
-                    // bytes as it can, possibly past the end of a scan's data. It
-                    // effectively puts back any markers that it overscanned (e.g. an
-                    // "\xff\xd9" EOI marker), but it does not put back non-marker data,
-                    // and thus it can silently ignore a small number of extraneous
-                    // non-marker bytes before next_marker has a chance to see them (and
-                    // print a warning).
-                    // We are therefore also liberal in what we accept. Extraneous data
-                    // is silently ignore
-                    // This is similar to, but not exactly the same as, the restart
-                    // mechanism within a scan (the RST[0-7] markers).
-                    // Note that extraneous 0xff bytes in e.g. SOS data are escaped as
-                    // "\xff\x00", and so are detected a little further down below.
-                    buffer[0] = buffer[1];
-
-                    value = stream.ReadByte();
-                    if (value == -1)
-                    {
-                        return new FileMarker(JpegConstants.Markers.EOI, (int)stream.Length, true);
-                    }
-
-                    buffer[1] = (byte)value;
-                }
-
-                return new FileMarker((ushort)((buffer[0] << 8) | buffer[1]), (int)(stream.Position - 2));
+                buffer[1] = (byte)value;
             }
+
+            return new FileMarker((ushort)((buffer[0] << 8) | buffer[1]), (int)(stream.Position - 2));
         }
 
         /// <summary>
@@ -183,45 +168,6 @@ namespace ImageSharp.Formats.Jpeg.Port
             }
 
             return new FileMarker(newMarker, newPos, true);
-        }
-
-        /// <summary>
-        /// Finds the next file marker within the byte stream. Used for testing. Slower as it only reads on byte at a time
-        /// </summary>
-        /// <param name="stream">The input stream</param>
-        /// <returns>The <see cref="FileMarker"/></returns>
-        public static FileMarker FindNextFileMarkerNew(Stream stream)
-        {
-            while (true)
-            {
-                int value = stream.ReadByte();
-
-                if (value == -1)
-                {
-                    // We've reached the end of the stream
-                    return new FileMarker(JpegConstants.Markers.EOI, (int)stream.Length, true);
-                }
-
-                byte prefix = (byte)value;
-                byte suffix = JpegConstants.Markers.Prefix;
-
-                // According to Section B.1.1.2:
-                // "Any marker may optionally be preceded by any number of fill bytes, which are bytes assigned code 0xFF."
-                while (prefix == JpegConstants.Markers.Prefix && suffix == JpegConstants.Markers.Prefix)
-                {
-                    value = stream.ReadByte();
-
-                    if (value == -1)
-                    {
-                        // We've reached the end of the stream
-                        return new FileMarker(JpegConstants.Markers.EOI, (int)stream.Length, true);
-                    }
-
-                    suffix = (byte)value;
-                }
-
-                return new FileMarker((ushort)((prefix << 8) | suffix), (int)(stream.Position - 2));
-            }
         }
 
         /// <summary>
@@ -357,11 +303,12 @@ namespace ImageSharp.Formats.Jpeg.Port
                             break;
                         }
 
-                        throw new ImageFormatException($"Unknown Marker {fileMarker.Marker} at {fileMarker.Position}");
+                        // throw new ImageFormatException($"Unknown Marker {fileMarker.Marker} at {fileMarker.Position}");
+                        break;
                 }
 
                 // Read on. TODO: Test this on damaged images.
-                fileMarker = FindNextFileMarkerNew(this.InputStream);
+                fileMarker = FindNextFileMarkerOld(this.InputStream);
             }
 
             this.width = this.frame.SamplesPerLine;
@@ -644,7 +591,6 @@ namespace ImageSharp.Formats.Jpeg.Port
 
                             i += 17 + codeLengthSum;
 
-                            // Everything I can discover indicates there's a max of two table per DC AC pair though this limits the index to 16?
                             this.BuildHuffmanTable(
                                 huffmanTableSpec >> 4 == 0 ? this.dcHuffmanTables : this.acHuffmanTables,
                                 huffmanTableSpec & 15,
@@ -679,7 +625,23 @@ namespace ImageSharp.Formats.Jpeg.Port
             int selectorsCount = this.InputStream.ReadByte();
             for (int i = 0; i < selectorsCount; i++)
             {
-                byte componentIndex = this.frame.ComponentIds[this.InputStream.ReadByte() - 1];
+                int index = -1;
+                int selector = this.InputStream.ReadByte();
+
+                foreach (byte id in this.frame.ComponentIds)
+                {
+                    if (selector == id)
+                    {
+                        index = selector;
+                    }
+                }
+
+                if (index < 0)
+                {
+                    throw new ImageFormatException("Unknown component selector");
+                }
+
+                byte componentIndex = this.frame.ComponentIds[index];
                 ref FrameComponent component = ref this.frame.Components[componentIndex];
                 int tableSpec = this.InputStream.ReadByte();
                 component.DCHuffmanTableId = tableSpec >> 4;
@@ -717,6 +679,7 @@ namespace ImageSharp.Formats.Jpeg.Port
 
         /// <summary>
         /// Builds the huffman tables
+        /// TODO: This is our bottleneck. We should use a faster algorithm with a LUT.
         /// </summary>
         /// <param name="tables">The tables</param>
         /// <param name="index">The table index</param>

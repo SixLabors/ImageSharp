@@ -1,14 +1,21 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿// <copyright file="HashHelpers.cs" company="Six Labors">
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+// </copyright>
 
 namespace SixLabors
 {
-    // lifted from coreFX repo
+    /// <summary>
+    /// Lifted from coreFX repo
+    /// </summary>
     internal static class HashHelpers
     {
-        public static readonly int RandomSeed = Guid.NewGuid().GetHashCode();
-
+        /// <summary>
+        /// Combines the two specified hash codes.
+        /// </summary>
+        /// <param name="h1">Hash code one</param>
+        /// <param name="h2">Hash code two</param>
+        /// <returns>Returns a hash code for the two specified has codes.</returns>
         public static int Combine(int h1, int h2)
         {
             unchecked

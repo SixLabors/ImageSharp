@@ -20,21 +20,21 @@ namespace ImageSharp
     public static partial class Image
     {
         /// <summary>
-        /// By reading the header on the provided stream this calculates the images mimetype.
+        /// By reading the header on the provided stream this calculates the images mime type.
         /// </summary>
         /// <param name="stream">The image stream to read the header from.</param>
-        /// <returns>The mimetype or null if none found.</returns>
+        /// <returns>The mime type or null if none found.</returns>
         public static string DiscoverMimeType(Stream stream)
         {
             return DiscoverMimeType(null, stream);
         }
 
         /// <summary>
-        /// By reading the header on the provided stream this calculates the images mimetype.
+        /// By reading the header on the provided stream this calculates the images mime type.
         /// </summary>
         /// <param name="config">The configuration.</param>
         /// <param name="stream">The image stream to read the header from.</param>
-        /// <returns>The mimetype or null if none found.</returns>
+        /// <returns>The mime type or null if none found.</returns>
         public static string DiscoverMimeType(Configuration config, Stream stream)
         {
             return WithSeekableStream(stream, s => InternalDiscoverMimeType(s, config ?? Configuration.Default));
@@ -224,12 +224,12 @@ namespace ImageSharp
             }
 
             // We want to be able to load images from things like HttpContext.Request.Body
-            using (var ms = new MemoryStream())
+            using (var memoryStream = new MemoryStream())
             {
-                stream.CopyTo(ms);
-                ms.Position = 0;
+                stream.CopyTo(memoryStream);
+                memoryStream.Position = 0;
 
-                return action(ms);
+                return action(memoryStream);
             }
         }
     }

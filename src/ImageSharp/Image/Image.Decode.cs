@@ -22,7 +22,7 @@ namespace ImageSharp
         /// </summary>
         /// <param name="stream">The image stream to read the header from.</param>
         /// <param name="config">The configuration.</param>
-        /// <returns>The mimetype or null if none found.</returns>
+        /// <returns>The mime type or null if none found.</returns>
         private static string InternalDiscoverMimeType(Stream stream, Configuration config)
         {
             // This is probably a candidate for making into a public API in the future!

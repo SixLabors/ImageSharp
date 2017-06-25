@@ -214,7 +214,7 @@ namespace ImageSharp
                 string mime = this.Configuration.FindFileExtensionsMimeType(ext);
                 if (mime == null)
                 {
-                    stringBuilder.AppendLine($"Can't find a mime type for the file extention '{ext}'. Registerd File extension maps include:");
+                    stringBuilder.AppendLine($"Can't find a mime type for the file extention '{ext}'. Registered file extension maps include:");
                     foreach (KeyValuePair<string, string> map in this.Configuration.ImageExtensionToMimeTypeMapping)
                     {
                         stringBuilder.AppendLine($" - {map.Key} : {map.Value}");
@@ -222,7 +222,7 @@ namespace ImageSharp
                 }
                 else
                 {
-                    stringBuilder.AppendLine($"Can't find encoder for file extention '{ext}' using mime type '{mime}'. Registerd encoders include:");
+                    stringBuilder.AppendLine($"Can't find encoder for file extention '{ext}' using mime type '{mime}'. Registered encoders include:");
                     foreach (KeyValuePair<string, IImageEncoder> enc in this.Configuration.ImageEncoders)
                     {
                         stringBuilder.AppendLine($" - {enc.Key} : {enc.Value.GetType().Name}");

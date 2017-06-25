@@ -17,21 +17,21 @@ namespace ImageSharp
     public static partial class Image
     {
         /// <summary>
-        /// By reading the header on the provided file this calculates the images mimetype.
+        /// By reading the header on the provided file this calculates the images mime type.
         /// </summary>
         /// <param name="filePath">The image file to open and to read the header from.</param>
-        /// <returns>The mimetype or null if none found.</returns>
+        /// <returns>The mime type or null if none found.</returns>
         public static string DiscoverMimeType(string filePath)
         {
             return DiscoverMimeType(null, filePath);
         }
 
         /// <summary>
-        /// By reading the header on the provided file this calculates the images mimetype.
+        /// By reading the header on the provided file this calculates the images mime type.
         /// </summary>
         /// <param name="config">The configuration.</param>
         /// <param name="filePath">The image file to open and to read the header from.</param>
-        /// <returns>The mimetype or null if none found.</returns>
+        /// <returns>The mime type or null if none found.</returns>
         public static string DiscoverMimeType(Configuration config, string filePath)
         {
             config = config ?? Configuration.Default;
@@ -55,7 +55,7 @@ namespace ImageSharp
         /// Create a new instance of the <see cref="Image{Rgba32}"/> class from the given file.
         /// </summary>
         /// <param name="path">The file path to the image.</param>
-        /// <param name="mimeType">the mime type of the decoded image.</param>
+        /// <param name="mimeType">The mime type of the decoded image.</param>
         /// <exception cref="NotSupportedException">
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
@@ -78,7 +78,7 @@ namespace ImageSharp
         /// </summary>
         /// <param name="config">The config for the decoder.</param>
         /// <param name="path">The file path to the image.</param>
-        /// <param name="mimeType">the mime type of the decoded image.</param>
+        /// <param name="mimeType">The mime type of the decoded image.</param>
         /// <exception cref="NotSupportedException">
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
@@ -127,7 +127,7 @@ namespace ImageSharp
         /// Create a new instance of the <see cref="Image{TPixel}"/> class from the given file.
         /// </summary>
         /// <param name="path">The file path to the image.</param>
-        /// <param name="mimeType">the mime type of the decoded image.</param>
+        /// <param name="mimeType">The mime type of the decoded image.</param>
         /// <exception cref="NotSupportedException">
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
@@ -153,9 +153,9 @@ namespace ImageSharp
             where TPixel : struct, IPixel<TPixel>
         {
             config = config ?? Configuration.Default;
-            using (Stream s = config.FileSystem.OpenRead(path))
+            using (Stream stream = config.FileSystem.OpenRead(path))
             {
-                return Load<TPixel>(config, s);
+                return Load<TPixel>(config, stream);
             }
         }
 
@@ -164,7 +164,7 @@ namespace ImageSharp
         /// </summary>
         /// <param name="config">The configuration options.</param>
         /// <param name="path">The file path to the image.</param>
-        /// <param name="mimeType">the mime type of the decoded image.</param>
+        /// <param name="mimeType">The mime type of the decoded image.</param>
         /// <exception cref="NotSupportedException">
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
@@ -174,9 +174,9 @@ namespace ImageSharp
             where TPixel : struct, IPixel<TPixel>
         {
             config = config ?? Configuration.Default;
-            using (Stream s = config.FileSystem.OpenRead(path))
+            using (Stream stream = config.FileSystem.OpenRead(path))
             {
-                return Load<TPixel>(config, s, out mimeType);
+                return Load<TPixel>(config, stream, out mimeType);
             }
         }
 
@@ -211,9 +211,9 @@ namespace ImageSharp
             where TPixel : struct, IPixel<TPixel>
         {
             config = config ?? Configuration.Default;
-            using (Stream s = config.FileSystem.OpenRead(path))
+            using (Stream stream = config.FileSystem.OpenRead(path))
             {
-                return Load<TPixel>(config, s, decoder);
+                return Load<TPixel>(config, stream, decoder);
             }
         }
     }

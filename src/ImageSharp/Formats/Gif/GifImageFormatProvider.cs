@@ -12,7 +12,7 @@ namespace ImageSharp.Formats
     using ImageSharp.PixelFormats;
 
     /// <summary>
-    /// Detects gif file headers
+    /// Registers the image encoders, decoders and mime type detectors for the gif format.
     /// </summary>
     public class GifImageFormatProvider : IImageFormatProvider
     {

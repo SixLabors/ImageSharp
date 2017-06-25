@@ -33,7 +33,7 @@ namespace ImageSharp.Formats
         public Encoding TextEncoding { get; set; } = GifConstants.DefaultEncoding;
 
         /// <summary>
-        /// Gets or sets the size of the color palette to use.  For gifs the value ranges from 1 to 256. Leave as zero for default size.
+        /// Gets or sets the size of the color palette to use. For gifs the value ranges from 1 to 256. Leave as zero for default size.
         /// </summary>
         public int PaletteSize { get; set; } = 0;
 

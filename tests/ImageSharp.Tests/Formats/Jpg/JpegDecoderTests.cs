@@ -90,7 +90,7 @@ namespace ImageSharp.Tests
                     image.Save(ms, new JpegEncoder());
                     ms.Seek(0, SeekOrigin.Begin);
                     
-                    using (JpegDecoderCore decoder = new JpegDecoderCore(null))
+                    using (JpegDecoderCore decoder = new JpegDecoderCore(null, new JpegDecoder()))
                     {
                         Image<TPixel> mirror = decoder.Decode<TPixel>(ms);
 

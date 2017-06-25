@@ -15,17 +15,12 @@ namespace ImageSharp.Formats
     /// <summary>
     /// Image encoder for writing image data to a stream in gif format.
     /// </summary>
-    public class GifEncoder : IImageEncoder
+    public class GifEncoder : IImageEncoder, IGifEncoderOptions
     {
         /// <summary>
         /// Gets or sets a value indicating whether the metadata should be ignored when the image is being encoded.
         /// </summary>
         public bool IgnoreMetadata { get; set; } = false;
-
-        /// <summary>
-        /// Gets or sets a value indicating whether the additional frames should be ignored when the image is being encoded.
-        /// </summary>
-        public bool IgnoreFrames { get; set; } = false;
 
         /// <summary>
         /// Gets or sets the encoding that should be used when writing comments.
@@ -51,12 +46,7 @@ namespace ImageSharp.Formats
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
-            GifEncoderCore encoder = new GifEncoderCore(this.TextEncoding);
-            encoder.Quantizer = this.Quantizer;
-            encoder.Threshold = this.Threshold;
-            encoder.PaletteSize = this.PaletteSize;
-            encoder.IgnoreMetadata = this.IgnoreMetadata;
-            encoder.IgnoreFrames = this.IgnoreFrames;
+            GifEncoderCore encoder = new GifEncoderCore(this);
             encoder.Encode(image, stream);
         }
     }

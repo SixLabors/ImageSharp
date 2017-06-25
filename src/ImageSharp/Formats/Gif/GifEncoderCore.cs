@@ -36,43 +36,43 @@ namespace ImageSharp.Formats
         private bool hasFrames;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="GifEncoderCore"/> class.
-        /// </summary>
-        /// <param name="encoding">The encoding for the encoder.</param>
-        public GifEncoderCore(Encoding encoding)
-        {
-            this.TextEncoding = encoding ?? GifConstants.DefaultEncoding;
-        }
-
-        /// <summary>
         /// Gets the TextEncoding
         /// </summary>
-        public Encoding TextEncoding { get; private set; }
+        private Encoding textEncoding;
 
         /// <summary>
         /// Gets or sets the quantizer for reducing the color count.
         /// </summary>
-        public IQuantizer Quantizer { get; set; }
+        private IQuantizer quantizer;
 
         /// <summary>
         /// Gets or sets the threshold.
         /// </summary>
-        public byte Threshold { get; internal set; }
+        private byte threshold;
 
         /// <summary>
         /// Gets or sets the size of the color palette to use.
         /// </summary>
-        public int PaletteSize { get; internal set; }
+        private int paletteSize;
 
         /// <summary>
         /// Gets or sets a value indicating whether the metadata should be ignored when the image is being decoded.
         /// </summary>
-        public bool IgnoreMetadata { get; internal set; }
+        private bool ignoreMetadata;
 
         /// <summary>
-        /// Gets or sets a value indicating whether the additional frames should be ignored when the image is being encoded.
+        /// Initializes a new instance of the <see cref="GifEncoderCore"/> class.
         /// </summary>
-        public bool IgnoreFrames { get; internal set; }
+        /// <param name="options">The options for the encoder.</param>
+        public GifEncoderCore(IGifEncoderOptions options)
+        {
+            this.textEncoding = options.TextEncoding ?? GifConstants.DefaultEncoding;
+
+            this.quantizer = options.Quantizer;
+            this.threshold = options.Threshold;
+            this.paletteSize = options.PaletteSize;
+            this.ignoreMetadata = options.IgnoreMetadata;
+        }
 
         /// <summary>
         /// Encodes the image to the specified stream from the <see cref="Image{TPixel}"/>.
@@ -86,22 +86,22 @@ namespace ImageSharp.Formats
             Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));
 
-            this.Quantizer = this.Quantizer ?? new OctreeQuantizer<TPixel>();
+            this.quantizer = this.quantizer ?? new OctreeQuantizer<TPixel>();
 
             // Do not use IDisposable pattern here as we want to preserve the stream.
             var writer = new EndianBinaryWriter(Endianness.LittleEndian, stream);
 
             // Ensure that pallete size  can be set but has a fallback.
-            int paletteSize = this.PaletteSize;
+            int paletteSize = this.paletteSize;
             paletteSize = paletteSize > 0 ? paletteSize.Clamp(1, 256) : 256;
 
             // Get the number of bits.
             this.bitDepth = ImageMaths.GetBitsNeededForColorDepth(paletteSize);
 
-            this.hasFrames = !this.IgnoreFrames && image.Frames.Any();
+            this.hasFrames = image.Frames.Any();
 
             // Dithering when animating gifs is a bad idea as we introduce pixel tearing across frames.
-            var ditheredQuantizer = (IQuantizer<TPixel>)this.Quantizer;
+            var ditheredQuantizer = (IQuantizer<TPixel>)this.quantizer;
             ditheredQuantizer.Dither = !this.hasFrames;
 
             // Quantize the image returning a palette.
@@ -260,7 +260,7 @@ namespace ImageSharp.Formats
         private void WriteComments<TPixel>(Image<TPixel> image, EndianBinaryWriter writer)
             where TPixel : struct, IPixel<TPixel>
         {
-            if (this.IgnoreMetadata)
+            if (this.ignoreMetadata)
             {
                 return;
             }
@@ -271,7 +271,7 @@ namespace ImageSharp.Formats
                 return;
             }
 
-            byte[] comments = this.TextEncoding.GetBytes(property.Value);
+            byte[] comments = this.textEncoding.GetBytes(property.Value);
 
             int count = Math.Min(comments.Length, 255);
 

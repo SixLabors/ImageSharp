@@ -155,25 +155,26 @@ namespace ImageSharp.Formats
         private PngColorType pngColorType;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="PngDecoderCore"/> class.
-        /// </summary>
-        /// <param name="configuration">The configuration.</param>
-        /// <param name="encoding">The text encoding.</param>
-        public PngDecoderCore(Configuration configuration, Encoding encoding)
-        {
-            this.configuration = configuration ?? Configuration.Default;
-            this.TextEncoding = encoding ?? PngConstants.DefaultEncoding;
-        }
-
-        /// <summary>
         /// Gets the encoding to use
         /// </summary>
-        public Encoding TextEncoding { get; private set; }
+        private Encoding textEncoding;
 
         /// <summary>
         /// Gets or sets a value indicating whether the metadata should be ignored when the image is being decoded.
         /// </summary>
-        public bool IgnoreMetadata { get; internal set; }
+        private bool ignoreMetadata;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PngDecoderCore"/> class.
+        /// </summary>
+        /// <param name="configuration">The configuration.</param>
+        /// <param name="options">The decoder options.</param>
+        public PngDecoderCore(Configuration configuration, IPngDecoderOptions options)
+        {
+            this.configuration = configuration ?? Configuration.Default;
+            this.textEncoding = options.TextEncoding ?? PngConstants.DefaultEncoding;
+            this.ignoreMetadata = options.IgnoreMetadata;
+        }
 
         /// <summary>
         /// Decodes the stream to the image.
@@ -900,7 +901,7 @@ namespace ImageSharp.Formats
         /// <param name="length">The maximum length to read.</param>
         private void ReadTextChunk(ImageMetaData metadata, byte[] data, int length)
         {
-            if (this.IgnoreMetadata)
+            if (this.ignoreMetadata)
             {
                 return;
             }
@@ -916,8 +917,8 @@ namespace ImageSharp.Formats
                 }
             }
 
-            string name = this.TextEncoding.GetString(data, 0, zeroIndex);
-            string value = this.TextEncoding.GetString(data, zeroIndex + 1, length - zeroIndex - 1);
+            string name = this.textEncoding.GetString(data, 0, zeroIndex);
+            string value = this.textEncoding.GetString(data, zeroIndex + 1, length - zeroIndex - 1);
 
             metadata.Properties.Add(new ImageProperty(name, value));
         }

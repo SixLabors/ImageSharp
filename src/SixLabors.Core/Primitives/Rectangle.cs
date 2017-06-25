@@ -3,13 +3,13 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
+using System;
+using System.ComponentModel;
+using System.Numerics;
+using System.Runtime.CompilerServices;
+
 namespace SixLabors.Primitives
 {
-    using System;
-    using System.ComponentModel;
-    using System.Numerics;
-    using System.Runtime.CompilerServices;
-
     /// <summary>
     /// Stores a set of four integers that represent the location and size of a rectangle.
     /// </summary>
@@ -277,6 +277,19 @@ namespace SixLabors.Primitives
         }
 
         /// <summary>
+        /// Transforms a rectangle by the given matrix.
+        /// </summary>
+        /// <param name="rectangle">The source rectangle.</param>
+        /// <param name="matrix">The transformation matrix.</param>
+        /// <returns>A transformed rectangle.</returns>
+        public static RectangleF Transform(Rectangle rectangle, Matrix3x2 matrix)
+        {
+            PointF bottomRight = Point.Transform(new Point(rectangle.Right, rectangle.Bottom), matrix);
+            PointF topLeft = Point.Transform(rectangle.Location, matrix);
+            return new RectangleF(topLeft, new SizeF(bottomRight - topLeft));
+        }
+
+        /// <summary>
         /// Converts a <see cref="RectangleF"/> to a <see cref="Rectangle"/> by performing a truncate operation on all the coordinates.
         /// </summary>
         /// <param name="rectangle">The rectangle</param>
@@ -454,19 +467,6 @@ namespace SixLabors.Primitives
             hashCode = HashHelpers.Combine(hashCode, rectangle.Width.GetHashCode());
             hashCode = HashHelpers.Combine(hashCode, rectangle.Height.GetHashCode());
             return hashCode;
-        }
-
-        /// <summary>
-        /// Transforms a rectangle by the given matrix.
-        /// </summary>
-        /// <param name="rectangle">The source rectangle</param>
-        /// <param name="matrix">The transformation matrix.</param>
-        /// <returns></returns>
-        public static RectangleF Transform(Rectangle rectangle, Matrix3x2 matrix)
-        {
-            PointF bottomRight = Point.Transform(new Point(rectangle.Right, rectangle.Bottom), matrix);
-            PointF topLeft = Point.Transform(rectangle.Location, matrix);
-            return new RectangleF(topLeft, new SizeF(bottomRight - topLeft));
         }
     }
 }

@@ -39,4 +39,5 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("SixLabors.Exif")]
 [assembly: InternalsVisibleTo("SixLabors.Fonts")]
 [assembly: InternalsVisibleTo("SixLabors.ImageSharp")]
+[assembly: InternalsVisibleTo("SixLabors.ImageSharp.Drawing")]
 [assembly: InternalsVisibleTo("SixLabors.Shapes")]

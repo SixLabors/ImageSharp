@@ -2,7 +2,6 @@
 
   <PropertyGroup>
     <Description>Low level primitives for use across Six Labors projects..</Description>
-    <AssemblyTitle>SixLabors.Primitives</AssemblyTitle>
     <VersionPrefix Condition="$(packageversion) != ''">$(packageversion)</VersionPrefix>
     <VersionPrefix Condition="$(packageversion) == ''">0.1.0-alpha1</VersionPrefix>
     <Authors>Six Labors</Authors>
@@ -26,12 +25,13 @@
     <GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
     <GenerateAssemblyFileVersionAttribute>false</GenerateAssemblyFileVersionAttribute>
     <GenerateAssemblyInformationalVersionAttribute>false</GenerateAssemblyInformationalVersionAttribute>
+    <GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
     <DebugType Condition="$(codecov) == 'true'">full</DebugType>
     <RootNamespace>SixLabors</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="..\Shared\*.cs" Exclude="bin\**;obj\**;**\*.xproj;packages\**" />
+    <Content Include="..\..\stylecop.json" Link="stylecop.json" />
   </ItemGroup>
 
   <ItemGroup>

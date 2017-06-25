@@ -49,18 +49,31 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
         /// <param name="dcHuffmanTables">The DC Huffman tables</param>
         /// <param name="acHuffmanTables">The AC Huffman tables</param>
         /// <param name="components">The scan components</param>
+        /// <param name="componentIndex">The component index within the array</param>
+        /// <param name="componentsLength">The length of the components. Different to the array length</param>
         /// <param name="resetInterval">The reset interval</param>
         /// <param name="spectralStart">The spectral selection start</param>
         /// <param name="spectralEnd">The spectral selection end</param>
         /// <param name="successivePrev">The successive approximation bit high end</param>
         /// <param name="successive">The successive approximation bit low end</param>
-        public void DecodeScan(Frame frame, Stream stream, HuffmanTables dcHuffmanTables, HuffmanTables acHuffmanTables, FrameComponent[] components, ushort resetInterval, int spectralStart, int spectralEnd, int successivePrev, int successive)
+        public void DecodeScan(
+            Frame frame,
+            Stream stream,
+            HuffmanTables dcHuffmanTables,
+            HuffmanTables acHuffmanTables,
+            FrameComponent[] components,
+            int componentIndex,
+            int componentsLength,
+            ushort resetInterval,
+            int spectralStart,
+            int spectralEnd,
+            int successivePrev,
+            int successive)
         {
             this.specStart = spectralStart;
             this.specEnd = spectralEnd;
             this.successiveState = successive;
             bool progressive = frame.Progressive;
-            int componentsLength = components.Length;
             int mcusPerLine = frame.McusPerLine;
 
             // TODO: Delegate action will not be fast
@@ -100,14 +113,14 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
             int mcuExpected;
             if (componentsLength == 1)
             {
-                mcuExpected = components[0].BlocksPerLine * components[0].BlocksPerColumn;
+                mcuExpected = components[componentIndex].BlocksPerLine * components[componentIndex].BlocksPerColumn;
             }
             else
             {
                 mcuExpected = mcusPerLine * frame.McusPerColumn;
             }
 
-            FileMarker fileMarker;
+            // FileMarker fileMarker;
             while (mcu < mcuExpected)
             {
                 // Reset interval stuff
@@ -122,7 +135,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
 
                 if (componentsLength == 1)
                 {
-                    ref FrameComponent component = ref components[0];
+                    ref FrameComponent component = ref components[componentIndex];
                     for (int n = 0; n < mcuToRead; n++)
                     {
                         DecodeBlock(dcHuffmanTables, acHuffmanTables, ref component, decodeFn, mcu, stream);
@@ -154,45 +167,41 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
                 // Find marker
                 this.bitsCount = 0;
 
-                // TODO: We need to make sure we are not overwriting anything here.
-                fileMarker = JpegDecoderCore.FindNextFileMarker(stream);
-
-                // Some bad images seem to pad Scan blocks with e.g. zero bytes, skip past
-                // those to attempt to find a valid marker (fixes issue4090.pdf) in original code.
-                if (fileMarker.Invalid)
-                {
-#if DEBUG
-                    Debug.WriteLine("DecodeScan - Unexpected MCU data, next marker is: " + fileMarker.Marker.ToString("X"));
-#endif
-                }
-
-                ushort marker = fileMarker.Marker;
-                if (marker <= 0xFF00)
-                {
-                    throw new ImageFormatException("Marker was not found");
-                }
-
-                if (marker >= JpegConstants.Markers.RST0 && marker <= JpegConstants.Markers.RST7)
-                {
-                    // RSTx
-                    stream.Skip(2);
-                }
-                else
-                {
-                    break;
-                }
+                // // TODO: We need to make sure we are not overwriting anything here.
+                //                fileMarker = JpegDecoderCore.FindNextFileMarker(stream);
+                //                // Some bad images seem to pad Scan blocks with e.g. zero bytes, skip past
+                //                // those to attempt to find a valid marker (fixes issue4090.pdf) in original code.
+                //                if (fileMarker.Invalid)
+                //                {
+                // #if DEBUG
+                //                    Debug.WriteLine("DecodeScan - Unexpected MCU data, next marker is: " + fileMarker.Marker.ToString("X"));
+                // #endif
+                //                }
+                //                ushort marker = fileMarker.Marker;
+                //                if (marker <= 0xFF00)
+                //                {
+                //                    throw new ImageFormatException("Marker was not found");
+                //                }
+                //                if (marker >= JpegConstants.Markers.RST0 && marker <= JpegConstants.Markers.RST7)
+                //                {
+                //                    // RSTx
+                //                    stream.Skip(2);
+                //                }
+                //                else
+                //                {
+                //                    break;
+                //                }
             }
 
-            fileMarker = JpegDecoderCore.FindNextFileMarker(stream);
-
-            // Some images include more Scan blocks than expected, skip past those and
-            // attempt to find the next valid marker (fixes issue8182.pdf) in original code.
-            if (fileMarker.Invalid)
-            {
-#if DEBUG
-                Debug.WriteLine("DecodeScan - Unexpected MCU data, next marker is: " + fileMarker.Marker.ToString("X"));
-#endif
-            }
+            // fileMarker = JpegDecoderCore.FindNextFileMarker(stream);
+            //            // Some images include more Scan blocks than expected, skip past those and
+            //            // attempt to find the next valid marker (fixes issue8182.pdf) in original code.
+            //            if (fileMarker.Invalid)
+            //            {
+            // #if DEBUG
+            //                Debug.WriteLine("DecodeScan - Unexpected MCU data, next marker is: " + fileMarker.Marker.ToString("X"));
+            // #endif
+            //            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -231,7 +240,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
             }
 
             this.bitsData = stream.ReadByte();
-            if (this.bitsData == 0xFF)
+            if (this.bitsData == JpegConstants.Markers.Prefix)
             {
                 int nextByte = stream.ReadByte();
                 if (nextByte > 0)
@@ -252,8 +261,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
             HuffmanBranch[] node = tree;
             while (true)
             {
-                int index;
-                index = this.ReadBit(stream);
+                int index = this.ReadBit(stream);
                 HuffmanBranch branch = node[index];
                 node = branch.Children;
 

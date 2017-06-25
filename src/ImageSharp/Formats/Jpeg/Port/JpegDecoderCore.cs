@@ -87,35 +87,33 @@ namespace ImageSharp.Formats.Jpeg.Port
         /// </summary>
         /// <param name="stream">The input stream</param>
         /// <returns>The <see cref="FileMarker"/></returns>
-        public static FileMarker FindNextFileMarkerOld(Stream stream)
+        public static FileMarker FindNextFileMarkerNew(Stream stream)
         {
-            byte[] buffer = new byte[2];
-            int value = stream.Read(buffer, 0, 2);
+            byte[] marker = new byte[2];
+            int value = stream.Read(marker, 0, 2);
 
             if (value == 0)
             {
                 return new FileMarker(JpegConstants.Markers.EOI, (int)stream.Length, true);
             }
 
-            // According to Section B.1.1.2:
-            // "Any marker may optionally be preceded by any number of fill bytes, which are bytes assigned code 0xFF."
-            if (buffer[1] != JpegConstants.Markers.Prefix)
+            if (marker[0] == JpegConstants.Markers.Prefix)
             {
-                return new FileMarker((ushort)((buffer[0] << 8) | buffer[1]), (int)(stream.Position - 2));
-            }
-
-            while (buffer[1] == JpegConstants.Markers.Prefix)
-            {
-                int suffix = stream.ReadByte();
-                if (suffix == -1)
+                // According to Section B.1.1.2:
+                // "Any marker may optionally be preceded by any number of fill bytes, which are bytes assigned code 0xFF."
+                while (marker[1] == JpegConstants.Markers.Prefix)
                 {
-                    return new FileMarker(JpegConstants.Markers.EOI, (int)stream.Length, true);
-                }
+                    int suffix = stream.ReadByte();
+                    if (suffix == -1)
+                    {
+                        return new FileMarker(JpegConstants.Markers.EOI, (int)stream.Length, true);
+                    }
 
-                buffer[1] = (byte)value;
+                    marker[1] = (byte)value;
+                }
             }
 
-            return new FileMarker((ushort)((buffer[0] << 8) | buffer[1]), (int)(stream.Position - 2));
+            return new FileMarker((ushort)((marker[0] << 8) | marker[1]), (int)(stream.Position - 2));
         }
 
         /// <summary>
@@ -292,6 +290,7 @@ namespace ImageSharp.Formats.Jpeg.Port
 
                     default:
 
+                        // TODO: Not convinced this is required
                         // Skip back as it could be incorrect encoding -- last 0xFF byte of the previous
                         // block was eaten by the encoder
                         this.InputStream.Position -= 3;
@@ -308,7 +307,7 @@ namespace ImageSharp.Formats.Jpeg.Port
                 }
 
                 // Read on. TODO: Test this on damaged images.
-                fileMarker = FindNextFileMarkerOld(this.InputStream);
+                fileMarker = FindNextFileMarkerNew(this.InputStream);
             }
 
             this.width = this.frame.SamplesPerLine;
@@ -547,7 +546,7 @@ namespace ImageSharp.Formats.Jpeg.Port
                 component.VerticalFactor = v;
                 component.QuantizationIdentifier = this.temp[index + 2];
 
-                this.frame.ComponentIds[i] = (byte)i;
+                this.frame.ComponentIds[i] = component.Id;
 
                 index += 3;
             }
@@ -623,16 +622,18 @@ namespace ImageSharp.Formats.Jpeg.Port
         private void ProcessStartOfScanMarker()
         {
             int selectorsCount = this.InputStream.ReadByte();
+            int index = -1;
             for (int i = 0; i < selectorsCount; i++)
             {
-                int index = -1;
+                index = -1;
                 int selector = this.InputStream.ReadByte();
 
-                foreach (byte id in this.frame.ComponentIds)
+                for (int j = 0; j < this.frame.ComponentIds.Length; j++)
                 {
+                    byte id = this.frame.ComponentIds[j];
                     if (selector == id)
                     {
-                        index = selector;
+                        index = j;
                     }
                 }
 
@@ -641,8 +642,7 @@ namespace ImageSharp.Formats.Jpeg.Port
                     throw new ImageFormatException("Unknown component selector");
                 }
 
-                byte componentIndex = this.frame.ComponentIds[index];
-                ref FrameComponent component = ref this.frame.Components[componentIndex];
+                ref FrameComponent component = ref this.frame.Components[index];
                 int tableSpec = this.InputStream.ReadByte();
                 component.DCHuffmanTableId = tableSpec >> 4;
                 component.ACHuffmanTableId = tableSpec & 15;
@@ -661,6 +661,8 @@ namespace ImageSharp.Formats.Jpeg.Port
                this.dcHuffmanTables,
                this.acHuffmanTables,
                this.frame.Components,
+               index,
+               selectorsCount,
                this.resetInterval,
                spectralStart,
                spectralEnd,

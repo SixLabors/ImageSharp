@@ -31,7 +31,7 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <CodeAnalysisRuleSet>..\..\SixLabors.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRuleSet>..\SixLabors.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
 
   <ItemGroup>

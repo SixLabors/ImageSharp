@@ -40,8 +40,8 @@ namespace ImageSharp.Tests
         [Fact]
         public void IfAutoloadWellknwonFormatesIsTrueAllFormateAreLoaded()
         {
-            Assert.Equal(6, DefaultConfiguration.ImageEncoders.Count());
-            Assert.Equal(6, DefaultConfiguration.ImageDecoders.Count());
+            Assert.Equal(4, DefaultConfiguration.ImageEncoders.Count());
+            Assert.Equal(4, DefaultConfiguration.ImageDecoders.Count());
         }
 
         /// <summary>
@@ -73,11 +73,11 @@ namespace ImageSharp.Tests
         }
 
         [Fact]
-        public void AddMimeTypeDetectorNullthrows()
+        public void AddImageFormatDetectorNullthrows()
         {
             Assert.Throws<ArgumentNullException>(() =>
             {
-                DefaultConfiguration.AddMimeTypeDetector(null);
+                DefaultConfiguration.AddImageFormatDetector(null);
             });
         }
 
@@ -86,49 +86,32 @@ namespace ImageSharp.Tests
         {
             Assert.Throws<ArgumentNullException>(() =>
             {
-                DefaultConfiguration.SetMimeTypeEncoder(null, new Mock<IImageEncoder>().Object);
+                DefaultConfiguration.SetEncoder(null, new Mock<IImageEncoder>().Object);
             });
             Assert.Throws<ArgumentNullException>(() =>
             {
-                DefaultConfiguration.SetMimeTypeEncoder("sdsdsd", null);
+                DefaultConfiguration.SetEncoder(ImageFormats.Bitmap, null);
             });
             Assert.Throws<ArgumentNullException>(() =>
             {
-                DefaultConfiguration.SetMimeTypeEncoder(null, null);
-            });
-        }
-
-        [Fact]
-        public void RegisterNullFileExtEncoder()
-        {
-            Assert.Throws<ArgumentNullException>(() =>
-            {
-                DefaultConfiguration.SetFileExtensionToMimeTypeMapping(null, "str");
-            });
-            Assert.Throws<ArgumentNullException>(() =>
-            {
-                DefaultConfiguration.SetFileExtensionToMimeTypeMapping("sdsdsd", null);
-            });
-            Assert.Throws<ArgumentNullException>(() =>
-            {
-                DefaultConfiguration.SetFileExtensionToMimeTypeMapping(null, null);
+                DefaultConfiguration.SetEncoder(null, null);
             });
         }
 
         [Fact]
-        public void RegisterNullMimeTypeDecoder()
+        public void RegisterNullSetDecoder()
         {
             Assert.Throws<ArgumentNullException>(() =>
             {
-                DefaultConfiguration.SetMimeTypeDecoder(null, new Mock<IImageDecoder>().Object);
+                DefaultConfiguration.SetDecoder(null, new Mock<IImageDecoder>().Object);
             });
             Assert.Throws<ArgumentNullException>(() =>
             {
-                DefaultConfiguration.SetMimeTypeDecoder("sdsdsd", null);
+                DefaultConfiguration.SetDecoder(ImageFormats.Bitmap, null);
             });
             Assert.Throws<ArgumentNullException>(() =>
             {
-                DefaultConfiguration.SetMimeTypeDecoder(null, null);
+                DefaultConfiguration.SetDecoder(null, null);
             });
         }
 
@@ -136,28 +119,13 @@ namespace ImageSharp.Tests
         public void RegisterMimeTypeEncoderReplacesLast()
         {
             var encoder1 = new Mock<IImageEncoder>().Object;
-            ConfigurationEmpty.SetMimeTypeEncoder("test", encoder1);
-            var found = ConfigurationEmpty.FindMimeTypeEncoder("TEST");
+            ConfigurationEmpty.SetEncoder(TestFormat.GlobalTestFormat, encoder1);
+            var found = ConfigurationEmpty.FindEncoder(TestFormat.GlobalTestFormat);
             Assert.Equal(encoder1, found);
 
             var encoder2 = new Mock<IImageEncoder>().Object;
-            ConfigurationEmpty.SetMimeTypeEncoder("TEST", encoder2);
-            var found2 = ConfigurationEmpty.FindMimeTypeEncoder("test");
-            Assert.Equal(encoder2, found2);
-            Assert.NotEqual(found, found2);
-        }
-
-        [Fact]
-        public void RegisterFileExtEnecoderReplacesLast()
-        {
-            var encoder1 = "mime1";
-            ConfigurationEmpty.SetFileExtensionToMimeTypeMapping("TEST", encoder1);
-            var found = ConfigurationEmpty.FindFileExtensionsMimeType("test");
-            Assert.Equal(encoder1, found);
-
-            var encoder2 = "mime2";
-            ConfigurationEmpty.SetFileExtensionToMimeTypeMapping("test", encoder2);
-            var found2 = ConfigurationEmpty.FindFileExtensionsMimeType("TEST");
+            ConfigurationEmpty.SetEncoder(TestFormat.GlobalTestFormat, encoder2);
+            var found2 = ConfigurationEmpty.FindEncoder(TestFormat.GlobalTestFormat);
             Assert.Equal(encoder2, found2);
             Assert.NotEqual(found, found2);
         }
@@ -166,13 +134,13 @@ namespace ImageSharp.Tests
         public void RegisterMimeTypeDecoderReplacesLast()
         {
             var decoder1 = new Mock<IImageDecoder>().Object;
-            ConfigurationEmpty.SetMimeTypeDecoder("test", decoder1);
-            var found = ConfigurationEmpty.FindMimeTypeDecoder("TEST");
+            ConfigurationEmpty.SetDecoder(TestFormat.GlobalTestFormat, decoder1);
+            var found = ConfigurationEmpty.FindDecoder(TestFormat.GlobalTestFormat);
             Assert.Equal(decoder1, found);
 
             var decoder2 = new Mock<IImageDecoder>().Object;
-            ConfigurationEmpty.SetMimeTypeDecoder("TEST", decoder2);
-            var found2 = ConfigurationEmpty.FindMimeTypeDecoder("test");
+            ConfigurationEmpty.SetDecoder(TestFormat.GlobalTestFormat, decoder2);
+            var found2 = ConfigurationEmpty.FindDecoder(TestFormat.GlobalTestFormat);
             Assert.Equal(decoder2, found2);
             Assert.NotEqual(found, found2);
         }
@@ -181,7 +149,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void ConstructorCallConfigureOnFormatProvider()
         {
-            var provider = new Mock<IImageFormatProvider>();
+            var provider = new Mock<IConfigurationModule>();
             var config = new Configuration(provider.Object);
 
             provider.Verify(x => x.Configure(config));
@@ -190,9 +158,9 @@ namespace ImageSharp.Tests
         [Fact]
         public void AddFormatCallsConfig()
         {
-            var provider = new Mock<IImageFormatProvider>();
+            var provider = new Mock<IConfigurationModule>();
             var config = new Configuration();
-            config.AddImageFormat(provider.Object);
+            config.Configure(provider.Object);
 
             provider.Verify(x => x.Configure(config));
         }

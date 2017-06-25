@@ -24,13 +24,17 @@ namespace ImageSharp.Tests
         private readonly Mock<IFileSystem> fileSystem;
         private readonly Mock<IImageEncoder> encoder;
         private readonly Mock<IImageEncoder> encoderNotInFormat;
-        private Mock<IMimeTypeDetector> localMimeTypeDetector;
+        private Mock<IImageFormatDetector> localMimeTypeDetector;
+        private Mock<IImageFormat> localImageFormat;
 
         public ImageSaveTests()
         {
-            this.localMimeTypeDetector = new Mock<IMimeTypeDetector>();
+            this.localImageFormat = new Mock<IImageFormat>();
+            this.localImageFormat.Setup(x => x.FileExtensions).Returns(new[] { "png" });
+
+            this.localMimeTypeDetector = new Mock<IImageFormatDetector>();
             this.localMimeTypeDetector.Setup(x => x.HeaderSize).Returns(1);
-            this.localMimeTypeDetector.Setup(x => x.DetectMimeType(It.IsAny<Span<byte>>())).Returns("img/test");
+            this.localMimeTypeDetector.Setup(x => x.DetectFormat(It.IsAny<Span<byte>>())).Returns(localImageFormat.Object);
 
             this.encoder = new Mock<IImageEncoder>();
 
@@ -41,9 +45,8 @@ namespace ImageSharp.Tests
             {
                 FileSystem = this.fileSystem.Object
             };
-            config.AddMimeTypeDetector(this.localMimeTypeDetector.Object);
-            config.SetMimeTypeEncoder("img/test", this.encoder.Object);
-            config.SetFileExtensionToMimeTypeMapping("png", "img/test");
+            config.AddImageFormatDetector(this.localMimeTypeDetector.Object);
+            config.SetEncoder(localImageFormat.Object, this.encoder.Object);
             this.Image = new Image<Rgba32>(config, 1, 1);
         }
 
@@ -72,7 +75,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void ToBase64String()
         {
-            var str = this.Image.ToBase64String("img/test");
+            var str = this.Image.ToBase64String(localImageFormat.Object);
 
             this.encoder.Verify(x => x.Encode<Rgba32>(this.Image, It.IsAny<Stream>()));
         }
@@ -81,7 +84,7 @@ namespace ImageSharp.Tests
         public void SaveStreamWithMime()
         {
             Stream stream = new MemoryStream();
-            this.Image.Save(stream, "img/test");
+            this.Image.Save(stream, localImageFormat.Object);
 
             this.encoder.Verify(x => x.Encode<Rgba32>(this.Image, stream));
         }

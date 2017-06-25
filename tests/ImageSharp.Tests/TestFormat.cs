@@ -19,13 +19,13 @@ namespace ImageSharp.Tests
     /// <summary>
     /// A test image file.
     /// </summary>
-    public class TestFormat : IImageFormatProvider
+    public class TestFormat : IConfigurationModule, IImageFormat
     {
         public static TestFormat GlobalTestFormat { get; } = new TestFormat();
 
         public static void RegisterGloablTestFormat()
         {
-            Configuration.Default.AddImageFormat(GlobalTestFormat);
+            Configuration.Default.Configure(GlobalTestFormat);
         }
 
         public TestFormat()
@@ -93,7 +93,15 @@ namespace ImageSharp.Tests
 
         public int HeaderSize => this.header.Length;
 
-        public bool IsSupportedFileFormat(Span<byte> header)
+        public string Name => this.Extension;
+
+        public string DefaultMimeType => this.MimeType;
+
+        public IEnumerable<string> MimeTypes => new[] { this.MimeType };
+
+        public IEnumerable<string> FileExtensions => this.SupportedExtensions;
+
+        public bool IsSupportedFileFormat(ReadOnlySpan<byte> header)
         {
             if (header.Length < this.header.Length)
             {
@@ -109,16 +117,11 @@ namespace ImageSharp.Tests
             return true;
         }
 
-        public void Configure(IImageFormatHost host)
+        public void Configure(Configuration host)
         {
-            host.AddMimeTypeDetector(new TestHeader(this));
-            foreach (var ext in this.SupportedExtensions)
-            {
-                host.SetFileExtensionToMimeTypeMapping(ext, this.MimeType);
-            }
-
-            host.SetMimeTypeEncoder(this.MimeType, new TestEncoder(this));
-            host.SetMimeTypeDecoder(this.MimeType, new TestDecoder(this));
+            host.AddImageFormatDetector(new TestHeader(this));
+            host.SetEncoder(this, new TestEncoder(this));
+            host.SetDecoder(this, new TestDecoder(this));
         }
 
         public struct DecodeOperation
@@ -150,17 +153,17 @@ namespace ImageSharp.Tests
             }
         }
 
-        public class TestHeader : IMimeTypeDetector
+        public class TestHeader : IImageFormatDetector
         {
 
             private TestFormat testFormat;
 
             public int HeaderSize => testFormat.HeaderSize;
 
-            public string DetectMimeType(Span<byte> header)
+            public IImageFormat DetectFormat(ReadOnlySpan<byte> header)
             {
                 if (testFormat.IsSupportedFileFormat(header))
-                    return testFormat.MimeType;
+                    return testFormat;
 
                 return null;
             }

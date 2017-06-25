@@ -9,7 +9,7 @@ namespace ImageSharp
     using System.IO;
     using System.Linq;
     using Formats;
-
+    using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
 
     /// <content>
@@ -23,7 +23,7 @@ namespace ImageSharp
         /// <param name="stream">The image stream to read the header from.</param>
         /// <param name="config">The configuration.</param>
         /// <returns>The mime type or null if none found.</returns>
-        private static string InternalDiscoverMimeType(Stream stream, Configuration config)
+        private static IImageFormat InternalDetectFormat(Stream stream, Configuration config)
         {
             // This is probably a candidate for making into a public API in the future!
             int maxHeaderSize = config.MaxHeaderSize;
@@ -32,17 +32,12 @@ namespace ImageSharp
                 return null;
             }
 
-            byte[] header = ArrayPool<byte>.Shared.Rent(maxHeaderSize);
-            try
+            using (var buffer = new Buffer<byte>(maxHeaderSize))
             {
                 long startPosition = stream.Position;
-                stream.Read(header, 0, maxHeaderSize);
+                stream.Read(buffer.Array, 0, maxHeaderSize);
                 stream.Position = startPosition;
-                return config.MimeTypeDetectors.Select(x => x.DetectMimeType(header)).LastOrDefault(x => x != null);
-            }
-            finally
-            {
-                ArrayPool<byte>.Shared.Return(header);
+                return config.FormatDetectors.Select(x => x.DetectFormat(buffer)).LastOrDefault(x => x != null);
             }
         }
 
@@ -51,14 +46,14 @@ namespace ImageSharp
         /// </summary>
         /// <param name="stream">The image stream to read the header from.</param>
         /// <param name="config">The configuration.</param>
-        /// <param name="mimeType">The mimeType.</param>
+        /// <param name="format">The IImageFormat.</param>
         /// <returns>The image format or null if none found.</returns>
-        private static IImageDecoder DiscoverDecoder(Stream stream, Configuration config, out string mimeType)
+        private static IImageDecoder DiscoverDecoder(Stream stream, Configuration config, out IImageFormat format)
         {
-            mimeType = InternalDiscoverMimeType(stream, config);
-            if (mimeType != null)
+            format = InternalDetectFormat(stream, config);
+            if (format != null)
             {
-                return config.FindMimeTypeDecoder(mimeType);
+                return config.FindDecoder(format);
             }
 
             return null;
@@ -74,18 +69,18 @@ namespace ImageSharp
         /// <returns>
         /// A new <see cref="Image{TPixel}"/>.
         /// </returns>
-        private static (Image<TPixel> img, string mimeType) Decode<TPixel>(Stream stream, Configuration config)
+        private static (Image<TPixel> img, IImageFormat format) Decode<TPixel>(Stream stream, Configuration config)
 #pragma warning restore SA1008 // Opening parenthesis must be spaced correctly
             where TPixel : struct, IPixel<TPixel>
         {
-            IImageDecoder decoder = DiscoverDecoder(stream, config, out string mimeType);
+            IImageDecoder decoder = DiscoverDecoder(stream, config, out IImageFormat format);
             if (decoder == null)
             {
                 return (null, null);
             }
 
             Image<TPixel> img = decoder.Decode<TPixel>(config, stream);
-            return (img, mimeType);
+            return (img, format);
         }
     }
 }

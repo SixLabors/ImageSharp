@@ -152,22 +152,22 @@ namespace ImageSharp
         /// Saves the image to the given stream using the currently loaded image format.
         /// </summary>
         /// <param name="stream">The stream to save the image to.</param>
-        /// <param name="mimeType">The mime type to save the image to.</param>
+        /// <param name="format">The format to save the image to.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
         /// <returns>The <see cref="Image{TPixel}"/></returns>
-        public Image<TPixel> Save(Stream stream, string mimeType)
+        public Image<TPixel> Save(Stream stream, IImageFormat format)
         {
-            Guard.NotNullOrEmpty(mimeType, nameof(mimeType));
-            IImageEncoder encoder = this.Configuration.FindMimeTypeEncoder(mimeType);
+            Guard.NotNull(format, nameof(format));
+            IImageEncoder encoder = this.Configuration.FindEncoder(format);
 
             if (encoder == null)
             {
                 var stringBuilder = new StringBuilder();
                 stringBuilder.AppendLine("Can't find encoder for provided mime type. Available encoded:");
 
-                foreach (KeyValuePair<string, IImageEncoder> val in this.Configuration.ImageEncoders)
+                foreach (KeyValuePair<IImageFormat, IImageEncoder> val in this.Configuration.ImageEncoders)
                 {
-                    stringBuilder.AppendLine($" - {val.Key} : {val.Value.GetType().Name}");
+                    stringBuilder.AppendLine($" - {val.Key.Name} : {val.Value.GetType().Name}");
                 }
 
                 throw new NotSupportedException(stringBuilder.ToString());
@@ -207,26 +207,28 @@ namespace ImageSharp
             Guard.NotNullOrEmpty(filePath, nameof(filePath));
 
             string ext = Path.GetExtension(filePath).Trim('.');
-            IImageEncoder encoder = this.Configuration.FindFileExtensionsEncoder(ext);
+            var format = this.Configuration.FindFormatByFileExtensions(ext);
+            if (format == null)
+            {
+                var stringBuilder = new StringBuilder();
+                stringBuilder.AppendLine($"Can't find a format that is associated with the file extention '{ext}'. Registered formats with there extensions include:");
+                foreach (IImageFormat fmt in this.Configuration.ImageFormats)
+                {
+                    stringBuilder.AppendLine($" - {fmt.Name} : {string.Join(", ", fmt.FileExtensions)}");
+                }
+
+                throw new NotSupportedException(stringBuilder.ToString());
+            }
+
+            IImageEncoder encoder = this.Configuration.FindEncoder(format);
+
             if (encoder == null)
             {
                 var stringBuilder = new StringBuilder();
-                string mime = this.Configuration.FindFileExtensionsMimeType(ext);
-                if (mime == null)
+                stringBuilder.AppendLine($"Can't find encoder for file extention '{ext}' using image format '{format.Name}'. Registered encoders include:");
+                foreach (KeyValuePair<IImageFormat, IImageEncoder> enc in this.Configuration.ImageEncoders)
                 {
-                    stringBuilder.AppendLine($"Can't find a mime type for the file extention '{ext}'. Registered file extension maps include:");
-                    foreach (KeyValuePair<string, string> map in this.Configuration.ImageExtensionToMimeTypeMapping)
-                    {
-                        stringBuilder.AppendLine($" - {map.Key} : {map.Value}");
-                    }
-                }
-                else
-                {
-                    stringBuilder.AppendLine($"Can't find encoder for file extention '{ext}' using mime type '{mime}'. Registered encoders include:");
-                    foreach (KeyValuePair<string, IImageEncoder> enc in this.Configuration.ImageEncoders)
-                    {
-                        stringBuilder.AppendLine($" - {enc.Key} : {enc.Value.GetType().Name}");
-                    }
+                    stringBuilder.AppendLine($" - {enc.Key} : {enc.Value.GetType().Name}");
                 }
 
                 throw new NotSupportedException(stringBuilder.ToString());
@@ -262,15 +264,15 @@ namespace ImageSharp
         /// Returns a Base64 encoded string from the given image.
         /// </summary>
         /// <example><see href="data:image/gif;base64,R0lGODlhAQABAIABAEdJRgAAACwAAAAAAQABAAACAkQBAA=="/></example>
-        /// <param name="mimeType">The mimeType.</param>
+        /// <param name="format">The format.</param>
         /// <returns>The <see cref="string"/></returns>
-        public string ToBase64String(string mimeType)
+        public string ToBase64String(IImageFormat format)
         {
             using (var stream = new MemoryStream())
             {
-                this.Save(stream, mimeType);
+                this.Save(stream, format);
                 stream.Flush();
-                return $"data:{mimeType};base64,{Convert.ToBase64String(stream.ToArray())}";
+                return $"data:{format.DefaultMimeType};base64,{Convert.ToBase64String(stream.ToArray())}";
             }
         }
 

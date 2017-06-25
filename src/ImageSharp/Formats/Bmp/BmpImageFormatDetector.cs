@@ -14,23 +14,23 @@ namespace ImageSharp.Formats
     /// <summary>
     /// Detects bmp file headers
     /// </summary>
-    internal class BmpMimeTypeDetector : IMimeTypeDetector
+    internal class BmpImageFormatDetector : IImageFormatDetector
     {
         /// <inheritdoc/>
         public int HeaderSize => 2;
 
         /// <inheritdoc/>
-        public string DetectMimeType(Span<byte> header)
+        public IImageFormat DetectFormat(ReadOnlySpan<byte> header)
         {
             if (this.IsSupportedFileFormat(header))
             {
-                return "image/bmp";
+                return ImageFormats.Bitmap;
             }
 
             return null;
         }
 
-        private bool IsSupportedFileFormat(Span<byte> header)
+        private bool IsSupportedFileFormat(ReadOnlySpan<byte> header)
         {
             return header.Length >= this.HeaderSize &&
                    header[0] == 0x42 && // B

@@ -18,7 +18,7 @@ namespace ImageSharp
     /// <summary>
     /// Provides initialization code which allows extending the library.
     /// </summary>
-    public class Configuration : IImageFormatHost
+    public class Configuration
     {
         /// <summary>
         /// A lazily initialized configuration default instance.
@@ -33,22 +33,22 @@ namespace ImageSharp
         /// <summary>
         /// The list of supported <see cref="IImageEncoder"/> keyed to mime types.
         /// </summary>
-        private readonly ConcurrentDictionary<string, IImageEncoder> mimeTypeEncoders = new ConcurrentDictionary<string, IImageEncoder>(StringComparer.OrdinalIgnoreCase);
-
-        /// <summary>
-        /// The list of supported mime types keyed to file extensions.
-        /// </summary>
-        private readonly ConcurrentDictionary<string, string> extensionsMap = new ConcurrentDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        private readonly ConcurrentDictionary<IImageFormat, IImageEncoder> mimeTypeEncoders = new ConcurrentDictionary<IImageFormat, IImageEncoder>();
 
         /// <summary>
         /// The list of supported <see cref="IImageEncoder"/> keyed to mime types.
         /// </summary>
-        private readonly ConcurrentDictionary<string, IImageDecoder> mimeTypeDecoders = new ConcurrentDictionary<string, IImageDecoder>(StringComparer.OrdinalIgnoreCase);
+        private readonly ConcurrentDictionary<IImageFormat, IImageDecoder> mimeTypeDecoders = new ConcurrentDictionary<IImageFormat, IImageDecoder>();
 
         /// <summary>
-        /// The list of supported <see cref="IMimeTypeDetector"/>s.
+        /// The list of supported <see cref="IImageFormatDetector"/>s.
         /// </summary>
-        private readonly List<IMimeTypeDetector> mimeTypeDetectors = new List<IMimeTypeDetector>();
+        private readonly List<IImageFormatDetector> imageFormatDetectors = new List<IImageFormatDetector>();
+
+        /// <summary>
+        /// The list of supported <see cref="IImageFormat"/>s.
+        /// </summary>
+        private readonly HashSet<IImageFormat> imageFormats = new HashSet<IImageFormat>();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Configuration" /> class.
@@ -61,11 +61,11 @@ namespace ImageSharp
         /// Initializes a new instance of the <see cref="Configuration" /> class.
         /// </summary>
         /// <param name="providers">A collection of providers to configure</param>
-        public Configuration(params IImageFormatProvider[] providers)
+        public Configuration(params IConfigurationModule[] providers)
         {
             if (providers != null)
             {
-                foreach (IImageFormatProvider p in providers)
+                foreach (IConfigurationModule p in providers)
                 {
                     p.Configure(this);
                 }
@@ -88,24 +88,24 @@ namespace ImageSharp
         internal int MaxHeaderSize { get; private set; }
 
         /// <summary>
-        /// Gets the currently registered <see cref="IMimeTypeDetector"/>s.
+        /// Gets the currently registered <see cref="IImageFormatDetector"/>s.
         /// </summary>
-        internal IEnumerable<IMimeTypeDetector> MimeTypeDetectors => this.mimeTypeDetectors;
+        internal IEnumerable<IImageFormatDetector> FormatDetectors => this.imageFormatDetectors;
 
         /// <summary>
         /// Gets the currently registered <see cref="IImageDecoder"/>s.
         /// </summary>
-        internal IEnumerable<KeyValuePair<string, IImageDecoder>> ImageDecoders => this.mimeTypeDecoders;
+        internal IEnumerable<KeyValuePair<IImageFormat, IImageDecoder>> ImageDecoders => this.mimeTypeDecoders;
 
         /// <summary>
         /// Gets the currently registered <see cref="IImageEncoder"/>s.
         /// </summary>
-        internal IEnumerable<KeyValuePair<string, IImageEncoder>> ImageEncoders => this.mimeTypeEncoders;
+        internal IEnumerable<KeyValuePair<IImageFormat, IImageEncoder>> ImageEncoders => this.mimeTypeEncoders;
 
         /// <summary>
-        /// Gets the currently registered file extensions.
+        /// Gets the currently registered <see cref="IImageFormat"/>s.
         /// </summary>
-        internal IEnumerable<KeyValuePair<string, string>> ImageExtensionToMimeTypeMapping => this.extensionsMap;
+        internal IEnumerable<IImageFormat> ImageFormats => this.imageFormats;
 
 #if !NETSTANDARD1_1
         /// <summary>
@@ -117,35 +117,69 @@ namespace ImageSharp
         /// <summary>
         /// Registers a new format provider.
         /// </summary>
-        /// <param name="formatProvider">The format providers to call configure on.</param>
-        public void AddImageFormat(IImageFormatProvider formatProvider)
+        /// <param name="configuration">The configuration provider to call configure on.</param>
+        public void Configure(IConfigurationModule configuration)
         {
-            Guard.NotNull(formatProvider, nameof(formatProvider));
-            formatProvider.Configure(this);
+            Guard.NotNull(configuration, nameof(configuration));
+            configuration.Configure(this);
         }
 
-        /// <inheritdoc />
-        public void SetMimeTypeEncoder(string mimeType, IImageEncoder encoder)
+        /// <summary>
+        /// Registers a new format provider.
+        /// </summary>
+        /// <param name="format">The format to register as a well know format.</param>
+        public void AddImageFormat(IImageFormat format)
         {
-            Guard.NotNullOrEmpty(mimeType, nameof(mimeType));
+            Guard.NotNull(format, nameof(format));
+            Guard.NotNull(format.MimeTypes, nameof(format.MimeTypes));
+            Guard.NotNull(format.FileExtensions, nameof(format.FileExtensions));
+            this.imageFormats.Add(format);
+        }
+
+        /// <summary>
+        /// For the specified file extensions type find the e <see cref="IImageFormat"/>.
+        /// </summary>
+        /// <param name="extension">The extension to discover</param>
+        /// <returns>The <see cref="IImageFormat"/> if found otherwise null</returns>
+        public IImageFormat FindFormatByFileExtensions(string extension)
+        {
+            return this.imageFormats.FirstOrDefault(x => x.FileExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase));
+        }
+
+        /// <summary>
+        /// For the specified mime type find the <see cref="IImageFormat"/>.
+        /// </summary>
+        /// <param name="mimeType">The mime-type to discover</param>
+        /// <returns>The <see cref="IImageFormat"/> if found otherwise null</returns>
+        public IImageFormat FindFormatByMimeType(string mimeType)
+        {
+            return this.imageFormats.FirstOrDefault(x => x.MimeTypes.Contains(mimeType, StringComparer.OrdinalIgnoreCase));
+        }
+
+        /// <summary>
+        /// Sets a specific image encoder as the encoder for a specific image format.
+        /// </summary>
+        /// <param name="imageFormat">The image format to register the encoder for.</param>
+        /// <param name="encoder">The encoder to use,</param>
+        public void SetEncoder(IImageFormat imageFormat, IImageEncoder encoder)
+        {
+            Guard.NotNull(imageFormat, nameof(imageFormat));
             Guard.NotNull(encoder, nameof(encoder));
-            this.mimeTypeEncoders.AddOrUpdate(mimeType?.Trim(), encoder, (s, e) => encoder);
+            this.AddImageFormat(imageFormat);
+            this.mimeTypeEncoders.AddOrUpdate(imageFormat, encoder, (s, e) => encoder);
         }
 
-        /// <inheritdoc />
-        public void SetFileExtensionToMimeTypeMapping(string extension, string mimeType)
+        /// <summary>
+        /// Sets a specific image decoder as the decoder for a specific image format.
+        /// </summary>
+        /// <param name="imageFormat">The image format to register the encoder for.</param>
+        /// <param name="decoder">The decoder to use,</param>
+        public void SetDecoder(IImageFormat imageFormat, IImageDecoder decoder)
         {
-            Guard.NotNullOrEmpty(extension, nameof(extension));
-            Guard.NotNullOrEmpty(mimeType, nameof(mimeType));
-            this.extensionsMap.AddOrUpdate(extension?.Trim(), mimeType, (s, e) => mimeType);
-        }
-
-        /// <inheritdoc />
-        public void SetMimeTypeDecoder(string mimeType, IImageDecoder decoder)
-        {
-            Guard.NotNullOrEmpty(mimeType, nameof(mimeType));
+            Guard.NotNull(imageFormat, nameof(imageFormat));
             Guard.NotNull(decoder, nameof(decoder));
-            this.mimeTypeDecoders.AddOrUpdate(mimeType, decoder, (s, e) => decoder);
+            this.AddImageFormat(imageFormat);
+            this.mimeTypeDecoders.AddOrUpdate(imageFormat, decoder, (s, e) => decoder);
         }
 
         /// <summary>
@@ -153,43 +187,46 @@ namespace ImageSharp
         /// </summary>
         public void ClearMimeTypeDetectors()
         {
-            this.mimeTypeDetectors.Clear();
+            this.imageFormatDetectors.Clear();
         }
 
-        /// <inheritdoc />
-        public void AddMimeTypeDetector(IMimeTypeDetector detector)
+        /// <summary>
+        /// Adds a new detector for detecting mime types.
+        /// </summary>
+        /// <param name="detector">The detector to add</param>
+        public void AddImageFormatDetector(IImageFormatDetector detector)
         {
             Guard.NotNull(detector, nameof(detector));
-            this.mimeTypeDetectors.Add(detector);
+            this.imageFormatDetectors.Add(detector);
             this.SetMaxHeaderSize();
         }
 
         /// <summary>
-        /// Creates the default instance with the following <see cref="IImageFormatProvider"/>s preregistered:
-        /// <para><see cref="PngImageFormatProvider"/></para>
-        /// <para><see cref="JpegImageFormatProvider"/></para>
-        /// <para><see cref="GifImageFormatProvider"/></para>
-        /// <para><see cref="BmpImageFormatProvider"/></para>
+        /// Creates the default instance with the following <see cref="IConfigurationModule"/>s preregistered:
+        /// <para><see cref="PngConfigurationModule"/></para>
+        /// <para><see cref="JpegConfigurationModule"/></para>
+        /// <para><see cref="GifConfigurationModule"/></para>
+        /// <para><see cref="BmpConfigurationModule"/></para>
         /// </summary>
         /// <returns>The default configuration of <see cref="Configuration"/></returns>
         internal static Configuration CreateDefaultInstance()
         {
             return new Configuration(
-                new PngImageFormatProvider(),
-                new JpegImageFormatProvider(),
-                new GifImageFormatProvider(),
-                new BmpImageFormatProvider());
+                new PngConfigurationModule(),
+                new JpegConfigurationModule(),
+                new GifConfigurationModule(),
+                new BmpConfigurationModule());
         }
 
         /// <summary>
         /// For the specified mime type find the decoder.
         /// </summary>
-        /// <param name="mimeType">The mime type to discover</param>
+        /// <param name="format">The format to discover</param>
         /// <returns>The <see cref="IImageDecoder"/> if found otherwise null</returns>
-        internal IImageDecoder FindMimeTypeDecoder(string mimeType)
+        internal IImageDecoder FindDecoder(IImageFormat format)
         {
-            Guard.NotNullOrEmpty(mimeType, nameof(mimeType));
-            if (this.mimeTypeDecoders.TryGetValue(mimeType, out IImageDecoder decoder))
+            Guard.NotNull(format, nameof(format));
+            if (this.mimeTypeDecoders.TryGetValue(format, out IImageDecoder decoder))
             {
                 return decoder;
             }
@@ -200,48 +237,14 @@ namespace ImageSharp
         /// <summary>
         /// For the specified mime type find the encoder.
         /// </summary>
-        /// <param name="mimeType">The mime type to discover</param>
+        /// <param name="format">The format to discover</param>
         /// <returns>The <see cref="IImageEncoder"/> if found otherwise null</returns>
-        internal IImageEncoder FindMimeTypeEncoder(string mimeType)
+        internal IImageEncoder FindEncoder(IImageFormat format)
         {
-            Guard.NotNullOrEmpty(mimeType, nameof(mimeType));
-            if (this.mimeTypeEncoders.TryGetValue(mimeType, out IImageEncoder encoder))
+            Guard.NotNull(format, nameof(format));
+            if (this.mimeTypeEncoders.TryGetValue(format, out IImageEncoder encoder))
             {
                 return encoder;
-            }
-
-            return null;
-        }
-
-        /// <summary>
-        /// For the specified mime type find the encoder.
-        /// </summary>
-        /// <param name="extensions">The extensions to discover</param>
-        /// <returns>The <see cref="IImageEncoder"/> if found otherwise null</returns>
-        internal IImageEncoder FindFileExtensionsEncoder(string extensions)
-        {
-            extensions = extensions?.TrimStart('.');
-            Guard.NotNullOrEmpty(extensions, nameof(extensions));
-            if (this.extensionsMap.TryGetValue(extensions, out string mimeType))
-            {
-                return this.FindMimeTypeEncoder(mimeType);
-            }
-
-            return null;
-        }
-
-        /// <summary>
-        /// For the specified extension find the mime type.
-        /// </summary>
-        /// <param name="extensions">the extensions to discover</param>
-        /// <returns>The mime type if found otherwise null</returns>
-        internal string FindFileExtensionsMimeType(string extensions)
-        {
-            extensions = extensions?.TrimStart('.');
-            Guard.NotNullOrEmpty(extensions, nameof(extensions));
-            if (this.extensionsMap.TryGetValue(extensions, out string mimeType))
-            {
-                return mimeType;
             }
 
             return null;
@@ -252,7 +255,7 @@ namespace ImageSharp
         /// </summary>
         private void SetMaxHeaderSize()
         {
-            this.MaxHeaderSize = this.mimeTypeDetectors.Max(x => x.HeaderSize);
+            this.MaxHeaderSize = this.imageFormatDetectors.Max(x => x.HeaderSize);
         }
     }
 }

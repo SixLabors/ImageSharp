@@ -124,13 +124,13 @@ namespace ImageSharp.Tests
         private static IImageEncoder GetImageFormatByExtension(string extension)
         {
             extension = extension?.TrimStart('.');
-            return Configuration.Default.FindFileExtensionsEncoder(extension);
+            var format = Configuration.Default.FindFormatByFileExtensions(extension);
+            return Configuration.Default.FindEncoder(format);
         }
 
         private string GetTestOutputDir()
         {
             string testGroupName = Path.GetFileNameWithoutExtension(this.TestGroupName);
-
             return CreateOutputDirectory(testGroupName);
         }
     }

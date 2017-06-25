@@ -23,7 +23,8 @@ namespace ImageSharp.Tests
         private Image<Rgba32> returnImage;
         private Mock<IImageDecoder> localDecoder;
         private readonly string FilePath;
-        private readonly Mock<IMimeTypeDetector> localMimeTypeDetector;
+        private readonly Mock<IImageFormatDetector> localMimeTypeDetector;
+        private readonly Mock<IImageFormat> localImageFormatMock;
 
         public Configuration LocalConfiguration { get; private set; }
         public byte[] Marker { get; private set; }
@@ -34,10 +35,12 @@ namespace ImageSharp.Tests
         {
             this.returnImage = new Image<Rgba32>(1, 1);
 
+            this.localImageFormatMock = new Mock<IImageFormat>();
+
             this.localDecoder = new Mock<IImageDecoder>();
-            this.localMimeTypeDetector = new Mock<IMimeTypeDetector>();
+            this.localMimeTypeDetector = new Mock<IImageFormatDetector>();
             this.localMimeTypeDetector.Setup(x => x.HeaderSize).Returns(1);
-            this.localMimeTypeDetector.Setup(x => x.DetectMimeType(It.IsAny<Span<byte>>())).Returns("test");
+            this.localMimeTypeDetector.Setup(x => x.DetectFormat(It.IsAny<ReadOnlySpan<byte>>())).Returns(localImageFormatMock.Object);
 
             this.localDecoder.Setup(x => x.Decode<Rgba32>(It.IsAny<Configuration>(), It.IsAny<Stream>()))
 
@@ -56,8 +59,8 @@ namespace ImageSharp.Tests
             {
                 FileSystem = this.fileSystem.Object
             };
-            this.LocalConfiguration.AddMimeTypeDetector(this.localMimeTypeDetector.Object);
-            this.LocalConfiguration.SetMimeTypeDecoder("test", this.localDecoder.Object);
+            this.LocalConfiguration.AddImageFormatDetector(this.localMimeTypeDetector.Object);
+            this.LocalConfiguration.SetDecoder(localImageFormatMock.Object, this.localDecoder.Object);
 
             TestFormat.RegisterGloablTestFormat();
             this.Marker = Guid.NewGuid().ToByteArray();
@@ -78,7 +81,6 @@ namespace ImageSharp.Tests
             Assert.NotNull(img);
 
             TestFormat.GlobalTestFormat.VerifyDecodeCall(this.Marker, Configuration.Default);
-
         }
 
         [Fact]

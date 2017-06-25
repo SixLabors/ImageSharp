@@ -1,4 +1,4 @@
-﻿// <copyright file="IMimeTypeDetector.cs" company="James Jackson-South">
+﻿// <copyright file="IImageFormatDetector.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -12,7 +12,7 @@ namespace ImageSharp.Formats
     /// <summary>
     /// Used for detecting mime types from a file header
     /// </summary>
-    public interface IMimeTypeDetector
+    public interface IImageFormatDetector
     {
         /// <summary>
         /// Gets the size of the header for this image type.
@@ -25,6 +25,6 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <param name="header">The <see cref="T:byte[]"/> containing the file header.</param>
         /// <returns>returns the mime type of detected othersie returns null</returns>
-        string DetectMimeType(Span<byte> header);
+        IImageFormat DetectFormat(ReadOnlySpan<byte> header);
     }
 }

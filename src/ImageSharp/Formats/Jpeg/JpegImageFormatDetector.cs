@@ -14,23 +14,23 @@ namespace ImageSharp.Formats
     /// <summary>
     /// Detects Jpeg file headers
     /// </summary>
-    public class JpegMimeTypeDetector : IMimeTypeDetector
+    public class JpegImageFormatDetector : IImageFormatDetector
     {
         /// <inheritdoc/>
         public int HeaderSize => 11;
 
         /// <inheritdoc/>
-        public string DetectMimeType(Span<byte> header)
+        public IImageFormat DetectFormat(ReadOnlySpan<byte> header)
         {
             if (this.IsSupportedFileFormat(header))
             {
-                return "image/jpeg";
+                return ImageFormats.Jpeg;
             }
 
             return null;
         }
 
-        private bool IsSupportedFileFormat(Span<byte> header)
+        private bool IsSupportedFileFormat(ReadOnlySpan<byte> header)
         {
             return header.Length >= this.HeaderSize &&
                    (this.IsJfif(header) || this.IsExif(header) || this.IsJpeg(header));
@@ -41,7 +41,7 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <param name="header">The bytes representing the file header.</param>
         /// <returns>The <see cref="bool"/></returns>
-        private bool IsJfif(Span<byte> header)
+        private bool IsJfif(ReadOnlySpan<byte> header)
         {
             bool isJfif =
                 header[6] == 0x4A && // J
@@ -58,7 +58,7 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <param name="header">The bytes representing the file header.</param>
         /// <returns>The <see cref="bool"/></returns>
-        private bool IsExif(Span<byte> header)
+        private bool IsExif(ReadOnlySpan<byte> header)
         {
             bool isExif =
                 header[6] == 0x45 && // E
@@ -76,7 +76,7 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <param name="header">The bytes representing the file header.</param>
         /// <returns>The <see cref="bool"/></returns>
-        private bool IsJpeg(Span<byte> header)
+        private bool IsJpeg(ReadOnlySpan<byte> header)
         {
             bool isJpg =
                 header[0] == 0xFF && // 255

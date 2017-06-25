@@ -10,7 +10,7 @@ namespace ChangeDefaultEncoderOptions
         {
             // lets switch out the default encoder for jpeg to one 
             // that saves at 90 quality and ignores the matadata
-            Configuration.Default.SetMimeTypeEncoder("image/jpeg", new ImageSharp.Formats.JpegEncoder()
+            Configuration.Default.SetEncoder(ImageFormats.Jpeg, new ImageSharp.Formats.JpegEncoder()
             {
                 Quality = 90,
                 IgnoreMetadata = true

@@ -76,7 +76,7 @@ namespace ImageSharp.Tests
 
             using (Image<Rgba32> img = Image.Load(file, out var mime))
             {
-                Assert.Equal("image/png", mime);
+                Assert.Equal("image/png", mime.DefaultMimeType);
             }
         }
 
@@ -105,7 +105,7 @@ namespace ImageSharp.Tests
             }
             using (Image<Rgba32> img = Image.Load(file, out var mime))
             {
-                Assert.Equal("image/png", mime);
+                Assert.Equal("image/png", mime.DefaultMimeType);
             }
         }
     }

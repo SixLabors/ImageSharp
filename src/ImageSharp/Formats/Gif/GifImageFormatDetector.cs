@@ -12,35 +12,33 @@ namespace ImageSharp.Formats
     using ImageSharp.PixelFormats;
 
     /// <summary>
-    /// Detects png file headers
+    /// Detects gif file headers
     /// </summary>
-    public class PngMimeTypeDetector : IMimeTypeDetector
+    public class GifImageFormatDetector : IImageFormatDetector
     {
         /// <inheritdoc/>
-        public int HeaderSize => 8;
+        public int HeaderSize => 6;
 
         /// <inheritdoc/>
-        public string DetectMimeType(Span<byte> header)
+        public IImageFormat DetectFormat(ReadOnlySpan<byte> header)
         {
             if (this.IsSupportedFileFormat(header))
             {
-                return "image/png";
+                return ImageFormats.Gif;
             }
 
             return null;
         }
 
-        private bool IsSupportedFileFormat(Span<byte> header)
+        private bool IsSupportedFileFormat(ReadOnlySpan<byte> header)
         {
             return header.Length >= this.HeaderSize &&
-                   header[0] == 0x89 &&
-                   header[1] == 0x50 && // P
-                   header[2] == 0x4E && // N
-                   header[3] == 0x47 && // G
-                   header[4] == 0x0D && // CR
-                   header[5] == 0x0A && // LF
-                   header[6] == 0x1A && // EOF
-                   header[7] == 0x0A;   // LF
+                   header[0] == 0x47 && // G
+                   header[1] == 0x49 && // I
+                   header[2] == 0x46 && // F
+                   header[3] == 0x38 && // 8
+                  (header[4] == 0x39 || header[4] == 0x37) && // 9 or 7
+                   header[5] == 0x61;   // a
         }
     }
 }

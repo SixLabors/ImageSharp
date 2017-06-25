@@ -17,23 +17,27 @@ namespace ImageSharp.Tests
     /// <summary>
     /// Tests the <see cref="Image"/> class.
     /// </summary>
-    public class DiscoverMimeTypeTests
+    public class DiscoverImageFormatTests
     {
         private readonly Mock<IFileSystem> fileSystem;
         private readonly string FilePath;
-        private readonly Mock<IMimeTypeDetector> localMimeTypeDetector;
+        private readonly Mock<IImageFormatDetector> localMimeTypeDetector;
+        private readonly Mock<IImageFormat> localImageFormatMock;
 
+        public IImageFormat localImageFormat => localImageFormatMock.Object;
         public Configuration LocalConfiguration { get; private set; }
         public byte[] Marker { get; private set; }
         public MemoryStream DataStream { get; private set; }
         public byte[] DecodedData { get; private set; }
         private const string localMimeType = "image/local";
 
-        public DiscoverMimeTypeTests()
+        public DiscoverImageFormatTests()
         {
-            this.localMimeTypeDetector = new Mock<IMimeTypeDetector>();
+            this.localImageFormatMock = new Mock<IImageFormat>();
+
+            this.localMimeTypeDetector = new Mock<IImageFormatDetector>();
             this.localMimeTypeDetector.Setup(x => x.HeaderSize).Returns(1);
-            this.localMimeTypeDetector.Setup(x => x.DetectMimeType(It.IsAny<Span<byte>>())).Returns(localMimeType);
+            this.localMimeTypeDetector.Setup(x => x.DetectFormat(It.IsAny<ReadOnlySpan<byte>>())).Returns(localImageFormatMock.Object);
 
             this.fileSystem = new Mock<IFileSystem>();
 
@@ -41,7 +45,7 @@ namespace ImageSharp.Tests
             {
                 FileSystem = this.fileSystem.Object
             };
-            this.LocalConfiguration.AddMimeTypeDetector(this.localMimeTypeDetector.Object);
+            this.LocalConfiguration.AddImageFormatDetector(this.localMimeTypeDetector.Object);
 
             TestFormat.RegisterGloablTestFormat();
             this.Marker = Guid.NewGuid().ToByteArray();
@@ -55,52 +59,52 @@ namespace ImageSharp.Tests
         }
 
         [Fact]
-        public void DiscoverMimeTypeByteArray()
+        public void DiscoverImageFormatByteArray()
         {
-            var type = Image.DiscoverMimeType(DataStream.ToArray());
-            Assert.Equal(TestFormat.GlobalTestFormat.MimeType, type);
+            var type = Image.DetectFormat(DataStream.ToArray());
+            Assert.Equal(TestFormat.GlobalTestFormat, type);
         }
 
         [Fact]
-        public void DiscoverMimeTypeByteArray_WithConfig()
+        public void DiscoverImageFormatByteArray_WithConfig()
         {
-            var type = Image.DiscoverMimeType(this.LocalConfiguration, DataStream.ToArray());
-            Assert.Equal(localMimeType, type);
+            var type = Image.DetectFormat(this.LocalConfiguration, DataStream.ToArray());
+            Assert.Equal(localImageFormat, type);
         }
 
         [Fact]
-        public void DiscoverMimeTypeFile()
+        public void DiscoverImageFormatFile()
         {
-            var type = Image.DiscoverMimeType(this.FilePath);
-            Assert.Equal(TestFormat.GlobalTestFormat.MimeType, type);
+            var type = Image.DetectFormat(this.FilePath);
+            Assert.Equal(TestFormat.GlobalTestFormat, type);
         }
 
         [Fact]
-        public void DiscoverMimeTypeFilePath_WithConfig()
+        public void DiscoverImageFormatFilePath_WithConfig()
         {
-            var type = Image.DiscoverMimeType(this.LocalConfiguration, FilePath);
-            Assert.Equal(localMimeType, type);
+            var type = Image.DetectFormat(this.LocalConfiguration, FilePath);
+            Assert.Equal(localImageFormat, type);
         }
 
 
         [Fact]
-        public void DiscoverMimeTypeStream()
+        public void DiscoverImageFormatStream()
         {
-            var type = Image.DiscoverMimeType(this.DataStream);
-            Assert.Equal(TestFormat.GlobalTestFormat.MimeType, type);
+            var type = Image.DetectFormat(this.DataStream);
+            Assert.Equal(TestFormat.GlobalTestFormat, type);
         }
 
         [Fact]
-        public void DiscoverMimeTypeFileStream_WithConfig()
+        public void DiscoverImageFormatFileStream_WithConfig()
         {
-            var type = Image.DiscoverMimeType(this.LocalConfiguration, DataStream);
-            Assert.Equal(localMimeType, type);
+            var type = Image.DetectFormat(this.LocalConfiguration, DataStream);
+            Assert.Equal(localImageFormat, type);
         }
 
         [Fact]
-        public void DiscoverMimeTypeNoDetectorsRegisterdShouldReturnNull()
+        public void DiscoverImageFormatNoDetectorsRegisterdShouldReturnNull()
         {
-            var type = Image.DiscoverMimeType(new Configuration(), DataStream);
+            var type = Image.DetectFormat(new Configuration(), DataStream);
             Assert.Null(type);
         }
     }

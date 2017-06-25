@@ -12,7 +12,7 @@ namespace ImageSharp.Formats
     using ImageSharp.PixelFormats;
 
     /// <summary>
-    /// Detects png file headers
+    /// Registers the image encoders, decoders and mime type detectors for the jpeg format.
     /// </summary>
     public class JpegImageFormatProvider : IImageFormatProvider
     {

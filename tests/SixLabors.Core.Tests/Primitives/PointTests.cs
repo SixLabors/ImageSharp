@@ -1,21 +1,18 @@
-﻿// <copyright file="PointTests.cs" company="Six Labors">
-// Copyright (c) Six Labors and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
+
+using System.Globalization;
+using System.Numerics;
+using Xunit;
 
 namespace SixLabors.Primitives.Tests
 {
-    using System.Globalization;
-    using System.Numerics;
-
-    using Xunit;
-
     public class PointTests
     {
         [Fact]
         public void DefaultConstructorTest()
         {
-            Assert.Equal(Point.Empty, new Point());
+            Assert.Equal(Point.Empty, default(Point));
         }
 
         [Theory]
@@ -47,7 +44,7 @@ namespace SixLabors.Primitives.Tests
         public void IsEmptyDefaultsTest()
         {
             Assert.True(Point.Empty.IsEmpty);
-            Assert.True(new Point().IsEmpty);
+            Assert.True(default(Point).IsEmpty);
             Assert.True(new Point(0, 0).IsEmpty);
         }
 
@@ -186,7 +183,7 @@ namespace SixLabors.Primitives.Tests
         public void EqualityTest(int x, int y)
         {
             var p1 = new Point(x, y);
-            var p2 = new Point(x / 2 - 1, y / 2 - 1);
+            var p2 = new Point((x / 2) - 1, (y / 2) - 1);
             var p3 = new Point(x, y);
 
             Assert.True(p1 == p3);
@@ -205,7 +202,7 @@ namespace SixLabors.Primitives.Tests
         }
 
         [Fact]
-        public static void EqualityTest_NotPoint()
+        public void EqualityTest_NotPoint()
         {
             var point = new Point(0, 0);
             Assert.False(point.Equals(null));
@@ -214,7 +211,7 @@ namespace SixLabors.Primitives.Tests
         }
 
         [Fact]
-        public static void GetHashCodeTest()
+        public void GetHashCodeTest()
         {
             var point = new Point(10, 10);
             Assert.Equal(point.GetHashCode(), new Point(10, 10).GetHashCode());

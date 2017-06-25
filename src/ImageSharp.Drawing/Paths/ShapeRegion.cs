@@ -8,6 +8,7 @@ namespace ImageSharp.Drawing
     using System;
     using System.Buffers;
     using System.Numerics;
+    using ImageSharp.Memory;
     using SixLabors.Primitives;
     using SixLabors.Shapes;
 
@@ -45,23 +46,19 @@ namespace ImageSharp.Drawing
         /// <inheritdoc/>
         public override int Scan(float y, Span<float> buffer)
         {
-            PointF start = new PointF(this.Bounds.Left - 1, y);
-            PointF end = new PointF(this.Bounds.Right + 1, y);
-            PointF[] innerbuffer = ArrayPool<PointF>.Shared.Rent(buffer.Length);
-            try
+            var start = new PointF(this.Bounds.Left - 1, y);
+            var end = new PointF(this.Bounds.Right + 1, y);
+            using (var innerBuffer = new Buffer<PointF>(buffer.Length))
             {
-                int count = this.Shape.FindIntersections(start, end, innerbuffer);
+                var span = innerBuffer.Span;
+                int count = this.Shape.FindIntersections(start, end, span);
 
                 for (int i = 0; i < count; i++)
                 {
-                    buffer[i] = innerbuffer[i].X;
+                    buffer[i] = span[i].X;
                 }
 
                 return count;
-            }
-            finally
-            {
-                ArrayPool<PointF>.Shared.Return(innerbuffer);
             }
         }
     }

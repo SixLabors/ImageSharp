@@ -19,6 +19,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SixLabors.Core", "src\SixLa
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SixLabors.Core.Tests", "tests\SixLabors.Core.Tests\SixLabors.Core.Tests.csproj", "{F836E8E6-B4D9-4208-8346-140C74678B91}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "CodeCoverage", "CodeCoverage", "{10A74B46-930F-49E3-A579-BC3A6A23321D}"
+	ProjectSection(SolutionItems) = preProject
+		tests\CodeCoverage\CodeCoverage.cmd = tests\CodeCoverage\CodeCoverage.cmd
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -40,6 +45,7 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{09E744EC-4852-4FC7-BE78-C1B399F17967} = {815C0625-CD3D-440F-9F80-2D83856AB7AE}
 		{F836E8E6-B4D9-4208-8346-140C74678B91} = {56801022-D71A-4FBE-BC5B-CBA08E2284EC}
+		{10A74B46-930F-49E3-A579-BC3A6A23321D} = {C317F1B1-D75E-4C6D-83EB-80367343E0D7}
 	EndGlobalSection
 	GlobalSection(Performance) = preSolution
 		HasPerformanceSessions = true

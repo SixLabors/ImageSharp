@@ -3,10 +3,10 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
+using System.Numerics;
+
 namespace SixLabors.Primitives
 {
-    using System.Numerics;
-
     /// <summary>
     /// Extension methods for the <see cref="Matrix3x2"/> struct.
     /// </summary>

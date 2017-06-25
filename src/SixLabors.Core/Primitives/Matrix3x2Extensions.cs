@@ -1,7 +1,5 @@
-﻿// <copyright file="Matrix3x2Extensions.cs" company="Six Labors">
-// Copyright (c) Six Labors and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
 using System.Numerics;
 

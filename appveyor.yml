@@ -24,8 +24,6 @@ deploy:
     artifact: /.*\.nupkg/
     on:
       branch: master
-      
-deploy:
   - provider: NuGet
     server: https://www.myget.org/F/sixlabors-unstable/api/v2/package
     symbol_server: https://www.myget.org/F/sixlabors-unstable/symbols/api/v2/package

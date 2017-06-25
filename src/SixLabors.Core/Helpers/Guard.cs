@@ -56,7 +56,7 @@ namespace SixLabors
                     throw new ArgumentException(message, parameterName);
                 }
 
-                throw new ArgumentException("Value cannot be null or empty and cannot contain only blanks.", parameterName);
+                throw new ArgumentException("Value cannot be null, empty, or cannot contain only whitespace.", parameterName);
             }
         }
 
@@ -92,7 +92,7 @@ namespace SixLabors
         /// <param name="max">The maximum value.</param>
         /// <param name="parameterName">The name of the parameter that is to be checked.</param>
         /// <typeparam name="TValue">The type of the value.</typeparam>
-        /// <exception cref="ArgumentException">
+        /// <exception cref="ArgumentOutOfRangeException">
         /// <paramref name="value"/> is greater than the maximum value.
         /// </exception>
         public static void MustBeLessThan<TValue>(TValue value, TValue max, string parameterName)
@@ -112,7 +112,7 @@ namespace SixLabors
         /// <param name="max">The maximum value.</param>
         /// <param name="parameterName">The name of the parameter that is to be checked.</param>
         /// <typeparam name="TValue">The type of the value.</typeparam>
-        /// <exception cref="ArgumentException">
+        /// <exception cref="ArgumentOutOfRangeException">
         /// <paramref name="value"/> is greater than the maximum value.
         /// </exception>
         public static void MustBeLessThanOrEqualTo<TValue>(TValue value, TValue max, string parameterName)
@@ -132,7 +132,7 @@ namespace SixLabors
         /// <param name="min">The minimum value.</param>
         /// <param name="parameterName">The name of the parameter that is to be checked.</param>
         /// <typeparam name="TValue">The type of the value.</typeparam>
-        /// <exception cref="ArgumentException">
+        /// <exception cref="ArgumentOutOfRangeException">
         /// <paramref name="value"/> is less than the minimum value.
         /// </exception>
         public static void MustBeGreaterThan<TValue>(TValue value, TValue min, string parameterName)
@@ -140,9 +140,7 @@ namespace SixLabors
         {
             if (value.CompareTo(min) <= 0)
             {
-                throw new ArgumentOutOfRangeException(
-                    parameterName,
-                    $"Value must be greater than {min}.");
+                throw new ArgumentOutOfRangeException(parameterName, $"Value must be greater than {min}.");
             }
         }
 
@@ -154,7 +152,7 @@ namespace SixLabors
         /// <param name="min">The minimum value.</param>
         /// <param name="parameterName">The name of the parameter that is to be checked.</param>
         /// <typeparam name="TValue">The type of the value.</typeparam>
-        /// <exception cref="ArgumentException">
+        /// <exception cref="ArgumentOutOfRangeException">
         /// <paramref name="value"/> is less than the minimum value.
         /// </exception>
         public static void MustBeGreaterThanOrEqualTo<TValue>(TValue value, TValue min, string parameterName)
@@ -175,7 +173,7 @@ namespace SixLabors
         /// <param name="max">The maximum value.</param>
         /// <param name="parameterName">The name of the parameter that is to be checked.</param>
         /// <typeparam name="TValue">The type of the value.</typeparam>
-        /// <exception cref="ArgumentException">
+        /// <exception cref="ArgumentOutOfRangeException">
         /// <paramref name="value"/> is less than the minimum value of greater than the maximum value.
         /// </exception>
         public static void MustBeBetweenOrEqualTo<TValue>(TValue value, TValue min, TValue max, string parameterName)
@@ -191,7 +189,7 @@ namespace SixLabors
         /// Verifies, that the method parameter with specified target value is true
         /// and throws an exception if it is found to be so.
         /// </summary>
-        /// <param name="target">
+        /// <param name="value">
         /// The target value, which cannot be false.
         /// </param>
         /// <param name="parameterName">
@@ -201,11 +199,11 @@ namespace SixLabors
         /// The error message, if any to add to the exception.
         /// </param>
         /// <exception cref="ArgumentException">
-        /// <paramref name="target"/> is false
+        /// <paramref name="value"/> is false
         /// </exception>
-        public static void IsTrue(bool target, string parameterName, string message)
+        public static void IsTrue(bool value, string parameterName, string message)
         {
-            if (!target)
+            if (!value)
             {
                 throw new ArgumentException(message, parameterName);
             }
@@ -215,35 +213,35 @@ namespace SixLabors
         /// Verifies, that the method parameter with specified target value is false
         /// and throws an exception if it is found to be so.
         /// </summary>
-        /// <param name="target">The target value, which cannot be true.</param>
+        /// <param name="value">The target value, which cannot be true.</param>
         /// <param name="parameterName">The name of the parameter that is to be checked.</param>
         /// <param name="message">The error message, if any to add to the exception.</param>
         /// <exception cref="ArgumentException">
-        /// <paramref name="target"/> is true
+        /// <paramref name="value"/> is true
         /// </exception>
-        public static void IsFalse(bool target, string parameterName, string message)
+        public static void IsFalse(bool value, string parameterName, string message)
         {
-            if (target)
+            if (value)
             {
                 throw new ArgumentException(message, parameterName);
             }
         }
 
         /// <summary>
-        /// Verifies, that the `target` span has the length of 'minSpan', or longer.
+        /// Verifies, that the `target` span has the length of 'minLength', or longer.
         /// </summary>
         /// <typeparam name="T">The element type of the spans</typeparam>
-        /// <param name="target">The target span.</param>
+        /// <param name="value">The target span.</param>
         /// <param name="minLength">The minimum length.</param>
         /// <param name="parameterName">The name of the parameter that is to be checked.</param>
         /// <exception cref="ArgumentException">
-        /// <paramref name="target"/> is true
+        /// The length of <paramref name="value"/> is less than <paramref name="minLength"/>.
         /// </exception>
-        public static void MustBeSizedAtLeast<T>(ReadOnlySpan<T> target, int minLength, string parameterName)
+        public static void MustBeSizedAtLeast<T>(ReadOnlySpan<T> value, int minLength, string parameterName)
         {
-            if (target.Length < minLength)
+            if (value.Length < minLength)
             {
-                throw new ArgumentException($"Span-s must be at least of length {minLength}!", parameterName);
+                throw new ArgumentException($"The size must be at least {minLength}.", parameterName);
             }
         }
     }

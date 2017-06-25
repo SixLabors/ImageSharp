@@ -1,14 +1,12 @@
-﻿// <copyright file="SizeTests.cs" company="Six Labors">
-// Copyright (c) Six Labors and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
+
+using System;
+using System.Globalization;
+using Xunit;
 
 namespace SixLabors.Primitives.Tests
 {
-    using System;
-    using System.Globalization;
-    using Xunit;
-
     /// <summary>
     /// Tests the <see cref="Size"/> struct.
     /// </summary>
@@ -17,7 +15,7 @@ namespace SixLabors.Primitives.Tests
         [Fact]
         public void DefaultConstructorTest()
         {
-            Assert.Equal(Size.Empty, new Size());
+            Assert.Equal(Size.Empty, default(Size));
         }
 
         [Theory]
@@ -43,7 +41,7 @@ namespace SixLabors.Primitives.Tests
         public void IsEmptyDefaultsTest()
         {
             Assert.True(Size.Empty.IsEmpty);
-            Assert.True(new Size().IsEmpty);
+            Assert.True(default(Size).IsEmpty);
             Assert.True(new Size(0, 0).IsEmpty);
         }
 
@@ -162,7 +160,7 @@ namespace SixLabors.Primitives.Tests
         }
 
         [Fact]
-        public static void EqualityTest_NotSize()
+        public void EqualityTest_NotSize()
         {
             var size = new Size(0, 0);
             Assert.False(size.Equals(null));
@@ -171,7 +169,7 @@ namespace SixLabors.Primitives.Tests
         }
 
         [Fact]
-        public static void GetHashCodeTest()
+        public void GetHashCodeTest()
         {
             var size = new Size(10, 10);
             Assert.Equal(size.GetHashCode(), new Size(10, 10).GetHashCode());
@@ -238,7 +236,6 @@ namespace SixLabors.Primitives.Tests
             Assert.Equal(mulExpected, multiplier * sz1);
         }
 
-
         [Theory]
         [InlineData(1000, 0.0f)]
         [InlineData(1000, 1.0f)]
@@ -284,7 +281,6 @@ namespace SixLabors.Primitives.Tests
             Assert.Equal(mulExpected, sz1 * multiplier);
             Assert.Equal(mulExpected, multiplier * sz1);
         }
-
 
         [Fact]
         public void DivideByZeroChecks()

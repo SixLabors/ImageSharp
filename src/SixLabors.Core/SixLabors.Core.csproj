@@ -30,11 +30,19 @@
     <RootNamespace>SixLabors</RootNamespace>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <CodeAnalysisRuleSet>..\..\SixLabors.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+
   <ItemGroup>
+    <AdditionalFiles Include="..\..\stylecop.json" />
     <Content Include="..\..\stylecop.json" Link="stylecop.json" />
   </ItemGroup>
 
   <ItemGroup>
+      <PackageReference Include="StyleCop.Analyzers" Version="1.1.0-beta004">
+          <PrivateAssets>All</PrivateAssets>
+      </PackageReference>
     <PackageReference Include="System.Numerics.Vectors" Version="4.3.0" />
   </ItemGroup>
 

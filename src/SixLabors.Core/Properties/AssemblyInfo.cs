@@ -1,5 +1,5 @@
-﻿// <copyright file="AssemblyInfo.Common.cs" company="Scott Williams">
-// Copyright (c) Scott Williams and contributors.
+﻿// <copyright file="AssemblyInfo.cs" company="Six Labors">
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 

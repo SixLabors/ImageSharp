@@ -239,7 +239,7 @@ namespace SixLabors
         /// <exception cref="ArgumentException">
         /// <paramref name="target"/> is true
         /// </exception>
-        public static void MustBeSizedAtLeast<T>(Span<T> target, int minLength, string parameterName)
+        public static void MustBeSizedAtLeast<T>(ReadOnlySpan<T> target, int minLength, string parameterName)
         {
             if (target.Length < minLength)
             {

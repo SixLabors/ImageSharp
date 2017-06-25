@@ -15,7 +15,7 @@ namespace ImageSharp.Formats
     /// Image encoder for writing an image to a stream as a Windows bitmap.
     /// </summary>
     /// <remarks>The encoder can currently only write 24-bit rgb images to streams.</remarks>
-    public class BmpEncoder : IImageEncoder
+    public class BmpEncoder : IImageEncoder, IBmpEncoderOptions
     {
         /// <summary>
         /// Gets or sets the number of bits per pixel.
@@ -26,8 +26,7 @@ namespace ImageSharp.Formats
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
-            BmpEncoderCore encoder = new BmpEncoderCore();
-            encoder.BitsPerPixel = this.BitsPerPixel;
+            var encoder = new BmpEncoderCore(this);
             encoder.Encode(image, stream);
         }
     }

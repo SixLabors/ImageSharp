@@ -150,28 +150,39 @@ namespace ImageSharp.Formats
         private Stream outputStream;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="JpegEncoderCore"/> class.
-        /// </summary>
-        public JpegEncoderCore()
-        {
-        }
-
-        /// <summary>
         /// Gets or sets a value indicating whether the metadata should be ignored when the image is being decoded.
         /// </summary>
-        public bool IgnoreMetadata { get; internal set; } = false;
+        private bool ignoreMetadata = false;
 
         /// <summary>
         /// Gets or sets the quality, that will be used to encode the image. Quality
         /// index must be between 0 and 100 (compression from max to min).
         /// </summary>
         /// <value>The quality of the jpg image from 0 to 100.</value>
-        public int Quality { get; internal set; }
+        private int quality = 0;
 
         /// <summary>
         /// Gets or sets the subsampling method to use.
         /// </summary>
-        public JpegSubsample? Subsample { get; internal set; }
+        private JpegSubsample? subsample;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="JpegEncoderCore"/> class.
+        /// </summary>
+        /// <param name="options">The options</param>
+        public JpegEncoderCore(IJpegEncoderOptions options)
+        {
+            int quality = options.Quality;
+            if (quality == 0)
+            {
+                quality = 75;
+            }
+
+            this.quality = quality;
+            this.subsample = options.Subsample ?? (quality >= 91 ? JpegSubsample.Ratio444 : JpegSubsample.Ratio420);
+
+            this.ignoreMetadata = options.IgnoreMetadata;
+        }
 
         /// <summary>
         /// Encode writes the image to the jpeg baseline format with the given options.
@@ -193,11 +204,11 @@ namespace ImageSharp.Formats
 
             this.outputStream = stream;
 
-            int quality = this.Quality.Clamp(1, 100);
+            int quality = this.quality.Clamp(1, 100);
 
             // Convert from a quality rating to a scaling factor.
             int scale;
-            if (this.Quality < 50)
+            if (this.quality < 50)
             {
                 scale = 5000 / quality;
             }
@@ -785,7 +796,7 @@ namespace ImageSharp.Formats
         private void WriteProfiles<TPixel>(Image<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
-            if (this.IgnoreMetadata)
+            if (this.ignoreMetadata)
             {
                 return;
             }
@@ -807,7 +818,7 @@ namespace ImageSharp.Formats
             byte[] subsamples = { 0x22, 0x11, 0x11 };
             byte[] chroma = { 0x00, 0x01, 0x01 };
 
-            switch (this.Subsample)
+            switch (this.subsample)
             {
                 case JpegSubsample.Ratio444:
                     subsamples = new byte[] { 0x11, 0x11, 0x11 };
@@ -863,7 +874,7 @@ namespace ImageSharp.Formats
             // TODO: We should allow grayscale writing.
             this.outputStream.Write(SosHeaderYCbCr, 0, SosHeaderYCbCr.Length);
 
-            switch (this.Subsample)
+            switch (this.subsample)
             {
                 case JpegSubsample.Ratio444:
                     this.Encode444(pixels);

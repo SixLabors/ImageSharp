@@ -14,7 +14,7 @@ namespace ImageSharp.Formats
     /// <summary>
     /// Encoder for writing the data image to a stream in jpeg format.
     /// </summary>
-    public class JpegEncoder : IImageEncoder
+    public class JpegEncoder : IImageEncoder, IJpegEncoderOptions
     {
         /// <summary>
         /// Gets or sets a value indicating whether the metadata should be ignored when the image is being decoded.
@@ -43,19 +43,7 @@ namespace ImageSharp.Formats
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)
         where TPixel : struct, IPixel<TPixel>
         {
-            JpegEncoderCore encoder = new JpegEncoderCore();
-
-            var quality = this.Quality;
-            if (quality == 0)
-            {
-                quality = 75;
-            }
-
-            encoder.Quality = quality;
-            encoder.Subsample = this.Subsample ?? (quality >= 91 ? JpegSubsample.Ratio444 : JpegSubsample.Ratio420);
-
-            encoder.IgnoreMetadata = this.IgnoreMetadata;
-
+            var encoder = new JpegEncoderCore(this);
             encoder.Encode(image, stream);
         }
     }

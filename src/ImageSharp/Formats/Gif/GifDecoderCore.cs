@@ -78,11 +78,12 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Initializes a new instance of the <see cref="GifDecoderCore{TPixel}"/> class.
         /// </summary>
-        /// <param name="encoding">The decoder encoding.</param>
         /// <param name="configuration">The configuration.</param>
-        public GifDecoderCore(Encoding encoding, Configuration configuration)
+        /// <param name="options">The decoder options.</param>
+        public GifDecoderCore(Configuration configuration, IGifDecoderOptions options)
         {
-            this.TextEncoding = encoding ?? GifConstants.DefaultEncoding;
+            this.TextEncoding = options.TextEncoding ?? GifConstants.DefaultEncoding;
+            this.IgnoreMetadata = options.IgnoreMetadata;
             this.configuration = configuration ?? Configuration.Default;
         }
 
@@ -95,11 +96,6 @@ namespace ImageSharp.Formats
         /// Gets the text encoding
         /// </summary>
         public Encoding TextEncoding { get; private set; }
-
-        /// <summary>
-        /// Gets or sets a value indicating whether the additional frames should be ignored when the image is being decoded.
-        /// </summary>
-        public bool IgnoreFrames { get; internal set; }
 
         /// <summary>
         /// Decodes the stream to the image.
@@ -362,13 +358,6 @@ namespace ImageSharp.Formats
         /// <param name="descriptor">The <see cref="GifImageDescriptor"/></param>
         private unsafe void ReadFrameColors(byte[] indices, byte[] colorTable, int colorTableLength, GifImageDescriptor descriptor)
         {
-            if (this.IgnoreFrames && this.image != null)
-            {
-                // we already have our images skip this
-                // TODO move this higher up the stack to prevent some of the data loading higher up.
-                return;
-            }
-
             int imageWidth = this.logicalScreenDescriptor.Width;
             int imageHeight = this.logicalScreenDescriptor.Height;
 

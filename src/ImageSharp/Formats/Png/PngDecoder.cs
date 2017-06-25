@@ -31,7 +31,7 @@ namespace ImageSharp.Formats
     /// </list>
     /// </para>
     /// </remarks>
-    public class PngDecoder : IImageDecoder
+    public class PngDecoder : IImageDecoder, IPngDecoderOptions
     {
         /// <summary>
         /// Gets or sets a value indicating whether the metadata should be ignored when the image is being decoded.
@@ -53,8 +53,7 @@ namespace ImageSharp.Formats
         public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
-            var decoder = new PngDecoderCore(configuration, this.TextEncoding);
-            decoder.IgnoreMetadata = this.IgnoreMetadata;
+            var decoder = new PngDecoderCore(configuration, this);
             return decoder.Decode<TPixel>(stream);
         }
     }

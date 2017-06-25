@@ -99,8 +99,10 @@ namespace ImageSharp.Formats
         /// Initializes a new instance of the <see cref="JpegDecoderCore" /> class.
         /// </summary>
         /// <param name="configuration">The configuration.</param>
-        public JpegDecoderCore(Configuration configuration)
+        /// <param name="options">The options.</param>
+        public JpegDecoderCore(Configuration configuration, IJpegDecoderOptions options)
         {
+            this.IgnoreMetadata = options.IgnoreMetadata;
             this.configuration = configuration ?? Configuration.Default;
             this.HuffmanTrees = HuffmanTree.CreateHuffmanTrees();
             this.QuantizationTables = new Block8x8F[MaxTq + 1];
@@ -184,9 +186,9 @@ namespace ImageSharp.Formats
         public int TotalMCUCount => this.MCUCountX * this.MCUCountY;
 
         /// <summary>
-        /// Gets or sets a value indicating whether the metadata should be ignored when the image is being decoded.
+        /// Gets a value indicating whether the metadata should be ignored when the image is being decoded.
         /// </summary>
-        public bool IgnoreMetadata { get; internal set; }
+        public bool IgnoreMetadata { get; private set; }
 
         /// <summary>
         /// Decodes the image from the specified <see cref="Stream"/>  and sets

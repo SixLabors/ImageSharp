@@ -18,19 +18,6 @@ namespace ImageSharp.Tests
 
         public static readonly string[] TestFiles = { TestImages.Gif.Giphy, TestImages.Gif.Rings, TestImages.Gif.Trans };
 
-        [Fact]
-        public void SkipDecodingFrames()
-        {
-            var file = TestFile.GetPath(TestImages.Gif.Giphy);
-
-            using (Image<Rgba32> image = Image.Load(file, new GifDecoder() { IgnoreFrames = true }))
-            using (Image<Rgba32> imageWithFrames = Image.Load(file, new GifDecoder() { IgnoreFrames = false }))
-            {
-                Assert.NotEmpty(imageWithFrames.Frames);
-                Assert.Empty(image.Frames);
-            }
-        }
-
         [Theory]
         [WithFileCollection(nameof(TestFiles), PixelTypes)]
         public void DecodeAndReSave<TPixel>(TestImageProvider<TPixel> imageProvider)

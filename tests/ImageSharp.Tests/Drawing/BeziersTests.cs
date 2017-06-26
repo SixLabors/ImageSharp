@@ -28,7 +28,7 @@ namespace ImageSharp.Tests.Drawing
                 {
                     image.BackgroundColor(Rgba32.Blue)
                         .DrawBeziers(Rgba32.HotPink, 5,
-                            new[] {
+                            new SixLabors.Primitives.PointF[] {
                                 new Vector2(10, 400),
                                 new Vector2(30, 10),
                                 new Vector2(240, 30),
@@ -71,7 +71,7 @@ namespace ImageSharp.Tests.Drawing
                     image.BackgroundColor(Rgba32.Blue)
                         .DrawBeziers(color,
                         10,
-                        new[] {
+                        new SixLabors.Primitives.PointF[] {
                             new Vector2(10, 400),
                             new Vector2(30, 10),
                             new Vector2(240, 30),

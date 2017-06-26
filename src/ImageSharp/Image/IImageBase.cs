@@ -5,6 +5,8 @@
 
 namespace ImageSharp
 {
+    using SixLabors.Primitives;
+
     /// <summary>
     /// Encapsulates the basic properties and methods required to manipulate images.
     /// </summary>

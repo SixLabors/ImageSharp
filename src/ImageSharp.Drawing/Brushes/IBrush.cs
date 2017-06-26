@@ -7,6 +7,7 @@ namespace ImageSharp.Drawing
 {
     using ImageSharp.PixelFormats;
     using Processors;
+    using SixLabors.Primitives;
 
     /// <summary>
     /// Brush represents a logical configuration of a brush which can be used to source pixel colors

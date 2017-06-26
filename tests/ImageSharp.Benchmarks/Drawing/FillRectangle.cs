@@ -9,8 +9,8 @@ namespace ImageSharp.Benchmarks
     using System.Drawing.Drawing2D;
 
     using BenchmarkDotNet.Attributes;
-    using CoreRectangle = ImageSharp.Rectangle;
-    using CoreSize = ImageSharp.Size;
+    using CoreRectangle = SixLabors.Primitives.Rectangle;
+    using CoreSize = SixLabors.Primitives.Size;
 
     using System.Numerics;
 
@@ -52,7 +52,7 @@ namespace ImageSharp.Benchmarks
             {
                 image.FillPolygon(
                     Rgba32.HotPink,
-                    new[] {
+                    new SixLabors.Primitives.PointF[] {
 		                new Vector2(10, 10),
 		                new Vector2(200, 10),
 		                new Vector2(200, 150),

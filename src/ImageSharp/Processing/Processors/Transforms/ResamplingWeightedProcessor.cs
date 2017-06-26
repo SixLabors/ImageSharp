@@ -9,6 +9,7 @@ namespace ImageSharp.Processing.Processors
     using System.Runtime.CompilerServices;
 
     using ImageSharp.PixelFormats;
+    using SixLabors.Primitives;
 
     /// <summary>
     /// Provides methods that allow the resizing of images using various algorithms.

@@ -11,8 +11,6 @@ namespace ImageSharp.Drawing
 
     using SixLabors.Shapes;
 
-    using Rectangle = ImageSharp.Rectangle;
-
     /// <summary>
     /// A mapping between a <see cref="IPath"/> and a region.
     /// </summary>

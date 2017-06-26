@@ -179,6 +179,26 @@ namespace SixLabors
         }
 
         /// <summary>
+        /// Verifies, that the target span is of same size than the 'other' span.
+        /// </summary>
+        /// <typeparam name="T">The element type of the spans</typeparam>
+        /// <param name="target">The target span.</param>
+        /// <param name="other">The 'other' span to compare 'target' to.</param>
+        /// <param name="parameterName">The name of the parameter that is to be checked.</param>
+        /// <exception cref="ArgumentException">
+        /// <paramref name="target"/> is true
+        /// </exception>
+        [Conditional("DEBUG")]
+        public static void MustBeSameSized<T>(Span<T> target, Span<T> other, string parameterName)
+            where T : struct
+        {
+            if (target.Length != other.Length)
+            {
+                throw new ArgumentException("Span-s must be the same size!", parameterName);
+            }
+        }
+
+        /// <summary>
         /// Verifies, that the `target` span has the length of 'minSpan', or longer.
         /// </summary>
         /// <typeparam name="T">The element type of the spans</typeparam>
@@ -195,6 +215,46 @@ namespace SixLabors
             if (target.Length < minSpan.Length)
             {
                 throw new ArgumentException($"Span-s must be at least of length {minSpan.Length}!", parameterName);
+            }
+        }
+
+        /// <summary>
+        /// Verifies, that the `target` span has the length of 'minSpan', or longer.
+        /// </summary>
+        /// <typeparam name="T">The element type of the spans</typeparam>
+        /// <param name="target">The target span.</param>
+        /// <param name="minSpan">The 'minSpan' span to compare 'target' to.</param>
+        /// <param name="parameterName">The name of the parameter that is to be checked.</param>
+        /// <exception cref="ArgumentException">
+        /// <paramref name="target"/> is true
+        /// </exception>
+        [Conditional("DEBUG")]
+        public static void MustBeSizedAtLeast<T>(Span<T> target, Span<T> minSpan, string parameterName)
+            where T : struct
+        {
+            if (target.Length < minSpan.Length)
+            {
+                throw new ArgumentException($"Span-s must be at least of length {minSpan.Length}!", parameterName);
+            }
+        }
+
+        /// <summary>
+        /// Verifies, that the `target` array has declared the length  or longer.
+        /// </summary>
+        /// <typeparam name="T">The element type of the spans</typeparam>
+        /// <param name="target">The target array.</param>
+        /// <param name="minLength">The min length the array must have.</param>
+        /// <param name="parameterName">The name of the parameter that is to be checked.</param>
+        /// <exception cref="ArgumentException">
+        /// <paramref name="target"/> is true
+        /// </exception>
+        [Conditional("DEBUG")]
+        public static void MustBeSizedAtLeast<T>(T[] target, int minLength, string parameterName)
+            where T : struct
+        {
+            if (target.Length < minLength)
+            {
+                throw new ArgumentException($"The size must be at least {minLength}.", parameterName);
             }
         }
     }

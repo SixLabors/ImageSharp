@@ -22,12 +22,12 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
         /// <summary>
         /// Gets or sets the horizontal scaling factor
         /// </summary>
-        public int ScaleX;
+        public float ScaleX;
 
         /// <summary>
         /// Gets or sets the vertical scaling factor
         /// </summary>
-        public int ScaleY;
+        public float ScaleY;
 
         /// <summary>
         /// Gets or sets the number of blocks per line

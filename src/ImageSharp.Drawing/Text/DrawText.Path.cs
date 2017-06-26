@@ -166,13 +166,15 @@ namespace ImageSharp
         public static Image<TPixel> DrawText<TPixel>(this Image<TPixel> source, string text, Font font, IBrush<TPixel> brush, IPen<TPixel> pen, IPath path, TextGraphicsOptions options)
            where TPixel : struct, IPixel<TPixel>
         {
-            Vector2 dpi = DefaultTextDpi;
+            float dpiX = DefaultTextDpi;
+            float dpiY = DefaultTextDpi;
             if (options.UseImageResolution)
             {
-                dpi = new Vector2((float)source.MetaData.HorizontalResolution, (float)source.MetaData.VerticalResolution);
+                dpiX = (float)source.MetaData.HorizontalResolution;
+                dpiY = (float)source.MetaData.VerticalResolution;
             }
 
-            var style = new FontSpan(font, dpi)
+            var style = new RendererOptions(font, dpiX, dpiY)
             {
                 ApplyKerning = options.ApplyKerning,
                 TabWidth = options.TabWidth,

@@ -8,6 +8,7 @@ namespace ImageSharp.Processing.Processors
     using System.Numerics;
 
     using ImageSharp.PixelFormats;
+    using SixLabors.Primitives;
 
     /// <summary>
     /// Provides methods to transform an image using a <see cref="Matrix3x2"/>.

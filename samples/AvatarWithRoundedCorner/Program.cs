@@ -5,6 +5,7 @@ namespace AvatarWithRoundedCorner
     using System;
     using System.Numerics;
     using ImageSharp;
+    using SixLabors.Primitives;
     using SixLabors.Shapes;
 
     class Program
@@ -13,12 +14,12 @@ namespace AvatarWithRoundedCorner
         {
             System.IO.Directory.CreateDirectory("output");
 
-            GenerateAvatar("fb.jpg", "output/fb.png", new ImageSharp.Size(200, 200), 20);
-            GenerateAvatar("fb.jpg", "output/fb-round.png", new ImageSharp.Size(200, 200), 100);
-            GenerateAvatar("fb.jpg", "output/fb-rounder.png", new ImageSharp.Size(200, 200), 150);
+            GenerateAvatar("fb.jpg", "output/fb.png", new Size(200, 200), 20);
+            GenerateAvatar("fb.jpg", "output/fb-round.png", new Size(200, 200), 100);
+            GenerateAvatar("fb.jpg", "output/fb-rounder.png", new Size(200, 200), 150);
         }
 
-        private static void GenerateAvatar(string source, string destination, ImageSharp.Size size, float cornerRadius)
+        private static void GenerateAvatar(string source, string destination, Size size, float cornerRadius)
         {
             using (var image = Image.Load(source))
             {
@@ -46,10 +47,10 @@ namespace AvatarWithRoundedCorner
         public static  IPathCollection BuildCorners(int imageWidth, int imageHeight, float cornerRadius)
         {
             // first create a square
-            var rect = new SixLabors.Shapes.Rectangle(-0.5f, -0.5f, cornerRadius, cornerRadius);
+            var rect = new SixLabors.Shapes.RectangularePolygon(-0.5f, -0.5f, cornerRadius, cornerRadius);
 
             // then cut out of the square a circle so we are left with a corner
-            var cornerToptLeft = rect.Clip(new SixLabors.Shapes.Ellipse(cornerRadius-0.5f, cornerRadius - 0.5f, cornerRadius));
+            var cornerToptLeft = rect.Clip(new SixLabors.Shapes.EllipsePolygon(cornerRadius-0.5f, cornerRadius - 0.5f, cornerRadius));
 
             // corner is now a corner shape positions top left
             //lets make 3 more positioned correctly, we cando that by translating the orgional artound the center of the image

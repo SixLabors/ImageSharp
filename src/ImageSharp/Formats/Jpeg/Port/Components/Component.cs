@@ -17,7 +17,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
         /// <summary>
         /// Gets or sets the output
         /// </summary>
-        public Buffer<byte> Output;
+        public Buffer<short> Output;
 
         /// <summary>
         /// Gets or sets the horizontal scaling factor

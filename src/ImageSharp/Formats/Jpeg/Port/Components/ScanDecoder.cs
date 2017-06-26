@@ -135,20 +135,20 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
                 int mcuToRead = resetInterval > 0 ? Math.Min(mcuExpected - mcu, resetInterval) : mcuExpected;
 
                 // TODO: We might just be able to loop here.
-                if (componentsLength == 1)
+                // if (componentsLength == 1)
+                // {
+                //    ref FrameComponent c = ref components[componentIndex];
+                //    c.Pred = 0;
+                // }
+                // else
+                // {
+                for (int i = 0; i < components.Length; i++)
                 {
-                    ref FrameComponent c = ref components[componentIndex];
+                    ref FrameComponent c = ref components[i];
                     c.Pred = 0;
                 }
-                else
-                {
-                    for (int i = 0; i < componentsLength; i++)
-                    {
-                        ref FrameComponent c = ref components[i];
-                        c.Pred = 0;
-                    }
-                }
 
+                // }
                 this.eobrun = 0;
 
                 if (componentsLength == 1)
@@ -280,12 +280,13 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
             {
                 int index = this.ReadBit(stream);
                 HuffmanBranch branch = node[index];
-                node = branch.Children;
 
                 if (branch.Value > -1)
                 {
                     return branch.Value;
                 }
+
+                node = branch.Children;
             }
         }
 
@@ -438,13 +439,13 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
                             }
 
                             this.successiveACNextValue = this.ReceiveAndExtend(s, stream);
-                            this.successiveACState = r > 0 ? 2 : 3;
+                            this.successiveACState = r != 0 ? 2 : 3;
                         }
 
                         continue;
                     case 1: // Skipping r zero items
                     case 2:
-                        if (component.BlockData[offset + z] > 0)
+                        if (component.BlockData[offset + z] != 0)
                         {
                             component.BlockData[offset + z] += (short)(this.ReadBit(stream) << this.successiveState);
                         }
@@ -459,7 +460,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
 
                         break;
                     case 3: // Set value for a zero item
-                        if (component.BlockData[offset + z] > 0)
+                        if (component.BlockData[offset + z] != 0)
                         {
                             component.BlockData[offset + z] += (short)(this.ReadBit(stream) << this.successiveState);
                         }
@@ -471,7 +472,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
 
                         break;
                     case 4: // Eob
-                        if (component.BlockData[offset + z] > 0)
+                        if (component.BlockData[offset + z] != 0)
                         {
                             component.BlockData[offset + z] += (short)(this.ReadBit(stream) << this.successiveState);
                         }

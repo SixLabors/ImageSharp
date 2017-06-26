@@ -110,7 +110,7 @@ Setting individual pixel values can be perfomed as follows:
 
 ```csharp
 // Individual pixels
-using (Image<Rgba32> image = new Image<Rgba32>(400, 400)
+using (Image<Rgba32> image = new Image<Rgba32>(400, 400))
 {
     image[200, 200] = Rgba32.White;
 }

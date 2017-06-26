@@ -11,6 +11,7 @@ namespace ImageSharp.Processing.Processors
 
     using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
+    using SixLabors.Primitives;
 
     /// <summary>
     /// Defines a sampler that uses two one-dimensional matrices to perform convolution against an image.

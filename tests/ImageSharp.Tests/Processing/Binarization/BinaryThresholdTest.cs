@@ -6,7 +6,7 @@
 namespace ImageSharp.Tests.Processing.Binarization
 {
     using ImageSharp.PixelFormats;
-
+    using SixLabors.Primitives;
     using Xunit;
 
     public class BinaryThresholdTest : FileTestBase

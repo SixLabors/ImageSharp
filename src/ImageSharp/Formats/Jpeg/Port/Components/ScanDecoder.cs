@@ -41,6 +41,8 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
 
         private int successiveACState;
 
+        private int successiveACNextValue;
+
         /// <summary>
         /// Decodes the spectral scan
         /// </summary>
@@ -91,6 +93,8 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
                     {
                         decodeFn = this.DecodeDCSuccessive;
                     }
+
+                    Debug.WriteLine(successivePrev == 0 ? "decodeDCFirst" : "decodeDCSuccessive");
                 }
                 else
                 {
@@ -102,6 +106,8 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
                     {
                         decodeFn = this.DecodeACSuccessive;
                     }
+
+                    Debug.WriteLine(successivePrev == 0 ? "decodeACFirst" : "decodeACSuccessive");
                 }
             }
             else
@@ -120,15 +126,27 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
                 mcuExpected = mcusPerLine * frame.McusPerColumn;
             }
 
+            Debug.WriteLine("mcuExpected = " + mcuExpected);
+
             // FileMarker fileMarker;
             while (mcu < mcuExpected)
             {
-                // Reset interval stuff
+                // Reset interval
                 int mcuToRead = resetInterval > 0 ? Math.Min(mcuExpected - mcu, resetInterval) : mcuExpected;
-                for (int i = 0; i < componentsLength; i++)
+
+                // TODO: We might just be able to loop here.
+                if (componentsLength == 1)
                 {
-                    ref FrameComponent c = ref components[i];
+                    ref FrameComponent c = ref components[componentIndex];
                     c.Pred = 0;
+                }
+                else
+                {
+                    for (int i = 0; i < componentsLength; i++)
+                    {
+                        ref FrameComponent c = ref components[i];
+                        c.Pred = 0;
+                    }
                 }
 
                 this.eobrun = 0;
@@ -165,8 +183,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
                 }
 
                 // Find marker
-                this.bitsCount = 0;
-
+                // this.bitsCount = 0;
                 // // TODO: We need to make sure we are not overwriting anything here.
                 //                fileMarker = JpegDecoderCore.FindNextFileMarker(stream);
                 //                // Some bad images seem to pad Scan blocks with e.g. zero bytes, skip past
@@ -205,7 +222,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int GetBlockBufferOffset(FrameComponent component, int row, int col)
+        private static int GetBlockBufferOffset(ref FrameComponent component, int row, int col)
         {
             return 64 * (((component.BlocksPerLine + 1) * row) + col);
         }
@@ -217,7 +234,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
             int mcuCol = mcu % mcusPerLine;
             int blockRow = (mcuRow * component.VerticalFactor) + row;
             int blockCol = (mcuCol * component.HorizontalFactor) + col;
-            int offset = GetBlockBufferOffset(component, blockRow, blockCol);
+            int offset = GetBlockBufferOffset(ref component, blockRow, blockCol);
             decode(ref component, offset, dcHuffmanTables, acHuffmanTables, stream);
         }
 
@@ -226,7 +243,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
         {
             int blockRow = (mcu / component.BlocksPerLine) | 0;
             int blockCol = mcu % component.BlocksPerLine;
-            int offset = GetBlockBufferOffset(component, blockRow, blockCol);
+            int offset = GetBlockBufferOffset(ref component, blockRow, blockCol);
             decode(ref component, offset, dcHuffmanTables, acHuffmanTables, stream);
         }
 
@@ -394,7 +411,6 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
             while (k <= e)
             {
                 byte z = QuantizationTables.DctZigZag[k];
-                int successiveACNextValue = 0;
                 switch (this.successiveACState)
                 {
                     case 0: // Initial state
@@ -421,7 +437,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
                                 throw new ImageFormatException("Invalid ACn encoding");
                             }
 
-                            successiveACNextValue = this.ReceiveAndExtend(s, stream);
+                            this.successiveACNextValue = this.ReceiveAndExtend(s, stream);
                             this.successiveACState = r > 0 ? 2 : 3;
                         }
 
@@ -449,7 +465,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
                         }
                         else
                         {
-                            component.BlockData[offset + z] = (short)(successiveACNextValue << this.successiveState);
+                            component.BlockData[offset + z] = (short)(this.successiveACNextValue << this.successiveState);
                             this.successiveACState = 0;
                         }
 

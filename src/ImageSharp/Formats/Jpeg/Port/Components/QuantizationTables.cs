@@ -46,7 +46,13 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
         /// <summary>
         /// Gets or sets the quantization tables.
         /// </summary>
-        public Buffer2D<short> Tables { get; set; }
+        public Buffer2D<short> Tables
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get; set;
+        }
+
+        = new Buffer2D<short>(64, 4);
 
         /// <inheritdoc/>
         public void Dispose()

@@ -326,8 +326,8 @@ namespace ImageSharp.Formats.Jpeg.Port
                 ref var frameComponent = ref this.frame.Components[i];
                 var component = new Component
                 {
-                    ScaleX = frameComponent.HorizontalFactor / this.frame.MaxHorizontalFactor,
-                    ScaleY = frameComponent.VerticalFactor / this.frame.MaxVerticalFactor,
+                    ScaleX = frameComponent.HorizontalFactor / (float)this.frame.MaxHorizontalFactor,
+                    ScaleY = frameComponent.VerticalFactor / (float)this.frame.MaxVerticalFactor,
                     BlocksPerLine = frameComponent.BlocksPerLine,
                     BlocksPerColumn = frameComponent.BlocksPerColumn
                 };

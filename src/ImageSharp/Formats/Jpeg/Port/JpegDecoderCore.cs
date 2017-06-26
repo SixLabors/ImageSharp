@@ -7,6 +7,7 @@ namespace ImageSharp.Formats.Jpeg.Port
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.IO;
     using System.Runtime.CompilerServices;
 
@@ -198,6 +199,12 @@ namespace ImageSharp.Formats.Jpeg.Port
             this.quantizationTables = null;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int GetBlockBufferOffset(ref Component component, int row, int col)
+        {
+            return 64 * (((component.BlocksPerLine + 1) * row) + col);
+        }
+
         private void ParseStream()
         {
             // Check for the Start Of Image marker.
@@ -325,7 +332,7 @@ namespace ImageSharp.Formats.Jpeg.Port
                     BlocksPerColumn = frameComponent.BlocksPerColumn
                 };
 
-                this.BuildComponentData(ref component);
+                this.BuildComponentData(ref component, ref frameComponent);
                 this.components.Components[i] = component;
             }
 
@@ -422,8 +429,6 @@ namespace ImageSharp.Formats.Jpeg.Port
         /// </exception>
         private void ProcessDqtMarker(int remaining)
         {
-            // Pooled. Disposed on disposal of decoder
-            this.quantizationTables.Tables = new Buffer2D<short>(64, 4);
             while (remaining > 0)
             {
                 bool done = false;
@@ -622,10 +627,10 @@ namespace ImageSharp.Formats.Jpeg.Port
         private void ProcessStartOfScanMarker()
         {
             int selectorsCount = this.InputStream.ReadByte();
-            int index = -1;
+            int componentIndex = -1;
             for (int i = 0; i < selectorsCount; i++)
             {
-                index = -1;
+                componentIndex = -1;
                 int selector = this.InputStream.ReadByte();
 
                 for (int j = 0; j < this.frame.ComponentIds.Length; j++)
@@ -633,16 +638,16 @@ namespace ImageSharp.Formats.Jpeg.Port
                     byte id = this.frame.ComponentIds[j];
                     if (selector == id)
                     {
-                        index = j;
+                        componentIndex = j;
                     }
                 }
 
-                if (index < 0)
+                if (componentIndex < 0)
                 {
                     throw new ImageFormatException("Unknown component selector");
                 }
 
-                ref FrameComponent component = ref this.frame.Components[index];
+                ref FrameComponent component = ref this.frame.Components[componentIndex];
                 int tableSpec = this.InputStream.ReadByte();
                 component.DCHuffmanTableId = tableSpec >> 4;
                 component.ACHuffmanTableId = tableSpec & 15;
@@ -661,22 +666,50 @@ namespace ImageSharp.Formats.Jpeg.Port
                this.dcHuffmanTables,
                this.acHuffmanTables,
                this.frame.Components,
-               index,
+               componentIndex,
                selectorsCount,
                this.resetInterval,
                spectralStart,
                spectralEnd,
                successiveApproximation >> 4,
                successiveApproximation & 15);
+
+            Debug.WriteLine("spectralStart= " + spectralStart);
+            Debug.WriteLine("spectralEnd= " + spectralEnd);
+            Debug.WriteLine("successiveApproximation= " + successiveApproximation);
+            Debug.WriteLine("Components after");
+            for (int i = 0; i < 3; i++)
+            {
+                for (int j = 0; j < 10; j++)
+                {
+                    Debug.WriteLine("component [" + i + "] : value [" + j + "] =" + this.frame.Components[i].BlockData[j] + "]");
+                }
+            }
         }
 
         /// <summary>
         /// Build the data for the given component
         /// </summary>
         /// <param name="component">The component</param>
-        private void BuildComponentData(ref Component component)
+        /// <param name="frameComponent">The frame component</param>
+        private void BuildComponentData(ref Component component, ref FrameComponent frameComponent)
         {
             // TODO: Write this
+            int blocksPerLine = component.BlocksPerLine;
+            int blocksPerColumn = component.BlocksPerColumn;
+            using (var computationBuffer = Buffer<short>.CreateClean(64))
+            {
+                for (int blockRow = 0; blockRow < blocksPerColumn; blockRow++)
+                {
+                    for (int blockCol = 0; blockCol < blocksPerLine; blockCol++)
+                    {
+                        int offset = GetBlockBufferOffset(ref component, blockRow, blockCol);
+                        IDCT.QuantizeAndInverse(this.quantizationTables, ref frameComponent, offset, computationBuffer);
+                    }
+                }
+            }
+
+            component.Output = frameComponent.BlockData;
         }
 
         /// <summary>

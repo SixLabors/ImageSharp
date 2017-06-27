@@ -49,11 +49,13 @@ namespace ImageSharp.Formats.Jpeg.Port
 
         private ComponentBlocks components;
 
+        private JpegPixelArea pixelArea;
+
         private ushort resetInterval;
 
-        private int width;
+        private int imageWidth;
 
-        private int height;
+        private int imageHeight;
 
         private int numComponents;
 
@@ -66,6 +68,14 @@ namespace ImageSharp.Formats.Jpeg.Port
         /// Contains information about the Adobe marker
         /// </summary>
         private Adobe adobe;
+
+        /// <summary>
+        /// Initializes static members of the <see cref="JpegDecoderCore"/> class.
+        /// </summary>
+        static JpegDecoderCore()
+        {
+            YCbCrToRgbTables.Create();
+        }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="JpegDecoderCore" /> class.
@@ -91,11 +101,12 @@ namespace ImageSharp.Formats.Jpeg.Port
         public static FileMarker FindNextFileMarkerNew(Stream stream)
         {
             byte[] marker = new byte[2];
+
             int value = stream.Read(marker, 0, 2);
 
             if (value == 0)
             {
-                return new FileMarker(JpegConstants.Markers.EOI, (int)stream.Length, true);
+                return new FileMarker(JpegConstants.Markers.EOI, (int)stream.Length - 2);
             }
 
             if (marker[0] == JpegConstants.Markers.Prefix)
@@ -107,14 +118,16 @@ namespace ImageSharp.Formats.Jpeg.Port
                     int suffix = stream.ReadByte();
                     if (suffix == -1)
                     {
-                        return new FileMarker(JpegConstants.Markers.EOI, (int)stream.Length, true);
+                        return new FileMarker(JpegConstants.Markers.EOI, (int)stream.Length - 2);
                     }
 
                     marker[1] = (byte)value;
                 }
+
+                return new FileMarker((ushort)((marker[0] << 8) | marker[1]), (int)(stream.Position - 2));
             }
 
-            return new FileMarker((ushort)((marker[0] << 8) | marker[1]), (int)(stream.Position - 2));
+            return new FileMarker((ushort)((marker[0] << 8) | marker[1]), (int)(stream.Position - 2), true);
         }
 
         /// <summary>
@@ -182,7 +195,8 @@ namespace ImageSharp.Formats.Jpeg.Port
             this.InputStream = stream;
             this.ParseStream();
 
-            var image = new Image<TPixel>(1, 1);
+            var image = new Image<TPixel>(this.imageWidth, this.imageHeight);
+            this.GetData(image);
             return image;
         }
 
@@ -192,6 +206,7 @@ namespace ImageSharp.Formats.Jpeg.Port
             this.frame?.Dispose();
             this.components?.Dispose();
             this.quantizationTables?.Dispose();
+            this.pixelArea.Dispose();
 
             // Set large fields to null.
             this.frame = null;
@@ -205,6 +220,9 @@ namespace ImageSharp.Formats.Jpeg.Port
             return 64 * (((component.BlocksPerLine + 1) * row) + col);
         }
 
+        /// <summary>
+        /// Parses the input stream for file markers
+        /// </summary>
         private void ParseStream()
         {
             // Check for the Start Of Image marker.
@@ -224,12 +242,11 @@ namespace ImageSharp.Formats.Jpeg.Port
             while (fileMarker.Marker != JpegConstants.Markers.EOI)
             {
                 // Get the marker length
-                int remaining;
+                int remaining = this.ReadUint16() - 2;
 
                 switch (fileMarker.Marker)
                 {
                     case JpegConstants.Markers.APP0:
-                        remaining = this.ReadUint16() - 2;
                         this.ProcessApplicationHeaderMarker(remaining);
                         break;
 
@@ -246,10 +263,10 @@ namespace ImageSharp.Formats.Jpeg.Port
                     case JpegConstants.Markers.APP11:
                     case JpegConstants.Markers.APP12:
                     case JpegConstants.Markers.APP13:
+                        this.InputStream.Skip(remaining);
                         break;
 
                     case JpegConstants.Markers.APP14:
-                        remaining = this.ReadUint16() - 2;
                         this.ProcessApp14Marker(remaining);
                         break;
 
@@ -257,32 +274,28 @@ namespace ImageSharp.Formats.Jpeg.Port
                     case JpegConstants.Markers.COM:
 
                         // TODO: Read data block
+                        this.InputStream.Skip(remaining);
                         break;
 
                     case JpegConstants.Markers.DQT:
-                        remaining = this.ReadUint16() - 2;
-                        this.ProcessDqtMarker(remaining);
+                        this.ProcessDefineQuantizationTablesMarker(remaining);
                         break;
 
                     case JpegConstants.Markers.SOF0:
                     case JpegConstants.Markers.SOF1:
                     case JpegConstants.Markers.SOF2:
-                        remaining = this.ReadUint16() - 2;
                         this.ProcessStartOfFrameMarker(remaining, fileMarker);
                         break;
 
                     case JpegConstants.Markers.DHT:
-                        remaining = this.ReadUint16() - 2;
                         this.ProcessDefineHuffmanTablesMarker(remaining);
                         break;
 
                     case JpegConstants.Markers.DRI:
-                        remaining = this.ReadUint16() - 2;
                         this.ProcessDefineRestartIntervalMarker(remaining);
                         break;
 
                     case JpegConstants.Markers.SOS:
-                        this.InputStream.Skip(2);
                         this.ProcessStartOfScanMarker();
                         break;
 
@@ -295,30 +308,30 @@ namespace ImageSharp.Formats.Jpeg.Port
 
                         break;
 
-                    default:
+                        //default:
 
-                        // TODO: Not convinced this is required
-                        // Skip back as it could be incorrect encoding -- last 0xFF byte of the previous
-                        // block was eaten by the encoder
-                        this.InputStream.Position -= 3;
-                        this.InputStream.Read(this.temp, 0, 2);
-                        if (this.temp[0] == 0xFF && this.temp[1] >= 0xC0 && this.temp[1] <= 0xFE)
-                        {
-                            // Rewind that last bytes we read
-                            this.InputStream.Position -= 2;
-                            break;
-                        }
+                        //    // TODO: Not convinced this is required
+                        //    // Skip back as it could be incorrect encoding -- last 0xFF byte of the previous
+                        //    // block was eaten by the encoder
+                        //    this.InputStream.Position -= 3;
+                        //    this.InputStream.Read(this.temp, 0, 2);
+                        //    if (this.temp[0] == 0xFF && this.temp[1] >= 0xC0 && this.temp[1] <= 0xFE)
+                        //    {
+                        //        // Rewind that last bytes we read
+                        //        this.InputStream.Position -= 2;
+                        //        break;
+                        //    }
 
-                        // throw new ImageFormatException($"Unknown Marker {fileMarker.Marker} at {fileMarker.Position}");
-                        break;
+                        //    // throw new ImageFormatException($"Unknown Marker {fileMarker.Marker} at {fileMarker.Position}");
+                        //    break;
                 }
 
                 // Read on. TODO: Test this on damaged images.
                 fileMarker = FindNextFileMarkerNew(this.InputStream);
             }
 
-            this.width = this.frame.SamplesPerLine;
-            this.height = this.frame.Scanlines;
+            this.imageWidth = this.frame.SamplesPerLine;
+            this.imageHeight = this.frame.Scanlines;
             this.components = new ComponentBlocks { Components = new Component[this.frame.ComponentCount] };
 
             for (int i = 0; i < this.components.Components.Length; i++)
@@ -337,6 +350,53 @@ namespace ImageSharp.Formats.Jpeg.Port
             }
 
             this.numComponents = this.components.Components.Length;
+        }
+
+        /// <summary>
+        /// Fills the given image with the color data
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="image">The image</param>
+        private void GetData<TPixel>(Image<TPixel> image)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            if (this.numComponents > 4)
+            {
+                throw new ImageFormatException($"Unsupported color mode. Max components 4; found {this.numComponents}");
+            }
+
+            this.pixelArea = new JpegPixelArea(image.Width, image.Height, this.numComponents);
+            this.pixelArea.LinearizeBlockData(this.components, image.Width, image.Height);
+
+            if (this.numComponents == 1)
+            {
+                this.FillGrayScaleImage(image);
+                return;
+            }
+
+            if (this.numComponents == 3)
+            {
+                if (this.adobe.Equals(default(Adobe)) || this.adobe.ColorTransform == JpegConstants.Markers.Adobe.ColorTransformYCbCr)
+                {
+                    this.FillYCbCrImage(image);
+                }
+                else if (this.adobe.ColorTransform == JpegConstants.Markers.Adobe.ColorTransformUnknown)
+                {
+                    this.FillRgbImage(image);
+                }
+            }
+
+            if (this.numComponents == 4)
+            {
+                if (this.adobe.ColorTransform == JpegConstants.Markers.Adobe.ColorTransformYcck)
+                {
+                    this.FillYcckImage(image);
+                }
+                else
+                {
+                    this.FillCmykImage(image);
+                }
+            }
         }
 
         /// <summary>
@@ -398,10 +458,10 @@ namespace ImageSharp.Formats.Jpeg.Port
             remaining -= 12;
 
             bool isAdobe = this.temp[0] == JpegConstants.Markers.Adobe.A &&
-                          this.temp[1] == JpegConstants.Markers.Adobe.D &&
-                          this.temp[2] == JpegConstants.Markers.Adobe.O &&
-                          this.temp[3] == JpegConstants.Markers.Adobe.B &&
-                          this.temp[4] == JpegConstants.Markers.Adobe.E;
+                           this.temp[1] == JpegConstants.Markers.Adobe.D &&
+                           this.temp[2] == JpegConstants.Markers.Adobe.O &&
+                           this.temp[3] == JpegConstants.Markers.Adobe.B &&
+                           this.temp[4] == JpegConstants.Markers.Adobe.E;
 
             if (isAdobe)
             {
@@ -427,7 +487,7 @@ namespace ImageSharp.Formats.Jpeg.Port
         /// <exception cref="ImageFormatException">
         /// Thrown if the tables do not match the header
         /// </exception>
-        private void ProcessDqtMarker(int remaining)
+        private void ProcessDefineQuantizationTablesMarker(int remaining)
         {
             while (remaining > 0)
             {
@@ -437,7 +497,7 @@ namespace ImageSharp.Formats.Jpeg.Port
 
                 if (quantizationTableSpec > 3)
                 {
-                    throw new ImageFormatException("Bad Tq index value");
+                    throw new ImageFormatException($"Bad Tq index value: {quantizationTableSpec}");
                 }
 
                 switch (quantizationTableSpec >> 4)
@@ -570,17 +630,17 @@ namespace ImageSharp.Formats.Jpeg.Port
         {
             if (remaining < 17)
             {
-                throw new ImageFormatException("DHT has wrong length");
+                throw new ImageFormatException($"DHT has wrong length: {remaining}");
             }
 
-            using (var huffmanData = new Buffer<byte>(16))
+            using (var huffmanData = Buffer<byte>.CreateClean(16))
             {
                 for (int i = 2; i < remaining;)
                 {
                     byte huffmanTableSpec = (byte)this.InputStream.ReadByte();
                     this.InputStream.Read(huffmanData.Array, 0, 16);
 
-                    using (var codeLengths = new Buffer<byte>(16))
+                    using (var codeLengths = Buffer<byte>.CreateClean(16))
                     {
                         int codeLengthSum = 0;
 
@@ -589,7 +649,7 @@ namespace ImageSharp.Formats.Jpeg.Port
                             codeLengthSum += codeLengths[j] = huffmanData[j];
                         }
 
-                        using (var huffmanValues = new Buffer<byte>(codeLengthSum))
+                        using (var huffmanValues = Buffer<byte>.CreateClean(codeLengthSum))
                         {
                             this.InputStream.Read(huffmanValues.Array, 0, codeLengthSum);
 
@@ -615,7 +675,7 @@ namespace ImageSharp.Formats.Jpeg.Port
         {
             if (remaining != 2)
             {
-                throw new ImageFormatException("DRI has wrong length");
+                throw new ImageFormatException($"DRI has wrong length: {remaining}");
             }
 
             this.resetInterval = this.ReadUint16();
@@ -660,31 +720,33 @@ namespace ImageSharp.Formats.Jpeg.Port
             int successiveApproximation = this.temp[2];
             var scanDecoder = default(ScanDecoder);
 
-            scanDecoder.DecodeScan(
-               this.frame,
-               this.InputStream,
-               this.dcHuffmanTables,
-               this.acHuffmanTables,
-               this.frame.Components,
-               componentIndex,
-               selectorsCount,
-               this.resetInterval,
-               spectralStart,
-               spectralEnd,
-               successiveApproximation >> 4,
-               successiveApproximation & 15);
+            long position = scanDecoder.DecodeScan(
+                 this.frame,
+                 this.InputStream,
+                 this.dcHuffmanTables,
+                 this.acHuffmanTables,
+                 this.frame.Components,
+                 componentIndex,
+                 selectorsCount,
+                 this.resetInterval,
+                 spectralStart,
+                 spectralEnd,
+                 successiveApproximation >> 4,
+                 successiveApproximation & 15);
+
+            this.InputStream.Position += position;
 
             Debug.WriteLine("spectralStart= " + spectralStart);
             Debug.WriteLine("spectralEnd= " + spectralEnd);
             Debug.WriteLine("successiveApproximation= " + successiveApproximation);
             Debug.WriteLine("Components after");
-            for (int i = 0; i < 3; i++)
-            {
-                for (int j = 0; j < 10; j++)
-                {
-                    Debug.WriteLine("component [" + i + "] : value [" + j + "] =" + this.frame.Components[i].BlockData[j] + "]");
-                }
-            }
+            //for (int i = 0; i < 3; i++)
+            //{
+            //    for (int j = 0; j < 10; j++)
+            //    {
+            //        Debug.WriteLine("component [" + i + "] : value [" + j + "] =" + this.frame.Components[i].BlockData[j] + "]");
+            //    }
+            //}
         }
 
         /// <summary>
@@ -694,7 +756,6 @@ namespace ImageSharp.Formats.Jpeg.Port
         /// <param name="frameComponent">The frame component</param>
         private void BuildComponentData(ref Component component, ref FrameComponent frameComponent)
         {
-            // TODO: Write this
             int blocksPerLine = component.BlocksPerLine;
             int blocksPerColumn = component.BlocksPerColumn;
             using (var computationBuffer = Buffer<short>.CreateClean(64))
@@ -776,27 +837,125 @@ namespace ImageSharp.Formats.Jpeg.Port
         /// </summary>
         private void PrepareComponents()
         {
-            int mcusPerLine = (int)Math.Ceiling(this.frame.SamplesPerLine / 8D / this.frame.MaxHorizontalFactor);
-            int mcusPerColumn = (int)Math.Ceiling(this.frame.Scanlines / 8D / this.frame.MaxVerticalFactor);
+            int mcusPerLine = (int)MathF.Ceiling(this.frame.SamplesPerLine / 8F / this.frame.MaxHorizontalFactor);
+            int mcusPerColumn = (int)MathF.Ceiling(this.frame.Scanlines / 8F / this.frame.MaxVerticalFactor);
 
             for (int i = 0; i < this.frame.ComponentCount; i++)
             {
                 ref var component = ref this.frame.Components[i];
-                int blocksPerLine = (int)Math.Ceiling(Math.Ceiling(this.frame.SamplesPerLine / 8D) * component.HorizontalFactor / this.frame.MaxHorizontalFactor);
-                int blocksPerColumn = (int)Math.Ceiling(Math.Ceiling(this.frame.Scanlines / 8D) * component.VerticalFactor / this.frame.MaxVerticalFactor);
+                int blocksPerLine = (int)MathF.Ceiling(MathF.Ceiling(this.frame.SamplesPerLine / 8F) * component.HorizontalFactor / this.frame.MaxHorizontalFactor);
+                int blocksPerColumn = (int)MathF.Ceiling(MathF.Ceiling(this.frame.Scanlines / 8F) * component.VerticalFactor / this.frame.MaxVerticalFactor);
                 int blocksPerLineForMcu = mcusPerLine * component.HorizontalFactor;
                 int blocksPerColumnForMcu = mcusPerColumn * component.VerticalFactor;
 
                 int blocksBufferSize = 64 * blocksPerColumnForMcu * (blocksPerLineForMcu + 1);
 
-                // Pooled. Disposed via frame siposal
-                component.BlockData = new Buffer<short>(blocksBufferSize);
+                // Pooled. Disposed via frame disposal
+                component.BlockData = Buffer<short>.CreateClean(blocksBufferSize);
                 component.BlocksPerLine = blocksPerLine;
                 component.BlocksPerColumn = blocksPerColumn;
             }
 
             this.frame.McusPerLine = mcusPerLine;
             this.frame.McusPerColumn = mcusPerColumn;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void FillGrayScaleImage<TPixel>(Image<TPixel> image)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            for (int y = 0; y < image.Height; y++)
+            {
+                Span<TPixel> imageRowSpan = image.GetRowSpan(y);
+                Span<byte> areaRowSpan = this.pixelArea.GetRowSpan(y);
+
+                for (int x = 0; x < image.Width; x++)
+                {
+                    ref byte luminance = ref areaRowSpan[x];
+                    ref TPixel pixel = ref imageRowSpan[x];
+                    var rgba = new Rgba32(luminance, luminance, luminance);
+                    pixel.PackFromRgba32(rgba);
+                }
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void FillYCbCrImage<TPixel>(Image<TPixel> image)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            for (int y = 0; y < image.Height; y++)
+            {
+                Span<TPixel> imageRowSpan = image.GetRowSpan(y);
+                Span<byte> areaRowSpan = this.pixelArea.GetRowSpan(y);
+                for (int x = 0, o = 0; x < image.Width; x++, o += 3)
+                {
+                    ref byte yy = ref areaRowSpan[o];
+                    ref byte cb = ref areaRowSpan[o + 1];
+                    ref byte cr = ref areaRowSpan[o + 2];
+                    ref TPixel pixel = ref imageRowSpan[x];
+                    YCbCrToRgbTables.PackYCbCr(ref pixel, yy, cb, cr);
+                }
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void FillYcckImage<TPixel>(Image<TPixel> image)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            for (int y = 0; y < image.Height; y++)
+            {
+                Span<TPixel> imageRowSpan = image.GetRowSpan(y);
+                Span<byte> areaRowSpan = this.pixelArea.GetRowSpan(y);
+                for (int x = 0, o = 0; x < image.Width; x++, o += 4)
+                {
+                    ref byte yy = ref areaRowSpan[o];
+                    ref byte cb = ref areaRowSpan[o + 1];
+                    ref byte cr = ref areaRowSpan[o + 2];
+                    ref byte k = ref areaRowSpan[o + 3];
+
+                    ref TPixel pixel = ref imageRowSpan[x];
+                    YCbCrToRgbTables.PackYccK(ref pixel, yy, cb, cr, k);
+                }
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void FillCmykImage<TPixel>(Image<TPixel> image)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            for (int y = 0; y < image.Height; y++)
+            {
+                Span<TPixel> imageRowSpan = image.GetRowSpan(y);
+                Span<byte> areaRowSpan = this.pixelArea.GetRowSpan(y);
+                for (int x = 0, o = 0; x < image.Width; x++, o += 4)
+                {
+                    ref byte c = ref areaRowSpan[o];
+                    ref byte m = ref areaRowSpan[o + 1];
+                    ref byte cy = ref areaRowSpan[o + 2];
+                    ref byte k = ref areaRowSpan[o + 3];
+
+                    byte r = (byte)((c * k) / 255);
+                    byte g = (byte)((m * k) / 255);
+                    byte b = (byte)((cy * k) / 255);
+
+                    ref TPixel pixel = ref imageRowSpan[x];
+                    var rgba = new Rgba32(r, g, b);
+                    pixel.PackFromRgba32(rgba);
+                }
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void FillRgbImage<TPixel>(Image<TPixel> image)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            for (int y = 0; y < image.Height; y++)
+            {
+                Span<TPixel> imageRowSpan = image.GetRowSpan(y);
+                Span<byte> areaRowSpan = this.pixelArea.GetRowSpan(y);
+
+                PixelOperations<TPixel>.Instance.PackFromRgb24Bytes(areaRowSpan, imageRowSpan, image.Width);
+            }
         }
 
         /// <summary>

@@ -6,7 +6,7 @@
 namespace ImageSharp.Tests.Processing.Effects
 {
     using ImageSharp.PixelFormats;
-
+    using SixLabors.Primitives;
     using Xunit;
 
     public class BrightnessTest : FileTestBase

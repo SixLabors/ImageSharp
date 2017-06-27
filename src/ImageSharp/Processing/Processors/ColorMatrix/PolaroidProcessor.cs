@@ -9,6 +9,7 @@ namespace ImageSharp.Processing.Processors
     using System.Numerics;
 
     using ImageSharp.PixelFormats;
+    using SixLabors.Primitives;
 
     /// <summary>
     /// Converts the colors of the image recreating an old Polaroid effect.

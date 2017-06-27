@@ -10,6 +10,7 @@ namespace ImageSharp.Processing.Processors
     using System.Threading.Tasks;
 
     using ImageSharp.PixelFormats;
+    using SixLabors.Primitives;
 
     /// <summary>
     /// An <see cref="IImageProcessor{TPixel}"/> to pixelate the colors of an <see cref="Image{TPixel}"/>.

@@ -48,7 +48,7 @@ namespace ImageSharp.Benchmarks
                 image.DrawLines(
                     Rgba32.HotPink,
                     10,
-                    new[] {
+                    new SixLabors.Primitives.PointF[] {
                         new Vector2(10, 10),
                         new Vector2(550, 50),
                         new Vector2(200, 400)

@@ -9,6 +9,7 @@ namespace ImageSharp.Processing
     using System.Threading.Tasks;
 
     using ImageSharp.PixelFormats;
+    using SixLabors.Primitives;
 
     /// <summary>
     /// Allows the application of processors to images.

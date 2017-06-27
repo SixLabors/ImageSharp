@@ -12,7 +12,7 @@ namespace ImageSharp.Benchmarks.Image
 
     using CoreImage = ImageSharp.Image;
 
-    using CoreSize = ImageSharp.Size;
+    using CoreSize = SixLabors.Primitives.Size;
 
     public class DecodeGif : BenchmarkBase
     {

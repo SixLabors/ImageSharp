@@ -23,7 +23,7 @@ namespace ImageSharp.Tests.Drawing
         public void ImageShouldBeOverlayedByFilledPolygon()
         {
             string path = this.CreateOutputDirectory("Drawing", "FilledPolygons");
-            Vector2[] simplePath = new[] {
+            SixLabors.Primitives.PointF[] simplePath = new SixLabors.Primitives.PointF[] {
                             new Vector2(10, 10),
                             new Vector2(200, 150),
                             new Vector2(50, 300)
@@ -46,7 +46,7 @@ namespace ImageSharp.Tests.Drawing
         public void ImageShouldBeOverlayedByFilledPolygonWithPattern()
         {
             string path = this.CreateOutputDirectory("Drawing", "FilledPolygons");
-            Vector2[] simplePath = new[] {
+            SixLabors.Primitives.PointF[] simplePath = new SixLabors.Primitives.PointF[] {
                             new Vector2(10, 10),
                             new Vector2(200, 150),
                             new Vector2(50, 300)
@@ -69,7 +69,7 @@ namespace ImageSharp.Tests.Drawing
         public void ImageShouldBeOverlayedByFilledPolygonNoAntialias()
         {
             string path = this.CreateOutputDirectory("Drawing", "FilledPolygons");
-            Vector2[] simplePath = new[] {
+            SixLabors.Primitives.PointF[] simplePath = new SixLabors.Primitives.PointF[] {
                             new Vector2(10, 10),
                             new Vector2(200, 150),
                             new Vector2(50, 300)
@@ -99,7 +99,7 @@ namespace ImageSharp.Tests.Drawing
         public void ImageShouldBeOverlayedByFilledPolygonImage()
         {
             string path = this.CreateOutputDirectory("Drawing", "FilledPolygons");
-            Vector2[] simplePath = new[] {
+            SixLabors.Primitives.PointF[] simplePath = new SixLabors.Primitives.PointF[] {
                             new Vector2(10, 10),
                             new Vector2(200, 150),
                             new Vector2(50, 300)
@@ -121,7 +121,7 @@ namespace ImageSharp.Tests.Drawing
         public void ImageShouldBeOverlayedByFilledPolygonOpacity()
         {
             string path = this.CreateOutputDirectory("Drawing", "FilledPolygons");
-            Vector2[] simplePath = new[] {
+            SixLabors.Primitives.PointF[] simplePath = new SixLabors.Primitives.PointF[] {
                             new Vector2(10, 10),
                             new Vector2(200, 150),
                             new Vector2(50, 300)
@@ -154,7 +154,7 @@ namespace ImageSharp.Tests.Drawing
             {
                 image
                     .BackgroundColor(Rgba32.Blue)
-                    .Fill(Rgba32.HotPink, new SixLabors.Shapes.Rectangle(10, 10, 190, 140))
+                    .Fill(Rgba32.HotPink, new SixLabors.Shapes.RectangularePolygon(10, 10, 190, 140))
                      .Save($"{path}/Rectangle.png");
 
                 using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
@@ -220,7 +220,7 @@ namespace ImageSharp.Tests.Drawing
             {
                 image
                     .BackgroundColor(Rgba32.Blue)
-                    .Fill(Rgba32.HotPink, new Ellipse(50, 50, 30, 50)
+                    .Fill(Rgba32.HotPink, new EllipsePolygon(50, 50, 30, 50)
                     .Rotate((float)(Math.PI / 3)))
                     .Save($"{path}/ellipse.png");
             }
@@ -237,7 +237,7 @@ namespace ImageSharp.Tests.Drawing
             {
                 image
                     .Fill(Rgba32.Blue)
-                    .FillPolygon(Rgba32.HotPink, new[]
+                    .FillPolygon(Rgba32.HotPink, new SixLabors.Primitives.PointF[]
                     {
                             new Vector2( 8, 8 ),
                             new Vector2( 64, 8 ),

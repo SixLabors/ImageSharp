@@ -10,6 +10,7 @@ namespace ImageSharp
     using Drawing;
     using Drawing.Brushes;
     using ImageSharp.PixelFormats;
+    using SixLabors.Primitives;
     using SixLabors.Shapes;
 
     /// <summary>
@@ -26,7 +27,7 @@ namespace ImageSharp
         /// <param name="points">The points.</param>
         /// <param name="options">The options.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> FillPolygon<TPixel>(this Image<TPixel> source, IBrush<TPixel> brush, Vector2[] points, GraphicsOptions options)
+        public static Image<TPixel> FillPolygon<TPixel>(this Image<TPixel> source, IBrush<TPixel> brush, PointF[] points, GraphicsOptions options)
            where TPixel : struct, IPixel<TPixel>
         {
             return source.Fill(brush, new Polygon(new LinearLineSegment(points)), options);
@@ -40,7 +41,7 @@ namespace ImageSharp
         /// <param name="brush">The brush.</param>
         /// <param name="points">The points.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> FillPolygon<TPixel>(this Image<TPixel> source, IBrush<TPixel> brush, Vector2[] points)
+        public static Image<TPixel> FillPolygon<TPixel>(this Image<TPixel> source, IBrush<TPixel> brush, PointF[] points)
            where TPixel : struct, IPixel<TPixel>
         {
             return source.Fill(brush, new Polygon(new LinearLineSegment(points)));
@@ -55,7 +56,7 @@ namespace ImageSharp
         /// <param name="points">The points.</param>
         /// <param name="options">The options.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> FillPolygon<TPixel>(this Image<TPixel> source, TPixel color, Vector2[] points, GraphicsOptions options)
+        public static Image<TPixel> FillPolygon<TPixel>(this Image<TPixel> source, TPixel color, PointF[] points, GraphicsOptions options)
            where TPixel : struct, IPixel<TPixel>
         {
             return source.Fill(new SolidBrush<TPixel>(color), new Polygon(new LinearLineSegment(points)), options);
@@ -69,7 +70,7 @@ namespace ImageSharp
         /// <param name="color">The color.</param>
         /// <param name="points">The points.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> FillPolygon<TPixel>(this Image<TPixel> source, TPixel color, Vector2[] points)
+        public static Image<TPixel> FillPolygon<TPixel>(this Image<TPixel> source, TPixel color, PointF[] points)
            where TPixel : struct, IPixel<TPixel>
         {
             return source.Fill(new SolidBrush<TPixel>(color), new Polygon(new LinearLineSegment(points)));

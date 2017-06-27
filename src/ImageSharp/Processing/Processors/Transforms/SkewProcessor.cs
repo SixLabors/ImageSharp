@@ -10,6 +10,7 @@ namespace ImageSharp.Processing.Processors
     using System.Threading.Tasks;
     using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
+    using SixLabors.Primitives;
 
     /// <summary>
     /// Provides methods that allow the skewing of images.

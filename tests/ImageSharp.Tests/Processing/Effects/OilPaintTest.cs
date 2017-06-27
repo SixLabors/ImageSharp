@@ -6,7 +6,7 @@
 namespace ImageSharp.Tests
 {
     using ImageSharp.PixelFormats;
-
+    using SixLabors.Primitives;
     using Xunit;
 
     public class OilPaintTest : FileTestBase

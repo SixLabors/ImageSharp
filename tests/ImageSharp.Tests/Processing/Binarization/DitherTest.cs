@@ -8,7 +8,7 @@ namespace ImageSharp.Tests.Processing.Binarization
     using ImageSharp.Dithering;
     using ImageSharp.Dithering.Ordered;
     using ImageSharp.PixelFormats;
-
+    using SixLabors.Primitives;
     using Xunit;
 
     public class DitherTest : FileTestBase

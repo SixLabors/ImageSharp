@@ -9,7 +9,7 @@ namespace ImageSharp.Tests
     using System.Numerics;
 
     using ImageSharp.PixelFormats;
-
+    using SixLabors.Primitives;
     using Xunit;
 
     /// <summary>
@@ -70,22 +70,6 @@ namespace ImageSharp.Tests
             }
         }
 
-        // TODO: Need a processor in the library with this signature
-        private static void Fill<TPixel>(Image<TPixel> image, Rectangle region, TPixel color)
-             where TPixel : struct, IPixel<TPixel>
-        {
-            using (PixelAccessor<TPixel> pixels = image.Lock())
-            {
-                for (int y = region.Top; y < region.Bottom; y++)
-                {
-                    for (int x = region.Left; x < region.Right; x++)
-                    {
-                        pixels[x, y] = color;
-                    }
-                }
-            }
-        }
-
         [Theory]
         [WithBlankImages(16, 16, PixelTypes.All, ComponentOrder.Xyz)]
         [WithBlankImages(16, 16, PixelTypes.All, ComponentOrder.Zyx)]
@@ -98,7 +82,7 @@ namespace ImageSharp.Tests
             {
                 using (Image<TPixel> srcImage = provider.GetImage())
                 {
-                    Fill(srcImage, new Rectangle(4, 4, 8, 8), NamedColors<TPixel>.Red);
+                    srcImage.Fill(NamedColors<TPixel>.Red, new Rectangle(4, 4, 8, 8));
                     using (PixelAccessor<TPixel> srcPixels = srcImage.Lock())
                     {
                         using (PixelArea<TPixel> area = new PixelArea<TPixel>(8, 8, order))

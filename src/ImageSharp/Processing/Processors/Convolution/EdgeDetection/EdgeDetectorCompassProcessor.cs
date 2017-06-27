@@ -11,6 +11,7 @@ namespace ImageSharp.Processing.Processors
 
     using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
+    using SixLabors.Primitives;
 
     /// <summary>
     /// Defines a sampler that detects edges within an image using a eight two dimensional matrices.

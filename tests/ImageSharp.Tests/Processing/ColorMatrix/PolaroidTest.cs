@@ -6,7 +6,7 @@
 namespace ImageSharp.Tests.Processing.ColorMatrix
 {
     using ImageSharp.PixelFormats;
-
+    using SixLabors.Primitives;
     using Xunit;
 
     public class PolaroidTest : FileTestBase

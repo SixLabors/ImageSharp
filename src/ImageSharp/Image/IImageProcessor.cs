@@ -9,6 +9,7 @@ namespace ImageSharp.Processing
     using System.Threading.Tasks;
 
     using ImageSharp.PixelFormats;
+    using SixLabors.Primitives;
 
     /// <summary>
     /// Encapsulates methods to alter the pixels of an image.

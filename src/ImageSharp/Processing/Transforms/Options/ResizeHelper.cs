@@ -8,6 +8,7 @@ namespace ImageSharp.Processing
     using System.Linq;
 
     using ImageSharp.PixelFormats;
+    using SixLabors.Primitives;
 
     /// <summary>
     /// Provides methods to help calculate the target rectangle when resizing using the

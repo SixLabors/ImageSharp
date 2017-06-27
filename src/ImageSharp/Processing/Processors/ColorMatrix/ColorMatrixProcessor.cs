@@ -10,6 +10,7 @@ namespace ImageSharp.Processing.Processors
     using System.Threading.Tasks;
 
     using ImageSharp.PixelFormats;
+    using SixLabors.Primitives;
 
     /// <summary>
     /// The color matrix filter. Inherit from this class to perform operation involving color matrices.

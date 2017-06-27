@@ -12,6 +12,7 @@ namespace ImageSharp.Drawing.Processors
     using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
     using ImageSharp.Processing;
+    using SixLabors.Primitives;
 
     /// <summary>
     /// Combines two images together by blending the pixels.

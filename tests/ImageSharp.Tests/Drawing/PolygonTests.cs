@@ -14,6 +14,7 @@ namespace ImageSharp.Tests.Drawing
     using System.Numerics;
 
     using ImageSharp.PixelFormats;
+    using SixLabors.Primitives;
 
     public class PolygonTests : FileTestBase
     {
@@ -29,7 +30,7 @@ namespace ImageSharp.Tests.Drawing
                     image
                         .BackgroundColor(Rgba32.Blue)
                         .DrawPolygon(Rgba32.HotPink, 5,
-                        new[] {
+                        new SixLabors.Primitives.PointF[] {
                             new Vector2(10, 10),
                             new Vector2(200, 150),
                             new Vector2(50, 300)
@@ -54,7 +55,7 @@ namespace ImageSharp.Tests.Drawing
         public void ImageShouldBeOverlayedPolygonOutlineWithOpacity()
         {
             string path = this.CreateOutputDirectory("Drawing", "Polygons");
-            Vector2[] simplePath = new[] {
+            SixLabors.Primitives.PointF[] simplePath = new SixLabors.Primitives.PointF[] {
                             new Vector2(10, 10),
                             new Vector2(200, 150),
                             new Vector2(50, 300)

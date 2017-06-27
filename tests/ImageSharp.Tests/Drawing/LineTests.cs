@@ -28,7 +28,7 @@ namespace ImageSharp.Tests.Drawing
                     image
                         .BackgroundColor(Rgba32.Blue)
                         .DrawLines(Rgba32.HotPink, 5,
-                        new[] {
+                        new SixLabors.Primitives.PointF[] {
                             new Vector2(10, 10),
                             new Vector2(200, 150),
                             new Vector2(50, 300)
@@ -58,7 +58,7 @@ namespace ImageSharp.Tests.Drawing
                     image
                         .BackgroundColor(Rgba32.Blue)
                         .DrawLines(Rgba32.HotPink, 5,
-                        new[] {
+                        new SixLabors.Primitives.PointF[] {
                             new Vector2(10, 10),
                             new Vector2(200, 150),
                             new Vector2(50, 300)
@@ -89,7 +89,7 @@ namespace ImageSharp.Tests.Drawing
                     image
                         .BackgroundColor(Rgba32.Blue)
                         .DrawLines(Pens.Dash(Rgba32.HotPink, 5),
-                        new[] {
+                        new SixLabors.Primitives.PointF[] {
                             new Vector2(10, 10),
                             new Vector2(200, 150),
                             new Vector2(50, 300)
@@ -110,7 +110,7 @@ namespace ImageSharp.Tests.Drawing
                     image
                         .BackgroundColor(Rgba32.Blue)
                         .DrawLines(Pens.Dot(Rgba32.HotPink, 5),
-                        new[] {
+                        new SixLabors.Primitives.PointF[] {
                             new Vector2(10, 10),
                             new Vector2(200, 150),
                             new Vector2(50, 300)
@@ -131,7 +131,7 @@ namespace ImageSharp.Tests.Drawing
                     image
                         .BackgroundColor(Rgba32.Blue)
                         .DrawLines(Pens.DashDot(Rgba32.HotPink, 5),
-                        new[] {
+                        new SixLabors.Primitives.PointF[] {
                             new Vector2(10, 10),
                             new Vector2(200, 150),
                             new Vector2(50, 300)
@@ -151,7 +151,7 @@ namespace ImageSharp.Tests.Drawing
             {
                 image
                     .BackgroundColor(Rgba32.Blue)
-                    .DrawLines(Pens.DashDotDot(Rgba32.HotPink, 5), new[] {
+                    .DrawLines(Pens.DashDotDot(Rgba32.HotPink, 5), new SixLabors.Primitives.PointF[] {
                             new Vector2(10, 10),
                             new Vector2(200, 150),
                             new Vector2(50, 300)
@@ -174,7 +174,7 @@ namespace ImageSharp.Tests.Drawing
             {
                 image
                     .BackgroundColor(Rgba32.Blue)
-                    .DrawLines(color, 10, new[] {
+                    .DrawLines(color, 10, new SixLabors.Primitives.PointF[] {
                             new Vector2(10, 10),
                             new Vector2(200, 150),
                             new Vector2(50, 300)
@@ -206,7 +206,7 @@ namespace ImageSharp.Tests.Drawing
             {
                 image
                     .BackgroundColor(Rgba32.Blue)
-                    .DrawLines(Rgba32.HotPink, 10, new[] {
+                    .DrawLines(Rgba32.HotPink, 10, new SixLabors.Primitives.PointF[] {
                             new Vector2(10, 10),
                             new Vector2(200, 10),
                             new Vector2(200, 150),

@@ -6,7 +6,7 @@
 namespace ImageSharp.Tests.Processing.Overlays
 {
     using ImageSharp.PixelFormats;
-
+    using SixLabors.Primitives;
     using Xunit;
 
     public class GlowTest : FileTestBase

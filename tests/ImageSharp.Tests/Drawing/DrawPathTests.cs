@@ -27,7 +27,7 @@ namespace ImageSharp.Tests.Drawing
                     new Vector2(10, 10),
                     new Vector2(200, 150),
                     new Vector2(50, 300));
-                BezierLineSegment bazierSegment = new BezierLineSegment(new Vector2(50, 300),
+                CubicBezierLineSegment bazierSegment = new CubicBezierLineSegment(new Vector2(50, 300),
                     new Vector2(500, 500),
                     new Vector2(60, 10),
                     new Vector2(10, 400));
@@ -65,7 +65,7 @@ namespace ImageSharp.Tests.Drawing
                             new Vector2(50, 300)
                     );
 
-            BezierLineSegment bazierSegment = new BezierLineSegment(new Vector2(50, 300),
+            CubicBezierLineSegment bazierSegment = new CubicBezierLineSegment(new Vector2(50, 300),
                 new Vector2(500, 500),
                 new Vector2(60, 10),
                 new Vector2(10, 400));
@@ -106,7 +106,7 @@ namespace ImageSharp.Tests.Drawing
 
                 for (int i = 0; i < 300; i += 20)
                 {
-                    image.DrawLines(pen, new Vector2[] { new Vector2(100, 2), new Vector2(-10, i) });
+                    image.DrawLines(pen, new SixLabors.Primitives.PointF[] { new Vector2(100, 2), new Vector2(-10, i) });
                 }
 
                 image

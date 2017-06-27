@@ -230,7 +230,7 @@ namespace SixLabors.Helpers.Tests
         [Theory]
         [InlineData(2, 2)]
         [InlineData(4, 3)]
-        public void MustBeSizedAtLeast_ReadOnlySpan_DoesNotThowException(int leftSize, int rightSize)
+        public void MustBeSizedAtLeast_ReadOnlySpan_LengthIsEqualOrGreater_DoesNotThowException(int leftSize, int rightSize)
         {
             DebugGuard.MustBeSizedAtLeast(new ReadOnlySpan<int>(new int[leftSize]), new ReadOnlySpan<int>(new int[rightSize]), "myParamName");
         }
@@ -238,7 +238,7 @@ namespace SixLabors.Helpers.Tests
         [Theory]
         [InlineData(2, 2)]
         [InlineData(4, 3)]
-        public void MustBeSizedAtLeast_Span_DoesNotThowException(int leftSize, int rightSize)
+        public void MustBeSizedAtLeast_Span_LengthIsEqualOrGreater_DoesNotThowException(int leftSize, int rightSize)
         {
             DebugGuard.MustBeSizedAtLeast(new Span<int>(new int[leftSize]), new Span<int>(new int[rightSize]), "myParamName");
         }

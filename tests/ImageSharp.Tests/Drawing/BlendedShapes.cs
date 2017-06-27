@@ -11,6 +11,7 @@ namespace ImageSharp.Tests.Drawing
     using System.Text;
     using ImageSharp.PixelFormats;
     using Xunit;
+    using SixLabors.Primitives;
 
     public class BlendedShapes
     {
@@ -49,7 +50,7 @@ namespace ImageSharp.Tests.Drawing
                 {
                     BlenderMode = mode
                 });
-                img.Fill(NamedColors<TPixel>.Transparent, new SixLabors.Shapes.Ellipse(40 * scaleX, 50 * scaleY, 50 * scaleX, 50 * scaleY), new ImageSharp.GraphicsOptions(true)
+                img.Fill(NamedColors<TPixel>.Transparent, new SixLabors.Shapes.EllipsePolygon(40 * scaleX, 50 * scaleY, 50 * scaleX, 50 * scaleY), new ImageSharp.GraphicsOptions(true)
                 {
                     BlenderMode = mode
                 });
@@ -76,7 +77,7 @@ namespace ImageSharp.Tests.Drawing
                 TPixel pixel = default(TPixel);
                 pixel.PackFromVector4(c);
 
-                img.Fill(pixel, new SixLabors.Shapes.Ellipse(40 * scaleX, 50 * scaleY, 50 * scaleX, 50 * scaleY), new ImageSharp.GraphicsOptions(true)
+                img.Fill(pixel, new SixLabors.Shapes.EllipsePolygon(40 * scaleX, 50 * scaleY, 50 * scaleX, 50 * scaleY), new ImageSharp.GraphicsOptions(true)
                 {
                     BlenderMode = mode
                 });
@@ -101,7 +102,7 @@ namespace ImageSharp.Tests.Drawing
                 //    BlenderMode = mode
                 //});
                 
-                img.Fill(NamedColors<TPixel>.Black, new SixLabors.Shapes.Ellipse(40 * scaleX, 50 * scaleY, 50 * scaleX, 50 * scaleY), new ImageSharp.GraphicsOptions(true)
+                img.Fill(NamedColors<TPixel>.Black, new SixLabors.Shapes.EllipsePolygon(40 * scaleX, 50 * scaleY, 50 * scaleX, 50 * scaleY), new ImageSharp.GraphicsOptions(true)
                 {
                     BlenderMode = mode
                 });

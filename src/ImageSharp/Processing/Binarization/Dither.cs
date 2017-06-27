@@ -10,6 +10,7 @@ namespace ImageSharp
     using ImageSharp.Dithering;
     using ImageSharp.PixelFormats;
     using ImageSharp.Processing.Processors;
+    using SixLabors.Primitives;
 
     /// <summary>
     /// Extension methods for the <see cref="Image{TPixel}"/> type.

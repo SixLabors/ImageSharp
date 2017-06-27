@@ -12,6 +12,7 @@ namespace ImageSharp.Tests
     using ImageSharp.PixelFormats;
 
     using Xunit;
+    using SixLabors.Primitives;
 
     public class RecolorImageTest : FileTestBase
     {

@@ -25,7 +25,7 @@ namespace ImageSharp.Tests.Drawing.Text
         public OutputText()
         {
             this.FontCollection = new FontCollection();
-            this.Font = FontCollection.Install(TestFontUtilities.GetPath("SixLaborsSampleAB.woff"));
+            this.Font = FontCollection.Install(TestFontUtilities.GetPath("SixLaborsSampleAB.woff")).CreateFont(12);
         }
 
         [Fact]

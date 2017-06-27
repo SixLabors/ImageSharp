@@ -8,6 +8,7 @@ namespace ImageSharp.Tests
     using System.IO;
     using System.Linq;
     using ImageSharp.PixelFormats;
+    using SixLabors.Primitives;
     using Xunit;
 
     public class DrawImageTest : FileTestBase

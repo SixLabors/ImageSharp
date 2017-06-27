@@ -43,7 +43,6 @@ namespace SixLabors.Helpers.Tests
             });
         }
 
-
         [Fact]
         public void MustBeLessThan_IsLess_ThrowsNoException()
         {
@@ -163,13 +162,13 @@ namespace SixLabors.Helpers.Tests
         [Theory]
         [InlineData(new int[] { 1, 2 }, 1)]
         [InlineData(new int[] { 1, 2 }, 2)]
-        public void MustBeSizedAtLeast_LengthIsGreaterOrEqual_ThrowsNoException(int[] value, int minLength)
+        public void MustBeSizedAtLeast_Array_LengthIsGreaterOrEqual_ThrowsNoException(int[] value, int minLength)
         {
             DebugGuard.MustBeSizedAtLeast<int>(value, minLength, "myParamName");
         }
 
         [Fact]
-        public void MustBeSizedAtLeast_LengthIsLess_ThrowsException()
+        public void MustBeSizedAtLeast_Array_LengthIsLess_ThrowsException()
         {
             var exception = Assert.Throws<ArgumentException>(() =>
             {
@@ -181,7 +180,7 @@ namespace SixLabors.Helpers.Tests
         }
 
         [Fact]
-        public void ReadOnlySpan_MustBeSizedAtLeast_LengthIsLess_ThrowsException()
+        public void MustBeSizedAtLeast_ReadOnlySpan_LengthIsLess_ThrowsException()
         {
             var exception = Assert.Throws<ArgumentException>(() =>
             {
@@ -189,11 +188,11 @@ namespace SixLabors.Helpers.Tests
             });
 
             Assert.Equal("myParamName", exception.ParamName);
-            Assert.Contains($"Span-s must be at least of length 3!", exception.Message);
+            Assert.Contains($"Span-s must be at least of length 3.", exception.Message);
         }
 
         [Fact]
-        public void Span_MustBeSizedAtLeast_LengthIsLess_ThrowsException()
+        public void MustBeSizedAtLeast_Span_LengthIsLess_ThrowsException()
         {
             var exception = Assert.Throws<ArgumentException>(() =>
             {
@@ -201,12 +200,11 @@ namespace SixLabors.Helpers.Tests
             });
 
             Assert.Equal("myParamName", exception.ParamName);
-            Assert.Contains($"Span-s must be at least of length 3!", exception.Message);
+            Assert.Contains($"Span-s must be at least of length 3.", exception.Message);
         }
 
-
         [Fact]
-        public void ReadOnlySpan_MustBeSameSized_LengthIsLess_ThrowsException()
+        public void MustBeSameSized_ReadOnlySpan_LengthIsLess_ThrowsException()
         {
             var exception = Assert.Throws<ArgumentException>(() =>
             {
@@ -214,11 +212,11 @@ namespace SixLabors.Helpers.Tests
             });
 
             Assert.Equal("myParamName", exception.ParamName);
-            Assert.Contains($"Span-s must be the same size!", exception.Message);
+            Assert.Contains($"Span-s must be the same size.", exception.Message);
         }
 
         [Fact]
-        public void Span_MustBeSameSized_LengthIsLess_ThrowsException()
+        public void MustBeSameSized_Span_LengthIsLess_ThrowsException()
         {
             var exception = Assert.Throws<ArgumentException>(() =>
             {
@@ -226,13 +224,13 @@ namespace SixLabors.Helpers.Tests
             });
 
             Assert.Equal("myParamName", exception.ParamName);
-            Assert.Contains($"Span-s must be the same size!", exception.Message);
+            Assert.Contains($"Span-s must be the same size.", exception.Message);
         }
 
         [Theory]
         [InlineData(2, 2)]
         [InlineData(4, 3)]
-        public void ReadOnlySpan_MustBeSizedAtLeast_DoesNotThowException(int leftSize, int rightSize)
+        public void MustBeSizedAtLeast_ReadOnlySpan_DoesNotThowException(int leftSize, int rightSize)
         {
             DebugGuard.MustBeSizedAtLeast(new ReadOnlySpan<int>(new int[leftSize]), new ReadOnlySpan<int>(new int[rightSize]), "myParamName");
         }
@@ -240,19 +238,19 @@ namespace SixLabors.Helpers.Tests
         [Theory]
         [InlineData(2, 2)]
         [InlineData(4, 3)]
-        public void Span_MustBeSizedAtLeast_DoesNotThowException(int leftSize, int rightSize)
+        public void MustBeSizedAtLeast_Span_DoesNotThowException(int leftSize, int rightSize)
         {
             DebugGuard.MustBeSizedAtLeast(new Span<int>(new int[leftSize]), new Span<int>(new int[rightSize]), "myParamName");
         }
 
         [Fact]
-        public void ReadOnlySpan_MustBeSameSized_LengthIsEqual_DoesNotThrowException()
+        public void MustBeSameSized_ReadOnlySpan_LengthIsEqual_DoesNotThrowException()
         {
             DebugGuard.MustBeSameSized(new ReadOnlySpan<int>(new int[2]), new ReadOnlySpan<int>(new int[2]), "myParamName");
         }
 
         [Fact]
-        public void Span_MustBeSameSized_LengthIsEqual_DoesNotThrowException()
+        public void MustBeSameSized_Span_LengthIsEqual_DoesNotThrowException()
         {
             DebugGuard.MustBeSameSized(new Span<int>(new int[2]), new Span<int>(new int[2]), "myParamName");
         }

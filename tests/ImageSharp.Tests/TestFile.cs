@@ -12,8 +12,6 @@ namespace ImageSharp.Tests
     using System.Linq;
     using System.Reflection;
 
-    using ImageSharp.PixelFormats;
-
     /// <summary>
     /// A test image file.
     /// </summary>
@@ -32,7 +30,7 @@ namespace ImageSharp.Tests
         /// <summary>
         /// The image.
         /// </summary>
-        private readonly Image<Rgba32> image;
+        private Image<Rgba32> image;
 
         /// <summary>
         /// The file.
@@ -46,9 +44,7 @@ namespace ImageSharp.Tests
         private TestFile(string file)
         {
             this.file = file;
-
             this.Bytes = File.ReadAllBytes(file);
-            this.image = Image.Load<Rgba32>(this.Bytes);
         }
 
         /// <summary>
@@ -129,7 +125,7 @@ namespace ImageSharp.Tests
         /// </returns>
         public Image<Rgba32> CreateImage()
         {
-            return new Image<Rgba32>(this.image);
+            return new Image<Rgba32>(this.GetImage());
         }
 
         /// <summary>
@@ -144,6 +140,11 @@ namespace ImageSharp.Tests
             return Image.Load<Rgba32>(this.Bytes, options);
         }
 
+        private Image<Rgba32> GetImage()
+        {
+            return this.image ?? (this.image = Image.Load<Rgba32>(this.Bytes));
+        }
+
         /// <summary>
         /// Gets the correct path to the formats directory.
         /// </summary>
@@ -152,7 +153,7 @@ namespace ImageSharp.Tests
         /// </returns>
         private static string GetFormatsDirectory()
         {
-            List<string> directories = new List< string > {
+            var directories = new List<string> {
                  "TestImages/Formats/", // Here for code coverage tests.
                   "tests/ImageSharp.Tests/TestImages/Formats/", // from travis/build script
                   "../../../../../ImageSharp.Tests/TestImages/Formats/", // from Sandbox46
@@ -167,9 +168,9 @@ namespace ImageSharp.Tests
 
             AddFormatsDirectoryFromTestAssebmlyPath(directories);
 
-            string directory = directories.FirstOrDefault(x => Directory.Exists(x));
+            string directory = directories.FirstOrDefault(Directory.Exists);
 
-            if(directory  != null)
+            if (directory != null)
             {
                 return directory;
             }

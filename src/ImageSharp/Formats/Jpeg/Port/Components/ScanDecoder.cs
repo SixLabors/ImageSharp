@@ -13,16 +13,6 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
     using System.Runtime.CompilerServices;
 
     /// <summary>
-    /// Encapsulates a decode method. TODO: This may well be a bottleneck
-    /// </summary>
-    /// <param name="component">The component</param>
-    /// <param name="offset">The offset</param>
-    /// <param name="dcHuffmanTables">The DC Huffman tables</param>
-    /// <param name="acHuffmanTables">The AC Huffman tables</param>
-    /// <param name="stream">The input stream</param>
-    internal delegate void DecodeAction(ref FrameComponent component, int offset, HuffmanTables dcHuffmanTables, HuffmanTables acHuffmanTables, Stream stream);
-
-    /// <summary>
     /// Provides the means to decode a spectral scan
     /// </summary>
     internal struct ScanDecoder
@@ -36,6 +26,8 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
         private int specEnd;
 
         private int eobrun;
+
+        private int compIndex;
 
         private int successiveState;
 
@@ -58,7 +50,8 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
         /// <param name="spectralEnd">The spectral selection end</param>
         /// <param name="successivePrev">The successive approximation bit high end</param>
         /// <param name="successive">The successive approximation bit low end</param>
-        public void DecodeScan(
+        /// <returns>The <see cref="long"/> representing the processed length in bytes</returns>
+        public long DecodeScan(
             Frame frame,
             Stream stream,
             HuffmanTables dcHuffmanTables,
@@ -72,179 +65,438 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
             int successivePrev,
             int successive)
         {
+            this.compIndex = componentIndex;
             this.specStart = spectralStart;
             this.specEnd = spectralEnd;
             this.successiveState = successive;
             bool progressive = frame.Progressive;
             int mcusPerLine = frame.McusPerLine;
-
-            // TODO: Delegate action will not be fast
-            DecodeAction decodeFn;
-
-            if (progressive)
-            {
-                if (this.specStart == 0)
-                {
-                    if (successivePrev == 0)
-                    {
-                        decodeFn = this.DecodeDCFirst;
-                    }
-                    else
-                    {
-                        decodeFn = this.DecodeDCSuccessive;
-                    }
-
-                    Debug.WriteLine(successivePrev == 0 ? "decodeDCFirst" : "decodeDCSuccessive");
-                }
-                else
-                {
-                    if (successivePrev == 0)
-                    {
-                        decodeFn = this.DecodeACFirst;
-                    }
-                    else
-                    {
-                        decodeFn = this.DecodeACSuccessive;
-                    }
-
-                    Debug.WriteLine(successivePrev == 0 ? "decodeACFirst" : "decodeACSuccessive");
-                }
-            }
-            else
-            {
-                decodeFn = this.DecodeBaseline;
-            }
+            long startPosition = stream.Position;
 
             int mcu = 0;
             int mcuExpected;
             if (componentsLength == 1)
             {
-                mcuExpected = components[componentIndex].BlocksPerLine * components[componentIndex].BlocksPerColumn;
+                mcuExpected = components[this.compIndex].BlocksPerLine * components[this.compIndex].BlocksPerColumn;
             }
             else
             {
                 mcuExpected = mcusPerLine * frame.McusPerColumn;
             }
 
-            Debug.WriteLine("mcuExpected = " + mcuExpected);
-
-            // FileMarker fileMarker;
+            FileMarker fileMarker;
             while (mcu < mcuExpected)
             {
-                // Reset interval
-                int mcuToRead = resetInterval > 0 ? Math.Min(mcuExpected - mcu, resetInterval) : mcuExpected;
-
-                // TODO: We might just be able to loop here.
-                // if (componentsLength == 1)
-                // {
-                //    ref FrameComponent c = ref components[componentIndex];
-                //    c.Pred = 0;
-                // }
-                // else
-                // {
+                // Reset interval stuff
+                int mcuToRead = resetInterval != 0 ? Math.Min(mcuExpected - mcu, resetInterval) : mcuExpected;
                 for (int i = 0; i < components.Length; i++)
                 {
                     ref FrameComponent c = ref components[i];
                     c.Pred = 0;
                 }
 
-                // }
                 this.eobrun = 0;
 
-                if (componentsLength == 1)
+                if (!progressive)
                 {
-                    ref FrameComponent component = ref components[componentIndex];
-                    for (int n = 0; n < mcuToRead; n++)
-                    {
-                        DecodeBlock(dcHuffmanTables, acHuffmanTables, ref component, decodeFn, mcu, stream);
-                        mcu++;
-                    }
+                    this.DecodeScanBaseline(dcHuffmanTables, acHuffmanTables, components, componentsLength, mcusPerLine, mcuToRead, ref mcu, stream);
                 }
                 else
                 {
-                    for (int n = 0; n < mcuToRead; n++)
+                    if (this.specStart == 0)
                     {
-                        for (int i = 0; i < componentsLength; i++)
+                        if (successivePrev == 0)
                         {
-                            ref FrameComponent component = ref components[i];
-                            int h = component.HorizontalFactor;
-                            int v = component.VerticalFactor;
-                            for (int j = 0; j < v; j++)
-                            {
-                                for (int k = 0; k < h; k++)
-                                {
-                                    DecodeMcu(dcHuffmanTables, acHuffmanTables, ref component, decodeFn, mcusPerLine, mcu, j, k, stream);
-                                }
-                            }
+                            this.DecodeScanDCFirst(dcHuffmanTables, components, componentsLength, mcusPerLine, mcuToRead, ref mcu, stream);
                         }
-
-                        mcu++;
+                        else
+                        {
+                            this.DecodeScanDCSuccessive(components, componentsLength, mcusPerLine, mcuToRead, ref mcu, stream);
+                        }
+                    }
+                    else
+                    {
+                        if (successivePrev == 0)
+                        {
+                            this.DecodeScanACFirst(acHuffmanTables, components, componentsLength, mcusPerLine, mcuToRead, ref mcu, stream);
+                        }
+                        else
+                        {
+                            this.DecodeScanACSuccessive(acHuffmanTables, components, componentsLength, mcusPerLine, mcuToRead, ref mcu, stream);
+                        }
                     }
                 }
 
                 // Find marker
-                // this.bitsCount = 0;
-                // // TODO: We need to make sure we are not overwriting anything here.
-                //                fileMarker = JpegDecoderCore.FindNextFileMarker(stream);
-                //                // Some bad images seem to pad Scan blocks with e.g. zero bytes, skip past
-                //                // those to attempt to find a valid marker (fixes issue4090.pdf) in original code.
-                //                if (fileMarker.Invalid)
-                //                {
-                // #if DEBUG
-                //                    Debug.WriteLine("DecodeScan - Unexpected MCU data, next marker is: " + fileMarker.Marker.ToString("X"));
-                // #endif
-                //                }
-                //                ushort marker = fileMarker.Marker;
-                //                if (marker <= 0xFF00)
-                //                {
-                //                    throw new ImageFormatException("Marker was not found");
-                //                }
-                //                if (marker >= JpegConstants.Markers.RST0 && marker <= JpegConstants.Markers.RST7)
-                //                {
-                //                    // RSTx
-                //                    stream.Skip(2);
-                //                }
-                //                else
-                //                {
-                //                    break;
-                //                }
+                this.bitsCount = 0;
+                long position = stream.Position;
+                fileMarker = JpegDecoderCore.FindNextFileMarkerNew(stream);
+
+                // Some bad images seem to pad Scan blocks with e.g. zero bytes, skip past
+                // those to attempt to find a valid marker (fixes issue4090.pdf) in original code.
+                if (fileMarker.Invalid)
+                {
+#if DEBUG
+                    Debug.WriteLine($"DecodeScan - Unexpected MCU data at {stream.Position}, next marker is: {fileMarker.Marker}");
+
+#endif
+                    // stream.Position = fileMarker.Position;
+                }
+
+                ushort marker = fileMarker.Marker;
+
+                // if (marker <= 0xFF00)
+                // {
+                //    throw new ImageFormatException("Marker was not found");
+                // }
+
+                // RSTn We've alread read the bytes and altered the position so no need to skip
+                if (marker >= JpegConstants.Markers.RST0 && marker <= JpegConstants.Markers.RST7)
+                {
+                    continue;
+                }
+
+                if (!fileMarker.Invalid)
+                {
+                    // We've found a valid marker.
+                    // Rewind the stream to the position of the marker and beak
+                    stream.Position = fileMarker.Position;
+                    break;
+                }
+
+                // Rewind the stream
+                stream.Position = position;
             }
 
-            // fileMarker = JpegDecoderCore.FindNextFileMarker(stream);
-            //            // Some images include more Scan blocks than expected, skip past those and
-            //            // attempt to find the next valid marker (fixes issue8182.pdf) in original code.
-            //            if (fileMarker.Invalid)
-            //            {
-            // #if DEBUG
-            //                Debug.WriteLine("DecodeScan - Unexpected MCU data, next marker is: " + fileMarker.Marker.ToString("X"));
-            // #endif
-            //            }
+            fileMarker = JpegDecoderCore.FindNextFileMarkerNew(stream);
+
+            // Some images include more Scan blocks than expected, skip past those and
+            // attempt to find the next valid marker (fixes issue8182.pdf) in original code.
+            if (fileMarker.Invalid)
+            {
+#if DEBUG
+                Debug.WriteLine($"DecodeScan - Unexpected MCU data, next marker is: {fileMarker.Marker}");
+#endif
+                stream.Position = fileMarker.Position;
+            }
+
+            return stream.Position - startPosition;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int GetBlockBufferOffset(ref FrameComponent component, int row, int col)
+        private static int GetBlockBufferOffset(FrameComponent component, int row, int col)
         {
             return 64 * (((component.BlocksPerLine + 1) * row) + col);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void DecodeMcu(HuffmanTables dcHuffmanTables, HuffmanTables acHuffmanTables, ref FrameComponent component, DecodeAction decode, int mcusPerLine, int mcu, int row, int col, Stream stream)
+        private void DecodeScanBaseline(
+            HuffmanTables dcHuffmanTables,
+            HuffmanTables acHuffmanTables,
+            FrameComponent[] components,
+            int componentsLength,
+            int mcusPerLine,
+            int mcuToRead,
+            ref int mcu,
+            Stream stream)
+        {
+            if (componentsLength == 1)
+            {
+                ref FrameComponent component = ref components[this.compIndex];
+                for (int n = 0; n < mcuToRead; n++)
+                {
+                    this.DecodeBlockBaseline(dcHuffmanTables, acHuffmanTables, ref component, mcu, stream);
+                    mcu++;
+                }
+            }
+            else
+            {
+                for (int n = 0; n < mcuToRead; n++)
+                {
+                    for (int i = 0; i < componentsLength; i++)
+                    {
+                        ref FrameComponent component = ref components[i];
+                        int h = component.HorizontalFactor;
+                        int v = component.VerticalFactor;
+                        for (int j = 0; j < v; j++)
+                        {
+                            for (int k = 0; k < h; k++)
+                            {
+                                this.DecodeMcuBaseline(dcHuffmanTables, acHuffmanTables, ref component, mcusPerLine, mcu, j, k, stream);
+                            }
+                        }
+                    }
+
+                    mcu++;
+                }
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void DecodeScanDCFirst(
+            HuffmanTables dcHuffmanTables,
+            FrameComponent[] components,
+            int componentsLength,
+            int mcusPerLine,
+            int mcuToRead,
+            ref int mcu,
+            Stream stream)
+        {
+            if (componentsLength == 1)
+            {
+                ref FrameComponent component = ref components[this.compIndex];
+                for (int n = 0; n < mcuToRead; n++)
+                {
+                    this.DecodeBlockDCFirst(dcHuffmanTables, ref component, mcu, stream);
+                    mcu++;
+                }
+            }
+            else
+            {
+                for (int n = 0; n < mcuToRead; n++)
+                {
+                    for (int i = 0; i < componentsLength; i++)
+                    {
+                        ref FrameComponent component = ref components[i];
+                        int h = component.HorizontalFactor;
+                        int v = component.VerticalFactor;
+                        for (int j = 0; j < v; j++)
+                        {
+                            for (int k = 0; k < h; k++)
+                            {
+                                this.DecodeMcuDCFirst(dcHuffmanTables, ref component, mcusPerLine, mcu, j, k, stream);
+                            }
+                        }
+                    }
+
+                    mcu++;
+                }
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void DecodeScanDCSuccessive(
+            FrameComponent[] components,
+            int componentsLength,
+            int mcusPerLine,
+            int mcuToRead,
+            ref int mcu,
+            Stream stream)
+        {
+            if (componentsLength == 1)
+            {
+                ref FrameComponent component = ref components[this.compIndex];
+                for (int n = 0; n < mcuToRead; n++)
+                {
+                    this.DecodeBlockDCSuccessive(ref component, mcu, stream);
+                    mcu++;
+                }
+            }
+            else
+            {
+                for (int n = 0; n < mcuToRead; n++)
+                {
+                    for (int i = 0; i < componentsLength; i++)
+                    {
+                        ref FrameComponent component = ref components[i];
+                        int h = component.HorizontalFactor;
+                        int v = component.VerticalFactor;
+                        for (int j = 0; j < v; j++)
+                        {
+                            for (int k = 0; k < h; k++)
+                            {
+                                this.DecodeMcuDCSuccessive(ref component, mcusPerLine, mcu, j, k, stream);
+                            }
+                        }
+                    }
+
+                    mcu++;
+                }
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void DecodeScanACFirst(
+            HuffmanTables acHuffmanTables,
+            FrameComponent[] components,
+            int componentsLength,
+            int mcusPerLine,
+            int mcuToRead,
+            ref int mcu,
+            Stream stream)
+        {
+            if (componentsLength == 1)
+            {
+                ref FrameComponent component = ref components[this.compIndex];
+                for (int n = 0; n < mcuToRead; n++)
+                {
+                    this.DecodeBlockACFirst(acHuffmanTables, ref component, mcu, stream);
+                    mcu++;
+                }
+            }
+            else
+            {
+                for (int n = 0; n < mcuToRead; n++)
+                {
+                    for (int i = 0; i < componentsLength; i++)
+                    {
+                        ref FrameComponent component = ref components[i];
+                        int h = component.HorizontalFactor;
+                        int v = component.VerticalFactor;
+                        for (int j = 0; j < v; j++)
+                        {
+                            for (int k = 0; k < h; k++)
+                            {
+                                this.DecodeMcuACFirst(acHuffmanTables, ref component, mcusPerLine, mcu, j, k, stream);
+                            }
+                        }
+                    }
+
+                    mcu++;
+                }
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void DecodeScanACSuccessive(
+            HuffmanTables acHuffmanTables,
+            FrameComponent[] components,
+            int componentsLength,
+            int mcusPerLine,
+            int mcuToRead,
+            ref int mcu,
+            Stream stream)
+        {
+            if (componentsLength == 1)
+            {
+                ref FrameComponent component = ref components[this.compIndex];
+                for (int n = 0; n < mcuToRead; n++)
+                {
+                    this.DecodeBlockACSuccessive(acHuffmanTables, ref component, mcu, stream);
+                    mcu++;
+                }
+            }
+            else
+            {
+                for (int n = 0; n < mcuToRead; n++)
+                {
+                    for (int i = 0; i < componentsLength; i++)
+                    {
+                        ref FrameComponent component = ref components[i];
+                        int h = component.HorizontalFactor;
+                        int v = component.VerticalFactor;
+                        for (int j = 0; j < v; j++)
+                        {
+                            for (int k = 0; k < h; k++)
+                            {
+                                this.DecodeMcuACSuccessive(acHuffmanTables, ref component, mcusPerLine, mcu, j, k, stream);
+                            }
+                        }
+                    }
+
+                    mcu++;
+                }
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void DecodeBlockBaseline(HuffmanTables dcHuffmanTables, HuffmanTables acHuffmanTables, ref FrameComponent component, int mcu, Stream stream)
+        {
+            int blockRow = (mcu / component.BlocksPerLine) | 0;
+            int blockCol = mcu % component.BlocksPerLine;
+            int offset = GetBlockBufferOffset(component, blockRow, blockCol);
+            this.DecodeBaseline(ref component, offset, dcHuffmanTables, acHuffmanTables, stream);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void DecodeMcuBaseline(HuffmanTables dcHuffmanTables, HuffmanTables acHuffmanTables, ref FrameComponent component, int mcusPerLine, int mcu, int row, int col, Stream stream)
         {
             int mcuRow = (mcu / mcusPerLine) | 0;
             int mcuCol = mcu % mcusPerLine;
             int blockRow = (mcuRow * component.VerticalFactor) + row;
             int blockCol = (mcuCol * component.HorizontalFactor) + col;
-            int offset = GetBlockBufferOffset(ref component, blockRow, blockCol);
-            decode(ref component, offset, dcHuffmanTables, acHuffmanTables, stream);
+            int offset = GetBlockBufferOffset(component, blockRow, blockCol);
+            this.DecodeBaseline(ref component, offset, dcHuffmanTables, acHuffmanTables, stream);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void DecodeBlock(HuffmanTables dcHuffmanTables, HuffmanTables acHuffmanTables, ref FrameComponent component, DecodeAction decode, int mcu, Stream stream)
+        private void DecodeBlockDCFirst(HuffmanTables dcHuffmanTables, ref FrameComponent component, int mcu, Stream stream)
         {
             int blockRow = (mcu / component.BlocksPerLine) | 0;
             int blockCol = mcu % component.BlocksPerLine;
-            int offset = GetBlockBufferOffset(ref component, blockRow, blockCol);
-            decode(ref component, offset, dcHuffmanTables, acHuffmanTables, stream);
+            int offset = GetBlockBufferOffset(component, blockRow, blockCol);
+            this.DecodeDCFirst(ref component, offset, dcHuffmanTables, stream);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void DecodeMcuDCFirst(HuffmanTables dcHuffmanTables, ref FrameComponent component, int mcusPerLine, int mcu, int row, int col, Stream stream)
+        {
+            int mcuRow = (mcu / mcusPerLine) | 0;
+            int mcuCol = mcu % mcusPerLine;
+            int blockRow = (mcuRow * component.VerticalFactor) + row;
+            int blockCol = (mcuCol * component.HorizontalFactor) + col;
+            int offset = GetBlockBufferOffset(component, blockRow, blockCol);
+            this.DecodeDCFirst(ref component, offset, dcHuffmanTables, stream);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void DecodeBlockDCSuccessive(ref FrameComponent component, int mcu, Stream stream)
+        {
+            int blockRow = (mcu / component.BlocksPerLine) | 0;
+            int blockCol = mcu % component.BlocksPerLine;
+            int offset = GetBlockBufferOffset(component, blockRow, blockCol);
+            this.DecodeDCSuccessive(ref component, offset, stream);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void DecodeMcuDCSuccessive(ref FrameComponent component, int mcusPerLine, int mcu, int row, int col, Stream stream)
+        {
+            int mcuRow = (mcu / mcusPerLine) | 0;
+            int mcuCol = mcu % mcusPerLine;
+            int blockRow = (mcuRow * component.VerticalFactor) + row;
+            int blockCol = (mcuCol * component.HorizontalFactor) + col;
+            int offset = GetBlockBufferOffset(component, blockRow, blockCol);
+            this.DecodeDCSuccessive(ref component, offset, stream);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void DecodeBlockACFirst(HuffmanTables acHuffmanTables, ref FrameComponent component, int mcu, Stream stream)
+        {
+            int blockRow = (mcu / component.BlocksPerLine) | 0;
+            int blockCol = mcu % component.BlocksPerLine;
+            int offset = GetBlockBufferOffset(component, blockRow, blockCol);
+            this.DecodeACFirst(ref component, offset, acHuffmanTables, stream);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void DecodeMcuACFirst(HuffmanTables acHuffmanTables, ref FrameComponent component, int mcusPerLine, int mcu, int row, int col, Stream stream)
+        {
+            int mcuRow = (mcu / mcusPerLine) | 0;
+            int mcuCol = mcu % mcusPerLine;
+            int blockRow = (mcuRow * component.VerticalFactor) + row;
+            int blockCol = (mcuCol * component.HorizontalFactor) + col;
+            int offset = GetBlockBufferOffset(component, blockRow, blockCol);
+            this.DecodeACFirst(ref component, offset, acHuffmanTables, stream);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void DecodeBlockACSuccessive(HuffmanTables acHuffmanTables, ref FrameComponent component, int mcu, Stream stream)
+        {
+            int blockRow = (mcu / component.BlocksPerLine) | 0;
+            int blockCol = mcu % component.BlocksPerLine;
+            int offset = GetBlockBufferOffset(component, blockRow, blockCol);
+            this.DecodeACSuccessive(ref component, offset, acHuffmanTables, stream);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void DecodeMcuACSuccessive(HuffmanTables acHuffmanTables, ref FrameComponent component, int mcusPerLine, int mcu, int row, int col, Stream stream)
+        {
+            int mcuRow = (mcu / mcusPerLine) | 0;
+            int mcuCol = mcu % mcusPerLine;
+            int blockRow = (mcuRow * component.VerticalFactor) + row;
+            int blockCol = (mcuCol * component.HorizontalFactor) + col;
+            int offset = GetBlockBufferOffset(component, blockRow, blockCol);
+            this.DecodeACSuccessive(ref component, offset, acHuffmanTables, stream);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -257,10 +509,10 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
             }
 
             this.bitsData = stream.ReadByte();
-            if (this.bitsData == JpegConstants.Markers.Prefix)
+            if (this.bitsData == 0xFF)
             {
                 int nextByte = stream.ReadByte();
-                if (nextByte > 0)
+                if (nextByte != 0)
                 {
                     throw new ImageFormatException($"Unexpected marker {(this.bitsData << 8) | nextByte}");
                 }
@@ -354,7 +606,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void DecodeDCFirst(ref FrameComponent component, int offset, HuffmanTables dcHuffmanTables, HuffmanTables acHuffmanTables, Stream stream)
+        private void DecodeDCFirst(ref FrameComponent component, int offset, HuffmanTables dcHuffmanTables, Stream stream)
         {
             int t = this.DecodeHuffman(dcHuffmanTables[component.DCHuffmanTableId], stream);
             int diff = t == 0 ? 0 : this.ReceiveAndExtend(t, stream) << this.successiveState;
@@ -362,13 +614,13 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void DecodeDCSuccessive(ref FrameComponent component, int offset, HuffmanTables dcHuffmanTables, HuffmanTables acHuffmanTables, Stream stream)
+        private void DecodeDCSuccessive(ref FrameComponent component, int offset, Stream stream)
         {
             component.BlockData[offset] |= (short)(this.ReadBit(stream) << this.successiveState);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void DecodeACFirst(ref FrameComponent component, int offset, HuffmanTables dcHuffmanTables, HuffmanTables acHuffmanTables, Stream stream)
+        private void DecodeACFirst(ref FrameComponent component, int offset, HuffmanTables acHuffmanTables, Stream stream)
         {
             if (this.eobrun > 0)
             {
@@ -404,7 +656,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void DecodeACSuccessive(ref FrameComponent component, int offset, HuffmanTables dcHuffmanTables, HuffmanTables acHuffmanTables, Stream stream)
+        private void DecodeACSuccessive(ref FrameComponent component, int offset, HuffmanTables acHuffmanTables, Stream stream)
         {
             int k = this.specStart;
             int e = this.specEnd;
@@ -439,7 +691,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
                             }
 
                             this.successiveACNextValue = this.ReceiveAndExtend(s, stream);
-                            this.successiveACState = r != 0 ? 2 : 3;
+                            this.successiveACState = r > 0 ? 2 : 3;
                         }
 
                         continue;

@@ -49,5 +49,11 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
         /// Gets the position of the marker within a stream
         /// </summary>
         public long Position { get; }
+
+        /// <inheritdoc/>
+        public override string ToString()
+        {
+            return this.Marker.ToString("X");
+        }
     }
 }

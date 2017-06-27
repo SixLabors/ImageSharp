@@ -174,7 +174,7 @@ namespace SixLabors
         {
             if (target.Length != other.Length)
             {
-                throw new ArgumentException("Span-s must be the same size!", parameterName);
+                throw new ArgumentException("Span-s must be the same size.", parameterName);
             }
         }
 
@@ -194,7 +194,7 @@ namespace SixLabors
         {
             if (target.Length != other.Length)
             {
-                throw new ArgumentException("Span-s must be the same size!", parameterName);
+                throw new ArgumentException("Span-s must be the same size.", parameterName);
             }
         }
 
@@ -214,7 +214,7 @@ namespace SixLabors
         {
             if (target.Length < minSpan.Length)
             {
-                throw new ArgumentException($"Span-s must be at least of length {minSpan.Length}!", parameterName);
+                throw new ArgumentException($"Span-s must be at least of length {minSpan.Length}.", parameterName);
             }
         }
 
@@ -234,7 +234,7 @@ namespace SixLabors
         {
             if (target.Length < minSpan.Length)
             {
-                throw new ArgumentException($"Span-s must be at least of length {minSpan.Length}!", parameterName);
+                throw new ArgumentException($"Span-s must be at least of length {minSpan.Length}.", parameterName);
             }
         }
 

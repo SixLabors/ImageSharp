@@ -18,7 +18,7 @@ namespace ImageSharp
     /// <summary>
     /// Provides initialization code which allows extending the library.
     /// </summary>
-    public class Configuration
+    public sealed partial class Configuration
     {
         /// <summary>
         /// A lazily initialized configuration default instance.
@@ -60,12 +60,12 @@ namespace ImageSharp
         /// <summary>
         /// Initializes a new instance of the <see cref="Configuration" /> class.
         /// </summary>
-        /// <param name="providers">A collection of providers to configure</param>
-        public Configuration(params IConfigurationModule[] providers)
+        /// <param name="configurationModules">A collection of configuration modules to register</param>
+        public Configuration(params IConfigurationModule[] configurationModules)
         {
-            if (providers != null)
+            if (configurationModules != null)
             {
-                foreach (IConfigurationModule p in providers)
+                foreach (IConfigurationModule p in configurationModules)
                 {
                     p.Configure(this);
                 }
@@ -183,9 +183,9 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Removes all the registered mime type detectors.
+        /// Removes all the registered image format detectors.
         /// </summary>
-        public void ClearMimeTypeDetectors()
+        public void ClearImageFormatDetectors()
         {
             this.imageFormatDetectors.Clear();
         }

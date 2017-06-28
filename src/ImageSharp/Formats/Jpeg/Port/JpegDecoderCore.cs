@@ -7,7 +7,6 @@ namespace ImageSharp.Formats.Jpeg.Port
 {
     using System;
     using System.Collections.Generic;
-    using System.Diagnostics;
     using System.IO;
     using System.Runtime.CompilerServices;
 
@@ -18,7 +17,7 @@ namespace ImageSharp.Formats.Jpeg.Port
 
     /// <summary>
     /// Performs the jpeg decoding operation.
-    /// Ported from <see href="https://github.com/mozilla/pdf.js/blob/master/src/core/jpg.js"/>
+    /// Ported from <see href="https://github.com/mozilla/pdf.js/blob/master/src/core/jpg.js"/> with additional fixes to handle common encoding errors
     /// </summary>
     internal sealed class JpegDecoderCore : IDisposable
     {
@@ -37,7 +36,7 @@ namespace ImageSharp.Formats.Jpeg.Port
         /// </summary>
         private readonly byte[] temp = new byte[2 * 16 * 4];
 
-        private readonly byte[] uint16Buffer = new byte[2];
+        private readonly byte[] markerBuffer = new byte[2];
 
         private QuantizationTables quantizationTables;
 
@@ -57,7 +56,12 @@ namespace ImageSharp.Formats.Jpeg.Port
 
         private int imageHeight;
 
-        private int numComponents;
+        private int numberOfComponents;
+
+        /// <summary>
+        /// Whether the image has a EXIF header
+        /// </summary>
+        private bool isExif;
 
         /// <summary>
         /// Contains information about the JFIF marker
@@ -94,14 +98,13 @@ namespace ImageSharp.Formats.Jpeg.Port
         public Stream InputStream { get; private set; }
 
         /// <summary>
-        /// Finds the next file marker within the byte stream. Not used but I'm keeping it for now for testing
+        /// Finds the next file marker within the byte stream.
         /// </summary>
+        /// <param name="marker">The buffer to read file markers to</param>
         /// <param name="stream">The input stream</param>
         /// <returns>The <see cref="FileMarker"/></returns>
-        public static FileMarker FindNextFileMarkerNew(Stream stream)
+        public static FileMarker FindNextFileMarker(byte[] marker, Stream stream)
         {
-            byte[] marker = new byte[2];
-
             int value = stream.Read(marker, 0, 2);
 
             if (value == 0)
@@ -131,60 +134,7 @@ namespace ImageSharp.Formats.Jpeg.Port
         }
 
         /// <summary>
-        /// Finds the next file marker within the byte stream
-        /// </summary>
-        /// <param name="stream">The input stream</param>
-        /// <returns>The <see cref="FileMarker"/></returns>
-        public static FileMarker FindNextFileMarker(Stream stream)
-        {
-            byte[] buffer = new byte[2];
-            long maxPos = stream.Length - 1;
-            long currentPos = stream.Position;
-            long newPos = currentPos;
-
-            if (currentPos >= maxPos)
-            {
-                return new FileMarker(JpegConstants.Markers.EOI, (int)stream.Length, true);
-            }
-
-            int value = stream.Read(buffer, 0, 2);
-
-            if (value == 0)
-            {
-                return new FileMarker(JpegConstants.Markers.EOI, (int)stream.Length, true);
-            }
-
-            ushort currentMarker = (ushort)((buffer[0] << 8) | buffer[1]);
-            if (currentMarker >= JpegConstants.Markers.SOF0 && currentMarker <= JpegConstants.Markers.COM)
-            {
-                return new FileMarker(currentMarker, stream.Position - 2);
-            }
-
-            value = stream.Read(buffer, 0, 2);
-
-            if (value == 0)
-            {
-                return new FileMarker(JpegConstants.Markers.EOI, (int)stream.Length, true);
-            }
-
-            ushort newMarker = (ushort)((buffer[0] << 8) | buffer[1]);
-            while (!(newMarker >= JpegConstants.Markers.SOF0 && newMarker <= JpegConstants.Markers.COM))
-            {
-                if (++newPos >= maxPos)
-                {
-                    return new FileMarker(JpegConstants.Markers.EOI, (int)stream.Length, true);
-                }
-
-                stream.Read(buffer, 0, 2);
-                newMarker = (ushort)((buffer[0] << 8) | buffer[1]);
-            }
-
-            return new FileMarker(newMarker, newPos, true);
-        }
-
-        /// <summary>
-        /// Decodes the image from the specified <see cref="Stream"/>  and sets
-        /// the data to image.
+        /// Decodes the image from the specified <see cref="Stream"/>  and sets the data to image.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="stream">The stream, where the image should be.</param>
@@ -193,10 +143,13 @@ namespace ImageSharp.Formats.Jpeg.Port
             where TPixel : struct, IPixel<TPixel>
         {
             this.InputStream = stream;
-            this.ParseStream();
 
-            var image = new Image<TPixel>(this.imageWidth, this.imageHeight);
-            this.GetData(image);
+            var metadata = new ImageMetaData();
+            this.ParseStream(metadata, false);
+
+            var image = new Image<TPixel>(this.configuration, this.imageWidth, this.imageHeight, metadata);
+            this.FillPixelData(image);
+            this.AssignResolution(image);
             return image;
         }
 
@@ -223,8 +176,11 @@ namespace ImageSharp.Formats.Jpeg.Port
         /// <summary>
         /// Parses the input stream for file markers
         /// </summary>
-        private void ParseStream()
+        /// <param name="metaData">Contains the metadata for an image</param>
+        /// <param name="metadataOnly">Whether to decode metadata only.</param>
+        private void ParseStream(ImageMetaData metaData, bool metadataOnly)
         {
+            // TODO: metadata only logic
             // Check for the Start Of Image marker.
             var fileMarker = new FileMarker(this.ReadUint16(), 0);
             if (fileMarker.Marker != JpegConstants.Markers.SOI)
@@ -251,7 +207,12 @@ namespace ImageSharp.Formats.Jpeg.Port
                         break;
 
                     case JpegConstants.Markers.APP1:
+                        this.ProcessApp1Marker(remaining, metaData);
+                        break;
+
                     case JpegConstants.Markers.APP2:
+                        this.ProcessApp2Marker(remaining, metaData);
+                        break;
                     case JpegConstants.Markers.APP3:
                     case JpegConstants.Markers.APP4:
                     case JpegConstants.Markers.APP5:
@@ -298,36 +259,10 @@ namespace ImageSharp.Formats.Jpeg.Port
                     case JpegConstants.Markers.SOS:
                         this.ProcessStartOfScanMarker();
                         break;
-
-                    case JpegConstants.Markers.XFF:
-                        if ((byte)this.InputStream.ReadByte() != 0xFF)
-                        {
-                            // Avoid skipping a valid marker
-                            this.InputStream.Position -= 1;
-                        }
-
-                        break;
-
-                        //default:
-
-                        //    // TODO: Not convinced this is required
-                        //    // Skip back as it could be incorrect encoding -- last 0xFF byte of the previous
-                        //    // block was eaten by the encoder
-                        //    this.InputStream.Position -= 3;
-                        //    this.InputStream.Read(this.temp, 0, 2);
-                        //    if (this.temp[0] == 0xFF && this.temp[1] >= 0xC0 && this.temp[1] <= 0xFE)
-                        //    {
-                        //        // Rewind that last bytes we read
-                        //        this.InputStream.Position -= 2;
-                        //        break;
-                        //    }
-
-                        //    // throw new ImageFormatException($"Unknown Marker {fileMarker.Marker} at {fileMarker.Position}");
-                        //    break;
                 }
 
-                // Read on. TODO: Test this on damaged images.
-                fileMarker = FindNextFileMarkerNew(this.InputStream);
+                // Read on.
+                fileMarker = FindNextFileMarker(this.markerBuffer, this.InputStream);
             }
 
             this.imageWidth = this.frame.SamplesPerLine;
@@ -349,7 +284,7 @@ namespace ImageSharp.Formats.Jpeg.Port
                 this.components.Components[i] = component;
             }
 
-            this.numComponents = this.components.Components.Length;
+            this.numberOfComponents = this.components.Components.Length;
         }
 
         /// <summary>
@@ -357,24 +292,24 @@ namespace ImageSharp.Formats.Jpeg.Port
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="image">The image</param>
-        private void GetData<TPixel>(Image<TPixel> image)
+        private void FillPixelData<TPixel>(Image<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
-            if (this.numComponents > 4)
+            if (this.numberOfComponents > 4)
             {
-                throw new ImageFormatException($"Unsupported color mode. Max components 4; found {this.numComponents}");
+                throw new ImageFormatException($"Unsupported color mode. Max components 4; found {this.numberOfComponents}");
             }
 
-            this.pixelArea = new JpegPixelArea(image.Width, image.Height, this.numComponents);
+            this.pixelArea = new JpegPixelArea(image.Width, image.Height, this.numberOfComponents);
             this.pixelArea.LinearizeBlockData(this.components, image.Width, image.Height);
 
-            if (this.numComponents == 1)
+            if (this.numberOfComponents == 1)
             {
                 this.FillGrayScaleImage(image);
                 return;
             }
 
-            if (this.numComponents == 3)
+            if (this.numberOfComponents == 3)
             {
                 if (this.adobe.Equals(default(Adobe)) || this.adobe.ColorTransform == JpegConstants.Markers.Adobe.ColorTransformYCbCr)
                 {
@@ -386,7 +321,7 @@ namespace ImageSharp.Formats.Jpeg.Port
                 }
             }
 
-            if (this.numComponents == 4)
+            if (this.numberOfComponents == 4)
             {
                 if (this.adobe.ColorTransform == JpegConstants.Markers.Adobe.ColorTransformYcck)
                 {
@@ -396,6 +331,34 @@ namespace ImageSharp.Formats.Jpeg.Port
                 {
                     this.FillCmykImage(image);
                 }
+            }
+        }
+
+        /// <summary>
+        /// Assigns the horizontal and vertical resolution to the image if it has a JFIF header or EXIF metadata.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="image">The image to assign the resolution to.</param>
+        private void AssignResolution<TPixel>(Image<TPixel> image)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            if (this.isExif)
+            {
+                ExifValue horizontal = image.MetaData.ExifProfile.GetValue(ExifTag.XResolution);
+                ExifValue vertical = image.MetaData.ExifProfile.GetValue(ExifTag.YResolution);
+                double horizontalValue = horizontal != null ? ((Rational)horizontal.Value).ToDouble() : 0;
+                double verticalValue = vertical != null ? ((Rational)vertical.Value).ToDouble() : 0;
+
+                if (horizontalValue > 0 && verticalValue > 0)
+                {
+                    image.MetaData.HorizontalResolution = horizontalValue;
+                    image.MetaData.VerticalResolution = verticalValue;
+                }
+            }
+            else if (this.jFif.XDensity > 0 && this.jFif.YDensity > 0)
+            {
+                image.MetaData.HorizontalResolution = this.jFif.XDensity;
+                image.MetaData.VerticalResolution = this.jFif.YDensity;
             }
         }
 
@@ -436,6 +399,86 @@ namespace ImageSharp.Formats.Jpeg.Port
             // TODO: thumbnail
             if (remaining > 0)
             {
+                this.InputStream.Skip(remaining);
+            }
+        }
+
+        /// <summary>
+        /// Processes the App1 marker retrieving any stored metadata
+        /// </summary>
+        /// <param name="remaining">The remaining bytes in the segment block.</param>
+        /// <param name="metadata">The image.</param>
+        private void ProcessApp1Marker(int remaining, ImageMetaData metadata)
+        {
+            if (remaining < 6 || this.options.IgnoreMetadata)
+            {
+                // Skip the application header length
+                this.InputStream.Skip(remaining);
+                return;
+            }
+
+            byte[] profile = new byte[remaining];
+            this.InputStream.Read(profile, 0, remaining);
+
+            if (profile[0] == JpegConstants.Markers.Exif.E &&
+                profile[1] == JpegConstants.Markers.Exif.X &&
+                profile[2] == JpegConstants.Markers.Exif.I &&
+                profile[3] == JpegConstants.Markers.Exif.F &&
+                profile[4] == JpegConstants.Markers.Exif.Null &&
+                profile[5] == JpegConstants.Markers.Exif.Null)
+            {
+                this.isExif = true;
+                metadata.ExifProfile = new ExifProfile(profile);
+            }
+        }
+
+        /// <summary>
+        /// Processes the App2 marker retrieving any stored ICC profile information
+        /// </summary>
+        /// <param name="remaining">The remaining bytes in the segment block.</param>
+        /// <param name="metadata">The image.</param>
+        private void ProcessApp2Marker(int remaining, ImageMetaData metadata)
+        {
+            // Length is 14 though we only need to check 12.
+            const int Icclength = 14;
+            if (remaining < Icclength || this.options.IgnoreMetadata)
+            {
+                this.InputStream.Skip(remaining);
+                return;
+            }
+
+            byte[] identifier = new byte[Icclength];
+            this.InputStream.Read(identifier, 0, Icclength);
+            remaining -= Icclength; // We have read it by this point
+
+            if (identifier[0] == JpegConstants.Markers.ICC.I &&
+                identifier[1] == JpegConstants.Markers.ICC.C &&
+                identifier[2] == JpegConstants.Markers.ICC.C &&
+                identifier[3] == JpegConstants.Markers.ICC.UnderScore &&
+                identifier[4] == JpegConstants.Markers.ICC.P &&
+                identifier[5] == JpegConstants.Markers.ICC.R &&
+                identifier[6] == JpegConstants.Markers.ICC.O &&
+                identifier[7] == JpegConstants.Markers.ICC.F &&
+                identifier[8] == JpegConstants.Markers.ICC.I &&
+                identifier[9] == JpegConstants.Markers.ICC.L &&
+                identifier[10] == JpegConstants.Markers.ICC.E &&
+                identifier[11] == JpegConstants.Markers.ICC.Null)
+            {
+                byte[] profile = new byte[remaining];
+                this.InputStream.Read(profile, 0, remaining);
+
+                if (metadata.IccProfile == null)
+                {
+                    metadata.IccProfile = new IccProfile(profile);
+                }
+                else
+                {
+                    metadata.IccProfile.Extend(profile);
+                }
+            }
+            else
+            {
+                // Not an ICC profile we can handle. Skip the remaining bytes so we can carry on and ignore this.
                 this.InputStream.Skip(remaining);
             }
         }
@@ -951,8 +994,8 @@ namespace ImageSharp.Formats.Jpeg.Port
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private ushort ReadUint16()
         {
-            this.InputStream.Read(this.uint16Buffer, 0, 2);
-            return (ushort)((this.uint16Buffer[0] << 8) | this.uint16Buffer[1]);
+            this.InputStream.Read(this.markerBuffer, 0, 2);
+            return (ushort)((this.markerBuffer[0] << 8) | this.markerBuffer[1]);
         }
     }
 }

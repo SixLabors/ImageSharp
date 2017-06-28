@@ -30,7 +30,7 @@
         public static void QuantizeAndInverse(QuantizationTables quantizationTables, ref FrameComponent component, int blockBufferOffset, Buffer<short> computationBuffer)
         {
             Span<short> qt = quantizationTables.Tables.GetRowSpan(component.QuantizationIdentifier);
-            Buffer<short> blockData = component.BlockData;
+            Span<short> blockData = component.BlockData.Slice(blockBufferOffset);
             int v0, v1, v2, v3, v4, v5, v6, v7;
             int p0, p1, p2, p3, p4, p5, p6, p7;
             int t;
@@ -39,14 +39,14 @@
             for (int row = 0; row < 64; row += 8)
             {
                 // gather block data
-                p0 = blockData[blockBufferOffset + row];
-                p1 = blockData[blockBufferOffset + row + 1];
-                p2 = blockData[blockBufferOffset + row + 2];
-                p3 = blockData[blockBufferOffset + row + 3];
-                p4 = blockData[blockBufferOffset + row + 4];
-                p5 = blockData[blockBufferOffset + row + 5];
-                p6 = blockData[blockBufferOffset + row + 6];
-                p7 = blockData[blockBufferOffset + row + 7];
+                p0 = blockData[row];
+                p1 = blockData[row + 1];
+                p2 = blockData[row + 2];
+                p3 = blockData[row + 3];
+                p4 = blockData[row + 4];
+                p5 = blockData[row + 5];
+                p6 = blockData[row + 6];
+                p7 = blockData[row + 7];
 
                 // dequant p0
                 p0 *= qt[row];
@@ -141,14 +141,14 @@
                     t = (t < -2040) ? 0 : (t >= 2024) ? 255 : (t + 2056) >> 4;
                     short st = (short)t;
 
-                    blockData[blockBufferOffset + col] = st;
-                    blockData[blockBufferOffset + col + 8] = st;
-                    blockData[blockBufferOffset + col + 16] = st;
-                    blockData[blockBufferOffset + col + 24] = st;
-                    blockData[blockBufferOffset + col + 32] = st;
-                    blockData[blockBufferOffset + col + 40] = st;
-                    blockData[blockBufferOffset + col + 48] = st;
-                    blockData[blockBufferOffset + col + 56] = st;
+                    blockData[col] = st;
+                    blockData[col + 8] = st;
+                    blockData[col + 16] = st;
+                    blockData[col + 24] = st;
+                    blockData[col + 32] = st;
+                    blockData[col + 40] = st;
+                    blockData[col + 48] = st;
+                    blockData[col + 56] = st;
                     continue;
                 }
 
@@ -208,14 +208,14 @@
                 p7 = (p7 < 16) ? 0 : (p7 >= 4080) ? 255 : p7 >> 4;
 
                 // store block data
-                blockData[blockBufferOffset + col] = (short)p0;
-                blockData[blockBufferOffset + col + 8] = (short)p1;
-                blockData[blockBufferOffset + col + 16] = (short)p2;
-                blockData[blockBufferOffset + col + 24] = (short)p3;
-                blockData[blockBufferOffset + col + 32] = (short)p4;
-                blockData[blockBufferOffset + col + 40] = (short)p5;
-                blockData[blockBufferOffset + col + 48] = (short)p6;
-                blockData[blockBufferOffset + col + 56] = (short)p7;
+                blockData[col] = (short)p0;
+                blockData[col + 8] = (short)p1;
+                blockData[col + 16] = (short)p2;
+                blockData[col + 24] = (short)p3;
+                blockData[col + 32] = (short)p4;
+                blockData[col + 40] = (short)p5;
+                blockData[col + 48] = (short)p6;
+                blockData[col + 56] = (short)p7;
             }
         }
     }

@@ -39,6 +39,8 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
 
         private bool endOfStreamReached;
 
+        private bool unexpectedMarkerReached;
+
         /// <summary>
         /// Decodes the spectral scan
         /// </summary>
@@ -74,6 +76,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
             this.specEnd = spectralEnd;
             this.successiveState = successive;
             this.endOfStreamReached = false;
+            this.unexpectedMarkerReached = false;
 
             bool progressive = frame.Progressive;
             int mcusPerLine = frame.McusPerLine;
@@ -202,7 +205,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
                 ref FrameComponent component = ref components[this.compIndex];
                 for (int n = 0; n < mcuToRead; n++)
                 {
-                    if (this.endOfStreamReached)
+                    if (this.endOfStreamReached || this.unexpectedMarkerReached)
                     {
                         continue;
                     }
@@ -224,7 +227,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
                         {
                             for (int k = 0; k < h; k++)
                             {
-                                if (this.endOfStreamReached)
+                                if (this.endOfStreamReached || this.unexpectedMarkerReached)
                                 {
                                     continue;
                                 }
@@ -254,7 +257,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
                 ref FrameComponent component = ref components[this.compIndex];
                 for (int n = 0; n < mcuToRead; n++)
                 {
-                    if (this.endOfStreamReached)
+                    if (this.endOfStreamReached || this.unexpectedMarkerReached)
                     {
                         continue;
                     }
@@ -276,7 +279,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
                         {
                             for (int k = 0; k < h; k++)
                             {
-                                if (this.endOfStreamReached)
+                                if (this.endOfStreamReached || this.unexpectedMarkerReached)
                                 {
                                     continue;
                                 }
@@ -305,7 +308,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
                 ref FrameComponent component = ref components[this.compIndex];
                 for (int n = 0; n < mcuToRead; n++)
                 {
-                    if (this.endOfStreamReached)
+                    if (this.endOfStreamReached || this.unexpectedMarkerReached)
                     {
                         continue;
                     }
@@ -327,7 +330,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
                         {
                             for (int k = 0; k < h; k++)
                             {
-                                if (this.endOfStreamReached)
+                                if (this.endOfStreamReached || this.unexpectedMarkerReached)
                                 {
                                     continue;
                                 }
@@ -357,7 +360,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
                 ref FrameComponent component = ref components[this.compIndex];
                 for (int n = 0; n < mcuToRead; n++)
                 {
-                    if (this.endOfStreamReached)
+                    if (this.endOfStreamReached || this.unexpectedMarkerReached)
                     {
                         continue;
                     }
@@ -379,7 +382,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
                         {
                             for (int k = 0; k < h; k++)
                             {
-                                if (this.endOfStreamReached)
+                                if (this.endOfStreamReached || this.unexpectedMarkerReached)
                                 {
                                     continue;
                                 }
@@ -409,7 +412,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
                 ref FrameComponent component = ref components[this.compIndex];
                 for (int n = 0; n < mcuToRead; n++)
                 {
-                    if (this.endOfStreamReached)
+                    if (this.endOfStreamReached || this.unexpectedMarkerReached)
                     {
                         continue;
                     }
@@ -431,7 +434,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
                         {
                             for (int k = 0; k < h; k++)
                             {
-                                if (this.endOfStreamReached)
+                                if (this.endOfStreamReached || this.unexpectedMarkerReached)
                                 {
                                     continue;
                                 }
@@ -568,7 +571,12 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
                 int nextByte = stream.ReadByte();
                 if (nextByte != 0)
                 {
-                    throw new ImageFormatException($"Unexpected marker {(this.bitsData << 8) | nextByte}");
+#if DEBUG
+                    Debug.WriteLine($"DecodeScan - Unexpected marker {(this.bitsData << 8) | nextByte:X} at {stream.Position}");
+#endif
+                    // We've encountered an unexpected marker. Reverse the stream and exit.
+                    this.unexpectedMarkerReached = true;
+                    stream.Position -= 2;
                 }
 
                 // Unstuff 0
@@ -586,7 +594,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
             while (true)
             {
                 int index = this.ReadBit(stream);
-                if (this.endOfStreamReached)
+                if (this.endOfStreamReached || this.unexpectedMarkerReached)
                 {
                     return -1;
                 }
@@ -609,7 +617,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
             while (length > 0)
             {
                 int bit = this.ReadBit(stream);
-                if (this.endOfStreamReached)
+                if (this.endOfStreamReached || this.unexpectedMarkerReached)
                 {
                     return -1;
                 }
@@ -642,7 +650,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
         private void DecodeBaseline(ref FrameComponent component, int offset, HuffmanTables dcHuffmanTables, HuffmanTables acHuffmanTables, Stream stream)
         {
             int t = this.DecodeHuffman(dcHuffmanTables[component.DCHuffmanTableId], stream);
-            if (this.endOfStreamReached)
+            if (this.endOfStreamReached || this.unexpectedMarkerReached)
             {
                 return;
             }
@@ -654,7 +662,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
             while (k < 64)
             {
                 int rs = this.DecodeHuffman(acHuffmanTables[component.ACHuffmanTableId], stream);
-                if (this.endOfStreamReached)
+                if (this.endOfStreamReached || this.unexpectedMarkerReached)
                 {
                     return;
                 }
@@ -685,7 +693,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
         private void DecodeDCFirst(ref FrameComponent component, int offset, HuffmanTables dcHuffmanTables, Stream stream)
         {
             int t = this.DecodeHuffman(dcHuffmanTables[component.DCHuffmanTableId], stream);
-            if (this.endOfStreamReached)
+            if (this.endOfStreamReached || this.unexpectedMarkerReached)
             {
                 return;
             }
@@ -698,7 +706,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
         private void DecodeDCSuccessive(ref FrameComponent component, int offset, Stream stream)
         {
             int bit = this.ReadBit(stream);
-            if (this.endOfStreamReached)
+            if (this.endOfStreamReached || this.unexpectedMarkerReached)
             {
                 return;
             }
@@ -720,7 +728,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
             while (k <= e)
             {
                 short rs = this.DecodeHuffman(acHuffmanTables[component.ACHuffmanTableId], stream);
-                if (this.endOfStreamReached)
+                if (this.endOfStreamReached || this.unexpectedMarkerReached)
                 {
                     return;
                 }
@@ -760,7 +768,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
                 {
                     case 0: // Initial state
                         short rs = this.DecodeHuffman(acHuffmanTables[component.ACHuffmanTableId], stream);
-                        if (this.endOfStreamReached)
+                        if (this.endOfStreamReached || this.unexpectedMarkerReached)
                         {
                             return;
                         }
@@ -797,7 +805,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
                         if (component.BlockData[offset + z] != 0)
                         {
                             int bit = this.ReadBit(stream);
-                            if (this.endOfStreamReached)
+                            if (this.endOfStreamReached || this.unexpectedMarkerReached)
                             {
                                 return;
                             }
@@ -818,7 +826,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
                         if (component.BlockData[offset + z] != 0)
                         {
                             int bit = this.ReadBit(stream);
-                            if (this.endOfStreamReached)
+                            if (this.endOfStreamReached || this.unexpectedMarkerReached)
                             {
                                 return;
                             }
@@ -836,7 +844,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
                         if (component.BlockData[offset + z] != 0)
                         {
                             int bit = this.ReadBit(stream);
-                            if (this.endOfStreamReached)
+                            if (this.endOfStreamReached || this.unexpectedMarkerReached)
                             {
                                 return;
                             }

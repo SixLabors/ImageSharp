@@ -31,6 +31,7 @@
         {
             Span<short> qt = quantizationTables.Tables.GetRowSpan(component.QuantizationIdentifier);
             Span<short> blockData = component.BlockData.Slice(blockBufferOffset);
+            Span<short> computationBufferSpan = computationBuffer;
             int v0, v1, v2, v3, v4, v5, v6, v7;
             int p0, p1, p2, p3, p4, p5, p6, p7;
             int t;
@@ -56,14 +57,14 @@
                 {
                     t = ((DctSqrt2 * p0) + 512) >> 10;
                     short st = (short)t;
-                    computationBuffer[row] = st;
-                    computationBuffer[row + 1] = st;
-                    computationBuffer[row + 2] = st;
-                    computationBuffer[row + 3] = st;
-                    computationBuffer[row + 4] = st;
-                    computationBuffer[row + 5] = st;
-                    computationBuffer[row + 6] = st;
-                    computationBuffer[row + 7] = st;
+                    computationBufferSpan[row] = st;
+                    computationBufferSpan[row + 1] = st;
+                    computationBufferSpan[row + 2] = st;
+                    computationBufferSpan[row + 3] = st;
+                    computationBufferSpan[row + 4] = st;
+                    computationBufferSpan[row + 5] = st;
+                    computationBufferSpan[row + 6] = st;
+                    computationBufferSpan[row + 7] = st;
                     continue;
                 }
 
@@ -110,27 +111,27 @@
                 v6 = t;
 
                 // stage 1
-                computationBuffer[row] = (short)(v0 + v7);
-                computationBuffer[row + 7] = (short)(v0 - v7);
-                computationBuffer[row + 1] = (short)(v1 + v6);
-                computationBuffer[row + 6] = (short)(v1 - v6);
-                computationBuffer[row + 2] = (short)(v2 + v5);
-                computationBuffer[row + 5] = (short)(v2 - v5);
-                computationBuffer[row + 3] = (short)(v3 + v4);
-                computationBuffer[row + 4] = (short)(v3 - v4);
+                computationBufferSpan[row] = (short)(v0 + v7);
+                computationBufferSpan[row + 7] = (short)(v0 - v7);
+                computationBufferSpan[row + 1] = (short)(v1 + v6);
+                computationBufferSpan[row + 6] = (short)(v1 - v6);
+                computationBufferSpan[row + 2] = (short)(v2 + v5);
+                computationBufferSpan[row + 5] = (short)(v2 - v5);
+                computationBufferSpan[row + 3] = (short)(v3 + v4);
+                computationBufferSpan[row + 4] = (short)(v3 - v4);
             }
 
             // inverse DCT on columns
             for (int col = 0; col < 8; ++col)
             {
-                p0 = computationBuffer[col];
-                p1 = computationBuffer[col + 8];
-                p2 = computationBuffer[col + 16];
-                p3 = computationBuffer[col + 24];
-                p4 = computationBuffer[col + 32];
-                p5 = computationBuffer[col + 40];
-                p6 = computationBuffer[col + 48];
-                p7 = computationBuffer[col + 56];
+                p0 = computationBufferSpan[col];
+                p1 = computationBufferSpan[col + 8];
+                p2 = computationBufferSpan[col + 16];
+                p3 = computationBufferSpan[col + 24];
+                p4 = computationBufferSpan[col + 32];
+                p5 = computationBufferSpan[col + 40];
+                p6 = computationBufferSpan[col + 48];
+                p7 = computationBufferSpan[col + 56];
 
                 // check for all-zero AC coefficients
                 if ((p1 | p2 | p3 | p4 | p5 | p6 | p7) == 0)

@@ -5,7 +5,6 @@
 
 namespace ImageSharp
 {
-    using System.Buffers;
     using System.IO;
     using System.Linq;
     using Formats;

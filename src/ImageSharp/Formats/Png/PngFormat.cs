@@ -5,11 +5,7 @@
 
 namespace ImageSharp.Formats
 {
-    using System;
     using System.Collections.Generic;
-    using System.IO;
-    using System.Text;
-    using ImageSharp.PixelFormats;
 
     /// <summary>
     /// Registers the image encoders, decoders and mime type detectors for the jpeg format.

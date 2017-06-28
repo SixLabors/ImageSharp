@@ -5,10 +5,6 @@
 
 namespace ImageSharp
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Text;
-
     /// <summary>
     /// Represents an interface that can register image encoders, decoders and image format detectors.
     /// </summary>

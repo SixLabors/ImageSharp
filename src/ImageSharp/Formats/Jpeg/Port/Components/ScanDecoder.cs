@@ -17,6 +17,8 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
     /// </summary>
     internal struct ScanDecoder
     {
+        private byte[] markerBuffer;
+
         private int bitsData;
 
         private int bitsCount;
@@ -66,6 +68,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
             int successivePrev,
             int successive)
         {
+            this.markerBuffer = new byte[2];
             this.compIndex = componentIndex;
             this.specStart = spectralStart;
             this.specEnd = spectralEnd;
@@ -131,7 +134,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
 
                 // Find marker
                 this.bitsCount = 0;
-                fileMarker = JpegDecoderCore.FindNextFileMarkerNew(stream);
+                fileMarker = JpegDecoderCore.FindNextFileMarker(this.markerBuffer, stream);
 
                 // Some bad images seem to pad Scan blocks with e.g. zero bytes, skip past
                 // those to attempt to find a valid marker (fixes issue4090.pdf) in original code.
@@ -159,7 +162,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
                 }
             }
 
-            fileMarker = JpegDecoderCore.FindNextFileMarkerNew(stream);
+            fileMarker = JpegDecoderCore.FindNextFileMarker(this.markerBuffer, stream);
 
             // Some images include more Scan blocks than expected, skip past those and
             // attempt to find the next valid marker (fixes issue8182.pdf) in original code.

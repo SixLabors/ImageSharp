@@ -5,10 +5,13 @@
 
 namespace ImageSharp.Formats.Jpeg.Port.Components
 {
+    using System;
+
     /// <summary>
     /// Provides information about the JFIF marker segment
+    /// TODO: Thumbnail?
     /// </summary>
-    internal struct JFif
+    internal struct JFif : IEquatable<JFif>
     {
         /// <summary>
         /// The major version
@@ -38,6 +41,39 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
         /// </summary>
         public short YDensity;
 
-        // TODO: Thumbnail?
+        /// <inheritdoc/>
+        public bool Equals(JFif other)
+        {
+            return this.MajorVersion == other.MajorVersion
+                && this.MinorVersion == other.MinorVersion
+                && this.DensityUnits == other.DensityUnits
+                && this.XDensity == other.XDensity
+                && this.YDensity == other.YDensity;
+        }
+
+        /// <inheritdoc/>
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj))
+            {
+                return false;
+            }
+
+            return obj is JFif && this.Equals((JFif)obj);
+        }
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hashCode = this.MajorVersion.GetHashCode();
+                hashCode = (hashCode * 397) ^ this.MinorVersion.GetHashCode();
+                hashCode = (hashCode * 397) ^ this.DensityUnits.GetHashCode();
+                hashCode = (hashCode * 397) ^ this.XDensity.GetHashCode();
+                hashCode = (hashCode * 397) ^ this.YDensity.GetHashCode();
+                return hashCode;
+            }
+        }
     }
 }

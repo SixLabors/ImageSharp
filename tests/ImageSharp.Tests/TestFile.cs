@@ -27,6 +27,8 @@ namespace ImageSharp.Tests
         /// </summary>
         private static readonly string FormatsDirectory = GetFormatsDirectory();
 
+        private static readonly object Locker = new object();
+
         /// <summary>
         /// The image.
         /// </summary>
@@ -142,7 +144,10 @@ namespace ImageSharp.Tests
 
         private Image<Rgba32> GetImage()
         {
-            return this.image ?? (this.image = Image.Load<Rgba32>(this.Bytes));
+            lock (Locker)
+            {
+                return this.image ?? (this.image = Image.Load<Rgba32>(this.Bytes));
+            }
         }
 
         /// <summary>
@@ -155,16 +160,17 @@ namespace ImageSharp.Tests
         {
             var directories = new List<string> {
                  "TestImages/Formats/", // Here for code coverage tests.
-                  "tests/ImageSharp.Tests/TestImages/Formats/", // from travis/build script
-                  "../../../../../ImageSharp.Tests/TestImages/Formats/", // from Sandbox46
+                  "tests/ImageSharp.Tests/TestImages/Formats/", // From travis/build script
+                  "../../../../../ImageSharp.Tests/TestImages/Formats/", // From Sandbox46
                   "../../../../TestImages/Formats/",
                   "../../../TestImages/Formats/"
             };
 
-            directories = directories.SelectMany(x => new[]
-                                     {
-                                         Path.GetFullPath(x)
-                                     }).ToList();
+            directories = directories
+                .SelectMany(x => new[]
+                {
+                    Path.GetFullPath(x)
+                }).ToList();
 
             AddFormatsDirectoryFromTestAssebmlyPath(directories);
 

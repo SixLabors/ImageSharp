@@ -6,10 +6,6 @@
 namespace ImageSharp.Formats
 {
     using System;
-    using System.Collections.Generic;
-    using System.IO;
-    using System.Text;
-    using ImageSharp.PixelFormats;
 
     /// <summary>
     /// Detects png file headers
@@ -32,6 +28,7 @@ namespace ImageSharp.Formats
 
         private bool IsSupportedFileFormat(ReadOnlySpan<byte> header)
         {
+            // TODO: This should be in constants
             return header.Length >= this.HeaderSize &&
                    header[0] == 0x89 &&
                    header[1] == 0x50 && // P

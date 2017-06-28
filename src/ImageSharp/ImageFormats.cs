@@ -5,11 +5,7 @@
 
 namespace ImageSharp
 {
-    using System;
-    using System.Collections.Generic;
-    using System.IO;
     using ImageSharp.Formats;
-    using ImageSharp.PixelFormats;
 
     /// <summary>
     /// The static collection of all the default image formats

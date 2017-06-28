@@ -1,4 +1,4 @@
-﻿// <copyright file="PngMimeTypeDetector.cs" company="James Jackson-South">
+﻿// <copyright file="JpegImageFormatDetector.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -6,10 +6,6 @@
 namespace ImageSharp.Formats
 {
     using System;
-    using System.Collections.Generic;
-    using System.IO;
-    using System.Text;
-    using ImageSharp.PixelFormats;
 
     /// <summary>
     /// Detects Jpeg file headers
@@ -43,6 +39,7 @@ namespace ImageSharp.Formats
         /// <returns>The <see cref="bool"/></returns>
         private bool IsJfif(ReadOnlySpan<byte> header)
         {
+            // TODO: This should be in constants
             bool isJfif =
                 header[6] == 0x4A && // J
                 header[7] == 0x46 && // F
@@ -60,6 +57,7 @@ namespace ImageSharp.Formats
         /// <returns>The <see cref="bool"/></returns>
         private bool IsExif(ReadOnlySpan<byte> header)
         {
+            // TODO: This should be in constants
             bool isExif =
                 header[6] == 0x45 && // E
                 header[7] == 0x78 && // X
@@ -78,6 +76,7 @@ namespace ImageSharp.Formats
         /// <returns>The <see cref="bool"/></returns>
         private bool IsJpeg(ReadOnlySpan<byte> header)
         {
+            // TODO: This should be in constants
             bool isJpg =
                 header[0] == 0xFF && // 255
                 header[1] == 0xD8; // 216

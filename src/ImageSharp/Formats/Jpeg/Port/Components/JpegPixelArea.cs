@@ -72,17 +72,19 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
             float scaleX = this.imageWidth / (float)width;
             float scaleY = this.imageHeight / (float)height;
             this.componentData = new Buffer<byte>(width * height * numberOfComponents);
+            Span<byte> componentDataSpan = this.componentData;
             const uint Mask3Lsb = 0xFFFFFFF8; // Used to clear the 3 LSBs
 
             using (var xScaleBlockOffset = new Buffer<int>(width))
             {
+                Span<int> xScaleBlockOffsetSpan = xScaleBlockOffset;
                 for (int i = 0; i < numberOfComponents; i++)
                 {
                     ref Component component = ref components.Components[i];
                     float componentScaleX = component.ScaleX * scaleX;
                     float componentScaleY = component.ScaleY * scaleY;
                     int offset = i;
-                    Buffer<short> output = component.Output;
+                    Span<short> output = component.Output;
                     int blocksPerScanline = (component.BlocksPerLine + 1) << 3;
 
                     // Precalculate the xScaleBlockOffset
@@ -90,7 +92,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
                     for (int x = 0; x < width; x++)
                     {
                         j = 0 | (int)(x * componentScaleX);
-                        xScaleBlockOffset[x] = (int)((j & Mask3Lsb) << 3) | (j & 7);
+                        xScaleBlockOffsetSpan[x] = (int)((j & Mask3Lsb) << 3) | (j & 7);
                     }
 
                     // Linearize the blocks of the component
@@ -100,7 +102,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
                         int index = blocksPerScanline * (int)(j & Mask3Lsb) | ((j & 7) << 3);
                         for (int x = 0; x < width; x++)
                         {
-                            this.componentData[offset] = (byte)output[index + xScaleBlockOffset[x]];
+                            componentDataSpan[offset] = (byte)output[index + xScaleBlockOffsetSpan[x]];
                             offset += numberOfComponents;
                         }
                     }

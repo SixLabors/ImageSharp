@@ -723,6 +723,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
                 return;
             }
 
+            var componentBlockDataSpan = component.BlockData.Span;
             int k = this.specStart;
             int e = this.specEnd;
             while (k <= e)
@@ -750,7 +751,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
 
                 k += r;
                 byte z = QuantizationTables.DctZigZag[k];
-                component.BlockData[offset + z] = (short)(this.ReceiveAndExtend(s, stream) * (1 << this.successiveState));
+                componentBlockDataSpan[offset + z] = (short)(this.ReceiveAndExtend(s, stream) * (1 << this.successiveState));
                 k++;
             }
         }
@@ -761,6 +762,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
             int k = this.specStart;
             int e = this.specEnd;
             int r = 0;
+            var componentBlockDataSpan = component.BlockData.Span;
             while (k <= e)
             {
                 byte z = QuantizationTables.DctZigZag[k];
@@ -802,7 +804,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
                         continue;
                     case 1: // Skipping r zero items
                     case 2:
-                        if (component.BlockData[offset + z] != 0)
+                        if (componentBlockDataSpan[offset + z] != 0)
                         {
                             int bit = this.ReadBit(stream);
                             if (this.endOfStreamReached || this.unexpectedMarkerReached)
@@ -810,7 +812,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
                                 return;
                             }
 
-                            component.BlockData[offset + z] += (short)(bit << this.successiveState);
+                            componentBlockDataSpan[offset + z] += (short)(bit << this.successiveState);
                         }
                         else
                         {
@@ -823,7 +825,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
 
                         break;
                     case 3: // Set value for a zero item
-                        if (component.BlockData[offset + z] != 0)
+                        if (componentBlockDataSpan[offset + z] != 0)
                         {
                             int bit = this.ReadBit(stream);
                             if (this.endOfStreamReached || this.unexpectedMarkerReached)
@@ -831,17 +833,17 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
                                 return;
                             }
 
-                            component.BlockData[offset + z] += (short)(bit << this.successiveState);
+                            componentBlockDataSpan[offset + z] += (short)(bit << this.successiveState);
                         }
                         else
                         {
-                            component.BlockData[offset + z] = (short)(this.successiveACNextValue << this.successiveState);
+                            componentBlockDataSpan[offset + z] = (short)(this.successiveACNextValue << this.successiveState);
                             this.successiveACState = 0;
                         }
 
                         break;
                     case 4: // Eob
-                        if (component.BlockData[offset + z] != 0)
+                        if (componentBlockDataSpan[offset + z] != 0)
                         {
                             int bit = this.ReadBit(stream);
                             if (this.endOfStreamReached || this.unexpectedMarkerReached)
@@ -849,7 +851,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
                                 return;
                             }
 
-                            component.BlockData[offset + z] += (short)(bit << this.successiveState);
+                            componentBlockDataSpan[offset + z] += (short)(bit << this.successiveState);
                         }
 
                         break;

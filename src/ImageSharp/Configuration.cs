@@ -8,7 +8,6 @@ namespace ImageSharp
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
-    using System.Collections.ObjectModel;
     using System.Linq;
     using System.Threading.Tasks;
 
@@ -18,17 +17,12 @@ namespace ImageSharp
     /// <summary>
     /// Provides initialization code which allows extending the library.
     /// </summary>
-    public sealed partial class Configuration
+    public sealed class Configuration
     {
         /// <summary>
         /// A lazily initialized configuration default instance.
         /// </summary>
-        private static readonly Lazy<Configuration> Lazy = new Lazy<Configuration>(() => CreateDefaultInstance());
-
-        /// <summary>
-        /// An object that can be used to synchronize access to the <see cref="Configuration"/>.
-        /// </summary>
-        private readonly object syncRoot = new object();
+        private static readonly Lazy<Configuration> Lazy = new Lazy<Configuration>(CreateDefaultInstance);
 
         /// <summary>
         /// The list of supported <see cref="IImageEncoder"/> keyed to mime types.

@@ -8,7 +8,6 @@ namespace ImageSharp
     using System;
     using System.Collections.Generic;
     using System.IO;
-    using System.Linq;
     using System.Text;
     using Formats;
 
@@ -190,7 +189,6 @@ namespace ImageSharp
         where TPixel : struct, IPixel<TPixel>
         {
             config = config ?? Configuration.Default;
-            format = null;
             (Image<TPixel> img, IImageFormat format) data = WithSeekableStream(stream, s => Decode<TPixel>(s, config));
 
             format = data.format;

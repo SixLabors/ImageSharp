@@ -720,7 +720,7 @@ namespace ImageSharp.Formats.Jpeg.Port
             int successiveApproximation = this.temp[2];
             var scanDecoder = default(ScanDecoder);
 
-            long position = scanDecoder.DecodeScan(
+            scanDecoder.DecodeScan(
                  this.frame,
                  this.InputStream,
                  this.dcHuffmanTables,
@@ -733,20 +733,6 @@ namespace ImageSharp.Formats.Jpeg.Port
                  spectralEnd,
                  successiveApproximation >> 4,
                  successiveApproximation & 15);
-
-            this.InputStream.Position += position;
-
-            Debug.WriteLine("spectralStart= " + spectralStart);
-            Debug.WriteLine("spectralEnd= " + spectralEnd);
-            Debug.WriteLine("successiveApproximation= " + successiveApproximation);
-            Debug.WriteLine("Components after");
-            //for (int i = 0; i < 3; i++)
-            //{
-            //    for (int j = 0; j < 10; j++)
-            //    {
-            //        Debug.WriteLine("component [" + i + "] : value [" + j + "] =" + this.frame.Components[i].BlockData[j] + "]");
-            //    }
-            //}
         }
 
         /// <summary>

@@ -162,6 +162,7 @@ namespace ImageSharp.Tests
                  "TestImages/Formats/", // Here for code coverage tests.
                   "tests/ImageSharp.Tests/TestImages/Formats/", // From travis/build script
                   "../../../../../ImageSharp.Tests/TestImages/Formats/", // From Sandbox46
+                  "../ImageSharp.Tests/TestImages/Formats/", // From Sandbox46 Program.cs
                   "../../../../TestImages/Formats/",
                   "../../../TestImages/Formats/"
             };

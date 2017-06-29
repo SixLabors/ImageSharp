@@ -160,12 +160,16 @@ namespace ImageSharp.Formats.Jpeg.Port
             this.frame?.Dispose();
             this.components?.Dispose();
             this.quantizationTables?.Dispose();
+            this.dcHuffmanTables?.Dispose();
+            this.acHuffmanTables?.Dispose();
             this.pixelArea.Dispose();
 
             // Set large fields to null.
             this.frame = null;
             this.components = null;
             this.quantizationTables = null;
+            this.dcHuffmanTables = null;
+            this.acHuffmanTables = null;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -696,7 +700,7 @@ namespace ImageSharp.Formats.Jpeg.Port
                             this.InputStream.Read(huffmanValues.Array, 0, codeLengthSum);
 
                             i += 17 + codeLengthSum;
-                            Debug.WriteLine(huffmanTableSpec >> 4 == 0 ? "this.dcHuffmanTables" : "this.acHuffmanTables");
+
                             this.BuildHuffmanTable(
                                 huffmanTableSpec >> 4 == 0 ? this.dcHuffmanTables : this.acHuffmanTables,
                                 huffmanTableSpec & 15,

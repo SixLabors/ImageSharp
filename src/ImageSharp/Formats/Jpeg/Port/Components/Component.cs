@@ -43,6 +43,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
         public void Dispose()
         {
             this.Output?.Dispose();
+            this.Output = null;
         }
     }
 }

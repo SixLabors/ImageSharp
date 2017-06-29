@@ -5,13 +5,14 @@
 
 namespace ImageSharp.Formats.Jpeg.Port.Components
 {
+    using System;
     using System.Collections.Generic;
     using System.Runtime.CompilerServices;
 
     /// <summary>
     /// Defines a pair of huffman tables
     /// </summary>
-    internal class HuffmanTables
+    internal sealed class HuffmanTables : IDisposable
     {
         private readonly HuffmanTable[] tables = new HuffmanTable[4];
 
@@ -32,6 +33,15 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
             set
             {
                 this.tables[index] = value;
+            }
+        }
+
+        /// <inheritdoc/>
+        public void Dispose()
+        {
+            for (int i = 0; i < this.tables.Length; i++)
+            {
+                this.tables[i].Dispose();
             }
         }
     }

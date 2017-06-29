@@ -68,6 +68,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
         public void Dispose()
         {
             this.BlockData?.Dispose();
+            this.BlockData = null;
         }
     }
 }

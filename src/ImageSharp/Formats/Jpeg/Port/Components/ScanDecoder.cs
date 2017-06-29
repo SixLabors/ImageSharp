@@ -574,6 +574,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
 #if DEBUG
                     Debug.WriteLine($"DecodeScan - Unexpected marker {(this.bitsData << 8) | nextByte:X} at {stream.Position}");
 #endif
+
                     // We've encountered an unexpected marker. Reverse the stream and exit.
                     this.unexpectedMarkerReached = true;
                     stream.Position -= 2;
@@ -587,27 +588,31 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private short DecodeHuffman(HuffmanBranch[] tree, Stream stream)
+        private short DecodeHuffman(HuffmanTable tree, Stream stream)
         {
-            // TODO: This is our bottleneck. We should use a faster algorithm with a LUT.
-            HuffmanBranch[] node = tree;
-            while (true)
+            // "DECODE", section F.2.2.3, figure F.16, page 109 of T.81
+            int i = 1;
+            short code = (short)this.ReadBit(stream);
+            if (this.endOfStreamReached || this.unexpectedMarkerReached)
             {
-                int index = this.ReadBit(stream);
+                return -1;
+            }
+
+            while (code > tree.GetMaxCode(i))
+            {
+                code <<= 1;
+                code |= (short)this.ReadBit(stream);
+
                 if (this.endOfStreamReached || this.unexpectedMarkerReached)
                 {
                     return -1;
                 }
 
-                HuffmanBranch branch = node[index];
-
-                if (branch.Value > -1)
-                {
-                    return branch.Value;
-                }
-
-                node = branch.Children;
+                i++;
             }
+
+            int j = tree.GetValPtr(i);
+            return tree.GetHuffVal((j + code) & 0xFF);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -682,6 +687,12 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
                 }
 
                 k += r;
+
+                if (k > 63)
+                {
+                    break;
+                }
+
                 byte z = QuantizationTables.DctZigZag[k];
                 short re = (short)this.ReceiveAndExtend(s, stream);
                 component.BlockData[offset + z] = re;

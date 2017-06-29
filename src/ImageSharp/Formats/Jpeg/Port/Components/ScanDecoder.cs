@@ -734,7 +734,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
                 return;
             }
 
-            var componentBlockDataSpan = component.BlockData.Span;
+            Span<short> componentBlockDataSpan = component.BlockData.Span;
             int k = this.specStart;
             int e = this.specEnd;
             while (k <= e)
@@ -773,7 +773,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
             int k = this.specStart;
             int e = this.specEnd;
             int r = 0;
-            var componentBlockDataSpan = component.BlockData.Span;
+            Span<short> componentBlockDataSpan = component.BlockData.Span;
             while (k <= e)
             {
                 byte z = QuantizationTables.DctZigZag[k];

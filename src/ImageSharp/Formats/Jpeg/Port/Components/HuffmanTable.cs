@@ -1,32 +1,45 @@
-﻿namespace ImageSharp.Formats.Jpeg.Port.Components
+﻿// <copyright file="HuffmanTable.cs" company="James Jackson-South">
+// Copyright (c) James Jackson-South and contributors.
+// Licensed under the Apache License, Version 2.0.
+// </copyright>
+
+namespace ImageSharp.Formats.Jpeg.Port.Components
 {
     using System;
     using System.Runtime.CompilerServices;
 
-    /// <summary>
-    /// Represents a HUffman Table
-    /// </summary>
-    internal sealed class HuffmanTable
-    {
-        private short[] huffcode = new short[257];
-        private short[] huffsize = new short[257];
-        private short[] valOffset = new short[18];
-        private long[] maxcode = new long[18];
+    using ImageSharp.Memory;
 
-        private byte[] huffval;
-        private byte[] bits;
+    /// <summary>
+    /// Represents a Huffman Table
+    /// </summary>
+    internal struct HuffmanTable : IDisposable
+    {
+        private Buffer<short> huffcode;
+        private Buffer<short> huffsize;
+        private Buffer<short> valOffset;
+        private Buffer<long> maxcode;
+
+        private Buffer<byte> huffval;
+        private Buffer<byte> bits;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="HuffmanTable"/> class.
+        /// Initializes a new instance of the <see cref="HuffmanTable"/> struct.
         /// </summary>
         /// <param name="lengths">The code lengths</param>
         /// <param name="values">The huffman values</param>
         public HuffmanTable(byte[] lengths, byte[] values)
         {
-            this.huffval = new byte[values.Length];
-            Buffer.BlockCopy(values, 0, this.huffval, 0, values.Length);
-            this.bits = new byte[lengths.Length];
-            Buffer.BlockCopy(lengths, 0, this.bits, 0, lengths.Length);
+            this.huffcode = Buffer<short>.CreateClean(257);
+            this.huffsize = Buffer<short>.CreateClean(257);
+            this.valOffset = Buffer<short>.CreateClean(18);
+            this.maxcode = Buffer<long>.CreateClean(18);
+
+            this.huffval = Buffer<byte>.CreateClean(values.Length);
+            Buffer.BlockCopy(values, 0, this.huffval.Array, 0, values.Length);
+
+            this.bits = Buffer<byte>.CreateClean(lengths.Length);
+            Buffer.BlockCopy(lengths, 0, this.bits.Array, 0, lengths.Length);
 
             this.GenerateSizeTable();
             this.GenerateCodeTable();
@@ -64,6 +77,24 @@
         public int GetValPtr(int i)
         {
             return this.valOffset[i];
+        }
+
+        /// <inheritdoc/>
+        public void Dispose()
+        {
+            this.huffcode?.Dispose();
+            this.huffsize?.Dispose();
+            this.valOffset?.Dispose();
+            this.maxcode?.Dispose();
+            this.huffval?.Dispose();
+            this.bits?.Dispose();
+
+            this.huffcode = null;
+            this.huffsize = null;
+            this.valOffset = null;
+            this.maxcode = null;
+            this.huffval = null;
+            this.bits = null;
         }
 
         /// <summary>

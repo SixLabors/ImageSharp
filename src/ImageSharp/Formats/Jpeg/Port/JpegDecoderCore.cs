@@ -7,6 +7,7 @@ namespace ImageSharp.Formats.Jpeg.Port
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.IO;
     using System.Runtime.CompilerServices;
 
@@ -233,8 +234,6 @@ namespace ImageSharp.Formats.Jpeg.Port
 
                     case JpegConstants.Markers.APP15:
                     case JpegConstants.Markers.COM:
-
-                        // TODO: Read data block
                         this.InputStream.Skip(remaining);
                         break;
 
@@ -676,28 +675,28 @@ namespace ImageSharp.Formats.Jpeg.Port
                 throw new ImageFormatException($"DHT has wrong length: {remaining}");
             }
 
-            using (var huffmanData = Buffer<byte>.CreateClean(16))
+            using (var huffmanData = Buffer<byte>.CreateClean(256))
             {
                 for (int i = 2; i < remaining;)
                 {
                     byte huffmanTableSpec = (byte)this.InputStream.ReadByte();
                     this.InputStream.Read(huffmanData.Array, 0, 16);
 
-                    using (var codeLengths = Buffer<byte>.CreateClean(16))
+                    using (var codeLengths = Buffer<byte>.CreateClean(17))
                     {
                         int codeLengthSum = 0;
 
-                        for (int j = 0; j < 16; j++)
+                        for (int j = 1; j < 17; j++)
                         {
-                            codeLengthSum += codeLengths[j] = huffmanData[j];
+                            codeLengthSum += codeLengths[j] = huffmanData[j - 1];
                         }
 
-                        using (var huffmanValues = Buffer<byte>.CreateClean(codeLengthSum))
+                        using (var huffmanValues = Buffer<byte>.CreateClean(256))
                         {
                             this.InputStream.Read(huffmanValues.Array, 0, codeLengthSum);
 
                             i += 17 + codeLengthSum;
-
+                            Debug.WriteLine(huffmanTableSpec >> 4 == 0 ? "this.dcHuffmanTables" : "this.acHuffmanTables");
                             this.BuildHuffmanTable(
                                 huffmanTableSpec >> 4 == 0 ? this.dcHuffmanTables : this.acHuffmanTables,
                                 huffmanTableSpec & 15,
@@ -812,53 +811,7 @@ namespace ImageSharp.Formats.Jpeg.Port
         /// <param name="values">The values</param>
         private void BuildHuffmanTable(HuffmanTables tables, int index, byte[] codeLengths, byte[] values)
         {
-            int length = 16;
-            while (length > 0 && codeLengths[length - 1] == 0)
-            {
-                length--;
-            }
-
-            // TODO: Check the branch children capacity here. Seems to max at 2
-            var code = new List<HuffmanBranch> { new HuffmanBranch(-1) };
-            HuffmanBranch p = code[0];
-            int k = 0;
-
-            for (int i = 0; i < length; i++)
-            {
-                HuffmanBranch q;
-                for (int j = 0; j < codeLengths[i]; j++)
-                {
-                    p = code.Pop();
-                    p.Children[p.Index] = new HuffmanBranch(values[k]);
-                    while (p.Index > 0)
-                    {
-                        p = code.Pop();
-                    }
-
-                    p.Index++;
-                    code.Add(p);
-                    while (code.Count <= i)
-                    {
-                        q = new HuffmanBranch(-1);
-                        code.Add(q);
-                        p.Children[p.Index] = new HuffmanBranch(q.Children);
-                        p = q;
-                    }
-
-                    k++;
-                }
-
-                if (i + 1 < length)
-                {
-                    // p here points to last code
-                    q = new HuffmanBranch(-1);
-                    code.Add(q);
-                    p.Children[p.Index] = new HuffmanBranch(q.Children);
-                    p = q;
-                }
-            }
-
-            tables[index] = code[0].Children;
+            tables[index] = new HuffmanTable(codeLengths, values);
         }
 
         /// <summary>

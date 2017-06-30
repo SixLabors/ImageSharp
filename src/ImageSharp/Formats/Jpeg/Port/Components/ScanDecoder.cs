@@ -23,6 +23,8 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
 
         private int bitsCount;
 
+        private int accumulator;
+
         private int specStart;
 
         private int specEnd;
@@ -584,20 +586,34 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
             }
 
             this.bitsCount = 7;
+
+            // TODO: This line is incorrect.
+            this.accumulator = (this.accumulator << 8) | this.bitsData;
+
             return this.bitsData >> 7;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private short DecodeHuffman(HuffmanTable tree, Stream stream)
         {
-            // "DECODE", section F.2.2.3, figure F.16, page 109 of T.81
-            int i = 1;
             short code = (short)this.ReadBit(stream);
             if (this.endOfStreamReached || this.unexpectedMarkerReached)
             {
                 return -1;
             }
 
+            // TODO: If the following is enabled the decoder breaks.
+            // if (this.bitsCount > 0)
+            // {
+            //    int lutIndex = (this.accumulator >> (this.bitsCount - 7)) & 0xFF;
+            //    int v = tree.GetLookAhead(lutIndex);
+            //    if (v != 0)
+            //    {
+            //        return (short)(v >> 8);
+            //    }
+            // }
+            // "DECODE", section F.2.2.3, figure F.16, page 109 of T.81
+            int i = 1;
             while (code > tree.GetMaxCode(i))
             {
                 code <<= 1;
@@ -611,7 +627,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
                 i++;
             }
 
-            int j = tree.GetValPtr(i);
+            int j = tree.GetValOffset(i);
             return tree.GetHuffVal((j + code) & 0xFF);
         }
 

@@ -21,18 +21,12 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
         /// </summary>
         /// <param name="index">The index</param>
         /// <returns>The <see cref="List{HuffmanBranch}"/></returns>
-        public HuffmanTable this[int index]
+        public ref HuffmanTable this[int index]
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
-                return this.tables[index];
-            }
-
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            set
-            {
-                this.tables[index] = value;
+                return ref this.tables[index];
             }
         }
 

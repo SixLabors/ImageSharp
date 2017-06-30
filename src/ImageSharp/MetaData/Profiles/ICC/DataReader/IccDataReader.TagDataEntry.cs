@@ -464,17 +464,31 @@ namespace ImageSharp
             int start = this.currentIndex - 8; // 8 is the tag header size
             uint recordCount = this.ReadUInt32();
 
-            // TODO: Why are we storing variable
-            uint recordSize = this.ReadUInt32();
+            this.ReadUInt32();  // Record size (always 12)
             IccLocalizedString[] text = new IccLocalizedString[recordCount];
 
-            string[] culture = new string[recordCount];
+            CultureInfo[] culture = new CultureInfo[recordCount];
             uint[] length = new uint[recordCount];
             uint[] offset = new uint[recordCount];
 
             for (int i = 0; i < recordCount; i++)
             {
-                culture[i] = $"{this.ReadAsciiString(2)}-{this.ReadAsciiString(2)}";
+                string languageCode = this.ReadAsciiString(2);
+                string countryCode = this.ReadAsciiString(2);
+
+                if (string.IsNullOrWhiteSpace(languageCode))
+                {
+                    culture[i] = CultureInfo.InvariantCulture;
+                }
+                else if (string.IsNullOrWhiteSpace(countryCode))
+                {
+                    culture[i] = new CultureInfo(languageCode);
+                }
+                else
+                {
+                    culture[i] = new CultureInfo($"{languageCode}-{countryCode}");
+                }
+
                 length[i] = this.ReadUInt32();
                 offset[i] = this.ReadUInt32();
             }
@@ -482,7 +496,7 @@ namespace ImageSharp
             for (int i = 0; i < recordCount; i++)
             {
                 this.currentIndex = (int)(start + offset[i]);
-                text[i] = new IccLocalizedString(new CultureInfo(culture[i]), this.ReadUnicodeString((int)length[i]));
+                text[i] = new IccLocalizedString(culture[i], this.ReadUnicodeString((int)length[i]));
             }
 
             return new IccMultiLocalizedUnicodeTagDataEntry(text);

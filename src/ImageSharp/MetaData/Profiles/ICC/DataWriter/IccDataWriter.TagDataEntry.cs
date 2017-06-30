@@ -5,6 +5,8 @@
 
 namespace ImageSharp
 {
+    using System.Linq;
+
     /// <summary>
     /// Provides methods to write ICC data types
     /// </summary>
@@ -560,27 +562,45 @@ namespace ImageSharp
             long tpos = this.dataStream.Position;
             this.dataStream.Position += cultureCount * 12;
 
-            uint[] offset = new uint[cultureCount];
-            int[] lengths = new int[cultureCount];
+            IGrouping<string, IccLocalizedString>[] texts = value.Texts.GroupBy(t => t.Text).ToArray();
 
-            for (int i = 0; i < cultureCount; i++)
+            uint[] offset = new uint[texts.Length];
+            int[] lengths = new int[texts.Length];
+
+            for (int i = 0; i < texts.Length; i++)
             {
                 offset[i] = (uint)(this.dataStream.Position - start);
-                count += lengths[i] = this.WriteUnicodeString(value.Texts[i].Text);
+                count += lengths[i] = this.WriteUnicodeString(texts[i].Key);
             }
 
             // Write position table
             long lpos = this.dataStream.Position;
             this.dataStream.Position = tpos;
-            for (int i = 0; i < cultureCount; i++)
+            for (int i = 0; i < texts.Length; i++)
             {
-                string[] code = value.Texts[i].Culture.Name.Split('-');
+                foreach (IccLocalizedString localizedString in texts[i])
+                {
+                    string cultureName = localizedString.Culture.Name;
+                    if (string.IsNullOrEmpty(cultureName))
+                    {
+                        count += this.WriteAsciiString("xx", 2, false);
+                        count += this.WriteAsciiString("\0\0", 2, false);
+                    }
+                    else if (cultureName.Contains("-"))
+                    {
+                        string[] code = cultureName.Split('-');
+                        count += this.WriteAsciiString(code[0].ToLower(), 2, false);
+                        count += this.WriteAsciiString(code[1].ToUpper(), 2, false);
+                    }
+                    else
+                    {
+                        count += this.WriteAsciiString(cultureName, 2, false);
+                        count += this.WriteAsciiString("\0\0", 2, false);
+                    }
 
-                count += this.WriteAsciiString(code[0].ToLower(), 2, false);
-                count += this.WriteAsciiString(code[1].ToUpper(), 2, false);
-
-                count += this.WriteUInt32((uint)lengths[i]);
-                count += this.WriteUInt32(offset[i]);
+                    count += this.WriteUInt32((uint)lengths[i]);
+                    count += this.WriteUInt32(offset[i]);
+                }
             }
 
             this.dataStream.Position = lpos;

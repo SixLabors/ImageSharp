@@ -15,6 +15,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
     /// </summary>
     internal struct HuffmanTable : IDisposable
     {
+        private Buffer<short> lookahead;
         private Buffer<short> huffcode;
         private Buffer<short> huffsize;
         private Buffer<short> valOffset;
@@ -30,6 +31,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
         /// <param name="values">The huffman values</param>
         public HuffmanTable(byte[] lengths, byte[] values)
         {
+            this.lookahead = Buffer<short>.CreateClean(256);
             this.huffcode = Buffer<short>.CreateClean(257);
             this.huffsize = Buffer<short>.CreateClean(257);
             this.valOffset = Buffer<short>.CreateClean(18);
@@ -44,6 +46,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
             this.GenerateSizeTable();
             this.GenerateCodeTable();
             this.GenerateDecoderTables();
+            this.GenerateLookaheadTables();
         }
 
         /// <summary>
@@ -74,14 +77,26 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
         /// <param name="i">The index</param>
         /// <returns>The <see cref="int"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public int GetValPtr(int i)
+        public int GetValOffset(int i)
         {
             return this.valOffset[i];
+        }
+
+        /// <summary>
+        /// Gets the look ahead table balue
+        /// </summary>
+        /// <param name="i">The index</param>
+        /// <returns>The <see cref="int"/></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public int GetLookAhead(int i)
+        {
+            return this.lookahead[i];
         }
 
         /// <inheritdoc/>
         public void Dispose()
         {
+            this.lookahead?.Dispose();
             this.huffcode?.Dispose();
             this.huffsize?.Dispose();
             this.valOffset?.Dispose();
@@ -89,6 +104,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
             this.huffval?.Dispose();
             this.bits?.Dispose();
 
+            this.lookahead = null;
             this.huffcode = null;
             this.huffsize = null;
             this.valOffset = null;
@@ -162,6 +178,38 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
 
             this.valOffset[17] = 0;
             this.maxcode[17] = 0xFFFFFL;
+        }
+
+        /// <summary>
+        /// Generates lookup tables to speed up decoding
+        /// </summary>
+        private void GenerateLookaheadTables()
+        {
+            int x = 0, code = 0;
+
+            for (int i = 0; i < 8; i++)
+            {
+                code <<= 1;
+
+                for (int j = 0; j < this.bits[i + 1]; j++)
+                {
+                    // The codeLength is 1+i, so shift code by 8-(1+i) to
+                    // calculate the high bits for every 8-bit sequence
+                    // whose codeLength's high bits matches code.
+                    // The high 8 bits of lutValue are the encoded value.
+                    // The low 8 bits are 1 plus the codeLength.
+                    int base2 = code << (7 - i);
+                    int lutValue = (this.huffval[x] << 8) | (2 + i);
+
+                    for (int k = 0; k < 1 << (7 - i); k++)
+                    {
+                        this.lookahead[base2 | k] = (short)lutValue;
+                    }
+
+                    code++;
+                    x++;
+                }
+            }
         }
     }
 }

@@ -198,12 +198,12 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
                     // whose codeLength's high bits matches code.
                     // The high 8 bits of lutValue are the encoded value.
                     // The low 8 bits are 1 plus the codeLength.
-                    int base2 = code << (7 - i);
-                    int lutValue = (this.huffval[x] << 8) | (2 + i);
+                    byte base2 = (byte)(code << (7 - i));
+                    short lutValue = (short)((short)(this.huffval[x] << 8) | (short)(2 + i));
 
                     for (int k = 0; k < 1 << (7 - i); k++)
                     {
-                        this.lookahead[base2 | k] = (short)lutValue;
+                        this.lookahead[base2 | k] = lutValue;
                     }
 
                     code++;

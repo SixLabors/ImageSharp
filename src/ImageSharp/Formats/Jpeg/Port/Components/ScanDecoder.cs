@@ -23,6 +23,8 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
 
         private int bitsCount;
 
+        private int bitsUnRead;
+
         private int accumulator;
 
         private int specStart;
@@ -139,6 +141,8 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
 
                 // Find marker
                 this.bitsCount = 0;
+                this.accumulator = 0;
+                this.bitsUnRead = 0;
                 fileMarker = JpegDecoderCore.FindNextFileMarker(this.markerBuffer, stream);
 
                 // Some bad images seem to pad Scan blocks with e.g. zero bytes, skip past
@@ -572,6 +576,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private int ReadBit(Stream stream)
         {
+            // TODO: I wonder if we can do this two bytes at a time; libjpeg turbo seems to do that?
             if (this.bitsCount > 0)
             {
                 this.bitsCount--;
@@ -586,7 +591,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
                 this.endOfStreamReached = true;
             }
 
-            if (this.bitsData == 0xFF)
+            if (this.bitsData == JpegConstants.Markers.Prefix)
             {
                 int nextByte = stream.ReadByte();
                 if (nextByte != 0)
@@ -605,33 +610,51 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
 
             this.bitsCount = 7;
 
-            // TODO: This line is incorrect.
-            this.accumulator = (this.accumulator << 8) | this.bitsData;
-
             return this.bitsData >> 7;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private short DecodeHuffman(ref HuffmanTable tree, Stream stream)
         {
-            short code = (short)this.ReadBit(stream);
-            if (this.endOfStreamReached || this.unexpectedMarkerReached)
+            short code = -1;
+
+            // TODO: Adding this code introduces error into the decoder.
+            // It doesn't appear to speed anything up either.
+            // if (this.bitsUnRead < 8)
+            // {
+            //     if (this.bitsCount <= 0)
+            //     {
+            //         code = (short)this.ReadBit(stream);
+            //         this.bitsUnRead += 8;
+            //     }
+            //     if (this.endOfStreamReached || this.unexpectedMarkerReached)
+            //     {
+            //         return -1;
+            //     }
+            //     this.accumulator = (this.accumulator << 8) | this.bitsData;
+            //     int lutIndex = (this.accumulator >> (this.bitsUnRead - 8)) & 0xFF;
+            //     int v = tree.GetLookAhead(lutIndex);
+            //     if (v != 0)
+            //     {
+            //         int nb = (v & 0xFF) - 1;
+            //         this.bitsCount -= nb - 1;
+            //         this.bitsUnRead -= nb;
+            //         v = v >> 8;
+            //         return (short)v;
+            //     }
+            // }
+            if (code == -1)
             {
-                return -1;
+                code = (short)this.ReadBit(stream);
+                if (this.endOfStreamReached || this.unexpectedMarkerReached)
+                {
+                    return -1;
+                }
             }
 
-            // TODO: If the following is enabled the decoder breaks.
-            // if (this.bitsCount > 0)
-            // {
-            //    int lutIndex = (this.accumulator >> (this.bitsCount - 7)) & 0xFF;
-            //    int v = tree.GetLookAhead(lutIndex);
-            //    if (v != 0)
-            //    {
-            //        return (short)(v >> 8);
-            //    }
-            // }
             // "DECODE", section F.2.2.3, figure F.16, page 109 of T.81
             int i = 1;
+
             while (code > tree.GetMaxCode(i))
             {
                 code <<= 1;

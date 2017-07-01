@@ -10,7 +10,7 @@ namespace ImageSharp.Formats
     /// <summary>
     /// Detects gif file headers
     /// </summary>
-    public class GifImageFormatDetector : IImageFormatDetector
+    public sealed class GifImageFormatDetector : IImageFormatDetector
     {
         /// <inheritdoc/>
         public int HeaderSize => 6;

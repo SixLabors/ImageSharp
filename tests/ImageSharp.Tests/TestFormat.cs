@@ -19,13 +19,13 @@ namespace ImageSharp.Tests
     /// <summary>
     /// A test image file.
     /// </summary>
-    public class TestFormat : ImageSharp.Formats.IImageFormat
+    public class TestFormat : IConfigurationModule, IImageFormat
     {
         public static TestFormat GlobalTestFormat { get; } = new TestFormat();
 
         public static void RegisterGloablTestFormat()
         {
-            Configuration.Default.AddImageFormat(GlobalTestFormat);
+            Configuration.Default.Configure(GlobalTestFormat);
         }
 
         public TestFormat()
@@ -58,14 +58,15 @@ namespace ImageSharp.Tests
         Dictionary<Type, object> _sampleImages = new Dictionary<Type, object>();
 
 
-        public void VerifyDecodeCall(byte[] marker, IDecoderOptions options, Configuration config)
+        public void VerifyDecodeCall(byte[] marker, Configuration config)
         {
-            DecodeOperation[] discovered = this.DecodeCalls.Where(x => x.IsMatch(marker, options, config)).ToArray();
+            DecodeOperation[] discovered = this.DecodeCalls.Where(x => x.IsMatch(marker, config)).ToArray();
 
 
             Assert.True(discovered.Any(), "No calls to decode on this formate with the proveded options happend");
 
-            foreach (DecodeOperation d in discovered) {
+            foreach (DecodeOperation d in discovered)
+            {
                 this.DecodeCalls.Remove(d);
             }
         }
@@ -79,7 +80,7 @@ namespace ImageSharp.Tests
                 {
                     this._sampleImages.Add(typeof(TPixel), new Image<TPixel>(1, 1));
                 }
-            
+
                 return (Image<TPixel>)this._sampleImages[typeof(TPixel)];
             }
         }
@@ -92,7 +93,15 @@ namespace ImageSharp.Tests
 
         public int HeaderSize => this.header.Length;
 
-        public bool IsSupportedFileFormat(byte[] header)
+        public string Name => this.Extension;
+
+        public string DefaultMimeType => this.MimeType;
+
+        public IEnumerable<string> MimeTypes => new[] { this.MimeType };
+
+        public IEnumerable<string> FileExtensions => this.SupportedExtensions;
+
+        public bool IsSupportedFileFormat(ReadOnlySpan<byte> header)
         {
             if (header.Length < this.header.Length)
             {
@@ -107,18 +116,21 @@ namespace ImageSharp.Tests
             }
             return true;
         }
+
+        public void Configure(Configuration host)
+        {
+            host.AddImageFormatDetector(new TestHeader(this));
+            host.SetEncoder(this, new TestEncoder(this));
+            host.SetDecoder(this, new TestDecoder(this));
+        }
+
         public struct DecodeOperation
         {
             public byte[] marker;
-            public IDecoderOptions options;
             internal Configuration config;
 
-             public bool IsMatch(byte[] testMarker, IDecoderOptions testOptions, Configuration config)
+            public bool IsMatch(byte[] testMarker, Configuration config)
             {
-                if (this.options != testOptions)
-                {
-                    return false;
-                }
 
                 if (this.config != config)
                 {
@@ -141,6 +153,26 @@ namespace ImageSharp.Tests
             }
         }
 
+        public class TestHeader : IImageFormatDetector
+        {
+
+            private TestFormat testFormat;
+
+            public int HeaderSize => testFormat.HeaderSize;
+
+            public IImageFormat DetectFormat(ReadOnlySpan<byte> header)
+            {
+                if (testFormat.IsSupportedFileFormat(header))
+                    return testFormat;
+
+                return null;
+            }
+
+            public TestHeader(TestFormat testFormat)
+            {
+                this.testFormat = testFormat;
+            }
+        }
         public class TestDecoder : ImageSharp.Formats.IImageDecoder
         {
             private TestFormat testFormat;
@@ -150,8 +182,13 @@ namespace ImageSharp.Tests
                 this.testFormat = testFormat;
             }
 
+            public IEnumerable<string> MimeTypes => new[] { testFormat.MimeType };
 
-            public Image<TPixel> Decode<TPixel>(Configuration config, Stream stream, IDecoderOptions options) where TPixel : struct, IPixel<TPixel>
+            public IEnumerable<string> FileExtensions => testFormat.SupportedExtensions;
+
+            public int HeaderSize => testFormat.HeaderSize;
+
+            public Image<TPixel> Decode<TPixel>(Configuration config, Stream stream) where TPixel : struct, IPixel<TPixel>
 
             {
                 var ms = new MemoryStream();
@@ -160,13 +197,14 @@ namespace ImageSharp.Tests
                 this.testFormat.DecodeCalls.Add(new DecodeOperation
                 {
                     marker = marker,
-                    options = options,
                     config = config
                 });
 
                 // TODO record this happend so we an verify it.
                 return this.testFormat.Sample<TPixel>();
             }
+
+            public bool IsSupportedFileFormat(Span<byte> header) => testFormat.IsSupportedFileFormat(header);
         }
 
         public class TestEncoder : ImageSharp.Formats.IImageEncoder
@@ -178,7 +216,11 @@ namespace ImageSharp.Tests
                 this.testFormat = testFormat;
             }
 
-            public void Encode<TPixel>(Image<TPixel> image, Stream stream, IEncoderOptions options) where TPixel : struct, IPixel<TPixel>
+            public IEnumerable<string> MimeTypes => new[] { testFormat.MimeType };
+
+            public IEnumerable<string> FileExtensions => testFormat.SupportedExtensions;
+
+            public void Encode<TPixel>(Image<TPixel> image, Stream stream) where TPixel : struct, IPixel<TPixel>
             {
                 // TODO record this happend so we an verify it.
             }

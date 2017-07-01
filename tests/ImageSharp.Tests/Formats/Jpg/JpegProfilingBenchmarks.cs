@@ -82,9 +82,8 @@ namespace ImageSharp.Tests
                     {
                         foreach (Image<Rgba32> img in testImages)
                         {
-                            JpegEncoder encoder = new JpegEncoder();
-                            JpegEncoderOptions options = new JpegEncoderOptions { Quality = quality, Subsample = subsample };
-                            img.Save(ms, encoder, options);
+                            JpegEncoder options = new JpegEncoder { Quality = quality, Subsample = subsample };
+                            img.Save(ms, options);
                             ms.Seek(0, SeekOrigin.Begin);
                         }
                     },

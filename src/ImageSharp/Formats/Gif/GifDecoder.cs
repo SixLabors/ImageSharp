@@ -6,37 +6,32 @@
 namespace ImageSharp.Formats
 {
     using System;
+    using System.Collections.Generic;
     using System.IO;
-
+    using System.Text;
     using ImageSharp.PixelFormats;
 
     /// <summary>
     /// Decoder for generating an image out of a gif encoded stream.
     /// </summary>
-    public class GifDecoder : IImageDecoder
+    public sealed class GifDecoder : IImageDecoder, IGifDecoderOptions
     {
-        /// <inheritdoc/>
-        public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream, IDecoderOptions options)
-
-            where TPixel : struct, IPixel<TPixel>
-        {
-            IGifDecoderOptions gifOptions = GifDecoderOptions.Create(options);
-
-            return this.Decode<TPixel>(configuration, stream, gifOptions);
-        }
+        /// <summary>
+        /// Gets or sets a value indicating whether the metadata should be ignored when the image is being decoded.
+        /// </summary>
+        public bool IgnoreMetadata { get; set; } = false;
 
         /// <summary>
-        /// Decodes the image from the specified stream to the <see cref="ImageBase{TPixel}"/>.
+        /// Gets or sets the encoding that should be used when reading comments.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="configuration">The configuration.</param>
-        /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
-        /// <param name="options">The options for the decoder.</param>
-        /// <returns>The image thats been decoded.</returns>
-        public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream, IGifDecoderOptions options)
+        public Encoding TextEncoding { get; set; } = GifConstants.DefaultEncoding;
+
+        /// <inheritdoc/>
+        public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
-            return new GifDecoderCore<TPixel>(options, configuration).Decode(stream);
+            var decoder = new GifDecoderCore<TPixel>(configuration, this);
+            return decoder.Decode(stream);
         }
     }
 }

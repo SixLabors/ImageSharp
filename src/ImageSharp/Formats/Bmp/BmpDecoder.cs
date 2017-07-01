@@ -6,6 +6,7 @@
 namespace ImageSharp.Formats
 {
     using System;
+    using System.Collections.Generic;
     using System.IO;
 
     using ImageSharp.PixelFormats;
@@ -25,16 +26,16 @@ namespace ImageSharp.Formats
     /// Formats will be supported in a later releases. We advise always
     /// to use only 24 Bit Windows bitmaps.
     /// </remarks>
-    public class BmpDecoder : IImageDecoder
+    public sealed class BmpDecoder : IImageDecoder, IBmpDecoderOptions
     {
         /// <inheritdoc/>
-        public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream, IDecoderOptions options)
+        public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream)
 
             where TPixel : struct, IPixel<TPixel>
         {
             Guard.NotNull(stream, "stream");
 
-            return new BmpDecoderCore(configuration).Decode<TPixel>(stream);
+            return new BmpDecoderCore(configuration, this).Decode<TPixel>(stream);
         }
     }
 }

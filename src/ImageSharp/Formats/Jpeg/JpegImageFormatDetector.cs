@@ -10,7 +10,7 @@ namespace ImageSharp.Formats
     /// <summary>
     /// Detects Jpeg file headers
     /// </summary>
-    public class JpegImageFormatDetector : IImageFormatDetector
+    public sealed class JpegImageFormatDetector : IImageFormatDetector
     {
         /// <inheritdoc/>
         public int HeaderSize => 11;

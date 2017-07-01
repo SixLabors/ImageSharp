@@ -10,7 +10,7 @@ namespace ImageSharp.Formats
     /// <summary>
     /// Detects png file headers
     /// </summary>
-    public class PngImageFormatDetector : IImageFormatDetector
+    public sealed class PngImageFormatDetector : IImageFormatDetector
     {
         /// <inheritdoc/>
         public int HeaderSize => 8;

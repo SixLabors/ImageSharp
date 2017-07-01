@@ -10,7 +10,7 @@ namespace ImageSharp.Formats
     /// <summary>
     /// Detects bmp file headers
     /// </summary>
-    internal class BmpImageFormatDetector : IImageFormatDetector
+    public sealed class BmpImageFormatDetector : IImageFormatDetector
     {
         /// <inheritdoc/>
         public int HeaderSize => 2;

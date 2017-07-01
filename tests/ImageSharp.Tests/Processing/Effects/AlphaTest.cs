@@ -25,8 +25,8 @@ namespace ImageSharp.Tests.Processing.Effects
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                image.Alpha(value)
-                    .DebugSave(provider, value, Extensions.Png);
+                image.Mutate(x => x.Alpha(value));
+                image.DebugSave(provider, value, Extensions.Png);
             }
         }
 
@@ -40,8 +40,8 @@ namespace ImageSharp.Tests.Processing.Effects
             {
                 var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
 
-                image.Alpha(value, bounds)
-                    .DebugSave(provider, value, Extensions.Png);
+                image.Mutate(x => x.Alpha(value, bounds));
+                image.DebugSave(provider, value, Extensions.Png);
 
                 ImageComparer.EnsureProcessorChangesAreConstrained(source, image, bounds);
             }

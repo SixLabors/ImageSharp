@@ -18,8 +18,8 @@ namespace ImageSharp.Tests.Processing.ColorMatrix
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                image.Polaroid()
-                    .DebugSave(provider, null, Extensions.Bmp);
+                image.Mutate(x => x.Polaroid());
+                image.DebugSave(provider, null, Extensions.Bmp);
             }
         }
 
@@ -33,8 +33,8 @@ namespace ImageSharp.Tests.Processing.ColorMatrix
             {
                 var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
 
-                image.Polaroid(bounds)
-                    .DebugSave(provider, null, Extensions.Bmp);
+                image.Mutate(x => x.Polaroid(bounds));
+                image.DebugSave(provider, null, Extensions.Bmp);
 
                 ImageComparer.EnsureProcessorChangesAreConstrained(source, image, bounds);
             }

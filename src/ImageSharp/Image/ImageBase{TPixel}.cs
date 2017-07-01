@@ -194,16 +194,6 @@ namespace ImageSharp
             return this.Pixels.Slice((y * this.Width) + x, this.Width - x);
         }
 
-        /// <summary>
-        /// Applies the processor.
-        /// </summary>
-        /// <param name="processor">The processor.</param>
-        /// <param name="rectangle">The rectangle.</param>
-        public virtual void ApplyProcessor(IImageProcessor<TPixel> processor, Rectangle rectangle)
-        {
-            processor.Apply(this, rectangle);
-        }
-
         /// <inheritdoc />
         public void Dispose()
         {

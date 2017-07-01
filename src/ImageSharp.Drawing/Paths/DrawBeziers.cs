@@ -28,7 +28,7 @@ namespace ImageSharp
         /// <param name="points">The points.</param>
         /// <param name="options">The options.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> DrawBeziers<TPixel>(this Image<TPixel> source, IBrush<TPixel> brush, float thickness, PointF[] points, GraphicsOptions options)
+        public static IImageOperations<TPixel> DrawBeziers<TPixel>(this IImageOperations<TPixel> source, IBrush<TPixel> brush, float thickness, PointF[] points, GraphicsOptions options)
            where TPixel : struct, IPixel<TPixel>
         {
             return source.Draw(new Pen<TPixel>(brush, thickness), new Path(new CubicBezierLineSegment(points)), options);
@@ -43,7 +43,7 @@ namespace ImageSharp
         /// <param name="thickness">The thickness.</param>
         /// <param name="points">The points.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> DrawBeziers<TPixel>(this Image<TPixel> source, IBrush<TPixel> brush, float thickness, PointF[] points)
+        public static IImageOperations<TPixel> DrawBeziers<TPixel>(this IImageOperations<TPixel> source, IBrush<TPixel> brush, float thickness, PointF[] points)
            where TPixel : struct, IPixel<TPixel>
         {
             return source.Draw(new Pen<TPixel>(brush, thickness), new Path(new CubicBezierLineSegment(points)));
@@ -58,7 +58,7 @@ namespace ImageSharp
         /// <param name="thickness">The thickness.</param>
         /// <param name="points">The points.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> DrawBeziers<TPixel>(this Image<TPixel> source, TPixel color, float thickness, PointF[] points)
+        public static IImageOperations<TPixel> DrawBeziers<TPixel>(this IImageOperations<TPixel> source, TPixel color, float thickness, PointF[] points)
            where TPixel : struct, IPixel<TPixel>
         {
             return source.DrawBeziers(new SolidBrush<TPixel>(color), thickness, points);
@@ -74,7 +74,7 @@ namespace ImageSharp
         /// <param name="points">The points.</param>
         /// <param name="options">The options.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> DrawBeziers<TPixel>(this Image<TPixel> source, TPixel color, float thickness, PointF[] points, GraphicsOptions options)
+        public static IImageOperations<TPixel> DrawBeziers<TPixel>(this IImageOperations<TPixel> source, TPixel color, float thickness, PointF[] points, GraphicsOptions options)
            where TPixel : struct, IPixel<TPixel>
         {
             return source.DrawBeziers(new SolidBrush<TPixel>(color), thickness, points, options);
@@ -89,7 +89,7 @@ namespace ImageSharp
         /// <param name="points">The points.</param>
         /// <param name="options">The options.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> DrawBeziers<TPixel>(this Image<TPixel> source, IPen<TPixel> pen, PointF[] points, GraphicsOptions options)
+        public static IImageOperations<TPixel> DrawBeziers<TPixel>(this IImageOperations<TPixel> source, IPen<TPixel> pen, PointF[] points, GraphicsOptions options)
            where TPixel : struct, IPixel<TPixel>
         {
             return source.Draw(pen, new Path(new CubicBezierLineSegment(points)), options);
@@ -103,7 +103,7 @@ namespace ImageSharp
         /// <param name="pen">The pen.</param>
         /// <param name="points">The points.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> DrawBeziers<TPixel>(this Image<TPixel> source, IPen<TPixel> pen, PointF[] points)
+        public static IImageOperations<TPixel> DrawBeziers<TPixel>(this IImageOperations<TPixel> source, IPen<TPixel> pen, PointF[] points)
            where TPixel : struct, IPixel<TPixel>
         {
             return source.Draw(pen, new Path(new CubicBezierLineSegment(points)));

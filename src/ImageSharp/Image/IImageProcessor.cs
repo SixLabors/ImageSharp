@@ -42,6 +42,6 @@ namespace ImageSharp.Processing
         /// <exception cref="System.ArgumentException">
         /// <paramref name="sourceRectangle"/> doesnt fit the dimension of the image.
         /// </exception>
-        void Apply(ImageBase<TPixel> source, Rectangle sourceRectangle);
+        void Apply(Image<TPixel> source, Rectangle sourceRectangle);
     }
 }

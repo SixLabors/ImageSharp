@@ -67,8 +67,7 @@ namespace ImageSharp.Tests
             where TPixel : struct, IPixel<TPixel>
         {
             Image<TPixel> a = provider.GetImage();
-            Image<TPixel> b = provider.GetImage();
-            b = b.OilPaint(3, 2);
+            Image<TPixel> b = provider.GetImage(x=>x.OilPaint(3, 2));
 
             Assert.False(a.IsEquivalentTo(b, compareAlpha));
         }

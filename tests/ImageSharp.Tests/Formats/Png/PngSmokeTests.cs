@@ -113,7 +113,7 @@ namespace ImageSharp.Tests.Formats.Png
             using (MemoryStream ms = new MemoryStream())
             {
                 // image.Save(provider.Utility.GetTestOutputFileName("png"));
-                image.Resize(100, 100);
+                image.Mutate(x=>x.Resize(100, 100));
                 // image.Save(provider.Utility.GetTestOutputFileName("png", "resize"));
 
                 image.Save(ms, new PngEncoder());

@@ -138,14 +138,10 @@ namespace ImageSharp
         /// </summary>
         /// <param name="processor">The processor to apply to the image.</param>
         /// <param name="rectangle">The <see cref="Rectangle" /> structure that specifies the portion of the image object to draw.</param>
-        public override void ApplyProcessor(IImageProcessor<TPixel> processor, Rectangle rectangle)
+        public virtual void ApplyProcessor(IImageProcessor<TPixel> processor, Rectangle rectangle)
         {
             // we want to put this on on here as it gives us a really go place to test/verify processor settings
-            base.ApplyProcessor(processor, rectangle);
-            foreach (ImageFrame<TPixel> sourceFrame in this.Frames)
-            {
-                sourceFrame.ApplyProcessor(processor, rectangle);
-            }
+            processor.Apply(this, rectangle);
         }
 
         /// <summary>

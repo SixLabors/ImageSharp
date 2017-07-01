@@ -34,7 +34,7 @@ namespace ImageSharp
         /// <returns>
         /// The <see cref="Image{TPixel}" />.
         /// </returns>
-        public static Image<TPixel> DrawText<TPixel>(this Image<TPixel> source, string text, Font font, TPixel color, PointF location)
+        public static IImageOperations<TPixel> DrawText<TPixel>(this IImageOperations<TPixel> source, string text, Font font, TPixel color, PointF location)
            where TPixel : struct, IPixel<TPixel>
         {
             return source.DrawText(text, font, color, location, TextGraphicsOptions.Default);
@@ -53,7 +53,7 @@ namespace ImageSharp
         /// <returns>
         /// The <see cref="Image{TPixel}" />.
         /// </returns>
-        public static Image<TPixel> DrawText<TPixel>(this Image<TPixel> source, string text, Font font, TPixel color, PointF location, TextGraphicsOptions options)
+        public static IImageOperations<TPixel> DrawText<TPixel>(this IImageOperations<TPixel> source, string text, Font font, TPixel color, PointF location, TextGraphicsOptions options)
            where TPixel : struct, IPixel<TPixel>
         {
             return source.DrawText(text, font, Brushes.Solid(color), null, location, options);
@@ -71,7 +71,7 @@ namespace ImageSharp
         /// <returns>
         /// The <see cref="Image{TPixel}" />.
         /// </returns>
-        public static Image<TPixel> DrawText<TPixel>(this Image<TPixel> source, string text, Font font, IBrush<TPixel> brush, PointF location)
+        public static IImageOperations<TPixel> DrawText<TPixel>(this IImageOperations<TPixel> source, string text, Font font, IBrush<TPixel> brush, PointF location)
            where TPixel : struct, IPixel<TPixel>
         {
             return source.DrawText(text, font, brush, location, TextGraphicsOptions.Default);
@@ -90,7 +90,7 @@ namespace ImageSharp
         /// <returns>
         /// The <see cref="Image{TPixel}" />.
         /// </returns>
-        public static Image<TPixel> DrawText<TPixel>(this Image<TPixel> source, string text, Font font, IBrush<TPixel> brush, PointF location, TextGraphicsOptions options)
+        public static IImageOperations<TPixel> DrawText<TPixel>(this IImageOperations<TPixel> source, string text, Font font, IBrush<TPixel> brush, PointF location, TextGraphicsOptions options)
            where TPixel : struct, IPixel<TPixel>
         {
             return source.DrawText(text, font, brush, null, location, options);
@@ -108,7 +108,7 @@ namespace ImageSharp
         /// <returns>
         /// The <see cref="Image{TPixel}" />.
         /// </returns>
-        public static Image<TPixel> DrawText<TPixel>(this Image<TPixel> source, string text, Font font, IPen<TPixel> pen, PointF location)
+        public static IImageOperations<TPixel> DrawText<TPixel>(this IImageOperations<TPixel> source, string text, Font font, IPen<TPixel> pen, PointF location)
            where TPixel : struct, IPixel<TPixel>
         {
             return source.DrawText(text, font, pen, location, TextGraphicsOptions.Default);
@@ -127,7 +127,7 @@ namespace ImageSharp
         /// <returns>
         /// The <see cref="Image{TPixel}" />.
         /// </returns>
-        public static Image<TPixel> DrawText<TPixel>(this Image<TPixel> source, string text, Font font, IPen<TPixel> pen, PointF location, TextGraphicsOptions options)
+        public static IImageOperations<TPixel> DrawText<TPixel>(this IImageOperations<TPixel> source, string text, Font font, IPen<TPixel> pen, PointF location, TextGraphicsOptions options)
            where TPixel : struct, IPixel<TPixel>
         {
             return source.DrawText(text, font, null, pen, location, options);
@@ -146,7 +146,7 @@ namespace ImageSharp
         /// <returns>
         /// The <see cref="Image{TPixel}" />.
         /// </returns>
-        public static Image<TPixel> DrawText<TPixel>(this Image<TPixel> source, string text, Font font, IBrush<TPixel> brush, IPen<TPixel> pen, PointF location)
+        public static IImageOperations<TPixel> DrawText<TPixel>(this IImageOperations<TPixel> source, string text, Font font, IBrush<TPixel> brush, IPen<TPixel> pen, PointF location)
            where TPixel : struct, IPixel<TPixel>
         {
             return source.DrawText(text, font, brush, pen, location, TextGraphicsOptions.Default);
@@ -166,16 +166,11 @@ namespace ImageSharp
         /// <returns>
         /// The <see cref="Image{TPixel}" />.
         /// </returns>
-        public static Image<TPixel> DrawText<TPixel>(this Image<TPixel> source, string text, Font font, IBrush<TPixel> brush, IPen<TPixel> pen, PointF location, TextGraphicsOptions options)
+        public static IImageOperations<TPixel> DrawText<TPixel>(this IImageOperations<TPixel> source, string text, Font font, IBrush<TPixel> brush, IPen<TPixel> pen, PointF location, TextGraphicsOptions options)
            where TPixel : struct, IPixel<TPixel>
         {
             float dpiX = DefaultTextDpi;
             float dpiY = DefaultTextDpi;
-            if (options.UseImageResolution)
-            {
-                dpiX = (float)source.MetaData.HorizontalResolution;
-                dpiY = (float)source.MetaData.VerticalResolution;
-            }
 
             var style = new RendererOptions(font, dpiX, dpiY, location)
             {

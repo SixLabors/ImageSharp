@@ -46,19 +46,19 @@ namespace ImageSharp.Processing.Processors
         public IResampler Sampler { get; }
 
         /// <summary>
-        /// Gets the width.
+        /// Gets or sets the width.
         /// </summary>
-        public int Width { get; }
+        public int Width { get; protected set; }
 
         /// <summary>
-        /// Gets the height.
+        /// Gets or sets the height.
         /// </summary>
-        public int Height { get; }
+        public int Height { get; protected set; }
 
         /// <summary>
-        /// Gets the resize rectangle.
+        /// Gets or sets the resize rectangle.
         /// </summary>
-        public Rectangle ResizeRectangle { get; }
+        public Rectangle ResizeRectangle { get; protected set; }
 
         /// <summary>
         /// Gets or sets the horizontal weights.

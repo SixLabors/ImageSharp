@@ -34,8 +34,8 @@ namespace ImageSharp.Tests.Processing.Convolution
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                image.DetectEdges(detector)
-                    .DebugSave(provider, detector.ToString(), Extensions.Bmp);
+                image.Mutate(x => x.DetectEdges(detector));
+                image.DebugSave(provider, detector.ToString(), Extensions.Bmp);
             }
         }
 
@@ -49,8 +49,8 @@ namespace ImageSharp.Tests.Processing.Convolution
             {
                 var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
 
-                image.DetectEdges(detector, bounds)
-                    .DebugSave(provider, detector.ToString(), Extensions.Bmp);
+                image.Mutate(x => x.DetectEdges(detector, bounds));
+                image.DebugSave(provider, detector.ToString(), Extensions.Bmp);
 
                 ImageComparer.EnsureProcessorChangesAreConstrained(source, image, bounds);
             }

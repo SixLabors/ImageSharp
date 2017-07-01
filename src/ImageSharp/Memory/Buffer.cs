@@ -116,6 +116,16 @@ namespace ImageSharp.Memory
         }
 
         /// <summary>
+        /// Converts <see cref="Buffer{T}"/> to an <see cref="ReadOnlySpan{T}"/>.
+        /// </summary>
+        /// <param name="buffer">The <see cref="Buffer{T}"/> to convert.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static implicit operator ReadOnlySpan<T>(Buffer<T> buffer)
+        {
+            return new ReadOnlySpan<T>(buffer.Array, 0, buffer.Length);
+        }
+
+        /// <summary>
         /// Converts <see cref="Buffer{T}"/> to an <see cref="Span{T}"/>.
         /// </summary>
         /// <param name="buffer">The <see cref="Buffer{T}"/> to convert.</param>

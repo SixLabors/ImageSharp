@@ -31,16 +31,13 @@ namespace ImageSharp.Tests.Drawing
                             new Vector2(93, 85),
                             new Vector2(65, 137)));
             IPath clipped = simplePath.Clip(hole1);
-           // var clipped = new Rectangle(10, 10, 100, 100).Clip(new Rectangle(20, 0, 20, 20));
+            // var clipped = new Rectangle(10, 10, 100, 100).Clip(new Rectangle(20, 0, 20, 20));
             using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
-                using (FileStream output = File.OpenWrite($"{path}/Simple.png"))
-                {
-                    image
-                        .BackgroundColor(Rgba32.Blue)
-                        .Fill(Rgba32.HotPink, clipped)
-                        .Save(output);
-                }
+                image
+                    .BackgroundColor(Rgba32.Blue)
+                    .Fill(Rgba32.HotPink, clipped)
+                    .Save($"{path}/Simple.png");
 
                 using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
                 {
@@ -69,13 +66,10 @@ namespace ImageSharp.Tests.Drawing
 
             using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
-                using (FileStream output = File.OpenWrite($"{path}/SimpleOverlapping.png"))
-                {
-                    image
-                        .BackgroundColor(Rgba32.Blue)
-                        .Fill(Rgba32.HotPink, simplePath.Clip(hole1))
-                        .Save(output);
-                }
+                image
+                    .BackgroundColor(Rgba32.Blue)
+                    .Fill(Rgba32.HotPink, simplePath.Clip(hole1))
+                    .Save($"{path}/SimpleOverlapping.png");
 
                 using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
                 {
@@ -104,13 +98,10 @@ namespace ImageSharp.Tests.Drawing
 
             using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
-                using (FileStream output = File.OpenWrite($"{path}/Opacity.png"))
-                {
-                    image
-                        .BackgroundColor(Rgba32.Blue)
-                        .Fill(color, simplePath.Clip(hole1))
-                        .Save(output);
-                }
+                image
+                    .BackgroundColor(Rgba32.Blue)
+                    .Fill(color, simplePath.Clip(hole1))
+                    .Save($"{path}/Opacity.png");
 
                 //shift background color towards forground color by the opacity amount
                 Rgba32 mergedColor = new Rgba32(Vector4.Lerp(Rgba32.Blue.ToVector4(), Rgba32.HotPink.ToVector4(), 150f / 255f));

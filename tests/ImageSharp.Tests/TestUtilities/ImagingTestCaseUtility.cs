@@ -97,18 +97,16 @@ namespace ImageSharp.Tests
         /// <param name="extension">The requested extension</param>
         /// <param name="encoder">Optional encoder</param>
         /// <param name="options">Optional encoder options</param>
-        public void SaveTestOutputFile<TPixel>(Image<TPixel> image, string extension = null, IImageEncoder encoder = null, IEncoderOptions options = null, string tag = null)
+        public void SaveTestOutputFile<TPixel>(Image<TPixel> image, string extension = null, IImageEncoder encoder = null, string tag = null)
             where TPixel : struct, IPixel<TPixel>
         {
             string path = this.GetTestOutputFileName(extension: extension, tag:tag);
             extension = Path.GetExtension(path);
-            IImageFormat format = GetImageFormatByExtension(extension);
-
-            encoder = encoder ?? format.Encoder;
+            encoder = encoder ?? GetImageFormatByExtension(extension);
 
             using (FileStream stream = File.OpenWrite(path))
             {
-                image.Save(stream, encoder, options);
+                image.Save(stream, encoder);
             }
         }
 
@@ -123,16 +121,16 @@ namespace ImageSharp.Tests
             this.Init(method.DeclaringType.Name, method.Name);
         }
 
-        private static IImageFormat GetImageFormatByExtension(string extension)
+        private static IImageEncoder GetImageFormatByExtension(string extension)
         {
             extension = extension?.TrimStart('.');
-            return Configuration.Default.ImageFormats.First(f => f.SupportedExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase));
+            var format = Configuration.Default.FindFormatByFileExtensions(extension);
+            return Configuration.Default.FindEncoder(format);
         }
 
         private string GetTestOutputDir()
         {
             string testGroupName = Path.GetFileNameWithoutExtension(this.TestGroupName);
-
             return CreateOutputDirectory(testGroupName);
         }
     }

@@ -1,21 +1,30 @@
-﻿// <copyright file="IPngEncoderOptions.cs" company="James Jackson-South">
+﻿// <copyright file="PngEncoder.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
 namespace ImageSharp.Formats
 {
-    using Quantizers;
+    using System.Collections.Generic;
+    using System.IO;
+
+    using ImageSharp.PixelFormats;
+    using ImageSharp.Quantizers;
 
     /// <summary>
-    /// Encapsulates the options for the <see cref="PngEncoder"/>.
+    /// The options availible for manipulating the encoder pipeline
     /// </summary>
-    public interface IPngEncoderOptions : IEncoderOptions
+    internal interface IPngEncoderOptions
     {
         /// <summary>
-        /// Gets the quality of output for images.
+        /// Gets a value indicating whether the metadata should be ignored when the image is being encoded.
         /// </summary>
-        int Quality { get; }
+        bool IgnoreMetadata { get; }
+
+        /// <summary>
+        /// Gets the size of the color palette to use. Set to zero to leav png encoding to use pixel data.
+        /// </summary>
+        int PaletteSize { get; }
 
         /// <summary>
         /// Gets the png color type
@@ -24,19 +33,20 @@ namespace ImageSharp.Formats
 
         /// <summary>
         /// Gets the compression level 1-9.
+        /// <remarks>Defaults to 6.</remarks>
         /// </summary>
         int CompressionLevel { get; }
 
         /// <summary>
         /// Gets the gamma value, that will be written
         /// the the stream, when the <see cref="WriteGamma"/> property
-        /// is set to true.
+        /// is set to true. The default value is 2.2F.
         /// </summary>
         /// <value>The gamma value of the image.</value>
         float Gamma { get; }
 
         /// <summary>
-        /// Gets quantizer for reducing the color count.
+        /// Gets  quantizer for reducing the color count.
         /// </summary>
         IQuantizer Quantizer { get; }
 
@@ -47,7 +57,7 @@ namespace ImageSharp.Formats
 
         /// <summary>
         /// Gets a value indicating whether this instance should write
-        /// gamma information to the stream.
+        /// gamma information to the stream. The default value is false.
         /// </summary>
         bool WriteGamma { get; }
     }

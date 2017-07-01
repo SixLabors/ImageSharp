@@ -9,13 +9,17 @@ namespace ImageSharp.Tests.TestUtilities.Integration
     using ImageSharp.Formats;
     using ImageSharp.PixelFormats;
 
-    public class ReferenceEncoder : IImageEncoder
+    public class ReferencePngEncoder : IImageEncoder
     {
+        public static ReferencePngEncoder Instance { get; } = new ReferencePngEncoder();
+
         public void Encode<TPixel>(Image<TPixel> image, Stream stream, IEncoderOptions options)
             where TPixel : struct, IPixel<TPixel>
         {
-            System.Drawing.Bitmap sdBitmap = IntegrationTestUtils.ToSystemDrawingBitmap(image);
-            throw new NotImplementedException();
+            using (System.Drawing.Bitmap sdBitmap = IntegrationTestUtils.ToSystemDrawingBitmap(image))
+            {
+                sdBitmap.Save(stream, System.Drawing.Imaging.ImageFormat.Png);
+            }
         }
     }
 }

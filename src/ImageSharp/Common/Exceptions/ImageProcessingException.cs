@@ -10,7 +10,7 @@ namespace ImageSharp
     /// <summary>
     /// The exception that is thrown when an error occurs when applying a process to an image.
     /// </summary>
-    public class ImageProcessingException : Exception
+    public sealed class ImageProcessingException : Exception
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageProcessingException"/> class.

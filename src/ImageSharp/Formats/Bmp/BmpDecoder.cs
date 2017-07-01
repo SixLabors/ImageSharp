@@ -26,7 +26,7 @@ namespace ImageSharp.Formats
     /// Formats will be supported in a later releases. We advise always
     /// to use only 24 Bit Windows bitmaps.
     /// </remarks>
-    public class BmpDecoder : IImageDecoder, IBmpDecoderOptions
+    public sealed class BmpDecoder : IImageDecoder, IBmpDecoderOptions
     {
         /// <inheritdoc/>
         public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream)

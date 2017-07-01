@@ -8,7 +8,7 @@ namespace ImageSharp.Formats
     /// <summary>
     /// Registers the image encoders, decoders and mime type detectors for the png format.
     /// </summary>
-    public class PngConfigurationModule : IConfigurationModule
+    public sealed class PngConfigurationModule : IConfigurationModule
     {
         /// <inheritdoc/>
         public void Configure(Configuration host)

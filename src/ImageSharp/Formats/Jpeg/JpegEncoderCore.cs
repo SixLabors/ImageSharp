@@ -17,7 +17,7 @@ namespace ImageSharp.Formats
     /// <summary>
     /// Image encoder for writing an image to a stream as a jpeg.
     /// </summary>
-    internal unsafe class JpegEncoderCore
+    internal sealed unsafe class JpegEncoderCore
     {
         /// <summary>
         /// The number of quantization tables.

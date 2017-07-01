@@ -31,7 +31,7 @@ namespace ImageSharp.Formats
     /// </list>
     /// </para>
     /// </remarks>
-    public class PngDecoder : IImageDecoder, IPngDecoderOptions
+    public sealed class PngDecoder : IImageDecoder, IPngDecoderOptions
     {
         /// <summary>
         /// Gets or sets a value indicating whether the metadata should be ignored when the image is being decoded.

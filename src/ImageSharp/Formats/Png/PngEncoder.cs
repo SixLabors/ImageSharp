@@ -14,7 +14,7 @@ namespace ImageSharp.Formats
     /// <summary>
     /// Image encoder for writing image data to a stream in png format.
     /// </summary>
-    public class PngEncoder : IImageEncoder, IPngEncoderOptions
+    public sealed class PngEncoder : IImageEncoder, IPngEncoderOptions
     {
         /// <summary>
         /// Gets or sets a value indicating whether the metadata should be ignored when the image is being encoded.

@@ -18,7 +18,7 @@ namespace ImageSharp.Formats
     /// Performs the gif decoding operation.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class GifDecoderCore<TPixel>
+    internal sealed class GifDecoderCore<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>

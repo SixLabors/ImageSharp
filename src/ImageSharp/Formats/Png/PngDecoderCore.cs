@@ -20,7 +20,7 @@ namespace ImageSharp.Formats
     /// <summary>
     /// Performs the png decoding operation.
     /// </summary>
-    internal class PngDecoderCore
+    internal sealed class PngDecoderCore
     {
         /// <summary>
         /// The dictionary of available color types.

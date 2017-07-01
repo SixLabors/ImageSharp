@@ -8,7 +8,7 @@ namespace ImageSharp.Formats
     /// <summary>
     /// Registers the image encoders, decoders and mime type detectors for the bmp format.
     /// </summary>
-    public class BmpConfigurationModule : IConfigurationModule
+    public sealed class BmpConfigurationModule : IConfigurationModule
     {
         /// <inheritdoc/>
         public void Configure(Configuration config)

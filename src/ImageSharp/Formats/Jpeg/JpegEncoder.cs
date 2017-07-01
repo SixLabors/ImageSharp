@@ -14,7 +14,7 @@ namespace ImageSharp.Formats
     /// <summary>
     /// Encoder for writing the data image to a stream in jpeg format.
     /// </summary>
-    public class JpegEncoder : IImageEncoder, IJpegEncoderOptions
+    public sealed class JpegEncoder : IImageEncoder, IJpegEncoderOptions
     {
         /// <summary>
         /// Gets or sets a value indicating whether the metadata should be ignored when the image is being decoded.

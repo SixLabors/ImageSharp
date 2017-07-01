@@ -8,7 +8,7 @@ namespace ImageSharp.Formats
     /// <summary>
     /// Registers the image encoders, decoders and mime type detectors for the jpeg format.
     /// </summary>
-    public class JpegConfigurationModule : IConfigurationModule
+    public sealed class JpegConfigurationModule : IConfigurationModule
     {
         /// <inheritdoc/>
         public void Configure(Configuration config)

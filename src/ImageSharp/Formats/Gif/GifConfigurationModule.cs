@@ -8,7 +8,7 @@ namespace ImageSharp.Formats
     /// <summary>
     /// Registers the image encoders, decoders and mime type detectors for the gif format.
     /// </summary>
-    public class GifConfigurationModule : IConfigurationModule
+    public sealed class GifConfigurationModule : IConfigurationModule
     {
         /// <inheritdoc/>
         public void Configure(Configuration config)

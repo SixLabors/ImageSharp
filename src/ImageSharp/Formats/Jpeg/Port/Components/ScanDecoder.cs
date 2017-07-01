@@ -23,9 +23,11 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
 
         private int bitsCount;
 
+#pragma warning disable 414
         private int bitsUnRead;
 
         private int accumulator;
+#pragma warning restore 414
 
         private int specStart;
 

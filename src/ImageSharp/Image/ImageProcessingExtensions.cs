@@ -22,10 +22,10 @@ namespace ImageSharp
         /// <param name="source">The image this method extends.</param>
         /// <param name="processor">The processor to apply to the image.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> Apply<TPixel>(this Image<TPixel> source, IImageProcessor<TPixel> processor)
+        public static IImageOperations<TPixel> Apply<TPixel>(this IImageOperations<TPixel> source, IImageProcessor<TPixel> processor)
             where TPixel : struct, IPixel<TPixel>
         {
-            source.ApplyProcessor(processor, source.Bounds);
+            source.ApplyProcessor(processor);
             return source;
         }
     }

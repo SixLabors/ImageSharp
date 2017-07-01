@@ -27,11 +27,13 @@ namespace ImageSharp.Processing.Processors
         /// Initializes a new instance of the <see cref="GlowProcessor{TPixel}" /> class.
         /// </summary>
         /// <param name="color">The color or the glow.</param>
+        /// <param name="radius">The radius of the glow.</param>
         /// <param name="options">The options effecting blending and composition.</param>
-        public GlowProcessor(TPixel color, GraphicsOptions options)
+        public GlowProcessor(TPixel color, ValueSize radius, GraphicsOptions options)
         {
             this.options = options;
             this.GlowColor = color;
+            this.Radius = radius;
             this.blender = PixelOperations<TPixel>.Instance.GetPixelBlender(this.options.BlenderMode);
         }
 
@@ -43,7 +45,7 @@ namespace ImageSharp.Processing.Processors
         /// <summary>
         /// Gets or sets the the radius.
         /// </summary>
-        public float Radius { get; set; }
+        public ValueSize Radius { get; set; }
 
         /// <inheritdoc/>
         protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
@@ -54,7 +56,10 @@ namespace ImageSharp.Processing.Processors
             int endX = sourceRectangle.Right;
             TPixel glowColor = this.GlowColor;
             Vector2 centre = Rectangle.Center(sourceRectangle);
-            float maxDistance = this.Radius > 0 ? MathF.Min(this.Radius, sourceRectangle.Width * .5F) : sourceRectangle.Width * .5F;
+
+            var finalRadius = this.Radius.Calculate(source.Bounds.Size);
+
+            float maxDistance = finalRadius > 0 ? MathF.Min(finalRadius, sourceRectangle.Width * .5F) : sourceRectangle.Width * .5F;
 
             // Align start/end positions.
             int minX = Math.Max(0, startX);

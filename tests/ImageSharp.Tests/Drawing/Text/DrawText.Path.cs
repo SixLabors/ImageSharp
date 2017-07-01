@@ -51,13 +51,13 @@ namespace ImageSharp.Tests.Drawing.Text
         [Fact]
         public void FillsForEachACharachterWhenBrushSetAndNotPen()
         {
-            this.img.DrawText(
+            this.img.Mutate(x => x.DrawText(
                 "123",
                 this.Font,
                 Brushes.Solid(Rgba32.Red),
                 null,
                 path,
-                new TextGraphicsOptions(true));
+                new TextGraphicsOptions(true)));
 
             Assert.NotEmpty(this.img.ProcessorApplications);
             Assert.Equal(3, this.img.ProcessorApplications.Count); // 3 fills where applied
@@ -67,7 +67,7 @@ namespace ImageSharp.Tests.Drawing.Text
         [Fact]
         public void FillsForEachACharachterWhenBrushSetAndNotPenDefaultOptions()
         {
-            this.img.DrawText("123", this.Font, Brushes.Solid(Rgba32.Red), null, path);
+            this.img.Mutate(x => x.DrawText("123", this.Font, Brushes.Solid(Rgba32.Red), null, path));
 
             Assert.NotEmpty(this.img.ProcessorApplications);
             Assert.Equal(3, this.img.ProcessorApplications.Count); // 3 fills where applied
@@ -77,7 +77,7 @@ namespace ImageSharp.Tests.Drawing.Text
         [Fact]
         public void FillsForEachACharachterWhenBrushSet()
         {
-            this.img.DrawText("123", this.Font, Brushes.Solid(Rgba32.Red), path, new TextGraphicsOptions(true));
+            this.img.Mutate(x => x.DrawText("123", this.Font, Brushes.Solid(Rgba32.Red), path, new TextGraphicsOptions(true)));
 
             Assert.NotEmpty(this.img.ProcessorApplications);
             Assert.Equal(3, this.img.ProcessorApplications.Count); // 3 fills where applied
@@ -87,7 +87,7 @@ namespace ImageSharp.Tests.Drawing.Text
         [Fact]
         public void FillsForEachACharachterWhenBrushSetDefaultOptions()
         {
-            this.img.DrawText("123", this.Font, Brushes.Solid(Rgba32.Red), path);
+            this.img.Mutate(x => x.DrawText("123", this.Font, Brushes.Solid(Rgba32.Red), path));
 
             Assert.NotEmpty(this.img.ProcessorApplications);
             Assert.Equal(3, this.img.ProcessorApplications.Count); // 3 fills where applied
@@ -97,7 +97,7 @@ namespace ImageSharp.Tests.Drawing.Text
         [Fact]
         public void FillsForEachACharachterWhenColorSet()
         {
-            this.img.DrawText("123", this.Font, Rgba32.Red, path, new TextGraphicsOptions(true));
+            this.img.Mutate(x => x.DrawText("123", this.Font, Rgba32.Red, path, new TextGraphicsOptions(true)));
 
             Assert.NotEmpty(this.img.ProcessorApplications);
             Assert.Equal(3, this.img.ProcessorApplications.Count);
@@ -111,7 +111,7 @@ namespace ImageSharp.Tests.Drawing.Text
         [Fact]
         public void FillsForEachACharachterWhenColorSetDefaultOptions()
         {
-            this.img.DrawText("123", this.Font, Rgba32.Red, path);
+            this.img.Mutate(x => x.DrawText("123", this.Font, Rgba32.Red, path));
 
             Assert.NotEmpty(this.img.ProcessorApplications);
             Assert.Equal(3, this.img.ProcessorApplications.Count);
@@ -126,13 +126,13 @@ namespace ImageSharp.Tests.Drawing.Text
         [Fact]
         public void DrawForEachACharachterWhenPenSetAndNotBrush()
         {
-            this.img.DrawText(
+            this.img.Mutate(x => x.DrawText(
                 "123",
                 this.Font,
                 null,
                 Pens.Dash(Rgba32.Red, 1),
                 path,
-                new TextGraphicsOptions(true));
+                new TextGraphicsOptions(true)));
 
             Assert.NotEmpty(this.img.ProcessorApplications);
             Assert.Equal(3, this.img.ProcessorApplications.Count); // 3 fills where applied
@@ -142,7 +142,7 @@ namespace ImageSharp.Tests.Drawing.Text
         [Fact]
         public void DrawForEachACharachterWhenPenSetAndNotBrushDefaultOptions()
         {
-            this.img.DrawText("123", this.Font, null, Pens.Dash(Rgba32.Red, 1), path);
+            this.img.Mutate(x => x.DrawText("123", this.Font, null, Pens.Dash(Rgba32.Red, 1), path));
 
             Assert.NotEmpty(this.img.ProcessorApplications);
             Assert.Equal(3, this.img.ProcessorApplications.Count); // 3 fills where applied
@@ -152,7 +152,7 @@ namespace ImageSharp.Tests.Drawing.Text
         [Fact]
         public void DrawForEachACharachterWhenPenSet()
         {
-            this.img.DrawText("123", this.Font, Pens.Dash(Rgba32.Red, 1), path, new TextGraphicsOptions(true));
+            this.img.Mutate(x => x.DrawText("123", this.Font, Pens.Dash(Rgba32.Red, 1), path, new TextGraphicsOptions(true)));
 
             Assert.NotEmpty(this.img.ProcessorApplications);
             Assert.Equal(3, this.img.ProcessorApplications.Count); // 3 fills where applied
@@ -162,7 +162,7 @@ namespace ImageSharp.Tests.Drawing.Text
         [Fact]
         public void DrawForEachACharachterWhenPenSetDefaultOptions()
         {
-            this.img.DrawText("123", this.Font, Pens.Dash(Rgba32.Red, 1), path);
+            this.img.Mutate(x => x.DrawText("123", this.Font, Pens.Dash(Rgba32.Red, 1), path));
 
             Assert.NotEmpty(this.img.ProcessorApplications);
             Assert.Equal(3, this.img.ProcessorApplications.Count); // 3 fills where applied
@@ -172,13 +172,13 @@ namespace ImageSharp.Tests.Drawing.Text
         [Fact]
         public void DrawForEachACharachterWhenPenSetAndFillFroEachWhenBrushSet()
         {
-            this.img.DrawText(
+            this.img.Mutate(x => x.DrawText(
                 "123",
                 this.Font,
                 Brushes.Solid(Rgba32.Red),
                 Pens.Dash(Rgba32.Red, 1),
                 path,
-                new TextGraphicsOptions(true));
+                new TextGraphicsOptions(true)));
 
             Assert.NotEmpty(this.img.ProcessorApplications);
             Assert.Equal(6, this.img.ProcessorApplications.Count);
@@ -187,7 +187,7 @@ namespace ImageSharp.Tests.Drawing.Text
         [Fact]
         public void DrawForEachACharachterWhenPenSetAndFillFroEachWhenBrushSetDefaultOptions()
         {
-            this.img.DrawText("123", this.Font, Brushes.Solid(Rgba32.Red), Pens.Dash(Rgba32.Red, 1), path);
+            this.img.Mutate(x => x.DrawText("123", this.Font, Brushes.Solid(Rgba32.Red), Pens.Dash(Rgba32.Red, 1), path));
 
             Assert.NotEmpty(this.img.ProcessorApplications);
             Assert.Equal(6, this.img.ProcessorApplications.Count);
@@ -196,13 +196,13 @@ namespace ImageSharp.Tests.Drawing.Text
         [Fact]
         public void BrushAppliesBeforPen()
         {
-            this.img.DrawText(
+            this.img.Mutate(x => x.DrawText(
                 "1",
                 this.Font,
                 Brushes.Solid(Rgba32.Red),
                 Pens.Dash(Rgba32.Red, 1),
                 path,
-                new TextGraphicsOptions(true));
+            new TextGraphicsOptions(true)));
 
             Assert.NotEmpty(this.img.ProcessorApplications);
             Assert.Equal(2, this.img.ProcessorApplications.Count);
@@ -213,39 +213,12 @@ namespace ImageSharp.Tests.Drawing.Text
         [Fact]
         public void BrushAppliesBeforPenDefaultOptions()
         {
-            this.img.DrawText("1", this.Font, Brushes.Solid(Rgba32.Red), Pens.Dash(Rgba32.Red, 1), path);
+            this.img.Mutate(x => x.DrawText("1", this.Font, Brushes.Solid(Rgba32.Red), Pens.Dash(Rgba32.Red, 1), path));
 
             Assert.NotEmpty(this.img.ProcessorApplications);
             Assert.Equal(2, this.img.ProcessorApplications.Count);
             Assert.IsType<FillRegionProcessor<Rgba32>>(this.img.ProcessorApplications[0].processor);
             Assert.IsType<FillRegionProcessor<Rgba32>>(this.img.ProcessorApplications[1].processor);
-        }
-
-        [Fact]
-        public void GlyphHeightChangesBasedOnuseImageResolutionFlag()
-        {
-            this.img.MetaData.VerticalResolution = 1;
-            this.img.MetaData.HorizontalResolution = 1;
-            this.img.DrawText("1", this.Font, Brushes.Solid(Rgba32.Red), path, new TextGraphicsOptions(true) {
-                UseImageResolution = false
-            });
-
-            this.img.DrawText("1", this.Font, Brushes.Solid(Rgba32.Red), path, new TextGraphicsOptions(true)
-            {
-                UseImageResolution = true
-            });
-
-            Assert.NotEmpty(this.img.ProcessorApplications);
-            Assert.Equal(2, this.img.ProcessorApplications.Count);
-            FillRegionProcessor<Rgba32> ownResolution = Assert.IsType<FillRegionProcessor<Rgba32>>(this.img.ProcessorApplications[0].processor);
-            FillRegionProcessor<Rgba32> imgResolution = Assert.IsType<FillRegionProcessor<Rgba32>>(this.img.ProcessorApplications[1].processor);
-
-            ShapeRegion ownRegion = Assert.IsType<ShapeRegion>(ownResolution.Region);
-            ShapeRegion imgRegion = Assert.IsType<ShapeRegion>(imgResolution.Region);
-
-            // magic numbers based on the font used at well known resolutions
-            Assert.Equal(7.44, ownRegion.Shape.Bounds.Height, 2);
-            Assert.Equal(0.1, imgRegion.Shape.Bounds.Height, 2);
         }
     }
 }

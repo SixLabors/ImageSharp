@@ -25,8 +25,8 @@ namespace ImageSharp.Tests.Processing.Convolution
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                image.BoxBlur(value)
-                    .DebugSave(provider, value, Extensions.Bmp);
+                image.Mutate(x => x.BoxBlur(value));
+                image.DebugSave(provider, value, Extensions.Bmp);
             }
         }
 
@@ -40,8 +40,8 @@ namespace ImageSharp.Tests.Processing.Convolution
             {
                 var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
 
-                image.BoxBlur(value, bounds)
-                    .DebugSave(provider, value, Extensions.Bmp);
+                image.Mutate(x => x.BoxBlur(value, bounds));
+                image.DebugSave(provider, value, Extensions.Bmp);
 
                 ImageComparer.EnsureProcessorChangesAreConstrained(source, image, bounds);
             }

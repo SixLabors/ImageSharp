@@ -24,7 +24,7 @@ namespace ImageSharp
         /// <param name="rotateType">The <see cref="RotateType"/> to perform the rotation.</param>
         /// <param name="flipType">The <see cref="FlipType"/> to perform the flip.</param>
         /// <returns>The <see cref="Image{TPixel}"/></returns>
-        public static Image<TPixel> RotateFlip<TPixel>(this Image<TPixel> source, RotateType rotateType, FlipType flipType)
+        public static IImageOperations<TPixel> RotateFlip<TPixel>(this IImageOperations<TPixel> source, RotateType rotateType, FlipType flipType)
             where TPixel : struct, IPixel<TPixel>
         {
             return source.Rotate(rotateType).Flip(flipType);

@@ -25,8 +25,8 @@ namespace ImageSharp.Tests.Processing.Effects
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                image.Pixelate(value)
-                    .DebugSave(provider, value, Extensions.Bmp);
+                image.Mutate(x => x.Pixelate(value));
+                image.DebugSave(provider, value, Extensions.Bmp);
 
                 // Test the neigbouring pixels
                 for (int y = 0; y < image.Height; y += value)
@@ -56,8 +56,8 @@ namespace ImageSharp.Tests.Processing.Effects
             {
                 var bounds = new Rectangle(image.Width / 4, image.Height / 4, image.Width / 2, image.Height / 2);
 
-                image.Pixelate(value, bounds)
-                    .DebugSave(provider, value, Extensions.Bmp);
+                image.Mutate(x => x.Pixelate(value, bounds));
+                image.DebugSave(provider, value, Extensions.Bmp);
 
                 for (int y = 0; y < image.Height; y++)
                 {

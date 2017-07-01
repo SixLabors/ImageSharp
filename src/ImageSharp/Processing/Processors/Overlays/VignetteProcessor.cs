@@ -27,11 +27,26 @@ namespace ImageSharp.Processing.Processors
         /// Initializes a new instance of the <see cref="VignetteProcessor{TPixel}" /> class.
         /// </summary>
         /// <param name="color">The color of the vignette.</param>
+        /// <param name="radiusX">The x-radius.</param>
+        /// <param name="radiusY">The y-radius.</param>
         /// <param name="options">The options effecting blending and composition.</param>
-        public VignetteProcessor(TPixel color, GraphicsOptions options)
+        public VignetteProcessor(TPixel color, ValueSize radiusX, ValueSize radiusY, GraphicsOptions options)
         {
             this.VignetteColor = color;
+            this.RadiusX = radiusX;
+            this.RadiusY = radiusY;
+            this.options = options;
+            this.blender = PixelOperations<TPixel>.Instance.GetPixelBlender(this.options.BlenderMode);
+        }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="VignetteProcessor{TPixel}" /> class.
+        /// </summary>
+        /// <param name="color">The color of the vignette.</param>
+        /// <param name="options">The options effecting blending and composition.</param>
+        public VignetteProcessor(TPixel color,  GraphicsOptions options)
+        {
+            this.VignetteColor = color;
             this.options = options;
             this.blender = PixelOperations<TPixel>.Instance.GetPixelBlender(this.options.BlenderMode);
         }
@@ -44,12 +59,12 @@ namespace ImageSharp.Processing.Processors
         /// <summary>
         /// Gets or sets the the x-radius.
         /// </summary>
-        public float RadiusX { get; set; }
+        public ValueSize RadiusX { get; set; }
 
         /// <summary>
         /// Gets or sets the the y-radius.
         /// </summary>
-        public float RadiusY { get; set; }
+        public ValueSize RadiusY { get; set; }
 
         /// <inheritdoc/>
         protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
@@ -60,8 +75,11 @@ namespace ImageSharp.Processing.Processors
             int endX = sourceRectangle.Right;
             TPixel vignetteColor = this.VignetteColor;
             Vector2 centre = Rectangle.Center(sourceRectangle);
-            float rX = this.RadiusX > 0 ? MathF.Min(this.RadiusX, sourceRectangle.Width * .5F) : sourceRectangle.Width * .5F;
-            float rY = this.RadiusY > 0 ? MathF.Min(this.RadiusY, sourceRectangle.Height * .5F) : sourceRectangle.Height * .5F;
+
+            var finalradiusX = this.RadiusX.Calculate(source.Bounds.Size);
+            var finalradiusY = this.RadiusY.Calculate(source.Bounds.Size);
+            float rX = finalradiusX > 0 ? MathF.Min(finalradiusX, sourceRectangle.Width * .5F) : sourceRectangle.Width * .5F;
+            float rY = finalradiusY > 0 ? MathF.Min(finalradiusY, sourceRectangle.Height * .5F) : sourceRectangle.Height * .5F;
             float maxDistance = MathF.Sqrt((rX * rX) + (rY * rY));
 
             // Align start/end positions.

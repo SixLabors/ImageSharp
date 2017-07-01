@@ -37,7 +37,7 @@ namespace ImageSharp.Tests.Drawing.Paths
         [Fact]
         public void CorrectlySetsBrushAndPath()
         {
-            img.Fill(brush, path);
+            img.Mutate(x => x.Fill(brush, path));
 
             Assert.NotEmpty(img.ProcessorApplications);
             FillRegionProcessor<Rgba32> processor = Assert.IsType<FillRegionProcessor<Rgba32>>(img.ProcessorApplications[0].processor);
@@ -56,7 +56,7 @@ namespace ImageSharp.Tests.Drawing.Paths
         [Fact]
         public void CorrectlySetsBrushPathOptions()
         {
-            img.Fill(brush, path, noneDefault);
+            img.Mutate(x => x.Fill(brush, path, noneDefault));
 
             Assert.NotEmpty(img.ProcessorApplications);
             FillRegionProcessor<Rgba32> processor = Assert.IsType<FillRegionProcessor<Rgba32>>(img.ProcessorApplications[0].processor);
@@ -73,7 +73,7 @@ namespace ImageSharp.Tests.Drawing.Paths
         [Fact]
         public void CorrectlySetsColorAndPath()
         {
-            img.Fill(color, path);
+            img.Mutate(x => x.Fill(color, path));
 
             Assert.NotEmpty(img.ProcessorApplications);
             FillRegionProcessor<Rgba32> processor = Assert.IsType<FillRegionProcessor<Rgba32>>(img.ProcessorApplications[0].processor);
@@ -91,7 +91,7 @@ namespace ImageSharp.Tests.Drawing.Paths
         [Fact]
         public void CorrectlySetsColorPathAndOptions()
         {
-            img.Fill(color, path, noneDefault);
+            img.Mutate(x => x.Fill(color, path, noneDefault));
 
             Assert.NotEmpty(img.ProcessorApplications);
             FillRegionProcessor<Rgba32> processor = Assert.IsType<FillRegionProcessor<Rgba32>>(img.ProcessorApplications[0].processor);

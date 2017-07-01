@@ -40,8 +40,8 @@ namespace ImageSharp.Tests
             using (Image<TPixel> image = provider.GetImage())
             using (Image<TPixel> blend = Image.Load<TPixel>(TestFile.Create(TestImages.Bmp.Car).Bytes))
             {
-                image.DrawImage(blend, mode, .75f, new Size(image.Width / 2, image.Height / 2), new Point(image.Width / 4, image.Height / 4))
-                     .DebugSave(provider, new { mode });
+                image.Mutate(x => x.DrawImage(blend, mode, .75f, new Size(image.Width / 2, image.Height / 2), new Point(image.Width / 4, image.Height / 4)));
+                image.DebugSave(provider, new { mode });
             }
         }
     }

@@ -18,8 +18,8 @@ namespace ImageSharp.Tests.Processing.Overlays
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                image.Glow()
-                    .DebugSave(provider, null, Extensions.Bmp);
+                image.Mutate(x => x.Glow());
+                image.DebugSave(provider, null, Extensions.Bmp);
             }
         }
 
@@ -30,8 +30,8 @@ namespace ImageSharp.Tests.Processing.Overlays
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                image.Glow(NamedColors<TPixel>.Orange)
-                    .DebugSave(provider, null, Extensions.Bmp);
+                image.Mutate(x => x.Glow(NamedColors<TPixel>.Orange));
+                image.DebugSave(provider, null, Extensions.Bmp);
             }
         }
 
@@ -42,8 +42,8 @@ namespace ImageSharp.Tests.Processing.Overlays
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                image.Glow(image.Width / 4F)
-                    .DebugSave(provider, null, Extensions.Bmp);
+                image.Mutate(x => x.Glow(image.Width / 4F));
+                image.DebugSave(provider, null, Extensions.Bmp);
             }
         }
 
@@ -57,8 +57,8 @@ namespace ImageSharp.Tests.Processing.Overlays
             {
                 var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
 
-                image.Glow(bounds)
-                    .DebugSave(provider, null, Extensions.Bmp);
+                image.Mutate(x => x.Glow(bounds));
+                image.DebugSave(provider, null, Extensions.Bmp);
 
                 ImageComparer.EnsureProcessorChangesAreConstrained(source, image, bounds);
             }

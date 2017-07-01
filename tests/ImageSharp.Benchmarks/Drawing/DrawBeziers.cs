@@ -47,7 +47,7 @@ namespace ImageSharp.Benchmarks
         {
             using (Image<Rgba32> image = new Image<Rgba32>(800, 800))
             {
-                image.DrawBeziers(
+                image.Mutate(x => x.DrawBeziers(
                     Rgba32.HotPink,
                     10,
                     new SixLabors.Primitives.PointF[] {
@@ -55,7 +55,7 @@ namespace ImageSharp.Benchmarks
                         new Vector2(30, 10),
                         new Vector2(240, 30),
                         new Vector2(300, 500)
-                    });
+                    }));
 
                 using (MemoryStream ms = new MemoryStream())
                 {

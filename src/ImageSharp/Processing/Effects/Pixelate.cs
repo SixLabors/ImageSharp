@@ -24,11 +24,9 @@ namespace ImageSharp
         /// <param name="source">The image this method extends.</param>
         /// <param name="size">The size of the pixels.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> Pixelate<TPixel>(this Image<TPixel> source, int size = 4)
+        public static IImageOperations<TPixel> Pixelate<TPixel>(this IImageOperations<TPixel> source, int size = 4)
             where TPixel : struct, IPixel<TPixel>
-        {
-            return Pixelate(source, size, source.Bounds);
-        }
+        => source.ApplyProcessor(new PixelateProcessor<TPixel>(size));
 
         /// <summary>
         /// Pixelates an image with the given pixel size.
@@ -40,16 +38,8 @@ namespace ImageSharp
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> Pixelate<TPixel>(this Image<TPixel> source, int size, Rectangle rectangle)
+        public static IImageOperations<TPixel> Pixelate<TPixel>(this IImageOperations<TPixel> source, int size, Rectangle rectangle)
             where TPixel : struct, IPixel<TPixel>
-        {
-            if (size <= 0 || size > source.Height || size > source.Width)
-            {
-                throw new ArgumentOutOfRangeException(nameof(size));
-            }
-
-            source.ApplyProcessor(new PixelateProcessor<TPixel>(size), rectangle);
-            return source;
-        }
+        => source.ApplyProcessor(new PixelateProcessor<TPixel>(size), rectangle);
     }
 }

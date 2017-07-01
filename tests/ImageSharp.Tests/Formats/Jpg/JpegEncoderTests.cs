@@ -36,8 +36,9 @@ namespace ImageSharp.Tests
         public void LoadResizeSave<TPixel>(TestImageProvider<TPixel> provider, int quality, JpegSubsample subsample)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage().Resize(new ResizeOptions { Size = new Size(150, 100), Mode = ResizeMode.Max }))
+            using (Image<TPixel> image = provider.GetImage(x=>x.Resize(new ResizeOptions { Size = new Size(150, 100), Mode = ResizeMode.Max })))
             {
+
                 image.MetaData.ExifProfile = null; // Reduce the size of the file
                 JpegEncoder options = new JpegEncoder { Subsample = subsample, Quality = quality };
 

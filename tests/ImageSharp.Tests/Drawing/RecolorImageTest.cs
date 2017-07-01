@@ -27,8 +27,8 @@ namespace ImageSharp.Tests
             {
                 using (Image<Rgba32> image = file.CreateImage())
                 {
-                    image.Fill(brush)
-                        .Save($"{path}/{file.FileName}");
+                    image.Mutate(x => x.Fill(brush));
+                    image.Save($"{path}/{file.FileName}");
                 }
             }
         }
@@ -45,8 +45,8 @@ namespace ImageSharp.Tests
                 using (Image<Rgba32> image = file.CreateImage())
                 {
                     int imageHeight = image.Height;
-                    image.Fill(brush, new Rectangle(0, imageHeight / 2 - imageHeight / 4, image.Width, imageHeight / 2))
-                        .Save($"{path}/Shaped_{file.FileName}");
+                    image.Mutate(x => x.Fill(brush, new Rectangle(0, imageHeight / 2 - imageHeight / 4, image.Width, imageHeight / 2)));
+                    image.Save($"{path}/Shaped_{file.FileName}");
                 }
             }
         }

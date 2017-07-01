@@ -25,6 +25,48 @@ namespace ImageSharp.Processing
         public virtual bool Compand { get; set; } = false;
 
         /// <inheritdoc/>
+        public void Apply(Image<TPixel> source, Rectangle sourceRectangle)
+        {
+            if (this.ParallelOptions == null)
+            {
+                this.ParallelOptions = source.Configuration.ParallelOptions;
+            }
+
+            try
+            {
+                this.BeforeImageApply(source, sourceRectangle);
+
+                this.BeforeApply(source, sourceRectangle);
+                this.OnApply(source, sourceRectangle);
+                this.AfterApply(source, sourceRectangle);
+
+                foreach (ImageFrame<TPixel> sourceFrame in source.Frames)
+                {
+                    this.BeforeApply(source, sourceRectangle);
+
+                    this.OnApply(source, sourceRectangle);
+                    this.AfterApply(source, sourceRectangle);
+                }
+
+                this.AfterImageApply(source, sourceRectangle);
+            }
+#if DEBUG
+            catch (Exception)
+            {
+                throw;
+#else
+            catch (Exception ex)
+            {
+                throw new ImageProcessingException($"An error occured when processing the image using {this.GetType().Name}. See the inner exception for more detail.", ex);
+#endif
+            }
+        }
+
+        /// <summary>
+        /// Applies the processor to just a single ImageBase
+        /// </summary>
+        /// <param name="source">the source image</param>
+        /// <param name="sourceRectangle">the target</param>
         public void Apply(ImageBase<TPixel> source, Rectangle sourceRectangle)
         {
             if (this.ParallelOptions == null)
@@ -35,9 +77,7 @@ namespace ImageSharp.Processing
             try
             {
                 this.BeforeApply(source, sourceRectangle);
-
                 this.OnApply(source, sourceRectangle);
-
                 this.AfterApply(source, sourceRectangle);
             }
 #if DEBUG
@@ -50,6 +90,17 @@ namespace ImageSharp.Processing
                 throw new ImageProcessingException($"An error occured when processing the image using {this.GetType().Name}. See the inner exception for more detail.", ex);
 #endif
             }
+        }
+
+        /// <summary>
+        /// This method is called before the process is applied to prepare the processor.
+        /// </summary>
+        /// <param name="source">The source image. Cannot be null.</param>
+        /// <param name="sourceRectangle">
+        /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
+        /// </param>
+        protected virtual void BeforeImageApply(Image<TPixel> source, Rectangle sourceRectangle)
+        {
         }
 
         /// <summary>
@@ -81,6 +132,17 @@ namespace ImageSharp.Processing
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
         /// </param>
         protected virtual void AfterApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        {
+        }
+
+        /// <summary>
+        /// This method is called after the process is applied to prepare the processor.
+        /// </summary>
+        /// <param name="source">The source image. Cannot be null.</param>
+        /// <param name="sourceRectangle">
+        /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
+        /// </param>
+        protected virtual void AfterImageApply(Image<TPixel> source, Rectangle sourceRectangle)
         {
         }
     }

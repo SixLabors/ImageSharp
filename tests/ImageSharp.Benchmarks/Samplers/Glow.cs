@@ -26,7 +26,7 @@ namespace ImageSharp.Benchmarks
         [GlobalSetup]
         public void Setup()
         {
-            this.bulk = new GlowProcessor<Rgba32>(NamedColors<Rgba32>.Beige, GraphicsOptions.Default) { Radius = 800 * .5f, };
+            this.bulk = new GlowProcessor<Rgba32>(NamedColors<Rgba32>.Beige, 800 * .5f, GraphicsOptions.Default);
             this.parallel = new GlowProcessorParallel<Rgba32>(NamedColors<Rgba32>.Beige) { Radius = 800 * .5f, };
 
         }

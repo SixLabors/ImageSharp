@@ -55,7 +55,8 @@ namespace ImageSharp.Tests
                 TPixel color = default(TPixel);
                 color.PackFromRgba32(new Rgba32(this.r, this.g, this.b, this.a));
 
-                return image.Fill(color);
+                image.Mutate(x => x.Fill(color));
+                return image;
             }
             
             public override void Serialize(IXunitSerializationInfo info)

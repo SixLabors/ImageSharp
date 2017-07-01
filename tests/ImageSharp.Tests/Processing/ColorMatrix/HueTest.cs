@@ -25,8 +25,8 @@ namespace ImageSharp.Tests.Processing.ColorMatrix
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                image.Hue(value)
-                    .DebugSave(provider, value, Extensions.Bmp);
+                image.Mutate(x => x.Hue(value));
+                image.DebugSave(provider, value, Extensions.Bmp);
             }
         }
 
@@ -40,8 +40,8 @@ namespace ImageSharp.Tests.Processing.ColorMatrix
             {
                 var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
 
-                image.Hue(value, bounds)
-                    .DebugSave(provider, value, Extensions.Bmp);
+                image.Mutate(x => x.Hue(value, bounds));
+                image.DebugSave(provider, value, Extensions.Bmp);
 
                 ImageComparer.EnsureProcessorChangesAreConstrained(source, image, bounds);
             }

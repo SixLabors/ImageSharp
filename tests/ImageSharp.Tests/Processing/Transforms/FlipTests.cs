@@ -29,8 +29,8 @@ namespace ImageSharp.Tests.Processing.Transforms
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                image.Flip(flipType)
-                    .DebugSave(provider, flipType, Extensions.Bmp);
+                image.Mutate(x => x.Flip(flipType));
+                image.DebugSave(provider, flipType, Extensions.Bmp);
             }
         }
     }

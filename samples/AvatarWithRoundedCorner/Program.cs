@@ -23,13 +23,14 @@ namespace AvatarWithRoundedCorner
         {
             using (var image = Image.Load(source))
             {
-                image.Resize(new ImageSharp.Processing.ResizeOptions
-                {
-                    Size = size,
-                    Mode = ImageSharp.Processing.ResizeMode.Crop
-                });
+                image.Mutate(x => x
+                    .Resize(new ImageSharp.Processing.ResizeOptions
+                    {
+                        Size = size,
+                        Mode = ImageSharp.Processing.ResizeMode.Crop
+                    })
+                    .Run(i=>ApplyRoundedCourners(i, cornerRadius)));
 
-                ApplyRoundedCourners(image, cornerRadius);
                 image.Save(destination);
             }
         }
@@ -38,10 +39,10 @@ namespace AvatarWithRoundedCorner
         {
             var corners = BuildCorners(img.Width, img.Height, cornerRadius);
             // now we have our corners time to draw them
-            img.Fill(Rgba32.Transparent, corners, new GraphicsOptions(true)
+            img.Mutate(x => x.Fill(Rgba32.Transparent, corners, new GraphicsOptions(true)
             {
                 BlenderMode = ImageSharp.PixelFormats.PixelBlenderMode.Src // enforces that any part of this shape that has color is punched out of the background
-            });
+            }));
         }
 
         public static  IPathCollection BuildCorners(int imageWidth, int imageHeight, float cornerRadius)

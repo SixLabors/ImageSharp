@@ -51,6 +51,11 @@ namespace ImageSharp.Processing.Processors
         /// <inheritdoc/>
         protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
         {
+            if (this.BrushSize <= 0 || this.BrushSize > source.Height || this.BrushSize > source.Width)
+            {
+                throw new ArgumentOutOfRangeException(nameof(this.BrushSize));
+            }
+
             int startY = sourceRectangle.Y;
             int endY = sourceRectangle.Bottom;
             int startX = sourceRectangle.X;

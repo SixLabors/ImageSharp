@@ -29,23 +29,28 @@ namespace ImageSharp.Processing.Processors
         public PixelateProcessor(int size)
         {
             Guard.MustBeGreaterThan(size, 0, nameof(size));
-            this.Value = size;
+            this.Size = size;
         }
 
         /// <summary>
         /// Gets or the pixel size.
         /// </summary>
-        public int Value { get; }
+        public int Size { get; }
 
         /// <inheritdoc/>
         protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
         {
+            if (this.Size <= 0 || this.Size > source.Height || this.Size > source.Width)
+            {
+                throw new ArgumentOutOfRangeException(nameof(this.Size));
+            }
+
             int startY = sourceRectangle.Y;
             int endY = sourceRectangle.Bottom;
             int startX = sourceRectangle.X;
             int endX = sourceRectangle.Right;
-            int size = this.Value;
-            int offset = this.Value / 2;
+            int size = this.Size;
+            int offset = this.Size / 2;
 
             // Align start/end positions.
             int minX = Math.Max(0, startX);

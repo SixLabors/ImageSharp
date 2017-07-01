@@ -34,7 +34,7 @@ namespace ImageSharp.Tests.Processing.Transforms
                     {
                         using (var image = new Image<Rgba32>(width, height))
                         {
-                            image.Resize(width / 4, height / 4);
+                            image.Mutate(x => x.Resize(width / 4, height / 4));
                         }
                     });
         }

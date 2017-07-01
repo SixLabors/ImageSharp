@@ -47,7 +47,7 @@ namespace ImageSharp.Tests.Drawing.Paths
         [Fact]
         public void CorrectlySetsBrushAndPath()
         {
-            img.Fill(brush, pathCollection);
+            img.Mutate(x => x.Fill(brush, pathCollection));
 
             Assert.Equal(2, img.ProcessorApplications.Count);
             for (var i = 0; i < 2; i++)
@@ -69,7 +69,7 @@ namespace ImageSharp.Tests.Drawing.Paths
         [Fact]
         public void CorrectlySetsBrushPathOptions()
         {
-            img.Fill(brush, pathCollection, noneDefault);
+            img.Mutate(x => x.Fill(brush, pathCollection, noneDefault));
 
             Assert.Equal(2, img.ProcessorApplications.Count);
             for (var i = 0; i < 2; i++)
@@ -89,7 +89,7 @@ namespace ImageSharp.Tests.Drawing.Paths
         [Fact]
         public void CorrectlySetsColorAndPath()
         {
-            img.Fill(color, pathCollection);
+            img.Mutate(x => x.Fill(color, pathCollection));
 
             Assert.Equal(2, img.ProcessorApplications.Count);
             for (var i = 0; i < 2; i++)
@@ -110,7 +110,7 @@ namespace ImageSharp.Tests.Drawing.Paths
         [Fact]
         public void CorrectlySetsColorPathAndOptions()
         {
-            img.Fill(color, pathCollection, noneDefault);
+            img.Mutate(x => x.Fill(color, pathCollection, noneDefault));
 
             Assert.Equal(2, img.ProcessorApplications.Count);
             for (var i = 0; i < 2; i++)

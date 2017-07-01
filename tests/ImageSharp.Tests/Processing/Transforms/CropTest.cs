@@ -18,8 +18,8 @@ namespace ImageSharp.Tests.Processing.Transforms
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                image.Crop(image.Width / 2, image.Height / 2)
-                    .DebugSave(provider, null, Extensions.Bmp);
+                image.Mutate(x => x.Crop(image.Width / 2, image.Height / 2));
+                image.DebugSave(provider, null, Extensions.Bmp);
             }
         }
     }

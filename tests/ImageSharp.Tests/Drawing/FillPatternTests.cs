@@ -21,9 +21,9 @@ namespace ImageSharp.Tests.Drawing
             string path = this.CreateOutputDirectory("Fill", "PatternBrush");
             using (Image<Rgba32> image = new Image<Rgba32>(20, 20))
             {
-                image
+                image.Mutate(x => x
                     .Fill(background)
-                    .Fill(brush);
+                    .Fill(brush));
 
                 image.Save($"{path}/{name}.png");
 
@@ -51,7 +51,8 @@ namespace ImageSharp.Tests.Drawing
                         }
                     }
                 }
-                image.Resize(80, 80).Save($"{path}/{name}x4.png");
+                image.Mutate(x => x.Resize(80, 80));
+                image.Save($"{path}/{name}x4.png");
             }
         }
 

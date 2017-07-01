@@ -41,7 +41,7 @@ namespace ImageSharp.Benchmarks
         {
             using (Image<Rgba32> image = new Image<Rgba32>(2000, 2000))
             {
-                image.Resize(400, 400);
+                image.Mutate(x => x.Resize(400, 400));
                 return new CoreSize(image.Width, image.Height);
             }
         }

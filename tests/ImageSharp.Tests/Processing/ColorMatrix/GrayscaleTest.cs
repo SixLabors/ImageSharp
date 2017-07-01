@@ -29,7 +29,7 @@ namespace ImageSharp.Tests.Processing.ColorMatrix
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                image.Grayscale(value);
+                image.Mutate(x => x.Grayscale(value));
                 byte[] data = new byte[3];
                 for (int i = 0; i < image.Pixels.Length; i++)
                 {
@@ -51,8 +51,8 @@ namespace ImageSharp.Tests.Processing.ColorMatrix
             using (var image = new Image<TPixel>(source))
             {
                 var bounds = new Rectangle(image.Width / 4, image.Height / 4, image.Width / 2, image.Height / 2);
-                image.Grayscale(value, bounds)
-                     .DebugSave(provider, value.ToString());
+                image.Mutate(x => x.Grayscale(value, bounds));
+                image.DebugSave(provider, value.ToString());
 
                 ImageComparer.EnsureProcessorChangesAreConstrained(source, image, bounds);
             }

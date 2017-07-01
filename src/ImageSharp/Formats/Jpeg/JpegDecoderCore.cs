@@ -18,7 +18,7 @@ namespace ImageSharp.Formats
     /// <summary>
     /// Performs the jpeg decoding operation.
     /// </summary>
-    internal unsafe class JpegDecoderCore : IDisposable
+    internal sealed unsafe class JpegDecoderCore : IDisposable
     {
         /// <summary>
         /// The maximum number of color components

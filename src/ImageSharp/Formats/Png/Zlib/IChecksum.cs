@@ -12,7 +12,7 @@ namespace ImageSharp.Formats
     /// <code>Value</code>. The complete checksum object can also be reset
     /// so it can be used again with new data.
     /// </summary>
-    public interface IChecksum
+    internal interface IChecksum
     {
         /// <summary>
         /// Gets the data checksum computed so far.

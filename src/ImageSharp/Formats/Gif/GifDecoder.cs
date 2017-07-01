@@ -14,7 +14,7 @@ namespace ImageSharp.Formats
     /// <summary>
     /// Decoder for generating an image out of a gif encoded stream.
     /// </summary>
-    public class GifDecoder : IImageDecoder, IGifDecoderOptions
+    public sealed class GifDecoder : IImageDecoder, IGifDecoderOptions
     {
         /// <summary>
         /// Gets or sets a value indicating whether the metadata should be ignored when the image is being decoded.

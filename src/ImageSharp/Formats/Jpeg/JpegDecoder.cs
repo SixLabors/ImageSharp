@@ -14,7 +14,7 @@ namespace ImageSharp.Formats
     /// <summary>
     /// Image decoder for generating an image out of a jpg stream.
     /// </summary>
-    public class JpegDecoder : IImageDecoder, IJpegDecoderOptions
+    public sealed class JpegDecoder : IImageDecoder, IJpegDecoderOptions
     {
         /// <summary>
         /// Gets or sets a value indicating whether the metadata should be ignored when the image is being decoded.

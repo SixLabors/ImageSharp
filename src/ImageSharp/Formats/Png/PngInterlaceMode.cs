@@ -8,7 +8,7 @@ namespace ImageSharp.Formats
     /// <summary>
     /// Provides enumeration of available PNG interlace modes.
     /// </summary>
-    public enum PngInterlaceMode : byte
+    internal enum PngInterlaceMode : byte
     {
         /// <summary>
         /// Non interlaced

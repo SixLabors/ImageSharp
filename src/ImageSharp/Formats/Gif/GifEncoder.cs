@@ -15,7 +15,7 @@ namespace ImageSharp.Formats
     /// <summary>
     /// Image encoder for writing image data to a stream in gif format.
     /// </summary>
-    public class GifEncoder : IImageEncoder, IGifEncoderOptions
+    public sealed class GifEncoder : IImageEncoder, IGifEncoderOptions
     {
         /// <summary>
         /// Gets or sets a value indicating whether the metadata should be ignored when the image is being encoded.

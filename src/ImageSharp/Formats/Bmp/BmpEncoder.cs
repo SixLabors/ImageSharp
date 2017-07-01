@@ -6,6 +6,7 @@
 namespace ImageSharp.Formats
 {
     using System;
+    using System.Collections.Generic;
     using System.IO;
 
     using ImageSharp.PixelFormats;
@@ -14,28 +15,18 @@ namespace ImageSharp.Formats
     /// Image encoder for writing an image to a stream as a Windows bitmap.
     /// </summary>
     /// <remarks>The encoder can currently only write 24-bit rgb images to streams.</remarks>
-    public class BmpEncoder : IImageEncoder
+    public sealed class BmpEncoder : IImageEncoder, IBmpEncoderOptions
     {
-        /// <inheritdoc/>
-        public void Encode<TPixel>(Image<TPixel> image, Stream stream, IEncoderOptions options)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            IBmpEncoderOptions bmpOptions = BmpEncoderOptions.Create(options);
-
-            this.Encode(image, stream, bmpOptions);
-        }
-
         /// <summary>
-        /// Encodes the image to the specified stream from the <see cref="Image{TPixel}"/>.
+        /// Gets or sets the number of bits per pixel.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="image">The <see cref="Image{TPixel}"/> to encode from.</param>
-        /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
-        /// <param name="options">The options for the encoder.</param>
-        public void Encode<TPixel>(Image<TPixel> image, Stream stream, IBmpEncoderOptions options)
+        public BmpBitsPerPixel BitsPerPixel { get; set; } = BmpBitsPerPixel.Pixel24;
+
+        /// <inheritdoc/>
+        public void Encode<TPixel>(Image<TPixel> image, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
-            BmpEncoderCore encoder = new BmpEncoderCore(options);
+            var encoder = new BmpEncoderCore(this);
             encoder.Encode(image, stream);
         }
     }

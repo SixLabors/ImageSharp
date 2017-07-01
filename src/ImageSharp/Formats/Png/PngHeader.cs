@@ -8,7 +8,7 @@ namespace ImageSharp.Formats
     /// <summary>
     /// Represents the png header chunk.
     /// </summary>
-    public sealed class PngHeader
+    internal sealed class PngHeader
     {
         /// <summary>
         /// Gets or sets the dimension in x-direction of the image in pixels.

@@ -17,9 +17,9 @@ namespace ImageSharp.Tests
     /// </summary>
     public static class ImageComparer
     {
-        const int DefaultScalingFactor = 32; // This is means the images get scaled into a 32x32 image to sample pixels
-        const int DefaultSegmentThreshold = 3; // The greyscale difference between 2 segements my be > 3 before it influences the overall difference
-        const float DefaultImageThreshold = 0.000F; // After segment thresholds the images must have no differences
+        internal const int DefaultScalingFactor = 32; // This is means the images get scaled into a 32x32 image to sample pixels
+        internal const int DefaultSegmentThreshold = 3; // The greyscale difference between 2 segements my be > 3 before it influences the overall difference
+        internal const float DefaultImageThreshold = 0.000F; // After segment thresholds the images must have no differences
 
         /// <summary>
         /// Fills the bounded area with a solid color and does a visual comparison between 2 images asserting the difference outwith
@@ -50,7 +50,7 @@ namespace ImageSharp.Tests
             expected.Fill(NamedColors<TPixelA>.HotPink, bounds);
             actual.Fill(NamedColors<TPixelB>.HotPink, bounds);
 
-            CheckSimilarity(expected, actual, imageTheshold, segmentThreshold, scalingFactor);
+            VerifySimilarity(expected, actual, imageTheshold, segmentThreshold, scalingFactor);
         }
 
         /// <summary>
@@ -72,7 +72,7 @@ namespace ImageSharp.Tests
         /// This is a sampling factor we sample a grid of average pixels <paramref name="scalingFactor"/> width by <paramref name="scalingFactor"/> high
         /// The default undefined value is <see cref="DefaultScalingFactor"/>
         /// </param>
-        public static void CheckSimilarity<TPixelA, TPixelB>(
+        public static void VerifySimilarity<TPixelA, TPixelB>(
             Image<TPixelA> expected,
             Image<TPixelB> actual,
             float imageTheshold = DefaultImageThreshold,
@@ -80,6 +80,9 @@ namespace ImageSharp.Tests
             int scalingFactor = DefaultScalingFactor)
             where TPixelA : struct, IPixel<TPixelA> where TPixelB : struct, IPixel<TPixelB>
         {
+            Assert.Equal(expected.Width, actual.Width);
+            Assert.Equal(expected.Height, actual.Height);
+
             float percentage = expected.PercentageDifference(actual, segmentThreshold, scalingFactor);
 
             Assert.InRange(percentage, 0, imageTheshold);

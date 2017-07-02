@@ -40,7 +40,7 @@ namespace ImageSharp.Tests.Processing.Transforms
             using (Image<TPixel> image = provider.GetImage())
             {
                 image.Resize(image.Width / 2, image.Height / 2, sampler, true)
-                    .DebugSave(provider, name, Extensions.Bmp);
+                    .CompareToReferenceOutput(provider, name);
             }
         }
 

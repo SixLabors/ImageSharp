@@ -635,7 +635,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
             //     }
             //     this.accumulator = (this.accumulator << 8) | this.bitsData;
             //     int lutIndex = (this.accumulator >> (this.bitsUnRead - 8)) & 0xFF;
-            //     int v = tree.GetLookAhead(lutIndex);
+            //     int v = tree.Lookahead[lutIndex];
             //     if (v != 0)
             //     {
             //         int nb = (v & 0xFF) - 1;
@@ -657,7 +657,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
             // "DECODE", section F.2.2.3, figure F.16, page 109 of T.81
             int i = 1;
 
-            while (code > tree.GetMaxCode(i))
+            while (code > tree.MaxCode[i])
             {
                 code <<= 1;
                 code |= (short)this.ReadBit(stream);
@@ -670,8 +670,8 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
                 i++;
             }
 
-            int j = tree.GetValOffset(i);
-            return tree.GetHuffVal((j + code) & 0xFF);
+            int j = tree.ValOffset[i];
+            return tree.HuffVal[(j + code) & 0xFF];
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -478,7 +478,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void DecodeBlockBaseline(ref HuffmanTable dcHuffmanTable, ref HuffmanTable acHuffmanTable, ref FrameComponent component, int mcu, Stream stream)
         {
-            int blockRow = (mcu / component.BlocksPerLine) | 0;
+            int blockRow = mcu / component.BlocksPerLine;
             int blockCol = mcu % component.BlocksPerLine;
             int offset = GetBlockBufferOffset(component, blockRow, blockCol);
             this.DecodeBaseline(ref component, offset, ref dcHuffmanTable, ref acHuffmanTable, stream);
@@ -487,7 +487,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void DecodeMcuBaseline(ref HuffmanTable dcHuffmanTable, ref HuffmanTable acHuffmanTable, ref FrameComponent component, int mcusPerLine, int mcu, int row, int col, Stream stream)
         {
-            int mcuRow = (mcu / mcusPerLine) | 0;
+            int mcuRow = mcu / mcusPerLine;
             int mcuCol = mcu % mcusPerLine;
             int blockRow = (mcuRow * component.VerticalFactor) + row;
             int blockCol = (mcuCol * component.HorizontalFactor) + col;
@@ -498,7 +498,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void DecodeBlockDCFirst(ref HuffmanTable dcHuffmanTable, ref FrameComponent component, int mcu, Stream stream)
         {
-            int blockRow = (mcu / component.BlocksPerLine) | 0;
+            int blockRow = mcu / component.BlocksPerLine;
             int blockCol = mcu % component.BlocksPerLine;
             int offset = GetBlockBufferOffset(component, blockRow, blockCol);
             this.DecodeDCFirst(ref component, offset, ref dcHuffmanTable, stream);
@@ -507,7 +507,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void DecodeMcuDCFirst(ref HuffmanTable dcHuffmanTable, ref FrameComponent component, int mcusPerLine, int mcu, int row, int col, Stream stream)
         {
-            int mcuRow = (mcu / mcusPerLine) | 0;
+            int mcuRow = mcu / mcusPerLine;
             int mcuCol = mcu % mcusPerLine;
             int blockRow = (mcuRow * component.VerticalFactor) + row;
             int blockCol = (mcuCol * component.HorizontalFactor) + col;
@@ -518,7 +518,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void DecodeBlockDCSuccessive(ref FrameComponent component, int mcu, Stream stream)
         {
-            int blockRow = (mcu / component.BlocksPerLine) | 0;
+            int blockRow = mcu / component.BlocksPerLine;
             int blockCol = mcu % component.BlocksPerLine;
             int offset = GetBlockBufferOffset(component, blockRow, blockCol);
             this.DecodeDCSuccessive(ref component, offset, stream);
@@ -527,7 +527,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void DecodeMcuDCSuccessive(ref FrameComponent component, int mcusPerLine, int mcu, int row, int col, Stream stream)
         {
-            int mcuRow = (mcu / mcusPerLine) | 0;
+            int mcuRow = mcu / mcusPerLine;
             int mcuCol = mcu % mcusPerLine;
             int blockRow = (mcuRow * component.VerticalFactor) + row;
             int blockCol = (mcuCol * component.HorizontalFactor) + col;
@@ -538,7 +538,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void DecodeBlockACFirst(ref HuffmanTable acHuffmanTable, ref FrameComponent component, int mcu, Stream stream)
         {
-            int blockRow = (mcu / component.BlocksPerLine) | 0;
+            int blockRow = mcu / component.BlocksPerLine;
             int blockCol = mcu % component.BlocksPerLine;
             int offset = GetBlockBufferOffset(component, blockRow, blockCol);
             this.DecodeACFirst(ref component, offset, ref acHuffmanTable, stream);
@@ -547,7 +547,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void DecodeMcuACFirst(ref HuffmanTable acHuffmanTable, ref FrameComponent component, int mcusPerLine, int mcu, int row, int col, Stream stream)
         {
-            int mcuRow = (mcu / mcusPerLine) | 0;
+            int mcuRow = mcu / mcusPerLine;
             int mcuCol = mcu % mcusPerLine;
             int blockRow = (mcuRow * component.VerticalFactor) + row;
             int blockCol = (mcuCol * component.HorizontalFactor) + col;
@@ -558,7 +558,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void DecodeBlockACSuccessive(ref HuffmanTable acHuffmanTable, ref FrameComponent component, int mcu, Stream stream)
         {
-            int blockRow = (mcu / component.BlocksPerLine) | 0;
+            int blockRow = mcu / component.BlocksPerLine;
             int blockCol = mcu % component.BlocksPerLine;
             int offset = GetBlockBufferOffset(component, blockRow, blockCol);
             this.DecodeACSuccessive(ref component, offset, ref acHuffmanTable, stream);
@@ -567,7 +567,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void DecodeMcuACSuccessive(ref HuffmanTable acHuffmanTable, ref FrameComponent component, int mcusPerLine, int mcu, int row, int col, Stream stream)
         {
-            int mcuRow = (mcu / mcusPerLine) | 0;
+            int mcuRow = mcu / mcusPerLine;
             int mcuCol = mcu % mcusPerLine;
             int blockRow = (mcuRow * component.VerticalFactor) + row;
             int blockCol = (mcuCol * component.HorizontalFactor) + col;

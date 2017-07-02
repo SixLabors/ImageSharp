@@ -52,7 +52,7 @@ namespace ImageSharp.Tests
             where TPixel : struct, IPixel<TPixel>
         {
             string path = TestFile.GetPath(TestImages.Png.Splash);
-            using (Image<TPixel> image = Image.Load<TPixel>(path, ReferencePngDecoder.Instance))
+            using (Image<TPixel> image = Image.Load<TPixel>(path, ReferenceDecoder.Instance))
             {
                 image.DebugSave(dummyProvider);
             }

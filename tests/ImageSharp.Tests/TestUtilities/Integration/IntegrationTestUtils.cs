@@ -57,6 +57,11 @@
 
             var fullRect = new System.Drawing.Rectangle(0, 0, w, h);
 
+            if (bmp.PixelFormat != PixelFormat.Format32bppArgb)
+            {
+                throw new ArgumentException("FromSystemDrawingBitmap(): pixel format not supported", nameof(bmp));
+            }
+
             BitmapData data = bmp.LockBits(fullRect, ImageLockMode.ReadWrite, bmp.PixelFormat);
             byte* sourcePtrBase = (byte*)data.Scan0;
 

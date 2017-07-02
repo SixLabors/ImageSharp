@@ -7,10 +7,12 @@ namespace ImageSharp.Tests
 {
     using System;
     using System.Collections.Generic;
+    using System.IO;
     using System.Linq;
     using System.Reflection;
 
     using ImageSharp.PixelFormats;
+    using ImageSharp.Tests.TestUtilities.Integration;
 
     public static class TestImageExtensions
     {
@@ -55,6 +57,61 @@ namespace ImageSharp.Tests
             }
 
             provider.Utility.SaveTestOutputFile(image, extension, tag: tag);
+            return image;
+        }
+
+        public static Image<TPixel> CompareToReferenceOutput<TPixel>(
+            this Image<TPixel> image,
+            ITestImageProvider provider,
+            object settings = null,
+            string extension = "png",
+            float imageTheshold = ImageComparer.DefaultImageThreshold,
+            byte segmentThreshold = ImageComparer.DefaultSegmentThreshold,
+            int scalingFactor = ImageComparer.DefaultScalingFactor)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            // We are running locally then we want to save it out
+            string tag = null;
+            string s = settings as string;
+
+            if (s != null)
+            {
+                tag = s;
+            }
+            else if (settings != null)
+            {
+                Type type = settings.GetType();
+                TypeInfo info = type.GetTypeInfo();
+                if (info.IsPrimitive || info.IsEnum || type == typeof(decimal))
+                {
+                    tag = settings.ToString();
+                }
+                else
+                {
+                    IEnumerable<PropertyInfo> properties = settings.GetType().GetRuntimeProperties();
+
+                    tag = string.Join("_", properties.ToDictionary(x => x.Name, x => x.GetValue(settings)).Select(x => $"{x.Key}-{x.Value}"));
+                }
+            }
+
+            string referenceOutputFile = provider.Utility.GetReferenceOutputFileName(extension, tag);
+
+            if (!(bool.TryParse(Environment.GetEnvironmentVariable("CI"), out bool isCi) && isCi))
+            {
+                provider.Utility.SaveTestOutputFile(image, extension, tag: tag);
+            }
+
+            if (!File.Exists(referenceOutputFile))
+            {
+                throw new Exception("Reference output file missing: " + referenceOutputFile);
+            }
+
+            using (Image<Rgba32> referenceImage = Image.Load<Rgba32>(referenceOutputFile, ReferenceDecoder.Instance))
+            {
+                ImageComparer.VerifySimilarity(referenceImage, image, imageTheshold, segmentThreshold, scalingFactor);
+            }
+
+            
             return image;
         }
     }

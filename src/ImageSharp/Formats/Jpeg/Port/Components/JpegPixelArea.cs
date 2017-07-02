@@ -7,6 +7,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
 {
     using System;
     using System.Diagnostics;
+    using System.Numerics;
     using System.Runtime.CompilerServices;
     using ImageSharp.Memory;
 
@@ -68,9 +69,8 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
             this.Height = height;
             int numberOfComponents = this.NumberOfComponents;
             this.rowStride = width * numberOfComponents;
+            var scale = new Vector2(this.imageWidth / (float)width, this.imageHeight / (float)height);
 
-            float scaleX = this.imageWidth / (float)width;
-            float scaleY = this.imageHeight / (float)height;
             this.componentData = new Buffer<byte>(width * height * numberOfComponents);
             Span<byte> componentDataSpan = this.componentData;
             const uint Mask3Lsb = 0xFFFFFFF8; // Used to clear the 3 LSBs
@@ -81,8 +81,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
                 for (int i = 0; i < numberOfComponents; i++)
                 {
                     ref Component component = ref components.Components[i];
-                    float componentScaleX = component.ScaleX * scaleX;
-                    float componentScaleY = component.ScaleY * scaleY;
+                    Vector2 componentScale = component.Scale * scale;
                     int offset = i;
                     Span<short> output = component.Output;
                     int blocksPerScanline = (component.BlocksPerLine + 1) << 3;
@@ -91,14 +90,14 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
                     int j;
                     for (int x = 0; x < width; x++)
                     {
-                        j = 0 | (int)(x * componentScaleX);
+                        j = (int)(x * componentScale.X);
                         xScaleBlockOffsetSpan[x] = (int)((j & Mask3Lsb) << 3) | (j & 7);
                     }
 
                     // Linearize the blocks of the component
                     for (int y = 0; y < height; y++)
                     {
-                        j = 0 | (int)(y * componentScaleY);
+                        j = (int)(y * componentScale.Y);
                         int index = blocksPerScanline * (int)(j & Mask3Lsb) | ((j & 7) << 3);
                         for (int x = 0; x < width; x++)
                         {

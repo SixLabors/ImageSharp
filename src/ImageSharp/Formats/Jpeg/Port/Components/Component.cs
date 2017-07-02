@@ -6,7 +6,7 @@
 namespace ImageSharp.Formats.Jpeg.Port.Components
 {
     using System;
-
+    using System.Numerics;
     using ImageSharp.Memory;
 
     /// <summary>
@@ -20,14 +20,9 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
         public Buffer<short> Output;
 
         /// <summary>
-        /// Gets or sets the horizontal scaling factor
+        /// Gets or sets the scaling factors
         /// </summary>
-        public float ScaleX;
-
-        /// <summary>
-        /// Gets or sets the vertical scaling factor
-        /// </summary>
-        public float ScaleY;
+        public Vector2 Scale;
 
         /// <summary>
         /// Gets or sets the number of blocks per line

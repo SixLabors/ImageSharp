@@ -15,7 +15,7 @@ namespace ImageSharp.Formats
     /// All of the other integer values are stored in little-endian format
     /// (i.e. least-significant byte first).
     /// </remarks>
-    internal class BmpFileHeader
+    internal sealed class BmpFileHeader
     {
         /// <summary>
         /// Defines of the data structure in the bitmap file.

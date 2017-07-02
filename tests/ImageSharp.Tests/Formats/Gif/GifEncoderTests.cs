@@ -29,7 +29,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void Encode_IgnoreMetadataIsFalse_CommentsAreWritten()
         {
-            EncoderOptions options = new EncoderOptions()
+            GifEncoder options = new GifEncoder()
             {
                 IgnoreMetadata = false
             };
@@ -40,7 +40,7 @@ namespace ImageSharp.Tests
             {
                 using (MemoryStream memStream = new MemoryStream())
                 {
-                    input.Save(memStream, new GifFormat(), options);
+                    input.Save(memStream, options);
 
                     memStream.Position = 0;
                     using (Image<Rgba32> output = Image.Load<Rgba32>(memStream))
@@ -56,7 +56,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void Encode_IgnoreMetadataIsTrue_CommentsAreNotWritten()
         {
-            GifEncoderOptions options = new GifEncoderOptions()
+            GifEncoder options = new GifEncoder()
             {
                 IgnoreMetadata = true
             };
@@ -88,7 +88,7 @@ namespace ImageSharp.Tests
 
                 using (MemoryStream memStream = new MemoryStream())
                 {
-                    input.Save(memStream, new GifFormat());
+                    input.Save(memStream, new GifEncoder());
 
                     memStream.Position = 0;
                     using (Image<Rgba32> output = Image.Load<Rgba32>(memStream))

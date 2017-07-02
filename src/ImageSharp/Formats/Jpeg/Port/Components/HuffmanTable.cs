@@ -16,13 +16,9 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
     internal struct HuffmanTable : IDisposable
     {
         private Buffer<short> lookahead;
-        private Buffer<short> huffcode;
-        private Buffer<short> huffsize;
         private Buffer<short> valOffset;
         private Buffer<long> maxcode;
-
         private Buffer<byte> huffval;
-        private Buffer<byte> bits;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="HuffmanTable"/> struct.
@@ -32,119 +28,113 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
         public HuffmanTable(byte[] lengths, byte[] values)
         {
             this.lookahead = Buffer<short>.CreateClean(256);
-            this.huffcode = Buffer<short>.CreateClean(257);
-            this.huffsize = Buffer<short>.CreateClean(257);
             this.valOffset = Buffer<short>.CreateClean(18);
             this.maxcode = Buffer<long>.CreateClean(18);
+
+            using (var huffsize = Buffer<short>.CreateClean(257))
+            using (var huffcode = Buffer<short>.CreateClean(257))
+            {
+                GenerateSizeTable(lengths, huffsize);
+                GenerateCodeTable(huffsize, huffcode);
+                GenerateDecoderTables(lengths, huffcode, this.valOffset, this.maxcode);
+                GenerateLookaheadTables(lengths, values, this.lookahead);
+            }
 
             this.huffval = Buffer<byte>.CreateClean(values.Length);
             Buffer.BlockCopy(values, 0, this.huffval.Array, 0, values.Length);
 
-            this.bits = Buffer<byte>.CreateClean(lengths.Length);
-            Buffer.BlockCopy(lengths, 0, this.bits.Array, 0, lengths.Length);
-
-            this.GenerateSizeTable();
-            this.GenerateCodeTable();
-            this.GenerateDecoderTables();
-            this.GenerateLookaheadTables();
+            this.MaxCode = this.maxcode.Array;
+            this.ValOffset = this.valOffset.Array;
+            this.HuffVal = this.huffval.Array;
+            this.Lookahead = this.lookahead.Array;
         }
 
         /// <summary>
-        /// Gets the Huffman value code at the given index
+        /// Gets the max code array
         /// </summary>
-        /// <param name="i">The index</param>
-        /// <returns>The <see cref="int"/></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public short GetHuffVal(int i)
+        public long[] MaxCode
         {
-            return this.huffval[i];
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get;
         }
 
         /// <summary>
-        /// Gets the max code at the given index
+        /// Gets the value offset array
         /// </summary>
-        /// <param name="i">The index</param>
-        /// <returns>The <see cref="int"/></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public long GetMaxCode(int i)
+        public short[] ValOffset
         {
-            return this.maxcode[i];
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get;
         }
 
         /// <summary>
-        /// Gets the index to the locatation of the huffman value
+        /// Gets the huffman value array
         /// </summary>
-        /// <param name="i">The index</param>
-        /// <returns>The <see cref="int"/></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public int GetValOffset(int i)
+        public byte[] HuffVal
         {
-            return this.valOffset[i];
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get;
         }
 
         /// <summary>
-        /// Gets the look ahead table balue
+        /// Gets the lookahead array
         /// </summary>
-        /// <param name="i">The index</param>
-        /// <returns>The <see cref="int"/></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public int GetLookAhead(int i)
+        public short[] Lookahead
         {
-            return this.lookahead[i];
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get;
         }
 
         /// <inheritdoc/>
         public void Dispose()
         {
             this.lookahead?.Dispose();
-            this.huffcode?.Dispose();
-            this.huffsize?.Dispose();
             this.valOffset?.Dispose();
             this.maxcode?.Dispose();
             this.huffval?.Dispose();
-            this.bits?.Dispose();
 
             this.lookahead = null;
-            this.huffcode = null;
-            this.huffsize = null;
             this.valOffset = null;
             this.maxcode = null;
             this.huffval = null;
-            this.bits = null;
         }
 
         /// <summary>
         /// Figure C.1: make table of Huffman code length for each symbol
         /// </summary>
-        private void GenerateSizeTable()
+        /// <param name="lengths">The code lengths</param>
+        /// <param name="huffsize">The huffman size span</param>
+        private static void GenerateSizeTable(byte[] lengths, Span<short> huffsize)
         {
             short index = 0;
             for (short l = 1; l <= 16; l++)
             {
-                byte i = this.bits[l];
+                byte i = lengths[l];
                 for (short j = 0; j < i; j++)
                 {
-                    this.huffsize[index] = l;
+                    huffsize[index] = l;
                     index++;
                 }
             }
 
-            this.huffsize[index] = 0;
+            huffsize[index] = 0;
         }
 
         /// <summary>
         /// Figure C.2: generate the codes themselves
         /// </summary>
-        private void GenerateCodeTable()
+        /// <param name="huffsize">The huffman size span</param>
+        /// <param name="huffcode">The huffman code span</param>
+        private static void GenerateCodeTable(Span<short> huffsize, Span<short> huffcode)
         {
             short k = 0;
-            short si = this.huffsize[0];
+            short si = huffsize[0];
             short code = 0;
-            for (short i = 0; i < this.huffsize.Length; i++)
+            for (short i = 0; i < huffsize.Length; i++)
             {
-                while (this.huffsize[k] == si)
+                while (huffsize[k] == si)
                 {
-                    this.huffcode[k] = code;
+                    huffcode[k] = code;
                     code++;
                     k++;
                 }
@@ -157,33 +147,40 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
         /// <summary>
         /// Figure F.15: generate decoding tables for bit-sequential decoding
         /// </summary>
-        private void GenerateDecoderTables()
+        /// <param name="lengths">The code lengths</param>
+        /// <param name="huffcode">The huffman code span</param>
+        /// <param name="valOffset">The value offset span</param>
+        /// <param name="maxcode">The max code span</param>
+        private static void GenerateDecoderTables(byte[] lengths, Span<short> huffcode, Span<short> valOffset, Span<long> maxcode)
         {
             short bitcount = 0;
             for (int i = 1; i <= 16; i++)
             {
-                if (this.bits[i] != 0)
+                if (lengths[i] != 0)
                 {
                     // valoffset[l] = huffval[] index of 1st symbol of code length i,
                     // minus the minimum code of length i
-                    this.valOffset[i] = (short)(bitcount - this.huffcode[bitcount]);
-                    bitcount += this.bits[i];
-                    this.maxcode[i] = this.huffcode[bitcount - 1]; // maximum code of length i
+                    valOffset[i] = (short)(bitcount - huffcode[bitcount]);
+                    bitcount += lengths[i];
+                    maxcode[i] = huffcode[bitcount - 1]; // maximum code of length i
                 }
                 else
                 {
-                    this.maxcode[i] = -1; // -1 if no codes of this length
+                    maxcode[i] = -1; // -1 if no codes of this length
                 }
             }
 
-            this.valOffset[17] = 0;
-            this.maxcode[17] = 0xFFFFFL;
+            valOffset[17] = 0;
+            maxcode[17] = 0xFFFFFL;
         }
 
         /// <summary>
         /// Generates lookup tables to speed up decoding
         /// </summary>
-        private void GenerateLookaheadTables()
+        /// <param name="lengths">The code lengths</param>
+        /// <param name="huffval">The huffman value array</param>
+        /// <param name="lookahead">The lookahead span</param>
+        private static void GenerateLookaheadTables(byte[] lengths, byte[] huffval, Span<short> lookahead)
         {
             int x = 0, code = 0;
 
@@ -191,7 +188,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
             {
                 code <<= 1;
 
-                for (int j = 0; j < this.bits[i + 1]; j++)
+                for (int j = 0; j < lengths[i + 1]; j++)
                 {
                     // The codeLength is 1+i, so shift code by 8-(1+i) to
                     // calculate the high bits for every 8-bit sequence
@@ -199,11 +196,11 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
                     // The high 8 bits of lutValue are the encoded value.
                     // The low 8 bits are 1 plus the codeLength.
                     byte base2 = (byte)(code << (7 - i));
-                    short lutValue = (short)((short)(this.huffval[x] << 8) | (short)(2 + i));
+                    short lutValue = (short)((short)(huffval[x] << 8) | (short)(2 + i));
 
                     for (int k = 0; k < 1 << (7 - i); k++)
                     {
-                        this.lookahead[base2 | k] = lutValue;
+                        lookahead[base2 | k] = lutValue;
                     }
 
                     code++;

@@ -11,7 +11,7 @@ namespace ImageSharp.Formats
     using System.IO;
     using System.Linq;
     using System.Runtime.CompilerServices;
-
+    using System.Text;
     using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
 
@@ -20,7 +20,7 @@ namespace ImageSharp.Formats
     /// <summary>
     /// Performs the png decoding operation.
     /// </summary>
-    internal class PngDecoderCore
+    internal sealed class PngDecoderCore
     {
         /// <summary>
         /// The dictionary of available color types.
@@ -73,11 +73,6 @@ namespace ImageSharp.Formats
         /// Reusable buffer for reading char arrays.
         /// </summary>
         private readonly char[] chars = new char[4];
-
-        /// <summary>
-        /// The decoder options.
-        /// </summary>
-        private readonly IPngDecoderOptions options;
 
         /// <summary>
         /// Reusable crc for validating chunks.
@@ -155,20 +150,31 @@ namespace ImageSharp.Formats
         private int currentRowBytesRead;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="PngDecoderCore"/> class.
-        /// </summary>
-        /// <param name="options">The decoder options.</param>
-        /// <param name="configuration">The configuration.</param>
-        public PngDecoderCore(IPngDecoderOptions options, Configuration configuration)
-        {
-            this.configuration = configuration ?? Configuration.Default;
-            this.options = options ?? new PngDecoderOptions();
-        }
-
-        /// <summary>
         /// Gets or sets the png color type
         /// </summary>
-        public PngColorType PngColorType { get; set; }
+        private PngColorType pngColorType;
+
+        /// <summary>
+        /// Gets the encoding to use
+        /// </summary>
+        private Encoding textEncoding;
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the metadata should be ignored when the image is being decoded.
+        /// </summary>
+        private bool ignoreMetadata;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PngDecoderCore"/> class.
+        /// </summary>
+        /// <param name="configuration">The configuration.</param>
+        /// <param name="options">The decoder options.</param>
+        public PngDecoderCore(Configuration configuration, IPngDecoderOptions options)
+        {
+            this.configuration = configuration ?? Configuration.Default;
+            this.textEncoding = options.TextEncoding ?? PngConstants.DefaultEncoding;
+            this.ignoreMetadata = options.IgnoreMetadata;
+        }
 
         /// <summary>
         /// Decodes the stream to the image.
@@ -221,7 +227,6 @@ namespace ImageSharp.Formats
                                     byte[] pal = new byte[currentChunk.Length];
                                     Buffer.BlockCopy(currentChunk.Data, 0, pal, 0, currentChunk.Length);
                                     this.palette = pal;
-                                    metadata.Quality = pal.Length / 3;
                                     break;
                                 case PngChunkTypes.PaletteAlpha:
                                     byte[] alpha = new byte[currentChunk.Length];
@@ -344,7 +349,7 @@ namespace ImageSharp.Formats
         /// <returns>The <see cref="int"/></returns>
         private int CalculateBytesPerPixel()
         {
-            switch (this.PngColorType)
+            switch (this.pngColorType)
             {
                 case PngColorType.Grayscale:
                     return 1;
@@ -572,7 +577,7 @@ namespace ImageSharp.Formats
             Span<TPixel> rowSpan = pixels.GetRowSpan(this.currentRow);
             var scanlineBuffer = new Span<byte>(defilteredScanline, 1);
 
-            switch (this.PngColorType)
+            switch (this.pngColorType)
             {
                 case PngColorType.Grayscale:
                     int factor = 255 / ((int)Math.Pow(2, this.header.BitDepth) - 1);
@@ -731,7 +736,7 @@ namespace ImageSharp.Formats
         {
             var color = default(TPixel);
 
-            switch (this.PngColorType)
+            switch (this.pngColorType)
             {
                 case PngColorType.Grayscale:
                     int factor = 255 / ((int)Math.Pow(2, this.header.BitDepth) - 1);
@@ -896,7 +901,7 @@ namespace ImageSharp.Formats
         /// <param name="length">The maximum length to read.</param>
         private void ReadTextChunk(ImageMetaData metadata, byte[] data, int length)
         {
-            if (this.options.IgnoreMetadata)
+            if (this.ignoreMetadata)
             {
                 return;
             }
@@ -912,8 +917,8 @@ namespace ImageSharp.Formats
                 }
             }
 
-            string name = this.options.TextEncoding.GetString(data, 0, zeroIndex);
-            string value = this.options.TextEncoding.GetString(data, zeroIndex + 1, length - zeroIndex - 1);
+            string name = this.textEncoding.GetString(data, 0, zeroIndex);
+            string value = this.textEncoding.GetString(data, zeroIndex + 1, length - zeroIndex - 1);
 
             metadata.Properties.Add(new ImageProperty(name, value));
         }
@@ -967,7 +972,7 @@ namespace ImageSharp.Formats
                 throw new NotSupportedException("The png specification only defines 'None' and 'Adam7' as interlaced methods.");
             }
 
-            this.PngColorType = this.header.ColorType;
+            this.pngColorType = this.header.ColorType;
         }
 
         /// <summary>

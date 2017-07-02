@@ -23,11 +23,6 @@ namespace ImageSharp.Formats.Jpeg.Port
     internal sealed class JpegDecoderCore : IDisposable
     {
         /// <summary>
-        /// The decoder options.
-        /// </summary>
-        private readonly IDecoderOptions options;
-
-        /// <summary>
         /// The global configuration
         /// </summary>
         private readonly Configuration configuration;
@@ -85,18 +80,23 @@ namespace ImageSharp.Formats.Jpeg.Port
         /// <summary>
         /// Initializes a new instance of the <see cref="JpegDecoderCore" /> class.
         /// </summary>
-        /// <param name="options">The decoder options.</param>
         /// <param name="configuration">The configuration.</param>
-        public JpegDecoderCore(IDecoderOptions options, Configuration configuration)
+        /// <param name="options">The options.</param>
+        public JpegDecoderCore(Configuration configuration, IJpegDecoderOptions options)
         {
             this.configuration = configuration ?? Configuration.Default;
-            this.options = options ?? new DecoderOptions();
+            this.IgnoreMetadata = options.IgnoreMetadata;
         }
 
         /// <summary>
         /// Gets the input stream.
         /// </summary>
         public Stream InputStream { get; private set; }
+
+        /// <summary>
+        /// Gets a value indicating whether the metadata should be ignored when the image is being decoded.
+        /// </summary>
+        public bool IgnoreMetadata { get; }
 
         /// <summary>
         /// Finds the next file marker within the byte stream.
@@ -413,7 +413,7 @@ namespace ImageSharp.Formats.Jpeg.Port
         /// <param name="metadata">The image.</param>
         private void ProcessApp1Marker(int remaining, ImageMetaData metadata)
         {
-            if (remaining < 6 || this.options.IgnoreMetadata)
+            if (remaining < 6 || this.IgnoreMetadata)
             {
                 // Skip the application header length
                 this.InputStream.Skip(remaining);
@@ -444,7 +444,7 @@ namespace ImageSharp.Formats.Jpeg.Port
         {
             // Length is 14 though we only need to check 12.
             const int Icclength = 14;
-            if (remaining < Icclength || this.options.IgnoreMetadata)
+            if (remaining < Icclength || this.IgnoreMetadata)
             {
                 this.InputStream.Skip(remaining);
                 return;

@@ -28,7 +28,6 @@ namespace ImageSharp.Tests
             metaData.HorizontalResolution = 4;
             metaData.VerticalResolution = 2;
             metaData.Properties.Add(imageProperty);
-            metaData.Quality = 24;
             metaData.RepeatCount = 1;
             metaData.DisposalMethod = DisposalMethod.RestoreToBackground;
 
@@ -39,7 +38,6 @@ namespace ImageSharp.Tests
             Assert.Equal(4, clone.HorizontalResolution);
             Assert.Equal(2, clone.VerticalResolution);
             Assert.Equal(imageProperty, clone.Properties[0]);
-            Assert.Equal(24, clone.Quality);
             Assert.Equal(1, clone.RepeatCount);
             Assert.Equal(DisposalMethod.RestoreToBackground, clone.DisposalMethod);
         }

@@ -5,7 +5,6 @@
 
 namespace ImageSharp.Formats
 {
-    using System;
     using System.IO;
 
     using ImageSharp.PixelFormats;
@@ -13,19 +12,21 @@ namespace ImageSharp.Formats
     /// <summary>
     /// Image decoder for generating an image out of a jpg stream.
     /// </summary>
-    public class JpegDecoder : IImageDecoder
+    public sealed class JpegDecoder : IImageDecoder, IJpegDecoderOptions
     {
+        /// <summary>
+        /// Gets or sets a value indicating whether the metadata should be ignored when the image is being decoded.
+        /// </summary>
+        public bool IgnoreMetadata { get; set; }
+
         /// <inheritdoc/>
-        public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream, IDecoderOptions options)
+        public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
             Guard.NotNull(stream, "stream");
 
-            // using (var decoder = new JpegDecoderCore(options, configuration))
-            // {
-            //    return decoder.Decode<TPixel>(stream);
-            // }
-            using (var decoder = new Jpeg.Port.JpegDecoderCore(options, configuration))
+            // using (var decoder = new JpegDecoderCore(configuration, this))
+            using (var decoder = new Jpeg.Port.JpegDecoderCore(configuration, this))
             {
                 return decoder.Decode<TPixel>(stream);
             }

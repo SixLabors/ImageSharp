@@ -11,7 +11,7 @@ namespace ImageSharp
     /// The exception that is thrown when the library tries to load
     /// an image, which has an invalid format.
     /// </summary>
-    public class ImageFormatException : Exception
+    public sealed class ImageFormatException : Exception
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageFormatException"/> class.

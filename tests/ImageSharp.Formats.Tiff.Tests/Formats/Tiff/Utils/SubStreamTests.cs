@@ -316,6 +316,7 @@ namespace ImageSharp.Tests
             Assert.Equal("Invalid seek origin.", e.Message);
         }
 
+        [Fact]
         public void SetLength_ThrowsNotSupportedException()
         {
             Stream innerStream = new MemoryStream(new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 });

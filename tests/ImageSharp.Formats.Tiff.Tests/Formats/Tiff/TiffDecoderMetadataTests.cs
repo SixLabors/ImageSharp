@@ -132,7 +132,7 @@ namespace ImageSharp.Tests
             decoder.ReadMetadata<Rgba32>(ifd, image);
             var metadata = image.MetaData.Properties.FirstOrDefault(m => m.Name == metadataName)?.Value;
 
-            Assert.Equal(null, metadata);
+            Assert.Null(metadata);
         }
     }
 }

@@ -42,10 +42,10 @@ namespace ImageSharp.Processing
 
                 foreach (ImageFrame<TPixel> sourceFrame in source.Frames)
                 {
-                    this.BeforeApply(source, sourceRectangle);
+                    this.BeforeApply(sourceFrame, sourceRectangle);
 
-                    this.OnApply(source, sourceRectangle);
-                    this.AfterApply(source, sourceRectangle);
+                    this.OnApply(sourceFrame, sourceRectangle);
+                    this.AfterApply(sourceFrame, sourceRectangle);
                 }
 
                 this.AfterImageApply(source, sourceRectangle);

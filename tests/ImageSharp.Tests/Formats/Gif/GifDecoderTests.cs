@@ -11,6 +11,7 @@ namespace ImageSharp.Tests
 
     using ImageSharp.Formats;
     using ImageSharp.PixelFormats;
+    using SixLabors.Primitives;
 
     public class GifDecoderTests
     {
@@ -29,7 +30,20 @@ namespace ImageSharp.Tests
                 imageProvider.Utility.SaveTestOutputFile(image, "gif");
             }
         }
-        
+        [Theory]
+        [WithFileCollection(nameof(TestFiles), PixelTypes)]
+        public void DecodeResizeAndSave<TPixel>(TestImageProvider<TPixel> imageProvider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = imageProvider.GetImage())
+            {
+                image.Mutate(x => x.Resize(new Size(image.Width / 2, image.Height / 2)));
+
+                imageProvider.Utility.SaveTestOutputFile(image, "bmp");
+                imageProvider.Utility.SaveTestOutputFile(image, "gif");
+            }
+        }
+
         [Fact]
         public void Decode_IgnoreMetadataIsFalse_CommentsAreRead()
         {

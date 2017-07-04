@@ -101,7 +101,7 @@ namespace ImageSharp.Tests
             TiffIfdEntry entry = ifd.Entries[1];
 
             byte[] expectedData = isLittleEndian ? new byte[] { 210, 0, 0, 0 } : new byte[] { 0, 0, 0, 210 };
-            Assert.NotNull(entry);
+
             Assert.Equal(TiffTags.ImageLength, entry.Tag);
             Assert.Equal(TiffType.Long, entry.Type);
             Assert.Equal(1u, entry.Count);

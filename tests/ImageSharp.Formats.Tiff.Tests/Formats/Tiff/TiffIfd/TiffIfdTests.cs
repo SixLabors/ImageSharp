@@ -35,7 +35,7 @@ namespace ImageSharp.Tests
 
             TiffIfdEntry? entry = ifd.GetIfdEntry(30);
 
-            Assert.Equal(true, entry.HasValue);
+            Assert.True(entry.HasValue);
             Assert.Equal(30, entry.Value.Tag);
         }
 
@@ -53,7 +53,7 @@ namespace ImageSharp.Tests
 
             TiffIfdEntry? entry = ifd.GetIfdEntry(25);
 
-            Assert.Equal(false, entry.HasValue);
+            Assert.False(entry.HasValue);
         }
 
         [Fact]
@@ -70,7 +70,7 @@ namespace ImageSharp.Tests
 
             bool success = ifd.TryGetIfdEntry(30, out var entry);
 
-            Assert.Equal(true, success);
+            Assert.True(success);
             Assert.Equal(30, entry.Tag);
         }
 
@@ -88,7 +88,7 @@ namespace ImageSharp.Tests
 
             bool success = ifd.TryGetIfdEntry(25, out var entry);
 
-            Assert.Equal(false, success);
+            Assert.False(success);
             Assert.Equal(0, entry.Tag);
         }
     }

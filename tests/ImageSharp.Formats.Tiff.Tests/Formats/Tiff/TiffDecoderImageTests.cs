@@ -68,16 +68,16 @@ namespace ImageSharp.Tests
         }
 
         [Theory]
-        [InlineData(false, TiffCompression.None, TiffCompressionType.None)]
-        [InlineData(true, TiffCompression.None, TiffCompressionType.None)]
-        [InlineData(false, TiffCompression.PackBits, TiffCompressionType.PackBits)]
-        [InlineData(true, TiffCompression.PackBits, TiffCompressionType.PackBits)]
-        [InlineData(false, TiffCompression.Deflate, TiffCompressionType.Deflate)]
-        [InlineData(true, TiffCompression.Deflate, TiffCompressionType.Deflate)]
-        [InlineData(false, TiffCompression.OldDeflate, TiffCompressionType.Deflate)]
-        [InlineData(true, TiffCompression.OldDeflate, TiffCompressionType.Deflate)]
-        [InlineData(false, TiffCompression.Lzw, TiffCompressionType.Lzw)]
-        [InlineData(true, TiffCompression.Lzw, TiffCompressionType.Lzw)]
+        [InlineData(false, (ushort)TiffCompression.None, (int)TiffCompressionType.None)]
+        [InlineData(true, (ushort)TiffCompression.None, (int)TiffCompressionType.None)]
+        [InlineData(false, (ushort)TiffCompression.PackBits, (int)TiffCompressionType.PackBits)]
+        [InlineData(true, (ushort)TiffCompression.PackBits, (int)TiffCompressionType.PackBits)]
+        [InlineData(false, (ushort)TiffCompression.Deflate, (int)TiffCompressionType.Deflate)]
+        [InlineData(true, (ushort)TiffCompression.Deflate, (int)TiffCompressionType.Deflate)]
+        [InlineData(false, (ushort)TiffCompression.OldDeflate, (int)TiffCompressionType.Deflate)]
+        [InlineData(true, (ushort)TiffCompression.OldDeflate, (int)TiffCompressionType.Deflate)]
+        [InlineData(false, (ushort)TiffCompression.Lzw, (int)TiffCompressionType.Lzw)]
+        [InlineData(true, (ushort)TiffCompression.Lzw, (int)TiffCompressionType.Lzw)]
         public void ReadImageFormat_DeterminesCorrectCompressionImplementation(bool isLittleEndian, ushort compression, int compressionType)
         {
             Stream stream = CreateTiffGenIfd()
@@ -92,21 +92,21 @@ namespace ImageSharp.Tests
         }
 
         [Theory]
-        [InlineData(false, TiffCompression.Ccitt1D)]
-        [InlineData(false, TiffCompression.CcittGroup3Fax)]
-        [InlineData(false, TiffCompression.CcittGroup4Fax)]
-        [InlineData(false, TiffCompression.ItuTRecT43)]
-        [InlineData(false, TiffCompression.ItuTRecT82)]
-        [InlineData(false, TiffCompression.Jpeg)]
-        [InlineData(false, TiffCompression.OldJpeg)]
+        [InlineData(false, (ushort)TiffCompression.Ccitt1D)]
+        [InlineData(false, (ushort)TiffCompression.CcittGroup3Fax)]
+        [InlineData(false, (ushort)TiffCompression.CcittGroup4Fax)]
+        [InlineData(false, (ushort)TiffCompression.ItuTRecT43)]
+        [InlineData(false, (ushort)TiffCompression.ItuTRecT82)]
+        [InlineData(false, (ushort)TiffCompression.Jpeg)]
+        [InlineData(false, (ushort)TiffCompression.OldJpeg)]
         [InlineData(false, 999)]
-        [InlineData(true, TiffCompression.Ccitt1D)]
-        [InlineData(true, TiffCompression.CcittGroup3Fax)]
-        [InlineData(true, TiffCompression.CcittGroup4Fax)]
-        [InlineData(true, TiffCompression.ItuTRecT43)]
-        [InlineData(true, TiffCompression.ItuTRecT82)]
-        [InlineData(true, TiffCompression.Jpeg)]
-        [InlineData(true, TiffCompression.OldJpeg)]
+        [InlineData(true, (ushort)TiffCompression.Ccitt1D)]
+        [InlineData(true, (ushort)TiffCompression.CcittGroup3Fax)]
+        [InlineData(true, (ushort)TiffCompression.CcittGroup4Fax)]
+        [InlineData(true, (ushort)TiffCompression.ItuTRecT43)]
+        [InlineData(true, (ushort)TiffCompression.ItuTRecT82)]
+        [InlineData(true, (ushort)TiffCompression.Jpeg)]
+        [InlineData(true, (ushort)TiffCompression.OldJpeg)]
         [InlineData(true, 999)]
         public void ReadImageFormat_ThrowsExceptionForUnsupportedCompression(bool isLittleEndian, ushort compression)
         {
@@ -123,34 +123,34 @@ namespace ImageSharp.Tests
         }
 
         [Theory]
-        [InlineData(false, TiffPhotometricInterpretation.WhiteIsZero, new[] { 3 }, TiffColorType.WhiteIsZero)]
-        [InlineData(true, TiffPhotometricInterpretation.WhiteIsZero, new[] { 3 }, TiffColorType.WhiteIsZero)]
-        [InlineData(false, TiffPhotometricInterpretation.WhiteIsZero, new[] { 8 }, TiffColorType.WhiteIsZero8)]
-        [InlineData(true, TiffPhotometricInterpretation.WhiteIsZero, new[] { 8 }, TiffColorType.WhiteIsZero8)]
-        [InlineData(false, TiffPhotometricInterpretation.WhiteIsZero, new[] { 4 }, TiffColorType.WhiteIsZero4)]
-        [InlineData(true, TiffPhotometricInterpretation.WhiteIsZero, new[] { 4 }, TiffColorType.WhiteIsZero4)]
-        [InlineData(false, TiffPhotometricInterpretation.WhiteIsZero, new[] { 1 }, TiffColorType.WhiteIsZero1)]
-        [InlineData(true, TiffPhotometricInterpretation.WhiteIsZero, new[] { 1 }, TiffColorType.WhiteIsZero1)]
-        [InlineData(false, TiffPhotometricInterpretation.BlackIsZero, new[] { 3 }, TiffColorType.BlackIsZero)]
-        [InlineData(true, TiffPhotometricInterpretation.BlackIsZero, new[] { 3 }, TiffColorType.BlackIsZero)]
-        [InlineData(false, TiffPhotometricInterpretation.BlackIsZero, new[] { 8 }, TiffColorType.BlackIsZero8)]
-        [InlineData(true, TiffPhotometricInterpretation.BlackIsZero, new[] { 8 }, TiffColorType.BlackIsZero8)]
-        [InlineData(false, TiffPhotometricInterpretation.BlackIsZero, new[] { 4 }, TiffColorType.BlackIsZero4)]
-        [InlineData(true, TiffPhotometricInterpretation.BlackIsZero, new[] { 4 }, TiffColorType.BlackIsZero4)]
-        [InlineData(false, TiffPhotometricInterpretation.BlackIsZero, new[] { 1 }, TiffColorType.BlackIsZero1)]
-        [InlineData(true, TiffPhotometricInterpretation.BlackIsZero, new[] { 1 }, TiffColorType.BlackIsZero1)]
-        [InlineData(false, TiffPhotometricInterpretation.PaletteColor, new[] { 3 }, TiffColorType.PaletteColor)]
-        [InlineData(true, TiffPhotometricInterpretation.PaletteColor, new[] { 3 }, TiffColorType.PaletteColor)]
-        [InlineData(false, TiffPhotometricInterpretation.PaletteColor, new[] { 8 }, TiffColorType.PaletteColor)]
-        [InlineData(true, TiffPhotometricInterpretation.PaletteColor, new[] { 8 }, TiffColorType.PaletteColor)]
-        [InlineData(false, TiffPhotometricInterpretation.PaletteColor, new[] { 4 }, TiffColorType.PaletteColor)]
-        [InlineData(true, TiffPhotometricInterpretation.PaletteColor, new[] { 4 }, TiffColorType.PaletteColor)]
-        [InlineData(false, TiffPhotometricInterpretation.PaletteColor, new[] { 1 }, TiffColorType.PaletteColor)]
-        [InlineData(true, TiffPhotometricInterpretation.PaletteColor, new[] { 1 }, TiffColorType.PaletteColor)]
-        [InlineData(false, TiffPhotometricInterpretation.Rgb, new[] { 4, 4, 4 }, TiffColorType.Rgb)]
-        [InlineData(true, TiffPhotometricInterpretation.Rgb, new[] { 4, 4, 4 }, TiffColorType.Rgb)]
-        [InlineData(false, TiffPhotometricInterpretation.Rgb, new[] { 8, 8, 8 }, TiffColorType.Rgb888)]
-        [InlineData(true, TiffPhotometricInterpretation.Rgb, new[] { 8, 8, 8 }, TiffColorType.Rgb888)]
+        [InlineData(false, (ushort)TiffPhotometricInterpretation.WhiteIsZero, new[] { 3 }, (int)TiffColorType.WhiteIsZero)]
+        [InlineData(true, (ushort)TiffPhotometricInterpretation.WhiteIsZero, new[] { 3 }, (int)TiffColorType.WhiteIsZero)]
+        [InlineData(false, (ushort)TiffPhotometricInterpretation.WhiteIsZero, new[] { 8 }, (int)TiffColorType.WhiteIsZero8)]
+        [InlineData(true, (ushort)TiffPhotometricInterpretation.WhiteIsZero, new[] { 8 }, (int)TiffColorType.WhiteIsZero8)]
+        [InlineData(false, (ushort)TiffPhotometricInterpretation.WhiteIsZero, new[] { 4 }, (int)TiffColorType.WhiteIsZero4)]
+        [InlineData(true, (ushort)TiffPhotometricInterpretation.WhiteIsZero, new[] { 4 }, (int)TiffColorType.WhiteIsZero4)]
+        [InlineData(false, (ushort)TiffPhotometricInterpretation.WhiteIsZero, new[] { 1 }, (int)TiffColorType.WhiteIsZero1)]
+        [InlineData(true, (ushort)TiffPhotometricInterpretation.WhiteIsZero, new[] { 1 }, (int)TiffColorType.WhiteIsZero1)]
+        [InlineData(false, (ushort)TiffPhotometricInterpretation.BlackIsZero, new[] { 3 }, (int)TiffColorType.BlackIsZero)]
+        [InlineData(true, (ushort)TiffPhotometricInterpretation.BlackIsZero, new[] { 3 }, (int)TiffColorType.BlackIsZero)]
+        [InlineData(false, (ushort)TiffPhotometricInterpretation.BlackIsZero, new[] { 8 }, (int)TiffColorType.BlackIsZero8)]
+        [InlineData(true, (ushort)TiffPhotometricInterpretation.BlackIsZero, new[] { 8 }, (int)TiffColorType.BlackIsZero8)]
+        [InlineData(false, (ushort)TiffPhotometricInterpretation.BlackIsZero, new[] { 4 }, (int)TiffColorType.BlackIsZero4)]
+        [InlineData(true, (ushort)TiffPhotometricInterpretation.BlackIsZero, new[] { 4 }, (int)TiffColorType.BlackIsZero4)]
+        [InlineData(false, (ushort)TiffPhotometricInterpretation.BlackIsZero, new[] { 1 }, (int)TiffColorType.BlackIsZero1)]
+        [InlineData(true, (ushort)TiffPhotometricInterpretation.BlackIsZero, new[] { 1 }, (int)TiffColorType.BlackIsZero1)]
+        [InlineData(false, (ushort)TiffPhotometricInterpretation.PaletteColor, new[] { 3 }, (int)TiffColorType.PaletteColor)]
+        [InlineData(true, (ushort)TiffPhotometricInterpretation.PaletteColor, new[] { 3 }, (int)TiffColorType.PaletteColor)]
+        [InlineData(false, (ushort)TiffPhotometricInterpretation.PaletteColor, new[] { 8 }, (int)TiffColorType.PaletteColor)]
+        [InlineData(true, (ushort)TiffPhotometricInterpretation.PaletteColor, new[] { 8 }, (int)TiffColorType.PaletteColor)]
+        [InlineData(false, (ushort)TiffPhotometricInterpretation.PaletteColor, new[] { 4 }, (int)TiffColorType.PaletteColor)]
+        [InlineData(true, (ushort)TiffPhotometricInterpretation.PaletteColor, new[] { 4 }, (int)TiffColorType.PaletteColor)]
+        [InlineData(false, (ushort)TiffPhotometricInterpretation.PaletteColor, new[] { 1 }, (int)TiffColorType.PaletteColor)]
+        [InlineData(true, (ushort)TiffPhotometricInterpretation.PaletteColor, new[] { 1 }, (int)TiffColorType.PaletteColor)]
+        [InlineData(false, (ushort)TiffPhotometricInterpretation.Rgb, new[] { 4, 4, 4 }, (int)TiffColorType.Rgb)]
+        [InlineData(true, (ushort)TiffPhotometricInterpretation.Rgb, new[] { 4, 4, 4 }, (int)TiffColorType.Rgb)]
+        [InlineData(false, (ushort)TiffPhotometricInterpretation.Rgb, new[] { 8, 8, 8 }, (int)TiffColorType.Rgb888)]
+        [InlineData(true, (ushort)TiffPhotometricInterpretation.Rgb, new[] { 8, 8, 8 }, (int)TiffColorType.Rgb888)]
         public void ReadImageFormat_DeterminesCorrectColorImplementation_Chunky(bool isLittleEndian, ushort photometricInterpretation, int[] bitsPerSample, int colorType)
         {
             Stream stream = CreateTiffGenIfd()
@@ -167,10 +167,10 @@ namespace ImageSharp.Tests
         }
 
         [Theory]
-        [InlineData(false, TiffPhotometricInterpretation.Rgb, new[] { 4, 4, 4 }, TiffColorType.RgbPlanar)]
-        [InlineData(true, TiffPhotometricInterpretation.Rgb, new[] { 4, 4, 4 }, TiffColorType.RgbPlanar)]
-        [InlineData(false, TiffPhotometricInterpretation.Rgb, new[] { 8, 8, 8 }, TiffColorType.RgbPlanar)]
-        [InlineData(true, TiffPhotometricInterpretation.Rgb, new[] { 8, 8, 8 }, TiffColorType.RgbPlanar)]
+        [InlineData(false, (ushort)TiffPhotometricInterpretation.Rgb, new[] { 4, 4, 4 }, (int)TiffColorType.RgbPlanar)]
+        [InlineData(true, (ushort)TiffPhotometricInterpretation.Rgb, new[] { 4, 4, 4 }, (int)TiffColorType.RgbPlanar)]
+        [InlineData(false, (ushort)TiffPhotometricInterpretation.Rgb, new[] { 8, 8, 8 }, (int)TiffColorType.RgbPlanar)]
+        [InlineData(true, (ushort)TiffPhotometricInterpretation.Rgb, new[] { 8, 8, 8 }, (int)TiffColorType.RgbPlanar)]
         public void ReadImageFormat_DeterminesCorrectColorImplementation_Planar(bool isLittleEndian, ushort photometricInterpretation, int[] bitsPerSample, int colorType)
         {
             Stream stream = CreateTiffGenIfd()
@@ -187,10 +187,10 @@ namespace ImageSharp.Tests
         }
 
         [Theory]
-        [InlineData(false, TiffPhotometricInterpretation.WhiteIsZero, TiffColorType.WhiteIsZero1)]
-        [InlineData(true, TiffPhotometricInterpretation.WhiteIsZero, TiffColorType.WhiteIsZero1)]
-        [InlineData(false, TiffPhotometricInterpretation.BlackIsZero, TiffColorType.BlackIsZero1)]
-        [InlineData(true, TiffPhotometricInterpretation.BlackIsZero, TiffColorType.BlackIsZero1)]
+        [InlineData(false, (ushort)TiffPhotometricInterpretation.WhiteIsZero, (int)TiffColorType.WhiteIsZero1)]
+        [InlineData(true, (ushort)TiffPhotometricInterpretation.WhiteIsZero, (int)TiffColorType.WhiteIsZero1)]
+        [InlineData(false, (ushort)TiffPhotometricInterpretation.BlackIsZero, (int)TiffColorType.BlackIsZero1)]
+        [InlineData(true, (ushort)TiffPhotometricInterpretation.BlackIsZero, (int)TiffColorType.BlackIsZero1)]
         public void ReadImageFormat_DeterminesCorrectColorImplementation_DefaultsToBilevel(bool isLittleEndian, ushort photometricInterpretation, int colorType)
         {
             Stream stream = CreateTiffGenIfd()
@@ -206,8 +206,8 @@ namespace ImageSharp.Tests
         }
 
         // [Theory]
-        // [InlineData(false, new[] { 8 }, TiffColorType.WhiteIsZero8)]
-        // [InlineData(true, new[] { 8 }, TiffColorType.WhiteIsZero8)]
+        // [InlineData(false, new[] { 8 }, (int)TiffColorType.WhiteIsZero8)]
+        // [InlineData(true, new[] { 8 }, (int)TiffColorType.WhiteIsZero8)]
         // public void ReadImageFormat_UsesDefaultColorImplementationForCcitt1D(bool isLittleEndian, int[] bitsPerSample, int colorType)
         // {
         //     Stream stream = CreateTiffGenIfd()
@@ -240,23 +240,23 @@ namespace ImageSharp.Tests
         }
 
         [Theory]
-        [InlineData(false, TiffPhotometricInterpretation.CieLab)]
-        [InlineData(false, TiffPhotometricInterpretation.ColorFilterArray)]
-        [InlineData(false, TiffPhotometricInterpretation.IccLab)]
-        [InlineData(false, TiffPhotometricInterpretation.ItuLab)]
-        [InlineData(false, TiffPhotometricInterpretation.LinearRaw)]
-        [InlineData(false, TiffPhotometricInterpretation.Separated)]
-        [InlineData(false, TiffPhotometricInterpretation.TransparencyMask)]
-        [InlineData(false, TiffPhotometricInterpretation.YCbCr)]
+        [InlineData(false, (ushort)TiffPhotometricInterpretation.CieLab)]
+        [InlineData(false, (ushort)TiffPhotometricInterpretation.ColorFilterArray)]
+        [InlineData(false, (ushort)TiffPhotometricInterpretation.IccLab)]
+        [InlineData(false, (ushort)TiffPhotometricInterpretation.ItuLab)]
+        [InlineData(false, (ushort)TiffPhotometricInterpretation.LinearRaw)]
+        [InlineData(false, (ushort)TiffPhotometricInterpretation.Separated)]
+        [InlineData(false, (ushort)TiffPhotometricInterpretation.TransparencyMask)]
+        [InlineData(false, (ushort)TiffPhotometricInterpretation.YCbCr)]
         [InlineData(false, 999)]
-        [InlineData(true, TiffPhotometricInterpretation.CieLab)]
-        [InlineData(true, TiffPhotometricInterpretation.ColorFilterArray)]
-        [InlineData(true, TiffPhotometricInterpretation.IccLab)]
-        [InlineData(true, TiffPhotometricInterpretation.ItuLab)]
-        [InlineData(true, TiffPhotometricInterpretation.LinearRaw)]
-        [InlineData(true, TiffPhotometricInterpretation.Separated)]
-        [InlineData(true, TiffPhotometricInterpretation.TransparencyMask)]
-        [InlineData(true, TiffPhotometricInterpretation.YCbCr)]
+        [InlineData(true, (ushort)TiffPhotometricInterpretation.CieLab)]
+        [InlineData(true, (ushort)TiffPhotometricInterpretation.ColorFilterArray)]
+        [InlineData(true, (ushort)TiffPhotometricInterpretation.IccLab)]
+        [InlineData(true, (ushort)TiffPhotometricInterpretation.ItuLab)]
+        [InlineData(true, (ushort)TiffPhotometricInterpretation.LinearRaw)]
+        [InlineData(true, (ushort)TiffPhotometricInterpretation.Separated)]
+        [InlineData(true, (ushort)TiffPhotometricInterpretation.TransparencyMask)]
+        [InlineData(true, (ushort)TiffPhotometricInterpretation.YCbCr)]
         [InlineData(true, 999)]
         public void ReadImageFormat_ThrowsExceptionForUnsupportedPhotometricInterpretation(bool isLittleEndian, ushort photometricInterpretation)
         {
@@ -297,10 +297,10 @@ namespace ImageSharp.Tests
         }
 
         [Theory]
-        [InlineData(false, TiffPhotometricInterpretation.WhiteIsZero)]
-        [InlineData(true, TiffPhotometricInterpretation.WhiteIsZero)]
-        [InlineData(false, TiffPhotometricInterpretation.BlackIsZero)]
-        [InlineData(true, TiffPhotometricInterpretation.BlackIsZero)]
+        [InlineData(false, (ushort)TiffPhotometricInterpretation.WhiteIsZero)]
+        [InlineData(true, (ushort)TiffPhotometricInterpretation.WhiteIsZero)]
+        [InlineData(false, (ushort)TiffPhotometricInterpretation.BlackIsZero)]
+        [InlineData(true, (ushort)TiffPhotometricInterpretation.BlackIsZero)]
         public void ReadImageFormat_ReadsBitsPerSample_DefaultsToBilevel(bool isLittleEndian, ushort photometricInterpretation)
         {
             Stream stream = CreateTiffGenIfd()
@@ -333,24 +333,24 @@ namespace ImageSharp.Tests
         }
 
         [Theory]
-        [InlineData(false, TiffPhotometricInterpretation.WhiteIsZero, new int[] { })]
-        [InlineData(true, TiffPhotometricInterpretation.WhiteIsZero, new int[] { })]
-        [InlineData(false, TiffPhotometricInterpretation.BlackIsZero, new int[] { })]
-        [InlineData(true, TiffPhotometricInterpretation.BlackIsZero, new int[] { })]
-        [InlineData(false, TiffPhotometricInterpretation.PaletteColor, new int[] { })]
-        [InlineData(true, TiffPhotometricInterpretation.PaletteColor, new int[] { })]
-        [InlineData(false, TiffPhotometricInterpretation.Rgb, new int[] { })]
-        [InlineData(true, TiffPhotometricInterpretation.Rgb, new int[] { })]
-        [InlineData(false, TiffPhotometricInterpretation.WhiteIsZero, new[] { 8, 8 })]
-        [InlineData(true, TiffPhotometricInterpretation.WhiteIsZero, new[] { 8, 8 })]
-        [InlineData(false, TiffPhotometricInterpretation.BlackIsZero, new[] { 8, 8 })]
-        [InlineData(true, TiffPhotometricInterpretation.BlackIsZero, new[] { 8, 8 })]
-        [InlineData(false, TiffPhotometricInterpretation.PaletteColor, new[] { 8, 8 })]
-        [InlineData(true, TiffPhotometricInterpretation.PaletteColor, new[] { 8, 8 })]
-        [InlineData(false, TiffPhotometricInterpretation.Rgb, new[] { 8 })]
-        [InlineData(true, TiffPhotometricInterpretation.Rgb, new[] { 8 })]
-        [InlineData(false, TiffPhotometricInterpretation.Rgb, new[] { 8, 8 })]
-        [InlineData(true, TiffPhotometricInterpretation.Rgb, new[] { 8, 8 })]
+        [InlineData(false, (ushort)TiffPhotometricInterpretation.WhiteIsZero, new int[] { })]
+        [InlineData(true, (ushort)TiffPhotometricInterpretation.WhiteIsZero, new int[] { })]
+        [InlineData(false, (ushort)TiffPhotometricInterpretation.BlackIsZero, new int[] { })]
+        [InlineData(true, (ushort)TiffPhotometricInterpretation.BlackIsZero, new int[] { })]
+        [InlineData(false, (ushort)TiffPhotometricInterpretation.PaletteColor, new int[] { })]
+        [InlineData(true, (ushort)TiffPhotometricInterpretation.PaletteColor, new int[] { })]
+        [InlineData(false, (ushort)TiffPhotometricInterpretation.Rgb, new int[] { })]
+        [InlineData(true, (ushort)TiffPhotometricInterpretation.Rgb, new int[] { })]
+        [InlineData(false, (ushort)TiffPhotometricInterpretation.WhiteIsZero, new[] { 8, 8 })]
+        [InlineData(true, (ushort)TiffPhotometricInterpretation.WhiteIsZero, new[] { 8, 8 })]
+        [InlineData(false, (ushort)TiffPhotometricInterpretation.BlackIsZero, new[] { 8, 8 })]
+        [InlineData(true, (ushort)TiffPhotometricInterpretation.BlackIsZero, new[] { 8, 8 })]
+        [InlineData(false, (ushort)TiffPhotometricInterpretation.PaletteColor, new[] { 8, 8 })]
+        [InlineData(true, (ushort)TiffPhotometricInterpretation.PaletteColor, new[] { 8, 8 })]
+        [InlineData(false, (ushort)TiffPhotometricInterpretation.Rgb, new[] { 8 })]
+        [InlineData(true, (ushort)TiffPhotometricInterpretation.Rgb, new[] { 8 })]
+        [InlineData(false, (ushort)TiffPhotometricInterpretation.Rgb, new[] { 8, 8 })]
+        [InlineData(true, (ushort)TiffPhotometricInterpretation.Rgb, new[] { 8, 8 })]
         public void ReadImageFormat_ThrowsExceptionForUnsupportedNumberOfSamples(bool isLittleEndian, ushort photometricInterpretation, int[] bitsPerSample)
         {
             Stream stream = CreateTiffGenIfd()
@@ -400,10 +400,10 @@ namespace ImageSharp.Tests
         }
 
         [Theory]
-        [InlineData(false, TiffPlanarConfiguration.Chunky)]
-        [InlineData(true, TiffPlanarConfiguration.Chunky)]
-        [InlineData(false, TiffPlanarConfiguration.Planar)]
-        [InlineData(true, TiffPlanarConfiguration.Planar)]
+        [InlineData(false, (ushort)TiffPlanarConfiguration.Chunky)]
+        [InlineData(true, (ushort)TiffPlanarConfiguration.Chunky)]
+        [InlineData(false, (ushort)TiffPlanarConfiguration.Planar)]
+        [InlineData(true, (ushort)TiffPlanarConfiguration.Planar)]
         public void ReadImageFormat_ReadsPlanarConfiguration(bool isLittleEndian, int planarConfiguration)
         {
             Stream stream = CreateTiffGenIfd()
@@ -437,21 +437,21 @@ namespace ImageSharp.Tests
         }
 
         [Theory]
-        [InlineData(TiffColorType.WhiteIsZero, new uint[] { 1 }, 160, 80, 20 * 80)]
-        [InlineData(TiffColorType.WhiteIsZero, new uint[] { 1 }, 153, 80, 20 * 80)]
-        [InlineData(TiffColorType.WhiteIsZero, new uint[] { 3 }, 100, 80, 38 * 80)]
-        [InlineData(TiffColorType.WhiteIsZero, new uint[] { 4 }, 100, 80, 50 * 80)]
-        [InlineData(TiffColorType.WhiteIsZero, new uint[] { 4 }, 99, 80, 50 * 80)]
-        [InlineData(TiffColorType.WhiteIsZero, new uint[] { 8 }, 100, 80, 100 * 80)]
-        [InlineData(TiffColorType.PaletteColor, new uint[] { 1 }, 160, 80, 20 * 80)]
-        [InlineData(TiffColorType.PaletteColor, new uint[] { 1 }, 153, 80, 20 * 80)]
-        [InlineData(TiffColorType.PaletteColor, new uint[] { 3 }, 100, 80, 38 * 80)]
-        [InlineData(TiffColorType.PaletteColor, new uint[] { 4 }, 100, 80, 50 * 80)]
-        [InlineData(TiffColorType.PaletteColor, new uint[] { 4 }, 99, 80, 50 * 80)]
-        [InlineData(TiffColorType.PaletteColor, new uint[] { 8 }, 100, 80, 100 * 80)]
-        [InlineData(TiffColorType.Rgb, new uint[] { 8, 8, 8 }, 100, 80, 300 * 80)]
-        [InlineData(TiffColorType.Rgb, new uint[] { 4, 4, 4 }, 100, 80, 150 * 80)]
-        [InlineData(TiffColorType.Rgb, new uint[] { 4, 8, 4 }, 100, 80, 200 * 80)]
+        [InlineData((ushort)TiffColorType.WhiteIsZero, new uint[] { 1 }, 160, 80, 20 * 80)]
+        [InlineData((ushort)TiffColorType.WhiteIsZero, new uint[] { 1 }, 153, 80, 20 * 80)]
+        [InlineData((ushort)TiffColorType.WhiteIsZero, new uint[] { 3 }, 100, 80, 38 * 80)]
+        [InlineData((ushort)TiffColorType.WhiteIsZero, new uint[] { 4 }, 100, 80, 50 * 80)]
+        [InlineData((ushort)TiffColorType.WhiteIsZero, new uint[] { 4 }, 99, 80, 50 * 80)]
+        [InlineData((ushort)TiffColorType.WhiteIsZero, new uint[] { 8 }, 100, 80, 100 * 80)]
+        [InlineData((ushort)TiffColorType.PaletteColor, new uint[] { 1 }, 160, 80, 20 * 80)]
+        [InlineData((ushort)TiffColorType.PaletteColor, new uint[] { 1 }, 153, 80, 20 * 80)]
+        [InlineData((ushort)TiffColorType.PaletteColor, new uint[] { 3 }, 100, 80, 38 * 80)]
+        [InlineData((ushort)TiffColorType.PaletteColor, new uint[] { 4 }, 100, 80, 50 * 80)]
+        [InlineData((ushort)TiffColorType.PaletteColor, new uint[] { 4 }, 99, 80, 50 * 80)]
+        [InlineData((ushort)TiffColorType.PaletteColor, new uint[] { 8 }, 100, 80, 100 * 80)]
+        [InlineData((ushort)TiffColorType.Rgb, new uint[] { 8, 8, 8 }, 100, 80, 300 * 80)]
+        [InlineData((ushort)TiffColorType.Rgb, new uint[] { 4, 4, 4 }, 100, 80, 150 * 80)]
+        [InlineData((ushort)TiffColorType.Rgb, new uint[] { 4, 8, 4 }, 100, 80, 200 * 80)]
         public void CalculateImageBufferSize_ReturnsCorrectSize_Chunky(ushort colorType, uint[] bitsPerSample, int width, int height, int expectedResult)
         {
             TiffDecoderCore decoder = new TiffDecoderCore(null, null);
@@ -465,18 +465,18 @@ namespace ImageSharp.Tests
         }
 
         [Theory]
-        [InlineData(TiffColorType.Rgb, new uint[] { 8, 8, 8 }, 100, 80, 0, 100 * 80)]
-        [InlineData(TiffColorType.Rgb, new uint[] { 8, 8, 8 }, 100, 80, 1, 100 * 80)]
-        [InlineData(TiffColorType.Rgb, new uint[] { 8, 8, 8 }, 100, 80, 2, 100 * 80)]
-        [InlineData(TiffColorType.Rgb, new uint[] { 4, 4, 4 }, 100, 80, 0, 50 * 80)]
-        [InlineData(TiffColorType.Rgb, new uint[] { 4, 4, 4 }, 100, 80, 1, 50 * 80)]
-        [InlineData(TiffColorType.Rgb, new uint[] { 4, 4, 4 }, 100, 80, 2, 50 * 80)]
-        [InlineData(TiffColorType.Rgb, new uint[] { 4, 8, 4 }, 100, 80, 0, 50 * 80)]
-        [InlineData(TiffColorType.Rgb, new uint[] { 4, 8, 4 }, 100, 80, 1, 100 * 80)]
-        [InlineData(TiffColorType.Rgb, new uint[] { 4, 8, 4 }, 100, 80, 2, 50 * 80)]
-        [InlineData(TiffColorType.Rgb, new uint[] { 4, 8, 4 }, 99, 80, 0, 50 * 80)]
-        [InlineData(TiffColorType.Rgb, new uint[] { 4, 8, 4 }, 99, 80, 1, 99 * 80)]
-        [InlineData(TiffColorType.Rgb, new uint[] { 4, 8, 4 }, 99, 80, 2, 50 * 80)]
+        [InlineData((ushort)TiffColorType.Rgb, new uint[] { 8, 8, 8 }, 100, 80, 0, 100 * 80)]
+        [InlineData((ushort)TiffColorType.Rgb, new uint[] { 8, 8, 8 }, 100, 80, 1, 100 * 80)]
+        [InlineData((ushort)TiffColorType.Rgb, new uint[] { 8, 8, 8 }, 100, 80, 2, 100 * 80)]
+        [InlineData((ushort)TiffColorType.Rgb, new uint[] { 4, 4, 4 }, 100, 80, 0, 50 * 80)]
+        [InlineData((ushort)TiffColorType.Rgb, new uint[] { 4, 4, 4 }, 100, 80, 1, 50 * 80)]
+        [InlineData((ushort)TiffColorType.Rgb, new uint[] { 4, 4, 4 }, 100, 80, 2, 50 * 80)]
+        [InlineData((ushort)TiffColorType.Rgb, new uint[] { 4, 8, 4 }, 100, 80, 0, 50 * 80)]
+        [InlineData((ushort)TiffColorType.Rgb, new uint[] { 4, 8, 4 }, 100, 80, 1, 100 * 80)]
+        [InlineData((ushort)TiffColorType.Rgb, new uint[] { 4, 8, 4 }, 100, 80, 2, 50 * 80)]
+        [InlineData((ushort)TiffColorType.Rgb, new uint[] { 4, 8, 4 }, 99, 80, 0, 50 * 80)]
+        [InlineData((ushort)TiffColorType.Rgb, new uint[] { 4, 8, 4 }, 99, 80, 1, 99 * 80)]
+        [InlineData((ushort)TiffColorType.Rgb, new uint[] { 4, 8, 4 }, 99, 80, 2, 50 * 80)]
 
         public void CalculateImageBufferSize_ReturnsCorrectSize_Planar(ushort colorType, uint[] bitsPerSample, int width, int height, int plane, int expectedResult)
         {

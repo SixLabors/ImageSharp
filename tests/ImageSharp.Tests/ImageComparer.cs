@@ -138,7 +138,7 @@ namespace ImageSharp.Tests
             where TPixelA : struct, IPixel<TPixelA>
         {
             byte[] buffer = new byte[3];
-            using (Image<TPixelA> img = source.Generate(x => x.Resize(scalingFactor, scalingFactor).Grayscale()))
+            using (Image<TPixelA> img = source.Clone(x => x.Resize(scalingFactor, scalingFactor).Grayscale()))
             {
                 using (PixelAccessor<TPixelA> pixels = img.Lock())
                 {

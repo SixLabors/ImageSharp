@@ -27,36 +27,13 @@ namespace ImageSharp.Tests
         public static Image<TPixel> DebugSave<TPixel>(this Image<TPixel> image, ITestImageProvider provider, object settings = null, string extension = "png")
             where TPixel : struct, IPixel<TPixel>
         {
-            if (bool.TryParse(Environment.GetEnvironmentVariable("CI"), out bool isCi) && isCi)
+            if (TestEnvironment.RunsOnCI)
             {
                 return image;
             }
 
             // We are running locally then we want to save it out
-            string tag = null;
-            string s = settings as string;
-
-            if (s != null)
-            {
-                tag = s;
-            }
-            else if (settings != null)
-            {
-                Type type = settings.GetType();
-                TypeInfo info = type.GetTypeInfo();
-                if (info.IsPrimitive || info.IsEnum || type == typeof(decimal))
-                {
-                    tag = settings.ToString();
-                }
-                else
-                {
-                    IEnumerable<PropertyInfo> properties = settings.GetType().GetRuntimeProperties();
-
-                    tag = string.Join("_", properties.ToDictionary(x => x.Name, x => x.GetValue(settings)).Select(x => $"{x.Key}-{x.Value}"));
-                }
-            }
-
-            provider.Utility.SaveTestOutputFile(image, extension, tag: tag);
+            provider.Utility.SaveTestOutputFile(image, extension, settings: settings);
             return image;
         }
 
@@ -70,35 +47,11 @@ namespace ImageSharp.Tests
             int scalingFactor = ImageComparer.DefaultScalingFactor)
             where TPixel : struct, IPixel<TPixel>
         {
-            // We are running locally then we want to save it out
-            string tag = null;
-            string s = settings as string;
+            string referenceOutputFile = provider.Utility.GetReferenceOutputFileName(extension, settings);
 
-            if (s != null)
+            if (!TestEnvironment.RunsOnCI)
             {
-                tag = s;
-            }
-            else if (settings != null)
-            {
-                Type type = settings.GetType();
-                TypeInfo info = type.GetTypeInfo();
-                if (info.IsPrimitive || info.IsEnum || type == typeof(decimal))
-                {
-                    tag = settings.ToString();
-                }
-                else
-                {
-                    IEnumerable<PropertyInfo> properties = settings.GetType().GetRuntimeProperties();
-
-                    tag = string.Join("_", properties.ToDictionary(x => x.Name, x => x.GetValue(settings)).Select(x => $"{x.Key}-{x.Value}"));
-                }
-            }
-
-            string referenceOutputFile = provider.Utility.GetReferenceOutputFileName(extension, tag);
-
-            if (!(bool.TryParse(Environment.GetEnvironmentVariable("CI"), out bool isCi) && isCi))
-            {
-                provider.Utility.SaveTestOutputFile(image, extension, tag: tag);
+                provider.Utility.SaveTestOutputFile(image, extension, settings: settings);
             }
 
             if (!File.Exists(referenceOutputFile))

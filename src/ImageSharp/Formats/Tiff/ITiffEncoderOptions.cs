@@ -8,7 +8,7 @@ namespace ImageSharp.Formats
     /// <summary>
     /// Encapsulates the options for the <see cref="TiffEncoder"/>.
     /// </summary>
-    public interface ITiffEncoderOptions : IEncoderOptions
+    public interface ITiffEncoderOptions
     {
     }
 }

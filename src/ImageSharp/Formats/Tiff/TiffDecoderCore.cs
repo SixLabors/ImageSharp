@@ -18,24 +18,26 @@ namespace ImageSharp.Formats
     internal class TiffDecoderCore : IDisposable
     {
         /// <summary>
-        /// The decoder options.
-        /// </summary>
-        private readonly IDecoderOptions options;
-
-        /// <summary>
         /// The global configuration
         /// </summary>
         private readonly Configuration configuration;
 
         /// <summary>
+        /// Gets or sets a value indicating whether the metadata should be ignored when the image is being decoded.
+        /// </summary>
+        private bool ignoreMetadata;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="TiffDecoderCore" /> class.
         /// </summary>
-        /// <param name="options">The decoder options.</param>
         /// <param name="configuration">The configuration.</param>
-        public TiffDecoderCore(IDecoderOptions options, Configuration configuration)
+        /// <param name="options">The decoder options.</param>
+        public TiffDecoderCore(Configuration configuration, ITiffDecoderOptions options)
         {
+            options = options ?? new TiffDecoder();
+
             this.configuration = configuration ?? Configuration.Default;
-            this.options = options ?? new DecoderOptions();
+            this.ignoreMetadata = options.IgnoreMetadata;
         }
 
         /// <summary>
@@ -45,8 +47,8 @@ namespace ImageSharp.Formats
         /// <param name="isLittleEndian">A flag indicating if the file is encoded in little-endian or big-endian format.</param>
         /// <param name="options">The decoder options.</param>
         /// <param name="configuration">The configuration.</param>
-        public TiffDecoderCore(Stream stream, bool isLittleEndian, IDecoderOptions options, Configuration configuration)
-            : this(options, configuration)
+        public TiffDecoderCore(Stream stream, bool isLittleEndian, Configuration configuration, ITiffDecoderOptions options)
+            : this(configuration, options)
         {
             this.InputStream = stream;
             this.IsLittleEndian = isLittleEndian;
@@ -252,7 +254,7 @@ namespace ImageSharp.Formats
                 }
             }
 
-            if (!this.options.IgnoreMetadata)
+            if (!this.ignoreMetadata)
             {
                 if (ifd.TryGetIfdEntry(TiffTags.Artist, out TiffIfdEntry artistEntry))
                 {

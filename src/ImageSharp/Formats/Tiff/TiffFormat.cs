@@ -6,6 +6,7 @@
 namespace ImageSharp.Formats
 {
     using System.Collections.Generic;
+    using ImageSharp.Formats.Tiff;
 
     /// <summary>
     /// Encapsulates the means to encode and decode Tiff images.
@@ -13,29 +14,15 @@ namespace ImageSharp.Formats
     public class TiffFormat : IImageFormat
     {
         /// <inheritdoc/>
-        public string MimeType => "image/tiff";
+        public string Name => "TIFF";
 
         /// <inheritdoc/>
-        public string Extension => "tif";
+        public string DefaultMimeType => "image/tiff";
 
         /// <inheritdoc/>
-        public IEnumerable<string> SupportedExtensions => new string[] { "tif", "tiff" };
+        public IEnumerable<string> MimeTypes => TiffConstants.MimeTypes;
 
         /// <inheritdoc/>
-        public IImageDecoder Decoder => new TiffDecoder();
-
-        /// <inheritdoc/>
-        public IImageEncoder Encoder => new TiffEncoder();
-
-        /// <inheritdoc/>
-        public int HeaderSize => 4;
-
-        /// <inheritdoc/>
-        public bool IsSupportedFileFormat(byte[] header)
-        {
-            return header.Length >= this.HeaderSize &&
-                   ((header[0] == 0x49 && header[1] == 0x49 && header[2] == 0x2A && header[3] == 0x00) || // Little-endian
-                    (header[0] == 0x4D && header[1] == 0x4D && header[2] == 0x00 && header[3] == 0x2A)); // Big-endian
-        }
+        public IEnumerable<string> FileExtensions => TiffConstants.FileExtensions;
     }
 }

@@ -12,28 +12,18 @@ namespace ImageSharp.Formats
     /// <summary>
     /// Encoder for writing the data image to a stream in TIFF format.
     /// </summary>
-    public class TiffEncoder : IImageEncoder
+    public class TiffEncoder : IImageEncoder, ITiffEncoderOptions
     {
-        /// <inheritdoc/>
-        public void Encode<TPixel>(Image<TPixel> image, Stream stream, IEncoderOptions options)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            ITiffEncoderOptions tiffOptions = TiffEncoderOptions.Create(options);
-
-            this.Encode(image, stream, tiffOptions);
-        }
-
         /// <summary>
         /// Encodes the image to the specified stream from the <see cref="Image{TPixel}"/>.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="image">The <see cref="Image{TPixel}"/> to encode from.</param>
         /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
-        /// <param name="options">The options for the encoder.</param>
-        public void Encode<TPixel>(Image<TPixel> image, Stream stream, ITiffEncoderOptions options)
+        public void Encode<TPixel>(Image<TPixel> image, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
-            var encode = new TiffEncoderCore(options);
+            var encode = new TiffEncoderCore(this);
             encode.Encode(image, stream);
         }
     }

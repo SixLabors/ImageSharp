@@ -124,8 +124,8 @@ namespace ImageSharp.Tests
             }
                 .ToStream(isLittleEndian);
 
-            DecoderOptions options = new DecoderOptions() { IgnoreMetadata = true };
-            TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, options, null);
+            TiffDecoder options = new TiffDecoder() { IgnoreMetadata = true };
+            TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null, options);
             TiffIfd ifd = decoder.ReadIfd(0);
             Image<Rgba32> image = new Image<Rgba32>(null, 20, 20);
 

@@ -12,7 +12,7 @@ namespace ImageSharp.Benchmarks
 
     using ImageSharp.PixelFormats;
 
-    using CoreSize = ImageSharp.Size;
+    using CoreSize = SixLabors.Primitives.Size;
 
     public class Crop : BenchmarkBase
     {

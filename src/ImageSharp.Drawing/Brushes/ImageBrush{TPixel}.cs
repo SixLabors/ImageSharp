@@ -10,6 +10,7 @@ namespace ImageSharp.Drawing.Brushes
     using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
     using Processors;
+    using SixLabors.Primitives;
 
     /// <summary>
     /// Provides an implementation of an image brush for painting images within areas.

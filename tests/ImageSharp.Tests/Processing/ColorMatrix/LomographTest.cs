@@ -8,7 +8,7 @@ namespace ImageSharp.Tests
     using System.IO;
 
     using ImageSharp.PixelFormats;
-
+    using SixLabors.Primitives;
     using Xunit;
 
     public class LomographTest : FileTestBase

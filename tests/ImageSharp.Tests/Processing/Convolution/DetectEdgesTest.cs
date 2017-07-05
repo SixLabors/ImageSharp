@@ -7,7 +7,7 @@ namespace ImageSharp.Tests.Processing.Convolution
 {
     using ImageSharp.PixelFormats;
     using ImageSharp.Processing;
-
+    using SixLabors.Primitives;
     using Xunit;
 
     public class DetectEdgesTest : FileTestBase

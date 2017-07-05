@@ -10,7 +10,7 @@ namespace ImageSharp.Formats
     /// the screen.
     /// <see href="https://en.wikipedia.org/wiki/BMP_file_format"/>
     /// </summary>
-    internal class BmpInfoHeader
+    internal sealed class BmpInfoHeader
     {
         /// <summary>
         /// Defines of the data structure in the bitmap file.

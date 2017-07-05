@@ -50,7 +50,7 @@ namespace ImageSharp.Benchmarks
                 image.DrawBeziers(
                     Rgba32.HotPink,
                     10,
-                    new[] {
+                    new SixLabors.Primitives.PointF[] {
                         new Vector2(10, 500),
                         new Vector2(30, 10),
                         new Vector2(240, 30),

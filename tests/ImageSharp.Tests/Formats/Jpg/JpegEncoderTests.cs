@@ -17,6 +17,7 @@ namespace ImageSharp.Tests
     using ImageSharp.Formats.Jpg;
     using ImageSharp.PixelFormats;
     using ImageSharp.Processing;
+    using SixLabors.Primitives;
 
     public class JpegEncoderTests : MeasureFixture
     {
@@ -37,14 +38,12 @@ namespace ImageSharp.Tests
         {
             using (Image<TPixel> image = provider.GetImage().Resize(new ResizeOptions { Size = new Size(150, 100), Mode = ResizeMode.Max }))
             {
-                image.MetaData.Quality = quality;
                 image.MetaData.ExifProfile = null; // Reduce the size of the file
-                JpegEncoder encoder = new JpegEncoder();
-                JpegEncoderOptions options = new JpegEncoderOptions { Subsample = subsample, Quality = quality };
+                JpegEncoder options = new JpegEncoder { Subsample = subsample, Quality = quality };
 
                 provider.Utility.TestName += $"{subsample}_Q{quality}";
                 provider.Utility.SaveTestOutputFile(image, "png");
-                provider.Utility.SaveTestOutputFile(image, "jpg", encoder, options);
+                provider.Utility.SaveTestOutputFile(image, "jpg", options);
             }
         }
 
@@ -61,9 +60,7 @@ namespace ImageSharp.Tests
 
                 using (FileStream outputStream = File.OpenWrite(utility.GetTestOutputFileName("jpg")))
                 {
-                    JpegEncoder encoder = new JpegEncoder();
-
-                    image.Save(outputStream, encoder, new JpegEncoderOptions()
+                    image.Save(outputStream, new JpegEncoder()
                     {
                       Subsample = subSample,
                       Quality = quality
@@ -75,7 +72,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void Encode_IgnoreMetadataIsFalse_ExifProfileIsWritten()
         {
-            EncoderOptions options = new EncoderOptions()
+            JpegEncoder options = new JpegEncoder()
             {
                 IgnoreMetadata = false
             };
@@ -86,7 +83,7 @@ namespace ImageSharp.Tests
             {
                 using (MemoryStream memStream = new MemoryStream())
                 {
-                    input.Save(memStream, new JpegFormat(), options);
+                    input.Save(memStream,  options);
 
                     memStream.Position = 0;
                     using (Image<Rgba32> output = Image.Load<Rgba32>(memStream))
@@ -100,7 +97,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void Encode_IgnoreMetadataIsTrue_ExifProfileIgnored()
         {
-            JpegEncoderOptions options = new JpegEncoderOptions()
+            JpegEncoder options = new JpegEncoder()
             {
                 IgnoreMetadata = true
             };

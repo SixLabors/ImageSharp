@@ -34,6 +34,7 @@
     <AdditionalFiles Include="..\Shared\stylecop.json" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="SixLabors.Core" Version="0.1.0-alpha0002" />
     <PackageReference Include="StyleCop.Analyzers" Version="1.1.0-beta001">
       <PrivateAssets>All</PrivateAssets>
     </PackageReference>
@@ -43,6 +44,7 @@
     <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.4.0-preview1-25305-02" />
     <PackageReference Include="System.Numerics.Vectors" Version="4.3.0" />
     <PackageReference Include="System.IO.Compression" Version="4.3.0" />
+    <PackageReference Include="System.ValueTuple" Version="4.4.0-preview1-25305-02" />
   </ItemGroup>
   <PropertyGroup>
     <CodeAnalysisRuleSet>..\..\ImageSharp.ruleset</CodeAnalysisRuleSet>
@@ -63,6 +65,14 @@
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>Rgba32.PixelOperations.Generated.cs</LastGenOutput>
     </None>
+    <None Update="PixelFormats\PixelBlenders\PorterDuffFunctions.Generated.tt">
+      <LastGenOutput>PorterDuffFunctions.Generated.cs</LastGenOutput>
+      <Generator>TextTemplatingFileGenerator</Generator>
+    </None>
+    <None Update="PixelFormats\PixelBlenders\DefaultPixelBlenders.Generated.tt">
+      <LastGenOutput>DefaultPixelBlenders.Generated.cs</LastGenOutput>
+      <Generator>TextTemplatingFileGenerator</Generator>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
@@ -82,6 +92,16 @@
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>Rgba32.PixelOperations.Generated.tt</DependentUpon>
+    </Compile>
+    <Compile Update="PixelFormats\PixelBlenders\DefaultPixelBlenders.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>DefaultPixelBlenders.Generated.tt</DependentUpon>
+    </Compile>
+    <Compile Update="PixelFormats\PixelBlenders\PorterDuffFunctions.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>PorterDuffFunctions.Generated.tt</DependentUpon>
     </Compile>
   </ItemGroup>
 </Project>

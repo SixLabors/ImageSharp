@@ -50,8 +50,7 @@ namespace ImageSharp.Tests.Formats.Png
             using (MemoryStream ms = new MemoryStream())
             {
                 // image.Save(provider.Utility.GetTestOutputFileName("bmp"));
-                image.MetaData.Quality = 256;
-                image.Save(ms, new PngEncoder());
+                image.Save(ms, new PngEncoder() { PaletteSize = 256 });
                 ms.Position = 0;
                 using (Image<Rgba32> img2 = Image.Load<Rgba32>(ms, new PngDecoder()))
                 {

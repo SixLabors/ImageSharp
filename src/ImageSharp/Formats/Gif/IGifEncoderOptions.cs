@@ -1,29 +1,36 @@
-﻿// <copyright file="IGifEncoderOptions.cs" company="James Jackson-South">
+﻿// <copyright file="GifEncoder.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
 namespace ImageSharp.Formats
 {
+    using System;
+    using System.Collections.Generic;
+    using System.IO;
     using System.Text;
-
-    using Quantizers;
+    using ImageSharp.PixelFormats;
+    using ImageSharp.Quantizers;
 
     /// <summary>
-    /// Encapsulates the options for the <see cref="GifEncoder"/>.
+    /// The configuration options used for encoding gifs
     /// </summary>
-    public interface IGifEncoderOptions : IEncoderOptions
+    internal interface IGifEncoderOptions
     {
+        /// <summary>
+        /// Gets a value indicating whether the metadata should be ignored when the image is being encoded.
+        /// </summary>
+        bool IgnoreMetadata { get; }
+
         /// <summary>
         /// Gets the encoding that should be used when writing comments.
         /// </summary>
         Encoding TextEncoding { get; }
 
         /// <summary>
-        /// Gets the quality of output for images.
+        /// Gets the size of the color palette to use. For gifs the value ranges from 1 to 256. Leave as zero for default size.
         /// </summary>
-        /// <remarks>For gifs the value ranges from 1 to 256.</remarks>
-        int Quality { get; }
+        int PaletteSize { get; }
 
         /// <summary>
         /// Gets the transparency threshold.
@@ -33,6 +40,6 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Gets the quantizer for reducing the color count.
         /// </summary>
-        IQuantizer Quantizer { get; }
+        IQuantizer Quantizer { get;  }
     }
 }

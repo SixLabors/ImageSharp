@@ -18,7 +18,7 @@ namespace ImageSharp.Tests
         public static readonly string[] TestFiles =
             {
                 TestImages.Png.Splash, TestImages.Png.Indexed, TestImages.Png.Interlaced, TestImages.Png.FilterVar,
-                TestImages.Png.Bad.ChunkLength1, TestImages.Png.Bad.ChunkLength2
+                TestImages.Png.Bad.ChunkLength1, TestImages.Png.Bad.ChunkLength2, TestImages.Png.Rgb48Bpp
             };
 
         [Theory]
@@ -35,7 +35,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void Decode_IgnoreMetadataIsFalse_TextChunckIsRead()
         {
-            PngDecoderOptions options = new PngDecoderOptions()
+            PngDecoder options = new PngDecoder()
             {
                 IgnoreMetadata = false
             };
@@ -53,7 +53,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void Decode_IgnoreMetadataIsTrue_TextChunksAreIgnored()
         {
-            PngDecoderOptions options = new PngDecoderOptions()
+            PngDecoder options = new PngDecoder()
             {
                 IgnoreMetadata = true
             };
@@ -69,7 +69,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void Decode_TextEncodingSetToUnicode_TextIsReadWithCorrectEncoding()
         {
-            PngDecoderOptions options = new PngDecoderOptions()
+            PngDecoder options = new PngDecoder()
             {
                 TextEncoding = Encoding.Unicode
             };

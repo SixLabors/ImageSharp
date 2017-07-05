@@ -13,7 +13,7 @@ namespace ImageSharp.Tests
     using ImageSharp.Formats;
     using ImageSharp.IO;
     using ImageSharp.PixelFormats;
-
+    using Moq;
     using Xunit;
 
     /// <summary>
@@ -21,22 +21,27 @@ namespace ImageSharp.Tests
     /// </summary>
     public class ConfigurationTests
     {
+        public Configuration ConfigurationEmpty { get; private set; }
+        public Configuration DefaultConfiguration { get; private set; }
+
+        public ConfigurationTests()
+        {
+            this.DefaultConfiguration = Configuration.CreateDefaultInstance();
+            this.ConfigurationEmpty = new Configuration();
+        }
+
         [Fact]
         public void DefaultsToLocalFileSystem()
         {
-            var configuration = Configuration.CreateDefaultInstance();
-
-            ImageSharp.IO.IFileSystem fs = configuration.FileSystem;
-
-            Assert.IsType<LocalFileSystem>(fs);
+            Assert.IsType<LocalFileSystem>(DefaultConfiguration.FileSystem);
+            Assert.IsType<LocalFileSystem>(ConfigurationEmpty.FileSystem);
         }
 
         [Fact]
         public void IfAutoloadWellknwonFormatesIsTrueAllFormateAreLoaded()
         {
-            var configuration = Configuration.CreateDefaultInstance();
-
-            Assert.Equal(4, configuration.ImageFormats.Count);
+            Assert.Equal(4, DefaultConfiguration.ImageEncoders.Count());
+            Assert.Equal(4, DefaultConfiguration.ImageDecoders.Count());
         }
 
         /// <summary>
@@ -67,243 +72,97 @@ namespace ImageSharp.Tests
             Assert.True(Configuration.Default.ParallelOptions.MaxDegreeOfParallelism == Environment.ProcessorCount);
         }
 
-        /// <summary>
-        /// Test that the default configuration parallel options is not null.
-        /// </summary>
         [Fact]
-        public void TestDefultConfigurationImageFormatsIsNotNull()
-        {
-            Assert.True(Configuration.Default.ImageFormats != null);
-        }
-
-        /// <summary>
-        /// Tests the <see cref="M:Configuration.AddImageFormat"/> method throws an exception
-        /// when the format is null.
-        /// </summary>
-        [Fact]
-        public void TestAddImageFormatThrowsWithNullFormat()
+        public void AddImageFormatDetectorNullthrows()
         {
             Assert.Throws<ArgumentNullException>(() =>
             {
-                Configuration.Default.AddImageFormat(null);
+                DefaultConfiguration.AddImageFormatDetector(null);
             });
         }
 
-        /// <summary>
-        /// Tests the <see cref="M:Configuration.AddImageFormat"/> method throws an exception
-        /// when the encoder is null.
-        /// </summary>
         [Fact]
-        public void TestAddImageFormatThrowsWithNullEncoder()
+        public void RegisterNullMimeTypeEncoder()
         {
-            var format = new TestFormat { Encoder = null };
-
             Assert.Throws<ArgumentNullException>(() =>
             {
-                Configuration.Default.AddImageFormat(format);
+                DefaultConfiguration.SetEncoder(null, new Mock<IImageEncoder>().Object);
             });
-        }
-
-        /// <summary>
-        /// Tests the <see cref="M:Configuration.AddImageFormat"/> method throws an exception
-        /// when the decoder is null.
-        /// </summary>
-        [Fact]
-        public void TestAddImageFormatThrowsWithNullDecoder()
-        {
-            var format = new TestFormat { Decoder = null };
-
             Assert.Throws<ArgumentNullException>(() =>
             {
-                Configuration.Default.AddImageFormat(format);
+                DefaultConfiguration.SetEncoder(ImageFormats.Bitmap, null);
             });
-        }
-
-        /// <summary>
-        /// Tests the <see cref="M:Configuration.AddImageFormat"/> method throws an exception
-        /// when the mime type is null or an empty string.
-        /// </summary>
-        [Fact]
-        public void TestAddImageFormatThrowsWithNullOrEmptyMimeType()
-        {
-            var format = new TestFormat { MimeType = null };
-
             Assert.Throws<ArgumentNullException>(() =>
             {
-                Configuration.Default.AddImageFormat(format);
-            });
-
-            format = new TestFormat { MimeType = string.Empty };
-
-            Assert.Throws<ArgumentException>(() =>
-            {
-                Configuration.Default.AddImageFormat(format);
+                DefaultConfiguration.SetEncoder(null, null);
             });
         }
 
-        /// <summary>
-        /// Tests the <see cref="M:Configuration.AddImageFormat"/> method throws an exception
-        /// when the extension is null or an empty string.
-        /// </summary>
         [Fact]
-        public void TestAddImageFormatThrowsWithNullOrEmptyExtension()
+        public void RegisterNullSetDecoder()
         {
-            var format = new TestFormat { Extension = null };
-
             Assert.Throws<ArgumentNullException>(() =>
             {
-                Configuration.Default.AddImageFormat(format);
+                DefaultConfiguration.SetDecoder(null, new Mock<IImageDecoder>().Object);
             });
-
-            format = new TestFormat { Extension = string.Empty };
-
-            Assert.Throws<ArgumentException>(() =>
-            {
-                Configuration.Default.AddImageFormat(format);
-            });
-        }
-
-        /// <summary>
-        /// Tests the <see cref="M:Configuration.AddImageFormat"/> method throws an exception
-        /// when the supported extensions list is null or empty.
-        /// </summary>
-        [Fact]
-        public void TestAddImageFormatThrowsWenSupportedExtensionsIsNullOrEmpty()
-        {
-            var format = new TestFormat { SupportedExtensions = null };
-
             Assert.Throws<ArgumentNullException>(() =>
             {
-                Configuration.Default.AddImageFormat(format);
+                DefaultConfiguration.SetDecoder(ImageFormats.Bitmap, null);
             });
-
-            format = new TestFormat { SupportedExtensions = Enumerable.Empty<string>() };
-
-            Assert.Throws<ArgumentException>(() =>
+            Assert.Throws<ArgumentNullException>(() =>
             {
-                Configuration.Default.AddImageFormat(format);
+                DefaultConfiguration.SetDecoder(null, null);
             });
         }
 
-        /// <summary>
-        /// Tests the <see cref="M:Configuration.AddImageFormat"/> method throws an exception
-        /// when the supported extensions list does not contain the default extension.
-        /// </summary>
         [Fact]
-        public void TestAddImageFormatThrowsWithoutDefaultExtension()
+        public void RegisterMimeTypeEncoderReplacesLast()
         {
-            var format = new TestFormat { Extension = "test" };
+            var encoder1 = new Mock<IImageEncoder>().Object;
+            ConfigurationEmpty.SetEncoder(TestFormat.GlobalTestFormat, encoder1);
+            var found = ConfigurationEmpty.FindEncoder(TestFormat.GlobalTestFormat);
+            Assert.Equal(encoder1, found);
 
-            Assert.Throws<ArgumentException>(() =>
-            {
-                Configuration.Default.AddImageFormat(format);
-            });
+            var encoder2 = new Mock<IImageEncoder>().Object;
+            ConfigurationEmpty.SetEncoder(TestFormat.GlobalTestFormat, encoder2);
+            var found2 = ConfigurationEmpty.FindEncoder(TestFormat.GlobalTestFormat);
+            Assert.Equal(encoder2, found2);
+            Assert.NotEqual(found, found2);
         }
 
-        /// <summary>
-        /// Tests the <see cref="M:Configuration.AddImageFormat"/> method throws an exception
-        /// when the supported extensions list contains an empty string.
-        /// </summary>
         [Fact]
-        public void TestAddImageFormatThrowsWithEmptySupportedExtension()
+        public void RegisterMimeTypeDecoderReplacesLast()
         {
-            var format = new TestFormat
-            {
-                Extension = "test",
-                SupportedExtensions = new[] { "test", string.Empty }
-            };
+            var decoder1 = new Mock<IImageDecoder>().Object;
+            ConfigurationEmpty.SetDecoder(TestFormat.GlobalTestFormat, decoder1);
+            var found = ConfigurationEmpty.FindDecoder(TestFormat.GlobalTestFormat);
+            Assert.Equal(decoder1, found);
 
-            Assert.Throws<ArgumentException>(() =>
-            {
-                Configuration.Default.AddImageFormat(format);
-            });
+            var decoder2 = new Mock<IImageDecoder>().Object;
+            ConfigurationEmpty.SetDecoder(TestFormat.GlobalTestFormat, decoder2);
+            var found2 = ConfigurationEmpty.FindDecoder(TestFormat.GlobalTestFormat);
+            Assert.Equal(decoder2, found2);
+            Assert.NotEqual(found, found2);
         }
 
-        /// <summary>
-        /// Test that the <see cref="M:Configuration.AddImageFormat"/> method ignores adding duplicate image formats.
-        /// </summary>
-        [Fact]
-        public void TestConfigurationIgnoresDuplicateImageFormats()
-        {
-            Configuration.Default.AddImageFormat(new PngFormat());
-            Configuration.Default.AddImageFormat(new PngFormat());
 
-            Assert.True(Configuration.Default.ImageFormats.Count(i => i.GetType() == typeof(PngFormat)) == 1);
+        [Fact]
+        public void ConstructorCallConfigureOnFormatProvider()
+        {
+            var provider = new Mock<IConfigurationModule>();
+            var config = new Configuration(provider.Object);
+
+            provider.Verify(x => x.Configure(config));
         }
 
-        /// <summary>
-        /// Test that the default image constructors use default configuration.
-        /// </summary>
         [Fact]
-        public void TestImageUsesDefaultConfiguration()
+        public void AddFormatCallsConfig()
         {
-            Configuration.Default.AddImageFormat(new PngFormat());
+            var provider = new Mock<IConfigurationModule>();
+            var config = new Configuration();
+            config.Configure(provider.Object);
 
-            var image = new Image<Rgba32>(1, 1);
-            Assert.Equal(image.Configuration.ParallelOptions, Configuration.Default.ParallelOptions);
-            Assert.Equal(image.Configuration.ImageFormats, Configuration.Default.ImageFormats);
-        }
-
-        /// <summary>
-        /// Test that the default image constructor copies the configuration.
-        /// </summary>
-        [Fact]
-        public void TestImageCopiesConfiguration()
-        {
-            Configuration.Default.AddImageFormat(new PngFormat());
-
-            var image = new Image<Rgba32>(1, 1);
-            var image2 = new Image<Rgba32>(image);
-            Assert.Equal(image2.Configuration.ParallelOptions, image.Configuration.ParallelOptions);
-            Assert.True(image2.Configuration.ImageFormats.SequenceEqual(image.Configuration.ImageFormats));
-        }
-
-        /// <summary>
-        /// A test image format for testing the configuration.
-        /// </summary>
-        private class TestFormat : IImageFormat
-        {
-            /// <summary>
-            /// Initializes a new instance of the <see cref="TestFormat"/> class.
-            /// </summary>
-            public TestFormat()
-            {
-                this.Decoder = new JpegDecoder();
-                this.Encoder = new JpegEncoder();
-                this.Extension = "jpg";
-                this.MimeType = "image/test";
-                this.SupportedExtensions = new[] { "jpg" };
-            }
-
-            /// <inheritdoc />
-            public IImageDecoder Decoder { get; set; }
-
-            /// <inheritdoc />
-            public IImageEncoder Encoder { get; set; }
-
-            /// <inheritdoc />
-            public string MimeType { get; set; }
-
-            /// <inheritdoc />
-            public string Extension { get; set; }
-
-            /// <inheritdoc />
-            public IEnumerable<string> SupportedExtensions { get; set; }
-
-            /// <inheritdoc />
-            public int HeaderSize
-            {
-                get
-                {
-                    throw new NotImplementedException();
-                }
-            }
-
-            /// <inheritdoc />
-            public bool IsSupportedFileFormat(byte[] header)
-            {
-                throw new NotImplementedException();
-            }
+            provider.Verify(x => x.Configure(config));
         }
     }
 }

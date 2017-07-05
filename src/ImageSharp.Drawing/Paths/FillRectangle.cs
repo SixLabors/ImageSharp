@@ -8,6 +8,7 @@ namespace ImageSharp
     using Drawing;
     using Drawing.Brushes;
     using ImageSharp.PixelFormats;
+    using SixLabors.Primitives;
 
     /// <summary>
     /// Extension methods for the <see cref="Image{TPixel}"/> type.
@@ -23,10 +24,10 @@ namespace ImageSharp
         /// <param name="shape">The shape.</param>
         /// <param name="options">The options.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> Fill<TPixel>(this Image<TPixel> source, IBrush<TPixel> brush, Rectangle shape, GraphicsOptions options)
+        public static Image<TPixel> Fill<TPixel>(this Image<TPixel> source, IBrush<TPixel> brush, RectangleF shape, GraphicsOptions options)
             where TPixel : struct, IPixel<TPixel>
         {
-            return source.Fill(brush, new SixLabors.Shapes.Rectangle(shape.X, shape.Y, shape.Width, shape.Height), options);
+            return source.Fill(brush, new SixLabors.Shapes.RectangularePolygon(shape.X, shape.Y, shape.Width, shape.Height), options);
         }
 
         /// <summary>
@@ -37,10 +38,10 @@ namespace ImageSharp
         /// <param name="brush">The brush.</param>
         /// <param name="shape">The shape.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> Fill<TPixel>(this Image<TPixel> source, IBrush<TPixel> brush, Rectangle shape)
+        public static Image<TPixel> Fill<TPixel>(this Image<TPixel> source, IBrush<TPixel> brush, RectangleF shape)
             where TPixel : struct, IPixel<TPixel>
         {
-            return source.Fill(brush, new SixLabors.Shapes.Rectangle(shape.X, shape.Y, shape.Width, shape.Height));
+            return source.Fill(brush, new SixLabors.Shapes.RectangularePolygon(shape.X, shape.Y, shape.Width, shape.Height));
         }
 
         /// <summary>
@@ -52,7 +53,7 @@ namespace ImageSharp
         /// <param name="shape">The shape.</param>
         /// <param name="options">The options.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> Fill<TPixel>(this Image<TPixel> source, TPixel color, Rectangle shape, GraphicsOptions options)
+        public static Image<TPixel> Fill<TPixel>(this Image<TPixel> source, TPixel color, RectangleF shape, GraphicsOptions options)
           where TPixel : struct, IPixel<TPixel>
         {
             return source.Fill(new SolidBrush<TPixel>(color), shape, options);
@@ -66,7 +67,7 @@ namespace ImageSharp
         /// <param name="color">The color.</param>
         /// <param name="shape">The shape.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> Fill<TPixel>(this Image<TPixel> source, TPixel color, Rectangle shape)
+        public static Image<TPixel> Fill<TPixel>(this Image<TPixel> source, TPixel color, RectangleF shape)
             where TPixel : struct, IPixel<TPixel>
         {
             return source.Fill(new SolidBrush<TPixel>(color), shape);

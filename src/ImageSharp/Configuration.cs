@@ -6,8 +6,8 @@
 namespace ImageSharp
 {
     using System;
+    using System.Collections.Concurrent;
     using System.Collections.Generic;
-    using System.Collections.ObjectModel;
     using System.Linq;
     using System.Threading.Tasks;
 
@@ -17,22 +17,32 @@ namespace ImageSharp
     /// <summary>
     /// Provides initialization code which allows extending the library.
     /// </summary>
-    public class Configuration
+    public sealed class Configuration
     {
         /// <summary>
         /// A lazily initialized configuration default instance.
         /// </summary>
-        private static readonly Lazy<Configuration> Lazy = new Lazy<Configuration>(() => CreateDefaultInstance());
+        private static readonly Lazy<Configuration> Lazy = new Lazy<Configuration>(CreateDefaultInstance);
 
         /// <summary>
-        /// An object that can be used to synchronize access to the <see cref="Configuration"/>.
+        /// The list of supported <see cref="IImageEncoder"/> keyed to mime types.
         /// </summary>
-        private readonly object syncRoot = new object();
+        private readonly ConcurrentDictionary<IImageFormat, IImageEncoder> mimeTypeEncoders = new ConcurrentDictionary<IImageFormat, IImageEncoder>();
 
         /// <summary>
-        /// The list of supported <see cref="IImageFormat"/>.
+        /// The list of supported <see cref="IImageEncoder"/> keyed to mime types.
         /// </summary>
-        private readonly List<IImageFormat> imageFormatsList = new List<IImageFormat>();
+        private readonly ConcurrentDictionary<IImageFormat, IImageDecoder> mimeTypeDecoders = new ConcurrentDictionary<IImageFormat, IImageDecoder>();
+
+        /// <summary>
+        /// The list of supported <see cref="IImageFormatDetector"/>s.
+        /// </summary>
+        private readonly List<IImageFormatDetector> imageFormatDetectors = new List<IImageFormatDetector>();
+
+        /// <summary>
+        /// The list of supported <see cref="IImageFormat"/>s.
+        /// </summary>
+        private readonly HashSet<IImageFormat> imageFormats = new HashSet<IImageFormat>();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Configuration" /> class.
@@ -44,12 +54,15 @@ namespace ImageSharp
         /// <summary>
         /// Initializes a new instance of the <see cref="Configuration" /> class.
         /// </summary>
-        /// <param name="providers">The inital set of image formats.</param>
-        public Configuration(params IImageFormat[] providers)
+        /// <param name="configurationModules">A collection of configuration modules to register</param>
+        public Configuration(params IConfigurationModule[] configurationModules)
         {
-            foreach (IImageFormat p in providers)
+            if (configurationModules != null)
             {
-                this.AddImageFormat(p);
+                foreach (IConfigurationModule p in configurationModules)
+                {
+                    p.Configure(this);
+                }
             }
         }
 
@@ -59,19 +72,34 @@ namespace ImageSharp
         public static Configuration Default { get; } = Lazy.Value;
 
         /// <summary>
-        /// Gets the collection of supported <see cref="IImageFormat"/>
-        /// </summary>
-        public IReadOnlyCollection<IImageFormat> ImageFormats => new ReadOnlyCollection<IImageFormat>(this.imageFormatsList);
-
-        /// <summary>
         /// Gets the global parallel options for processing tasks in parallel.
         /// </summary>
         public ParallelOptions ParallelOptions { get; } = new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount };
 
         /// <summary>
-        /// Gets the maximum header size of all formats.
+        /// Gets the maximum header size of all the formats.
         /// </summary>
         internal int MaxHeaderSize { get; private set; }
+
+        /// <summary>
+        /// Gets the currently registered <see cref="IImageFormatDetector"/>s.
+        /// </summary>
+        internal IEnumerable<IImageFormatDetector> FormatDetectors => this.imageFormatDetectors;
+
+        /// <summary>
+        /// Gets the currently registered <see cref="IImageDecoder"/>s.
+        /// </summary>
+        internal IEnumerable<KeyValuePair<IImageFormat, IImageDecoder>> ImageDecoders => this.mimeTypeDecoders;
+
+        /// <summary>
+        /// Gets the currently registered <see cref="IImageEncoder"/>s.
+        /// </summary>
+        internal IEnumerable<KeyValuePair<IImageFormat, IImageEncoder>> ImageEncoders => this.mimeTypeEncoders;
+
+        /// <summary>
+        /// Gets the currently registered <see cref="IImageFormat"/>s.
+        /// </summary>
+        internal IEnumerable<IImageFormat> ImageFormats => this.imageFormats;
 
 #if !NETSTANDARD1_1
         /// <summary>
@@ -81,127 +109,147 @@ namespace ImageSharp
 #endif
 
         /// <summary>
-        /// Adds a new <see cref="IImageFormat"/> to the collection of supported image formats.
+        /// Registers a new format provider.
         /// </summary>
-        /// <param name="format">The new format to add.</param>
+        /// <param name="configuration">The configuration provider to call configure on.</param>
+        public void Configure(IConfigurationModule configuration)
+        {
+            Guard.NotNull(configuration, nameof(configuration));
+            configuration.Configure(this);
+        }
+
+        /// <summary>
+        /// Registers a new format provider.
+        /// </summary>
+        /// <param name="format">The format to register as a well know format.</param>
         public void AddImageFormat(IImageFormat format)
         {
             Guard.NotNull(format, nameof(format));
-            Guard.NotNull(format.Encoder, nameof(format), "The encoder should not be null.");
-            Guard.NotNull(format.Decoder, nameof(format), "The decoder should not be null.");
-            Guard.NotNullOrEmpty(format.MimeType, nameof(format), "The mime type should not be null or empty.");
-            Guard.NotNullOrEmpty(format.Extension, nameof(format), "The extension should not be null or empty.");
-            Guard.NotNullOrEmpty(format.SupportedExtensions, nameof(format), "The supported extensions not be null or empty.");
-
-            this.AddImageFormatLocked(format);
+            Guard.NotNull(format.MimeTypes, nameof(format.MimeTypes));
+            Guard.NotNull(format.FileExtensions, nameof(format.FileExtensions));
+            this.imageFormats.Add(format);
         }
 
         /// <summary>
-        /// Creates the default instance, with Png, Jpeg, Gif and Bmp preregisterd (if they have been referenced)
+        /// For the specified file extensions type find the e <see cref="IImageFormat"/>.
         /// </summary>
-        /// <returns>The default configuration of <see cref="Configuration"/> </returns>
+        /// <param name="extension">The extension to discover</param>
+        /// <returns>The <see cref="IImageFormat"/> if found otherwise null</returns>
+        public IImageFormat FindFormatByFileExtensions(string extension)
+        {
+            return this.imageFormats.FirstOrDefault(x => x.FileExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase));
+        }
+
+        /// <summary>
+        /// For the specified mime type find the <see cref="IImageFormat"/>.
+        /// </summary>
+        /// <param name="mimeType">The mime-type to discover</param>
+        /// <returns>The <see cref="IImageFormat"/> if found otherwise null</returns>
+        public IImageFormat FindFormatByMimeType(string mimeType)
+        {
+            return this.imageFormats.FirstOrDefault(x => x.MimeTypes.Contains(mimeType, StringComparer.OrdinalIgnoreCase));
+        }
+
+        /// <summary>
+        /// Sets a specific image encoder as the encoder for a specific image format.
+        /// </summary>
+        /// <param name="imageFormat">The image format to register the encoder for.</param>
+        /// <param name="encoder">The encoder to use,</param>
+        public void SetEncoder(IImageFormat imageFormat, IImageEncoder encoder)
+        {
+            Guard.NotNull(imageFormat, nameof(imageFormat));
+            Guard.NotNull(encoder, nameof(encoder));
+            this.AddImageFormat(imageFormat);
+            this.mimeTypeEncoders.AddOrUpdate(imageFormat, encoder, (s, e) => encoder);
+        }
+
+        /// <summary>
+        /// Sets a specific image decoder as the decoder for a specific image format.
+        /// </summary>
+        /// <param name="imageFormat">The image format to register the encoder for.</param>
+        /// <param name="decoder">The decoder to use,</param>
+        public void SetDecoder(IImageFormat imageFormat, IImageDecoder decoder)
+        {
+            Guard.NotNull(imageFormat, nameof(imageFormat));
+            Guard.NotNull(decoder, nameof(decoder));
+            this.AddImageFormat(imageFormat);
+            this.mimeTypeDecoders.AddOrUpdate(imageFormat, decoder, (s, e) => decoder);
+        }
+
+        /// <summary>
+        /// Removes all the registered image format detectors.
+        /// </summary>
+        public void ClearImageFormatDetectors()
+        {
+            this.imageFormatDetectors.Clear();
+        }
+
+        /// <summary>
+        /// Adds a new detector for detecting mime types.
+        /// </summary>
+        /// <param name="detector">The detector to add</param>
+        public void AddImageFormatDetector(IImageFormatDetector detector)
+        {
+            Guard.NotNull(detector, nameof(detector));
+            this.imageFormatDetectors.Add(detector);
+            this.SetMaxHeaderSize();
+        }
+
+        /// <summary>
+        /// Creates the default instance with the following <see cref="IConfigurationModule"/>s preregistered:
+        /// <para><see cref="PngConfigurationModule"/></para>
+        /// <para><see cref="JpegConfigurationModule"/></para>
+        /// <para><see cref="GifConfigurationModule"/></para>
+        /// <para><see cref="BmpConfigurationModule"/></para>
+        /// </summary>
+        /// <returns>The default configuration of <see cref="Configuration"/></returns>
         internal static Configuration CreateDefaultInstance()
         {
-            Configuration config = new Configuration();
-
-            // lets try auto loading the known image formats
-            config.AddImageFormat(new Formats.PngFormat());
-            config.AddImageFormat(new Formats.JpegFormat());
-            config.AddImageFormat(new Formats.GifFormat());
-            config.AddImageFormat(new Formats.BmpFormat());
-            config.AddImageFormat(new Formats.TiffFormat());
-            return config;
+            return new Configuration(
+                new PngConfigurationModule(),
+                new JpegConfigurationModule(),
+                new GifConfigurationModule(),
+                new BmpConfigurationModule());
         }
 
         /// <summary>
-        /// Tries the add image format.
+        /// For the specified mime type find the decoder.
         /// </summary>
-        /// <param name="typeName">Name of the type.</param>
-        /// <returns>True if type discoverd and is a valid <see cref="IImageFormat"/></returns>
-        internal bool TryAddImageFormat(string typeName)
+        /// <param name="format">The format to discover</param>
+        /// <returns>The <see cref="IImageDecoder"/> if found otherwise null</returns>
+        internal IImageDecoder FindDecoder(IImageFormat format)
         {
-            Type type = Type.GetType(typeName, false);
-            if (type != null)
+            Guard.NotNull(format, nameof(format));
+            if (this.mimeTypeDecoders.TryGetValue(format, out IImageDecoder decoder))
             {
-                IImageFormat format = Activator.CreateInstance(type) as IImageFormat;
-                if (format != null
-                    && format.Encoder != null
-                    && format.Decoder != null
-                    && !string.IsNullOrEmpty(format.MimeType)
-                    && format.SupportedExtensions?.Any() == true)
-                {
-                    // we can use the locked version as we have already validated in the if.
-                    this.AddImageFormatLocked(format);
-                    return true;
-                }
+                return decoder;
             }
 
-            return false;
+            return null;
         }
 
         /// <summary>
-        /// Adds image format. The class is locked to make it thread safe.
+        /// For the specified mime type find the encoder.
         /// </summary>
-        /// <param name="format">The image format.</param>
-        private void AddImageFormatLocked(IImageFormat format)
+        /// <param name="format">The format to discover</param>
+        /// <returns>The <see cref="IImageEncoder"/> if found otherwise null</returns>
+        internal IImageEncoder FindEncoder(IImageFormat format)
         {
-            lock (this.syncRoot)
+            Guard.NotNull(format, nameof(format));
+            if (this.mimeTypeEncoders.TryGetValue(format, out IImageEncoder encoder))
             {
-                if (this.GuardDuplicate(format))
-                {
-                    this.imageFormatsList.Add(format);
-
-                    this.SetMaxHeaderSize();
-                }
+                return encoder;
             }
+
+            return null;
         }
 
         /// <summary>
-        /// Checks to ensure duplicate image formats are not added.
-        /// </summary>
-        /// <param name="format">The image format.</param>
-        /// <exception cref="ArgumentException">Thrown if a duplicate is added.</exception>
-        /// <returns>
-        /// The <see cref="bool"/>.
-        /// </returns>
-        private bool GuardDuplicate(IImageFormat format)
-        {
-            if (!format.SupportedExtensions.Contains(format.Extension, StringComparer.OrdinalIgnoreCase))
-            {
-                throw new ArgumentException("The supported extensions should contain the default extension.", nameof(format));
-            }
-
-            // ReSharper disable once ConvertClosureToMethodGroup
-            // Prevents method group allocation
-            if (format.SupportedExtensions.Any(e => string.IsNullOrWhiteSpace(e)))
-            {
-                throw new ArgumentException("The supported extensions should not contain empty values.", nameof(format));
-            }
-
-            // If there is already a format with the same extension or a format that supports that
-            // extension return false.
-            foreach (IImageFormat imageFormat in this.imageFormatsList)
-            {
-                if (imageFormat.Extension.Equals(format.Extension, StringComparison.OrdinalIgnoreCase))
-                {
-                    return false;
-                }
-
-                if (imageFormat.SupportedExtensions.Intersect(format.SupportedExtensions, StringComparer.OrdinalIgnoreCase).Any())
-                {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
-        /// <summary>
-        /// Sets max header size.
+        /// Sets the max header size.
         /// </summary>
         private void SetMaxHeaderSize()
         {
-            this.MaxHeaderSize = this.imageFormatsList.Max(x => x.HeaderSize);
+            this.MaxHeaderSize = this.imageFormatDetectors.Max(x => x.HeaderSize);
         }
     }
 }

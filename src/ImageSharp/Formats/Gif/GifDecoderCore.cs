@@ -12,23 +12,19 @@ namespace ImageSharp.Formats
     using System.Text;
 
     using ImageSharp.PixelFormats;
+    using SixLabors.Primitives;
 
     /// <summary>
     /// Performs the gif decoding operation.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class GifDecoderCore<TPixel>
+    internal sealed class GifDecoderCore<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
         /// The temp buffer used to reduce allocations.
         /// </summary>
         private readonly byte[] buffer = new byte[16];
-
-        /// <summary>
-        /// The decoder options.
-        /// </summary>
-        private readonly IGifDecoderOptions options;
 
         /// <summary>
         /// The global configuration.
@@ -83,13 +79,24 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Initializes a new instance of the <see cref="GifDecoderCore{TPixel}"/> class.
         /// </summary>
-        /// <param name="options">The decoder options.</param>
         /// <param name="configuration">The configuration.</param>
-        public GifDecoderCore(IGifDecoderOptions options, Configuration configuration)
+        /// <param name="options">The decoder options.</param>
+        public GifDecoderCore(Configuration configuration, IGifDecoderOptions options)
         {
-            this.options = options ?? new GifDecoderOptions();
+            this.TextEncoding = options.TextEncoding ?? GifConstants.DefaultEncoding;
+            this.IgnoreMetadata = options.IgnoreMetadata;
             this.configuration = configuration ?? Configuration.Default;
         }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the metadata should be ignored when the image is being decoded.
+        /// </summary>
+        public bool IgnoreMetadata { get; internal set; }
+
+        /// <summary>
+        /// Gets the text encoding
+        /// </summary>
+        public Encoding TextEncoding { get; private set; }
 
         /// <summary>
         /// Decodes the stream to the image.
@@ -268,7 +275,7 @@ namespace ImageSharp.Formats
                     throw new ImageFormatException($"Gif comment length '{length}' exceeds max '{GifConstants.MaxCommentLength}'");
                 }
 
-                if (this.options.IgnoreMetadata)
+                if (this.IgnoreMetadata)
                 {
                     this.currentStream.Seek(length, SeekOrigin.Current);
                     continue;
@@ -279,7 +286,7 @@ namespace ImageSharp.Formats
                 try
                 {
                     this.currentStream.Read(commentsBuffer, 0, length);
-                    string comments = this.options.TextEncoding.GetString(commentsBuffer, 0, length);
+                    string comments = this.TextEncoding.GetString(commentsBuffer, 0, length);
                     this.metaData.Properties.Add(new ImageProperty(GifConstants.Comments, comments));
                 }
                 finally
@@ -363,8 +370,6 @@ namespace ImageSharp.Formats
 
             if (this.previousFrame == null)
             {
-                this.metaData.Quality = colorTableLength / 3;
-
                 // This initializes the image to become fully transparent because the alpha channel is zero.
                 this.image = new Image<TPixel>(this.configuration, imageWidth, imageHeight, this.metaData);
 

@@ -11,6 +11,7 @@ namespace ImageSharp.Drawing.Brushes
     using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
     using Processors;
+    using SixLabors.Primitives;
 
     /// <summary>
     /// Provides an implementation of a solid brush for painting solid color areas.

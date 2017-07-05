@@ -455,21 +455,29 @@ namespace ImageSharp.Tests
 
         #region MultiLocalizedUnicodeTagDataEntry
 
-        private static readonly IccLocalizedString LocalizedString_Rand1 = new IccLocalizedString(new CultureInfo("en-US"), IccTestDataPrimitives.Unicode_ValRand2);
-        private static readonly IccLocalizedString LocalizedString_Rand2 = new IccLocalizedString(new CultureInfo("de-DE"), IccTestDataPrimitives.Unicode_ValRand3);
+        private static readonly IccLocalizedString LocalizedString_Rand_enUs = new IccLocalizedString(new CultureInfo("en-US"), IccTestDataPrimitives.Unicode_ValRand2);
+        private static readonly IccLocalizedString LocalizedString_Rand_deDE = new IccLocalizedString(new CultureInfo("de-DE"), IccTestDataPrimitives.Unicode_ValRand3);
+        private static readonly IccLocalizedString LocalizedString_Rand2_deDE = new IccLocalizedString(new CultureInfo("de-DE"), IccTestDataPrimitives.Unicode_ValRand2);
+        private static readonly IccLocalizedString LocalizedString_Rand_en = new IccLocalizedString(new CultureInfo("en"), IccTestDataPrimitives.Unicode_ValRand2);
+        private static readonly IccLocalizedString LocalizedString_Rand_Invariant = new IccLocalizedString(CultureInfo.InvariantCulture, IccTestDataPrimitives.Unicode_ValRand3);
 
-        private static readonly IccLocalizedString[] LocalizedString_RandArr1 = new IccLocalizedString[]
+        private static readonly IccLocalizedString[] LocalizedString_RandArr_enUs_deDE = new IccLocalizedString[]
         {
-            LocalizedString_Rand1,
-            LocalizedString_Rand2,
+            LocalizedString_Rand_enUs,
+            LocalizedString_Rand_deDE,
         };
-        private static readonly IccLocalizedString[] LocalizedString_RandArr2 = new IccLocalizedString[]
+        private static readonly IccLocalizedString[] LocalizedString_RandArr_en_Invariant = new IccLocalizedString[]
         {
-            LocalizedString_Rand2,
-            LocalizedString_Rand1,
+            LocalizedString_Rand_en,
+            LocalizedString_Rand_Invariant,
+        };
+        private static readonly IccLocalizedString[] LocalizedString_SameArr_enUs_deDE = new IccLocalizedString[]
+        {
+            LocalizedString_Rand_enUs,
+            LocalizedString_Rand2_deDE
         };
 
-        public static readonly IccMultiLocalizedUnicodeTagDataEntry MultiLocalizedUnicode_Val = new IccMultiLocalizedUnicodeTagDataEntry(LocalizedString_RandArr1);
+        public static readonly IccMultiLocalizedUnicodeTagDataEntry MultiLocalizedUnicode_Val = new IccMultiLocalizedUnicodeTagDataEntry(LocalizedString_RandArr_enUs_deDE);
         public static readonly byte[] MultiLocalizedUnicode_Arr = ArrayHelper.Concat
         (
             IccTestDataPrimitives.UInt32_2,
@@ -487,9 +495,70 @@ namespace ImageSharp.Tests
             IccTestDataPrimitives.Unicode_Rand3
         );
 
-        public static readonly object[][] MultiLocalizedUnicodeTagDataEntryTestData =
+        public static readonly IccMultiLocalizedUnicodeTagDataEntry MultiLocalizedUnicode_Val2 = new IccMultiLocalizedUnicodeTagDataEntry(LocalizedString_RandArr_en_Invariant);
+        public static readonly byte[] MultiLocalizedUnicode_Arr2_Read = ArrayHelper.Concat
+        (
+            IccTestDataPrimitives.UInt32_2,
+            new byte[] { 0x00, 0x00, 0x00, 0x0C },  // 12
+
+            new byte[] { (byte)'e', (byte)'n', 0x00, 0x00 },
+            new byte[] { 0x00, 0x00, 0x00, 0x0C },  // 12
+            new byte[] { 0x00, 0x00, 0x00, 0x28 },  // 40
+
+            new byte[] { 0x00, 0x00, 0x00, 0x00 },
+            new byte[] { 0x00, 0x00, 0x00, 0x0E },  // 14
+            new byte[] { 0x00, 0x00, 0x00, 0x34 },  // 52
+
+            IccTestDataPrimitives.Unicode_Rand2,
+            IccTestDataPrimitives.Unicode_Rand3
+        );
+
+        public static readonly byte[] MultiLocalizedUnicode_Arr2_Write = ArrayHelper.Concat
+        (
+            IccTestDataPrimitives.UInt32_2,
+            new byte[] { 0x00, 0x00, 0x00, 0x0C },  // 12
+
+            new byte[] { (byte)'e', (byte)'n', 0x00, 0x00 },
+            new byte[] { 0x00, 0x00, 0x00, 0x0C },  // 12
+            new byte[] { 0x00, 0x00, 0x00, 0x28 },  // 40
+
+            new byte[] { (byte)'x', (byte)'x', 0x00, 0x00 },
+            new byte[] { 0x00, 0x00, 0x00, 0x0E },  // 14
+            new byte[] { 0x00, 0x00, 0x00, 0x34 },  // 52
+
+            IccTestDataPrimitives.Unicode_Rand2,
+            IccTestDataPrimitives.Unicode_Rand3
+        );
+
+        public static readonly IccMultiLocalizedUnicodeTagDataEntry MultiLocalizedUnicode_Val3 = new IccMultiLocalizedUnicodeTagDataEntry(LocalizedString_SameArr_enUs_deDE);
+        public static readonly byte[] MultiLocalizedUnicode_Arr3 = ArrayHelper.Concat
+        (
+            IccTestDataPrimitives.UInt32_2,
+            new byte[] { 0x00, 0x00, 0x00, 0x0C },  // 12
+
+            new byte[] { (byte)'e', (byte)'n', (byte)'U', (byte)'S' },
+            new byte[] { 0x00, 0x00, 0x00, 0x0C },  // 12
+            new byte[] { 0x00, 0x00, 0x00, 0x28 },  // 40
+
+            new byte[] { (byte)'d', (byte)'e', (byte)'D', (byte)'E' },
+            new byte[] { 0x00, 0x00, 0x00, 0x0C },  // 12
+            new byte[] { 0x00, 0x00, 0x00, 0x28 },  // 40
+
+            IccTestDataPrimitives.Unicode_Rand2
+        );
+
+        public static readonly object[][] MultiLocalizedUnicodeTagDataEntryTestData_Read =
         {
             new object[] { MultiLocalizedUnicode_Arr, MultiLocalizedUnicode_Val },
+            new object[] { MultiLocalizedUnicode_Arr2_Read, MultiLocalizedUnicode_Val2 },
+            new object[] { MultiLocalizedUnicode_Arr3, MultiLocalizedUnicode_Val3 },
+        };
+
+        public static readonly object[][] MultiLocalizedUnicodeTagDataEntryTestData_Write =
+        {
+            new object[] { MultiLocalizedUnicode_Arr, MultiLocalizedUnicode_Val },
+            new object[] { MultiLocalizedUnicode_Arr2_Write, MultiLocalizedUnicode_Val2 },
+            new object[] { MultiLocalizedUnicode_Arr3, MultiLocalizedUnicode_Val3 },
         };
 
         #endregion
@@ -601,8 +670,8 @@ namespace ImageSharp.Tests
         (
             new IccProfileSequenceIdentifier[]
             {
-                new IccProfileSequenceIdentifier(IccTestDataNonPrimitives.ProfileId_ValRand, LocalizedString_RandArr1),
-                new IccProfileSequenceIdentifier(IccTestDataNonPrimitives.ProfileId_ValRand, LocalizedString_RandArr1),
+                new IccProfileSequenceIdentifier(IccTestDataNonPrimitives.ProfileId_ValRand, LocalizedString_RandArr_enUs_deDE),
+                new IccProfileSequenceIdentifier(IccTestDataNonPrimitives.ProfileId_ValRand, LocalizedString_RandArr_enUs_deDE),
             }
         );
         public static readonly byte[] ProfileSequenceIdentifier_Arr = ArrayHelper.Concat
@@ -951,7 +1020,7 @@ namespace ImageSharp.Tests
             IccTestDataPrimitives.UInt16_7,
             IccTestDataPrimitives.UInt16_2,
             IccTestDataPrimitives.UInt16_5,
-            
+
             IccTestDataPrimitives.Ascii_Rand,
             new byte[] { 0 }
         );

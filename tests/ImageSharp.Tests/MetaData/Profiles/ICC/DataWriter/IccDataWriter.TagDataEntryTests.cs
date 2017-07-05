@@ -154,7 +154,7 @@ namespace ImageSharp.Tests.Icc
         }
 
         [Theory]
-        [MemberData(nameof(IccTestDataTagDataEntry.MultiLocalizedUnicodeTagDataEntryTestData), MemberType = typeof(IccTestDataTagDataEntry))]
+        [MemberData(nameof(IccTestDataTagDataEntry.MultiLocalizedUnicodeTagDataEntryTestData_Write), MemberType = typeof(IccTestDataTagDataEntry))]
         internal void WriteMultiLocalizedUnicodeTagDataEntry(byte[] expected, IccMultiLocalizedUnicodeTagDataEntry data)
         {
             IccDataWriter writer = CreateWriter();

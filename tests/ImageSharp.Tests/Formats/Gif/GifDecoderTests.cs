@@ -33,7 +33,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void Decode_IgnoreMetadataIsFalse_CommentsAreRead()
         {
-            DecoderOptions options = new DecoderOptions()
+            GifDecoder options = new GifDecoder()
             {
                 IgnoreMetadata = false
             };
@@ -51,7 +51,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void Decode_IgnoreMetadataIsTrue_CommentsAreIgnored()
         {
-            DecoderOptions options = new DecoderOptions()
+            GifDecoder options = new GifDecoder()
             {
                 IgnoreMetadata = true
             };
@@ -67,7 +67,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void Decode_TextEncodingSetToUnicode_TextIsReadWithCorrectEncoding()
         {
-            GifDecoderOptions options = new GifDecoderOptions()
+            GifDecoder options = new GifDecoder()
             {
                 TextEncoding = Encoding.Unicode
             };

@@ -23,7 +23,7 @@ namespace ImageSharp.Tests.Drawing
         [InlineData(false, 16, 4)] // we always do 4 sub=pixels when antialising is off.
         public void MinimumAntialiasSubpixelDepth(bool antialias, int antialiasSubpixelDepth, int expectedAntialiasSubpixelDepth)
         {
-            ImageSharp.Rectangle bounds = new ImageSharp.Rectangle(0, 0, 1, 1);
+            SixLabors.Primitives.Rectangle bounds = new SixLabors.Primitives.Rectangle(0, 0, 1, 1);
 
             Mock<IBrush<Rgba32>> brush = new Mock<IBrush<Rgba32>>();
             Mock<Region> region = new Mock<Region>();
@@ -44,7 +44,7 @@ namespace ImageSharp.Tests.Drawing
         public void FillOffCanvas()
         {
 
-            ImageSharp.Rectangle bounds = new ImageSharp.Rectangle(-100, -10, 10, 10);
+            SixLabors.Primitives.Rectangle bounds = new SixLabors.Primitives.Rectangle(-100, -10, 10, 10);
 
             Mock<IBrush<Rgba32>> brush = new Mock<IBrush<Rgba32>>();
             Mock<Region> region = new Mock<Region>();
@@ -79,7 +79,7 @@ namespace ImageSharp.Tests.Drawing
 
             using (var img = new Image<Rgba32>(10, 10))
             {
-                img.DrawLines(new Pen<Rgba32>(Rgba32.Black, 10), new Vector2[] {
+                img.DrawLines(new Pen<Rgba32>(Rgba32.Black, 10), new SixLabors.Primitives.PointF[] {
                     new Vector2(-10, 5),
                     new Vector2(20, 5),
                 });

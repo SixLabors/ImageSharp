@@ -11,6 +11,7 @@ namespace ImageSharp
     using System.Runtime.CompilerServices;
 
     using ImageSharp.PixelFormats;
+    using SixLabors.Primitives;
 
     /// <summary>
     /// Provides common mathematical methods.

@@ -6,6 +6,7 @@
 namespace ImageSharp.Tests
 {
     using System;
+    using System.Collections.Generic;
     using System.IO;
     using System.Linq;
     using System.Reflection;
@@ -40,12 +41,8 @@ namespace ImageSharp.Tests
         /// </summary>
         public string TestName { get; set; } = string.Empty;
 
-        /// <summary>
-        /// Gets the recommended file name for the output of the test
-        /// </summary>
-        /// <param name="extension"></param>
-        /// <returns>The required extension</returns>
-        public string GetTestOutputFileName(string extension = null, string tag = null)
+        
+        private string GetTestOutputFileNameImpl(string extension, string tag)
         {
             string fn = string.Empty;
 
@@ -90,6 +87,40 @@ namespace ImageSharp.Tests
         }
 
         /// <summary>
+        /// Gets the recommended file name for the output of the test
+        /// </summary>
+        /// <param name="extension">The required extension</param>
+        /// <param name="settings">The settings modifying the output path</param>
+        /// <returns>The file test name</returns>
+        public string GetTestOutputFileName(string extension = null, object settings = null)
+        {
+            string tag = null;
+            string s = settings as string;
+
+            if (s != null)
+            {
+                tag = s;
+            }
+            else if (settings != null)
+            {
+                Type type = settings.GetType();
+                TypeInfo info = type.GetTypeInfo();
+                if (info.IsPrimitive || info.IsEnum || type == typeof(decimal))
+                {
+                    tag = settings.ToString();
+                }
+                else
+                {
+                    IEnumerable<PropertyInfo> properties = settings.GetType().GetRuntimeProperties();
+
+                    tag = string.Join("_", properties.ToDictionary(x => x.Name, x => x.GetValue(settings)).Select(x => $"{x.Key}-{x.Value}"));
+                }
+            }
+            return this.GetTestOutputFileNameImpl(extension, tag);
+        }
+
+
+        /// <summary>
         /// Encodes image by the format matching the required extension, than saves it to the recommended output file.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format of the image</typeparam>
@@ -97,12 +128,17 @@ namespace ImageSharp.Tests
         /// <param name="extension">The requested extension</param>
         /// <param name="encoder">Optional encoder</param>
         /// <param name="options">Optional encoder options</param>
-        public void SaveTestOutputFile<TPixel>(Image<TPixel> image, string extension = null, IImageEncoder encoder = null, IEncoderOptions options = null, string tag = null)
+        public void SaveTestOutputFile<TPixel>(
+            Image<TPixel> image,
+            string extension = null,
+            IImageEncoder encoder = null,
+            IEncoderOptions options = null,
+            object settings = null)
             where TPixel : struct, IPixel<TPixel>
         {
-            string path = this.GetTestOutputFileName(extension: extension, tag:tag);
-            extension = Path.GetExtension(path);
-            IImageFormat format = GetImageFormatByExtension(extension);
+            string path = this.GetTestOutputFileName(extension: extension, settings: settings);
+            string extension1 = Path.GetExtension(path);
+            IImageFormat format = GetImageFormatByExtension(extension1);
 
             encoder = encoder ?? format.Encoder;
 
@@ -112,8 +148,8 @@ namespace ImageSharp.Tests
             }
         }
 
-        internal string GetReferenceOutputFileName(string extension = null, string tag = null) 
-            => this.GetTestOutputFileName(extension, tag).Replace("TestOutput", "ReferenceOutput");
+        internal string GetReferenceOutputFileName(string extension = null, object settings = null) 
+            => this.GetTestOutputFileName(extension, settings).Replace("TestOutput", "ReferenceOutput");
 
         internal void Init(string typeName, string methodName)
         {

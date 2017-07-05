@@ -6,6 +6,7 @@
 namespace ImageSharp.Drawing
 {
     using System;
+    using SixLabors.Primitives;
 
     /// <summary>
     /// Represents a region of an image.

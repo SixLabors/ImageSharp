@@ -167,7 +167,7 @@ namespace ImageSharp.Tests.Icc
 
         [Theory]
         [MemberData(
-            nameof(IccTestDataTagDataEntry.MultiLocalizedUnicodeTagDataEntryTestData),
+            nameof(IccTestDataTagDataEntry.MultiLocalizedUnicodeTagDataEntryTestData_Read),
             MemberType = typeof(IccTestDataTagDataEntry))]
         internal void ReadMultiLocalizedUnicodeTagDataEntry(byte[] data, IccMultiLocalizedUnicodeTagDataEntry expected)
         {

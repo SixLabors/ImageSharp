@@ -5,11 +5,10 @@
 
 namespace ImageSharp
 {
-    using System.Buffers;
     using System.IO;
     using System.Linq;
     using Formats;
-
+    using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
 
     /// <content>
@@ -22,8 +21,8 @@ namespace ImageSharp
         /// </summary>
         /// <param name="stream">The image stream to read the header from.</param>
         /// <param name="config">The configuration.</param>
-        /// <returns>The image format or null if none found.</returns>
-        private static IImageFormat DiscoverFormat(Stream stream, Configuration config)
+        /// <returns>The mime type or null if none found.</returns>
+        private static IImageFormat InternalDetectFormat(Stream stream, Configuration config)
         {
             // This is probably a candidate for making into a public API in the future!
             int maxHeaderSize = config.MaxHeaderSize;
@@ -32,45 +31,55 @@ namespace ImageSharp
                 return null;
             }
 
-            IImageFormat format;
-            byte[] header = ArrayPool<byte>.Shared.Rent(maxHeaderSize);
-            try
+            using (var buffer = new Buffer<byte>(maxHeaderSize))
             {
                 long startPosition = stream.Position;
-                stream.Read(header, 0, maxHeaderSize);
+                stream.Read(buffer.Array, 0, maxHeaderSize);
                 stream.Position = startPosition;
-                format = config.ImageFormats.FirstOrDefault(x => x.IsSupportedFileFormat(header));
+                return config.FormatDetectors.Select(x => x.DetectFormat(buffer)).LastOrDefault(x => x != null);
             }
-            finally
-            {
-                ArrayPool<byte>.Shared.Return(header);
-            }
-
-            return format;
         }
 
+        /// <summary>
+        /// By reading the header on the provided stream this calculates the images format.
+        /// </summary>
+        /// <param name="stream">The image stream to read the header from.</param>
+        /// <param name="config">The configuration.</param>
+        /// <param name="format">The IImageFormat.</param>
+        /// <returns>The image format or null if none found.</returns>
+        private static IImageDecoder DiscoverDecoder(Stream stream, Configuration config, out IImageFormat format)
+        {
+            format = InternalDetectFormat(stream, config);
+            if (format != null)
+            {
+                return config.FindDecoder(format);
+            }
+
+            return null;
+        }
+
+#pragma warning disable SA1008 // Opening parenthesis must be spaced correctly
         /// <summary>
         /// Decodes the image stream to the current image.
         /// </summary>
         /// <param name="stream">The stream.</param>
-        /// <param name="options">The options for the decoder.</param>
         /// <param name="config">the configuration.</param>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>
         /// A new <see cref="Image{TPixel}"/>.
         /// </returns>
-        private static Image<TPixel> Decode<TPixel>(Stream stream, IDecoderOptions options, Configuration config)
+        private static (Image<TPixel> img, IImageFormat format) Decode<TPixel>(Stream stream, Configuration config)
+#pragma warning restore SA1008 // Opening parenthesis must be spaced correctly
             where TPixel : struct, IPixel<TPixel>
         {
-            IImageFormat format = DiscoverFormat(stream, config);
-            if (format == null)
+            IImageDecoder decoder = DiscoverDecoder(stream, config, out IImageFormat format);
+            if (decoder == null)
             {
-                return null;
+                return (null, null);
             }
 
-            Image<TPixel> img = format.Decoder.Decode<TPixel>(config, stream, options);
-            img.CurrentImageFormat = format;
-            return img;
+            Image<TPixel> img = decoder.Decode<TPixel>(config, stream);
+            return (img, format);
         }
     }
 }

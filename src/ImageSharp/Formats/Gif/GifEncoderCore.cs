@@ -9,7 +9,7 @@ namespace ImageSharp.Formats
     using System.Buffers;
     using System.IO;
     using System.Linq;
-
+    using System.Text;
     using ImageSharp.PixelFormats;
 
     using IO;
@@ -26,11 +26,6 @@ namespace ImageSharp.Formats
         private readonly byte[] buffer = new byte[16];
 
         /// <summary>
-        /// The options for the encoder.
-        /// </summary>
-        private readonly IGifEncoderOptions options;
-
-        /// <summary>
         /// The number of bits requires to store the image palette.
         /// </summary>
         private int bitDepth;
@@ -41,18 +36,43 @@ namespace ImageSharp.Formats
         private bool hasFrames;
 
         /// <summary>
+        /// Gets the TextEncoding
+        /// </summary>
+        private Encoding textEncoding;
+
+        /// <summary>
+        /// Gets or sets the quantizer for reducing the color count.
+        /// </summary>
+        private IQuantizer quantizer;
+
+        /// <summary>
+        /// Gets or sets the threshold.
+        /// </summary>
+        private byte threshold;
+
+        /// <summary>
+        /// Gets or sets the size of the color palette to use.
+        /// </summary>
+        private int paletteSize;
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the metadata should be ignored when the image is being decoded.
+        /// </summary>
+        private bool ignoreMetadata;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="GifEncoderCore"/> class.
         /// </summary>
         /// <param name="options">The options for the encoder.</param>
         public GifEncoderCore(IGifEncoderOptions options)
         {
-            this.options = options ?? new GifEncoderOptions();
-        }
+            this.textEncoding = options.TextEncoding ?? GifConstants.DefaultEncoding;
 
-        /// <summary>
-        /// Gets or sets the quantizer for reducing the color count.
-        /// </summary>
-        public IQuantizer Quantizer { get; set; }
+            this.quantizer = options.Quantizer;
+            this.threshold = options.Threshold;
+            this.paletteSize = options.PaletteSize;
+            this.ignoreMetadata = options.IgnoreMetadata;
+        }
 
         /// <summary>
         /// Encodes the image to the specified stream from the <see cref="Image{TPixel}"/>.
@@ -66,26 +86,26 @@ namespace ImageSharp.Formats
             Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));
 
-            this.Quantizer = this.options.Quantizer ?? new OctreeQuantizer<TPixel>();
+            this.quantizer = this.quantizer ?? new OctreeQuantizer<TPixel>();
 
             // Do not use IDisposable pattern here as we want to preserve the stream.
             var writer = new EndianBinaryWriter(Endianness.LittleEndian, stream);
 
-            // Ensure that quality can be set but has a fallback.
-            int quality = this.options.Quality > 0 ? this.options.Quality : image.MetaData.Quality;
-            quality = quality > 0 ? quality.Clamp(1, 256) : 256;
+            // Ensure that pallete size  can be set but has a fallback.
+            int paletteSize = this.paletteSize;
+            paletteSize = paletteSize > 0 ? paletteSize.Clamp(1, 256) : 256;
 
             // Get the number of bits.
-            this.bitDepth = ImageMaths.GetBitsNeededForColorDepth(quality);
+            this.bitDepth = ImageMaths.GetBitsNeededForColorDepth(paletteSize);
 
-            // Quantize the image returning a palette.
             this.hasFrames = image.Frames.Any();
 
             // Dithering when animating gifs is a bad idea as we introduce pixel tearing across frames.
-            var ditheredQuantizer = (IQuantizer<TPixel>)this.Quantizer;
+            var ditheredQuantizer = (IQuantizer<TPixel>)this.quantizer;
             ditheredQuantizer.Dither = !this.hasFrames;
 
-            QuantizedImage<TPixel> quantized = ditheredQuantizer.Quantize(image, quality);
+            // Quantize the image returning a palette.
+            QuantizedImage<TPixel> quantized = ditheredQuantizer.Quantize(image, paletteSize);
 
             int index = this.GetTransparentIndex(quantized);
 
@@ -111,7 +131,7 @@ namespace ImageSharp.Formats
                 for (int i = 0; i < image.Frames.Count; i++)
                 {
                     ImageFrame<TPixel> frame = image.Frames[i];
-                    QuantizedImage<TPixel> quantizedFrame = ditheredQuantizer.Quantize(frame, quality);
+                    QuantizedImage<TPixel> quantizedFrame = ditheredQuantizer.Quantize(frame, paletteSize);
 
                     this.WriteGraphicalControlExtension(frame.MetaData, writer, this.GetTransparentIndex(quantizedFrame));
                     this.WriteImageDescriptor(frame, writer);
@@ -240,7 +260,7 @@ namespace ImageSharp.Formats
         private void WriteComments<TPixel>(Image<TPixel> image, EndianBinaryWriter writer)
             where TPixel : struct, IPixel<TPixel>
         {
-            if (this.options.IgnoreMetadata)
+            if (this.ignoreMetadata)
             {
                 return;
             }
@@ -251,7 +271,7 @@ namespace ImageSharp.Formats
                 return;
             }
 
-            byte[] comments = this.options.TextEncoding.GetBytes(property.Value);
+            byte[] comments = this.textEncoding.GetBytes(property.Value);
 
             int count = Math.Min(comments.Length, 255);
 

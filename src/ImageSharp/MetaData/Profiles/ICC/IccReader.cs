@@ -5,6 +5,8 @@
 
 namespace ImageSharp
 {
+    using System.Collections.Generic;
+
     /// <summary>
     /// Reads and parses ICC data from a byte array
     /// </summary>
@@ -85,9 +87,21 @@ namespace ImageSharp
         {
             IccTagTableEntry[] tagTable = this.ReadTagTable(reader);
             IccTagDataEntry[] entries = new IccTagDataEntry[tagTable.Length];
+            var store = new Dictionary<uint, IccTagDataEntry>();
             for (int i = 0; i < tagTable.Length; i++)
             {
-                IccTagDataEntry entry = reader.ReadTagDataEntry(tagTable[i]);
+                IccTagDataEntry entry;
+                uint offset = tagTable[i].Offset;
+                if (store.ContainsKey(offset))
+                {
+                    entry = store[offset];
+                }
+                else
+                {
+                    entry = reader.ReadTagDataEntry(tagTable[i]);
+                    store.Add(offset, entry);
+                }
+
                 entry.TagSignature = tagTable[i].Signature;
                 entries[i] = entry;
             }

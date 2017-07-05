@@ -31,5 +31,10 @@ namespace ImageSharp
         /// The format details for the bitmaps.
         /// </summary>
         public static readonly IImageFormat Bitmap = new BmpFormat();
+
+        /// <summary>
+        /// The format details for the tiffs.
+        /// </summary>
+        public static readonly IImageFormat Tiff = new TiffFormat();
     }
 }

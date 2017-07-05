@@ -26,17 +26,12 @@ namespace ImageSharp.Formats
     internal sealed class TiffEncoderCore
     {
         /// <summary>
-        /// The options for the encoder.
-        /// </summary>
-        private readonly ITiffEncoderOptions options;
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="TiffEncoderCore"/> class.
         /// </summary>
         /// <param name="options">The options for the encoder.</param>
         public TiffEncoderCore(ITiffEncoderOptions options)
         {
-            this.options = options ?? new TiffEncoderOptions();
+            options = options ?? new TiffEncoder();
         }
 
         /// <summary>

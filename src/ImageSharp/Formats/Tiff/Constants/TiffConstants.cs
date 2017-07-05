@@ -5,6 +5,8 @@
 
 namespace ImageSharp.Formats.Tiff
 {
+    using System.Collections.Generic;
+
     /// <summary>
     /// Defines constants defined in the TIFF specification.
     /// </summary>
@@ -69,5 +71,15 @@ namespace ImageSharp.Formats.Tiff
         /// Size (in bytes) of the Double data type
         /// </summary>
         public const int SizeOfDouble = 8;
+
+        /// <summary>
+        /// The list of mimetypes that equate to a tiff.
+        /// </summary>
+        public static readonly IEnumerable<string> MimeTypes = new[] { "image/tiff", "image/tiff-fx" };
+
+        /// <summary>
+        /// The list of file extensions that equate to a tiff.
+        /// </summary>
+        public static readonly IEnumerable<string> FileExtensions = new[] { "tiff", "tif" };
     }
 }

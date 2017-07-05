@@ -250,6 +250,15 @@ namespace ImageSharp
         }
 #endif
 
+        /// <summary>
+        /// Clones the current image
+        /// </summary>
+        /// <returns>Returns a new image with all the same metadata as the original.</returns>
+        public Image<TPixel> Clone()
+        {
+            return new Image<TPixel>(this);
+        }
+
         /// <inheritdoc/>
         public override string ToString()
         {

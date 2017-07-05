@@ -16,17 +16,17 @@ namespace AvatarWithRoundedCorner
             using (var img = Image.Load("fb.jpg"))
             {
                 // as generate returns a new IImage make sure we dispose of it
-                using (Image<Rgba32> dest = img.Generate(x => x.ConvertToAvatar(new Size(200, 200), 20)))
+                using (Image<Rgba32> dest = img.Clone(x => x.ConvertToAvatar(new Size(200, 200), 20)))
                 {
                     dest.Save("output/fb.png");
                 }
 
-                using (Image<Rgba32> destRound = img.Generate(x => x.ConvertToAvatar(new Size(200, 200), 100)))
+                using (Image<Rgba32> destRound = img.Clone(x => x.ConvertToAvatar(new Size(200, 200), 100)))
                 {
                     destRound.Save("output/fb-round.png");
                 }
 
-                using (Image<Rgba32> destRound = img.Generate(x => x.ConvertToAvatar(new Size(200, 200), 150)))
+                using (Image<Rgba32> destRound = img.Clone(x => x.ConvertToAvatar(new Size(200, 200), 150)))
                 {
                     destRound.Save("output/fb-rounder.png");
                 }

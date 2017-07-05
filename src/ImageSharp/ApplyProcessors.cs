@@ -49,13 +49,13 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Mutates the image by applying the operations to it.
+        /// Clones the current image mutating the clone by applying the operations to it.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image to rotate, flip, or both.</param>
         /// <param name="operations">The operations to perform on the source.</param>
         /// <returns>Anew Image which has teh data from the <paramref name="source"/> but with the <paramref name="operations"/> applied.</returns>
-        public static Image<TPixel> Generate<TPixel>(this Image<TPixel> source, Action<IImageOperations<TPixel>> operations)
+        public static Image<TPixel> Clone<TPixel>(this Image<TPixel> source, Action<IImageOperations<TPixel>> operations)
             where TPixel : struct, IPixel<TPixel>
         {
             Guard.NotNull(operations, nameof(operations));
@@ -68,13 +68,13 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Mutates the image by applying the operations to it.
+        /// Clones the current image mutating the clone by applying the operations to it.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image to rotate, flip, or both.</param>
         /// <param name="operations">The operations to perform on the source.</param>
         /// <returns>Anew Image which has teh data from the <paramref name="source"/> but with the <paramref name="operations"/> applied.</returns>
-        public static Image<TPixel> Generate<TPixel>(this Image<TPixel> source, params IImageProcessor<TPixel>[] operations)
+        public static Image<TPixel> Clone<TPixel>(this Image<TPixel> source, params IImageProcessor<TPixel>[] operations)
             where TPixel : struct, IPixel<TPixel>
         {
             Guard.NotNull(operations, nameof(operations));
@@ -87,7 +87,7 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Mutates the image by applying the operations to it.
+        /// Queues up a simple operation that provides access to the mutatable image.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image to rotate, flip, or both.</param>

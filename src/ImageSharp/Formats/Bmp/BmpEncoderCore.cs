@@ -49,7 +49,7 @@ namespace ImageSharp.Formats
             Guard.NotNull(stream, nameof(stream));
 
             // Cast to int will get the bytes per pixel
-            short bpp = (short)(8 * (int)this.bitsPerPixel);
+            short bpp = (short)((int)this.bitsPerPixel);
             int bytesPerLine = 4 * (((image.Width * bpp) + 31) / 32);
             this.padding = bytesPerLine - (image.Width * (int)this.bitsPerPixel);
 
@@ -138,11 +138,11 @@ namespace ImageSharp.Formats
             {
                 switch (this.bitsPerPixel)
                 {
-                    case BmpBitsPerPixel.Pixel32:
+                    case BmpBitsPerPixel.RGB32:
                         this.Write32Bit(writer, pixels);
                         break;
 
-                    case BmpBitsPerPixel.Pixel24:
+                    case BmpBitsPerPixel.RGB24:
                         this.Write24Bit(writer, pixels);
                         break;
                 }

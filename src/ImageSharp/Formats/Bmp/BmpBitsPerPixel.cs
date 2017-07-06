@@ -5,11 +5,10 @@
 
 namespace ImageSharp.Formats
 {
-    /*
     /// <summary>
     /// Enumerates the available bits per pixel for bitmap.
     /// </summary>
-    public enum BmpBitsPerPixel
+    public enum BmpBitsPerPixel_Original
     {
         /// <summary>
         /// 24 bits per pixel. Each pixel consists of 3 bytes.
@@ -21,13 +20,12 @@ namespace ImageSharp.Formats
         /// </summary>
         Pixel32 = 4,
     }
-    */
 
     /// <summary>
     /// The number of bits-per-pixel (bpp) used in the Microsoft Windows BMP and IBM OS/2 BMP image DIB or file.
     /// </summary>
     /// <see cref="https://msdn.microsoft.com/en-us/library/dd183381(v=vs.85).aspx"/>
-    internal enum BmpBitsPerPixel
+    public enum BmpBitsPerPixel
     {
         // Microsoft Windows BMP v2 and IBM OS/2 BMP v1
 
@@ -50,7 +48,7 @@ namespace ImageSharp.Formats
         /// <para>Supported by Windows CE 1.0x or later.</para>
         /// <para>From Windows BMP v3.</para>
         /// </summary>
-        Palette_4 = 2,
+        Palette4 = 2,
 
         /// <summary>
         /// The bitmap has a maximum of 16 colors, and the palette contains up to 16 entries (16 colors palette).
@@ -61,7 +59,7 @@ namespace ImageSharp.Formats
         /// <para>Supported by Windows 2.0x and OS/2 1.0x or later.</para>
         /// <para>From Windows BMP v2 and OS/2 BMP v1.</para>
         /// </summary>
-        Palette_16 = 4,
+        Palette16 = 4,
 
         /// <summary>
         /// The bitmap has a maximum of 256 colors, and the palette contains up to 256 entries (256 colors palette).
@@ -69,7 +67,7 @@ namespace ImageSharp.Formats
         /// <para>Supported by Windows 2.0x and OS/2 1.0x or later.</para>
         /// <para>From Windows BMP v2 and OS/2 BMP v1.</para>
         /// </summary>
-        Palette_256 = 8,
+        Palette256 = 8,
 
         /// <summary>
         /// The bitmap has a maximum of 2^24 colors. An optional 256 colors palette can be given, for optimizing the display on palette-based devices.
@@ -77,7 +75,7 @@ namespace ImageSharp.Formats
         /// <para>Supported by Windows 2.0x and OS/2 1.0x or later.</para>
         /// <para>From Windows BMP v2 and OS/2 BMP v1.</para>
         /// </summary>
-        RGB_24 = 24,
+        RGB24 = 24,
 
         // Microsoft Windows BMP v3
 
@@ -96,7 +94,7 @@ namespace ImageSharp.Formats
         /// <para>Supported by Windows 95/Windows NT 4 or later.</para>
         /// <para>From Windows BMP v3.</para>
         /// </summary>
-        RGB_16 = 16,
+        RGB16 = 16,
 
         /// <summary>
         /// The bitmap has a maximum of 2^32 colors. An optional 256 colors palette can be given, for optimizing the display on palette-based devices.
@@ -106,6 +104,6 @@ namespace ImageSharp.Formats
         /// <para>Supported by Windows 95/Windows NT 4 or later.</para>
         /// <para>From Windows BMP v3.</para>
         /// </summary>
-        RGB_32 = 32
+        RGB32 = 32
     }
 }

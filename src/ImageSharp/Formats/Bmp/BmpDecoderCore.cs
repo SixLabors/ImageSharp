@@ -95,9 +95,10 @@ namespace ImageSharp.Formats
 
                 if (this.infoHeader.ClrUsed == 0)
                 {
-                    if (this.infoHeader.BitsPerPixel == 1 ||
-                        this.infoHeader.BitsPerPixel == 4 ||
-                        this.infoHeader.BitsPerPixel == 8)
+                    if (this.infoHeader.BitsPerPixel == ((int)BmpBitsPerPixel.MonoChrome) ||
+                        this.infoHeader.BitsPerPixel == ((int)BmpBitsPerPixel.Palette4) ||
+                        this.infoHeader.BitsPerPixel == ((int)BmpBitsPerPixel.Palette16) ||
+                        this.infoHeader.BitsPerPixel == ((int)BmpBitsPerPixel.Palette256))
                     {
                         colorMapSize = (int)Math.Pow(2, this.infoHeader.BitsPerPixel) * 4;
                     }
@@ -129,7 +130,7 @@ namespace ImageSharp.Formats
                         + $"bigger then the max allowed size '{Image<TPixel>.MaxWidth}x{Image<TPixel>.MaxHeight}'");
                 }
 
-                Image<TPixel> image = new Image<TPixel>(this.configuration, this.infoHeader.Width, this.infoHeader.Height);
+                var image = new Image<TPixel>(this.configuration, this.infoHeader.Width, this.infoHeader.Height);
                 using (PixelAccessor<TPixel> pixels = image.Lock())
                 {
                     switch (this.infoHeader.Compression)

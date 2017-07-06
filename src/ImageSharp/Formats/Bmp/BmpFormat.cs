@@ -8,7 +8,7 @@ namespace ImageSharp.Formats
     using System.Collections.Generic;
 
     /// <summary>
-    /// Registers the image encoders, decoders and mime type detectors for the jpeg format.
+    /// Registers the image encoders, decoders and mime type detectors for the JPEG format.
     /// </summary>
     internal sealed class BmpFormat : IImageFormat
     {

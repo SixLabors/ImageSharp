@@ -8,7 +8,7 @@ namespace ImageSharp.Formats
     using System;
 
     /// <summary>
-    /// Detects bmp file headers
+    /// Detects BMP file headers
     /// </summary>
     public sealed class BmpImageFormatDetector : IImageFormatDetector
     {

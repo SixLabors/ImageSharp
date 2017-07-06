@@ -14,7 +14,7 @@ namespace ImageSharp.Formats
     /// <summary>
     /// Image encoder for writing an image to a stream as a Windows bitmap.
     /// </summary>
-    /// <remarks>The encoder can currently only write 24-bit rgb images to streams.</remarks>
+    /// <remarks>The encoder can currently only write 24-bit RGB images to streams.</remarks>
     public sealed class BmpEncoder : IImageEncoder, IBmpEncoderOptions
     {
         /// <summary>

@@ -16,17 +16,17 @@ namespace ImageSharp.Formats
     internal sealed class BmpDecoderCore
     {
         /// <summary>
-        /// The mask for the red part of the color for 16 bit rgb bitmaps.
+        /// The mask for the red part of the color for 16 bit RGB bitmaps.
         /// </summary>
         private const int Rgb16RMask = 0x00007C00;
 
         /// <summary>
-        /// The mask for the green part of the color for 16 bit rgb bitmaps.
+        /// The mask for the green part of the color for 16 bit RGB bitmaps.
         /// </summary>
         private const int Rgb16GMask = 0x000003E0;
 
         /// <summary>
-        /// The mask for the blue part of the color for 16 bit rgb bitmaps.
+        /// The mask for the blue part of the color for 16 bit RGB bitmaps.
         /// </summary>
         private const int Rgb16BMask = 0x0000001F;
 

@@ -2,6 +2,7 @@
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
+
 namespace ImageSharp.Formats
 {
     /// <summary>
@@ -39,7 +40,7 @@ namespace ImageSharp.Formats
 
         /// <summary>
         /// Gets or sets the number of bits per pixel, which is the color depth of the image.
-        /// Typical values are 1, 4, 8, 16, 24 and 32.
+        /// Valid values are 1, 4, 8, 16, 24 and 32. Windows CE supports 2 bpp BMPs.
         /// </summary>
         public short BitsPerPixel { get; set; }
 
@@ -69,13 +70,13 @@ namespace ImageSharp.Formats
 
         /// <summary>
         /// Gets or sets the number of colors in the color palette,
-        /// or 0 to default to 2^n.
+        /// or 0 to default to 2^BitsPerPixel.
         /// </summary>
         public int ClrUsed { get; set; }
 
         /// <summary>
         /// Gets or sets the number of important colors used,
-        /// or 0 when every color is important{ get; set; } generally ignored.
+        /// or 0 when every color is important (generally ignored by applications).
         /// </summary>
         public int ClrImportant { get; set; }
     }

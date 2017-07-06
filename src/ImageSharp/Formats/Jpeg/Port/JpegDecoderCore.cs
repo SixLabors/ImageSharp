@@ -798,7 +798,7 @@ namespace ImageSharp.Formats.Jpeg.Port
                     for (int blockCol = 0; blockCol < blocksPerLine; blockCol++)
                     {
                         int offset = GetBlockBufferOffset(ref component, blockRow, blockCol);
-                        IDCT.QuantizeAndInverse(this.quantizationTables, ref frameComponent, offset, computationBuffer);
+                        IDCT.QuantizeAndInverseAlt(this.quantizationTables, ref frameComponent, offset, computationBuffer);
                     }
                 }
             }

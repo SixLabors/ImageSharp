@@ -792,13 +792,28 @@ namespace ImageSharp.Formats.Jpeg.Port
             int blocksPerLine = component.BlocksPerLine;
             int blocksPerColumn = component.BlocksPerColumn;
             using (var computationBuffer = Buffer<short>.CreateClean(64))
+            using (var multiplicationBuffer = Buffer<short>.CreateClean(64))
             {
+                Span<short> quantizationTable = this.quantizationTables.Tables.GetRowSpan(frameComponent.QuantizationIdentifier);
+                Span<short> computationBufferSpan = computationBuffer;
+
+                // For AA&N IDCT method, multiplier are equal to quantization
+                // coefficients scaled by scalefactor[row]*scalefactor[col], where
+                //   scalefactor[0] = 1
+                //   scalefactor[k] = cos(k*PI/16) * sqrt(2)    for k=1..7
+                // For integer operation, the multiplier table is to be scaled by 12.
+                Span<short> multiplierSpan = multiplicationBuffer;
+                for (int i = 0; i < 64; i++)
+                {
+                    multiplierSpan[i] = (short)IDCT.Descale(quantizationTable[i] * IDCT.Aanscales[i], 12);
+                }
+
                 for (int blockRow = 0; blockRow < blocksPerColumn; blockRow++)
                 {
                     for (int blockCol = 0; blockCol < blocksPerLine; blockCol++)
                     {
                         int offset = GetBlockBufferOffset(ref component, blockRow, blockCol);
-                        IDCT.QuantizeAndInverseAlt(this.quantizationTables, ref frameComponent, offset, computationBuffer);
+                        IDCT.QuantizeAndInverseFast(ref frameComponent, offset, ref computationBufferSpan, ref multiplierSpan);
                     }
                 }
             }
@@ -808,7 +823,6 @@ namespace ImageSharp.Formats.Jpeg.Port
 
         /// <summary>
         /// Builds the huffman tables
-        /// TODO: This is our bottleneck. We should use a faster algorithm with a LUT.
         /// </summary>
         /// <param name="tables">The tables</param>
         /// <param name="index">The table index</param>

@@ -331,22 +331,19 @@
 
                 int p0, p1, p2, p3, p4, p5, p6, p7;
 
-                int coefBlockIndex = 0;
-                int workspaceIndex = 0;
-                int quantTableIndex = 0;
-                for (int col = 8; col > 0; col--)
+                for (int col = 0; col < 8; col++)
                 {
                     // Gather block data
-                    p0 = blockData[coefBlockIndex];
-                    p1 = blockData[coefBlockIndex + 8];
-                    p2 = blockData[coefBlockIndex + 16];
-                    p3 = blockData[coefBlockIndex + 24];
-                    p4 = blockData[coefBlockIndex + 32];
-                    p5 = blockData[coefBlockIndex + 40];
-                    p6 = blockData[coefBlockIndex + 48];
-                    p7 = blockData[coefBlockIndex + 56];
+                    p0 = blockData[col];
+                    p1 = blockData[col + 8];
+                    p2 = blockData[col + 16];
+                    p3 = blockData[col + 24];
+                    p4 = blockData[col + 32];
+                    p5 = blockData[col + 40];
+                    p6 = blockData[col + 48];
+                    p7 = blockData[col + 56];
 
-                    int tmp0 = p0 * multiplierSpan[quantTableIndex];
+                    int tmp0 = p0 * multiplierSpan[col];
 
                     // Due to quantization, we will usually find that many of the input
                     // coefficients are zero, especially the AC terms.  We can exploit this
@@ -359,25 +356,22 @@
                     {
                         short dcval = (short)tmp0;
 
-                        computationBufferSpan[workspaceIndex] = dcval;
-                        computationBufferSpan[workspaceIndex + 8] = dcval;
-                        computationBufferSpan[workspaceIndex + 16] = dcval;
-                        computationBufferSpan[workspaceIndex + 24] = dcval;
-                        computationBufferSpan[workspaceIndex + 32] = dcval;
-                        computationBufferSpan[workspaceIndex + 40] = dcval;
-                        computationBufferSpan[workspaceIndex + 48] = dcval;
-                        computationBufferSpan[workspaceIndex + 56] = dcval;
+                        computationBufferSpan[col] = dcval;
+                        computationBufferSpan[col + 8] = dcval;
+                        computationBufferSpan[col + 16] = dcval;
+                        computationBufferSpan[col + 24] = dcval;
+                        computationBufferSpan[col + 32] = dcval;
+                        computationBufferSpan[col + 40] = dcval;
+                        computationBufferSpan[col + 48] = dcval;
+                        computationBufferSpan[col + 56] = dcval;
 
-                        coefBlockIndex++;
-                        quantTableIndex++;
-                        workspaceIndex++;
                         continue;
                     }
 
                     // Even part
-                    int tmp1 = p2 * multiplierSpan[quantTableIndex + 16];
-                    int tmp2 = p4 * multiplierSpan[quantTableIndex + 32];
-                    int tmp3 = p6 * multiplierSpan[quantTableIndex + 48];
+                    int tmp1 = p2 * multiplierSpan[col + 16];
+                    int tmp2 = p4 * multiplierSpan[col + 32];
+                    int tmp3 = p6 * multiplierSpan[col + 48];
 
                     int tmp10 = tmp0 + tmp2; // Phase 3
                     int tmp11 = tmp0 - tmp2;
@@ -391,10 +385,10 @@
                     tmp2 = tmp11 - tmp12;
 
                     // Odd Part
-                    int tmp4 = p1 * multiplierSpan[quantTableIndex + 8];
-                    int tmp5 = p3 * multiplierSpan[quantTableIndex + 24];
-                    int tmp6 = p5 * multiplierSpan[quantTableIndex + 40];
-                    int tmp7 = p7 * multiplierSpan[quantTableIndex + 56];
+                    int tmp4 = p1 * multiplierSpan[col + 8];
+                    int tmp5 = p3 * multiplierSpan[col + 24];
+                    int tmp6 = p5 * multiplierSpan[col + 40];
+                    int tmp7 = p7 * multiplierSpan[col + 56];
 
                     int z13 = tmp6 + tmp5; // Phase 6
                     int z10 = tmp6 - tmp5;
@@ -412,18 +406,14 @@
                     tmp5 = tmp11 - tmp6;
                     tmp4 = tmp10 - tmp5;
 
-                    computationBufferSpan[workspaceIndex] = (short)(tmp0 + tmp7);
-                    computationBufferSpan[workspaceIndex + 56] = (short)(tmp0 - tmp7);
-                    computationBufferSpan[workspaceIndex + 8] = (short)(tmp1 + tmp6);
-                    computationBufferSpan[workspaceIndex + 48] = (short)(tmp1 - tmp6);
-                    computationBufferSpan[workspaceIndex + 16] = (short)(tmp2 + tmp5);
-                    computationBufferSpan[workspaceIndex + 40] = (short)(tmp2 - tmp5);
-                    computationBufferSpan[workspaceIndex + 24] = (short)(tmp3 + tmp4);
-                    computationBufferSpan[workspaceIndex + 32] = (short)(tmp3 - tmp4);
-
-                    coefBlockIndex++;
-                    quantTableIndex++;
-                    workspaceIndex++;
+                    computationBufferSpan[col] = (short)(tmp0 + tmp7);
+                    computationBufferSpan[col + 56] = (short)(tmp0 - tmp7);
+                    computationBufferSpan[col + 8] = (short)(tmp1 + tmp6);
+                    computationBufferSpan[col + 48] = (short)(tmp1 - tmp6);
+                    computationBufferSpan[col + 16] = (short)(tmp2 + tmp5);
+                    computationBufferSpan[col + 40] = (short)(tmp2 - tmp5);
+                    computationBufferSpan[col + 24] = (short)(tmp3 + tmp4);
+                    computationBufferSpan[col + 32] = (short)(tmp3 - tmp4);
                 }
 
                 // Pass 2: process rows from work array, store into output array.
@@ -464,7 +454,7 @@
                     int tmp11 = z5 - p4;
 
                     int tmp13 = p2 + p6;
-                    int tmp12 = Multiply(p2 - p6, FIX_1_414213562) - tmp13; /* 2*c4 */
+                    int tmp12 = Multiply(p2 - p6, FIX_1_414213562) - tmp13; // 2*c4
 
                     int tmp0 = tmp10 + tmp13;
                     int tmp3 = tmp10 - tmp13;

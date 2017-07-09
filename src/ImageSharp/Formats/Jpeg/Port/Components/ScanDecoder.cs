@@ -622,29 +622,31 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
 
             // TODO: Adding this code introduces error into the decoder.
             // It doesn't appear to speed anything up either.
-            // if (this.bitsUnRead < 8)
-            // {
-            //     if (this.bitsCount <= 0)
-            //     {
-            //         code = (short)this.ReadBit(stream);
-            //         this.bitsUnRead += 8;
-            //     }
-            //     if (this.endOfStreamReached || this.unexpectedMarkerReached)
-            //     {
-            //         return -1;
-            //     }
-            //     this.accumulator = (this.accumulator << 8) | this.bitsData;
-            //     int lutIndex = (this.accumulator >> (this.bitsUnRead - 8)) & 0xFF;
-            //     int v = tree.Lookahead[lutIndex];
-            //     if (v != 0)
-            //     {
-            //         int nb = (v & 0xFF) - 1;
-            //         this.bitsCount -= nb - 1;
-            //         this.bitsUnRead -= nb;
-            //         v = v >> 8;
-            //         return (short)v;
-            //     }
-            // }
+            //  if (this.bitsUnRead < 8)
+            //  {
+            //    if (this.bitsCount <= 0)
+            //    {
+            //        code = (short)this.ReadBit(stream);
+            //        if (this.endOfStreamReached || this.unexpectedMarkerReached)
+            //        {
+            //            return -1;
+            //        }
+            //
+            //        this.bitsUnRead += 8;
+            //    }
+            //
+            //    this.accumulator = (this.accumulator << 8) | this.bitsData;
+            //    int lutIndex = (this.accumulator >> (8 - this.bitsUnRead)) & 0xFF;
+            //    int v = tree.Lookahead[lutIndex];
+            //    if (v != 0)
+            //    {
+            //        int nb = (v & 0xFF) - 1;
+            //        this.bitsCount -= nb - 1;
+            //        this.bitsUnRead -= nb;
+            //        v = v >> 8;
+            //        return (short)v;
+            //    }
+            //  }
             if (code == -1)
             {
                 code = (short)this.ReadBit(stream);

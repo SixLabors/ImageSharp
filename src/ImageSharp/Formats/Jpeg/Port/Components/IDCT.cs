@@ -1,7 +1,6 @@
 ﻿namespace ImageSharp.Formats.Jpeg.Port.Components
 {
     using System;
-    using System.Numerics;
     using System.Runtime.CompilerServices;
 
     using ImageSharp.Memory;
@@ -69,7 +68,7 @@
                 Limit[TableOffset + i] = (byte)i;
             }
 
-            // End of range limit table: limit[x] = MaxJSample for x > MaxJSample
+            // End of range limit table: Limit[x] = MaxJSample for x > MaxJSample
             for (; i < 3 * (MaxJSample + 1); i++)
             {
                 Limit[TableOffset + i] = MaxJSample;
@@ -446,7 +445,7 @@
                     // Check for all-zero AC coefficients
                     if ((p1 | p2 | p3 | p4 | p5 | p6 | p7) == 0)
                     {
-                        byte dcval = DoLimit(RightShift(z5, Pass1Bits + 3) & RangeMask);
+                        byte dcval = Limit[LimitOffset + (RightShift(z5, Pass1Bits + 3) & RangeMask)];
 
                         blockData[row] = dcval;
                         blockData[row + 1] = dcval;
@@ -489,46 +488,55 @@
                     int tmp5 = tmp11 - tmp6;
                     int tmp4 = tmp10 - tmp5;
 
-                    // Final output stage: scale down by a factor of 8 and range-limit
-                    blockData[row] = DoLimit(Descale(tmp0 + tmp7, Pass1Bits + 3) & RangeMask);
-                    blockData[row + 7] = DoLimit(Descale(tmp0 - tmp7, Pass1Bits + 3) & RangeMask);
-                    blockData[row + 1] = DoLimit(Descale(tmp1 + tmp6, Pass1Bits + 3) & RangeMask);
-                    blockData[row + 6] = DoLimit(Descale(tmp1 - tmp6, Pass1Bits + 3) & RangeMask);
-                    blockData[row + 2] = DoLimit(Descale(tmp2 + tmp5, Pass1Bits + 3) & RangeMask);
-                    blockData[row + 5] = DoLimit(Descale(tmp2 - tmp5, Pass1Bits + 3) & RangeMask);
-                    blockData[row + 3] = DoLimit(Descale(tmp3 + tmp4, Pass1Bits + 3) & RangeMask);
-                    blockData[row + 4] = DoLimit(Descale(tmp3 - tmp4, Pass1Bits + 3) & RangeMask);
+                    // Final output stage: scale down by a factor of 8, offset, and range-limit
+                    blockData[row] = Limit[LimitOffset + (RightShift(tmp0 + tmp7, Pass1Bits + 3) & RangeMask)];
+                    blockData[row + 7] = Limit[LimitOffset + (RightShift(tmp0 - tmp7, Pass1Bits + 3) & RangeMask)];
+                    blockData[row + 1] = Limit[LimitOffset + (RightShift(tmp1 + tmp6, Pass1Bits + 3) & RangeMask)];
+                    blockData[row + 6] = Limit[LimitOffset + (RightShift(tmp1 - tmp6, Pass1Bits + 3) & RangeMask)];
+                    blockData[row + 2] = Limit[LimitOffset + (RightShift(tmp2 + tmp5, Pass1Bits + 3) & RangeMask)];
+                    blockData[row + 5] = Limit[LimitOffset + (RightShift(tmp2 - tmp5, Pass1Bits + 3) & RangeMask)];
+                    blockData[row + 3] = Limit[LimitOffset + (RightShift(tmp3 + tmp4, Pass1Bits + 3) & RangeMask)];
+                    blockData[row + 4] = Limit[LimitOffset + (RightShift(tmp3 - tmp4, Pass1Bits + 3) & RangeMask)];
                 }
             }
         }
 
+        /// <summary>
+        /// Multiply a variable by an int constant, and immediately descale.
+        /// </summary>
+        /// <param name="val">The value</param>
+        /// <param name="c">The multiplier</param>
+        /// <returns>The <see cref="int"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int Multiply(int val, int c)
         {
             return Descale(val * c, ConstBits);
         }
 
+        /// <summary>
+        /// Right-shifts the value by the given amount
+        /// </summary>
+        /// <param name="value">The value</param>
+        /// <param name="shift">The amount to shift by</param>
+        /// <returns>The <see cref="int"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int RightShift(int x, int shft)
+        private static int RightShift(int value, int shift)
         {
-            return x >> shft;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int Descale(int x, int n)
-        {
-            return RightShift(x + (1 << (n - 1)), n);
+            return value >> shift;
         }
 
         /// <summary>
-        /// Offsets the value by 128 and limits it to the 0..255 range
+        /// Descale and correctly round an int value that's scaled by <paramref name="n"/> bits.
+        /// We assume <see cref="RightShift"/> rounds towards minus infinity, so adding
+        /// the fudge factor is correct for either sign of <paramref name="value"/>.
         /// </summary>
         /// <param name="value">The value</param>
-        /// <returns>The <see cref="byte"/></returns>
+        /// <param name="n">The number of bits</param>
+        /// <returns>The <see cref="int"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static byte DoLimit(int value)
+        private static int Descale(int value, int n)
         {
-            return Limit[value + LimitOffset];
+            return RightShift(value + (1 << (n - 1)), n);
         }
     }
 }

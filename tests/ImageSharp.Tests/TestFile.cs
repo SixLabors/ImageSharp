@@ -116,7 +116,7 @@ namespace ImageSharp.Tests
         /// </returns>
         public string GetFileNameWithoutExtension(object value)
         {
-            return this.FileNameWithoutExtension + "-" + value;
+            return $"{this.FileNameWithoutExtension}-{value}";
         }
 
         /// <summary>
@@ -138,7 +138,7 @@ namespace ImageSharp.Tests
         /// </returns>
         public Image<Rgba32> CreateImage(IImageDecoder decoder)
         {
-            return Image.Load(this.image.Configuration, this.Bytes, decoder);
+            return Image.Load(this.GetImage().Configuration, this.Bytes, decoder);
         }
 
         private Image<Rgba32> GetImage()

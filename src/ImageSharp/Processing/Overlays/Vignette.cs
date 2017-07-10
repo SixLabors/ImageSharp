@@ -94,7 +94,7 @@ namespace ImageSharp
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageOperations<TPixel> Vignette<TPixel>(this IImageOperations<TPixel> source, GraphicsOptions options)
             where TPixel : struct, IPixel<TPixel>
-         => source.Vignette(NamedColors<TPixel>.Black, ValueSize.PercentageOfWidth(.5f), ValueSize.PercentageOfHeight(.5f), options);
+         => source.VignetteInternal(NamedColors<TPixel>.Black, ValueSize.PercentageOfWidth(.5f), ValueSize.PercentageOfHeight(.5f), options);
 
         /// <summary>
         /// Applies a radial vignette effect to an image.
@@ -106,7 +106,7 @@ namespace ImageSharp
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageOperations<TPixel> Vignette<TPixel>(this IImageOperations<TPixel> source, TPixel color, GraphicsOptions options)
             where TPixel : struct, IPixel<TPixel>
-         => source.Vignette(color, 0, 0, options);
+         => source.VignetteInternal(color, 0, 0, options);
 
         /// <summary>
         /// Applies a radial vignette effect to an image.
@@ -119,7 +119,7 @@ namespace ImageSharp
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageOperations<TPixel> Vignette<TPixel>(this IImageOperations<TPixel> source, float radiusX, float radiusY, GraphicsOptions options)
             where TPixel : struct, IPixel<TPixel>
-         => source.Vignette(NamedColors<TPixel>.Black, radiusX, radiusY, options);
+         => source.VignetteInternal(NamedColors<TPixel>.Black, radiusX, radiusY, options);
 
         /// <summary>
         /// Applies a radial vignette effect to an image.
@@ -150,13 +150,13 @@ namespace ImageSharp
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageOperations<TPixel> Vignette<TPixel>(this IImageOperations<TPixel> source, TPixel color, float radiusX, float radiusY, Rectangle rectangle, GraphicsOptions options)
             where TPixel : struct, IPixel<TPixel>
-         => source.Vignette(color, radiusX, radiusY, rectangle, options);
+         => source.VignetteInternal(color, radiusX, radiusY, rectangle, options);
 
-        private static IImageOperations<TPixel> Vignette<TPixel>(this IImageOperations<TPixel> source, TPixel color, ValueSize radiusX, ValueSize radiusY, Rectangle rectangle, GraphicsOptions options)
+        private static IImageOperations<TPixel> VignetteInternal<TPixel>(this IImageOperations<TPixel> source, TPixel color, ValueSize radiusX, ValueSize radiusY, Rectangle rectangle, GraphicsOptions options)
             where TPixel : struct, IPixel<TPixel>
             => source.ApplyProcessor(new VignetteProcessor<TPixel>(color, radiusX, radiusY, options), rectangle);
 
-        private static IImageOperations<TPixel> Vignette<TPixel>(this IImageOperations<TPixel> source, TPixel color, ValueSize radiusX, ValueSize radiusY, GraphicsOptions options)
+        private static IImageOperations<TPixel> VignetteInternal<TPixel>(this IImageOperations<TPixel> source, TPixel color, ValueSize radiusX, ValueSize radiusY, GraphicsOptions options)
             where TPixel : struct, IPixel<TPixel>
             => source.ApplyProcessor(new VignetteProcessor<TPixel>(color, radiusX, radiusY, options));
     }

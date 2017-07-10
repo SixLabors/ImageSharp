@@ -84,8 +84,11 @@ namespace ImageSharp
                 }
             }
 
-            this.data = new byte[other.data.Length];
-            Buffer.BlockCopy(other.data, 0, this.data, 0, other.data.Length);
+            if (other.data != null)
+            {
+                this.data = new byte[other.data.Length];
+                Buffer.BlockCopy(other.data, 0, this.data, 0, other.data.Length);
+            }
         }
 
         /// <summary>
@@ -131,7 +134,7 @@ namespace ImageSharp
                 return null;
             }
 
-            if (this.data.Length < (this.thumbnailOffset + this.thumbnailLength))
+            if (this.data == null || this.data.Length < (this.thumbnailOffset + this.thumbnailLength))
             {
                 return null;
             }

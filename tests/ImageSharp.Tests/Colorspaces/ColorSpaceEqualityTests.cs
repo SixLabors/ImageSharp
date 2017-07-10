@@ -3,6 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
+// ReSharper disable InconsistentNaming
 namespace ImageSharp.Tests.Colorspaces
 {
     using System;
@@ -141,7 +142,7 @@ namespace ImageSharp.Tests.Colorspaces
 
         [Theory]
         [MemberData(nameof(EmptyData))]
-        public void Equality(IColorVector color)
+        public void Vector_Equals_WhenTrue(IColorVector color)
         {
             // Act
             bool equal = color.Vector.Equals(Vector3.Zero);
@@ -152,7 +153,7 @@ namespace ImageSharp.Tests.Colorspaces
 
         [Theory]
         [MemberData(nameof(EqualityData))]
-        public void Equality(object first, object second, Type type)
+        public void Equals_WhenTrue(object first, object second, Type type)
         {
             // Act
             bool equal = first.Equals(second);
@@ -165,7 +166,7 @@ namespace ImageSharp.Tests.Colorspaces
         [MemberData(nameof(NotEqualityDataNulls))]
         [MemberData(nameof(NotEqualityDataDifferentObjects))]
         [MemberData(nameof(NotEqualityData))]
-        public void NotEquality(object first, object second, Type type)
+        public void Equals_WhenFalse(object first, object second, Type type)
         {
             // Act
             bool equal = first.Equals(second);
@@ -176,7 +177,7 @@ namespace ImageSharp.Tests.Colorspaces
 
         [Theory]
         [MemberData(nameof(EqualityData))]
-        public void HashCodeEqual(object first, object second, Type type)
+        public void GetHashCode_WhenEqual(object first, object second, Type type)
         {
             // Act
             bool equal = first.GetHashCode() == second.GetHashCode();
@@ -187,7 +188,7 @@ namespace ImageSharp.Tests.Colorspaces
 
         [Theory]
         [MemberData(nameof(NotEqualityDataDifferentObjects))]
-        public void HashCodeNotEqual(object first, object second, Type type)
+        public void GetHashCode_WhenNotEqual(object first, object second, Type type)
         {
             // Act
             bool equal = first.GetHashCode() == second.GetHashCode();
@@ -198,7 +199,7 @@ namespace ImageSharp.Tests.Colorspaces
 
         [Theory]
         [MemberData(nameof(EqualityData))]
-        public void EqualityObject(object first, object second, Type type)
+        public void GenericEquals_WhenTrue(object first, object second, Type type)
         {
             // Arrange
             // Cast to the known object types, this is so that we can hit the
@@ -216,7 +217,7 @@ namespace ImageSharp.Tests.Colorspaces
 
         [Theory]
         [MemberData(nameof(NotEqualityData))]
-        public void NotEqualityObject(object first, object second, Type type)
+        public void GenericEquals_WhenFalse(object first, object second, Type type)
         {
             // Arrange
             // Cast to the known object types, this is so that we can hit the
@@ -253,7 +254,7 @@ namespace ImageSharp.Tests.Colorspaces
 
         [Theory]
         [MemberData(nameof(NotEqualityData))]
-        public void NotEqualityOperator(object first, object second, Type type)
+        public void Operator_WhenTrue(object first, object second, Type type)
         {
             // Arrange
             // Cast to the known object types, this is so that we can hit the

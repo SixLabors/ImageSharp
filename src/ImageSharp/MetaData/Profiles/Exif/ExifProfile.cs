@@ -5,6 +5,7 @@
 
 namespace ImageSharp
 {
+    using System;
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
     using System.IO;
@@ -82,10 +83,9 @@ namespace ImageSharp
                     this.values.Add(new ExifValue(value));
                 }
             }
-            else
-            {
-                this.data = other.data;
-            }
+
+            this.data = new byte[other.data.Length];
+            Buffer.BlockCopy(other.data, 0, this.data, 0, other.data.Length);
         }
 
         /// <summary>

@@ -59,8 +59,11 @@ namespace ImageSharp
             Guard.NotNull(other, nameof(other));
 
             // TODO: Do we need to copy anything else?
-            this.data = new byte[other.data.Length];
-            Buffer.BlockCopy(other.data, 0, this.data, 0, other.data.Length);
+            if (other.data != null)
+            {
+                this.data = new byte[other.data.Length];
+                Buffer.BlockCopy(other.data, 0, this.data, 0, other.data.Length);
+            }
         }
 
         /// <summary>

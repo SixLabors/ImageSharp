@@ -70,7 +70,9 @@ namespace ImageSharp.Tests
             // TestFile.Create(TestImages.Jpeg.Baseline.Ycck), // Perf: Enable for local testing only
             // TestFile.Create(TestImages.Jpeg.Baseline.Cmyk), // Perf: Enable for local testing only
             // TestFile.Create(TestImages.Jpeg.Baseline.Floorplan), // Perf: Enable for local testing only
+            // TestFile.Create(TestImages.Jpeg.Progressive.Festzug), // Perf: Enable for local testing only
             // TestFile.Create(TestImages.Jpeg.Baseline.Bad.MissingEOF), // Perf: Enable for local testing only
+            // TestFile.Create(TestImages.Jpeg.Baseline.Bad.ExifUndefType), // Perf: Enable for local testing only
             // TestFile.Create(TestImages.Jpeg.Progressive.Fb), // Perf: Enable for local testing only
             // TestFile.Create(TestImages.Jpeg.Progressive.Progress), // Perf: Enable for local testing only
             // TestFile.Create(TestImages.Jpeg.Baseline.GammaDalaiLamaGray), // Perf: Enable for local testing only

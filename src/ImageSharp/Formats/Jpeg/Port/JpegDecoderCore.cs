@@ -542,11 +542,6 @@ namespace ImageSharp.Formats.Jpeg.Port
                 remaining--;
                 int quantizationTableSpec = this.InputStream.ReadByte();
 
-                if (quantizationTableSpec > 3)
-                {
-                    throw new ImageFormatException($"Bad Tq index value: {quantizationTableSpec}");
-                }
-
                 switch (quantizationTableSpec >> 4)
                 {
                     case 0:
@@ -561,7 +556,7 @@ namespace ImageSharp.Formats.Jpeg.Port
                             this.InputStream.Read(this.temp, 0, 64);
                             remaining -= 64;
 
-                            Span<short> tableSpan = this.quantizationTables.Tables.GetRowSpan(quantizationTableSpec);
+                            Span<short> tableSpan = this.quantizationTables.Tables.GetRowSpan(quantizationTableSpec & 15);
                             for (int j = 0; j < 64; j++)
                             {
                                 tableSpan[QuantizationTables.DctZigZag[j]] = this.temp[j];
@@ -581,7 +576,7 @@ namespace ImageSharp.Formats.Jpeg.Port
                             this.InputStream.Read(this.temp, 0, 128);
                             remaining -= 128;
 
-                            Span<short> tableSpan = this.quantizationTables.Tables.GetRowSpan(quantizationTableSpec);
+                            Span<short> tableSpan = this.quantizationTables.Tables.GetRowSpan(quantizationTableSpec & 15);
                             for (int j = 0; j < 64; j++)
                             {
                                 tableSpan[QuantizationTables.DctZigZag[j]] = (short)((this.temp[2 * j] << 8) | this.temp[(2 * j) + 1]);

@@ -621,6 +621,8 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
             short code = -1;
 
             // TODO: Adding this code introduces error into the decoder.
+            // NOTES # During investigation of the libjpeg implementation it appears that they pull 32bits at a time and operate on those bits
+            //         using 3 methods: FillBits, PeekBits, and ReadBits. We should attempt to do the same.
             // It doesn't appear to speed anything up either.
             //  if (this.bitsUnRead < 8)
             //  {

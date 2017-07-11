@@ -29,6 +29,11 @@ namespace ImageSharp.Processing
             this.action = action;
         }
 
+        /// <summary>
+        /// Gets the action that will be applied to the image.
+        /// </summary>
+        internal Action<Image<TPixel>> Action => this.action;
+
         /// <inheritdoc/>
         protected override void BeforeImageApply(Image<TPixel> source, Rectangle sourceRectangle)
         {

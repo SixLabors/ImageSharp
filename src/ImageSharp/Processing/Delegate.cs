@@ -26,6 +26,5 @@ namespace ImageSharp
         public static IImageOperations<TPixel> Run<TPixel>(this IImageOperations<TPixel> source, Action<Image<TPixel>> operation)
                 where TPixel : struct, IPixel<TPixel>
             => source.ApplyProcessor(new DelegateProcessor<TPixel>(operation));
-
     }
 }

@@ -39,7 +39,7 @@ namespace ImageSharp.Benchmarks.Image
         [Params(InputImageCategory.AllImages, InputImageCategory.SmallImagesOnly, InputImageCategory.LargeImagesOnly)]
         public virtual InputImageCategory InputCategory { get; set; }
 
-        protected virtual string BaseFolder => "../ImageSharp.Tests/TestImages/Formats/";
+        protected virtual string BaseFolder => "../../../../../../../../ImageSharp.Tests/TestImages/Formats/";
 
         protected virtual IEnumerable<string> SearchPatterns => new[] { "*.*" };
 

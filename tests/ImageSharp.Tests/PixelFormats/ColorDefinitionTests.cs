@@ -15,7 +15,18 @@ namespace ImageSharp.Tests
 
     public class ColorDefinitionTests
     {
-        public static IEnumerable<string[]> ColorNames => typeof(NamedColors<Rgba32>).GetTypeInfo().GetFields().Select(x => new[] { x.Name });
+        public static TheoryData<string> ColorNames
+        {
+            get
+            {
+                var result = new TheoryData<string>();
+                foreach (string name in typeof(NamedColors<Rgba32>).GetTypeInfo().GetFields().Select(x =>  x.Name ))
+                {
+                    result.Add(name);
+                }
+                return result;
+            }
+        }
 
         [Theory]
         [MemberData(nameof(ColorNames))]

@@ -75,6 +75,11 @@ namespace ImageSharp.Processing.Processors
         }
 
         /// <summary>
+        /// Gets the sigma
+        /// </summary>
+        public float Sigma => this.sigma;
+
+        /// <summary>
         /// Gets the horizontal gradient operator.
         /// </summary>
         public Fast2DArray<float> KernelX { get; }

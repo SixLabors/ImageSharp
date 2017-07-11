@@ -6,38 +6,24 @@
 namespace ImageSharp.Tests.Processing.ColorMatrix
 {
     using ImageSharp.PixelFormats;
+    using ImageSharp.Processing.Processors;
     using SixLabors.Primitives;
     using Xunit;
 
-    public class PolaroidTest : FileTestBase
+    public class PolaroidTest : BaseImageOperationsExtensionTest
     {
-        [Theory]
-        [WithFileCollection(nameof(DefaultFiles), DefaultPixelType)]
-        public void ImageShouldApplyPolaroidFilter<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+        [Fact]
+        public void Polaroid_amount_PolaroidProcessorDefaultsSet()
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.Mutate(x => x.Polaroid());
-                image.DebugSave(provider, null, Extensions.Bmp);
-            }
+            this.operations.Polaroid();
+            var processor = this.Verify<PolaroidProcessor<Rgba32>>();
         }
 
-        [Theory]
-        [WithFileCollection(nameof(DefaultFiles), DefaultPixelType)]
-        public void ImageShouldApplyPolaroidFilterInBox<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+        [Fact]
+        public void Polaroid_amount_rect_PolaroidProcessorDefaultsSet()
         {
-            using (Image<TPixel> source = provider.GetImage())
-            using (var image = new Image<TPixel>(source))
-            {
-                var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
-
-                image.Mutate(x => x.Polaroid(bounds));
-                image.DebugSave(provider, null, Extensions.Bmp);
-
-                ImageComparer.EnsureProcessorChangesAreConstrained(source, image, bounds);
-            }
+            this.operations.Polaroid(this.rect);
+            var processor = this.Verify<PolaroidProcessor<Rgba32>>(this.rect);
         }
     }
 }

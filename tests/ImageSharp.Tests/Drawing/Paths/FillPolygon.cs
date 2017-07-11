@@ -11,7 +11,7 @@ namespace ImageSharp.Tests.Drawing.Paths
     using ImageSharp.Drawing.Processors;
     using ImageSharp.PixelFormats;
 
-    public class FillPolygon : IDisposable
+    public class FillPolygon : BaseImageOperationsExtensionTest
     {
         GraphicsOptions noneDefault = new GraphicsOptions();
         Rgba32 color = Rgba32.HotPink;
@@ -22,25 +22,14 @@ namespace ImageSharp.Tests.Drawing.Paths
                     new Vector2(20,10),
                     new Vector2(30,10),
                 };
-        private ProcessorWatchingImage img;
 
-        public FillPolygon()
-        {
-            this.img = new Paths.ProcessorWatchingImage(10, 10);
-        }
-
-        public void Dispose()
-        {
-            img.Dispose();
-        }
 
         [Fact]
         public void CorrectlySetsBrushAndPath()
         {
-            img.Mutate(x => x.FillPolygon(brush, path));
+            this.operations.FillPolygon(brush, path);
 
-            Assert.NotEmpty(img.ProcessorApplications);
-            FillRegionProcessor<Rgba32> processor = Assert.IsType<FillRegionProcessor<Rgba32>>(img.ProcessorApplications[0].processor);
+            FillRegionProcessor<Rgba32> processor = this.Verify<FillRegionProcessor<Rgba32>>();
 
             Assert.Equal(GraphicsOptions.Default, processor.Options);
 
@@ -54,10 +43,8 @@ namespace ImageSharp.Tests.Drawing.Paths
         [Fact]
         public void CorrectlySetsBrushPathAndOptions()
         {
-            img.Mutate(x => x.FillPolygon(brush, path, noneDefault));
-
-            Assert.NotEmpty(img.ProcessorApplications);
-            FillRegionProcessor<Rgba32> processor = Assert.IsType<FillRegionProcessor<Rgba32>>(img.ProcessorApplications[0].processor);
+            this.operations.FillPolygon(brush, path, noneDefault);
+            FillRegionProcessor<Rgba32> processor = this.Verify<FillRegionProcessor<Rgba32>>();
 
             Assert.Equal(noneDefault, processor.Options);
 
@@ -71,10 +58,9 @@ namespace ImageSharp.Tests.Drawing.Paths
         [Fact]
         public void CorrectlySetsColorAndPath()
         {
-            img.Mutate(x => x.FillPolygon(color, path));
+            this.operations.FillPolygon(color, path);
+            FillRegionProcessor<Rgba32> processor = this.Verify<FillRegionProcessor<Rgba32>>();
 
-            Assert.NotEmpty(img.ProcessorApplications);
-            FillRegionProcessor<Rgba32> processor = Assert.IsType<FillRegionProcessor<Rgba32>>(img.ProcessorApplications[0].processor);
 
             Assert.Equal(GraphicsOptions.Default, processor.Options);
 
@@ -89,10 +75,9 @@ namespace ImageSharp.Tests.Drawing.Paths
         [Fact]
         public void CorrectlySetsColorPathAndOptions()
         {
-            img.Mutate(x => x.FillPolygon(color, path, noneDefault));
+            this.operations.FillPolygon(color, path, noneDefault);
+            FillRegionProcessor<Rgba32> processor = this.Verify<FillRegionProcessor<Rgba32>>();
 
-            Assert.NotEmpty(img.ProcessorApplications);
-            FillRegionProcessor<Rgba32> processor = Assert.IsType<FillRegionProcessor<Rgba32>>(img.ProcessorApplications[0].processor);
 
             Assert.Equal(noneDefault, processor.Options);
 

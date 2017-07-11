@@ -87,14 +87,21 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Queues up a simple operation that provides access to the mutatable image.
+        /// Applies all the ImageProcessors agains the operation
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image to rotate, flip, or both.</param>
-        /// <param name="operation">The operations to perform on the source.</param>
+        /// <param name="operations">The operations to perform on the source.</param>
         /// <returns>returns the current optinoatins class to allow chaining of oprations.</returns>
-        public static IImageOperations<TPixel> Run<TPixel>(this IImageOperations<TPixel> source, Action<Image<TPixel>> operation)
+        public static IImageOperations<TPixel> ApplyProcessors<TPixel>(this IImageOperations<TPixel> source, params IImageProcessor<TPixel>[] operations)
                 where TPixel : struct, IPixel<TPixel>
-            => source.ApplyProcessor(new DelegateImageProcessor<TPixel>(operation));
+        {
+            foreach (var p in operations)
+            {
+                source = source.ApplyProcessor(p);
+            }
+
+            return source;
+        }
     }
 }

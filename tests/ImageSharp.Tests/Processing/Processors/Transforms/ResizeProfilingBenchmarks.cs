@@ -3,7 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.Tests.Processing.Transforms
+namespace ImageSharp.Tests.Processing.Processors.Transforms
 {
     using System;
     using System.IO;

@@ -5,12 +5,13 @@
 
 namespace ImageSharp
 {
+    using System;
     using SixLabors.Primitives;
 
     /// <summary>
     /// Represents a value in relation to a value on the image
     /// </summary>
-    internal struct ValueSize
+    internal struct ValueSize : IEquatable<ValueSize>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ValueSize"/> struct.
@@ -119,6 +120,12 @@ namespace ImageSharp
         public override string ToString()
         {
             return $"{this.Value} - {this.Type}";
+        }
+
+        /// <inheritdoc/>
+        public bool Equals(ValueSize other)
+        {
+            return this.Type == other.Type && this.Value == other.Value;
         }
     }
 }

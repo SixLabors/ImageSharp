@@ -106,7 +106,7 @@ namespace ImageSharp
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageOperations<TPixel> Vignette<TPixel>(this IImageOperations<TPixel> source, TPixel color, GraphicsOptions options)
             where TPixel : struct, IPixel<TPixel>
-         => source.VignetteInternal(color, 0, 0, options);
+         => source.VignetteInternal(color, ValueSize.PercentageOfWidth(.5f), ValueSize.PercentageOfHeight(.5f), options);
 
         /// <summary>
         /// Applies a radial vignette effect to an image.
@@ -133,7 +133,7 @@ namespace ImageSharp
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageOperations<TPixel> Vignette<TPixel>(this IImageOperations<TPixel> source, Rectangle rectangle, GraphicsOptions options)
             where TPixel : struct, IPixel<TPixel>
-         => source.Vignette(NamedColors<TPixel>.Black, 0, 0, rectangle, options);
+         => source.VignetteInternal(NamedColors<TPixel>.Black, ValueSize.PercentageOfWidth(.5f), ValueSize.PercentageOfHeight(.5f), rectangle, options);
 
         /// <summary>
         /// Applies a radial vignette effect to an image.

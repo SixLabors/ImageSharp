@@ -23,7 +23,6 @@ namespace ImageSharp
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="dither">The ordered ditherer.</param>
-        /// <param name="index">The component index to test the threshold against. Must range from 0 to 3.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageOperations<TPixel> Dither<TPixel>(this IImageOperations<TPixel> source, IOrderedDither dither)
             where TPixel : struct, IPixel<TPixel>
@@ -31,6 +30,7 @@ namespace ImageSharp
             source.ApplyProcessor(new OrderedDitherProcessor<TPixel>(dither, 0));
             return source;
         }
+
         /// <summary>
         /// Dithers the image reducing it to two colors using ordered dithering.
         /// </summary>
@@ -55,7 +55,6 @@ namespace ImageSharp
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
-        /// <param name="index">The component index to test the threshold against. Must range from 0 to 3.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageOperations<TPixel> Dither<TPixel>(this IImageOperations<TPixel> source, IOrderedDither dither, Rectangle rectangle)
             where TPixel : struct, IPixel<TPixel>

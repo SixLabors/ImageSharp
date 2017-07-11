@@ -142,7 +142,7 @@ namespace ImageSharp.Benchmarks.General
         [Params(32)]
         public int Count { get; set; }
 
-        [Setup]
+        [GlobalSetup]
         public void Setup()
         {
             this.compatibleMemLayoutRunner = new ConversionRunner<TestRgba>(this.Count);

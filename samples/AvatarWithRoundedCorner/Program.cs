@@ -68,7 +68,6 @@ namespace AvatarWithRoundedCorner
             // corner is now a corner shape positions top left
             //lets make 3 more positioned correctly, we cando that by translating the orgional artound the center of the image
             var center = new Vector2(imageWidth / 2, imageHeight / 2);
-            var angle = Math.PI / 2f;
 
             float rightPos = imageWidth - cornerToptLeft.Bounds.Width + 1;
             float bottomPos = imageHeight - cornerToptLeft.Bounds.Height + 1;

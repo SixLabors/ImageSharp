@@ -29,10 +29,13 @@ namespace ImageSharp.Tests
         /// </summary>
         private static readonly string FormatsDirectory = GetFormatsDirectory();
 
+        private Image<Rgba32> _image;
+        private byte[] _bytes;
+
         /// <summary>
         /// The image.
         /// </summary>
-        private readonly Image<Rgba32> image;
+        private Image<Rgba32> image => this._image ?? (this._image = Image.Load<Rgba32>(this.Bytes));
 
         /// <summary>
         /// The file.
@@ -46,15 +49,12 @@ namespace ImageSharp.Tests
         private TestFile(string file)
         {
             this.file = file;
-
-            this.Bytes = File.ReadAllBytes(file);
-            this.image = Image.Load<Rgba32>(this.Bytes);
         }
 
         /// <summary>
         /// Gets the bytes.
         /// </summary>
-        public byte[] Bytes { get; }
+        public byte[] Bytes => this._bytes ?? (this._bytes = File.ReadAllBytes(this.file));
 
         /// <summary>
         /// The file name.

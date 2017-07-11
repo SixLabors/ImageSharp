@@ -38,6 +38,11 @@ namespace ImageSharp.Processing.Processors
         }
 
         /// <summary>
+        /// Gets the Graphics options to alter how processor is applied.
+        /// </summary>
+        public GraphicsOptions GraphicsOptions => this.options;
+
+        /// <summary>
         /// Gets or sets the glow color to apply.
         /// </summary>
         public TPixel GlowColor { get; set; }

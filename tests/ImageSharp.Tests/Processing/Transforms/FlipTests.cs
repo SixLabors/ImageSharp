@@ -5,33 +5,25 @@
 
 namespace ImageSharp.Tests.Processing.Transforms
 {
+    using System;
     using ImageSharp.PixelFormats;
     using ImageSharp.Processing;
-
+    using ImageSharp.Processing.Processors;
     using Xunit;
 
-    public class FlipTests : FileTestBase
+    public class FlipTests : BaseImageOperationsExtensionTest
     {
-        public static readonly string[] FlipFiles = { TestImages.Bmp.F };
-
-        public static readonly TheoryData<FlipType> FlipValues
-            = new TheoryData<FlipType>
-        {
-            { FlipType.None },
-            { FlipType.Vertical },
-            { FlipType.Horizontal },
-        };
 
         [Theory]
-        [WithFileCollection(nameof(FlipFiles), nameof(FlipValues), DefaultPixelType)]
-        public void ImageShouldFlip<TPixel>(TestImageProvider<TPixel> provider, FlipType flipType)
-            where TPixel : struct, IPixel<TPixel>
+        [InlineData(FlipType.None)]
+        [InlineData(FlipType.Horizontal)]
+        [InlineData(FlipType.Vertical)]
+        public void Flip_degreesFloat_RotateProcessorWithAnglesSetAndExpandTrue(FlipType flip)
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.Mutate(x => x.Flip(flipType));
-                image.DebugSave(provider, flipType, Extensions.Bmp);
-            }
+            this.operations.Flip(flip);
+            var flipProcessor = this.Verify<FlipProcessor<Rgba32>>();
+
+            Assert.Equal(flip, flipProcessor.FlipType);
         }
     }
 }

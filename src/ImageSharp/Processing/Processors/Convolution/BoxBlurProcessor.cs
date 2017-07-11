@@ -31,10 +31,16 @@ namespace ImageSharp.Processing.Processors
         /// </param>
         public BoxBlurProcessor(int radius = 7)
         {
+            this.Radius = radius;
             this.kernelSize = (radius * 2) + 1;
             this.KernelX = this.CreateBoxKernel(true);
             this.KernelY = this.CreateBoxKernel(false);
         }
+
+        /// <summary>
+        /// Gets the Radius
+        /// </summary>
+        public int Radius { get; }
 
         /// <summary>
         /// Gets the horizontal gradient operator.

@@ -24,7 +24,18 @@ namespace ImageSharp
         /// <param name="source">The image this method extends.</param>
         /// <param name="size">The size of the pixels.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageOperations<TPixel> Pixelate<TPixel>(this IImageOperations<TPixel> source, int size = 4)
+        public static IImageOperations<TPixel> Pixelate<TPixel>(this IImageOperations<TPixel> source)
+            where TPixel : struct, IPixel<TPixel>
+        => source.ApplyProcessor(new PixelateProcessor<TPixel>(4));
+
+        /// <summary>
+        /// Pixelates an image with the given pixel size.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="size">The size of the pixels.</param>
+        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        public static IImageOperations<TPixel> Pixelate<TPixel>(this IImageOperations<TPixel> source, int size)
             where TPixel : struct, IPixel<TPixel>
         => source.ApplyProcessor(new PixelateProcessor<TPixel>(size));
 

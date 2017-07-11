@@ -104,17 +104,4 @@ namespace ImageSharp.Tests
             this.image.Dispose();
         }
     }
-
-    public class RunImageOperation : BaseImageOperationsExtensionTest
-    {
-        [Fact]
-        public void Run_CreatedDelegateProcessor()
-        {
-            Action<Image<Rgba32>> action = (i) => { };
-            this.operations.Run(action);
-
-            DelegateImageProcessor<Rgba32> processor  = this.Verify<DelegateImageProcessor<Rgba32>>();
-            Assert.Equal(action, processor.Action);
-        }
-    }
 }

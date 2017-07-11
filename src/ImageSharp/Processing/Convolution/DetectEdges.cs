@@ -55,7 +55,19 @@ namespace ImageSharp
         /// <param name="filter">The filter for detecting edges.</param>
         /// <param name="grayscale">Whether to convert the image to Grayscale first. Defaults to true.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageOperations<TPixel> DetectEdges<TPixel>(this IImageOperations<TPixel> source, EdgeDetection filter, bool grayscale = true)
+        public static IImageOperations<TPixel> DetectEdges<TPixel>(this IImageOperations<TPixel> source, EdgeDetection filter)
+            where TPixel : struct, IPixel<TPixel>
+            => DetectEdges(source, GetProcessor<TPixel>(filter, true));
+
+        /// <summary>
+        /// Detects any edges within the image.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="filter">The filter for detecting edges.</param>
+        /// <param name="grayscale">Whether to convert the image to Grayscale first. Defaults to true.</param>
+        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        public static IImageOperations<TPixel> DetectEdges<TPixel>(this IImageOperations<TPixel> source, EdgeDetection filter, bool grayscale)
             where TPixel : struct, IPixel<TPixel>
             => DetectEdges(source, GetProcessor<TPixel>(filter, grayscale));
 

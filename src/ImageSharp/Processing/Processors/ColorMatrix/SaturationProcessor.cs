@@ -26,6 +26,7 @@ namespace ImageSharp.Processing.Processors
         /// </exception>
         public SaturationProcessor(int saturation)
         {
+            this.Amount = saturation;
             Guard.MustBeBetweenOrEqualTo(saturation, -100, 100, nameof(saturation));
             float saturationFactor = saturation / 100F;
 
@@ -57,6 +58,11 @@ namespace ImageSharp.Processing.Processors
 
             this.Matrix = matrix4X4;
         }
+
+        /// <summary>
+        /// Gets the amount to apply.
+        /// </summary>
+        public int Amount { get; }
 
         /// <inheritdoc/>
         public override Matrix4x4 Matrix { get; }

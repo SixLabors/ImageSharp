@@ -8,85 +8,73 @@ namespace ImageSharp.Tests.Processing.Binarization
     using ImageSharp.Dithering;
     using ImageSharp.Dithering.Ordered;
     using ImageSharp.PixelFormats;
+    using ImageSharp.Processing.Processors;
+    using Moq;
     using SixLabors.Primitives;
     using Xunit;
 
-    public class DitherTest : FileTestBase
+    public class DitherTest : BaseImageOperationsExtensionTest
     {
-        public static readonly TheoryData<string, IOrderedDither> Ditherers = new TheoryData<string, IOrderedDither>
-        {
-            { "Ordered", new Ordered() },
-            { "Bayer", new Bayer() }
-        };
+        private readonly IOrderedDither orderedDither;
+        private readonly IErrorDiffuser errorDiffuser;
 
-        public static readonly TheoryData<string, IErrorDiffuser> ErrorDiffusers = new TheoryData<string, IErrorDiffuser>
+        public DitherTest()
         {
-            { "Atkinson", new Atkinson() },
-            { "Burks", new Burks() },
-            { "FloydSteinberg", new FloydSteinberg() },
-            { "JarvisJudiceNinke", new JarvisJudiceNinke() },
-            { "Sierra2", new Sierra2() },
-            { "Sierra3", new Sierra3() },
-            { "SierraLite", new SierraLite() },
-            { "Stucki", new Stucki() },
-        };
-
-        [Theory]
-        [WithFileCollection(nameof(DefaultFiles), nameof(Ditherers), DefaultPixelType)]
-        public void ImageShouldApplyDitherFilter<TPixel>(TestImageProvider<TPixel> provider, string name, IOrderedDither ditherer)
-            where TPixel : struct, IPixel<TPixel>
+            this.orderedDither = new Mock<IOrderedDither>().Object;
+            this.errorDiffuser = new Mock<IErrorDiffuser>().Object;
+        }
+        [Fact]
+        public void Dither_CorrectProcessor()
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.Mutate(x => x.Dither(ditherer));
-                image.DebugSave(provider, name, Extensions.Bmp);
-            }
+            this.operations.Dither(orderedDither);
+            var p = this.Verify<OrderedDitherProcessor<Rgba32>>();
+            Assert.Equal(this.orderedDither, p.Dither);
+            Assert.Equal(0, p.Index);
         }
 
-        [Theory]
-        [WithFileCollection(nameof(DefaultFiles), nameof(Ditherers), DefaultPixelType)]
-        public void ImageShouldApplyDitherFilterInBox<TPixel>(TestImageProvider<TPixel> provider, string name, IOrderedDither ditherer)
-            where TPixel : struct, IPixel<TPixel>
+        [Fact]
+        public void Dither_rect_CorrectProcessor()
         {
-            using (Image<TPixel> source = provider.GetImage())
-            using (var image = new Image<TPixel>(source))
-            {
-                var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
-
-                image.Mutate(x => x.Dither(ditherer, bounds));
-                image.DebugSave(provider, name, Extensions.Bmp);
-
-                ImageComparer.EnsureProcessorChangesAreConstrained(source, image, bounds);
-            }
+            this.operations.Dither(orderedDither, this.rect);
+            var p = this.Verify<OrderedDitherProcessor<Rgba32>>(this.rect);
+            Assert.Equal(this.orderedDither, p.Dither);
+            Assert.Equal(0, p.Index);
+        }
+        [Fact]
+        public void Dither_index_CorrectProcessor()
+        {
+            this.operations.Dither(orderedDither, 2);
+            var p = this.Verify<OrderedDitherProcessor<Rgba32>>();
+            Assert.Equal(this.orderedDither, p.Dither);
+            Assert.Equal(2, p.Index);
         }
 
-        [Theory]
-        [WithFileCollection(nameof(DefaultFiles), nameof(ErrorDiffusers), DefaultPixelType)]
-        public void ImageShouldApplyDiffusionFilter<TPixel>(TestImageProvider<TPixel> provider, string name, IErrorDiffuser diffuser)
-            where TPixel : struct, IPixel<TPixel>
+        [Fact]
+        public void Dither_index_rect_CorrectProcessor()
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.Mutate(x => x.Dither(diffuser, .5F));
-                image.DebugSave(provider, name, Extensions.Bmp);
-            }
+            this.operations.Dither(orderedDither, this.rect, 2);
+            var p = this.Verify<OrderedDitherProcessor<Rgba32>>(this.rect);
+            Assert.Equal(this.orderedDither, p.Dither);
+            Assert.Equal(2, p.Index);
         }
 
-        [Theory]
-        [WithFileCollection(nameof(DefaultFiles), nameof(ErrorDiffusers), DefaultPixelType)]
-        public void ImageShouldApplyDiffusionFilterInBox<TPixel>(TestImageProvider<TPixel> provider, string name, IErrorDiffuser diffuser)
-            where TPixel : struct, IPixel<TPixel>
+
+        [Fact]
+        public void Dither_ErrorDifuser_CorrectProcessor()
         {
-            using (Image<TPixel> source = provider.GetImage())
-            using (var image = new Image<TPixel>(source))
-            {
-                var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
+            this.operations.Dither(errorDiffuser, 4);
+            var p = this.Verify<ErrorDiffusionDitherProcessor<Rgba32>>();
+            Assert.Equal(this.errorDiffuser, p.Diffuser);
+            Assert.Equal(4, p.Threshold);
+        }
 
-                image.Mutate(x => x.Dither(diffuser, .5F, bounds));
-                image.DebugSave(provider, name, Extensions.Bmp);
-
-                ImageComparer.EnsureProcessorChangesAreConstrained(source, image, bounds);
-            }
+        [Fact]
+        public void Dither_ErrorDifuser_rect_CorrectProcessor()
+        {
+            this.operations.Dither(this.errorDiffuser, 3, this.rect);
+            var p = this.Verify<ErrorDiffusionDitherProcessor<Rgba32>>(this.rect);
+            Assert.Equal(this.errorDiffuser, p.Diffuser);
+            Assert.Equal(3, p.Threshold);
         }
     }
 }

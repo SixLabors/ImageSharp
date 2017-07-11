@@ -6,38 +6,24 @@
 namespace ImageSharp.Tests.Processing.ColorMatrix
 {
     using ImageSharp.PixelFormats;
+    using ImageSharp.Processing.Processors;
     using SixLabors.Primitives;
     using Xunit;
 
-    public class KodachromeTest : FileTestBase
+    public class KodachromeTest : BaseImageOperationsExtensionTest
     {
-        [Theory]
-        [WithFileCollection(nameof(DefaultFiles), DefaultPixelType)]
-        public void ImageShouldApplyKodachromeFilter<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+        [Fact]
+        public void Kodachrome_amount_KodachromeProcessorDefaultsSet()
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.Mutate(x => x.Kodachrome());
-                image.DebugSave(provider, null, Extensions.Bmp);
-            }
+            this.operations.Kodachrome();
+            var processor = this.Verify<KodachromeProcessor<Rgba32>>();
         }
 
-        [Theory]
-        [WithFileCollection(nameof(DefaultFiles), DefaultPixelType)]
-        public void ImageShouldApplyKodachromeFilterInBox<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+        [Fact]
+        public void Kodachrome_amount_rect_KodachromeProcessorDefaultsSet()
         {
-            using (Image<TPixel> source = provider.GetImage())
-            using (var image = new Image<TPixel>(source))
-            {
-                var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
-
-                image.Mutate(x => x.Kodachrome(bounds));
-                image.DebugSave(provider, null, Extensions.Bmp);
-
-                ImageComparer.EnsureProcessorChangesAreConstrained(source, image, bounds);
-            }
+            this.operations.Kodachrome(this.rect);
+            var processor = this.Verify<KodachromeProcessor<Rgba32>>(this.rect);
         }
     }
 }

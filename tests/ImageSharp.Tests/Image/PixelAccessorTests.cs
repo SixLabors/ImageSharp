@@ -114,7 +114,7 @@ namespace ImageSharp.Tests
         {
             using (Image<Rgba32> image = new Image<Rgba32>(1, 1))
             {
-                CopyFromZYX(image);
+                CopyFromZYXImpl(image);
             }
         }
         
@@ -123,7 +123,7 @@ namespace ImageSharp.Tests
         {
             using (Image<Rgba32> image = new Image<Rgba32>(1, 1))
             {
-                CopyFromZYXW(image);
+                CopyFromZYXWImpl(image);
             }
         }
         
@@ -132,7 +132,7 @@ namespace ImageSharp.Tests
         {
             using (Image<Rgba32> image = new Image<Rgba32>(1, 1))
             {
-                CopyToZYX(image);
+                CopyToZYXImpl(image);
             }
         }
         
@@ -141,11 +141,11 @@ namespace ImageSharp.Tests
         {
             using (Image<Rgba32> image = new Image<Rgba32>(1, 1))
             {
-                CopyToZYXW(image);
+                CopyToZYXWImpl(image);
             }
         }
         
-        private static void CopyFromZYX<TPixel>(Image<TPixel> image)
+        private static void CopyFromZYXImpl<TPixel>(Image<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
             using (PixelAccessor<TPixel> pixels = image.Lock())
@@ -172,7 +172,7 @@ namespace ImageSharp.Tests
             }
         }
 
-        private static void CopyFromZYXW<TPixel>(Image<TPixel> image)
+        private static void CopyFromZYXWImpl<TPixel>(Image<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
             using (PixelAccessor<TPixel> pixels = image.Lock())
@@ -200,7 +200,7 @@ namespace ImageSharp.Tests
             }
         }
 
-        private static void CopyToZYX<TPixel>(Image<TPixel> image)
+        private static void CopyToZYXImpl<TPixel>(Image<TPixel> image)
           where TPixel : struct, IPixel<TPixel>
         {
             using (PixelAccessor<TPixel> pixels = image.Lock())
@@ -222,7 +222,7 @@ namespace ImageSharp.Tests
             }
         }
 
-        private static void CopyToZYXW<TPixel>(Image<TPixel> image)
+        private static void CopyToZYXWImpl<TPixel>(Image<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
             using (PixelAccessor<TPixel> pixels = image.Lock())

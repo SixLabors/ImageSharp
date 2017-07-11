@@ -1,4 +1,4 @@
-﻿// <copyright file="DelegateImageProcessor.cs" company="James Jackson-South">
+﻿// <copyright file="DelegateProcessor.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -15,16 +15,16 @@ namespace ImageSharp.Processing
     /// Allows the application of processors to images.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class DelegateImageProcessor<TPixel> : ImageProcessor<TPixel>
+    internal class DelegateProcessor<TPixel> : ImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         private readonly Action<Image<TPixel>> action;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="DelegateImageProcessor{TPixel}"/> class.
+        /// Initializes a new instance of the <see cref="DelegateProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="action">The action.</param>
-        public DelegateImageProcessor(Action<Image<TPixel>> action)
+        public DelegateProcessor(Action<Image<TPixel>> action)
         {
             this.action = action;
         }

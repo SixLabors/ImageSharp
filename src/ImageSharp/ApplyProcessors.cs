@@ -28,7 +28,7 @@ namespace ImageSharp
             Guard.NotNull(operations, nameof(operations));
 
             // TODO: add parameter to Configuration to configure how this is created, create an IImageOperationsFactory that cna be used to switch this out with a fake for testing
-            var operationsRunner = new ImageOperations<TPixel>(source);
+            IImageOperations<TPixel> operationsRunner = source.Configuration.ImageOperationsProvider.CreateMutator(source);
             operations(operationsRunner);
         }
 
@@ -44,7 +44,7 @@ namespace ImageSharp
             Guard.NotNull(operations, nameof(operations));
 
             // TODO: add parameter to Configuration to configure how this is created, create an IImageOperationsFactory that cna be used to switch this out with a fake for testing
-            var operationsRunner = new ImageOperations<TPixel>(source);
+            IImageOperations<TPixel> operationsRunner = source.Configuration.ImageOperationsProvider.CreateMutator(source);
             operationsRunner.ApplyProcessors(operations);
         }
 
@@ -62,7 +62,7 @@ namespace ImageSharp
             var generated = new Image<TPixel>(source);
 
             // TODO: add parameter to Configuration to configure how this is created, create an IImageOperationsFactory that cna be used to switch this out with a fake for testing
-            var operationsRunner = new ImageOperations<TPixel>(generated);
+            IImageOperations<TPixel> operationsRunner = source.Configuration.ImageOperationsProvider.CreateMutator(generated);
             operations(operationsRunner);
             return generated;
         }
@@ -81,7 +81,7 @@ namespace ImageSharp
             var generated = new Image<TPixel>(source);
 
             // TODO: add parameter to Configuration to configure how this is created, create an IImageOperationsFactory that cna be used to switch this out with a fake for testing
-            var operationsRunner = new ImageOperations<TPixel>(generated);
+            IImageOperations<TPixel> operationsRunner = source.Configuration.ImageOperationsProvider.CreateMutator(generated);
             operationsRunner.ApplyProcessors(operations);
             return generated;
         }
@@ -96,5 +96,23 @@ namespace ImageSharp
         public static IImageOperations<TPixel> Run<TPixel>(this IImageOperations<TPixel> source, Action<Image<TPixel>> operation)
                 where TPixel : struct, IPixel<TPixel>
             => source.ApplyProcessor(new DelegateImageProcessor<TPixel>(operation));
+
+        /// <summary>
+        /// Queues up a simple operation that provides access to the mutatable image.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="source">The image to rotate, flip, or both.</param>
+        /// <param name="operations">The operations to perform on the source.</param>
+        /// <returns>returns the current optinoatins class to allow chaining of oprations.</returns>
+        internal static IImageOperations<TPixel> ApplyProcessors<TPixel>(this IImageOperations<TPixel> source, params IImageProcessor<TPixel>[] operations)
+                where TPixel : struct, IPixel<TPixel>
+        {
+            foreach (IImageProcessor<TPixel> op in operations)
+            {
+                source = source.ApplyProcessor(op);
+            }
+
+            return source;
+        }
     }
 }

@@ -103,10 +103,15 @@ namespace ImageSharp
 
 #if !NETSTANDARD1_1
         /// <summary>
-        /// Gets or sets the fielsystem helper for accessing the local file system.
+        /// Gets or sets the filesystem helper for accessing the local file system.
         /// </summary>
         internal IFileSystem FileSystem { get; set; } = new LocalFileSystem();
 #endif
+
+        /// <summary>
+        /// Gets or sets the image operations providers.
+        /// </summary>
+        internal IImageOperationsProvider ImageOperationsProvider { get; set; } = new DefaultImageOperationsProvider();
 
         /// <summary>
         /// Registers a new format provider.

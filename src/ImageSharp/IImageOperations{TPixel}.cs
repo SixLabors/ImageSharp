@@ -12,7 +12,7 @@ namespace ImageSharp
     using SixLabors.Primitives;
 
     /// <summary>
-    /// The static collection of all the default image formats
+    /// An interface to queue up image operations.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format</typeparam>
     public interface IImageOperations<TPixel>

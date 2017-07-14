@@ -26,7 +26,7 @@ namespace ImageSharp
         /// <param name="width">The new width.</param>
         /// <param name="height">The new height.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageOperations<TPixel> Pad<TPixel>(this IImageOperations<TPixel> source, int width, int height)
+        public static IImageProcessorApplicator<TPixel> Pad<TPixel>(this IImageProcessorApplicator<TPixel> source, int width, int height)
             where TPixel : struct, IPixel<TPixel>
         {
             ResizeOptions options = new ResizeOptions

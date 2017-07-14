@@ -35,7 +35,7 @@ namespace ImageSharp.Benchmarks
         {
             using (Image<Rgba32> image = new Image<Rgba32>(800, 800))
             {
-                image.ApplyProcessor(bulk, image.Bounds);
+                bulk.Apply(image, image.Bounds());
                 return new CoreSize(image.Width, image.Height);
             }
         }
@@ -45,7 +45,7 @@ namespace ImageSharp.Benchmarks
         {
             using (Image<Rgba32> image = new Image<Rgba32>(800, 800))
             {
-                image.ApplyProcessor(parallel, image.Bounds);
+                parallel.Apply(image, image.Bounds());
                 return new CoreSize(image.Width, image.Height);
             }
         }

@@ -23,7 +23,7 @@ namespace ImageSharp
         /// <param name="source">The image to crop.</param>
         /// <param name="threshold">The threshold for entropic density.</param>
         /// <returns>The <see cref="Image{TPixel}"/></returns>
-        public static IImageOperations<TPixel> EntropyCrop<TPixel>(this IImageOperations<TPixel> source, float threshold = .5f)
+        public static IImageProcessorApplicator<TPixel> EntropyCrop<TPixel>(this IImageProcessorApplicator<TPixel> source, float threshold = .5f)
             where TPixel : struct, IPixel<TPixel>
         => source.ApplyProcessor(new EntropyCropProcessor<TPixel>(threshold));
     }

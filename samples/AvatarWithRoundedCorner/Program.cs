@@ -36,7 +36,7 @@ namespace AvatarWithRoundedCorner
         }
 
         // lets create our custom image mutating pipeline
-        private static IImageOperations<Rgba32> ConvertToAvatar(this IImageOperations<Rgba32> operations, Size size, float cornerRadius)
+        private static IImageProcessorApplicator<Rgba32> ConvertToAvatar(this IImageProcessorApplicator<Rgba32> operations, Size size, float cornerRadius)
         {
             return operations.Resize(new ImageSharp.Processing.ResizeOptions
             {

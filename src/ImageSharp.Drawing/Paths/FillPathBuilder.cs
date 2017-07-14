@@ -25,7 +25,7 @@ namespace ImageSharp
         /// <param name="path">The shape.</param>
         /// <param name="options">The graphics options.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageOperations<TPixel> Fill<TPixel>(this IImageOperations<TPixel> source, IBrush<TPixel> brush, Action<PathBuilder> path, GraphicsOptions options)
+        public static IImageProcessorApplicator<TPixel> Fill<TPixel>(this IImageProcessorApplicator<TPixel> source, IBrush<TPixel> brush, Action<PathBuilder> path, GraphicsOptions options)
           where TPixel : struct, IPixel<TPixel>
         {
             var pb = new PathBuilder();
@@ -42,7 +42,7 @@ namespace ImageSharp
         /// <param name="brush">The brush.</param>
         /// <param name="path">The path.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageOperations<TPixel> Fill<TPixel>(this IImageOperations<TPixel> source, IBrush<TPixel> brush, Action<PathBuilder> path)
+        public static IImageProcessorApplicator<TPixel> Fill<TPixel>(this IImageProcessorApplicator<TPixel> source, IBrush<TPixel> brush, Action<PathBuilder> path)
           where TPixel : struct, IPixel<TPixel>
         {
             return source.Fill(brush, path, GraphicsOptions.Default);
@@ -57,7 +57,7 @@ namespace ImageSharp
         /// <param name="path">The path.</param>
         /// <param name="options">The options.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageOperations<TPixel> Fill<TPixel>(this IImageOperations<TPixel> source, TPixel color, Action<PathBuilder> path, GraphicsOptions options)
+        public static IImageProcessorApplicator<TPixel> Fill<TPixel>(this IImageProcessorApplicator<TPixel> source, TPixel color, Action<PathBuilder> path, GraphicsOptions options)
           where TPixel : struct, IPixel<TPixel>
         {
             return source.Fill(new SolidBrush<TPixel>(color), path, options);
@@ -71,7 +71,7 @@ namespace ImageSharp
         /// <param name="color">The color.</param>
         /// <param name="path">The path.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageOperations<TPixel> Fill<TPixel>(this IImageOperations<TPixel> source, TPixel color, Action<PathBuilder> path)
+        public static IImageProcessorApplicator<TPixel> Fill<TPixel>(this IImageProcessorApplicator<TPixel> source, TPixel color, Action<PathBuilder> path)
           where TPixel : struct, IPixel<TPixel>
         {
             return source.Fill(new SolidBrush<TPixel>(color), path);

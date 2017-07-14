@@ -15,7 +15,7 @@ namespace ImageSharp.Tests
 
         public override Image<Rgba32> CreateImage(Image<Rgba32> other)
         {
-            return new Image<Rgba32>(other);
+            return other.Clone();
         }
     }
 }

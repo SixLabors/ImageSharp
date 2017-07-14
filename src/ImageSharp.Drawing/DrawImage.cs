@@ -24,7 +24,7 @@ namespace ImageSharp
         /// <param name="location">The location to draw the blended image.</param>
         /// <param name="options">The options.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageOperations<TPixel> DrawImage<TPixel>(this IImageOperations<TPixel> source, Image<TPixel> image, Size size, Point location, GraphicsOptions options)
+        public static IImageProcessorApplicator<TPixel> DrawImage<TPixel>(this IImageProcessorApplicator<TPixel> source, Image<TPixel> image, Size size, Point location, GraphicsOptions options)
             where TPixel : struct, IPixel<TPixel>
         {
             if (size == default(Size))
@@ -49,7 +49,7 @@ namespace ImageSharp
         /// <param name="image">The image to blend with the currently processing image.</param>
         /// <param name="percent">The opacity of the image image to blend. Must be between 0 and 1.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageOperations<TPixel> Blend<TPixel>(this IImageOperations<TPixel> source, Image<TPixel> image, float percent)
+        public static IImageProcessorApplicator<TPixel> Blend<TPixel>(this IImageProcessorApplicator<TPixel> source, Image<TPixel> image, float percent)
             where TPixel : struct, IPixel<TPixel>
         {
             GraphicsOptions options = GraphicsOptions.Default;
@@ -66,7 +66,7 @@ namespace ImageSharp
         /// <param name="blender">The blending mode.</param>
         /// <param name="percent">The opacity of the image image to blend. Must be between 0 and 1.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageOperations<TPixel> Blend<TPixel>(this IImageOperations<TPixel> source, Image<TPixel> image, PixelBlenderMode blender, float percent)
+        public static IImageProcessorApplicator<TPixel> Blend<TPixel>(this IImageProcessorApplicator<TPixel> source, Image<TPixel> image, PixelBlenderMode blender, float percent)
             where TPixel : struct, IPixel<TPixel>
         {
             GraphicsOptions options = GraphicsOptions.Default;
@@ -83,7 +83,7 @@ namespace ImageSharp
         /// <param name="image">The image to blend with the currently processing image.</param>
         /// <param name="options">The options, including the blending type and belnding amount.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageOperations<TPixel> Blend<TPixel>(this IImageOperations<TPixel> source, Image<TPixel> image, GraphicsOptions options)
+        public static IImageProcessorApplicator<TPixel> Blend<TPixel>(this IImageProcessorApplicator<TPixel> source, Image<TPixel> image, GraphicsOptions options)
             where TPixel : struct, IPixel<TPixel>
         {
             return DrawImage(source, image, default(Size), default(Point), options);
@@ -99,7 +99,7 @@ namespace ImageSharp
         /// <param name="size">The size to draw the blended image.</param>
         /// <param name="location">The location to draw the blended image.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageOperations<TPixel> DrawImage<TPixel>(this IImageOperations<TPixel> source, Image<TPixel> image, float percent, Size size, Point location)
+        public static IImageProcessorApplicator<TPixel> DrawImage<TPixel>(this IImageProcessorApplicator<TPixel> source, Image<TPixel> image, float percent, Size size, Point location)
             where TPixel : struct, IPixel<TPixel>
         {
             GraphicsOptions options = GraphicsOptions.Default;
@@ -118,7 +118,7 @@ namespace ImageSharp
         /// <param name="size">The size to draw the blended image.</param>
         /// <param name="location">The location to draw the blended image.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageOperations<TPixel> DrawImage<TPixel>(this IImageOperations<TPixel> source, Image<TPixel> image, PixelBlenderMode blender, float percent, Size size, Point location)
+        public static IImageProcessorApplicator<TPixel> DrawImage<TPixel>(this IImageProcessorApplicator<TPixel> source, Image<TPixel> image, PixelBlenderMode blender, float percent, Size size, Point location)
             where TPixel : struct, IPixel<TPixel>
         {
             GraphicsOptions options = GraphicsOptions.Default;

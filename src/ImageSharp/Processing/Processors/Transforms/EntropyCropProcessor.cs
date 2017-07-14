@@ -39,7 +39,7 @@ namespace ImageSharp.Processing.Processors
         /// <inheritdoc/>
         protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
         {
-            using (ImageBase<TPixel> temp = new Image<TPixel>(source))
+            using (ImageBase<TPixel> temp = source.Clone())
             {
                 // Detect the edges.
                 new SobelProcessor<TPixel>().Apply(temp, sourceRectangle);

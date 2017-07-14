@@ -23,7 +23,7 @@ namespace ImageSharp
         /// <param name="source">The image to rotate, flip, or both.</param>
         /// <param name="operation">The operations to perform on the source.</param>
         /// <returns>returns the current optinoatins class to allow chaining of oprations.</returns>
-        public static IImageOperations<TPixel> Run<TPixel>(this IImageOperations<TPixel> source, Action<Image<TPixel>> operation)
+        public static IImageProcessorApplicator<TPixel> Run<TPixel>(this IImageProcessorApplicator<TPixel> source, Action<Image<TPixel>> operation)
                 where TPixel : struct, IPixel<TPixel>
             => source.ApplyProcessor(new DelegateProcessor<TPixel>(operation));
     }

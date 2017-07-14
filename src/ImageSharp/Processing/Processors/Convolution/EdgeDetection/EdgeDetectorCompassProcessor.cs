@@ -89,7 +89,7 @@ namespace ImageSharp.Processing.Processors
             int maxY = Math.Min(source.Height, endY);
 
             // we need a clean copy for each pass to start from
-            using (ImageBase<TPixel> cleanCopy = new Image<TPixel>(source))
+            using (ImageBase<TPixel> cleanCopy = source.Clone())
             {
                 new ConvolutionProcessor<TPixel>(kernels[0]).Apply(source, sourceRectangle);
 
@@ -116,7 +116,7 @@ namespace ImageSharp.Processing.Processors
                 // ReSharper disable once ForCanBeConvertedToForeach
                 for (int i = 1; i < kernels.Length; i++)
                 {
-                    using (ImageBase<TPixel> pass = new Image<TPixel>(cleanCopy))
+                    using (ImageBase<TPixel> pass = cleanCopy.Clone())
                     {
                         new ConvolutionProcessor<TPixel>(kernels[i]).Apply(pass, sourceRectangle);
 

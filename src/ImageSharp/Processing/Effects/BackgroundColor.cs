@@ -25,7 +25,7 @@ namespace ImageSharp
         /// <param name="color">The color to set as the background.</param>
         /// <param name="options">The options effecting pixel blending.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageOperations<TPixel> BackgroundColor<TPixel>(this IImageOperations<TPixel> source, TPixel color, GraphicsOptions options)
+        public static IImageProcessorApplicator<TPixel> BackgroundColor<TPixel>(this IImageProcessorApplicator<TPixel> source, TPixel color, GraphicsOptions options)
             where TPixel : struct, IPixel<TPixel>
         => source.ApplyProcessor(new BackgroundColorProcessor<TPixel>(color, options));
 
@@ -40,7 +40,7 @@ namespace ImageSharp
         /// </param>
         /// <param name="options">The options effecting pixel blending.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageOperations<TPixel> BackgroundColor<TPixel>(this IImageOperations<TPixel> source, TPixel color, Rectangle rectangle, GraphicsOptions options)
+        public static IImageProcessorApplicator<TPixel> BackgroundColor<TPixel>(this IImageProcessorApplicator<TPixel> source, TPixel color, Rectangle rectangle, GraphicsOptions options)
             where TPixel : struct, IPixel<TPixel>
         => source.ApplyProcessor(new BackgroundColorProcessor<TPixel>(color, options), rectangle);
 
@@ -51,7 +51,7 @@ namespace ImageSharp
         /// <param name="source">The image this method extends.</param>
         /// <param name="color">The color to set as the background.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageOperations<TPixel> BackgroundColor<TPixel>(this IImageOperations<TPixel> source, TPixel color)
+        public static IImageProcessorApplicator<TPixel> BackgroundColor<TPixel>(this IImageProcessorApplicator<TPixel> source, TPixel color)
             where TPixel : struct, IPixel<TPixel>
         {
             return BackgroundColor(source, color, GraphicsOptions.Default);
@@ -67,7 +67,7 @@ namespace ImageSharp
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageOperations<TPixel> BackgroundColor<TPixel>(this IImageOperations<TPixel> source, TPixel color, Rectangle rectangle)
+        public static IImageProcessorApplicator<TPixel> BackgroundColor<TPixel>(this IImageProcessorApplicator<TPixel> source, TPixel color, Rectangle rectangle)
             where TPixel : struct, IPixel<TPixel>
         {
             return BackgroundColor(source, color, rectangle, GraphicsOptions.Default);

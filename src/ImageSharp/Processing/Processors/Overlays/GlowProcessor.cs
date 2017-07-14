@@ -62,7 +62,7 @@ namespace ImageSharp.Processing.Processors
             TPixel glowColor = this.GlowColor;
             Vector2 centre = Rectangle.Center(sourceRectangle);
 
-            var finalRadius = this.Radius.Calculate(source.Bounds.Size);
+            var finalRadius = this.Radius.Calculate(source.Size());
 
             float maxDistance = finalRadius > 0 ? MathF.Min(finalRadius, sourceRectangle.Width * .5F) : sourceRectangle.Width * .5F;
 

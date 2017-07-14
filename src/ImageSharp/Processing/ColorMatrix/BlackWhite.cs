@@ -24,7 +24,7 @@ namespace ImageSharp
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageOperations<TPixel> BlackWhite<TPixel>(this IImageOperations<TPixel> source)
+        public static IImageProcessorApplicator<TPixel> BlackWhite<TPixel>(this IImageProcessorApplicator<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
         {
             source.ApplyProcessor(new BlackWhiteProcessor<TPixel>());
@@ -40,7 +40,7 @@ namespace ImageSharp
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageOperations<TPixel> BlackWhite<TPixel>(this IImageOperations<TPixel> source, Rectangle rectangle)
+        public static IImageProcessorApplicator<TPixel> BlackWhite<TPixel>(this IImageProcessorApplicator<TPixel> source, Rectangle rectangle)
             where TPixel : struct, IPixel<TPixel>
         {
             source.ApplyProcessor(new BlackWhiteProcessor<TPixel>(), rectangle);

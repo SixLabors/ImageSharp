@@ -14,18 +14,18 @@ namespace ImageSharp
     /// Represents a single frame in a animation.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    public class ImageFrame<TPixel> : ImageBase<TPixel>, IImageFrame
+    public sealed class ImageFrame<TPixel> : ImageBase<TPixel>, IImageFrame
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageFrame{TPixel}"/> class.
         /// </summary>
-        /// <param name="width">The width of the image in pixels.</param>
-        /// <param name="height">The height of the image in pixels.</param>
         /// <param name="configuration">
         /// The configuration providing initialization code which allows extending the library.
         /// </param>
-        public ImageFrame(int width, int height, Configuration configuration = null)
+        /// <param name="width">The width of the image in pixels.</param>
+        /// <param name="height">The height of the image in pixels.</param>
+        public ImageFrame(Configuration configuration, int width, int height)
             : base(configuration, width, height)
         {
         }
@@ -33,20 +33,30 @@ namespace ImageSharp
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageFrame{TPixel}"/> class.
         /// </summary>
-        /// <param name="image">The image to create the frame from.</param>
-        public ImageFrame(ImageFrame<TPixel> image)
-            : base(image)
+        /// <param name="width">The width of the image in pixels.</param>
+        /// <param name="height">The height of the image in pixels.</param>
+        public ImageFrame(int width, int height)
+            : this(null, width, height)
         {
-            this.CopyProperties(image);
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageFrame{TPixel}"/> class.
         /// </summary>
         /// <param name="image">The image to create the frame from.</param>
-        public ImageFrame(ImageBase<TPixel> image)
+        internal ImageFrame(ImageBase<TPixel> image)
             : base(image)
         {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ImageFrame{TPixel}"/> class.
+        /// </summary>
+        /// <param name="image">The image to create the frame from.</param>
+        private ImageFrame(ImageFrame<TPixel> image)
+            : base(image)
+        {
+            this.CopyProperties(image);
         }
 
         /// <summary>
@@ -63,15 +73,19 @@ namespace ImageSharp
         /// <summary>
         /// Returns a copy of the image frame in the given pixel format.
         /// </summary>
-        /// <param name="scaleFunc">A function that allows for the correction of vector scaling between unknown color formats.</param>
         /// <typeparam name="TPixel2">The pixel format.</typeparam>
         /// <returns>The <see cref="ImageFrame{TPixel2}"/></returns>
-        public ImageFrame<TPixel2> To<TPixel2>(Func<Vector4, Vector4> scaleFunc = null)
+        public ImageFrame<TPixel2> CloneAs<TPixel2>()
             where TPixel2 : struct, IPixel<TPixel2>
         {
-            scaleFunc = PackedPixelConverterHelper.ComputeScaleFunction<TPixel, TPixel2>(scaleFunc);
+            if (typeof(TPixel2) == typeof(TPixel))
+            {
+                return this.Clone() as ImageFrame<TPixel2>;
+            }
 
-            ImageFrame<TPixel2> target = new ImageFrame<TPixel2>(this.Width, this.Height, this.Configuration);
+            Func<Vector4, Vector4> scaleFunc = PackedPixelConverterHelper.ComputeScaleFunction<TPixel, TPixel2>();
+
+            var target = new ImageFrame<TPixel2>(this.Configuration, this.Width, this.Height);
             target.CopyProperties(this);
 
             using (PixelAccessor<TPixel> pixels = this.Lock())
@@ -99,9 +113,15 @@ namespace ImageSharp
         /// Clones the current instance.
         /// </summary>
         /// <returns>The <see cref="ImageFrame{TPixel}"/></returns>
-        internal virtual ImageFrame<TPixel> Clone()
+        public new ImageFrame<TPixel> Clone()
         {
             return new ImageFrame<TPixel>(this);
+        }
+
+        /// <inheritdoc/>
+        protected override ImageBase<TPixel> CloneInternal()
+        {
+            return this.Clone();
         }
 
         /// <summary>

@@ -19,7 +19,6 @@ namespace ImageSharp
     /// images in different pixel formats.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    [DebuggerDisplay("Image: {Width}x{Height}")]
     public abstract class ImageBase<TPixel> : IImageBase<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
@@ -105,12 +104,8 @@ namespace ImageSharp
 
             // Rent then copy the pixels. Unsafe.CopyBlock gives us a nice speed boost here.
             this.RentPixels();
-            using (PixelAccessor<TPixel> sourcePixels = other.Lock())
-            using (PixelAccessor<TPixel> target = this.Lock())
-            {
-                // Check we can do this without crashing
-                sourcePixels.CopyTo(target);
-            }
+
+            other.Pixels.CopyTo(this.Pixels);
         }
 
         /// <inheritdoc/>
@@ -121,12 +116,6 @@ namespace ImageSharp
 
         /// <inheritdoc/>
         public int Height { get; private set; }
-
-        /// <inheritdoc/>
-        public double PixelRatio => (double)this.Width / this.Height;
-
-        /// <inheritdoc/>
-        public Rectangle Bounds => new Rectangle(0, 0, this.Width, this.Height);
 
         /// <summary>
         /// Gets the configuration providing initialization code which allows extending the library.
@@ -194,6 +183,15 @@ namespace ImageSharp
             return this.Pixels.Slice((y * this.Width) + x, this.Width - x);
         }
 
+        /// <summary>
+        /// Clones the image
+        /// </summary>
+        /// <returns>A new items which is a clone of the original.</returns>
+        public ImageBase<TPixel> Clone()
+        {
+            return this.CloneInternal();
+        }
+
         /// <inheritdoc />
         public void Dispose()
         {
@@ -245,6 +243,12 @@ namespace ImageSharp
             this.Height = newHeight;
             this.PixelBuffer = newPixels;
         }
+
+        /// <summary>
+        /// Clones the image
+        /// </summary>
+        /// <returns>A new items which is a clone of the original.</returns>
+        protected abstract ImageBase<TPixel> CloneInternal();
 
         /// <summary>
         /// Copies the properties from the other <see cref="IImageBase"/>.

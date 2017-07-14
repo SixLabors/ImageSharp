@@ -52,7 +52,7 @@ namespace ImageSharp.Tests.Processing.Processors.Effects
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> source = provider.GetImage())
-            using (var image = new Image<TPixel>(source))
+            using (var image = source.Clone())
             {
                 var bounds = new Rectangle(image.Width / 4, image.Height / 4, image.Width / 2, image.Height / 2);
 

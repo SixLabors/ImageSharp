@@ -25,7 +25,7 @@ namespace ImageSharp
         /// <param name="path">The path.</param>
         /// <param name="options">The options.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageOperations<TPixel> Draw<TPixel>(this IImageOperations<TPixel> source, IPen<TPixel> pen, IPath path, GraphicsOptions options)
+        public static IImageProcessorApplicator<TPixel> Draw<TPixel>(this IImageProcessorApplicator<TPixel> source, IPen<TPixel> pen, IPath path, GraphicsOptions options)
            where TPixel : struct, IPixel<TPixel>
         {
             return source.Fill(pen.StrokeFill, new ShapePath(path, pen), options);
@@ -39,7 +39,7 @@ namespace ImageSharp
         /// <param name="pen">The pen.</param>
         /// <param name="path">The path.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageOperations<TPixel> Draw<TPixel>(this IImageOperations<TPixel> source, IPen<TPixel> pen, IPath path)
+        public static IImageProcessorApplicator<TPixel> Draw<TPixel>(this IImageProcessorApplicator<TPixel> source, IPen<TPixel> pen, IPath path)
            where TPixel : struct, IPixel<TPixel>
         {
             return source.Draw(pen, path, GraphicsOptions.Default);
@@ -55,7 +55,7 @@ namespace ImageSharp
         /// <param name="path">The shape.</param>
         /// <param name="options">The options.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageOperations<TPixel> Draw<TPixel>(this IImageOperations<TPixel> source, IBrush<TPixel> brush, float thickness, IPath path, GraphicsOptions options)
+        public static IImageProcessorApplicator<TPixel> Draw<TPixel>(this IImageProcessorApplicator<TPixel> source, IBrush<TPixel> brush, float thickness, IPath path, GraphicsOptions options)
            where TPixel : struct, IPixel<TPixel>
         {
             return source.Draw(new Pen<TPixel>(brush, thickness), path, options);
@@ -70,7 +70,7 @@ namespace ImageSharp
         /// <param name="thickness">The thickness.</param>
         /// <param name="path">The path.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageOperations<TPixel> Draw<TPixel>(this IImageOperations<TPixel> source, IBrush<TPixel> brush, float thickness, IPath path)
+        public static IImageProcessorApplicator<TPixel> Draw<TPixel>(this IImageProcessorApplicator<TPixel> source, IBrush<TPixel> brush, float thickness, IPath path)
            where TPixel : struct, IPixel<TPixel>
         {
             return source.Draw(new Pen<TPixel>(brush, thickness), path);
@@ -86,7 +86,7 @@ namespace ImageSharp
         /// <param name="path">The path.</param>
         /// <param name="options">The options.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageOperations<TPixel> Draw<TPixel>(this IImageOperations<TPixel> source, TPixel color, float thickness, IPath path, GraphicsOptions options)
+        public static IImageProcessorApplicator<TPixel> Draw<TPixel>(this IImageProcessorApplicator<TPixel> source, TPixel color, float thickness, IPath path, GraphicsOptions options)
            where TPixel : struct, IPixel<TPixel>
         {
             return source.Draw(new SolidBrush<TPixel>(color), thickness, path, options);
@@ -101,7 +101,7 @@ namespace ImageSharp
         /// <param name="thickness">The thickness.</param>
         /// <param name="path">The path.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageOperations<TPixel> Draw<TPixel>(this IImageOperations<TPixel> source, TPixel color, float thickness, IPath path)
+        public static IImageProcessorApplicator<TPixel> Draw<TPixel>(this IImageProcessorApplicator<TPixel> source, TPixel color, float thickness, IPath path)
            where TPixel : struct, IPixel<TPixel>
         {
             return source.Draw(new SolidBrush<TPixel>(color), thickness, path);

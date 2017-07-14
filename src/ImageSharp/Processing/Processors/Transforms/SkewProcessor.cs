@@ -45,6 +45,7 @@ namespace ImageSharp.Processing.Processors
             int height = this.CanvasRectangle.Height;
             int width = this.CanvasRectangle.Width;
             Matrix3x2 matrix = this.GetCenteredMatrix(source, this.processMatrix);
+            Rectangle sourceBounds = source.Bounds();
 
             using (var targetPixels = new PixelAccessor<TPixel>(width, height))
             {
@@ -60,7 +61,7 @@ namespace ImageSharp.Processing.Processors
                             {
                                 var transformedPoint = Point.Skew(new Point(x, y), matrix);
 
-                                if (source.Bounds.Contains(transformedPoint.X, transformedPoint.Y))
+                                if (sourceBounds.Contains(transformedPoint.X, transformedPoint.Y))
                                 {
                                     targetRow[x] = source[transformedPoint.X, transformedPoint.Y];
                                 }

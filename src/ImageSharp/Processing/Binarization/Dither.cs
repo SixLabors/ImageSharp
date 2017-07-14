@@ -24,7 +24,7 @@ namespace ImageSharp
         /// <param name="source">The image this method extends.</param>
         /// <param name="dither">The ordered ditherer.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageOperations<TPixel> Dither<TPixel>(this IImageOperations<TPixel> source, IOrderedDither dither)
+        public static IImageProcessorApplicator<TPixel> Dither<TPixel>(this IImageProcessorApplicator<TPixel> source, IOrderedDither dither)
             where TPixel : struct, IPixel<TPixel>
         {
             source.ApplyProcessor(new OrderedDitherProcessor<TPixel>(dither, 0));
@@ -39,7 +39,7 @@ namespace ImageSharp
         /// <param name="dither">The ordered ditherer.</param>
         /// <param name="index">The component index to test the threshold against. Must range from 0 to 3.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageOperations<TPixel> Dither<TPixel>(this IImageOperations<TPixel> source, IOrderedDither dither, int index)
+        public static IImageProcessorApplicator<TPixel> Dither<TPixel>(this IImageProcessorApplicator<TPixel> source, IOrderedDither dither, int index)
             where TPixel : struct, IPixel<TPixel>
         {
             source.ApplyProcessor(new OrderedDitherProcessor<TPixel>(dither, index));
@@ -56,7 +56,7 @@ namespace ImageSharp
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageOperations<TPixel> Dither<TPixel>(this IImageOperations<TPixel> source, IOrderedDither dither, Rectangle rectangle)
+        public static IImageProcessorApplicator<TPixel> Dither<TPixel>(this IImageProcessorApplicator<TPixel> source, IOrderedDither dither, Rectangle rectangle)
             where TPixel : struct, IPixel<TPixel>
         {
             source.ApplyProcessor(new OrderedDitherProcessor<TPixel>(dither, 0), rectangle);
@@ -74,7 +74,7 @@ namespace ImageSharp
         /// </param>
         /// <param name="index">The component index to test the threshold against. Must range from 0 to 3.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageOperations<TPixel> Dither<TPixel>(this IImageOperations<TPixel> source, IOrderedDither dither, Rectangle rectangle, int index)
+        public static IImageProcessorApplicator<TPixel> Dither<TPixel>(this IImageProcessorApplicator<TPixel> source, IOrderedDither dither, Rectangle rectangle, int index)
             where TPixel : struct, IPixel<TPixel>
         {
             source.ApplyProcessor(new OrderedDitherProcessor<TPixel>(dither, index), rectangle);
@@ -89,7 +89,7 @@ namespace ImageSharp
         /// <param name="diffuser">The diffusion algorithm to apply.</param>
         /// <param name="threshold">The threshold to apply binarization of the image. Must be between 0 and 1.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageOperations<TPixel> Dither<TPixel>(this IImageOperations<TPixel> source, IErrorDiffuser diffuser, float threshold)
+        public static IImageProcessorApplicator<TPixel> Dither<TPixel>(this IImageProcessorApplicator<TPixel> source, IErrorDiffuser diffuser, float threshold)
             where TPixel : struct, IPixel<TPixel>
         {
             source.ApplyProcessor(new ErrorDiffusionDitherProcessor<TPixel>(diffuser, threshold));
@@ -107,7 +107,7 @@ namespace ImageSharp
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageOperations<TPixel> Dither<TPixel>(this IImageOperations<TPixel> source, IErrorDiffuser diffuser, float threshold, Rectangle rectangle)
+        public static IImageProcessorApplicator<TPixel> Dither<TPixel>(this IImageProcessorApplicator<TPixel> source, IErrorDiffuser diffuser, float threshold, Rectangle rectangle)
             where TPixel : struct, IPixel<TPixel>
         {
             source.ApplyProcessor(new ErrorDiffusionDitherProcessor<TPixel>(diffuser, threshold), rectangle);

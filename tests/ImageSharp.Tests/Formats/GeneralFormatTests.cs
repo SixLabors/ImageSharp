@@ -64,7 +64,7 @@ namespace ImageSharp.Tests
             {
                 using (Image<Rgba32> srcImage = Image.Load<Rgba32>(file.Bytes, out var mimeType))
                 {
-                    using (Image<Rgba32> image = new Image<Rgba32>(srcImage))
+                    using (Image<Rgba32> image = srcImage.Clone())
                     {
                         using (FileStream output = File.OpenWrite($"{path}/Octree-{file.FileName}"))
                         {
@@ -74,7 +74,7 @@ namespace ImageSharp.Tests
                         }
                     }
 
-                    using (Image<Rgba32> image = new Image<Rgba32>(srcImage))
+                    using (Image<Rgba32> image = srcImage.Clone())
                     {
                         using (FileStream output = File.OpenWrite($"{path}/Wu-{file.FileName}"))
                         {
@@ -83,7 +83,7 @@ namespace ImageSharp.Tests
                         }
                     }
 
-                    using (Image<Rgba32> image = new Image<Rgba32>(srcImage))
+                    using (Image<Rgba32> image = srcImage.Clone())
                     {
                         using (FileStream output = File.OpenWrite($"{path}/Palette-{file.FileName}"))
                         {

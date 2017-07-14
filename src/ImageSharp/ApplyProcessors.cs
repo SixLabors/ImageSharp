@@ -22,14 +22,15 @@ namespace ImageSharp
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image to rotate, flip, or both.</param>
         /// <param name="operations">The operations to perform on the source.</param>
-        public static void Mutate<TPixel>(this Image<TPixel> source, Action<IImageOperations<TPixel>> operations)
+        public static void Mutate<TPixel>(this Image<TPixel> source, Action<IImageProcessorApplicator<TPixel>> operations)
             where TPixel : struct, IPixel<TPixel>
         {
             Guard.NotNull(operations, nameof(operations));
+            Guard.NotNull(source, nameof(source));
 
-            // TODO: add parameter to Configuration to configure how this is created, create an IImageOperationsFactory that cna be used to switch this out with a fake for testing
-            IImageOperations<TPixel> operationsRunner = source.Configuration.ImageOperationsProvider.CreateMutator(source);
+            IInternalImageProcessorApplicator<TPixel> operationsRunner = source.Configuration.ImageOperationsProvider.CreateImageOperations(source, true);
             operations(operationsRunner);
+            operationsRunner.Apply();
         }
 
         /// <summary>
@@ -42,10 +43,11 @@ namespace ImageSharp
             where TPixel : struct, IPixel<TPixel>
         {
             Guard.NotNull(operations, nameof(operations));
+            Guard.NotNull(source, nameof(source));
 
-            // TODO: add parameter to Configuration to configure how this is created, create an IImageOperationsFactory that cna be used to switch this out with a fake for testing
-            IImageOperations<TPixel> operationsRunner = source.Configuration.ImageOperationsProvider.CreateMutator(source);
+            IInternalImageProcessorApplicator<TPixel> operationsRunner = source.Configuration.ImageOperationsProvider.CreateImageOperations(source, true);
             operationsRunner.ApplyProcessors(operations);
+            operationsRunner.Apply();
         }
 
         /// <summary>
@@ -55,16 +57,15 @@ namespace ImageSharp
         /// <param name="source">The image to rotate, flip, or both.</param>
         /// <param name="operations">The operations to perform on the source.</param>
         /// <returns>Anew Image which has teh data from the <paramref name="source"/> but with the <paramref name="operations"/> applied.</returns>
-        public static Image<TPixel> Clone<TPixel>(this Image<TPixel> source, Action<IImageOperations<TPixel>> operations)
+        public static Image<TPixel> Clone<TPixel>(this Image<TPixel> source, Action<IImageProcessorApplicator<TPixel>> operations)
             where TPixel : struct, IPixel<TPixel>
         {
             Guard.NotNull(operations, nameof(operations));
-            var generated = new Image<TPixel>(source);
+            Guard.NotNull(source, nameof(source));
 
-            // TODO: add parameter to Configuration to configure how this is created, create an IImageOperationsFactory that cna be used to switch this out with a fake for testing
-            IImageOperations<TPixel> operationsRunner = source.Configuration.ImageOperationsProvider.CreateMutator(generated);
+            IInternalImageProcessorApplicator<TPixel> operationsRunner = source.Configuration.ImageOperationsProvider.CreateImageOperations(source, false);
             operations(operationsRunner);
-            return generated;
+            return operationsRunner.Apply();
         }
 
         /// <summary>
@@ -78,12 +79,11 @@ namespace ImageSharp
             where TPixel : struct, IPixel<TPixel>
         {
             Guard.NotNull(operations, nameof(operations));
-            var generated = new Image<TPixel>(source);
+            Guard.NotNull(source, nameof(source));
 
-            // TODO: add parameter to Configuration to configure how this is created, create an IImageOperationsFactory that cna be used to switch this out with a fake for testing
-            IImageOperations<TPixel> operationsRunner = source.Configuration.ImageOperationsProvider.CreateMutator(generated);
+            IInternalImageProcessorApplicator<TPixel> operationsRunner = source.Configuration.ImageOperationsProvider.CreateImageOperations(source, false);
             operationsRunner.ApplyProcessors(operations);
-            return generated;
+            return operationsRunner.Apply();
         }
 
         /// <summary>
@@ -93,10 +93,10 @@ namespace ImageSharp
         /// <param name="source">The image to rotate, flip, or both.</param>
         /// <param name="operations">The operations to perform on the source.</param>
         /// <returns>returns the current optinoatins class to allow chaining of oprations.</returns>
-        public static IImageOperations<TPixel> ApplyProcessors<TPixel>(this IImageOperations<TPixel> source, params IImageProcessor<TPixel>[] operations)
+        public static IImageProcessorApplicator<TPixel> ApplyProcessors<TPixel>(this IImageProcessorApplicator<TPixel> source, params IImageProcessor<TPixel>[] operations)
                 where TPixel : struct, IPixel<TPixel>
         {
-            foreach (var p in operations)
+            foreach (IImageProcessor<TPixel> p in operations)
             {
                 source = source.ApplyProcessor(p);
             }

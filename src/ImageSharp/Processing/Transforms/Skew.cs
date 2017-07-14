@@ -24,7 +24,7 @@ namespace ImageSharp
         /// <param name="degreesX">The angle in degrees to perform the rotation along the x-axis.</param>
         /// <param name="degreesY">The angle in degrees to perform the rotation along the y-axis.</param>
         /// <returns>The <see cref="Image{TPixel}"/></returns>
-        public static IImageOperations<TPixel> Skew<TPixel>(this IImageOperations<TPixel> source, float degreesX, float degreesY)
+        public static IImageProcessorApplicator<TPixel> Skew<TPixel>(this IImageProcessorApplicator<TPixel> source, float degreesX, float degreesY)
             where TPixel : struct, IPixel<TPixel>
         {
             return Skew(source, degreesX, degreesY, true);
@@ -39,7 +39,7 @@ namespace ImageSharp
         /// <param name="degreesY">The angle in degrees to perform the rotation along the y-axis.</param>
         /// <param name="expand">Whether to expand the image to fit the skewed result.</param>
         /// <returns>The <see cref="Image{TPixel}"/></returns>
-        public static IImageOperations<TPixel> Skew<TPixel>(this IImageOperations<TPixel> source, float degreesX, float degreesY, bool expand)
+        public static IImageProcessorApplicator<TPixel> Skew<TPixel>(this IImageProcessorApplicator<TPixel> source, float degreesX, float degreesY, bool expand)
             where TPixel : struct, IPixel<TPixel>
         => source.ApplyProcessor(new SkewProcessor<TPixel> { AngleX = degreesX, AngleY = degreesY, Expand = expand });
     }

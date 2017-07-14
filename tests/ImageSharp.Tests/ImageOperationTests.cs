@@ -92,9 +92,9 @@ namespace ImageSharp.Tests
         }
 
         [Fact]
-        public void ApplyProcessors_ListOfProcessors_AppliesALlProcessorsToOperation()
+        public void ApplyProcessors_ListOfProcessors_AppliesAllProcessorsToOperation()
         {
-            var operations = new FakeImageOperationsProvider.FakeImageOperations<Rgba32>(null);
+            var operations = new FakeImageOperationsProvider.FakeImageOperations<Rgba32>(null, false);
             operations.ApplyProcessors(this.processor);
             Assert.Contains(this.processor, operations.applied.Select(x => x.Processor));
         }

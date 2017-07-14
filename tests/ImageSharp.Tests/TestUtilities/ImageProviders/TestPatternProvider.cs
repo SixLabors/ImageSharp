@@ -49,7 +49,7 @@ namespace ImageSharp.Tests
                     }
                 }
 
-                return new Image<TPixel>(testImages[this.SourceFileOrDescription]);
+                return testImages[this.SourceFileOrDescription].Clone();
             }
 
             /// <summary>

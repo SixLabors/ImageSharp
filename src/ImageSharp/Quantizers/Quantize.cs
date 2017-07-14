@@ -24,7 +24,7 @@ namespace ImageSharp
         /// <param name="mode">The quantization mode to apply to perform the operation.</param>
         /// <param name="maxColors">The maximum number of colors to return. Defaults to 256.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageOperations<TPixel> Quantize<TPixel>(this IImageOperations<TPixel> source, Quantization mode = Quantization.Octree, int maxColors = 256)
+        public static IImageProcessorApplicator<TPixel> Quantize<TPixel>(this IImageProcessorApplicator<TPixel> source, Quantization mode = Quantization.Octree, int maxColors = 256)
             where TPixel : struct, IPixel<TPixel>
         {
             IQuantizer<TPixel> quantizer;
@@ -54,7 +54,7 @@ namespace ImageSharp
         /// <param name="quantizer">The quantizer to apply to perform the operation.</param>
         /// <param name="maxColors">The maximum number of colors to return.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageOperations<TPixel> Quantize<TPixel>(this IImageOperations<TPixel> source, IQuantizer<TPixel> quantizer, int maxColors)
+        public static IImageProcessorApplicator<TPixel> Quantize<TPixel>(this IImageProcessorApplicator<TPixel> source, IQuantizer<TPixel> quantizer, int maxColors)
             where TPixel : struct, IPixel<TPixel>
         {
             return source.Run(img =>

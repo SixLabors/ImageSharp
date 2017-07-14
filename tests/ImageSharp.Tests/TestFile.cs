@@ -129,7 +129,7 @@ namespace ImageSharp.Tests
         /// </returns>
         public Image<Rgba32> CreateImage()
         {
-            return new Image<Rgba32>(this.image);
+            return this.image.Clone();
         }
 
         /// <summary>

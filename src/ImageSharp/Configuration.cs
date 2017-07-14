@@ -111,7 +111,7 @@ namespace ImageSharp
         /// <summary>
         /// Gets or sets the image operations providers.
         /// </summary>
-        internal IImageOperationsProvider ImageOperationsProvider { get; set; } = new DefaultImageOperationsProvider();
+        internal IImageProcessorApplicatorFactory ImageOperationsProvider { get; set; } = new DefaultImageOperationsProvider();
 
         /// <summary>
         /// Registers a new format provider.

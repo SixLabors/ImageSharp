@@ -25,7 +25,7 @@ namespace ImageSharp
         /// <param name="width">The target image width.</param>
         /// <param name="height">The target image height.</param>
         /// <returns>The <see cref="Image{TPixel}"/></returns>
-        public static IImageOperations<TPixel> Crop<TPixel>(this IImageOperations<TPixel> source, int width, int height)
+        public static IImageProcessorApplicator<TPixel> Crop<TPixel>(this IImageProcessorApplicator<TPixel> source, int width, int height)
             where TPixel : struct, IPixel<TPixel>
         => Crop(source, new Rectangle(0, 0, width, height));
 
@@ -38,7 +38,7 @@ namespace ImageSharp
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to retain.
         /// </param>
         /// <returns>The <see cref="Image{TPixel}"/></returns>
-        public static IImageOperations<TPixel> Crop<TPixel>(this IImageOperations<TPixel> source, Rectangle cropRectangle)
+        public static IImageProcessorApplicator<TPixel> Crop<TPixel>(this IImageProcessorApplicator<TPixel> source, Rectangle cropRectangle)
             where TPixel : struct, IPixel<TPixel>
         => source.ApplyProcessor(new CropProcessor<TPixel>(cropRectangle));
     }

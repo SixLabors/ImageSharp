@@ -54,7 +54,7 @@
                 }
                 else
                 {
-                    this.source = source.Clone();
+                    this.source = source?.Clone();
                 }
             }
 

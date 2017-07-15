@@ -114,17 +114,12 @@ namespace ImageSharp
         /// <param name="stream">The stream to save the image to.</param>
         /// <param name="encoder">The encoder to save the image with.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the stream or encoder is null.</exception>
-        /// <returns>
-        /// The <see cref="Image{TPixel}"/>.
-        /// </returns>
-        public Image<TPixel> Save(Stream stream, IImageEncoder encoder)
+        public void Save(Stream stream, IImageEncoder encoder)
         {
             Guard.NotNull(stream, nameof(stream));
             Guard.NotNull(encoder, nameof(encoder));
 
             encoder.Encode(this, stream);
-
-            return this;
         }
 
         /// <summary>

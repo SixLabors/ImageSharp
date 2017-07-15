@@ -28,6 +28,23 @@ namespace ImageSharp
         public ImageFrame(Configuration configuration, int width, int height)
             : base(configuration, width, height)
         {
+            this.MetaData = new ImageFrameMetaData();
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ImageFrame{TPixel}"/> class.
+        /// </summary>
+        /// <param name="configuration">
+        /// The configuration providing initialization code which allows extending the library.
+        /// </param>
+        /// <param name="width">The width of the image in pixels.</param>
+        /// <param name="height">The height of the image in pixels.</param>
+        /// <param name="metadata">The metadata of the frame.</param>
+        public ImageFrame(Configuration configuration, int width, int height, ImageFrameMetaData metadata)
+            : base(configuration, width, height)
+        {
+            Guard.NotNull(metadata, nameof(metadata));
+            this.MetaData = metadata;
         }
 
         /// <summary>
@@ -38,6 +55,7 @@ namespace ImageSharp
         public ImageFrame(int width, int height)
             : this(null, width, height)
         {
+            this.MetaData = new ImageFrameMetaData();
         }
 
         /// <summary>
@@ -47,6 +65,7 @@ namespace ImageSharp
         internal ImageFrame(ImageBase<TPixel> image)
             : base(image)
         {
+            this.MetaData = new ImageFrameMetaData();
         }
 
         /// <summary>
@@ -62,12 +81,12 @@ namespace ImageSharp
         /// <summary>
         /// Gets the meta data of the frame.
         /// </summary>
-        public ImageFrameMetaData MetaData { get; private set; } = new ImageFrameMetaData();
+        public ImageFrameMetaData MetaData { get; private set; }
 
         /// <inheritdoc/>
         public override string ToString()
         {
-            return $"ImageFrame: {this.Width}x{this.Height}";
+            return $"ImageFrame<{typeof(TPixel).Name}>: {this.Width}x{this.Height}";
         }
 
         /// <summary>

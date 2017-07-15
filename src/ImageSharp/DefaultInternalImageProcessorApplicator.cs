@@ -54,9 +54,19 @@ namespace ImageSharp
         {
             if (!this.mutate && this.destination == null)
             {
-                // TODO check if the processor implements a special interface and if it does then allow it to take
-                // over and crereate the clone on behalf ImageOperations class.
-                this.destination = this.source.Clone();
+                // this will only work if the first processor applied is the cloning one thus
+                // realistically for this optermissation to work the resize must the first processor
+                // applied any only up processors will take the douple data path.
+                if (processor is ICloningImageProcessor<TPixel>)
+                {
+                    var cloningProcessor = (ICloningImageProcessor<TPixel>)processor;
+                    this.destination = cloningProcessor.CloneAndApply(this.source, rectangle);
+                    return this;
+                }
+                else
+                {
+                    this.destination = this.source.Clone();
+                }
             }
 
             processor.Apply(this.destination, rectangle);

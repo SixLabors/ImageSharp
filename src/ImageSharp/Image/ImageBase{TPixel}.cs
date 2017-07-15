@@ -245,6 +245,27 @@ namespace ImageSharp
         }
 
         /// <summary>
+        /// Switches the buffers used by the image and the pixelSource meaning that the Image will "own" the buffer from the pixelSource and the pixelSource will now own the Images buffer.
+        /// </summary>
+        /// <param name="pixelSource">The pixel source.</param>
+        internal void SwapPixelsData(ImageBase<TPixel> pixelSource)
+        {
+            Guard.NotNull(pixelSource, nameof(pixelSource));
+
+            int newWidth = pixelSource.Width;
+            int newHeight = pixelSource.Height;
+            TPixel[] newPixels = pixelSource.PixelBuffer;
+
+            pixelSource.PixelBuffer = this.PixelBuffer;
+            pixelSource.Width = this.Width;
+            pixelSource.Height = this.Height;
+
+            this.Width = newWidth;
+            this.Height = newHeight;
+            this.PixelBuffer = newPixels;
+        }
+
+        /// <summary>
         /// Clones the image
         /// </summary>
         /// <returns>A new items which is a clone of the original.</returns>

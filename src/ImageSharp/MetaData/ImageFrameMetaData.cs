@@ -39,5 +39,14 @@ namespace ImageSharp
 
         /// <inheritdoc/>
         public DisposalMethod DisposalMethod { get; set; }
+
+        /// <summary>
+        /// Clones this ImageFrameMetaData.
+        /// </summary>
+        /// <returns>The cloned instance.</returns>
+        public ImageFrameMetaData Clone()
+        {
+            return new ImageFrameMetaData(this);
+        }
     }
 }

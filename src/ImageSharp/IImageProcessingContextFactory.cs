@@ -11,7 +11,7 @@ namespace ImageSharp
     /// <summary>
     /// Represents an interface that will create IImageOperations
     /// </summary>
-    internal interface IImageProcessorApplicatorFactory
+    internal interface IImageProcessingContextFactory
     {
         /// <summary>
         /// Called during Mutate operations to generate the imageoperations provider.
@@ -20,20 +20,20 @@ namespace ImageSharp
         /// <param name="source">The source image.</param>
         /// <param name="mutate">A flag to determin with the image operations is allowed to mutate the source image or not.</param>
         /// <returns>A new IImageOPeration</returns>
-        IInternalImageProcessorApplicator<TPixel> CreateImageOperations<TPixel>(Image<TPixel> source, bool mutate)
+        IInternalImageProcessingContext<TPixel> CreateImageProcessingContext<TPixel>(Image<TPixel> source, bool mutate)
             where TPixel : struct, IPixel<TPixel>;
     }
 
     /// <summary>
     /// The default implmentation of IImageOperationsProvider
     /// </summary>
-    internal class DefaultImageOperationsProvider : IImageProcessorApplicatorFactory
+    internal class DefaultImageOperationsProvider : IImageProcessingContextFactory
     {
         /// <inheritdoc/>
-        public IInternalImageProcessorApplicator<TPixel> CreateImageOperations<TPixel>(Image<TPixel> source, bool mutate)
+        public IInternalImageProcessingContext<TPixel> CreateImageProcessingContext<TPixel>(Image<TPixel> source, bool mutate)
             where TPixel : struct, IPixel<TPixel>
         {
-            return new DefaultInternalImageProcessorApplicator<TPixel>(source, mutate);
+            return new DefaultInternalImageProcessorContext<TPixel>(source, mutate);
         }
     }
 }

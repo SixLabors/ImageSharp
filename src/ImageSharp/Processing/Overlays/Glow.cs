@@ -21,7 +21,7 @@ namespace ImageSharp
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessorApplicator<TPixel> Glow<TPixel>(this IImageProcessorApplicator<TPixel> source)
+        public static IImageProcessingContext<TPixel> Glow<TPixel>(this IImageProcessingContext<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
         {
             return Glow(source, GraphicsOptions.Default);
@@ -34,7 +34,7 @@ namespace ImageSharp
         /// <param name="source">The image this method extends.</param>
         /// <param name="color">The color to set as the glow.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessorApplicator<TPixel> Glow<TPixel>(this IImageProcessorApplicator<TPixel> source, TPixel color)
+        public static IImageProcessingContext<TPixel> Glow<TPixel>(this IImageProcessingContext<TPixel> source, TPixel color)
             where TPixel : struct, IPixel<TPixel>
         {
             return Glow(source, color, GraphicsOptions.Default);
@@ -47,7 +47,7 @@ namespace ImageSharp
         /// <param name="source">The image this method extends.</param>
         /// <param name="radius">The the radius.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessorApplicator<TPixel> Glow<TPixel>(this IImageProcessorApplicator<TPixel> source, float radius)
+        public static IImageProcessingContext<TPixel> Glow<TPixel>(this IImageProcessingContext<TPixel> source, float radius)
             where TPixel : struct, IPixel<TPixel>
         {
             return Glow(source, radius, GraphicsOptions.Default);
@@ -62,7 +62,7 @@ namespace ImageSharp
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessorApplicator<TPixel> Glow<TPixel>(this IImageProcessorApplicator<TPixel> source, Rectangle rectangle)
+        public static IImageProcessingContext<TPixel> Glow<TPixel>(this IImageProcessingContext<TPixel> source, Rectangle rectangle)
             where TPixel : struct, IPixel<TPixel>
         => source.Glow(rectangle, GraphicsOptions.Default);
 
@@ -77,7 +77,7 @@ namespace ImageSharp
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessorApplicator<TPixel> Glow<TPixel>(this IImageProcessorApplicator<TPixel> source, TPixel color, float radius, Rectangle rectangle)
+        public static IImageProcessingContext<TPixel> Glow<TPixel>(this IImageProcessingContext<TPixel> source, TPixel color, float radius, Rectangle rectangle)
             where TPixel : struct, IPixel<TPixel>
         => source.Glow(color, ValueSize.Absolute(radius), rectangle, GraphicsOptions.Default);
 
@@ -88,7 +88,7 @@ namespace ImageSharp
         /// <param name="source">The image this method extends.</param>
         /// <param name="options">The options effecting things like blending.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessorApplicator<TPixel> Glow<TPixel>(this IImageProcessorApplicator<TPixel> source, GraphicsOptions options)
+        public static IImageProcessingContext<TPixel> Glow<TPixel>(this IImageProcessingContext<TPixel> source, GraphicsOptions options)
             where TPixel : struct, IPixel<TPixel>
         => source.Glow(NamedColors<TPixel>.Black, ValueSize.PercentageOfWidth(0.5f), options);
 
@@ -100,7 +100,7 @@ namespace ImageSharp
         /// <param name="color">The color to set as the glow.</param>
         /// <param name="options">The options effecting things like blending.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessorApplicator<TPixel> Glow<TPixel>(this IImageProcessorApplicator<TPixel> source, TPixel color, GraphicsOptions options)
+        public static IImageProcessingContext<TPixel> Glow<TPixel>(this IImageProcessingContext<TPixel> source, TPixel color, GraphicsOptions options)
             where TPixel : struct, IPixel<TPixel>
         => source.Glow(color, ValueSize.PercentageOfWidth(0.5f), options);
 
@@ -112,7 +112,7 @@ namespace ImageSharp
         /// <param name="radius">The the radius.</param>
         /// <param name="options">The options effecting things like blending.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessorApplicator<TPixel> Glow<TPixel>(this IImageProcessorApplicator<TPixel> source, float radius, GraphicsOptions options)
+        public static IImageProcessingContext<TPixel> Glow<TPixel>(this IImageProcessingContext<TPixel> source, float radius, GraphicsOptions options)
             where TPixel : struct, IPixel<TPixel>
         => source.Glow(NamedColors<TPixel>.Black, ValueSize.Absolute(radius), options);
 
@@ -126,7 +126,7 @@ namespace ImageSharp
         /// </param>
         /// <param name="options">The options effecting things like blending.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessorApplicator<TPixel> Glow<TPixel>(this IImageProcessorApplicator<TPixel> source, Rectangle rectangle, GraphicsOptions options)
+        public static IImageProcessingContext<TPixel> Glow<TPixel>(this IImageProcessingContext<TPixel> source, Rectangle rectangle, GraphicsOptions options)
             where TPixel : struct, IPixel<TPixel>
         => source.Glow(NamedColors<TPixel>.Black, ValueSize.PercentageOfWidth(0.5f), rectangle, options);
 
@@ -142,7 +142,7 @@ namespace ImageSharp
         /// </param>
         /// <param name="options">The options effecting things like blending.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessorApplicator<TPixel> Glow<TPixel>(this IImageProcessorApplicator<TPixel> source, TPixel color, float radius, Rectangle rectangle, GraphicsOptions options)
+        public static IImageProcessingContext<TPixel> Glow<TPixel>(this IImageProcessingContext<TPixel> source, TPixel color, float radius, Rectangle rectangle, GraphicsOptions options)
             where TPixel : struct, IPixel<TPixel>
         => source.Glow(color, ValueSize.Absolute(radius), rectangle, options);
 
@@ -158,7 +158,7 @@ namespace ImageSharp
         /// </param>
         /// <param name="options">The options effecting things like blending.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        private static IImageProcessorApplicator<TPixel> Glow<TPixel>(this IImageProcessorApplicator<TPixel> source, TPixel color, ValueSize radius, Rectangle rectangle, GraphicsOptions options)
+        private static IImageProcessingContext<TPixel> Glow<TPixel>(this IImageProcessingContext<TPixel> source, TPixel color, ValueSize radius, Rectangle rectangle, GraphicsOptions options)
             where TPixel : struct, IPixel<TPixel>
         => source.ApplyProcessor(new GlowProcessor<TPixel>(color, radius, options), rectangle);
 
@@ -171,7 +171,7 @@ namespace ImageSharp
         /// <param name="radius">The the radius.</param>
         /// <param name="options">The options effecting things like blending.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        private static IImageProcessorApplicator<TPixel> Glow<TPixel>(this IImageProcessorApplicator<TPixel> source, TPixel color, ValueSize radius, GraphicsOptions options)
+        private static IImageProcessingContext<TPixel> Glow<TPixel>(this IImageProcessingContext<TPixel> source, TPixel color, ValueSize radius, GraphicsOptions options)
             where TPixel : struct, IPixel<TPixel>
         => source.ApplyProcessor(new GlowProcessor<TPixel>(color, radius, options));
     }

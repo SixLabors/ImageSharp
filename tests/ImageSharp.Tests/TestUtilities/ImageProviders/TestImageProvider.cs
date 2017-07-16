@@ -85,7 +85,7 @@ namespace ImageSharp.Tests
         /// <summary>
         /// Returns an <see cref="Image{TPixel}"/> instance to the test case with the necessary traits.
         /// </summary>
-        public Image<TPixel> GetImage(Action<IImageProcessorApplicator<TPixel>> operationsToApply)
+        public Image<TPixel> GetImage(Action<IImageProcessingContext<TPixel>> operationsToApply)
         {
             var img = GetImage();
             img.Mutate(operationsToApply);

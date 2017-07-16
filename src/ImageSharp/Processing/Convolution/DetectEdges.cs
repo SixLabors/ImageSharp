@@ -25,7 +25,7 @@ namespace ImageSharp
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessorApplicator<TPixel> DetectEdges<TPixel>(this IImageProcessorApplicator<TPixel> source)
+        public static IImageProcessingContext<TPixel> DetectEdges<TPixel>(this IImageProcessingContext<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
         {
             return DetectEdges(source, new SobelProcessor<TPixel> { Grayscale = true });
@@ -41,7 +41,7 @@ namespace ImageSharp
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessorApplicator<TPixel> DetectEdges<TPixel>(this IImageProcessorApplicator<TPixel> source, Rectangle rectangle)
+        public static IImageProcessingContext<TPixel> DetectEdges<TPixel>(this IImageProcessingContext<TPixel> source, Rectangle rectangle)
             where TPixel : struct, IPixel<TPixel>
         {
             return DetectEdges(source, rectangle, new SobelProcessor<TPixel> { Grayscale = true });
@@ -54,7 +54,7 @@ namespace ImageSharp
         /// <param name="source">The image this method extends.</param>
         /// <param name="filter">The filter for detecting edges.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessorApplicator<TPixel> DetectEdges<TPixel>(this IImageProcessorApplicator<TPixel> source, EdgeDetection filter)
+        public static IImageProcessingContext<TPixel> DetectEdges<TPixel>(this IImageProcessingContext<TPixel> source, EdgeDetection filter)
             where TPixel : struct, IPixel<TPixel>
             => DetectEdges(source, GetProcessor<TPixel>(filter, true));
 
@@ -66,7 +66,7 @@ namespace ImageSharp
         /// <param name="filter">The filter for detecting edges.</param>
         /// <param name="grayscale">Whether to convert the image to Grayscale first. Defaults to true.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessorApplicator<TPixel> DetectEdges<TPixel>(this IImageProcessorApplicator<TPixel> source, EdgeDetection filter, bool grayscale)
+        public static IImageProcessingContext<TPixel> DetectEdges<TPixel>(this IImageProcessingContext<TPixel> source, EdgeDetection filter, bool grayscale)
             where TPixel : struct, IPixel<TPixel>
             => DetectEdges(source, GetProcessor<TPixel>(filter, grayscale));
 
@@ -81,7 +81,7 @@ namespace ImageSharp
         /// </param>
         /// <param name="grayscale">Whether to convert the image to Grayscale first. Defaults to true.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessorApplicator<TPixel> DetectEdges<TPixel>(this IImageProcessorApplicator<TPixel> source, EdgeDetection filter, Rectangle rectangle, bool grayscale = true)
+        public static IImageProcessingContext<TPixel> DetectEdges<TPixel>(this IImageProcessingContext<TPixel> source, EdgeDetection filter, Rectangle rectangle, bool grayscale = true)
             where TPixel : struct, IPixel<TPixel>
             => DetectEdges(source, rectangle, GetProcessor<TPixel>(filter, grayscale));
 
@@ -92,7 +92,7 @@ namespace ImageSharp
         /// <param name="source">The image this method extends.</param>
         /// <param name="filter">The filter for detecting edges.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessorApplicator<TPixel> DetectEdges<TPixel>(this IImageProcessorApplicator<TPixel> source, IEdgeDetectorProcessor<TPixel> filter)
+        public static IImageProcessingContext<TPixel> DetectEdges<TPixel>(this IImageProcessingContext<TPixel> source, IEdgeDetectorProcessor<TPixel> filter)
             where TPixel : struct, IPixel<TPixel>
         {
             return source.ApplyProcessor(filter);
@@ -108,7 +108,7 @@ namespace ImageSharp
         /// </param>
         /// <param name="filter">The filter for detecting edges.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessorApplicator<TPixel> DetectEdges<TPixel>(this IImageProcessorApplicator<TPixel> source, Rectangle rectangle, IEdgeDetectorProcessor<TPixel> filter)
+        public static IImageProcessingContext<TPixel> DetectEdges<TPixel>(this IImageProcessingContext<TPixel> source, Rectangle rectangle, IEdgeDetectorProcessor<TPixel> filter)
             where TPixel : struct, IPixel<TPixel>
         {
             source.ApplyProcessor(filter, rectangle);

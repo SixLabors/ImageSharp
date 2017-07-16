@@ -21,7 +21,7 @@ namespace ImageSharp
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image to auto rotate.</param>
         /// <returns>The <see cref="Image{TPixel}"/></returns>
-        public static IImageProcessorApplicator<TPixel> AutoOrient<TPixel>(this IImageProcessorApplicator<TPixel> source)
+        public static IImageProcessingContext<TPixel> AutoOrient<TPixel>(this IImageProcessingContext<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
             => source.ApplyProcessor(new Processing.Processors.AutoRotateProcessor<TPixel>());
     }

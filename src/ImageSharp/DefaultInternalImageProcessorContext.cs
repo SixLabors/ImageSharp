@@ -15,7 +15,7 @@ namespace ImageSharp
     /// The static collection of all the default image formats
     /// </summary>
     /// <typeparam name="TPixel">The pixel format</typeparam>
-    internal class DefaultInternalImageProcessorApplicator<TPixel> : IInternalImageProcessorApplicator<TPixel>
+    internal class DefaultInternalImageProcessorContext<TPixel> : IInternalImageProcessingContext<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         private readonly bool mutate;
@@ -23,11 +23,11 @@ namespace ImageSharp
         private Image<TPixel> destination;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="DefaultInternalImageProcessorApplicator{TPixel}"/> class.
+        /// Initializes a new instance of the <see cref="DefaultInternalImageProcessorContext{TPixel}"/> class.
         /// </summary>
         /// <param name="source">The image.</param>
         /// <param name="mutate">The mutate.</param>
-        public DefaultInternalImageProcessorApplicator(Image<TPixel> source, bool mutate)
+        public DefaultInternalImageProcessorContext(Image<TPixel> source, bool mutate)
         {
             this.mutate = mutate;
             this.source = source;
@@ -50,16 +50,16 @@ namespace ImageSharp
         }
 
         /// <inheritdoc/>
-        public IImageProcessorApplicator<TPixel> ApplyProcessor(IImageProcessor<TPixel> processor, Rectangle rectangle)
+        public IImageProcessingContext<TPixel> ApplyProcessor(IImageProcessor<TPixel> processor, Rectangle rectangle)
         {
             if (!this.mutate && this.destination == null)
             {
                 // this will only work if the first processor applied is the cloning one thus
                 // realistically for this optermissation to work the resize must the first processor
                 // applied any only up processors will take the douple data path.
-                if (processor is ICloningImageProcessor<TPixel>)
+                if (processor is ICloneingImageProcessor<TPixel>)
                 {
-                    var cloningProcessor = (ICloningImageProcessor<TPixel>)processor;
+                    var cloningProcessor = (ICloneingImageProcessor<TPixel>)processor;
                     this.destination = cloningProcessor.CloneAndApply(this.source, rectangle);
                     return this;
                 }
@@ -74,7 +74,7 @@ namespace ImageSharp
         }
 
         /// <inheritdoc/>
-        public IImageProcessorApplicator<TPixel> ApplyProcessor(IImageProcessor<TPixel> processor)
+        public IImageProcessingContext<TPixel> ApplyProcessor(IImageProcessor<TPixel> processor)
         {
             return this.ApplyProcessor(processor, this.source.Bounds());
         }

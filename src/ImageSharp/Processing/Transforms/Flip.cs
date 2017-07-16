@@ -24,7 +24,7 @@ namespace ImageSharp
         /// <param name="source">The image to rotate, flip, or both.</param>
         /// <param name="flipType">The <see cref="FlipType"/> to perform the flip.</param>
         /// <returns>The <see cref="Image{TPixel}"/></returns>
-        public static IImageProcessorApplicator<TPixel> Flip<TPixel>(this IImageProcessorApplicator<TPixel> source, FlipType flipType)
+        public static IImageProcessingContext<TPixel> Flip<TPixel>(this IImageProcessingContext<TPixel> source, FlipType flipType)
             where TPixel : struct, IPixel<TPixel>
         => source.ApplyProcessor(new FlipProcessor<TPixel>(flipType));
     }

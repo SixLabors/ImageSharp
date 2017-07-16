@@ -8,7 +8,7 @@
     using ImageSharp.Processing;
     using SixLabors.Primitives;
 
-    public class FakeImageOperationsProvider : IImageProcessorApplicatorFactory
+    internal class FakeImageOperationsProvider : IImageProcessingContextFactory
     {
         private List<object> ImageOperators = new List<object>();
 
@@ -29,7 +29,7 @@
                 .SelectMany(x => x.applied);
         }
 
-        public IInternalImageProcessorApplicator<TPixel> CreateImageOperations<TPixel>(Image<TPixel> source, bool mutate) where TPixel : struct, IPixel<TPixel>
+        public IInternalImageProcessingContext<TPixel> CreateImageProcessingContext<TPixel>(Image<TPixel> source, bool mutate) where TPixel : struct, IPixel<TPixel>
         {
             var op = new FakeImageOperations<TPixel>(source, mutate);
             this.ImageOperators.Add(op);
@@ -37,7 +37,7 @@
         }
 
 
-        public class FakeImageOperations<TPixel> : IInternalImageProcessorApplicator<TPixel>
+        public class FakeImageOperations<TPixel> : IInternalImageProcessingContext<TPixel>
             where TPixel : struct, IPixel<TPixel>
         {
             public Image<TPixel> source;
@@ -63,7 +63,7 @@
                 return source;
             }
 
-            public IImageProcessorApplicator<TPixel> ApplyProcessor(IImageProcessor<TPixel> processor, Rectangle rectangle)
+            public IImageProcessingContext<TPixel> ApplyProcessor(IImageProcessor<TPixel> processor, Rectangle rectangle)
             {
                 applied.Add(new AppliedOpperation
                 {
@@ -73,7 +73,7 @@
                 return this;
             }
 
-            public IImageProcessorApplicator<TPixel> ApplyProcessor(IImageProcessor<TPixel> processor)
+            public IImageProcessingContext<TPixel> ApplyProcessor(IImageProcessor<TPixel> processor)
             {
                 applied.Add(new AppliedOpperation
                 {

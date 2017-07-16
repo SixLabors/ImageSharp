@@ -9,7 +9,8 @@ namespace ImageSharp.Tests
 {
     public abstract class BaseImageOperationsExtensionTest
     {
-        protected readonly FakeImageOperationsProvider.FakeImageOperations<Rgba32> operations;
+        protected readonly IImageProcessingContext<Rgba32> operations;
+        private readonly FakeImageOperationsProvider.FakeImageOperations<Rgba32> internalOperations;
         protected readonly Rectangle rect;
         protected readonly GraphicsOptions options;
 
@@ -17,23 +18,24 @@ namespace ImageSharp.Tests
         {
             this.options = new GraphicsOptions(false) { };
             this.rect = new Rectangle(91, 123, 324, 56); // make this random?
-            this.operations = new FakeImageOperationsProvider.FakeImageOperations<Rgba32>(null, false);
+            this.internalOperations = new FakeImageOperationsProvider.FakeImageOperations<Rgba32>(null, false);
+            this.operations = this.internalOperations;
         }
 
         public T Verify<T>(int index = 0)
         {
-            Assert.InRange(index, 0, this.operations.applied.Count - 1);
+            Assert.InRange(index, 0, this.internalOperations.applied.Count - 1);
 
-            var operation = this.operations.applied[index];
+            var operation = this.internalOperations.applied[index];
 
             return Assert.IsType<T>(operation.Processor);
         }
 
         public T Verify<T>(Rectangle rect, int index = 0)
         {
-            Assert.InRange(index, 0, this.operations.applied.Count - 1);
+            Assert.InRange(index, 0, this.internalOperations.applied.Count - 1);
 
-            var operation = this.operations.applied[index];
+            var operation = this.internalOperations.applied[index];
 
             Assert.Equal(rect, operation.Rectangle);
             return Assert.IsType<T>(operation.Processor);

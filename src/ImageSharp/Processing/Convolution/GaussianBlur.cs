@@ -24,7 +24,7 @@ namespace ImageSharp
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessorApplicator<TPixel> GaussianBlur<TPixel>(this IImageProcessorApplicator<TPixel> source)
+        public static IImageProcessingContext<TPixel> GaussianBlur<TPixel>(this IImageProcessingContext<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
             => source.ApplyProcessor(new GaussianBlurProcessor<TPixel>(3f));
 
@@ -35,7 +35,7 @@ namespace ImageSharp
         /// <param name="source">The image this method extends.</param>
         /// <param name="sigma">The 'sigma' value representing the weight of the blur.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessorApplicator<TPixel> GaussianBlur<TPixel>(this IImageProcessorApplicator<TPixel> source, float sigma)
+        public static IImageProcessingContext<TPixel> GaussianBlur<TPixel>(this IImageProcessingContext<TPixel> source, float sigma)
             where TPixel : struct, IPixel<TPixel>
             => source.ApplyProcessor(new GaussianBlurProcessor<TPixel>(sigma));
 
@@ -49,7 +49,7 @@ namespace ImageSharp
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessorApplicator<TPixel> GaussianBlur<TPixel>(this IImageProcessorApplicator<TPixel> source, float sigma, Rectangle rectangle)
+        public static IImageProcessingContext<TPixel> GaussianBlur<TPixel>(this IImageProcessingContext<TPixel> source, float sigma, Rectangle rectangle)
             where TPixel : struct, IPixel<TPixel>
             => source.ApplyProcessor(new GaussianBlurProcessor<TPixel>(sigma), rectangle);
     }

@@ -24,7 +24,7 @@ namespace ImageSharp
         /// <param name="source">The image this method extends.</param>
         /// <param name="amount">The new brightness of the image. Must be between -100 and 100.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessorApplicator<TPixel> Brightness<TPixel>(this IImageProcessorApplicator<TPixel> source, int amount)
+        public static IImageProcessingContext<TPixel> Brightness<TPixel>(this IImageProcessingContext<TPixel> source, int amount)
            where TPixel : struct, IPixel<TPixel>
         => source.ApplyProcessor(new BrightnessProcessor<TPixel>(amount));
 
@@ -38,7 +38,7 @@ namespace ImageSharp
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessorApplicator<TPixel> Brightness<TPixel>(this IImageProcessorApplicator<TPixel> source, int amount, Rectangle rectangle)
+        public static IImageProcessingContext<TPixel> Brightness<TPixel>(this IImageProcessingContext<TPixel> source, int amount, Rectangle rectangle)
             where TPixel : struct, IPixel<TPixel>
         => source.ApplyProcessor(new BrightnessProcessor<TPixel>(amount), rectangle);
     }

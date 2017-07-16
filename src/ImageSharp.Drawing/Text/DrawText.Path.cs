@@ -31,7 +31,7 @@ namespace ImageSharp
         /// <returns>
         /// The <see cref="Image{TPixel}" />.
         /// </returns>
-        public static IImageProcessorApplicator<TPixel> DrawText<TPixel>(this IImageProcessorApplicator<TPixel> source, string text, Font font, TPixel color, IPath path)
+        public static IImageProcessingContext<TPixel> DrawText<TPixel>(this IImageProcessingContext<TPixel> source, string text, Font font, TPixel color, IPath path)
            where TPixel : struct, IPixel<TPixel>
         {
             return source.DrawText(text, font, color, path, TextGraphicsOptions.Default);
@@ -50,7 +50,7 @@ namespace ImageSharp
         /// <returns>
         /// The <see cref="Image{TPixel}" />.
         /// </returns>
-        public static IImageProcessorApplicator<TPixel> DrawText<TPixel>(this IImageProcessorApplicator<TPixel> source, string text, Font font, TPixel color, IPath path, TextGraphicsOptions options)
+        public static IImageProcessingContext<TPixel> DrawText<TPixel>(this IImageProcessingContext<TPixel> source, string text, Font font, TPixel color, IPath path, TextGraphicsOptions options)
            where TPixel : struct, IPixel<TPixel>
         {
             return source.DrawText(text, font, Brushes.Solid(color), null, path, options);
@@ -68,7 +68,7 @@ namespace ImageSharp
         /// <returns>
         /// The <see cref="Image{TPixel}" />.
         /// </returns>
-        public static IImageProcessorApplicator<TPixel> DrawText<TPixel>(this IImageProcessorApplicator<TPixel> source, string text, Font font, IBrush<TPixel> brush, IPath path)
+        public static IImageProcessingContext<TPixel> DrawText<TPixel>(this IImageProcessingContext<TPixel> source, string text, Font font, IBrush<TPixel> brush, IPath path)
            where TPixel : struct, IPixel<TPixel>
         {
             return source.DrawText(text, font, brush, path, TextGraphicsOptions.Default);
@@ -87,7 +87,7 @@ namespace ImageSharp
         /// <returns>
         /// The <see cref="Image{TPixel}" />.
         /// </returns>
-        public static IImageProcessorApplicator<TPixel> DrawText<TPixel>(this IImageProcessorApplicator<TPixel> source, string text, Font font, IBrush<TPixel> brush, IPath path, TextGraphicsOptions options)
+        public static IImageProcessingContext<TPixel> DrawText<TPixel>(this IImageProcessingContext<TPixel> source, string text, Font font, IBrush<TPixel> brush, IPath path, TextGraphicsOptions options)
            where TPixel : struct, IPixel<TPixel>
         {
             return source.DrawText(text, font, brush, null, path, options);
@@ -105,7 +105,7 @@ namespace ImageSharp
         /// <returns>
         /// The <see cref="Image{TPixel}" />.
         /// </returns>
-        public static IImageProcessorApplicator<TPixel> DrawText<TPixel>(this IImageProcessorApplicator<TPixel> source, string text, Font font, IPen<TPixel> pen, IPath path)
+        public static IImageProcessingContext<TPixel> DrawText<TPixel>(this IImageProcessingContext<TPixel> source, string text, Font font, IPen<TPixel> pen, IPath path)
            where TPixel : struct, IPixel<TPixel>
         {
             return source.DrawText(text, font, pen, path, TextGraphicsOptions.Default);
@@ -124,7 +124,7 @@ namespace ImageSharp
         /// <returns>
         /// The <see cref="Image{TPixel}" />.
         /// </returns>
-        public static IImageProcessorApplicator<TPixel> DrawText<TPixel>(this IImageProcessorApplicator<TPixel> source, string text, Font font, IPen<TPixel> pen, IPath path, TextGraphicsOptions options)
+        public static IImageProcessingContext<TPixel> DrawText<TPixel>(this IImageProcessingContext<TPixel> source, string text, Font font, IPen<TPixel> pen, IPath path, TextGraphicsOptions options)
            where TPixel : struct, IPixel<TPixel>
         {
             return source.DrawText(text, font, null, pen, path, options);
@@ -143,7 +143,7 @@ namespace ImageSharp
         /// <returns>
         /// The <see cref="Image{TPixel}" />.
         /// </returns>
-        public static IImageProcessorApplicator<TPixel> DrawText<TPixel>(this IImageProcessorApplicator<TPixel> source, string text, Font font, IBrush<TPixel> brush, IPen<TPixel> pen, IPath path)
+        public static IImageProcessingContext<TPixel> DrawText<TPixel>(this IImageProcessingContext<TPixel> source, string text, Font font, IBrush<TPixel> brush, IPen<TPixel> pen, IPath path)
            where TPixel : struct, IPixel<TPixel>
         {
             return source.DrawText(text, font, brush, pen, path, TextGraphicsOptions.Default);
@@ -163,7 +163,7 @@ namespace ImageSharp
         /// <returns>
         /// The <see cref="Image{TPixel}" />.
         /// </returns>
-        public static IImageProcessorApplicator<TPixel> DrawText<TPixel>(this IImageProcessorApplicator<TPixel> source, string text, Font font, IBrush<TPixel> brush, IPen<TPixel> pen, IPath path, TextGraphicsOptions options)
+        public static IImageProcessingContext<TPixel> DrawText<TPixel>(this IImageProcessingContext<TPixel> source, string text, Font font, IBrush<TPixel> brush, IPen<TPixel> pen, IPath path, TextGraphicsOptions options)
            where TPixel : struct, IPixel<TPixel>
         {
             float dpiX = DefaultTextDpi;

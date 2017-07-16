@@ -23,7 +23,7 @@ namespace ImageSharp
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessorApplicator<TPixel> Pixelate<TPixel>(this IImageProcessorApplicator<TPixel> source)
+        public static IImageProcessingContext<TPixel> Pixelate<TPixel>(this IImageProcessingContext<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
         => source.ApplyProcessor(new PixelateProcessor<TPixel>(4));
 
@@ -34,7 +34,7 @@ namespace ImageSharp
         /// <param name="source">The image this method extends.</param>
         /// <param name="size">The size of the pixels.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessorApplicator<TPixel> Pixelate<TPixel>(this IImageProcessorApplicator<TPixel> source, int size)
+        public static IImageProcessingContext<TPixel> Pixelate<TPixel>(this IImageProcessingContext<TPixel> source, int size)
             where TPixel : struct, IPixel<TPixel>
         => source.ApplyProcessor(new PixelateProcessor<TPixel>(size));
 
@@ -48,7 +48,7 @@ namespace ImageSharp
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessorApplicator<TPixel> Pixelate<TPixel>(this IImageProcessorApplicator<TPixel> source, int size, Rectangle rectangle)
+        public static IImageProcessingContext<TPixel> Pixelate<TPixel>(this IImageProcessingContext<TPixel> source, int size, Rectangle rectangle)
             where TPixel : struct, IPixel<TPixel>
         => source.ApplyProcessor(new PixelateProcessor<TPixel>(size), rectangle);
     }

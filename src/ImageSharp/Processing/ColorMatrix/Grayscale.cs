@@ -22,7 +22,7 @@ namespace ImageSharp
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessorApplicator<TPixel> Grayscale<TPixel>(this IImageProcessorApplicator<TPixel> source)
+        public static IImageProcessingContext<TPixel> Grayscale<TPixel>(this IImageProcessingContext<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
         {
             return Grayscale(source, GrayscaleMode.Bt709);
@@ -35,7 +35,7 @@ namespace ImageSharp
         /// <param name="source">The image this method extends.</param>
         /// <param name="mode">The formula to apply to perform the operation.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessorApplicator<TPixel> Grayscale<TPixel>(this IImageProcessorApplicator<TPixel> source, GrayscaleMode mode)
+        public static IImageProcessingContext<TPixel> Grayscale<TPixel>(this IImageProcessingContext<TPixel> source, GrayscaleMode mode)
             where TPixel : struct, IPixel<TPixel>
         {
             IImageProcessor<TPixel> processor = mode == GrayscaleMode.Bt709
@@ -55,7 +55,7 @@ namespace ImageSharp
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessorApplicator<TPixel> Grayscale<TPixel>(this IImageProcessorApplicator<TPixel> source, Rectangle rectangle)
+        public static IImageProcessingContext<TPixel> Grayscale<TPixel>(this IImageProcessingContext<TPixel> source, Rectangle rectangle)
             where TPixel : struct, IPixel<TPixel>
         {
             return Grayscale(source, GrayscaleMode.Bt709, rectangle);
@@ -71,7 +71,7 @@ namespace ImageSharp
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessorApplicator<TPixel> Grayscale<TPixel>(this IImageProcessorApplicator<TPixel> source, GrayscaleMode mode, Rectangle rectangle)
+        public static IImageProcessingContext<TPixel> Grayscale<TPixel>(this IImageProcessingContext<TPixel> source, GrayscaleMode mode, Rectangle rectangle)
             where TPixel : struct, IPixel<TPixel>
         {
             IImageProcessor<TPixel> processor = mode == GrayscaleMode.Bt709

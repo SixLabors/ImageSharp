@@ -24,7 +24,7 @@ namespace ImageSharp
         /// <param name="source">The image this method extends.</param>
         /// <param name="threshold">The threshold to apply binarization of the image. Must be between 0 and 1.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessorApplicator<TPixel> BinaryThreshold<TPixel>(this IImageProcessorApplicator<TPixel> source, float threshold)
+        public static IImageProcessingContext<TPixel> BinaryThreshold<TPixel>(this IImageProcessingContext<TPixel> source, float threshold)
             where TPixel : struct, IPixel<TPixel>
         {
             source.ApplyProcessor(new BinaryThresholdProcessor<TPixel>(threshold));
@@ -41,7 +41,7 @@ namespace ImageSharp
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessorApplicator<TPixel> BinaryThreshold<TPixel>(this IImageProcessorApplicator<TPixel> source, float threshold, Rectangle rectangle)
+        public static IImageProcessingContext<TPixel> BinaryThreshold<TPixel>(this IImageProcessingContext<TPixel> source, float threshold, Rectangle rectangle)
             where TPixel : struct, IPixel<TPixel>
         {
             source.ApplyProcessor(new BinaryThresholdProcessor<TPixel>(threshold), rectangle);

@@ -25,17 +25,19 @@ namespace ImageSharp.Tests
         private static readonly ConcurrentDictionary<string, TestFile> Cache = new ConcurrentDictionary<string, TestFile>();
 
         /// <summary>
-        /// The formats directory, as lazy value
+        /// The "Formats" directory, as lazy value
         /// </summary>
         private static readonly Lazy<string> formatsDirectory = new Lazy<string>(GetFormatsDirectory);
         
-        private Image<Rgba32> _image;
-        private byte[] _bytes;
+        /// <summary>
+        /// The image (lazy initialized value)
+        /// </summary>
+        private Image<Rgba32> image;
 
         /// <summary>
-        /// The image.
+        /// The image bytes
         /// </summary>
-        private Image<Rgba32> image => this._image ?? (this._image = Image.Load<Rgba32>(this.Bytes));
+        private byte[] bytes;
 
         /// <summary>
         /// The file.
@@ -52,9 +54,9 @@ namespace ImageSharp.Tests
         }
 
         /// <summary>
-        /// Gets the bytes.
+        /// Gets the image bytes.
         /// </summary>
-        public byte[] Bytes => this._bytes ?? (this._bytes = File.ReadAllBytes(this.file));
+        public byte[] Bytes => this.bytes ?? (this.bytes = File.ReadAllBytes(this.file));
 
         /// <summary>
         /// The file name.
@@ -70,6 +72,11 @@ namespace ImageSharp.Tests
         /// The file name without extension.
         /// </summary>
         public string FileNameWithoutExtension => Path.GetFileNameWithoutExtension(this.file);
+
+        /// <summary>
+        /// Gets the image with lazy initialization.
+        /// </summary>
+        private Image<Rgba32> Image => this.image ?? (this.image = ImageSharp.Image.Load<Rgba32>(this.Bytes));
 
         /// <summary>
         /// Gets the "Formats" test file directory.
@@ -130,22 +137,22 @@ namespace ImageSharp.Tests
         /// Creates a new image.
         /// </summary>
         /// <returns>
-        /// The <see cref="Image"/>.
+        /// The <see cref="ImageSharp.Image"/>.
         /// </returns>
         public Image<Rgba32> CreateImage()
         {
-            return this.image.Clone();
+            return this.Image.Clone();
         }
 
         /// <summary>
         /// Creates a new image.
         /// </summary>
         /// <returns>
-        /// The <see cref="Image"/>.
+        /// The <see cref="ImageSharp.Image"/>.
         /// </returns>
         public Image<Rgba32> CreateImage(IImageDecoder decoder)
         {
-            return Image.Load(this.image.Configuration, this.Bytes, decoder);
+            return ImageSharp.Image.Load(this.Image.Configuration, this.Bytes, decoder);
         }
 
         /// <summary>

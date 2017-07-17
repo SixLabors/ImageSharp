@@ -25,10 +25,10 @@ namespace ImageSharp.Tests
         private static readonly ConcurrentDictionary<string, TestFile> Cache = new ConcurrentDictionary<string, TestFile>();
 
         /// <summary>
-        /// The formats directory.
+        /// The formats directory, as lazy value
         /// </summary>
-        private static readonly string FormatsDirectory = GetFormatsDirectory();
-
+        private static readonly Lazy<string> formatsDirectory = new Lazy<string>(GetFormatsDirectory);
+        
         /// <summary>
         /// The image.
         /// </summary>
@@ -71,6 +71,11 @@ namespace ImageSharp.Tests
         /// </summary>
         public string FileNameWithoutExtension => Path.GetFileNameWithoutExtension(this.file);
 
+        /// <summary>
+        /// Gets the "Formats" test file directory.
+        /// </summary>
+        private static string FormatsDirectory => formatsDirectory.Value;
+        
         /// <summary>
         /// Gets the full qualified path to the file.
         /// </summary>

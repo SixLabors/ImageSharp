@@ -57,9 +57,9 @@ namespace ImageSharp
                 // this will only work if the first processor applied is the cloning one thus
                 // realistically for this optermissation to work the resize must the first processor
                 // applied any only up processors will take the douple data path.
-                if (processor is ICloneingImageProcessor<TPixel>)
+                if (processor is ICloningImageProcessor<TPixel>)
                 {
-                    var cloningProcessor = (ICloneingImageProcessor<TPixel>)processor;
+                    var cloningProcessor = (ICloningImageProcessor<TPixel>)processor;
                     this.destination = cloningProcessor.CloneAndApply(this.source, rectangle);
                     return this;
                 }

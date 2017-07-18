@@ -1,21 +1,18 @@
-﻿// <copyright file="ICloneingImageProcessor.cs" company="James Jackson-South">
+﻿// <copyright file="ICloningImageProcessor.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
 namespace ImageSharp.Processing
 {
-    using System;
-    using System.Threading.Tasks;
-
     using ImageSharp.PixelFormats;
     using SixLabors.Primitives;
 
     /// <summary>
-    /// Encapsulates methods to alter the pixels of an image.
+    /// Encapsulates methods to alter the pixels of a new image, cloned from the original image.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal interface ICloneingImageProcessor<TPixel> : IImageProcessor<TPixel>
+    internal interface ICloningImageProcessor<TPixel> : IImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>

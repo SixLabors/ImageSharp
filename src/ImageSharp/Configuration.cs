@@ -35,14 +35,14 @@ namespace ImageSharp
         private readonly ConcurrentDictionary<IImageFormat, IImageDecoder> mimeTypeDecoders = new ConcurrentDictionary<IImageFormat, IImageDecoder>();
 
         /// <summary>
-        /// The list of supported <see cref="IImageFormatDetector"/>s.
-        /// </summary>
-        private readonly List<IImageFormatDetector> imageFormatDetectors = new List<IImageFormatDetector>();
-
-        /// <summary>
         /// The list of supported <see cref="IImageFormat"/>s.
         /// </summary>
-        private readonly HashSet<IImageFormat> imageFormats = new HashSet<IImageFormat>();
+        private readonly ConcurrentBag<IImageFormat> imageFormats = new ConcurrentBag<IImageFormat>();
+
+        /// <summary>
+        /// The list of supported <see cref="IImageFormatDetector"/>s.
+        /// </summary>
+        private ConcurrentBag<IImageFormatDetector> imageFormatDetectors = new ConcurrentBag<IImageFormatDetector>();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Configuration" /> class.
@@ -181,7 +181,7 @@ namespace ImageSharp
         /// </summary>
         public void ClearImageFormatDetectors()
         {
-            this.imageFormatDetectors.Clear();
+            this.imageFormatDetectors = new ConcurrentBag<IImageFormatDetector>();
         }
 
         /// <summary>

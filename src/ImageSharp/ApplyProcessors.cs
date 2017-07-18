@@ -17,19 +17,19 @@ namespace ImageSharp
     public static partial class ImageExtensions
     {
         /// <summary>
-        /// Mutates the image by applying the operations to it.
+        /// Mutates the image by applying the image operation to it.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image to rotate, flip, or both.</param>
-        /// <param name="operations">The operations to perform on the source.</param>
-        public static void Mutate<TPixel>(this Image<TPixel> source, Action<IImageProcessingContext<TPixel>> operations)
+        /// <param name="operation">The operations to perform on the source.</param>
+        public static void Mutate<TPixel>(this Image<TPixel> source, Action<IImageProcessingContext<TPixel>> operation)
             where TPixel : struct, IPixel<TPixel>
         {
-            Guard.NotNull(operations, nameof(operations));
+            Guard.NotNull(operation, nameof(operation));
             Guard.NotNull(source, nameof(source));
 
             IInternalImageProcessingContext<TPixel> operationsRunner = source.Configuration.ImageOperationsProvider.CreateImageProcessingContext(source, true);
-            operations(operationsRunner);
+            operation(operationsRunner);
             operationsRunner.Apply();
         }
 
@@ -51,20 +51,20 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Clones the current image mutating the clone by applying the operations to it.
+        /// Clones the current image mutating the clone by applying the operation to it.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image to rotate, flip, or both.</param>
-        /// <param name="operations">The operations to perform on the source.</param>
-        /// <returns>Anew Image which has teh data from the <paramref name="source"/> but with the <paramref name="operations"/> applied.</returns>
-        public static Image<TPixel> Clone<TPixel>(this Image<TPixel> source, Action<IImageProcessingContext<TPixel>> operations)
+        /// <param name="operation">The operations to perform on the source.</param>
+        /// <returns>Anew Image which has teh data from the <paramref name="source"/> but with the <paramref name="operation"/> applied.</returns>
+        public static Image<TPixel> Clone<TPixel>(this Image<TPixel> source, Action<IImageProcessingContext<TPixel>> operation)
             where TPixel : struct, IPixel<TPixel>
         {
-            Guard.NotNull(operations, nameof(operations));
+            Guard.NotNull(operation, nameof(operation));
             Guard.NotNull(source, nameof(source));
 
             IInternalImageProcessingContext<TPixel> operationsRunner = source.Configuration.ImageOperationsProvider.CreateImageProcessingContext(source, false);
-            operations(operationsRunner);
+            operation(operationsRunner);
             return operationsRunner.Apply();
         }
 

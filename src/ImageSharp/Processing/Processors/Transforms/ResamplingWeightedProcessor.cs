@@ -16,7 +16,7 @@ namespace ImageSharp.Processing.Processors
     /// Adapted from <see href="http://www.realtimerendering.com/resources/GraphicsGems/gemsiii/filter_rcg.c"/>
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal abstract partial class ResamplingWeightedProcessor<TPixel> : CloneingImageProcessor<TPixel>
+    internal abstract partial class ResamplingWeightedProcessor<TPixel> : CloningImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>

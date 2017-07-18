@@ -15,7 +15,7 @@ namespace ImageSharp.Processing
     /// Allows the application of processors to images.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal abstract class CloneingImageProcessor<TPixel> : IImageProcessor<TPixel>, ICloneingImageProcessor<TPixel>
+    internal abstract class CloningImageProcessor<TPixel> : IImageProcessor<TPixel>, ICloningImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <inheritdoc/>

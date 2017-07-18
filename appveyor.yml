@@ -7,6 +7,10 @@ skip_branch_with_pr: true
 init:
   - ps: iex ((new-object net.webclient).DownloadString('https://gist.githubusercontent.com/PureKrome/0f79e25693d574807939/raw/8cf3160c9516ef1f4effc825c0a44acc918a0b5a/appveyor-build-info.ps'))
 
+# temp work around - https://appveyor.statuspage.io/incidents/m2vdvw39kdk8
+hosts:
+  api.nuget.org: 93.184.221.200
+
 build_script:
 - cmd: build.cmd
 

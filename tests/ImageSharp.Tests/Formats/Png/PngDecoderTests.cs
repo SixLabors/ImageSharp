@@ -23,12 +23,12 @@ namespace ImageSharp.Tests
 
         [Theory]
         [WithFileCollection(nameof(TestFiles), PixelTypes)]
-        public void DecodeAndReSave<TPixel>(TestImageProvider<TPixel> imageProvider)
+        public void Decode<TPixel>(TestImageProvider<TPixel> imageProvider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = imageProvider.GetImage())
             {
-                imageProvider.Utility.SaveTestOutputFile(image, "bmp");
+                image.DebugSave(imageProvider);
             }
         }
 

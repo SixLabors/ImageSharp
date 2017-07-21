@@ -26,7 +26,7 @@ namespace ImageSharp.Tests.Processing.Binarization
             using (Image<TPixel> image = provider.GetImage())
             {
                 image.BinaryThreshold(value)
-                     .DebugSave(provider, value, Extensions.Bmp);
+                     .DebugSave(provider, value);
             }
         }
 
@@ -42,7 +42,7 @@ namespace ImageSharp.Tests.Processing.Binarization
                 var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
 
                 image.BinaryThreshold(value, bounds)
-                     .DebugSave(provider, value, Extensions.Bmp);
+                     .DebugSave(provider, value);
 
                 ImageComparer.EnsureProcessorChangesAreConstrained(source, image, bounds);
             }

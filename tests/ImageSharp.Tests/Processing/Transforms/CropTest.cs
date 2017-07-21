@@ -19,7 +19,7 @@ namespace ImageSharp.Tests.Processing.Transforms
             using (Image<TPixel> image = provider.GetImage())
             {
                 image.Crop(image.Width / 2, image.Height / 2)
-                    .DebugSave(provider, null, Extensions.Bmp);
+                    .DebugSave(provider, null);
             }
         }
     }

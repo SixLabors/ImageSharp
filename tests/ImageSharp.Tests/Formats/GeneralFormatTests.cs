@@ -22,7 +22,7 @@ namespace ImageSharp.Tests
             {
                 image.MetaData.VerticalResolution = 150;
                 image.MetaData.HorizontalResolution = 150;
-                image.DebugSave(provider, null, Extensions.Bmp);
+                image.DebugSave(provider);
             }
         }
 

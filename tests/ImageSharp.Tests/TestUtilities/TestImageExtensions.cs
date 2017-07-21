@@ -24,9 +24,10 @@ namespace ImageSharp.Tests
         /// <param name="provider">The image provider</param>
         /// <param name="settings">The settings</param>
         /// <param name="extension">The extension</param>
-        public static Image<TPixel> DebugSave<TPixel>(this Image<TPixel> image, ITestImageProvider provider, object settings = null, string extension = "png")
+        public static Image<TPixel> DebugSave<TPixel>(this Image<TPixel> image, ITestImageProvider provider, object settings = null/*, string extension = "png"*/)
             where TPixel : struct, IPixel<TPixel>
         {
+            string extension = "png";
             if (TestEnvironment.RunsOnCI)
             {
                 return image;

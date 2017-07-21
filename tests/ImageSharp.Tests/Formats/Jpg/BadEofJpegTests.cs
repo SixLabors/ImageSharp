@@ -35,7 +35,7 @@ namespace ImageSharp.Tests
             using (Image<TPixel> image = provider.GetImage())
             {
                 Assert.NotNull(image);
-                provider.Utility.SaveTestOutputFile(image, "bmp");
+                image.DebugSave(provider);
             }
         }
 
@@ -47,7 +47,7 @@ namespace ImageSharp.Tests
             using (Image<TPixel> image = provider.GetImage())
             {
                 Assert.NotNull(image);
-                provider.Utility.SaveTestOutputFile(image, "bmp");
+                image.DebugSave(provider);
             }
         }
     }

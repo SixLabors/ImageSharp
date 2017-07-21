@@ -19,7 +19,7 @@ namespace ImageSharp.Tests.Processing.ColorMatrix
             using (Image<TPixel> image = provider.GetImage())
             {
                 image.BlackWhite()
-                    .DebugSave(provider, null, Extensions.Bmp);
+                    .DebugSave(provider, null);
             }
         }
 
@@ -34,7 +34,7 @@ namespace ImageSharp.Tests.Processing.ColorMatrix
                 var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
 
                 image.BlackWhite(bounds)
-                    .DebugSave(provider, null, Extensions.Bmp);
+                    .DebugSave(provider, null);
 
                 ImageComparer.EnsureProcessorChangesAreConstrained(source, image, bounds);
             }

@@ -27,23 +27,23 @@ namespace ImageSharp.Tests
 
         [Theory]
         [WithFileCollection(nameof(BaselineTestJpegs), PixelTypes.Rgba32 | PixelTypes.Rgba32 | PixelTypes.Argb32)]
-        public void OpenBaselineJpeg_SaveBmp<TPixel>(TestImageProvider<TPixel> provider)
+        public void DecodeBaselineJpeg<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                provider.Utility.SaveTestOutputFile(image, "bmp");
+                image.DebugSave(provider);
             }
         }
 
         [Theory]
         [WithFileCollection(nameof(ProgressiveTestJpegs), PixelTypes.Rgba32 | PixelTypes.Rgba32 | PixelTypes.Argb32)]
-        public void OpenProgressiveJpeg_SaveBmp<TPixel>(TestImageProvider<TPixel> provider)
+        public void DecodeProgressiveJpeg<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                provider.Utility.SaveTestOutputFile(image, "bmp");
+                image.DebugSave(provider);
             }
         }
 
@@ -53,7 +53,7 @@ namespace ImageSharp.Tests
         [WithSolidFilledImages(16, 16, 255, 0, 0, PixelTypes.Rgba32, JpegSubsample.Ratio444, 75)]
         [WithSolidFilledImages(16, 16, 255, 0, 0, PixelTypes.Rgba32, JpegSubsample.Ratio444, 100)]
         [WithSolidFilledImages(8, 8, 255, 0, 0, PixelTypes.Rgba32, JpegSubsample.Ratio444, 100)]
-        public void DecodeGenerated_SaveBmp<TPixel>(
+        public void DecodeGenerated<TPixel>(
             TestImageProvider<TPixel> provider,
             JpegSubsample subsample,
             int quality)
@@ -75,7 +75,7 @@ namespace ImageSharp.Tests
             // TODO: Automatic image comparers could help here a lot :P
             Image<TPixel> mirror = provider.Factory.CreateImage(data);
             provider.Utility.TestName += $"_{subsample}_Q{quality}";
-            provider.Utility.SaveTestOutputFile(mirror, "bmp");
+            mirror.DebugSave(provider);
         }
 
         [Theory]

@@ -19,7 +19,7 @@ namespace ImageSharp.Tests.Processing.Overlays
             using (Image<TPixel> image = provider.GetImage())
             {
                 image.Vignette()
-                    .DebugSave(provider, null, Extensions.Bmp);
+                    .DebugSave(provider, null);
             }
         }
 
@@ -31,7 +31,7 @@ namespace ImageSharp.Tests.Processing.Overlays
             using (Image<TPixel> image = provider.GetImage())
             {
                 image.Vignette(NamedColors<TPixel>.Orange)
-                    .DebugSave(provider, null, Extensions.Bmp);
+                    .DebugSave(provider, null);
             }
         }
 
@@ -43,7 +43,7 @@ namespace ImageSharp.Tests.Processing.Overlays
             using (Image<TPixel> image = provider.GetImage())
             {
                 image.Vignette(image.Width / 4F, image.Height / 4F)
-                    .DebugSave(provider, null, Extensions.Bmp);
+                    .DebugSave(provider, null);
             }
         }
 
@@ -58,7 +58,7 @@ namespace ImageSharp.Tests.Processing.Overlays
                 var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
 
                 image.Vignette(bounds)
-                    .DebugSave(provider, null, Extensions.Bmp);
+                    .DebugSave(provider, null);
 
                 ImageComparer.EnsureProcessorChangesAreConstrained(source, image, bounds);
             }

@@ -55,7 +55,7 @@ namespace ImageSharp.Tests.Processing.Transforms
                 var destRectangle = new Rectangle(image.Width / 4, image.Height / 4, image.Width / 2, image.Height / 2);
 
                 image.Resize(image.Width, image.Height, sampler, sourceRectangle, destRectangle, false)
-                    .DebugSave(provider, name, Extensions.Bmp);
+                    .DebugSave(provider, name);
             }
         }
 
@@ -67,7 +67,7 @@ namespace ImageSharp.Tests.Processing.Transforms
             using (Image<TPixel> image = provider.GetImage())
             {
                 image.Resize(image.Width / 3, 0, sampler, false)
-                    .DebugSave(provider, name, Extensions.Bmp);
+                    .DebugSave(provider, name);
             }
         }
 
@@ -79,7 +79,7 @@ namespace ImageSharp.Tests.Processing.Transforms
             using (Image<TPixel> image = provider.GetImage())
             {
                 image.Resize(0, image.Height / 3, sampler, false)
-                    .DebugSave(provider, name, Extensions.Bmp);
+                    .DebugSave(provider, name);
             }
         }
 
@@ -97,7 +97,7 @@ namespace ImageSharp.Tests.Processing.Transforms
                 };
 
                 image.Resize(options)
-                .DebugSave(provider, name, Extensions.Bmp);
+                .DebugSave(provider, name);
             }
         }
 
@@ -115,7 +115,7 @@ namespace ImageSharp.Tests.Processing.Transforms
                 };
 
                 image.Resize(options)
-                    .DebugSave(provider, name, Extensions.Bmp);
+                    .DebugSave(provider, name);
             }
         }
 
@@ -134,7 +134,7 @@ namespace ImageSharp.Tests.Processing.Transforms
                 };
 
                 image.Resize(options)
-                    .DebugSave(provider, name, Extensions.Bmp);
+                    .DebugSave(provider, name);
             }
         }
 
@@ -153,7 +153,7 @@ namespace ImageSharp.Tests.Processing.Transforms
                 };
 
                 image.Resize(options)
-                    .DebugSave(provider, name, Extensions.Bmp);
+                    .DebugSave(provider, name);
             }
         }
 
@@ -172,7 +172,7 @@ namespace ImageSharp.Tests.Processing.Transforms
                 };
 
                 image.Resize(options)
-                    .DebugSave(provider, name, Extensions.Bmp);
+                    .DebugSave(provider, name);
             }
         }
 
@@ -191,7 +191,7 @@ namespace ImageSharp.Tests.Processing.Transforms
                 };
 
                 image.Resize(options)
-                    .DebugSave(provider, name, Extensions.Bmp);
+                    .DebugSave(provider, name);
             }
         }
 
@@ -210,7 +210,7 @@ namespace ImageSharp.Tests.Processing.Transforms
                 };
 
                 image.Resize(options)
-                    .DebugSave(provider, name, Extensions.Bmp);
+                    .DebugSave(provider, name);
             }
         }
 

@@ -39,7 +39,7 @@ namespace ImageSharp.Tests.Processing.Binarization
             using (Image<TPixel> image = provider.GetImage())
             {
                 image.Dither(ditherer)
-                     .DebugSave(provider, name, Extensions.Bmp);
+                     .DebugSave(provider, name);
             }
         }
 
@@ -54,7 +54,7 @@ namespace ImageSharp.Tests.Processing.Binarization
                 var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
 
                 image.Dither(ditherer, bounds)
-                     .DebugSave(provider, name, Extensions.Bmp);
+                     .DebugSave(provider, name);
 
                 ImageComparer.EnsureProcessorChangesAreConstrained(source, image, bounds);
             }
@@ -68,7 +68,7 @@ namespace ImageSharp.Tests.Processing.Binarization
             using (Image<TPixel> image = provider.GetImage())
             {
                 image.Dither(diffuser, .5F)
-                     .DebugSave(provider, name, Extensions.Bmp);
+                     .DebugSave(provider, name);
             }
         }
 
@@ -83,7 +83,7 @@ namespace ImageSharp.Tests.Processing.Binarization
                 var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
 
                 image.Dither(diffuser,.5F, bounds)
-                    .DebugSave(provider, name, Extensions.Bmp);
+                    .DebugSave(provider, name);
 
                 ImageComparer.EnsureProcessorChangesAreConstrained(source, image, bounds);
             }

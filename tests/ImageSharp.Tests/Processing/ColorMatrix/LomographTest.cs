@@ -21,7 +21,7 @@ namespace ImageSharp.Tests
             using (Image<TPixel> image = provider.GetImage())
             {
                 image.Lomograph()
-                    .DebugSave(provider, null, Extensions.Bmp);
+                    .DebugSave(provider, null);
             }
         }
 
@@ -36,7 +36,7 @@ namespace ImageSharp.Tests
                 var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
 
                 image.Lomograph(bounds)
-                    .DebugSave(provider, null, Extensions.Bmp);
+                    .DebugSave(provider, null);
 
                 ImageComparer.EnsureProcessorChangesAreConstrained(source, image, bounds);
             }

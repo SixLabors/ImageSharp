@@ -26,7 +26,7 @@ namespace ImageSharp.Tests.Processing.Transforms
             using (Image<TPixel> image = provider.GetImage())
             {
                 image.EntropyCrop(value)
-                    .DebugSave(provider, value, Extensions.Bmp);
+                    .DebugSave(provider, value);
             }
         }
     }

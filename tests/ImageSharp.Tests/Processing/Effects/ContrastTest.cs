@@ -26,7 +26,7 @@ namespace ImageSharp.Tests.Processing.Effects
             using (Image<TPixel> image = provider.GetImage())
             {
                 image.Contrast(value)
-                    .DebugSave(provider, value, Extensions.Bmp);
+                    .DebugSave(provider, value);
             }
         }
 
@@ -41,7 +41,7 @@ namespace ImageSharp.Tests.Processing.Effects
                 var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
 
                 image.Contrast(value, bounds)
-                    .DebugSave(provider, value, Extensions.Bmp);
+                    .DebugSave(provider, value);
 
                 ImageComparer.EnsureProcessorChangesAreConstrained(source, image, bounds);
             }

@@ -26,7 +26,7 @@ namespace ImageSharp.Tests.Processing.ColorMatrix
             using (Image<TPixel> image = provider.GetImage())
             {
                 image.Saturation(value)
-                    .DebugSave(provider, value, Extensions.Bmp);
+                    .DebugSave(provider, value);
             }
         }
 
@@ -41,7 +41,7 @@ namespace ImageSharp.Tests.Processing.ColorMatrix
                 var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
 
                 image.Saturation(value, bounds)
-                    .DebugSave(provider, value, Extensions.Bmp);
+                    .DebugSave(provider, value);
 
                 ImageComparer.EnsureProcessorChangesAreConstrained(source, image, bounds);
             }

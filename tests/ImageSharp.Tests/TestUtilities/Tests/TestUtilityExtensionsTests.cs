@@ -3,10 +3,12 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
+// ReSharper disable InconsistentNaming
 namespace ImageSharp.Tests
 {
     using System;
     using System.Collections.Generic;
+    using System.IO;
     using System.Linq;
     using System.Numerics;
     using System.Reflection;
@@ -49,16 +51,8 @@ namespace ImageSharp.Tests
 
             return image;
         }
-
-        [Fact]
-        public void Baz()
-        {
-            Type type = typeof(Rgba32).GetTypeInfo().Assembly.GetType("ImageSharp.Rgba32");
-            this.Output.WriteLine(type.ToString());
-
-            Type fake = typeof(Rgba32).GetTypeInfo().Assembly.GetType("ImageSharp.dsaada_DASqewrr");
-            Assert.Null(fake);
-        }
+        
+        
 
         [Theory]
         [WithFile(TestImages.Bmp.Car, PixelTypes.Rgba32, true)]

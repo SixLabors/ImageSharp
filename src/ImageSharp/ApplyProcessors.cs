@@ -92,7 +92,7 @@ namespace ImageSharp
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image to rotate, flip, or both.</param>
         /// <param name="operations">The operations to perform on the source.</param>
-        /// <returns>returns the current optinoatins class to allow chaining of oprations.</returns>
+        /// <returns>returns the current operations class to allow chaining of operations.</returns>
         public static IImageProcessingContext<TPixel> ApplyProcessors<TPixel>(this IImageProcessingContext<TPixel> source, params IImageProcessor<TPixel>[] operations)
                 where TPixel : struct, IPixel<TPixel>
         {

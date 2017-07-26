@@ -27,10 +27,9 @@ namespace ImageSharp
         public static IImageProcessingContext<TPixel> Resize<TPixel>(this IImageProcessingContext<TPixel> source, ResizeOptions options)
             where TPixel : struct, IPixel<TPixel>
         {
-            return source.Run(img =>
+            return source.Apply(img =>
             {
-                // cheat and bound through a run, inside here we should just be mutating, this reallt needs moving over to a processor
-
+                // Cheat and bound through a run, inside here we should just be mutating, this really needs moving over to a processor
                 // Ensure size is populated across both dimensions.
                 if (options.Size.Width == 0 && options.Size.Height > 0)
                 {
@@ -162,26 +161,26 @@ namespace ImageSharp
         public static IImageProcessingContext<TPixel> Resize<TPixel>(this IImageProcessingContext<TPixel> source, int width, int height, IResampler sampler, Rectangle sourceRectangle, Rectangle targetRectangle, bool compand)
             where TPixel : struct, IPixel<TPixel>
         {
-            return source.Run(img =>
-             {
-                 // todo : stop cheeting here and move this stuff into the processors itself
-                 if (width == 0 && height > 0)
-                 {
-                     width = (int)MathF.Round(img.Width * height / (float)img.Height);
-                     targetRectangle.Width = width;
-                 }
+            return source.Apply(img =>
+            {
+                // TODO : Stop cheating here and move this stuff into the processors itself
+                if (width == 0 && height > 0)
+                {
+                    width = (int)MathF.Round(img.Width * height / (float)img.Height);
+                    targetRectangle.Width = width;
+                }
 
-                 if (height == 0 && width > 0)
-                 {
-                     height = (int)MathF.Round(img.Height * width / (float)img.Width);
-                     targetRectangle.Height = height;
-                 }
+                if (height == 0 && width > 0)
+                {
+                    height = (int)MathF.Round(img.Height * width / (float)img.Width);
+                    targetRectangle.Height = height;
+                }
 
-                 Guard.MustBeGreaterThan(width, 0, nameof(width));
-                 Guard.MustBeGreaterThan(height, 0, nameof(height));
+                Guard.MustBeGreaterThan(width, 0, nameof(width));
+                Guard.MustBeGreaterThan(height, 0, nameof(height));
 
-                 img.Mutate(x => x.ApplyProcessor(new ResizeProcessor<TPixel>(sampler, width, height, targetRectangle) { Compand = compand }, sourceRectangle));
-             });
+                img.Mutate(x => x.ApplyProcessor(new ResizeProcessor<TPixel>(sampler, width, height, targetRectangle) { Compand = compand }, sourceRectangle));
+            });
         }
 
         /// <summary>
@@ -202,9 +201,9 @@ namespace ImageSharp
         public static IImageProcessingContext<TPixel> Resize<TPixel>(this IImageProcessingContext<TPixel> source, int width, int height, IResampler sampler, Rectangle targetRectangle, bool compand)
             where TPixel : struct, IPixel<TPixel>
         {
-            return source.Run(img =>
+            return source.Apply(img =>
             {
-                // todo : stop cheeting here and move this stuff into the processors itself
+                // TODO : stop cheating here and move this stuff into the processors itself
                 if (width == 0 && height > 0)
                 {
                     width = (int)MathF.Round(img.Width * height / (float)img.Height);

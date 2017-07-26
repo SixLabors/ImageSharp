@@ -6,7 +6,6 @@
 namespace ImageSharp.Processing
 {
     using System;
-    using System.Threading.Tasks;
 
     using ImageSharp.PixelFormats;
     using SixLabors.Primitives;
@@ -37,13 +36,13 @@ namespace ImageSharp.Processing
         /// <inheritdoc/>
         protected override void BeforeImageApply(Image<TPixel> source, Rectangle sourceRectangle)
         {
-            this.action?.Invoke((Image<TPixel>)source);
+            this.action?.Invoke(source);
         }
 
         /// <inheritdoc/>
         protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
         {
-            // no op, we did all we wanted to do inside BeforeImageApply
+            // NOP, we did all we wanted to do inside BeforeImageApply
         }
     }
 }

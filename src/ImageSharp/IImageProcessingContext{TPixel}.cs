@@ -5,8 +5,6 @@
 
 namespace ImageSharp
 {
-    using System;
-    using ImageSharp.Formats;
     using ImageSharp.PixelFormats;
     using ImageSharp.Processing;
     using SixLabors.Primitives;
@@ -19,18 +17,18 @@ namespace ImageSharp
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
-        /// Adds the processor to the current setr of image operations to be applied.
+        /// Adds the processor to the current set of image operations to be applied.
         /// </summary>
         /// <param name="processor">The processor to apply</param>
         /// <param name="rectangle">The area to apply it to</param>
-        /// <returns>returns the current optinoatins class to allow chaining of oprations.</returns>
+        /// <returns>The current operations class to allow chaining of operations.</returns>
         IImageProcessingContext<TPixel> ApplyProcessor(IImageProcessor<TPixel> processor, Rectangle rectangle);
 
         /// <summary>
-        /// Adds the processor to the current setr of image operations to be applied.
+        /// Adds the processor to the current set of image operations to be applied.
         /// </summary>
         /// <param name="processor">The processor to apply</param>
-        /// <returns>returns the current optinoatins class to allow chaining of oprations.</returns>
+        /// <returns>The current operations class to allow chaining of operations.</returns>
         IImageProcessingContext<TPixel> ApplyProcessor(IImageProcessor<TPixel> processor);
     }
 
@@ -44,7 +42,7 @@ namespace ImageSharp
         /// <summary>
         /// Adds the processors to the current image
         /// </summary>
-        /// <returns>returns the current image or a new image depending on withere this is alloed to mutate the source image.</returns>
+        /// <returns>The current image or a new image depending on withere this is alloed to mutate the source image.</returns>
         Image<TPixel> Apply();
     }
 }

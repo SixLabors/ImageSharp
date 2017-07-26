@@ -57,13 +57,13 @@ namespace ImageSharp
         public static IImageProcessingContext<TPixel> Quantize<TPixel>(this IImageProcessingContext<TPixel> source, IQuantizer<TPixel> quantizer, int maxColors)
             where TPixel : struct, IPixel<TPixel>
         {
-            return source.Run(img =>
+            return source.Apply(img =>
             {
                 // TODO : move helper logic into the processor
                 QuantizedImage<TPixel> quantized = quantizer.Quantize(img, maxColors);
                 int palleteCount = quantized.Palette.Length - 1;
 
-                using (PixelAccessor<TPixel> pixels = new PixelAccessor<TPixel>(quantized.Width, quantized.Height))
+                using (var pixels = new PixelAccessor<TPixel>(quantized.Width, quantized.Height))
                 {
                     Parallel.For(
                         0,

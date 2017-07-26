@@ -5,14 +5,12 @@
 
 namespace ImageSharp
 {
-    using System;
-    using System.Collections.Generic;
     using ImageSharp.PixelFormats;
     using ImageSharp.Processing;
     using SixLabors.Primitives;
 
     /// <summary>
-    /// The static collection of all the default image formats
+    /// Performs processor application operations on the source image
     /// </summary>
     /// <typeparam name="TPixel">The pixel format</typeparam>
     internal class DefaultInternalImageProcessorContext<TPixel> : IInternalImageProcessingContext<TPixel>
@@ -42,7 +40,7 @@ namespace ImageSharp
         {
             if (!this.mutate && this.destination == null)
             {
-                // ensure we have cloned it if we are not mutating as we might have failed to register any Processors
+                // Ensure we have cloned it if we are not mutating as we might have failed to register any Processors
                 this.destination = this.source.Clone();
             }
 
@@ -54,19 +52,17 @@ namespace ImageSharp
         {
             if (!this.mutate && this.destination == null)
             {
-                // this will only work if the first processor applied is the cloning one thus
+                // This will only work if the first processor applied is the cloning one thus
                 // realistically for this optermissation to work the resize must the first processor
                 // applied any only up processors will take the douple data path.
-                if (processor is ICloningImageProcessor<TPixel>)
+                var cloningImageProcessor = processor as ICloningImageProcessor<TPixel>;
+                if (cloningImageProcessor != null)
                 {
-                    var cloningProcessor = (ICloningImageProcessor<TPixel>)processor;
-                    this.destination = cloningProcessor.CloneAndApply(this.source, rectangle);
+                    this.destination = cloningImageProcessor.CloneAndApply(this.source, rectangle);
                     return this;
                 }
-                else
-                {
-                    this.destination = this.source.Clone();
-                }
+
+                this.destination = this.source.Clone();
             }
 
             processor.Apply(this.destination, rectangle);

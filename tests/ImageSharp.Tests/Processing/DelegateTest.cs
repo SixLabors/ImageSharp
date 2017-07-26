@@ -16,7 +16,7 @@ namespace ImageSharp.Tests.Processing
         public void Run_CreatedDelegateProcessor()
         {
             Action<Image<Rgba32>> action = (i) => { };
-            this.operations.Run(action);
+            this.operations.Apply(action);
 
             DelegateProcessor<Rgba32> processor = this.Verify<DelegateProcessor<Rgba32>>();
             Assert.Equal(action, processor.Action);

@@ -5,16 +5,15 @@
 
 namespace ImageSharp
 {
-    using System;
     using ImageSharp.PixelFormats;
 
     /// <summary>
-    /// Represents an interface that will create IImageOperations
+    /// Represents an interface that will create IInternalImageProcessingContext instances
     /// </summary>
     internal interface IImageProcessingContextFactory
     {
         /// <summary>
-        /// Called during Mutate operations to generate the imageoperations provider.
+        /// Called during Mutate operations to generate the image operations provider.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format</typeparam>
         /// <param name="source">The source image.</param>

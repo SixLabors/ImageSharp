@@ -48,14 +48,13 @@ namespace ImageSharp.Processing.Processors
         /// <inheritdoc/>
         protected override Image<TPixel> CreateDestination(Image<TPixel> source, Rectangle sourceRectangle)
         {
-            // we will always be creating the clone even for mutate because thatsa the way this base processor works
+            // We will always be creating the clone even for mutate because thats the way this base processor works
             // ------------
-            // for resize we know we are going to populate every pixel with fresh data and we want a different target size so
-            // lets manually clone an empty set of images at the correct target and then have the base class processs them in.
-            // turn.
+            // For resize we know we are going to populate every pixel with fresh data and we want a different target size so
+            // let's manually clone an empty set of images at the correct target and then have the base class processs them in turn.
             var image = new Image<TPixel>(source.Configuration, this.Width, this.Height, source.MetaData.Clone());
 
-            // now 'clone' the ImageFrames
+            // Now 'clone' the ImageFrames
             foreach (ImageFrame<TPixel> sourceFrame in source.Frames)
             {
                 var targetFrame = new ImageFrame<TPixel>(sourceFrame.Configuration, this.Width, this.Height, sourceFrame.MetaData.Clone());
@@ -120,7 +119,6 @@ namespace ImageSharp.Processing.Processors
             // A 2-pass 1D algorithm appears to be faster than splitting a 1-pass 2D algorithm
             // First process the columns. Since we are not using multiple threads startY and endY
             // are the upper and lower bounds of the source rectangle.
-
             // TODO: Using a transposed variant of 'firstPassPixels' could eliminate the need for the WeightsWindow.ComputeWeightedColumnSum() method, and improve speed!
             using (var firstPassPixels = new Buffer2D<Vector4>(width, source.Height))
             {

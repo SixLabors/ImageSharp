@@ -26,6 +26,7 @@ namespace ImageSharp.Tests
             public const string SplashInterlaced = "Png/splash-interlaced.png";
             public const string Interlaced = "Png/interlaced.png";
             public const string Rgb48Bpp = "Png/rgb-48bpp.png";
+            public const string CalliphoraPartial = "Png/CalliphoraPartial.png";
 
             // Filtered test images from http://www.schaik.com/pngsuite/pngsuite_fil_png.html
             public const string Filter0 = "Png/filter0.png";

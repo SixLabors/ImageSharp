@@ -33,6 +33,7 @@ namespace ImageSharp.Tests
                 return image;
             }
 
+            
             // We are running locally then we want to save it out
             provider.Utility.SaveTestOutputFile(image, extension, settings: settings);
             return image;

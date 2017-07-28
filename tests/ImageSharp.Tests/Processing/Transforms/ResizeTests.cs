@@ -12,7 +12,7 @@ namespace ImageSharp.Tests.Processing.Transforms
 
     public class ResizeTests : FileTestBase
     {
-        public static readonly string[] ResizeFiles = { TestImages.Jpeg.Baseline.Calliphora };
+        public static readonly string[] ResizeFiles = { TestImages.Png.CalliphoraPartial };
 
         public static readonly TheoryData<string, IResampler> ReSamplers =
             new TheoryData<string, IResampler>
@@ -40,7 +40,7 @@ namespace ImageSharp.Tests.Processing.Transforms
             using (Image<TPixel> image = provider.GetImage())
             {
                 image.Resize(image.Width / 2, image.Height / 2, sampler, true)
-                    .CompareToReferenceOutput(provider, name);
+                    .DebugSave(provider, name);
             }
         }
 
@@ -51,7 +51,7 @@ namespace ImageSharp.Tests.Processing.Transforms
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                var sourceRectangle = new Rectangle(image.Width / 8, image.Height / 8, image.Width / 4, image.Height / 4);
+                var sourceRectangle = new Rectangle(image.Width / 4, image.Height / 4, image.Width / 4, image.Height / 4);
                 var destRectangle = new Rectangle(image.Width / 4, image.Height / 4, image.Width / 2, image.Height / 2);
 
                 image.Resize(image.Width, image.Height, sampler, sourceRectangle, destRectangle, false)

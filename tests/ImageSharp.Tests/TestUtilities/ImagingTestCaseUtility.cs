@@ -142,6 +142,7 @@ namespace ImageSharp.Tests
 
             encoder = encoder ?? format.Encoder;
 
+            
             using (FileStream stream = File.OpenWrite(path))
             {
                 image.Save(stream, encoder, options);

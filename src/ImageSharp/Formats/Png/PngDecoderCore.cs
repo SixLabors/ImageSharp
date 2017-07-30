@@ -825,14 +825,14 @@ namespace ImageSharp.Formats
                         using (var compressed = new Buffer<byte>(length))
                         {
                             // TODO: Should we use pack from vector here instead?
-                            this.From16BitTo8Bit(new Span<byte>(defilteredScanline), compressed, length);
-                            for (int x = pixelOffset, o = 1;
+                            this.From16BitTo8Bit(new Span<byte>(defilteredScanline, 1), compressed, length);
+                            for (int x = pixelOffset, o = 0;
                                  x < this.header.Width;
-                                 x += increment, o += this.bytesPerPixel)
+                                 x += increment, o += 3)
                             {
                                 rgba.R = compressed[o];
-                                rgba.G = compressed[o + this.bytesPerSample];
-                                rgba.B = compressed[o + (2 * this.bytesPerSample)];
+                                rgba.G = compressed[o + 1];
+                                rgba.B = compressed[o + 2];
 
                                 color.PackFromRgba32(rgba);
                                 rowSpan[x] = color;
@@ -862,13 +862,13 @@ namespace ImageSharp.Formats
                         using (var compressed = new Buffer<byte>(length))
                         {
                             // TODO: Should we use pack from vector here instead?
-                            this.From16BitTo8Bit(new Span<byte>(defilteredScanline), compressed, length);
-                            for (int x = pixelOffset, o = 1; x < this.header.Width; x += increment, o += this.bytesPerPixel)
+                            this.From16BitTo8Bit(new Span<byte>(defilteredScanline, 1), compressed, length);
+                            for (int x = pixelOffset, o = 0; x < this.header.Width; x += increment, o += 4)
                             {
                                 rgba.R = compressed[o];
-                                rgba.G = compressed[o + this.bytesPerSample];
-                                rgba.B = compressed[o + (2 * this.bytesPerSample)];
-                                rgba.A = compressed[o + (3 * this.bytesPerSample)];
+                                rgba.G = compressed[o + 1];
+                                rgba.B = compressed[o + 2];
+                                rgba.A = compressed[o + 3];
 
                                 color.PackFromRgba32(rgba);
                                 rowSpan[x] = color;

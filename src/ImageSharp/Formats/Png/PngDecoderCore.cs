@@ -688,19 +688,11 @@ namespace ImageSharp.Formats
                 // channel and we should try to read it.
                 for (int x = 0; x < this.header.Width; x++)
                 {
-                    int index = newScanline[x + 1];
+                    int index = newScanline[x];
                     int pixelOffset = index * 3;
 
                     rgba.A = this.paletteAlpha.Length > index ? this.paletteAlpha[index] : (byte)255;
-
-                    if (rgba.A > 0)
-                    {
-                        rgba.Rgb = pal.GetRgb24(pixelOffset);
-                    }
-                    else
-                    {
-                        rgba = default(Rgba32);
-                    }
+                    rgba.Rgb = pal.GetRgb24(pixelOffset);
 
                     color.PackFromRgba32(rgba);
                     row[x] = color;
@@ -712,7 +704,7 @@ namespace ImageSharp.Formats
 
                 for (int x = 0; x < this.header.Width; x++)
                 {
-                    int index = newScanline[x + 1];
+                    int index = newScanline[x];
                     int pixelOffset = index * 3;
 
                     rgba.Rgb = pal.GetRgb24(pixelOffset);

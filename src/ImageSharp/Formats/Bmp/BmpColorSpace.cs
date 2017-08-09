@@ -39,7 +39,7 @@ namespace ImageSharp.Formats
         // Microsoft Windows BMP v5
 
         /// <summary>
-        /// This value indicates that <b>ProfileOffset</b> points to the ICC color space file name (in ASCII Code Page 1252) of the profile to use (gamma and endpoints values are ignored).
+        /// This value indicates that <c>ProfileOffset</c> points to the ICC color space file name (in ASCII Code Page 1252) of the profile to use (gamma and endpoints values are ignored).
         /// <para>
         /// Equals 'LINK' (in ASCII) or 0x4C494E4B (in hexadecimal).
         /// </para>
@@ -47,7 +47,7 @@ namespace ImageSharp.Formats
         ProfileLinked = 0x4C494E4B,
 
         /// <summary>
-        /// Indicates that <b>ProfileOffset</b> points to a memory buffer that contains the profile to be used (gamma and endpoints values are ignored).
+        /// Indicates that <c>ProfileOffset</c> points to a memory buffer that contains the profile to be used (gamma and endpoints values are ignored).
         /// <para>
         /// Equals 'MBED' (in ASCII) or 0x4D424544 (in hexadecimal).
         /// </para>

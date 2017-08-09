@@ -12,9 +12,9 @@
         /// <para>
         /// Supported by OS/2 1.0x or later (same format as Windows 2.0x).
         /// </para>
+        /// See <a href="http://www.fileformat.info/format/os2bmp/egff.htm">this link</a> for more information.
+        /// <seealso cref="BmpNativeStructuresSizes.RGBTRIPLE"/>
         /// </summary>
-        /// <see cref="http://www.fileformat.info/format/os2bmp/egff.htm"/>
-        /// <seealso cref="RGBTRIPLE"/>
         OS21XPALETTEELEMENT = 3,
 
         /// <summary>
@@ -22,9 +22,9 @@
         /// <para>
         /// Supported by OS/2 2.0x or later (same format as Windows 3.1x).
         /// </para>
+        /// See <a href="http://www.fileformat.info/format/os2bmp/egff.htm">this link</a> for more information.
+        /// <seealso cref="BmpNativeStructuresSizes.RGBQUAD"/>
         /// </summary>
-        /// <see cref="http://www.fileformat.info/format/os2bmp/egff.htm"/>
-        /// <seealso cref="RGBQUAD"/>
         OS22XPALETTEELEMENT = 4,
 
         // IBM OS/2 BMP DIB header
@@ -34,9 +34,9 @@
         /// <para>
         /// Supported by OS/2 1.0x or later (same format as Windows 2.0x).
         /// </para>
+        /// See <a href="http://www.fileformat.info/format/os2bmp/egff.htm">this link</a> for more information.
+        /// <seealso cref="BmpNativeStructuresSizes.BITMAPCOREHEADER"/>
         /// </summary>
-        /// <see cref="http://www.fileformat.info/format/os2bmp/egff.htm"/>
-        /// <seealso cref="BITMAPCOREHEADER"/>
         OS21XBITMAPHEADER = 12,
 
         /// <summary>
@@ -44,8 +44,8 @@
         /// <para>
         /// Supported by OS/2 2.0x or later.
         /// </para>
+        /// See <a href="http://www.fileformat.info/format/os2bmp/egff.htm">this link</a> for more information.
         /// </summary>
-        /// <see cref="http://www.fileformat.info/format/os2bmp/egff.htm"/>
         OS22XBITMAPHEADER_MIN = 16,
 
         /// <summary>
@@ -53,8 +53,8 @@
         /// <para>
         /// Supported by OS/2 2.0x or later.
         /// </para>
+        /// See <a href="http://www.fileformat.info/format/os2bmp/egff.htm">this link</a> for more information.
         /// </summary>
-        /// <see cref="http://www.fileformat.info/format/os2bmp/egff.htm"/>
         OS22XBITMAPHEADER = 64,
 
         // Microsoft Windows BMP Palette element
@@ -64,8 +64,8 @@
         /// <para>
         /// Supported by Windows 2.0x or later (same format as OS/2 1.0x).
         /// </para>
+        /// See <a href="https://msdn.microsoft.com/en-us/library/dd162939(v=vs.85).aspx">this link</a> for more information.
         /// </summary>
-        /// <see cref="https://msdn.microsoft.com/en-us/library/dd162939(v=vs.85).aspx"/>
         RGBTRIPLE = 3,
 
         /// <summary>
@@ -73,8 +73,8 @@
         /// <para>
         /// Supported by Windows 3.0x or later (same format as OS/2 2.0x).
         /// </para>
+        /// See <a href="https://msdn.microsoft.com/en-us/library/dd162938(v=vs.85).aspx">this link</a> for more information.
         /// </summary>
-        /// <see cref="https://msdn.microsoft.com/en-us/library/dd162938(v=vs.85).aspx"/>
         RGBQUAD = 4,
 
         // Microsoft Windows BMP and IBM OS/2 file header

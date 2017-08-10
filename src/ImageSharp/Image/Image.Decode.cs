@@ -81,5 +81,19 @@ namespace ImageSharp
             Image<TPixel> img = decoder.Decode<TPixel>(config, stream);
             return (img, format);
         }
+
+        /// <summary>
+        /// Detects the image pixel size.
+        /// </summary>
+        /// <param name="stream">The stream.</param>
+        /// <param name="config">the configuration.</param>
+        /// <returns>
+        /// The color depth, in number of bits per pixel or null if suitable decoder not found.
+        /// </returns>
+        private static int? InternalDetectPixelSize(Stream stream, Configuration config)
+        {
+            IImageDecoder decoder = DiscoverDecoder(stream, config, out IImageFormat _);
+            return decoder?.DetectPixelSize(config, stream);
+        }
     }
 }

@@ -55,28 +55,28 @@ namespace ImageSharp.Tests
 
             this.fileSystem = new Mock<IFileSystem>();
 
-            this.LocalConfiguration = new Configuration()
+            this.LocalConfiguration = new Configuration
             {
                 FileSystem = this.fileSystem.Object
             };
             this.LocalConfiguration.AddImageFormatDetector(this.localMimeTypeDetector.Object);
             this.LocalConfiguration.SetDecoder(localImageFormatMock.Object, this.localDecoder.Object);
 
-            TestFormat.RegisterGloablTestFormat();
+            TestFormat.RegisterGlobalTestFormat();
             this.Marker = Guid.NewGuid().ToByteArray();
             this.DataStream = TestFormat.GlobalTestFormat.CreateStream(this.Marker);
 
             this.FilePath = Guid.NewGuid().ToString();
             this.fileSystem.Setup(x => x.OpenRead(this.FilePath)).Returns(this.DataStream);
 
-            TestFileSystem.RegisterGloablTestFormat();
+            TestFileSystem.RegisterGlobalTestFormat();
             TestFileSystem.Global.AddFile(this.FilePath, this.DataStream);
         }
 
         [Fact]
         public void LoadFromStream()
         {
-             Image<Rgba32> img = Image.Load<Rgba32>(this.DataStream);
+            Image<Rgba32> img = Image.Load<Rgba32>(this.DataStream);
 
             Assert.NotNull(img);
 
@@ -87,7 +87,7 @@ namespace ImageSharp.Tests
         public void LoadFromNoneSeekableStream()
         {
             NoneSeekableStream stream = new NoneSeekableStream(this.DataStream);
-             Image<Rgba32> img = Image.Load<Rgba32>(stream);
+            Image<Rgba32> img = Image.Load<Rgba32>(stream);
 
             Assert.NotNull(img);
 
@@ -112,7 +112,7 @@ namespace ImageSharp.Tests
         public void LoadFromStreamWithConfig()
         {
             Stream stream = new MemoryStream();
-             Image<Rgba32> img = Image.Load<Rgba32>(this.LocalConfiguration, stream);
+            Image<Rgba32> img = Image.Load<Rgba32>(this.LocalConfiguration, stream);
 
             Assert.NotNull(img);
 
@@ -138,7 +138,7 @@ namespace ImageSharp.Tests
         public void LoadFromStreamWithDecoder()
         {
             Stream stream = new MemoryStream();
-             Image<Rgba32> img = Image.Load<Rgba32>(stream, this.localDecoder.Object);
+            Image<Rgba32> img = Image.Load<Rgba32>(stream, this.localDecoder.Object);
 
             Assert.NotNull(img);
             this.localDecoder.Verify(x => x.Decode<Rgba32>(Configuration.Default, stream));
@@ -158,7 +158,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void LoadFromBytes()
         {
-             Image<Rgba32> img = Image.Load<Rgba32>(this.DataStream.ToArray());
+            Image<Rgba32> img = Image.Load<Rgba32>(this.DataStream.ToArray());
 
             Assert.NotNull(img);
 
@@ -182,7 +182,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void LoadFromBytesWithConfig()
         {
-             Image<Rgba32> img = Image.Load<Rgba32>(this.LocalConfiguration, this.DataStream.ToArray());
+            Image<Rgba32> img = Image.Load<Rgba32>(this.LocalConfiguration, this.DataStream.ToArray());
 
             Assert.NotNull(img);
 
@@ -207,7 +207,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void LoadFromBytesWithDecoder()
         {
-             Image<Rgba32> img = Image.Load<Rgba32>(this.DataStream.ToArray(), this.localDecoder.Object);
+            Image<Rgba32> img = Image.Load<Rgba32>(this.DataStream.ToArray(), this.localDecoder.Object);
 
             Assert.NotNull(img);
             this.localDecoder.Verify(x => x.Decode<Rgba32>(Configuration.Default, It.IsAny<Stream>()));
@@ -228,7 +228,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void LoadFromFile()
         {
-             Image<Rgba32> img = Image.Load<Rgba32>(this.DataStream);
+            Image<Rgba32> img = Image.Load<Rgba32>(this.DataStream);
 
             Assert.NotNull(img);
 
@@ -251,7 +251,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void LoadFromFileWithConfig()
         {
-             Image<Rgba32> img = Image.Load<Rgba32>(this.LocalConfiguration, this.FilePath);
+            Image<Rgba32> img = Image.Load<Rgba32>(this.LocalConfiguration, this.FilePath);
 
             Assert.NotNull(img);
 
@@ -273,7 +273,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void LoadFromFileWithDecoder()
         {
-             Image<Rgba32> img = Image.Load<Rgba32>(this.FilePath, this.localDecoder.Object);
+            Image<Rgba32> img = Image.Load<Rgba32>(this.FilePath, this.localDecoder.Object);
 
             Assert.NotNull(img);
             this.localDecoder.Verify(x => x.Decode<Rgba32>(Configuration.Default, this.DataStream));

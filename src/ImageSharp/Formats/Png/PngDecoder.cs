@@ -56,5 +56,17 @@ namespace ImageSharp.Formats
             var decoder = new PngDecoderCore(configuration, this);
             return decoder.Decode<TPixel>(stream);
         }
+
+        /// <summary>
+        /// Detects the image pixel size from the specified stream.
+        /// </summary>
+        /// <param name="configuration">The configuration for the image.</param>
+        /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
+        /// <returns>The color depth, in number of bits per pixel</returns>
+        public int DetectPixelSize(Configuration configuration, Stream stream)
+        {
+            var decoder = new PngDecoderCore(configuration, this);
+            return decoder.DetectPixelSize(stream);
+        }
     }
 }

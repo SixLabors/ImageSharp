@@ -23,15 +23,15 @@ namespace ImageSharp.Tests
     {
         public static TestFormat GlobalTestFormat { get; } = new TestFormat();
 
-        public static void RegisterGloablTestFormat()
+        public static void RegisterGlobalTestFormat()
         {
             Configuration.Default.Configure(GlobalTestFormat);
         }
 
         public TestFormat()
         {
-            this.Encoder = new TestEncoder(this); ;
-            this.Decoder = new TestDecoder(this); ;
+            this.Encoder = new TestEncoder(this);
+            this.Decoder = new TestDecoder(this);
         }
 
         public List<DecodeOperation> DecodeCalls { get; } = new List<DecodeOperation>();
@@ -200,8 +200,13 @@ namespace ImageSharp.Tests
                     config = config
                 });
 
-                // TODO record this happend so we an verify it.
+                // TODO record this happend so we can verify it.
                 return this.testFormat.Sample<TPixel>();
+            }
+
+            public int DetectPixelSize(Configuration configuration, Stream stream)
+            {
+                throw new NotImplementedException();
             }
 
             public bool IsSupportedFileFormat(Span<byte> header) => testFormat.IsSupportedFileFormat(header);
@@ -222,7 +227,7 @@ namespace ImageSharp.Tests
 
             public void Encode<TPixel>(Image<TPixel> image, Stream stream) where TPixel : struct, IPixel<TPixel>
             {
-                // TODO record this happend so we an verify it.
+                // TODO record this happend so we can verify it.
             }
         }
     }

@@ -37,5 +37,16 @@ namespace ImageSharp.Formats
 
             return new BmpDecoderCore(configuration, this).Decode<TPixel>(stream);
         }
+
+        /// <inheritdoc/>
+        public int DetectPixelSize(Configuration configuration, Stream stream)
+        {
+            Guard.NotNull(stream, "stream");
+
+            byte[] buffer = new byte[2];
+            stream.Skip(28);
+            stream.Read(buffer, 0, 2);
+            return BitConverter.ToInt16(buffer, 0);
+        }
     }
 }

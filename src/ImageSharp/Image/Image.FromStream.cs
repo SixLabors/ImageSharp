@@ -40,6 +40,33 @@ namespace ImageSharp
         }
 
         /// <summary>
+        /// By reading the header on the provided stream this calculates the images color depth.
+        /// </summary>
+        /// <param name="stream">The image stream to read the header from.</param>
+        /// <exception cref="NotSupportedException">
+        /// Thrown if the stream is not readable nor seekable.
+        /// </exception>
+        /// <returns>The color depth, in number of bits per pixel or null if suitable decoder not found</returns>
+        public static int? DetectPixelSize(Stream stream)
+        {
+            return DetectPixelSize(null, stream);
+        }
+
+        /// <summary>
+        /// By reading the header on the provided stream this calculates the images color depth.
+        /// </summary>
+        /// <param name="config">The configuration.</param>
+        /// <param name="stream">The image stream to read the header from.</param>
+        /// <exception cref="NotSupportedException">
+        /// Thrown if the stream is not readable nor seekable.
+        /// </exception>
+        /// <returns>The color depth, in number of bits per pixel or null if suitable decoder not found</returns>
+        public static int? DetectPixelSize(Configuration config, Stream stream)
+        {
+            return WithSeekableStream(stream, s => InternalDetectPixelSize(s, config ?? Configuration.Default));
+        }
+
+        /// <summary>
         /// Create a new instance of the <see cref="Image{Rgba32}"/> class from the given stream.
         /// </summary>
         /// <param name="stream">The stream containing image information.</param>

@@ -33,5 +33,16 @@ namespace ImageSharp.Formats
             var decoder = new GifDecoderCore<TPixel>(configuration, this);
             return decoder.Decode(stream);
         }
+
+        /// <inheritdoc/>
+        public int DetectPixelSize(Configuration configuration, Stream stream)
+        {
+            Guard.NotNull(stream, "stream");
+
+            byte[] buffer = new byte[1];
+            stream.Skip(10); // Skip the identifier and size
+            stream.Read(buffer, 0, 1); // Skip the identifier and size
+            return (buffer[0] & 0x07) + 1;  // The lowest 3 bits represent the bit depth minus 1
+        }
     }
 }

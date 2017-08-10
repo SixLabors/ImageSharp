@@ -262,6 +262,58 @@ namespace ImageSharp.Formats
         }
 
         /// <summary>
+        /// Detects the image pixel size from the specified stream.
+        /// </summary>
+        /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
+        /// <returns>The color depth, in number of bits per pixel</returns>
+        public int DetectPixelSize(Stream stream)
+        {
+            this.currentStream = stream;
+            this.currentStream.Skip(8);
+            try
+            {
+                    PngChunk currentChunk;
+                    while (!this.isEndChunkReached && (currentChunk = this.ReadChunk()) != null)
+                    {
+                        try
+                        {
+                            switch (currentChunk.Type)
+                            {
+                                case PngChunkTypes.Header:
+                                    this.ReadHeaderChunk(currentChunk.Data);
+                                    this.ValidateHeader();
+                                    this.isEndChunkReached = true;
+                                    break;
+                                case PngChunkTypes.End:
+                                    this.isEndChunkReached = true;
+                                    break;
+                            }
+                        }
+                        finally
+                        {
+                            // Data is rented in ReadChunkData()
+                            if (currentChunk.Data != null)
+                            {
+                                ArrayPool<byte>.Shared.Return(currentChunk.Data);
+                            }
+                        }
+                    }
+            }
+            finally
+            {
+                this.scanline?.Dispose();
+                this.previousScanline?.Dispose();
+            }
+
+            if (this.header == null)
+            {
+                throw new ImageFormatException("PNG Image hasn't header chunk");
+            }
+
+            return this.CalculateBitsPerPixel();
+        }
+
+        /// <summary>
         /// Converts a byte array to a new array where each value in the original array is represented by the specified number of bits.
         /// </summary>
         /// <param name="source">The bytes to convert from. Cannot be null.</param>
@@ -341,6 +393,28 @@ namespace ImageSharp.Formats
 
             this.previousScanline = Buffer<byte>.CreateClean(this.bytesPerScanline);
             this.scanline = Buffer<byte>.CreateClean(this.bytesPerScanline);
+        }
+
+        /// <summary>
+        /// Calculates the correct number of bits per pixel for the given color type.
+        /// </summary>
+        /// <returns>The <see cref="int"/></returns>
+        private int CalculateBitsPerPixel()
+        {
+            switch (this.pngColorType)
+            {
+                case PngColorType.Grayscale:
+                case PngColorType.Palette:
+                    return this.header.BitDepth;
+                case PngColorType.GrayscaleWithAlpha:
+                    return this.header.BitDepth * 2;
+                case PngColorType.Rgb:
+                    return this.header.BitDepth * 3;
+                case PngColorType.RgbWithAlpha:
+                    return this.header.BitDepth * 4;
+                default:
+                    throw new NotSupportedException("Unsupported PNG color type");
+            }
         }
 
         /// <summary>

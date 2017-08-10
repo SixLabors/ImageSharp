@@ -32,5 +32,16 @@ namespace ImageSharp.Formats
                 return decoder.Decode<TPixel>(stream);
             }
         }
+
+        /// <inheritdoc/>
+        public int DetectPixelSize(Configuration configuration, Stream stream)
+        {
+            Guard.NotNull(stream, "stream");
+
+            using (JpegDecoderCore decoder = new JpegDecoderCore(configuration, this))
+            {
+                return decoder.DetectPixelSize(stream);
+            }
+        }
     }
 }

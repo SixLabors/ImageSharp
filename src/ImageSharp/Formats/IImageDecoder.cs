@@ -25,5 +25,13 @@ namespace ImageSharp.Formats
         /// <returns>The decoded image</returns>
         Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream)
             where TPixel : struct, IPixel<TPixel>;
+
+        /// <summary>
+        /// Detects the image pixel size from the specified stream.
+        /// </summary>
+        /// <param name="configuration">The configuration for the image.</param>
+        /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
+        /// <returns>The color depth, in number of bits per pixel</returns>
+        int DetectPixelSize(Configuration configuration, Stream stream);
     }
 }

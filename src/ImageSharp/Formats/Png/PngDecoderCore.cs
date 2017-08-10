@@ -306,6 +306,15 @@ namespace ImageSharp.Formats
             return result;
         }
 
+        private static bool IsCriticalChunk(PngChunk chunk)
+        {
+            return
+                chunk.Type == PngChunkTypes.Header ||
+                chunk.Type == PngChunkTypes.Palette ||
+                chunk.Type == PngChunkTypes.Data ||
+                chunk.Type == PngChunkTypes.End;
+        }
+
         /// <summary>
         /// Reads the data chunk containing physical dimension data.
         /// </summary>
@@ -1017,9 +1026,9 @@ namespace ImageSharp.Formats
             this.crc.Update(this.chunkTypeBuffer);
             this.crc.Update(chunk.Data, 0, chunk.Length);
 
-            if (this.crc.Value != chunk.Crc)
+            if (this.crc.Value != chunk.Crc && IsCriticalChunk(chunk))
             {
-                throw new ImageFormatException("CRC Error. PNG Image chunk is corrupt!");
+                throw new ImageFormatException($"CRC Error. PNG {chunk.Type} chunk is corrupt!");
             }
         }
 

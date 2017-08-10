@@ -6,6 +6,7 @@
 // ReSharper disable InconsistentNaming
 namespace ImageSharp.Tests
 {
+    using System.IO;
     using System.Text;
     using Xunit;
 
@@ -78,6 +79,20 @@ namespace ImageSharp.Tests
             {
                 Assert.Equal(1, image.MetaData.Properties.Count);
                 Assert.Equal("浉条卥慨灲", image.MetaData.Properties[0].Value);
+            }
+        }
+
+        [Theory]
+        [InlineData(TestImages.Gif.Cheers, 8)]
+        [InlineData(TestImages.Gif.Giphy, 8)]
+        [InlineData(TestImages.Gif.Rings, 8)]
+        [InlineData(TestImages.Gif.Trans, 8)]
+        public void DetectPixelSize(string imagePath, int expectedPixelSize)
+        {
+            TestFile testFile = TestFile.Create(imagePath);
+            using (var stream = new MemoryStream(testFile.Bytes, false))
+            {
+                Assert.Equal(expectedPixelSize, Image.DetectPixelSize(stream));
             }
         }
     }

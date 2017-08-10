@@ -22,7 +22,7 @@ namespace ImageSharp.Tests
 
         public static TestFileSystem Global { get; } = new TestFileSystem();
 
-        public static void RegisterGloablTestFormat()
+        public static void RegisterGlobalTestFormat()
         {
             Configuration.Default.FileSystem = Global;
         }

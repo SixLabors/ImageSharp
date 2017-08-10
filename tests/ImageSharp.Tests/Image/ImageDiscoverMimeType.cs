@@ -41,20 +41,20 @@ namespace ImageSharp.Tests
 
             this.fileSystem = new Mock<IFileSystem>();
 
-            this.LocalConfiguration = new Configuration()
+            this.LocalConfiguration = new Configuration
             {
                 FileSystem = this.fileSystem.Object
             };
             this.LocalConfiguration.AddImageFormatDetector(this.localMimeTypeDetector.Object);
 
-            TestFormat.RegisterGloablTestFormat();
+            TestFormat.RegisterGlobalTestFormat();
             this.Marker = Guid.NewGuid().ToByteArray();
             this.DataStream = TestFormat.GlobalTestFormat.CreateStream(this.Marker);
 
             this.FilePath = Guid.NewGuid().ToString();
             this.fileSystem.Setup(x => x.OpenRead(this.FilePath)).Returns(this.DataStream);
 
-            TestFileSystem.RegisterGloablTestFormat();
+            TestFileSystem.RegisterGlobalTestFormat();
             TestFileSystem.Global.AddFile(this.FilePath, this.DataStream);
         }
 
@@ -85,7 +85,6 @@ namespace ImageSharp.Tests
             var type = Image.DetectFormat(this.LocalConfiguration, FilePath);
             Assert.Equal(localImageFormat, type);
         }
-
 
         [Fact]
         public void DiscoverImageFormatStream()

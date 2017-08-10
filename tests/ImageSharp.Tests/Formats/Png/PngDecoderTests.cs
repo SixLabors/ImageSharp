@@ -5,6 +5,7 @@
 
 namespace ImageSharp.Tests
 {
+    using System.IO;
     using System.Text;
     using Xunit;
 
@@ -80,6 +81,23 @@ namespace ImageSharp.Tests
             {
                 Assert.Equal(1, image.MetaData.Properties.Count);
                 Assert.Equal("潓瑦慷敲", image.MetaData.Properties[0].Name);
+            }
+        }
+
+        [Theory]
+        [InlineData(TestImages.Png.Bpp1, 1)]
+        [InlineData(TestImages.Png.Gray4Bpp, 4)]
+        [InlineData(TestImages.Png.Palette8Bpp, 8)]
+        [InlineData(TestImages.Png.Pd, 24)]
+        [InlineData(TestImages.Png.Blur, 32)]
+        [InlineData(TestImages.Png.Rgb48Bpp, 48)]
+        [InlineData(TestImages.Png.Rgb48BppInterlaced, 48)]
+        public void DetectPixelSize(string imagePath, int expectedPixelSize)
+        {
+            TestFile testFile = TestFile.Create(imagePath);
+            using (var stream = new MemoryStream(testFile.Bytes, false))
+            {
+                Assert.Equal(expectedPixelSize, Image.DetectPixelSize(stream));
             }
         }
     }

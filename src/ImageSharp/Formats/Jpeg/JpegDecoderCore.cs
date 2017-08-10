@@ -30,6 +30,11 @@ namespace ImageSharp.Formats
         /// </summary>
         public const int MaxTq = 3;
 
+        /// <summary>
+        /// The only supported precision
+        /// </summary>
+        public const int SupportedPrecision = 8;
+
         // Complex value type field + mutable + available to other classes = the field MUST NOT be private :P
 #pragma warning disable SA1401 // FieldsMustBePrivate
 
@@ -191,7 +196,7 @@ namespace ImageSharp.Formats
         public bool IgnoreMetadata { get; private set; }
 
         /// <summary>
-        /// Decodes the image from the specified <see cref="Stream"/>  and sets
+        /// Decodes the image from the specified <see cref="Stream"/> and sets
         /// the data to image.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
@@ -206,6 +211,17 @@ namespace ImageSharp.Formats
             Image<TPixel> image = this.ConvertJpegPixelsToImagePixels<TPixel>(metadata);
 
             return image;
+        }
+
+        /// <summary>
+        /// Detects the image pixel size from the specified stream.
+        /// </summary>
+        /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
+        /// <returns>The color depth, in number of bits per pixel</returns>
+        public int DetectPixelSize(Stream stream)
+        {
+            this.ProcessStream(new ImageMetaData(), stream, true);
+            return this.ComponentCount * SupportedPrecision;
         }
 
         /// <summary>
@@ -1196,7 +1212,7 @@ namespace ImageSharp.Formats
             this.InputProcessor.ReadFull(this.Temp, 0, remaining);
 
             // We only support 8-bit precision.
-            if (this.Temp[0] != 8)
+            if (this.Temp[0] != SupportedPrecision)
             {
                 throw new ImageFormatException("Only 8-Bit precision supported.");
             }
@@ -1238,7 +1254,7 @@ namespace ImageSharp.Formats
 
                 if (h == 3 || v == 3)
                 {
-                    throw new ImageFormatException("Lnsupported subsampling ratio");
+                    throw new ImageFormatException("Unsupported subsampling ratio");
                 }
 
                 switch (this.ComponentCount)

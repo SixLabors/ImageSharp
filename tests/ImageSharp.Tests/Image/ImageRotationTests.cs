@@ -45,9 +45,9 @@ namespace ImageSharp.Tests
             TestFile file = TestFile.Create(TestImages.Bmp.Car);
             using (Image<Rgba32> image = Image.Load<Rgba32>(file.FilePath))
             {
-                Size expected = image.Bounds.Size;
+                Size original = image.Bounds.Size;
                 image.Rotate(angle);
-                return (expected, image.Bounds.Size);
+                return (original, image.Bounds.Size);
             }
         }
     }

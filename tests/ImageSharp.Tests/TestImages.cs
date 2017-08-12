@@ -41,6 +41,9 @@ namespace ImageSharp.Tests
             public const string VimImage1 = "Png/vim16x16_1.png";
             public const string VimImage2 = "Png/vim16x16_2.png";
 
+            public const string VersioningImage1 = "Png/versioning-1_1.png";
+            public const string VersioningImage2 = "Png/versioning-1_2.png";
+
             public static class Bad
             {
                 // Odd chunk lengths
@@ -53,7 +56,8 @@ namespace ImageSharp.Tests
                 P1, Pd, Blur, Splash, Cross,
                 Powerpoint, SplashInterlaced, Interlaced,
                 Filter0, Filter1, Filter2, Filter3, Filter4,
-                FilterVar, VimImage1, VimImage2
+                FilterVar, VimImage1, VimImage2, VersioningImage1,
+                VersioningImage2
             };
         }
 

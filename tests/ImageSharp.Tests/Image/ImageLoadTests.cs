@@ -1,4 +1,4 @@
-﻿// <copyright file="PixelAccessorTests.cs" company="James Jackson-South">
+﻿// <copyright file="ImageLoadTests.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -321,27 +321,13 @@ namespace ImageSharp.Tests
         }
 
         [Fact]
-        public void TestThatTwoImagesAreEqual()
+        public void LoadsImageWithoutThrowingCrcException()
         {
-            var image1Provider = TestImageProvider<Rgba32>.File(TestImages.Png.VimImage1);
-            var image2Provider = TestImageProvider<Rgba32>.File(TestImages.Png.VimImage2);
+            var image1Provider = TestImageProvider<Rgba32>.File(TestImages.Png.VersioningImage1);
 
-            using (Image<Rgba32> img1 = image1Provider.GetImage())
-            using (Image<Rgba32> img2 = image2Provider.GetImage())
+            using (Image<Rgba32> img = image1Provider.GetImage())
             {
-                Assert.Equal(img1.Width, img2.Width);
-                Assert.Equal(img1.Height, img2.Height);
-
-                for (int y = 0; y < img1.Height; y++)
-                {
-                    for (int x = 0; x < img1.Width; x++)
-                    {
-                        Rgba32 pixel1 = img1[x, y];
-                        Rgba32 pixel2 = img2[x, y];
-
-                        Assert.Equal(pixel1, pixel2);
-                    }
-                }
+                Assert.Equal(166036, img.Pixels.Length);
             }
         }
 

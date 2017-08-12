@@ -5,72 +5,10 @@
 
 namespace ImageSharp.Tests
 {
-    using System;
-    using System.IO;
-
-    using ImageSharp.Formats;
-    using ImageSharp.IO;
-    using ImageSharp.Tests;
-    using Moq;
     using Xunit;
 
     public class ImageEqualTests
     {
-        //private readonly Mock<IFileSystem> fileSystem;
-        //private Image<Rgba32> returnImage;
-        //private Mock<IImageDecoder> localDecoder;
-        //private readonly string FilePath;
-        //private readonly Mock<IImageFormatDetector> localMimeTypeDetector;
-        //private readonly Mock<IImageFormat> localImageFormatMock;
-
-        //public Configuration LocalConfiguration { get; private set; }
-        //public byte[] Marker { get; private set; }
-        //public MemoryStream DataStream { get; private set; }
-        //public byte[] DecodedData { get; private set; }
-
-        public ImageEqualTests()
-        {
-            //this.returnImage = new Image<Rgba32>(1, 1);
-
-            //this.localImageFormatMock = new Mock<IImageFormat>();
-
-            //this.localDecoder = new Mock<IImageDecoder>();
-            //this.localMimeTypeDetector = new Mock<IImageFormatDetector>();
-            //this.localMimeTypeDetector.Setup(x => x.HeaderSize).Returns(1);
-            //this.localMimeTypeDetector.Setup(x => x.DetectFormat(It.IsAny<ReadOnlySpan<byte>>())).Returns(localImageFormatMock.Object);
-
-            //this.localDecoder.Setup(x => x.Decode<Rgba32>(It.IsAny<Configuration>(), It.IsAny<Stream>()))
-
-            //    .Callback<Configuration, Stream>((c, s) =>
-            //    {
-            //        using (var ms = new MemoryStream())
-            //        {
-            //            s.CopyTo(ms);
-            //            this.DecodedData = ms.ToArray();
-            //        }
-            //    })
-            //    .Returns(this.returnImage);
-
-            //this.fileSystem = new Mock<IFileSystem>();
-
-            //this.LocalConfiguration = new Configuration()
-            //{
-            //    FileSystem = this.fileSystem.Object
-            //};
-            //this.LocalConfiguration.AddImageFormatDetector(this.localMimeTypeDetector.Object);
-            //this.LocalConfiguration.SetDecoder(localImageFormatMock.Object, this.localDecoder.Object);
-
-            //TestFormat.RegisterGloablTestFormat();
-            //this.Marker = Guid.NewGuid().ToByteArray();
-            //this.DataStream = TestFormat.GlobalTestFormat.CreateStream(this.Marker);
-
-            //this.FilePath = Guid.NewGuid().ToString();
-            //this.fileSystem.Setup(x => x.OpenRead(this.FilePath)).Returns(this.DataStream);
-
-            //TestFileSystem.RegisterGloablTestFormat();
-            //TestFileSystem.Global.AddFile(this.FilePath, this.DataStream);
-        }
-
         [Fact]
         public void TestsThatVimImagesAreEqual()
         {

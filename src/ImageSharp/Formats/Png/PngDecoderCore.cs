@@ -768,10 +768,7 @@ namespace ImageSharp.Formats
 
                 case PngColorType.Palette:
 
-                    byte[] newScanline = ToArrayByBitsLength(
-                        defilteredScanline,
-                        this.bytesPerScanline,
-                        this.header.BitDepth);
+                    byte[] newScanline = ToArrayByBitsLength(defilteredScanline, this.bytesPerScanline, this.header.BitDepth);
                     var rgba = default(Rgba32);
 
                     if (this.paletteAlpha != null && this.paletteAlpha.Length > 0)
@@ -784,15 +781,7 @@ namespace ImageSharp.Formats
                             int offset = index * 3;
 
                             rgba.A = this.paletteAlpha.Length > index ? this.paletteAlpha[index] : (byte)255;
-
-                            if (rgba.A > 0)
-                            {
-                                rgba.Rgb = this.palette.GetRgb24(offset);
-                            }
-                            else
-                            {
-                                rgba = default(Rgba32);
-                            }
+                            rgba.Rgb = this.palette.GetRgb24(offset);
 
                             color.PackFromRgba32(rgba);
                             rowSpan[x] = color;

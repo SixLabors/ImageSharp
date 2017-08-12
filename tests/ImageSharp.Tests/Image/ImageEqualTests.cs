@@ -33,7 +33,7 @@ namespace ImageSharp.Tests
             using (Image<Rgba32> img2 = image2Provider.GetImage())
             {
                 bool imagesEqual = AreImagesEqual(img1, img2);
-                //Assert.True(imagesEqual);
+                Assert.True(imagesEqual);
             }
         }
 

@@ -23,7 +23,7 @@ Built against .Net Standard 1.1 ImageSharp can be used in device, cloud, and emb
 |             |Build Status|Code Coverage|
 |-------------|:----------:|:-----------:|
 |**Linux/Mac**|[![Build Status](https://travis-ci.org/SixLabors/ImageSharp.svg)](https://travis-ci.org/SixLabors/ImageSharp)|[![Code coverage](https://codecov.io/gh/SixLabors/ImageSharp/branch/master/graph/badge.svg)](https://codecov.io/gh/SixLabors/ImageSharp)|
-|**Windows**  |[![Build Status](https://ci.appveyor.com/api/projects/status/m9pn907xdah3ca39/branch/master?svg=true)](https://ci.appveyor.com/project/SixLabors/imagesharp/branch/master)|[![Code coverage](https://codecov.io/gh/SixLabors/ImageSharp/branch/master/graph/badge.svg)](https://codecov.io/gh/SixLabors/ImageSharp)|
+|**Windows**  |[![Build Status](https://ci.appveyor.com/api/projects/status/m9pn907xdah3ca39/branch/master?svg=true)](https://ci.appveyor.com/project/six-labors/imagesharp/branch/master)|[![Code coverage](https://codecov.io/gh/SixLabors/ImageSharp/branch/master/graph/badge.svg)](https://codecov.io/gh/SixLabors/ImageSharp)|
 
 
 ### Installation

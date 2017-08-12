@@ -1,5 +1,5 @@
 
-# <img src="https://raw.githubusercontent.com/JimBobSquarePants/ImageSharp/master/build/icons/imagesharp-logo-256.png" alt="ImageSharp" width="52"/> ImageSharp
+# <img src="https://raw.githubusercontent.com/SixLabors/ImageSharp/master/build/icons/imagesharp-logo-256.png" alt="ImageSharp" width="52"/> ImageSharp
 
 **ImageSharp** is a new, fully featured, fully managed, cross-platform, 2D graphics API designed to allow the processing of images without the use of `System.Drawing`. 
 
@@ -9,12 +9,12 @@ Built against .Net Standard 1.1 ImageSharp can be used in device, cloud, and emb
 >
 > Pre-release downloads are available from the [MyGet package repository](https://www.myget.org/gallery/imagesharp).
 
-[![GitHub license](https://img.shields.io/badge/license-Apache%202-blue.svg)](https://raw.githubusercontent.com/JimBobSquarePants/ImageSharp/master/APACHE-2.0-LICENSE.txt)
-[![GitHub issues](https://img.shields.io/github/issues/JimBobSquarePants/ImageSharp.svg)](https://github.com/JimBobSquarePants/ImageSharp/issues)
-[![GitHub stars](https://img.shields.io/github/stars/JimBobSquarePants/ImageSharp.svg)](https://github.com/JimBobSquarePants/ImageSharp/stargazers)
-[![GitHub forks](https://img.shields.io/github/forks/JimBobSquarePants/ImageSharp.svg)](https://github.com/JimBobSquarePants/ImageSharp/network)
+[![GitHub license](https://img.shields.io/badge/license-Apache%202-blue.svg)](https://raw.githubusercontent.com/SixLabors/ImageSharp/master/APACHE-2.0-LICENSE.txt)
+[![GitHub issues](https://img.shields.io/github/issues/SixLabors/ImageSharp.svg)](https://github.com/SixLabors/ImageSharp/issues)
+[![GitHub stars](https://img.shields.io/github/stars/SixLabors/ImageSharp.svg)](https://github.com/SixLabors/ImageSharp/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/SixLabors/ImageSharp.svg)](https://github.com/SixLabors/ImageSharp/network)
 [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/ImageSharp/General?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-[![Twitter](https://img.shields.io/twitter/url/https/github.com/JimBobSquarePants/ImageSharp.svg?style=social)](https://twitter.com/intent/tweet?hashtags=imagesharp,dotnet,oss&text=ImageSharp.+A+new+cross-platform+2D+graphics+API+in+C%23&url=https%3a%2f%2fgithub.com%2fJimBobSquarePants%2fImageSharp&via=james_m_south)
+[![Twitter](https://img.shields.io/twitter/url/https/github.com/SixLabors/ImageSharp.svg?style=social)](https://twitter.com/intent/tweet?hashtags=imagesharp,dotnet,oss&text=ImageSharp.+A+new+cross-platform+2D+graphics+API+in+C%23&url=https%3a%2f%2fgithub.com%2fSixLabors%2fImageSharp&via=sixlabors)
 [![OpenCollective](https://opencollective.com/imagesharp/backers/badge.svg)](#backers) 
 [![OpenCollective](https://opencollective.com/imagesharp/sponsors/badge.svg)](#sponsors)
 
@@ -22,8 +22,8 @@ Built against .Net Standard 1.1 ImageSharp can be used in device, cloud, and emb
 
 |             |Build Status|Code Coverage|
 |-------------|:----------:|:-----------:|
-|**Linux/Mac**|[![Build Status](https://travis-ci.org/JimBobSquarePants/ImageSharp.svg)](https://travis-ci.org/JimBobSquarePants/ImageSharp)|[![Code coverage](https://codecov.io/gh/JimBobSquarePants/ImageSharp/branch/master/graph/badge.svg)](https://codecov.io/gh/JimBobSquarePants/ImageSharp)|
-|**Windows**  |[![Build Status](https://ci.appveyor.com/api/projects/status/hu6d1gdpxdw0q360/branch/master?svg=true)](https://ci.appveyor.com/project/JamesSouth/imagesharp/branch/master)|[![Code coverage](https://codecov.io/gh/JimBobSquarePants/ImageSharp/branch/master/graph/badge.svg)](https://codecov.io/gh/JimBobSquarePants/ImageSharp)|
+|**Linux/Mac**|[![Build Status](https://travis-ci.org/SixLabors/ImageSharp.svg)](https://travis-ci.org/SixLabors/ImageSharp)|[![Code coverage](https://codecov.io/gh/SixLabors/ImageSharp/branch/master/graph/badge.svg)](https://codecov.io/gh/SixLabors/ImageSharp)|
+|**Windows**  |[![Build Status](https://ci.appveyor.com/api/projects/status/m9pn907xdah3ca39/branch/master?svg=true)](https://ci.appveyor.com/project/SixLabors/imagesharp/branch/master)|[![Code coverage](https://codecov.io/gh/SixLabors/ImageSharp/branch/master/graph/badge.svg)](https://codecov.io/gh/SixLabors/ImageSharp)|
 
 
 ### Installation
@@ -64,7 +64,7 @@ Alternatively on Linux you can use:
 To clone it locally click the "Clone in Windows" button above or run the following git commands.
 
 ```bash
-git clone https://github.com/JimBobSquarePants/ImageSharp
+git clone https://github.com/SixLabors/ImageSharp
 ```
 
 ### Features
@@ -121,7 +121,7 @@ For optimized access within a loop it is recommended that the following methods 
 1. `image.GetRowSpan(y)`
 2. `image.GetRowSpan(x, y)`
 
-For advanced pixel format usage there are multiple [PixelFormat implementations](https://github.com/JimBobSquarePants/ImageSharp/tree/master/src/ImageSharp/PixelFormats) available allowing developers to implement their own color models in the same manner as Microsoft XNA Game Studio and MonoGame. 
+For advanced pixel format usage there are multiple [PixelFormat implementations](https://github.com/SixLabors/ImageSharp/tree/master/src/ImageSharp/PixelFormats) available allowing developers to implement their own color models in the same manner as Microsoft XNA Game Studio and MonoGame. 
 
 All in all this should allow image processing to be much more accessible to developers which has always been my goal from the start.
 

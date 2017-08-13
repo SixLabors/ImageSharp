@@ -28,7 +28,7 @@ namespace ImageSharp.Tests
         /// The formats directory, as lazy value
         /// </summary>
         // ReSharper disable once InconsistentNaming
-        private static readonly Lazy<string> formatsDirectory = new Lazy<string>(TestEnvironment.GetInputImagesDirectoryFullPath);
+        private static readonly Lazy<string> inputImagesDirectory = new Lazy<string>(() => TestEnvironment.InputImagesDirectoryFullPath);
         
         /// <summary>
         /// The image.
@@ -73,12 +73,12 @@ namespace ImageSharp.Tests
         public string FileNameWithoutExtension => Path.GetFileNameWithoutExtension(this.file);
 
         /// <summary>
-        /// Gets the "Formats" test file directory.
+        /// Gets the Input Images directory.
         /// </summary>
-        private static string FormatsDirectory => formatsDirectory.Value;
+        private static string InputImagesDirectory => inputImagesDirectory.Value;
         
         /// <summary>
-        /// Gets the full qualified path to the file.
+        /// Gets the full qualified path to the input test file.
         /// </summary>
         /// <param name="file">
         /// The file path.
@@ -86,9 +86,9 @@ namespace ImageSharp.Tests
         /// <returns>
         /// The <see cref="string"/>.
         /// </returns>
-        public static string GetPath(string file)
+        public static string GetInputFileFullPath(string file)
         {
-            return Path.Combine(FormatsDirectory, file);
+            return Path.Combine(InputImagesDirectory, file);
         }
 
         /// <summary>
@@ -100,7 +100,7 @@ namespace ImageSharp.Tests
         /// </returns>
         public static TestFile Create(string file)
         {
-            return Cache.GetOrAdd(file, (string fileName) => new TestFile(GetPath(file)));
+            return Cache.GetOrAdd(file, (string fileName) => new TestFile(GetInputFileFullPath(file)));
         }
 
         /// <summary>

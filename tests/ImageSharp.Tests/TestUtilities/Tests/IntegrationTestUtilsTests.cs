@@ -35,7 +35,7 @@ namespace ImageSharp.Tests
         public void FromSystemDrawingBitmap<TPixel>(TestImageProvider<TPixel> dummyProvider)
             where TPixel : struct, IPixel<TPixel>
         {
-            string path = TestFile.GetPath(TestImages.Png.Splash);
+            string path = TestFile.GetInputFileFullPath(TestImages.Png.Splash);
 
             using (var sdBitmap = new System.Drawing.Bitmap(path))
             {
@@ -51,7 +51,7 @@ namespace ImageSharp.Tests
         public void OpenWithReferenceDecoder<TPixel>(TestImageProvider<TPixel> dummyProvider)
             where TPixel : struct, IPixel<TPixel>
         {
-            string path = TestFile.GetPath(TestImages.Png.Splash);
+            string path = TestFile.GetInputFileFullPath(TestImages.Png.Splash);
             using (Image<TPixel> image = Image.Load<TPixel>(path, ReferenceDecoder.Instance))
             {
                 image.DebugSave(dummyProvider);

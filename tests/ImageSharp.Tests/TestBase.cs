@@ -25,9 +25,7 @@ namespace ImageSharp.Tests
         /// </returns>
         protected string CreateOutputDirectory(string path, params string[] pathParts)
         {
-            string assemblyLocation = typeof(TestFile).GetTypeInfo().Assembly.Location;
-            assemblyLocation = Path.GetDirectoryName(assemblyLocation);
-            path = Path.GetFullPath(Path.Combine(assemblyLocation, "../../../TestOutput", path));
+            path = Path.Combine(TestEnvironment.ActualOutputDirectoryFullPath, path);
 
             if (pathParts != null && pathParts.Length > 0)
             {

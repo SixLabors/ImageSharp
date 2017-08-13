@@ -111,7 +111,7 @@ namespace ImageSharp.Benchmarks.General
         [Params(128)]
         public int Count { get; set; }
 
-        [Setup]
+        [GlobalSetup]
         public void Setup()
         {
             this.compatibleMemoryLayoutRunner = new ConversionRunner<TestRgba>(this.Count);

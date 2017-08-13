@@ -6,45 +6,28 @@
 namespace ImageSharp.Tests.Processing.ColorMatrix
 {
     using ImageSharp.PixelFormats;
+    using ImageSharp.Processing.Processors;
     using SixLabors.Primitives;
     using Xunit;
 
-    public class HueTest : FileTestBase
+    public class HueTest : BaseImageOperationsExtensionTest
     {
-        public static readonly TheoryData<int> HueValues
-        = new TheoryData<int>
+        [Fact]
+        public void Hue_amount_HueProcessorDefaultsSet()
         {
-            180,
-           -180
-        };
+            this.operations.Hue(34f);
+            var processor = this.Verify<HueProcessor<Rgba32>>();
 
-        [Theory]
-        [WithFileCollection(nameof(DefaultFiles), nameof(HueValues), DefaultPixelType)]
-        public void ImageShouldApplyHueFilter<TPixel>(TestImageProvider<TPixel> provider, int value)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.Hue(value)
-                    .DebugSave(provider, value);
-            }
+            Assert.Equal(34f, processor.Angle);
         }
 
-        [Theory]
-        [WithFileCollection(nameof(DefaultFiles), nameof(HueValues), DefaultPixelType)]
-        public void ImageShouldApplyHueFilterInBox<TPixel>(TestImageProvider<TPixel> provider, int value)
-            where TPixel : struct, IPixel<TPixel>
+        [Fact]
+        public void Hue_amount_rect_HueProcessorDefaultsSet()
         {
-            using (Image<TPixel> source = provider.GetImage())
-            using (var image = new Image<TPixel>(source))
-            {
-                var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
+            this.operations.Hue(5f, this.rect);
+            var processor = this.Verify<HueProcessor<Rgba32>>(this.rect);
 
-                image.Hue(value, bounds)
-                    .DebugSave(provider, value);
-
-                ImageComparer.EnsureProcessorChangesAreConstrained(source, image, bounds);
-            }
+            Assert.Equal(5f, processor.Angle);
         }
     }
 }

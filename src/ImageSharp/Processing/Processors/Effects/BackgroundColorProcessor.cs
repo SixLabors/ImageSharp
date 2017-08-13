@@ -33,6 +33,11 @@ namespace ImageSharp.Processing.Processors
         }
 
         /// <summary>
+        /// Gets the Graphics options to alter how processor is applied.
+        /// </summary>
+        public GraphicsOptions GraphicsOptions => this.options;
+
+        /// <summary>
         /// Gets the background color value.
         /// </summary>
         public TPixel Value { get; }

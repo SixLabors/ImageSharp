@@ -24,11 +24,9 @@ namespace ImageSharp
         /// <param name="source">The image this method extends.</param>
         /// <param name="percent">The new opacity of the image. Must be between 0 and 1.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> Alpha<TPixel>(this Image<TPixel> source, float percent)
+        public static IImageProcessingContext<TPixel> Alpha<TPixel>(this IImageProcessingContext<TPixel> source, float percent)
             where TPixel : struct, IPixel<TPixel>
-        {
-            return Alpha(source, percent, source.Bounds);
-        }
+        => source.ApplyProcessor(new AlphaProcessor<TPixel>(percent));
 
         /// <summary>
         /// Alters the alpha component of the image.
@@ -40,11 +38,8 @@ namespace ImageSharp
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> Alpha<TPixel>(this Image<TPixel> source, float percent, Rectangle rectangle)
+        public static IImageProcessingContext<TPixel> Alpha<TPixel>(this IImageProcessingContext<TPixel> source, float percent, Rectangle rectangle)
             where TPixel : struct, IPixel<TPixel>
-        {
-            source.ApplyProcessor(new AlphaProcessor<TPixel>(percent), rectangle);
-            return source;
-        }
+        => source.ApplyProcessor(new AlphaProcessor<TPixel>(percent), rectangle);
     }
 }

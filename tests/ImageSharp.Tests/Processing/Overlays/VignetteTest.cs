@@ -5,63 +5,62 @@
 
 namespace ImageSharp.Tests.Processing.Overlays
 {
+    using System;
     using ImageSharp.PixelFormats;
+    using ImageSharp.Processing.Processors;
+    using ImageSharp.Tests.TestUtilities;
     using SixLabors.Primitives;
     using Xunit;
 
-    public class VignetteTest : FileTestBase
+    public class VignetteTest : BaseImageOperationsExtensionTest
     {
-        [Theory]
-        [WithFileCollection(nameof(DefaultFiles), DefaultPixelType)]
-        public void ImageShouldApplyVignetteFilter<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+        [Fact]
+        public void Vignette_VignetteProcessorWithDefaultValues()
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.Vignette()
-                    .DebugSave(provider, null);
-            }
+            this.operations.Vignette();
+            var p = this.Verify<VignetteProcessor<Rgba32>>();
+
+            Assert.Equal(GraphicsOptions.Default, p.GraphicsOptions);
+            Assert.Equal(Rgba32.Black, p.VignetteColor);
+            Assert.Equal(ValueSize.PercentageOfWidth(.5f), p.RadiusX);
+            Assert.Equal(ValueSize.PercentageOfHeight(.5f), p.RadiusY);
         }
 
-        [Theory]
-        [WithFileCollection(nameof(DefaultFiles), DefaultPixelType)]
-        public void ImageShouldApplyVignetteFilterColor<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+        [Fact]
+        public void Vignette_Color_VignetteProcessorWithDefaultValues()
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.Vignette(NamedColors<TPixel>.Orange)
-                    .DebugSave(provider, null);
-            }
+            this.operations.Vignette(Rgba32.Aquamarine);
+            var p = this.Verify<VignetteProcessor<Rgba32>>();
+
+            Assert.Equal(GraphicsOptions.Default, p.GraphicsOptions);
+            Assert.Equal(Rgba32.Aquamarine, p.VignetteColor);
+            Assert.Equal(ValueSize.PercentageOfWidth(.5f), p.RadiusX);
+            Assert.Equal(ValueSize.PercentageOfHeight(.5f), p.RadiusY);
         }
 
-        [Theory]
-        [WithFileCollection(nameof(DefaultFiles), DefaultPixelType)]
-        public void ImageShouldApplyVignetteFilterRadius<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+        [Fact]
+        public void Vignette_Radux_VignetteProcessorWithDefaultValues()
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.Vignette(image.Width / 4F, image.Height / 4F)
-                    .DebugSave(provider, null);
-            }
+            this.operations.Vignette(3.5f, 12123f);
+            var p = this.Verify<VignetteProcessor<Rgba32>>();
+
+            Assert.Equal(GraphicsOptions.Default, p.GraphicsOptions);
+            Assert.Equal(Rgba32.Black, p.VignetteColor);
+            Assert.Equal(ValueSize.Absolute(3.5f), p.RadiusX);
+            Assert.Equal(ValueSize.Absolute(12123f), p.RadiusY);
         }
 
-        [Theory]
-        [WithFileCollection(nameof(DefaultFiles), DefaultPixelType)]
-        public void ImageShouldApplyVignetteFilterInBox<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+        [Fact]
+        public void Vignette_Rect_VignetteProcessorWithDefaultValues()
         {
-            using (Image<TPixel> source = provider.GetImage())
-            using (var image = new Image<TPixel>(source))
-            {
-                var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
+            var rect = new Rectangle(12, 123, 43, 65);
+            this.operations.Vignette(rect);
+            var p = this.Verify<VignetteProcessor<Rgba32>>(rect);
 
-                image.Vignette(bounds)
-                    .DebugSave(provider, null);
-
-                ImageComparer.EnsureProcessorChangesAreConstrained(source, image, bounds);
-            }
+            Assert.Equal(GraphicsOptions.Default, p.GraphicsOptions);
+            Assert.Equal(Rgba32.Black, p.VignetteColor);
+            Assert.Equal(ValueSize.PercentageOfWidth(.5f), p.RadiusX);
+            Assert.Equal(ValueSize.PercentageOfHeight(.5f), p.RadiusY);
         }
     }
 }

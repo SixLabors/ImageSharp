@@ -19,7 +19,6 @@ namespace ImageSharp
     /// images in different pixel formats.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    [DebuggerDisplay("Image: {Width}x{Height}")]
     public abstract class ImageBase<TPixel> : IImageBase<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
@@ -105,12 +104,8 @@ namespace ImageSharp
 
             // Rent then copy the pixels. Unsafe.CopyBlock gives us a nice speed boost here.
             this.RentPixels();
-            using (PixelAccessor<TPixel> sourcePixels = other.Lock())
-            using (PixelAccessor<TPixel> target = this.Lock())
-            {
-                // Check we can do this without crashing
-                sourcePixels.CopyTo(target);
-            }
+
+            other.Pixels.CopyTo(this.Pixels);
         }
 
         /// <inheritdoc/>
@@ -121,12 +116,6 @@ namespace ImageSharp
 
         /// <inheritdoc/>
         public int Height { get; private set; }
-
-        /// <inheritdoc/>
-        public double PixelRatio => (double)this.Width / this.Height;
-
-        /// <inheritdoc/>
-        public Rectangle Bounds => new Rectangle(0, 0, this.Width, this.Height);
 
         /// <summary>
         /// Gets the configuration providing initialization code which allows extending the library.
@@ -195,13 +184,12 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Applies the processor.
+        /// Clones the image
         /// </summary>
-        /// <param name="processor">The processor.</param>
-        /// <param name="rectangle">The rectangle.</param>
-        public virtual void ApplyProcessor(IImageProcessor<TPixel> processor, Rectangle rectangle)
+        /// <returns>A new items which is a clone of the original.</returns>
+        public ImageBase<TPixel> Clone()
         {
-            processor.Apply(this, rectangle);
+            return this.CloneInternal();
         }
 
         /// <inheritdoc />
@@ -255,6 +243,33 @@ namespace ImageSharp
             this.Height = newHeight;
             this.PixelBuffer = newPixels;
         }
+
+        /// <summary>
+        /// Switches the buffers used by the image and the pixelSource meaning that the Image will "own" the buffer from the pixelSource and the pixelSource will now own the Images buffer.
+        /// </summary>
+        /// <param name="pixelSource">The pixel source.</param>
+        internal void SwapPixelsData(ImageBase<TPixel> pixelSource)
+        {
+            Guard.NotNull(pixelSource, nameof(pixelSource));
+
+            int newWidth = pixelSource.Width;
+            int newHeight = pixelSource.Height;
+            TPixel[] newPixels = pixelSource.PixelBuffer;
+
+            pixelSource.PixelBuffer = this.PixelBuffer;
+            pixelSource.Width = this.Width;
+            pixelSource.Height = this.Height;
+
+            this.Width = newWidth;
+            this.Height = newHeight;
+            this.PixelBuffer = newPixels;
+        }
+
+        /// <summary>
+        /// Clones the image
+        /// </summary>
+        /// <returns>A new items which is a clone of the original.</returns>
+        protected abstract ImageBase<TPixel> CloneInternal();
 
         /// <summary>
         /// Copies the properties from the other <see cref="IImageBase"/>.

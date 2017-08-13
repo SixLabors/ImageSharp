@@ -28,24 +28,24 @@ namespace ImageSharp.Processing.Processors
         public EntropyCropProcessor(float threshold)
         {
             Guard.MustBeBetweenOrEqualTo(threshold, 0, 1, nameof(threshold));
-            this.Value = threshold;
+            this.Threshold = threshold;
         }
 
         /// <summary>
         /// Gets the threshold value.
         /// </summary>
-        public float Value { get; }
+        public float Threshold { get; }
 
         /// <inheritdoc/>
         protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
         {
-            using (ImageBase<TPixel> temp = new Image<TPixel>(source))
+            using (ImageBase<TPixel> temp = source.Clone())
             {
                 // Detect the edges.
                 new SobelProcessor<TPixel>().Apply(temp, sourceRectangle);
 
                 // Apply threshold binarization filter.
-                new BinaryThresholdProcessor<TPixel>(this.Value).Apply(temp, sourceRectangle);
+                new BinaryThresholdProcessor<TPixel>(this.Threshold).Apply(temp, sourceRectangle);
 
                 // Search for the first white pixels
                 Rectangle rectangle = ImageMaths.GetFilteredBoundingRectangle(temp, 0);

@@ -50,7 +50,7 @@ namespace ImageSharp.Tests
             {
                 using (Image<Rgba32> image = file.CreateImage())
                 {
-                        image.Save($"{path}/{file.FileName}");
+                    image.Save($"{path}/{file.FileName}");
                 }
             }
         }
@@ -64,31 +64,31 @@ namespace ImageSharp.Tests
             {
                 using (Image<Rgba32> srcImage = Image.Load<Rgba32>(file.Bytes, out var mimeType))
                 {
-                    using (Image<Rgba32> image = new Image<Rgba32>(srcImage))
+                    using (Image<Rgba32> image = srcImage.Clone())
                     {
                         using (FileStream output = File.OpenWrite($"{path}/Octree-{file.FileName}"))
                         {
-                            image.Quantize(Quantization.Octree)
-                                .Save(output, mimeType);
+                            image.Mutate(x => x.Quantize(Quantization.Octree));
+                            image.Save(output, mimeType);
 
                         }
                     }
 
-                    using (Image<Rgba32> image = new Image<Rgba32>(srcImage))
+                    using (Image<Rgba32> image = srcImage.Clone())
                     {
                         using (FileStream output = File.OpenWrite($"{path}/Wu-{file.FileName}"))
                         {
-                            image.Quantize(Quantization.Wu)
-                                .Save(output, mimeType);
+                            image.Mutate(x => x.Quantize(Quantization.Wu));
+                            image.Save(output, mimeType);
                         }
                     }
 
-                    using (Image<Rgba32> image = new Image<Rgba32>(srcImage))
+                    using (Image<Rgba32> image = srcImage.Clone())
                     {
                         using (FileStream output = File.OpenWrite($"{path}/Palette-{file.FileName}"))
                         {
-                            image.Quantize(Quantization.Palette)
-                                .Save(output, mimeType);
+                            image.Mutate(x => x.Quantize(Quantization.Palette));
+                            image.Save(output, mimeType);
                         }
                     }
                 }

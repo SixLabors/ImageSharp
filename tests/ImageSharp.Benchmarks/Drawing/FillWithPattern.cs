@@ -40,7 +40,7 @@ namespace ImageSharp.Benchmarks
         {
             using (Image<Rgba32> image = new Image<Rgba32>(800, 800))
             {
-                image.Fill(CoreBrushes.BackwardDiagonal(Rgba32.HotPink));
+                image.Mutate(x => x.Fill(CoreBrushes.BackwardDiagonal(Rgba32.HotPink)));
 
                 using (MemoryStream ms = new MemoryStream())
                 {

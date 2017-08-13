@@ -21,18 +21,11 @@ namespace ImageSharp.PixelFormats
         /// <summary>
         /// Returns the correct scaling function for the given types The compute scale function.
         /// </summary>
-        /// <param name="scaleFunc">The scale function.</param>
         /// <typeparam name="TPixel">The source pixel format.</typeparam>
         /// <typeparam name="TPixel2">The target pixel format.</typeparam>
         /// <returns>The <see cref="Func{Vector4,Vector4}"/></returns>
-        public static Func<Vector4, Vector4> ComputeScaleFunction<TPixel, TPixel2>(Func<Vector4, Vector4> scaleFunc)
+        public static Func<Vector4, Vector4> ComputeScaleFunction<TPixel, TPixel2>()
         {
-            // Custom type with a custom function.
-            if (scaleFunc != null)
-            {
-                return scaleFunc;
-            }
-
             Type source = typeof(TPixel);
             Type target = typeof(TPixel2);
 

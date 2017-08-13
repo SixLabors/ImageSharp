@@ -5,31 +5,17 @@
 
 namespace ImageSharp.Tests.Processing.Transforms
 {
+    using System;
     using ImageSharp.PixelFormats;
 
     using Xunit;
 
-    public class PadTest : FileTestBase
+    public class PadTest : BaseImageOperationsExtensionTest
     {
-        [Theory]
-        [WithFileCollection(nameof(DefaultFiles), DefaultPixelType)]
-        public void ImageShouldPad<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+        [Fact(Skip = "Skip this is a helper around resize, skip until resize can be refactord")]
+        public void Pad_width_height_ResizeProcessorWithCorrectOPtionsSet()
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.Pad(image.Width + 50, image.Height + 50)
-                     .DebugSave(provider, null);
-
-                // Check pixels are empty
-                for (int y = 0; y < 25; y++)
-                {
-                    for (int x = 0; x < 25; x++)
-                    {
-                        Assert.Equal(default(TPixel), image[x, y]);
-                    }
-                }
-            }
+            throw new NotImplementedException("Write test here");
         }
     }
 }

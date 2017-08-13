@@ -3,7 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.Tests.Processing.Transforms
+namespace ImageSharp.Tests.Processing.Processors.Transforms
 {
     using System;
     using System.IO;
@@ -34,7 +34,7 @@ namespace ImageSharp.Tests.Processing.Transforms
                     {
                         using (var image = new Image<Rgba32>(width, height))
                         {
-                            image.Resize(width / 4, height / 4);
+                            image.Mutate(x => x.Resize(width / 4, height / 4));
                         }
                     });
         }

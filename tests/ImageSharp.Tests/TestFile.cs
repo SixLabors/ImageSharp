@@ -27,7 +27,8 @@ namespace ImageSharp.Tests
         /// <summary>
         /// The formats directory, as lazy value
         /// </summary>
-        private static readonly string FormatsDirectory = TestEnvironment.GetInputImagesDirectoryFullPath();
+        // ReSharper disable once InconsistentNaming
+        private static readonly Lazy<string> formatsDirectory = new Lazy<string>(TestEnvironment.GetInputImagesDirectoryFullPath);
         
         /// <summary>
         /// The image.

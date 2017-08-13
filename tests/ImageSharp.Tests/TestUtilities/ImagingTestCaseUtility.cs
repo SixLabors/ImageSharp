@@ -127,20 +127,16 @@ namespace ImageSharp.Tests
         /// <param name="image">The image instance</param>
         /// <param name="extension">The requested extension</param>
         /// <param name="encoder">Optional encoder</param>
-        /// <param name="options">Optional encoder options</param>
         public void SaveTestOutputFile<TPixel>(
             Image<TPixel> image,
             string extension = null,
             IImageEncoder encoder = null,
-            IEncoderOptions options = null,
             object settings = null)
             where TPixel : struct, IPixel<TPixel>
         {
             string path = this.GetTestOutputFileName(extension: extension, settings: settings);
             string extension1 = Path.GetExtension(path);
-            encoder = encoder ?? GetImageFormatByExtension(extension);
-            IImageFormat format = GetImageFormatByExtension(extension1);
-
+            encoder = encoder ?? GetImageFormatByExtension(extension1);
             
             using (FileStream stream = File.OpenWrite(path))
             {
@@ -172,7 +168,7 @@ namespace ImageSharp.Tests
         private string GetTestOutputDir()
         {
             string testGroupName = Path.GetFileNameWithoutExtension(this.TestGroupName);
-            return CreateOutputDirectory(testGroupName);
+            return this.CreateOutputDirectory(testGroupName);
         }
     }
 }

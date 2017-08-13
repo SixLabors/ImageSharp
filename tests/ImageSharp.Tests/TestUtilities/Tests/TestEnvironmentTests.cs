@@ -19,24 +19,45 @@ namespace ImageSharp.Tests
         }
 
         private ITestOutputHelper Output { get; }
-
-
-        [Fact]
-        public void GetSolutionDirectoryFullPath()
+        
+        private void CheckPath(string path)
         {
-            string path = TestEnvironment.GetSolutionDirectoryFullPath();
             this.Output.WriteLine(path);
-
             Assert.True(Directory.Exists(path));
         }
 
         [Fact]
-        public void GetInputImagesDirectoryFullPath()
+        public void SolutionDirectoryFullPath()
         {
-            string path = TestEnvironment.GetInputImagesDirectoryFullPath();
-            this.Output.WriteLine(path);
+            this.CheckPath(TestEnvironment.SolutionDirectoryFullPath);
+        }
 
-            Assert.True(Directory.Exists(path));
+        [Fact]
+        public void InputImagesDirectoryFullPath()
+        {
+            this.CheckPath(TestEnvironment.InputImagesDirectoryFullPath);
+        }
+
+        [Fact]
+        public void ActualOutputDirectoryFullPath()
+        {
+            this.CheckPath(TestEnvironment.ActualOutputDirectoryFullPath);
+        }
+
+        [Fact]
+        public void ExpectedOutputDirectoryFullPath()
+        {
+            this.CheckPath(TestEnvironment.ReferenceOutputDirectoryFullPath);
+        }
+
+        [Fact]
+        public void GetReferenceOutputFileName()
+        {
+            string actual = Path.Combine(TestEnvironment.ActualOutputDirectoryFullPath, @"foo\bar\lol.jpeg");
+            string expected = TestEnvironment.GetReferenceOutputFileName(actual);
+
+            this.Output.WriteLine(expected);
+            Assert.Contains(TestEnvironment.ReferenceOutputDirectoryFullPath, expected);
         }
     }
 }

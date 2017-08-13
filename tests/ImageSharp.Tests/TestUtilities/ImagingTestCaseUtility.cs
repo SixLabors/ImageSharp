@@ -144,8 +144,8 @@ namespace ImageSharp.Tests
             }
         }
 
-        internal string GetReferenceOutputFileName(string extension = null, object settings = null) 
-            => this.GetTestOutputFileName(extension, settings).Replace("TestOutput", "ReferenceOutput");
+        internal string GetReferenceOutputFileName(string extension = null, object settings = null) =>
+            TestEnvironment.GetReferenceOutputFileName(this.GetTestOutputFileName(extension, settings));
 
         internal void Init(string typeName, string methodName)
         {

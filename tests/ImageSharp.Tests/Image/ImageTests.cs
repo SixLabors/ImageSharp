@@ -3,6 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
+// ReSharper disable InconsistentNaming
 namespace ImageSharp.Tests
 {
     using System;
@@ -15,7 +16,7 @@ namespace ImageSharp.Tests
     /// <summary>
     /// Tests the <see cref="Image"/> class.
     /// </summary>
-    public class ImageTests
+    public class ImageTests : FileTestBase
     {
         [Fact]
         public void ConstructorByteArray()
@@ -67,8 +68,9 @@ namespace ImageSharp.Tests
         [Fact]
         public void Save_DetecedEncoding()
         {
-            string file = TestFile.GetPath("../../TestOutput/Save_DetecedEncoding.png");
-            System.IO.DirectoryInfo dir = System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(file));
+            string dir = this.CreateOutputDirectory(nameof(ImageTests));
+            string file = System.IO.Path.Combine(dir, "Save_DetecedEncoding.png");
+
             using (Image<Rgba32> image = new Image<Rgba32>(10, 10))
             {
                 image.Save(file);
@@ -81,9 +83,11 @@ namespace ImageSharp.Tests
         }
 
         [Fact]
-        public void Save_UnknownExtensionsEncoding()
+        public void Save_WhenExtensionIsUnknown_Throws()
         {
-            string file = TestFile.GetPath("../../TestOutput/Save_DetecedEncoding.tmp");
+            string dir = this.CreateOutputDirectory(nameof(ImageTests));
+            string file = System.IO.Path.Combine(dir, "Save_UnknownExtensionsEncoding_Throws.tmp");
+
             NotSupportedException ex = Assert.Throws<NotSupportedException>(
                 () =>
                     {
@@ -97,8 +101,9 @@ namespace ImageSharp.Tests
         [Fact]
         public void Save_SetEncoding()
         {
-            string file = TestFile.GetPath("../../TestOutput/Save_SetEncoding.dat");
-            System.IO.DirectoryInfo dir = System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(file));
+            string dir = this.CreateOutputDirectory(nameof(ImageTests));
+            string file = System.IO.Path.Combine(dir, "Save_SetEncoding.dat");
+
             using (Image<Rgba32> image = new Image<Rgba32>(10, 10))
             {
                 image.Save(file, new PngEncoder());

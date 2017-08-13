@@ -12,7 +12,7 @@ namespace ImageSharp.Tests
     using System.Reflection;
 
     using ImageSharp.PixelFormats;
-    using ImageSharp.Tests.TestUtilities.Integration;
+    using ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 
     public static class TestImageExtensions
     {
@@ -24,10 +24,13 @@ namespace ImageSharp.Tests
         /// <param name="provider">The image provider</param>
         /// <param name="settings">The settings</param>
         /// <param name="extension">The extension</param>
-        public static Image<TPixel> DebugSave<TPixel>(this Image<TPixel> image, ITestImageProvider provider, object settings = null/*, string extension = "png"*/)
+        public static Image<TPixel> DebugSave<TPixel>(
+            this Image<TPixel> image,
+            ITestImageProvider provider,
+            object settings = null,
+            string extension = "png")
             where TPixel : struct, IPixel<TPixel>
         {
-            string extension = "png";
             if (TestEnvironment.RunsOnCI)
             {
                 return image;
@@ -65,7 +68,6 @@ namespace ImageSharp.Tests
             {
                 ImageComparer.VerifySimilarity(referenceImage, image, imageTheshold, segmentThreshold, scalingFactor);
             }
-
             
             return image;
         }

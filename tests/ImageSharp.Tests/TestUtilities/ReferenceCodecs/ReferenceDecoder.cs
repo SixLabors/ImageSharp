@@ -1,4 +1,4 @@
-namespace ImageSharp.Tests.TestUtilities.Integration
+namespace ImageSharp.Tests.TestUtilities.ReferenceCodecs
 {
     using System;
     using System.Drawing;
@@ -18,7 +18,7 @@ namespace ImageSharp.Tests.TestUtilities.Integration
             {
                 if (sourceBitmap.PixelFormat == System.Drawing.Imaging.PixelFormat.Format32bppArgb)
                 {
-                    return IntegrationTestUtils.FromSystemDrawingBitmap<TPixel>(sourceBitmap);
+                    return SystemDrawingBridge.FromSystemDrawingBitmap<TPixel>(sourceBitmap);
                 }
 
                 using (var convertedBitmap = new System.Drawing.Bitmap(
@@ -30,7 +30,7 @@ namespace ImageSharp.Tests.TestUtilities.Integration
                     {
                         g.DrawImage(sourceBitmap, new PointF(0, 0));
                     }
-                    return IntegrationTestUtils.FromSystemDrawingBitmap<TPixel>(convertedBitmap);
+                    return SystemDrawingBridge.FromSystemDrawingBitmap<TPixel>(convertedBitmap);
                 }
             }
         }

@@ -33,6 +33,7 @@ namespace ImageSharp.Tests.Processing.Transforms
             };
 
         [Theory]
+        [WithTestPatternImages(nameof(ReSamplers), 100, 100, DefaultPixelType)]
         [WithFileCollection(nameof(ResizeFiles), nameof(ReSamplers), DefaultPixelType)]
         public void ImageShouldResize<TPixel>(TestImageProvider<TPixel> provider, string name, IResampler sampler)
             where TPixel : struct, IPixel<TPixel>

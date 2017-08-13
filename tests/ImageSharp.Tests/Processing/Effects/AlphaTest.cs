@@ -6,45 +6,28 @@
 namespace ImageSharp.Tests.Processing.Effects
 {
     using ImageSharp.PixelFormats;
+    using ImageSharp.Processing.Processors;
     using SixLabors.Primitives;
     using Xunit;
 
-    public class AlphaTest : FileTestBase
+    public class AlphaTest : BaseImageOperationsExtensionTest
     {
-        public static readonly TheoryData<float> AlphaValues
-        = new TheoryData<float>
+        [Fact]
+        public void Alpha_amount_AlphaProcessorDefaultsSet()
         {
-            20/100F,
-            80/100F
-        };
+            this.operations.Alpha(0.2f);
+            var processor = this.Verify<AlphaProcessor<Rgba32>>();
 
-        [Theory]
-        [WithFileCollection(nameof(DefaultFiles), nameof(AlphaValues), DefaultPixelType)]
-        public void ImageShouldApplyAlphaFilter<TPixel>(TestImageProvider<TPixel> provider, float value)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.Alpha(value)
-                    .DebugSave(provider, value);
-            }
+            Assert.Equal(.2f, processor.Value);
         }
 
-        [Theory]
-        [WithFileCollection(nameof(DefaultFiles), nameof(AlphaValues), DefaultPixelType)]
-        public void ImageShouldApplyAlphaFilterInBox<TPixel>(TestImageProvider<TPixel> provider, float value)
-            where TPixel : struct, IPixel<TPixel>
+        [Fact]
+        public void Alpha_amount_rect_AlphaProcessorDefaultsSet()
         {
-            using (Image<TPixel> source = provider.GetImage())
-            using (var image = new Image<TPixel>(source))
-            {
-                var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
+            this.operations.Alpha(0.6f, this.rect);
+            var processor = this.Verify<AlphaProcessor<Rgba32>>(this.rect);
 
-                image.Alpha(value, bounds)
-                    .DebugSave(provider, value);
-
-                ImageComparer.EnsureProcessorChangesAreConstrained(source, image, bounds);
-            }
+            Assert.Equal(.6f, processor.Value);
         }
     }
 }

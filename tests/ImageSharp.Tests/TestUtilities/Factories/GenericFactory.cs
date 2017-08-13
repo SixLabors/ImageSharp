@@ -28,7 +28,7 @@ namespace ImageSharp.Tests
 
         public virtual Image<TPixel> CreateImage(Image<TPixel> other)
         {
-            return new Image<TPixel>(other);
+            return other.Clone();
         }
     }
 }

@@ -5,63 +5,57 @@
 
 namespace ImageSharp.Tests.Processing.Overlays
 {
+    using System;
     using ImageSharp.PixelFormats;
+    using ImageSharp.Processing.Processors;
     using SixLabors.Primitives;
     using Xunit;
 
-    public class GlowTest : FileTestBase
+    public class GlowTest : BaseImageOperationsExtensionTest
     {
-        [Theory]
-        [WithFileCollection(nameof(DefaultFiles), DefaultPixelType)]
-        public void ImageShouldApplyGlowFilter<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+        [Fact]
+        public void Glow_GlowProcessorWithDefaultValues()
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.Glow()
-                    .DebugSave(provider, null);
-            }
+            this.operations.Glow();
+            var p = this.Verify<GlowProcessor<Rgba32>>();
+
+            Assert.Equal(GraphicsOptions.Default, p.GraphicsOptions);
+            Assert.Equal(Rgba32.Black, p.GlowColor);
+            Assert.Equal(ValueSize.PercentageOfWidth(.5f), p.Radius);
         }
 
-        [Theory]
-        [WithFileCollection(nameof(DefaultFiles), DefaultPixelType)]
-        public void ImageShouldApplyGlowFilterColor<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+        [Fact]
+        public void Glow_Color_GlowProcessorWithDefaultValues()
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.Glow(NamedColors<TPixel>.Orange)
-                    .DebugSave(provider, null);
-            }
+            this.operations.Glow(Rgba32.Aquamarine);
+            var p = this.Verify<GlowProcessor<Rgba32>>();
+
+            Assert.Equal(GraphicsOptions.Default, p.GraphicsOptions);
+            Assert.Equal(Rgba32.Aquamarine, p.GlowColor);
+            Assert.Equal(ValueSize.PercentageOfWidth(.5f), p.Radius);
         }
 
-        [Theory]
-        [WithFileCollection(nameof(DefaultFiles), DefaultPixelType)]
-        public void ImageShouldApplyGlowFilterRadius<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+        [Fact]
+        public void Glow_Radux_GlowProcessorWithDefaultValues()
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.Glow(image.Width / 4F)
-                    .DebugSave(provider, null);
-            }
+            this.operations.Glow(3.5f);
+            var p = this.Verify<GlowProcessor<Rgba32>>();
+
+            Assert.Equal(GraphicsOptions.Default, p.GraphicsOptions);
+            Assert.Equal(Rgba32.Black, p.GlowColor);
+            Assert.Equal(ValueSize.Absolute(3.5f), p.Radius);
         }
 
-        [Theory]
-        [WithFileCollection(nameof(DefaultFiles), DefaultPixelType)]
-        public void ImageShouldApplyGlowFilterInBox<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+        [Fact]
+        public void Glow_Rect_GlowProcessorWithDefaultValues()
         {
-            using (Image<TPixel> source = provider.GetImage())
-            using (var image = new Image<TPixel>(source))
-            {
-                var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
+            var rect = new Rectangle(12, 123, 43, 65);
+            this.operations.Glow(rect);
+            var p = this.Verify<GlowProcessor<Rgba32>>(rect);
 
-                image.Glow(bounds)
-                    .DebugSave(provider, null);
-
-                ImageComparer.EnsureProcessorChangesAreConstrained(source, image, bounds);
-            }
+            Assert.Equal(GraphicsOptions.Default, p.GraphicsOptions);
+            Assert.Equal(Rgba32.Black, p.GlowColor);
+            Assert.Equal(ValueSize.PercentageOfWidth(.5f), p.Radius);
         }
     }
 }

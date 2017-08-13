@@ -70,7 +70,7 @@ namespace ImageSharp.Quantizers
             if (this.Dither)
             {
                 // We clone the image as we don't want to alter the original.
-                using (var clone = new Image<TPixel>(image))
+                using (ImageBase<TPixel> clone = image.Clone())
                 {
                     this.SecondPass(clone, quantizedPixels, width, height);
                 }

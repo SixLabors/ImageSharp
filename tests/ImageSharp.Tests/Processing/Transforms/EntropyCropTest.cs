@@ -5,29 +5,23 @@
 
 namespace ImageSharp.Tests.Processing.Transforms
 {
+    using System;
     using ImageSharp.PixelFormats;
-
+    using ImageSharp.Processing.Processors;
     using Xunit;
 
-    public class EntropyCropTest : FileTestBase
+    public class EntropyCropTest : BaseImageOperationsExtensionTest
     {
-        public static readonly TheoryData<float> EntropyCropValues
-        = new TheoryData<float>
-        {
-            .25F,
-            .75F
-        };
 
         [Theory]
-        [WithFileCollection(nameof(DefaultFiles), nameof(EntropyCropValues), DefaultPixelType)]
-        public void ImageShouldEntropyCrop<TPixel>(TestImageProvider<TPixel> provider, float value)
-            where TPixel : struct, IPixel<TPixel>
+        [InlineData(0.5f)]
+        [InlineData(.2f)]
+        public void EntropyCrop_threasholdFloat_EntropyCropProcessorWithThreshold(float threashold)
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.EntropyCrop(value)
-                    .DebugSave(provider, value);
-            }
+            this.operations.EntropyCrop(threashold);
+            var processor = this.Verify<EntropyCropProcessor<Rgba32>>();
+
+            Assert.Equal(threashold, processor.Threshold);
         }
     }
 }

@@ -16,7 +16,7 @@ namespace ImageSharp.Processing.Processors
     /// Adapted from <see href="http://www.realtimerendering.com/resources/GraphicsGems/gemsiii/filter_rcg.c"/>
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal abstract partial class ResamplingWeightedProcessor<TPixel> : ImageProcessor<TPixel>
+    internal abstract partial class ResamplingWeightedProcessor<TPixel> : CloningImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
@@ -46,19 +46,19 @@ namespace ImageSharp.Processing.Processors
         public IResampler Sampler { get; }
 
         /// <summary>
-        /// Gets the width.
+        /// Gets or sets the width.
         /// </summary>
-        public int Width { get; }
+        public int Width { get; protected set; }
 
         /// <summary>
-        /// Gets the height.
+        /// Gets or sets the height.
         /// </summary>
-        public int Height { get; }
+        public int Height { get; protected set; }
 
         /// <summary>
-        /// Gets the resize rectangle.
+        /// Gets or sets the resize rectangle.
         /// </summary>
-        public Rectangle ResizeRectangle { get; }
+        public Rectangle ResizeRectangle { get; protected set; }
 
         /// <summary>
         /// Gets or sets the horizontal weights.
@@ -140,7 +140,7 @@ namespace ImageSharp.Processing.Processors
         }
 
         /// <inheritdoc/>
-        protected override void BeforeApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        protected override void BeforeApply(ImageBase<TPixel> source, ImageBase<TPixel> destination, Rectangle sourceRectangle)
         {
             if (!(this.Sampler is NearestNeighborResampler))
             {
@@ -155,9 +155,9 @@ namespace ImageSharp.Processing.Processors
         }
 
         /// <inheritdoc />
-        protected override void AfterApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        protected override void AfterApply(ImageBase<TPixel> source, ImageBase<TPixel> destination, Rectangle sourceRectangle)
         {
-            base.AfterApply(source, sourceRectangle);
+            base.AfterApply(source, destination, sourceRectangle);
             this.HorizontalWeights?.Dispose();
             this.HorizontalWeights = null;
             this.VerticalWeights?.Dispose();

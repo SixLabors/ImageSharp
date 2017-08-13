@@ -34,10 +34,10 @@ namespace ImageSharp.Tests.Drawing
             // var clipped = new Rectangle(10, 10, 100, 100).Clip(new Rectangle(20, 0, 20, 20));
             using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
-                image
+                image.Mutate(x => x
                     .BackgroundColor(Rgba32.Blue)
-                    .Fill(Rgba32.HotPink, clipped)
-                    .Save($"{path}/Simple.png");
+                    .Fill(Rgba32.HotPink, clipped));
+                image.Save($"{path}/Simple.png");
 
                 using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
                 {
@@ -66,10 +66,10 @@ namespace ImageSharp.Tests.Drawing
 
             using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
-                image
+                image.Mutate(x => x
                     .BackgroundColor(Rgba32.Blue)
-                    .Fill(Rgba32.HotPink, simplePath.Clip(hole1))
-                    .Save($"{path}/SimpleOverlapping.png");
+                    .Fill(Rgba32.HotPink, simplePath.Clip(hole1)));
+                image.Save($"{path}/SimpleOverlapping.png");
 
                 using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
                 {
@@ -98,10 +98,10 @@ namespace ImageSharp.Tests.Drawing
 
             using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
-                image
+                image.Mutate(x => x
                     .BackgroundColor(Rgba32.Blue)
-                    .Fill(color, simplePath.Clip(hole1))
-                    .Save($"{path}/Opacity.png");
+                    .Fill(color, simplePath.Clip(hole1)));
+                image.Save($"{path}/Opacity.png");
 
                 //shift background color towards forground color by the opacity amount
                 Rgba32 mergedColor = new Rgba32(Vector4.Lerp(Rgba32.Blue.ToVector4(), Rgba32.HotPink.ToVector4(), 150f / 255f));

@@ -50,7 +50,7 @@ namespace ImageSharp.Processing.Processors
             using (var firstPassPixels = new PixelAccessor<TPixel>(width, height))
             using (PixelAccessor<TPixel> sourcePixels = source.Lock())
             {
-                this.ApplyConvolution(firstPassPixels, sourcePixels, source.Bounds, this.KernelX);
+                this.ApplyConvolution(firstPassPixels, sourcePixels, source.Bounds(), this.KernelX);
                 this.ApplyConvolution(sourcePixels, firstPassPixels, sourceRectangle, this.KernelY);
             }
         }

@@ -29,8 +29,6 @@ namespace ImageSharp.Drawing
 
         private PixelBlenderMode blenderMode;
 
-        private bool? useImageResolution;
-
         private float wrapTextWidth;
 
         private SixLabors.Fonts.HorizontalAlignment? horizontalAlignment;
@@ -44,7 +42,6 @@ namespace ImageSharp.Drawing
         {
             this.applyKerning = true;
             this.tabWidth = 4;
-            this.useImageResolution = false;
             this.wrapTextWidth = 0;
             this.horizontalAlignment = HorizontalAlignment.Left;
             this.verticalAlignment = VerticalAlignment.Top;
@@ -88,12 +85,6 @@ namespace ImageSharp.Drawing
         /// Gets or sets a value indicating the number of space widths a tab should lock to.
         /// </summary>
         public float TabWidth { get => this.tabWidth ?? 4; set => this.tabWidth = value; }
-
-        /// <summary>
-        /// Gets or sets a value indicating whether to use the current image resultion to for point size scaling.
-        /// If this is [false] the text renders at 72dpi otherwise it renders at Image resolution
-        /// </summary>
-        public bool UseImageResolution { get => this.useImageResolution ?? false; set => this.useImageResolution = value; }
 
         /// <summary>
         /// Gets or sets a value indicating if greater than zero determine the width at which text should wrap.

@@ -23,13 +23,21 @@ namespace ImageSharp
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
+        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        public static IImageProcessingContext<TPixel> GaussianSharpen<TPixel>(this IImageProcessingContext<TPixel> source)
+            where TPixel : struct, IPixel<TPixel>
+        => source.ApplyProcessor(new GaussianSharpenProcessor<TPixel>(3f));
+
+        /// <summary>
+        /// Applies a Gaussian sharpening filter to the image.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="source">The image this method extends.</param>
         /// <param name="sigma">The 'sigma' value representing the weight of the blur.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> GaussianSharpen<TPixel>(this Image<TPixel> source, float sigma = 3f)
+        public static IImageProcessingContext<TPixel> GaussianSharpen<TPixel>(this IImageProcessingContext<TPixel> source, float sigma)
             where TPixel : struct, IPixel<TPixel>
-        {
-            return GaussianSharpen(source, sigma, source.Bounds);
-        }
+        => source.ApplyProcessor(new GaussianSharpenProcessor<TPixel>(sigma));
 
         /// <summary>
         /// Applies a Gaussian sharpening filter to the image.
@@ -41,11 +49,8 @@ namespace ImageSharp
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> GaussianSharpen<TPixel>(this Image<TPixel> source, float sigma, Rectangle rectangle)
+        public static IImageProcessingContext<TPixel> GaussianSharpen<TPixel>(this IImageProcessingContext<TPixel> source, float sigma, Rectangle rectangle)
             where TPixel : struct, IPixel<TPixel>
-        {
-            source.ApplyProcessor(new GaussianSharpenProcessor<TPixel>(sigma), rectangle);
-            return source;
-        }
+        => source.ApplyProcessor(new GaussianSharpenProcessor<TPixel>(sigma), rectangle);
     }
 }

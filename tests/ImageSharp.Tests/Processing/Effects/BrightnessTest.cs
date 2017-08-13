@@ -6,45 +6,28 @@
 namespace ImageSharp.Tests.Processing.Effects
 {
     using ImageSharp.PixelFormats;
+    using ImageSharp.Processing.Processors;
     using SixLabors.Primitives;
     using Xunit;
 
-    public class BrightnessTest : FileTestBase
+    public class BrightnessTest : BaseImageOperationsExtensionTest
     {
-        public static readonly TheoryData<int> BrightnessValues
-        = new TheoryData<int>
+        [Fact]
+        public void Brightness_amount_BrightnessProcessorDefaultsSet()
         {
-            50,
-           -50
-        };
+            this.operations.Brightness(23);
+            var processor = this.Verify<BrightnessProcessor<Rgba32>>();
 
-        [Theory]
-        [WithFileCollection(nameof(DefaultFiles), nameof(BrightnessValues), DefaultPixelType)]
-        public void ImageShouldApplyBrightnessFilter<TPixel>(TestImageProvider<TPixel> provider, int value)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.Brightness(value)
-                    .DebugSave(provider, value);
-            }
+            Assert.Equal(23, processor.Value);
         }
 
-        [Theory]
-        [WithFileCollection(nameof(DefaultFiles), nameof(BrightnessValues), DefaultPixelType)]
-        public void ImageShouldApplyBrightnessFilterInBox<TPixel>(TestImageProvider<TPixel> provider, int value)
-            where TPixel : struct, IPixel<TPixel>
+        [Fact]
+        public void Brightness_amount_rect_BrightnessProcessorDefaultsSet()
         {
-            using (Image<TPixel> source = provider.GetImage())
-            using (var image = new Image<TPixel>(source))
-            {
-                var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
+            this.operations.Brightness(23, this.rect);
+            var processor = this.Verify<BrightnessProcessor<Rgba32>>(this.rect);
 
-                image.Brightness(value, bounds)
-                    .DebugSave(provider, value);
-
-                ImageComparer.EnsureProcessorChangesAreConstrained(source, image, bounds); ;
-            }
+            Assert.Equal(23, processor.Value);
         }
     }
 }

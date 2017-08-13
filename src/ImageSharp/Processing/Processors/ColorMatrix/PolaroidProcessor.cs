@@ -53,7 +53,7 @@ namespace ImageSharp.Processing.Processors
         protected override void AfterApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
         {
             new VignetteProcessor<TPixel>(veryDarkOrange, this.options).Apply(source, sourceRectangle);
-            new GlowProcessor<TPixel>(lightOrange, this.options) { Radius = source.Width / 4F }.Apply(source, sourceRectangle);
+            new GlowProcessor<TPixel>(lightOrange, source.Width / 4F, this.options).Apply(source, sourceRectangle);
         }
     }
 }

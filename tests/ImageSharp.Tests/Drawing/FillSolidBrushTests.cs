@@ -24,8 +24,9 @@ namespace ImageSharp.Tests.Drawing
             string path = this.CreateOutputDirectory("Fill", "SolidBrush");
             using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
+                image.Mutate(x => x
+                    .Fill(Rgba32.HotPink));
                 image
-                    .Fill(Rgba32.HotPink)
                     .Save($"{path}/DefaultBack.png");
 
                 using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
@@ -43,10 +44,10 @@ namespace ImageSharp.Tests.Drawing
             string path = this.CreateOutputDirectory("Fill", "SolidBrush");
             using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
-                image
+                image.Mutate(x => x
                     .BackgroundColor(Rgba32.Blue)
-                    .Fill(Rgba32.HotPink)
-                    .Save($"{path}/Simple.png");
+                    .Fill(Rgba32.HotPink));
+                image.Save($"{path}/Simple.png");
 
                 using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
                 {
@@ -65,10 +66,10 @@ namespace ImageSharp.Tests.Drawing
             {
                 Rgba32 color = new Rgba32(Rgba32.HotPink.R, Rgba32.HotPink.G, Rgba32.HotPink.B, 150);
 
-                image
+                image.Mutate(x => x
                     .BackgroundColor(Rgba32.Blue)
-                    .Fill(color)
-                    .Save($"{path}/Opacity.png");
+                    .Fill(color));
+                image.Save($"{path}/Opacity.png");
 
                 //shift background color towards forground color by the opacity amount
                 Rgba32 mergedColor = new Rgba32(Vector4.Lerp(Rgba32.Blue.ToVector4(), Rgba32.HotPink.ToVector4(), 150f / 255f));

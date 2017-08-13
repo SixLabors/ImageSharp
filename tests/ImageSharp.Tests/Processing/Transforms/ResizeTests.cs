@@ -33,6 +33,18 @@ namespace ImageSharp.Tests.Processing.Transforms
             };
 
         [Theory]
+        [WithFile(TestImages.Gif.Giphy, DefaultPixelType)]
+        public void ResizeShouldApplyToAllFrames<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                image.Resize(image.Width / 2, image.Height / 2, true)
+                    .CompareToReferenceOutput(provider, extension: "gif");
+            }
+        }
+
+        [Theory]
         [WithTestPatternImages(nameof(ReSamplers), 100, 100, DefaultPixelType)]
         [WithFileCollection(nameof(ResizeFiles), nameof(ReSamplers), DefaultPixelType)]
         public void ImageShouldResize<TPixel>(TestImageProvider<TPixel> provider, string name, IResampler sampler)
@@ -41,7 +53,7 @@ namespace ImageSharp.Tests.Processing.Transforms
             using (Image<TPixel> image = provider.GetImage())
             {
                 image.Resize(image.Width / 2, image.Height / 2, sampler, true)
-                    .DebugSave(provider, name);
+                    .CompareToReferenceOutput(provider, name);
             }
         }
 
@@ -56,7 +68,7 @@ namespace ImageSharp.Tests.Processing.Transforms
                 var destRectangle = new Rectangle(image.Width / 4, image.Height / 4, image.Width / 2, image.Height / 2);
 
                 image.Resize(image.Width, image.Height, sampler, sourceRectangle, destRectangle, false)
-                    .DebugSave(provider, name);
+                    .CompareToReferenceOutput(provider, name);
             }
         }
 
@@ -68,7 +80,7 @@ namespace ImageSharp.Tests.Processing.Transforms
             using (Image<TPixel> image = provider.GetImage())
             {
                 image.Resize(image.Width / 3, 0, sampler, false)
-                    .DebugSave(provider, name);
+                    .CompareToReferenceOutput(provider, name);
             }
         }
 
@@ -80,7 +92,7 @@ namespace ImageSharp.Tests.Processing.Transforms
             using (Image<TPixel> image = provider.GetImage())
             {
                 image.Resize(0, image.Height / 3, sampler, false)
-                    .DebugSave(provider, name);
+                    .CompareToReferenceOutput(provider, name);
             }
         }
 
@@ -98,7 +110,7 @@ namespace ImageSharp.Tests.Processing.Transforms
                 };
 
                 image.Resize(options)
-                .DebugSave(provider, name);
+                .CompareToReferenceOutput(provider, name);
             }
         }
 
@@ -116,7 +128,7 @@ namespace ImageSharp.Tests.Processing.Transforms
                 };
 
                 image.Resize(options)
-                    .DebugSave(provider, name);
+                    .CompareToReferenceOutput(provider, name);
             }
         }
 
@@ -135,7 +147,7 @@ namespace ImageSharp.Tests.Processing.Transforms
                 };
 
                 image.Resize(options)
-                    .DebugSave(provider, name);
+                    .CompareToReferenceOutput(provider, name);
             }
         }
 
@@ -154,7 +166,7 @@ namespace ImageSharp.Tests.Processing.Transforms
                 };
 
                 image.Resize(options)
-                    .DebugSave(provider, name);
+                    .CompareToReferenceOutput(provider, name);
             }
         }
 
@@ -173,7 +185,7 @@ namespace ImageSharp.Tests.Processing.Transforms
                 };
 
                 image.Resize(options)
-                    .DebugSave(provider, name);
+                    .CompareToReferenceOutput(provider, name);
             }
         }
 
@@ -192,7 +204,7 @@ namespace ImageSharp.Tests.Processing.Transforms
                 };
 
                 image.Resize(options)
-                    .DebugSave(provider, name);
+                    .CompareToReferenceOutput(provider, name);
             }
         }
 
@@ -211,7 +223,7 @@ namespace ImageSharp.Tests.Processing.Transforms
                 };
 
                 image.Resize(options)
-                    .DebugSave(provider, name);
+                    .CompareToReferenceOutput(provider, name);
             }
         }
 

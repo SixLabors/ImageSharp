@@ -1,7 +1,7 @@
 namespace ImageSharp.Tests
 {
     using ImageSharp.PixelFormats;
-    using ImageSharp.Tests.TestUtilities.Integration;
+    using ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 
     using Xunit;
     using Xunit.Abstractions;
@@ -22,7 +22,7 @@ namespace ImageSharp.Tests
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                using (System.Drawing.Bitmap sdBitmap = IntegrationTestUtils.ToSystemDrawingBitmap(image))
+                using (System.Drawing.Bitmap sdBitmap = SystemDrawingBridge.ToSystemDrawingBitmap(image))
                 {
                     string fileName = provider.Utility.GetTestOutputFileName("png");
                     sdBitmap.Save(fileName, System.Drawing.Imaging.ImageFormat.Png);
@@ -39,7 +39,7 @@ namespace ImageSharp.Tests
 
             using (var sdBitmap = new System.Drawing.Bitmap(path))
             {
-                using (Image<TPixel> image = IntegrationTestUtils.FromSystemDrawingBitmap<TPixel>(sdBitmap))
+                using (Image<TPixel> image = SystemDrawingBridge.FromSystemDrawingBitmap<TPixel>(sdBitmap))
                 {
                     image.DebugSave(dummyProvider);
                 }
@@ -65,7 +65,7 @@ namespace ImageSharp.Tests
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                provider.Utility.SaveTestOutputFile(image, "png", ReferencePngEncoder.Instance);
+                provider.Utility.SaveTestOutputFile(image, "png", ReferenceEncoder.Png);
             }
         }
     }

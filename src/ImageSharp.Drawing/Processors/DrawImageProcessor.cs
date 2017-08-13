@@ -68,13 +68,13 @@ namespace ImageSharp.Drawing.Processors
 
             try
             {
-                if (targetImage.Bounds.Size != this.Size)
+                if (targetImage.Size() != this.Size)
                 {
-                    targetImage = disposableImage = new Image<TPixel>(this.Image).Resize(this.Size.Width, this.Size.Height);
+                    targetImage = disposableImage = this.Image.Clone(x => x.Resize(this.Size.Width, this.Size.Height));
                 }
 
                 // Align start/end positions.
-                Rectangle bounds = this.Image.Bounds;
+                Rectangle bounds = this.Image.Bounds();
                 int minX = Math.Max(this.Location.X, sourceRectangle.X);
                 int maxX = Math.Min(this.Location.X + bounds.Width, sourceRectangle.Width);
                 maxX = Math.Min(this.Location.X + this.Size.Width, maxX);

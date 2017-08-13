@@ -6,38 +6,24 @@
 namespace ImageSharp.Tests.Processing.Effects
 {
     using ImageSharp.PixelFormats;
+    using ImageSharp.Processing.Processors;
     using SixLabors.Primitives;
     using Xunit;
 
-    public class InvertTest : FileTestBase
+    public class InvertTest : BaseImageOperationsExtensionTest
     {
-        [Theory]
-        [WithFileCollection(nameof(DefaultFiles), DefaultPixelType)]
-        public void ImageShouldApplyInvertFilter<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+        [Fact]
+        public void Invert_InvertProcessorDefaultsSet()
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.Invert()
-                    .DebugSave(provider, null);
-            }
+            this.operations.Invert();
+            var processor = this.Verify<InvertProcessor<Rgba32>>();
         }
 
-        [Theory]
-        [WithFileCollection(nameof(DefaultFiles), DefaultPixelType)]
-        public void ImageShouldApplyInvertFilterInBox<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+        [Fact]
+        public void Pixelate_rect_PixelateProcessorDefaultsSet()
         {
-            using (Image<TPixel> source = provider.GetImage())
-            using (var image = new Image<TPixel>(source))
-            {
-                var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
-
-                image.Invert(bounds)
-                    .DebugSave(provider, null);
-
-                ImageComparer.EnsureProcessorChangesAreConstrained(source, image, bounds);
-            }
+            this.operations.Invert(this.rect);
+            var processor = this.Verify<InvertProcessor<Rgba32>>(this.rect);
         }
     }
 }

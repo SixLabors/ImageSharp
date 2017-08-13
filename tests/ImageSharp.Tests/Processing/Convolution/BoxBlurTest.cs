@@ -6,45 +6,37 @@
 namespace ImageSharp.Tests.Processing.Convolution
 {
     using ImageSharp.PixelFormats;
+    using ImageSharp.Processing.Processors;
     using SixLabors.Primitives;
     using Xunit;
 
-    public class BoxBlurTest : FileTestBase
+    public class BoxBlurTest : BaseImageOperationsExtensionTest
     {
-        public static readonly TheoryData<int> BoxBlurValues
-        = new TheoryData<int>
+        [Fact]
+        public void BoxBlur_BoxBlurProcessorDefaultsSet()
         {
-            3,
-            5
-        };
+            this.operations.BoxBlur();
+            var processor = this.Verify<BoxBlurProcessor<Rgba32>>();
 
-        [Theory]
-        [WithFileCollection(nameof(DefaultFiles), nameof(BoxBlurValues), DefaultPixelType)]
-        public void ImageShouldApplyBoxBlurFilter<TPixel>(TestImageProvider<TPixel> provider, int value)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.BoxBlur(value)
-                    .DebugSave(provider, value);
-            }
+            Assert.Equal(7, processor.Radius);
         }
 
-        [Theory]
-        [WithFileCollection(nameof(DefaultFiles), nameof(BoxBlurValues), DefaultPixelType)]
-        public void ImageShouldApplyBoxBlurFilterInBox<TPixel>(TestImageProvider<TPixel> provider, int value)
-            where TPixel : struct, IPixel<TPixel>
+        [Fact]
+        public void BoxBlur_amount_BoxBlurProcessorDefaultsSet()
         {
-            using (Image<TPixel> source = provider.GetImage())
-            using (var image = new Image<TPixel>(source))
-            {
-                var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
+            this.operations.BoxBlur(34);
+            var processor = this.Verify<BoxBlurProcessor<Rgba32>>();
 
-                image.BoxBlur(value, bounds)
-                    .DebugSave(provider, value);
+            Assert.Equal(34, processor.Radius);
+        }
 
-                ImageComparer.EnsureProcessorChangesAreConstrained(source, image, bounds);
-            }
+        [Fact]
+        public void BoxBlur_amount_rect_BoxBlurProcessorDefaultsSet()
+        {
+            this.operations.BoxBlur(5, this.rect);
+            var processor = this.Verify<BoxBlurProcessor<Rgba32>>(this.rect);
+
+            Assert.Equal(5, processor.Radius);
         }
     }
 }

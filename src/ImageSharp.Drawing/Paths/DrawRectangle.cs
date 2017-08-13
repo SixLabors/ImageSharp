@@ -25,7 +25,7 @@ namespace ImageSharp
         /// <param name="shape">The shape.</param>
         /// <param name="options">The options.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> Draw<TPixel>(this Image<TPixel> source, IPen<TPixel> pen, RectangleF shape, GraphicsOptions options)
+        public static IImageProcessingContext<TPixel> Draw<TPixel>(this IImageProcessingContext<TPixel> source, IPen<TPixel> pen, RectangleF shape, GraphicsOptions options)
            where TPixel : struct, IPixel<TPixel>
         {
             return source.Draw(pen, new SixLabors.Shapes.RectangularePolygon(shape.X, shape.Y, shape.Width, shape.Height), options);
@@ -39,7 +39,7 @@ namespace ImageSharp
         /// <param name="pen">The pen.</param>
         /// <param name="shape">The shape.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> Draw<TPixel>(this Image<TPixel> source, IPen<TPixel> pen, RectangleF shape)
+        public static IImageProcessingContext<TPixel> Draw<TPixel>(this IImageProcessingContext<TPixel> source, IPen<TPixel> pen, RectangleF shape)
            where TPixel : struct, IPixel<TPixel>
         {
             return source.Draw(pen, shape, GraphicsOptions.Default);
@@ -55,7 +55,7 @@ namespace ImageSharp
         /// <param name="shape">The shape.</param>
         /// <param name="options">The options.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> Draw<TPixel>(this Image<TPixel> source, IBrush<TPixel> brush, float thickness, RectangleF shape, GraphicsOptions options)
+        public static IImageProcessingContext<TPixel> Draw<TPixel>(this IImageProcessingContext<TPixel> source, IBrush<TPixel> brush, float thickness, RectangleF shape, GraphicsOptions options)
            where TPixel : struct, IPixel<TPixel>
         {
             return source.Draw(new Pen<TPixel>(brush, thickness), shape, options);
@@ -70,7 +70,7 @@ namespace ImageSharp
         /// <param name="thickness">The thickness.</param>
         /// <param name="shape">The shape.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> Draw<TPixel>(this Image<TPixel> source, IBrush<TPixel> brush, float thickness, RectangleF shape)
+        public static IImageProcessingContext<TPixel> Draw<TPixel>(this IImageProcessingContext<TPixel> source, IBrush<TPixel> brush, float thickness, RectangleF shape)
            where TPixel : struct, IPixel<TPixel>
         {
             return source.Draw(new Pen<TPixel>(brush, thickness), shape);
@@ -86,7 +86,7 @@ namespace ImageSharp
         /// <param name="shape">The shape.</param>
         /// <param name="options">The options.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> Draw<TPixel>(this Image<TPixel> source, TPixel color, float thickness, RectangleF shape, GraphicsOptions options)
+        public static IImageProcessingContext<TPixel> Draw<TPixel>(this IImageProcessingContext<TPixel> source, TPixel color, float thickness, RectangleF shape, GraphicsOptions options)
            where TPixel : struct, IPixel<TPixel>
         {
             return source.Draw(new SolidBrush<TPixel>(color), thickness, shape, options);
@@ -101,7 +101,7 @@ namespace ImageSharp
         /// <param name="thickness">The thickness.</param>
         /// <param name="shape">The shape.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> Draw<TPixel>(this Image<TPixel> source, TPixel color, float thickness, RectangleF shape)
+        public static IImageProcessingContext<TPixel> Draw<TPixel>(this IImageProcessingContext<TPixel> source, TPixel color, float thickness, RectangleF shape)
            where TPixel : struct, IPixel<TPixel>
         {
             return source.Draw(new SolidBrush<TPixel>(color), thickness, shape);

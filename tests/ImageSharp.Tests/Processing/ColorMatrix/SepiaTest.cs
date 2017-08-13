@@ -6,38 +6,24 @@
 namespace ImageSharp.Tests.Processing.ColorMatrix
 {
     using ImageSharp.PixelFormats;
+    using ImageSharp.Processing.Processors;
     using SixLabors.Primitives;
     using Xunit;
 
-    public class SepiaTest : FileTestBase
+    public class SepiaTest : BaseImageOperationsExtensionTest
     {
-        [Theory]
-        [WithFileCollection(nameof(DefaultFiles), DefaultPixelType)]
-        public void ImageShouldApplySepiaFilter<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+        [Fact]
+        public void Sepia_amount_SepiaProcessorDefaultsSet()
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.Sepia()
-                    .DebugSave(provider, null);
-            }
+            this.operations.Sepia();
+            var processor = this.Verify<SepiaProcessor<Rgba32>>();
         }
 
-        [Theory]
-        [WithFileCollection(nameof(DefaultFiles), DefaultPixelType)]
-        public void ImageShouldApplySepiaFilterInBox<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+        [Fact]
+        public void Sepia_amount_rect_SepiaProcessorDefaultsSet()
         {
-            using (Image<TPixel> source = provider.GetImage())
-            using (var image = new Image<TPixel>(source))
-            {
-                var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
-
-                image.Sepia(bounds)
-                    .DebugSave(provider, null);
-
-                ImageComparer.EnsureProcessorChangesAreConstrained(source, image, bounds);
-            }
+            this.operations.Sepia(this.rect);
+            var processor = this.Verify<SepiaProcessor<Rgba32>>(this.rect);
         }
     }
 }

@@ -71,18 +71,16 @@ namespace ImageSharp.Tests.Drawing
             processor.Apply(img, bounds);
         }
 
-
-
         [Fact]
         public void DrawOffCanvas()
         {
 
             using (var img = new Image<Rgba32>(10, 10))
             {
-                img.DrawLines(new Pen<Rgba32>(Rgba32.Black, 10), new SixLabors.Primitives.PointF[] {
+                img.Mutate(x => x.DrawLines(new Pen<Rgba32>(Rgba32.Black, 10), new SixLabors.Primitives.PointF[] {
                     new Vector2(-10, 5),
                     new Vector2(20, 5),
-                });
+                }));
             }
         }
     }

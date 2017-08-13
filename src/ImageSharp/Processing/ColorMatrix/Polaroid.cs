@@ -24,7 +24,7 @@ namespace ImageSharp
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> Polaroid<TPixel>(this Image<TPixel> source)
+        public static IImageProcessingContext<TPixel> Polaroid<TPixel>(this IImageProcessingContext<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
         {
             return Polaroid(source, GraphicsOptions.Default);
@@ -39,7 +39,7 @@ namespace ImageSharp
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> Polaroid<TPixel>(this Image<TPixel> source, Rectangle rectangle)
+        public static IImageProcessingContext<TPixel> Polaroid<TPixel>(this IImageProcessingContext<TPixel> source, Rectangle rectangle)
             where TPixel : struct, IPixel<TPixel>
         {
             return Polaroid(source, rectangle, GraphicsOptions.Default);
@@ -52,10 +52,11 @@ namespace ImageSharp
         /// <param name="source">The image this method extends.</param>
         /// <param name="options">The options effecting pixel blending.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> Polaroid<TPixel>(this Image<TPixel> source, GraphicsOptions options)
+        public static IImageProcessingContext<TPixel> Polaroid<TPixel>(this IImageProcessingContext<TPixel> source, GraphicsOptions options)
             where TPixel : struct, IPixel<TPixel>
         {
-            return Polaroid(source, source.Bounds, options);
+            source.ApplyProcessor(new PolaroidProcessor<TPixel>(options));
+            return source;
         }
 
         /// <summary>
@@ -68,7 +69,7 @@ namespace ImageSharp
         /// </param>
         /// <param name="options">The options effecting pixel blending.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> Polaroid<TPixel>(this Image<TPixel> source, Rectangle rectangle, GraphicsOptions options)
+        public static IImageProcessingContext<TPixel> Polaroid<TPixel>(this IImageProcessingContext<TPixel> source, Rectangle rectangle, GraphicsOptions options)
             where TPixel : struct, IPixel<TPixel>
         {
             source.ApplyProcessor(new PolaroidProcessor<TPixel>(options), rectangle);

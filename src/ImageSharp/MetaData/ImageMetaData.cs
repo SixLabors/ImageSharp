@@ -133,6 +133,15 @@ namespace ImageSharp
         public ushort RepeatCount { get; set; }
 
         /// <summary>
+        /// Clones this into a new instance
+        /// </summary>
+        /// <returns>The cloned metadata instance</returns>
+        public ImageMetaData Clone()
+        {
+            return new ImageMetaData(this);
+        }
+
+        /// <summary>
         /// Synchronizes the profiles with the current meta data.
         /// </summary>
         internal void SyncProfiles()

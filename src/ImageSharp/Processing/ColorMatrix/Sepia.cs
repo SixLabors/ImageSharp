@@ -24,11 +24,9 @@ namespace ImageSharp
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> Sepia<TPixel>(this Image<TPixel> source)
+        public static IImageProcessingContext<TPixel> Sepia<TPixel>(this IImageProcessingContext<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
-        {
-            return Sepia(source, source.Bounds);
-        }
+             => source.ApplyProcessor(new SepiaProcessor<TPixel>());
 
         /// <summary>
         /// Applies sepia toning to the image.
@@ -39,11 +37,8 @@ namespace ImageSharp
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> Sepia<TPixel>(this Image<TPixel> source, Rectangle rectangle)
+        public static IImageProcessingContext<TPixel> Sepia<TPixel>(this IImageProcessingContext<TPixel> source, Rectangle rectangle)
             where TPixel : struct, IPixel<TPixel>
-        {
-            source.ApplyProcessor(new SepiaProcessor<TPixel>(), rectangle);
-            return source;
-        }
+            => source.ApplyProcessor(new SepiaProcessor<TPixel>(), rectangle);
     }
 }

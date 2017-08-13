@@ -34,10 +34,10 @@ namespace ImageSharp.Tests.Drawing
 
                 ShapePath p = new ShapePath(linerSegemnt, bazierSegment);
 
-                image
+                image.Mutate(x => x
                     .BackgroundColor(Rgba32.Blue)
-                    .Draw(Rgba32.HotPink, 5, p)
-                    .Save($"{path}/Simple.png");
+                    .Draw(Rgba32.HotPink, 5, p));
+                image.Save($"{path}/Simple.png");
 
                 using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
                 {
@@ -74,10 +74,10 @@ namespace ImageSharp.Tests.Drawing
 
             using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
-                image
+                image.Mutate(x => x
                     .BackgroundColor(Rgba32.Blue)
-                    .Draw(color, 10, p)
-                    .Save($"{path}/Opacity.png");
+                    .Draw(color, 10, p));
+                image.Save($"{path}/Opacity.png");
 
                 //shift background color towards forground color by the opacity amount
                 Rgba32 mergedColor = new Rgba32(Vector4.Lerp(Rgba32.Blue.ToVector4(), Rgba32.HotPink.ToVector4(), 150f / 255f));
@@ -101,12 +101,12 @@ namespace ImageSharp.Tests.Drawing
             string path = this.CreateOutputDirectory("Drawing", "Path");
             using (var image = new Image<Rgba32>(256, 256))
             {
-                image.Fill(Rgba32.Black);
+                image.Mutate(x => x.Fill(Rgba32.Black));
                 var pen = Pens.Solid(Rgba32.White, 5f);
 
                 for (int i = 0; i < 300; i += 20)
                 {
-                    image.DrawLines(pen, new SixLabors.Primitives.PointF[] { new Vector2(100, 2), new Vector2(-10, i) });
+                    image.Mutate(x => x.DrawLines(pen, new SixLabors.Primitives.PointF[] { new Vector2(100, 2), new Vector2(-10, i) }));
                 }
 
                 image

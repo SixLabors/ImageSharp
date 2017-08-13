@@ -9,7 +9,7 @@
     /// <summary>
     /// Provides methods and properties for deframing streams from PNGs.
     /// </summary>
-    internal class ZlibInflateStream : Stream
+    internal sealed class ZlibInflateStream : Stream
     {
         /// <summary>
         /// The inner raw memory stream

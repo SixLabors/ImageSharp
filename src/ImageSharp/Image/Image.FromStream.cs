@@ -6,6 +6,7 @@
 namespace ImageSharp
 {
     using System;
+    using System.Collections.Generic;
     using System.IO;
     using System.Text;
     using Formats;
@@ -18,6 +19,38 @@ namespace ImageSharp
     public static partial class Image
     {
         /// <summary>
+        /// By reading the header on the provided stream this calculates the images mime type.
+        /// </summary>
+        /// <param name="stream">The image stream to read the header from.</param>
+        /// <returns>The mime type or null if none found.</returns>
+        public static IImageFormat DetectFormat(Stream stream)
+        {
+            return DetectFormat(null, stream);
+        }
+
+        /// <summary>
+        /// By reading the header on the provided stream this calculates the images mime type.
+        /// </summary>
+        /// <param name="config">The configuration.</param>
+        /// <param name="stream">The image stream to read the header from.</param>
+        /// <returns>The mime type or null if none found.</returns>
+        public static IImageFormat DetectFormat(Configuration config, Stream stream)
+        {
+            return WithSeekableStream(stream, s => InternalDetectFormat(s, config ?? Configuration.Default));
+        }
+
+        /// <summary>
+        /// Create a new instance of the <see cref="Image{Rgba32}"/> class from the given stream.
+        /// </summary>
+        /// <param name="stream">The stream containing image information.</param>
+        /// <param name="format">the mime type of the decoded image.</param>
+        /// <exception cref="NotSupportedException">
+        /// Thrown if the stream is not readable nor seekable.
+        /// </exception>
+        /// <returns>A new <see cref="Image{Rgba32}"/>.</returns>>
+        public static Image<Rgba32> Load(Stream stream, out IImageFormat format) => Load<Rgba32>(stream, out format);
+
+        /// <summary>
         /// Create a new instance of the <see cref="Image{Rgba32}"/> class from the given stream.
         /// </summary>
         /// <param name="stream">The stream containing image information.</param>
@@ -26,17 +59,6 @@ namespace ImageSharp
         /// </exception>
         /// <returns>A new <see cref="Image{Rgba32}"/>.</returns>>
         public static Image<Rgba32> Load(Stream stream) => Load<Rgba32>(stream);
-
-        /// <summary>
-        /// Create a new instance of the <see cref="Image{Rgba32}"/> class from the given stream.
-        /// </summary>
-        /// <param name="stream">The stream containing image information.</param>
-        /// <param name="options">The options for the decoder.</param>
-        /// <exception cref="NotSupportedException">
-        /// Thrown if the stream is not readable nor seekable.
-        /// </exception>
-        /// <returns>A new <see cref="Image{Rgba32}"/>.</returns>>
-        public static Image<Rgba32> Load(Stream stream, IDecoderOptions options) => Load<Rgba32>(stream, options);
 
         /// <summary>
         /// Create a new instance of the <see cref="Image{Rgba32}"/> class from the given stream.
@@ -63,14 +85,14 @@ namespace ImageSharp
         /// <summary>
         /// Create a new instance of the <see cref="Image{Rgba32}"/> class from the given stream.
         /// </summary>
+        /// <param name="config">The config for the decoder.</param>
         /// <param name="stream">The stream containing image information.</param>
-        /// <param name="decoder">The decoder.</param>
-        /// <param name="options">The options for the decoder.</param>
+        /// <param name="format">the mime type of the decoded image.</param>
         /// <exception cref="NotSupportedException">
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
-        /// <returns>A new <see cref="Image{TPixel}"/>.</returns>>
-        public static Image<Rgba32> Load(Stream stream, IImageDecoder decoder, IDecoderOptions options) => Load<Rgba32>(stream, decoder, options);
+        /// <returns>A new <see cref="Image{Rgba32}"/>.</returns>>
+        public static Image<Rgba32> Load(Configuration config, Stream stream, out IImageFormat format) => Load<Rgba32>(config, stream, out format);
 
         /// <summary>
         /// Create a new instance of the <see cref="Image{TPixel}"/> class from the given stream.
@@ -84,39 +106,23 @@ namespace ImageSharp
         public static Image<TPixel> Load<TPixel>(Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
-            return Load<TPixel>(null, stream, null);
+            return Load<TPixel>(null, stream);
         }
 
         /// <summary>
         /// Create a new instance of the <see cref="Image{TPixel}"/> class from the given stream.
         /// </summary>
         /// <param name="stream">The stream containing image information.</param>
-        /// <param name="options">The options for the decoder.</param>
+        /// <param name="format">the mime type of the decoded image.</param>
         /// <exception cref="NotSupportedException">
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>>
-        public static Image<TPixel> Load<TPixel>(Stream stream, IDecoderOptions options)
+        public static Image<TPixel> Load<TPixel>(Stream stream, out IImageFormat format)
             where TPixel : struct, IPixel<TPixel>
         {
-            return Load<TPixel>(null, stream, options);
-        }
-
-        /// <summary>
-        /// Create a new instance of the <see cref="Image{TPixel}"/> class from the given stream.
-        /// </summary>
-        /// <param name="config">The config for the decoder.</param>
-        /// <param name="stream">The stream containing image information.</param>
-        /// <exception cref="NotSupportedException">
-        /// Thrown if the stream is not readable nor seekable.
-        /// </exception>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <returns>A new <see cref="Image{TPixel}"/>.</returns>>
-        public static Image<TPixel> Load<TPixel>(Configuration config, Stream stream)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            return Load<TPixel>(config, stream, null);
+            return Load<TPixel>(null, stream, out format);
         }
 
         /// <summary>
@@ -132,24 +138,24 @@ namespace ImageSharp
         public static Image<TPixel> Load<TPixel>(Stream stream, IImageDecoder decoder)
             where TPixel : struct, IPixel<TPixel>
         {
-            return Load<TPixel>(stream, decoder, null);
+            return WithSeekableStream(stream, s => decoder.Decode<TPixel>(Configuration.Default, s));
         }
 
         /// <summary>
         /// Create a new instance of the <see cref="Image{TPixel}"/> class from the given stream.
         /// </summary>
+        /// <param name="config">The Configuration.</param>
         /// <param name="stream">The stream containing image information.</param>
         /// <param name="decoder">The decoder.</param>
-        /// <param name="options">The options for the decoder.</param>
         /// <exception cref="NotSupportedException">
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>>
-        public static Image<TPixel> Load<TPixel>(Stream stream, IImageDecoder decoder, IDecoderOptions options)
+        public static Image<TPixel> Load<TPixel>(Configuration config, Stream stream, IImageDecoder decoder)
             where TPixel : struct, IPixel<TPixel>
         {
-            return WithSeekableStream(stream, s => decoder.Decode<TPixel>(Configuration.Default, s, options));
+            return WithSeekableStream(stream, s => decoder.Decode<TPixel>(config, s));
         }
 
         /// <summary>
@@ -157,29 +163,47 @@ namespace ImageSharp
         /// </summary>
         /// <param name="config">The configuration options.</param>
         /// <param name="stream">The stream containing image information.</param>
-        /// <param name="options">The options for the decoder.</param>
         /// <exception cref="NotSupportedException">
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>>
-        public static Image<TPixel> Load<TPixel>(Configuration config, Stream stream, IDecoderOptions options)
+        public static Image<TPixel> Load<TPixel>(Configuration config, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
-            config = config ?? Configuration.Default;
-            Image<TPixel> img = WithSeekableStream(stream, s => Decode<TPixel>(s, options, config));
+            return Load<TPixel>(config, stream, out var _);
+        }
 
-            if (img != null)
+        /// <summary>
+        /// Create a new instance of the <see cref="Image{TPixel}"/> class from the given stream.
+        /// </summary>
+        /// <param name="config">The configuration options.</param>
+        /// <param name="stream">The stream containing image information.</param>
+        /// <param name="format">the mime type of the decoded image.</param>
+        /// <exception cref="NotSupportedException">
+        /// Thrown if the stream is not readable nor seekable.
+        /// </exception>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <returns>A new <see cref="Image{TPixel}"/>.</returns>>
+        public static Image<TPixel> Load<TPixel>(Configuration config, Stream stream, out IImageFormat format)
+        where TPixel : struct, IPixel<TPixel>
+        {
+            config = config ?? Configuration.Default;
+            (Image<TPixel> img, IImageFormat format) data = WithSeekableStream(stream, s => Decode<TPixel>(s, config));
+
+            format = data.format;
+
+            if (data.img != null)
             {
-                return img;
+                return data.img;
             }
 
-            StringBuilder stringBuilder = new StringBuilder();
-            stringBuilder.AppendLine("Image cannot be loaded. Available formats:");
+            var stringBuilder = new StringBuilder();
+            stringBuilder.AppendLine("Image cannot be loaded. Available decoders:");
 
-            foreach (IImageFormat format in config.ImageFormats)
+            foreach (KeyValuePair<IImageFormat, IImageDecoder> val in config.ImageDecoders)
             {
-                stringBuilder.AppendLine("-" + format);
+                stringBuilder.AppendLine($" - {val.Key.Name} : {val.Value.GetType().Name}");
             }
 
             throw new NotSupportedException(stringBuilder.ToString());
@@ -198,12 +222,12 @@ namespace ImageSharp
             }
 
             // We want to be able to load images from things like HttpContext.Request.Body
-            using (MemoryStream ms = new MemoryStream())
+            using (var memoryStream = new MemoryStream())
             {
-                stream.CopyTo(ms);
-                ms.Position = 0;
+                stream.CopyTo(memoryStream);
+                memoryStream.Position = 0;
 
-                return action(ms);
+                return action(memoryStream);
             }
         }
     }

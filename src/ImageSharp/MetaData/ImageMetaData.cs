@@ -50,7 +50,6 @@ namespace ImageSharp
 
             this.HorizontalResolution = other.HorizontalResolution;
             this.VerticalResolution = other.VerticalResolution;
-            this.Quality = other.Quality;
             this.FrameDelay = other.FrameDelay;
             this.DisposalMethod = other.DisposalMethod;
             this.RepeatCount = other.RepeatCount;
@@ -126,11 +125,6 @@ namespace ImageSharp
         /// </summary>
         /// <value>A list of image properties.</value>
         public IList<ImageProperty> Properties { get; } = new List<ImageProperty>();
-
-        /// <summary>
-        /// Gets or sets the quality of the image. This affects the output quality of lossy image formats.
-        /// </summary>
-        public int Quality { get; set; }
 
         /// <summary>
         /// Gets or sets the number of times any animation is repeated.

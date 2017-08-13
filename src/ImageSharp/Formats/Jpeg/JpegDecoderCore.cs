@@ -18,7 +18,7 @@ namespace ImageSharp.Formats
     /// <summary>
     /// Performs the jpeg decoding operation.
     /// </summary>
-    internal unsafe class JpegDecoderCore : IDisposable
+    internal sealed unsafe class JpegDecoderCore : IDisposable
     {
         /// <summary>
         /// The maximum number of color components
@@ -44,11 +44,6 @@ namespace ImageSharp.Formats
         /// Lookup tables for converting YCbCr to Rgb
         /// </summary>
         private static YCbCrToRgbTables yCbCrToRgbTables = YCbCrToRgbTables.Create();
-
-        /// <summary>
-        /// The decoder options.
-        /// </summary>
-        private readonly IDecoderOptions options;
 
         /// <summary>
         /// The global configuration
@@ -103,12 +98,12 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Initializes a new instance of the <see cref="JpegDecoderCore" /> class.
         /// </summary>
-        /// <param name="options">The decoder options.</param>
         /// <param name="configuration">The configuration.</param>
-        public JpegDecoderCore(IDecoderOptions options, Configuration configuration)
+        /// <param name="options">The options.</param>
+        public JpegDecoderCore(Configuration configuration, IJpegDecoderOptions options)
         {
+            this.IgnoreMetadata = options.IgnoreMetadata;
             this.configuration = configuration ?? Configuration.Default;
-            this.options = options ?? new DecoderOptions();
             this.HuffmanTrees = HuffmanTree.CreateHuffmanTrees();
             this.QuantizationTables = new Block8x8F[MaxTq + 1];
             this.Temp = new byte[2 * Block8x8F.ScalarCount];
@@ -189,6 +184,11 @@ namespace ImageSharp.Formats
         /// Gets the the total number of MCU-s (Minimum Coded Units) in the image.
         /// </summary>
         public int TotalMCUCount => this.MCUCountX * this.MCUCountY;
+
+        /// <summary>
+        /// Gets a value indicating whether the metadata should be ignored when the image is being decoded.
+        /// </summary>
+        public bool IgnoreMetadata { get; private set; }
 
         /// <summary>
         /// Decodes the image from the specified <see cref="Stream"/>  and sets
@@ -938,7 +938,7 @@ namespace ImageSharp.Formats
         /// <param name="metadata">The image.</param>
         private void ProcessApp1Marker(int remaining, ImageMetaData metadata)
         {
-            if (remaining < 6 || this.options.IgnoreMetadata)
+            if (remaining < 6 || this.IgnoreMetadata)
             {
                 this.InputProcessor.Skip(remaining);
                 return;
@@ -968,7 +968,7 @@ namespace ImageSharp.Formats
         {
             // Length is 14 though we only need to check 12.
             const int Icclength = 14;
-            if (remaining < Icclength || this.options.IgnoreMetadata)
+            if (remaining < Icclength || this.IgnoreMetadata)
             {
                 this.InputProcessor.Skip(remaining);
                 return;

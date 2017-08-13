@@ -202,7 +202,8 @@ FakesAssemblies/
 
 **/node_modules
 **/node_modules/*
-**/TestOutput
+**/TestImages/ActualOutput
+**/TestImages/ReferenceOutput
 
 # ASP.NET 5
 project.lock.json

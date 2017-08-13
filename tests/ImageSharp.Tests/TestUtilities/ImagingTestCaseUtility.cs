@@ -138,14 +138,13 @@ namespace ImageSharp.Tests
         {
             string path = this.GetTestOutputFileName(extension: extension, settings: settings);
             string extension1 = Path.GetExtension(path);
+            encoder = encoder ?? GetImageFormatByExtension(extension);
             IImageFormat format = GetImageFormatByExtension(extension1);
-
-            encoder = encoder ?? format.Encoder;
 
             
             using (FileStream stream = File.OpenWrite(path))
             {
-                image.Save(stream, encoder, options);
+                image.Save(stream, encoder);
             }
         }
 
@@ -163,16 +162,16 @@ namespace ImageSharp.Tests
             this.Init(method.DeclaringType.Name, method.Name);
         }
 
-        private static IImageFormat GetImageFormatByExtension(string extension)
+        private static IImageEncoder GetImageFormatByExtension(string extension)
         {
             extension = extension?.TrimStart('.');
-            return Configuration.Default.ImageFormats.First(f => f.SupportedExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase));
+            var format = Configuration.Default.FindFormatByFileExtensions(extension);
+            return Configuration.Default.FindEncoder(format);
         }
 
         private string GetTestOutputDir()
         {
             string testGroupName = Path.GetFileNameWithoutExtension(this.TestGroupName);
-
             return CreateOutputDirectory(testGroupName);
         }
     }

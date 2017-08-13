@@ -5,6 +5,7 @@
 
 namespace ImageSharp
 {
+    using System;
     using ImageSharp.PixelFormats;
 
     using ImageSharp.Processing;
@@ -77,7 +78,16 @@ namespace ImageSharp
                 return Orientation.Unknown;
             }
 
-            var orientation = (Orientation)value.Value;
+            Orientation orientation;
+            if (value.DataType == ExifDataType.Short)
+            {
+                orientation = (Orientation)value.Value;
+            }
+            else
+            {
+                orientation = (Orientation)Convert.ToUInt16(value.Value);
+                source.MetaData.ExifProfile.RemoveValue(ExifTag.Orientation);
+            }
 
             source.MetaData.ExifProfile.SetValue(ExifTag.Orientation, (ushort)Orientation.TopLeft);
 

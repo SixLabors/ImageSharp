@@ -52,7 +52,8 @@ namespace ImageSharp.Formats
         /// Initializes a new instance of the <see cref="BmpDecoderCore"/> class.
         /// </summary>
         /// <param name="configuration">The configuration.</param>
-        public BmpDecoderCore(Configuration configuration)
+        /// <param name="options">The options</param>
+        public BmpDecoderCore(Configuration configuration, IBmpDecoderOptions options)
         {
             this.configuration = configuration;
         }

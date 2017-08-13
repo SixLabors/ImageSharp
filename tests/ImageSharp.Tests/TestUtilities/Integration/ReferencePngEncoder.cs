@@ -12,7 +12,7 @@ namespace ImageSharp.Tests.TestUtilities.Integration
     {
         public static ReferencePngEncoder Instance { get; } = new ReferencePngEncoder();
 
-        public void Encode<TPixel>(Image<TPixel> image, Stream stream, IEncoderOptions options)
+        public void Encode<TPixel>(Image<TPixel> image, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
             using (System.Drawing.Bitmap sdBitmap = IntegrationTestUtils.ToSystemDrawingBitmap(image))

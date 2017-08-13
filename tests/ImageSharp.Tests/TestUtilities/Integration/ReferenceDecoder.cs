@@ -11,7 +11,7 @@ namespace ImageSharp.Tests.TestUtilities.Integration
     {
         public static ReferenceDecoder Instance { get; } = new ReferenceDecoder();
 
-        public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream, IDecoderOptions options)
+        public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
             using (var sourceBitmap = new System.Drawing.Bitmap(stream))
@@ -32,8 +32,6 @@ namespace ImageSharp.Tests.TestUtilities.Integration
                     }
                     return IntegrationTestUtils.FromSystemDrawingBitmap<TPixel>(convertedBitmap);
                 }
-
-                
             }
         }
     }

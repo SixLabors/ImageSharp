@@ -56,8 +56,7 @@ namespace ImageSharp.Tests.Formats.Png
         //        ms.Position = 0;
         //        using (Image<Rgba32> img2 = Image.Load<Rgba32>(ms, new PngDecoder()))
         //        {
-                    ImageComparer.VerifySimilarity(image, img2, 0.03f);
-        //            ImageComparer.CheckSimilarity(image, img2, 0.03f);
+        //            ImageComparer.VerifySimilarity(image, img2, 0.03f);
         //        }
         //    }
         //}

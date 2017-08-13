@@ -1,4 +1,4 @@
-﻿namespace ImageSharp.Tests.TestUtilities.Integration
+﻿namespace ImageSharp.Tests.TestUtilities.ReferenceCodecs
 {
     using System;
     using System.Drawing.Imaging;
@@ -6,7 +6,7 @@
     using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
 
-    public static class IntegrationTestUtils
+    public static class SystemDrawingBridge
     {
         // TODO: It would be nice to have this method in PixelOperations<T>
         private static void ToArgb32<TPixel>(Span<TPixel> source, Span<Argb32> dest)

@@ -44,7 +44,7 @@ namespace ImageSharp.Tests
                 throw new Exception("Vector.IsHardwareAccelerated == false! ('prefer32 bit' enabled?)");
             }
 
-            string path = TestFile.GetPath(fileName);
+            string path = TestFile.GetInputFileFullPath(fileName);
             byte[] bytes = File.ReadAllBytes(path);
 
             this.Measure(

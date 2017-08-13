@@ -62,13 +62,12 @@ namespace ImageSharp.Tests
             byte[] data;
             using (Image<TPixel> image = provider.GetImage())
             {
-                JpegEncoder encoder = new JpegEncoder();
-                JpegEncoderOptions options = new JpegEncoderOptions { Subsample = subsample, Quality = quality };
+                JpegEncoder encoder = new JpegEncoder { Subsample = subsample, Quality = quality };
 
                 data = new byte[65536];
                 using (MemoryStream ms = new MemoryStream(data))
                 {
-                    image.Save(ms, encoder, options);
+                    image.Save(ms, encoder);
                 }
             }
 
@@ -91,7 +90,7 @@ namespace ImageSharp.Tests
                     image.Save(ms, new JpegEncoder());
                     ms.Seek(0, SeekOrigin.Begin);
                     
-                    using (JpegDecoderCore decoder = new JpegDecoderCore(null, null))
+                    using (JpegDecoderCore decoder = new JpegDecoderCore(null, new JpegDecoder()))
                     {
                         Image<TPixel> mirror = decoder.Decode<TPixel>(ms);
 
@@ -125,14 +124,14 @@ namespace ImageSharp.Tests
         [Fact]
         public void Decode_IgnoreMetadataIsFalse_ExifProfileIsRead()
         {
-            DecoderOptions options = new DecoderOptions()
+            JpegDecoder decoder = new JpegDecoder()
             {
                 IgnoreMetadata = false
             };
 
             TestFile testFile = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan);
 
-            using (Image<Rgba32> image = testFile.CreateImage(options))
+            using (Image<Rgba32> image = testFile.CreateImage(decoder))
             {
                 Assert.NotNull(image.MetaData.ExifProfile);
             }
@@ -141,7 +140,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void Decode_IgnoreMetadataIsTrue_ExifProfileIgnored()
         {
-            DecoderOptions options = new DecoderOptions()
+            JpegDecoder options = new JpegDecoder()
             {
                 IgnoreMetadata = true
             };

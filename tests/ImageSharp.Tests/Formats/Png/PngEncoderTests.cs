@@ -31,13 +31,13 @@ namespace ImageSharp.Tests
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                PngEncoderOptions options = new PngEncoderOptions()
+                PngEncoder options = new PngEncoder()
                                                 {
                                                     PngColorType = pngColorType
                                                 };
                 provider.Utility.TestName += "_" + pngColorType;
 
-                provider.Utility.SaveTestOutputFile(image, "png", new PngEncoder(), options);
+                provider.Utility.SaveTestOutputFile(image, "png", options);
             }
         }
 

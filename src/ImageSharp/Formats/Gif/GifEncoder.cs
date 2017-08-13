@@ -6,35 +6,47 @@
 namespace ImageSharp.Formats
 {
     using System;
+    using System.Collections.Generic;
     using System.IO;
-
+    using System.Text;
     using ImageSharp.PixelFormats;
+    using ImageSharp.Quantizers;
 
     /// <summary>
     /// Image encoder for writing image data to a stream in gif format.
     /// </summary>
-    public class GifEncoder : IImageEncoder
+    public sealed class GifEncoder : IImageEncoder, IGifEncoderOptions
     {
-        /// <inheritdoc/>
-        public void Encode<TPixel>(Image<TPixel> image, Stream stream, IEncoderOptions options)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            IGifEncoderOptions gifOptions = GifEncoderOptions.Create(options);
-
-            this.Encode(image, stream, gifOptions);
-        }
+        /// <summary>
+        /// Gets or sets a value indicating whether the metadata should be ignored when the image is being encoded.
+        /// </summary>
+        public bool IgnoreMetadata { get; set; } = false;
 
         /// <summary>
-        /// Encodes the image to the specified stream from the <see cref="Image{TPixel}"/>.
+        /// Gets or sets the encoding that should be used when writing comments.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="image">The <see cref="Image{TPixel}"/> to encode from.</param>
-        /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
-        /// <param name="options">The options for the encoder.</param>
-        public void Encode<TPixel>(Image<TPixel> image, Stream stream, IGifEncoderOptions options)
+        public Encoding TextEncoding { get; set; } = GifConstants.DefaultEncoding;
+
+        /// <summary>
+        /// Gets or sets the size of the color palette to use. For gifs the value ranges from 1 to 256. Leave as zero for default size.
+        /// </summary>
+        public int PaletteSize { get; set; } = 0;
+
+        /// <summary>
+        /// Gets or sets the transparency threshold.
+        /// </summary>
+        public byte Threshold { get; set; } = 128;
+
+        /// <summary>
+        /// Gets or sets the quantizer for reducing the color count.
+        /// </summary>
+        public IQuantizer Quantizer { get; set; }
+
+        /// <inheritdoc/>
+        public void Encode<TPixel>(Image<TPixel> image, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
-            GifEncoderCore encoder = new GifEncoderCore(options);
+            GifEncoderCore encoder = new GifEncoderCore(this);
             encoder.Encode(image, stream);
         }
     }

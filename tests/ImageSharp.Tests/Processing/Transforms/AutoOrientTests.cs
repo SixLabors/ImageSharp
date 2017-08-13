@@ -5,6 +5,7 @@
 
 namespace ImageSharp.Tests.Processing.Transforms
 {
+    using System;
     using ImageSharp.PixelFormats;
     using ImageSharp.Processing;
 
@@ -28,6 +29,16 @@ namespace ImageSharp.Tests.Processing.Transforms
             { RotateType.Rotate90,  FlipType.None,       8 },
         };
 
+        public static readonly TheoryData<ExifDataType, byte[]> InvalidOrientationValues
+            = new TheoryData<ExifDataType, byte[]>
+        {
+            { ExifDataType.Byte, new byte[] { 1 } },
+            { ExifDataType.SignedByte, new byte[] { 2 } },
+            { ExifDataType.SignedShort, BitConverter.GetBytes((short) 3) },
+            { ExifDataType.Long, BitConverter.GetBytes((uint) 4) },
+            { ExifDataType.SignedLong, BitConverter.GetBytes((int) 5) }
+        };
+
         [Theory]
         [WithFileCollection(nameof(FlipFiles), nameof(OrientationValues), DefaultPixelType)]
         public void ImageShouldAutoRotate<TPixel>(TestImageProvider<TPixel> provider, RotateType rotateType, FlipType flipType, ushort orientation)
@@ -42,6 +53,30 @@ namespace ImageSharp.Tests.Processing.Transforms
                     .DebugSave(provider, string.Join("_", rotateType, flipType, orientation, "1_before"))
                     .AutoOrient()
                     .DebugSave(provider, string.Join("_", rotateType, flipType, orientation, "2_after"));
+            }
+        }
+
+        [Theory]
+        [WithFileCollection(nameof(FlipFiles), nameof(InvalidOrientationValues), DefaultPixelType)]
+        public void ImageShouldAutoRotateInvalidValues<TPixel>(TestImageProvider<TPixel> provider, ExifDataType dataType, byte[] orientation)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            var profile = new ExifProfile();
+            profile.SetValue(ExifTag.JPEGTables, orientation);
+
+            byte[] bytes = profile.ToByteArray();
+            // Change the tag into ExifTag.Orientation
+            bytes[16] = 18;
+            bytes[17] = 1;
+            // Change the data type
+            bytes[18] = (byte)dataType;
+            // Change the number of components
+            bytes[20] = 1;
+
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                image.MetaData.ExifProfile = new ExifProfile(bytes);
+                image.AutoOrient();
             }
         }
     }

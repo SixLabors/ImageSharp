@@ -267,40 +267,34 @@ namespace ImageSharp.Formats
         /// <param name="source">The bytes to convert from. Cannot be null.</param>
         /// <param name="bytesPerScanline">The number of bytes per scanline</param>
         /// <param name="bits">The number of bits per value.</param>
-        /// <returns>The resulting <see cref="T:byte[]"/> array. Is never null.</returns>
+        /// <returns>The resulting <see cref="Span{Byte}"/> array. Is never null.</returns>
         /// <exception cref="System.ArgumentNullException"><paramref name="source"/> is null.</exception>
         /// <exception cref="System.ArgumentException"><paramref name="bits"/> is less than or equals than zero.</exception>
-        private static byte[] ToArrayByBitsLength(byte[] source, int bytesPerScanline, int bits)
+        private static Span<byte> ToArrayByBitsLength(Span<byte> source, int bytesPerScanline, int bits)
         {
             Guard.NotNull(source, nameof(source));
             Guard.MustBeGreaterThan(bits, 0, nameof(bits));
 
-            byte[] result;
-
-            if (bits < 8)
+            if (bits >= 8)
             {
-                result = new byte[bytesPerScanline * 8 / bits];
-                int mask = 0xFF >> (8 - bits);
-                int resultOffset = 0;
-
-                // ReSharper disable once ForCanBeConvertedToForeach
-                // First byte is the marker so skip.
-                for (int i = 1; i < bytesPerScanline; i++)
-                {
-                    byte b = source[i];
-                    for (int shift = 0; shift < 8; shift += bits)
-                    {
-                        int colorIndex = (b >> (8 - bits - shift)) & mask;
-
-                        result[resultOffset] = (byte)colorIndex;
-
-                        resultOffset++;
-                    }
-                }
+                return source;
             }
-            else
+
+            byte[] result = new byte[bytesPerScanline * 8 / bits];
+            int mask = 0xFF >> (8 - bits);
+            int resultOffset = 0;
+
+            for (int i = 0; i < bytesPerScanline; i++)
             {
-                result = source;
+                byte b = source[i];
+                for (int shift = 0; shift < 8; shift += bits)
+                {
+                    int colorIndex = (b >> (8 - bits - shift)) & mask;
+
+                    result[resultOffset] = (byte)colorIndex;
+
+                    resultOffset++;
+                }
             }
 
             return result;
@@ -584,13 +578,15 @@ namespace ImageSharp.Formats
         {
             var color = default(TPixel);
             Span<TPixel> rowSpan = pixels.GetRowSpan(this.currentRow);
+
+            // Trim the first marker byte from the buffer
             var scanlineBuffer = new Span<byte>(defilteredScanline, 1);
 
             switch (this.pngColorType)
             {
                 case PngColorType.Grayscale:
                     int factor = 255 / ((int)Math.Pow(2, this.header.BitDepth) - 1);
-                    byte[] newScanline1 = ToArrayByBitsLength(defilteredScanline, this.bytesPerScanline, this.header.BitDepth);
+                    Span<byte> newScanline1 = ToArrayByBitsLength(scanlineBuffer, this.bytesPerScanline, this.header.BitDepth);
                     for (int x = 0; x < this.header.Width; x++)
                     {
                         byte intensity = (byte)(newScanline1[x] * factor);
@@ -604,10 +600,10 @@ namespace ImageSharp.Formats
 
                     for (int x = 0; x < this.header.Width; x++)
                     {
-                        int offset = 1 + (x * this.bytesPerPixel);
+                        int offset = x * this.bytesPerPixel;
 
-                        byte intensity = defilteredScanline[offset];
-                        byte alpha = defilteredScanline[offset + this.bytesPerSample];
+                        byte intensity = scanlineBuffer[offset];
+                        byte alpha = scanlineBuffer[offset + this.bytesPerSample];
 
                         color.PackFromRgba32(new Rgba32(intensity, intensity, intensity, alpha));
                         rowSpan[x] = color;
@@ -617,7 +613,7 @@ namespace ImageSharp.Formats
 
                 case PngColorType.Palette:
 
-                    this.ProcessScanlineFromPalette(defilteredScanline, rowSpan);
+                    this.ProcessScanlineFromPalette(scanlineBuffer, rowSpan);
 
                     break;
 
@@ -682,10 +678,10 @@ namespace ImageSharp.Formats
         /// <typeparam name="TPixel">The type of pixel we are expanding to</typeparam>
         /// <param name="defilteredScanline">The scanline</param>
         /// <param name="row">Thecurrent  output image row</param>
-        private void ProcessScanlineFromPalette<TPixel>(byte[] defilteredScanline, Span<TPixel> row)
+        private void ProcessScanlineFromPalette<TPixel>(Span<byte> defilteredScanline, Span<TPixel> row)
             where TPixel : struct, IPixel<TPixel>
         {
-            byte[] newScanline = ToArrayByBitsLength(defilteredScanline, this.bytesPerScanline, this.header.BitDepth);
+            Span<byte> newScanline = ToArrayByBitsLength(defilteredScanline, this.bytesPerScanline, this.header.BitDepth);
             byte[] pal = this.palette;
             var color = default(TPixel);
 
@@ -737,15 +733,15 @@ namespace ImageSharp.Formats
         {
             var color = default(TPixel);
 
+            // Trim the first marker byte from the buffer
+            var scanlineBuffer = new Span<byte>(defilteredScanline, 1);
+
             switch (this.pngColorType)
             {
                 case PngColorType.Grayscale:
                     int factor = 255 / ((int)Math.Pow(2, this.header.BitDepth) - 1);
-                    byte[] newScanline1 = ToArrayByBitsLength(
-                        defilteredScanline,
-                        this.bytesPerScanline,
-                        this.header.BitDepth);
-                    for (int x = pixelOffset, o = 1; x < this.header.Width; x += increment, o++)
+                    Span<byte> newScanline1 = ToArrayByBitsLength(scanlineBuffer, this.bytesPerScanline, this.header.BitDepth);
+                    for (int x = pixelOffset, o = 0; x < this.header.Width; x += increment, o++)
                     {
                         byte intensity = (byte)(newScanline1[o] * factor);
                         color.PackFromRgba32(new Rgba32(intensity, intensity, intensity));
@@ -756,10 +752,10 @@ namespace ImageSharp.Formats
 
                 case PngColorType.GrayscaleWithAlpha:
 
-                    for (int x = pixelOffset, o = 1; x < this.header.Width; x += increment, o += this.bytesPerPixel)
+                    for (int x = pixelOffset, o = 0; x < this.header.Width; x += increment, o += this.bytesPerPixel)
                     {
-                        byte intensity = defilteredScanline[o];
-                        byte alpha = defilteredScanline[o + this.bytesPerSample];
+                        byte intensity = scanlineBuffer[o];
+                        byte alpha = scanlineBuffer[o + this.bytesPerSample];
                         color.PackFromRgba32(new Rgba32(intensity, intensity, intensity, alpha));
                         rowSpan[x] = color;
                     }
@@ -768,14 +764,14 @@ namespace ImageSharp.Formats
 
                 case PngColorType.Palette:
 
-                    byte[] newScanline = ToArrayByBitsLength(defilteredScanline, this.bytesPerScanline, this.header.BitDepth);
+                    Span<byte> newScanline = ToArrayByBitsLength(scanlineBuffer, this.bytesPerScanline, this.header.BitDepth);
                     var rgba = default(Rgba32);
 
                     if (this.paletteAlpha != null && this.paletteAlpha.Length > 0)
                     {
                         // If the alpha palette is not null and has one or more entries, this means, that the image contains an alpha
                         // channel and we should try to read it.
-                        for (int x = pixelOffset, o = 1; x < this.header.Width; x += increment, o++)
+                        for (int x = pixelOffset, o = 0; x < this.header.Width; x += increment, o++)
                         {
                             int index = newScanline[o];
                             int offset = index * 3;
@@ -791,7 +787,7 @@ namespace ImageSharp.Formats
                     {
                         rgba.A = 255;
 
-                        for (int x = pixelOffset, o = 1; x < this.header.Width; x += increment, o++)
+                        for (int x = pixelOffset, o = 0; x < this.header.Width; x += increment, o++)
                         {
                             int index = newScanline[o];
                             int offset = index * 3;
@@ -815,10 +811,8 @@ namespace ImageSharp.Formats
                         using (var compressed = new Buffer<byte>(length))
                         {
                             // TODO: Should we use pack from vector here instead?
-                            this.From16BitTo8Bit(new Span<byte>(defilteredScanline, 1), compressed, length);
-                            for (int x = pixelOffset, o = 0;
-                                 x < this.header.Width;
-                                 x += increment, o += 3)
+                            this.From16BitTo8Bit(scanlineBuffer, compressed, length);
+                            for (int x = pixelOffset, o = 0; x < this.header.Width; x += increment, o += 3)
                             {
                                 rgba.R = compressed[o];
                                 rgba.G = compressed[o + 1];
@@ -831,11 +825,11 @@ namespace ImageSharp.Formats
                     }
                     else
                     {
-                        for (int x = pixelOffset, o = 1; x < this.header.Width; x += increment, o += this.bytesPerPixel)
+                        for (int x = pixelOffset, o = 0; x < this.header.Width; x += increment, o += this.bytesPerPixel)
                         {
-                            rgba.R = defilteredScanline[o];
-                            rgba.G = defilteredScanline[o + this.bytesPerSample];
-                            rgba.B = defilteredScanline[o + (2 * this.bytesPerSample)];
+                            rgba.R = scanlineBuffer[o];
+                            rgba.G = scanlineBuffer[o + this.bytesPerSample];
+                            rgba.B = scanlineBuffer[o + (2 * this.bytesPerSample)];
 
                             color.PackFromRgba32(rgba);
                             rowSpan[x] = color;
@@ -852,7 +846,7 @@ namespace ImageSharp.Formats
                         using (var compressed = new Buffer<byte>(length))
                         {
                             // TODO: Should we use pack from vector here instead?
-                            this.From16BitTo8Bit(new Span<byte>(defilteredScanline, 1), compressed, length);
+                            this.From16BitTo8Bit(scanlineBuffer, compressed, length);
                             for (int x = pixelOffset, o = 0; x < this.header.Width; x += increment, o += 4)
                             {
                                 rgba.R = compressed[o];
@@ -867,12 +861,12 @@ namespace ImageSharp.Formats
                     }
                     else
                     {
-                        for (int x = pixelOffset, o = 1; x < this.header.Width; x += increment, o += this.bytesPerPixel)
+                        for (int x = pixelOffset, o = 0; x < this.header.Width; x += increment, o += this.bytesPerPixel)
                         {
-                            rgba.R = defilteredScanline[o];
-                            rgba.G = defilteredScanline[o + this.bytesPerSample];
-                            rgba.B = defilteredScanline[o + (2 * this.bytesPerSample)];
-                            rgba.A = defilteredScanline[o + (3 * this.bytesPerSample)];
+                            rgba.R = scanlineBuffer[o];
+                            rgba.G = scanlineBuffer[o + this.bytesPerSample];
+                            rgba.B = scanlineBuffer[o + (2 * this.bytesPerSample)];
+                            rgba.A = scanlineBuffer[o + (3 * this.bytesPerSample)];
 
                             color.PackFromRgba32(rgba);
                             rowSpan[x] = color;

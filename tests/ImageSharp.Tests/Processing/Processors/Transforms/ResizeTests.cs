@@ -14,7 +14,7 @@ namespace ImageSharp.Tests.Processing.Processors.Transforms
     {
         public static readonly string[] ResizeFiles = { TestImages.Png.CalliphoraPartial };
 
-        public static readonly TheoryData<string, IResampler> ReSamplers =
+        public static readonly TheoryData<string, IResampler> AllReSamplers =
             new TheoryData<string, IResampler>
             {
                 { "Bicubic", new BicubicResampler() },
@@ -32,6 +32,12 @@ namespace ImageSharp.Tests.Processing.Processors.Transforms
                 { "Welch", new WelchResampler() }
             };
 
+        public static readonly TheoryData<string, IResampler> JustBicubicResampler =
+            new TheoryData<string, IResampler>
+                {
+                    { "Bicubic", new BicubicResampler() },
+                };
+
         [Theory]
         [WithFile(TestImages.Gif.Giphy, DefaultPixelType)]
         public void ResizeShouldApplyToAllFrames<TPixel>(TestImageProvider<TPixel> provider)
@@ -45,21 +51,40 @@ namespace ImageSharp.Tests.Processing.Processors.Transforms
         }
 
         [Theory]
-        [WithTestPatternImages(nameof(ReSamplers), 100, 100, DefaultPixelType)]
-        [WithFileCollection(nameof(ResizeFiles), nameof(ReSamplers), DefaultPixelType)]
-        public void ImageShouldResize<TPixel>(TestImageProvider<TPixel> provider, string name, IResampler sampler)
+        [WithTestPatternImages(nameof(AllReSamplers), 100, 100, DefaultPixelType, 50)]
+        [WithFileCollection(nameof(ResizeFiles), nameof(AllReSamplers), DefaultPixelType, 50)]
+        [WithFileCollection(nameof(ResizeFiles), nameof(AllReSamplers), DefaultPixelType, 30)]
+        public void ResizeFullImage<TPixel>(TestImageProvider<TPixel> provider, string name, IResampler sampler, int percents)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                image.Mutate(x => x.Resize(image.Width / 2, image.Height / 2, sampler, true));
-                image.DebugSave(provider, name);
+                float ratio = (float)percents / 100.0F;
+                SizeF newSize = image.Size() * ratio;
+                image.Mutate(x => x.Resize((Size)newSize, sampler, false));
+
+                string details = $"{name}-{percents}%";
+                
+                image.DebugSave(provider, details);
             }
         }
 
         [Theory]
-        [WithFileCollection(nameof(ResizeFiles), nameof(ReSamplers), DefaultPixelType)]
-        public void ImageShouldResizeFromSourceRectangle<TPixel>(TestImageProvider<TPixel> provider, string name, IResampler sampler)
+        [WithTestPatternImages(100, 100, DefaultPixelType)]
+        public void ResizeFullImage_Compand<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                image.Mutate(x => x.Resize(image.Size() / 2, true));
+                
+                image.DebugSave(provider);
+            }
+        }
+
+        [Theory]
+        [WithFileCollection(nameof(ResizeFiles), DefaultPixelType)]
+        public void ImageShouldResizeFromSourceRectangle<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
@@ -67,163 +92,156 @@ namespace ImageSharp.Tests.Processing.Processors.Transforms
                 var sourceRectangle = new Rectangle(image.Width / 8, image.Height / 8, image.Width / 4, image.Height / 4);
                 var destRectangle = new Rectangle(image.Width / 4, image.Height / 4, image.Width / 2, image.Height / 2);
 
-                image.Mutate(x => x.Resize(image.Width, image.Height, sampler, sourceRectangle, destRectangle, false));
-                image.DebugSave(provider, name);
+                image.Mutate(x => x.Resize(image.Width, image.Height, new BicubicResampler(), sourceRectangle, destRectangle, false));
+                image.DebugSave(provider);
             }
         }
 
         [Theory]
-        [WithFileCollection(nameof(ResizeFiles), nameof(ReSamplers), DefaultPixelType)]
-        public void ImageShouldResizeWidthAndKeepAspect<TPixel>(TestImageProvider<TPixel> provider, string name, IResampler sampler)
+        [WithFileCollection(nameof(ResizeFiles), DefaultPixelType)]
+        public void ImageShouldResizeWidthAndKeepAspect<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                image.Mutate(x => x.Resize(image.Width / 3, 0, sampler, false));
-                image.DebugSave(provider, name);
+                image.Mutate(x => x.Resize(image.Width / 3, 0, false));
+                image.DebugSave(provider);
             }
         }
 
         [Theory]
-        [WithFileCollection(nameof(ResizeFiles), nameof(ReSamplers), DefaultPixelType)]
-        public void ImageShouldResizeHeightAndKeepAspect<TPixel>(TestImageProvider<TPixel> provider, string name, IResampler sampler)
+        [WithFileCollection(nameof(ResizeFiles), DefaultPixelType)]
+        public void ImageShouldResizeHeightAndKeepAspect<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                image.Mutate(x => x.Resize(0, image.Height / 3, sampler, false));
-                image.DebugSave(provider, name);
+                image.Mutate(x => x.Resize(0, image.Height / 3, false));
+                image.DebugSave(provider);
             }
         }
 
         [Theory]
-        [WithFileCollection(nameof(ResizeFiles), nameof(ReSamplers), DefaultPixelType)]
-        public void ImageShouldResizeWithCropWidthMode<TPixel>(TestImageProvider<TPixel> provider, string name, IResampler sampler)
+        [WithFileCollection(nameof(ResizeFiles), DefaultPixelType)]
+        public void ImageShouldResizeWithCropWidthMode<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {
                 var options = new ResizeOptions
                 {
-                    Sampler = sampler,
                     Size = new Size(image.Width / 2, image.Height)
                 };
 
                 image.Mutate(x => x.Resize(options));
-                image.DebugSave(provider, name);
+                image.DebugSave(provider);
             }
         }
 
         [Theory]
-        [WithFileCollection(nameof(ResizeFiles), nameof(ReSamplers), DefaultPixelType)]
-        public void ImageShouldResizeWithCropHeightMode<TPixel>(TestImageProvider<TPixel> provider, string name, IResampler sampler)
+        [WithFileCollection(nameof(ResizeFiles), DefaultPixelType)]
+        public void ImageShouldResizeWithCropHeightMode<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {
                 var options = new ResizeOptions
                 {
-                    Sampler = sampler,
                     Size = new Size(image.Width, image.Height / 2)
                 };
 
                 image.Mutate(x => x.Resize(options));
-                image.DebugSave(provider, name);
+                image.DebugSave(provider);
             }
         }
 
         [Theory]
-        [WithFileCollection(nameof(ResizeFiles), nameof(ReSamplers), DefaultPixelType)]
-        public void ImageShouldResizeWithPadMode<TPixel>(TestImageProvider<TPixel> provider, string name, IResampler sampler)
+        [WithFileCollection(nameof(ResizeFiles), DefaultPixelType)]
+        public void ImageShouldResizeWithPadMode<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {
                 var options = new ResizeOptions
                 {
-                    Sampler = sampler,
                     Size = new Size(image.Width + 200, image.Height),
                     Mode = ResizeMode.Pad
                 };
 
                 image.Mutate(x => x.Resize(options));
-                image.DebugSave(provider, name);
+                image.DebugSave(provider);
             }
         }
 
         [Theory]
-        [WithFileCollection(nameof(ResizeFiles), nameof(ReSamplers), DefaultPixelType)]
-        public void ImageShouldResizeWithBoxPadMode<TPixel>(TestImageProvider<TPixel> provider, string name, IResampler sampler)
+        [WithFileCollection(nameof(ResizeFiles), DefaultPixelType)]
+        public void ImageShouldResizeWithBoxPadMode<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {
                 var options = new ResizeOptions
                 {
-                    Sampler = sampler,
                     Size = new Size(image.Width + 200, image.Height + 200),
                     Mode = ResizeMode.BoxPad
                 };
 
                 image.Mutate(x => x.Resize(options));
-                image.DebugSave(provider, name);
+                image.DebugSave(provider);
             }
         }
 
         [Theory]
-        [WithFileCollection(nameof(ResizeFiles), nameof(ReSamplers), DefaultPixelType)]
-        public void ImageShouldResizeWithMaxMode<TPixel>(TestImageProvider<TPixel> provider, string name, IResampler sampler)
+        [WithFileCollection(nameof(ResizeFiles), DefaultPixelType)]
+        public void ImageShouldResizeWithMaxMode<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {
                 var options = new ResizeOptions
                 {
-                    Sampler = sampler,
                     Size = new Size(300, 300),
                     Mode = ResizeMode.Max
                 };
 
                 image.Mutate(x => x.Resize(options));
-                image.DebugSave(provider, name);
+                image.DebugSave(provider);
             }
         }
 
         [Theory]
-        [WithFileCollection(nameof(ResizeFiles), nameof(ReSamplers), DefaultPixelType)]
-        public void ImageShouldResizeWithMinMode<TPixel>(TestImageProvider<TPixel> provider, string name, IResampler sampler)
+        [WithFileCollection(nameof(ResizeFiles), DefaultPixelType)]
+        public void ImageShouldResizeWithMinMode<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {
                 var options = new ResizeOptions
                 {
-                    Sampler = sampler,
                     Size = new Size((int)MathF.Round(image.Width * .75F), (int)MathF.Round(image.Height * .95F)),
                     Mode = ResizeMode.Min
                 };
 
                 image.Mutate(x => x.Resize(options));
-                image.DebugSave(provider, name);
+                image.DebugSave(provider);
             }
         }
 
         [Theory]
-        [WithFileCollection(nameof(ResizeFiles), nameof(ReSamplers), DefaultPixelType)]
-        public void ImageShouldResizeWithStretchMode<TPixel>(TestImageProvider<TPixel> provider, string name, IResampler sampler)
+        [WithFileCollection(nameof(ResizeFiles), DefaultPixelType)]
+        public void ImageShouldResizeWithStretchMode<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {
                 var options = new ResizeOptions
                 {
-                    Sampler = sampler,
                     Size = new Size(image.Width / 2, image.Height),
                     Mode = ResizeMode.Stretch
                 };
 
                 image.Mutate(x => x.Resize(options));
-                image.DebugSave(provider, name);
+                image.DebugSave(provider);
             }
         }
 

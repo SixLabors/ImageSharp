@@ -31,13 +31,7 @@ namespace ImageSharp.Tests.Processing.Processors.Transforms
                 { "RobidouxSharp", new RobidouxSharpResampler() },
                 { "Welch", new WelchResampler() }
             };
-
-        public static readonly TheoryData<string, IResampler> JustBicubicResampler =
-            new TheoryData<string, IResampler>
-                {
-                    { "Bicubic", new BicubicResampler() },
-                };
-
+        
         [Theory]
         [WithFile(TestImages.Gif.Giphy, DefaultPixelType)]
         public void ResizeShouldApplyToAllFrames<TPixel>(TestImageProvider<TPixel> provider)
@@ -51,20 +45,17 @@ namespace ImageSharp.Tests.Processing.Processors.Transforms
         }
 
         [Theory]
-        [WithTestPatternImages(nameof(AllReSamplers), 100, 100, DefaultPixelType, 50)]
-        [WithFileCollection(nameof(ResizeFiles), nameof(AllReSamplers), DefaultPixelType, 50)]
-        [WithFileCollection(nameof(ResizeFiles), nameof(AllReSamplers), DefaultPixelType, 30)]
-        public void ResizeFullImage<TPixel>(TestImageProvider<TPixel> provider, string name, IResampler sampler, int percents)
+        [WithTestPatternImages(nameof(AllReSamplers), 100, 100, DefaultPixelType, 0.5f)]
+        [WithFileCollection(nameof(ResizeFiles), nameof(AllReSamplers), DefaultPixelType, 0.5f)]
+        [WithFileCollection(nameof(ResizeFiles), nameof(AllReSamplers), DefaultPixelType, 0.3f)]
+        public void ResizeFullImage<TPixel>(TestImageProvider<TPixel> provider, string name, IResampler sampler, float ratio)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                float ratio = (float)percents / 100.0F;
                 SizeF newSize = image.Size() * ratio;
                 image.Mutate(x => x.Resize((Size)newSize, sampler, false));
-
-                string details = $"{name}-{percents}%";
-                
+                string details = $"{name}-{ratio}";
                 image.DebugSave(provider, details);
             }
         }
@@ -77,7 +68,6 @@ namespace ImageSharp.Tests.Processing.Processors.Transforms
             using (Image<TPixel> image = provider.GetImage())
             {
                 image.Mutate(x => x.Resize(image.Size() / 2, true));
-                
                 image.DebugSave(provider);
             }
         }

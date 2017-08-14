@@ -128,6 +128,22 @@ namespace ImageSharp
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image to resize.</param>
+        /// <param name="size">The target image size.</param>
+        /// <param name="sampler">The <see cref="IResampler"/> to perform the resampling.</param>
+        /// <param name="compand">Whether to compress and expand the image color-space to gamma correct the image during processing.</param>
+        /// <returns>The <see cref="Image{TPixel}"/></returns>
+        /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image</remarks>
+        public static IImageProcessingContext<TPixel> Resize<TPixel>(this IImageProcessingContext<TPixel> source, Size size, IResampler sampler, bool compand)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            return Resize(source, size.Width, size.Height, sampler, new Rectangle(0, 0, size.Width, size.Height), compand);
+        }
+
+        /// <summary>
+        /// Resizes an image to the given width and height with the given sampler.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="source">The image to resize.</param>
         /// <param name="width">The target image width.</param>
         /// <param name="height">The target image height.</param>
         /// <param name="sampler">The <see cref="IResampler"/> to perform the resampling.</param>

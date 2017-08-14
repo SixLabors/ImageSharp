@@ -19,7 +19,7 @@ namespace ImageSharp.Tests.Processing.Processors.Effects
             using (Image<TPixel> image = provider.GetImage())
             {
                 image.Mutate(x => x.BackgroundColor(NamedColors<TPixel>.HotPink));
-                image.DebugSave(provider, null, Extensions.Bmp);
+                image.DebugSave(provider);
             }
         }
 
@@ -34,7 +34,7 @@ namespace ImageSharp.Tests.Processing.Processors.Effects
                 var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
 
                 image.Mutate(x => x.BackgroundColor(NamedColors<TPixel>.HotPink, bounds));
-                image.DebugSave(provider, null, Extensions.Bmp);
+                image.DebugSave(provider);
 
                 ImageComparer.EnsureProcessorChangesAreConstrained(source, image, bounds);
             }

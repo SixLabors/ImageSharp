@@ -9,13 +9,13 @@ namespace ImageSharp.Tests
 
     public static class TestEnvironment
     {
-        public const string ImageSharpSolution = "ImageSharp.sln";
+        private const string ImageSharpSolutionFileName = "ImageSharp.sln";
 
-        private const string InputImagesRelativePath = @"tests\TestImages\Input";
+        private const string InputImagesRelativePath = @"tests\Images\Input";
 
-        private const string ActualOutputDirectoryRelativePath = @"tests\TestImages\ActualOutput";
+        private const string ActualOutputDirectoryRelativePath = @"tests\Images\ActualOutput";
 
-        private const string ReferenceOutputDirectoryRelativePath = @"tests\TestImages\ReferenceOutput";
+        private const string ReferenceOutputDirectoryRelativePath = @"tests\Images\ReferenceOutput";
 
         private static Lazy<string> solutionDirectoryFullPath = new Lazy<string>(GetSolutionDirectoryFullPathImpl);
 
@@ -42,7 +42,7 @@ namespace ImageSharp.Tests
 
             DirectoryInfo directory = assemblyFile.Directory;
 
-            while (!directory.EnumerateFiles(ImageSharpSolution).Any())
+            while (!directory.EnumerateFiles(ImageSharpSolutionFileName).Any())
             {
                 try
                 {
@@ -79,6 +79,6 @@ namespace ImageSharp.Tests
         internal static string ReferenceOutputDirectoryFullPath => Path.Combine(SolutionDirectoryFullPath, ReferenceOutputDirectoryRelativePath);
 
         internal static string GetReferenceOutputFileName(string actualOutputFileName) =>
-            actualOutputFileName.Replace("ActualOutput", "ExpectedOutput");
+            actualOutputFileName.Replace("ActualOutput", "ReferenceOutput");
     }
 }

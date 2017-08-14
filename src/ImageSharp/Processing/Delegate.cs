@@ -17,12 +17,12 @@ namespace ImageSharp
     public static partial class ImageExtensions
     {
         /// <summary>
-        /// Queues up an operation that provides access to the mutatable image.
+        /// Applies the given operation to the mutable image.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="source">The image to rotate, flip, or both.</param>
-        /// <param name="operation">The operations to perform on the source.</param>
-        /// <returns>returns the current operations class to allow chaining of operations.</returns>
+        /// <param name="source">The image to mutate.</param>
+        /// <param name="operation">The operation to perform on the source.</param>
+        /// <returns>The <see cref="IImageProcessingContext{TPixel}"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext<TPixel> Apply<TPixel>(this IImageProcessingContext<TPixel> source, Action<Image<TPixel>> operation)
                 where TPixel : struct, IPixel<TPixel>
             => source.ApplyProcessor(new DelegateProcessor<TPixel>(operation));

@@ -26,6 +26,7 @@ namespace ImageSharp.Tests
             public const string SplashInterlaced = "Png/splash-interlaced.png";
             public const string Interlaced = "Png/interlaced.png";
             public const string Rgb48Bpp = "Png/rgb-48bpp.png";
+            public const string Rgb48BppInterlaced = "Png/rgb-48bpp-interlaced.png";
 
             // Filtered test images from http://www.schaik.com/pngsuite/pngsuite_fil_png.html
             public const string Filter0 = "Png/filter0.png";
@@ -36,6 +37,12 @@ namespace ImageSharp.Tests
 
             // Filter changing per scanline
             public const string FilterVar = "Png/filterVar.png";
+
+            public const string VimImage1 = "Png/vim16x16_1.png";
+            public const string VimImage2 = "Png/vim16x16_2.png";
+
+            public const string VersioningImage1 = "Png/versioning-1_1.png";
+            public const string VersioningImage2 = "Png/versioning-1_2.png";
 
             public static class Bad
             {
@@ -49,7 +56,8 @@ namespace ImageSharp.Tests
                 P1, Pd, Blur, Splash, Cross,
                 Powerpoint, SplashInterlaced, Interlaced,
                 Filter0, Filter1, Filter2, Filter3, Filter4,
-                FilterVar
+                FilterVar, VimImage1, VimImage2, VersioningImage1,
+                VersioningImage2
             };
         }
 

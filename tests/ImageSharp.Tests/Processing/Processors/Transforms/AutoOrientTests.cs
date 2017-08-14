@@ -50,10 +50,10 @@ namespace ImageSharp.Tests.Processing.Processors.Transforms
                 image.MetaData.ExifProfile.SetValue(ExifTag.Orientation, orientation);
 
                 image.Mutate(x => x.RotateFlip(rotateType, flipType));
-                image.DebugSave(provider, string.Join("_", rotateType, flipType, orientation, "1_before"), Extensions.Bmp);
+                image.DebugSave(provider, string.Join("_", rotateType, flipType, orientation, "1_before"));
 
                 image.Mutate(x => x.AutoOrient());
-                image.DebugSave(provider, string.Join("_", rotateType, flipType, orientation, "2_after"), Extensions.Bmp);
+                image.DebugSave(provider, string.Join("_", rotateType, flipType, orientation, "2_after"));
             }
         }
 

@@ -32,7 +32,7 @@ namespace ImageSharp.Tests.Processing.Processors.Transforms
             using (Image<TPixel> image = provider.GetImage())
             {
                 image.Mutate(x => x.RotateFlip(rotateType, flipType));
-                image.DebugSave(provider, string.Join("_", rotateType, flipType), Extensions.Bmp);
+                image.DebugSave(provider, string.Join("_", rotateType, flipType));
             }
         }
     }

@@ -26,7 +26,7 @@ namespace ImageSharp.Tests.Processing.Processors.Effects
             using (Image<TPixel> image = provider.GetImage())
             {
                 image.Mutate(x => x.OilPaint(levels, brushSize));
-                image.DebugSave(provider, string.Join("-", levels, brushSize), Extensions.Bmp);
+                image.DebugSave(provider, string.Join("-", levels, brushSize));
             }
         }
 
@@ -41,7 +41,7 @@ namespace ImageSharp.Tests.Processing.Processors.Effects
                 var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
 
                 image.Mutate(x => x.OilPaint(levels, brushSize, bounds));
-                image.DebugSave(provider, string.Join("-", levels, brushSize), Extensions.Bmp);
+                image.DebugSave(provider, string.Join("-", levels, brushSize));
 
                 ImageComparer.EnsureProcessorChangesAreConstrained(source, image, bounds, 0.001F);
             }

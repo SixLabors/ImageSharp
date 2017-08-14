@@ -109,9 +109,9 @@ namespace ImageSharp
 #endif
 
         /// <summary>
-        /// Gets or sets the image operations providers.
+        /// Gets or sets the image operations provider factory.
         /// </summary>
-        internal IImageProcessingContextFactory ImageOperationsProvider { get; set; } = new DefaultImageOperationsProvider();
+        internal IImageProcessingContextFactory ImageOperationsProvider { get; set; } = new DefaultImageOperationsProviderFactory();
 
         /// <summary>
         /// Registers a new format provider.
@@ -126,7 +126,7 @@ namespace ImageSharp
         /// <summary>
         /// Registers a new format provider.
         /// </summary>
-        /// <param name="format">The format to register as a well know format.</param>
+        /// <param name="format">The format to register as a known format.</param>
         public void AddImageFormat(IImageFormat format)
         {
             Guard.NotNull(format, nameof(format));
@@ -136,10 +136,10 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// For the specified file extensions type find the e <see cref="IImageFormat"/>.
+        /// For the specified file extensions type find the <see cref="IImageFormat"/>.
         /// </summary>
         /// <param name="extension">The extension to discover</param>
-        /// <returns>The <see cref="IImageFormat"/> if found otherwise null</returns>
+        /// <returns>The <see cref="IImageFormat"/> if found; otherwise null</returns>
         public IImageFormat FindFormatByFileExtensions(string extension)
         {
             return this.imageFormats.FirstOrDefault(x => x.FileExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase));
@@ -149,7 +149,7 @@ namespace ImageSharp
         /// For the specified mime type find the <see cref="IImageFormat"/>.
         /// </summary>
         /// <param name="mimeType">The mime-type to discover</param>
-        /// <returns>The <see cref="IImageFormat"/> if found otherwise null</returns>
+        /// <returns>The <see cref="IImageFormat"/> if found; otherwise null</returns>
         public IImageFormat FindFormatByMimeType(string mimeType)
         {
             return this.imageFormats.FirstOrDefault(x => x.MimeTypes.Contains(mimeType, StringComparer.OrdinalIgnoreCase));

@@ -94,7 +94,7 @@ namespace ImageSharp.Processing
         }
 
         /// <summary>
-        /// Generates the clone of the source image that operatinos should be applied to.
+        /// Generates a deep clone of the source image that operatinos should be applied to.
         /// </summary>
         /// <param name="source">The source image. Cannot be null.</param>
         /// <param name="sourceRectangle">The source rectangle.</param>

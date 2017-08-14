@@ -17,11 +17,11 @@ namespace ImageSharp
     public static partial class ImageExtensions
     {
         /// <summary>
-        /// Mutates the image by applying the image operation to it.
+        /// Mutates the source image by applying the image operation to it.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="source">The image to rotate, flip, or both.</param>
-        /// <param name="operation">The operations to perform on the source.</param>
+        /// <param name="source">The image to mutate.</param>
+        /// <param name="operation">The operation to perform on the source.</param>
         public static void Mutate<TPixel>(this Image<TPixel> source, Action<IImageProcessingContext<TPixel>> operation)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -34,10 +34,10 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Mutates the image by applying the operations to it.
+        /// Mutates the source image by applying the operations to it.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="source">The image to rotate, flip, or both.</param>
+        /// <param name="source">The image to mutate.</param>
         /// <param name="operations">The operations to perform on the source.</param>
         public static void Mutate<TPixel>(this Image<TPixel> source, params IImageProcessor<TPixel>[] operations)
             where TPixel : struct, IPixel<TPixel>
@@ -51,12 +51,12 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Clones the current image mutating the clone by applying the operation to it.
+        /// Creates a deep clone of the current image. The clone is then mutated by the given operation.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="source">The image to rotate, flip, or both.</param>
-        /// <param name="operation">The operations to perform on the source.</param>
-        /// <returns>Anew Image which has teh data from the <paramref name="source"/> but with the <paramref name="operation"/> applied.</returns>
+        /// <param name="source">The image to clone.</param>
+        /// <param name="operation">The operation to perform on the clone.</param>
+        /// <returns>The new <see cref="Image{TPixel}"/></returns>
         public static Image<TPixel> Clone<TPixel>(this Image<TPixel> source, Action<IImageProcessingContext<TPixel>> operation)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -69,12 +69,12 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Clones the current image mutating the clone by applying the operations to it.
+        /// Creates a deep clone of the current image. The clone is then mutated by the given operations.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="source">The image to rotate, flip, or both.</param>
-        /// <param name="operations">The operations to perform on the source.</param>
-        /// <returns>Anew Image which has teh data from the <paramref name="source"/> but with the <paramref name="operations"/> applied.</returns>
+        /// <param name="source">The image to clone.</param>
+        /// <param name="operations">The operations to perform on the clone.</param>
+        /// <returns>The new <see cref="Image{TPixel}"/></returns>
         public static Image<TPixel> Clone<TPixel>(this Image<TPixel> source, params IImageProcessor<TPixel>[] operations)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -87,12 +87,12 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Applies all the ImageProcessors agains the operation
+        /// Applies the given <see cref="IImageProcessor{TPixel}"/> collection against the context
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="source">The image to rotate, flip, or both.</param>
+        /// <param name="source">The image processing context.</param>
         /// <param name="operations">The operations to perform on the source.</param>
-        /// <returns>returns the current operations class to allow chaining of operations.</returns>
+        /// <returns>The <see cref="IImageProcessingContext{TPixel}"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext<TPixel> ApplyProcessors<TPixel>(this IImageProcessingContext<TPixel> source, params IImageProcessor<TPixel>[] operations)
                 where TPixel : struct, IPixel<TPixel>
         {

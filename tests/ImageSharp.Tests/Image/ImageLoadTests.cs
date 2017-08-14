@@ -1,4 +1,4 @@
-﻿// <copyright file="PixelAccessorTests.cs" company="James Jackson-South">
+﻿// <copyright file="ImageLoadTests.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -10,7 +10,6 @@ namespace ImageSharp.Tests
 
     using ImageSharp.Formats;
     using ImageSharp.IO;
-    using ImageSharp.PixelFormats;
     using Moq;
     using Xunit;
 
@@ -44,7 +43,8 @@ namespace ImageSharp.Tests
 
             this.localDecoder.Setup(x => x.Decode<Rgba32>(It.IsAny<Configuration>(), It.IsAny<Stream>()))
 
-                .Callback<Configuration, Stream>((c, s) => {
+                .Callback<Configuration, Stream>((c, s) =>
+                {
                     using (var ms = new MemoryStream())
                     {
                         s.CopyTo(ms);
@@ -92,7 +92,6 @@ namespace ImageSharp.Tests
             Assert.NotNull(img);
 
             TestFormat.GlobalTestFormat.VerifyDecodeCall(this.Marker, Configuration.Default);
-
         }
 
         [Fact]
@@ -104,9 +103,8 @@ namespace ImageSharp.Tests
             Assert.Equal(TestFormat.GlobalTestFormat.Sample<Rgba32>(), img);
 
             TestFormat.GlobalTestFormat.VerifyDecodeCall(this.Marker, Configuration.Default);
-
         }
-        
+
 
         [Fact]
         public void LoadFromStreamWithConfig()
@@ -117,7 +115,6 @@ namespace ImageSharp.Tests
             Assert.NotNull(img);
 
             this.localDecoder.Verify(x => x.Decode<Rgba32>(this.LocalConfiguration, stream));
-
         }
 
         [Fact]
@@ -130,7 +127,6 @@ namespace ImageSharp.Tests
             Assert.Equal(this.returnImage, img);
 
             this.localDecoder.Verify(x => x.Decode<Rgba32>(this.LocalConfiguration, stream));
-
         }
 
 
@@ -162,9 +158,7 @@ namespace ImageSharp.Tests
 
             Assert.NotNull(img);
 
-
             TestFormat.GlobalTestFormat.VerifyDecodeCall(this.Marker, Configuration.Default);
-
         }
 
         [Fact]
@@ -232,9 +226,7 @@ namespace ImageSharp.Tests
 
             Assert.NotNull(img);
 
-
             TestFormat.GlobalTestFormat.VerifyDecodeCall(this.Marker, Configuration.Default);
-
         }
 
         [Fact]
@@ -256,7 +248,6 @@ namespace ImageSharp.Tests
             Assert.NotNull(img);
 
             this.localDecoder.Verify(x => x.Decode<Rgba32>(this.LocalConfiguration, this.DataStream));
-
         }
 
         [Fact]
@@ -305,7 +296,6 @@ namespace ImageSharp.Tests
 
                 Assert.Equal(Rgba32.White, px[1, 0]);
                 Assert.Equal(Rgba32.Black, px[1, 1]);
-
             }
         }
 
@@ -327,7 +317,17 @@ namespace ImageSharp.Tests
 
                 Assert.Equal(Rgba32.White, px[1, 0]);
                 Assert.Equal(Rgba32.Black, px[1, 1]);
+            }
+        }
 
+        [Fact]
+        public void LoadsImageWithoutThrowingCrcException()
+        {
+            var image1Provider = TestImageProvider<Rgba32>.File(TestImages.Png.VersioningImage1);
+
+            using (Image<Rgba32> img = image1Provider.GetImage())
+            {
+                Assert.Equal(166036, img.Pixels.Length);
             }
         }
 

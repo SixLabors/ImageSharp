@@ -42,12 +42,12 @@ namespace ImageSharp.Tests
 
         private static (Size original, Size rotated) Rotate(int angle)
         {
-            TestFile file = TestFile.Create(TestImages.Bmp.Car);
-            using (Image<Rgba32> image = Image.Load<Rgba32>(file.FilePath))
+            var file = TestFile.Create(TestImages.Bmp.Car);
+            using (var image = Image.Load<Rgba32>(file.FilePath))
             {
-                Size original = image.Bounds.Size;
-                image.Rotate(angle);
-                return (original, image.Bounds.Size);
+                Size original = image.Bounds().Size;
+                image.Mutate(x => x.Rotate(angle));
+                return (original, image.Bounds().Size);
             }
         }
     }

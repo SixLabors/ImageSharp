@@ -33,7 +33,7 @@ namespace ImageSharp.Tests.Processing.Processors.ColorMatrix
             using (Image<TPixel> image = provider.GetImage())
             {
                 image.Mutate(x => x.ColorBlindness(colorBlindness));
-                image.DebugSave(provider, colorBlindness.ToString(), Extensions.Bmp);
+                image.DebugSave(provider, colorBlindness.ToString());
             }
         }
 
@@ -48,7 +48,7 @@ namespace ImageSharp.Tests.Processing.Processors.ColorMatrix
                 var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
 
                 image.Mutate(x => x.ColorBlindness(colorBlindness, bounds));
-                image.DebugSave(provider, colorBlindness.ToString(), Extensions.Bmp);
+                image.DebugSave(provider, colorBlindness.ToString());
 
                 ImageComparer.EnsureProcessorChangesAreConstrained(source, image, bounds);
             }

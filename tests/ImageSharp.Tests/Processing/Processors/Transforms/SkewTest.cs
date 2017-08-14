@@ -26,7 +26,7 @@ namespace ImageSharp.Tests.Processing.Processors.Transforms
             using (Image<TPixel> image = provider.GetImage())
             {
                 image.Mutate(i => i.Skew(x, y));
-                image.DebugSave(provider, string.Join("_", x, y), Extensions.Bmp);
+                image.DebugSave(provider, string.Join("_", x, y));
             }
         }
     }

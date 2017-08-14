@@ -36,7 +36,7 @@ namespace ImageSharp.Tests.Processing.Processors.Transforms
             using (Image<TPixel> image = provider.GetImage())
             {
                 image.Mutate(x => x.Rotate(value));
-                image.DebugSave(provider, value, Extensions.Bmp);
+                image.DebugSave(provider, value);
             }
         }
 
@@ -48,7 +48,7 @@ namespace ImageSharp.Tests.Processing.Processors.Transforms
             using (Image<TPixel> image = provider.GetImage())
             {
                 image.Mutate(x => x.Rotate(value));
-                image.DebugSave(provider, value, Extensions.Bmp);
+                image.DebugSave(provider, value);
             }
         }
     }

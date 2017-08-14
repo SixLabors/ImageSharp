@@ -19,7 +19,7 @@ namespace ImageSharp.Tests.Processing.Processors.Transforms
             using (Image<TPixel> image = provider.GetImage())
             {
                 image.Mutate(x => x.Pad(image.Width + 50, image.Height + 50));
-                image.DebugSave(provider, null, Extensions.Bmp);
+                image.DebugSave(provider);
 
                 // Check pixels are empty
                 for (int y = 0; y < 25; y++)

@@ -79,7 +79,7 @@ namespace ImageSharp.Processing.Processors
                 return;
             }
 
-            this.processMatrix = Matrix3x2Extensions.CreateRotation(-this.Angle, new Point(0, 0));
+            this.processMatrix = Matrix3x2Extensions.CreateRotationDegrees(-this.Angle, new Point(0, 0));
             if (this.Expand)
             {
                 this.CreateNewCanvas(sourceRectangle, this.processMatrix);

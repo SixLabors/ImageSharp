@@ -157,6 +157,10 @@ namespace ImageSharp.Formats
                     }
 
                     nextFlag = stream.ReadByte();
+                    if (nextFlag == -1)
+                    {
+                        break;
+                    }
                 }
             }
             finally

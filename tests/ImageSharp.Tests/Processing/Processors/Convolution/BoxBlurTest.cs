@@ -6,6 +6,8 @@
 namespace ImageSharp.Tests.Processing.Processors.Convolution
 {
     using ImageSharp.PixelFormats;
+    using ImageSharp.Tests.TestUtilities.ImageComparison;
+
     using SixLabors.Primitives;
     using Xunit;
 
@@ -43,7 +45,7 @@ namespace ImageSharp.Tests.Processing.Processors.Convolution
                 image.Mutate(x => x.BoxBlur(value, bounds));
                 image.DebugSave(provider, value);
 
-                PercentageImageComparer.EnsureProcessorChangesAreConstrained(source, image, bounds);
+                PercentageImageComparer_Old.EnsureProcessorChangesAreConstrained(source, image, bounds);
             }
         }
     }

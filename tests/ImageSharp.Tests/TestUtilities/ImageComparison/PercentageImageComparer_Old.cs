@@ -3,19 +3,19 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.Tests
+namespace ImageSharp.Tests.TestUtilities.ImageComparison
 {
     using System;
-    using ImageSharp;
+
     using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
+
     using SixLabors.Primitives;
-    using Xunit;
 
     /// <summary>
     /// Class to perform simple image comparisons.
     /// </summary>
-    public class PercentageImageComparer : ImageComparer
+    public class PercentageImageComparer_Old : ImageComparer
     {
         public float ImageThreshold { get; }
 
@@ -24,7 +24,7 @@ namespace ImageSharp.Tests
         public int ScaleIntoSize { get; }
 
 
-        public PercentageImageComparer(
+        public PercentageImageComparer_Old(
             float imageThreshold = DefaultImageThreshold,
             byte segmentThreshold = DefaultSegmentThreshold,
             int scaleIntoSize = DefaultScaleIntoSize)
@@ -114,8 +114,8 @@ namespace ImageSharp.Tests
             int scaleIntoSize = DefaultScaleIntoSize)
             where TPixelA : struct, IPixel<TPixelA> where TPixelB : struct, IPixel<TPixelB>
         {
-            var comparer = new PercentageImageComparer(imageTheshold, segmentThreshold, scaleIntoSize);
-            comparer.Verify(expected, actual);
+            var comparer = new PercentageImageComparer_Old(imageTheshold, segmentThreshold, scaleIntoSize);
+            comparer.CompareImages(expected, actual);
         }
 
         /// <summary>
@@ -134,7 +134,11 @@ namespace ImageSharp.Tests
         /// The default undefined value is <see cref="DefaultScaleIntoSize"/>
         /// </param>
         /// <returns>Returns a number from 0 - 1 which represents the difference focter between the images.</returns>
-        public static float PercentageDifference<TPixelA, TPixelB>(Image<TPixelA> source, Image<TPixelB> target, byte segmentThreshold = DefaultSegmentThreshold, int scalingFactor = DefaultScaleIntoSize)
+        public static float PercentageDifference<TPixelA, TPixelB>(
+            Image<TPixelA> source,
+            Image<TPixelB> target,
+            byte segmentThreshold = DefaultSegmentThreshold,
+            int scalingFactor = DefaultScaleIntoSize)
             where TPixelA : struct, IPixel<TPixelA>
             where TPixelB : struct, IPixel<TPixelB>
         {
@@ -194,7 +198,14 @@ namespace ImageSharp.Tests
             }
         }
 
-        public override void Verify<TPixelA, TPixelB>(Image<TPixelA> expected, Image<TPixelB> actual)
+        public override ImageSimilarityReport CompareImagesOrFrames<TPixelA, TPixelB>(ImageBase<TPixelA> expected, ImageBase<TPixelB> actual)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void CompareImages<TPixelA, TPixelB>(Image<TPixelA> expected, Image<TPixelB> actual)
+            where TPixelA : struct, IPixel<TPixelA> 
+            where TPixelB : struct, IPixel<TPixelB>
         {
             if (expected.Size() != actual.Size())
             {

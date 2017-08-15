@@ -3,6 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
+// ReSharper disable InconsistentNaming
 namespace ImageSharp.Tests.Processing.Processors.Convolution
 {
     using ImageSharp.PixelFormats;
@@ -34,7 +35,7 @@ namespace ImageSharp.Tests.Processing.Processors.Convolution
         [Theory]
         [WithTestPatternImages(nameof(DetectEdgesFilters), 100, 100, DefaultPixelType)]
         [WithFileCollection(nameof(CommonTestImages), nameof(DetectEdgesFilters), DefaultPixelType)]
-        public void DetectEdges<TPixel>(TestImageProvider<TPixel> provider, EdgeDetection detector)
+        public void DetectEdges_WorksWithAllFilters<TPixel>(TestImageProvider<TPixel> provider, EdgeDetection detector)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
@@ -45,8 +46,32 @@ namespace ImageSharp.Tests.Processing.Processors.Convolution
         }
 
         [Theory]
+        [WithFileCollection(nameof(CommonTestImages), CommonNonDefaultPixelTypes)]
+        public void DetectEdges_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                image.Mutate(x => x.DetectEdges());
+                image.DebugSave(provider, grayscale: true);
+            }
+        }
+
+        [Theory]
+        [WithFile(TestImages.Gif.Giphy, DefaultPixelType)]
+        public void DetectEdges_IsAppliedToAllFrames<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                image.Mutate(x => x.DetectEdges());
+                image.DebugSave(provider, extension: "gif");
+            }
+        }
+
+        [Theory]
         [WithFileCollection(nameof(GrayscaleTestImages), DefaultPixelType)]
-        public void DetectEdgesInBox<TPixel>(TestImageProvider<TPixel> provider)
+        public void DetectEdges_InBox<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> source = provider.GetImage())

@@ -58,7 +58,7 @@ namespace ImageSharp.Tests.Processing.Processors.Binarization
                 image.Mutate(x => x.Dither(ditherer, bounds));
                 image.DebugSave(provider, name);
 
-                PercentageImageComparer_Old.EnsureProcessorChangesAreConstrained(source, image, bounds);
+                ImageComparer.Tolerant().EnsureProcessorChangesAreConstrained(source, image, bounds);
             }
         }
 
@@ -87,7 +87,7 @@ namespace ImageSharp.Tests.Processing.Processors.Binarization
                 image.Mutate(x => x.Dither(diffuser, .5F, bounds));
                 image.DebugSave(provider, name);
 
-                PercentageImageComparer_Old.EnsureProcessorChangesAreConstrained(source, image, bounds);
+                ImageComparer.Tolerant().EnsureProcessorChangesAreConstrained(source, image, bounds);
             }
         }
     }

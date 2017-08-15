@@ -51,7 +51,7 @@
             Rgba32[] aBuffer = new Rgba32[width];
             Rgba32[] bBuffer = new Rgba32[width];
 
-            double totalDifference = 0.0;
+            float totalDifference = 0.0f;
 
             var differences = new List<PixelDifference>();
 
@@ -78,7 +78,9 @@
                 }
             }
 
-            if (totalDifference > this.ImageThreshold)
+            float normalizedDifference = totalDifference / ((float)actual.Width * (float)actual.Height);
+            
+            if (normalizedDifference > this.ImageThreshold)
             {
                 return new ImageSimilarityReport(expected, actual, differences);
             }

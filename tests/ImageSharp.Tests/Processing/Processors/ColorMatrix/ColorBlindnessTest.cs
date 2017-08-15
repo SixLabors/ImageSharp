@@ -52,7 +52,7 @@ namespace ImageSharp.Tests.Processing.Processors.ColorMatrix
                 image.Mutate(x => x.ColorBlindness(colorBlindness, bounds));
                 image.DebugSave(provider, colorBlindness.ToString());
 
-                PercentageImageComparer_Old.EnsureProcessorChangesAreConstrained(source, image, bounds);
+                ImageComparer.Tolerant().EnsureProcessorChangesAreConstrained(source, image, bounds);
             }
         }
     }

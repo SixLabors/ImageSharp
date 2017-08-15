@@ -45,7 +45,7 @@ namespace ImageSharp.Tests.Processing.Processors.Effects
                 image.Mutate(x => x.Alpha(value, bounds));
                 image.DebugSave(provider, value);
 
-                PercentageImageComparer_Old.EnsureProcessorChangesAreConstrained(source, image, bounds);
+                ImageComparer.Tolerant().EnsureProcessorChangesAreConstrained(source, image, bounds);
             }
         }
     }

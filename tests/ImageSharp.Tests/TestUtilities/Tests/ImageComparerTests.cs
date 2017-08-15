@@ -90,7 +90,7 @@ namespace ImageSharp.Tests
         }
 
         [Theory]
-        [WithTestPatternImages(100, 100, PixelTypes.Rgba32)]
+        [WithTestPatternImages(110, 110, PixelTypes.Rgba32)]
         public void TolerantImageComparer_ApprovesSimilarityBelowTolerance<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {

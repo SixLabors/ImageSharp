@@ -6,10 +6,7 @@
 namespace ImageSharp.Tests
 {
     using System;
-    using System.Collections.Generic;
     using System.IO;
-    using System.Linq;
-    using System.Reflection;
 
     using ImageSharp.PixelFormats;
     using ImageSharp.Tests.TestUtilities.ImageComparison;
@@ -38,7 +35,7 @@ namespace ImageSharp.Tests
             {
                 return image;
             }
-            
+
             // We are running locally then we want to save it out
             provider.Utility.SaveTestOutputFile(
                 image,
@@ -55,14 +52,44 @@ namespace ImageSharp.Tests
         /// <typeparam name="TPixel">The pixel format</typeparam>
         /// <param name="image">The image</param>
         /// <param name="provider">The image provider</param>
+        /// <param name="comparer">The <see cref="ImageComparer"/> to use</param>
         /// <param name="testOutputDetails">Details to be concatenated to the test output file, describing the parameters of the test.</param>
         /// <param name="extension">The extension</param>
         /// <param name="grayscale">A boolean indicating whether we should debug save + compare against a grayscale image, smaller in size.</param>
-        /// <param name="customImageComparer">A custom <see cref="ImageComparer"/> if exact equlity is not the expected behaviour</param>
         /// <returns></returns>
         public static Image<TPixel> CompareToReferenceOutput<TPixel>(
             this Image<TPixel> image,
             ITestImageProvider provider,
+            object testOutputDetails = null,
+            string extension = "png",
+            bool grayscale = false)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            return CompareToReferenceOutput(
+                image,
+                provider,
+                ImageComparer.Tolerant(),
+                testOutputDetails,
+                extension,
+                grayscale);
+        }
+
+        /// <summary>
+        /// Compares the image against the expected Reference output, throws an exception if the images are not similar enough.
+        /// The output file should be named identically to the output produced by <see cref="DebugSave{TPixel}(Image{TPixel}, ITestImageProvider, object, string, bool)"/>.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format</typeparam>
+        /// <param name="image">The image</param>
+        /// <param name="provider">The image provider</param>
+        /// <param name="comparer">The <see cref="ImageComparer"/> to use</param>
+        /// <param name="testOutputDetails">Details to be concatenated to the test output file, describing the parameters of the test.</param>
+        /// <param name="extension">The extension</param>
+        /// <param name="grayscale">A boolean indicating whether we should debug save + compare against a grayscale image, smaller in size.</param>
+        /// <returns></returns>
+        public static Image<TPixel> CompareToReferenceOutput<TPixel>(
+            this Image<TPixel> image,
+            ITestImageProvider provider,
+            ImageComparer comparer,
             object testOutputDetails = null,
             string extension = "png",
             bool grayscale = false)
@@ -86,10 +113,9 @@ namespace ImageSharp.Tests
 
             using (Image<Rgba32> referenceImage = Image.Load<Rgba32>(referenceOutputFile, ReferenceDecoder.Instance))
             {
-                ImageComparer comparer = ImageComparer.Exact;
-                comparer.CompareImages(referenceImage, image);
+                comparer.VerifySimilarity(referenceImage, image);
             }
-            
+
             return image;
         }
     }

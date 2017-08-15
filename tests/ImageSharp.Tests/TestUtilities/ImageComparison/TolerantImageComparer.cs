@@ -2,6 +2,7 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.Runtime.CompilerServices;
 
     using ImageSharp.PixelFormats;
 
@@ -90,11 +91,13 @@
             }
         }
 
-
-        private static int GetDifferenceInPixelByteSum(ref Rgba32 expected, ref Rgba32 actual)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int GetDifferenceInPixelByteSum(ref Rgba32 a, ref Rgba32 b)
         {
-            return (int)actual.R - (int)expected.R + (int)actual.G - (int)expected.G + (int)actual.B - (int)expected.B
-                   + (int)actual.A - (int)expected.A;
+            return Diff(a.R, b.R) + Diff(a.G, b.G) + Diff(a.B, b.B) + Diff(a.A, b.A);
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int Diff(byte a, byte b) => Math.Abs(a - b);
     }
 }

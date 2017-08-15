@@ -6,6 +6,8 @@ namespace ImageSharp.Tests.TestUtilities.ImageComparison
 
     using ImageSharp.PixelFormats;
 
+    using SixLabors.Primitives;
+
     public abstract class ImageComparer
     {
         public static ImageComparer Exact { get; } = ExactImageComparer.Instance;

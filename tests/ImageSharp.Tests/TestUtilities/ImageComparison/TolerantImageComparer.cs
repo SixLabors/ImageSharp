@@ -1,6 +1,11 @@
 ﻿namespace ImageSharp.Tests.TestUtilities.ImageComparison
 {
     using System;
+    using System.Collections.Generic;
+
+    using ImageSharp.PixelFormats;
+
+    using SixLabors.Primitives;
 
     public class TolerantImageComparer : ImageComparer
     {
@@ -34,7 +39,60 @@
 
         public override ImageSimilarityReport CompareImagesOrFrames<TPixelA, TPixelB>(ImageBase<TPixelA> expected, ImageBase<TPixelB> actual)
         {
-            throw new NotImplementedException();
+            if (expected.Size() != actual.Size())
+            {
+                throw new InvalidOperationException("Calling ImageComparer is invalid when dimensions mismatch!");
+            }
+
+            int width = actual.Width;
+
+            // TODO: Comparing through Rgba32 is not robust enough because of the existance of super high precision pixel types.
+
+            Rgba32[] aBuffer = new Rgba32[width];
+            Rgba32[] bBuffer = new Rgba32[width];
+
+            double totalDifference = 0.0;
+
+            var differences = new List<PixelDifference>();
+
+            for (int y = 0; y < actual.Height; y++)
+            {
+                Span<TPixelA> aSpan = expected.GetRowSpan(y);
+                Span<TPixelB> bSpan = actual.GetRowSpan(y);
+
+                PixelOperations<TPixelA>.Instance.ToRgba32(aSpan, aBuffer, width);
+                PixelOperations<TPixelB>.Instance.ToRgba32(bSpan, bBuffer, width);
+
+                for (int x = 0; x < width; x++)
+                {
+                    int d = GetDifferenceInPixelByteSum(ref aBuffer[x], ref bBuffer[x]);
+
+                    if (d > this.PixelThresholdInPixelByteSum)
+                    {
+                        var diff = new PixelDifference(new Point(x, y), aBuffer[x], bBuffer[x]);
+                        differences.Add(diff);
+
+                        float percentageDiff = (float)d / 4.0f / 255.0f;
+                        totalDifference += percentageDiff;
+                    }
+                }
+            }
+
+            if (totalDifference > this.ImageThreshold)
+            {
+                return new ImageSimilarityReport(expected, actual, differences);
+            }
+            else
+            {
+                return ImageSimilarityReport.Empty;
+            }
+        }
+
+
+        private static int GetDifferenceInPixelByteSum(ref Rgba32 expected, ref Rgba32 actual)
+        {
+            return (int)actual.R - (int)expected.R + (int)actual.G - (int)expected.G + (int)actual.B - (int)expected.B
+                   + (int)actual.A - (int)expected.A;
         }
     }
 }

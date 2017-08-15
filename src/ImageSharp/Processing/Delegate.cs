@@ -18,6 +18,8 @@ namespace ImageSharp
     {
         /// <summary>
         /// Applies the given operation to the mutable image.
+        /// Useful when we need to extract information like Width/Height to parameterize the next operation working on the <see cref="IImageProcessingContext{TPixel}"/> chain.
+        /// To achieve this the method actually implements an "inline" <see cref="IImageProcessor{TPixel}"/> with <paramref name="operation"/> as it's processing logic.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image to mutate.</param>

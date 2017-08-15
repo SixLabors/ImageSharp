@@ -14,6 +14,9 @@
             this.Differences = differences.ToArray();
         }
 
+        public static ImageSimilarityReport Empty =>
+            new ImageSimilarityReport(null, null, Enumerable.Empty<PixelDifference>());
+
         public IImageBase ExpectedImage { get; }
 
         public IImageBase ActualImage { get; }

@@ -62,7 +62,7 @@ namespace ImageSharp.Tests
                 using (PixelAccessor<TPixel> pixels = image.Lock())
                 {
                     BlackWhiteChecker(pixels); // top left
-                    VirticalBars(pixels); // top right
+                    VerticalBars(pixels); // top right
                     TransparentGradients(pixels); // bottom left
                     Rainbow(pixels); // bottom right
                 }
@@ -71,7 +71,7 @@ namespace ImageSharp.Tests
             /// Fills the top right quadrant with alternating solid vertical bars.
             /// </summary>
             /// <param name="pixels"></param>
-            private static void VirticalBars(PixelAccessor<TPixel> pixels)
+            private static void VerticalBars(PixelAccessor<TPixel> pixels)
             {
                 // topLeft
                 int left = pixels.Width / 2;

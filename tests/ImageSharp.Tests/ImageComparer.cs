@@ -11,7 +11,7 @@ namespace ImageSharp.Tests
     using ImageSharp.PixelFormats;
     using SixLabors.Primitives;
     using Xunit;
-
+    
     /// <summary>
     /// Class to perform simple image comparisons.
     /// </summary>
@@ -42,7 +42,13 @@ namespace ImageSharp.Tests
         /// This is a sampling factor we sample a grid of average pixels <paramref name="scalingFactor"/> width by <paramref name="scalingFactor"/> high
         /// The default undefined value is <see cref="DefaultScalingFactor"/>
         /// </param>
-        public static void EnsureProcessorChangesAreConstrained<TPixelA, TPixelB>(Image<TPixelA> expected, Image<TPixelB> actual, Rectangle bounds, float imageTheshold = DefaultImageThreshold, byte segmentThreshold = DefaultSegmentThreshold, int scalingFactor = DefaultScalingFactor)
+        public static void EnsureProcessorChangesAreConstrained<TPixelA, TPixelB>(
+            Image<TPixelA> expected,
+            Image<TPixelB> actual,
+            Rectangle bounds,
+            float imageTheshold = DefaultImageThreshold,
+            byte segmentThreshold = DefaultSegmentThreshold,
+            int scalingFactor = DefaultScalingFactor)
             where TPixelA : struct, IPixel<TPixelA>
             where TPixelB : struct, IPixel<TPixelB>
         {

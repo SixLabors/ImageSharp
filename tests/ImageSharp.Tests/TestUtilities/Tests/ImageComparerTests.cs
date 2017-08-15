@@ -115,10 +115,17 @@ namespace ImageSharp.Tests
             {
                 using (Image<TPixel> clone = image.Clone())
                 {
-                    ModifyPixel(clone, 0, 0, 2);
+                    ModifyPixel(clone, 3, 1, 2);
 
                     var comparer = ImageComparer.Tolerant();
-                    comparer.VerifySimilarity(image, clone);
+
+                    ImagePixelsAreDifferentException ex = Assert.ThrowsAny<ImagePixelsAreDifferentException>(
+                        () =>
+                            {
+                                comparer.VerifySimilarity(image, clone);
+                            });
+                    PixelDifference diff = ex.Reports.Single().Differences.Single();
+                    Assert.Equal(new Point(3, 1), diff.Position);
                 }
             }
         }

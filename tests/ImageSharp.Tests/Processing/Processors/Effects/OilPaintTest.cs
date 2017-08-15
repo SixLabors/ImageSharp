@@ -22,7 +22,7 @@ namespace ImageSharp.Tests.Processing.Processors.Effects
 
         [Theory]
         [WithFileCollection(nameof(DefaultFiles), nameof(OilPaintValues), DefaultPixelType)]
-        public void ImageShouldApplyOilPaintFilter<TPixel>(TestImageProvider<TPixel> provider, int levels, int brushSize)
+        public void ApplyOilPaintFilter<TPixel>(TestImageProvider<TPixel> provider, int levels, int brushSize)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
@@ -34,7 +34,7 @@ namespace ImageSharp.Tests.Processing.Processors.Effects
 
         [Theory]
         [WithFileCollection(nameof(DefaultFiles), nameof(OilPaintValues), DefaultPixelType)]
-        public void ImageShouldApplyOilPaintFilterInBox<TPixel>(TestImageProvider<TPixel> provider, int levels, int brushSize)
+        public void ApplyOilPaintFilterInBox<TPixel>(TestImageProvider<TPixel> provider, int levels, int brushSize)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> source = provider.GetImage())

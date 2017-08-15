@@ -79,7 +79,7 @@ namespace ImageSharp.Tests.Processing.Processors.Effects
                     }
                 }
 
-                PercentageImageComparer_Old.EnsureProcessorChangesAreConstrained(source, image, bounds);
+                ImageComparer.Tolerant().EnsureProcessorChangesAreConstrained(source, image, bounds);
             }
         }
     }

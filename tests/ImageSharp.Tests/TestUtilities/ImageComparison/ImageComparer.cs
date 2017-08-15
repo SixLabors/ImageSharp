@@ -13,10 +13,10 @@ namespace ImageSharp.Tests.TestUtilities.ImageComparison
         public static ImageComparer Exact { get; } = ExactImageComparer.Instance;
 
         public static ImageComparer Tolerant(
-            float imageThresholdInPercents = 0.01f,
+            float imageThreshold = TolerantImageComparer.DefaultImageThreshold,
             int pixelThresholdInPixelByteSum = 0)
         {
-            return new TolerantImageComparer(imageThresholdInPercents, pixelThresholdInPixelByteSum);
+            return new TolerantImageComparer(imageThreshold, pixelThresholdInPixelByteSum);
         }
 
         public abstract ImageSimilarityReport CompareImagesOrFrames<TPixelA, TPixelB>(
@@ -77,6 +77,31 @@ namespace ImageSharp.Tests.TestUtilities.ImageComparison
             {
                 throw new ImagePixelsAreDifferentException(reports);
             }
+        }
+
+        /// <summary>
+        /// Fills the bounded area with a solid color and does a visual comparison between 2 images asserting the difference outwith
+        /// that area is less then a configurable threshold.
+        /// </summary>
+        /// <typeparam name="TPixelA">The color of the expected image</typeparam>
+        /// <typeparam name="TPixelB">The color type fo the the actual image</typeparam>
+        /// <param name="comparer">The <see cref="ImageComparer"/> to use</param>
+        /// <param name="expected">The expected image</param>
+        /// <param name="actual">The actual image</param>
+        /// <param name="bounds">The bounds within the image has been altered</param>
+        public static void EnsureProcessorChangesAreConstrained<TPixelA, TPixelB>(
+            this ImageComparer comparer,
+            Image<TPixelA> expected,
+            Image<TPixelB> actual,
+            Rectangle bounds)
+            where TPixelA : struct, IPixel<TPixelA>
+            where TPixelB : struct, IPixel<TPixelB>
+        {
+            // Draw identical shapes over the bounded and compare to ensure changes are constrained.
+            expected.Mutate(x => x.Fill(NamedColors<TPixelA>.HotPink, bounds));
+            actual.Mutate(x => x.Fill(NamedColors<TPixelB>.HotPink, bounds));
+
+            comparer.VerifySimilarity(expected, actual);
         }
     }
 }

@@ -28,7 +28,8 @@ namespace ImageSharp.Tests
             this Image<TPixel> image,
             ITestImageProvider provider,
             object settings = null,
-            string extension = "png")
+            string extension = "png",
+            bool grayscale = false)
             where TPixel : struct, IPixel<TPixel>
         {
             if (TestEnvironment.RunsOnCI)
@@ -38,7 +39,11 @@ namespace ImageSharp.Tests
 
             
             // We are running locally then we want to save it out
-            provider.Utility.SaveTestOutputFile(image, extension, settings: settings);
+            provider.Utility.SaveTestOutputFile(
+                image,
+                extension,
+                testOutputDetails: settings,
+                grayscale: grayscale);
             return image;
         }
 
@@ -47,6 +52,7 @@ namespace ImageSharp.Tests
             ITestImageProvider provider,
             object settings = null,
             string extension = "png",
+            bool monochrome1Bpp = false,
             float imageTheshold = ImageComparer.DefaultImageThreshold,
             byte segmentThreshold = ImageComparer.DefaultSegmentThreshold,
             int scalingFactor = ImageComparer.DefaultScalingFactor)
@@ -56,7 +62,11 @@ namespace ImageSharp.Tests
 
             if (!TestEnvironment.RunsOnCI)
             {
-                provider.Utility.SaveTestOutputFile(image, extension, settings: settings);
+                provider.Utility.SaveTestOutputFile(
+                    image,
+                    extension,
+                    testOutputDetails: settings,
+                    grayscale: monochrome1Bpp);
             }
 
             if (!File.Exists(referenceOutputFile))

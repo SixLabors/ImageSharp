@@ -16,6 +16,7 @@ namespace ImageSharp.Tests.Formats.Png
     using System.Numerics;
 
     using ImageSharp.PixelFormats;
+    using ImageSharp.Tests.TestUtilities.ImageComparison;
 
     public class PngSmokeTests
     {
@@ -34,8 +35,9 @@ namespace ImageSharp.Tests.Formats.Png
                 ms.Position = 0;
                 using (Image<Rgba32> img2 = Image.Load<Rgba32>(ms, new PngDecoder()))
                 {
+                    ImageComparer.Tolerant().VerifySimilarity(image, img2);
                     // img2.Save(provider.Utility.GetTestOutputFileName("bmp", "_loaded"), new BmpEncoder());
-                    PercentageImageComparer.VerifySimilarity(image, img2);
+                    PercentageImageComparer_Old.VerifySimilarity(image, img2);
                 }
             }
         }
@@ -121,7 +123,7 @@ namespace ImageSharp.Tests.Formats.Png
                 ms.Position = 0;
                 using (Image<Rgba32> img2 = Image.Load<Rgba32>(ms, new PngDecoder()))
                 {
-                    PercentageImageComparer.VerifySimilarity(image, img2);
+                    PercentageImageComparer_Old.VerifySimilarity(image, img2);
                 }
             }
         }

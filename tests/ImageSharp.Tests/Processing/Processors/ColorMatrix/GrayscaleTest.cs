@@ -7,6 +7,8 @@ namespace ImageSharp.Tests.Processing.Processors.ColorMatrix
 {
     using ImageSharp.PixelFormats;
     using ImageSharp.Processing;
+    using ImageSharp.Tests.TestUtilities.ImageComparison;
+
     using SixLabors.Primitives;
     using Xunit;
 
@@ -54,7 +56,7 @@ namespace ImageSharp.Tests.Processing.Processors.ColorMatrix
                 image.Mutate(x => x.Grayscale(value, bounds));
                 image.DebugSave(provider, value.ToString());
 
-                PercentageImageComparer.EnsureProcessorChangesAreConstrained(source, image, bounds);
+                PercentageImageComparer_Old.EnsureProcessorChangesAreConstrained(source, image, bounds);
             }
         }
     }

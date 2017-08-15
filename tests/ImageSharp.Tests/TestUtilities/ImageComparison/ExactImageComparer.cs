@@ -1,4 +1,4 @@
-namespace ImageSharp.Tests
+namespace ImageSharp.Tests.TestUtilities.ImageComparison
 {
     using System;
     using System.Collections.Generic;
@@ -11,11 +11,11 @@ namespace ImageSharp.Tests
     {
         public static ExactImageComparer Instance { get; } = new ExactImageComparer();
 
-        public override void Verify<TPixelA, TPixelB>(Image<TPixelA> expected, Image<TPixelB> actual)
+        public override ImageSimilarityReport CompareImagesOrFrames<TPixelA, TPixelB>(ImageBase<TPixelA> expected, ImageBase<TPixelB> actual)
         {
             if (expected.Size() != actual.Size())
             {
-                throw new ImageDimensionsMismatchException(expected.Size(), actual.Size());
+                throw new InvalidOperationException("Calling ImageComparer is invalid when dimensions mismatch!");
             }
 
             int width = actual.Width;
@@ -25,7 +25,7 @@ namespace ImageSharp.Tests
             Rgba32[] aBuffer = new Rgba32[width];
             Rgba32[] bBuffer = new Rgba32[width];
 
-            var differences = new List<Point>();
+            var differences = new List<PixelDifference>();
 
             for (int y = 0; y < actual.Height; y++)
             {
@@ -37,17 +37,18 @@ namespace ImageSharp.Tests
 
                 for (int x = 0; x < width; x++)
                 {
-                    if (aBuffer[x] != bBuffer[x])
+                    Rgba32 aPixel = aBuffer[x];
+                    Rgba32 bPixel = bBuffer[x];
+
+                    if (aPixel != bPixel)
                     {
-                        differences.Add(new Point(x, y));
+                        var diff = new PixelDifference(new Point(x, y), aPixel, bPixel);
+                        differences.Add(diff);
                     }
                 }
             }
 
-            if (differences.Count > 0)
-            {
-                throw new ImagesAreNotEqualException(differences.ToArray());
-            }
+            return new ImageSimilarityReport(expected, actual, differences);
         }
     }
 }

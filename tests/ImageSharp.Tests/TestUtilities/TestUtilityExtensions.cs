@@ -103,7 +103,7 @@ namespace ImageSharp.Tests
             return string.Join(separator, items.Select(o => string.Format(CultureInfo.InvariantCulture, "{0}", o)));
         }
 
-        public static Type ToType(this PixelTypes pixelType) => PixelTypes2ClrTypes[pixelType];
+        public static Type GetClrType(this PixelTypes pixelType) => PixelTypes2ClrTypes[pixelType];
 
         /// <summary>
         /// Returns the <see cref="PixelTypes"/> enumerations for the given type.
@@ -111,6 +111,8 @@ namespace ImageSharp.Tests
         /// <param name="colorStructClrType"></param>
         /// <returns></returns>
         public static PixelTypes GetPixelType(this Type colorStructClrType) => ClrTypes2PixelTypes[colorStructClrType];
+
+        
 
         public static IEnumerable<KeyValuePair<PixelTypes, Type>> ExpandAllTypes(this PixelTypes pixelTypes)
         {
@@ -124,10 +126,19 @@ namespace ImageSharp.Tests
                 return PixelTypes2ClrTypes;
             }
 
-            return AllConcretePixelTypes
-                .Where(pt => pixelTypes.HasFlag(pt))
-                .Select(pt => new KeyValuePair<PixelTypes, Type>(pt, pt.ToType()));
+            var result = new Dictionary<PixelTypes, Type>();
+            foreach (PixelTypes pt in AllConcretePixelTypes)
+            {
+                if (pixelTypes.HasAll(pt))
+                {
+                    result[pt] = pt.GetClrType();
+                }
+            }
+            return result;
         }
+
+        internal static bool HasAll(this PixelTypes pixelTypes, PixelTypes flagsToCheck) =>
+            (pixelTypes & flagsToCheck) == flagsToCheck;
 
         /// <summary>
         /// Enumerate all available <see cref="PixelTypes"/>-s

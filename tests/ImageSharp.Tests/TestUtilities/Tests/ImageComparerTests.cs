@@ -122,7 +122,7 @@ namespace ImageSharp.Tests
             {
                 using (Image<TPixel> clone = image.Clone())
                 {
-                    ExactComparer.Instance.Verify(image, clone);
+                    ExactImageComparer.Instance.Verify(image, clone);
                 }
             }
         }
@@ -140,7 +140,7 @@ namespace ImageSharp.Tests
                     ImageDimensionsMismatchException ex = Assert.ThrowsAny<ImageDimensionsMismatchException>(
                         () =>
                             {
-                                ExactComparer.Instance.Verify(image, clone);
+                                ExactImageComparer.Instance.Verify(image, clone);
                             });
                     this.Output.WriteLine(ex.Message);
                 }
@@ -156,13 +156,13 @@ namespace ImageSharp.Tests
             {
                 using (Image<TPixel> clone = image.Clone())
                 {
-                    ModifyPixel(clone, 42, 42, 1);
+                    ModifyPixel(clone, 42, 24, 1);
                     ModifyPixel(clone, 7, 93, 1);
 
                     ImagesAreNotEqualException ex = Assert.ThrowsAny<ImagesAreNotEqualException>(
                         () =>
                             {
-                                ExactComparer.Instance.Verify(image, clone);
+                                ExactImageComparer.Instance.Verify(image, clone);
                             });
                     this.Output.WriteLine(ex.Message);
                     Assert.Equal(2, ex.Differences.Length);

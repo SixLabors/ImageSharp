@@ -8,6 +8,8 @@ namespace ImageSharp.Tests.Processing.Processors.Binarization
     using ImageSharp.Dithering;
     using ImageSharp.Dithering.Ordered;
     using ImageSharp.PixelFormats;
+    using ImageSharp.Tests.TestUtilities.ImageComparison;
+
     using SixLabors.Primitives;
     using Xunit;
 
@@ -56,7 +58,7 @@ namespace ImageSharp.Tests.Processing.Processors.Binarization
                 image.Mutate(x => x.Dither(ditherer, bounds));
                 image.DebugSave(provider, name);
 
-                PercentageImageComparer.EnsureProcessorChangesAreConstrained(source, image, bounds);
+                PercentageImageComparer_Old.EnsureProcessorChangesAreConstrained(source, image, bounds);
             }
         }
 
@@ -85,7 +87,7 @@ namespace ImageSharp.Tests.Processing.Processors.Binarization
                 image.Mutate(x => x.Dither(diffuser, .5F, bounds));
                 image.DebugSave(provider, name);
 
-                PercentageImageComparer.EnsureProcessorChangesAreConstrained(source, image, bounds);
+                PercentageImageComparer_Old.EnsureProcessorChangesAreConstrained(source, image, bounds);
             }
         }
     }

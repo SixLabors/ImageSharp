@@ -6,6 +6,8 @@
 namespace ImageSharp.Tests.Processing.Processors.Effects
 {
     using ImageSharp.PixelFormats;
+    using ImageSharp.Tests.TestUtilities.ImageComparison;
+
     using SixLabors.Primitives;
     using Xunit;
 
@@ -43,7 +45,7 @@ namespace ImageSharp.Tests.Processing.Processors.Effects
                 image.Mutate(x => x.OilPaint(levels, brushSize, bounds));
                 image.DebugSave(provider, string.Join("-", levels, brushSize));
 
-                PercentageImageComparer.EnsureProcessorChangesAreConstrained(source, image, bounds, 0.001F);
+                PercentageImageComparer_Old.EnsureProcessorChangesAreConstrained(source, image, bounds, 0.001F);
             }
         }
     }

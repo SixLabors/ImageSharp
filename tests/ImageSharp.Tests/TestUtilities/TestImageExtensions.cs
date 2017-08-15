@@ -12,6 +12,7 @@ namespace ImageSharp.Tests
     using System.Reflection;
 
     using ImageSharp.PixelFormats;
+    using ImageSharp.Tests.TestUtilities.ImageComparison;
     using ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 
     public static class TestImageExtensions
@@ -57,28 +58,14 @@ namespace ImageSharp.Tests
         /// <param name="testOutputDetails">Details to be concatenated to the test output file, describing the parameters of the test.</param>
         /// <param name="extension">The extension</param>
         /// <param name="grayscale">A boolean indicating whether we should debug save + compare against a grayscale image, smaller in size.</param>
-        /// <param name="imageTheshold">
-        /// The threshold for the percentage difference where the images are asumed to be the same.
-        /// The default/undefined value is <see cref="PercentageImageComparer.DefaultImageThreshold"/>
-        /// </param>
-        /// <param name="segmentThreshold">
-        /// The threshold of the individual segments before it acumulates towards the overall difference.
-        /// The default undefined value is <see cref="PercentageImageComparer.DefaultSegmentThreshold"/>
-        /// </param>
-        /// <param name="scalingFactor">
-        /// This is a sampling factor we sample a grid of average pixels <paramref name="scalingFactor"/> width by <paramref name="scalingFactor"/> high
-        /// The default undefined value is <see cref="PercentageImageComparer.DefaultScaleIntoSize"/>
-        /// </param>
+        /// <param name="customImageComparer">A custom <see cref="ImageComparer"/> if exact equlity is not the expected behaviour</param>
         /// <returns></returns>
         public static Image<TPixel> CompareToReferenceOutput<TPixel>(
             this Image<TPixel> image,
             ITestImageProvider provider,
             object testOutputDetails = null,
             string extension = "png",
-            bool grayscale = false,
-            float imageTheshold = PercentageImageComparer.DefaultImageThreshold,
-            byte segmentThreshold = PercentageImageComparer.DefaultSegmentThreshold,
-            int scalingFactor = PercentageImageComparer.DefaultScaleIntoSize)
+            bool grayscale = false)
             where TPixel : struct, IPixel<TPixel>
         {
             string referenceOutputFile = provider.Utility.GetReferenceOutputFileName(extension, testOutputDetails);
@@ -99,7 +86,8 @@ namespace ImageSharp.Tests
 
             using (Image<Rgba32> referenceImage = Image.Load<Rgba32>(referenceOutputFile, ReferenceDecoder.Instance))
             {
-                PercentageImageComparer.VerifySimilarity(referenceImage, image, imageTheshold, segmentThreshold, scalingFactor);
+                ImageComparer comparer = ImageComparer.Exact;
+                comparer.CompareImages(referenceImage, image);
             }
             
             return image;

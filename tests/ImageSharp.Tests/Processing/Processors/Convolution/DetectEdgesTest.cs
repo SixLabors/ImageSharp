@@ -7,6 +7,8 @@ namespace ImageSharp.Tests.Processing.Processors.Convolution
 {
     using ImageSharp.PixelFormats;
     using ImageSharp.Processing;
+    using ImageSharp.Tests.TestUtilities.ImageComparison;
+
     using SixLabors.Primitives;
     using Xunit;
 
@@ -56,7 +58,7 @@ namespace ImageSharp.Tests.Processing.Processors.Convolution
                 image.DebugSave(provider, grayscale: true);
 
                 // TODO: We don't need this any longer after switching to ReferenceImages
-                PercentageImageComparer.EnsureProcessorChangesAreConstrained(source, image, bounds);
+                PercentageImageComparer_Old.EnsureProcessorChangesAreConstrained(source, image, bounds);
             }
         }
     }

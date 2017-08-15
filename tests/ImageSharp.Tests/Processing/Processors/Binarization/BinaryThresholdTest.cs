@@ -6,6 +6,8 @@
 namespace ImageSharp.Tests.Processing.Processors.Binarization
 {
     using ImageSharp.PixelFormats;
+    using ImageSharp.Tests.TestUtilities.ImageComparison;
+
     using SixLabors.Primitives;
     using Xunit;
 
@@ -44,7 +46,7 @@ namespace ImageSharp.Tests.Processing.Processors.Binarization
                 image.Mutate(x => x.BinaryThreshold(value, bounds));
                      image.DebugSave(provider, value);
 
-                PercentageImageComparer.EnsureProcessorChangesAreConstrained(source, image, bounds);
+                PercentageImageComparer_Old.EnsureProcessorChangesAreConstrained(source, image, bounds);
             }
         }
     }

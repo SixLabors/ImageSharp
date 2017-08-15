@@ -29,7 +29,7 @@
         {
             return this.IsEmpty ? "[SimilarImages]" : StringifyDifferences(this.Differences);
         }
-
+        
         private static string StringifyDifferences(PixelDifference[] differences)
         {
             var sb = new StringBuilder();

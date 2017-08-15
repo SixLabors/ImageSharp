@@ -38,7 +38,7 @@ namespace ImageSharp.Tests.Processing.Processors.Effects
                 image.Mutate(x => x.BackgroundColor(NamedColors<TPixel>.HotPink, bounds));
                 image.DebugSave(provider);
 
-                PercentageImageComparer_Old.EnsureProcessorChangesAreConstrained(source, image, bounds);
+                ImageComparer.Tolerant().EnsureProcessorChangesAreConstrained(source, image, bounds);
             }
         }
     }

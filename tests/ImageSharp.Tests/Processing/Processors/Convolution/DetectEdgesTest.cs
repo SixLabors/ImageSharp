@@ -58,7 +58,7 @@ namespace ImageSharp.Tests.Processing.Processors.Convolution
                 image.DebugSave(provider, grayscale: true);
 
                 // TODO: We don't need this any longer after switching to ReferenceImages
-                PercentageImageComparer_Old.EnsureProcessorChangesAreConstrained(source, image, bounds);
+                ImageComparer.Tolerant().EnsureProcessorChangesAreConstrained(source, image, bounds);
             }
         }
     }

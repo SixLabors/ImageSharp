@@ -15,7 +15,7 @@ namespace ImageSharp.Tests
 
         private const string ActualOutputDirectoryRelativePath = @"tests\Images\ActualOutput";
 
-        private const string ReferenceOutputDirectoryRelativePath = @"tests\Images\ReferenceOutput";
+        private const string ReferenceOutputDirectoryRelativePath = @"tests\Images\External\ReferenceOutput";
 
         private static Lazy<string> solutionDirectoryFullPath = new Lazy<string>(GetSolutionDirectoryFullPathImpl);
 
@@ -79,6 +79,6 @@ namespace ImageSharp.Tests
         internal static string ReferenceOutputDirectoryFullPath => Path.Combine(SolutionDirectoryFullPath, ReferenceOutputDirectoryRelativePath);
 
         internal static string GetReferenceOutputFileName(string actualOutputFileName) =>
-            actualOutputFileName.Replace("ActualOutput", "ReferenceOutput");
+            actualOutputFileName.Replace("ActualOutput", @"External\ReferenceOutput");
     }
 }

@@ -60,7 +60,7 @@ namespace ImageSharp.Tests.Processing.Processors.Overlays
                 image.Mutate(x => x.Glow(bounds));
                 image.DebugSave(provider);
 
-                ImageComparer.EnsureProcessorChangesAreConstrained(source, image, bounds);
+                PercentageImageComparer.EnsureProcessorChangesAreConstrained(source, image, bounds);
             }
         }
     }

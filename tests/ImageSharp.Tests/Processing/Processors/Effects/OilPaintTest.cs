@@ -43,7 +43,7 @@ namespace ImageSharp.Tests.Processing.Processors.Effects
                 image.Mutate(x => x.OilPaint(levels, brushSize, bounds));
                 image.DebugSave(provider, string.Join("-", levels, brushSize));
 
-                ImageComparer.EnsureProcessorChangesAreConstrained(source, image, bounds, 0.001F);
+                PercentageImageComparer.EnsureProcessorChangesAreConstrained(source, image, bounds, 0.001F);
             }
         }
     }

@@ -36,7 +36,7 @@ namespace ImageSharp.Tests.Processing.Processors.ColorMatrix
                 image.Mutate(x => x.Sepia(bounds));
                 image.DebugSave(provider);
 
-                ImageComparer.EnsureProcessorChangesAreConstrained(source, image, bounds);
+                PercentageImageComparer.EnsureProcessorChangesAreConstrained(source, image, bounds);
             }
         }
     }

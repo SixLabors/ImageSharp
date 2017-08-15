@@ -44,7 +44,7 @@ namespace ImageSharp.Tests.Processing.Processors.Binarization
                 image.Mutate(x => x.BinaryThreshold(value, bounds));
                      image.DebugSave(provider, value);
 
-                ImageComparer.EnsureProcessorChangesAreConstrained(source, image, bounds);
+                PercentageImageComparer.EnsureProcessorChangesAreConstrained(source, image, bounds);
             }
         }
     }

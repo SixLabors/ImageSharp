@@ -36,7 +36,7 @@ namespace ImageSharp.Tests.Processing.Processors.Effects
                 image.Mutate(x => x.Invert(bounds));
                 image.DebugSave(provider);
 
-                ImageComparer.EnsureProcessorChangesAreConstrained(source, image, bounds);
+                PercentageImageComparer.EnsureProcessorChangesAreConstrained(source, image, bounds);
             }
         }
     }

@@ -60,6 +60,7 @@ namespace ImageSharp.Tests
 
         // TODO: Add multi-flag entries by rules defined in PackedPixelConverterHelper
 
+        Default = Rgba32,
         // "All" is handled as a separate, individual case instead of using bitwise OR
         All = 30
     }

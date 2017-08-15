@@ -54,7 +54,7 @@ namespace AvatarWithRoundedCorner
         }
 
         // 2. A more verbose way, avoiding 'Apply()':
-        // First we create a resized clone of the image, then we draw the corners on that that instance it with Mutate().
+        // First we create a resized clone of the image, then we draw the corners on that instance with Mutate().
         private static Image<Rgba32> CloneAndConvertToAvatarWithoutApply(this Image<Rgba32> image, Size size, float cornerRadius)
         {
             Image<Rgba32> result = image.Clone(

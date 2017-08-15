@@ -3,6 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
+// ReSharper disable InconsistentNaming
 namespace ImageSharp.Tests.Processing.Processors.Transforms
 {
     using ImageSharp.PixelFormats;
@@ -29,8 +30,9 @@ namespace ImageSharp.Tests.Processing.Processors.Transforms
         };
 
         [Theory]
-        [WithFileCollection(nameof(DefaultFiles), nameof(RotateFloatValues), DefaultPixelType)]
-        public void ImageShouldRotate<TPixel>(TestImageProvider<TPixel> provider, float value)
+        [WithTestPatternImages(nameof(RotateFloatValues), 100, 50, DefaultPixelType)]
+        [WithTestPatternImages(nameof(RotateFloatValues), 50, 100, DefaultPixelType)]
+        public void Rotate<TPixel>(TestImageProvider<TPixel> provider, float value)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
@@ -41,8 +43,9 @@ namespace ImageSharp.Tests.Processing.Processors.Transforms
         }
 
         [Theory]
-        [WithFileCollection(nameof(DefaultFiles), nameof(RotateEnumValues), DefaultPixelType)]
-        public void ImageShouldRotateEnum<TPixel>(TestImageProvider<TPixel> provider, RotateType value)
+        [WithTestPatternImages(nameof(RotateEnumValues), 100, 50, DefaultPixelType)]
+        [WithTestPatternImages(nameof(RotateEnumValues), 50, 100, DefaultPixelType)]
+        public void Rotate_WithRotateTypeEnum<TPixel>(TestImageProvider<TPixel> provider, RotateType value)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())

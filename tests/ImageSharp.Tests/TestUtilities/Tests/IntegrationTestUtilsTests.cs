@@ -6,11 +6,11 @@ namespace ImageSharp.Tests
     using Xunit;
     using Xunit.Abstractions;
 
-    public class IntegrationTestUtilsTests
+    public class ReferenceCodecTests
     {
         private ITestOutputHelper Output { get; }
 
-        public IntegrationTestUtilsTests(ITestOutputHelper output)
+        public ReferenceCodecTests(ITestOutputHelper output)
         {
             this.Output = output;
         }

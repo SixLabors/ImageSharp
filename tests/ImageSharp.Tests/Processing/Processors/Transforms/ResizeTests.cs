@@ -12,7 +12,9 @@ namespace ImageSharp.Tests.Processing.Processors.Transforms
 
     public class ResizeTests : FileTestBase
     {
-        public static readonly string[] ResizeFiles = { TestImages.Png.CalliphoraPartial };
+        public static readonly string[] CommonTestImages = { TestImages.Png.CalliphoraPartial };
+
+        public static readonly string[] GrayscaleTestImages = { TestImages.Png.CalliphoraPartialGrayscale };
 
         public static readonly TheoryData<string, IResampler> AllReSamplers =
             new TheoryData<string, IResampler>
@@ -31,7 +33,7 @@ namespace ImageSharp.Tests.Processing.Processors.Transforms
                 { "RobidouxSharp", new RobidouxSharpResampler() },
                 { "Welch", new WelchResampler() }
             };
-        
+
         [Theory]
         [WithFile(TestImages.Gif.Giphy, DefaultPixelType)]
         public void ResizeShouldApplyToAllFrames<TPixel>(TestImageProvider<TPixel> provider)
@@ -46,8 +48,8 @@ namespace ImageSharp.Tests.Processing.Processors.Transforms
 
         [Theory]
         [WithTestPatternImages(nameof(AllReSamplers), 100, 100, DefaultPixelType, 0.5f)]
-        [WithFileCollection(nameof(ResizeFiles), nameof(AllReSamplers), DefaultPixelType, 0.5f)]
-        [WithFileCollection(nameof(ResizeFiles), nameof(AllReSamplers), DefaultPixelType, 0.3f)]
+        [WithFileCollection(nameof(CommonTestImages), nameof(AllReSamplers), DefaultPixelType, 0.5f)]
+        [WithFileCollection(nameof(CommonTestImages), nameof(AllReSamplers), DefaultPixelType, 0.3f)]
         public void ResizeFullImage<TPixel>(TestImageProvider<TPixel> provider, string name, IResampler sampler, float ratio)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -73,8 +75,8 @@ namespace ImageSharp.Tests.Processing.Processors.Transforms
         }
 
         [Theory]
-        [WithFileCollection(nameof(ResizeFiles), DefaultPixelType)]
-        public void ImageShouldResizeFromSourceRectangle<TPixel>(TestImageProvider<TPixel> provider)
+        [WithFileCollection(nameof(GrayscaleTestImages), DefaultPixelType)]
+        public void ResizeFromSourceRectangle<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
@@ -83,13 +85,13 @@ namespace ImageSharp.Tests.Processing.Processors.Transforms
                 var destRectangle = new Rectangle(image.Width / 4, image.Height / 4, image.Width / 2, image.Height / 2);
 
                 image.Mutate(x => x.Resize(image.Width, image.Height, new BicubicResampler(), sourceRectangle, destRectangle, false));
-                image.DebugSave(provider);
+                image.DebugSave(provider, grayscale: true);
             }
         }
 
         [Theory]
-        [WithFileCollection(nameof(ResizeFiles), DefaultPixelType)]
-        public void ImageShouldResizeWidthAndKeepAspect<TPixel>(TestImageProvider<TPixel> provider)
+        [WithFileCollection(nameof(GrayscaleTestImages), DefaultPixelType)]
+        public void ResizeWidthAndKeepAspect<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
@@ -100,20 +102,20 @@ namespace ImageSharp.Tests.Processing.Processors.Transforms
         }
 
         [Theory]
-        [WithFileCollection(nameof(ResizeFiles), DefaultPixelType)]
-        public void ImageShouldResizeHeightAndKeepAspect<TPixel>(TestImageProvider<TPixel> provider)
+        [WithFileCollection(nameof(GrayscaleTestImages), DefaultPixelType)]
+        public void ResizeHeightAndKeepAspect<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {
                 image.Mutate(x => x.Resize(0, image.Height / 3, false));
-                image.DebugSave(provider);
+                image.DebugSave(provider, grayscale: true);
             }
         }
 
         [Theory]
-        [WithFileCollection(nameof(ResizeFiles), DefaultPixelType)]
-        public void ImageShouldResizeWithCropWidthMode<TPixel>(TestImageProvider<TPixel> provider)
+        [WithFileCollection(nameof(GrayscaleTestImages), DefaultPixelType)]
+        public void ResizeWithCropWidthMode<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
@@ -124,13 +126,13 @@ namespace ImageSharp.Tests.Processing.Processors.Transforms
                 };
 
                 image.Mutate(x => x.Resize(options));
-                image.DebugSave(provider);
+                image.DebugSave(provider, grayscale: true);
             }
         }
 
         [Theory]
-        [WithFileCollection(nameof(ResizeFiles), DefaultPixelType)]
-        public void ImageShouldResizeWithCropHeightMode<TPixel>(TestImageProvider<TPixel> provider)
+        [WithFileCollection(nameof(GrayscaleTestImages), DefaultPixelType)]
+        public void ResizeWithCropHeightMode<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
@@ -141,13 +143,13 @@ namespace ImageSharp.Tests.Processing.Processors.Transforms
                 };
 
                 image.Mutate(x => x.Resize(options));
-                image.DebugSave(provider);
+                image.DebugSave(provider, grayscale: true);
             }
         }
 
         [Theory]
-        [WithFileCollection(nameof(ResizeFiles), DefaultPixelType)]
-        public void ImageShouldResizeWithPadMode<TPixel>(TestImageProvider<TPixel> provider)
+        [WithFileCollection(nameof(GrayscaleTestImages), DefaultPixelType)]
+        public void ResizeWithPadMode<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
@@ -159,13 +161,13 @@ namespace ImageSharp.Tests.Processing.Processors.Transforms
                 };
 
                 image.Mutate(x => x.Resize(options));
-                image.DebugSave(provider);
+                image.DebugSave(provider, grayscale: true);
             }
         }
 
         [Theory]
-        [WithFileCollection(nameof(ResizeFiles), DefaultPixelType)]
-        public void ImageShouldResizeWithBoxPadMode<TPixel>(TestImageProvider<TPixel> provider)
+        [WithFileCollection(nameof(GrayscaleTestImages), DefaultPixelType)]
+        public void ResizeWithBoxPadMode<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
@@ -177,13 +179,13 @@ namespace ImageSharp.Tests.Processing.Processors.Transforms
                 };
 
                 image.Mutate(x => x.Resize(options));
-                image.DebugSave(provider);
+                image.DebugSave(provider, grayscale: true);
             }
         }
 
         [Theory]
-        [WithFileCollection(nameof(ResizeFiles), DefaultPixelType)]
-        public void ImageShouldResizeWithMaxMode<TPixel>(TestImageProvider<TPixel> provider)
+        [WithFileCollection(nameof(GrayscaleTestImages), DefaultPixelType)]
+        public void ResizeWithMaxMode<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
@@ -195,13 +197,13 @@ namespace ImageSharp.Tests.Processing.Processors.Transforms
                 };
 
                 image.Mutate(x => x.Resize(options));
-                image.DebugSave(provider);
+                image.DebugSave(provider, grayscale: true);
             }
         }
 
         [Theory]
-        [WithFileCollection(nameof(ResizeFiles), DefaultPixelType)]
-        public void ImageShouldResizeWithMinMode<TPixel>(TestImageProvider<TPixel> provider)
+        [WithFileCollection(nameof(GrayscaleTestImages), DefaultPixelType)]
+        public void ResizeWithMinMode<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
@@ -213,13 +215,13 @@ namespace ImageSharp.Tests.Processing.Processors.Transforms
                 };
 
                 image.Mutate(x => x.Resize(options));
-                image.DebugSave(provider);
+                image.DebugSave(provider, grayscale: true);
             }
         }
 
         [Theory]
-        [WithFileCollection(nameof(ResizeFiles), DefaultPixelType)]
-        public void ImageShouldResizeWithStretchMode<TPixel>(TestImageProvider<TPixel> provider)
+        [WithFileCollection(nameof(GrayscaleTestImages), DefaultPixelType)]
+        public void ResizeWithStretchMode<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
@@ -231,7 +233,7 @@ namespace ImageSharp.Tests.Processing.Processors.Transforms
                 };
 
                 image.Mutate(x => x.Resize(options));
-                image.DebugSave(provider);
+                image.DebugSave(provider, grayscale: true);
             }
         }
 

@@ -131,12 +131,13 @@ namespace ImageSharp.Tests
             Image<TPixel> image,
             string extension = null,
             IImageEncoder encoder = null,
-            object settings = null)
+            object testOutputDetails = null,
+            bool grayscale = false)
             where TPixel : struct, IPixel<TPixel>
         {
-            string path = this.GetTestOutputFileName(extension: extension, settings: settings);
+            string path = this.GetTestOutputFileName(extension: extension, settings: testOutputDetails);
             string extension1 = Path.GetExtension(path);
-            encoder = encoder ?? GetImageFormatByExtension(extension1);
+            encoder = encoder ?? GetImageFormatByExtension(extension1, grayscale);
             
             using (FileStream stream = File.OpenWrite(path))
             {
@@ -158,11 +159,25 @@ namespace ImageSharp.Tests
             this.Init(method.DeclaringType.Name, method.Name);
         }
 
-        private static IImageEncoder GetImageFormatByExtension(string extension)
+        private static IImageEncoder GetImageFormatByExtension(string extension, bool grayscale)
         {
             extension = extension?.TrimStart('.');
             var format = Configuration.Default.FindFormatByFileExtensions(extension);
-            return Configuration.Default.FindEncoder(format);
+            IImageEncoder encoder = Configuration.Default.FindEncoder(format);
+            PngEncoder pngEncoder = encoder as PngEncoder;
+            if (pngEncoder != null)
+            {
+                pngEncoder = new PngEncoder();
+                encoder = pngEncoder;
+                pngEncoder.CompressionLevel = 9;
+
+                if (grayscale)
+                {
+                    pngEncoder.PngColorType = PngColorType.Grayscale;
+                }
+            }
+            
+            return encoder;
         }
 
         private string GetTestOutputDir()

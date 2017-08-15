@@ -12,8 +12,9 @@ namespace ImageSharp.Tests.Processing.Processors.Convolution
 
     public class DetectEdgesTest : FileTestBase
     {
-        public static readonly TheoryData<EdgeDetection> DetectEdgesFilters
-        = new TheoryData<EdgeDetection>
+        public static readonly string[] CommonTestImages = { TestImages.Png.Bike };
+        
+        public static readonly TheoryData<EdgeDetection> DetectEdgesFilters = new TheoryData<EdgeDetection>
         {
             EdgeDetection.Kayyali,
             EdgeDetection.Kirsch,
@@ -29,7 +30,7 @@ namespace ImageSharp.Tests.Processing.Processors.Convolution
 
         [Theory]
         [WithFileCollection(nameof(DefaultFiles), nameof(DetectEdgesFilters), DefaultPixelType)]
-        public void ImageShouldApplyDetectEdgesFilter<TPixel>(TestImageProvider<TPixel> provider, EdgeDetection detector)
+        public void DetectEdges<TPixel>(TestImageProvider<TPixel> provider, EdgeDetection detector)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
@@ -41,7 +42,7 @@ namespace ImageSharp.Tests.Processing.Processors.Convolution
 
         [Theory]
         [WithFileCollection(nameof(DefaultFiles), nameof(DetectEdgesFilters), DefaultPixelType)]
-        public void ImageShouldApplyDetectEdgesFilterInBox<TPixel>(TestImageProvider<TPixel> provider, EdgeDetection detector)
+        public void DetectEdgesInBox<TPixel>(TestImageProvider<TPixel> provider, EdgeDetection detector)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> source = provider.GetImage())

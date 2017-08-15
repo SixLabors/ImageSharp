@@ -13,7 +13,8 @@ namespace ImageSharp.Tests.Processing.Processors.Convolution
     public class DetectEdgesTest : FileTestBase
     {
         public static readonly string[] CommonTestImages = { TestImages.Png.Bike };
-        
+        public static readonly string[] GrayscaleTestImages = { TestImages.Png.BikeGrayscale };
+
         public static readonly TheoryData<EdgeDetection> DetectEdgesFilters = new TheoryData<EdgeDetection>
         {
             EdgeDetection.Kayyali,
@@ -29,30 +30,32 @@ namespace ImageSharp.Tests.Processing.Processors.Convolution
         };
 
         [Theory]
-        [WithFileCollection(nameof(DefaultFiles), nameof(DetectEdgesFilters), DefaultPixelType)]
+        [WithTestPatternImages(nameof(DetectEdgesFilters), 100, 100, DefaultPixelType)]
+        [WithFileCollection(nameof(CommonTestImages), nameof(DetectEdgesFilters), DefaultPixelType)]
         public void DetectEdges<TPixel>(TestImageProvider<TPixel> provider, EdgeDetection detector)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {
                 image.Mutate(x => x.DetectEdges(detector));
-                image.DebugSave(provider, detector.ToString());
+                image.DebugSave(provider, detector.ToString(), grayscale: true);
             }
         }
 
         [Theory]
-        [WithFileCollection(nameof(DefaultFiles), nameof(DetectEdgesFilters), DefaultPixelType)]
-        public void DetectEdgesInBox<TPixel>(TestImageProvider<TPixel> provider, EdgeDetection detector)
+        [WithFileCollection(nameof(GrayscaleTestImages), DefaultPixelType)]
+        public void DetectEdgesInBox<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> source = provider.GetImage())
-            using (var image = source.Clone())
+            using (Image<TPixel> image = source.Clone())
             {
                 var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
 
-                image.Mutate(x => x.DetectEdges(detector, bounds));
-                image.DebugSave(provider, detector.ToString());
+                image.Mutate(x => x.DetectEdges(bounds));
+                image.DebugSave(provider, grayscale: true);
 
+                // TODO: We don't need this any longer after switching to ReferenceImages
                 ImageComparer.EnsureProcessorChangesAreConstrained(source, image, bounds);
             }
         }

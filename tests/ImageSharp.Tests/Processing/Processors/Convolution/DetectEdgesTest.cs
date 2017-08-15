@@ -16,8 +16,7 @@ namespace ImageSharp.Tests.Processing.Processors.Convolution
     public class DetectEdgesTest : FileTestBase
     {
         public static readonly string[] CommonTestImages = { TestImages.Png.Bike };
-        public static readonly string[] GrayscaleTestImages = { TestImages.Png.BikeGrayscale };
-
+        
         public static readonly TheoryData<EdgeDetection> DetectEdgesFilters = new TheoryData<EdgeDetection>
         {
             EdgeDetection.Kayyali,
@@ -70,7 +69,7 @@ namespace ImageSharp.Tests.Processing.Processors.Convolution
         }
 
         [Theory]
-        [WithFileCollection(nameof(GrayscaleTestImages), DefaultPixelType)]
+        [WithFileCollection(nameof(CommonTestImages), DefaultPixelType)]
         public void DetectEdges_InBox<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {

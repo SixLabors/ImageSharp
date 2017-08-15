@@ -54,7 +54,7 @@ namespace ImageSharp.Tests.Processing.Processors.ColorMatrix
                 image.Mutate(x => x.Grayscale(value, bounds));
                 image.DebugSave(provider, value.ToString());
 
-                ImageComparer.EnsureProcessorChangesAreConstrained(source, image, bounds);
+                PercentageImageComparer.EnsureProcessorChangesAreConstrained(source, image, bounds);
             }
         }
     }

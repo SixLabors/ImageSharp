@@ -43,7 +43,7 @@ namespace ImageSharp.Tests.Processing.Processors.Convolution
                 image.Mutate(x => x.BoxBlur(value, bounds));
                 image.DebugSave(provider, value);
 
-                ImageComparer.EnsureProcessorChangesAreConstrained(source, image, bounds);
+                PercentageImageComparer.EnsureProcessorChangesAreConstrained(source, image, bounds);
             }
         }
     }

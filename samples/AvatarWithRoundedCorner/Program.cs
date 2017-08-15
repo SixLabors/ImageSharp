@@ -16,9 +16,9 @@ namespace AvatarWithRoundedCorner
             using (var img = Image.Load("fb.jpg"))
             {
                 // as generate returns a new IImage make sure we dispose of it
-                using (Image<Rgba32> dest = img.Clone(x => x.ConvertToAvatar(new Size(200, 200), 20)))
+                using (Image<Rgba32> destRound = img.Clone(x => x.ConvertToAvatar(new Size(200, 200), 20)))
                 {
-                    dest.Save("output/fb.png");
+                    destRound.Save("output/fb.png");
                 }
 
                 using (Image<Rgba32> destRound = img.Clone(x => x.ConvertToAvatar(new Size(200, 200), 100)))
@@ -30,22 +30,47 @@ namespace AvatarWithRoundedCorner
                 {
                     destRound.Save("output/fb-rounder.png");
                 }
-                
+
+                using (Image<Rgba32> destRound = img.CloneAndConvertToAvatarWithoutApply(new Size(200, 200), 150))
+                {
+                    destRound.Save("output/fb-rounder-without-apply.png");
+                }
+
                 // the original `img` object has not been altered at all.
             }
         }
 
-        // lets create our custom image mutating pipeline
-        private static IImageProcessingContext<Rgba32> ConvertToAvatar(this IImageProcessingContext<Rgba32> operations, Size size, float cornerRadius)
+        // 1. The short way: 
+        // Implements a full image mutating pipeline operating on IImageProcessingContext<Rgba32>
+        // We need the dimensions of the resized image to deduce 'IPathCollection' needed to build the corners,
+        // so we implement an "inline" image processor by utilizing 'ImageExtensions.Apply()'
+        private static IImageProcessingContext<Rgba32> ConvertToAvatar(this IImageProcessingContext<Rgba32> processingContext, Size size, float cornerRadius)
         {
-            return operations.Resize(new ImageSharp.Processing.ResizeOptions
+            return processingContext.Resize(new ImageSharp.Processing.ResizeOptions
             {
                 Size = size,
                 Mode = ImageSharp.Processing.ResizeMode.Crop
             }).Apply(i => ApplyRoundedCorners(i, cornerRadius));
         }
 
-        // the combination of `IImageOperations.Run()` + this could be replaced with an `IImageProcessor`
+        // 2. A more verbose way, avoiding 'Apply()':
+        // First we create a resized clone of the image, then we draw the corners on that that instance it with Mutate().
+        private static Image<Rgba32> CloneAndConvertToAvatarWithoutApply(this Image<Rgba32> image, Size size, float cornerRadius)
+        {
+            Image<Rgba32> result = image.Clone(
+                ctx => ctx.Resize(
+                    new ImageSharp.Processing.ResizeOptions
+                        {
+                            Size = size,
+                            Mode = ImageSharp.Processing.ResizeMode.Crop
+                        }));
+
+            ApplyRoundedCorners(result, cornerRadius);
+            return result;
+        }
+
+        // This method can be seen as an inline implementation of an `IImageProcessor`:
+        // (The combination of `IImageOperations.Apply()` + this could be replaced with an `IImageProcessor`)
         public static void ApplyRoundedCorners(Image<Rgba32> img, float cornerRadius)
         {
             IPathCollection corners = BuildCorners(img.Width, img.Height, cornerRadius);

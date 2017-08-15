@@ -85,7 +85,7 @@ namespace ImageSharp.Tests
         [InlineData(PixelTypes.Rgba32, typeof(Rgba32))]
         public void ToType(PixelTypes pt, Type expectedType)
         {
-            Assert.Equal(pt.ToType(), expectedType);
+            Assert.Equal(pt.GetClrType(), expectedType);
         }
 
         [Theory]
@@ -105,7 +105,7 @@ namespace ImageSharp.Tests
         }
 
         [Fact]
-        public void ToTypes()
+        public void ExpandAllTypes_1()
         {
             PixelTypes pixelTypes = PixelTypes.Alpha8 | PixelTypes.Bgr565 | PixelTypes.HalfVector2 | PixelTypes.Rgba32;
 
@@ -117,6 +117,29 @@ namespace ImageSharp.Tests
             AssertContainsPixelType<Bgr565>(PixelTypes.Bgr565, expanded);
             AssertContainsPixelType<HalfVector2>(PixelTypes.HalfVector2, expanded);
             AssertContainsPixelType<Rgba32>(PixelTypes.Rgba32, expanded);
+        }
+
+        [Fact]
+        public void ExpandAllTypes_2()
+        {
+            PixelTypes pixelTypes = PixelTypes.Rgba32 | PixelTypes.Bgra32 | PixelTypes.RgbaVector;
+
+            IEnumerable<KeyValuePair<PixelTypes, Type>> expanded = pixelTypes.ExpandAllTypes();
+
+            Assert.Equal(3, expanded.Count());
+
+            AssertContainsPixelType<Rgba32>(PixelTypes.Rgba32, expanded);
+            AssertContainsPixelType<Bgra32>(PixelTypes.Bgra32, expanded);
+            AssertContainsPixelType<RgbaVector>(PixelTypes.RgbaVector, expanded);
+        }
+
+        [Fact]
+        public void Anyad()
+        {
+            PixelTypes pixelTypes = PixelTypes.Rgba32 | PixelTypes.Bgra32 | PixelTypes.RgbaVector;
+            PixelTypes anyad = pixelTypes & PixelTypes.Bgr565;
+
+            this.Output.WriteLine(anyad.ToString());
         }
 
         [Fact]

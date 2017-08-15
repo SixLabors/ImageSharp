@@ -12,7 +12,7 @@ namespace ImageSharp.Tests
     /// They trigger the desired parametrization for <see cref="TestImageProvider{TPixel}"/>.
     /// </summary>
     [Flags]
-    public enum PixelTypes : uint
+    public enum PixelTypes
     {
         Undefined = 0,
 
@@ -52,11 +52,11 @@ namespace ImageSharp.Tests
 
         Short4 = 1 << 17,
 
-        Rgb24 = 18,
+        Rgb24 = 1 << 18,
 
-        Bgr24 = 19,
+        Bgr24 = 1 << 19,
 
-        Bgra32 = 20,
+        Bgra32 = 1 << 20,
 
         // TODO: Add multi-flag entries by rules defined in PackedPixelConverterHelper
 

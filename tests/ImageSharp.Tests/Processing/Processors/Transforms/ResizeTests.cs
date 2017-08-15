@@ -3,6 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
+// ReSharper disable InconsistentNaming
 namespace ImageSharp.Tests.Processing.Processors.Transforms
 {
     using ImageSharp.PixelFormats;
@@ -35,22 +36,10 @@ namespace ImageSharp.Tests.Processing.Processors.Transforms
             };
 
         [Theory]
-        [WithFile(TestImages.Gif.Giphy, DefaultPixelType)]
-        public void ResizeShouldApplyToAllFrames<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.Mutate(x => x.Resize(image.Width / 2, image.Height / 2, true));
-                image.DebugSave(provider, extension: Extensions.Gif);
-            }
-        }
-
-        [Theory]
         [WithTestPatternImages(nameof(AllReSamplers), 100, 100, DefaultPixelType, 0.5f)]
         [WithFileCollection(nameof(CommonTestImages), nameof(AllReSamplers), DefaultPixelType, 0.5f)]
         [WithFileCollection(nameof(CommonTestImages), nameof(AllReSamplers), DefaultPixelType, 0.3f)]
-        public void ResizeFullImage<TPixel>(TestImageProvider<TPixel> provider, string name, IResampler sampler, float ratio)
+        public void Resize_WorksWithAllResamplers<TPixel>(TestImageProvider<TPixel> provider, string name, IResampler sampler, float ratio)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
@@ -64,13 +53,37 @@ namespace ImageSharp.Tests.Processing.Processors.Transforms
 
         [Theory]
         [WithTestPatternImages(100, 100, DefaultPixelType)]
-        public void ResizeFullImage_Compand<TPixel>(TestImageProvider<TPixel> provider)
+        public void Resize_Compand<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {
                 image.Mutate(x => x.Resize(image.Size() / 2, true));
                 image.DebugSave(provider);
+            }
+        }
+
+        [Theory]
+        [WithTestPatternImages(50, 50, CommonNonDefaultPixelTypes)]
+        public void Resize_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                image.Mutate(x => x.Resize(image.Width / 2, image.Height / 2, true));
+                image.DebugSave(provider);
+            }
+        }
+
+        [Theory]
+        [WithFile(TestImages.Gif.Giphy, DefaultPixelType)]
+        public void Resize_IsAppliedToAllFrames<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                image.Mutate(x => x.Resize(image.Width / 2, image.Height / 2, true));
+                image.DebugSave(provider, extension: Extensions.Gif);
             }
         }
 

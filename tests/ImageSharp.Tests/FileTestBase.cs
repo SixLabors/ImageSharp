@@ -49,6 +49,11 @@ namespace ImageSharp.Tests
         /// </summary>
         public const PixelTypes DefaultPixelType = PixelTypes.Rgba32;
 
+        /// <summary>
+        /// A few other pixel types to prove that a processor is not bound to a single one.
+        /// </summary>
+        public const PixelTypes CommonNonDefaultPixelTypes = PixelTypes.Rgba32 | PixelTypes.Bgra32 | PixelTypes.RgbaVector;
+
         public static class Extensions
         {
             public const string Bmp = "bmp";

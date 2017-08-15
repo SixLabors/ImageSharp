@@ -27,7 +27,7 @@ namespace ImageSharp.Tests.Processing.Processors.Transforms
         [Theory]
         [WithTestPatternImages(nameof(RotateFlipValues), 100, 50, DefaultPixelType)]
         [WithTestPatternImages(nameof(RotateFlipValues), 50, 100, DefaultPixelType)]
-        public void ImageShouldRotateFlip<TPixel>(TestImageProvider<TPixel> provider, RotateType rotateType, FlipType flipType)
+        public void RotateFlip<TPixel>(TestImageProvider<TPixel> provider, RotateType rotateType, FlipType flipType)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())

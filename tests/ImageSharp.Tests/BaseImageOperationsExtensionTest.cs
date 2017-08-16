@@ -1,11 +1,14 @@
-﻿using System;
+﻿// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+using System;
 using System.Collections.Generic;
 using System.Text;
-using ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing;
 using SixLabors.Primitives;
 using Xunit;
 
-namespace ImageSharp.Tests
+namespace SixLabors.ImageSharp.Tests
 {
     public abstract class BaseImageOperationsExtensionTest
     {

@@ -1,17 +1,14 @@
-﻿// <copyright file="ColorEqualityTests.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
+
+using System;
+using System.Numerics;
+using SixLabors.ImageSharp.ColorSpaces;
+using Xunit;
 
 // ReSharper disable InconsistentNaming
-namespace ImageSharp.Tests.Colorspaces
+namespace SixLabors.ImageSharp.Tests.Colorspaces
 {
-    using System;
-    using System.Numerics;
-    using Xunit;
-
-    using ImageSharp.ColorSpaces;
-
     /// <summary>
     /// Test implementations of IEquatable and IAlmostEquatable in our colorspaces
     /// </summary>

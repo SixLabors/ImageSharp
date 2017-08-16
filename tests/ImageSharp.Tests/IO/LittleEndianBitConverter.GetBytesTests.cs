@@ -1,13 +1,11 @@
-﻿// <copyright file="LittleEndianBitConverter.GetBytesTests.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Tests.IO
+using SixLabors.ImageSharp.IO;
+using Xunit;
+
+namespace SixLabors.ImageSharp.Tests.IO
 {
-    using ImageSharp.IO;
-    using Xunit;
-
     /// <summary>
     /// The <see cref="LittleEndianBitConverter"/> tests.
     /// </summary>

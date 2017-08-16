@@ -1,16 +1,13 @@
-﻿// <copyright file="IImageProcessor.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Processing
+using System;
+using System.Threading.Tasks;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Primitives;
+
+namespace SixLabors.ImageSharp.Processing
 {
-    using System;
-    using System.Threading.Tasks;
-
-    using ImageSharp.PixelFormats;
-    using SixLabors.Primitives;
-
     /// <summary>
     /// Encapsulates methods to alter the pixels of an image.
     /// </summary>

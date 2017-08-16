@@ -1,15 +1,13 @@
-﻿// <copyright file="ColorBlindnessTest.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Tests.Processing.Processors.ColorMatrix
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.Primitives;
+using Xunit;
+
+namespace SixLabors.ImageSharp.Tests.Processing.Processors.ColorMatrix
 {
-    using ImageSharp.PixelFormats;
-    using ImageSharp.Processing;
-    using SixLabors.Primitives;
-    using Xunit;
-
     public class ColorBlindnessTest : FileTestBase
     {
         public static readonly TheoryData<ColorBlindness> ColorBlindnessFilters

@@ -1,7 +1,10 @@
-namespace ImageSharp.Tests.Common
-{
-    using Xunit;
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
 
+using Xunit;
+
+namespace SixLabors.ImageSharp.Tests.Common
+{
     public static class TestStructs
     {
         public struct Foo

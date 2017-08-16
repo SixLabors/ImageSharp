@@ -1,4 +1,4 @@
 [submodule "tests/Images/External"]
 	path = tests/Images/External
 	url = https://github.com/antonfirsov/Imagesharp.Tests.Images.git
-	branch = master
+	branch = jpeg-lab

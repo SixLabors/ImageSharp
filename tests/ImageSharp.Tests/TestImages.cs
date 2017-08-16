@@ -44,6 +44,18 @@ namespace ImageSharp.Tests
             public const string VersioningImage1 = "Png/versioning-1_1.png";
             public const string VersioningImage2 = "Png/versioning-1_2.png";
 
+            public const string ResizeFromSourceRectangle_Rgba32_CalliphoraPartial1 = "Png/ResizeFromSourceRectangle_Rgba32_CalliphoraPartial_1.png";
+            public const string ResizeFromSourceRectangle_Rgba32_CalliphoraPartial2 = "Png/ResizeFromSourceRectangle_Rgba32_CalliphoraPartial_2.png";
+
+            public const string ResizeWithBoxPadMode_Rgba32_CalliphoraPartial1 = "Png/ResizeWithBoxPadMode_Rgba32_CalliphoraPartial_1.png";
+            public const string ResizeWithBoxPadMode_Rgba32_CalliphoraPartial2 = "Png/ResizeWithBoxPadMode_Rgba32_CalliphoraPartial_2.png";
+
+            public const string ResizeWithPadMode_Rgba32_CalliphoraPartial1 = "Png/ResizeWithPadMode_Rgba32_CalliphoraPartial_1.png";
+            public const string ResizeWithPadMode_Rgba32_CalliphoraPartial2 = "Png/ResizeWithPadMode_Rgba32_CalliphoraPartial_2.png";
+
+            public const string Snake1 = "Png/snake_1.png";
+            public const string Snake2 = "Png/snake_2.png";
+
             public static class Bad
             {
                 // Odd chunk lengths

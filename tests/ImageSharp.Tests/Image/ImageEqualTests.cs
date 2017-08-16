@@ -12,22 +12,43 @@ namespace ImageSharp.Tests
         [Fact]
         public void TestsThatVimImagesAreEqual()
         {
-            var image1Provider = TestImageProvider<Rgba32>.File(TestImages.Png.VimImage1);
-            var image2Provider = TestImageProvider<Rgba32>.File(TestImages.Png.VimImage2);
-
-            using (Image<Rgba32> img1 = image1Provider.GetImage())
-            using (Image<Rgba32> img2 = image2Provider.GetImage())
-            {
-                bool imagesEqual = AreImagesEqual(img1, img2);
-                Assert.True(imagesEqual);
-            }
+            AssertImagesEqual(TestImages.Png.VimImage1, TestImages.Png.VimImage2);
         }
 
         [Fact]
         public void TestsThatVersioningImagesAreEqual()
         {
-            var image1Provider = TestImageProvider<Rgba32>.File(TestImages.Png.VersioningImage1);
-            var image2Provider = TestImageProvider<Rgba32>.File(TestImages.Png.VersioningImage2);
+            AssertImagesEqual(TestImages.Png.VersioningImage1, TestImages.Png.VersioningImage2);
+        }
+
+        [Fact]
+        public void TestsThatResizeFromSourceRectangleImagesAreEqual()
+        {
+            AssertImagesEqual(TestImages.Png.ResizeFromSourceRectangle_Rgba32_CalliphoraPartial1, TestImages.Png.ResizeFromSourceRectangle_Rgba32_CalliphoraPartial2);
+        }
+
+        [Fact]
+        public void TestsThatResizeWithBoxPadModeImagesAreEqual()
+        {
+            AssertImagesEqual(TestImages.Png.ResizeWithBoxPadMode_Rgba32_CalliphoraPartial1, TestImages.Png.ResizeWithBoxPadMode_Rgba32_CalliphoraPartial2);
+        }
+
+        [Fact]
+        public void TestsThatResizeWithPadModeImagesAreEqual()
+        {
+            AssertImagesEqual(TestImages.Png.ResizeWithPadMode_Rgba32_CalliphoraPartial1, TestImages.Png.ResizeWithPadMode_Rgba32_CalliphoraPartial2);
+        }
+
+        [Fact]
+        public void TestsThatSnakeImagesAreEqual()
+        {
+            AssertImagesEqual(TestImages.Png.Snake1, TestImages.Png.Snake2);
+        }
+
+        private void AssertImagesEqual(string img1string, string img2string)
+        {
+            var image1Provider = TestImageProvider<Rgba32>.File(img1string);
+            var image2Provider = TestImageProvider<Rgba32>.File(img2string);
 
             using (Image<Rgba32> img1 = image1Provider.GetImage())
             using (Image<Rgba32> img2 = image2Provider.GetImage())

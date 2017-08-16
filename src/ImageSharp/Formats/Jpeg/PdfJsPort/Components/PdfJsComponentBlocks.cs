@@ -10,7 +10,7 @@ namespace ImageSharp.Formats.Jpeg.PdfJsPort.Components
     /// <summary>
     /// Contains all the decoded component blocks
     /// </summary>
-    internal sealed class ComponentBlocks : IDisposable
+    internal sealed class PdfJsComponentBlocks : IDisposable
     {
         /// <summary>
         /// Gets or sets the component blocks

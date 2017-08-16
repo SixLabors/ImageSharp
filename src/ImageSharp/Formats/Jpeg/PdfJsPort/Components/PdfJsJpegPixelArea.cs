@@ -63,7 +63,7 @@ namespace ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// <param name="components">The jpeg component blocks</param>
         /// <param name="width">The pixel area width</param>
         /// <param name="height">The pixel area height</param>
-        public void LinearizeBlockData(ComponentBlocks components, int width, int height)
+        public void LinearizeBlockData(PdfJsComponentBlocks components, int width, int height)
         {
             this.Width = width;
             this.Height = height;

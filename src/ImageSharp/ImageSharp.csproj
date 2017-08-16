@@ -104,4 +104,7 @@
       <DependentUpon>PorterDuffFunctions.Generated.tt</DependentUpon>
     </Compile>
   </ItemGroup>
+  <ItemGroup>
+    <Folder Include="PdfJsPort\Jpeg\Formats\" />
+  </ItemGroup>
 </Project>

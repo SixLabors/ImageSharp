@@ -3,7 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.Formats.Jpeg.Port.Components
+namespace ImageSharp.Formats.Jpeg.PdfJsPort.Components
 {
     using System;
 
@@ -15,7 +15,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
         /// <summary>
         /// Gets or sets the component blocks
         /// </summary>
-        public Component[] Components { get; set; }
+        public PdfJsComponent[] Components { get; set; }
 
         /// <inheritdoc/>
         public void Dispose()

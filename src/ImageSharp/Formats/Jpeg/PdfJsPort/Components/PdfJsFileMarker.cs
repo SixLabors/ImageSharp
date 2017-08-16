@@ -3,19 +3,19 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.Formats.Jpeg.Port.Components
+namespace ImageSharp.Formats.Jpeg.PdfJsPort.Components
 {
     /// <summary>
     /// Represents a jpeg file marker
     /// </summary>
-    internal struct FileMarker
+    internal struct PdfJsFileMarker
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="FileMarker"/> struct.
+        /// Initializes a new instance of the <see cref="PdfJsFileMarker"/> struct.
         /// </summary>
         /// <param name="marker">The marker</param>
         /// <param name="position">The position within the stream</param>
-        public FileMarker(ushort marker, long position)
+        public PdfJsFileMarker(ushort marker, long position)
         {
             this.Marker = marker;
             this.Position = position;
@@ -23,12 +23,12 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="FileMarker"/> struct.
+        /// Initializes a new instance of the <see cref="PdfJsFileMarker"/> struct.
         /// </summary>
         /// <param name="marker">The marker</param>
         /// <param name="position">The position within the stream</param>
         /// <param name="invalid">Whether the current marker is invalid</param>
-        public FileMarker(ushort marker, long position, bool invalid)
+        public PdfJsFileMarker(ushort marker, long position, bool invalid)
         {
             this.Marker = marker;
             this.Position = position;

@@ -3,7 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.Formats.Jpeg.Port.Components
+namespace ImageSharp.Formats.Jpeg.PdfJsPort.Components
 {
     using System;
 
@@ -11,7 +11,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
     /// Provides information about the JFIF marker segment
     /// TODO: Thumbnail?
     /// </summary>
-    internal struct JFif : IEquatable<JFif>
+    internal struct PdfJsJFif : IEquatable<PdfJsJFif>
     {
         /// <summary>
         /// The major version
@@ -42,7 +42,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
         public short YDensity;
 
         /// <inheritdoc/>
-        public bool Equals(JFif other)
+        public bool Equals(PdfJsJFif other)
         {
             return this.MajorVersion == other.MajorVersion
                 && this.MinorVersion == other.MinorVersion
@@ -59,7 +59,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
                 return false;
             }
 
-            return obj is JFif && this.Equals((JFif)obj);
+            return obj is PdfJsJFif && this.Equals((PdfJsJFif)obj);
         }
 
         /// <inheritdoc/>

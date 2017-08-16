@@ -3,7 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.Formats.Jpeg.Port.Components
+namespace ImageSharp.Formats.Jpeg.PdfJsPort.Components
 {
     using System;
 
@@ -12,7 +12,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
     /// <summary>
     /// Represents a single frame component
     /// </summary>
-    internal struct FrameComponent : IDisposable
+    internal struct PdfJsFrameComponent : IDisposable
     {
         /// <summary>
         /// Gets or sets the component Id

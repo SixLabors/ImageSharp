@@ -798,17 +798,17 @@ namespace ImageSharp.Formats.Jpeg.Port
                 //   scalefactor[k] = cos(k*PI/16) * sqrt(2)    for k=1..7
                 // For integer operation, the multiplier table is to be scaled by 12.
                 Span<short> multiplierSpan = multiplicationBuffer;
-                for (int i = 0; i < 64; i++)
-                {
-                    multiplierSpan[i] = (short)IDCT.Descale(quantizationTable[i] * IDCT.Aanscales[i], 12);
-                }
 
+                // for (int i = 0; i < 64; i++)
+                // {
+                //    multiplierSpan[i] = (short)IDCT.Descale(quantizationTable[i] * IDCT.Aanscales[i], 12);
+                // }
                 for (int blockRow = 0; blockRow < blocksPerColumn; blockRow++)
                 {
                     for (int blockCol = 0; blockCol < blocksPerLine; blockCol++)
                     {
                         int offset = GetBlockBufferOffset(ref component, blockRow, blockCol);
-                        IDCT.QuantizeAndInverseFast(ref frameComponent, offset, ref computationBufferSpan, ref multiplierSpan);
+                        IDCT.QuantizeAndInverse(ref frameComponent, offset, ref computationBufferSpan, ref quantizationTable);
                     }
                 }
             }

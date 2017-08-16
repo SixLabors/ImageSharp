@@ -16,7 +16,7 @@ namespace ImageSharp.Tests.Processing.Processors.Transforms
     public class ResizeTests : FileTestBase
     {
         public static readonly string[] CommonTestImages = { TestImages.Png.CalliphoraPartial };
-        
+
         public static readonly TheoryData<string, IResampler> AllReSamplers =
             new TheoryData<string, IResampler>
             {
@@ -47,6 +47,8 @@ namespace ImageSharp.Tests.Processing.Processors.Transforms
                 SizeF newSize = image.Size() * ratio;
                 image.Mutate(x => x.Resize((Size)newSize, sampler, false));
                 string details = $"{name}-{ratio}";
+
+                image.DebugSave(provider, details);
                 image.CompareToReferenceOutput(provider, details);
             }
         }
@@ -59,6 +61,8 @@ namespace ImageSharp.Tests.Processing.Processors.Transforms
             using (Image<TPixel> image = provider.GetImage())
             {
                 image.Mutate(x => x.Resize(image.Size() / 2, true));
+
+                image.DebugSave(provider);
                 image.CompareToReferenceOutput(provider);
             }
         }
@@ -71,6 +75,8 @@ namespace ImageSharp.Tests.Processing.Processors.Transforms
             using (Image<TPixel> image = provider.GetImage())
             {
                 image.Mutate(x => x.Resize(image.Width / 2, image.Height / 2, true));
+
+                image.DebugSave(provider);
                 image.CompareToReferenceOutput(provider);
             }
         }
@@ -100,6 +106,8 @@ namespace ImageSharp.Tests.Processing.Processors.Transforms
                 var destRectangle = new Rectangle(image.Width / 4, image.Height / 4, image.Width / 2, image.Height / 2);
 
                 image.Mutate(x => x.Resize(image.Width, image.Height, new BicubicResampler(), sourceRectangle, destRectangle, false));
+
+                image.DebugSave(provider);
                 image.CompareToReferenceOutput(provider);
             }
         }
@@ -112,6 +120,8 @@ namespace ImageSharp.Tests.Processing.Processors.Transforms
             using (Image<TPixel> image = provider.GetImage())
             {
                 image.Mutate(x => x.Resize(image.Width / 3, 0, false));
+
+                image.DebugSave(provider);
                 image.CompareToReferenceOutput(provider);
             }
         }
@@ -124,6 +134,8 @@ namespace ImageSharp.Tests.Processing.Processors.Transforms
             using (Image<TPixel> image = provider.GetImage())
             {
                 image.Mutate(x => x.Resize(0, image.Height / 3, false));
+
+                image.DebugSave(provider);
                 image.CompareToReferenceOutput(provider);
             }
         }
@@ -141,6 +153,8 @@ namespace ImageSharp.Tests.Processing.Processors.Transforms
                 };
 
                 image.Mutate(x => x.Resize(options));
+
+                image.DebugSave(provider);
                 image.CompareToReferenceOutput(provider);
             }
         }
@@ -158,6 +172,8 @@ namespace ImageSharp.Tests.Processing.Processors.Transforms
                 };
 
                 image.Mutate(x => x.Resize(options));
+
+                image.DebugSave(provider);
                 image.CompareToReferenceOutput(provider);
             }
         }
@@ -176,6 +192,8 @@ namespace ImageSharp.Tests.Processing.Processors.Transforms
                 };
 
                 image.Mutate(x => x.Resize(options));
+
+                image.DebugSave(provider);
                 image.CompareToReferenceOutput(provider);
             }
         }
@@ -194,6 +212,8 @@ namespace ImageSharp.Tests.Processing.Processors.Transforms
                 };
 
                 image.Mutate(x => x.Resize(options));
+
+                image.DebugSave(provider);
                 image.CompareToReferenceOutput(provider);
             }
         }
@@ -212,6 +232,8 @@ namespace ImageSharp.Tests.Processing.Processors.Transforms
                 };
 
                 image.Mutate(x => x.Resize(options));
+
+                image.DebugSave(provider);
                 image.CompareToReferenceOutput(provider);
             }
         }
@@ -230,6 +252,8 @@ namespace ImageSharp.Tests.Processing.Processors.Transforms
                 };
 
                 image.Mutate(x => x.Resize(options));
+
+                image.DebugSave(provider);
                 image.CompareToReferenceOutput(provider);
             }
         }
@@ -248,6 +272,8 @@ namespace ImageSharp.Tests.Processing.Processors.Transforms
                 };
 
                 image.Mutate(x => x.Resize(options));
+
+                image.DebugSave(provider);
                 image.CompareToReferenceOutput(provider);
             }
         }

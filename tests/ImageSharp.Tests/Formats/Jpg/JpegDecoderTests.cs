@@ -37,7 +37,8 @@ namespace ImageSharp.Tests
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                image.CompareToReferenceOutput(provider, VeryTolerantJpegComparer);
+                image.DebugSave(provider);
+                image.CompareToReferenceOutput(provider, VeryTolerantJpegComparer, appendPixelTypeToFileName: false);
             }
         }
 

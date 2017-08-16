@@ -38,6 +38,19 @@ namespace ImageSharp.Tests
 
         [Theory]
         [WithSolidFilledImages(10, 10, 0, 0, 255, PixelTypes.Rgba32)]
+        public void CompareToReferenceOutput_DoNotAppendPixelType<TPixel>(
+            TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                image.DebugSave(provider, appendPixelTypeToFileName: false);
+                image.CompareToReferenceOutput(provider, appendPixelTypeToFileName: false);
+            }
+        }
+
+        [Theory]
+        [WithSolidFilledImages(10, 10, 0, 0, 255, PixelTypes.Rgba32)]
         public void CompareToReferenceOutput_WhenReferenceFileMissing_Throws<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {

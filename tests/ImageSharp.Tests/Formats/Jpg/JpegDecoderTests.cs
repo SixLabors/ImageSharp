@@ -15,7 +15,7 @@ namespace ImageSharp.Tests
 
     using Xunit;
 
-    public class JpegDecoderTests : TestBase
+    public class JpegDecoderTests
     {
         public static string[] BaselineTestJpegs =
             {
@@ -29,7 +29,7 @@ namespace ImageSharp.Tests
         // TODO: We should make this comparer less tolerant ...
         private static readonly ImageComparer VeryTolerantJpegComparer =
             ImageComparer.Tolerant(0.005f, pixelThresholdInPixelByteSum: 4);
-
+        
         [Theory]
         [WithFileCollection(nameof(BaselineTestJpegs), PixelTypes.Rgba32 | PixelTypes.Rgba32 | PixelTypes.Argb32)]
         public void DecodeBaselineJpeg<TPixel>(TestImageProvider<TPixel> provider)

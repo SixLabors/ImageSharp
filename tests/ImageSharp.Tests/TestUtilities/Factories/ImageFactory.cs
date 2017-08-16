@@ -7,6 +7,9 @@ namespace ImageSharp.Tests
 {
     using ImageSharp.PixelFormats;
 
+    /// <summary>
+    /// TODO: Non-generic 'Image' class has been removed. We no longer need the factory pattern here!
+    /// </summary>
     public class ImageFactory : GenericFactory<Rgba32>
     {
         public override Image<Rgba32> CreateImage(byte[] bytes) => Image.Load<Rgba32>(bytes);

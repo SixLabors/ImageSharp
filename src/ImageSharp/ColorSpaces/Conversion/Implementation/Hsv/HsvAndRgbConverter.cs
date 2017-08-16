@@ -1,15 +1,12 @@
-// <copyright file="HsvAndRgbConverter.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.ColorSpaces.Conversion.Implementation.Hsv
+using System;
+using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.ColorSpaces;
+
+namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.HsvColorSapce
 {
-    using System;
-    using System.Runtime.CompilerServices;
-
-    using ImageSharp.ColorSpaces;
-
     /// <summary>
     /// Color converter between HSV and Rgb
     /// See <see href="http://www.poynton.com/PDFs/coloureq.pdf"/> for formulas.

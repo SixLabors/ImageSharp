@@ -1,12 +1,10 @@
-﻿// <copyright file="Ordered.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Dithering.Ordered
+using SixLabors.ImageSharp.Memory;
+
+namespace SixLabors.ImageSharp.Dithering.Ordered
 {
-    using ImageSharp.Memory;
-
     /// <summary>
     /// Applies error diffusion based dithering using the 4x4 ordered dithering matrix.
     /// <see href="https://en.wikipedia.org/wiki/Ordered_dithering"/>

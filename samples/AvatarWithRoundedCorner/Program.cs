@@ -1,13 +1,16 @@
-﻿
+﻿// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+using System;
+using System.Numerics;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.Primitives;
+using SixLabors.Shapes;
 
 namespace AvatarWithRoundedCorner
 {
-    using System;
-    using System.Numerics;
-    using ImageSharp;
-    using SixLabors.Primitives;
-    using SixLabors.Shapes;
-
     static class Program
     {
         static void Main(string[] args)
@@ -46,10 +49,10 @@ namespace AvatarWithRoundedCorner
         // so we implement an "inline" image processor by utilizing 'ImageExtensions.Apply()'
         private static IImageProcessingContext<Rgba32> ConvertToAvatar(this IImageProcessingContext<Rgba32> processingContext, Size size, float cornerRadius)
         {
-            return processingContext.Resize(new ImageSharp.Processing.ResizeOptions
+            return processingContext.Resize(new ResizeOptions
             {
                 Size = size,
-                Mode = ImageSharp.Processing.ResizeMode.Crop
+                Mode = ResizeMode.Crop
             }).Apply(i => ApplyRoundedCorners(i, cornerRadius));
         }
 
@@ -59,10 +62,10 @@ namespace AvatarWithRoundedCorner
         {
             Image<Rgba32> result = image.Clone(
                 ctx => ctx.Resize(
-                    new ImageSharp.Processing.ResizeOptions
+                    new ResizeOptions
                         {
                             Size = size,
-                            Mode = ImageSharp.Processing.ResizeMode.Crop
+                            Mode = ResizeMode.Crop
                         }));
 
             ApplyRoundedCorners(result, cornerRadius);
@@ -78,7 +81,7 @@ namespace AvatarWithRoundedCorner
             // mutating in here as we already have a cloned original
             img.Mutate(x => x.Fill(Rgba32.Transparent, corners, new GraphicsOptions(true)
             {
-                BlenderMode = ImageSharp.PixelFormats.PixelBlenderMode.Src // enforces that any part of this shape that has color is punched out of the background
+                BlenderMode = PixelBlenderMode.Src // enforces that any part of this shape that has color is punched out of the background
             }));
         }
 

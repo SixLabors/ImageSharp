@@ -1,7 +1,10 @@
-﻿using SixLabors.Primitives;
+﻿// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+using SixLabors.Primitives;
 using Xunit;
 
-namespace ImageSharp.Tests
+namespace SixLabors.ImageSharp.Tests
 {
     public class ImageRotationTests
     {

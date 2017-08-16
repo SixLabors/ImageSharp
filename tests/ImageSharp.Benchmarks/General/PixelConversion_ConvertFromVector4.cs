@@ -1,5 +1,5 @@
 ﻿// ReSharper disable InconsistentNaming
-namespace ImageSharp.Benchmarks.General
+namespace SixLabors.ImageSharp.Benchmarks.General
 {
     using System.Numerics;
     using System.Runtime.CompilerServices;

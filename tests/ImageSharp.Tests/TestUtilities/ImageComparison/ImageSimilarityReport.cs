@@ -42,7 +42,7 @@
             var sb = new StringBuilder();
             if (this.TotalNormalizedDifference.HasValue)
             {
-                sb.AppendLine($"Total difference: {this.TotalNormalizedDifference.Value * 100:0.00}%");
+                sb.AppendLine($"Total difference: {this.TotalNormalizedDifference.Value * 100:0.0000}%");
             }
             int max = Math.Min(5, this.Differences.Length);
 

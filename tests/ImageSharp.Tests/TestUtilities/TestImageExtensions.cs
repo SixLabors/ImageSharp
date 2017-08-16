@@ -6,6 +6,7 @@
 namespace ImageSharp.Tests
 {
     using System;
+    using System.Collections.Generic;
     using System.IO;
 
     using ImageSharp.PixelFormats;
@@ -102,19 +103,50 @@ namespace ImageSharp.Tests
             bool appendPixelTypeToFileName = true)
             where TPixel : struct, IPixel<TPixel>
         {
-            string referenceOutputFile = provider.Utility.GetReferenceOutputFileName(extension, testOutputDetails, appendPixelTypeToFileName);
-            
-            if (!File.Exists(referenceOutputFile))
-            {
-                throw new Exception("Reference output file missing: " + referenceOutputFile);
-            }
-            
-            using (var referenceImage = Image.Load<Rgba32>(referenceOutputFile/*, ReferenceDecoder.Instance*/))
+            using (Image<TPixel> referenceImage = GetReferenceOutputImage<TPixel>(
+                provider,
+                testOutputDetails,
+                extension,
+                appendPixelTypeToFileName)) 
             {
                 comparer.VerifySimilarity(referenceImage, image);
             }
 
             return image;
+        }
+
+        public static Image<TPixel> GetReferenceOutputImage<TPixel>(this ITestImageProvider provider,
+                                                                    object testOutputDetails = null,
+                                                                    string extension = "png",
+                                                                    bool appendPixelTypeToFileName = true)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            string referenceOutputFile = provider.Utility.GetReferenceOutputFileName(extension, testOutputDetails, appendPixelTypeToFileName);
+
+            if (!File.Exists(referenceOutputFile))
+            {
+                throw new Exception("Reference output file missing: " + referenceOutputFile);
+            }
+
+            return Image.Load<TPixel>(referenceOutputFile);
+        }
+
+        public static IEnumerable<ImageSimilarityReport> GetReferenceOutputSimilarityReports<TPixel>(
+            this Image<TPixel> image,
+            ITestImageProvider provider,
+            ImageComparer comparer,
+            object testOutputDetails = null,
+            string extension = "png",
+            bool appendPixelTypeToFileName = true)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> referenceImage = provider.GetReferenceOutputImage<TPixel>(
+                testOutputDetails,
+                extension,
+                appendPixelTypeToFileName))
+            {
+                return comparer.CompareImages(referenceImage, image);
+            }
         }
 
         public static Image<TPixel> CompareToOriginal<TPixel>(

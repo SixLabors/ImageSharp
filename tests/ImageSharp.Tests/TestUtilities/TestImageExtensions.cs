@@ -22,13 +22,15 @@ namespace ImageSharp.Tests
         /// <param name="provider">The image provider</param>
         /// <param name="testOutputDetails">Details to be concatenated to the test output file, describing the parameters of the test.</param>
         /// <param name="extension">The extension</param>
-        /// /// <param name="grayscale">A boolean indicating whether we should save a smaller in size.</param>
+        /// <param name="grayscale">A boolean indicating whether we should save a smaller in size.</param>
+        /// <param name="appendPixelTypeToFileName">A boolean indicating whether to append the pixel type to the  output file name.</param>
         public static Image<TPixel> DebugSave<TPixel>(
             this Image<TPixel> image,
             ITestImageProvider provider,
             object testOutputDetails = null,
             string extension = "png",
-            bool grayscale = false)
+            bool grayscale = false,
+            bool appendPixelTypeToFileName = true)
             where TPixel : struct, IPixel<TPixel>
         {
             if (TestEnvironment.RunsOnCI)
@@ -41,7 +43,8 @@ namespace ImageSharp.Tests
                 image,
                 extension,
                 testOutputDetails: testOutputDetails,
-                grayscale: grayscale);
+                grayscale: grayscale,
+                appendPixelTypeToFileName: appendPixelTypeToFileName);
             return image;
         }
 
@@ -52,17 +55,18 @@ namespace ImageSharp.Tests
         /// <typeparam name="TPixel">The pixel format</typeparam>
         /// <param name="image">The image</param>
         /// <param name="provider">The image provider</param>
-        /// <param name="comparer">The <see cref="ImageComparer"/> to use</param>
         /// <param name="testOutputDetails">Details to be concatenated to the test output file, describing the parameters of the test.</param>
         /// <param name="extension">The extension</param>
         /// <param name="grayscale">A boolean indicating whether we should debug save + compare against a grayscale image, smaller in size.</param>
+        /// <param name="appendPixelTypeToFileName">A boolean indicating whether to append the pixel type to the  output file name.</param>
         /// <returns></returns>
         public static Image<TPixel> CompareToReferenceOutput<TPixel>(
             this Image<TPixel> image,
             ITestImageProvider provider,
             object testOutputDetails = null,
             string extension = "png",
-            bool grayscale = false)
+            bool grayscale = false,
+            bool appendPixelTypeToFileName = true)
             where TPixel : struct, IPixel<TPixel>
         {
             return CompareToReferenceOutput(
@@ -71,7 +75,8 @@ namespace ImageSharp.Tests
                 ImageComparer.Tolerant(),
                 testOutputDetails,
                 extension,
-                grayscale);
+                grayscale,
+                appendPixelTypeToFileName);
         }
 
         /// <summary>
@@ -85,6 +90,7 @@ namespace ImageSharp.Tests
         /// <param name="testOutputDetails">Details to be concatenated to the test output file, describing the parameters of the test.</param>
         /// <param name="extension">The extension</param>
         /// <param name="grayscale">A boolean indicating whether we should debug save + compare against a grayscale image, smaller in size.</param>
+        /// <param name="appendPixelTypeToFileName">A boolean indicating whether to append the pixel type to the  output file name.</param>
         /// <returns></returns>
         public static Image<TPixel> CompareToReferenceOutput<TPixel>(
             this Image<TPixel> image,
@@ -92,21 +98,12 @@ namespace ImageSharp.Tests
             ImageComparer comparer,
             object testOutputDetails = null,
             string extension = "png",
-            bool grayscale = false)
+            bool grayscale = false,
+            bool appendPixelTypeToFileName = true)
             where TPixel : struct, IPixel<TPixel>
         {
-            string referenceOutputFile = provider.Utility.GetReferenceOutputFileName(extension, testOutputDetails);
-            extension = extension.ToLower();
-
-            if (!TestEnvironment.RunsOnCI)
-            {
-                provider.Utility.SaveTestOutputFile(
-                    image,
-                    extension,
-                    testOutputDetails: testOutputDetails,
-                    grayscale: grayscale);
-            }
-
+            string referenceOutputFile = provider.Utility.GetReferenceOutputFileName(extension, testOutputDetails, appendPixelTypeToFileName);
+            
             if (!File.Exists(referenceOutputFile))
             {
                 throw new Exception("Reference output file missing: " + referenceOutputFile);

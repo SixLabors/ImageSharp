@@ -26,6 +26,7 @@ namespace ImageSharp.Tests.TestUtilities.ImageComparison
                 sb.Append($"Report{i}: ");
                 sb.Append(r);
                 sb.Append(Environment.NewLine);
+                i++;
             }
             return sb.ToString();
         }

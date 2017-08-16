@@ -37,14 +37,14 @@
         /// For an individual <see cref="Rgba32"/> pixel the value it's calculated as: pixel.R + pixel.G + pixel.B + pixel.A
         /// </summary>
         public int PixelThresholdInPixelByteSum { get; }
-
+        
         public override ImageSimilarityReport CompareImagesOrFrames<TPixelA, TPixelB>(ImageBase<TPixelA> expected, ImageBase<TPixelB> actual)
         {
             if (expected.Size() != actual.Size())
             {
                 throw new InvalidOperationException("Calling ImageComparer is invalid when dimensions mismatch!");
             }
-
+            
             int width = actual.Width;
 
             // TODO: Comparing through Rgba32 is not robust enough because of the existance of super high precision pixel types.
@@ -83,7 +83,7 @@
             
             if (normalizedDifference > this.ImageThreshold)
             {
-                return new ImageSimilarityReport(expected, actual, differences);
+                return new ImageSimilarityReport(expected, actual, differences, normalizedDifference);
             }
             else
             {

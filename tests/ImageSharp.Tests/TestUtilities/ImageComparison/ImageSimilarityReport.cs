@@ -7,15 +7,22 @@
 
     public class ImageSimilarityReport
     {
-        public ImageSimilarityReport(IImageBase expectedImage, IImageBase actualImage, IEnumerable<PixelDifference> differences)
+        public ImageSimilarityReport(
+            IImageBase expectedImage,
+            IImageBase actualImage,
+            IEnumerable<PixelDifference> differences,
+            float? totalNormalizedDifference = null)
         {
             this.ExpectedImage = expectedImage;
             this.ActualImage = actualImage;
+            this.TotalNormalizedDifference = totalNormalizedDifference;
             this.Differences = differences.ToArray();
         }
 
         public static ImageSimilarityReport Empty =>
-            new ImageSimilarityReport(null, null, Enumerable.Empty<PixelDifference>());
+            new ImageSimilarityReport(null, null, Enumerable.Empty<PixelDifference>(), null);
+
+        public float? TotalNormalizedDifference { get; }
 
         public IImageBase ExpectedImage { get; }
 
@@ -27,23 +34,27 @@
 
         public override string ToString()
         {
-            return this.IsEmpty ? "[SimilarImages]" : StringifyDifferences(this.Differences);
+            return this.IsEmpty ? "[SimilarImages]" : this.PrintDifference();
         }
         
-        private static string StringifyDifferences(PixelDifference[] differences)
+        private string PrintDifference()
         {
             var sb = new StringBuilder();
-            int max = Math.Min(5, differences.Length);
+            if (this.TotalNormalizedDifference.HasValue)
+            {
+                sb.AppendLine($"Total difference: {this.TotalNormalizedDifference.Value * 100:0.00}%");
+            }
+            int max = Math.Min(5, this.Differences.Length);
 
             for (int i = 0; i < max; i++)
             {
-                sb.Append(differences[i]);
+                sb.Append(this.Differences[i]);
                 if (i < max - 1)
                 {
                     sb.Append("; ");
                 }
             }
-            if (differences.Length >= 5)
+            if (this.Differences.Length >= 5)
             {
                 sb.Append("...");
             }

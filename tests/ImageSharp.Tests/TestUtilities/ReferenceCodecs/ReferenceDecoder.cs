@@ -2,6 +2,7 @@ namespace ImageSharp.Tests.TestUtilities.ReferenceCodecs
 {
     using System;
     using System.Drawing;
+    using System.Drawing.Drawing2D;
     using System.IO;
 
     using ImageSharp.Formats;
@@ -28,7 +29,12 @@ namespace ImageSharp.Tests.TestUtilities.ReferenceCodecs
                 {
                     using (var g = Graphics.FromImage(convertedBitmap))
                     {
-                        g.DrawImage(sourceBitmap, new PointF(0, 0));
+                        g.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighQuality;
+                        g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+                        g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
+                        g.PixelOffsetMode = PixelOffsetMode.HighQuality;
+
+                        g.DrawImage(sourceBitmap, 0, 0, sourceBitmap.Width, sourceBitmap.Height);
                     }
                     return SystemDrawingBridge.FromSystemDrawingBitmap<TPixel>(convertedBitmap);
                 }

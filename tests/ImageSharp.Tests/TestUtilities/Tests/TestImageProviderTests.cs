@@ -3,11 +3,16 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
+// ReSharper disable InconsistentNaming
 namespace ImageSharp.Tests
 {
     using System;
+    using System.IO;
 
+    using ImageSharp.Formats;
     using ImageSharp.PixelFormats;
+
+    using Moq;
 
     using Xunit;
     using Xunit.Abstractions;
@@ -85,6 +90,35 @@ namespace ImageSharp.Tests
             this.Output.WriteLine(fn);
         }
 
+        private class TestDecoder : IImageDecoder
+        {
+            public int InvocationCount { get; private set; } = 0;
+
+            public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream)
+                where TPixel : struct, IPixel<TPixel>
+            {
+                this.InvocationCount++;
+                return new Image<TPixel>(42, 42);
+            }
+        }
+
+
+        [Theory]
+        [WithFile(TestImages.Bmp.F, PixelTypes.Rgba32)]
+        public void GetImage_WithCustomDecoder_ShouldUtilizeCache<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            Assert.NotNull(provider.Utility.SourceFileOrDescription);
+
+            var decoder = new TestDecoder();
+
+            provider.GetImage(decoder);
+            Assert.Equal(1, decoder.InvocationCount);
+
+            provider.GetImage(decoder);
+            Assert.Equal(1, decoder.InvocationCount);
+        }
+
         public static string[] AllBmpFiles => TestImages.Bmp.All;
 
         [Theory]
@@ -96,7 +130,7 @@ namespace ImageSharp.Tests
             Image<TPixel> image = provider.GetImage();
             provider.Utility.SaveTestOutputFile(image, "png");
         }
-
+        
         [Theory]
         [WithSolidFilledImages(10, 20, 255, 100, 50, 200, PixelTypes.Rgba32 | PixelTypes.Argb32)]
         public void Use_WithSolidFilledImagesAttribute<TPixel>(TestImageProvider<TPixel> provider)

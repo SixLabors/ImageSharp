@@ -10,6 +10,8 @@ namespace ImageSharp.Tests
     using ImageSharp.PixelFormats;
 
     /// <summary>
+    /// TODO: Non-generic 'Image' class has been removed. We no longer need the factory pattern here!
+    /// 
     /// Utility class to create specialized subclasses of generic classes (eg. <see cref="Image"/>)
     /// Used as parameter for <see cref="WithMemberFactoryAttribute"/> -based factory methods
     /// </summary>

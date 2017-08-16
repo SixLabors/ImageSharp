@@ -8,6 +8,7 @@ namespace ImageSharp.Tests
     using System;
     using System.Reflection;
 
+    using ImageSharp.Formats;
     using ImageSharp.PixelFormats;
 
     using Xunit.Abstractions;
@@ -81,6 +82,11 @@ namespace ImageSharp.Tests
         /// Returns an <see cref="Image{TPixel}"/> instance to the test case with the necessary traits.
         /// </summary>
         public abstract Image<TPixel> GetImage();
+
+        public virtual Image<TPixel> GetImage(IImageDecoder decoder)
+        {
+            throw new NotSupportedException($"Decoder specific GetImage() is not supported with {this.GetType().Name}!");
+        }
 
         /// <summary>
         /// Returns an <see cref="Image{TPixel}"/> instance to the test case with the necessary traits.

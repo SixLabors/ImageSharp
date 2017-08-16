@@ -8,6 +8,7 @@ namespace ImageSharp.Tests
     using System;
     using System.Collections.Concurrent;
 
+    using ImageSharp.Formats;
     using ImageSharp.PixelFormats;
 
     using Xunit.Abstractions;
@@ -19,10 +20,10 @@ namespace ImageSharp.Tests
         {
             // Need PixelTypes in the dictionary key, because result images of TestImageProvider<TPixel>.FileProvider
             // are shared between PixelTypes.Color & PixelTypes.Rgba32
-            private class Key : Tuple<PixelTypes, string>
+            private class Key : Tuple<PixelTypes, string, Type>
             {
-                public Key(PixelTypes item1, string item2)
-                    : base(item1, item2)
+                public Key(PixelTypes pixelType, string filePath, Type customDecoderType = null)
+                    : base(pixelType, filePath, customDecoderType)
                 {
                 }
             }
@@ -51,10 +52,27 @@ namespace ImageSharp.Tests
                     fn =>
                         {
                             TestFile testFile = TestFile.Create(this.FilePath);
-                            return this.Factory.CreateImage(testFile.Bytes);
+                            return Image.Load<TPixel>(testFile.Bytes);
                         });
 
-                return this.Factory.CreateImage(cachedImage);
+                return cachedImage.Clone();
+            }
+
+            public override Image<TPixel> GetImage(IImageDecoder decoder)
+            {
+                Guard.NotNull(decoder, nameof(decoder));
+
+                Key key = new Key(this.PixelType, this.FilePath, decoder.GetType());
+
+                Image<TPixel> cachedImage = cache.GetOrAdd(
+                    key,
+                    fn =>
+                        {
+                            TestFile testFile = TestFile.Create(this.FilePath);
+                            return Image.Load<TPixel>(testFile.Bytes, decoder);
+                        });
+
+                return cachedImage.Clone();
             }
 
             public override void Deserialize(IXunitSerializationInfo info)

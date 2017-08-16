@@ -45,8 +45,7 @@ namespace SixLabors.ImageSharp.Tests.IO
         [Fact]
         public void ReadCharsBeyondProvidedBufferSize()
         {
-            Assert.Throws(
-                typeof(ArgumentException),
+            Assert.Throws<ArgumentException>(
                 () =>
                     {
                         MemoryStream stream = new MemoryStream(TestBytes);

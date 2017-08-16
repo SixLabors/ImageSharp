@@ -23,100 +23,106 @@ namespace ImageSharp.Tests
         /// <summary>
         /// Name of the TPixel in the owner <see cref="TestImageProvider{TPixel}"/>
         /// </summary>
-        public string PixelTypeName { get; set; } = String.Empty;
+        public string PixelTypeName { get; set; } = string.Empty;
 
         /// <summary>
         /// The name of the file which is provided by <see cref="TestImageProvider{TPixel}"/>
         /// Or a short string describing the image in the case of a non-file based image provider.
         /// </summary>
-        public string SourceFileOrDescription { get; set; } = String.Empty;
+        public string SourceFileOrDescription { get; set; } = string.Empty;
 
         /// <summary>
         /// By default this is the name of the test class, but it's possible to change it
         /// </summary>
-        public string TestGroupName { get; set; } = String.Empty;
+        public string TestGroupName { get; set; } = string.Empty;
 
         /// <summary>
         /// The name of the test case (by default)
         /// </summary>
-        public string TestName { get; set; } = String.Empty;
-
+        public string TestName { get; set; } = string.Empty;
         
-        private string GetTestOutputFileNameImpl(string extension, string tag)
+        private string GetTestOutputFileNameImpl(string extension, string details, bool appendPixelTypeToFileName)
         {
-            string fn = String.Empty;
+            string fn = string.Empty;
 
-            if (String.IsNullOrWhiteSpace(extension))
+            if (string.IsNullOrWhiteSpace(extension))
             {
                 extension = null;
             }
 
             fn = Path.GetFileNameWithoutExtension(this.SourceFileOrDescription);
 
-            if (String.IsNullOrWhiteSpace(extension))
+            if (string.IsNullOrWhiteSpace(extension))
             {
                 extension = Path.GetExtension(this.SourceFileOrDescription);
             }
 
-            if (String.IsNullOrWhiteSpace(extension))
+            if (string.IsNullOrWhiteSpace(extension))
             {
                 extension = ".bmp";
             }
+            extension = extension.ToLower();
 
             if (extension[0] != '.')
             {
                 extension = '.' + extension;
             }
 
-            if (fn != String.Empty) fn = '_' + fn;
+            if (fn != string.Empty) fn = '_' + fn;
 
-            string pixName = this.PixelTypeName;
-            if (pixName != String.Empty)
+            string pixName = "";
+
+            if (appendPixelTypeToFileName)
             {
-                pixName = '_' + pixName;
+                pixName = this.PixelTypeName;
+
+                if (pixName != string.Empty)
+                {
+                    pixName = '_' + pixName;
+                }
             }
 
-            tag = tag ?? String.Empty;
-            if (tag != String.Empty)
+            details = details ?? string.Empty;
+            if (details != string.Empty)
             {
-                tag = '_' + tag;
+                details = '_' + details;
             }
 
-
-            return $"{this.GetTestOutputDir()}/{this.TestName}{pixName}{fn}{tag}{extension}";
+            return $"{this.GetTestOutputDir()}/{this.TestName}{pixName}{fn}{details}{extension}";
         }
 
         /// <summary>
         /// Gets the recommended file name for the output of the test
         /// </summary>
         /// <param name="extension">The required extension</param>
-        /// <param name="settings">The settings modifying the output path</param>
+        /// <param name="testOutputDetails">The settings modifying the output path</param>
+        /// <param name="appendPixelTypeToFileName">A boolean indicating whether to append the pixel type to output file name.</param>
         /// <returns>The file test name</returns>
-        public string GetTestOutputFileName(string extension = null, object settings = null)
+        public string GetTestOutputFileName(string extension = null, object testOutputDetails = null, bool appendPixelTypeToFileName = true)
         {
-            string tag = null;
-            string s = settings as string;
+            string detailsString = null;
+            string s = testOutputDetails as string;
 
             if (s != null)
             {
-                tag = s;
+                detailsString = s;
             }
-            else if (settings != null)
+            else if (testOutputDetails != null)
             {
-                Type type = settings.GetType();
+                Type type = testOutputDetails.GetType();
                 TypeInfo info = type.GetTypeInfo();
                 if (info.IsPrimitive || info.IsEnum || type == typeof(decimal))
                 {
-                    tag = settings.ToString();
+                    detailsString = testOutputDetails.ToString();
                 }
                 else
                 {
-                    IEnumerable<PropertyInfo> properties = settings.GetType().GetRuntimeProperties();
+                    IEnumerable<PropertyInfo> properties = testOutputDetails.GetType().GetRuntimeProperties();
 
-                    tag = String.Join("_", properties.ToDictionary(x => x.Name, x => x.GetValue(settings)).Select(x => $"{x.Key}-{x.Value}"));
+                    detailsString = String.Join("_", properties.ToDictionary(x => x.Name, x => x.GetValue(testOutputDetails)).Select(x => $"{x.Key}-{x.Value}"));
                 }
             }
-            return this.GetTestOutputFileNameImpl(extension, tag);
+            return this.GetTestOutputFileNameImpl(extension, detailsString, appendPixelTypeToFileName);
         }
 
 
@@ -132,10 +138,11 @@ namespace ImageSharp.Tests
             string extension = null,
             IImageEncoder encoder = null,
             object testOutputDetails = null,
-            bool grayscale = false)
+            bool grayscale = false,
+            bool appendPixelTypeToFileName = true)
             where TPixel : struct, IPixel<TPixel>
         {
-            string path = this.GetTestOutputFileName(extension: extension, settings: testOutputDetails);
+            string path = this.GetTestOutputFileName(extension, testOutputDetails, appendPixelTypeToFileName);
             string extension1 = Path.GetExtension(path);
             encoder = encoder ?? GetImageFormatByExtension(extension1, grayscale);
             
@@ -145,8 +152,15 @@ namespace ImageSharp.Tests
             }
         }
 
-        internal string GetReferenceOutputFileName(string extension = null, object settings = null) =>
-            TestEnvironment.GetReferenceOutputFileName(this.GetTestOutputFileName(extension, settings));
+        internal string GetReferenceOutputFileName(
+            string extension,
+            object settings,
+            bool appendPixelTypeToFileName)
+        {
+            return TestEnvironment.GetReferenceOutputFileName(
+                this.GetTestOutputFileName(extension, settings, appendPixelTypeToFileName)
+                );
+        }
 
         internal void Init(string typeName, string methodName)
         {

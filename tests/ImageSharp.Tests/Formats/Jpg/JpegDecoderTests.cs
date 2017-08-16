@@ -8,12 +8,15 @@ namespace ImageSharp.Tests
 {
     using System;
     using System.IO;
+    using System.Linq;
 
     using ImageSharp.Formats;
+    using ImageSharp.Formats.Jpeg.PdfJsPort;
     using ImageSharp.PixelFormats;
     using ImageSharp.Tests.TestUtilities.ImageComparison;
 
     using Xunit;
+    using Xunit.Abstractions;
 
     public class JpegDecoderTests
     {
@@ -29,7 +32,53 @@ namespace ImageSharp.Tests
         // TODO: We should make this comparer less tolerant ...
         private static readonly ImageComparer VeryTolerantJpegComparer =
             ImageComparer.Tolerant(0.005f, pixelThresholdInPixelByteSum: 4);
-        
+
+        public JpegDecoderTests(ITestOutputHelper output)
+        {
+            this.Output = output;
+        }
+
+        private ITestOutputHelper Output { get; }
+
+        private float GetSimilarityPercentage<TPixel>(Image<TPixel> image, TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            var reportingComparer = ImageComparer.Tolerant(0, 0);
+
+            ImageSimilarityReport report = image.GetReferenceOutputSimilarityReports(
+                provider,
+                reportingComparer,
+                appendPixelTypeToFileName: false).SingleOrDefault();
+
+            if (report != null && report.TotalNormalizedDifference.HasValue)
+            {
+                return report.TotalNormalizedDifference.Value * 100;
+            }
+
+            return 100;
+        }
+
+        [Theory]
+        [WithFileCollection(nameof(BaselineTestJpegs), PixelTypes.Rgba32)]
+        public void CompareJpegDecoders<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            this.Output.WriteLine(provider.SourceFileOrDescription);
+            provider.Utility.TestName = nameof(this.DecodeBaselineJpeg);
+
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                double similarity = this.GetSimilarityPercentage(image, provider);
+                this.Output.WriteLine($"Similarity with ORIGINAL decoder: {similarity:0.0000}%");
+            }
+
+            using (Image<TPixel> image = provider.GetImage(new PdfJsJpegDecoder()))
+            {
+                double similarity = this.GetSimilarityPercentage(image, provider);
+                this.Output.WriteLine($"Similarity with PDFJS decoder: {similarity:0.0000}%");
+            }
+        }
+
         [Theory]
         [WithFileCollection(nameof(BaselineTestJpegs), PixelTypes.Rgba32 | PixelTypes.Rgba32 | PixelTypes.Argb32)]
         public void DecodeBaselineJpeg<TPixel>(TestImageProvider<TPixel> provider)
@@ -38,6 +87,20 @@ namespace ImageSharp.Tests
             using (Image<TPixel> image = provider.GetImage())
             {
                 image.DebugSave(provider);
+                image.CompareToReferenceOutput(provider, VeryTolerantJpegComparer, appendPixelTypeToFileName: false);
+            }
+        }
+        
+        [Theory]
+        [WithFileCollection(nameof(BaselineTestJpegs), PixelTypes.Rgba32 | PixelTypes.Rgba32 | PixelTypes.Argb32)]
+        public void DecodeBaselineJpeg_PdfJs<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new PdfJsJpegDecoder()))
+            {
+                image.DebugSave(provider);
+                
+                provider.Utility.TestName = nameof(this.DecodeBaselineJpeg);
                 image.CompareToReferenceOutput(provider, VeryTolerantJpegComparer, appendPixelTypeToFileName: false);
             }
         }

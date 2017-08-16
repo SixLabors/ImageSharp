@@ -158,7 +158,6 @@ AppPackages/
 # Others
 *.[Cc]ache
 ClientBin/
-[Ss]tyle[Cc]op.*
 ~$*
 *~
 *.dbmdl

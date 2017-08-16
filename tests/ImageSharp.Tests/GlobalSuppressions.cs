@@ -4,5 +4,6 @@
 // Project-level suppressions either have no target or are given 
 // a specific target and scoped to a namespace, type, member, etc.
 
-[assembly: System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "xUnit1004:Test methods should not be skipped", Justification = "<Pending>", Scope = "member", Target = "~M:ImageSharp.Tests.Processing.Transforms.PadTest.Pad_width_height_ResizeProcessorWithCorrectOPtionsSet")]
+[assembly: System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "xUnit1026:Theory methods should use all of their parameters")]
+[assembly: System.Diagnostics.CodeAnalysis.SuppressMessage("Assertions", "xUnit2013:Do not use equality check to check for collection size.")]
 

@@ -96,6 +96,7 @@ namespace ImageSharp.Tests
             where TPixel : struct, IPixel<TPixel>
         {
             string referenceOutputFile = provider.Utility.GetReferenceOutputFileName(extension, testOutputDetails);
+            extension = extension.ToLower();
 
             if (!TestEnvironment.RunsOnCI)
             {
@@ -110,10 +111,41 @@ namespace ImageSharp.Tests
             {
                 throw new Exception("Reference output file missing: " + referenceOutputFile);
             }
-
-            using (Image<Rgba32> referenceImage = Image.Load<Rgba32>(referenceOutputFile, ReferenceDecoder.Instance))
+            
+            using (var referenceImage = Image.Load<Rgba32>(referenceOutputFile/*, ReferenceDecoder.Instance*/))
             {
                 comparer.VerifySimilarity(referenceImage, image);
+            }
+
+            return image;
+        }
+
+        public static Image<TPixel> CompareToOriginal<TPixel>(
+            this Image<TPixel> image,
+            ITestImageProvider provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            return CompareToOriginal(image, provider, ImageComparer.Tolerant());
+        }
+
+        public static Image<TPixel> CompareToOriginal<TPixel>(
+            this Image<TPixel> image,
+            ITestImageProvider provider,
+            ImageComparer comparer)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            string path = TestImageProvider<TPixel>.GetFilePathOrNull(provider);
+            if (path == null)
+            {
+                throw new InvalidOperationException("CompareToOriginal() works only with file providers!");
+            }
+
+            var testFile = TestFile.Create(path);
+
+            using (var original = Image.Load<TPixel>(testFile.Bytes, ReferenceDecoder.Instance))
+            {
+                //original.DebugSave(provider, "__SYSTEMDRAWING__");
+                comparer.VerifySimilarity(original, image);
             }
 
             return image;

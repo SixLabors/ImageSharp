@@ -28,29 +28,29 @@ namespace ImageSharp.Tests
             }
 
             private static readonly ConcurrentDictionary<Key, Image<TPixel>> cache = new ConcurrentDictionary<Key, Image<TPixel>>();
-
-            private string filePath;
-
+            
             public FileProvider(string filePath)
             {
-                this.filePath = filePath;
+                this.FilePath = filePath;
             }
 
             public FileProvider()
             {
             }
 
-            public override string SourceFileOrDescription => this.filePath;
+            public string FilePath { get; private set; }
+
+            public override string SourceFileOrDescription => this.FilePath;
 
             public override Image<TPixel> GetImage()
             {
-                Key key = new Key(this.PixelType, this.filePath);
+                Key key = new Key(this.PixelType, this.FilePath);
 
                 Image<TPixel> cachedImage = cache.GetOrAdd(
                     key,
                     fn =>
                         {
-                            TestFile testFile = TestFile.Create(this.filePath);
+                            TestFile testFile = TestFile.Create(this.FilePath);
                             return this.Factory.CreateImage(testFile.Bytes);
                         });
 
@@ -59,7 +59,7 @@ namespace ImageSharp.Tests
 
             public override void Deserialize(IXunitSerializationInfo info)
             {
-                this.filePath = info.GetValue<string>("path");
+                this.FilePath = info.GetValue<string>("path");
 
                 base.Deserialize(info); // must be called last
             }
@@ -67,8 +67,14 @@ namespace ImageSharp.Tests
             public override void Serialize(IXunitSerializationInfo info)
             {
                 base.Serialize(info);
-                info.AddValue("path", this.filePath);
+                info.AddValue("path", this.FilePath);
             }
+        }
+
+        public static string GetFilePathOrNull(ITestImageProvider provider)
+        {
+            var fileProvider = provider as FileProvider;
+            return fileProvider?.FilePath;
         }
     }
 }

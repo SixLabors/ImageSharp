@@ -11,6 +11,7 @@ namespace ImageSharp.Tests
 
     using ImageSharp.Formats;
     using ImageSharp.PixelFormats;
+    using ImageSharp.Tests.TestUtilities.ImageComparison;
 
     using Xunit;
 
@@ -25,6 +26,10 @@ namespace ImageSharp.Tests
 
         public static string[] ProgressiveTestJpegs = TestImages.Jpeg.Progressive.All;
 
+        // TODO: We should make this comparer less tolerant ...
+        private static readonly ImageComparer VeryTolerantJpegComparer =
+            ImageComparer.Tolerant(0.005f, pixelThresholdInPixelByteSum: 4);
+
         [Theory]
         [WithFileCollection(nameof(BaselineTestJpegs), PixelTypes.Rgba32 | PixelTypes.Rgba32 | PixelTypes.Argb32)]
         public void DecodeBaselineJpeg<TPixel>(TestImageProvider<TPixel> provider)
@@ -32,7 +37,7 @@ namespace ImageSharp.Tests
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                image.DebugSave(provider);
+                image.CompareToReferenceOutput(provider, VeryTolerantJpegComparer);
             }
         }
 
@@ -43,7 +48,7 @@ namespace ImageSharp.Tests
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                image.DebugSave(provider);
+                image.DebugSave(provider, VeryTolerantJpegComparer);
             }
         }
 
@@ -70,11 +75,9 @@ namespace ImageSharp.Tests
                     image.Save(ms, encoder);
                 }
             }
-
-            // TODO: Automatic image comparers could help here a lot :P
+            
             Image<TPixel> mirror = provider.Factory.CreateImage(data);
-            provider.Utility.TestName += $"_{subsample}_Q{quality}";
-            mirror.DebugSave(provider);
+            mirror.DebugSave(provider, $"_{subsample}_Q{quality}");
         }
 
         [Theory]

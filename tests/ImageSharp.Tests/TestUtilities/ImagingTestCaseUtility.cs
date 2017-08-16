@@ -23,42 +23,42 @@ namespace ImageSharp.Tests
         /// <summary>
         /// Name of the TPixel in the owner <see cref="TestImageProvider{TPixel}"/>
         /// </summary>
-        public string PixelTypeName { get; set; } = string.Empty;
+        public string PixelTypeName { get; set; } = String.Empty;
 
         /// <summary>
         /// The name of the file which is provided by <see cref="TestImageProvider{TPixel}"/>
         /// Or a short string describing the image in the case of a non-file based image provider.
         /// </summary>
-        public string SourceFileOrDescription { get; set; } = string.Empty;
+        public string SourceFileOrDescription { get; set; } = String.Empty;
 
         /// <summary>
         /// By default this is the name of the test class, but it's possible to change it
         /// </summary>
-        public string TestGroupName { get; set; } = string.Empty;
+        public string TestGroupName { get; set; } = String.Empty;
 
         /// <summary>
         /// The name of the test case (by default)
         /// </summary>
-        public string TestName { get; set; } = string.Empty;
+        public string TestName { get; set; } = String.Empty;
 
         
         private string GetTestOutputFileNameImpl(string extension, string tag)
         {
-            string fn = string.Empty;
+            string fn = String.Empty;
 
-            if (string.IsNullOrWhiteSpace(extension))
+            if (String.IsNullOrWhiteSpace(extension))
             {
                 extension = null;
             }
 
             fn = Path.GetFileNameWithoutExtension(this.SourceFileOrDescription);
 
-            if (string.IsNullOrWhiteSpace(extension))
+            if (String.IsNullOrWhiteSpace(extension))
             {
                 extension = Path.GetExtension(this.SourceFileOrDescription);
             }
 
-            if (string.IsNullOrWhiteSpace(extension))
+            if (String.IsNullOrWhiteSpace(extension))
             {
                 extension = ".bmp";
             }
@@ -68,16 +68,16 @@ namespace ImageSharp.Tests
                 extension = '.' + extension;
             }
 
-            if (fn != string.Empty) fn = '_' + fn;
+            if (fn != String.Empty) fn = '_' + fn;
 
             string pixName = this.PixelTypeName;
-            if (pixName != string.Empty)
+            if (pixName != String.Empty)
             {
                 pixName = '_' + pixName;
             }
 
-            tag = tag ?? string.Empty;
-            if (tag != string.Empty)
+            tag = tag ?? String.Empty;
+            if (tag != String.Empty)
             {
                 tag = '_' + tag;
             }
@@ -113,7 +113,7 @@ namespace ImageSharp.Tests
                 {
                     IEnumerable<PropertyInfo> properties = settings.GetType().GetRuntimeProperties();
 
-                    tag = string.Join("_", properties.ToDictionary(x => x.Name, x => x.GetValue(settings)).Select(x => $"{x.Key}-{x.Value}"));
+                    tag = String.Join("_", properties.ToDictionary(x => x.Name, x => x.GetValue(settings)).Select(x => $"{x.Key}-{x.Value}"));
                 }
             }
             return this.GetTestOutputFileNameImpl(extension, tag);
@@ -184,6 +184,53 @@ namespace ImageSharp.Tests
         {
             string testGroupName = Path.GetFileNameWithoutExtension(this.TestGroupName);
             return this.CreateOutputDirectory(testGroupName);
+        }
+
+        public static void ModifyPixel<TPixel>(ImageBase<TPixel> img, int x, int y, byte perChannelChange)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel pixel = img[x, y];
+            var rgbaPixel = default(Rgba32);
+            pixel.ToRgba32(ref rgbaPixel);
+
+            if (rgbaPixel.R + perChannelChange <= 255)
+            {
+                rgbaPixel.R += perChannelChange;
+            }
+            else
+            {
+                rgbaPixel.R -= perChannelChange;
+            }
+
+            if (rgbaPixel.G + perChannelChange <= 255)
+            {
+                rgbaPixel.G += perChannelChange;
+            }
+            else
+            {
+                rgbaPixel.G -= perChannelChange;
+            }
+
+            if (rgbaPixel.B + perChannelChange <= 255)
+            {
+                rgbaPixel.B += perChannelChange;
+            }
+            else
+            {
+                rgbaPixel.B -= perChannelChange;
+            }
+
+            if (rgbaPixel.A + perChannelChange <= 255)
+            {
+                rgbaPixel.A += perChannelChange;
+            }
+            else
+            {
+                rgbaPixel.A -= perChannelChange;
+            }
+
+            pixel.PackFromRgba32(rgbaPixel);
+            img[x, y] = pixel;
         }
     }
 }

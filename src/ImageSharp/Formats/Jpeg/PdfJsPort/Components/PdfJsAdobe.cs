@@ -4,14 +4,14 @@
 // </copyright>
 
 // ReSharper disable InconsistentNaming
-namespace ImageSharp.Formats.Jpeg.Port.Components
+namespace ImageSharp.Formats.Jpeg.PdfJsPort.Components
 {
     using System;
 
     /// <summary>
     /// Provides information about the Adobe marker segment
     /// </summary>
-    internal struct Adobe : IEquatable<Adobe>
+    internal struct PdfJsAdobe : IEquatable<PdfJsAdobe>
     {
         /// <summary>
         /// The DCT Encode Version
@@ -38,7 +38,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
         public byte ColorTransform;
 
         /// <inheritdoc/>
-        public bool Equals(Adobe other)
+        public bool Equals(PdfJsAdobe other)
         {
             return this.DCTEncodeVersion == other.DCTEncodeVersion
                 && this.APP14Flags0 == other.APP14Flags0
@@ -54,7 +54,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
                 return false;
             }
 
-            return obj is Adobe && this.Equals((Adobe)obj);
+            return obj is PdfJsAdobe && this.Equals((PdfJsAdobe)obj);
         }
 
         /// <inheritdoc/>

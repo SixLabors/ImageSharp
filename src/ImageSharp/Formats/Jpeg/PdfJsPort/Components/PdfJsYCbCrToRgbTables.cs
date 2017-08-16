@@ -1,4 +1,4 @@
-﻿namespace ImageSharp.Formats.Jpeg.Port.Components
+﻿namespace ImageSharp.Formats.Jpeg.PdfJsPort.Components
 {
     using System.Runtime.CompilerServices;
     using ImageSharp.PixelFormats;
@@ -7,7 +7,7 @@
     /// Provides 8-bit lookup tables for converting from YCbCr to Rgb colorspace.
     /// Methods to build the tables are based on libjpeg implementation.
     /// </summary>
-    internal struct YCbCrToRgbTables
+    internal struct PdfJsYCbCrToRgbTables
     {
         /// <summary>
         /// The red red-chrominance table

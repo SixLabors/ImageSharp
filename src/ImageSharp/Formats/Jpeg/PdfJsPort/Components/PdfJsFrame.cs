@@ -3,14 +3,14 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.Formats.Jpeg.Port.Components
+namespace ImageSharp.Formats.Jpeg.PdfJsPort.Components
 {
     using System;
 
     /// <summary>
     /// Represent a single jpeg frame
     /// </summary>
-    internal sealed class Frame : IDisposable
+    internal sealed class PdfJsFrame : IDisposable
     {
         /// <summary>
         /// Gets or sets a value indicating whether the frame uses the extended specification
@@ -50,7 +50,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
         /// <summary>
         /// Gets or sets the frame component collection
         /// </summary>
-        public FrameComponent[] Components { get; set; }
+        public PdfJsFrameComponent[] Components { get; set; }
 
         /// <summary>
         /// Gets or sets the maximum horizontal sampling factor

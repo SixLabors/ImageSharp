@@ -3,7 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.Formats.Jpeg.Port.Components
+namespace ImageSharp.Formats.Jpeg.PdfJsPort.Components
 {
     using System;
     using System.Diagnostics;
@@ -14,7 +14,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
     /// <summary>
     /// Represents a section of the jpeg component data laid out in pixel order.
     /// </summary>
-    internal struct JpegPixelArea : IDisposable
+    internal struct PdfJsJpegPixelArea : IDisposable
     {
         private readonly int imageWidth;
 
@@ -25,12 +25,12 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
         private int rowStride;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="JpegPixelArea"/> struct.
+        /// Initializes a new instance of the <see cref="PdfJsJpegPixelArea"/> struct.
         /// </summary>
         /// <param name="imageWidth">The image width</param>
         /// <param name="imageHeight">The image height</param>
         /// <param name="numberOfComponents">The number of components</param>
-        public JpegPixelArea(int imageWidth, int imageHeight, int numberOfComponents)
+        public PdfJsJpegPixelArea(int imageWidth, int imageHeight, int numberOfComponents)
         {
             this.imageWidth = imageWidth;
             this.imageHeight = imageHeight;
@@ -80,7 +80,7 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
                 Span<int> xScaleBlockOffsetSpan = xScaleBlockOffset;
                 for (int i = 0; i < numberOfComponents; i++)
                 {
-                    ref Component component = ref components.Components[i];
+                    ref PdfJsComponent component = ref components.Components[i];
                     Vector2 componentScale = component.Scale * scale;
                     int offset = i;
                     Span<short> output = component.Output;

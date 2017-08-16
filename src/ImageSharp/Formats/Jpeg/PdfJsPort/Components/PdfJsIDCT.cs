@@ -1,4 +1,4 @@
-﻿namespace ImageSharp.Formats.Jpeg.Port.Components
+﻿namespace ImageSharp.Formats.Jpeg.PdfJsPort.Components
 {
     using System;
     using System.Runtime.CompilerServices;
@@ -8,7 +8,7 @@
     /// <summary>
     /// Performs the inverse Descrete Cosine Transform on each frame component.
     /// </summary>
-    internal static class IDCT
+    internal static class PdfJsIDCT
     {
         /// <summary>
         /// Precomputed values scaled up by 14 bits
@@ -61,7 +61,7 @@
 
         private static readonly byte[] Limit = new byte[5 * (MaxJSample + 1)];
 
-        static IDCT()
+        static PdfJsIDCT()
         {
             // Main part of range limit table: limit[x] = x
             int i;
@@ -87,7 +87,7 @@
         /// <param name="blockBufferOffset">The block buffer offset</param>
         /// <param name="computationBuffer">The computational buffer for holding temp values</param>
         /// <param name="quantizationTable">The quantization table</param>
-        public static void QuantizeAndInverse(ref FrameComponent component, int blockBufferOffset, ref Span<short> computationBuffer, ref Span<short> quantizationTable)
+        public static void QuantizeAndInverse(ref PdfJsFrameComponent component, int blockBufferOffset, ref Span<short> computationBuffer, ref Span<short> quantizationTable)
         {
             Span<short> blockData = component.BlockData.Slice(blockBufferOffset);
             int v0, v1, v2, v3, v4, v5, v6, v7;
@@ -306,7 +306,7 @@
         /// <param name="blockBufferOffset">The block buffer offset</param>
         /// <param name="computationBuffer">The computational buffer for holding temp values</param>
         /// <param name="multiplierTable">The multiplier table</param>
-        public static void QuantizeAndInverseFast(ref FrameComponent component, int blockBufferOffset, ref Span<short> computationBuffer, ref Span<short> multiplierTable)
+        public static void QuantizeAndInverseFast(ref PdfJsFrameComponent component, int blockBufferOffset, ref Span<short> computationBuffer, ref Span<short> multiplierTable)
         {
             Span<short> blockData = component.BlockData.Slice(blockBufferOffset);
             int p0, p1, p2, p3, p4, p5, p6, p7;

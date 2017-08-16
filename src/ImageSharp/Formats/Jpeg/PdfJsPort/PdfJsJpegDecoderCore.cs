@@ -3,14 +3,15 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.Formats.Jpeg.Port
+namespace ImageSharp.Formats.Jpeg.PdfJsPort
 {
     using System;
     using System.Collections.Generic;
     using System.Diagnostics;
     using System.IO;
     using System.Runtime.CompilerServices;
-    using ImageSharp.Formats.Jpeg.Port.Components;
+
+    using ImageSharp.Formats.Jpeg.PdfJsPort.Components;
     using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
 
@@ -18,7 +19,7 @@ namespace ImageSharp.Formats.Jpeg.Port
     /// Performs the jpeg decoding operation.
     /// Ported from <see href="https://github.com/mozilla/pdf.js/blob/master/src/core/jpg.js"/> with additional fixes to handle common encoding errors
     /// </summary>
-    internal sealed class JpegDecoderCore : IDisposable
+    internal sealed class PdfJsJpegDecoderCore : IDisposable
     {
         /// <summary>
         /// The global configuration
@@ -32,17 +33,17 @@ namespace ImageSharp.Formats.Jpeg.Port
 
         private readonly byte[] markerBuffer = new byte[2];
 
-        private QuantizationTables quantizationTables;
+        private PdfJsQuantizationTables quantizationTables;
 
-        private HuffmanTables dcHuffmanTables;
+        private PdfJsHuffmanTables dcHuffmanTables;
 
-        private HuffmanTables acHuffmanTables;
+        private PdfJsHuffmanTables acHuffmanTables;
 
-        private Frame frame;
+        private PdfJsFrame frame;
 
         private ComponentBlocks components;
 
-        private JpegPixelArea pixelArea;
+        private PdfJsJpegPixelArea pixelArea;
 
         private ushort resetInterval;
 
@@ -60,27 +61,27 @@ namespace ImageSharp.Formats.Jpeg.Port
         /// <summary>
         /// Contains information about the JFIF marker
         /// </summary>
-        private JFif jFif;
+        private PdfJsJFif jFif;
 
         /// <summary>
         /// Contains information about the Adobe marker
         /// </summary>
-        private Adobe adobe;
+        private PdfJsAdobe adobe;
 
         /// <summary>
-        /// Initializes static members of the <see cref="JpegDecoderCore"/> class.
+        /// Initializes static members of the <see cref="PdfJsJpegDecoderCore"/> class.
         /// </summary>
-        static JpegDecoderCore()
+        static PdfJsJpegDecoderCore()
         {
-            YCbCrToRgbTables.Create();
+            PdfJsYCbCrToRgbTables.Create();
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="JpegDecoderCore" /> class.
+        /// Initializes a new instance of the <see cref="PdfJsJpegDecoderCore" /> class.
         /// </summary>
         /// <param name="configuration">The configuration.</param>
         /// <param name="options">The options.</param>
-        public JpegDecoderCore(Configuration configuration, IJpegDecoderOptions options)
+        public PdfJsJpegDecoderCore(Configuration configuration, IJpegDecoderOptions options)
         {
             this.configuration = configuration ?? Configuration.Default;
             this.IgnoreMetadata = options.IgnoreMetadata;
@@ -101,35 +102,35 @@ namespace ImageSharp.Formats.Jpeg.Port
         /// </summary>
         /// <param name="marker">The buffer to read file markers to</param>
         /// <param name="stream">The input stream</param>
-        /// <returns>The <see cref="FileMarker"/></returns>
-        public static FileMarker FindNextFileMarker(byte[] marker, Stream stream)
+        /// <returns>The <see cref="PdfJsFileMarker"/></returns>
+        public static PdfJsFileMarker FindNextFileMarker(byte[] marker, Stream stream)
         {
             int value = stream.Read(marker, 0, 2);
 
             if (value == 0)
             {
-                return new FileMarker(JpegConstants.Markers.EOI, (int)stream.Length - 2);
+                return new PdfJsFileMarker(PdfJsJpegConstants.Markers.EOI, (int)stream.Length - 2);
             }
 
-            if (marker[0] == JpegConstants.Markers.Prefix)
+            if (marker[0] == PdfJsJpegConstants.Markers.Prefix)
             {
                 // According to Section B.1.1.2:
                 // "Any marker may optionally be preceded by any number of fill bytes, which are bytes assigned code 0xFF."
-                while (marker[1] == JpegConstants.Markers.Prefix)
+                while (marker[1] == PdfJsJpegConstants.Markers.Prefix)
                 {
                     int suffix = stream.ReadByte();
                     if (suffix == -1)
                     {
-                        return new FileMarker(JpegConstants.Markers.EOI, (int)stream.Length - 2);
+                        return new PdfJsFileMarker(PdfJsJpegConstants.Markers.EOI, (int)stream.Length - 2);
                     }
 
                     marker[1] = (byte)value;
                 }
 
-                return new FileMarker((ushort)((marker[0] << 8) | marker[1]), (int)(stream.Position - 2));
+                return new PdfJsFileMarker((ushort)((marker[0] << 8) | marker[1]), (int)(stream.Position - 2));
             }
 
-            return new FileMarker((ushort)((marker[0] << 8) | marker[1]), (int)(stream.Position - 2), true);
+            return new PdfJsFileMarker((ushort)((marker[0] << 8) | marker[1]), (int)(stream.Position - 2), true);
         }
 
         /// <summary>
@@ -171,7 +172,7 @@ namespace ImageSharp.Formats.Jpeg.Port
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int GetBlockBufferOffset(ref Component component, int row, int col)
+        private static int GetBlockBufferOffset(ref PdfJsComponent component, int row, int col)
         {
             return 64 * (((component.BlocksPerLine + 1) * row) + col);
         }
@@ -185,79 +186,79 @@ namespace ImageSharp.Formats.Jpeg.Port
         {
             // TODO: metadata only logic
             // Check for the Start Of Image marker.
-            var fileMarker = new FileMarker(this.ReadUint16(), 0);
-            if (fileMarker.Marker != JpegConstants.Markers.SOI)
+            var fileMarker = new PdfJsFileMarker(this.ReadUint16(), 0);
+            if (fileMarker.Marker != PdfJsJpegConstants.Markers.SOI)
             {
                 throw new ImageFormatException("Missing SOI marker.");
             }
 
             ushort marker = this.ReadUint16();
-            fileMarker = new FileMarker(marker, (int)this.InputStream.Position - 2);
+            fileMarker = new PdfJsFileMarker(marker, (int)this.InputStream.Position - 2);
 
-            this.quantizationTables = new QuantizationTables();
-            this.dcHuffmanTables = new HuffmanTables();
-            this.acHuffmanTables = new HuffmanTables();
+            this.quantizationTables = new PdfJsQuantizationTables();
+            this.dcHuffmanTables = new PdfJsHuffmanTables();
+            this.acHuffmanTables = new PdfJsHuffmanTables();
 
-            while (fileMarker.Marker != JpegConstants.Markers.EOI)
+            while (fileMarker.Marker != PdfJsJpegConstants.Markers.EOI)
             {
                 // Get the marker length
                 int remaining = this.ReadUint16() - 2;
 
                 switch (fileMarker.Marker)
                 {
-                    case JpegConstants.Markers.APP0:
+                    case PdfJsJpegConstants.Markers.APP0:
                         this.ProcessApplicationHeaderMarker(remaining);
                         break;
 
-                    case JpegConstants.Markers.APP1:
+                    case PdfJsJpegConstants.Markers.APP1:
                         this.ProcessApp1Marker(remaining, metaData);
                         break;
 
-                    case JpegConstants.Markers.APP2:
+                    case PdfJsJpegConstants.Markers.APP2:
                         this.ProcessApp2Marker(remaining, metaData);
                         break;
-                    case JpegConstants.Markers.APP3:
-                    case JpegConstants.Markers.APP4:
-                    case JpegConstants.Markers.APP5:
-                    case JpegConstants.Markers.APP6:
-                    case JpegConstants.Markers.APP7:
-                    case JpegConstants.Markers.APP8:
-                    case JpegConstants.Markers.APP9:
-                    case JpegConstants.Markers.APP10:
-                    case JpegConstants.Markers.APP11:
-                    case JpegConstants.Markers.APP12:
-                    case JpegConstants.Markers.APP13:
+                    case PdfJsJpegConstants.Markers.APP3:
+                    case PdfJsJpegConstants.Markers.APP4:
+                    case PdfJsJpegConstants.Markers.APP5:
+                    case PdfJsJpegConstants.Markers.APP6:
+                    case PdfJsJpegConstants.Markers.APP7:
+                    case PdfJsJpegConstants.Markers.APP8:
+                    case PdfJsJpegConstants.Markers.APP9:
+                    case PdfJsJpegConstants.Markers.APP10:
+                    case PdfJsJpegConstants.Markers.APP11:
+                    case PdfJsJpegConstants.Markers.APP12:
+                    case PdfJsJpegConstants.Markers.APP13:
                         this.InputStream.Skip(remaining);
                         break;
 
-                    case JpegConstants.Markers.APP14:
+                    case PdfJsJpegConstants.Markers.APP14:
                         this.ProcessApp14Marker(remaining);
                         break;
 
-                    case JpegConstants.Markers.APP15:
-                    case JpegConstants.Markers.COM:
+                    case PdfJsJpegConstants.Markers.APP15:
+                    case PdfJsJpegConstants.Markers.COM:
                         this.InputStream.Skip(remaining);
                         break;
 
-                    case JpegConstants.Markers.DQT:
+                    case PdfJsJpegConstants.Markers.DQT:
                         this.ProcessDefineQuantizationTablesMarker(remaining);
                         break;
 
-                    case JpegConstants.Markers.SOF0:
-                    case JpegConstants.Markers.SOF1:
-                    case JpegConstants.Markers.SOF2:
+                    case PdfJsJpegConstants.Markers.SOF0:
+                    case PdfJsJpegConstants.Markers.SOF1:
+                    case PdfJsJpegConstants.Markers.SOF2:
                         this.ProcessStartOfFrameMarker(remaining, fileMarker);
                         break;
 
-                    case JpegConstants.Markers.DHT:
+                    case PdfJsJpegConstants.Markers.DHT:
                         this.ProcessDefineHuffmanTablesMarker(remaining);
                         break;
 
-                    case JpegConstants.Markers.DRI:
+                    case PdfJsJpegConstants.Markers.DRI:
                         this.ProcessDefineRestartIntervalMarker(remaining);
                         break;
 
-                    case JpegConstants.Markers.SOS:
+                    case PdfJsJpegConstants.Markers.SOS:
                         this.ProcessStartOfScanMarker();
                         break;
                 }
@@ -268,12 +269,12 @@ namespace ImageSharp.Formats.Jpeg.Port
 
             this.imageWidth = this.frame.SamplesPerLine;
             this.imageHeight = this.frame.Scanlines;
-            this.components = new ComponentBlocks { Components = new Component[this.frame.ComponentCount] };
+            this.components = new ComponentBlocks { Components = new PdfJsComponent[this.frame.ComponentCount] };
 
             for (int i = 0; i < this.components.Components.Length; i++)
             {
                 ref var frameComponent = ref this.frame.Components[i];
-                var component = new Component
+                var component = new PdfJsComponent
                 {
                     Scale = new System.Numerics.Vector2(
                         frameComponent.HorizontalFactor / (float)this.frame.MaxHorizontalFactor,
@@ -302,7 +303,7 @@ namespace ImageSharp.Formats.Jpeg.Port
                 throw new ImageFormatException($"Unsupported color mode. Max components 4; found {this.numberOfComponents}");
             }
 
-            this.pixelArea = new JpegPixelArea(image.Width, image.Height, this.numberOfComponents);
+            this.pixelArea = new PdfJsJpegPixelArea(image.Width, image.Height, this.numberOfComponents);
             this.pixelArea.LinearizeBlockData(this.components, image.Width, image.Height);
 
             if (this.numberOfComponents == 1)
@@ -313,11 +314,11 @@ namespace ImageSharp.Formats.Jpeg.Port
 
             if (this.numberOfComponents == 3)
             {
-                if (this.adobe.Equals(default(Adobe)) || this.adobe.ColorTransform == JpegConstants.Markers.Adobe.ColorTransformYCbCr)
+                if (this.adobe.Equals(default(PdfJsAdobe)) || this.adobe.ColorTransform == PdfJsJpegConstants.Markers.Adobe.ColorTransformYCbCr)
                 {
                     this.FillYCbCrImage(image);
                 }
-                else if (this.adobe.ColorTransform == JpegConstants.Markers.Adobe.ColorTransformUnknown)
+                else if (this.adobe.ColorTransform == PdfJsJpegConstants.Markers.Adobe.ColorTransformUnknown)
                 {
                     this.FillRgbImage(image);
                 }
@@ -325,7 +326,7 @@ namespace ImageSharp.Formats.Jpeg.Port
 
             if (this.numberOfComponents == 4)
             {
-                if (this.adobe.ColorTransform == JpegConstants.Markers.Adobe.ColorTransformYcck)
+                if (this.adobe.ColorTransform == PdfJsJpegConstants.Markers.Adobe.ColorTransformYcck)
                 {
                     this.FillYcckImage(image);
                 }
@@ -380,15 +381,15 @@ namespace ImageSharp.Formats.Jpeg.Port
             this.InputStream.Read(this.temp, 0, 13);
             remaining -= 13;
 
-            bool isJfif = this.temp[0] == JpegConstants.Markers.JFif.J &&
-                          this.temp[1] == JpegConstants.Markers.JFif.F &&
-                          this.temp[2] == JpegConstants.Markers.JFif.I &&
-                          this.temp[3] == JpegConstants.Markers.JFif.F &&
-                          this.temp[4] == JpegConstants.Markers.JFif.Null;
+            bool isJfif = this.temp[0] == PdfJsJpegConstants.Markers.JFif.J &&
+                          this.temp[1] == PdfJsJpegConstants.Markers.JFif.F &&
+                          this.temp[2] == PdfJsJpegConstants.Markers.JFif.I &&
+                          this.temp[3] == PdfJsJpegConstants.Markers.JFif.F &&
+                          this.temp[4] == PdfJsJpegConstants.Markers.JFif.Null;
 
             if (isJfif)
             {
-                this.jFif = new JFif
+                this.jFif = new PdfJsJFif
                 {
                     MajorVersion = this.temp[5],
                     MinorVersion = this.temp[6],
@@ -422,12 +423,12 @@ namespace ImageSharp.Formats.Jpeg.Port
             byte[] profile = new byte[remaining];
             this.InputStream.Read(profile, 0, remaining);
 
-            if (profile[0] == JpegConstants.Markers.Exif.E &&
-                profile[1] == JpegConstants.Markers.Exif.X &&
-                profile[2] == JpegConstants.Markers.Exif.I &&
-                profile[3] == JpegConstants.Markers.Exif.F &&
-                profile[4] == JpegConstants.Markers.Exif.Null &&
-                profile[5] == JpegConstants.Markers.Exif.Null)
+            if (profile[0] == PdfJsJpegConstants.Markers.Exif.E &&
+                profile[1] == PdfJsJpegConstants.Markers.Exif.X &&
+                profile[2] == PdfJsJpegConstants.Markers.Exif.I &&
+                profile[3] == PdfJsJpegConstants.Markers.Exif.F &&
+                profile[4] == PdfJsJpegConstants.Markers.Exif.Null &&
+                profile[5] == PdfJsJpegConstants.Markers.Exif.Null)
             {
                 this.isExif = true;
                 metadata.ExifProfile = new ExifProfile(profile);
@@ -453,18 +454,18 @@ namespace ImageSharp.Formats.Jpeg.Port
             this.InputStream.Read(identifier, 0, Icclength);
             remaining -= Icclength; // We have read it by this point
 
-            if (identifier[0] == JpegConstants.Markers.ICC.I &&
-                identifier[1] == JpegConstants.Markers.ICC.C &&
-                identifier[2] == JpegConstants.Markers.ICC.C &&
-                identifier[3] == JpegConstants.Markers.ICC.UnderScore &&
-                identifier[4] == JpegConstants.Markers.ICC.P &&
-                identifier[5] == JpegConstants.Markers.ICC.R &&
-                identifier[6] == JpegConstants.Markers.ICC.O &&
-                identifier[7] == JpegConstants.Markers.ICC.F &&
-                identifier[8] == JpegConstants.Markers.ICC.I &&
-                identifier[9] == JpegConstants.Markers.ICC.L &&
-                identifier[10] == JpegConstants.Markers.ICC.E &&
-                identifier[11] == JpegConstants.Markers.ICC.Null)
+            if (identifier[0] == PdfJsJpegConstants.Markers.ICC.I &&
+                identifier[1] == PdfJsJpegConstants.Markers.ICC.C &&
+                identifier[2] == PdfJsJpegConstants.Markers.ICC.C &&
+                identifier[3] == PdfJsJpegConstants.Markers.ICC.UnderScore &&
+                identifier[4] == PdfJsJpegConstants.Markers.ICC.P &&
+                identifier[5] == PdfJsJpegConstants.Markers.ICC.R &&
+                identifier[6] == PdfJsJpegConstants.Markers.ICC.O &&
+                identifier[7] == PdfJsJpegConstants.Markers.ICC.F &&
+                identifier[8] == PdfJsJpegConstants.Markers.ICC.I &&
+                identifier[9] == PdfJsJpegConstants.Markers.ICC.L &&
+                identifier[10] == PdfJsJpegConstants.Markers.ICC.E &&
+                identifier[11] == PdfJsJpegConstants.Markers.ICC.Null)
             {
                 byte[] profile = new byte[remaining];
                 this.InputStream.Read(profile, 0, remaining);
@@ -502,15 +503,15 @@ namespace ImageSharp.Formats.Jpeg.Port
             this.InputStream.Read(this.temp, 0, 12);
             remaining -= 12;
 
-            bool isAdobe = this.temp[0] == JpegConstants.Markers.Adobe.A &&
-                           this.temp[1] == JpegConstants.Markers.Adobe.D &&
-                           this.temp[2] == JpegConstants.Markers.Adobe.O &&
-                           this.temp[3] == JpegConstants.Markers.Adobe.B &&
-                           this.temp[4] == JpegConstants.Markers.Adobe.E;
+            bool isAdobe = this.temp[0] == PdfJsJpegConstants.Markers.Adobe.A &&
+                           this.temp[1] == PdfJsJpegConstants.Markers.Adobe.D &&
+                           this.temp[2] == PdfJsJpegConstants.Markers.Adobe.O &&
+                           this.temp[3] == PdfJsJpegConstants.Markers.Adobe.B &&
+                           this.temp[4] == PdfJsJpegConstants.Markers.Adobe.E;
 
             if (isAdobe)
             {
-                this.adobe = new Adobe
+                this.adobe = new PdfJsAdobe
                 {
                     DCTEncodeVersion = (short)((this.temp[5] << 8) | this.temp[6]),
                     APP14Flags0 = (short)((this.temp[7] << 8) | this.temp[8]),
@@ -557,7 +558,7 @@ namespace ImageSharp.Formats.Jpeg.Port
                             Span<short> tableSpan = this.quantizationTables.Tables.GetRowSpan(quantizationTableSpec & 15);
                             for (int j = 0; j < 64; j++)
                             {
-                                tableSpan[QuantizationTables.DctZigZag[j]] = this.temp[j];
+                                tableSpan[PdfJsQuantizationTables.DctZigZag[j]] = this.temp[j];
                             }
                         }
 
@@ -577,7 +578,7 @@ namespace ImageSharp.Formats.Jpeg.Port
                             Span<short> tableSpan = this.quantizationTables.Tables.GetRowSpan(quantizationTableSpec & 15);
                             for (int j = 0; j < 64; j++)
                             {
-                                tableSpan[QuantizationTables.DctZigZag[j]] = (short)((this.temp[2 * j] << 8) | this.temp[(2 * j) + 1]);
+                                tableSpan[PdfJsQuantizationTables.DctZigZag[j]] = (short)((this.temp[2 * j] << 8) | this.temp[(2 * j) + 1]);
                             }
                         }
 
@@ -603,7 +604,7 @@ namespace ImageSharp.Formats.Jpeg.Port
         /// </summary>
         /// <param name="remaining">The remaining bytes in the segment block.</param>
         /// <param name="frameMarker">The current frame marker.</param>
-        private void ProcessStartOfFrameMarker(int remaining, FileMarker frameMarker)
+        private void ProcessStartOfFrameMarker(int remaining, PdfJsFileMarker frameMarker)
         {
             if (this.frame != null)
             {
@@ -612,10 +613,10 @@ namespace ImageSharp.Formats.Jpeg.Port
 
             this.InputStream.Read(this.temp, 0, remaining);
 
-            this.frame = new Frame
+            this.frame = new PdfJsFrame
             {
-                Extended = frameMarker.Marker == JpegConstants.Markers.SOF1,
-                Progressive = frameMarker.Marker == JpegConstants.Markers.SOF2,
+                Extended = frameMarker.Marker == PdfJsJpegConstants.Markers.SOF1,
+                Progressive = frameMarker.Marker == PdfJsJpegConstants.Markers.SOF2,
                 Precision = this.temp[0],
                 Scanlines = (short)((this.temp[1] << 8) | this.temp[2]),
                 SamplesPerLine = (short)((this.temp[3] << 8) | this.temp[4]),
@@ -628,7 +629,7 @@ namespace ImageSharp.Formats.Jpeg.Port
 
             // No need to pool this. They max out at 4
             this.frame.ComponentIds = new byte[this.frame.ComponentCount];
-            this.frame.Components = new FrameComponent[this.frame.ComponentCount];
+            this.frame.Components = new PdfJsFrameComponent[this.frame.ComponentCount];
 
             for (int i = 0; i < this.frame.Components.Length; i++)
             {
@@ -747,7 +748,7 @@ namespace ImageSharp.Formats.Jpeg.Port
                     throw new ImageFormatException("Unknown component selector");
                 }
 
-                ref FrameComponent component = ref this.frame.Components[componentIndex];
+                ref PdfJsFrameComponent component = ref this.frame.Components[componentIndex];
                 int tableSpec = this.InputStream.ReadByte();
                 component.DCHuffmanTableId = tableSpec >> 4;
                 component.ACHuffmanTableId = tableSpec & 15;
@@ -758,7 +759,7 @@ namespace ImageSharp.Formats.Jpeg.Port
             int spectralStart = this.temp[0];
             int spectralEnd = this.temp[1];
             int successiveApproximation = this.temp[2];
-            var scanDecoder = default(ScanDecoder);
+            var scanDecoder = default(PdfJsScanDecoder);
 
             scanDecoder.DecodeScan(
                  this.frame,
@@ -780,7 +781,7 @@ namespace ImageSharp.Formats.Jpeg.Port
         /// </summary>
         /// <param name="component">The component</param>
         /// <param name="frameComponent">The frame component</param>
-        private void BuildComponentData(ref Component component, ref FrameComponent frameComponent)
+        private void BuildComponentData(ref PdfJsComponent component, ref PdfJsFrameComponent frameComponent)
         {
             int blocksPerLine = component.BlocksPerLine;
             int blocksPerColumn = component.BlocksPerColumn;
@@ -798,7 +799,7 @@ namespace ImageSharp.Formats.Jpeg.Port
                 Span<short> multiplierSpan = multiplicationBuffer;
                 for (int i = 0; i < 64; i++)
                 {
-                    multiplierSpan[i] = (short)IDCT.Descale(quantizationTable[i] * IDCT.Aanscales[i], 12);
+                    multiplierSpan[i] = (short)PdfJsIDCT.Descale(quantizationTable[i] * PdfJsIDCT.Aanscales[i], 12);
                 }
 
                 for (int blockRow = 0; blockRow < blocksPerColumn; blockRow++)
@@ -806,7 +807,7 @@ namespace ImageSharp.Formats.Jpeg.Port
                     for (int blockCol = 0; blockCol < blocksPerLine; blockCol++)
                     {
                         int offset = GetBlockBufferOffset(ref component, blockRow, blockCol);
-                        IDCT.QuantizeAndInverseFast(ref frameComponent, offset, ref computationBufferSpan, ref multiplierSpan);
+                        PdfJsIDCT.QuantizeAndInverseFast(ref frameComponent, offset, ref computationBufferSpan, ref multiplierSpan);
                     }
                 }
             }
@@ -821,9 +822,9 @@ namespace ImageSharp.Formats.Jpeg.Port
         /// <param name="index">The table index</param>
         /// <param name="codeLengths">The codelengths</param>
         /// <param name="values">The values</param>
-        private void BuildHuffmanTable(HuffmanTables tables, int index, byte[] codeLengths, byte[] values)
+        private void BuildHuffmanTable(PdfJsHuffmanTables tables, int index, byte[] codeLengths, byte[] values)
         {
-            tables[index] = new HuffmanTable(codeLengths, values);
+            tables[index] = new PdfJsHuffmanTable(codeLengths, values);
         }
 
         /// <summary>
@@ -887,7 +888,7 @@ namespace ImageSharp.Formats.Jpeg.Port
                     ref byte cb = ref areaRowSpan[o + 1];
                     ref byte cr = ref areaRowSpan[o + 2];
                     ref TPixel pixel = ref imageRowSpan[x];
-                    YCbCrToRgbTables.PackYCbCr(ref pixel, yy, cb, cr);
+                    PdfJsYCbCrToRgbTables.PackYCbCr(ref pixel, yy, cb, cr);
                 }
             }
         }
@@ -908,7 +909,7 @@ namespace ImageSharp.Formats.Jpeg.Port
                     ref byte k = ref areaRowSpan[o + 3];
 
                     ref TPixel pixel = ref imageRowSpan[x];
-                    YCbCrToRgbTables.PackYccK(ref pixel, yy, cb, cr, k);
+                    PdfJsYCbCrToRgbTables.PackYccK(ref pixel, yy, cb, cr, k);
                 }
             }
         }

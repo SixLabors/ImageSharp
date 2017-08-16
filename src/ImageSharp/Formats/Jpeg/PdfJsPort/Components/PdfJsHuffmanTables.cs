@@ -3,7 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.Formats.Jpeg.Port.Components
+namespace ImageSharp.Formats.Jpeg.PdfJsPort.Components
 {
     using System;
     using System.Collections.Generic;
@@ -12,16 +12,16 @@ namespace ImageSharp.Formats.Jpeg.Port.Components
     /// <summary>
     /// Defines a pair of huffman tables
     /// </summary>
-    internal sealed class HuffmanTables : IDisposable
+    internal sealed class PdfJsHuffmanTables : IDisposable
     {
-        private readonly HuffmanTable[] tables = new HuffmanTable[4];
+        private readonly PdfJsHuffmanTable[] tables = new PdfJsHuffmanTable[4];
 
         /// <summary>
         /// Gets or sets the table at the given index.
         /// </summary>
         /// <param name="index">The index</param>
         /// <returns>The <see cref="List{HuffmanBranch}"/></returns>
-        public ref HuffmanTable this[int index]
+        public ref PdfJsHuffmanTable this[int index]
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get

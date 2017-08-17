@@ -17,6 +17,7 @@ test_script:
 
 after_build:
   - cmd: appveyor PushArtifact "artifacts\SixLabors.ImageSharp.%GitVersion_NuGetVersion%.nupkg"
+  - cmd: appveyor PushArtifact "artifacts\SixLabors.ImageSharp.Drawing.%GitVersion_NuGetVersion%.nupkg"
 
 deploy:
     # MyGet Deployment for builds & releases

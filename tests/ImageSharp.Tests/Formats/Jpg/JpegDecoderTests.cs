@@ -40,7 +40,7 @@ namespace ImageSharp.Tests
 
         private ITestOutputHelper Output { get; }
 
-        private float GetSimilarityPercentage<TPixel>(Image<TPixel> image, TestImageProvider<TPixel> provider)
+        private float GetDifferenceInPercents<TPixel>(Image<TPixel> image, TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             var reportingComparer = ImageComparer.Tolerant(0, 0);
@@ -55,7 +55,7 @@ namespace ImageSharp.Tests
                 return report.TotalNormalizedDifference.Value * 100;
             }
 
-            return 100;
+            return 0;
         }
 
         [Theory]
@@ -68,14 +68,14 @@ namespace ImageSharp.Tests
 
             using (Image<TPixel> image = provider.GetImage())
             {
-                double similarity = this.GetSimilarityPercentage(image, provider);
-                this.Output.WriteLine($"Similarity with ORIGINAL decoder: {similarity:0.0000}%");
+                double d = this.GetDifferenceInPercents(image, provider);
+                this.Output.WriteLine($"Difference using ORIGINAL decoder: {d:0.0000}%");
             }
 
             using (Image<TPixel> image = provider.GetImage(new PdfJsJpegDecoder()))
             {
-                double similarity = this.GetSimilarityPercentage(image, provider);
-                this.Output.WriteLine($"Similarity with PDFJS decoder: {similarity:0.0000}%");
+                double d = this.GetDifferenceInPercents(image, provider);
+                this.Output.WriteLine($"Difference using PDFJS decoder: {d:0.0000}%");
             }
         }
 

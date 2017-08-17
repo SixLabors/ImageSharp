@@ -73,13 +73,13 @@
                         var diff = new PixelDifference(new Point(x, y), aBuffer[x], bBuffer[x]);
                         differences.Add(diff);
 
-                        float percentageDiff = (float)d / 4.0f / 255.0f;
-                        totalDifference += percentageDiff;
+                        totalDifference += d;
                     }
                 }
             }
 
             float normalizedDifference = totalDifference / ((float)actual.Width * (float)actual.Height);
+            normalizedDifference /= 4.0f * 255.0f;
             
             if (normalizedDifference > this.ImageThreshold)
             {

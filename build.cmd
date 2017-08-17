@@ -13,7 +13,7 @@ dotnet build -c Release %versionCommand%
 if not "%errorlevel%"=="0" goto failure
 
 if not %CI% == "True" (
-    dotnet test ./tests/ImageSharp.Tests/ImageSharp.Tests.csproj --no-build
+    dotnet test ./tests/ImageSharp.Tests/ImageSharp.Tests.csproj --no-build -c Release
     if not "%errorlevel%"=="0" goto failure
 )
 

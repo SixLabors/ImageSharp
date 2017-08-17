@@ -12,8 +12,10 @@ ECHO Building nuget packages
 dotnet build -c Release %versionCommand%
 if not "%errorlevel%"=="0" goto failure
 
-dotnet test ./tests/ImageSharp.Tests/ImageSharp.Tests.csproj --no-build
-if not "%errorlevel%"=="0" goto failure
+if not %CI% == "True" (
+    dotnet test ./tests/ImageSharp.Tests/ImageSharp.Tests.csproj --no-build
+    if not "%errorlevel%"=="0" goto failure
+)
 
 dotnet pack ./src/ImageSharp/ -c Release --output ../../artifacts --no-build  %versionCommand%
 if not "%errorlevel%"=="0" goto failure

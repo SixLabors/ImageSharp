@@ -273,13 +273,13 @@ namespace ImageSharp.Formats.Jpeg.PdfJsPort
             {
                 ref var frameComponent = ref this.frame.Components[i];
                 var component = new PdfJsComponent
-                                    {
-                                        Scale = new System.Numerics.Vector2(
+                {
+                    Scale = new System.Numerics.Vector2(
                                             frameComponent.HorizontalFactor / (float)this.frame.MaxHorizontalFactor,
                                             frameComponent.VerticalFactor / (float)this.frame.MaxVerticalFactor),
-                                        BlocksPerLine = frameComponent.BlocksPerLine,
-                                        BlocksPerColumn = frameComponent.BlocksPerColumn
-                                    };
+                    BlocksPerLine = frameComponent.BlocksPerLine,
+                    BlocksPerColumn = frameComponent.BlocksPerColumn
+                };
 
                 this.BuildComponentData(ref component, ref frameComponent);
                 this.components.Components[i] = component;
@@ -390,13 +390,13 @@ namespace ImageSharp.Formats.Jpeg.PdfJsPort
             if (isJfif)
             {
                 this.jFif = new PdfJsJFif
-                                {
-                                    MajorVersion = this.temp[5],
-                                    MinorVersion = this.temp[6],
-                                    DensityUnits = this.temp[7],
-                                    XDensity = (short)((this.temp[8] << 8) | this.temp[9]),
-                                    YDensity = (short)((this.temp[10] << 8) | this.temp[11])
-                                };
+                {
+                    MajorVersion = this.temp[5],
+                    MinorVersion = this.temp[6],
+                    DensityUnits = this.temp[7],
+                    XDensity = (short)((this.temp[8] << 8) | this.temp[9]),
+                    YDensity = (short)((this.temp[10] << 8) | this.temp[11])
+                };
             }
 
             // TODO: thumbnail
@@ -509,12 +509,12 @@ namespace ImageSharp.Formats.Jpeg.PdfJsPort
             if (isAdobe)
             {
                 this.adobe = new PdfJsAdobe
-                                 {
-                                     DCTEncodeVersion = (short)((this.temp[5] << 8) | this.temp[6]),
-                                     APP14Flags0 = (short)((this.temp[7] << 8) | this.temp[8]),
-                                     APP14Flags1 = (short)((this.temp[9] << 8) | this.temp[10]),
-                                     ColorTransform = this.temp[11]
-                                 };
+                {
+                    DCTEncodeVersion = (short)((this.temp[5] << 8) | this.temp[6]),
+                    APP14Flags0 = (short)((this.temp[7] << 8) | this.temp[8]),
+                    APP14Flags1 = (short)((this.temp[9] << 8) | this.temp[10]),
+                    ColorTransform = this.temp[11]
+                };
             }
 
             if (remaining > 0)
@@ -614,14 +614,14 @@ namespace ImageSharp.Formats.Jpeg.PdfJsPort
             this.InputStream.Read(this.temp, 0, remaining);
 
             this.frame = new PdfJsFrame
-                             {
-                                 Extended = frameMarker.Marker == PdfJsJpegConstants.Markers.SOF1,
-                                 Progressive = frameMarker.Marker == PdfJsJpegConstants.Markers.SOF2,
-                                 Precision = this.temp[0],
-                                 Scanlines = (short)((this.temp[1] << 8) | this.temp[2]),
-                                 SamplesPerLine = (short)((this.temp[3] << 8) | this.temp[4]),
-                                 ComponentCount = this.temp[5]
-                             };
+            {
+                Extended = frameMarker.Marker == PdfJsJpegConstants.Markers.SOF1,
+                Progressive = frameMarker.Marker == PdfJsJpegConstants.Markers.SOF2,
+                Precision = this.temp[0],
+                Scanlines = (short)((this.temp[1] << 8) | this.temp[2]),
+                SamplesPerLine = (short)((this.temp[3] << 8) | this.temp[4]),
+                ComponentCount = this.temp[5]
+            };
 
             int maxH = 0;
             int maxV = 0;
@@ -786,7 +786,9 @@ namespace ImageSharp.Formats.Jpeg.PdfJsPort
             int blocksPerLine = component.BlocksPerLine;
             int blocksPerColumn = component.BlocksPerColumn;
             using (var computationBuffer = Buffer<short>.CreateClean(64))
-            using (var multiplicationBuffer = Buffer<short>.CreateClean(64))
+
+            // IDCTFast Only
+            // using (var multiplicationBuffer = Buffer<short>.CreateClean(64))
             {
                 Span<short> quantizationTable =
                     this.quantizationTables.Tables.GetRowSpan(frameComponent.QuantizationIdentifier);
@@ -797,22 +799,30 @@ namespace ImageSharp.Formats.Jpeg.PdfJsPort
                 //   scalefactor[0] = 1
                 //   scalefactor[k] = cos(k*PI/16) * sqrt(2)    for k=1..7
                 // For integer operation, the multiplier table is to be scaled by 12.
-                Span<short> multiplierSpan = multiplicationBuffer;
-                for (int i = 0; i < 64; i++)
-                {
-                    multiplierSpan[i] = (short)PdfJsIDCT.Descale(quantizationTable[i] * PdfJsIDCT.Aanscales[i], 12);
-                }
 
+                // IDCTFast Only
+                // Span<short> multiplierSpan = multiplicationBuffer;
+                // for (int i = 0; i < 64; i++)
+                // {
+                //    multiplierSpan[i] = (short)PdfJsIDCT.Descale(quantizationTable[i] * PdfJsIDCT.Aanscales[i], 12);
+                // }
                 for (int blockRow = 0; blockRow < blocksPerColumn; blockRow++)
                 {
                     for (int blockCol = 0; blockCol < blocksPerLine; blockCol++)
                     {
                         int offset = GetBlockBufferOffset(ref component, blockRow, blockCol);
-                        PdfJsIDCT.QuantizeAndInverseFast(
+
+                        // IDCTFast Only
+                        // PdfJsIDCT.QuantizeAndInverseFast(
+                        //    ref frameComponent,
+                        //    offset,
+                        //    ref computationBufferSpan,
+                        //    ref multiplierSpan);
+                        PdfJsIDCT.QuantizeAndInverse(
                             ref frameComponent,
                             offset,
                             ref computationBufferSpan,
-                            ref multiplierSpan);
+                            ref quantizationTable);
                     }
                 }
             }

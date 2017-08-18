@@ -3,10 +3,9 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 // ReSharper disable InconsistentNaming
-namespace ImageSharp.Formats.Jpg
+namespace ImageSharp.Formats.Jpeg.Common
 {
     using System;
-    using System.Buffers;
     using System.Numerics;
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;

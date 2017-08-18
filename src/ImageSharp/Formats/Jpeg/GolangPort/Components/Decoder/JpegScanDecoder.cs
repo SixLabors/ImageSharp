@@ -7,9 +7,9 @@ namespace ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 {
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
-
-    using ImageSharp.Formats.Jpg;
     using ImageSharp.Memory;
+
+    using Block8x8F = ImageSharp.Formats.Jpeg.Common.Block8x8F;
 
     /// <summary>
     /// Encapsulates the impementation of Jpeg SOS Huffman decoding. See JpegScanDecoder.md!

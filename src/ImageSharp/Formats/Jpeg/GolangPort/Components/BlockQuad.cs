@@ -4,16 +4,18 @@
 // </copyright>
 namespace ImageSharp.Formats.Jpeg.GolangPort.Components
 {
-    using ImageSharp.Formats.Jpg;
+    using ImageSharp.Formats.Jpeg.Common;
+
+    using Block8x8F = ImageSharp.Formats.Jpeg.Common.Block8x8F;
 
     /// <summary>
-    /// Poor man's stackalloc: Contains a value-type <see cref="float"/> buffer sized for 4 <see cref="Block8x8F"/> instances.
+    /// Poor man's stackalloc: Contains a value-type <see cref="float"/> buffer sized for 4 <see cref="Common.Block8x8F"/> instances.
     /// Useful for decoder/encoder operations allocating a block for each Jpeg component.
     /// </summary>
     internal unsafe struct BlockQuad
     {
         /// <summary>
-        /// The value-type <see cref="float"/> buffer sized for 4 <see cref="Block8x8F"/> instances.
+        /// The value-type <see cref="float"/> buffer sized for 4 <see cref="Common.Block8x8F"/> instances.
         /// </summary>
         public fixed float Data[4 * Block8x8F.ScalarCount];
     }

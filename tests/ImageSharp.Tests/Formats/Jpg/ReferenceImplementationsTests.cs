@@ -7,7 +7,6 @@
 namespace ImageSharp.Tests.Formats.Jpg
 {
     using ImageSharp.Formats.Jpeg.GolangPort.Utils;
-    using ImageSharp.Formats.Jpg;
 
     using Xunit;
     using Xunit.Abstractions;

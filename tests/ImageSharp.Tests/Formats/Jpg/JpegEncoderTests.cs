@@ -14,7 +14,6 @@ using Xunit.Abstractions;
 
 namespace ImageSharp.Tests
 {
-    using ImageSharp.Formats.Jpg;
     using ImageSharp.PixelFormats;
     using ImageSharp.Processing;
     using SixLabors.Primitives;

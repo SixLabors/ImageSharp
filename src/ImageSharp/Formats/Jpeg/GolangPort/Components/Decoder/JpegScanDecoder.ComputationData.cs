@@ -6,8 +6,7 @@
 namespace ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 {
     using System.Runtime.InteropServices;
-
-    using ImageSharp.Formats.Jpg;
+    using Block8x8F = ImageSharp.Formats.Jpeg.Common.Block8x8F;
 
     /// <content>
     /// Conains the definition of <see cref="ComputationData"/>

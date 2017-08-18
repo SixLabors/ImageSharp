@@ -14,6 +14,7 @@ namespace ImageSharp.Benchmarks.Image
 
     using CoreSize = SixLabors.Primitives.Size;
 
+    [Config(typeof(Config))]
     public class DecodeJpeg : BenchmarkBase
     {
         private byte[] jpegBytes;
@@ -23,21 +24,21 @@ namespace ImageSharp.Benchmarks.Image
         {
             if (this.jpegBytes == null)
             {
-                this.jpegBytes = File.ReadAllBytes("../ImageSharp.Tests/TestImages/Formats/Jpg/Baseline/Calliphora.jpg");
+                this.jpegBytes = File.ReadAllBytes("../../../../../../../../ImageSharp.Tests/TestImages/Formats/Jpg/Baseline/Calliphora.jpg");
             }
         }
 
-        [Benchmark(Baseline = true, Description = "System.Drawing Jpeg")]
-        public Size JpegSystemDrawing()
-        {
-            using (MemoryStream memoryStream = new MemoryStream(this.jpegBytes))
-            {
-                using (Image image = Image.FromStream(memoryStream))
-                {
-                    return image.Size;
-                }
-            }
-        }
+        //[Benchmark(Baseline = true, Description = "System.Drawing Jpeg")]
+        //public Size JpegSystemDrawing()
+        //{
+        //    using (MemoryStream memoryStream = new MemoryStream(this.jpegBytes))
+        //    {
+        //        using (Image image = Image.FromStream(memoryStream))
+        //        {
+        //            return image.Size;
+        //        }
+        //    }
+        //}
 
         [Benchmark(Description = "ImageSharp Jpeg")]
         public CoreSize JpegCore()

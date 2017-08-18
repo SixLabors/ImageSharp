@@ -1,9 +1,7 @@
-﻿namespace ImageSharp.Formats.Jpeg.Port.Components
+﻿namespace ImageSharp.Formats.Jpeg.PdfJsPort.Components
 {
     using System;
     using System.Runtime.CompilerServices;
-
-    using ImageSharp.Memory;
 
     /// <summary>
     /// Performs the inverse Descrete Cosine Transform on each frame component.

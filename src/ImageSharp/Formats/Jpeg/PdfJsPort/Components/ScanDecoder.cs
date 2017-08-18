@@ -3,14 +3,14 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.Formats.Jpeg.Port.Components
+namespace ImageSharp.Formats.Jpeg.PdfJsPort.Components
 {
     using System;
-#if DEBUG
     using System.Diagnostics;
-#endif
     using System.IO;
     using System.Runtime.CompilerServices;
+#if DEBUG
+#endif
 
     /// <summary>
     /// Provides the means to decode a spectral scan

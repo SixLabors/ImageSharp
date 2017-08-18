@@ -76,8 +76,8 @@ namespace ImageSharp.Tests
                     image.Save(ms, encoder);
                 }
             }
-            
-            Image<TPixel> mirror = provider.Factory.CreateImage(data);
+
+            Image<TPixel> mirror = Image.Load<TPixel>(data);
             mirror.DebugSave(provider, $"_{subsample}_Q{quality}");
         }
 

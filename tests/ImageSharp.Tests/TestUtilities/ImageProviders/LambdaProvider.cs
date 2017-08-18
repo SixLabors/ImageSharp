@@ -18,14 +18,14 @@ namespace ImageSharp.Tests
     {
         private class LambdaProvider : TestImageProvider<TPixel>
         {
-            private readonly Func<GenericFactory<TPixel>, Image<TPixel>> creator;
+            private readonly Func<Image<TPixel>> factoryFunc;
 
-            public LambdaProvider(Func<GenericFactory<TPixel>, Image<TPixel>> creator)
+            public LambdaProvider(Func<Image<TPixel>> factoryFunc)
             {
-                this.creator = creator;
+                this.factoryFunc = factoryFunc;
             }
 
-            public override Image<TPixel> GetImage() => this.creator(this.Factory);
+            public override Image<TPixel> GetImage() => this.factoryFunc();
         }
     }
 }

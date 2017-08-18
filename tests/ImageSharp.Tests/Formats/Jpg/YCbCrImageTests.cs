@@ -64,7 +64,7 @@ namespace ImageSharp.Tests
             Assert.Equal(img.CrChannel.Width, 400 / expectedCStrideDiv);
         }
 
-        private void PrintChannel(string name, JpegPixelArea channel)
+        private void PrintChannel(string name, OldJpegPixelArea channel)
         {
             this.Output.WriteLine($"{name}: Stride={channel.Stride}");
         }

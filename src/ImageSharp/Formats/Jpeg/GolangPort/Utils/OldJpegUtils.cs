@@ -12,7 +12,7 @@ namespace ImageSharp.Formats.Jpeg.GolangPort.Utils
     /// <summary>
     ///     Jpeg specific utilities and extension methods
     /// </summary>
-    internal static unsafe class JpegUtils
+    internal static unsafe class OldJpegUtils
     {
         /// <summary>
         /// Copy a region of an image into dest. De "outlier" area will be stretched out with pixels on the right and bottom of the image.

@@ -30,7 +30,7 @@ namespace ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
     /// For baseline JPEGs, these parameters are hard-coded to 0/63/0/0.
     /// </summary>
     [StructLayout(LayoutKind.Sequential)]
-    internal unsafe partial struct JpegScanDecoder
+    internal unsafe partial struct OldJpegScanDecoder
     {
         // The JpegScanDecoder members should be ordered in a way that results in optimal memory layout.
 #pragma warning disable SA1202 // ElementsMustBeOrderedByAccess
@@ -96,12 +96,12 @@ namespace ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         private int eobRun;
 
         /// <summary>
-        /// Initializes a default-constructed <see cref="JpegScanDecoder"/> instance for reading data from <see cref="JpegDecoderCore"/>-s stream.
+        /// Initializes a default-constructed <see cref="OldJpegScanDecoder"/> instance for reading data from <see cref="JpegDecoderCore"/>-s stream.
         /// </summary>
-        /// <param name="p">Pointer to <see cref="JpegScanDecoder"/> on the stack</param>
+        /// <param name="p">Pointer to <see cref="OldJpegScanDecoder"/> on the stack</param>
         /// <param name="decoder">The <see cref="JpegDecoderCore"/> instance</param>
         /// <param name="remaining">The remaining bytes in the segment block.</param>
-        public static void InitStreamReading(JpegScanDecoder* p, JpegDecoderCore decoder, int remaining)
+        public static void InitStreamReading(OldJpegScanDecoder* p, JpegDecoderCore decoder, int remaining)
         {
             p->data = ComputationData.Create();
             p->pointers = new DataPointers(&p->data);
@@ -140,7 +140,7 @@ namespace ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         {
             int blockCount = 0;
             int mcu = 0;
-            byte expectedRst = JpegConstants.Markers.RST0;
+            byte expectedRst = OldJpegConstants.Markers.RST0;
 
             for (int my = 0; my < decoder.MCUCountY; my++)
             {
@@ -206,9 +206,9 @@ namespace ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                                 }
 
                                 expectedRst++;
-                                if (expectedRst == JpegConstants.Markers.RST7 + 1)
+                                if (expectedRst == OldJpegConstants.Markers.RST7 + 1)
                                 {
-                                    expectedRst = JpegConstants.Markers.RST0;
+                                    expectedRst = OldJpegConstants.Markers.RST0;
                                 }
                             }
                         }
@@ -434,7 +434,7 @@ namespace ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
             return ((this.by * decoder.MCUCountX) * this.hi) + this.bx;
         }
 
-        private void InitComponentScan(JpegDecoderCore decoder, int i, ref ComponentScan currentComponentScan, ref int totalHv)
+        private void InitComponentScan(JpegDecoderCore decoder, int i, ref OldComponentScan currentComponentScan, ref int totalHv)
         {
             // Component selector.
             int cs = decoder.Temp[1 + (2 * i)];
@@ -461,9 +461,9 @@ namespace ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         private void ProcessComponentImpl(
             JpegDecoderCore decoder,
             int i,
-            ref ComponentScan currentComponentScan,
+            ref OldComponentScan currentComponentScan,
             ref int totalHv,
-            ref Component currentComponent)
+            ref OldComponent currentComponent)
         {
             // Section B.2.3 states that "the value of Cs_j shall be different from
             // the values of Cs_1 through Cs_(j-1)". Since we have previously

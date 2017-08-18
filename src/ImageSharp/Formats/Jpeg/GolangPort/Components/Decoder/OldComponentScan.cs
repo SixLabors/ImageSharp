@@ -11,7 +11,7 @@ namespace ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
     /// Represents a component scan
     /// </summary>
     [StructLayout(LayoutKind.Sequential)]
-    internal struct ComponentScan
+    internal struct OldComponentScan
     {
         /// <summary>
         /// Gets or sets the component index.

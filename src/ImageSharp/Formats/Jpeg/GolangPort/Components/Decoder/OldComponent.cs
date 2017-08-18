@@ -8,7 +8,7 @@ namespace ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
     /// <summary>
     /// Represents a single color component
     /// </summary>
-    internal struct Component
+    internal struct OldComponent
     {
         /// <summary>
         /// Gets or sets the horizontal sampling factor.

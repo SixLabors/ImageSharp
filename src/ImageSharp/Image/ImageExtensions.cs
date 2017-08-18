@@ -52,7 +52,7 @@ namespace ImageSharp
             Guard.NotNullOrEmpty(filePath, nameof(filePath));
 
             string ext = Path.GetExtension(filePath).Trim('.');
-            IImageFormat format = source.Configuration.FindFormatByFileExtensions(ext);
+            IImageFormat format = source.Configuration.FindFormatByFileExtension(ext);
             if (format == null)
             {
                 var stringBuilder = new StringBuilder();

@@ -39,9 +39,8 @@ namespace ImageSharp.Tests
             Type colorType = args.Single();
 
             Type imgType = typeof(Image<>).MakeGenericType(colorType);
-            Type genericFactoryType = (typeof(GenericFactory<>)).MakeGenericType(colorType);
 
-            Type funcType = typeof(Func<,>).MakeGenericType(genericFactoryType, imgType);
+            Type funcType = typeof(Func<>).MakeGenericType(imgType);
 
             MethodInfo genericMethod = m.MakeGenericMethod(args);
 

@@ -41,6 +41,7 @@ namespace ImageSharp.Tests.Processing.Processors.Convolution
             {
                 image.Mutate(x => x.DetectEdges(detector));
                 image.DebugSave(provider, detector.ToString());
+                image.CompareToReferenceOutput(provider, detector.ToString());
             }
         }
 
@@ -53,6 +54,7 @@ namespace ImageSharp.Tests.Processing.Processors.Convolution
             {
                 image.Mutate(x => x.DetectEdges());
                 image.DebugSave(provider);
+                image.CompareToReferenceOutput(provider);
             }
         }
 
@@ -73,16 +75,16 @@ namespace ImageSharp.Tests.Processing.Processors.Convolution
         public void DetectEdges_InBox<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> source = provider.GetImage())
-            using (Image<TPixel> image = source.Clone())
+            using (Image<TPixel> image = provider.GetImage())
             {
                 var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
 
                 image.Mutate(x => x.DetectEdges(bounds));
                 image.DebugSave(provider);
+                image.CompareToReferenceOutput(provider);
 
                 // TODO: We don't need this any longer after switching to ReferenceImages
-                ImageComparer.Tolerant().EnsureProcessorChangesAreConstrained(source, image, bounds);
+                //ImageComparer.Tolerant().EnsureProcessorChangesAreConstrained(source, image, bounds);
             }
         }
     }

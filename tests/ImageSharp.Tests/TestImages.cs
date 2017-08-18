@@ -31,6 +31,7 @@ namespace ImageSharp.Tests
             public const string Bike = "Png/Bike.png";
             public const string BikeGrayscale = "Png/BikeGrayscale.png";
             public const string Rgb48BppInterlaced = "Png/rgb-48bpp-interlaced.png";
+            public const string SnakeGame = "Png/SnakeGame.png";
 
             // Filtered test images from http://www.schaik.com/pngsuite/pngsuite_fil_png.html
             public const string Filter0 = "Png/filter0.png";

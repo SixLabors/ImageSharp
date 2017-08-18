@@ -7,6 +7,8 @@
 namespace ImageSharp.Tests
 {
     using System;
+    using System.Collections.Concurrent;
+    using System.Collections.Generic;
     using System.IO;
 
     using ImageSharp.Formats;
@@ -61,19 +63,7 @@ namespace ImageSharp.Tests
         {
             Assert.Equal(expected, provider.PixelType);
         }
-
-        [Theory]
-        [WithBlankImages(1, 1, PixelTypes.Rgba32)]
-        [WithFile(TestImages.Bmp.F, PixelTypes.Rgba32)]
-        public void PixelTypes_ColorWithDefaultImageClass_TriggersCreatingTheNonGenericDerivedImageClass<TPixel>(
-            TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            Image<TPixel> img = provider.GetImage();
-
-            Assert.IsType<Image<Rgba32>>(img);
-        }
-
+        
         [Theory]
         [WithFile(TestImages.Bmp.Car, PixelTypes.All, 88)]
         [WithFile(TestImages.Bmp.F, PixelTypes.All, 88)]
@@ -92,32 +82,152 @@ namespace ImageSharp.Tests
 
         private class TestDecoder : IImageDecoder
         {
-            public int InvocationCount { get; private set; } = 0;
-
             public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream)
                 where TPixel : struct, IPixel<TPixel>
             {
-                this.InvocationCount++;
+                invocationCounts[this.callerName]++;
                 return new Image<TPixel>(42, 42);
+            }
+
+            // Couldn't make xUnit happy without this hackery:
+
+            private static ConcurrentDictionary<string, int> invocationCounts = new ConcurrentDictionary<string, int>();
+
+            private string callerName = null;
+
+            internal void InitCaller(string name)
+            {
+                this.callerName = name;
+                invocationCounts[name] = 0;
+            }
+
+            internal static int GetInvocationCount(string callerName) => invocationCounts[callerName];
+            
+            private static readonly object Monitor = new object();
+
+            public static void DoTestThreadSafe(Action action)
+            {
+                lock (Monitor)
+                {
+                    action();
+                }
             }
         }
 
 
         [Theory]
         [WithFile(TestImages.Bmp.F, PixelTypes.Rgba32)]
-        public void GetImage_WithCustomDecoder_ShouldUtilizeCache<TPixel>(TestImageProvider<TPixel> provider)
+        public void GetImage_WithCustomParameterlessDecoder_ShouldUtilizeCache<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             Assert.NotNull(provider.Utility.SourceFileOrDescription);
 
-            var decoder = new TestDecoder();
+            TestDecoder.DoTestThreadSafe(
+                () =>
+                    {
+                        string testName = nameof(this.GetImage_WithCustomParameterlessDecoder_ShouldUtilizeCache);
 
-            provider.GetImage(decoder);
-            Assert.Equal(1, decoder.InvocationCount);
+                        var decoder = new TestDecoder();
+                        decoder.InitCaller(testName);
 
-            provider.GetImage(decoder);
-            Assert.Equal(1, decoder.InvocationCount);
+                        provider.GetImage(decoder);
+                        Assert.Equal(1, TestDecoder.GetInvocationCount(testName));
+
+                        provider.GetImage(decoder);
+                        Assert.Equal(1, TestDecoder.GetInvocationCount(testName));
+                    });
         }
+
+        private class TestDecoderWithParameters : IImageDecoder
+        {
+            public string Param1 { get; set; }
+
+            public int Param2 { get; set; }
+
+            public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream)
+                where TPixel : struct, IPixel<TPixel>
+            {
+                invocationCounts[this.callerName]++;
+                return new Image<TPixel>(42, 42);
+            }
+
+            private static ConcurrentDictionary<string, int> invocationCounts = new ConcurrentDictionary<string, int>();
+
+            private string callerName = null;
+
+            internal void InitCaller(string name)
+            {
+                this.callerName = name;
+                invocationCounts[name] = 0;
+            }
+
+            internal static int GetInvocationCount(string callerName) => invocationCounts[callerName];
+            
+            private static readonly object Monitor = new object();
+
+            public static void DoTestThreadSafe(Action action)
+            {
+                lock (Monitor)
+                {
+                    action();
+                }
+            }
+        }
+
+        [Theory]
+        [WithFile(TestImages.Bmp.F, PixelTypes.Rgba32)]
+        public void GetImage_WithCustomParametricDecoder_ShouldUtilizeCache_WhenParametersAreEqual<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            Assert.NotNull(provider.Utility.SourceFileOrDescription);
+
+            TestDecoderWithParameters.DoTestThreadSafe(
+                () =>
+                    {
+                        string testName =
+                            nameof(this.GetImage_WithCustomParametricDecoder_ShouldUtilizeCache_WhenParametersAreEqual);
+
+                        var decoder1 = new TestDecoderWithParameters() { Param1 = "Lol", Param2 = 666 };
+                        decoder1.InitCaller(testName);
+
+                        var decoder2 = new TestDecoderWithParameters() { Param1 = "Lol", Param2 = 666 };
+                        decoder2.InitCaller(testName);
+
+                        provider.GetImage(decoder1);
+                        Assert.Equal(1, TestDecoderWithParameters.GetInvocationCount(testName));
+
+                        provider.GetImage(decoder2);
+                        Assert.Equal(1, TestDecoderWithParameters.GetInvocationCount(testName));
+                    });
+        }
+
+        [Theory]
+        [WithFile(TestImages.Bmp.F, PixelTypes.Rgba32)]
+        public void GetImage_WithCustomParametricDecoder_ShouldNotUtilizeCache_WhenParametersAreNotEqual<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            Assert.NotNull(provider.Utility.SourceFileOrDescription);
+
+            TestDecoderWithParameters.DoTestThreadSafe(
+                () =>
+                    {
+                        string testName =
+                            nameof(this.GetImage_WithCustomParametricDecoder_ShouldNotUtilizeCache_WhenParametersAreNotEqual);
+
+                        var decoder1 = new TestDecoderWithParameters() { Param1 = "Lol", Param2 = 42 };
+                        decoder1.InitCaller(testName);
+
+                        var decoder2 = new TestDecoderWithParameters() { Param1 = "LoL", Param2 = 42 };
+                        decoder2.InitCaller(testName);
+
+                        provider.GetImage(decoder1);
+                        Assert.Equal(1, TestDecoderWithParameters.GetInvocationCount(testName));
+
+                        provider.GetImage(decoder2);
+                        Assert.Equal(2, TestDecoderWithParameters.GetInvocationCount(testName));
+                    });
+        }
+
 
         public static string[] AllBmpFiles => TestImages.Bmp.All;
 

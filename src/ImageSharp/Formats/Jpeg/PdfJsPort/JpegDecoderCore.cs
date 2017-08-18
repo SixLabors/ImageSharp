@@ -3,16 +3,13 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.Formats.Jpeg.Port
+namespace ImageSharp.Formats.Jpeg.PdfJsPort
 {
     using System;
-    using System.Collections.Generic;
-    using System.Diagnostics;
     using System.IO;
     using System.Runtime.CompilerServices;
 
-    using ImageSharp.Common.Extensions;
-    using ImageSharp.Formats.Jpeg.Port.Components;
+    using ImageSharp.Formats.Jpeg.PdfJsPort.Components;
     using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
 

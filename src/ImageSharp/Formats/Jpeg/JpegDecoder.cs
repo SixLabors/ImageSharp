@@ -7,6 +7,7 @@ namespace ImageSharp.Formats
 {
     using System.IO;
 
+    using ImageSharp.Formats.Jpeg.PdfJsPort;
     using ImageSharp.PixelFormats;
 
     /// <summary>
@@ -26,7 +27,7 @@ namespace ImageSharp.Formats
             Guard.NotNull(stream, "stream");
 
             // using (var decoder = new JpegDecoderCore(configuration, this))
-            using (var decoder = new Jpeg.Port.JpegDecoderCore(configuration, this))
+            using (var decoder = new JpegDecoderCore(configuration, this))
             {
                 return decoder.Decode<TPixel>(stream);
             }

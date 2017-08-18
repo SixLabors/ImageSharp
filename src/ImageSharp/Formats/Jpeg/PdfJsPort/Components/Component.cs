@@ -3,10 +3,11 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.Formats.Jpeg.Port.Components
+namespace ImageSharp.Formats.Jpeg.PdfJsPort.Components
 {
     using System;
     using System.Numerics;
+
     using ImageSharp.Memory;
 
     /// <summary>

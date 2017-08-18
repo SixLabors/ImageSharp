@@ -134,15 +134,6 @@ namespace ImageSharp.Tests
         }
 
         [Fact]
-        public void Anyad()
-        {
-            PixelTypes pixelTypes = PixelTypes.Rgba32 | PixelTypes.Bgra32 | PixelTypes.RgbaVector;
-            PixelTypes anyad = pixelTypes & PixelTypes.Bgr565;
-
-            this.Output.WriteLine(anyad.ToString());
-        }
-
-        [Fact]
         public void ToTypes_All()
         {
             KeyValuePair<PixelTypes, Type>[] expanded = PixelTypes.All.ExpandAllTypes().ToArray();

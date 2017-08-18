@@ -11,7 +11,7 @@ namespace ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
     /// <content>
     /// Conains the definition of <see cref="ComputationData"/>
     /// </content>
-    internal unsafe partial struct JpegScanDecoder
+    internal unsafe partial struct OldJpegScanDecoder
     {
         /// <summary>
         /// Holds the "large" data blocks needed for computations.
@@ -30,7 +30,7 @@ namespace ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
             public UnzigData Unzig;
 
             /// <summary>
-            /// The buffer storing the <see cref="ComponentScan"/>-s for each component
+            /// The buffer storing the <see cref="OldComponentScan"/>-s for each component
             /// </summary>
             public fixed byte ScanData[3 * JpegDecoderCore.MaxComponents];
 

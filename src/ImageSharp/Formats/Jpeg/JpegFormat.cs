@@ -21,9 +21,9 @@ namespace ImageSharp.Formats
         public string DefaultMimeType => "image/jpeg";
 
         /// <inheritdoc/>
-        public IEnumerable<string> MimeTypes => JpegConstants.MimeTypes;
+        public IEnumerable<string> MimeTypes => OldJpegConstants.MimeTypes;
 
         /// <inheritdoc/>
-        public IEnumerable<string> FileExtensions => JpegConstants.FileExtensions;
+        public IEnumerable<string> FileExtensions => OldJpegConstants.FileExtensions;
     }
 }

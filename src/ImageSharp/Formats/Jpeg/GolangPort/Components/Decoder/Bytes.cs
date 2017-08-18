@@ -95,7 +95,7 @@ namespace ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                 x = this.BufferAsInt[this.I];
                 this.I++;
                 this.UnreadableBytes = 1;
-                if (x != JpegConstants.Markers.XFFInt)
+                if (x != OldJpegConstants.Markers.XFFInt)
                 {
                     return DecoderErrorCode.NoError;
                 }
@@ -107,7 +107,7 @@ namespace ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 
                 this.I++;
                 this.UnreadableBytes = 2;
-                x = JpegConstants.Markers.XFF;
+                x = OldJpegConstants.Markers.XFF;
                 return DecoderErrorCode.NoError;
             }
 
@@ -120,7 +120,7 @@ namespace ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                 return errorCode;
             }
 
-            if (x != JpegConstants.Markers.XFF)
+            if (x != OldJpegConstants.Markers.XFF)
             {
                 return DecoderErrorCode.NoError;
             }
@@ -137,7 +137,7 @@ namespace ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                 return DecoderErrorCode.MissingFF00;
             }
 
-            x = JpegConstants.Markers.XFF;
+            x = OldJpegConstants.Markers.XFF;
             return DecoderErrorCode.NoError;
         }
 

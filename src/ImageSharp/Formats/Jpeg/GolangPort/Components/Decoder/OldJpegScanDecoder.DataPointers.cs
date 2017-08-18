@@ -10,7 +10,7 @@ namespace ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
     /// <content>
     /// Conains the definition of <see cref="DataPointers"/>
     /// </content>
-    internal unsafe partial struct JpegScanDecoder
+    internal unsafe partial struct OldJpegScanDecoder
     {
         /// <summary>
         /// Contains pointers to the memory regions of <see cref="ComputationData"/> so they can be easily passed around to pointer based utility methods of <see cref="Block8x8F"/>
@@ -30,7 +30,7 @@ namespace ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
             /// <summary>
             /// Pointer to <see cref="ComputationData.ScanData"/> as Scan*
             /// </summary>
-            public ComponentScan* ComponentScan;
+            public OldComponentScan* ComponentScan;
 
             /// <summary>
             /// Pointer to <see cref="ComputationData.Dc"/>
@@ -45,7 +45,7 @@ namespace ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
             {
                 this.Block = &basePtr->Block;
                 this.Unzig = basePtr->Unzig.Data;
-                this.ComponentScan = (ComponentScan*)basePtr->ScanData;
+                this.ComponentScan = (OldComponentScan*)basePtr->ScanData;
                 this.Dc = basePtr->Dc;
             }
         }

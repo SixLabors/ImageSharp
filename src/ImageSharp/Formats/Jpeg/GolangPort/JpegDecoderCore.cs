@@ -108,14 +108,14 @@ namespace ImageSharp.Formats.Jpeg.GolangPort
             this.HuffmanTrees = HuffmanTree.CreateHuffmanTrees();
             this.QuantizationTables = new Block8x8F[MaxTq + 1];
             this.Temp = new byte[2 * Block8x8F.ScalarCount];
-            this.ComponentArray = new Component[MaxComponents];
+            this.ComponentArray = new OldComponent[MaxComponents];
             this.DecodedBlocks = new Buffer<DecodedBlock>[MaxComponents];
         }
 
         /// <summary>
         /// Gets the component array
         /// </summary>
-        public Component[] ComponentArray { get; }
+        public OldComponent[] ComponentArray { get; }
 
         /// <summary>
         /// Gets the huffman trees
@@ -272,7 +272,7 @@ namespace ImageSharp.Formats.Jpeg.GolangPort
 
             // Check for the Start Of Image marker.
             this.InputProcessor.ReadFull(this.Temp, 0, 2);
-            if (this.Temp[0] != JpegConstants.Markers.XFF || this.Temp[1] != JpegConstants.Markers.SOI)
+            if (this.Temp[0] != OldJpegConstants.Markers.XFF || this.Temp[1] != OldJpegConstants.Markers.SOI)
             {
                 throw new ImageFormatException("Missing SOI marker.");
             }
@@ -322,12 +322,12 @@ namespace ImageSharp.Formats.Jpeg.GolangPort
                 }
 
                 // End Of Image.
-                if (marker == JpegConstants.Markers.EOI)
+                if (marker == OldJpegConstants.Markers.EOI)
                 {
                     break;
                 }
 
-                if (marker >= JpegConstants.Markers.RST0 && marker <= JpegConstants.Markers.RST7)
+                if (marker >= OldJpegConstants.Markers.RST0 && marker <= OldJpegConstants.Markers.RST7)
                 {
                     // Figures B.2 and B.16 of the specification suggest that restart markers should
                     // only occur between Entropy Coded Segments and not after the final ECS.
@@ -349,10 +349,10 @@ namespace ImageSharp.Formats.Jpeg.GolangPort
 
                 switch (marker)
                 {
-                    case JpegConstants.Markers.SOF0:
-                    case JpegConstants.Markers.SOF1:
-                    case JpegConstants.Markers.SOF2:
-                        this.IsProgressive = marker == JpegConstants.Markers.SOF2;
+                    case OldJpegConstants.Markers.SOF0:
+                    case OldJpegConstants.Markers.SOF1:
+                    case OldJpegConstants.Markers.SOF2:
+                        this.IsProgressive = marker == OldJpegConstants.Markers.SOF2;
                         this.ProcessStartOfFrameMarker(remaining);
                         if (metadataOnly && this.isJfif)
                         {
@@ -360,7 +360,7 @@ namespace ImageSharp.Formats.Jpeg.GolangPort
                         }
 
                         break;
-                    case JpegConstants.Markers.DHT:
+                    case OldJpegConstants.Markers.DHT:
                         if (metadataOnly)
                         {
                             this.InputProcessor.Skip(remaining);
@@ -371,7 +371,7 @@ namespace ImageSharp.Formats.Jpeg.GolangPort
                         }
 
                         break;
-                    case JpegConstants.Markers.DQT:
+                    case OldJpegConstants.Markers.DQT:
                         if (metadataOnly)
                         {
                             this.InputProcessor.Skip(remaining);
@@ -382,7 +382,7 @@ namespace ImageSharp.Formats.Jpeg.GolangPort
                         }
 
                         break;
-                    case JpegConstants.Markers.SOS:
+                    case OldJpegConstants.Markers.SOS:
                         if (metadataOnly)
                         {
                             return;
@@ -398,7 +398,7 @@ namespace ImageSharp.Formats.Jpeg.GolangPort
                         }
 
                         break;
-                    case JpegConstants.Markers.DRI:
+                    case OldJpegConstants.Markers.DRI:
                         if (metadataOnly)
                         {
                             this.InputProcessor.Skip(remaining);
@@ -409,25 +409,25 @@ namespace ImageSharp.Formats.Jpeg.GolangPort
                         }
 
                         break;
-                    case JpegConstants.Markers.APP0:
+                    case OldJpegConstants.Markers.APP0:
                         this.ProcessApplicationHeader(remaining);
                         break;
-                    case JpegConstants.Markers.APP1:
+                    case OldJpegConstants.Markers.APP1:
                         this.ProcessApp1Marker(remaining, metadata);
                         break;
-                    case JpegConstants.Markers.APP2:
+                    case OldJpegConstants.Markers.APP2:
                         this.ProcessApp2Marker(remaining, metadata);
                         break;
-                    case JpegConstants.Markers.APP14:
+                    case OldJpegConstants.Markers.APP14:
                         this.ProcessApp14Marker(remaining);
                         break;
                     default:
-                        if ((marker >= JpegConstants.Markers.APP0 && marker <= JpegConstants.Markers.APP15)
-                            || marker == JpegConstants.Markers.COM)
+                        if ((marker >= OldJpegConstants.Markers.APP0 && marker <= OldJpegConstants.Markers.APP15)
+                            || marker == OldJpegConstants.Markers.COM)
                         {
                             this.InputProcessor.Skip(remaining);
                         }
-                        else if (marker < JpegConstants.Markers.SOF0)
+                        else if (marker < OldJpegConstants.Markers.SOF0)
                         {
                             // See Table B.1 "Marker code assignments".
                             throw new ImageFormatException("Unknown marker");
@@ -452,8 +452,8 @@ namespace ImageSharp.Formats.Jpeg.GolangPort
         /// </exception>
         private void ProcessStartOfScan(int remaining)
         {
-            JpegScanDecoder scan = default(JpegScanDecoder);
-            JpegScanDecoder.InitStreamReading(&scan, this, remaining);
+            OldJpegScanDecoder scan = default(OldJpegScanDecoder);
+            OldJpegScanDecoder.InitStreamReading(&scan, this, remaining);
             this.InputProcessor.Bits = default(Bits);
             this.MakeImage();
             scan.DecodeBlocks(this);
@@ -508,11 +508,11 @@ namespace ImageSharp.Formats.Jpeg.GolangPort
                     // See http://www.sno.phy.queensu.ca/~phil/exiftool/TagNames/JPEG.html#Adobe
                     // See https://docs.oracle.com/javase/8/docs/api/javax/imageio/metadata/doc-files/jpeg_metadata.html
                     // TODO: YCbCrA?
-                    if (this.adobeTransform == JpegConstants.Adobe.ColorTransformYcck)
+                    if (this.adobeTransform == OldJpegConstants.Adobe.ColorTransformYcck)
                     {
                         this.ConvertFromYcck(image);
                     }
-                    else if (this.adobeTransform == JpegConstants.Adobe.ColorTransformUnknown)
+                    else if (this.adobeTransform == OldJpegConstants.Adobe.ColorTransformUnknown)
                     {
                         // Assume CMYK
                         this.ConvertFromCmyk(image);
@@ -764,7 +764,7 @@ namespace ImageSharp.Formats.Jpeg.GolangPort
                 return false;
             }
 
-            if (this.adobeTransformValid && this.adobeTransform == JpegConstants.Adobe.ColorTransformUnknown)
+            if (this.adobeTransformValid && this.adobeTransform == OldJpegConstants.Adobe.ColorTransformUnknown)
             {
                 // http://www.sno.phy.queensu.ca/~phil/exiftool/TagNames/JPEG.html#Adobe
                 // says that 0 means Unknown (and in practice RGB) and 1 means YCbCr.

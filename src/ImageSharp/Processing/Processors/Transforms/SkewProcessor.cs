@@ -73,7 +73,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <inheritdoc/>
         protected override void BeforeApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
         {
-            this.processMatrix = Matrix3x2Extensions.CreateSkew(-this.AngleX, -this.AngleY, new Point(0, 0));
+            this.processMatrix = Matrix3x2Extensions.CreateSkewDegrees(-this.AngleX, -this.AngleY, new Point(0, 0));
             if (this.Expand)
             {
                 this.CreateNewCanvas(sourceRectangle, this.processMatrix);

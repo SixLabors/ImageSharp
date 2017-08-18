@@ -107,10 +107,22 @@ namespace ImageSharp.Memory
         }
 
         /// <summary>
+        /// Gets a <see cref="Span{T}"/> representing the row beginning from the the first item on that row.
+        /// </summary>
+        /// <param name="row">The y-coordinate of the row. Must be greater than or equal to zero and less than the height of the 2D array.</param>
+        /// <returns>The <see cref="Span{T}"/></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Span<T> GetRowSpan(int row)
+        {
+            this.CheckCoordinates(row);
+            return new Span<T>(this.Data, row * this.Width, this.Width);
+        }
+
+        /// <summary>
         /// Checks the coordinates to ensure they are within bounds.
         /// </summary>
-        /// <param name="row">The row-coordinate of the item. Must be greater than zero and smaller than the height of the array.</param>
-        /// <param name="column">The column-coordinate of the item. Must be greater than zero and smaller than the width of the array.</param>
+        /// <param name="row">The y-coordinate of the item. Must be greater than zero and smaller than the height of the array.</param>
+        /// <param name="column">The x-coordinate of the item. Must be greater than zero and smaller than the width of the array.</param>
         /// <exception cref="ArgumentOutOfRangeException">
         /// Thrown if the coordinates are not within the bounds of the array.
         /// </exception>
@@ -125,6 +137,22 @@ namespace ImageSharp.Memory
             if (column < 0 || column >= this.Width)
             {
                 throw new ArgumentOutOfRangeException(nameof(column), column, $"{column} is outwith the array bounds.");
+            }
+        }
+
+        /// <summary>
+        /// Checks the coordinates to ensure they are within bounds.
+        /// </summary>
+        /// <param name="row">The y-coordinate of the item. Must be greater than zero and smaller than the height of the array.</param>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// Thrown if the coordinates are not within the bounds of the image.
+        /// </exception>
+        [Conditional("DEBUG")]
+        private void CheckCoordinates(int row)
+        {
+            if (row < 0 || row >= this.Height)
+            {
+                throw new ArgumentOutOfRangeException(nameof(row), row, $"{row} is outwith the array bounds.");
             }
         }
     }

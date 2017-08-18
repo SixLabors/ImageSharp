@@ -40,7 +40,7 @@ namespace ImageSharp.Tests.Processing.Processors.Convolution
             using (Image<TPixel> image = provider.GetImage())
             {
                 image.Mutate(x => x.DetectEdges(detector));
-                image.DebugSave(provider, detector.ToString(), grayscale: true);
+                image.DebugSave(provider, detector.ToString());
             }
         }
 
@@ -52,7 +52,7 @@ namespace ImageSharp.Tests.Processing.Processors.Convolution
             using (Image<TPixel> image = provider.GetImage())
             {
                 image.Mutate(x => x.DetectEdges());
-                image.DebugSave(provider, grayscale: true);
+                image.DebugSave(provider);
             }
         }
 
@@ -79,7 +79,7 @@ namespace ImageSharp.Tests.Processing.Processors.Convolution
                 var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
 
                 image.Mutate(x => x.DetectEdges(bounds));
-                image.DebugSave(provider, grayscale: true);
+                image.DebugSave(provider);
 
                 // TODO: We don't need this any longer after switching to ReferenceImages
                 ImageComparer.Tolerant().EnsureProcessorChangesAreConstrained(source, image, bounds);

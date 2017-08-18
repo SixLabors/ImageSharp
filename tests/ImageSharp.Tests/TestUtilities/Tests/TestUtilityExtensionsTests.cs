@@ -147,7 +147,7 @@ namespace ImageSharp.Tests
         {
             KeyValuePair<PixelTypes, Type>[] expanded = PixelTypes.All.ExpandAllTypes().ToArray();
 
-            Assert.True(expanded.Length >= TestUtilityExtensions.GetAllPixelTypes().Length - 2);
+            Assert.True(expanded.Length >= TestUtils.GetAllPixelTypes().Length - 2);
             AssertContainsPixelType<Rgba32>(PixelTypes.Rgba32, expanded);
             AssertContainsPixelType<Rgba32>(PixelTypes.Rgba32, expanded);
         }

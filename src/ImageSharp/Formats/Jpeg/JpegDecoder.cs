@@ -5,8 +5,6 @@
 
 namespace ImageSharp.Formats
 {
-    using System;
-    using System.Collections.Generic;
     using System.IO;
 
     using ImageSharp.PixelFormats;
@@ -27,7 +25,8 @@ namespace ImageSharp.Formats
         {
             Guard.NotNull(stream, "stream");
 
-            using (JpegDecoderCore decoder = new JpegDecoderCore(configuration, this))
+            // using (var decoder = new JpegDecoderCore(configuration, this))
+            using (var decoder = new Jpeg.Port.JpegDecoderCore(configuration, this))
             {
                 return decoder.Decode<TPixel>(stream);
             }

@@ -49,9 +49,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{7CC6
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AvatarWithRoundedCorner", "samples\AvatarWithRoundedCorner\AvatarWithRoundedCorner.csproj", "{844FC582-4E78-4371-847D-EFD4D1103578}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChangeDefaultEncoderOptions", "samples\ChangeDefaultEncoderOptions\ChangeDefaultEncoderOptions.csproj", "{07EE511D-4BAB-4323-BAFC-3AF2BF9366F0}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ChangeDefaultEncoderOptions", "samples\ChangeDefaultEncoderOptions\ChangeDefaultEncoderOptions.csproj", "{07EE511D-4BAB-4323-BAFC-3AF2BF9366F0}"
 EndProject
 Global
+	GlobalSection(Performance) = preSolution
+		HasPerformanceSessions = true
+	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Debug|x64 = Debug|x64

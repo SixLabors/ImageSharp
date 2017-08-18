@@ -29,7 +29,6 @@ namespace ImageSharp.Tests
             ITestImageProvider provider,
             object testOutputDetails = null,
             string extension = "png",
-            bool grayscale = false,
             bool appendPixelTypeToFileName = true)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -43,7 +42,6 @@ namespace ImageSharp.Tests
                 image,
                 extension,
                 testOutputDetails: testOutputDetails,
-                grayscale: grayscale,
                 appendPixelTypeToFileName: appendPixelTypeToFileName);
             return image;
         }
@@ -139,7 +137,7 @@ namespace ImageSharp.Tests
 
             var testFile = TestFile.Create(path);
 
-            using (var original = Image.Load<TPixel>(testFile.Bytes, ReferenceDecoder.Instance))
+            using (var original = Image.Load<TPixel>(testFile.Bytes, SystemDrawingReferenceDecoder.Instance))
             {
                 //original.DebugSave(provider, "__SYSTEMDRAWING__");
                 comparer.VerifySimilarity(original, image);

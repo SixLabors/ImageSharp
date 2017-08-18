@@ -52,7 +52,7 @@ namespace ImageSharp.Tests
             where TPixel : struct, IPixel<TPixel>
         {
             string path = TestFile.GetInputFileFullPath(TestImages.Png.Splash);
-            using (Image<TPixel> image = Image.Load<TPixel>(path, ReferenceDecoder.Instance))
+            using (Image<TPixel> image = Image.Load<TPixel>(path, SystemDrawingReferenceDecoder.Instance))
             {
                 image.DebugSave(dummyProvider);
             }
@@ -65,7 +65,7 @@ namespace ImageSharp.Tests
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                provider.Utility.SaveTestOutputFile(image, "png", ReferenceEncoder.Png);
+                provider.Utility.SaveTestOutputFile(image, "png", SystemDrawingReferenceEncoder.Png);
             }
         }
     }

@@ -45,17 +45,8 @@ namespace ImageSharp.Tests
 
             public override Image<TPixel> GetImage()
             {
-                Key key = new Key(this.PixelType, this.FilePath);
-
-                Image<TPixel> cachedImage = cache.GetOrAdd(
-                    key,
-                    fn =>
-                        {
-                            TestFile testFile = TestFile.Create(this.FilePath);
-                            return Image.Load<TPixel>(testFile.Bytes);
-                        });
-
-                return cachedImage.Clone();
+                IImageDecoder decoder = TestEnvironment.GetReferenceDecoder(this.FilePath);
+                return this.GetImage(decoder);
             }
 
             public override Image<TPixel> GetImage(IImageDecoder decoder)

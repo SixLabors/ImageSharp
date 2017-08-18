@@ -204,7 +204,7 @@ namespace ImageSharp.Tests
                 return this.testFormat.Sample<TPixel>();
             }
 
-            public int DetectPixelSize(Configuration configuration, Stream stream)
+            public PixelTypeInfo DetectPixelType(Configuration configuration, Stream stream)
             {
                 throw new NotImplementedException();
             }

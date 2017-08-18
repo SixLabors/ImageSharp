@@ -46,10 +46,12 @@ namespace ImageSharp
         /// <exception cref="NotSupportedException">
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
-        /// <returns>The color depth, in number of bits per pixel or null if suitable decoder not found</returns>
-        public static int? DetectPixelSize(Stream stream)
+        /// <returns>
+        /// The <see cref="PixelTypeInfo"/> or null if suitable decoder not found.
+        /// </returns>
+        public static PixelTypeInfo DetectPixelType(Stream stream)
         {
-            return DetectPixelSize(null, stream);
+            return DetectPixelType(null, stream);
         }
 
         /// <summary>
@@ -60,10 +62,12 @@ namespace ImageSharp
         /// <exception cref="NotSupportedException">
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
-        /// <returns>The color depth, in number of bits per pixel or null if suitable decoder not found</returns>
-        public static int? DetectPixelSize(Configuration config, Stream stream)
+        /// <returns>
+        /// The <see cref="PixelTypeInfo"/> or null if suitable decoder not found.
+        /// </returns>
+        public static PixelTypeInfo DetectPixelType(Configuration config, Stream stream)
         {
-            return WithSeekableStream(stream, s => InternalDetectPixelSize(s, config ?? Configuration.Default));
+            return WithSeekableStream(stream, s => InternalDetectPixelType(s, config ?? Configuration.Default));
         }
 
         /// <summary>

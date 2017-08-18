@@ -88,12 +88,12 @@ namespace ImageSharp
         /// <param name="stream">The stream.</param>
         /// <param name="config">the configuration.</param>
         /// <returns>
-        /// The color depth, in number of bits per pixel or null if suitable decoder not found.
+        /// The <see cref="PixelTypeInfo"/> or null if suitable decoder not found.
         /// </returns>
-        private static int? InternalDetectPixelSize(Stream stream, Configuration config)
+        private static PixelTypeInfo InternalDetectPixelType(Stream stream, Configuration config)
         {
             IImageDecoder decoder = DiscoverDecoder(stream, config, out IImageFormat _);
-            return decoder?.DetectPixelSize(config, stream);
+            return decoder?.DetectPixelType(config, stream);
         }
     }
 }

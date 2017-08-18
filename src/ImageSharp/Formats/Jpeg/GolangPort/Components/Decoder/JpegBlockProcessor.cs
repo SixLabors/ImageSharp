@@ -6,9 +6,9 @@
 namespace ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 {
     using System.Runtime.InteropServices;
-
-    using ImageSharp.Formats.Jpg;
     using ImageSharp.Memory;
+
+    using Block8x8F = ImageSharp.Formats.Jpeg.Common.Block8x8F;
 
     /// <summary>
     /// Encapsulates the implementation of processing "raw" <see cref="Buffer{T}"/>-s into Jpeg image channels.

@@ -14,9 +14,9 @@ namespace ImageSharp.Tests
     using System.Numerics;
 
     using ImageSharp.Formats;
+    using ImageSharp.Formats.Jpeg.Common;
     using ImageSharp.Formats.Jpeg.GolangPort.Components;
     using ImageSharp.Formats.Jpeg.GolangPort.Utils;
-    using ImageSharp.Formats.Jpg;
 
     using Xunit;
     using Xunit.Abstractions;

@@ -12,8 +12,8 @@ namespace ImageSharp.Tests
     using System.Runtime.CompilerServices;
 
     using ImageSharp.Formats;
+    using ImageSharp.Formats.Jpeg.Common;
     using ImageSharp.Formats.Jpeg.GolangPort.Utils;
-    using ImageSharp.Formats.Jpg;
 
     /// <summary>
     /// This class contains simplified (unefficient) reference implementations to produce verification data for unit tests

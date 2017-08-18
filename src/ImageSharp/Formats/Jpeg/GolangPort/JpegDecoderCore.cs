@@ -11,9 +11,10 @@ namespace ImageSharp.Formats.Jpeg.GolangPort
     using System.Threading.Tasks;
 
     using ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder;
-    using ImageSharp.Formats.Jpg;
     using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
+
+    using Block8x8F = ImageSharp.Formats.Jpeg.Common.Block8x8F;
 
     /// <summary>
     /// Performs the jpeg decoding operation.

@@ -7,7 +7,9 @@ namespace ImageSharp.Tests
 {
     using System;
     using System.IO;
+    using System.Linq;
 
+    using ImageSharp.Formats;
     using ImageSharp.PixelFormats;
     using ImageSharp.Tests.TestUtilities.ImageComparison;
     using ImageSharp.Tests.TestUtilities.ReferenceCodecs;
@@ -137,9 +139,17 @@ namespace ImageSharp.Tests
 
             var testFile = TestFile.Create(path);
 
-            using (var original = Image.Load<TPixel>(testFile.Bytes, SystemDrawingReferenceDecoder.Instance))
+            IImageDecoder referenceDecoder = TestEnvironment.GetReferenceDecoder(path);
+            IImageFormat format = TestEnvironment.GetImageFormat(path);
+            IImageDecoder defaultDecoder = Configuration.Default.FindDecoder(format);
+
+            if (referenceDecoder.GetType() == defaultDecoder.GetType())
             {
-                //original.DebugSave(provider, "__SYSTEMDRAWING__");
+                throw new InvalidOperationException($"Can't use CompareToOriginal(): no actual reference decoder registered for {format.Name}");
+            }
+
+            using (var original = Image.Load<TPixel>(testFile.Bytes, referenceDecoder))
+            {
                 comparer.VerifySimilarity(original, image);
             }
 

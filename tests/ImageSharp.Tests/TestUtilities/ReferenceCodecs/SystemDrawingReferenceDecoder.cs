@@ -8,9 +8,9 @@ namespace ImageSharp.Tests.TestUtilities.ReferenceCodecs
     using ImageSharp.Formats;
     using ImageSharp.PixelFormats;
 
-    public class ReferenceDecoder : IImageDecoder
+    public class SystemDrawingReferenceDecoder : IImageDecoder
     {
-        public static ReferenceDecoder Instance { get; } = new ReferenceDecoder();
+        public static SystemDrawingReferenceDecoder Instance { get; } = new SystemDrawingReferenceDecoder();
 
         public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream)
             where TPixel : struct, IPixel<TPixel>

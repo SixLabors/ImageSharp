@@ -140,7 +140,7 @@ namespace ImageSharp
         /// </summary>
         /// <param name="extension">The extension to discover</param>
         /// <returns>The <see cref="IImageFormat"/> if found otherwise null</returns>
-        public IImageFormat FindFormatByFileExtensions(string extension)
+        public IImageFormat FindFormatByFileExtension(string extension)
         {
             return this.imageFormats.FirstOrDefault(x => x.FileExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase));
         }

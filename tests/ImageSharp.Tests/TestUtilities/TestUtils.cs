@@ -11,12 +11,13 @@ namespace ImageSharp.Tests
     using System.Linq;
     using System.Reflection;
 
+    using ImageSharp.Formats;
     using ImageSharp.PixelFormats;
 
     /// <summary>
-    /// Extension methods for TestUtilities
+    /// Various utility and extension methods.
     /// </summary>
-    public static class TestUtilityExtensions
+    public static class TestUtils
     {
         private static readonly Dictionary<Type, PixelTypes> ClrTypes2PixelTypes = new Dictionary<Type, PixelTypes>();
 
@@ -28,7 +29,7 @@ namespace ImageSharp.Tests
             .Except(new[] { PixelTypes.Undefined, PixelTypes.All })
             .ToArray();
 
-        static TestUtilityExtensions()
+        static TestUtils()
         {
             // Add Rgba32 Our default.
             Type defaultPixelFormatType = typeof(Rgba32);

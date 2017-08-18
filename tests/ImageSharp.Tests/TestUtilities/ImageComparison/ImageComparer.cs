@@ -10,7 +10,7 @@ namespace ImageSharp.Tests.TestUtilities.ImageComparison
 
     public abstract class ImageComparer
     {
-        public static ImageComparer Exact { get; } = ExactImageComparer.Instance;
+        public static ImageComparer Exact { get; } = Tolerant(0, 0);
 
         public static ImageComparer Tolerant(
             float imageThreshold = TolerantImageComparer.DefaultImageThreshold,

@@ -119,7 +119,7 @@ namespace ImageSharp.Tests
             return Configuration.FindEncoder(format);
         }
 
-        private static IImageFormat GetImageFormat(string filePath)
+        internal static IImageFormat GetImageFormat(string filePath)
         {
             string extension = Path.GetExtension(filePath).ToLower();
             if (extension[0] == '.') extension = extension.Substring(1);

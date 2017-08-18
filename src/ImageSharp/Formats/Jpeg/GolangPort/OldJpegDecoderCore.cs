@@ -19,7 +19,7 @@ namespace ImageSharp.Formats.Jpeg.GolangPort
     /// <summary>
     /// Performs the jpeg decoding operation.
     /// </summary>
-    internal sealed unsafe class JpegDecoderCore : IDisposable
+    internal sealed unsafe class OldJpegDecoderCore : IDisposable
     {
         /// <summary>
         /// The maximum number of color components
@@ -35,7 +35,7 @@ namespace ImageSharp.Formats.Jpeg.GolangPort
 #pragma warning disable SA1401 // FieldsMustBePrivate
 
         /// <summary>
-        /// Encapsulates stream reading and processing data and operations for <see cref="JpegDecoderCore"/>.
+        /// Encapsulates stream reading and processing data and operations for <see cref="OldJpegDecoderCore"/>.
         /// It's a value type for imporved data locality, and reduced number of CALLVIRT-s
         /// </summary>
         public InputProcessor InputProcessor;
@@ -64,12 +64,12 @@ namespace ImageSharp.Formats.Jpeg.GolangPort
         /// <summary>
         /// The black image to decode to.
         /// </summary>
-        private JpegPixelArea blackImage;
+        private OldJpegPixelArea blackImage;
 
         /// <summary>
         /// A grayscale image to decode to.
         /// </summary>
-        private JpegPixelArea grayImage;
+        private OldJpegPixelArea grayImage;
 
         /// <summary>
         /// The horizontal resolution. Calculated if the image has a JFIF header.
@@ -97,15 +97,15 @@ namespace ImageSharp.Formats.Jpeg.GolangPort
         private YCbCrImage ycbcrImage;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="JpegDecoderCore" /> class.
+        /// Initializes a new instance of the <see cref="OldJpegDecoderCore" /> class.
         /// </summary>
         /// <param name="configuration">The configuration.</param>
         /// <param name="options">The options.</param>
-        public JpegDecoderCore(Configuration configuration, IJpegDecoderOptions options)
+        public OldJpegDecoderCore(Configuration configuration, IJpegDecoderOptions options)
         {
             this.IgnoreMetadata = options.IgnoreMetadata;
             this.configuration = configuration ?? Configuration.Default;
-            this.HuffmanTrees = HuffmanTree.CreateHuffmanTrees();
+            this.HuffmanTrees = OldHuffmanTree.CreateHuffmanTrees();
             this.QuantizationTables = new Block8x8F[MaxTq + 1];
             this.Temp = new byte[2 * Block8x8F.ScalarCount];
             this.ComponentArray = new OldComponent[MaxComponents];
@@ -120,7 +120,7 @@ namespace ImageSharp.Formats.Jpeg.GolangPort
         /// <summary>
         /// Gets the huffman trees
         /// </summary>
-        public HuffmanTree[] HuffmanTrees { get; }
+        public OldHuffmanTree[] HuffmanTrees { get; }
 
         /// <summary>
         /// Gets the array of <see cref="Buffer{T}"/>-s storing the "raw" frequency-domain decoded blocks.
@@ -231,11 +231,11 @@ namespace ImageSharp.Formats.Jpeg.GolangPort
         }
 
         /// <summary>
-        /// Gets the <see cref="JpegPixelArea"/> representing the channel at a given component index
+        /// Gets the <see cref="OldJpegPixelArea"/> representing the channel at a given component index
         /// </summary>
         /// <param name="compIndex">The component index</param>
-        /// <returns>The <see cref="JpegPixelArea"/> of the channel</returns>
-        public JpegPixelArea GetDestinationChannel(int compIndex)
+        /// <returns>The <see cref="OldJpegPixelArea"/> of the channel</returns>
+        public OldJpegPixelArea GetDestinationChannel(int compIndex)
         {
             if (this.ComponentCount == 1)
             {
@@ -246,11 +246,11 @@ namespace ImageSharp.Formats.Jpeg.GolangPort
                 switch (compIndex)
                 {
                     case 0:
-                        return new JpegPixelArea(this.ycbcrImage.YChannel);
+                        return new OldJpegPixelArea(this.ycbcrImage.YChannel);
                     case 1:
-                        return new JpegPixelArea(this.ycbcrImage.CbChannel);
+                        return new OldJpegPixelArea(this.ycbcrImage.CbChannel);
                     case 2:
-                        return new JpegPixelArea(this.ycbcrImage.CrChannel);
+                        return new OldJpegPixelArea(this.ycbcrImage.CrChannel);
                     case 3:
                         return this.blackImage;
                     default:
@@ -460,9 +460,9 @@ namespace ImageSharp.Formats.Jpeg.GolangPort
         }
 
         /// <summary>
-        /// Process the blocks in <see cref="DecodedBlocks"/> into Jpeg image channels (<see cref="YCbCrImage"/> and <see cref="JpegPixelArea"/>)
+        /// Process the blocks in <see cref="DecodedBlocks"/> into Jpeg image channels (<see cref="YCbCrImage"/> and <see cref="OldJpegPixelArea"/>)
         /// <see cref="DecodedBlocks"/> are in a "raw" frequency-domain form. We need to apply IDCT, dequantization and unzigging to transform them into color-space blocks.
-        /// We can copy these blocks into <see cref="JpegPixelArea"/>-s afterwards.
+        /// We can copy these blocks into <see cref="OldJpegPixelArea"/>-s afterwards.
         /// </summary>
         /// <typeparam name="TPixel">The pixel type</typeparam>
         private void ProcessBlocksIntoJpegImageChannels<TPixel>()
@@ -480,7 +480,7 @@ namespace ImageSharp.Formats.Jpeg.GolangPort
         }
 
         /// <summary>
-        /// Convert the pixel data in <see cref="YCbCrImage"/> and/or <see cref="JpegPixelArea"/> into pixels of <see cref="Image{TPixel}"/>
+        /// Convert the pixel data in <see cref="YCbCrImage"/> and/or <see cref="OldJpegPixelArea"/> into pixels of <see cref="Image{TPixel}"/>
         /// </summary>
         /// <typeparam name="TPixel">The pixel type</typeparam>
         /// <param name="metadata">The metadata for the image.</param>
@@ -788,7 +788,7 @@ namespace ImageSharp.Formats.Jpeg.GolangPort
             if (this.ComponentCount == 1)
             {
                 Buffer2D<byte> buffer = Buffer2D<byte>.CreateClean(8 * this.MCUCountX, 8 * this.MCUCountY);
-                this.grayImage = new JpegPixelArea(buffer);
+                this.grayImage = new OldJpegPixelArea(buffer);
             }
             else
             {
@@ -828,7 +828,7 @@ namespace ImageSharp.Formats.Jpeg.GolangPort
                     int v3 = this.ComponentArray[3].VerticalFactor;
 
                     Buffer2D<byte> buffer = Buffer2D<byte>.CreateClean(8 * h3 * this.MCUCountX, 8 * v3 * this.MCUCountY);
-                    this.blackImage = new JpegPixelArea(buffer);
+                    this.blackImage = new OldJpegPixelArea(buffer);
                 }
             }
         }
@@ -1062,18 +1062,18 @@ namespace ImageSharp.Formats.Jpeg.GolangPort
                 this.InputProcessor.ReadFull(this.Temp, 0, 17);
 
                 int tc = this.Temp[0] >> 4;
-                if (tc > HuffmanTree.MaxTc)
+                if (tc > OldHuffmanTree.MaxTc)
                 {
                     throw new ImageFormatException("Bad Tc value");
                 }
 
                 int th = this.Temp[0] & 0x0f;
-                if (th > HuffmanTree.MaxTh || (!this.IsProgressive && (th > 1)))
+                if (th > OldHuffmanTree.MaxTh || (!this.IsProgressive && (th > 1)))
                 {
                     throw new ImageFormatException("Bad Th value");
                 }
 
-                int huffTreeIndex = (tc * HuffmanTree.ThRowSize) + th;
+                int huffTreeIndex = (tc * OldHuffmanTree.ThRowSize) + th;
                 this.HuffmanTrees[huffTreeIndex].ProcessDefineHuffmanTablesMarkerLoop(
                     ref this.InputProcessor,
                     this.Temp,

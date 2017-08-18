@@ -32,12 +32,12 @@ namespace ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
             /// <summary>
             /// The buffer storing the <see cref="OldComponentScan"/>-s for each component
             /// </summary>
-            public fixed byte ScanData[3 * JpegDecoderCore.MaxComponents];
+            public fixed byte ScanData[3 * OldJpegDecoderCore.MaxComponents];
 
             /// <summary>
             /// The DC values for each component
             /// </summary>
-            public fixed int Dc[JpegDecoderCore.MaxComponents];
+            public fixed int Dc[OldJpegDecoderCore.MaxComponents];
 
             /// <summary>
             /// Creates and initializes a new <see cref="ComputationData"/> instance

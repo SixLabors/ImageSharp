@@ -44,10 +44,10 @@ namespace ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         }
 
         /// <summary>
-        /// Dequantize, perform the inverse DCT and store the blocks to the into the corresponding <see cref="JpegPixelArea"/> instances.
+        /// Dequantize, perform the inverse DCT and store the blocks to the into the corresponding <see cref="OldJpegPixelArea"/> instances.
         /// </summary>
-        /// <param name="decoder">The <see cref="JpegDecoderCore"/> instance</param>
-        public void ProcessAllBlocks(JpegDecoderCore decoder)
+        /// <param name="decoder">The <see cref="OldJpegDecoderCore"/> instance</param>
+        public void ProcessAllBlocks(OldJpegDecoderCore decoder)
         {
             Buffer<DecodedBlock> blockArray = decoder.DecodedBlocks[this.componentIndex];
             for (int i = 0; i < blockArray.Length; i++)
@@ -57,11 +57,11 @@ namespace ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         }
 
         /// <summary>
-        /// Dequantize, perform the inverse DCT and store decodedBlock.Block to the into the corresponding <see cref="JpegPixelArea"/> instance.
+        /// Dequantize, perform the inverse DCT and store decodedBlock.Block to the into the corresponding <see cref="OldJpegPixelArea"/> instance.
         /// </summary>
-        /// <param name="decoder">The <see cref="JpegDecoderCore"/></param>
+        /// <param name="decoder">The <see cref="OldJpegDecoderCore"/></param>
         /// <param name="decodedBlock">The <see cref="DecodedBlock"/></param>
-        private void ProcessBlockColors(JpegDecoderCore decoder, ref DecodedBlock decodedBlock)
+        private void ProcessBlockColors(OldJpegDecoderCore decoder, ref DecodedBlock decodedBlock)
         {
             this.data.Block = decodedBlock.Block;
             int qtIndex = decoder.ComponentArray[this.componentIndex].Selector;
@@ -73,8 +73,8 @@ namespace ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 
             DCT.TransformIDCT(ref *b, ref *this.pointers.Temp1, ref *this.pointers.Temp2);
 
-            JpegPixelArea destChannel = decoder.GetDestinationChannel(this.componentIndex);
-            JpegPixelArea destArea = destChannel.GetOffsetedSubAreaForBlock(decodedBlock.Bx, decodedBlock.By);
+            OldJpegPixelArea destChannel = decoder.GetDestinationChannel(this.componentIndex);
+            OldJpegPixelArea destArea = destChannel.GetOffsetedSubAreaForBlock(decodedBlock.Bx, decodedBlock.By);
             destArea.LoadColorsFrom(this.pointers.Temp1, this.pointers.Temp2);
         }
 

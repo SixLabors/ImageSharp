@@ -8,7 +8,7 @@ namespace ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
     /// <summary>
     /// Represents "recoverable" decoder errors.
     /// </summary>
-    internal enum DecoderErrorCode
+    internal enum OldDecoderErrorCode
     {
         /// <summary>
         /// NoError

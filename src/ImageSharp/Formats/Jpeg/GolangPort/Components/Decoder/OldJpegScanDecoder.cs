@@ -96,12 +96,12 @@ namespace ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         private int eobRun;
 
         /// <summary>
-        /// Initializes a default-constructed <see cref="OldJpegScanDecoder"/> instance for reading data from <see cref="JpegDecoderCore"/>-s stream.
+        /// Initializes a default-constructed <see cref="OldJpegScanDecoder"/> instance for reading data from <see cref="OldJpegDecoderCore"/>-s stream.
         /// </summary>
         /// <param name="p">Pointer to <see cref="OldJpegScanDecoder"/> on the stack</param>
-        /// <param name="decoder">The <see cref="JpegDecoderCore"/> instance</param>
+        /// <param name="decoder">The <see cref="OldJpegDecoderCore"/> instance</param>
         /// <param name="remaining">The remaining bytes in the segment block.</param>
-        public static void InitStreamReading(OldJpegScanDecoder* p, JpegDecoderCore decoder, int remaining)
+        public static void InitStreamReading(OldJpegScanDecoder* p, OldJpegDecoderCore decoder, int remaining)
         {
             p->data = ComputationData.Create();
             p->pointers = new DataPointers(&p->data);
@@ -109,8 +109,8 @@ namespace ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         }
 
         /// <summary>
-        /// Read Huffman data from Jpeg scans in <see cref="JpegDecoderCore.InputStream"/>,
-        /// and decode it as <see cref="Block8x8F"/> into <see cref="JpegDecoderCore.DecodedBlocks"/>.
+        /// Read Huffman data from Jpeg scans in <see cref="OldJpegDecoderCore.InputStream"/>,
+        /// and decode it as <see cref="Block8x8F"/> into <see cref="OldJpegDecoderCore.DecodedBlocks"/>.
         ///
         /// The blocks are traversed one MCU at a time. For 4:2:0 chroma
         /// subsampling, there are four Y 8x8 blocks in every 16x16 MCU.
@@ -135,8 +135,8 @@ namespace ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// 0 1 2
         /// 3 4 5
         /// </summary>
-        /// <param name="decoder">The <see cref="JpegDecoderCore"/> instance</param>
-        public void DecodeBlocks(JpegDecoderCore decoder)
+        /// <param name="decoder">The <see cref="OldJpegDecoderCore"/> instance</param>
+        public void DecodeBlocks(OldJpegDecoderCore decoder)
         {
             int blockCount = 0;
             int mcu = 0;
@@ -197,7 +197,7 @@ namespace ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                         // but this one assumes well-formed input, and hence the restart marker follows immediately.
                         if (!decoder.InputProcessor.UnexpectedEndOfStreamReached)
                         {
-                            DecoderErrorCode errorCode = decoder.InputProcessor.ReadFullUnsafe(decoder.Temp, 0, 2);
+                            OldDecoderErrorCode errorCode = decoder.InputProcessor.ReadFullUnsafe(decoder.Temp, 0, 2);
                             if (decoder.InputProcessor.CheckEOFEnsureNoError(errorCode))
                             {
                                 if (decoder.Temp[0] != 0xff || decoder.Temp[1] != expectedRst)
@@ -230,15 +230,15 @@ namespace ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 
         private void ResetDc()
         {
-            Unsafe.InitBlock(this.pointers.Dc, default(byte), sizeof(int) * JpegDecoderCore.MaxComponents);
+            Unsafe.InitBlock(this.pointers.Dc, default(byte), sizeof(int) * OldJpegDecoderCore.MaxComponents);
         }
 
         /// <summary>
         /// The implementation part of <see cref="InitStreamReading"/> as an instance method.
         /// </summary>
-        /// <param name="decoder">The <see cref="JpegDecoderCore"/></param>
+        /// <param name="decoder">The <see cref="OldJpegDecoderCore"/></param>
         /// <param name="remaining">The remaining bytes</param>
-        private void InitStreamReadingImpl(JpegDecoderCore decoder, int remaining)
+        private void InitStreamReadingImpl(OldJpegDecoderCore decoder, int remaining)
         {
             if (decoder.ComponentCount == 0)
             {
@@ -305,10 +305,10 @@ namespace ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// </summary>
         /// <param name="decoder">The decoder</param>
         /// <param name="scanIndex">The index of the scan</param>
-        private void DecodeBlock(JpegDecoderCore decoder, int scanIndex)
+        private void DecodeBlock(OldJpegDecoderCore decoder, int scanIndex)
         {
             Block8x8F* b = this.pointers.Block;
-            int huffmannIdx = (HuffmanTree.AcTableIndex * HuffmanTree.ThRowSize) + this.pointers.ComponentScan[scanIndex].AcTableSelector;
+            int huffmannIdx = (OldHuffmanTree.AcTableIndex * OldHuffmanTree.ThRowSize) + this.pointers.ComponentScan[scanIndex].AcTableSelector;
             if (this.ah != 0)
             {
                 this.Refine(ref decoder.InputProcessor, ref decoder.HuffmanTrees[huffmannIdx], 1 << this.al);
@@ -316,14 +316,14 @@ namespace ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
             else
             {
                 int zig = this.zigStart;
-                DecoderErrorCode errorCode;
+                OldDecoderErrorCode errorCode;
                 if (zig == 0)
                 {
                     zig++;
 
                     // Decode the DC coefficient, as specified in section F.2.2.1.
                     int value;
-                    int huffmanIndex = (HuffmanTree.DcTableIndex * HuffmanTree.ThRowSize) + this.pointers.ComponentScan[scanIndex].DcTableSelector;
+                    int huffmanIndex = (OldHuffmanTree.DcTableIndex * OldHuffmanTree.ThRowSize) + this.pointers.ComponentScan[scanIndex].DcTableSelector;
                     errorCode = decoder.InputProcessor.DecodeHuffmanUnsafe(
                             ref decoder.HuffmanTrees[huffmanIndex],
                             out value);
@@ -411,30 +411,30 @@ namespace ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
             }
         }
 
-        private DecoderErrorCode DecodeEobRun(int count, ref InputProcessor decoder)
+        private OldDecoderErrorCode DecodeEobRun(int count, ref InputProcessor decoder)
         {
             int bitsResult;
-            DecoderErrorCode errorCode = decoder.DecodeBitsUnsafe(count, out bitsResult);
-            if (errorCode != DecoderErrorCode.NoError)
+            OldDecoderErrorCode errorCode = decoder.DecodeBitsUnsafe(count, out bitsResult);
+            if (errorCode != OldDecoderErrorCode.NoError)
             {
                 return errorCode;
             }
 
             this.eobRun |= bitsResult;
-            return DecoderErrorCode.NoError;
+            return OldDecoderErrorCode.NoError;
         }
 
         /// <summary>
-        /// Gets the block index used to retieve blocks from in <see cref="JpegDecoderCore.DecodedBlocks"/>
+        /// Gets the block index used to retieve blocks from in <see cref="OldJpegDecoderCore.DecodedBlocks"/>
         /// </summary>
-        /// <param name="decoder">The <see cref="JpegDecoderCore"/> instance</param>
+        /// <param name="decoder">The <see cref="OldJpegDecoderCore"/> instance</param>
         /// <returns>The index</returns>
-        private int GetBlockIndex(JpegDecoderCore decoder)
+        private int GetBlockIndex(OldJpegDecoderCore decoder)
         {
             return ((this.by * decoder.MCUCountX) * this.hi) + this.bx;
         }
 
-        private void InitComponentScan(JpegDecoderCore decoder, int i, ref OldComponentScan currentComponentScan, ref int totalHv)
+        private void InitComponentScan(OldJpegDecoderCore decoder, int i, ref OldComponentScan currentComponentScan, ref int totalHv)
         {
             // Component selector.
             int cs = decoder.Temp[1 + (2 * i)];
@@ -459,7 +459,7 @@ namespace ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         }
 
         private void ProcessComponentImpl(
-            JpegDecoderCore decoder,
+            OldJpegDecoderCore decoder,
             int i,
             ref OldComponentScan currentComponentScan,
             ref int totalHv,
@@ -481,13 +481,13 @@ namespace ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
             totalHv += currentComponent.HorizontalFactor * currentComponent.VerticalFactor;
 
             currentComponentScan.DcTableSelector = (byte)(decoder.Temp[2 + (2 * i)] >> 4);
-            if (currentComponentScan.DcTableSelector > HuffmanTree.MaxTh)
+            if (currentComponentScan.DcTableSelector > OldHuffmanTree.MaxTh)
             {
                 throw new ImageFormatException("Bad DC table selector value");
             }
 
             currentComponentScan.AcTableSelector = (byte)(decoder.Temp[2 + (2 * i)] & 0x0f);
-            if (currentComponentScan.AcTableSelector > HuffmanTree.MaxTh)
+            if (currentComponentScan.AcTableSelector > OldHuffmanTree.MaxTh)
             {
                 throw new ImageFormatException("Bad AC table selector  value");
             }
@@ -499,7 +499,7 @@ namespace ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// <param name="bp">The <see cref="InputProcessor"/> instance</param>
         /// <param name="h">The Huffman tree</param>
         /// <param name="delta">The low transform offset</param>
-        private void Refine(ref InputProcessor bp, ref HuffmanTree h, int delta)
+        private void Refine(ref InputProcessor bp, ref OldHuffmanTree h, int delta)
         {
             Block8x8F* b = this.pointers.Block;
 
@@ -512,7 +512,7 @@ namespace ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                 }
 
                 bool bit;
-                DecoderErrorCode errorCode = bp.DecodeBitUnsafe(out bit);
+                OldDecoderErrorCode errorCode = bp.DecodeBitUnsafe(out bit);
                 if (!bp.CheckEOFEnsureNoError(errorCode))
                 {
                     return;
@@ -542,7 +542,7 @@ namespace ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                     int z = 0;
 
                     int val;
-                    DecoderErrorCode errorCode = bp.DecodeHuffmanUnsafe(ref h, out val);
+                    OldDecoderErrorCode errorCode = bp.DecodeHuffmanUnsafe(ref h, out val);
                     if (!bp.CheckEOF(errorCode))
                     {
                         return;
@@ -651,7 +651,7 @@ namespace ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                 }
 
                 bool bit;
-                DecoderErrorCode errorCode = bp.DecodeBitUnsafe(out bit);
+                OldDecoderErrorCode errorCode = bp.DecodeBitUnsafe(out bit);
                 if (!bp.CheckEOFEnsureNoError(errorCode))
                 {
                     return int.MinValue;

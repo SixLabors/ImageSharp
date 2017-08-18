@@ -66,7 +66,7 @@ namespace ImageSharp.Tests
             this.Output.WriteLine(provider.SourceFileOrDescription);
             provider.Utility.TestName = nameof(this.DecodeBaselineJpeg);
 
-            using (Image<TPixel> image = provider.GetImage())
+            using (Image<TPixel> image = provider.GetImage(new JpegDecoder()))
             {
                 double d = this.GetDifferenceInPercents(image, provider);
                 this.Output.WriteLine($"Difference using ORIGINAL decoder: {d:0.0000}%");
@@ -84,7 +84,7 @@ namespace ImageSharp.Tests
         public void DecodeBaselineJpeg<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
+            using (Image<TPixel> image = provider.GetImage(new JpegDecoder()))
             {
                 image.DebugSave(provider);
                 image.CompareToReferenceOutput(provider, VeryTolerantJpegComparer, appendPixelTypeToFileName: false);
@@ -110,11 +110,24 @@ namespace ImageSharp.Tests
         public void DecodeProgressiveJpeg<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
+            using (Image<TPixel> image = provider.GetImage(new JpegDecoder()))
             {
                 image.DebugSave(provider, VeryTolerantJpegComparer);
             }
         }
+
+
+        [Theory]
+        [WithFileCollection(nameof(ProgressiveTestJpegs), PixelTypes.Rgba32 | PixelTypes.Rgba32 | PixelTypes.Argb32)]
+        public void DecodeProgressiveJpeg_PdfJs<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new PdfJsJpegDecoder()))
+            {
+                image.DebugSave(provider, VeryTolerantJpegComparer);
+            }
+        }
+
 
         [Theory]
         [WithSolidFilledImages(16, 16, 255, 0, 0, PixelTypes.Rgba32, JpegSubsample.Ratio420, 75)]
@@ -131,16 +144,16 @@ namespace ImageSharp.Tests
             byte[] data;
             using (Image<TPixel> image = provider.GetImage())
             {
-                JpegEncoder encoder = new JpegEncoder { Subsample = subsample, Quality = quality };
+                var encoder = new JpegEncoder { Subsample = subsample, Quality = quality };
 
                 data = new byte[65536];
-                using (MemoryStream ms = new MemoryStream(data))
+                using (var ms = new MemoryStream(data))
                 {
                     image.Save(ms, encoder);
                 }
             }
 
-            Image<TPixel> mirror = Image.Load<TPixel>(data);
+            var mirror = Image.Load<TPixel>(data);
             mirror.DebugSave(provider, $"_{subsample}_Q{quality}");
         }
 
@@ -152,14 +165,14 @@ namespace ImageSharp.Tests
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                using (MemoryStream ms = new MemoryStream())
+                using (var ms = new MemoryStream())
                 {
                     image.Save(ms, new JpegEncoder());
                     ms.Seek(0, SeekOrigin.Begin);
                     
-                    using (JpegDecoderCore decoder = new JpegDecoderCore(null, new JpegDecoder()))
+                    using (var decoder = new JpegDecoderCore(null, new JpegDecoder()))
                     {
-                        Image<TPixel> mirror = decoder.Decode<TPixel>(ms);
+                        decoder.Decode<TPixel>(ms);
 
                         Assert.Equal(decoder.ImageWidth, image.Width);
                         Assert.Equal(decoder.ImageHeight, image.Height);

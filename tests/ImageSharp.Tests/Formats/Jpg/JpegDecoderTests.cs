@@ -11,7 +11,7 @@ namespace ImageSharp.Tests
     using System.Linq;
 
     using ImageSharp.Formats;
-   
+    using ImageSharp.Formats.Jpeg.GolangPort;
     using ImageSharp.PixelFormats;
     using ImageSharp.Tests.TestUtilities.ImageComparison;
 

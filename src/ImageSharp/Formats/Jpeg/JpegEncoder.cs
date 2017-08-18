@@ -9,6 +9,7 @@ namespace ImageSharp.Formats
     using System.Collections.Generic;
     using System.IO;
 
+    using ImageSharp.Formats.Jpeg.GolangPort;
     using ImageSharp.PixelFormats;
 
     /// <summary>

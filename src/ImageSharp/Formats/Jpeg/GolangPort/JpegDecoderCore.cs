@@ -3,14 +3,14 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.Formats
+namespace ImageSharp.Formats.Jpeg.GolangPort
 {
     using System;
-    using System.Collections.Generic;
     using System.IO;
     using System.Runtime.CompilerServices;
     using System.Threading.Tasks;
 
+    using ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder;
     using ImageSharp.Formats.Jpg;
     using ImageSharp.Memory;
     using ImageSharp.PixelFormats;

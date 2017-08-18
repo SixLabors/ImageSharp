@@ -2,10 +2,12 @@
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
-namespace ImageSharp.Formats.Jpg
+namespace ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 {
     using System.Runtime.CompilerServices;
 
+    using ImageSharp.Formats.Jpeg.GolangPort.Utils;
+    using ImageSharp.Formats.Jpg;
     using ImageSharp.Memory;
 
     /// <summary>

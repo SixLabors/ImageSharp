@@ -5,6 +5,7 @@
 
 namespace ImageSharp.Tests
 {
+    using ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder;
     using ImageSharp.Formats.Jpg;
     using SixLabors.Primitives;
     using Xunit;

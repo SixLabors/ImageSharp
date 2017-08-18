@@ -3,9 +3,9 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.Formats.Jpg
+namespace ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 {
-    using System;
+    using ImageSharp.Formats.Jpg;
 
     /// <summary>
     /// A structure to store unprocessed <see cref="Block8x8F"/> instances and their coordinates while scanning the image.

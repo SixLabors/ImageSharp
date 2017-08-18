@@ -9,6 +9,7 @@ namespace ImageSharp.Tests
     using System;
     using System.Numerics;
 
+    using ImageSharp.Formats.Jpeg.GolangPort.Utils;
     using ImageSharp.Formats.Jpg;
     using ImageSharp.PixelFormats;
 

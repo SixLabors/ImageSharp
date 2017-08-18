@@ -35,14 +35,15 @@ namespace ImageSharp.Formats
         }
 
         /// <inheritdoc/>
-        public int DetectPixelSize(Configuration configuration, Stream stream)
+        public PixelTypeInfo DetectPixelType(Configuration configuration, Stream stream)
         {
             Guard.NotNull(stream, "stream");
 
             byte[] buffer = new byte[1];
             stream.Skip(10); // Skip the identifier and size
             stream.Read(buffer, 0, 1); // Skip the identifier and size
-            return (buffer[0] & 0x07) + 1;  // The lowest 3 bits represent the bit depth minus 1
+            int bitsPerPixel = (buffer[0] & 0x07) + 1;  // The lowest 3 bits represent the bit depth minus 1
+            return new PixelTypeInfo(bitsPerPixel);
         }
     }
 }

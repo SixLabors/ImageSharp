@@ -53,6 +53,10 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
   <ItemGroup>
+    <None Update="Formats\Jpeg\Common\Block8x8F.Generated.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>Block8x8F.Generated.cs</LastGenOutput>
+    </None>
     <None Update="Formats\Jpeg\Components\Block8x8F.Generated.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>Block8x8F.Generated.cs</LastGenOutput>
@@ -78,6 +82,11 @@
     <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Update="Formats\Jpeg\Common\Block8x8F.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Block8x8F.Generated.tt</DependentUpon>
+    </Compile>
     <Compile Update="Formats\Jpeg\Components\Block8x8F.Generated.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>

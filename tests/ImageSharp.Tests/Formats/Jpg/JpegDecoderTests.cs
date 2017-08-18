@@ -40,9 +40,9 @@ namespace ImageSharp.Tests
 
         private ITestOutputHelper Output { get; }
 
-        private static IImageDecoder OriginalDecoder => new JpegDecoder();
+        private static IImageDecoder OriginalDecoder => new OldJpegDecoder();
 
-        private static IImageDecoder GetPdfJsDecoder => throw new NotImplementedException();
+        private static IImageDecoder PdfJsDecoder => new JpegDecoder();
 
         private float GetDifferenceInPercents<TPixel>(Image<TPixel> image, TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
@@ -76,7 +76,7 @@ namespace ImageSharp.Tests
                 this.Output.WriteLine($"Difference using ORIGINAL decoder: {d:0.0000}%");
             }
 
-            using (Image<TPixel> image = provider.GetImage(GetPdfJsDecoder))
+            using (Image<TPixel> image = provider.GetImage(PdfJsDecoder))
             {
                 double d = this.GetDifferenceInPercents(image, provider);
                 this.Output.WriteLine($"Difference using PDFJS decoder: {d:0.0000}%");
@@ -100,7 +100,7 @@ namespace ImageSharp.Tests
         public void DecodeBaselineJpeg_PdfJs<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(GetPdfJsDecoder))
+            using (Image<TPixel> image = provider.GetImage(PdfJsDecoder))
             {
                 image.DebugSave(provider);
                 
@@ -126,7 +126,7 @@ namespace ImageSharp.Tests
         public void DecodeProgressiveJpeg_PdfJs<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(GetPdfJsDecoder))
+            using (Image<TPixel> image = provider.GetImage(PdfJsDecoder))
             {
                 image.DebugSave(provider, VeryTolerantJpegComparer);
             }
@@ -160,31 +160,7 @@ namespace ImageSharp.Tests
             var mirror = Image.Load<TPixel>(data);
             mirror.DebugSave(provider, $"_{subsample}_Q{quality}");
         }
-
-        [Theory]
-        [WithSolidFilledImages(42, 88, 255, 0, 0, PixelTypes.Rgba32)]
-        public void DecodeGenerated_MetadataOnly<TPixel>(
-            TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                using (var ms = new MemoryStream())
-                {
-                    image.Save(ms, new JpegEncoder());
-                    ms.Seek(0, SeekOrigin.Begin);
-                    
-                    using (var decoder = new OldJpegDecoderCore(null, new JpegDecoder()))
-                    {
-                        decoder.Decode<TPixel>(ms);
-
-                        Assert.Equal(decoder.ImageWidth, image.Width);
-                        Assert.Equal(decoder.ImageHeight, image.Height);
-                    }
-                }
-            }
-        }
-
+        
         [Fact]
         public void Decoder_Reads_Correct_Resolution_From_Jfif()
         {

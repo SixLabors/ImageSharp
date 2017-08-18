@@ -1,6 +1,7 @@
-﻿namespace ImageSharp.Formats.Jpeg.Port.Components
+﻿namespace ImageSharp.Formats.Jpeg.PdfJsPort.Components
 {
     using System.Runtime.CompilerServices;
+
     using ImageSharp.PixelFormats;
 
     /// <summary>

@@ -4,7 +4,7 @@
 // </copyright>
 
 // ReSharper disable InconsistentNaming
-namespace ImageSharp.Formats.Jpeg.Port
+namespace ImageSharp.Formats.Jpeg.PdfJsPort
 {
     /// <summary>
     /// Contains jpeg constant values

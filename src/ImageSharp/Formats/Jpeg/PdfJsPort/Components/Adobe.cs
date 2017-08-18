@@ -4,7 +4,7 @@
 // </copyright>
 
 // ReSharper disable InconsistentNaming
-namespace ImageSharp.Formats.Jpeg.Port.Components
+namespace ImageSharp.Formats.Jpeg.PdfJsPort.Components
 {
     using System;
 

@@ -22,7 +22,7 @@ namespace ImageSharp.Tests
             TestFile testFile = TestFile.Create(imagePath);
             using (var stream = new MemoryStream(testFile.Bytes, false))
             {
-                Assert.Equal(expectedPixelSize, Image.DetectPixelSize(stream));
+                Assert.Equal(expectedPixelSize, Image.DetectPixelType(stream)?.BitsPerPixel);
             }
         }
     }

@@ -34,13 +34,13 @@ namespace ImageSharp.Formats
         }
 
         /// <inheritdoc/>
-        public int DetectPixelSize(Configuration configuration, Stream stream)
+        public PixelTypeInfo DetectPixelType(Configuration configuration, Stream stream)
         {
             Guard.NotNull(stream, "stream");
 
             using (JpegDecoderCore decoder = new JpegDecoderCore(configuration, this))
             {
-                return decoder.DetectPixelSize(stream);
+                return new PixelTypeInfo(decoder.DetectPixelSize(stream));
             }
         }
     }

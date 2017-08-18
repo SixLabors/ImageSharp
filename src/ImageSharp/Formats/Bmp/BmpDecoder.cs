@@ -39,14 +39,14 @@ namespace ImageSharp.Formats
         }
 
         /// <inheritdoc/>
-        public int DetectPixelSize(Configuration configuration, Stream stream)
+        public PixelTypeInfo DetectPixelType(Configuration configuration, Stream stream)
         {
             Guard.NotNull(stream, "stream");
 
             byte[] buffer = new byte[2];
             stream.Skip(28);
             stream.Read(buffer, 0, 2);
-            return BitConverter.ToInt16(buffer, 0);
+            return new PixelTypeInfo(BitConverter.ToInt16(buffer, 0));
         }
     }
 }

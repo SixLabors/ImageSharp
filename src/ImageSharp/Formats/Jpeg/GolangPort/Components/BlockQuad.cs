@@ -2,8 +2,10 @@
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
-namespace ImageSharp.Formats.Jpg.Components
+namespace ImageSharp.Formats.Jpeg.GolangPort.Components
 {
+    using ImageSharp.Formats.Jpg;
+
     /// <summary>
     /// Poor man's stackalloc: Contains a value-type <see cref="float"/> buffer sized for 4 <see cref="Block8x8F"/> instances.
     /// Useful for decoder/encoder operations allocating a block for each Jpeg component.

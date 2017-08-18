@@ -7,6 +7,8 @@ namespace ImageSharp.Formats
 {
     using System.Collections.Generic;
 
+    using ImageSharp.Formats.Jpeg.GolangPort;
+
     /// <summary>
     /// Registers the image encoders, decoders and mime type detectors for the jpeg format.
     /// </summary>

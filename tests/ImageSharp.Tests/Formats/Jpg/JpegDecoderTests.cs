@@ -174,7 +174,7 @@ namespace ImageSharp.Tests
                     image.Save(ms, new JpegEncoder());
                     ms.Seek(0, SeekOrigin.Begin);
                     
-                    using (var decoder = new JpegDecoderCore(null, new JpegDecoder()))
+                    using (var decoder = new OldJpegDecoderCore(null, new JpegDecoder()))
                     {
                         decoder.Decode<TPixel>(ms);
 

@@ -65,7 +65,7 @@ namespace ImageSharp.Benchmarks.Image
             {
                 Guard.NotNull(stream, "stream");
 
-                using (var decoder = new JpegDecoderCore(configuration, this))
+                using (var decoder = new OldJpegDecoderCore(configuration, this))
                 {
                     return decoder.Decode<TPixel>(stream);
                 }

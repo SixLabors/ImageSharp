@@ -14,15 +14,15 @@ namespace ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
     /// <summary>
     /// Represents an area of a Jpeg subimage (channel)
     /// </summary>
-    internal struct JpegPixelArea
+    internal struct OldJpegPixelArea
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="JpegPixelArea" /> struct from existing data.
+        /// Initializes a new instance of the <see cref="OldJpegPixelArea" /> struct from existing data.
         /// </summary>
         /// <param name="pixels">The pixel buffer</param>
         /// <param name="stride">The stride</param>
         /// <param name="offset">The offset</param>
-        public JpegPixelArea(Buffer2D<byte> pixels, int stride, int offset)
+        public OldJpegPixelArea(Buffer2D<byte> pixels, int stride, int offset)
         {
             this.Stride = stride;
             this.Pixels = pixels;
@@ -30,11 +30,11 @@ namespace ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="JpegPixelArea" /> struct from existing buffer.
+        /// Initializes a new instance of the <see cref="OldJpegPixelArea" /> struct from existing buffer.
         /// <see cref="Stride"/> will be set to <see cref="Buffer2D{T}.Width"/> of <paramref name="pixels"/> and <see cref="Offset"/> will be set to 0.
         /// </summary>
         /// <param name="pixels">The pixel buffer</param>
-        public JpegPixelArea(Buffer2D<byte> pixels)
+        public OldJpegPixelArea(Buffer2D<byte> pixels)
             : this(pixels, pixels.Width, 0)
         {
         }
@@ -85,10 +85,10 @@ namespace ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// <param name="bx">The block X index</param>
         /// <param name="by">The block Y index</param>
         /// <returns>The subarea offseted by block indices</returns>
-        public JpegPixelArea GetOffsetedSubAreaForBlock(int bx, int by)
+        public OldJpegPixelArea GetOffsetedSubAreaForBlock(int bx, int by)
         {
             int offset = this.Offset + (8 * ((by * this.Stride) + bx));
-            return new JpegPixelArea(this.Pixels, this.Stride, offset);
+            return new OldJpegPixelArea(this.Pixels, this.Stride, offset);
         }
 
         /// <summary>

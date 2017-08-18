@@ -5,7 +5,7 @@
 
 namespace ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 {
-    using ImageSharp.Formats.Jpg;
+    using Block8x8F = ImageSharp.Formats.Jpeg.Common.Block8x8F;
 
     /// <summary>
     /// A structure to store unprocessed <see cref="Block8x8F"/> instances and their coordinates while scanning the image.

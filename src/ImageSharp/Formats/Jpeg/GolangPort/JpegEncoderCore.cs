@@ -12,8 +12,9 @@ namespace ImageSharp.Formats.Jpeg.GolangPort
     using ImageSharp.Formats.Jpeg.GolangPort.Components;
     using ImageSharp.Formats.Jpeg.GolangPort.Components.Encoder;
     using ImageSharp.Formats.Jpeg.GolangPort.Utils;
-    using ImageSharp.Formats.Jpg;
     using ImageSharp.PixelFormats;
+
+    using Block8x8F = ImageSharp.Formats.Jpeg.Common.Block8x8F;
 
     /// <summary>
     /// Image encoder for writing an image to a stream as a jpeg.

@@ -9,7 +9,7 @@ namespace ImageSharp.Formats.Jpeg.GolangPort.Components
     using System.Numerics;
     using System.Runtime.CompilerServices;
 
-    using ImageSharp.Formats.Jpg;
+    using Block8x8F = ImageSharp.Formats.Jpeg.Common.Block8x8F;
 
     /// <summary>
     /// Contains forward and inverse DCT implementations

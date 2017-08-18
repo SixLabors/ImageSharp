@@ -7,8 +7,9 @@ namespace ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
     using System.Runtime.CompilerServices;
 
     using ImageSharp.Formats.Jpeg.GolangPort.Utils;
-    using ImageSharp.Formats.Jpg;
     using ImageSharp.Memory;
+
+    using Block8x8F = ImageSharp.Formats.Jpeg.Common.Block8x8F;
 
     /// <summary>
     /// Represents an area of a Jpeg subimage (channel)

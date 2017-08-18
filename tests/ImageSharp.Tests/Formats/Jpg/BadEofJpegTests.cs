@@ -14,11 +14,7 @@ using Xunit.Abstractions;
 
 namespace ImageSharp.Tests
 {
-    using System.Numerics;
-
-    using ImageSharp.Formats.Jpg;
     using ImageSharp.PixelFormats;
-    using ImageSharp.Processing;
 
     public class BadEOFJpegTests : MeasureFixture
     {

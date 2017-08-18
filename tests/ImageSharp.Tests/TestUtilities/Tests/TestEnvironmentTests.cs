@@ -6,7 +6,11 @@
 // ReSharper disable InconsistentNaming
 namespace ImageSharp.Tests
 {
+    using System;
     using System.IO;
+
+    using ImageSharp.Formats;
+    using ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 
     using Xunit;
     using Xunit.Abstractions;
@@ -58,6 +62,26 @@ namespace ImageSharp.Tests
 
             this.Output.WriteLine(expected);
             Assert.Contains(TestEnvironment.ReferenceOutputDirectoryFullPath, expected);
+        }
+
+        [Theory]
+        [InlineData("lol/foo.png", typeof(SystemDrawingReferenceEncoder))]
+        [InlineData("lol/Baz.JPG", typeof(JpegEncoder))]
+        [InlineData("lol/Baz.gif", typeof(GifEncoder))]
+        public void GetReferenceEncoder_ReturnsCorrectEncoders(string fileName, Type expectedEncoderType)
+        {
+            IImageEncoder encoder = TestEnvironment.GetReferenceEncoder(fileName);
+            Assert.IsType(expectedEncoderType, encoder);
+        }
+
+        [Theory]
+        [InlineData("lol/foo.png", typeof(SystemDrawingReferenceDecoder))]
+        [InlineData("lol/Baz.JPG", typeof(JpegDecoder))]
+        [InlineData("lol/Baz.gif", typeof(GifDecoder))]
+        public void GetReferenceDecoder_ReturnsCorrectEncoders(string fileName, Type expectedDecoderType)
+        {
+            IImageDecoder decoder = TestEnvironment.GetReferenceDecoder(fileName);
+            Assert.IsType(expectedDecoderType, decoder);
         }
     }
 }

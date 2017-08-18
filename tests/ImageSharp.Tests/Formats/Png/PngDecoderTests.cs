@@ -12,6 +12,8 @@ using Xunit;
 
 namespace ImageSharp.Tests
 {
+    using ImageSharp.Tests.TestUtilities.ImageComparison;
+
     public class PngDecoderTests
     {
         private const PixelTypes PixelTypes = Tests.PixelTypes.Rgba32 | Tests.PixelTypes.RgbaVector | Tests.PixelTypes.Argb32;
@@ -19,17 +21,19 @@ namespace ImageSharp.Tests
         public static readonly string[] TestFiles =
             {
                 TestImages.Png.Splash, TestImages.Png.Indexed, TestImages.Png.Interlaced, TestImages.Png.FilterVar,
-                TestImages.Png.Bad.ChunkLength1, TestImages.Png.Bad.ChunkLength2, TestImages.Png.Rgb48Bpp, TestImages.Png.Rgb48BppInterlaced
+                TestImages.Png.Bad.ChunkLength1, TestImages.Png.Bad.ChunkLength2, TestImages.Png.Rgb48Bpp,
+                TestImages.Png.Rgb48BppInterlaced, TestImages.Png.SnakeGame
             };
 
         [Theory]
         [WithFileCollection(nameof(TestFiles), PixelTypes)]
-        public void Decode<TPixel>(TestImageProvider<TPixel> imageProvider)
+        public void Decode<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = imageProvider.GetImage())
+            using (Image<TPixel> image = provider.GetImage(new PngDecoder()))
             {
-                image.DebugSave(imageProvider);
+                image.DebugSave(provider);
+                image.CompareToOriginal(provider, ImageComparer.Exact);
             }
         }
 

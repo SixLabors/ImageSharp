@@ -17,20 +17,20 @@ namespace ImageSharp.Tests
     /// </summary>
     public class PixelAccessorTests
     {
-        public static Image<TPixel> CreateTestImage<TPixel>(GenericFactory<TPixel> factory)
+        public static Image<TPixel> CreateTestImage<TPixel>()
             where TPixel : struct, IPixel<TPixel>
         {
-            Image<TPixel> image = factory.CreateImage(10, 10);
+            var image = new Image<TPixel>(10, 10);
             using (PixelAccessor<TPixel> pixels = image.Lock())
             {
                 for (int i = 0; i < 10; i++)
                 {
                     for (int j = 0; j < 10; j++)
                     {
-                        Vector4 v = new Vector4(i, j, 0, 1);
+                        var v = new Vector4(i, j, 0, 1);
                         v /= 10;
 
-                        TPixel color = default(TPixel);
+                        var color = default(TPixel);
                         color.PackFromVector4(v);
 
                         pixels[i, j] = color;

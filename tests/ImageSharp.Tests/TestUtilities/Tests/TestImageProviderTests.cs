@@ -165,10 +165,10 @@ namespace ImageSharp.Tests
         /// <typeparam name="TPixel"></typeparam>
         /// <param name="factory"></param>
         /// <returns></returns>
-        public static Image<TPixel> CreateTestImage<TPixel>(GenericFactory<TPixel> factory)
+        public static Image<TPixel> CreateTestImage<TPixel>()
             where TPixel : struct, IPixel<TPixel>
         {
-            return factory.CreateImage(3, 3);
+            return new Image<TPixel>(3, 3);
         }
 
         [Theory]

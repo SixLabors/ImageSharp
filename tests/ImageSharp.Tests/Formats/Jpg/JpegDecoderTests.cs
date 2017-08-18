@@ -11,7 +11,7 @@ namespace ImageSharp.Tests
     using System.Linq;
 
     using ImageSharp.Formats;
-    using ImageSharp.Formats.Jpeg.PdfJsPort;
+   
     using ImageSharp.PixelFormats;
     using ImageSharp.Tests.TestUtilities.ImageComparison;
 
@@ -40,6 +40,10 @@ namespace ImageSharp.Tests
 
         private ITestOutputHelper Output { get; }
 
+        private static IImageDecoder OriginalDecoder => new JpegDecoder();
+
+        private static IImageDecoder GetPdfJsDecoder => throw new NotImplementedException();
+
         private float GetDifferenceInPercents<TPixel>(Image<TPixel> image, TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -66,13 +70,13 @@ namespace ImageSharp.Tests
             this.Output.WriteLine(provider.SourceFileOrDescription);
             provider.Utility.TestName = nameof(this.DecodeBaselineJpeg);
 
-            using (Image<TPixel> image = provider.GetImage(new JpegDecoder()))
+            using (Image<TPixel> image = provider.GetImage(OriginalDecoder))
             {
                 double d = this.GetDifferenceInPercents(image, provider);
                 this.Output.WriteLine($"Difference using ORIGINAL decoder: {d:0.0000}%");
             }
 
-            using (Image<TPixel> image = provider.GetImage(new PdfJsJpegDecoder()))
+            using (Image<TPixel> image = provider.GetImage(GetPdfJsDecoder))
             {
                 double d = this.GetDifferenceInPercents(image, provider);
                 this.Output.WriteLine($"Difference using PDFJS decoder: {d:0.0000}%");
@@ -84,7 +88,7 @@ namespace ImageSharp.Tests
         public void DecodeBaselineJpeg<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(new JpegDecoder()))
+            using (Image<TPixel> image = provider.GetImage(OriginalDecoder))
             {
                 image.DebugSave(provider);
                 image.CompareToReferenceOutput(provider, VeryTolerantJpegComparer, appendPixelTypeToFileName: false);
@@ -96,7 +100,7 @@ namespace ImageSharp.Tests
         public void DecodeBaselineJpeg_PdfJs<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(new PdfJsJpegDecoder()))
+            using (Image<TPixel> image = provider.GetImage(GetPdfJsDecoder))
             {
                 image.DebugSave(provider);
                 
@@ -110,7 +114,7 @@ namespace ImageSharp.Tests
         public void DecodeProgressiveJpeg<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(new JpegDecoder()))
+            using (Image<TPixel> image = provider.GetImage(OriginalDecoder))
             {
                 image.DebugSave(provider, VeryTolerantJpegComparer);
             }
@@ -122,7 +126,7 @@ namespace ImageSharp.Tests
         public void DecodeProgressiveJpeg_PdfJs<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(new PdfJsJpegDecoder()))
+            using (Image<TPixel> image = provider.GetImage(GetPdfJsDecoder))
             {
                 image.DebugSave(provider, VeryTolerantJpegComparer);
             }

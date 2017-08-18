@@ -66,7 +66,7 @@
 
                 for (int x = 0; x < width; x++)
                 {
-                    int d = GetDifferenceInPixelByteSum(ref aBuffer[x], ref bBuffer[x]);
+                    int d = GetHammingDistanceInRgbaSpace(ref aBuffer[x], ref bBuffer[x]);
 
                     if (d > this.PixelThresholdInPixelByteSum)
                     {
@@ -92,7 +92,7 @@
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int GetDifferenceInPixelByteSum(ref Rgba32 a, ref Rgba32 b)
+        private static int GetHammingDistanceInRgbaSpace(ref Rgba32 a, ref Rgba32 b)
         {
             return Diff(a.R, b.R) + Diff(a.G, b.G) + Diff(a.B, b.B) + Diff(a.A, b.A);
         }

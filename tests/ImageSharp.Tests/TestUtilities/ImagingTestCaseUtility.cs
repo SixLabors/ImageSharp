@@ -138,13 +138,11 @@ namespace ImageSharp.Tests
             string extension = null,
             IImageEncoder encoder = null,
             object testOutputDetails = null,
-            bool grayscale = false,
             bool appendPixelTypeToFileName = true)
             where TPixel : struct, IPixel<TPixel>
         {
             string path = this.GetTestOutputFileName(extension, testOutputDetails, appendPixelTypeToFileName);
-            string extension1 = Path.GetExtension(path);
-            encoder = encoder ?? GetImageFormatByExtension(extension1, grayscale);
+            encoder = encoder ?? TestEnvironment.GetReferenceEncoder(path);
             
             using (FileStream stream = File.OpenWrite(path))
             {
@@ -173,26 +171,26 @@ namespace ImageSharp.Tests
             this.Init(method.DeclaringType.Name, method.Name);
         }
 
-        private static IImageEncoder GetImageFormatByExtension(string extension, bool grayscale)
-        {
-            extension = extension?.TrimStart('.');
-            var format = Configuration.Default.FindFormatByFileExtensions(extension);
-            IImageEncoder encoder = Configuration.Default.FindEncoder(format);
-            PngEncoder pngEncoder = encoder as PngEncoder;
-            if (pngEncoder != null)
-            {
-                pngEncoder = new PngEncoder();
-                encoder = pngEncoder;
-                pngEncoder.CompressionLevel = 9;
+        //private static IImageEncoder GetEncoderByExtension(string extension, bool grayscale)
+        //{
+        //    extension = extension?.TrimStart('.');
+        //    var format = Configuration.Default.FindFormatByFileExtension(extension);
+        //    IImageEncoder encoder = Configuration.Default.FindEncoder(format);
+        //    PngEncoder pngEncoder = encoder as PngEncoder;
+        //    if (pngEncoder != null)
+        //    {
+        //        pngEncoder = new PngEncoder();
+        //        encoder = pngEncoder;
+        //        pngEncoder.CompressionLevel = 9;
 
-                if (grayscale)
-                {
-                    pngEncoder.PngColorType = PngColorType.Grayscale;
-                }
-            }
+        //        if (grayscale)
+        //        {
+        //            pngEncoder.PngColorType = PngColorType.Grayscale;
+        //        }
+        //    }
             
-            return encoder;
-        }
+        //    return encoder;
+        //}
 
         private string GetTestOutputDir()
         {

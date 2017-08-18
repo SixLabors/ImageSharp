@@ -3,9 +3,11 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.Formats.Jpg
+namespace ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 {
     using System.Runtime.InteropServices;
+
+    using ImageSharp.Formats.Jpg;
 
     /// <content>
     /// Conains the definition of <see cref="ComputationData"/>

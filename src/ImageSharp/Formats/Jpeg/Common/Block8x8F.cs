@@ -11,6 +11,8 @@ namespace ImageSharp.Formats.Jpg
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
 
+    using ImageSharp.Formats.Jpeg.GolangPort.Utils;
+
     /// <summary>
     /// DCT code Ported from https://github.com/norishigefukushima/dct_simd
     /// </summary>

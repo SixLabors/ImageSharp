@@ -13,6 +13,7 @@ namespace ImageSharp.Tests
     using System;
     using System.Diagnostics;
 
+    using ImageSharp.Formats.Jpeg.GolangPort.Utils;
     using ImageSharp.Formats.Jpg;
 
     public class JpegUtilityTestFixture : MeasureFixture

@@ -12,6 +12,7 @@ namespace ImageSharp.Tests
     using System.Runtime.CompilerServices;
 
     using ImageSharp.Formats;
+    using ImageSharp.Formats.Jpeg.GolangPort.Utils;
     using ImageSharp.Formats.Jpg;
 
     /// <summary>

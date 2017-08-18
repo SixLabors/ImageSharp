@@ -4,10 +4,12 @@
 // </copyright>
 // ReSharper disable InconsistentNaming
 
-namespace ImageSharp.Formats.Jpg
+namespace ImageSharp.Formats.Jpeg.GolangPort.Components
 {
     using System.Numerics;
     using System.Runtime.CompilerServices;
+
+    using ImageSharp.Formats.Jpg;
 
     /// <summary>
     /// Contains forward and inverse DCT implementations

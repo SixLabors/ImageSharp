@@ -11,6 +11,7 @@ namespace ImageSharp.Benchmarks.Image
     using BenchmarkDotNet.Attributes;
 
     using ImageSharp.Formats;
+    using ImageSharp.Formats.Jpeg.GolangPort;
     using ImageSharp.PixelFormats;
 
     using CoreImage = ImageSharp.Image;

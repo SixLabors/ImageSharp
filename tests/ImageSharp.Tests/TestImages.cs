@@ -84,7 +84,7 @@ namespace SixLabors.ImageSharp.Tests
             {
                 public static class Bad
                 {
-                    public const string MissingEOF = "Jpg/baseline/badeof.jpg";
+                    public const string BadEOF = "Jpg/baseline/badeof.jpg";
                     public const string ExifUndefType = "Jpg/baseline/ExifUndefType.jpg";
                 }
 

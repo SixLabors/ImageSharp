@@ -17,9 +17,9 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
 
         public static ImageComparer Tolerant(
             float imageThreshold = TolerantImageComparer.DefaultImageThreshold,
-            int pixelThresholdInPixelByteSum = 0)
+            int pixelThresholdHammingDistance = 0)
         {
-            return new TolerantImageComparer(imageThreshold, pixelThresholdInPixelByteSum);
+            return new TolerantImageComparer(imageThreshold, pixelThresholdHammingDistance);
         }
 
         public abstract ImageSimilarityReport CompareImagesOrFrames<TPixelA, TPixelB>(

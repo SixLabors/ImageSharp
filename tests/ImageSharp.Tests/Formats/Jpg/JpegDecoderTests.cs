@@ -39,9 +39,11 @@ namespace SixLabors.ImageSharp.Tests
                 TestImages.Jpeg.Progressive.Festzug, TestImages.Jpeg.Progressive.Bad.BadEOF
             };
 
+        public const PixelTypes CommonNonDefaultPixelTypes = PixelTypes.Rgba32 | PixelTypes.Argb32 | PixelTypes.RgbaVector;
+
         // TODO: We should make this comparer less tolerant ...
         private static readonly ImageComparer VeryTolerantJpegComparer =
-            ImageComparer.Tolerant(0.005f, pixelThresholdInPixelByteSum: 4);
+            ImageComparer.Tolerant(0.005f, pixelThresholdHammingDistance: 4);
 
         public JpegDecoderTests(ITestOutputHelper output)
         {
@@ -55,7 +57,7 @@ namespace SixLabors.ImageSharp.Tests
         private static IImageDecoder PdfJsJpegDecoder => new JpegDecoder();
         
         [Theory]
-        [WithFileCollection(nameof(BaselineTestJpegs), PixelTypes.Rgba32 | PixelTypes.Rgba32 | PixelTypes.Argb32)]
+        [WithFileCollection(nameof(BaselineTestJpegs), PixelTypes.Rgba32)]
         public void DecodeBaselineJpeg<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -68,7 +70,23 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         [Theory]
-        [WithFileCollection(nameof(BaselineTestJpegs), PixelTypes.Rgba32 | PixelTypes.Rgba32 | PixelTypes.Argb32)]
+        [WithFile(TestImages.Jpeg.Baseline.Calliphora, CommonNonDefaultPixelTypes, false)]
+        [WithFile(TestImages.Jpeg.Baseline.Calliphora, CommonNonDefaultPixelTypes, true)]
+        public void JpegDecoder_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider, bool useOldDecoder)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            IImageDecoder decoder = useOldDecoder ? OldJpegDecoder : PdfJsJpegDecoder;
+            using (Image<TPixel> image = provider.GetImage(decoder))
+            {
+                image.DebugSave(provider);
+
+                provider.Utility.TestName = nameof(this.DecodeBaselineJpeg);
+                image.CompareToReferenceOutput(provider, VeryTolerantJpegComparer, appendPixelTypeToFileName: false);
+            }
+        }
+
+        [Theory]
+        [WithFileCollection(nameof(BaselineTestJpegs), PixelTypes.Rgba32)]
         public void DecodeBaselineJpeg_Old<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -82,7 +100,7 @@ namespace SixLabors.ImageSharp.Tests
         }
         
         [Theory]
-        [WithFileCollection(nameof(ProgressiveTestJpegs), PixelTypes.Rgba32 | PixelTypes.Rgba32 | PixelTypes.Argb32)]
+        [WithFileCollection(nameof(ProgressiveTestJpegs), PixelTypes.Rgba32)]
         public void DecodeProgressiveJpeg<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -95,7 +113,7 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         [Theory]
-        [WithFileCollection(nameof(ProgressiveTestJpegs), PixelTypes.Rgba32 | PixelTypes.Rgba32 | PixelTypes.Argb32)]
+        [WithFileCollection(nameof(ProgressiveTestJpegs), PixelTypes.Rgba32)]
         public void DecodeProgressiveJpeg_Old<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {

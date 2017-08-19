@@ -92,7 +92,7 @@ namespace SixLabors.ImageSharp.Tests
         /// </returns>
         public static string GetInputFileFullPath(string file)
         {
-            return Path.Combine(InputImagesDirectory, file);
+            return Path.Combine(InputImagesDirectory, file).Replace('\\', Path.DirectorySeparatorChar);
         }
 
         /// <summary>

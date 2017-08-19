@@ -52,10 +52,22 @@ namespace SixLabors.ImageSharp.Tests
             }
         }
 
+        [Theory]
+        [WithFile(TestImages.Png.Interlaced, PixelTypes.Rgba32)]
+        public void Decode_Interlaced_DoesNotThrow<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            // Ok, it's incorrect, but at least let's run our decoder on interlaced images! (Single-fact AAA :P)
+            using (Image<TPixel> image = provider.GetImage(new PngDecoder()))
+            {
+                image.DebugSave(provider);
+            }
+        }
+
         // BUG in decoding interlaced images !!! TODO: Fix it!
         [Theory(Skip = "Bug in decoding interlaced images.")]
         [WithFile(TestImages.Png.Interlaced, PixelTypes.Rgba32)]
-        public void Decode_Interlaced<TPixel>(TestImageProvider<TPixel> provider)
+        public void Decode_Interlaced_ImageIsCorrect<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(new PngDecoder()))

@@ -91,24 +91,24 @@ namespace SixLabors.ImageSharp.Tests
         /// Gets the correct full path to the Input Images directory.
         /// </summary>
         internal static string InputImagesDirectoryFullPath =>
-            Path.Combine(SolutionDirectoryFullPath, InputImagesRelativePath);
+            Path.Combine(SolutionDirectoryFullPath, InputImagesRelativePath).Replace('\\', Path.DirectorySeparatorChar);
 
         /// <summary>
         /// Gets the correct full path to the Actual Output directory. (To be written to by the test cases.)
         /// </summary>
         internal static string ActualOutputDirectoryFullPath => Path.Combine(
             SolutionDirectoryFullPath,
-            ActualOutputDirectoryRelativePath);
+            ActualOutputDirectoryRelativePath).Replace('\\', Path.DirectorySeparatorChar);
 
         /// <summary>
         /// Gets the correct full path to the Expected Output directory. (To compare the test results to.)
         /// </summary>
         internal static string ReferenceOutputDirectoryFullPath => Path.Combine(
             SolutionDirectoryFullPath,
-            ReferenceOutputDirectoryRelativePath);
+            ReferenceOutputDirectoryRelativePath).Replace('\\', Path.DirectorySeparatorChar);
 
         internal static string GetReferenceOutputFileName(string actualOutputFileName) =>
-            actualOutputFileName.Replace("ActualOutput", @"External\ReferenceOutput");
+            actualOutputFileName.Replace("ActualOutput", @"External\ReferenceOutput").Replace('\\', Path.DirectorySeparatorChar);
 
         internal static IImageDecoder GetReferenceDecoder(string filePath)
         {

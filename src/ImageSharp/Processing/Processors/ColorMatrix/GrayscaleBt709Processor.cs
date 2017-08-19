@@ -1,15 +1,12 @@
-﻿// <copyright file="GrayscaleBt709Processor.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Processing.Processors
+using System;
+using System.Numerics;
+using SixLabors.ImageSharp.PixelFormats;
+
+namespace SixLabors.ImageSharp.Processing.Processors
 {
-    using System;
-    using System.Numerics;
-
-    using ImageSharp.PixelFormats;
-
     /// <summary>
     /// Converts the colors of the image to Grayscale applying the formula as specified by ITU-R Recommendation BT.709
     /// <see href="https://en.wikipedia.org/wiki/Rec._709#Luma_coefficients"/>.

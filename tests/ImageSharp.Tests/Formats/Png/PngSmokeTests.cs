@@ -1,22 +1,19 @@
-﻿// <copyright file="PngSmokeTests.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Tests.Formats.Png
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Numerics;
+using System.Text;
+using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.IO;
+using SixLabors.ImageSharp.PixelFormats;
+using Xunit;
+
+namespace SixLabors.ImageSharp.Tests.Formats.Png
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Text;
-    using System.IO;
-    using Xunit;
-    using ImageSharp.Formats;
-    using System.Linq;
-    using ImageSharp.IO;
-    using System.Numerics;
-
-    using ImageSharp.PixelFormats;
-
     public class PngSmokeTests
     {
         [Theory]

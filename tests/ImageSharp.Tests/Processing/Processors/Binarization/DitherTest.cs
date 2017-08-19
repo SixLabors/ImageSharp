@@ -1,16 +1,14 @@
-﻿// <copyright file="DitherTest.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Tests.Processing.Processors.Binarization
+using SixLabors.ImageSharp.Dithering;
+using SixLabors.ImageSharp.Dithering.Ordered;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Primitives;
+using Xunit;
+
+namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
 {
-    using ImageSharp.Dithering;
-    using ImageSharp.Dithering.Ordered;
-    using ImageSharp.PixelFormats;
-    using SixLabors.Primitives;
-    using Xunit;
-
     public class DitherTest : FileTestBase
     {
         public static readonly TheoryData<string, IOrderedDither> Ditherers = new TheoryData<string, IOrderedDither>

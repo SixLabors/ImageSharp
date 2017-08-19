@@ -1,19 +1,16 @@
-﻿// <copyright file="ColorConversionTests.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Tests.Drawing
+using System;
+using System.IO;
+using SixLabors.ImageSharp.Drawing;
+using SixLabors.ImageSharp.Drawing.Brushes;
+using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.PixelFormats;
+using Xunit;
+
+namespace SixLabors.ImageSharp.Tests.Drawing
 {
-    using System;
-    using System.IO;
-
-    using ImageSharp.Drawing;
-    using ImageSharp.Drawing.Brushes;
-    using ImageSharp.Memory;
-    using ImageSharp.PixelFormats;
-    using Xunit;
-
     public class FillPatternBrushTests : FileTestBase
     {
         private void Test(string name, Rgba32 background, IBrush<Rgba32> brush, Rgba32[,] expectedPattern)

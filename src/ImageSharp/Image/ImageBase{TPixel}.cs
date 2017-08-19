@@ -1,19 +1,16 @@
-﻿// <copyright file="ImageBase{TPixel}.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp
+using System;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.Primitives;
+
+namespace SixLabors.ImageSharp
 {
-    using System;
-    using System.Diagnostics;
-    using System.Runtime.CompilerServices;
-
-    using ImageSharp.Memory;
-    using ImageSharp.PixelFormats;
-    using ImageSharp.Processing;
-    using SixLabors.Primitives;
-
     /// <summary>
     /// The base class of all images. Encapsulates the basic properties and methods required to manipulate
     /// images in different pixel formats.

@@ -5,15 +5,15 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp
+namespace SixLabors.ImageSharp
 {
     using System;
     using System.Numerics;
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
 
-    using ImageSharp.Memory;
-    using ImageSharp.PixelFormats;
+    using SixLabors.ImageSharp.Memory;
+    using SixLabors.ImageSharp.PixelFormats;
 	    
     /// <content>
     /// Provides optimized overrides for bulk operations.

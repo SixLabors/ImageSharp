@@ -1,21 +1,17 @@
-﻿// <copyright file="FlagsHelper.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Tests
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Numerics;
+using System.Reflection;
+using SixLabors.ImageSharp.PixelFormats;
+using Xunit;
+using Xunit.Abstractions;
+
+namespace SixLabors.ImageSharp.Tests
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Numerics;
-    using System.Reflection;
-
-    using ImageSharp.PixelFormats;
-
-    using Xunit;
-    using Xunit.Abstractions;
-
     public class TestUtilityExtensionsTests
     {
         public TestUtilityExtensionsTests(ITestOutputHelper output)
@@ -50,16 +46,6 @@ namespace ImageSharp.Tests
             return image;
         }
 
-        [Fact]
-        public void Baz()
-        {
-            Type type = typeof(Rgba32).GetTypeInfo().Assembly.GetType("ImageSharp.Rgba32");
-            this.Output.WriteLine(type.ToString());
-
-            Type fake = typeof(Rgba32).GetTypeInfo().Assembly.GetType("ImageSharp.dsaada_DASqewrr");
-            Assert.Null(fake);
-        }
-
         [Theory]
         [WithFile(TestImages.Bmp.Car, PixelTypes.Rgba32, true)]
         [WithFile(TestImages.Bmp.Car, PixelTypes.Rgba32, false)]
@@ -88,7 +74,6 @@ namespace ImageSharp.Tests
         [InlineData(PixelTypes.Rgba32, typeof(Rgba32))]
         [InlineData(PixelTypes.Argb32, typeof(Argb32))]
         [InlineData(PixelTypes.HalfVector4, typeof(HalfVector4))]
-        [InlineData(PixelTypes.Rgba32, typeof(Rgba32))]
         public void ToType(PixelTypes pt, Type expectedType)
         {
             Assert.Equal(pt.ToType(), expectedType);

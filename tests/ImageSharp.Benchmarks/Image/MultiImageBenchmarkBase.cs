@@ -4,7 +4,7 @@
 // </copyright>
 
 
-namespace ImageSharp.Benchmarks.Image
+namespace SixLabors.ImageSharp.Benchmarks.Image
 {
     using System;
     using System.Collections.Generic;

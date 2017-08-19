@@ -1,8 +1,11 @@
-﻿namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
-{
-    using System;
-    using System.Runtime.CompilerServices;
+﻿// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Runtime.CompilerServices;
+
+namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
+{
     /// <summary>
     /// Performs the inverse Descrete Cosine Transform on each frame component.
     /// </summary>

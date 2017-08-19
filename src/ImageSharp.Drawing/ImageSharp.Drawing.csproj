@@ -1,8 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <Description>An extension to ImageSharp that allows the drawing of images, paths, and text.</Description>
-    <AssemblyTitle>ImageSharp.Drawing</AssemblyTitle>
-    <VersionPrefix>1.0.0-alpha9</VersionPrefix>
+    <AssemblyTitle>SixLabors.ImageSharp.Drawing</AssemblyTitle>
+    <VersionPrefix Condition="$(packageversion) != ''">$(packageversion)</VersionPrefix>
+    <VersionPrefix Condition="$(packageversion) == ''">0.0.1</VersionPrefix>
     <Authors>Six Labor and contributors</Authors>
     <TargetFramework>netstandard1.1</TargetFramework>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>

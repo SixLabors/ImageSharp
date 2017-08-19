@@ -1,8 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <Description>A cross-platform library for the processing of image files; written in C#</Description>
-    <AssemblyTitle>ImageSharp</AssemblyTitle>
-    <VersionPrefix>1.0.0-alpha9</VersionPrefix>
+    <AssemblyTitle>SixLabors.ImageSharp</AssemblyTitle>
+    <VersionPrefix Condition="$(packageversion) != ''">$(packageversion)</VersionPrefix>
+    <VersionPrefix Condition="$(packageversion) == ''">0.0.1</VersionPrefix>
     <Authors>Six Labors and contributors</Authors>
     <TargetFrameworks>netstandard1.3;netstandard1.1</TargetFrameworks>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>

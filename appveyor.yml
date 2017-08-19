@@ -1,6 +1,8 @@
 version: 1.0.0.{build}
 image: Visual Studio 2017
 
+# prevent the double build when a branch has an active PR
+skip_branch_with_pr: true
 
 install:
   - choco install gitversion.portable -pre -y

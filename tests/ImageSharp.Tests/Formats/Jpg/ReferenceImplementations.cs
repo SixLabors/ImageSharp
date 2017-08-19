@@ -1,20 +1,18 @@
-﻿// <copyright file="ReferenceImplementations.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
+
+using System;
+using System.Numerics;
+using System.Runtime.CompilerServices;
+
+using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Jpeg.Common;
+using SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Utils;
 
 // ReSharper disable InconsistentNaming
 
-namespace ImageSharp.Tests
+namespace SixLabors.ImageSharp.Tests
 {
-    using System;
-    using System.Numerics;
-    using System.Runtime.CompilerServices;
-
-    using ImageSharp.Formats;
-    using ImageSharp.Formats.Jpeg.Common;
-    using ImageSharp.Formats.Jpeg.GolangPort.Utils;
-
     /// <summary>
     /// This class contains simplified (unefficient) reference implementations to produce verification data for unit tests
     /// Floating point DCT code Ported from https://github.com/norishigefukushima/dct_simd

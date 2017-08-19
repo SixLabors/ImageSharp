@@ -1,14 +1,12 @@
-﻿// <copyright file="DefaultInternalImageProcessorApplicator.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.Primitives;
+
+namespace SixLabors.ImageSharp
 {
-    using ImageSharp.PixelFormats;
-    using ImageSharp.Processing;
-    using SixLabors.Primitives;
-
     /// <summary>
     /// Performs processor application operations on the source image
     /// </summary>
@@ -40,7 +38,7 @@ namespace ImageSharp
         {
             if (!this.mutate && this.destination == null)
             {
-                // Ensure we have cloned it if we are not mutating as we might have failed to register any Processors
+                // Ensure we have cloned it if we are not mutating as we might have failed to register any processors
                 this.destination = this.source.Clone();
             }
 

@@ -3,11 +3,11 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.Benchmarks
+namespace SixLabors.ImageSharp.Benchmarks
 {
     using BenchmarkDotNet.Attributes;
 
-    using ImageSharp.PixelFormats;
+    using SixLabors.ImageSharp.PixelFormats;
 
     using SystemColor = System.Drawing.Color;
 

@@ -1,18 +1,15 @@
-﻿// <copyright file="JpegDecoderCore.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Formats.Jpeg.PdfJsPort
+using System;
+using System.IO;
+using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components;
+using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.PixelFormats;
+
+namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
 {
-    using System;
-    using System.IO;
-    using System.Runtime.CompilerServices;
-
-    using ImageSharp.Formats.Jpeg.PdfJsPort.Components;
-    using ImageSharp.Memory;
-    using ImageSharp.PixelFormats;
-
     /// <summary>
     /// Performs the jpeg decoding operation.
     /// Ported from <see href="https://github.com/mozilla/pdf.js/blob/master/src/core/jpg.js"/> with additional fixes to handle common encoding errors

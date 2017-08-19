@@ -12,7 +12,7 @@
 #if TEST
 
 // ReSharper disable InconsistentNaming
-namespace ImageSharp.Benchmarks.Image
+namespace SixLabors.ImageSharp.Benchmarks.Image
 {
     using System;
     using System.Collections.Generic;

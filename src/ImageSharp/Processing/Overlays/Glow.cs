@@ -1,15 +1,12 @@
-﻿// <copyright file="Glow.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Processors;
+using SixLabors.Primitives;
+
+namespace SixLabors.ImageSharp
 {
-    using ImageSharp.PixelFormats;
-
-    using Processing.Processors;
-    using SixLabors.Primitives;
-
     /// <summary>
     /// Extension methods for the <see cref="Image{TPixel}"/> type.
     /// </summary>

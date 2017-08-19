@@ -1,13 +1,16 @@
-namespace ImageSharp.Tests.TestUtilities.ImageComparison
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+using SixLabors.ImageSharp.PixelFormats;
+
+using SixLabors.Primitives;
+
+namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
-
-    using ImageSharp.PixelFormats;
-
-    using SixLabors.Primitives;
-
     public abstract class ImageComparer
     {
         public static ImageComparer Exact { get; } = Tolerant(0, 0);

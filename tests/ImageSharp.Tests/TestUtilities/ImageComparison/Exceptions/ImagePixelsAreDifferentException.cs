@@ -1,4 +1,4 @@
-namespace ImageSharp.Tests.TestUtilities.ImageComparison
+namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
 {
     using System;
     using System.Collections.Generic;

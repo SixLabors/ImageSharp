@@ -1,19 +1,15 @@
-﻿// <copyright file="TestUtilityExtensions.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Tests
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+using System.Reflection;
+using SixLabors.ImageSharp.PixelFormats;
+
+namespace SixLabors.ImageSharp.Tests
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Globalization;
-    using System.Linq;
-    using System.Reflection;
-
-    using ImageSharp.Formats;
-    using ImageSharp.PixelFormats;
-
     /// <summary>
     /// Various utility and extension methods.
     /// </summary>

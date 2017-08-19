@@ -1,15 +1,13 @@
-﻿// <copyright file="ImageFrame{TPixel}.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp
+using System;
+using System.Numerics;
+using System.Threading.Tasks;
+using SixLabors.ImageSharp.PixelFormats;
+
+namespace SixLabors.ImageSharp
 {
-    using System;
-    using System.Numerics;
-    using System.Threading.Tasks;
-    using ImageSharp.PixelFormats;
-
     /// <summary>
     /// Represents a single frame in a animation.
     /// </summary>

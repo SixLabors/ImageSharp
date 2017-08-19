@@ -1,21 +1,17 @@
-﻿// <copyright file="JpegDecoderCore.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Formats.Jpeg.GolangPort
+using System;
+using System.IO;
+using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
+using SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder;
+using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.PixelFormats;
+using Block8x8F = SixLabors.ImageSharp.Formats.Jpeg.Common.Block8x8F;
+
+namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 {
-    using System;
-    using System.IO;
-    using System.Runtime.CompilerServices;
-    using System.Threading.Tasks;
-
-    using ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder;
-    using ImageSharp.Memory;
-    using ImageSharp.PixelFormats;
-
-    using Block8x8F = ImageSharp.Formats.Jpeg.Common.Block8x8F;
-
     /// <summary>
     /// Performs the jpeg decoding operation.
     /// </summary>

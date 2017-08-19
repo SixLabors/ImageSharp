@@ -1,12 +1,10 @@
-﻿// <copyright file="IPackedVector{TPacked}.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.PixelFormats
+using System;
+
+namespace SixLabors.ImageSharp.PixelFormats
 {
-    using System;
-
     /// <summary>
     /// This interface exists for ensuring signature compatibility to MonoGame and XNA packed color types.
     /// <see href="https://msdn.microsoft.com/en-us/library/bb197661.aspx" />

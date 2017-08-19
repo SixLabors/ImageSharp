@@ -1,12 +1,10 @@
-﻿// <copyright file="IFileSystem.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.IO
+using System.IO;
+
+namespace SixLabors.ImageSharp.IO
 {
-    using System.IO;
-
  #if !NETSTANDARD1_1
     /// <summary>
     /// A simple interface representing the filesystem.

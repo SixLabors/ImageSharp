@@ -1,12 +1,10 @@
-﻿// <copyright file="IOrderedDither.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Dithering
+using SixLabors.ImageSharp.PixelFormats;
+
+namespace SixLabors.ImageSharp.Dithering
 {
-    using ImageSharp.PixelFormats;
-
     /// <summary>
     /// Encapsulates properties and methods required to perfom ordered dithering on an image.
     /// </summary>

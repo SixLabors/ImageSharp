@@ -9,5 +9,13 @@ branches:
     increment: Minor
     prevent-increment-of-merged-branch-version: false
     track-merge-target: true
+  branch:
+    regex: '.*'
+    mode: ContinuousDeployment
+    tag: ci
+    increment: Patch
+    prevent-increment-of-merged-branch-version: false
+    track-merge-target: true
+    is-release-branch: false
 ignore:
   sha: []

@@ -1,12 +1,14 @@
-﻿namespace SixLabors.ImageSharp.Benchmarks.General
+﻿// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+using System.Numerics;
+using System.Runtime.CompilerServices;
+
+using BenchmarkDotNet.Attributes;
+using SixLabors.ImageSharp.Formats.Jpeg.Common;
+
+namespace SixLabors.ImageSharp.Benchmarks.General
 {
-    using System.Numerics;
-    using System.Runtime.CompilerServices;
-
-    using BenchmarkDotNet.Attributes;
-
-    using SixLabors.ImageSharp.Formats.Jpg;
-
     /// <summary>
     /// The goal of this benchmark is to measure the following Jpeg-related scenario:
     /// - Take 2 blocks of float-s

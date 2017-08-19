@@ -19,6 +19,7 @@ branches:
     - coverity_scan
 
 script:
+  - git submodule -q update --init
   - dotnet restore
   - dotnet test tests/ImageSharp.Tests/ImageSharp.Tests.csproj -c Release -f "netcoreapp1.1"
 

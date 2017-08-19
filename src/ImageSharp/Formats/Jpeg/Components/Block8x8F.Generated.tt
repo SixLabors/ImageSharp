@@ -14,7 +14,7 @@
 <#
 char[] coordz = {'X', 'Y', 'Z', 'W'};
 #>
-namespace ImageSharp.Formats.Jpg
+namespace SixLabors.ImageSharp.Formats.Jpg
 {
 	using System.Numerics;
 	using System.Runtime.CompilerServices;

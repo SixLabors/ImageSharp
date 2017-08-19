@@ -1,17 +1,16 @@
-﻿// ReSharper disable InconsistentNaming
-namespace ImageSharp.Tests.Common
+﻿// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+using System;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Threading.Tasks;
+using SixLabors.ImageSharp.Memory;
+using Xunit;
+using static SixLabors.ImageSharp.Tests.Common.TestStructs;
+
+namespace SixLabors.ImageSharp.Tests.Common
 {
-    using System;
-    using System.Runtime.CompilerServices;
-    using System.Runtime.InteropServices;
-    using System.Threading.Tasks;
-
-    using ImageSharp.Memory;
-
-    using Xunit;
-
-    using static TestStructs;
-
     public unsafe class BufferTests
     {
         // ReSharper disable once ClassNeverInstantiated.Local

@@ -3,14 +3,14 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.Benchmarks.Image
+namespace SixLabors.ImageSharp.Benchmarks.Image
 {
     using System;
     using System.Threading.Tasks;
 
     using BenchmarkDotNet.Attributes;
 
-    using ImageSharp.Memory;
+    using SixLabors.ImageSharp.Memory;
 
     public class CopyPixels : BenchmarkBase
     {

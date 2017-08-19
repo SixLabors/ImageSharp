@@ -1,16 +1,15 @@
-﻿// ReSharper disable InconsistentNaming
-// ReSharper disable AccessToDisposedClosure
-namespace ImageSharp.Tests.PixelFormats
+﻿// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+using System;
+using System.Numerics;
+using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.PixelFormats;
+using Xunit;
+using Xunit.Abstractions;
+
+namespace SixLabors.ImageSharp.Tests.PixelFormats
 {
-    using System;
-    using System.Numerics;
-
-    using ImageSharp.Memory;
-    using ImageSharp.PixelFormats;
-
-    using Xunit;
-    using Xunit.Abstractions;
-
     public partial class PixelOperationsTests
     {
 

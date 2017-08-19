@@ -1,12 +1,10 @@
-﻿// <copyright file="FloydSteinberg.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Dithering
+using SixLabors.ImageSharp.Memory;
+
+namespace SixLabors.ImageSharp.Dithering
 {
-    using ImageSharp.Memory;
-
     /// <summary>
     /// Applies error diffusion based dithering using the Floyd–Steinberg image dithering algorithm.
     /// <see href="http://www.efg2.com/Lab/Library/ImageProcessing/DHALF.TXT"/>

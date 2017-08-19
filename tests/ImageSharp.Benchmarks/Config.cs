@@ -5,7 +5,7 @@
 
 using BenchmarkDotNet.Configs;
 
-namespace ImageSharp.Benchmarks
+namespace SixLabors.ImageSharp.Benchmarks
 {
     using BenchmarkDotNet.Jobs;
 

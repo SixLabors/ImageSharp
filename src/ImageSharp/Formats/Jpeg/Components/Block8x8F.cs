@@ -1,16 +1,15 @@
-﻿// <copyright file="Block8x8F.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
-// ReSharper disable InconsistentNaming
-namespace ImageSharp.Formats.Jpg
-{
-    using System;
-    using System.Buffers;
-    using System.Numerics;
-    using System.Runtime.CompilerServices;
-    using System.Runtime.InteropServices;
 
+// ReSharper disable InconsistentNaming
+using System;
+using System.Buffers;
+using System.Numerics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+
+namespace SixLabors.ImageSharp.Formats.Jpg
+{
     /// <summary>
     /// DCT code Ported from https://github.com/norishigefukushima/dct_simd
     /// </summary>

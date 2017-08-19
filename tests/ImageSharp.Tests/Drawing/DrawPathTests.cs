@@ -1,20 +1,16 @@
-﻿// <copyright file="ColorConversionTests.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Tests.Drawing
+using System.IO;
+using System.Numerics;
+using SixLabors.ImageSharp.Drawing.Pens;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Shapes;
+using Xunit;
+using ShapePath = SixLabors.Shapes.Path;
+
+namespace SixLabors.ImageSharp.Tests.Drawing
 {
-    using ShapePath = SixLabors.Shapes.Path;
-    using SixLabors.Shapes;
-    using System.IO;
-    using System.Numerics;
-
-    using ImageSharp.PixelFormats;
-
-    using Xunit;
-    using ImageSharp.Drawing.Pens;
-
     public class DrawPathTests : FileTestBase
     {
         [Fact]

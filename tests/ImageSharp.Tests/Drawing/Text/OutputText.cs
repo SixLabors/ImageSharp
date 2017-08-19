@@ -1,22 +1,23 @@
-﻿
-namespace ImageSharp.Tests.Drawing.Text
+﻿// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Numerics;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Drawing;
+using SixLabors.ImageSharp.Drawing.Brushes;
+using SixLabors.ImageSharp.Drawing.Pens;
+using SixLabors.ImageSharp.Drawing.Processors;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.Fonts;
+using SixLabors.Shapes;
+using Xunit;
+
+namespace SixLabors.ImageSharp.Tests.Drawing.Text
 {
-    using System;
-    using System.IO;
-    using ImageSharp;
-    using ImageSharp.Drawing.Brushes;
-    using ImageSharp.Processing;
-    using System.Collections.Generic;
-    using Xunit;
-    using ImageSharp.Drawing;
-    using System.Numerics;
-    using SixLabors.Shapes;
-    using ImageSharp.Drawing.Processors;
-    using ImageSharp.Drawing.Pens;
-    using ImageSharp.PixelFormats;
-
-    using SixLabors.Fonts;
-
     public class OutputText : FileTestBase
     {
         private readonly FontCollection FontCollection;

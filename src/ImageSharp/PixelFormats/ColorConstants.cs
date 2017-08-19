@@ -1,13 +1,11 @@
-﻿// <copyright file="ColorConstants.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.PixelFormats
+using System;
+using System.Collections.Generic;
+
+namespace SixLabors.ImageSharp.PixelFormats
 {
-    using System;
-    using System.Collections.Generic;
-
     /// <summary>
     /// Provides useful color definitions.
     /// </summary>

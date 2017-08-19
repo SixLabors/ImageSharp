@@ -1,15 +1,15 @@
-﻿
-namespace ImageSharp.Tests.Drawing.Paths
+﻿// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+using System;
+using SixLabors.ImageSharp.Drawing;
+using SixLabors.ImageSharp.Drawing.Brushes;
+using SixLabors.ImageSharp.Drawing.Processors;
+using SixLabors.ImageSharp.PixelFormats;
+using Xunit;
+
+namespace SixLabors.ImageSharp.Tests.Drawing.Paths
 {
-    using System;
-
-    using ImageSharp.Drawing.Brushes;
-
-    using Xunit;
-    using ImageSharp.Drawing;
-    using ImageSharp.Drawing.Processors;
-    using ImageSharp.PixelFormats;
-
     public class FillRectangle : BaseImageOperationsExtensionTest
     {
         GraphicsOptions noneDefault = new GraphicsOptions();

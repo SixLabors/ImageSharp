@@ -1,8 +1,8 @@
-﻿namespace ImageSharp.Formats.Jpeg.PdfJsPort.Components
+﻿namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
 {
     using System.Runtime.CompilerServices;
 
-    using ImageSharp.PixelFormats;
+    using SixLabors.ImageSharp.PixelFormats;
 
     /// <summary>
     /// Provides 8-bit lookup tables for converting from YCbCr to Rgb colorspace.

@@ -1,15 +1,12 @@
-// <copyright file="JpegBlockProcessor.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
+using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Memory;
+using Block8x8F = SixLabors.ImageSharp.Formats.Jpeg.Common.Block8x8F;
+
+namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 {
-    using System.Runtime.InteropServices;
-    using ImageSharp.Memory;
-
-    using Block8x8F = ImageSharp.Formats.Jpeg.Common.Block8x8F;
-
     /// <summary>
     /// Encapsulates the implementation of processing "raw" <see cref="Buffer{T}"/>-s into Jpeg image channels.
     /// </summary>

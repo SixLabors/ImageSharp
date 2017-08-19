@@ -158,7 +158,6 @@ AppPackages/
 # Others
 *.[Cc]ache
 ClientBin/
-[Ss]tyle[Cc]op.*
 ~$*
 *~
 *.dbmdl
@@ -219,3 +218,4 @@ artifacts/
 **/CodeCoverage/*
 docs/
 /samples/AvatarWithRoundedCorner/output
+/ImageSharp.Coverage.xml

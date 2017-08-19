@@ -1,16 +1,18 @@
-﻿
-namespace ImageSharp.Tests.Drawing.Paths
-{
-    using System;
-    using ImageSharp;
-    using ImageSharp.Drawing.Brushes;
-    using Xunit;
-    using ImageSharp.Drawing;
-    using System.Numerics;
-    using SixLabors.Shapes;
-    using ImageSharp.Drawing.Processors;
-    using ImageSharp.PixelFormats;
+﻿// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Numerics;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Drawing;
+using SixLabors.ImageSharp.Drawing.Brushes;
+using SixLabors.ImageSharp.Drawing.Processors;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Shapes;
+using Xunit;
+
+namespace SixLabors.ImageSharp.Tests.Drawing.Paths
+{
     public class FillPath : BaseImageOperationsExtensionTest
     {
         GraphicsOptions noneDefault = new GraphicsOptions();

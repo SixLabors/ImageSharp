@@ -3,19 +3,19 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.Benchmarks
+namespace SixLabors.ImageSharp.Benchmarks
 {
 
     using BenchmarkDotNet.Attributes;
-    using ImageSharp.PixelFormats;
-    using ImageSharp.Processing.Processors;
+    using SixLabors.ImageSharp.PixelFormats;
+    using SixLabors.ImageSharp.Processing.Processors;
     using CoreSize = SixLabors.Primitives.Size;
-    using ImageSharp.Processing;
+    using SixLabors.ImageSharp.Processing;
     using System.Numerics;
     using System;
     using System.Threading.Tasks;
 
-    using ImageSharp.Memory;
+    using SixLabors.ImageSharp.Memory;
     using SixLabors.Primitives;
 
     public class Glow : BenchmarkBase

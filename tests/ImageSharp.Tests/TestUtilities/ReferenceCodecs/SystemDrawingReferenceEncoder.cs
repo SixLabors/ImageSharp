@@ -1,14 +1,17 @@
-﻿using System.Collections.Generic;
+﻿// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+using System.Collections.Generic;
 using System.Text;
 
-namespace ImageSharp.Tests.TestUtilities.ReferenceCodecs
+using System.Drawing.Imaging;
+using System.IO;
+
+using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.PixelFormats;
+
+namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
 {
-    using System.Drawing.Imaging;
-    using System.IO;
-
-    using ImageSharp.Formats;
-    using ImageSharp.PixelFormats;
-
     public class SystemDrawingReferenceEncoder : IImageEncoder
     {
         private readonly System.Drawing.Imaging.ImageFormat imageFormat;

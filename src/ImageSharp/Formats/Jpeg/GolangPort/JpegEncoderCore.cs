@@ -1,21 +1,17 @@
-﻿// <copyright file="JpegEncoderCore.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Formats.Jpeg.GolangPort
+using System.Buffers;
+using System.IO;
+using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components;
+using SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Encoder;
+using SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Utils;
+using SixLabors.ImageSharp.PixelFormats;
+using Block8x8F = SixLabors.ImageSharp.Formats.Jpeg.Common.Block8x8F;
+
+namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 {
-    using System.Buffers;
-    using System.IO;
-    using System.Runtime.CompilerServices;
-
-    using ImageSharp.Formats.Jpeg.GolangPort.Components;
-    using ImageSharp.Formats.Jpeg.GolangPort.Components.Encoder;
-    using ImageSharp.Formats.Jpeg.GolangPort.Utils;
-    using ImageSharp.PixelFormats;
-
-    using Block8x8F = ImageSharp.Formats.Jpeg.Common.Block8x8F;
-
     /// <summary>
     /// Image encoder for writing an image to a stream as a jpeg.
     /// </summary>

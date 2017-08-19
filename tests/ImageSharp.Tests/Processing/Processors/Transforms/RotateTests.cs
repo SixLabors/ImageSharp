@@ -1,16 +1,13 @@
-﻿// <copyright file="RotateTests.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
+
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
+using Xunit;
 
 // ReSharper disable InconsistentNaming
-namespace ImageSharp.Tests.Processing.Processors.Transforms
+namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 {
-    using ImageSharp.PixelFormats;
-    using ImageSharp.Processing;
-
-    using Xunit;
-
     public class RotateTests : FileTestBase
     {
         public static readonly TheoryData<float> RotateFloatValues

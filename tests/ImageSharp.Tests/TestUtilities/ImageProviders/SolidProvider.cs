@@ -1,16 +1,14 @@
-﻿// <copyright file="SolidProvider.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Tests
+using System;
+
+using SixLabors.ImageSharp.PixelFormats;
+
+using Xunit.Abstractions;
+
+namespace SixLabors.ImageSharp.Tests
 {
-    using System;
-
-    using ImageSharp.PixelFormats;
-
-    using Xunit.Abstractions;
-
     /// <summary>
     /// Provides <see cref="Image{TPixel}" /> instances for parametric unit tests.
     /// </summary>
@@ -18,7 +16,7 @@ namespace ImageSharp.Tests
     public abstract partial class TestImageProvider<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        private class SolidProvider : BlankProvider 
+        private class SolidProvider : BlankProvider
         {
             private byte a;
 
@@ -58,7 +56,7 @@ namespace ImageSharp.Tests
                 image.Mutate(x => x.Fill(color));
                 return image;
             }
-            
+
             public override void Serialize(IXunitSerializationInfo info)
             {
                 info.AddValue("red", this.r);

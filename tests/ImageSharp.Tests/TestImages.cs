@@ -1,13 +1,11 @@
-﻿// <copyright file="FileTestBase.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
+
+using System.Linq;
 
 // ReSharper disable MemberHidesStaticFromOuterClass
-namespace ImageSharp.Tests
+namespace SixLabors.ImageSharp.Tests
 {
-    using System.Linq;
-
     /// <summary>
     /// Class that contains all the relative test image paths in the TestImages/Formats directory.
     /// Use with <see cref="WithFileAttribute"/>, <see cref="WithFileCollectionAttribute"/> or <see cref="FileTestBase"/>.

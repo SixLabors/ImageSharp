@@ -1,13 +1,11 @@
-﻿// <copyright file="RgbWorkingSpaces.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
+
+using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.RgbColorSapce;
 
 // ReSharper disable InconsistentNaming
-namespace ImageSharp.ColorSpaces
+namespace SixLabors.ImageSharp.ColorSpaces
 {
-    using ImageSharp.ColorSpaces.Conversion.Implementation.Rgb;
-
     /// <summary>
     /// Chromaticity coordinates taken from:
     /// <see href="http://www.brucelindbloom.com/index.html?WorkingSpaceInfo.html"/>

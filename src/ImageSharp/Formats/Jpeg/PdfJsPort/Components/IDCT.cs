@@ -1,4 +1,4 @@
-﻿namespace ImageSharp.Formats.Jpeg.PdfJsPort.Components
+﻿namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
 {
     using System;
     using System.Runtime.CompilerServices;

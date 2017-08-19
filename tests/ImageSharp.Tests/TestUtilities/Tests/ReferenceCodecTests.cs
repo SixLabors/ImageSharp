@@ -1,7 +1,7 @@
-namespace ImageSharp.Tests
+namespace SixLabors.ImageSharp.Tests
 {
-    using ImageSharp.PixelFormats;
-    using ImageSharp.Tests.TestUtilities.ReferenceCodecs;
+    using SixLabors.ImageSharp.PixelFormats;
+    using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 
     using Xunit;
     using Xunit.Abstractions;

@@ -1,23 +1,17 @@
-﻿// <copyright file="FlagsHelper.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-// ReSharper disable InconsistentNaming
-namespace ImageSharp.Tests
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Numerics;
+
+using SixLabors.ImageSharp.PixelFormats;
+using Xunit;
+using Xunit.Abstractions;
+
+namespace SixLabors.ImageSharp.Tests
 {
-    using System;
-    using System.Collections.Generic;
-    using System.IO;
-    using System.Linq;
-    using System.Numerics;
-    using System.Reflection;
-
-    using ImageSharp.PixelFormats;
-
-    using Xunit;
-    using Xunit.Abstractions;
-
     public class TestUtilityExtensionsTests
     {
         public TestUtilityExtensionsTests(ITestOutputHelper output)
@@ -51,8 +45,6 @@ namespace ImageSharp.Tests
 
             return image;
         }
-        
-        
 
         [Theory]
         [WithFile(TestImages.Bmp.Car, PixelTypes.Rgba32, true)]
@@ -82,7 +74,6 @@ namespace ImageSharp.Tests
         [InlineData(PixelTypes.Rgba32, typeof(Rgba32))]
         [InlineData(PixelTypes.Argb32, typeof(Argb32))]
         [InlineData(PixelTypes.HalfVector4, typeof(HalfVector4))]
-        [InlineData(PixelTypes.Rgba32, typeof(Rgba32))]
         public void ToType(PixelTypes pt, Type expectedType)
         {
             Assert.Equal(pt.GetClrType(), expectedType);

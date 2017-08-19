@@ -1,23 +1,14 @@
-﻿// <copyright file="PngSmokeTests.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Tests.Formats.Png
+using System.IO;
+using Xunit;
+using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
+
+namespace SixLabors.ImageSharp.Tests.Formats.Png
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Text;
-    using System.IO;
-    using Xunit;
-    using ImageSharp.Formats;
-    using System.Linq;
-    using ImageSharp.IO;
-    using System.Numerics;
-
-    using ImageSharp.PixelFormats;
-    using ImageSharp.Tests.TestUtilities.ImageComparison;
-
     public class PngSmokeTests
     {
         [Theory]
@@ -115,7 +106,7 @@ namespace ImageSharp.Tests.Formats.Png
             using (MemoryStream ms = new MemoryStream())
             {
                 // image.Save(provider.Utility.GetTestOutputFileName("png"));
-                image.Mutate(x=>x.Resize(100, 100));
+                image.Mutate(x => x.Resize(100, 100));
                 // image.Save(provider.Utility.GetTestOutputFileName("png", "resize"));
 
                 image.Save(ms, new PngEncoder());

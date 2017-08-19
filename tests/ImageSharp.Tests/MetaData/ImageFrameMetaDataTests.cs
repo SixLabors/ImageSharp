@@ -1,13 +1,11 @@
-﻿// <copyright file="ImageFrameMetaDataTests.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Tests
+using SixLabors.ImageSharp.Formats;
+using Xunit;
+
+namespace SixLabors.ImageSharp.Tests
 {
-    using ImageSharp.Formats;
-    using Xunit;
-
     /// <summary>
     /// Tests the <see cref="ImageFrameMetaDataTests"/> class.
     /// </summary>

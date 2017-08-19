@@ -1,16 +1,14 @@
-// <copyright file="OilPaintTest.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Tests.Processing.Processors.Effects
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
+
+using SixLabors.Primitives;
+using Xunit;
+
+namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
 {
-    using ImageSharp.PixelFormats;
-    using ImageSharp.Tests.TestUtilities.ImageComparison;
-
-    using SixLabors.Primitives;
-    using Xunit;
-
     public class OilPaintTest : FileTestBase
     {
         public static readonly TheoryData<int, int> OilPaintValues
@@ -38,7 +36,7 @@ namespace ImageSharp.Tests.Processing.Processors.Effects
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> source = provider.GetImage())
-            using (var image = source.Clone())
+            using (Image<TPixel> image = source.Clone())
             {
                 var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
 

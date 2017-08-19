@@ -1,4 +1,4 @@
-﻿namespace ImageSharp.Benchmarks
+﻿namespace SixLabors.ImageSharp.Benchmarks
 {
     using System;
     using System.Buffers;
@@ -7,7 +7,7 @@
 
     using BenchmarkDotNet.Attributes;
 
-    using ImageSharp.Formats.Jpg;
+    using SixLabors.ImageSharp.Formats.Jpg;
 
     public partial class RgbToYCbCr
     {

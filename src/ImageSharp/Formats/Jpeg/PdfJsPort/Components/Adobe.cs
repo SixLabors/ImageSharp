@@ -1,13 +1,11 @@
-﻿// <copyright file="Adobe.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
+
+using System;
 
 // ReSharper disable InconsistentNaming
-namespace ImageSharp.Formats.Jpeg.PdfJsPort.Components
+namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
 {
-    using System;
-
     /// <summary>
     /// Provides information about the Adobe marker segment
     /// </summary>

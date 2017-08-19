@@ -11,6 +11,7 @@ namespace SixLabors.ImageSharp.Tests
     public abstract class FileTestBase : TestBase
     {
         /// <summary>
+        /// TODO: We really should not depend on this! Let's use well defined, test-case specific inputs everywhere!
         /// A collection made up of one file for each image format
         /// </summary>
         public static IEnumerable<string> DefaultFiles =

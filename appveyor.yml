@@ -8,6 +8,7 @@ install:
   - choco install gitversion.portable -pre -y
 
 before_build:
+  - git submodule -q update --init
   - cmd: dotnet --version
   - ps: c:\ProgramData\chocolatey\lib\gitversion.portable\tools\gitversion.exe /l console /output buildserver
 

@@ -7,6 +7,7 @@ using System.Text;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
+// ReSharper disable InconsistentNaming
 
 namespace SixLabors.ImageSharp.Tests
 {
@@ -24,8 +25,20 @@ namespace SixLabors.ImageSharp.Tests
             };
 
         [Theory]
-        [WithFileCollection(nameof(TestFiles), PixelTypes)]
+        [WithFileCollection(nameof(TestFiles), PixelTypes.Rgba32)]
         public void Decode<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new PngDecoder()))
+            {
+                image.DebugSave(provider);
+                image.CompareToOriginal(provider, ImageComparer.Exact);
+            }
+        }
+
+        [Theory]
+        [WithFile(TestImages.Png.Splash, PixelTypes)]
+        public void Decoder_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(new PngDecoder()))

@@ -23,16 +23,14 @@ namespace SixLabors.ImageSharp.Tests
                 TestImages.Png.Splash, TestImages.Png.Indexed,
                 TestImages.Png.FilterVar,
                 TestImages.Png.Bad.ChunkLength1,
-                TestImages.Png.Bad.ChunkLength2,
+                
                 TestImages.Png.VimImage1,
-                TestImages.Png.VimImage2,
                 TestImages.Png.VersioningImage1,
                 TestImages.Png.VersioningImage2,
 
                 // BUG !!! Should work. TODO: Fix it !!!!
                 // TestImages.Png.SnakeGame
             };
-
         
 
         public static readonly string[] TestImages48Bpp =
@@ -42,7 +40,15 @@ namespace SixLabors.ImageSharp.Tests
                 // TODO: Re enable, when Decode_Interlaced is fixed!!!!
                 // TestImages.Png.Rgb48BppInterlaced
             };
-        
+
+        // This is a workaround for Mono-s decoder being incompatible with ours and GDI+.
+        // We shouldn't mix these with the Interleaved cases (which are also failing with Mono System.Drawing). Let's go AAA!
+        public static readonly string[] WindowsOnlyTestImages =
+            {
+                TestImages.Png.Bad.ChunkLength2,
+                TestImages.Png.VimImage2,
+            };
+
         [Theory]
         [WithFileCollection(nameof(CommonTestImages), PixelTypes.Rgba32)]
         public void Decode<TPixel>(TestImageProvider<TPixel> provider)
@@ -55,6 +61,24 @@ namespace SixLabors.ImageSharp.Tests
             }
         }
 
+        // This is a workaround for Mono-s decoder being incompatible with ours and GDI+.
+        // We shouldn't mix these with the Interleaved cases (which are also failing with Mono System.Drawing). Let's go AAA!
+        [Theory]
+        [WithFileCollection(nameof(WindowsOnlyTestImages), PixelTypes.Rgba32)]
+        public void Decode_WindowsOnlyTestImages<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new PngDecoder()))
+            {
+                image.DebugSave(provider);
+
+                if (!TestEnvironment.IsLinux)
+                {
+                    image.CompareToOriginal(provider, ImageComparer.Exact);
+                }
+            }
+        }
+        
         [Theory]
         [WithFile(TestImages.Png.Interlaced, PixelTypes.Rgba32)]
         public void Decode_Interlaced_DoesNotThrow<TPixel>(TestImageProvider<TPixel> provider)

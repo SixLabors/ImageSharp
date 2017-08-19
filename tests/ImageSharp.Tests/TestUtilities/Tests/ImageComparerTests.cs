@@ -96,7 +96,7 @@ namespace SixLabors.ImageSharp.Tests
                     ImagingTestCaseUtility.ModifyPixel(clone, 1, 0, 10);
                     ImagingTestCaseUtility.ModifyPixel(clone, 2, 0, 10);
 
-                    var comparer = ImageComparer.Tolerant(pixelThresholdInPixelByteSum: 42);
+                    var comparer = ImageComparer.Tolerant(pixelThresholdHammingDistance: 42);
                     comparer.VerifySimilarity(image, clone);
                 }
             }

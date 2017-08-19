@@ -12,10 +12,10 @@
     {
         public const float DefaultImageThreshold = 1.0f / (100 * 100 * 255);
 
-        public TolerantImageComparer(float imageThreshold, int pixelThresholdInPixelByteSum = 0)
+        public TolerantImageComparer(float imageThreshold, int pixelThresholdHammingDistance = 0)
         {
             this.ImageThreshold = imageThreshold;
-            this.PixelThresholdInPixelByteSum = pixelThresholdInPixelByteSum;
+            this.PixelThresholdHammingDistance = pixelThresholdHammingDistance;
         }
 
         /// <summary>
@@ -36,7 +36,7 @@
         /// The threshold of the individual pixels before they acumulate towards the overall difference.
         /// For an individual <see cref="Rgba32"/> pixel the value it's calculated as: pixel.R + pixel.G + pixel.B + pixel.A
         /// </summary>
-        public int PixelThresholdInPixelByteSum { get; }
+        public int PixelThresholdHammingDistance { get; }
         
         public override ImageSimilarityReport CompareImagesOrFrames<TPixelA, TPixelB>(ImageBase<TPixelA> expected, ImageBase<TPixelB> actual)
         {
@@ -68,7 +68,7 @@
                 {
                     int d = GetHammingDistanceInRgbaSpace(ref aBuffer[x], ref bBuffer[x]);
 
-                    if (d > this.PixelThresholdInPixelByteSum)
+                    if (d > this.PixelThresholdHammingDistance)
                     {
                         var diff = new PixelDifference(new Point(x, y), aBuffer[x], bBuffer[x]);
                         differences.Add(diff);

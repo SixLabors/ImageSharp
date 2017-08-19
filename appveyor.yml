@@ -18,7 +18,7 @@ build_script:
 test_script:
 - tests\CodeCoverage\CodeCoverage.cmd
 
-after_build:
+after_test:
   - cmd: appveyor PushArtifact "artifacts\SixLabors.ImageSharp.%GitVersion_NuGetVersion%.nupkg"
   - cmd: appveyor PushArtifact "artifacts\SixLabors.ImageSharp.Drawing.%GitVersion_NuGetVersion%.nupkg"
 

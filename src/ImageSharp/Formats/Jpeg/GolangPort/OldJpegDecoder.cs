@@ -1,8 +1,8 @@
-namespace ImageSharp.Formats.Jpeg.GolangPort
+namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 {
     using System.IO;
 
-    using ImageSharp.PixelFormats;
+    using SixLabors.ImageSharp.PixelFormats;
 
     /// <summary>
     /// Image decoder for generating an image out of a jpg stream.

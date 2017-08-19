@@ -1,14 +1,11 @@
-﻿// <copyright file="JpegFormat.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Formats
+using System.Collections.Generic;
+using SixLabors.ImageSharp.Formats.Jpeg.GolangPort;
+
+namespace SixLabors.ImageSharp.Formats
 {
-    using System.Collections.Generic;
-
-    using ImageSharp.Formats.Jpeg.GolangPort;
-
     /// <summary>
     /// Registers the image encoders, decoders and mime type detectors for the jpeg format.
     /// </summary>

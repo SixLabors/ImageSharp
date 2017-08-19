@@ -1,13 +1,16 @@
-namespace ImageSharp.Tests
-{
-    using System;
-    using System.IO;
-    using System.Linq;
-    using System.Reflection;
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
 
-    using ImageSharp.Formats;
-    using ImageSharp.Tests.TestUtilities.ReferenceCodecs;
-    
+using System;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+
+using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
+
+namespace SixLabors.ImageSharp.Tests
+{ 
     public static class TestEnvironment
     {
         private const string ImageSharpSolutionFileName = "ImageSharp.sln";

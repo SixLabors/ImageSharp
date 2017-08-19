@@ -1,12 +1,10 @@
-// <copyright file="DecodedBlock.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
+using Block8x8F = SixLabors.ImageSharp.Formats.Jpeg.Common.Block8x8F;
+
+namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 {
-    using Block8x8F = ImageSharp.Formats.Jpeg.Common.Block8x8F;
-
     /// <summary>
     /// A structure to store unprocessed <see cref="Block8x8F"/> instances and their coordinates while scanning the image.
     /// The <see cref="Block"/> is present in a "raw" decoded frequency-domain form.

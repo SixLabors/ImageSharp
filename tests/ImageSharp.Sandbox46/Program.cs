@@ -3,16 +3,16 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.Sandbox46
+namespace SixLabors.ImageSharp.Sandbox46
 {
     using System;
     using System.Runtime.DesignerServices;
 
-    using ImageSharp.Tests;
-    using ImageSharp.Tests.Colors;
-    using ImageSharp.Tests.PixelFormats;
-    using ImageSharp.Tests.Processing.Processors.Transforms;
-    using ImageSharp.Tests.Processing.Transforms;
+    using SixLabors.ImageSharp.Tests;
+    using SixLabors.ImageSharp.Tests.Colors;
+    using SixLabors.ImageSharp.Tests.PixelFormats;
+    using SixLabors.ImageSharp.Tests.Processing.Processors.Transforms;
+    using SixLabors.ImageSharp.Tests.Processing.Transforms;
 
     using Xunit.Abstractions;
 

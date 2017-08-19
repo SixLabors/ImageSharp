@@ -1,14 +1,12 @@
-﻿// <copyright file="SkewTest.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Tests.Processing.Transforms
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Processors;
+using Xunit;
+
+namespace SixLabors.ImageSharp.Tests.Processing.Transforms
 {
-    using ImageSharp.PixelFormats;
-    using ImageSharp.Processing.Processors;
-    using Xunit;
-
     public class SkewTest : BaseImageOperationsExtensionTest
     {
         [Fact]

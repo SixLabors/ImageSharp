@@ -1,11 +1,11 @@
 // ReSharper disable InconsistentNaming
-namespace ImageSharp.Tests
+namespace SixLabors.ImageSharp.Tests
 {
     using System.Collections.Generic;
     using System.Linq;
 
-    using ImageSharp.PixelFormats;
-    using ImageSharp.Tests.TestUtilities.ImageComparison;
+    using SixLabors.ImageSharp.PixelFormats;
+    using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
     using Moq;
 

@@ -1,20 +1,18 @@
-﻿// <copyright file="FileProvider.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Tests
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Reflection;
+
+using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.PixelFormats;
+
+using Xunit.Abstractions;
+
+namespace SixLabors.ImageSharp.Tests
 {
-    using System;
-    using System.Collections.Concurrent;
-    using System.Collections.Generic;
-    using System.Reflection;
-
-    using ImageSharp.Formats;
-    using ImageSharp.PixelFormats;
-
-    using Xunit.Abstractions;
-
     public abstract partial class TestImageProvider<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
@@ -38,7 +36,7 @@ namespace ImageSharp.Tests
                 private static Dictionary<string, object> GetDecoderParameters(IImageDecoder customDecoder)
                 {
                     Type type = customDecoder.GetType();
-                    
+
                     var data = new Dictionary<string, object>();
 
                     while (type != null && type != typeof(object))
@@ -65,7 +63,7 @@ namespace ImageSharp.Tests
                     {
                         return false;
                     }
-                    
+
                     foreach (KeyValuePair<string, object> kv in this.decoderParameters)
                     {
                         object otherVal;
@@ -106,7 +104,7 @@ namespace ImageSharp.Tests
             }
 
             private static readonly ConcurrentDictionary<Key, Image<TPixel>> cache = new ConcurrentDictionary<Key, Image<TPixel>>();
-            
+
             public FileProvider(string filePath)
             {
                 this.FilePath = filePath;

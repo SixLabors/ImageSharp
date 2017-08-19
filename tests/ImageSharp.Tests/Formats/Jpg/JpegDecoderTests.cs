@@ -1,19 +1,23 @@
-// <copyright file="JpegDecoderTests.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
+
+using System;
+using System.IO;
+using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.PixelFormats;
+using Xunit;
 
 // ReSharper disable InconsistentNaming
-namespace ImageSharp.Tests
+namespace SixLabors.ImageSharp.Tests
 {
     using System;
     using System.IO;
     using System.Linq;
 
-    using ImageSharp.Formats;
-    using ImageSharp.Formats.Jpeg.GolangPort;
-    using ImageSharp.PixelFormats;
-    using ImageSharp.Tests.TestUtilities.ImageComparison;
+    using SixLabors.ImageSharp.Formats;
+    using SixLabors.ImageSharp.Formats.Jpeg.GolangPort;
+    using SixLabors.ImageSharp.PixelFormats;
+    using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
     using Xunit;
     using Xunit.Abstractions;

@@ -1,14 +1,12 @@
-// <copyright file="Buffer{T}.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Memory
+using System;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+
+namespace SixLabors.ImageSharp.Memory
 {
-    using System;
-    using System.Runtime.CompilerServices;
-    using System.Runtime.InteropServices;
-
     /// <summary>
     /// Manages a buffer of value type objects as a Disposable resource.
     /// The backing array is either pooled or comes from the outside.

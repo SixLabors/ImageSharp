@@ -1,32 +1,30 @@
-﻿// <copyright file="IImageProcessorApplicatorFactory.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp
+using SixLabors.ImageSharp.PixelFormats;
+
+namespace SixLabors.ImageSharp
 {
-    using ImageSharp.PixelFormats;
-
     /// <summary>
     /// Represents an interface that will create IInternalImageProcessingContext instances
     /// </summary>
     internal interface IImageProcessingContextFactory
     {
         /// <summary>
-        /// Called during Mutate operations to generate the image operations provider.
+        /// Called during mutate operations to generate the image operations provider.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format</typeparam>
         /// <param name="source">The source image.</param>
-        /// <param name="mutate">A flag to determin with the image operations is allowed to mutate the source image or not.</param>
+        /// <param name="mutate">A flag to determine whether image operations are allowed to mutate the source image.</param>
         /// <returns>A new IImageOPeration</returns>
         IInternalImageProcessingContext<TPixel> CreateImageProcessingContext<TPixel>(Image<TPixel> source, bool mutate)
             where TPixel : struct, IPixel<TPixel>;
     }
 
     /// <summary>
-    /// The default implmentation of IImageOperationsProvider
+    /// The default implmentation of <see cref="IImageProcessingContextFactory"/>
     /// </summary>
-    internal class DefaultImageOperationsProvider : IImageProcessingContextFactory
+    internal class DefaultImageOperationsProviderFactory : IImageProcessingContextFactory
     {
         /// <inheritdoc/>
         public IInternalImageProcessingContext<TPixel> CreateImageProcessingContext<TPixel>(Image<TPixel> source, bool mutate)

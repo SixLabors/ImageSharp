@@ -1,12 +1,10 @@
-﻿// <copyright file="MutableSpan.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Formats.Jpeg.GolangPort.Utils
+using System.Runtime.CompilerServices;
+
+namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Utils
 {
-    using System.Runtime.CompilerServices;
-
     /// <summary>
     /// Like corefxlab Span, but with an AddOffset() method for efficiency.
     /// TODO: When Span will be official, consider replacing this class!

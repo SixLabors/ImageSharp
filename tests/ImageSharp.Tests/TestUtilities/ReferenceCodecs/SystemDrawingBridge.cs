@@ -1,11 +1,14 @@
-﻿namespace ImageSharp.Tests.TestUtilities.ReferenceCodecs
+﻿// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+using System;
+using System.Drawing.Imaging;
+
+using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.PixelFormats;
+
+namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
 {
-    using System;
-    using System.Drawing.Imaging;
-
-    using ImageSharp.Memory;
-    using ImageSharp.PixelFormats;
-
     public static class SystemDrawingBridge
     {
         // TODO: It would be nice to have this method in PixelOperations<T>
@@ -14,7 +17,7 @@
         {
             int length = source.Length;
             Guard.MustBeSizedAtLeast(dest, length, nameof(dest));
-            
+
             using (var rgbaBuffer = new Buffer<Rgba32>(length))
             {
                 PixelOperations<TPixel>.Instance.ToRgba32(source, rgbaBuffer, length);
@@ -76,7 +79,7 @@
                 for (int y = 0; y < h; y++)
                 {
                     Span<TPixel> row = image.GetRowSpan(y);
-                    
+
                     byte* sourcePtr = sourcePtrBase + data.Stride * y;
 
                     Buffer.MemoryCopy(sourcePtr, destPtr, destRowByteCount, sourceRowByteCount);
@@ -93,19 +96,19 @@
         {
             int w = image.Width;
             int h = image.Height;
-            
+
             var resultBitmap = new System.Drawing.Bitmap(w, h, PixelFormat.Format32bppArgb);
             var fullRect = new System.Drawing.Rectangle(0, 0, w, h);
             BitmapData data = resultBitmap.LockBits(fullRect, ImageLockMode.ReadWrite, resultBitmap.PixelFormat);
             byte* destPtrBase = (byte*)data.Scan0;
 
-            long destRowByteCount= data.Stride;
+            long destRowByteCount = data.Stride;
             long sourceRowByteCount = w * sizeof(Argb32);
 
             using (var workBuffer = new Buffer<Argb32>(w))
             {
-                var sourcePtr = (Argb32*) workBuffer.Pin();
-                
+                var sourcePtr = (Argb32*)workBuffer.Pin();
+
                 for (int y = 0; y < h; y++)
                 {
                     Span<TPixel> row = image.GetRowSpan(y);
@@ -115,7 +118,7 @@
                     Buffer.MemoryCopy(sourcePtr, destPtr, destRowByteCount, sourceRowByteCount);
                 }
             }
-                
+
             resultBitmap.UnlockBits(data);
 
             return resultBitmap;

@@ -1,20 +1,17 @@
-﻿// <copyright file="FlagsHelper.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
+
+using System;
+using System.IO;
+
+using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
+using Xunit;
+using Xunit.Abstractions;
 
 // ReSharper disable InconsistentNaming
-namespace ImageSharp.Tests
+namespace SixLabors.ImageSharp.Tests
 {
-    using System;
-    using System.IO;
-
-    using ImageSharp.Formats;
-    using ImageSharp.Tests.TestUtilities.ReferenceCodecs;
-
-    using Xunit;
-    using Xunit.Abstractions;
-    
     public class TestEnvironmentTests
     {
         public TestEnvironmentTests(ITestOutputHelper output)
@@ -23,7 +20,7 @@ namespace ImageSharp.Tests
         }
 
         private ITestOutputHelper Output { get; }
-        
+
         private void CheckPath(string path)
         {
             this.Output.WriteLine(path);

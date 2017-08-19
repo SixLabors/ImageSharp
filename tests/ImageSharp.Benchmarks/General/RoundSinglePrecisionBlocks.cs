@@ -1,11 +1,11 @@
-﻿namespace ImageSharp.Benchmarks.General
+﻿namespace SixLabors.ImageSharp.Benchmarks.General
 {
     using System.Numerics;
     using System.Runtime.CompilerServices;
 
     using BenchmarkDotNet.Attributes;
 
-    using ImageSharp.Formats.Jpg;
+    using SixLabors.ImageSharp.Formats.Jpg;
 
     /// <summary>
     /// The goal of this benchmark is to measure the following Jpeg-related scenario:

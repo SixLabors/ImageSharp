@@ -1,12 +1,10 @@
-﻿// <copyright file="RgbToYCbCrTables.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Formats.Jpeg.GolangPort.Components.Encoder
+using System.Runtime.CompilerServices;
+
+namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Encoder
 {
-    using System.Runtime.CompilerServices;
-
     /// <summary>
     /// Provides 8-bit lookup tables for converting from Rgb to YCbCr colorspace.
     /// Methods to build the tables are based on libjpeg implementation.

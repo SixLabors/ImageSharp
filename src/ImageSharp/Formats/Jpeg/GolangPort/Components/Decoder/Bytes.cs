@@ -1,14 +1,13 @@
-﻿// <copyright file="Bytes.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
-namespace ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
-{
-    using System;
-    using System.Buffers;
-    using System.IO;
-    using System.Runtime.CompilerServices;
 
+using System;
+using System.Buffers;
+using System.IO;
+using System.Runtime.CompilerServices;
+
+namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
+{
     /// <summary>
     /// Bytes is a byte buffer, similar to a stream, except that it
     /// has to be able to unread more than 1 byte, due to byte stuffing.

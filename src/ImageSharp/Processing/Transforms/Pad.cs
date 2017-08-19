@@ -1,18 +1,14 @@
-﻿// <copyright file="Pad.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp
+using System;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Processors;
+using SixLabors.Primitives;
+
+namespace SixLabors.ImageSharp
 {
-    using System;
-
-    using ImageSharp.PixelFormats;
-
-    using ImageSharp.Processing;
-    using Processing.Processors;
-    using SixLabors.Primitives;
-
     /// <summary>
     /// Extension methods for the <see cref="Image{TPixel}"/> type.
     /// </summary>

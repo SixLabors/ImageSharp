@@ -1,18 +1,15 @@
-﻿// <copyright file="ResizeTests.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
+
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
+
+using SixLabors.Primitives;
+using Xunit;
 
 // ReSharper disable InconsistentNaming
-namespace ImageSharp.Tests.Processing.Processors.Transforms
+namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 {
-    using ImageSharp.PixelFormats;
-    using ImageSharp.Processing;
-    using ImageSharp.Tests.TestUtilities.ImageComparison;
-
-    using SixLabors.Primitives;
-    using Xunit;
-
     public class ResizeTests : FileTestBase
     {
         public static readonly string[] CommonTestImages = { TestImages.Png.CalliphoraPartial };

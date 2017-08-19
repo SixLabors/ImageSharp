@@ -24,6 +24,10 @@ namespace SixLabors.ImageSharp.Tests
                 TestImages.Png.FilterVar,
                 TestImages.Png.Bad.ChunkLength1,
                 TestImages.Png.Bad.ChunkLength2,
+                TestImages.Png.VimImage1,
+                TestImages.Png.VimImage2,
+                TestImages.Png.VersioningImage1,
+                TestImages.Png.VersioningImage2,
 
                 // BUG !!! Should work. TODO: Fix it !!!!
                 // TestImages.Png.SnakeGame
@@ -38,8 +42,7 @@ namespace SixLabors.ImageSharp.Tests
                 // TODO: Re enable, when Decode_Interlaced is fixed!!!!
                 // TestImages.Png.Rgb48BppInterlaced
             };
-
-
+        
         [Theory]
         [WithFileCollection(nameof(CommonTestImages), PixelTypes.Rgba32)]
         public void Decode<TPixel>(TestImageProvider<TPixel> provider)

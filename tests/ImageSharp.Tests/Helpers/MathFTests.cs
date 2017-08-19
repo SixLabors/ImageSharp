@@ -1,9 +1,11 @@
-﻿namespace ImageSharp.Tests.Helpers
+﻿// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+using System;
+using Xunit;
+
+namespace SixLabors.ImageSharp.Tests.Helpers
 {
-    using System;
-
-    using Xunit;
-
     public class MathFTests
     {
         [Fact]

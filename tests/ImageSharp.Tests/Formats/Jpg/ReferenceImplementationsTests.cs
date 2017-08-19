@@ -1,16 +1,13 @@
-﻿// <copyright file="ReferenceImplementationsTests.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
+
+using SixLabors.ImageSharp.Formats.Jpg;
+using Xunit;
+using Xunit.Abstractions;
 
 // ReSharper disable InconsistentNaming
-namespace ImageSharp.Tests.Formats.Jpg
+namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
-    using ImageSharp.Formats.Jpg;
-
-    using Xunit;
-    using Xunit.Abstractions;
-
     public class ReferenceImplementationsTests : JpegUtilityTestFixture
     {
         public ReferenceImplementationsTests(ITestOutputHelper output)

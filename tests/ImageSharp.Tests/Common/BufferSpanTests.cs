@@ -1,19 +1,16 @@
-// ReSharper disable ObjectCreationAsStatement
-// ReSharper disable InconsistentNaming
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
 
-namespace ImageSharp.Tests.Common
+using System;
+using System.Numerics;
+using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.PixelFormats;
+using Xunit;
+using static SixLabors.ImageSharp.Tests.Common.TestStructs;
+
+namespace SixLabors.ImageSharp.Tests.Common
 {
-    using System;
-    using System.Numerics;
-    using System.Runtime.CompilerServices;
-
-    using ImageSharp.Memory;
-    using ImageSharp.PixelFormats;
-
-    using Xunit;
-
-    using static TestStructs;
-
     public unsafe class SpanTests
     {
         // ReSharper disable once ClassNeverInstantiated.Local

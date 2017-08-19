@@ -1,16 +1,13 @@
-﻿// <copyright file="TestImageProvider.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Tests
+using System;
+using System.Reflection;
+using SixLabors.ImageSharp.PixelFormats;
+using Xunit.Abstractions;
+
+namespace SixLabors.ImageSharp.Tests
 {
-    using System;
-    using System.Reflection;
-
-    using ImageSharp.PixelFormats;
-
-    using Xunit.Abstractions;
  	public interface ITestImageProvider
     {
         PixelTypes PixelType { get; }

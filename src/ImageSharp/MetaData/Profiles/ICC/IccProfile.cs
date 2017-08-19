@@ -1,16 +1,15 @@
-﻿// <copyright file="IccProfile.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp
-{
-    using System;
-    using System.Collections.Generic;
+using System;
+using System.Collections.Generic;
+
 #if !NETSTANDARD1_1
-    using System.Security.Cryptography;
+using System.Security.Cryptography;
 #endif
 
+namespace SixLabors.ImageSharp
+{
     /// <summary>
     /// Represents an ICC profile
     /// </summary>

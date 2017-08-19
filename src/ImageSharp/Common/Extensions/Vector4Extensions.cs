@@ -1,14 +1,12 @@
-﻿// <copyright file="Vector4Extensions.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp
+using System.Numerics;
+using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.PixelFormats;
+
+namespace SixLabors.ImageSharp
 {
-    using System.Numerics;
-    using System.Runtime.CompilerServices;
-    using ImageSharp.PixelFormats;
-
     /// <summary>
     /// Extension methods for the <see cref="Vector4"/> struct.
     /// </summary>

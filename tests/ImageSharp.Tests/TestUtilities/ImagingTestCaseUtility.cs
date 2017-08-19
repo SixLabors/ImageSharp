@@ -1,18 +1,15 @@
-﻿// <copyright file="ImagingTestCaseUtility.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Tests
+using System;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.PixelFormats;
+
+namespace SixLabors.ImageSharp.Tests
 {
-    using System;
-    using System.IO;
-    using System.Linq;
-    using System.Reflection;
-
-    using ImageSharp.Formats;
-    using ImageSharp.PixelFormats;
-
     /// <summary>
     /// Utility class to provide information about the test image & the test case for the test code,
     /// and help managing IO.

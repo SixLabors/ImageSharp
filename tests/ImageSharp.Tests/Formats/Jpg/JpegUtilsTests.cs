@@ -1,19 +1,15 @@
-// <copyright file="JpegUtilsTests.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
+
+using System;
+using System.Numerics;
+using SixLabors.ImageSharp.Formats.Jpg;
+using SixLabors.ImageSharp.PixelFormats;
+using Xunit;
 
 // ReSharper disable InconsistentNaming
-namespace ImageSharp.Tests
+namespace SixLabors.ImageSharp.Tests
 {
-    using System;
-    using System.Numerics;
-
-    using ImageSharp.Formats.Jpg;
-    using ImageSharp.PixelFormats;
-
-    using Xunit;
-
     public class JpegUtilsTests : TestBase
     {
         public static Image<TPixel> CreateTestImage<TPixel>(GenericFactory<TPixel> factory)

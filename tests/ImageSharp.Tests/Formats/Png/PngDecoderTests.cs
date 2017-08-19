@@ -17,15 +17,20 @@ namespace SixLabors.ImageSharp.Tests
     {
         private const PixelTypes PixelTypes = Tests.PixelTypes.Rgba32 | Tests.PixelTypes.RgbaVector | Tests.PixelTypes.Argb32;
 
-        public static readonly string[] TestFiles =
+        public static readonly string[] CommonTestImages =
             {
                 TestImages.Png.Splash, TestImages.Png.Indexed, TestImages.Png.Interlaced, TestImages.Png.FilterVar,
-                TestImages.Png.Bad.ChunkLength1, TestImages.Png.Bad.ChunkLength2, TestImages.Png.Rgb48Bpp,
-                TestImages.Png.Rgb48BppInterlaced, TestImages.Png.SnakeGame
+                TestImages.Png.Bad.ChunkLength1, TestImages.Png.Bad.ChunkLength2, TestImages.Png.SnakeGame
             };
 
+        public static readonly string[] TestImages48Bpp =
+            {
+                TestImages.Png.Rgb48Bpp, TestImages.Png.Rgb48BppInterlaced
+            };
+
+
         [Theory]
-        [WithFileCollection(nameof(TestFiles), PixelTypes.Rgba32)]
+        [WithFileCollection(nameof(CommonTestImages), PixelTypes.Rgba32)]
         public void Decode<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -35,6 +40,25 @@ namespace SixLabors.ImageSharp.Tests
                 image.CompareToOriginal(provider, ImageComparer.Exact);
             }
         }
+
+        // TODO: We need to decode these into Rgba64 properly, and do 'CompareToOriginal' in a Rgba64 mode! (See #285)
+        [Theory]
+        [WithFileCollection(nameof(TestImages48Bpp), PixelTypes.Rgba32)]
+        public void Decode_48Bpp<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new PngDecoder()))
+            {
+                image.DebugSave(provider);
+
+                // Workaround a bug in mono-s System.Drawing PNG decoder. It can't deal with 48Bpp png-s :(
+                if (!TestEnvironment.IsLinux)
+                {
+                    image.CompareToOriginal(provider, ImageComparer.Exact);
+                }
+            }
+        }
+
 
         [Theory]
         [WithFile(TestImages.Png.Splash, PixelTypes)]

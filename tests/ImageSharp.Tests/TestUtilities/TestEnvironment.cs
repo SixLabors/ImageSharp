@@ -10,7 +10,9 @@ using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 
 namespace SixLabors.ImageSharp.Tests
-{ 
+{
+    using System.Runtime.InteropServices;
+
     public static class TestEnvironment
     {
         private const string ImageSharpSolutionFileName = "ImageSharp.sln";
@@ -129,5 +131,8 @@ namespace SixLabors.ImageSharp.Tests
             IImageFormat format = Configuration.FindFormatByFileExtension(extension);
             return format;
         }
+
+        internal static bool IsLinux =>
+            System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(OSPlatform.Linux);
     }
 }

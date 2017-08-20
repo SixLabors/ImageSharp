@@ -9,6 +9,8 @@ using System.IO;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats;
 
+using PixelFormat = System.Drawing.Imaging.PixelFormat;
+
 namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
 {
     public class SystemDrawingReferenceDecoder : IImageDecoder
@@ -20,9 +22,14 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
         {
             using (var sourceBitmap = new System.Drawing.Bitmap(stream))
             {
-                if (sourceBitmap.PixelFormat == System.Drawing.Imaging.PixelFormat.Format32bppArgb)
+                if (sourceBitmap.PixelFormat == PixelFormat.Format32bppArgb)
                 {
-                    return SystemDrawingBridge.FromSystemDrawingBitmap<TPixel>(sourceBitmap);
+                    return SystemDrawingBridge.FromFromArgb32SystemDrawingBitmap<TPixel>(sourceBitmap);
+                }
+
+                if (sourceBitmap.PixelFormat == PixelFormat.Format24bppRgb)
+                {
+                    
                 }
 
                 using (var convertedBitmap = new System.Drawing.Bitmap(
@@ -39,7 +46,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
 
                         g.DrawImage(sourceBitmap, 0, 0, sourceBitmap.Width, sourceBitmap.Height);
                     }
-                    return SystemDrawingBridge.FromSystemDrawingBitmap<TPixel>(convertedBitmap);
+                    return SystemDrawingBridge.FromFromArgb32SystemDrawingBitmap<TPixel>(convertedBitmap);
                 }
             }
         }

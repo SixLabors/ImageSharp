@@ -1,6 +1,8 @@
 namespace SixLabors.ImageSharp.Tests
 {
+    using SixLabors.ImageSharp.Formats;
     using SixLabors.ImageSharp.PixelFormats;
+    using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
     using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 
     using Xunit;
@@ -32,16 +34,71 @@ namespace SixLabors.ImageSharp.Tests
 
         [Theory]
         [WithBlankImages(1, 1, PixelTypes.Rgba32 | PixelTypes.Bgra32)]
-        public void FromSystemDrawingBitmap<TPixel>(TestImageProvider<TPixel> dummyProvider)
+        public void FromFromArgb32SystemDrawingBitmap<TPixel>(TestImageProvider<TPixel> dummyProvider)
             where TPixel : struct, IPixel<TPixel>
         {
             string path = TestFile.GetInputFileFullPath(TestImages.Png.Splash);
 
             using (var sdBitmap = new System.Drawing.Bitmap(path))
             {
-                using (Image<TPixel> image = SystemDrawingBridge.FromSystemDrawingBitmap<TPixel>(sdBitmap))
+                using (Image<TPixel> image = SystemDrawingBridge.FromFromArgb32SystemDrawingBitmap<TPixel>(sdBitmap))
                 {
                     image.DebugSave(dummyProvider);
+                }
+            }
+        }
+
+        private static string SavePng<TPixel>(TestImageProvider<TPixel> provider, PngColorType pngColorType)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> sourceImage = provider.GetImage())
+            {
+                if (pngColorType != PngColorType.RgbWithAlpha)
+                {
+                    sourceImage.Mutate(c => c.Alpha(1));
+                }
+
+                var encoder = new PngEncoder() { PngColorType = pngColorType };
+                return provider.Utility.SaveTestOutputFile(sourceImage, "png", encoder);
+            }
+        }
+
+        [Theory]
+        [WithTestPatternImages(100, 100, PixelTypes.Rgba32)]
+        public void FromFromArgb32SystemDrawingBitmap2<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            string path = SavePng(provider, PngColorType.RgbWithAlpha);
+            
+            using (var sdBitmap = new System.Drawing.Bitmap(path))
+            {
+                using (Image<TPixel> original = provider.GetImage())
+                using (Image<TPixel> resaved = SystemDrawingBridge.FromFromArgb32SystemDrawingBitmap<TPixel>(sdBitmap))
+                {
+                    ImageComparer comparer = ImageComparer.Exact;
+                    comparer.VerifySimilarity(original, resaved);
+                }
+            }
+        }
+
+        [Theory(Skip = "Doesen't work yet :(")]
+        [WithTestPatternImages(100, 100, PixelTypes.Rgba32)]
+        public void FromFromRgb24SystemDrawingBitmap2<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            string path = SavePng(provider, PngColorType.Rgb);
+
+            using (Image<TPixel> original = provider.GetImage())
+            {
+                original.Mutate(c => c.Alpha(1));
+                using (var sdBitmap = new System.Drawing.Bitmap(path))
+                {
+                    using (Image<TPixel> resaved = SystemDrawingBridge.FromFromRgb24SystemDrawingBitmap<TPixel>(sdBitmap))
+                    {
+                        resaved.Mutate(c => c.Alpha(1));
+                        ImageComparer comparer = ImageComparer.Exact;
+                        comparer.VerifySimilarity(original, resaved);
+                    }
                 }
             }
         }

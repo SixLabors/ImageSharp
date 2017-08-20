@@ -24,6 +24,10 @@
 
         public float? TotalNormalizedDifference { get; }
 
+        public string DifferencePercentage => this.TotalNormalizedDifference.HasValue
+                                                  ? $"{this.TotalNormalizedDifference.Value * 100:0.0000}%"
+                                                  : "?";
+
         public IImageBase ExpectedImage { get; }
 
         public IImageBase ActualImage { get; }
@@ -42,7 +46,7 @@
             var sb = new StringBuilder();
             if (this.TotalNormalizedDifference.HasValue)
             {
-                sb.AppendLine($"Total difference: {this.TotalNormalizedDifference.Value * 100:0.0000}%");
+                sb.AppendLine($"Total difference: {this.DifferencePercentage}");
             }
             int max = Math.Min(5, this.Differences.Length);
 

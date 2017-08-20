@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Threading.Tasks;
+
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
@@ -12,23 +12,15 @@ namespace SixLabors.ImageSharp.Processing
     /// Allows the application of processors to images.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal abstract class CloningImageProcessor<TPixel> : IImageProcessor<TPixel>, ICloningImageProcessor<TPixel>
+    internal abstract class CloningImageProcessor<TPixel> : ICloningImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        /// <inheritdoc/>
-        public virtual ParallelOptions ParallelOptions { get; set; }
-
         /// <inheritdoc/>
         public virtual bool Compand { get; set; } = false;
 
         /// <inheritdoc/>
         public Image<TPixel> CloneAndApply(Image<TPixel> source, Rectangle sourceRectangle)
         {
-            if (this.ParallelOptions == null)
-            {
-                this.ParallelOptions = source.Configuration.ParallelOptions;
-            }
-
             try
             {
                 Image<TPixel> clone = this.CreateDestination(source, sourceRectangle);

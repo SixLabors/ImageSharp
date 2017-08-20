@@ -95,7 +95,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                 Parallel.For(
                     minY,
                     maxY,
-                    this.ParallelOptions,
+                    source.Configuration.ParallelOptions,
                     y =>
                     {
                         // Y coordinates of source points
@@ -124,7 +124,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                 Parallel.For(
                     0,
                     sourceRectangle.Bottom,
-                    this.ParallelOptions,
+                    source.Configuration.ParallelOptions,
                     y =>
                         {
                             // TODO: Without Parallel.For() this buffer object could be reused:
@@ -157,7 +157,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                 Parallel.For(
                     minY,
                     maxY,
-                    this.ParallelOptions,
+                    source.Configuration.ParallelOptions,
                     y =>
                     {
                         // Ensure offsets are normalised for cropping and padding.

@@ -5,8 +5,6 @@ using System;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
 {
-    using SixLabors.ImageSharp.Memory;
-
     /// <summary>
     /// Represent a single jpeg frame
     /// </summary>
@@ -100,6 +98,5 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                 component.Init();
             }
         }
-
     }
 }

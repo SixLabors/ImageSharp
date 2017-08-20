@@ -2,27 +2,36 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
 {
-    using System.Runtime.CompilerServices;
-
     /// <summary>
     /// Represents a single frame component
     /// </summary>
     internal class FrameComponent : IDisposable
     {
-        #pragma warning disable SA1401 // Fields should be private
+#pragma warning disable SA1401 // Fields should be private
+
+        public FrameComponent(Frame frame, byte id, int horizontalFactor, int verticalFactor, byte quantizationIdentifier)
+        {
+            this.Frame = frame;
+            this.Id = id;
+            this.HorizontalFactor = horizontalFactor;
+            this.VerticalFactor = verticalFactor;
+            this.QuantizationIdentifier = quantizationIdentifier;
+        }
+
         /// <summary>
         /// Gets the component Id
         /// </summary>
         public byte Id { get; }
 
         /// <summary>
-        /// TODO: What does pred stand for?
+        /// Gets or sets Pred TODO: What does pred stand for?
         /// </summary>
-        public int Pred;
+        public int Pred { get; set; }
 
         /// <summary>
         /// Gets the horizontal sampling factor.
@@ -40,44 +49,35 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         public byte QuantizationIdentifier { get; }
 
         /// <summary>
-        /// Gets or sets the block data
+        /// Gets the block data
         /// </summary>
-        public Buffer<short> BlockData;
+        public Buffer<short> BlockData { get; private set; }
 
         /// <summary>
-        /// Gets or sets the number of blocks per line
+        /// Gets the number of blocks per line
         /// </summary>
-        public int BlocksPerLine;
+        public int BlocksPerLine { get; private set; }
 
         /// <summary>
-        /// Gets or sets the number of blocks per column
+        /// Gets the number of blocks per column
         /// </summary>
-        public int BlocksPerColumn;
+        public int BlocksPerColumn { get; private set; }
 
         /// <summary>
-        /// Gets the index for the DC Huffman table
+        /// Gets or sets the index for the DC Huffman table
         /// </summary>
-        public int DCHuffmanTableId;
+        public int DCHuffmanTableId { get; set; }
 
         /// <summary>
-        /// Gets the index for the AC Huffman table
+        /// Gets or sets the index for the AC Huffman table
         /// </summary>
-        public int ACHuffmanTableId;
+        public int ACHuffmanTableId { get; set; }
 
-        internal int BlocksPerLineForMcu;
+        internal int BlocksPerLineForMcu { get; private set; }
 
-        internal int BlocksPerColumnForMcu;
+        internal int BlocksPerColumnForMcu { get; private set; }
 
         public Frame Frame { get; }
-
-        public FrameComponent(Frame frame, byte id, int horizontalFactor, int verticalFactor, byte quantizationIdentifier)
-        {
-            this.Frame = frame;
-            this.Id = id;
-            this.HorizontalFactor = horizontalFactor;
-            this.VerticalFactor = verticalFactor;
-            this.QuantizationIdentifier = quantizationIdentifier;
-        }
 
         /// <inheritdoc/>
         public void Dispose()

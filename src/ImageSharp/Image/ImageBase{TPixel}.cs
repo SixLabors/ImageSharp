@@ -186,7 +186,7 @@ namespace SixLabors.ImageSharp
         /// <returns>A new items which is a clone of the original.</returns>
         public ImageBase<TPixel> Clone()
         {
-            return this.CloneInternal();
+            return this.CloneImageBase();
         }
 
         /// <inheritdoc />
@@ -266,7 +266,7 @@ namespace SixLabors.ImageSharp
         /// Clones the image
         /// </summary>
         /// <returns>A new items which is a clone of the original.</returns>
-        protected abstract ImageBase<TPixel> CloneInternal();
+        protected abstract ImageBase<TPixel> CloneImageBase();
 
         /// <summary>
         /// Copies the properties from the other <see cref="IImageBase"/>.

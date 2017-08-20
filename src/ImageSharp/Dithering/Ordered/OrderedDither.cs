@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Dithering.Ordered
     /// Applies error diffusion based dithering using the 4x4 ordered dithering matrix.
     /// <see href="https://en.wikipedia.org/wiki/Ordered_dithering"/>
     /// </summary>
-    public sealed class Ordered : OrderedDither4x4
+    public sealed class OrderedDither : OrderedDither4x4
     {
         /// <summary>
         /// The threshold matrix.
@@ -25,9 +25,9 @@ namespace SixLabors.ImageSharp.Dithering.Ordered
             };
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Ordered"/> class.
+        /// Initializes a new instance of the <see cref="OrderedDither"/> class.
         /// </summary>
-        public Ordered()
+        public OrderedDither()
             : base(ThresholdMatrix)
         {
         }

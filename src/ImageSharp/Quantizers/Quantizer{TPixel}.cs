@@ -42,7 +42,7 @@ namespace SixLabors.ImageSharp.Quantizers
         public bool Dither { get; set; } = true;
 
         /// <inheritdoc />
-        public IErrorDiffuser DitherType { get; set; } = new SierraLite();
+        public IErrorDiffuser DitherType { get; set; } = new SierraLiteDiffuser();
 
         /// <inheritdoc/>
         public virtual QuantizedImage<TPixel> Quantize(ImageBase<TPixel> image, int maxColors)

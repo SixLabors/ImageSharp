@@ -6,27 +6,26 @@ using SixLabors.ImageSharp.Memory;
 namespace SixLabors.ImageSharp.Dithering
 {
     /// <summary>
-    /// Applies error diffusion based dithering using the Atkinson image dithering algorithm.
+    /// Applies error diffusion based dithering using the SierraLite image dithering algorithm.
     /// <see href="http://www.efg2.com/Lab/Library/ImageProcessing/DHALF.TXT"/>
     /// </summary>
-    public sealed class Atkinson : ErrorDiffuser
+    public sealed class SierraLiteDiffuser : ErrorDiffuser
     {
         /// <summary>
         /// The diffusion matrix
         /// </summary>
-        private static readonly Fast2DArray<float> AtkinsonMatrix =
+        private static readonly Fast2DArray<float> SierraLiteMatrix =
             new float[,]
             {
-               { 0, 0, 1, 1 },
-               { 1, 1, 1, 0 },
-               { 0, 1, 0, 0 }
+               { 0, 0, 2 },
+               { 1, 1, 0 }
             };
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Atkinson"/> class.
+        /// Initializes a new instance of the <see cref="SierraLiteDiffuser"/> class.
         /// </summary>
-        public Atkinson()
-            : base(AtkinsonMatrix, 8)
+        public SierraLiteDiffuser()
+            : base(SierraLiteMatrix, 4)
         {
         }
     }

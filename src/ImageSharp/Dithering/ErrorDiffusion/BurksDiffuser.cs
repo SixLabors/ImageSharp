@@ -6,26 +6,26 @@ using SixLabors.ImageSharp.Memory;
 namespace SixLabors.ImageSharp.Dithering
 {
     /// <summary>
-    /// Applies error diffusion based dithering using the Floyd–Steinberg image dithering algorithm.
+    /// Applies error diffusion based dithering using the Burks image dithering algorithm.
     /// <see href="http://www.efg2.com/Lab/Library/ImageProcessing/DHALF.TXT"/>
     /// </summary>
-    public sealed class FloydSteinberg : ErrorDiffuser
+    public sealed class BurksDiffuser : ErrorDiffuser
     {
         /// <summary>
         /// The diffusion matrix
         /// </summary>
-        private static readonly Fast2DArray<float> FloydSteinbergMatrix =
+        private static readonly Fast2DArray<float> BurksMatrix =
             new float[,]
             {
-                { 0, 0, 7 },
-                { 3, 5, 1 }
+                { 0, 0, 0, 8, 4 },
+                { 2, 4, 8, 4, 2 }
             };
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="FloydSteinberg"/> class.
+        /// Initializes a new instance of the <see cref="BurksDiffuser"/> class.
         /// </summary>
-        public FloydSteinberg()
-            : base(FloydSteinbergMatrix, 16)
+        public BurksDiffuser()
+            : base(BurksMatrix, 32)
         {
         }
     }

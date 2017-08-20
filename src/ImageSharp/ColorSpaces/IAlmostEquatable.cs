@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
     /// </summary>
     /// <typeparam name="TPixel">The type of objects to compare.</typeparam>
     /// <typeparam name="TPrecision">The object specifying the type to specify precision with.</typeparam>
-    public interface IAlmostEquatable<in TPixel, in TPrecision>
+    internal interface IAlmostEquatable<in TPixel, in TPrecision>
         where TPrecision : struct, IComparable<TPrecision>
     {
         /// <summary>

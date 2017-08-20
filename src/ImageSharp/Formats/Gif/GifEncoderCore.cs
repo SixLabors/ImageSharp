@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using SixLabors.ImageSharp.IO;
+using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Quantizers;
 

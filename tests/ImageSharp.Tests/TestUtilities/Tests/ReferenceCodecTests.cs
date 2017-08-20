@@ -69,6 +69,8 @@ namespace SixLabors.ImageSharp.Tests
         public void FromFromArgb32SystemDrawingBitmap2<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
+            if (TestEnvironment.IsLinux) return;
+
             string path = SavePng(provider, PngColorType.RgbWithAlpha);
             
             using (var sdBitmap = new System.Drawing.Bitmap(path))

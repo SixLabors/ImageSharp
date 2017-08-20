@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
                     }
                 }
 
-                ImageComparer.Tolerant().EnsureProcessorChangesAreConstrained(source, image, bounds);
+                ImageComparer.Tolerant().VerifySimilarityIgnoreRegion(source, image, bounds);
             }
         }
     }

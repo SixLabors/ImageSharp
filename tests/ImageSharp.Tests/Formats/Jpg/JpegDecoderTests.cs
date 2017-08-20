@@ -43,7 +43,7 @@ namespace SixLabors.ImageSharp.Tests
 
         // TODO: We should make this comparer less tolerant ...
         private static readonly ImageComparer VeryTolerantJpegComparer =
-            ImageComparer.Tolerant(0.005f, pixelThresholdHammingDistance: 4);
+            ImageComparer.Tolerant(0.005f, perPixelManhattanThreshold: 4);
 
         public JpegDecoderTests(ITestOutputHelper output)
         {

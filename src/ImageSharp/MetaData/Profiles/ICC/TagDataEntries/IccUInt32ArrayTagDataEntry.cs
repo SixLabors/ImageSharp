@@ -4,7 +4,7 @@
 using System;
 using System.Linq;
 
-namespace SixLabors.ImageSharp
+namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 {
     /// <summary>
     /// This type represents an array of unsigned 32bit integers.

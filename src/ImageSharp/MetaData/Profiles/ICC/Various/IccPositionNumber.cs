@@ -3,7 +3,7 @@
 
 using System;
 
-namespace SixLabors.ImageSharp
+namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 {
     /// <summary>
     /// Position of an object within an ICC profile

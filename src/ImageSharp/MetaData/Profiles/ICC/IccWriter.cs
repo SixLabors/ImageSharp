@@ -5,7 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace SixLabors.ImageSharp
+namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 {
     /// <summary>
     /// Contains methods for writing ICC profiles.

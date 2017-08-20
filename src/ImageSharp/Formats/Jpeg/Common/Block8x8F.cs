@@ -289,7 +289,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         /// <param name="qtPtr">Qt pointer</param>
         /// <param name="unzigPtr">Unzig pointer</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe void UnZig(Block8x8F* blockPtr, Block8x8F* qtPtr, int* unzigPtr)
+        public static unsafe void UnZigAndQuantize(Block8x8F* blockPtr, Block8x8F* qtPtr, int* unzigPtr)
         {
             float* b = (float*)blockPtr;
             float* qtp = (float*)qtPtr;

@@ -88,7 +88,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// <param name="blockBufferOffset">The block buffer offset</param>
         /// <param name="computationBuffer">The computational buffer for holding temp values</param>
         /// <param name="quantizationTable">The quantization table</param>
-        public static void QuantizeAndInverse(ref FrameComponent component, int blockBufferOffset, ref Span<short> computationBuffer, ref Span<short> quantizationTable)
+        public static void QuantizeAndInverse(FrameComponent component, int blockBufferOffset, ref Span<short> computationBuffer, ref Span<short> quantizationTable)
         {
             Span<short> blockData = component.BlockData.Slice(blockBufferOffset);
             int v0, v1, v2, v3, v4, v5, v6, v7;
@@ -307,7 +307,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// <param name="blockBufferOffset">The block buffer offset</param>
         /// <param name="computationBuffer">The computational buffer for holding temp values</param>
         /// <param name="multiplierTable">The multiplier table</param>
-        public static void QuantizeAndInverseFast(ref FrameComponent component, int blockBufferOffset, ref Span<short> computationBuffer, ref Span<short> multiplierTable)
+        public static void QuantizeAndInverseFast(FrameComponent component, int blockBufferOffset, ref Span<short> computationBuffer, ref Span<short> multiplierTable)
         {
             Span<short> blockData = component.BlockData.Slice(blockBufferOffset);
             int p0, p1, p2, p3, p4, p5, p6, p7;

@@ -19,16 +19,6 @@ namespace SixLabors.ImageSharp
     public abstract class ImageBase<TPixel> : IImageBase<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        /// <summary>
-        /// Gets or sets the maximum allowable width in pixels.
-        /// </summary>
-        public const int MaxWidth = int.MaxValue;
-
-        /// <summary>
-        /// Gets or sets the maximum allowable height in pixels.
-        /// </summary>
-        public const int MaxHeight = int.MaxValue;
-
 #pragma warning disable SA1401 // Fields must be private
         /// <summary>
         /// The image pixels. Not private as Buffer2D requires an array in its constructor.

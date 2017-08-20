@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using System.Numerics;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -46,7 +45,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
             // The matrix is set up to preserve the luminance of the image.
             // See http://graficaobscura.com/matrix/index.html
             // Number are taken from https://msdn.microsoft.com/en-us/library/jj192162(v=vs.85).aspx
-            Matrix4x4 matrix4X4 = new Matrix4x4()
+            var matrix4X4 = new Matrix4x4
             {
                 M11 = lumR + (cosradians * oneMinusLumR) - (sinradians * lumR),
                 M12 = lumR - (cosradians * lumR) - (sinradians * 0.143F),

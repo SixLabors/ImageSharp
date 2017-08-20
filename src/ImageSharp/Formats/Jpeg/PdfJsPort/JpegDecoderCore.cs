@@ -38,19 +38,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
 
         private HuffmanTables acHuffmanTables;
 
-        internal Frame Frame;
-
         private ComponentBlocks components;
 
         private JpegPixelArea pixelArea;
 
         private ushort resetInterval;
-
-        internal int ImageWidth { get; private set; }
-
-        internal int ImageHeight { get; private set; }
-
-        internal int NumberOfComponents { get; private set; }
 
         /// <summary>
         /// Whether the image has a EXIF header
@@ -85,6 +77,26 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
             this.configuration = configuration ?? Configuration.Default;
             this.IgnoreMetadata = options.IgnoreMetadata;
         }
+
+        /// <summary>
+        /// Gets the frame
+        /// </summary>
+        public Frame Frame { get; private set; }
+
+        /// <summary>
+        /// Gets the image width
+        /// </summary>
+        public int ImageWidth { get; private set; }
+
+        /// <summary>
+        /// Gets the image height
+        /// </summary>
+        public int ImageHeight { get; private set; }
+
+        /// <summary>
+        /// Gets the number of components
+        /// </summary>
+        public int NumberOfComponents { get; private set; }
 
         /// <summary>
         /// Gets the input stream.

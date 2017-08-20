@@ -6,7 +6,7 @@ using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.MetaData.Profiles.Exif;
 using SixLabors.ImageSharp.MetaData.Profiles.Icc;
 
-namespace SixLabors.ImageSharp
+namespace SixLabors.ImageSharp.MetaData
 {
     /// <summary>
     /// Encapsulates the metadata of an image.

@@ -5,6 +5,8 @@ using System;
 using System.Numerics;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Drawing;
+using SixLabors.ImageSharp.Drawing.Brushes;
+using SixLabors.ImageSharp.Drawing.Brushes.Processors;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -77,7 +79,7 @@ namespace SixLabors.ImageSharp.Drawing.Processors
                     Parallel.For(
                     minY,
                     maxY,
-                    this.ParallelOptions,
+                    source.Configuration.ParallelOptions,
                     y =>
                     {
                         int offsetY = y - startY;

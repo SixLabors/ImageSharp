@@ -43,7 +43,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
                 image.Mutate(x => x.OilPaint(levels, brushSize, bounds));
                 image.DebugSave(provider, string.Join("-", levels, brushSize));
 
-                ImageComparer.Tolerant().EnsureProcessorChangesAreConstrained(source, image, bounds);
+                ImageComparer.Tolerant().VerifySimilarityIgnoreRegion(source, image, bounds);
             }
         }
     }

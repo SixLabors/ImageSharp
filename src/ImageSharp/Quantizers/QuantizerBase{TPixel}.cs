@@ -8,13 +8,13 @@ using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Dithering;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Quantizers
+namespace SixLabors.ImageSharp.Quantizers.Base
 {
     /// <summary>
     /// Encapsulates methods to calculate the color palette of an image.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    public abstract class Quantizer<TPixel> : IQuantizer<TPixel>
+    public abstract class QuantizerBase<TPixel> : IQuantizer<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp.Quantizers
         private readonly bool singlePass;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Quantizer{TPixel}"/> class.
+        /// Initializes a new instance of the <see cref="QuantizerBase{TPixel}"/> class.
         /// </summary>
         /// <param name="singlePass">
         /// If true, the quantization only needs to loop through the source pixels once
@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp.Quantizers
         /// only call the 'QuantizeImage' function. If two passes are required, the code will call 'InitialQuantizeImage'
         /// and then 'QuantizeImage'.
         /// </remarks>
-        protected Quantizer(bool singlePass)
+        protected QuantizerBase(bool singlePass)
         {
             this.singlePass = singlePass;
         }
@@ -42,7 +42,7 @@ namespace SixLabors.ImageSharp.Quantizers
         public bool Dither { get; set; } = true;
 
         /// <inheritdoc />
-        public IErrorDiffuser DitherType { get; set; } = new SierraLite();
+        public IErrorDiffuser DitherType { get; set; } = new SierraLiteDiffuser();
 
         /// <inheritdoc/>
         public virtual QuantizedImage<TPixel> Quantize(ImageBase<TPixel> image, int maxColors)

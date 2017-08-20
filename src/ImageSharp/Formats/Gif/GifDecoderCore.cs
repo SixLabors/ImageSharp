@@ -6,10 +6,11 @@ using System.Buffers;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text;
+using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
-namespace SixLabors.ImageSharp.Formats
+namespace SixLabors.ImageSharp.Formats.Gif
 {
     /// <summary>
     /// Performs the gif decoding operation.
@@ -520,7 +521,7 @@ namespace SixLabors.ImageSharp.Formats
         /// </summary>
         /// <param name="metaData">The meta data.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void SetFrameMetaData(IMetaData metaData)
+        private void SetFrameMetaData(IFrameMetaData metaData)
         {
             if (this.graphicsControlExtension != null)
             {

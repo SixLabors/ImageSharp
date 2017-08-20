@@ -3,7 +3,7 @@
 
 using System;
 
-namespace SixLabors.ImageSharp
+namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 {
     /// <summary>
     /// A placeholder <see cref="IccMultiProcessElement"/> (might be used for future ICC versions)

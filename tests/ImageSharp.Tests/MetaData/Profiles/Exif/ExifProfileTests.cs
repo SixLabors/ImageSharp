@@ -6,6 +6,8 @@ using System.Collections;
 using System.IO;
 using System.Linq;
 using System.Text;
+using SixLabors.ImageSharp.MetaData;
+using SixLabors.ImageSharp.MetaData.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
 

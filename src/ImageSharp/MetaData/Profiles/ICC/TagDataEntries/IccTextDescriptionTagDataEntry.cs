@@ -4,7 +4,7 @@
 using System;
 using System.Globalization;
 
-namespace SixLabors.ImageSharp
+namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 {
     /// <summary>
     /// The TextDescriptionType contains three types of text description.

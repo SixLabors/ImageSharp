@@ -79,7 +79,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                 Parallel.For(
                     minY,
                     maxY,
-                    this.ParallelOptions,
+                    source.Configuration.ParallelOptions,
                     y =>
                     {
                         Span<TPixel> destination = source.GetRowSpan(y - startY).Slice(minX - startX, width);

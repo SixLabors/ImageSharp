@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Image
     using ImageSharp.Formats;
     using ImageSharp.Formats.Jpeg.GolangPort;
     using ImageSharp.PixelFormats;
-
+    using SixLabors.ImageSharp.Formats.Jpeg;
     using CoreImage = ImageSharp.Image;
 
     [Config(typeof(Config.Short))]

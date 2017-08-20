@@ -15,6 +15,7 @@ namespace SixLabors.ImageSharp.Tests
     using System.Linq;
 
     using SixLabors.ImageSharp.Formats;
+    using SixLabors.ImageSharp.Formats.Jpeg;
     using SixLabors.ImageSharp.Formats.Jpeg.GolangPort;
     using SixLabors.ImageSharp.PixelFormats;
     using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
@@ -44,7 +45,7 @@ namespace SixLabors.ImageSharp.Tests
 
         // TODO: We should make this comparer less tolerant ...
         private static readonly ImageComparer VeryTolerantJpegComparer =
-            ImageComparer.Tolerant(0.005f, pixelThresholdHammingDistance: 4);
+            ImageComparer.Tolerant(0.005f, perPixelManhattanThreshold: 4);
 
         // BUG: PDF.js output is wrong on spectral level!
         private static readonly ImageComparer PdfJsProgressiveComparer =

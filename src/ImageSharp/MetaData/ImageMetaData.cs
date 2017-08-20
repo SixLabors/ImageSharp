@@ -3,13 +3,16 @@
 
 using System.Collections.Generic;
 using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Gif;
+using SixLabors.ImageSharp.MetaData.Profiles.Exif;
+using SixLabors.ImageSharp.MetaData.Profiles.Icc;
 
-namespace SixLabors.ImageSharp
+namespace SixLabors.ImageSharp.MetaData
 {
     /// <summary>
     /// Encapsulates the metadata of an image.
     /// </summary>
-    public sealed class ImageMetaData : IMetaData
+    public sealed class ImageMetaData : IFrameMetaData
     {
         /// <summary>
         /// The default horizontal resolution value (dots per inch) in x direction.

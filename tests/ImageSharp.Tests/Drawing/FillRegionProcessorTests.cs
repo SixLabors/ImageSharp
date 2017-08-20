@@ -10,6 +10,7 @@ using SixLabors.ImageSharp.Drawing.Processors;
 using SixLabors.ImageSharp.PixelFormats;
 using Moq;
 using Xunit;
+using SixLabors.ImageSharp.Drawing.Brushes;
 
 namespace SixLabors.ImageSharp.Tests.Drawing
 {

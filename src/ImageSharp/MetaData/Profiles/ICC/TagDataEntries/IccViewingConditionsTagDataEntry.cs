@@ -4,7 +4,7 @@
 using System;
 using System.Numerics;
 
-namespace SixLabors.ImageSharp
+namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 {
     /// <summary>
     /// This type represents a set of viewing condition parameters.

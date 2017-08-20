@@ -3,6 +3,7 @@
 
 using System.Numerics;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.MetaData.Profiles.Icc;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Icc

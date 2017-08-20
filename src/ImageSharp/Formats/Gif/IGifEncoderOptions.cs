@@ -8,7 +8,7 @@ using System.Text;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Quantizers;
 
-namespace SixLabors.ImageSharp.Formats
+namespace SixLabors.ImageSharp.Formats.Gif
 {
     /// <summary>
     /// The configuration options used for encoding gifs

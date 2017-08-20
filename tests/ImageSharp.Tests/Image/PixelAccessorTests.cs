@@ -42,7 +42,7 @@ namespace SixLabors.ImageSharp.Tests
         [WithMemberFactory(nameof(CreateTestImage), PixelTypes.All, ComponentOrder.Zyx)]
         [WithMemberFactory(nameof(CreateTestImage), PixelTypes.All, ComponentOrder.Xyzw)]
         [WithMemberFactory(nameof(CreateTestImage), PixelTypes.All, ComponentOrder.Zyxw)]
-        public void CopyTo_Then_CopyFrom_OnFullImageRect<TPixel>(TestImageProvider<TPixel> provider, ComponentOrder order)
+        internal void CopyTo_Then_CopyFrom_OnFullImageRect<TPixel>(TestImageProvider<TPixel> provider, ComponentOrder order)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> src = provider.GetImage())
@@ -72,7 +72,7 @@ namespace SixLabors.ImageSharp.Tests
         [WithBlankImages(16, 16, PixelTypes.All, ComponentOrder.Zyx)]
         [WithBlankImages(16, 16, PixelTypes.All, ComponentOrder.Xyzw)]
         [WithBlankImages(16, 16, PixelTypes.All, ComponentOrder.Zyxw)]
-        public void CopyToThenCopyFromWithOffset<TPixel>(TestImageProvider<TPixel> provider, ComponentOrder order)
+        internal void CopyToThenCopyFromWithOffset<TPixel>(TestImageProvider<TPixel> provider, ComponentOrder order)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> destImage = new Image<TPixel>(8, 8))

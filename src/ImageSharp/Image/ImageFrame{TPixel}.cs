@@ -4,6 +4,7 @@
 using System;
 using System.Numerics;
 using System.Threading.Tasks;
+using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp
@@ -136,7 +137,7 @@ namespace SixLabors.ImageSharp
         }
 
         /// <inheritdoc/>
-        protected override ImageBase<TPixel> CloneInternal()
+        protected override ImageBase<TPixel> CloneImageBase()
         {
             return this.Clone();
         }

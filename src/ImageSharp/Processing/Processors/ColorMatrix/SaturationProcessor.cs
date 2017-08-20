@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using System.Numerics;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -39,7 +38,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
             float saturationComplementG = 0.6094f * saturationComplement;
             float saturationComplementB = 0.0820f * saturationComplement;
 
-            Matrix4x4 matrix4X4 = new Matrix4x4
+            var matrix4X4 = new Matrix4x4
             {
                 M11 = saturationComplementR + saturationFactor,
                 M12 = saturationComplementR,

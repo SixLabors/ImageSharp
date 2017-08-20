@@ -7,7 +7,7 @@ using System.IO;
 using System.Text;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Formats
+namespace SixLabors.ImageSharp.Formats.Png
 {
     /// <summary>
     /// The optioas for decoding png images

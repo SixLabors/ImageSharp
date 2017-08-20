@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Quantizers.Base;
 
 namespace SixLabors.ImageSharp.Quantizers
 {
@@ -13,7 +14,7 @@ namespace SixLabors.ImageSharp.Quantizers
     /// <see href="http://msdn.microsoft.com/en-us/library/aa479306.aspx"/>
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    public sealed class PaletteQuantizer<TPixel> : Quantizer<TPixel>
+    public sealed class PaletteQuantizer<TPixel> : QuantizerBase<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
@@ -99,7 +100,7 @@ namespace SixLabors.ImageSharp.Quantizers
                     if (this.Dither)
                     {
                         // Apply the dithering matrix. We have to reapply the value now as the original has changed.
-                        this.DitherType.Dither(source, sourcePixel, transformedPixel, x, y, width, height, false);
+                        this.DitherType.Dither(source, sourcePixel, transformedPixel, x, y, 0, 0, width, height, false);
                     }
 
                     output[(y * source.Width) + x] = pixelValue;

@@ -4,7 +4,7 @@
 using System;
 using System.Runtime.CompilerServices;
 
-namespace SixLabors.ImageSharp.Formats
+namespace SixLabors.ImageSharp.Formats.Png.Filters
 {
     /// <summary>
     /// The Paeth filter computes a simple linear function of the three neighboring pixels (left, above, upper left),

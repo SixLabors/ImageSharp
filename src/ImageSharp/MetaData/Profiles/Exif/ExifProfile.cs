@@ -7,7 +7,7 @@ using System.Collections.ObjectModel;
 using System.IO;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp
+namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
 {
     /// <summary>
     /// Represents an EXIF profile providing access to the collection of values.

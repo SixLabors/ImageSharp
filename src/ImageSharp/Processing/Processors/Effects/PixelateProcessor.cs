@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using SixLabors.ImageSharp.Common;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
@@ -71,7 +72,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
 
             Parallel.ForEach(
                 range,
-                this.ParallelOptions,
+                source.Configuration.ParallelOptions,
                 y =>
                     {
                         int offsetY = y - startY;

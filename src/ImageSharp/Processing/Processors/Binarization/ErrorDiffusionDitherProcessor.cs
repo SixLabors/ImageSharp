@@ -61,39 +61,21 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <inheritdoc/>
         protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
         {
-            int startY = sourceRectangle.Y;
-            int endY = sourceRectangle.Bottom;
-            int startX = sourceRectangle.X;
-            int endX = sourceRectangle.Right;
+            var interest = Rectangle.Intersect(sourceRectangle, source.Bounds());
+            int startY = interest.Y;
+            int endY = interest.Bottom;
+            int startX = interest.X;
+            int endX = interest.Right;
 
-            // Align start/end positions.
-            int minX = Math.Max(0, startX);
-            int maxX = Math.Min(source.Width, endX);
-            int minY = Math.Max(0, startY);
-            int maxY = Math.Min(source.Height, endY);
-
-            // Reset offset if necessary.
-            if (minX > 0)
+            for (int y = startY; y < endY; y++)
             {
-                startX = 0;
-            }
+                Span<TPixel> row = source.GetRowSpan(y);
 
-            if (minY > 0)
-            {
-                startY = 0;
-            }
-
-            for (int y = minY; y < maxY; y++)
-            {
-                int offsetY = y - startY;
-                Span<TPixel> row = source.GetRowSpan(offsetY);
-
-                for (int x = minX; x < maxX; x++)
+                for (int x = startX; x < endX; x++)
                 {
-                    int offsetX = x - startX;
-                    TPixel sourceColor = row[offsetX];
+                    TPixel sourceColor = row[x];
                     TPixel transformedColor = sourceColor.ToVector4().X >= this.Threshold ? this.UpperColor : this.LowerColor;
-                    this.Diffuser.Dither(source, sourceColor, transformedColor, offsetX, offsetY, maxX, maxY);
+                    this.Diffuser.Dither(source, sourceColor, transformedColor, x, y, startX, startY, endX, endY);
                 }
             }
         }

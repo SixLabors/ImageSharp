@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.MetaData;
 
 namespace SixLabors.ImageSharp
 {

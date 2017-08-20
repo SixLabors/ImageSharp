@@ -3,7 +3,7 @@
 
 using System;
 
-namespace SixLabors.ImageSharp
+namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
 {
     /// <summary>
     /// Specifies which parts will be written when the profile is added to an image.

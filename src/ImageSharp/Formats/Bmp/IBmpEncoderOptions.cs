@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Formats
+namespace SixLabors.ImageSharp.Formats.Bmp
 {
     /// <summary>
     /// Configuration options for use during bmp encoding

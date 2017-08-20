@@ -19,16 +19,6 @@ namespace SixLabors.ImageSharp
     public abstract class ImageBase<TPixel> : IImageBase<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        /// <summary>
-        /// Gets or sets the maximum allowable width in pixels.
-        /// </summary>
-        public const int MaxWidth = int.MaxValue;
-
-        /// <summary>
-        /// Gets or sets the maximum allowable height in pixels.
-        /// </summary>
-        public const int MaxHeight = int.MaxValue;
-
 #pragma warning disable SA1401 // Fields must be private
         /// <summary>
         /// The image pixels. Not private as Buffer2D requires an array in its constructor.
@@ -186,7 +176,7 @@ namespace SixLabors.ImageSharp
         /// <returns>A new items which is a clone of the original.</returns>
         public ImageBase<TPixel> Clone()
         {
-            return this.CloneInternal();
+            return this.CloneImageBase();
         }
 
         /// <inheritdoc />
@@ -266,7 +256,7 @@ namespace SixLabors.ImageSharp
         /// Clones the image
         /// </summary>
         /// <returns>A new items which is a clone of the original.</returns>
-        protected abstract ImageBase<TPixel> CloneInternal();
+        protected abstract ImageBase<TPixel> CloneImageBase();
 
         /// <summary>
         /// Copies the properties from the other <see cref="IImageBase"/>.
@@ -282,14 +272,6 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
-        /// Releases any unmanaged resources from the inheriting class.
-        /// </summary>
-        protected virtual void ReleaseUnmanagedResources()
-        {
-            // TODO release unmanaged resources here
-        }
-
-        /// <summary>
         /// Disposes the object and frees resources for the Garbage Collector.
         /// </summary>
         /// <param name="disposing">If true, the object gets disposed.</param>
@@ -299,8 +281,6 @@ namespace SixLabors.ImageSharp
             {
                 return;
             }
-
-            this.ReleaseUnmanagedResources();
 
             if (disposing)
             {

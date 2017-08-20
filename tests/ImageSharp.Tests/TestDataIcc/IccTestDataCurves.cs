@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
+using SixLabors.ImageSharp.MetaData.Profiles.Icc;
 
 namespace SixLabors.ImageSharp.Tests
 {

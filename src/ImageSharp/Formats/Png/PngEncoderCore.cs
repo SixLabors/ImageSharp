@@ -6,12 +6,14 @@ using System.Buffers;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Formats.Png.Filters;
+using SixLabors.ImageSharp.Formats.Png.Zlib;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Quantizers;
 using static SixLabors.ImageSharp.ComparableExtensions;
 
-namespace SixLabors.ImageSharp.Formats
+namespace SixLabors.ImageSharp.Formats.Png
 {
     /// <summary>
     /// Performs the png encoding operation.

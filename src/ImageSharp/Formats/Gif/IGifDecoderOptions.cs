@@ -7,7 +7,7 @@ using System.IO;
 using System.Text;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Formats
+namespace SixLabors.ImageSharp.Formats.Gif
 {
     /// <summary>
     /// Decoder for generating an image out of a gif encoded stream.

@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                 Parallel.For(
                     0,
                     height,
-                    this.ParallelOptions,
+                    source.Configuration.ParallelOptions,
                     y =>
                     {
                         Span<TPixel> targetRow = targetPixels.GetRowSpan(y);
@@ -135,7 +135,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                     Parallel.For(
                         0,
                         height,
-                        this.ParallelOptions,
+                        source.Configuration.ParallelOptions,
                         y =>
                         {
                             for (int x = 0; x < width; x++)
@@ -166,7 +166,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                 Parallel.For(
                     0,
                     height,
-                    this.ParallelOptions,
+                    source.Configuration.ParallelOptions,
                     y =>
                     {
                         Span<TPixel> sourceRow = source.GetRowSpan(y);
@@ -196,7 +196,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                 Parallel.For(
                     0,
                     height,
-                    this.ParallelOptions,
+                    source.Configuration.ParallelOptions,
                     y =>
                     {
                         Span<TPixel> sourceRow = source.GetRowSpan(y);

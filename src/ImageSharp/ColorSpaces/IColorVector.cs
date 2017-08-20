@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
     /// <summary>
     /// Color represented as a vector in its color space
     /// </summary>
-    public interface IColorVector
+    internal interface IColorVector
     {
         /// <summary>
         /// Gets the vector representation of the color

@@ -12,8 +12,9 @@ namespace SixLabors.ImageSharp.Benchmarks.Image
     using BenchmarkDotNet.Attributes;
 
     using SixLabors.ImageSharp.Formats;
+    using SixLabors.ImageSharp.Formats.Png;
     using SixLabors.ImageSharp.Quantizers;
-
+    using SixLabors.ImageSharp.Quantizers.Base;
     using CoreImage = ImageSharp.Image;
 
     public class EncodePng : BenchmarkBase
@@ -66,8 +67,8 @@ namespace SixLabors.ImageSharp.Benchmarks.Image
         {
             using (MemoryStream memoryStream = new MemoryStream())
             {
-                Quantizer<Rgba32> quantizer = this.UseOctreeQuantizer
-                ? (Quantizer<Rgba32>)
+                QuantizerBase<Rgba32> quantizer = this.UseOctreeQuantizer
+                ? (QuantizerBase<Rgba32>)
                 new OctreeQuantizer<Rgba32>()
                 : new PaletteQuantizer<Rgba32>();
 

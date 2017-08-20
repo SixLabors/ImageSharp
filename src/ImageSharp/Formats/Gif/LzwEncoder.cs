@@ -5,7 +5,7 @@ using System;
 using System.Buffers;
 using System.IO;
 
-namespace SixLabors.ImageSharp.Formats
+namespace SixLabors.ImageSharp.Formats.Gif
 {
     /// <summary>
     /// Encodes and compresses the image data using dynamic Lempel-Ziv compression.

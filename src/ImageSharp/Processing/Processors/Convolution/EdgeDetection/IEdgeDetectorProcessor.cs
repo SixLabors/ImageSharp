@@ -4,7 +4,7 @@
 using System;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Processing.Processors
+namespace SixLabors.ImageSharp.Processing
 {
     /// <summary>
     /// Provides properties and methods allowing the detection of edges within an image.

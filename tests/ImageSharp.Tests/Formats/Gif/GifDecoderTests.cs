@@ -3,6 +3,7 @@
 
 using System.Text;
 using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 using Xunit;

@@ -42,6 +42,11 @@ namespace SixLabors.ImageSharp.Processing.Processors
         {
         }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether to compress or expand individual pixel color values on processing.
+        /// </summary>
+        public bool Compand { get; set; }
+
         /// <inheritdoc/>
         protected override Image<TPixel> CreateDestination(Image<TPixel> source, Rectangle sourceRectangle)
         {
@@ -95,7 +100,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                 Parallel.For(
                     minY,
                     maxY,
-                    this.ParallelOptions,
+                    source.Configuration.ParallelOptions,
                     y =>
                     {
                         // Y coordinates of source points
@@ -124,7 +129,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                 Parallel.For(
                     0,
                     sourceRectangle.Bottom,
-                    this.ParallelOptions,
+                    source.Configuration.ParallelOptions,
                     y =>
                         {
                             // TODO: Without Parallel.For() this buffer object could be reused:
@@ -157,7 +162,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                 Parallel.For(
                     minY,
                     maxY,
-                    this.ParallelOptions,
+                    source.Configuration.ParallelOptions,
                     y =>
                     {
                         // Ensure offsets are normalised for cropping and padding.

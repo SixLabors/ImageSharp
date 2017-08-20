@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                 Parallel.For(
                     0,
                     height,
-                    this.ParallelOptions,
+                    source.Configuration.ParallelOptions,
                     y =>
                         {
                             Span<TPixel> targetRow = targetPixels.GetRowSpan(y);

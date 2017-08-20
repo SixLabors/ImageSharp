@@ -4,12 +4,12 @@
 using System;
 using System.Collections.Generic;
 
-namespace SixLabors.ImageSharp
+namespace SixLabors.ImageSharp.Common
 {
     /// <summary>
     /// Encapsulates a series of time saving extension methods to the <see cref="T:System.Collections.IEnumerable"/> interface.
     /// </summary>
-    public static class EnumerableExtensions
+    internal static class EnumerableExtensions
     {
         /// <summary>
         /// Generates a sequence of integral numbers within a specified range.

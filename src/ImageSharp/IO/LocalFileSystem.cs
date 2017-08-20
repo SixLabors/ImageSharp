@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.IO
     /// <summary>
     /// A wrapper around the local File apis.
     /// </summary>
-    public class LocalFileSystem : IFileSystem
+    internal class LocalFileSystem : IFileSystem
     {
         /// <inheritdoc/>
         public Stream OpenRead(string path)

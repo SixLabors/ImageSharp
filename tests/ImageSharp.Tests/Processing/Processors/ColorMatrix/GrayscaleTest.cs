@@ -54,7 +54,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.ColorMatrix
                 image.Mutate(x => x.Grayscale(value, bounds));
                 image.DebugSave(provider, value.ToString());
 
-                ImageComparer.Tolerant().EnsureProcessorChangesAreConstrained(source, image, bounds);
+                ImageComparer.Tolerant().VerifySimilarityIgnoreRegion(source, image, bounds);
             }
         }
     }

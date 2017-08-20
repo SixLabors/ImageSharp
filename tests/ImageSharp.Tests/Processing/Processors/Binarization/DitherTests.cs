@@ -1,8 +1,7 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.Dithering;
-using SixLabors.ImageSharp.Dithering.Ordered;
+using SixLabors.ImageSharp.Dithering; 
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
@@ -23,26 +22,26 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
 
         public static readonly TheoryData<string, IOrderedDither> Ditherers = new TheoryData<string, IOrderedDither>
         {
-            { "Ordered", new Ordered() },
-            { "Bayer", new Bayer() }
+            { "Ordered", new OrderedDither() },
+            { "Bayer", new BayerDither() }
         };
 
         public static readonly TheoryData<string, IErrorDiffuser> ErrorDiffusers = new TheoryData<string, IErrorDiffuser>
         {
-            { "Atkinson", new Atkinson() },
-            { "Burks", new Burks() },
-            { "FloydSteinberg", new FloydSteinberg() },
-            { "JarvisJudiceNinke", new JarvisJudiceNinke() },
-            { "Sierra2", new Sierra2() },
-            { "Sierra3", new Sierra3() },
-            { "SierraLite", new SierraLite() },
-            { "Stucki", new Stucki() },
+            { "Atkinson", new AtkinsonDiffuser() },
+            { "Burks", new BurksDiffuser() },
+            { "FloydSteinberg", new FloydSteinbergDiffuser() },
+            { "JarvisJudiceNinke", new JarvisJudiceNinkeDiffuser() },
+            { "Sierra2", new Sierra2Diffuser() },
+            { "Sierra3", new Sierra3Diffuser() },
+            { "SierraLite", new SierraLiteDiffuser() },
+            { "Stucki", new StuckiDiffuser() },
         };
 
 
-        private static IOrderedDither DefaultDitherer => new Ordered();
+        private static IOrderedDither DefaultDitherer => new OrderedDither();
 
-        private static IErrorDiffuser DefaultErrorDiffuser => new Atkinson();
+        private static IErrorDiffuser DefaultErrorDiffuser => new AtkinsonDiffuser();
 
         [Theory]
         [WithFileCollection(nameof(CommonTestImages), nameof(Ditherers), DefaultPixelType)]
@@ -107,12 +106,11 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
                 image.Mutate(x => x.Dither(DefaultDitherer, bounds));
                 image.DebugSave(provider);
 
-                ImageComparer.Tolerant().EnsureProcessorChangesAreConstrained(source, image, bounds);
+                ImageComparer.Tolerant().VerifySimilarityIgnoreRegion(source, image, bounds);
             }
         }
 
-        // TODO: Does not work because of a bug! Fix it!
-        [Theory(Skip = "TODO: Does not work because of a bug! Fix it!")]
+        [Theory]
         [WithFile(TestImages.Png.CalliphoraPartial, DefaultPixelType)]
         public void ApplyDiffusionFilterInBox<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
@@ -125,7 +123,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
                 image.Mutate(x => x.Dither(DefaultErrorDiffuser, .5F, bounds));
                 image.DebugSave(provider);
 
-                ImageComparer.Tolerant().EnsureProcessorChangesAreConstrained(source, image, bounds);
+                ImageComparer.Tolerant().VerifySimilarityIgnoreRegion(source, image, bounds);
             }
         }
     }

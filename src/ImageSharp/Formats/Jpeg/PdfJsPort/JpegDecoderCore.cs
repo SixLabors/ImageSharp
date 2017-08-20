@@ -16,6 +16,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
     /// </summary>
     internal sealed class JpegDecoderCore : IDisposable
     {
+#pragma warning disable SA1401 // Fields should be private
         /// <summary>
         /// The global configuration
         /// </summary>
@@ -34,7 +35,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
 
         private HuffmanTables acHuffmanTables;
 
-        private Frame frame;
+        internal Frame Frame;
 
         private ComponentBlocks components;
 
@@ -42,11 +43,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
 
         private ushort resetInterval;
 
-        private int imageWidth;
+        internal int ImageWidth { get; private set; }
 
-        private int imageHeight;
+        internal int ImageHeight { get; private set; }
 
-        private int numberOfComponents;
+        internal int NumberOfComponents { get; private set; }
 
         /// <summary>
         /// Whether the image has a EXIF header
@@ -137,12 +138,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         public Image<TPixel> Decode<TPixel>(Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
-            this.InputStream = stream;
+            ImageMetaData metadata = this.ParseStream(stream);
 
-            var metadata = new ImageMetaData();
-            this.ParseStream(metadata, false);
-
-            var image = new Image<TPixel>(this.configuration, this.imageWidth, this.imageHeight, metadata);
+            var image = new Image<TPixel>(this.configuration, this.ImageWidth, this.ImageHeight, metadata);
             this.FillPixelData(image);
             this.AssignResolution(image);
             return image;
@@ -151,7 +149,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         /// <inheritdoc/>
         public void Dispose()
         {
-            this.frame?.Dispose();
+            this.Frame?.Dispose();
             this.components?.Dispose();
             this.quantizationTables?.Dispose();
             this.dcHuffmanTables?.Dispose();
@@ -159,11 +157,20 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
             this.pixelArea.Dispose();
 
             // Set large fields to null.
-            this.frame = null;
+            this.Frame = null;
             this.components = null;
             this.quantizationTables = null;
             this.dcHuffmanTables = null;
             this.acHuffmanTables = null;
+        }
+
+        internal ImageMetaData ParseStream(Stream stream)
+        {
+            this.InputStream = stream;
+
+            var metadata = new ImageMetaData();
+            this.ParseStream(metadata, false);
+            return metadata;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -262,18 +269,18 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                 fileMarker = FindNextFileMarker(this.markerBuffer, this.InputStream);
             }
 
-            this.imageWidth = this.frame.SamplesPerLine;
-            this.imageHeight = this.frame.Scanlines;
-            this.components = new ComponentBlocks { Components = new Component[this.frame.ComponentCount] };
+            this.ImageWidth = this.Frame.SamplesPerLine;
+            this.ImageHeight = this.Frame.Scanlines;
+            this.components = new ComponentBlocks { Components = new Component[this.Frame.ComponentCount] };
 
             for (int i = 0; i < this.components.Components.Length; i++)
             {
-                ref var frameComponent = ref this.frame.Components[i];
+                ref var frameComponent = ref this.Frame.Components[i];
                 var component = new Component
                 {
                     Scale = new System.Numerics.Vector2(
-                        frameComponent.HorizontalFactor / (float)this.frame.MaxHorizontalFactor,
-                        frameComponent.VerticalFactor / (float)this.frame.MaxVerticalFactor),
+                        frameComponent.HorizontalFactor / (float)this.Frame.MaxHorizontalFactor,
+                        frameComponent.VerticalFactor / (float)this.Frame.MaxVerticalFactor),
                     BlocksPerLine = frameComponent.BlocksPerLine,
                     BlocksPerColumn = frameComponent.BlocksPerColumn
                 };
@@ -282,7 +289,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                 this.components.Components[i] = component;
             }
 
-            this.numberOfComponents = this.components.Components.Length;
+            this.NumberOfComponents = this.components.Components.Length;
         }
 
         /// <summary>
@@ -293,21 +300,21 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         private void FillPixelData<TPixel>(Image<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
-            if (this.numberOfComponents > 4)
+            if (this.NumberOfComponents > 4)
             {
-                throw new ImageFormatException($"Unsupported color mode. Max components 4; found {this.numberOfComponents}");
+                throw new ImageFormatException($"Unsupported color mode. Max components 4; found {this.NumberOfComponents}");
             }
 
-            this.pixelArea = new JpegPixelArea(image.Width, image.Height, this.numberOfComponents);
+            this.pixelArea = new JpegPixelArea(image.Width, image.Height, this.NumberOfComponents);
             this.pixelArea.LinearizeBlockData(this.components, image.Width, image.Height);
 
-            if (this.numberOfComponents == 1)
+            if (this.NumberOfComponents == 1)
             {
                 this.FillGrayScaleImage(image);
                 return;
             }
 
-            if (this.numberOfComponents == 3)
+            if (this.NumberOfComponents == 3)
             {
                 if (this.adobe.Equals(default(Adobe)) || this.adobe.ColorTransform == JpegConstants.Markers.Adobe.ColorTransformYCbCr)
                 {
@@ -319,7 +326,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                 }
             }
 
-            if (this.numberOfComponents == 4)
+            if (this.NumberOfComponents == 4)
             {
                 if (this.adobe.ColorTransform == JpegConstants.Markers.Adobe.ColorTransformYcck)
                 {
@@ -601,14 +608,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         /// <param name="frameMarker">The current frame marker.</param>
         private void ProcessStartOfFrameMarker(int remaining, FileMarker frameMarker)
         {
-            if (this.frame != null)
+            if (this.Frame != null)
             {
                 throw new ImageFormatException("Multiple SOF markers. Only single frame jpegs supported.");
             }
 
             this.InputStream.Read(this.temp, 0, remaining);
 
-            this.frame = new Frame
+            this.Frame = new Frame
             {
                 Extended = frameMarker.Marker == JpegConstants.Markers.SOF1,
                 Progressive = frameMarker.Marker == JpegConstants.Markers.SOF2,
@@ -623,10 +630,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
             int index = 6;
 
             // No need to pool this. They max out at 4
-            this.frame.ComponentIds = new byte[this.frame.ComponentCount];
-            this.frame.Components = new FrameComponent[this.frame.ComponentCount];
+            this.Frame.ComponentIds = new byte[this.Frame.ComponentCount];
+            this.Frame.Components = new FrameComponent[this.Frame.ComponentCount];
 
-            for (int i = 0; i < this.frame.Components.Length; i++)
+            for (int i = 0; i < this.Frame.Components.Length; i++)
             {
                 int h = this.temp[index + 1] >> 4;
                 int v = this.temp[index + 1] & 15;
@@ -641,19 +648,20 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                     maxV = v;
                 }
 
-                ref var component = ref this.frame.Components[i];
+                var component = new FrameComponent();
+                this.Frame.Components[i] = component;
                 component.Id = this.temp[index];
                 component.HorizontalFactor = h;
                 component.VerticalFactor = v;
                 component.QuantizationIdentifier = this.temp[index + 2];
 
-                this.frame.ComponentIds[i] = component.Id;
+                this.Frame.ComponentIds[i] = component.Id;
 
                 index += 3;
             }
 
-            this.frame.MaxHorizontalFactor = maxH;
-            this.frame.MaxVerticalFactor = maxV;
+            this.Frame.MaxHorizontalFactor = maxH;
+            this.Frame.MaxVerticalFactor = maxV;
             this.PrepareComponents();
         }
 
@@ -729,9 +737,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                 componentIndex = -1;
                 int selector = this.InputStream.ReadByte();
 
-                for (int j = 0; j < this.frame.ComponentIds.Length; j++)
+                for (int j = 0; j < this.Frame.ComponentIds.Length; j++)
                 {
-                    byte id = this.frame.ComponentIds[j];
+                    byte id = this.Frame.ComponentIds[j];
                     if (selector == id)
                     {
                         componentIndex = j;
@@ -743,7 +751,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                     throw new ImageFormatException("Unknown component selector");
                 }
 
-                ref FrameComponent component = ref this.frame.Components[componentIndex];
+                ref FrameComponent component = ref this.Frame.Components[componentIndex];
                 int tableSpec = this.InputStream.ReadByte();
                 component.DCHuffmanTableId = tableSpec >> 4;
                 component.ACHuffmanTableId = tableSpec & 15;
@@ -757,11 +765,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
             var scanDecoder = default(ScanDecoder);
 
             scanDecoder.DecodeScan(
-                 this.frame,
+                 this.Frame,
                  this.InputStream,
                  this.dcHuffmanTables,
                  this.acHuffmanTables,
-                 this.frame.Components,
+                 this.Frame.Components,
                  componentIndex,
                  selectorsCount,
                  this.resetInterval,
@@ -827,14 +835,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         /// </summary>
         private void PrepareComponents()
         {
-            int mcusPerLine = (int)MathF.Ceiling(this.frame.SamplesPerLine / 8F / this.frame.MaxHorizontalFactor);
-            int mcusPerColumn = (int)MathF.Ceiling(this.frame.Scanlines / 8F / this.frame.MaxVerticalFactor);
+            int mcusPerLine = (int)MathF.Ceiling(this.Frame.SamplesPerLine / 8F / this.Frame.MaxHorizontalFactor);
+            int mcusPerColumn = (int)MathF.Ceiling(this.Frame.Scanlines / 8F / this.Frame.MaxVerticalFactor);
 
-            for (int i = 0; i < this.frame.ComponentCount; i++)
+            for (int i = 0; i < this.Frame.ComponentCount; i++)
             {
-                ref var component = ref this.frame.Components[i];
-                int blocksPerLine = (int)MathF.Ceiling(MathF.Ceiling(this.frame.SamplesPerLine / 8F) * component.HorizontalFactor / this.frame.MaxHorizontalFactor);
-                int blocksPerColumn = (int)MathF.Ceiling(MathF.Ceiling(this.frame.Scanlines / 8F) * component.VerticalFactor / this.frame.MaxVerticalFactor);
+                ref var component = ref this.Frame.Components[i];
+                int blocksPerLine = (int)MathF.Ceiling(MathF.Ceiling(this.Frame.SamplesPerLine / 8F) * component.HorizontalFactor / this.Frame.MaxHorizontalFactor);
+                int blocksPerColumn = (int)MathF.Ceiling(MathF.Ceiling(this.Frame.Scanlines / 8F) * component.VerticalFactor / this.Frame.MaxVerticalFactor);
                 int blocksPerLineForMcu = mcusPerLine * component.HorizontalFactor;
                 int blocksPerColumnForMcu = mcusPerColumn * component.VerticalFactor;
 
@@ -846,8 +854,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                 component.BlocksPerColumn = blocksPerColumn;
             }
 
-            this.frame.McusPerLine = mcusPerLine;
-            this.frame.McusPerColumn = mcusPerColumn;
+            this.Frame.McusPerLine = mcusPerLine;
+            this.Frame.McusPerColumn = mcusPerColumn;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

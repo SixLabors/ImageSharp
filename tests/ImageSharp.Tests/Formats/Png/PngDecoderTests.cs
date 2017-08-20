@@ -11,6 +11,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests
 {
+    using SixLabors.ImageSharp.Formats.Png;
     using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
     // TODO: Fix all bugs, and re enable Skipped and commented stuff !!!

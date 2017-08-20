@@ -11,8 +11,8 @@ namespace SixLabors.ImageSharp.Benchmarks.Image
     using BenchmarkDotNet.Attributes;
 
     using SixLabors.ImageSharp.Formats;
+    using SixLabors.ImageSharp.Formats.Jpeg;
 
-    
     [Config(typeof(Config.Short))] // It's long enough to iterate through multiple files
     public class EncodeJpegMultiple : MultiImageBenchmarkBase.WithImagesPreloaded
     {

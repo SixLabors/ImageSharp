@@ -11,7 +11,7 @@ using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Quantizers;
 
-namespace SixLabors.ImageSharp.Formats
+namespace SixLabors.ImageSharp.Formats.Gif
 {
     /// <summary>
     /// Performs the gif encoding operation.
@@ -288,7 +288,7 @@ namespace SixLabors.ImageSharp.Formats
         /// <param name="metaData">The metadata of the image or frame.</param>
         /// <param name="writer">The stream to write to.</param>
         /// <param name="transparencyIndex">The index of the color in the color palette to make transparent.</param>
-        private void WriteGraphicalControlExtension(IMetaData metaData, EndianBinaryWriter writer, int transparencyIndex)
+        private void WriteGraphicalControlExtension(IFrameMetaData metaData, EndianBinaryWriter writer, int transparencyIndex)
         {
             var extension = new GifGraphicsControlExtension
             {

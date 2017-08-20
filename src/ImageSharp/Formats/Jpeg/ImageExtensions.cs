@@ -4,6 +4,7 @@
 using System;
 using System.IO;
 using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp

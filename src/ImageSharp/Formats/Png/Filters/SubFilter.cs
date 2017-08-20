@@ -4,7 +4,7 @@
 using System;
 using System.Runtime.CompilerServices;
 
-namespace SixLabors.ImageSharp.Formats
+namespace SixLabors.ImageSharp.Formats.Png.Filters
 {
     /// <summary>
     /// The Sub filter transmits the difference between each byte and the value of the corresponding byte

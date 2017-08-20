@@ -4,7 +4,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace SixLabors.ImageSharp.Formats
+namespace SixLabors.ImageSharp.Formats.Gif
 {
     /// <summary>
     /// Constants that define specific points within a gif.

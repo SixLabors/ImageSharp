@@ -3,7 +3,7 @@
 using System;
 using System.Runtime.InteropServices;
 
-namespace SixLabors.ImageSharp.Formats
+namespace SixLabors.ImageSharp.Formats.Jpeg.Common
 {
     /// <summary>
     /// Holds the Jpeg UnZig array in a value/stack type.

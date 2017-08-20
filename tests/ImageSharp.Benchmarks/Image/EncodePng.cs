@@ -12,6 +12,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Image
     using BenchmarkDotNet.Attributes;
 
     using SixLabors.ImageSharp.Formats;
+    using SixLabors.ImageSharp.Formats.Png;
     using SixLabors.ImageSharp.Quantizers;
     using SixLabors.ImageSharp.Quantizers.Base;
     using CoreImage = ImageSharp.Image;

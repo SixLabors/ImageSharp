@@ -4,7 +4,7 @@
 using System;
 using System.Runtime.CompilerServices;
 
-namespace SixLabors.ImageSharp.Formats
+namespace SixLabors.ImageSharp.Formats.Png.Filters
 {
     /// <summary>
     /// The Average filter uses the average of the two neighboring pixels (left and above) to predict

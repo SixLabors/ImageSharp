@@ -5,7 +5,7 @@ using System;
 using System.Linq;
 using System.Numerics;
 
-namespace SixLabors.ImageSharp
+namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 {
     /// <summary>
     /// The XYZType contains an array of XYZ values.

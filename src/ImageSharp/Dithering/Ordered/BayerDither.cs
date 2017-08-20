@@ -1,15 +1,16 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using SixLabors.ImageSharp.Dithering.Base;
 using SixLabors.ImageSharp.Memory;
 
-namespace SixLabors.ImageSharp.Dithering.Ordered
+namespace SixLabors.ImageSharp.Dithering
 {
     /// <summary>
     /// Applies error diffusion based dithering using the 4x4 Bayer dithering matrix.
     /// <see href="http://www.efg2.com/Lab/Library/ImageProcessing/DHALF.TXT"/>
     /// </summary>
-    public sealed class Bayer : OrderedDither4x4
+    public sealed class BayerDither : OrderedDitherBase
     {
         /// <summary>
         /// The threshold matrix.
@@ -25,9 +26,9 @@ namespace SixLabors.ImageSharp.Dithering.Ordered
             };
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Bayer"/> class.
+        /// Initializes a new instance of the <see cref="BayerDither"/> class.
         /// </summary>
-        public Bayer()
+        public BayerDither()
             : base(ThresholdMatrix)
         {
         }

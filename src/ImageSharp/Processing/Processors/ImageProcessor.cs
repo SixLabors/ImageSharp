@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Threading.Tasks;
+
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
@@ -16,19 +16,8 @@ namespace SixLabors.ImageSharp.Processing
         where TPixel : struct, IPixel<TPixel>
     {
         /// <inheritdoc/>
-        public virtual ParallelOptions ParallelOptions { get; set; }
-
-        /// <inheritdoc/>
-        public virtual bool Compand { get; set; } = false;
-
-        /// <inheritdoc/>
         public void Apply(Image<TPixel> source, Rectangle sourceRectangle)
         {
-            if (this.ParallelOptions == null)
-            {
-                this.ParallelOptions = source.Configuration.ParallelOptions;
-            }
-
             try
             {
                 this.BeforeImageApply(source, sourceRectangle);
@@ -66,11 +55,6 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="sourceRectangle">the target</param>
         public void Apply(ImageBase<TPixel> source, Rectangle sourceRectangle)
         {
-            if (this.ParallelOptions == null)
-            {
-                this.ParallelOptions = source.Configuration.ParallelOptions;
-            }
-
             try
             {
                 this.BeforeApply(source, sourceRectangle);

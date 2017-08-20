@@ -8,7 +8,7 @@ using System.Collections.Generic;
 using System.Security.Cryptography;
 #endif
 
-namespace SixLabors.ImageSharp
+namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 {
     /// <summary>
     /// Represents an ICC profile

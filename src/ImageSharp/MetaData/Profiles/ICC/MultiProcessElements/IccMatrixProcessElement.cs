@@ -5,7 +5,7 @@ using System;
 using System.Linq;
 using SixLabors.ImageSharp.Memory;
 
-namespace SixLabors.ImageSharp
+namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 {
     /// <summary>
     /// A matrix element to process data

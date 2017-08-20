@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using System.Numerics;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -16,7 +15,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         where TPixel : struct, IPixel<TPixel>
     {
         /// <inheritdoc/>
-        public override Matrix4x4 Matrix => new Matrix4x4()
+        public override Matrix4x4 Matrix => new Matrix4x4
         {
             M11 = .2126F,
             M12 = .2126F,

@@ -4,7 +4,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace SixLabors.ImageSharp.Formats
+namespace SixLabors.ImageSharp.Formats.Png
 {
     /// <summary>
     /// Defines png constants defined in the specification.

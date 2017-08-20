@@ -1,15 +1,16 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using SixLabors.ImageSharp.Dithering.Base;
 using SixLabors.ImageSharp.Memory;
 
-namespace SixLabors.ImageSharp.Dithering.Ordered
+namespace SixLabors.ImageSharp.Dithering
 {
     /// <summary>
     /// Applies error diffusion based dithering using the 4x4 ordered dithering matrix.
     /// <see href="https://en.wikipedia.org/wiki/Ordered_dithering"/>
     /// </summary>
-    public sealed class Ordered : OrderedDither4x4
+    public sealed class OrderedDither : OrderedDitherBase
     {
         /// <summary>
         /// The threshold matrix.
@@ -25,9 +26,9 @@ namespace SixLabors.ImageSharp.Dithering.Ordered
             };
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Ordered"/> class.
+        /// Initializes a new instance of the <see cref="OrderedDither"/> class.
         /// </summary>
-        public Ordered()
+        public OrderedDither()
             : base(ThresholdMatrix)
         {
         }

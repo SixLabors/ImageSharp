@@ -11,6 +11,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Image
     using BenchmarkDotNet.Attributes;
 
     using SixLabors.ImageSharp.Formats;
+    using SixLabors.ImageSharp.Formats.Bmp;
 
     [Config(typeof(Config.Short))]
     public class EncodeBmpMultiple : MultiImageBenchmarkBase.WithImagesPreloaded

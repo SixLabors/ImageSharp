@@ -5,7 +5,7 @@ using System;
 using System.Linq;
 using System.Text;
 
-namespace SixLabors.ImageSharp
+namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 {
     /// <summary>
     /// The dataType is a simple data structure that contains

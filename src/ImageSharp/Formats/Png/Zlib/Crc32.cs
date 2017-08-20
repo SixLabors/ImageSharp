@@ -3,7 +3,7 @@
 
 using System;
 
-namespace SixLabors.ImageSharp.Formats
+namespace SixLabors.ImageSharp.Formats.Png.Zlib
 {
     /// <summary>
     /// Generate a table for a byte-wise 32-bit CRC calculation on the polynomial:

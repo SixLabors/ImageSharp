@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using System.Numerics;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
@@ -15,9 +14,9 @@ namespace SixLabors.ImageSharp.Processing.Processors
     internal class PolaroidProcessor<TPixel> : ColorMatrixProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        private static TPixel veryDarkOrange = ColorBuilder<TPixel>.FromRGB(102, 34, 0);
-        private static TPixel lightOrange = ColorBuilder<TPixel>.FromRGBA(255, 153, 102, 178);
-        private GraphicsOptions options;
+        private static readonly TPixel VeryDarkOrange = ColorBuilder<TPixel>.FromRGB(102, 34, 0);
+        private static readonly TPixel LightOrange = ColorBuilder<TPixel>.FromRGBA(255, 153, 102, 178);
+        private readonly GraphicsOptions options;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PolaroidProcessor{TPixel}" /> class.
@@ -29,7 +28,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         }
 
         /// <inheritdoc/>
-        public override Matrix4x4 Matrix => new Matrix4x4()
+        public override Matrix4x4 Matrix => new Matrix4x4
         {
             M11 = 1.538F,
             M12 = -0.062F,
@@ -49,8 +48,8 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <inheritdoc/>
         protected override void AfterApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
         {
-            new VignetteProcessor<TPixel>(veryDarkOrange, this.options).Apply(source, sourceRectangle);
-            new GlowProcessor<TPixel>(lightOrange, source.Width / 4F, this.options).Apply(source, sourceRectangle);
+            new VignetteProcessor<TPixel>(VeryDarkOrange, this.options).Apply(source, sourceRectangle);
+            new GlowProcessor<TPixel>(LightOrange, source.Width / 4F, this.options).Apply(source, sourceRectangle);
         }
     }
 }

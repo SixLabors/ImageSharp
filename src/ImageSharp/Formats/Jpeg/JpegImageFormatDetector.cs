@@ -3,7 +3,7 @@
 
 using System;
 
-namespace SixLabors.ImageSharp.Formats
+namespace SixLabors.ImageSharp.Formats.Jpeg
 {
     /// <summary>
     /// Detects Jpeg file headers

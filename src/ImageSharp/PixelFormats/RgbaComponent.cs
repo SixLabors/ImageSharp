@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp
     /// <summary>
     /// Enumerates the RGBA (red, green, blue, alpha) color components.
     /// </summary>
-    public enum RgbaComponent
+    internal enum RgbaComponent
     {
         /// <summary>
         /// The red component.

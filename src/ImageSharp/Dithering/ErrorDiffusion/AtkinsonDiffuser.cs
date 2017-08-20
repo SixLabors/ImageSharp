@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using SixLabors.ImageSharp.Dithering.Base;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Dithering
@@ -9,7 +10,7 @@ namespace SixLabors.ImageSharp.Dithering
     /// Applies error diffusion based dithering using the Atkinson image dithering algorithm.
     /// <see href="http://www.efg2.com/Lab/Library/ImageProcessing/DHALF.TXT"/>
     /// </summary>
-    public sealed class Atkinson : ErrorDiffuser
+    public sealed class AtkinsonDiffuser : ErrorDiffuserBase
     {
         /// <summary>
         /// The diffusion matrix
@@ -23,9 +24,9 @@ namespace SixLabors.ImageSharp.Dithering
             };
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Atkinson"/> class.
+        /// Initializes a new instance of the <see cref="AtkinsonDiffuser"/> class.
         /// </summary>
-        public Atkinson()
+        public AtkinsonDiffuser()
             : base(AtkinsonMatrix, 8)
         {
         }

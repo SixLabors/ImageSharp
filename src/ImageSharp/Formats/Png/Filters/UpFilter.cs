@@ -4,7 +4,7 @@
 using System;
 using System.Runtime.CompilerServices;
 
-namespace SixLabors.ImageSharp.Formats
+namespace SixLabors.ImageSharp.Formats.Png.Filters
 {
     /// <summary>
     /// The Up filter is just like the Sub filter except that the pixel immediately above the current pixel,

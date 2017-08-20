@@ -13,14 +13,14 @@ namespace SixLabors.ImageSharp.Processing.Processors
     /// The color matrix filter. Inherit from this class to perform operation involving color matrices.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal abstract class ColorMatrixProcessor<TPixel> : ImageProcessor<TPixel>, IColorMatrixFilter<TPixel>
+    internal abstract class ColorMatrixProcessor<TPixel> : ImageProcessor<TPixel>, IColorMatrixProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <inheritdoc/>
         public abstract Matrix4x4 Matrix { get; }
 
         /// <inheritdoc/>
-        public override bool Compand { get; set; } = true;
+        public virtual bool Compand { get; set; } = true;
 
         /// <inheritdoc/>
         protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
@@ -50,31 +50,28 @@ namespace SixLabors.ImageSharp.Processing.Processors
             Matrix4x4 matrix = this.Matrix;
             bool compand = this.Compand;
 
-            using (PixelAccessor<TPixel> sourcePixels = source.Lock())
-            {
-                Parallel.For(
-                    minY,
-                    maxY,
-                    this.ParallelOptions,
-                    y =>
+            Parallel.For(
+                minY,
+                maxY,
+                source.Configuration.ParallelOptions,
+                y =>
+                {
+                    Span<TPixel> row = source.GetRowSpan(y - startY);
+
+                    for (int x = minX; x < maxX; x++)
+                    {
+                        ref TPixel pixel = ref row[x - startX];
+                        var vector = pixel.ToVector4();
+
+                        if (compand)
                         {
-                            Span<TPixel> row = source.GetRowSpan(y - startY);
+                            vector = vector.Expand();
+                        }
 
-                            for (int x = minX; x < maxX; x++)
-                            {
-                                ref TPixel pixel = ref row[x - startX];
-                                var vector = pixel.ToVector4();
-
-                                if (compand)
-                                {
-                                    vector = vector.Expand();
-                                }
-
-                                vector = Vector4.Transform(vector, matrix);
-                                pixel.PackFromVector4(compand ? vector.Compress() : vector);
-                            }
-                        });
-            }
+                        vector = Vector4.Transform(vector, matrix);
+                        pixel.PackFromVector4(compand ? vector.Compress() : vector);
+                    }
+                });
         }
     }
 }

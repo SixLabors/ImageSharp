@@ -2,13 +2,14 @@
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Gif;
 
 namespace SixLabors.ImageSharp.MetaData
 {
     /// <summary>
     /// Encapsulates the metadata of an image frame.
     /// </summary>
-    internal interface IMetaData
+    internal interface IFrameMetaData
     {
         /// <summary>
         /// Gets or sets the frame delay for animated images.

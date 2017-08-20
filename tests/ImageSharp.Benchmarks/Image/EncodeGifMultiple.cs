@@ -7,6 +7,7 @@
     using BenchmarkDotNet.Jobs;
 
     using SixLabors.ImageSharp.Formats;
+    using SixLabors.ImageSharp.Formats.Gif;
 
     [Config(typeof(SingleRunConfig))]
     public class EncodeGifMultiple : MultiImageBenchmarkBase.WithImagesPreloaded

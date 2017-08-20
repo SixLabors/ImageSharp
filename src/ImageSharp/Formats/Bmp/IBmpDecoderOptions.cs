@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Formats
+namespace SixLabors.ImageSharp.Formats.Bmp
 {
     /// <summary>
     /// Image decoder options for decoding Windows bitmap streams.

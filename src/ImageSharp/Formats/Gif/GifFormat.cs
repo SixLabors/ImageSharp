@@ -3,7 +3,7 @@
 
 using System.Collections.Generic;
 
-namespace SixLabors.ImageSharp.Formats
+namespace SixLabors.ImageSharp.Formats.Gif
 {
     /// <summary>
     /// Registers the image encoders, decoders and mime type detectors for the gif format.

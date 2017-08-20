@@ -15,6 +15,7 @@ namespace SixLabors.ImageSharp.Tests
     using System.Linq;
 
     using SixLabors.ImageSharp.Formats;
+    using SixLabors.ImageSharp.Formats.Jpeg;
     using SixLabors.ImageSharp.Formats.Jpeg.GolangPort;
     using SixLabors.ImageSharp.PixelFormats;
     using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;

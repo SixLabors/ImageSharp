@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Formats.Jpeg.Common;
 using SixLabors.ImageSharp.Memory;
 using Block8x8F = SixLabors.ImageSharp.Formats.Jpeg.Common.Block8x8F;
 

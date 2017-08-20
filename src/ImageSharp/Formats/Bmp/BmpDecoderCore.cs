@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Formats
+namespace SixLabors.ImageSharp.Formats.Bmp
 {
     /// <summary>
     /// Performs the bmp decoding operation.

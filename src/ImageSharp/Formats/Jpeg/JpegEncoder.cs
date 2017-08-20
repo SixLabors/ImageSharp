@@ -5,7 +5,7 @@ using System.IO;
 using SixLabors.ImageSharp.Formats.Jpeg.GolangPort;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Formats
+namespace SixLabors.ImageSharp.Formats.Jpeg
 {
     /// <summary>
     /// Encoder for writing the data image to a stream in jpeg format.

@@ -9,8 +9,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
     /// <summary>
     /// Represents a single frame component
     /// </summary>
-    internal struct FrameComponent : IDisposable
+    internal class FrameComponent : IDisposable
     {
+        #pragma warning disable SA1401 // Fields should be private
         /// <summary>
         /// Gets or sets the component Id
         /// </summary>

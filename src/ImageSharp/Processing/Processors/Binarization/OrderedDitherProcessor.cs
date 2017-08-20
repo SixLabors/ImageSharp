@@ -69,39 +69,21 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <inheritdoc/>
         protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
         {
-            int startY = sourceRectangle.Y;
-            int endY = sourceRectangle.Bottom;
-            int startX = sourceRectangle.X;
-            int endX = sourceRectangle.Right;
-
-            // Align start/end positions.
-            int minX = Math.Max(0, startX);
-            int maxX = Math.Min(source.Width, endX);
-            int minY = Math.Max(0, startY);
-            int maxY = Math.Min(source.Height, endY);
-
-            // Reset offset if necessary.
-            if (minX > 0)
-            {
-                startX = 0;
-            }
-
-            if (minY > 0)
-            {
-                startY = 0;
-            }
+            var interest = Rectangle.Intersect(sourceRectangle, source.Bounds());
+            int startY = interest.Y;
+            int endY = interest.Bottom;
+            int startX = interest.X;
+            int endX = interest.Right;
 
             byte[] bytes = new byte[4];
-            for (int y = minY; y < maxY; y++)
+            for (int y = startY; y < endY; y++)
             {
-                int offsetY = y - startY;
-                Span<TPixel> row = source.GetRowSpan(offsetY);
+                Span<TPixel> row = source.GetRowSpan(y);
 
-                for (int x = minX; x < maxX; x++)
+                for (int x = startX; x < endX; x++)
                 {
-                    int offsetX = x - startX;
-                    TPixel sourceColor = row[offsetX];
-                    this.Dither.Dither(source, sourceColor, this.UpperColor, this.LowerColor, bytes, this.Index, offsetX, offsetY, maxX, maxY);
+                    TPixel sourceColor = row[x];
+                    this.Dither.Dither(source, sourceColor, this.UpperColor, this.LowerColor, bytes, this.Index, x, y);
                 }
             }
         }

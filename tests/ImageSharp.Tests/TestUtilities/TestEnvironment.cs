@@ -57,10 +57,17 @@ namespace SixLabors.ImageSharp.Tests
                 new BmpConfigurationModule()
                 );
 
-            configuration.SetDecoder(ImageFormats.Png, SystemDrawingReferenceDecoder.Instance);
-            configuration.SetEncoder(ImageFormats.Png, SystemDrawingReferenceEncoder.Png);
-            configuration.AddImageFormatDetector(new PngImageFormatDetector());
-
+            if (!IsLinux)
+            {
+                configuration.SetDecoder(ImageFormats.Png, SystemDrawingReferenceDecoder.Instance);
+                configuration.SetEncoder(ImageFormats.Png, SystemDrawingReferenceEncoder.Png);
+                configuration.AddImageFormatDetector(new PngImageFormatDetector());
+            }
+            else
+            {
+                new PngConfigurationModule().Configure(configuration);
+            }
+            
             return configuration;
         }
 

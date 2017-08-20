@@ -12,10 +12,10 @@
     {
         public const float DefaultImageThreshold = 1.0f / (100 * 100 * 255);
 
-        public TolerantImageComparer(float imageThreshold, int pixelThresholdHammingDistance = 0)
+        public TolerantImageComparer(float imageThreshold, int perPixelManhattanThreshold = 0)
         {
             this.ImageThreshold = imageThreshold;
-            this.PixelThresholdHammingDistance = pixelThresholdHammingDistance;
+            this.PerPixelManhattanThreshold = perPixelManhattanThreshold;
         }
 
         /// <summary>
@@ -26,7 +26,10 @@
         /// 3. PixelA = (255,255,255,0) PixelB =(128,128,128,128) leads to 50% difference on a single pixel
         /// 
         /// The total differences is the sum of all pixel differences normalized by image dimensions!
-        /// 
+        /// The individual distances are calculated using the Manhattan function:
+        /// <see>
+        ///     <cref>https://en.wikipedia.org/wiki/Taxicab_geometry</cref>
+        /// </see>
         /// ImageThresholdInPercents = 1.0/255 means that we allow one byte difference per channel on a 1x1 image
         /// ImageThresholdInPercents = 1.0/(100*100*255) means that we allow only one byte difference per channel on a 100x100 image
         /// </summary>
@@ -34,9 +37,12 @@
 
         /// <summary>
         /// The threshold of the individual pixels before they acumulate towards the overall difference.
-        /// For an individual <see cref="Rgba32"/> pixel the value it's calculated as: pixel.R + pixel.G + pixel.B + pixel.A
+        /// For an individual <see cref="Rgba32"/> pixel pair the value is the Manhattan distance of pixels:
+        /// <see>
+        ///     <cref>https://en.wikipedia.org/wiki/Taxicab_geometry</cref>
+        /// </see>
         /// </summary>
-        public int PixelThresholdHammingDistance { get; }
+        public int PerPixelManhattanThreshold { get; }
         
         public override ImageSimilarityReport CompareImagesOrFrames<TPixelA, TPixelB>(ImageBase<TPixelA> expected, ImageBase<TPixelB> actual)
         {
@@ -66,9 +72,9 @@
 
                 for (int x = 0; x < width; x++)
                 {
-                    int d = GetHammingDistanceInRgbaSpace(ref aBuffer[x], ref bBuffer[x]);
+                    int d = GetManhattanDistanceInRgbaSpace(ref aBuffer[x], ref bBuffer[x]);
 
-                    if (d > this.PixelThresholdHammingDistance)
+                    if (d > this.PerPixelManhattanThreshold)
                     {
                         var diff = new PixelDifference(new Point(x, y), aBuffer[x], bBuffer[x]);
                         differences.Add(diff);
@@ -92,7 +98,7 @@
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int GetHammingDistanceInRgbaSpace(ref Rgba32 a, ref Rgba32 b)
+        private static int GetManhattanDistanceInRgbaSpace(ref Rgba32 a, ref Rgba32 b)
         {
             return Diff(a.R, b.R) + Diff(a.G, b.G) + Diff(a.B, b.B) + Diff(a.A, b.A);
         }

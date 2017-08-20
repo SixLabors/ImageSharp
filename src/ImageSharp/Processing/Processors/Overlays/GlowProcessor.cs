@@ -91,7 +91,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                 Parallel.For(
                     minY,
                     maxY,
-                    this.ParallelOptions,
+                    source.Configuration.ParallelOptions,
                     y =>
                     {
                         using (var amounts = new Buffer<float>(width))

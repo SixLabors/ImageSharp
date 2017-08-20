@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp.Drawing.Processors
                     Parallel.For(
                     minY,
                     maxY,
-                    this.ParallelOptions,
+                    source.Configuration.ParallelOptions,
                     y =>
                     {
                         int offsetY = y - startY;

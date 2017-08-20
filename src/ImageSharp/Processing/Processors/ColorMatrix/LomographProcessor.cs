@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using System.Numerics;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
@@ -16,7 +15,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         where TPixel : struct, IPixel<TPixel>
     {
         private static readonly TPixel VeryDarkGreen = ColorBuilder<TPixel>.FromRGBA(0, 10, 0, 255);
-        private GraphicsOptions options;
+        private readonly GraphicsOptions options;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="LomographProcessor{TPixel}" /> class.
@@ -28,7 +27,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         }
 
         /// <inheritdoc/>
-        public override Matrix4x4 Matrix => new Matrix4x4()
+        public override Matrix4x4 Matrix => new Matrix4x4
         {
             M11 = 1.5F,
             M22 = 1.45F,

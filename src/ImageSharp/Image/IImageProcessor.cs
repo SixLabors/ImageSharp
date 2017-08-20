@@ -14,12 +14,6 @@ namespace SixLabors.ImageSharp.Processing
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
-        /// Gets or sets a value indicating whether to compress
-        /// or expand individual pixel colors the value on processing.
-        /// </summary>
-        bool Compand { get; set; }
-
-        /// <summary>
         /// Applies the process to the specified portion of the specified <see cref="ImageBase{TPixel}"/>.
         /// </summary>
         /// <param name="source">The source image. Cannot be null.</param>

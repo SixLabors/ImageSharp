@@ -16,9 +16,6 @@ namespace SixLabors.ImageSharp.Processing
         where TPixel : struct, IPixel<TPixel>
     {
         /// <inheritdoc/>
-        public virtual bool Compand { get; set; } = false;
-
-        /// <inheritdoc/>
         public void Apply(Image<TPixel> source, Rectangle sourceRectangle)
         {
             try

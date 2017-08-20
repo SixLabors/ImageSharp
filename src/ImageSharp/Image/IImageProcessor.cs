@@ -1,8 +1,6 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.Threading.Tasks;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
@@ -15,11 +13,6 @@ namespace SixLabors.ImageSharp.Processing
     public interface IImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        /// <summary>
-        /// Gets or sets the parallel options for processing tasks in parallel.
-        /// </summary>
-        ParallelOptions ParallelOptions { get; set; }
-
         /// <summary>
         /// Gets or sets a value indicating whether to compress
         /// or expand individual pixel colors the value on processing.

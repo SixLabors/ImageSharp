@@ -270,8 +270,8 @@ namespace SixLabors.ImageSharp.Tests
         // DEBUG ONLY!
         // The PDF.js output should be saved by "tests\ImageSharp.Tests\Formats\Jpg\pdfjs\jpeg-converter.htm"
         // into "\tests\Images\ActualOutput\JpegDecoderTests\"
-        [Theory]
-        [WithFile(TestImages.Jpeg.Progressive.Progress, PixelTypes.Rgba32, "PdfJsOriginal_progress.png")]
+        //[Theory]
+        //[WithFile(TestImages.Jpeg.Progressive.Progress, PixelTypes.Rgba32, "PdfJsOriginal_progress.png")]
         public void ValidateProgressivePdfJsOutput<TPixel>(TestImageProvider<TPixel> provider, 
             string pdfJsOriginalResultImage)
             where TPixel : struct, IPixel<TPixel>

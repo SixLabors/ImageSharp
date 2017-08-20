@@ -4,7 +4,7 @@
 using System;
 using System.Globalization;
 
-namespace SixLabors.ImageSharp
+namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
 {
     /// <summary>
     /// Represents a number that can be expressed as a fraction.

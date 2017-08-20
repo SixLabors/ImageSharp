@@ -43,7 +43,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
             {
                 result.Add(report);
             }
-            
+
             if (expected.Frames.Count != actual.Frames.Count)
             {
                 throw new Exception("Frame count does not match!");
@@ -82,29 +82,46 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
             }
         }
 
-        /// <summary>
-        /// Fills the bounded area with a solid color and does a visual comparison between 2 images asserting the difference outwith
-        /// that area is less then a configurable threshold.
-        /// </summary>
-        /// <typeparam name="TPixelA">The color of the expected image</typeparam>
-        /// <typeparam name="TPixelB">The color type fo the the actual image</typeparam>
-        /// <param name="comparer">The <see cref="ImageComparer"/> to use</param>
-        /// <param name="expected">The expected image</param>
-        /// <param name="actual">The actual image</param>
-        /// <param name="bounds">The bounds within the image has been altered</param>
-        public static void EnsureProcessorChangesAreConstrained<TPixelA, TPixelB>(
+        public static void VerifySimilarityIgnoreRegion<TPixelA, TPixelB>(
             this ImageComparer comparer,
             Image<TPixelA> expected,
             Image<TPixelB> actual,
-            Rectangle bounds)
+            Rectangle ignoredRegion)
             where TPixelA : struct, IPixel<TPixelA>
             where TPixelB : struct, IPixel<TPixelB>
         {
-            // Draw identical shapes over the bounded and compare to ensure changes are constrained.
-            expected.Mutate(x => x.Fill(NamedColors<TPixelA>.HotPink, bounds));
-            actual.Mutate(x => x.Fill(NamedColors<TPixelB>.HotPink, bounds));
+            if (expected.Size() != actual.Size())
+            {
+                throw new ImageDimensionsMismatchException(expected.Size(), actual.Size());
+            }
 
-            comparer.VerifySimilarity(expected, actual);
+            if (expected.Frames.Count != actual.Frames.Count)
+            {
+                throw new ImagesSimilarityException("Image frame count does not match!");
+            }
+
+            IEnumerable<ImageSimilarityReport> reports = comparer.CompareImages(expected, actual);
+            if (reports.Any())
+            {
+                List<ImageSimilarityReport> cleanedReports = new List<ImageSimilarityReport>(reports.Count());
+                foreach (var r in reports)
+                {
+                    var outsideChanges = r.Differences.Where(x => !(
+                        ignoredRegion.X <= x.Position.X &&
+                        x.Position.X <= ignoredRegion.Right &&
+                        ignoredRegion.Y <= x.Position.Y &&
+                        x.Position.Y <= ignoredRegion.Bottom));
+                    if (outsideChanges.Any())
+                    {
+                        cleanedReports.Add(new ImageSimilarityReport(r.ExpectedImage, r.ActualImage, outsideChanges, null));
+                    }
+                }
+
+                if (cleanedReports.Any())
+                {
+                    throw new ImagePixelsAreDifferentException(cleanedReports);
+                }
+            }
         }
     }
 }

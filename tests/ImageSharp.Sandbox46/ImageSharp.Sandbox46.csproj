@@ -17,6 +17,7 @@
     <ProjectReference Include="..\..\src\ImageSharp\ImageSharp.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="BitMiracle.LibJpeg.NET" Version="1.4.280" />
     <PackageReference Include="xunit" Version="2.3.0-beta4-build3742" />
     <PackageReference Include="Moq" Version="4.7.99" />
   </ItemGroup>

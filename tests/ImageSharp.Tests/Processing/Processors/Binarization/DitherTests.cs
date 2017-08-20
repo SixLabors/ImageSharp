@@ -107,7 +107,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
                 image.Mutate(x => x.Dither(DefaultDitherer, bounds));
                 image.DebugSave(provider);
 
-                ImageComparer.Tolerant().EnsureProcessorChangesAreConstrained(source, image, bounds);
+                ImageComparer.Tolerant().VerifySimilarityIgnoreRegion(source, image, bounds);
             }
         }
 
@@ -125,7 +125,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
                 image.Mutate(x => x.Dither(DefaultErrorDiffuser, .5F, bounds));
                 image.DebugSave(provider);
 
-                ImageComparer.Tolerant().EnsureProcessorChangesAreConstrained(source, image, bounds);
+                ImageComparer.Tolerant().VerifySimilarityIgnoreRegion(source, image, bounds);
             }
         }
     }

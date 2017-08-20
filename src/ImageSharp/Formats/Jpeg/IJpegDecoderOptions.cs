@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Formats
+namespace SixLabors.ImageSharp.Formats.Jpeg
 {
     /// <summary>
     /// Image decoder for generating an image out of a jpg stream.

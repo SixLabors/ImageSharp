@@ -12,6 +12,10 @@ using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 namespace SixLabors.ImageSharp.Tests
 {
     using System.Runtime.InteropServices;
+    using SixLabors.ImageSharp.Formats.Bmp;
+    using SixLabors.ImageSharp.Formats.Gif;
+    using SixLabors.ImageSharp.Formats.Jpeg;
+    using SixLabors.ImageSharp.Formats.Png;
 
     public static class TestEnvironment
     {

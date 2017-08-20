@@ -8,7 +8,7 @@ using System.Text;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Quantizers;
 
-namespace SixLabors.ImageSharp.Formats
+namespace SixLabors.ImageSharp.Formats.Gif
 {
     /// <summary>
     /// Image encoder for writing image data to a stream in gif format.

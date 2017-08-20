@@ -6,7 +6,7 @@ using System.IO;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Formats
+namespace SixLabors.ImageSharp.Formats.Bmp
 {
     /// <summary>
     /// Image encoder for writing an image to a stream as a Windows bitmap.

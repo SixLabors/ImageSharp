@@ -2,13 +2,14 @@
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Gif;
 
 namespace SixLabors.ImageSharp.MetaData
 {
     /// <summary>
     /// Encapsulates the metadata of an image frame.
     /// </summary>
-    public sealed class ImageFrameMetaData : IMetaData
+    public sealed class ImageFrameMetaData : IFrameMetaData
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageFrameMetaData"/> class.

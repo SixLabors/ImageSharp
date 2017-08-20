@@ -6,7 +6,7 @@ using System.IO;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Quantizers;
 
-namespace SixLabors.ImageSharp.Formats
+namespace SixLabors.ImageSharp.Formats.Png
 {
     /// <summary>
     /// Image encoder for writing image data to a stream in png format.

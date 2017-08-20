@@ -3,7 +3,7 @@
 
 using System;
 
-namespace SixLabors.ImageSharp.Formats
+namespace SixLabors.ImageSharp.Formats.Png.Zlib
 {
     /// <summary>
     /// Computes Adler32 checksum for a stream of data. An Adler32

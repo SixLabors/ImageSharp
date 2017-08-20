@@ -90,6 +90,7 @@ namespace SixLabors.ImageSharp.Tests
         /// <param name="extension">The extension</param>
         /// <param name="grayscale">A boolean indicating whether we should debug save + compare against a grayscale image, smaller in size.</param>
         /// <param name="appendPixelTypeToFileName">A boolean indicating whether to append the pixel type to the  output file name.</param>
+        /// <param name="decoder">Custom decoder</param>
         /// <returns></returns>
         public static Image<TPixel> CompareToReferenceOutput<TPixel>(
             this Image<TPixel> image,
@@ -98,14 +99,16 @@ namespace SixLabors.ImageSharp.Tests
             object testOutputDetails = null,
             string extension = "png",
             bool grayscale = false,
-            bool appendPixelTypeToFileName = true)
+            bool appendPixelTypeToFileName = true,
+            IImageDecoder decoder = null)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> referenceImage = GetReferenceOutputImage<TPixel>(
                 provider,
                 testOutputDetails,
                 extension,
-                appendPixelTypeToFileName)) 
+                appendPixelTypeToFileName,
+                decoder)) 
             {
                 comparer.VerifySimilarity(referenceImage, image);
             }
@@ -116,7 +119,8 @@ namespace SixLabors.ImageSharp.Tests
         public static Image<TPixel> GetReferenceOutputImage<TPixel>(this ITestImageProvider provider,
                                                                     object testOutputDetails = null,
                                                                     string extension = "png",
-                                                                    bool appendPixelTypeToFileName = true)
+                                                                    bool appendPixelTypeToFileName = true,
+                                                                    IImageDecoder decoder = null)
             where TPixel : struct, IPixel<TPixel>
         {
             string referenceOutputFile = provider.Utility.GetReferenceOutputFileName(extension, testOutputDetails, appendPixelTypeToFileName);
@@ -126,7 +130,9 @@ namespace SixLabors.ImageSharp.Tests
                 throw new Exception("Reference output file missing: " + referenceOutputFile);
             }
 
-            return Image.Load<TPixel>(referenceOutputFile);
+            decoder = decoder ?? TestEnvironment.GetReferenceDecoder(referenceOutputFile);
+
+            return Image.Load<TPixel>(referenceOutputFile, decoder);
         }
 
         public static IEnumerable<ImageSimilarityReport> GetReferenceOutputSimilarityReports<TPixel>(
@@ -135,13 +141,15 @@ namespace SixLabors.ImageSharp.Tests
             ImageComparer comparer,
             object testOutputDetails = null,
             string extension = "png",
-            bool appendPixelTypeToFileName = true)
+            bool appendPixelTypeToFileName = true,
+            IImageDecoder decoder = null)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> referenceImage = provider.GetReferenceOutputImage<TPixel>(
                 testOutputDetails,
                 extension,
-                appendPixelTypeToFileName))
+                appendPixelTypeToFileName,
+                decoder))
             {
                 return comparer.CompareImages(referenceImage, image);
             }

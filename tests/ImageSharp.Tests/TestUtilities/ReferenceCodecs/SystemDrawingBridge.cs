@@ -52,7 +52,29 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
             }
         }
 
-        internal static unsafe Image<TPixel> FromSystemDrawingBitmap<TPixel>(System.Drawing.Bitmap bmp)
+        private static void FromRgb24<TPixel>(Span<Rgb24> source, Span<TPixel> dest)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            int length = source.Length;
+            Guard.MustBeSizedAtLeast(dest, length, nameof(dest));
+
+            using (var rgbaBuffer = new Buffer<Rgb24>(length))
+            {
+                PixelOperations<Rgb24>.Instance.ToRgb24(source, rgbaBuffer, length);
+
+                for (int i = 0; i < length; i++)
+                {
+                    ref Rgb24 s = ref rgbaBuffer[i];
+                    ref TPixel d = ref dest[i];
+                    var rgba = default(Rgba32);
+                    s.ToRgba32(ref rgba);
+
+                    d.PackFromRgba32(rgba);
+                }
+            }
+        }
+
+        internal static unsafe Image<TPixel> FromFromArgb32SystemDrawingBitmap<TPixel>(System.Drawing.Bitmap bmp)
             where TPixel : struct, IPixel<TPixel>
         {
             int w = bmp.Width;
@@ -62,7 +84,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
 
             if (bmp.PixelFormat != PixelFormat.Format32bppArgb)
             {
-                throw new ArgumentException("FromSystemDrawingBitmap(): pixel format not supported", nameof(bmp));
+                throw new ArgumentException($"FromFromArgb32SystemDrawingBitmap(): pixel format should be Argb32!", nameof(bmp));
             }
 
             BitmapData data = bmp.LockBits(fullRect, ImageLockMode.ReadWrite, bmp.PixelFormat);
@@ -85,6 +107,48 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
                     Buffer.MemoryCopy(sourcePtr, destPtr, destRowByteCount, sourceRowByteCount);
 
                     FromArgb32(workBuffer, row);
+                }
+            }
+
+            return image;
+        }
+
+        /// <summary>
+        /// TODO: Doesn not work yet!
+        /// </summary>
+        internal static unsafe Image<TPixel> FromFromRgb24SystemDrawingBitmap<TPixel>(System.Drawing.Bitmap bmp)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            int w = bmp.Width;
+            int h = bmp.Height;
+
+            var fullRect = new System.Drawing.Rectangle(0, 0, w, h);
+
+            if (bmp.PixelFormat != PixelFormat.Format24bppRgb)
+            {
+                throw new ArgumentException($"FromFromArgb32SystemDrawingBitmap(): pixel format should be Rgb24!", nameof(bmp));
+            }
+
+            BitmapData data = bmp.LockBits(fullRect, ImageLockMode.ReadWrite, bmp.PixelFormat);
+            byte* sourcePtrBase = (byte*)data.Scan0;
+
+            long sourceRowByteCount = data.Stride;
+            long destRowByteCount = w * sizeof(Rgb24);
+
+            var image = new Image<TPixel>(w, h);
+
+            using (var workBuffer = new Buffer<Rgb24>(w))
+            {
+                var destPtr = (Rgb24*)workBuffer.Pin();
+                for (int y = 0; y < h; y++)
+                {
+                    Span<TPixel> row = image.GetRowSpan(y);
+
+                    byte* sourcePtr = sourcePtrBase + data.Stride * y;
+
+                    Buffer.MemoryCopy(sourcePtr, destPtr, destRowByteCount, sourceRowByteCount);
+
+                    FromRgb24(workBuffer, row);
                 }
             }
 

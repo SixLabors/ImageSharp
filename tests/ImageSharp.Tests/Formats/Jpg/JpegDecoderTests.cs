@@ -49,7 +49,7 @@ namespace SixLabors.ImageSharp.Tests
 
         // BUG: PDF.js output is wrong on spectral level!
         private static readonly ImageComparer PdfJsProgressiveComparer =
-            ImageComparer.Tolerant(0.015f, pixelThresholdHammingDistance: 4);
+            ImageComparer.Tolerant(0.015f, perPixelManhattanThreshold: 4);
 
 
         public JpegDecoderTests(ITestOutputHelper output)

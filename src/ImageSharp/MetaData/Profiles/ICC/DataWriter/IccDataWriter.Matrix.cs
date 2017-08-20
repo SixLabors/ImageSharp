@@ -4,7 +4,7 @@
 using System.Numerics;
 using SixLabors.ImageSharp.Memory;
 
-namespace SixLabors.ImageSharp
+namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 {
     /// <summary>
     /// Provides methods to write ICC data types

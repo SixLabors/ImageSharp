@@ -7,6 +7,8 @@ using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.MetaData.Profiles.Exif;
+using SixLabors.ImageSharp.MetaData.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
 using Block8x8F = SixLabors.ImageSharp.Formats.Jpeg.Common.Block8x8F;
 

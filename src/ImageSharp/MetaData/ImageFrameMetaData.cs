@@ -3,7 +3,7 @@
 
 using SixLabors.ImageSharp.Formats;
 
-namespace SixLabors.ImageSharp
+namespace SixLabors.ImageSharp.MetaData
 {
     /// <summary>
     /// Encapsulates the metadata of an image frame.

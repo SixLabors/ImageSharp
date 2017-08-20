@@ -11,12 +11,13 @@ namespace SixLabors.ImageSharp.Tests
     using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort;
     using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components;
     using SixLabors.ImageSharp.PixelFormats;
+    using SixLabors.Primitives;
 
     using Xunit;
 
     internal static class LibJpegTools
     {
-        public unsafe struct Block
+        public unsafe struct Block : IEquatable<Block>
         {
             public Block(short[] data)
             {
@@ -24,28 +25,45 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             public short[] Data { get; }
-
-            //public fixed short Data[64];
-
-            //public Block8x8(short[] data)
-            //{
-            //    fixed (short* p = Data)
-            //    {
-            //        for (int i = 0; i < 64; i++)
-            //        {
-            //            p[i] = data[i];
-            //        }
-            //    }
-            //}
-
+            
             public short this[int x, int y]
             {
                 get => this.Data[y * 8 + x];
                 set => this.Data[y * 8 + x] = value;
             }
+
+            public bool Equals(Block other)
+            {
+                for (int i = 0; i < 64; i++)
+                {
+                    if (this.Data[i] != other.Data[i]) return false;
+                }
+                return true;
+            }
+
+            public override bool Equals(object obj)
+            {
+                if (ReferenceEquals(null, obj)) return false;
+                return obj is Block && Equals((Block)obj);
+            }
+
+            public override int GetHashCode()
+            {
+                return (this.Data != null ? this.Data.GetHashCode() : 0);
+            }
+
+            public static bool operator ==(Block left, Block right)
+            {
+                return left.Equals(right);
+            }
+
+            public static bool operator !=(Block left, Block right)
+            {
+                return !left.Equals(right);
+            }
         }
 
-        public class SpectralData
+        public class SpectralData : IEquatable<SpectralData>
         {
             public int ComponentCount { get; private set; }
 
@@ -132,13 +150,116 @@ namespace SixLabors.ImageSharp.Tests
             public static SpectralData LoadFromImageSharpDecoder(JpegDecoderCore decoder)
             {
                 FrameComponent[] srcComponents = decoder.Frame.Components;
-                
-                ComponentData[] destComponents = new ComponentData[srcComponents.Length];
-                throw new NotImplementedException();
+
+                ComponentData[] destComponents = srcComponents.Select(ComponentData.Load).ToArray();
+
+                return new SpectralData(destComponents);
+            }
+
+            public Image<Rgba32> TryCreateRGBSpectralImage()
+            {
+                if (this.ComponentCount != 3) return null;
+
+                ComponentData c0 = this.Components[0];
+                ComponentData c1 = this.Components[1];
+                ComponentData c2 = this.Components[2];
+
+                if (c0.Size != c1.Size || c1.Size != c2.Size)
+                {
+                    return null;
+                }
+
+                Image<Rgba32> result = new Image<Rgba32>(c0.XCount * 8, c0.YCount * 8);
+
+                for (int by = 0; by < c0.YCount; by++)
+                {
+                    for (int bx = 0; bx < c0.XCount; bx++)
+                    {
+                        this.WriteToImage(bx, by, result);
+                    }
+                }
+                return result;
+            }
+
+            internal void WriteToImage(int bx, int by, Image<Rgba32> image)
+            {
+                ComponentData c0 = this.Components[0];
+                ComponentData c1 = this.Components[1];
+                ComponentData c2 = this.Components[2];
+
+                Block block0 = c0.Blocks[by, bx];
+                Block block1 = c1.Blocks[by, bx];
+                Block block2 = c2.Blocks[by, bx];
+
+                float d0 = (c0.MaxVal - c0.MinVal);
+                float d1 = (c1.MaxVal - c1.MinVal);
+                float d2 = (c2.MaxVal - c2.MinVal);
+
+                for (int y = 0; y < 8; y++)
+                {
+                    for (int x = 0; x < 8; x++)
+                    {
+                        float val0 = c0.GetBlockValue(block0, x, y);
+                        float val1 = c0.GetBlockValue(block1, x, y);
+                        float val2 = c0.GetBlockValue(block2, x, y);
+
+                        Vector4 v = new Vector4(val0, val1, val2, 1);
+                        Rgba32 color = default(Rgba32);
+                        color.PackFromVector4(v);
+
+                        int yy = by * 8 + y;
+                        int xx = bx * 8 + x;
+                        image[xx, yy] = color;
+                    }
+                }
+            }
+
+            public bool Equals(SpectralData other)
+            {
+                if (ReferenceEquals(null, other)) return false;
+                if (ReferenceEquals(this, other)) return true;
+                if (this.ComponentCount != other.ComponentCount)
+                {
+                    return false;
+                }
+
+                for (int i = 0; i < this.ComponentCount; i++)
+                {
+                    ComponentData a = this.Components[i];
+                    ComponentData b = other.Components[i];
+                    if (!a.Equals(b)) return false;
+                }
+                return true;
+            }
+
+            public override bool Equals(object obj)
+            {
+                if (ReferenceEquals(null, obj)) return false;
+                if (ReferenceEquals(this, obj)) return true;
+                if (obj.GetType() != this.GetType()) return false;
+                return Equals((SpectralData)obj);
+            }
+
+            public override int GetHashCode()
+            {
+                unchecked
+                {
+                    return (this.ComponentCount * 397) ^ (this.Components != null ? this.Components[0].GetHashCode() : 0);
+                }
+            }
+
+            public static bool operator ==(SpectralData left, SpectralData right)
+            {
+                return Equals(left, right);
+            }
+
+            public static bool operator !=(SpectralData left, SpectralData right)
+            {
+                return !Equals(left, right);
             }
         }
 
-        public class ComponentData
+        public class ComponentData : IEquatable<ComponentData>
         {
             public ComponentData(int yCount, int xCount, int index)
             {
@@ -147,6 +268,8 @@ namespace SixLabors.ImageSharp.Tests
                 this.Index = index;
                 this.Blocks = new Block[this.YCount, this.XCount];
             }
+
+            public Size Size => new Size(this.XCount, this.YCount);
 
             public int Index { get; }
 
@@ -172,16 +295,44 @@ namespace SixLabors.ImageSharp.Tests
 
             private void Init(Array bloxSource)
             {
-                for (int i = 0; i < bloxSource.Length; i++)
+                for (int y = 0; y < bloxSource.Length; y++)
                 {
-                    Array row = (Array)bloxSource.GetValue(i);
-                    for (int j = 0; j < row.Length; j++)
+                    Array row = (Array)bloxSource.GetValue(y);
+                    for (int x = 0; x < row.Length; x++)
                     {
-                        object jBlock = row.GetValue(j);
+                        object jBlock = row.GetValue(x);
                         short[] data = (short[])GetNonPublicMember(jBlock, "data");
-                        this.MinVal = Math.Min(this.MinVal, data.Min());
-                        this.MaxVal = Math.Max(this.MaxVal, data.Max());
-                        this.Blocks[i, j] = new Block(data);
+                        this.MakeBlock(data, y, x);
+                    }
+                }
+            }
+
+            private void MakeBlock(short[] data, int y, int x)
+            {
+                this.MinVal = Math.Min(this.MinVal, data.Min());
+                this.MaxVal = Math.Max(this.MaxVal, data.Max());
+                this.Blocks[y, x] = new Block(data);
+            }
+
+            public static ComponentData Load(FrameComponent sc, int index)
+            {
+                var result = new ComponentData(
+                    sc.BlocksPerColumnForMcu,
+                    sc.BlocksPerLineForMcu,
+                    index
+                    );
+                result.Init(sc);
+                return result;
+            }
+
+            private void Init(FrameComponent sc)
+            {
+                for (int y = 0; y < this.YCount; y++)
+                {
+                    for (int x = 0; x < this.XCount; x++)
+                    {
+                        short[] data = sc.GetBlockBuffer(y, x).ToArray();
+                        this.MakeBlock(data, y, x);
                     }
                 }
             }
@@ -194,32 +345,92 @@ namespace SixLabors.ImageSharp.Tests
                 {
                     for (int bx = 0; bx < this.XCount; bx++)
                     {
-                        WriteToImage(this.Blocks[by, bx], bx, by, result);
+                        this.WriteToImage(bx, by, result);
                     }
                 }
                 return result;
             }
 
-            private void WriteToImage(Block block, int bx, int by, Image<Rgba32> image)
+            internal void WriteToImage(int bx, int by, Image<Rgba32> image)
             {
-                float d = (this.MaxVal - this.MinVal);
+                Block block = this.Blocks[by, bx];
+                
                 for (int y = 0; y < 8; y++)
                 {
                     for (int x = 0; x < 8; x++)
                     {
-                        int yy = by * 8 + y;
-                        int xx = bx * 8 + x;
-                        float val = block[x, y];
-                        val -= this.MinVal;
-                        val /= d;
+                        var val = this.GetBlockValue(block, x, y);
 
                         Vector4 v = new Vector4(val, val, val, 1);
                         Rgba32 color = default(Rgba32);
                         color.PackFromVector4(v);
 
+                        int yy = by * 8 + y;
+                        int xx = bx * 8 + x;
                         image[xx, yy] = color;
                     }
                 }
+            }
+
+            internal float GetBlockValue(Block block, int x, int y)
+            {
+                float d = (this.MaxVal - this.MinVal);
+                float val = block[x, y];
+                val -= this.MinVal;
+                val /= d;
+                return val;
+            }
+
+            public bool Equals(ComponentData other)
+            {
+                if (ReferenceEquals(null, other)) return false;
+                if (ReferenceEquals(this, other)) return true;
+                bool ok = this.Index == other.Index && this.YCount == other.YCount && this.XCount == other.XCount
+                       && this.MinVal == other.MinVal
+                       && this.MaxVal == other.MaxVal;
+                if (!ok) return false;
+
+                for (int i = 0; i < this.YCount; i++)
+                {
+                    for (int j = 0; j < this.XCount; j++)
+                    {
+                        Block a = this.Blocks[i, j];
+                        Block b = other.Blocks[i, j];
+                        if (!a.Equals(b)) return false;
+                    }
+                }
+                return true;
+            }
+
+            public override bool Equals(object obj)
+            {
+                if (ReferenceEquals(null, obj)) return false;
+                if (ReferenceEquals(this, obj)) return true;
+                if (obj.GetType() != this.GetType()) return false;
+                return Equals((ComponentData)obj);
+            }
+
+            public override int GetHashCode()
+            {
+                unchecked
+                {
+                    var hashCode = this.Index;
+                    hashCode = (hashCode * 397) ^ this.YCount;
+                    hashCode = (hashCode * 397) ^ this.XCount;
+                    hashCode = (hashCode * 397) ^ this.MinVal.GetHashCode();
+                    hashCode = (hashCode * 397) ^ this.MaxVal.GetHashCode();
+                    return hashCode;
+                }
+            }
+
+            public static bool operator ==(ComponentData left, ComponentData right)
+            {
+                return Equals(left, right);
+            }
+
+            public static bool operator !=(ComponentData left, ComponentData right)
+            {
+                return !Equals(left, right);
             }
         }
 

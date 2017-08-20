@@ -5,6 +5,8 @@ using System;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
 {
+    using SixLabors.ImageSharp.Memory;
+
     /// <summary>
     /// Represent a single jpeg frame
     /// </summary>
@@ -83,5 +85,21 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                 this.Components = null;
             }
         }
+
+        /// <summary>
+        /// Allocates the frame component blocks
+        /// </summary>
+        public void InitComponents()
+        {
+            this.McusPerLine = (int)MathF.Ceiling(this.SamplesPerLine / 8F / this.MaxHorizontalFactor);
+            this.McusPerColumn = (int)MathF.Ceiling(this.Scanlines / 8F / this.MaxVerticalFactor);
+
+            for (int i = 0; i < this.ComponentCount; i++)
+            {
+                FrameComponent component = this.Components[i];
+                component.Init();
+            }
+        }
+
     }
 }

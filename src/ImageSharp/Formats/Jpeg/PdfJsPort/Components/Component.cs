@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
     /// <summary>
     /// Represents a component block
     /// </summary>
-    internal struct Component : IDisposable
+    internal class Component : IDisposable
     {
         /// <summary>
         /// Gets or sets the output

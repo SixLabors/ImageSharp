@@ -810,7 +810,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                     for (int blockCol = 0; blockCol < blocksPerLine; blockCol++)
                     {
                         int offset = GetBlockBufferOffset(ref component, blockRow, blockCol);
-                        IDCT.QuantizeAndInverse(ref frameComponent, offset, ref computationBufferSpan, ref quantizationTable);
+                        IDCT.QuantizeAndInverse(frameComponent, offset, ref computationBufferSpan, ref quantizationTable);
                     }
                 }
             }

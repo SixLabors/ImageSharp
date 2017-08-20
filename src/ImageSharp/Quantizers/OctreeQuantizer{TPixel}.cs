@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Quantizers.Base;
 
 namespace SixLabors.ImageSharp.Quantizers
 {
@@ -13,7 +14,7 @@ namespace SixLabors.ImageSharp.Quantizers
     /// <see href="http://msdn.microsoft.com/en-us/library/aa479306.aspx"/>
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    public sealed class OctreeQuantizer<TPixel> : Quantizer<TPixel>
+    public sealed class OctreeQuantizer<TPixel> : QuantizerBase<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>

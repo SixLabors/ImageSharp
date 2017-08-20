@@ -6,26 +6,27 @@ using SixLabors.ImageSharp.Memory;
 namespace SixLabors.ImageSharp.Dithering
 {
     /// <summary>
-    /// Applies error diffusion based dithering using the Sierra2 image dithering algorithm.
+    /// Applies error diffusion based dithering using the Stucki image dithering algorithm.
     /// <see href="http://www.efg2.com/Lab/Library/ImageProcessing/DHALF.TXT"/>
     /// </summary>
-    public sealed class Sierra2 : ErrorDiffuser
+    public sealed class StuckiDiffuser : ErrorDiffuser
     {
         /// <summary>
         /// The diffusion matrix
         /// </summary>
-        private static readonly Fast2DArray<float> Sierra2Matrix =
+        private static readonly Fast2DArray<float> StuckiMatrix =
             new float[,]
             {
-               { 0, 0, 0, 4, 3 },
-               { 1, 2, 3, 2, 1 }
+               { 0, 0, 0, 8, 4 },
+               { 2, 4, 8, 4, 2 },
+               { 1, 2, 4, 2, 1 }
             };
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Sierra2"/> class.
+        /// Initializes a new instance of the <see cref="StuckiDiffuser"/> class.
         /// </summary>
-        public Sierra2()
-            : base(Sierra2Matrix, 16)
+        public StuckiDiffuser()
+            : base(StuckiMatrix, 42)
         {
         }
     }

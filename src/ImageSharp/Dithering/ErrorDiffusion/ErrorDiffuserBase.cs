@@ -7,12 +7,12 @@ using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Dithering
+namespace SixLabors.ImageSharp.Dithering.Base
 {
     /// <summary>
     /// The base class for performing error diffusion based dithering.
     /// </summary>
-    public abstract class ErrorDiffuser : IErrorDiffuser
+    public abstract class ErrorDiffuserBase : IErrorDiffuser
     {
         /// <summary>
         /// The vector to perform division.
@@ -40,11 +40,11 @@ namespace SixLabors.ImageSharp.Dithering
         private readonly Fast2DArray<float> matrix;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ErrorDiffuser"/> class.
+        /// Initializes a new instance of the <see cref="ErrorDiffuserBase"/> class.
         /// </summary>
         /// <param name="matrix">The dithering matrix.</param>
         /// <param name="divisor">The divisor.</param>
-        internal ErrorDiffuser(Fast2DArray<float> matrix, byte divisor)
+        internal ErrorDiffuserBase(Fast2DArray<float> matrix, byte divisor)
         {
             Guard.NotNull(matrix, nameof(matrix));
             Guard.MustBeGreaterThan(divisor, 0, nameof(divisor));

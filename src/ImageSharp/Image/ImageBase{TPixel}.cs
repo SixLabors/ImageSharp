@@ -272,14 +272,6 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
-        /// Releases any unmanaged resources from the inheriting class.
-        /// </summary>
-        protected virtual void ReleaseUnmanagedResources()
-        {
-            // TODO release unmanaged resources here
-        }
-
-        /// <summary>
         /// Disposes the object and frees resources for the Garbage Collector.
         /// </summary>
         /// <param name="disposing">If true, the object gets disposed.</param>
@@ -289,8 +281,6 @@ namespace SixLabors.ImageSharp
             {
                 return;
             }
-
-            this.ReleaseUnmanagedResources();
 
             if (disposing)
             {

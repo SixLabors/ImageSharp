@@ -175,10 +175,10 @@ namespace SixLabors.ImageSharp.Tests
             IImageFormat format = TestEnvironment.GetImageFormat(path);
             IImageDecoder defaultDecoder = Configuration.Default.FindDecoder(format);
 
-            if (referenceDecoder.GetType() == defaultDecoder.GetType())
-            {
-                throw new InvalidOperationException($"Can't use CompareToOriginal(): no actual reference decoder registered for {format.Name}");
-            }
+            //if (referenceDecoder.GetType() == defaultDecoder.GetType())
+            //{
+            //    throw new InvalidOperationException($"Can't use CompareToOriginal(): no actual reference decoder registered for {format.Name}");
+            //}
 
             using (var original = Image.Load<TPixel>(testFile.Bytes, referenceDecoder))
             {

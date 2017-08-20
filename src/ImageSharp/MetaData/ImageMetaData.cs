@@ -3,6 +3,8 @@
 
 using System.Collections.Generic;
 using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.MetaData.Profiles.Exif;
+using SixLabors.ImageSharp.MetaData.Profiles.Icc;
 
 namespace SixLabors.ImageSharp
 {

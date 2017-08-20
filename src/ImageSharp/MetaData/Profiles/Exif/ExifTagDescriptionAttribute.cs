@@ -4,7 +4,7 @@
 using System;
 using System.Reflection;
 
-namespace SixLabors.ImageSharp
+namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
 {
     /// <summary>
     /// Class that provides a description for an ExifTag value.

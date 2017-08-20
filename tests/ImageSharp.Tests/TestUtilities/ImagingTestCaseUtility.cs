@@ -131,7 +131,7 @@ namespace SixLabors.ImageSharp.Tests
         /// <param name="image">The image instance</param>
         /// <param name="extension">The requested extension</param>
         /// <param name="encoder">Optional encoder</param>
-        public void SaveTestOutputFile<TPixel>(
+        public string SaveTestOutputFile<TPixel>(
             Image<TPixel> image,
             string extension = null,
             IImageEncoder encoder = null,
@@ -146,6 +146,7 @@ namespace SixLabors.ImageSharp.Tests
             {
                 image.Save(stream, encoder);
             }
+            return path;
         }
 
         internal string GetReferenceOutputFileName(
@@ -190,7 +191,7 @@ namespace SixLabors.ImageSharp.Tests
         //    return encoder;
         //}
 
-        private string GetTestOutputDir()
+        internal string GetTestOutputDir()
         {
             string testGroupName = Path.GetFileNameWithoutExtension(this.TestGroupName);
             return this.CreateOutputDirectory(testGroupName);

@@ -202,7 +202,7 @@ namespace SixLabors.ImageSharp
         }
 
         /// <inheritdoc/>
-        protected override ImageBase<TPixel> CloneInternal()
+        protected override ImageBase<TPixel> CloneImageBase()
         {
             return this.Clone();
         }

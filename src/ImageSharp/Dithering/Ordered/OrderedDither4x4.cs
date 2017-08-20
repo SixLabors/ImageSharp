@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Dithering.Ordered
         }
 
         /// <inheritdoc />
-        public void Dither<TPixel>(ImageBase<TPixel> image, TPixel source, TPixel upper, TPixel lower, byte[] bytes, int index, int x, int y, int width, int height)
+        public void Dither<TPixel>(ImageBase<TPixel> image, TPixel source, TPixel upper, TPixel lower, byte[] bytes, int index, int x, int y)
             where TPixel : struct, IPixel<TPixel>
         {
             // TODO: This doesn't really cut it for me.

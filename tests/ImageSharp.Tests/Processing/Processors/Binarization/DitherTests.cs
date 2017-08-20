@@ -111,8 +111,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
             }
         }
 
-        // TODO: Does not work because of a bug! Fix it!
-        [Theory(Skip = "TODO: Does not work because of a bug! Fix it!")]
+        [Theory]
         [WithFile(TestImages.Png.CalliphoraPartial, DefaultPixelType)]
         public void ApplyDiffusionFilterInBox<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>

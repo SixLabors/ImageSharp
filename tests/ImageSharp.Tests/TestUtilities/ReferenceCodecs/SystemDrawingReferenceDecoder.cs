@@ -26,12 +26,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
                 {
                     return SystemDrawingBridge.FromFromArgb32SystemDrawingBitmap<TPixel>(sourceBitmap);
                 }
-
-                if (sourceBitmap.PixelFormat == PixelFormat.Format24bppRgb)
-                {
-                    
-                }
-
+                
                 using (var convertedBitmap = new System.Drawing.Bitmap(
                     sourceBitmap.Width,
                     sourceBitmap.Height,

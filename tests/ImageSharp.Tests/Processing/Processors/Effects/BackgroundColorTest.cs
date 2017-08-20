@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
                 image.Mutate(x => x.BackgroundColor(NamedColors<TPixel>.HotPink, bounds));
                 image.DebugSave(provider);
 
-                ImageComparer.Tolerant().EnsureProcessorChangesAreConstrained(source, image, bounds);
+                ImageComparer.Tolerant().VerifySimilarityIgnoreRegion(source, image, bounds);
             }
         }
     }

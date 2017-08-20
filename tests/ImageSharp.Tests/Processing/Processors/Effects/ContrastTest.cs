@@ -43,7 +43,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
                 image.Mutate(x => x.Contrast(value, bounds));
                 image.DebugSave(provider, value);
 
-                ImageComparer.Tolerant().EnsureProcessorChangesAreConstrained(source, image, bounds);
+                ImageComparer.Tolerant().VerifySimilarityIgnoreRegion(source, image, bounds);
             }
         }
     }

@@ -42,6 +42,11 @@ namespace SixLabors.ImageSharp.Processing.Processors
         {
         }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether to compress or expand individual pixel color values on processing.
+        /// </summary>
+        public bool Compand { get; set; }
+
         /// <inheritdoc/>
         protected override Image<TPixel> CreateDestination(Image<TPixel> source, Rectangle sourceRectangle)
         {

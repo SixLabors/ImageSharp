@@ -26,7 +26,6 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
                     {nameof( CieXyz), CieXyz.Empty },
                     {nameof( CieXyy), CieXyy.Empty },
                     {nameof( Hsl), Hsl.Empty },
-                    {nameof( Hsl), Hsl.Empty },
                     {nameof( HunterLab), HunterLab.Empty },
                     {nameof( Lms), Lms.Empty },
                     {nameof( LinearRgb), LinearRgb.Empty },

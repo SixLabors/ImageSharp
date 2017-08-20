@@ -140,6 +140,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         {
             ImageMetaData metadata = this.ParseStream(stream);
 
+            this.QuantizeAndInverseAllComponents();
+
             var image = new Image<TPixel>(this.configuration, this.ImageWidth, this.ImageHeight, metadata);
             this.FillPixelData(image);
             this.AssignResolution(image);
@@ -275,7 +277,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
 
             for (int i = 0; i < this.components.Components.Length; i++)
             {
-                ref var frameComponent = ref this.Frame.Components[i];
+                FrameComponent frameComponent = this.Frame.Components[i];
                 var component = new Component
                 {
                     Scale = new System.Numerics.Vector2(
@@ -285,11 +287,22 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                     BlocksPerColumn = frameComponent.BlocksPerColumn
                 };
 
-                this.BuildComponentData(ref component, ref frameComponent);
+                // this.QuantizeAndInverseComponentData(ref component, frameComponent);
                 this.components.Components[i] = component;
             }
 
             this.NumberOfComponents = this.components.Components.Length;
+        }
+
+        internal void QuantizeAndInverseAllComponents()
+        {
+            for (int i = 0; i < this.components.Components.Length; i++)
+            {
+                FrameComponent frameComponent = this.Frame.Components[i];
+                Component component = this.components.Components[i];
+
+                this.QuantizeAndInverseComponentData(component, frameComponent);
+            }
         }
 
         /// <summary>
@@ -648,13 +661,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                     maxV = v;
                 }
 
-                var component = new FrameComponent();
-                this.Frame.Components[i] = component;
-                component.Id = this.temp[index];
-                component.HorizontalFactor = h;
-                component.VerticalFactor = v;
-                component.QuantizationIdentifier = this.temp[index + 2];
+                var component = new FrameComponent(this.Frame, this.temp[index], h, v, this.temp[index + 2]);
 
+                this.Frame.Components[i] = component;
                 this.Frame.ComponentIds[i] = component.Id;
 
                 index += 3;
@@ -662,7 +671,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
 
             this.Frame.MaxHorizontalFactor = maxH;
             this.Frame.MaxVerticalFactor = maxV;
-            this.PrepareComponents();
+            this.Frame.InitComponents();
         }
 
         /// <summary>
@@ -784,7 +793,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         /// </summary>
         /// <param name="component">The component</param>
         /// <param name="frameComponent">The frame component</param>
-        private void BuildComponentData(ref Component component, ref FrameComponent frameComponent)
+        private void QuantizeAndInverseComponentData(Component component, FrameComponent frameComponent)
         {
             int blocksPerLine = component.BlocksPerLine;
             int blocksPerColumn = component.BlocksPerColumn;
@@ -828,34 +837,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         private void BuildHuffmanTable(HuffmanTables tables, int index, byte[] codeLengths, byte[] values)
         {
             tables[index] = new HuffmanTable(codeLengths, values);
-        }
-
-        /// <summary>
-        /// Allocates the frame component blocks
-        /// </summary>
-        private void PrepareComponents()
-        {
-            int mcusPerLine = (int)MathF.Ceiling(this.Frame.SamplesPerLine / 8F / this.Frame.MaxHorizontalFactor);
-            int mcusPerColumn = (int)MathF.Ceiling(this.Frame.Scanlines / 8F / this.Frame.MaxVerticalFactor);
-
-            for (int i = 0; i < this.Frame.ComponentCount; i++)
-            {
-                ref var component = ref this.Frame.Components[i];
-                int blocksPerLine = (int)MathF.Ceiling(MathF.Ceiling(this.Frame.SamplesPerLine / 8F) * component.HorizontalFactor / this.Frame.MaxHorizontalFactor);
-                int blocksPerColumn = (int)MathF.Ceiling(MathF.Ceiling(this.Frame.Scanlines / 8F) * component.VerticalFactor / this.Frame.MaxVerticalFactor);
-                int blocksPerLineForMcu = mcusPerLine * component.HorizontalFactor;
-                int blocksPerColumnForMcu = mcusPerColumn * component.VerticalFactor;
-
-                int blocksBufferSize = 64 * blocksPerColumnForMcu * (blocksPerLineForMcu + 1);
-
-                // Pooled. Disposed via frame disposal
-                component.BlockData = Buffer<short>.CreateClean(blocksBufferSize);
-                component.BlocksPerLine = blocksPerLine;
-                component.BlocksPerColumn = blocksPerColumn;
-            }
-
-            this.Frame.McusPerLine = mcusPerLine;
-            this.Frame.McusPerColumn = mcusPerColumn;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

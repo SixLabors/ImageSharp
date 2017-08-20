@@ -69,15 +69,15 @@ namespace SixLabors.ImageSharp.Dithering
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Dither<TPixel>(ImageBase<TPixel> pixels, TPixel source, TPixel transformed, int x, int y, int width, int height)
+        public void Dither<TPixel>(ImageBase<TPixel> pixels, TPixel source, TPixel transformed, int x, int y, int minX, int minY, int maxX, int maxY)
             where TPixel : struct, IPixel<TPixel>
         {
-            this.Dither(pixels, source, transformed, x, y, width, height, true);
+            this.Dither(pixels, source, transformed, x, y, minX, minY, maxX, maxY, true);
         }
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Dither<TPixel>(ImageBase<TPixel> image, TPixel source, TPixel transformed, int x, int y, int width, int height, bool replacePixel)
+        public void Dither<TPixel>(ImageBase<TPixel> image, TPixel source, TPixel transformed, int x, int y, int minX, int minY, int maxX, int maxY, bool replacePixel)
             where TPixel : struct, IPixel<TPixel>
         {
             if (replacePixel)
@@ -93,7 +93,7 @@ namespace SixLabors.ImageSharp.Dithering
             for (int row = 0; row < this.matrixHeight; row++)
             {
                 int matrixY = y + row;
-                if (matrixY > 0 && matrixY < height)
+                if (matrixY > minY && matrixY < maxY)
                 {
                     Span<TPixel> rowSpan = image.GetRowSpan(matrixY);
 
@@ -101,7 +101,7 @@ namespace SixLabors.ImageSharp.Dithering
                     {
                         int matrixX = x + (col - this.startingOffset);
 
-                        if (matrixX > 0 && matrixX < width)
+                        if (matrixX > minX && matrixX < maxX)
                         {
                             float coefficient = this.matrix[row, col];
 

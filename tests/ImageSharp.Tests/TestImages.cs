@@ -116,7 +116,8 @@ namespace ImageSharp.Tests
             public const string Car = "Bmp/Car.bmp";
             public const string F = "Bmp/F.bmp";
             public const string NegHeight = "Bmp/neg_height.bmp";
-            public static readonly string[] All = { Car, F, NegHeight };
+            public const string CoreHeader = "Bmp/QR_core.bmp";
+            public static readonly string[] All = { Car, F, NegHeight, CoreHeader };
         }
 
         public static class Gif

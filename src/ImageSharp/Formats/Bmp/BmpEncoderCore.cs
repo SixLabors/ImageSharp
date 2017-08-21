@@ -58,7 +58,7 @@ namespace ImageSharp.Formats
 
             BmpInfoHeader infoHeader = new BmpInfoHeader
             {
-                HeaderSize = BmpInfoHeader.Size,
+                HeaderSize = BmpInfoHeader.BitmapInfoHeaderSize,
                 Height = image.Height,
                 Width = image.Width,
                 BitsPerPixel = bpp,

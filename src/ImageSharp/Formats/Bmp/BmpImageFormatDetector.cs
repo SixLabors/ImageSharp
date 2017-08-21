@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         {
             if (this.IsSupportedFileFormat(header))
             {
-                return ImageFormats.Bitmap;
+                return ImageFormats.Bmp;
             }
 
             return null;

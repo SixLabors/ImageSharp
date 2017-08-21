@@ -14,6 +14,7 @@ using Xunit.Abstractions;
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests
 {
+    using SixLabors.ImageSharp.Formats.Bmp;
     using SixLabors.ImageSharp.Formats.Png;
 
     public class TestEnvironmentTests
@@ -67,6 +68,7 @@ namespace SixLabors.ImageSharp.Tests
 
         [Theory]
         [InlineData("lol/foo.png", typeof(SystemDrawingReferenceEncoder))]
+        [InlineData("lol/Rofl.bmp", typeof(SystemDrawingReferenceEncoder))]
         [InlineData("lol/Baz.JPG", typeof(JpegEncoder))]
         [InlineData("lol/Baz.gif", typeof(GifEncoder))]
         public void GetReferenceEncoder_ReturnsCorrectEncoders_Windows(string fileName, Type expectedEncoderType)
@@ -79,6 +81,7 @@ namespace SixLabors.ImageSharp.Tests
 
         [Theory]
         [InlineData("lol/foo.png", typeof(SystemDrawingReferenceDecoder))]
+        [InlineData("lol/Rofl.bmp", typeof(SystemDrawingReferenceDecoder))]
         [InlineData("lol/Baz.JPG", typeof(JpegDecoder))]
         [InlineData("lol/Baz.gif", typeof(GifDecoder))]
         public void GetReferenceDecoder_ReturnsCorrectEncoders_Windows(string fileName, Type expectedDecoderType)
@@ -91,6 +94,7 @@ namespace SixLabors.ImageSharp.Tests
 
         [Theory]
         [InlineData("lol/foo.png", typeof(PngEncoder))]
+        [InlineData("lol/Rofl.bmp", typeof(BmpEncoder))]
         [InlineData("lol/Baz.JPG", typeof(JpegEncoder))]
         [InlineData("lol/Baz.gif", typeof(GifEncoder))]
         public void GetReferenceEncoder_ReturnsCorrectEncoders_Linux(string fileName, Type expectedEncoderType)
@@ -103,6 +107,7 @@ namespace SixLabors.ImageSharp.Tests
 
         [Theory]
         [InlineData("lol/foo.png", typeof(PngDecoder))]
+        [InlineData("lol/Rofl.bmp", typeof(BmpDecoder))]
         [InlineData("lol/Baz.JPG", typeof(JpegDecoder))]
         [InlineData("lol/Baz.gif", typeof(GifDecoder))]
         public void GetReferenceDecoder_ReturnsCorrectEncoders_Linux(string fileName, Type expectedDecoderType)

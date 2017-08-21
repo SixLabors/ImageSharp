@@ -32,6 +32,6 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// The format details for the bitmaps.
         /// </summary>
-        public static readonly IImageFormat Bitmap = new BmpFormat();
+        public static readonly IImageFormat Bmp = new BmpFormat();
     }
 }

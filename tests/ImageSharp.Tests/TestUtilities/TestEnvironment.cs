@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp.Tests
                     new PngImageFormatDetector());
 
                 configuration.ConfigureCodecs(
-                    ImageFormats.Bitmap,
+                    ImageFormats.Bmp,
                     SystemDrawingReferenceDecoder.Instance,
                     SystemDrawingReferenceEncoder.Png,
                     new PngImageFormatDetector());

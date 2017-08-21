@@ -11,8 +11,8 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <inheritdoc/>
         public void Configure(Configuration config)
         {
-            config.SetEncoder(ImageFormats.Bitmap, new BmpEncoder());
-            config.SetDecoder(ImageFormats.Bitmap, new BmpDecoder());
+            config.SetEncoder(ImageFormats.Bmp, new BmpEncoder());
+            config.SetDecoder(ImageFormats.Bmp, new BmpDecoder());
             config.AddImageFormatDetector(new BmpImageFormatDetector());
         }
     }

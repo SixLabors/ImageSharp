@@ -48,24 +48,44 @@ namespace SixLabors.ImageSharp.Tests
 
         internal static Configuration Configuration => configuration.Value;
 
+        private static void ConfigureCodecs(
+            this Configuration cfg,
+            IImageFormat imageFormat,
+            IImageDecoder decoder,
+            IImageEncoder encoder,
+            IImageFormatDetector detector)
+        {
+            cfg.SetDecoder(imageFormat, decoder);
+            cfg.SetEncoder(imageFormat, encoder);
+            cfg.AddImageFormatDetector(detector);
+        }
+
         private static Configuration CreateDefaultConfiguration()
         {
             var configuration = new Configuration(
                 new PngConfigurationModule(),
                 new JpegConfigurationModule(),
-                new GifConfigurationModule(),
-                new BmpConfigurationModule()
+                new GifConfigurationModule()
                 );
 
             if (!IsLinux)
             {
-                configuration.SetDecoder(ImageFormats.Png, SystemDrawingReferenceDecoder.Instance);
-                configuration.SetEncoder(ImageFormats.Png, SystemDrawingReferenceEncoder.Png);
-                configuration.AddImageFormatDetector(new PngImageFormatDetector());
+                configuration.ConfigureCodecs(
+                    ImageFormats.Png,
+                    SystemDrawingReferenceDecoder.Instance,
+                    SystemDrawingReferenceEncoder.Png,
+                    new PngImageFormatDetector());
+
+                configuration.ConfigureCodecs(
+                    ImageFormats.Bitmap,
+                    SystemDrawingReferenceDecoder.Instance,
+                    SystemDrawingReferenceEncoder.Png,
+                    new PngImageFormatDetector());
             }
             else
             {
-                new PngConfigurationModule().Configure(configuration);
+                configuration.Configure(new PngConfigurationModule());
+                configuration.Configure(new BmpConfigurationModule());
             }
             
             return configuration;

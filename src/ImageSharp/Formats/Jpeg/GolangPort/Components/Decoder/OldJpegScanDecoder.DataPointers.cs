@@ -5,6 +5,8 @@ using Block8x8F = SixLabors.ImageSharp.Formats.Jpeg.Common.Block8x8F;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 {
+    using SixLabors.ImageSharp.Formats.Jpeg.Common;
+
     /// <content>
     /// Conains the definition of <see cref="DataPointers"/>
     /// </content>
@@ -18,7 +20,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
             /// <summary>
             /// Pointer to <see cref="ComputationData.Block"/>
             /// </summary>
-            public Block8x8F* Block;
+            public Block8x8* Block;
 
             /// <summary>
             /// Pointer to <see cref="ComputationData.Unzig"/> as int*

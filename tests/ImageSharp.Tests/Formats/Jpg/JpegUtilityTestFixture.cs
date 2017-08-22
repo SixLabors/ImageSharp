@@ -60,12 +60,12 @@ namespace SixLabors.ImageSharp.Tests
             return result;
         }
 
-        internal static MutableSpan<float> Create8x8RandomFloatData(int minValue, int maxValue, int seed = 42)
-            => new MutableSpan<int>(Create8x8RandomIntData(minValue, maxValue, seed)).ConvertToFloat32MutableSpan();
+        internal static float[] Create8x8RandomFloatData(int minValue, int maxValue, int seed = 42)
+            => Create8x8RandomIntData(minValue, maxValue, seed).ConvertAllToFloat();
 
-        internal void Print8x8Data<T>(MutableSpan<T> data) => this.Print8x8Data(data.Data);
+        internal void Print8x8Data<T>(T[] data) => this.Print8x8Data(new Span<T>(data));
 
-        internal void Print8x8Data<T>(T[] data)
+        internal void Print8x8Data<T>(Span<T> data)
         {
             StringBuilder bld = new StringBuilder();
             for (int i = 0; i < 8; i++)
@@ -80,11 +80,11 @@ namespace SixLabors.ImageSharp.Tests
             this.Output.WriteLine(bld.ToString());
         }
 
-        internal void PrintLinearData<T>(T[] data) => this.PrintLinearData(new MutableSpan<T>(data), data.Length);
+        internal void PrintLinearData<T>(T[] data) => this.PrintLinearData(new Span<T>(data), data.Length);
 
-        internal void PrintLinearData<T>(MutableSpan<T> data, int count = -1)
+        internal void PrintLinearData<T>(Span<T> data, int count = -1)
         {
-            if (count < 0) count = data.TotalCount;
+            if (count < 0) count = data.Length;
 
             StringBuilder bld = new StringBuilder();
             for (int i = 0; i < count; i++)

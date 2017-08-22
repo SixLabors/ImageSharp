@@ -6,27 +6,20 @@ using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Utils
 {
+    using System;
+
     /// <summary>
     /// MutableSpan Extensions
     /// </summary>
     internal static class MutableSpanExtensions
     {
         /// <summary>
-        /// Slice <see cref="MutableSpan{T}"/>
-        /// </summary>
-        /// <typeparam name="T">The type of the data in the span</typeparam>
-        /// <param name="array">The data array</param>
-        /// <param name="offset">The offset</param>
-        /// <returns>The new <see cref="MutableSpan{T}"/></returns>
-        public static MutableSpan<T> Slice<T>(this T[] array, int offset) => new MutableSpan<T>(array, offset);
-
-        /// <summary>
         /// Save to a Vector4
         /// </summary>
         /// <param name="data">The data</param>
         /// <param name="v">The vector to save to</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void SaveTo(this MutableSpan<float> data, ref Vector4 v)
+        public static void SaveTo(this Span<float> data, ref Vector4 v)
         {
             v.X = data[0];
             v.Y = data[1];
@@ -40,7 +33,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Utils
         /// <param name="data">The data</param>
         /// <param name="v">The vector to save to</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void SaveTo(this MutableSpan<int> data, ref Vector4 v)
+        public static void SaveTo(this Span<int> data, ref Vector4 v)
         {
             v.X = data[0];
             v.Y = data[1];
@@ -54,7 +47,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Utils
         /// <param name="data">The data</param>
         /// <param name="v">The vector to load from</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void LoadFrom(this MutableSpan<float> data, ref Vector4 v)
+        public static void LoadFrom(this Span<float> data, ref Vector4 v)
         {
             data[0] = v.X;
             data[1] = v.Y;
@@ -68,7 +61,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Utils
         /// <param name="data">The data</param>
         /// <param name="v">The vector to load from</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void LoadFrom(this MutableSpan<int> data, ref Vector4 v)
+        public static void LoadFrom(this Span<int> data, ref Vector4 v)
         {
             data[0] = (int)v.X;
             data[1] = (int)v.Y;
@@ -80,11 +73,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Utils
         /// Converts all int values of src to float
         /// </summary>
         /// <param name="src">Source</param>
-        /// <returns>A new <see cref="MutableSpan{T}"/> with float values</returns>
-        public static MutableSpan<float> ConvertToFloat32MutableSpan(this MutableSpan<int> src)
+        /// <returns>A new <see cref="Span{T}"/> with float values</returns>
+        public static float[] ConvertAllToFloat(this int[] src)
         {
-            MutableSpan<float> result = new MutableSpan<float>(src.TotalCount);
-            for (int i = 0; i < src.TotalCount; i++)
+            float[] result = new float[src.Length];
+            for (int i = 0; i < src.Length; i++)
             {
                 result[i] = (float)src[i];
             }
@@ -96,11 +89,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Utils
         /// Converts all float values of src to int
         /// </summary>
         /// <param name="src">Source</param>
-        /// <returns>A new <see cref="MutableSpan{T}"/> with float values</returns>
-        public static MutableSpan<int> ConvertToInt32MutableSpan(this MutableSpan<float> src)
+        /// <returns>A new <see cref="Span{T}"/> with float values</returns>
+        public static Span<int> ConvertToInt32MutableSpan(this Span<float> src)
         {
-            MutableSpan<int> result = new MutableSpan<int>(src.TotalCount);
-            for (int i = 0; i < src.TotalCount; i++)
+            int[] result = new int[src.Length];
+            for (int i = 0; i < src.Length; i++)
             {
                 result[i] = (int)src[i];
             }
@@ -113,11 +106,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Utils
         /// </summary>
         /// <param name="src">The source</param>
         /// <param name="scalar">The scalar value to add</param>
-        /// <returns>A new instance of <see cref="MutableSpan{T}"/></returns>
-        public static MutableSpan<float> AddScalarToAllValues(this MutableSpan<float> src, float scalar)
+        /// <returns>A new instance of <see cref="Span{T}"/></returns>
+        public static Span<float> AddScalarToAllValues(this Span<float> src, float scalar)
         {
-            MutableSpan<float> result = new MutableSpan<float>(src.TotalCount);
-            for (int i = 0; i < src.TotalCount; i++)
+            float[] result = new float[src.Length];
+            for (int i = 0; i < src.Length; i++)
             {
                 result[i] = src[i] + scalar;
             }
@@ -130,11 +123,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Utils
         /// </summary>
         /// <param name="src">The source</param>
         /// <param name="scalar">The scalar value to add</param>
-        /// <returns>A new instance of <see cref="MutableSpan{T}"/></returns>
-        public static MutableSpan<int> AddScalarToAllValues(this MutableSpan<int> src, int scalar)
+        /// <returns>A new instance of <see cref="Span{T}"/></returns>
+        public static Span<int> AddScalarToAllValues(this Span<int> src, int scalar)
         {
-            MutableSpan<int> result = new MutableSpan<int>(src.TotalCount);
-            for (int i = 0; i < src.TotalCount; i++)
+            int[] result = new int[src.Length];
+            for (int i = 0; i < src.Length; i++)
             {
                 result[i] = src[i] + scalar;
             }
@@ -143,15 +136,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Utils
         }
 
         /// <summary>
-        /// Copy all values in src to a new <see cref="MutableSpan{T}"/> instance
+        /// Copy all values in src to a new <see cref="Span{T}"/> instance
         /// </summary>
         /// <typeparam name="T">Element type</typeparam>
         /// <param name="src">The source</param>
-        /// <returns>A new instance of <see cref="MutableSpan{T}"/></returns>
-        public static MutableSpan<T> Copy<T>(this MutableSpan<T> src)
+        /// <returns>A new instance of <see cref="Span{T}"/></returns>
+        public static Span<T> Copy<T>(this Span<T> src)
         {
-            MutableSpan<T> result = new MutableSpan<T>(src.TotalCount);
-            for (int i = 0; i < src.TotalCount; i++)
+            T[] result = new T[src.Length];
+            for (int i = 0; i < src.Length; i++)
             {
                 result[i] = src[i];
             }

@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Utils;
+
 using SixLabors.ImageSharp.Memory;
 using Block8x8F = SixLabors.ImageSharp.Formats.Jpeg.Common.Block8x8F;
 
@@ -59,9 +59,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         public int Offset { get; }
 
         /// <summary>
-        /// Gets a <see cref="MutableSpan{T}" /> of bytes to the pixel area
+        /// Gets a <see cref="Span{T}" /> of bytes to the pixel area
         /// </summary>
-        public MutableSpan<byte> Span => new MutableSpan<byte>(this.Pixels.Array, this.Offset);
+        public Span<byte> Span => new Span<byte>(this.Pixels.Array, this.Offset);
 
         /// <summary>
         /// Returns the pixel at (x, y)

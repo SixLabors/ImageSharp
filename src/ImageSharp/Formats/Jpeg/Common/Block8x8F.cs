@@ -5,11 +5,12 @@ using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Utils;
 
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Formats.Jpeg.Common
 {
+    using SixLabors.ImageSharp.Memory;
+
     /// <summary>
     /// DCT code Ported from https://github.com/norishigefukushima/dct_simd
     /// </summary>
@@ -86,7 +87,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
                 }
             }
         }
-
+        
         /// <summary>
         /// Pointer-based "Indexer" (getter part)
         /// </summary>
@@ -128,12 +129,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         /// </summary>
         /// <param name="source">Source</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe void LoadFrom(MutableSpan<float> source)
+        public void LoadFrom(Span<float> source)
         {
-            fixed (void* ptr = &this.V0L)
-            {
-                Marshal.Copy(source.Data, source.Offset, (IntPtr)ptr, ScalarCount);
-            }
+            ref byte s = ref Unsafe.As<float, byte>(ref source.DangerousGetPinnableReference());
+            ref byte d = ref Unsafe.As<Block8x8F, byte>(ref this);
+
+            Unsafe.CopyBlock(ref d, ref s, ScalarCount * sizeof(float));
         }
 
         /// <summary>
@@ -142,16 +143,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         /// <param name="blockPtr">Block pointer</param>
         /// <param name="source">Source</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe void LoadFrom(Block8x8F* blockPtr, MutableSpan<float> source)
+        public static unsafe void LoadFrom(Block8x8F* blockPtr, Span<float> source)
         {
-            Marshal.Copy(source.Data, source.Offset, (IntPtr)blockPtr, ScalarCount);
+            blockPtr->LoadFrom(source);
         }
 
         /// <summary>
         /// Load raw 32bit floating point data from source
         /// </summary>
         /// <param name="source">Source</param>
-        public unsafe void LoadFrom(MutableSpan<int> source)
+        public unsafe void LoadFrom(Span<int> source)
         {
             fixed (Vector4* ptr = &this.V0L)
             {
@@ -168,12 +169,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         /// </summary>
         /// <param name="dest">Destination</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe void CopyTo(MutableSpan<float> dest)
+        public unsafe void CopyTo(Span<float> dest)
         {
-            fixed (void* ptr = &this.V0L)
-            {
-                Marshal.Copy((IntPtr)ptr, dest.Data, dest.Offset, ScalarCount);
-            }
+            ref byte d = ref Unsafe.As<float, byte>(ref dest.DangerousGetPinnableReference());
+            ref byte s = ref Unsafe.As<Block8x8F, byte>(ref this);
+
+            Unsafe.CopyBlock(ref d, ref s, ScalarCount * sizeof(float));
         }
 
         /// <summary>
@@ -182,7 +183,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         /// <param name="blockPtr">Pointer to block</param>
         /// <param name="dest">Destination</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe void CopyTo(Block8x8F* blockPtr, MutableSpan<byte> dest)
+        public static unsafe void CopyTo(Block8x8F* blockPtr, Span<byte> dest)
         {
             float* fPtr = (float*)blockPtr;
             for (int i = 0; i < ScalarCount; i++)
@@ -198,9 +199,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         /// <param name="blockPtr">Block pointer</param>
         /// <param name="dest">Destination</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe void CopyTo(Block8x8F* blockPtr, MutableSpan<float> dest)
+        public static unsafe void CopyTo(Block8x8F* blockPtr, Span<float> dest)
         {
-            Marshal.Copy((IntPtr)blockPtr, dest.Data, dest.Offset, ScalarCount);
+            blockPtr->CopyTo(dest);
         }
 
         /// <summary>
@@ -220,7 +221,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         /// Copy raw 32bit floating point data to dest
         /// </summary>
         /// <param name="dest">Destination</param>
-        public unsafe void CopyTo(MutableSpan<int> dest)
+        public unsafe void CopyTo(Span<int> dest)
         {
             fixed (Vector4* ptr = &this.V0L)
             {

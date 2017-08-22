@@ -43,6 +43,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// </summary>
         public byte Selector { get; private set; }
 
+        /// <summary>
+        /// Gets the <see cref="Buffer{T}"/> storing the "raw" frequency-domain decoded blocks.
+        /// We need to apply IDCT, dequantiazition and unzigging to transform them into color-space blocks.
+        /// This is done by <see cref="OldJpegDecoderCore.ProcessBlocksIntoJpegImageChannels{TPixel}"/>.
+        /// When <see cref="OldJpegDecoderCore.IsProgressive"/>==true, we are touching these blocks multiple times - each time we process a Scan.
+        /// </summary>
         public Buffer<DecodedBlock> DecodedBlocks { get; private set; }
 
         /// <summary>
